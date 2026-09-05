@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Env / segredos
+.env
+backend/secrets/
+
+# Node / Next.js
+node_modules/
+.next/
+frontend/dist/
+frontend/build/
+
+# Artefatos do sistema/WSL
+*:Zone.Identifier
+
+# Editor
+.vscode/
+.idea/
