@@ -10,8 +10,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 0 — Fundamentos e Infraestrutura
 
-- [ ] Provisionar ambiente com GPU (mínimo 16GB de VRAM) e stack de
-      inferência local (Ollama ou vLLM)
+- [x] Provisionar ambiente com GPU (mínimo 16GB de VRAM) e stack de
+      inferência local (Ollama ou vLLM) — confirmado: NVIDIA RTX 4080 com
+      16376MiB de VRAM (`nvidia-smi`), Ollama 0.30.6 instalado e rodando
+      (`localhost:11434`), modelo carregado 100% na GPU (`ollama ps`)
 - [x] Criar estrutura inicial do repositório conforme `docs/CONVENTIONS.md`
       (monorepo `backend/` + `frontend/`, pastas de módulo vazias)
 - [x] Configurar `.env.example` e carregamento de configuração
