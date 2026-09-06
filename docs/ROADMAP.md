@@ -23,26 +23,29 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 1 — Modelo Local e Roteador Básico (R1, R3)
 
-- [ ] Subir modelo open-source quantizado 7B–8B via **Ollama** (decisão
-      fechada, ver `docs/ARCHITECTURE.md` tabela de escopo)
-- [ ] Implementar cliente de modelo externo via **OpenRouter**
+- [x] Subir modelo open-source quantizado 7B–8B via **Ollama** (decisão
+      fechada, ver `docs/ARCHITECTURE.md` tabela de escopo) — parcialmente:
+      implementado o cliente HTTP (`app.router.ollama_client`) com testes;
+      falta subir um Ollama de verdade e baixar os GGUF, isso acontece junto
+      da avaliação comparativa abaixo (Fase 10)
+- [x] Implementar cliente de modelo externo via **OpenRouter**
 - [ ] Implementar avaliação comparativa entre 9 configurações candidatas
       (custo/qualidade): Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M e
       Q5_K_M); Qwen3 8B (Q5_K_M e Q8_0); Phi-4-mini/Phi-4; Gemma-4-12B
       (4-bit e 8-bit) — insumo para a Fase 8 (`# MVP: confirmar
       disponibilidade do Gemma-4-12B no registro do Ollama antes de rodar`)
-- [ ] Implementar classificador de intenção simples (regras + LLM) para
+- [x] Implementar classificador de intenção simples (regras + LLM) para
       decidir entre modelo local, modelo externo e RAG — domínios
       Vendas/Suporte/Atendimento tentam local+RAG primeiro, escalando para
       externo se fora de escopo, RAG vazio ou complexidade alta;
       Agendamento sempre local. Estratégia de sinal de complexidade
       (heurística ou LLM) selecionável por config
       (`ROUTER_COMPLEXITY_STRATEGY`)
-- [ ] Garantir que o classificador considera as últimas 1–3 mensagens da
+- [x] Garantir que o classificador considera as últimas 1–3 mensagens da
       conversa (não só a mensagem isolada), para resolver confirmações
       curtas a ofertas feitas pelo próprio assistente (ex.: aceite de
       agendamento proposto)
-- [ ] Adicionar log básico de decisões do roteador (intenção escolhida,
+- [x] Adicionar log básico de decisões do roteador (intenção escolhida,
       custo/latência estimados)
 
 ## Fase 2 — Entrada Multimodal e RAG Textual (R2, R4, R5)
