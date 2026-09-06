@@ -23,7 +23,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 1 — Modelo Local e Roteador Básico (R1, R3)
 
-- [x] Subir modelo open-source quantizado 7B–8B via **Ollama** (decisão
+- [~] Subir modelo open-source quantizado 7B–8B via **Ollama** (decisão
       fechada, ver `docs/ARCHITECTURE.md` tabela de escopo) — parcialmente:
       implementado o cliente HTTP (`app.router.ollama_client`) com testes;
       falta subir um Ollama de verdade e baixar os GGUF, isso acontece junto
@@ -41,6 +41,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       Agendamento sempre local. Estratégia de sinal de complexidade
       (heurística ou LLM) selecionável por config
       (`ROUTER_COMPLEXITY_STRATEGY`)
+- [ ] Revisitar a resolução de ambiguidade entre domínios no classificador
+      (hoje: qualquer ambiguidade — 0 ou 2+ domínios casados por palavra-chave
+      — colapsa para `fora_escopo`, que escala ao modelo externo) assim que o
+      conjunto de teste rotulado de `eval/router_intents/` existir (Fase 10),
+      para decidir se outra ordem de prioridade ou outra estratégia de
+      desempate melhora a acurácia de roteamento
 - [x] Garantir que o classificador considera as últimas 1–3 mensagens da
       conversa (não só a mensagem isolada), para resolver confirmações
       curtas a ofertas feitas pelo próprio assistente (ex.: aceite de

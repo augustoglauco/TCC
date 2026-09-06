@@ -38,14 +38,14 @@ class LLMClient(Protocol):
     async def generate(self, prompt: str, **kwargs) -> LLMResponse: ...
 ```
 
-- **`OllamaClient`** — chama a API HTTP local (`OLLAMA_BASE_URL`, default
-  `http://localhost:11434`), modelo ativo via `OLLAMA_MODEL`. Mapeia
+- **`OllamaClient`** — chama a API HTTP local (`LOCAL_MODEL_BASE_URL`, default
+  `http://localhost:11434`), modelo ativo via `LOCAL_MODEL_NAME`. Mapeia
   `prompt_eval_count`/`eval_count` e `load_duration`/`eval_duration` da
   resposta do Ollama para `LLMResponse`. `estimated_cost_usd = 0.0`.
 - **`OpenRouterClient`** — API compatível com OpenAI, modelo via
-  `OPENROUTER_MODEL` (variável de config, sem default fixado nesta fase —
+  `EXTERNAL_MODEL_NAME` (variável de config, sem default fixado nesta fase —
   decidir na hora de rodar o benchmark real). Chave em
-  `OPENROUTER_API_KEY` (`.env.example`, sem valor real versionado).
+  `EXTERNAL_MODEL_API_KEY` (`.env.example`, sem valor real versionado).
   `estimated_cost_usd` calculado a partir de uma tabela pequena de
   preço-por-token em config (por modelo), multiplicando pelos tokens de
   entrada/saída devolvidos pela API.
@@ -152,12 +152,16 @@ em banco nesta fase** — isso é a tabela `router_logs` da Fase 6.
 
 ## 3. Configuração (`config.py` / `.env.example`)
 
-Novas variáveis:
-- `OLLAMA_BASE_URL` (default `http://localhost:11434`)
-- `OLLAMA_MODEL` (modelo local ativo em produção/dev — distinto dos 9
+Novas variáveis — com nomes propositalmente neutros de provedor
+(reaproveitam a convenção já existente em `config.py`/`.env.example`), para
+trocar Ollama/OpenRouter por outro runtime sem renomear configuração:
+
+- `LOCAL_MODEL_BASE_URL` (default `http://localhost:11434`)
+- `LOCAL_MODEL_NAME` (modelo local ativo em produção/dev — distinto dos 9
   candidatos usados só na avaliação comparativa em `eval/`)
-- `OPENROUTER_API_KEY` (sem valor real versionado)
-- `OPENROUTER_MODEL` (sem default fixado nesta fase)
+- `EXTERNAL_MODEL_BASE_URL` (default `https://openrouter.ai/api/v1`)
+- `EXTERNAL_MODEL_API_KEY` (sem valor real versionado)
+- `EXTERNAL_MODEL_NAME` (sem default fixado nesta fase)
 - `ROUTER_COMPLEXITY_STRATEGY` (`heuristic` | `llm`, default `heuristic`
   — mais barato, sem chamada extra de LLM)
 - `LOCAL_LLM_TIMEOUT_S` (default `30`)
@@ -192,7 +196,7 @@ Resultado por config em `eval/latency/results.json` /
 
 A comparação "local x externo" do `docs/EVALUATION.md` #3 roda separada,
 uma vez, usando a config local "vencedora" da comparação entre as 9 contra
-o `OPENROUTER_MODEL` escolhido no momento do benchmark.
+o `EXTERNAL_MODEL_NAME` escolhido no momento do benchmark.
 
 ## 5. Testes (`backend/tests/`)
 
@@ -215,5 +219,5 @@ o `OPENROUTER_MODEL` escolhido no momento do benchmark.
   registrado em `docs/ROADMAP.md`).
 - MCP Google Calendar / intenção de agendamento com coleta de dados — Fase 4.
 - Persistência de `router_logs` em PostgreSQL — Fase 6.
-- Escolha final do `OPENROUTER_MODEL` — decidir na hora de rodar o
+- Escolha final do `EXTERNAL_MODEL_NAME` — decidir na hora de rodar o
   benchmark real, não bloqueia esta fase.
