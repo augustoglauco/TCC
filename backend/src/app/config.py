@@ -12,9 +12,18 @@ class Settings(BaseSettings):
     local_model_base_url: str = "http://localhost:11434"
     local_model_name: str = "llama3.1:8b"
 
-    external_model_base_url: str = "https://api.openai.com/v1"
+    external_model_base_url: str = "https://openrouter.ai/api/v1"
     external_model_api_key: str = "changeme"
-    external_model_name: str = "gpt-4o-mini"
+    # MVP: sem default fixado — decidir o modelo (formato "provider/model" do
+    # OpenRouter, ex.: "anthropic/claude-3.5-haiku") na hora do benchmark real
+    # (ver docs/superpowers/specs/2026-09-05-roteador-basico-design.md §6).
+    external_model_name: str = ""
+    external_model_price_per_1k_input_tokens: float = 0.0
+    external_model_price_per_1k_output_tokens: float = 0.0
+
+    router_complexity_strategy: str = "heuristic"
+    local_llm_timeout_s: float = 30.0
+    external_llm_timeout_s: float = 30.0
 
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
