@@ -46,6 +46,11 @@ Depois de implementar:
 3. Se a tarefa revelou uma decisão de arquitetura não coberta em
    `docs/ARCHITECTURE.md` (ou `docs/FRONTEND.md`), registre a decisão lá
    antes de finalizar — não deixe a decisão implícita só no código.
+3b. Documentação sempre reflete o estado atual (`CLAUDE.md`, regra 9): se a
+   implementação mudou stack, estrutura de pastas, contrato de API, fluxo ou
+   convenção de teste em relação ao que `ARCHITECTURE.md`, `FRONTEND.md`,
+   `CONVENTIONS.md` ou `EVALUATION.md` descrevem, atualize o documento
+   correspondente nesta mesma tarefa — não deixe para uma sessão futura.
 4. Proponha uma mensagem de commit no formato de `docs/CONVENTIONS.md`
    (ex.: `feat(mcp-b2b): implementa ferramenta de cotação automática (R12,
    Fase 5)`) — não crie o commit sozinho, apenas proponha a mensagem para o

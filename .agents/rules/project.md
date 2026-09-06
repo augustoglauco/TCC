@@ -43,3 +43,8 @@ implementar qualquer mudança:
 6. Se uma tarefa exigir uma decisão de arquitetura não coberta nos
    documentos acima, pare e proponha a atualização de
    `docs/ARCHITECTURE.md` antes de prosseguir.
+7. Documentação sempre reflete o estado atual: ao desenvolver, alterar ou
+   evoluir algo que um `.md` acima descreve, atualize esse documento na
+   mesma tarefa (não só o `ROADMAP.md` ou decisões novas de arquitetura —
+   também `CONVENTIONS.md`, `FRONTEND.md`, `EVALUATION.md` quando o que
+   mudou for stack, estrutura de pastas, contrato de API ou avaliação).

@@ -86,6 +86,14 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 8. **Ao ficar em dúvida entre duas abordagens de implementação**, prefira a
    mais simples que atenda ao MVP descrito — não a mais "completa" ou
    "genérica". Este é um protótipo de TCC, não um produto de produção.
+9. **Documentação sempre reflete o estado atual.** Sempre que desenvolver,
+   alterar ou evoluir algo que um documento de `docs/` descreve (stack,
+   estrutura de pastas, contrato de API, fluxos, playbooks, convenções de
+   teste, etc.), atualize o `.md` correspondente (`ARCHITECTURE.md`,
+   `FRONTEND.md`, `CONVENTIONS.md`, `EVALUATION.md`) na mesma tarefa, não
+   depois — isso vale além do `ROADMAP.md` (regra 5) e de decisões de
+   arquitetura novas (regra 6). Documentação desatualizada é tratada como um
+   bug a corrigir antes de considerar a tarefa concluída.
 
 ## Fora de escopo (não implementar sem pedido explícito)
 
