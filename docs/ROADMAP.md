@@ -23,12 +23,25 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 1 — Modelo Local e Roteador Básico (R1, R3)
 
-- [ ] Subir modelo open-source quantizado 7B–8B (ex.: Llama 3.1 8B, Qwen2.5
-      7B) via Ollama/vLLM
-- [ ] Implementar avaliação comparativa simples entre 2 modelos candidatos
-      (custo/qualidade) — insumo para a Fase 8
+- [ ] Subir modelo open-source quantizado 7B–8B via **Ollama** (decisão
+      fechada, ver `docs/ARCHITECTURE.md` tabela de escopo)
+- [ ] Implementar cliente de modelo externo via **OpenRouter**
+- [ ] Implementar avaliação comparativa entre 9 configurações candidatas
+      (custo/qualidade): Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M e
+      Q5_K_M); Qwen3 8B (Q5_K_M e Q8_0); Phi-4-mini/Phi-4; Gemma-4-12B
+      (4-bit e 8-bit) — insumo para a Fase 8 (`# MVP: confirmar
+      disponibilidade do Gemma-4-12B no registro do Ollama antes de rodar`)
 - [ ] Implementar classificador de intenção simples (regras + LLM) para
-      decidir entre modelo local, modelo externo e RAG
+      decidir entre modelo local, modelo externo e RAG — domínios
+      Vendas/Suporte/Atendimento tentam local+RAG primeiro, escalando para
+      externo se fora de escopo, RAG vazio ou complexidade alta;
+      Agendamento sempre local. Estratégia de sinal de complexidade
+      (heurística ou LLM) selecionável por config
+      (`ROUTER_COMPLEXITY_STRATEGY`)
+- [ ] Garantir que o classificador considera as últimas 1–3 mensagens da
+      conversa (não só a mensagem isolada), para resolver confirmações
+      curtas a ofertas feitas pelo próprio assistente (ex.: aceite de
+      agendamento proposto)
 - [ ] Adicionar log básico de decisões do roteador (intenção escolhida,
       custo/latência estimados)
 
@@ -57,6 +70,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       ao Usuário, Agendamento de Visita
 - [ ] Escrever playbooks iniciais de atendimento para Suporte Técnico e
       Atendimento ao Usuário
+- [ ] Escrever playbook de Vendas com oferta proativa de agendamento de
+      visita quando a conversa indica intenção de compra e o portfólio de
+      produtos é compatível (ver `docs/ARCHITECTURE.md`, linha "Domínios"
+      da tabela de escopo)
 
 ## Fase 4 — Agendamento via MCP e Monitor de Tom (R8, R11)
 
