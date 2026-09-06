@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -21,7 +22,9 @@ class Settings(BaseSettings):
     external_model_price_per_1k_input_tokens: float = 0.0
     external_model_price_per_1k_output_tokens: float = 0.0
 
-    router_complexity_strategy: str = "heuristic"
+    # Tipado como Literal para falhar na carga das settings (erro claro) em vez
+    # de estourar um ValueError obscuro dentro do classificador em runtime.
+    router_complexity_strategy: Literal["heuristic", "llm"] = "heuristic"
     local_llm_timeout_s: float = 30.0
     external_llm_timeout_s: float = 30.0
 

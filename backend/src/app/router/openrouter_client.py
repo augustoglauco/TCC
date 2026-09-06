@@ -52,6 +52,10 @@ class OpenRouterClient:
         if completion_tokens:
             cost += (completion_tokens / 1000) * self._price_out
 
+        # MVP: assume o formato bem-formado da resposta do OpenRouter — sem
+        # checagem defensiva contra `choices` vazio/ausente (um payload
+        # malformado vira KeyError/IndexError, tratado pelo orchestrator como
+        # falha do backend externo).
         return LLMResponse(
             text=data["choices"][0]["message"]["content"],
             prompt_tokens=prompt_tokens,
