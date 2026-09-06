@@ -67,6 +67,18 @@ async def test_classify_falls_back_to_heuristic_when_llm_returns_invalid_json():
     assert result.domain == "fora_escopo"
 
 
+async def test_classify_falls_back_to_heuristic_when_llm_returns_valid_json_non_object():
+    llm_client = _FakeLLMClient("42")
+
+    result = await classify(
+        "Qual a capital da França?",
+        strategy="llm",
+        llm_client=llm_client,
+    )
+
+    assert result.domain == "fora_escopo"
+
+
 async def test_classify_raises_when_strategy_llm_without_client():
     with pytest.raises(ValueError):
         await classify("Qual a capital da França?", strategy="llm")

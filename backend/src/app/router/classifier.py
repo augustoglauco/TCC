@@ -106,5 +106,5 @@ async def classify(
 
     try:
         return await _classify_with_llm(message, recent_messages, llm_client)
-    except (json.JSONDecodeError, ValidationError):
+    except (json.JSONDecodeError, ValidationError, TypeError):
         return _classify_heuristic_fallback(message, recent_messages)
