@@ -25,30 +25,17 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 1 — Modelo Local e Roteador Básico (R1, R3)
 
-- [~] Subir modelo open-source quantizado 7B–8B via **Ollama** (decisão
-      fechada, ver `docs/ARCHITECTURE.md` tabela de escopo) — parcialmente:
-      implementado o cliente HTTP (`app.router.ollama_client`) com testes;
-      Ollama já está instalado e rodando no ambiente de desenvolvimento
-      (`ollama --version` 0.30.6, API respondendo em `localhost:11434`) e o
-      `OllamaClient` foi verificado com uma chamada real (não mockada) contra
-      `gemma4:12b-it-q4_K_M`, já disponível localmente — resposta correta,
-      todos os campos de `LLMResponse` (tokens, breakdown de duração, custo
-      zero) conferidos. Falta ainda baixar os demais candidatos e rodar a
-      avaliação comparativa abaixo
+- [x] Subir modelo open-source quantizado 7B–8B via **Ollama** (decisão
+      fechada, ver `docs/ARCHITECTURE.md` tabela de escopo) — cliente HTTP
+      implementado (`app.router.ollama_client`) com testes; Ollama instalado
+      e rodando no ambiente de desenvolvimento (`ollama --version` 0.30.6,
+      API respondendo em `localhost:11434`); `OllamaClient` verificado com
+      chamada real (não mockada) contra `gemma4:12b-it-q4_K_M`, já disponível
+      localmente — resposta correta, todos os campos de `LLMResponse`
+      (tokens, breakdown de duração, custo zero) conferidos. A comparação
+      entre os 9 candidatos (qual modelo usar como `LOCAL_MODEL_NAME` final)
+      fica para a Fase 10 — ver nota ali
 - [x] Implementar cliente de modelo externo via **OpenRouter**
-- [ ] Implementar avaliação comparativa entre 9 configurações candidatas
-      (custo/qualidade): Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M e
-      Q5_K_M); Qwen3 8B (Q5_K_M e Q8_0); Phi-4-mini/Phi-4; Gemma-4-12B
-      (4-bit e 8-bit) — insumo para a Fase 8. `Gemma-4-12B` **confirmado
-      disponível** (`gemma4:12b-it-q4_K_M`, já baixado — falta a variante
-      8-bit); os demais 8 ainda precisam ser baixados
-      (`ollama pull`). `# MVP: primeira chamada após trocar de modelo tem
-      custo de carga (cold start) bem maior que chamadas subsequentes —
-      verificado empiricamente (~13s incluindo load vs. resposta imediata
-      com modelo já quente); o script de benchmark deve descartar uma
-      chamada de "aquecimento" por configuração antes de medir latência,
-      e o timeout usado no benchmark deve ser maior que o
-      LOCAL_LLM_TIMEOUT_S (30s) de produção para não falhar no cold start`
 - [x] Implementar classificador de intenção simples (regras + LLM) para
       decidir entre modelo local, modelo externo e RAG — domínios
       Vendas/Suporte/Atendimento tentam local+RAG primeiro, escalando para
@@ -179,14 +166,32 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
+- [ ] Rodar a avaliação comparativa entre as 9 configurações de modelo local
+      candidatas (Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B Q4_K_M/Q5_K_M; Qwen3 8B
+      Q5_K_M/Q8_0; Phi-4-mini/Phi-4; Gemma-4-12B 4-bit/8-bit — ver
+      `docs/ARCHITECTURE.md` tabela de escopo), medindo custo/latência e
+      qualidade de resposta **contra o sistema completo** (RAG real da Fase 2,
+      playbooks de domínio da Fase 3), não isoladamente — decidida
+      deliberadamente para o final do roadmap, e não na Fase 1, porque uma
+      medição precoce sem RAG/playbooks reais não reflete a qualidade real de
+      cada candidato e arriscaria descartar/escolher um modelo com base em
+      sinal incompleto. Resultado: escolha do `LOCAL_MODEL_NAME` final.
+      `Gemma-4-12B` (4-bit) já confirmado disponível localmente
+      (`gemma4:12b-it-q4_K_M`); os demais 8 ainda precisam ser baixados
+      (`ollama pull`). `# MVP: primeira chamada após trocar de modelo tem
+      custo de carga (cold start) bem maior que chamadas subsequentes —
+      verificado empiricamente (~13s incluindo load vs. resposta quase
+      imediata com modelo já quente); o script de benchmark deve descartar
+      uma chamada de "aquecimento" por configuração antes de medir latência,
+      com timeout maior que o LOCAL_LLM_TIMEOUT_S (30s) de produção`
 - [ ] Montar conjunto de teste rotulado para acurácia do roteador + matriz de
       confusão entre os quatro domínios
 - [ ] Montar conjunto de perguntas de referência para qualidade do RAG
       (avaliação manual em escala 1–5 + LLM-as-judge)
-- [ ] Medir latência (média e p95) do modelo local x modelo externo para o
-      mesmo conjunto de prompts
-- [ ] Consolidar os resultados das três avaliações em um relatório curto para
-      apresentação ao orientador
+- [ ] Medir latência (média e p95) do modelo local (configuração vencedora
+      da comparação acima) x modelo externo para o mesmo conjunto de prompts
+- [ ] Consolidar os resultados das quatro avaliações em um relatório curto
+      para apresentação ao orientador
 
 ## Fase 11 — Preparação da Entrega
 
