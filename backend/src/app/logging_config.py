@@ -11,9 +11,20 @@ class ConversationIdFilter(logging.Filter):
         return True
 
 
+_BASE_FIELDS = frozenset({"level", "logger", "message", "conversation_id", "exc_info"})
+
+
 class JsonFormatter(logging.Formatter):
+    """Formatter JSON com merge de campos estruturados do roteador.
+
+    Campos extras entram via `logger.info("evento", extra={"router": {...}})`
+    e são mesclados no topo do payload — não aninhados nem re-serializados —
+    para que `domain`, `backend_escolhido`, `custo_estimado_usd` etc. sejam
+    consultáveis direto no log (metodologia de docs/EVALUATION.md).
+    """
+
     def format(self, record: logging.LogRecord) -> str:
-        payload = {
+        payload: dict[str, object] = {
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
@@ -21,7 +32,14 @@ class JsonFormatter(logging.Formatter):
         }
         if record.exc_info:
             payload["exc_info"] = self.formatException(record.exc_info)
-        return json.dumps(payload, ensure_ascii=False)
+
+        extra = getattr(record, "router", None)
+        if isinstance(extra, dict):
+            # Campos-base vencem em caso de colisão: um extra malformado não
+            # pode mascarar level/message nem derrubar o log.
+            payload.update({k: v for k, v in extra.items() if k not in _BASE_FIELDS})
+
+        return json.dumps(payload, ensure_ascii=False, default=str)
 
 
 def configure_logging(log_level: str = "INFO") -> None:

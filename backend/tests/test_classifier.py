@@ -1,4 +1,5 @@
 import pytest
+from pydantic import ValidationError
 
 from app.router.classifier import ClassificationResult, classify
 from app.router.llm_client import LLMResponse
@@ -10,6 +11,25 @@ class _FakeLLMClient:
 
     async def generate(self, prompt: str) -> LLMResponse:
         return LLMResponse(text=self._text, total_duration_ms=10.0)
+
+
+class _RaisingLLMClient:
+    """Simula falha de infraestrutura do backend local dentro de `generate()`."""
+
+    def __init__(self, exception: Exception) -> None:
+        self._exception = exception
+
+    async def generate(self, prompt: str) -> LLMResponse:
+        raise self._exception
+
+
+def _validation_error_do_ollama() -> ValidationError:
+    """ValidationError igual à que `OllamaClient.generate()` levanta com payload inválido."""
+    try:
+        LLMResponse(text=None, total_duration_ms=None)  # type: ignore[arg-type]
+    except ValidationError as exc:
+        return exc
+    raise AssertionError("esperava ValidationError")
 
 
 async def test_classify_matches_domain_by_keyword():
@@ -82,3 +102,38 @@ async def test_classify_falls_back_to_heuristic_when_llm_returns_valid_json_non_
 async def test_classify_raises_when_strategy_llm_without_client():
     with pytest.raises(ValueError):
         await classify("Qual a capital da França?", strategy="llm")
+
+
+async def test_classify_propaga_falha_de_conexao_do_llm_client():
+    llm_client = _RaisingLLMClient(ConnectionError("ollama fora do ar"))
+
+    with pytest.raises(ConnectionError):
+        await classify("Qual a capital da França?", strategy="llm", llm_client=llm_client)
+
+
+async def test_classify_propaga_validation_error_vinda_do_generate():
+    # Regressão: `OllamaClient.generate()` levanta ValidationError quando o
+    # Ollama devolve payload malformado. Isso é falha de infraestrutura do
+    # backend local, não "LLM respondeu conteúdo não parseável" — não pode
+    # ser engolido pelo fallback heurístico (que levaria a fora_escopo →
+    # backend externo, ver spec §2.4).
+    llm_client = _RaisingLLMClient(_validation_error_do_ollama())
+
+    with pytest.raises(ValidationError):
+        await classify("Qual a capital da França?", strategy="llm", llm_client=llm_client)
+
+
+async def test_classify_ignora_acentos_ao_casar_palavras_chave():
+    assert (await classify("qual o preco do produto?")).domain == "vendas"
+    assert (await classify("nao funciona o aparelho")).domain == "suporte"
+    assert (await classify("quero fazer a devolucao da compra")).domain == "atendimento"
+
+
+async def test_classify_ignora_acentos_no_contexto_recente():
+    result = await classify(
+        "sim, pode ser",
+        recent_messages=["Posso agendar uma visita para voce conhecer o showroom?"],
+        strategy="heuristic",
+    )
+
+    assert result.domain == "agendamento"

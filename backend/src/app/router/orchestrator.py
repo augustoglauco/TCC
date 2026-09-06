@@ -1,4 +1,3 @@
-import json
 import logging
 
 from pydantic import BaseModel
@@ -9,7 +8,16 @@ from app.router.rag_client import RAGClient, RAGConnectionError
 
 logger = logging.getLogger(__name__)
 
-_DOMAINS_COM_RAG = {"vendas", "suporte", "atendimento"}
+# MVP: simplificações conscientes desta fase (ver docs/ROADMAP.md e
+# docs/superpowers/specs/2026-09-05-roteador-basico-design.md §6):
+# - os documentos devolvidos pelo RAG são usados só como sinal de roteamento
+#   (vazio x não-vazio); não são injetados no prompt do LLM — isso entra na
+#   Fase 2, junto do RAG real (Qdrant);
+# - não há persistência das decisões do roteador em banco — a tabela
+#   `router_logs` é da Fase 6; por ora só o log estruturado;
+# - o texto completo da resposta do LLM vai para o log estruturado em nível
+#   INFO. Aceitável neste protótipo, mas é uma simplificação deliberada
+#   (risco de PII/volume em produção) a revisitar antes de qualquer uso real.
 
 
 class RouterDecision(BaseModel):
@@ -42,12 +50,31 @@ async def handle_message(
     rag_client: RAGClient,
     complexity_strategy: str,
 ) -> RouterDecision:
-    classification = await classify(
-        message=message,
-        recent_messages=recent_messages,
-        strategy=complexity_strategy,
-        llm_client=local_client,
-    )
+    # Com strategy="llm" a classificação chama o backend local. Falha aqui é
+    # falha de infraestrutura local, não "conteúdo não classificável" — vira
+    # LocalBackendIndisponivelError em vez de degradar em silêncio para
+    # fora_escopo (que rotearia ao backend externo). O wrapping fica aqui, e
+    # não dentro de `classify()`, para não criar import circular.
+    try:
+        classification = await classify(
+            message=message,
+            recent_messages=recent_messages,
+            strategy=complexity_strategy,
+            llm_client=local_client,
+        )
+    except Exception as exc:
+        logger.error(
+            "backend_indisponivel",
+            extra={
+                "router": {
+                    "event": "backend_indisponivel",
+                    "backend": "local",
+                    "etapa": "classificacao",
+                    "erro": str(exc),
+                }
+            },
+        )
+        raise LocalBackendIndisponivelError(str(exc)) from exc
 
     backend_escolhido = "local"
     motivo = "nenhum"
@@ -61,7 +88,10 @@ async def handle_message(
         try:
             documentos = await rag_client.search(message, classification.domain)
         except RAGConnectionError:
-            logger.error(json.dumps({"event": "rag_indisponivel", "domain": classification.domain}))
+            logger.error(
+                "rag_indisponivel",
+                extra={"router": {"event": "rag_indisponivel", "domain": classification.domain}},
+            )
             raise
 
         if not documentos:
@@ -76,13 +106,16 @@ async def handle_message(
         response = await client.generate(message)
     except Exception as exc:
         logger.error(
-            json.dumps(
-                {
+            "backend_indisponivel",
+            extra={
+                "router": {
                     "event": "backend_indisponivel",
                     "backend": backend_escolhido,
                     "domain": classification.domain,
+                    "etapa": "geracao",
+                    "erro": str(exc),
                 }
-            )
+            },
         )
         if backend_escolhido == "local":
             raise LocalBackendIndisponivelError(str(exc)) from exc
@@ -101,5 +134,8 @@ async def handle_message(
         tokens_saida=response.completion_tokens,
         custo_estimado_usd=response.estimated_cost_usd,
     )
-    logger.info(json.dumps({"event": "router_decision", **decisao.model_dump()}))
+    logger.info(
+        "router_decision",
+        extra={"router": {"event": "router_decision", **decisao.model_dump()}},
+    )
     return decisao

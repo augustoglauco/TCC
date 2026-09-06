@@ -1,4 +1,5 @@
 import json
+import unicodedata
 from typing import Literal
 
 from pydantic import BaseModel, ValidationError
@@ -24,6 +25,17 @@ _DOMAIN_KEYWORDS: dict[Domain, list[str]] = {
     "agendamento": ["agendar", "visita", "marcar", "horário"],
 }
 
+
+def _normalize(text: str) -> str:
+    """Minúsculas sem diacríticos — usuário real escreve "nao funciona"/"preco"."""
+    decomposed = unicodedata.normalize("NFKD", text.lower())
+    return decomposed.encode("ascii", "ignore").decode("ascii")
+
+
+_DOMAIN_KEYWORDS_NORMALIZED: dict[Domain, list[str]] = {
+    domain: [_normalize(k) for k in keywords] for domain, keywords in _DOMAIN_KEYWORDS.items()
+}
+
 _COMPLEXITY_LENGTH_THRESHOLD = 280
 _COMPLEXITY_QUESTION_MARK_THRESHOLD = 2
 
@@ -43,14 +55,18 @@ Responda apenas com JSON no formato: \
 
 
 def _match_domain_by_keywords(message: str) -> Domain | None:
-    lowered = message.lower()
+    normalized = _normalize(message)
     matched = [
         domain
-        for domain, keywords in _DOMAIN_KEYWORDS.items()
-        if any(k in lowered for k in keywords)
+        for domain, keywords in _DOMAIN_KEYWORDS_NORMALIZED.items()
+        if any(k in normalized for k in keywords)
     ]
     if len(matched) == 1:
         return matched[0]
+    # MVP: qualquer ambiguidade (0 ou 2+ domínios) colapsa para o fallback
+    # `fora_escopo`, que escala ao modelo externo (lado seguro). Revisitar a
+    # ordem de prioridade entre domínios quando o conjunto rotulado de
+    # `eval/router_intents/` existir (ver docs/ROADMAP.md, Fase 1).
     return None
 
 
@@ -74,14 +90,30 @@ def _classify_heuristic_fallback(message: str, recent_messages: list[str]) -> Cl
     )
 
 
+def _parse_llm_classification(raw_text: str) -> ClassificationResult:
+    parsed = json.loads(raw_text)
+    return ClassificationResult(**parsed)
+
+
 async def _classify_with_llm(
     message: str, recent_messages: list[str], llm_client: LLMClient
 ) -> ClassificationResult:
     contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
     prompt = _CLASSIFIER_PROMPT_TEMPLATE.format(contexto=contexto, mensagem=message)
+
+    # A chamada de rede fica FORA do try/except abaixo de propósito: qualquer
+    # exceção dela é falha de infraestrutura do backend local (inclusive o
+    # ValidationError que o OllamaClient levanta com payload malformado) e
+    # deve propagar para o orchestrator virar LocalBackendIndisponivelError,
+    # nunca degradar em silêncio para a heurística (spec §2.4).
     response = await llm_client.generate(prompt)
-    parsed = json.loads(response.text)
-    return ClassificationResult(**parsed)
+
+    try:
+        return _parse_llm_classification(response.text)
+    except (json.JSONDecodeError, ValidationError, TypeError):
+        # O LLM respondeu, mas o conteúdo não é JSON de classificação válido:
+        # aí sim cai para a heurística só nesta requisição (spec §2.2).
+        return _classify_heuristic_fallback(message, recent_messages)
 
 
 async def classify(
@@ -104,7 +136,4 @@ async def classify(
     if llm_client is None:
         raise ValueError("llm_client é obrigatório quando strategy='llm'")
 
-    try:
-        return await _classify_with_llm(message, recent_messages, llm_client)
-    except (json.JSONDecodeError, ValidationError, TypeError):
-        return _classify_heuristic_fallback(message, recent_messages)
+    return await _classify_with_llm(message, recent_messages, llm_client)
