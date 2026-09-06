@@ -26,14 +26,27 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [~] Subir modelo open-source quantizado 7B–8B via **Ollama** (decisão
       fechada, ver `docs/ARCHITECTURE.md` tabela de escopo) — parcialmente:
       implementado o cliente HTTP (`app.router.ollama_client`) com testes;
-      falta subir um Ollama de verdade e baixar os GGUF, isso acontece junto
-      da avaliação comparativa abaixo (Fase 10)
+      Ollama já está instalado e rodando no ambiente de desenvolvimento
+      (`ollama --version` 0.30.6, API respondendo em `localhost:11434`) e o
+      `OllamaClient` foi verificado com uma chamada real (não mockada) contra
+      `gemma4:12b-it-q4_K_M`, já disponível localmente — resposta correta,
+      todos os campos de `LLMResponse` (tokens, breakdown de duração, custo
+      zero) conferidos. Falta ainda baixar os demais candidatos e rodar a
+      avaliação comparativa abaixo
 - [x] Implementar cliente de modelo externo via **OpenRouter**
 - [ ] Implementar avaliação comparativa entre 9 configurações candidatas
       (custo/qualidade): Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M e
       Q5_K_M); Qwen3 8B (Q5_K_M e Q8_0); Phi-4-mini/Phi-4; Gemma-4-12B
-      (4-bit e 8-bit) — insumo para a Fase 8 (`# MVP: confirmar
-      disponibilidade do Gemma-4-12B no registro do Ollama antes de rodar`)
+      (4-bit e 8-bit) — insumo para a Fase 8. `Gemma-4-12B` **confirmado
+      disponível** (`gemma4:12b-it-q4_K_M`, já baixado — falta a variante
+      8-bit); os demais 8 ainda precisam ser baixados
+      (`ollama pull`). `# MVP: primeira chamada após trocar de modelo tem
+      custo de carga (cold start) bem maior que chamadas subsequentes —
+      verificado empiricamente (~13s incluindo load vs. resposta imediata
+      com modelo já quente); o script de benchmark deve descartar uma
+      chamada de "aquecimento" por configuração antes de medir latência,
+      e o timeout usado no benchmark deve ser maior que o
+      LOCAL_LLM_TIMEOUT_S (30s) de produção para não falhar no cold start`
 - [x] Implementar classificador de intenção simples (regras + LLM) para
       decidir entre modelo local, modelo externo e RAG — domínios
       Vendas/Suporte/Atendimento tentam local+RAG primeiro, escalando para
