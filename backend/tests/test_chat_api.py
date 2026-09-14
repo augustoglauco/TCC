@@ -141,6 +141,42 @@ def test_audio_e_transcrito_e_usado_como_mensagem(client, fakes):
     assert fakes["local"].prompts == ["quero agendar uma visita"]
 
 
+def test_audio_transcrito_aparece_em_transcribed_message(client, fakes):
+    fakes["stt"] = _FakeSttClient(text="quero agendar uma visita")
+    client.app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
+    audio_b64 = base64.b64encode(b"conteudo-de-audio-fake").decode()
+
+    response = client.post("/api/chat/messages", json={"audio": audio_b64})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["transcribed_message"] == "quero agendar uma visita"
+    assert body["domain"] == "agendamento"
+
+
+def test_mensagem_de_texto_simples_nao_preenche_transcribed_message(client):
+    response = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"})
+
+    assert response.status_code == 200
+    assert response.json()["transcribed_message"] is None
+
+
+def test_sem_message_e_sem_audio_retorna_422(client):
+    response = client.post("/api/chat/messages", json={})
+
+    assert response.status_code == 422
+
+
+def test_audio_sem_fala_e_sem_message_retorna_422(client, fakes):
+    fakes["stt"] = _FakeSttClient(text="")
+    client.app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
+    audio_b64 = base64.b64encode(b"audio-sem-fala-reconhecivel").decode()
+
+    response = client.post("/api/chat/messages", json={"audio": audio_b64})
+
+    assert response.status_code == 422
+
+
 def test_audio_transcrito_vazio_cai_de_volta_para_mensagem_de_texto(client, fakes):
     fakes["stt"] = _FakeSttClient(text="")
     client.app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
