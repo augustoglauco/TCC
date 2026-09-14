@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     local_llm_timeout_s: float = 30.0
     external_llm_timeout_s: float = 30.0
 
+    # MVP: tamanho fixo por config, sem troca automática por VRAM disponível
+    # em runtime (ver docs/ARCHITECTURE.md §7).
+    stt_model_size: str = "small"
+
     qdrant_host: str = "localhost"
     qdrant_port: int = 6333
 

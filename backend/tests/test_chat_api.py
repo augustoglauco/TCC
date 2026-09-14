@@ -1,3 +1,5 @@
+import base64
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -7,11 +9,13 @@ from app.api.chat import (
     get_external_client,
     get_local_client,
     get_rag_client,
+    get_stt_client,
     reset_conversation_history,
 )
 from app.api.chat import router as chat_router
 from app.router.llm_client import LLMResponse
 from app.router.rag_client import Document
+from app.stt.whisper_client import SttIndisponivelError
 
 
 class _FakeLLMClient:
@@ -32,23 +36,45 @@ class _FakeRAGClient:
         return self._documents
 
 
+class _FakeSttClient:
+    def __init__(self, text: str = "", error: Exception | None = None) -> None:
+        self._text = text
+        self._error = error
+        self.received_audio: list[bytes] = []
+
+    async def transcribe(self, audio_bytes: bytes) -> str:
+        self.received_audio.append(audio_bytes)
+        if self._error is not None:
+            raise self._error
+        return self._text
+
+
 @pytest.fixture
 def fakes():
     return {
         "local": _FakeLLMClient(LLMResponse(text="resposta local", total_duration_ms=10.0)),
         "external": _FakeLLMClient(LLMResponse(text="resposta externa", total_duration_ms=20.0)),
         "rag": _FakeRAGClient(documents=[Document(content="...", source="catalogo", score=0.9)]),
+        # MVP: STT não é exercitado por padrão nos testes que não enviam
+        # `audio` — texto vazio nunca chega a ser usado nesses casos.
+        "stt": _FakeSttClient(text=""),
     }
 
 
-@pytest.fixture
-def client(fakes):
+def _build_app(fakes: dict, complexity_strategy: str = "heuristic") -> FastAPI:
     app = FastAPI()
     app.include_router(chat_router)
     app.dependency_overrides[get_local_client] = lambda: fakes["local"]
     app.dependency_overrides[get_external_client] = lambda: fakes["external"]
     app.dependency_overrides[get_rag_client] = lambda: fakes["rag"]
-    app.dependency_overrides[get_complexity_strategy] = lambda: "heuristic"
+    app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
+    app.dependency_overrides[get_complexity_strategy] = lambda: complexity_strategy
+    return app
+
+
+@pytest.fixture
+def client(fakes):
+    app = _build_app(fakes)
 
     reset_conversation_history()
     with TestClient(app) as test_client:
@@ -95,31 +121,74 @@ def test_conversation_id_mantem_historico_entre_chamadas(client):
     assert isolated["domain"] == "fora_escopo"
 
 
-def test_campo_de_audio_e_aceito_mas_ignorado(client, fakes):
+def test_audio_e_transcrito_e_usado_como_mensagem(client, fakes):
+    # A mensagem de texto ("ignorado") não deveria chegar ao LLM: quando há
+    # áudio, o texto transcrito é a mensagem efetiva (ver comentário MVP em
+    # `app.api.chat.send_message`).
+    fakes["stt"] = _FakeSttClient(text="quero agendar uma visita")
+    client.app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
+    audio_b64 = base64.b64encode(b"conteudo-de-audio-fake").decode()
+
     response = client.post(
         "/api/chat/messages",
-        json={"message": "quero agendar uma visita", "audio": "base64-fake-audio"},
+        json={"message": "ignorado", "audio": audio_b64},
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body["domain"] == "agendamento"
-    # Nenhum prompt enviado ao LLM deve conter o payload de áudio — ele é
-    # apenas aceito no schema, nunca processado (MVP: STT ainda não existe).
-    assert all("base64-fake-audio" not in prompt for prompt in fakes["local"].prompts)
+    assert fakes["stt"].received_audio == [b"conteudo-de-audio-fake"]
+    assert fakes["local"].prompts == ["quero agendar uma visita"]
 
 
-def test_dependencia_indisponivel_retorna_503():
+def test_audio_transcrito_vazio_cai_de_volta_para_mensagem_de_texto(client, fakes):
+    fakes["stt"] = _FakeSttClient(text="")
+    client.app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
+    audio_b64 = base64.b64encode(b"audio-sem-fala-reconhecivel").decode()
+
+    response = client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "audio": audio_b64},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["domain"] == "agendamento"
+    assert fakes["local"].prompts == ["quero agendar uma visita"]
+
+
+def test_audio_base64_invalido_retorna_400(client):
+    response = client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "audio": "isto-nao-e-base64!!!"},
+    )
+
+    assert response.status_code == 400
+
+
+def test_stt_indisponivel_retorna_503(fakes):
+    fakes["stt"] = _FakeSttClient(error=SttIndisponivelError("modelo não carregou"))
+    app = _build_app(fakes)
+    audio_b64 = base64.b64encode(b"audio").decode()
+
+    reset_conversation_history()
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/api/chat/messages",
+            json={"message": "quero agendar uma visita", "audio": audio_b64},
+        )
+    reset_conversation_history()
+
+    assert response.status_code == 503
+
+
+def test_dependencia_indisponivel_retorna_503(fakes):
     class _FailingLLMClient:
         async def generate(self, prompt: str) -> LLMResponse:
             raise ConnectionError("ollama fora do ar")
 
-    app = FastAPI()
-    app.include_router(chat_router)
-    app.dependency_overrides[get_local_client] = lambda: _FailingLLMClient()
-    app.dependency_overrides[get_external_client] = lambda: _FailingLLMClient()
-    app.dependency_overrides[get_rag_client] = lambda: _FakeRAGClient()
-    app.dependency_overrides[get_complexity_strategy] = lambda: "heuristic"
+    fakes["local"] = _FailingLLMClient()
+    fakes["external"] = _FailingLLMClient()
+    app = _build_app(fakes)
 
     reset_conversation_history()
     with TestClient(app) as test_client:

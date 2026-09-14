@@ -14,6 +14,7 @@ dependencies = [
     "alembic>=1.13",
     "qdrant-client>=1.9",
     "mcp>=1.0",
+    "faster-whisper>=1.0",
 ]
 
 [project.optional-dependencies]

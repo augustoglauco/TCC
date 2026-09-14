@@ -23,3 +23,8 @@ def test_settings_have_router_defaults():
 def test_settings_external_model_points_to_openrouter():
     settings = Settings(_env_file=None)
     assert settings.external_model_base_url == "https://openrouter.ai/api/v1"
+
+
+def test_settings_have_stt_model_size_default():
+    settings = Settings(_env_file=None)
+    assert settings.stt_model_size == "small"

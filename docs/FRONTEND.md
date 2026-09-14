@@ -108,7 +108,7 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `POST /api/auth/login` , `POST /api/auth/signup` | Autenticação simplificada |
 | `GET /api/appointments` | Lista agendamentos criados via chat (leitura) |
 
-`POST /api/chat/messages` — contrato já implementado (Fase 2, texto apenas;
+`POST /api/chat/messages` — contrato já implementado (Fase 2, texto e áudio;
 ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
 
 ```jsonc
@@ -116,7 +116,7 @@ ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
 {
   "message": "Quero um orçamento para o produto X",
   "conversation_id": "uuid-opcional, omitir para iniciar conversa nova",
-  "audio": null // MVP: campo reservado, aceito mas não processado (STT pendente)
+  "audio": null // opcional, base64 (wav ou mp3) — processado via STT (R5) quando presente
 }
 
 // Response (200)
@@ -131,19 +131,31 @@ ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
 
 MVP desta primeira versão do endpoint: resposta síncrona (JSON), sem
 streaming/SSE (`GET /api/chat/stream/{conversation_id}` continua tarefa da
-Fase 8, frontend); o campo `audio` é aceito no schema mas ignorado — o STT
-(R5) ainda não existe (ver `backend/src/app/stt/`); o histórico usado para
-resolver confirmações curtas (R3) é mantido em memória por processo no
-backend (últimas 1-3 mensagens por `conversation_id`), sem persistência em
-Postgres nem resumo automático (isso é R9/Fase 6).
+Fase 8, frontend); o formato do campo `audio` no contrato não mudou (só
+base64, sem campo novo para indicar o formato) — mas ele agora é processado
+via STT local (faster-whisper, ver `backend/src/app/stt/whisper_client.py`),
+com suporte a pelo menos wav e mp3 (formato detectado pelo conteúdo dos
+bytes, não pela extensão). Quando `audio` vem preenchido, o texto transcrito
+substitui `payload.message` como mensagem efetiva enviada ao roteador — o
+áudio é tratado como alternativa ao campo de texto (push-to-talk), não como
+complemento dele; se a transcrição vier vazia (áudio sem fala reconhecível),
+o backend usa `payload.message` como fallback, que por isso continua
+obrigatório no schema. Falha do serviço de STT retorna HTTP 503. Limitações
+que restam: sem robustez a áudio ruidoso/silencioso, sem VAD, idioma fixo em
+português (ver `docs/ARCHITECTURE.md` §5/§7). O histórico usado para resolver
+confirmações curtas (R3) é mantido em memória por processo no backend
+(últimas 1-3 mensagens por `conversation_id`), sem persistência em Postgres
+nem resumo automático (isso é R9/Fase 6).
 
 **Estado atual do frontend (Fase 7/8, ver `docs/ROADMAP.md`):** o scaffold
 Next.js foi criado em `frontend/` (App Router, TypeScript `strict`, Tailwind
 CSS, ESLint + Prettier, Vitest + Testing Library) e o widget de chat consome
 `POST /api/chat/messages` (`frontend/lib/api/chat.ts`) na versão **texto
-apenas / síncrona**: sem upload de imagem, sem gravação de áudio, sem
-streaming (SSE) e sem cards ricos — essas partes dependem de R5/R6/R11/R12 no
-backend, ainda não implementados, e ficam para quando essas dependências
+apenas / síncrona**: sem upload de imagem, sem gravação de áudio (mesmo com
+R5 já implementado no backend — a UI de gravação em si é tarefa própria de
+frontend, ainda não feita), sem streaming (SSE) e sem cards ricos — essas
+partes dependem de R6/R11/R12 no backend (ainda não implementados) e/ou de
+trabalho de UI ainda não iniciado, e ficam para quando essas dependências
 existirem. Todas as demais páginas listadas na Seção 2 (exceto `/suporte`,
 que já tem um FAQ estático real) são *stubs* de navegação ("em construção"),
 sem nenhuma chamada de API — a integração real com o catálogo, pedidos,

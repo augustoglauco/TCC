@@ -9,6 +9,7 @@ from app.logging_config import configure_logging
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
 from app.router.rag_client import NullRAGClient
+from app.stt.whisper_client import WhisperSttClient
 
 
 def create_app() -> FastAPI:
@@ -45,6 +46,10 @@ def create_app() -> FastAPI:
     # da ingestão de PDFs/textos (ver docs/ROADMAP.md).
     app.state.rag_client = NullRAGClient()
     app.state.complexity_strategy = settings.router_complexity_strategy
+    # MVP: modelo carregado sob demanda (lazy) na mesma GPU do modelo local de
+    # chat — contenção de VRAM entre os dois é um risco conhecido (ver
+    # docs/ARCHITECTURE.md §7).
+    app.state.stt_client = WhisperSttClient(model_size=settings.stt_model_size)
 
     app.include_router(chat_router)
 
