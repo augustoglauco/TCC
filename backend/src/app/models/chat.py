@@ -3,13 +3,18 @@
 Contrato espelhado em `docs/FRONTEND.md` §4 (`POST /api/chat/messages`).
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class ChatMessageRequest(BaseModel):
     """Corpo de `POST /api/chat/messages`."""
 
-    message: str = Field(..., min_length=1, description="Texto da mensagem do usuário.")
+    # MVP: `message` é opcional para permitir o caso de áudio puro (widget de
+    # chat gravando pelo microfone, sem digitar nada) — o validador abaixo
+    # garante que pelo menos um dos dois (message ou audio) venha preenchido.
+    message: str | None = Field(
+        default=None, min_length=1, description="Texto da mensagem do usuário."
+    )
     conversation_id: str | None = Field(
         default=None,
         description="ID da conversa a retomar; se omitido, uma nova conversa é criada.",
@@ -25,6 +30,12 @@ class ChatMessageRequest(BaseModel):
         description="Áudio da mensagem em base64 (ex.: wav, mp3) — processado via STT (R5).",
     )
 
+    @model_validator(mode="after")
+    def _message_ou_audio_obrigatorio(self) -> "ChatMessageRequest":
+        if not self.message and not self.audio:
+            raise ValueError("Informe 'message' e/ou 'audio'.")
+        return self
+
 
 class ChatMessageResponse(BaseModel):
     """Resposta de `POST /api/chat/messages`."""
@@ -35,4 +46,10 @@ class ChatMessageResponse(BaseModel):
     backend_used: str = Field(..., description='"local" ou "externo".')
     escalation_reason: str = Field(
         ..., description='"nenhum", "fora_escopo", "rag_vazio" ou "complexidade_alta".'
+    )
+    # MVP: só preenchido quando o request trouxe `audio` — é como o frontend
+    # exibe "o texto transcrito na bolha do usuário" (docs/FRONTEND.md §3),
+    # já que a transcrição só existe no backend, não no cliente.
+    transcribed_message: str | None = Field(
+        default=None, description="Texto transcrito do áudio enviado, quando aplicável."
     )

@@ -69,11 +69,13 @@ async def send_message(
     # MVP: quando `payload.audio` vem preenchido, o texto transcrito
     # substitui `payload.message` como mensagem efetiva enviada ao
     # orchestrator (o widget do chat usa áudio como alternativa ao campo de
-    # texto — push-to-talk — não como complemento dele). Se a transcrição vier
-    # vazia (ex.: áudio sem fala reconhecível), cai de volta para
-    # `payload.message`, que continua obrigatório no schema (ver
-    # docs/ARCHITECTURE.md §5).
+    # texto — push-to-talk — não como complemento dele), e também é devolvido
+    # em `transcribed_message` na resposta (é assim que o frontend exibe o
+    # texto transcrito na bolha do usuário, já que só o backend sabe o
+    # resultado da transcrição). Se a transcrição vier vazia (ex.: áudio sem
+    # fala reconhecível), cai de volta para `payload.message`, se houver.
     effective_message = payload.message
+    transcribed_message: str | None = None
     if payload.audio:
         try:
             audio_bytes = base64.b64decode(payload.audio, validate=True)
@@ -95,6 +97,13 @@ async def send_message(
 
         if transcribed:
             effective_message = transcribed
+            transcribed_message = transcribed
+
+    if not effective_message:
+        raise HTTPException(
+            status_code=422,
+            detail="Não foi possível entender o áudio. Tente novamente ou digite sua mensagem.",
+        )
 
     recent_messages = list(_conversation_history.get(conversation_id, []))
 
@@ -130,4 +139,5 @@ async def send_message(
         domain=decision.domain,
         backend_used=decision.backend_escolhido,
         escalation_reason=decision.motivo_escalonamento,
+        transcribed_message=transcribed_message,
     )
