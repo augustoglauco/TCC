@@ -8,6 +8,26 @@ from app.config import get_settings
 from app.rag.embeddings import TextEmbedder
 
 
+class _FakeQdrantRAGClient:
+    """Dublê de `QdrantRAGClient` — só registra o que seria gravado no Qdrant
+    (ou levanta `error`, se informado), sem depender de uma instância real.
+
+    Compartilhado entre `test_rag_ingest.py` e `test_rag_api.py` (mesmo
+    contrato, `upsert_chunks`, exercitado em duas camadas diferentes: pipeline
+    de ingestão e endpoint HTTP).
+    """
+
+    def __init__(self, error: Exception | None = None) -> None:
+        self._error = error
+        self.upserts: list[tuple[list[str], str, str]] = []
+
+    async def upsert_chunks(self, chunks: list[str], source: str, domain: str) -> int:
+        if self._error is not None:
+            raise self._error
+        self.upserts.append((chunks, source, domain))
+        return len(chunks)
+
+
 @pytest.fixture(scope="session")
 def text_embedder() -> TextEmbedder:
     """Instância compartilhada do embedder real (sentence-transformers).

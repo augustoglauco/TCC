@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.chat import router as chat_router
+from app.api.rag import router as rag_router
 from app.config import get_settings
 from app.logging_config import configure_logging
 from app.rag.embeddings import TextEmbedder
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     app.state.stt_client = WhisperSttClient(model_size=settings.stt_model_size)
 
     app.include_router(chat_router)
+    app.include_router(rag_router)
 
     return app
 

@@ -89,6 +89,16 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (`# MVP: somente leitura, sem sincronização incremental`)
 - [ ] Implementar crawler restrito a um conjunto pré-definido de páginas
       (até ~5), sem agendamento (`# MVP: escopo restrito`)
+- [x] Implementar endpoint HTTP de upload para ingestão de documentos no RAG
+      (`POST /api/rag/documents`, `backend/src/app/api/rag.py`), complementando
+      `backend/scripts/ingest_sample_docs.py` — decisão registrada em
+      `docs/ARCHITECTURE.md` §5. Reaproveita `app.rag.ingest.ingest_bytes`
+      (refatorado a partir de `ingest_file`, que agora delega para a mesma
+      função a partir de `path.read_bytes()`); erros de formato de arquivo
+      (`.csv` etc.) viram 400, domínio inválido 422 (`Literal` do Pydantic),
+      texto não-UTF-8/PDF corrompido também 400 (`UnicodeDecodeError`/
+      `PyPdfError` tratados explicitamente — sem isso viravam 500 crus),
+      Qdrant indisponível 503
 
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
@@ -170,6 +180,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [~] Implementar página de Agendamentos (leitura dos agendamentos criados
       via chat, R11) — apenas stub de rota (`app/agendamentos/page.tsx`), sem
       consumir a API (que ainda não existe no backend)
+- [ ] Implementar página administrativa de ingestão de documentos
+      (`/admin/ingestao`, fora da navegação pública) consumindo `POST
+      /api/rag/documents` — decisão registrada em `docs/ARCHITECTURE.md` §5 e
+      `docs/FRONTEND.md` §8
 
 ## Fase 8 — Frontend: Widget de Chat (ver `docs/FRONTEND.md` §3)
 
