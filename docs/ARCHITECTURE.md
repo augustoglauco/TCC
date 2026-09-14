@@ -126,6 +126,20 @@ continua existindo (ainda decide o roteamento), mas deixa de ser o único
 efeito da busca. Sem isso, ter RAG de verdade não mudaria a qualidade da
 resposta, só a decisão de roteamento.
 
+**Decisão registrada (Fase 2):** a ingestão de documentos no RAG passa a ter
+um segundo caminho além do script `backend/scripts/ingest_sample_docs.py` —
+um endpoint HTTP (`POST /api/rag/documents`, upload de PDF/texto +
+`domain`) e uma página administrativa simples no frontend (`/admin/ingestao`,
+fora da navegação pública) que o consome. O script continua existindo para
+ingestão em lote/repetível; o endpoint cobre o caso de adicionar um
+documento avulso sem precisar de acesso ao terminal do servidor. Reabre
+parcialmente a exclusão geral de "painel administrativo" que constava em
+`docs/FRONTEND.md` §8 (ver decisão revista lá) — mantida para
+catálogo/estoque/preços, mas não mais uma proibição geral. `# MVP:` mesmas
+simplificações do script — sem autenticação (rota não listada na navegação
+pública, mas não protegida por login), sem deduplicação/reingestão
+incremental (mesma limitação de `app.rag.qdrant_client.upsert_chunks`).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

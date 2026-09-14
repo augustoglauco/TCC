@@ -16,13 +16,27 @@ from app.rag.qdrant_client import QdrantRAGClient
 
 logger = logging.getLogger(__name__)
 
-_SUPPORTED_SUFFIXES = {".txt", ".md", ".pdf"}
+SUPPORTED_SUFFIXES = {".txt", ".md", ".pdf"}
 
 
-def _read_text(path: Path) -> str:
-    if path.suffix.lower() == ".pdf":
-        return extract_text_from_pdf(path)
-    return path.read_text(encoding="utf-8")
+def _extract_text(filename: str, content: bytes) -> str:
+    if Path(filename).suffix.lower() == ".pdf":
+        return extract_text_from_pdf(content)
+    return content.decode("utf-8")
+
+
+async def ingest_bytes(client: QdrantRAGClient, filename: str, content: bytes, domain: str) -> int:
+    """Extrai texto, faz chunking e grava um arquivo em memória no Qdrant.
+
+    Mesma lógica de `ingest_file`, mas a partir de bytes já carregados (usado
+    pelo endpoint de upload `POST /api/rag/documents`, que recebe o arquivo
+    via HTTP em vez de lê-lo do disco). Retorna o número de chunks gravados.
+    """
+    text = _extract_text(filename, content)
+    chunks = chunk_text(text)
+    count = await client.upsert_chunks(chunks, source=filename, domain=domain)
+    logger.info("rag_ingest_upload arquivo=%s domain=%s chunks=%d", filename, domain, count)
+    return count
 
 
 async def ingest_file(client: QdrantRAGClient, path: Path, domain: str) -> int:
@@ -30,11 +44,7 @@ async def ingest_file(client: QdrantRAGClient, path: Path, domain: str) -> int:
 
     Retorna o número de chunks gravados.
     """
-    text = _read_text(path)
-    chunks = chunk_text(text)
-    count = await client.upsert_chunks(chunks, source=path.name, domain=domain)
-    logger.info("rag_ingest_arquivo arquivo=%s domain=%s chunks=%d", path, domain, count)
-    return count
+    return await ingest_bytes(client, path.name, path.read_bytes(), domain)
 
 
 async def ingest_directory(client: QdrantRAGClient, directory: Path) -> int:
@@ -47,7 +57,7 @@ async def ingest_directory(client: QdrantRAGClient, directory: Path) -> int:
     """
     total = 0
     for path in sorted(directory.rglob("*")):
-        if not path.is_file() or path.suffix.lower() not in _SUPPORTED_SUFFIXES:
+        if not path.is_file() or path.suffix.lower() not in SUPPORTED_SUFFIXES:
             continue
         domain = path.parent.name
         total += await ingest_file(client, path, domain)

@@ -34,9 +34,17 @@ target-version = "py311"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.flake8-bugbear]
-# `Depends(...)` como default de parâmetro é o idioma padrão do FastAPI, não
-# um mutable default problemático — evita falso positivo do B008.
-extend-immutable-calls = ["fastapi.Depends", "fastapi.params.Depends"]
+# `Depends(...)`/`Form(...)`/`File(...)` como default de parâmetro é o idioma
+# padrão do FastAPI, não um mutable default problemático — evita falso
+# positivo do B008.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.params.Depends",
+    "fastapi.Form",
+    "fastapi.params.Form",
+    "fastapi.File",
+    "fastapi.params.File",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
