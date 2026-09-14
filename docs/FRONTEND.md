@@ -214,7 +214,18 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
   streaming.
 - Testes: **Vitest + Testing Library** para componentes (ex.: `MessageBubble`
   renderiza cards corretamente); **Playwright** para os fluxos E2E críticos —
-  enviar mensagem de texto, enviar imagem, fluxo de pedido, login.
+  enviar mensagem de texto, enviar imagem, fluxo de pedido, login. Config em
+  `playwright.config.ts` (só Chromium; `webServer` reaproveita `npm run dev`
+  se já estiver rodando). `# MVP: os testes E2E do chat mockam
+  POST /api/chat/messages via page.route em vez de depender do backend e do
+  modelo local (Ollama) reais — cobre o comportamento da UI (envio, exibição
+  de resposta, erro/retry); integração real contra o backend fica para os
+  testes de integração da Fase 9` — ver `frontend/tests/e2e/chat.spec.ts`.
+  Existe também um **smoke test manual** (`frontend/tests/smoke/chat.smoke.spec.ts`,
+  `npm run test:e2e:smoke`, config separada `playwright.smoke.config.ts`) que
+  bate no backend e no Ollama reais, sem mock — exige os dois rodando
+  localmente; não faz parte da suíte padrão (`npm run test:e2e`) por causa da
+  dependência externa e da latência de LLM real.
 - Lint/format: ESLint + Prettier, mesma disciplina de PRs pequenos descrita
   em `docs/CONVENTIONS.md`.
 
