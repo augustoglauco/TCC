@@ -26,10 +26,15 @@ Objetivo: avançar `docs/ROADMAP.md` um item de cada vez, seguindo o loop de
 5. **Revise o resultado**: leia o diff/resumo do `mvp-task`, confira que os
    testes relevantes rodaram e passaram, e que `docs/ROADMAP.md` foi marcado
    (`- [x]`) para esse item.
-6. **Proponha o commit** com a mensagem sugerida pelo `mvp-task`, no formato
+6. **Rode a skill `code-review`** sobre o diff gerado por este item antes de
+   propor o commit. Se o item tocou algo sensível (MCPs, autenticação,
+   `.env`/segredos, endpoints expostos), rode também `security-review`. Trate
+   achados `high`/`critical` como bloqueantes — corrija antes de seguir;
+   achados `low`/estilo, mencione ao usuário mas não bloqueiam o commit.
+7. **Proponha o commit** com a mensagem sugerida pelo `mvp-task`, no formato
    de `docs/CONVENTIONS.md`. Não faça `git commit` sem o usuário confirmar,
    a menos que ele já tenha autorizado commits automáticos nesta sessão.
-7. **Pare aí** — não encadeie automaticamente para o próximo item do roadmap
+8. **Pare aí** — não encadeie automaticamente para o próximo item do roadmap
    sem o usuário pedir novamente (`/proximo-passo` ou "próximo").
 
 ## Guardrails
