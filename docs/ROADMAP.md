@@ -58,7 +58,13 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 2 — Entrada Multimodal e RAG Textual (R2, R4, R5)
 
-- [ ] Implementar entrada de texto e áudio no chat
+- [~] Implementar entrada de texto e áudio no chat — texto concluído:
+      `POST /api/chat/messages` (`backend/src/app/api/chat.py`,
+      `backend/src/app/models/chat.py`), encaminhando ao orchestrator com
+      histórico em memória por processo (últimas 1-3 mensagens por
+      `conversation_id`, resposta síncrona/JSON, sem SSE); campo `audio`
+      aceito no schema mas ainda não processado (`# MVP: ...`). Falta a
+      parte de áudio, que depende do item de STT logo abaixo
 - [ ] Implementar STT (áudio → texto) com suporte a pelo menos dois formatos
       comuns (ex.: wav e mp3)
 - [ ] Implementar ingestão de PDFs/textos e busca vetorial (RAG)
