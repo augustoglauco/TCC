@@ -1,4 +1,4 @@
-"""Schemas Pydantic do endpoint de chat (R2, R3).
+"""Schemas Pydantic do endpoint de chat (R2, R3, R5).
 
 Contrato espelhado em `docs/FRONTEND.md` §4 (`POST /api/chat/messages`).
 """
@@ -14,15 +14,15 @@ class ChatMessageRequest(BaseModel):
         default=None,
         description="ID da conversa a retomar; se omitido, uma nova conversa é criada.",
     )
-    # MVP: campo de áudio reservado, processamento (STT) ainda não implementado
-    # (ver backend/src/app/stt/__init__.py e docs/ROADMAP.md, Fase 2). O valor
-    # é aceito para não quebrar o contrato do frontend, mas é ignorado pelo
-    # orchestrator — nenhum STT é executado sobre ele nesta tarefa.
+    # MVP: quando preenchido, é decodificado e transcrito via STT local
+    # (faster-whisper, ver `backend/src/app/stt/whisper_client.py`) antes de
+    # chegar ao orchestrator — suporta wav e mp3 (formato detectado pelo
+    # conteúdo, não pela extensão). Limitações que restam: sem robustez a
+    # áudio ruidoso/silencioso, sem VAD, transcrição em português fixo (ver
+    # docs/ARCHITECTURE.md §5/§7).
     audio: str | None = Field(
         default=None,
-        description=(
-            "Áudio da mensagem (ex.: base64), reservado para STT — não processado nesta fase."
-        ),
+        description="Áudio da mensagem em base64 (ex.: wav, mp3) — processado via STT (R5).",
     )
 
 

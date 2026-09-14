@@ -58,15 +58,16 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 2 — Entrada Multimodal e RAG Textual (R2, R4, R5)
 
-- [~] Implementar entrada de texto e áudio no chat — texto concluído:
-      `POST /api/chat/messages` (`backend/src/app/api/chat.py`,
+- [x] Implementar entrada de texto e áudio no chat — `POST
+      /api/chat/messages` (`backend/src/app/api/chat.py`,
       `backend/src/app/models/chat.py`), encaminhando ao orchestrator com
       histórico em memória por processo (últimas 1-3 mensagens por
       `conversation_id`, resposta síncrona/JSON, sem SSE); campo `audio`
-      aceito no schema mas ainda não processado (`# MVP: ...`). Falta a
-      parte de áudio, que depende do item de STT logo abaixo
-- [ ] Implementar STT (áudio → texto) com suporte a pelo menos dois formatos
-      comuns (ex.: wav e mp3)
+      (base64) processado via STT quando presente, com fallback para
+      `payload.message` se a transcrição vier vazia (`# MVP: ...`)
+- [x] Implementar STT (áudio → texto) com suporte a pelo menos dois formatos
+      comuns (ex.: wav e mp3) — `backend/src/app/stt/whisper_client.py`
+      (faster-whisper, GPU local), formato detectado pelo conteúdo dos bytes
 - [ ] Implementar ingestão de PDFs/textos e busca vetorial (RAG)
 - [ ] Implementar conector de leitura a um banco de dados relacional
       (`# MVP: somente leitura, sem sincronização incremental`)

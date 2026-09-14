@@ -121,7 +121,7 @@ básico dos resultados.
 | Requisito | MVP (protótipo) | Evolução futura |
 | --- | --- | --- |
 | Modelo local (RTX40780 GPU 16GB) | Servido via **Ollama** (decisão fechada — simplicidade de setup/gestão de modelos e instrumentação de latência pronta via `eval_count`/`eval_duration`, ver `docs/TECHNOLOGY_STACK.md`). Avaliação comparativa ampliada entre **9 configurações**: Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M e Q5_K_M); Qwen3 8B (Q5_K_M e Q8_0); Phi-4-mini/Phi-4 (3.8B–7B); Gemma-4-12B (4-bit e 8-bit) — ver riscos de VRAM na Seção 7 | Fine-tuning de domínio, otimização de latência em produção |
-| Entrada multimodal | Texto e áudio (STT) funcionando, com suporte a mais de um formato de áudio (ex.: wav e mp3); imagem com fluxo básico | Robustez para áudio ruidoso, formatos adicionais, streaming |
+| Entrada multimodal | Texto e áudio (STT) funcionando, com suporte a mais de um formato de áudio (ex.: wav e mp3); imagem com fluxo básico. STT via **faster-whisper rodando na mesma GPU local** (decisão fechada — consistente com a estratégia "local-first" do resto do projeto, sem custo por chamada; ver risco de contenção de VRAM na Seção 7), modelo `small` ou `medium` conforme resultado da Seção 7 | Robustez para áudio ruidoso, formatos adicionais, streaming |
 | Roteador/Orquestrador | Classificador de intenção simples (regras + LLM) para local x externo x RAG, com log básico de decisões (custo/latência). Modelo externo acessado via **OpenRouter** (uma chave cobrindo múltiplos provedores). Domínios Vendas/Suporte/Atendimento tentam local+RAG primeiro e só escalam para externo se: fora de escopo, RAG sem resultado relevante, ou complexidade alta; Agendamento é sempre local. Classificador considera as últimas 1–3 mensagens da conversa (não só a mensagem isolada), necessário para resolver confirmações curtas a ofertas feitas pelo próprio assistente (ex.: aceite de agendamento proposto) | Roteador adaptativo com aprendizado contínuo e métricas de custo/qualidade em produção |
 | RAG — textos, PDFs, BD e sites (obrigatório) | Ingestão de PDFs/textos + busca vetorial; conector básico de leitura a um BD relacional; crawler ampliado, cobrindo até 5 sites/páginas pré-definidas | Conector com escrita/sincronização incremental, crawler amplo e agendado, múltiplas fontes web |
 | RAG sobre imagens / tratamento de imagem (obrigatório) | Busca multimodal via embeddings (ex.: CLIP) em catálogo ampliado, com reranking básico + OCR para imagens dirigidas | Catálogo completo, embeddings mais robustos, busca externa refinada |
@@ -183,6 +183,15 @@ autenticação por parceiro nem exposição pública**.
   de OOM. "Gemma-4-12B" ainda não foi verificado como disponível no registro
   do Ollama; confirmar (`ollama pull` ou `ollama.com/library`) antes de
   incluir nos resultados finais.
+- STT (faster-whisper) roda na mesma GPU que o modelo local de chat —
+  contenção de VRAM entre os dois é um risco real. `# MVP: default fechado
+  em small (STT_MODEL_SIZE, ~1-2GB de VRAM), sem lógica automática de troca
+  de tamanho por VRAM disponível em runtime — ajuste manual para medium/CPU/
+  API externa fica para depois do MVP, se necessário`.
+- Formato do áudio recebido em `POST /api/chat/messages`: `# MVP: detectado
+  a partir do conteúdo (magic bytes, via ffmpeg/faster-whisper), sem campo
+  explícito novo no schema (payload.audio continua só base64) — mantém o
+  contrato de docs/FRONTEND.md §4 estável`.
 - RAG multimodal é a parte mais custosa tecnicamente; o protótipo cobre um
   catálogo ampliado, mas não completo, com embeddings prontos (ex.: CLIP),
   sem treinar modelo próprio.
