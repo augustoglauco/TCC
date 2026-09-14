@@ -1,4 +1,5 @@
 import json
+import re
 import unicodedata
 from typing import Literal
 
@@ -90,8 +91,23 @@ def _classify_heuristic_fallback(message: str, recent_messages: list[str]) -> Cl
     )
 
 
+# MVP: alguns modelos locais (ex.: gemma) envolvem o JSON pedido em um bloco
+# de código markdown mesmo quando instruídos a responder só com JSON. Isso só
+# remove um fence que envolve a resposta inteira — não tenta extrair JSON em
+# meio a texto livre; sem esse tratamento, `json.loads` falhava e a
+# classificação correta do LLM era descartada silenciosamente para a
+# heurística (ver `_classify_with_llm`).
+_CODE_FENCE_RE = re.compile(r"^```(?:\w+)?\s*\n?(.*?)\n?```$", re.DOTALL)
+
+
+def _strip_code_fence(text: str) -> str:
+    stripped = text.strip()
+    match = _CODE_FENCE_RE.match(stripped)
+    return match.group(1) if match else stripped
+
+
 def _parse_llm_classification(raw_text: str) -> ClassificationResult:
-    parsed = json.loads(raw_text)
+    parsed = json.loads(_strip_code_fence(raw_text))
     return ClassificationResult(**parsed)
 
 

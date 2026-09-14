@@ -53,8 +53,13 @@ fácil revisar o resultado antes de aceitar.
      de navegador/terminal) em vez de aceitar às cegas.
    - Com o Claude Code CLI, revise o diff proposto e rode os testes
      relevantes (`pytest`) antes de aceitar.
-4. Marque o item como concluído (`- [x]`) em `docs/ROADMAP.md`.
-5. Faça commit seguindo a convenção de `docs/CONVENTIONS.md` (mensagem
+4. Rode a skill/comando `code-review` sobre o diff do item (e também
+   `security-review` quando o item tocar algo sensível — MCPs, autenticação,
+   segredos/`.env`, endpoints expostos). Achados `high`/`critical` bloqueiam
+   o commit; achados de estilo/baixo risco só ficam registrados. O
+   `/proximo-passo` já automatiza esse passo.
+5. Marque o item como concluído (`- [x]`) em `docs/ROADMAP.md`.
+6. Faça commit seguindo a convenção de `docs/CONVENTIONS.md` (mensagem
    referenciando requisito + fase).
 
 ## Boas práticas de revisão de agentes

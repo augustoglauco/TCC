@@ -87,6 +87,24 @@ async def test_classify_falls_back_to_heuristic_when_llm_returns_invalid_json():
     assert result.domain == "fora_escopo"
 
 
+async def test_classify_uses_llm_when_response_wrapped_in_markdown_code_fence():
+    # Regressão: alguns modelos (ex.: gemma) envolvem o JSON pedido em um
+    # bloco de código markdown mesmo quando instruídos a responder só com
+    # JSON. Sem tratar isso, `json.loads` falha e a resposta correta do LLM
+    # é descartada silenciosamente pelo fallback heurístico (ver classifier.py).
+    llm_client = _FakeLLMClient(
+        '```json\n{"domain": "agendamento", "complexity": "baixa", "confidence": 1.0}\n```'
+    )
+
+    result = await classify(
+        "preciso mudar a data da minha consulta na loja para semana que vem",
+        strategy="llm",
+        llm_client=llm_client,
+    )
+
+    assert result == ClassificationResult(domain="agendamento", complexity="baixa", confidence=1.0)
+
+
 async def test_classify_falls_back_to_heuristic_when_llm_returns_valid_json_non_object():
     llm_client = _FakeLLMClient("42")
 
