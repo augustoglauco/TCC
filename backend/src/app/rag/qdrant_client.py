@@ -8,6 +8,7 @@ implementação concreta (ingestão + busca), no módulo `app/rag/` conforme a
 estrutura de pastas de docs/CONVENTIONS.md.
 """
 
+import asyncio
 import logging
 import uuid
 
@@ -75,17 +76,33 @@ class QdrantRAGClient:
         self._collection_name = collection_name
         self._top_k = top_k
         self._score_threshold = score_threshold
+        # MVP: guarda em memória, confiável só dentro deste processo (um
+        # único worker Uvicorn, ver docs/CONVENTIONS.md) — evita repetir
+        # `collection_exists` (round trip ao Qdrant) em toda ingestão/busca
+        # depois da primeira confirmação. `_collection_lock` evita que duas
+        # chamadas concorrentes (ex.: duas ingestões quase simultâneas antes
+        # da collection existir) tentem criar a mesma collection ao mesmo
+        # tempo (race check-then-act entre `collection_exists` e
+        # `create_collection`).
+        self._collection_ready = False
+        self._collection_lock = asyncio.Lock()
 
     async def ensure_collection(self) -> None:
         """Cria a collection se ainda não existir (idempotente)."""
+        if self._collection_ready:
+            return
         try:
-            exists = await self._client.collection_exists(self._collection_name)
-            if not exists:
-                dimension = await self._embedder.get_dimension()
-                await self._client.create_collection(
-                    collection_name=self._collection_name,
-                    vectors_config=VectorParams(size=dimension, distance=Distance.COSINE),
-                )
+            async with self._collection_lock:
+                if self._collection_ready:  # outra chamada pode ter criado enquanto esperava
+                    return
+                exists = await self._client.collection_exists(self._collection_name)
+                if not exists:
+                    dimension = await self._embedder.get_dimension()
+                    await self._client.create_collection(
+                        collection_name=self._collection_name,
+                        vectors_config=VectorParams(size=dimension, distance=Distance.COSINE),
+                    )
+                self._collection_ready = True
         except Exception as exc:
             raise RAGConnectionError(str(exc)) from exc
 
@@ -94,6 +111,7 @@ class QdrantRAGClient:
         acionado no fluxo normal do orchestrator."""
         try:
             await self._client.delete_collection(self._collection_name)
+            self._collection_ready = False
         except Exception as exc:
             raise RAGConnectionError(str(exc)) from exc
 
@@ -109,16 +127,21 @@ class QdrantRAGClient:
             return 0
 
         await self.ensure_collection()
-        vectors = await self._embedder.embed(chunks)
-        points = [
-            PointStruct(
-                id=str(uuid.uuid4()),
-                vector=vector,
-                payload={"content": chunk, "source": source, "domain": domain},
-            )
-            for chunk, vector in zip(chunks, vectors, strict=True)
-        ]
         try:
+            # `embed()` (chamada ao modelo de embeddings) precisa estar
+            # dentro do mesmo try que o upsert — antes ficava fora e uma
+            # falha ali (ex.: erro do modelo com texto extraído de PDF)
+            # subia crua em vez de virar `RAGConnectionError`, que é o que
+            # `api/rag.py`/`api/chat.py` sabem tratar.
+            vectors = await self._embedder.embed(chunks)
+            points = [
+                PointStruct(
+                    id=str(uuid.uuid4()),
+                    vector=vector,
+                    payload={"content": chunk, "source": source, "domain": domain},
+                )
+                for chunk, vector in zip(chunks, vectors, strict=True)
+            ]
             await self._client.upsert(collection_name=self._collection_name, points=points)
         except Exception as exc:
             raise RAGConnectionError(str(exc)) from exc
@@ -135,9 +158,11 @@ class QdrantRAGClient:
         `app.router.rag_client.RAGConnectionError`).
         """
         try:
-            exists = await self._client.collection_exists(self._collection_name)
-            if not exists:
-                return []
+            if not self._collection_ready:
+                exists = await self._client.collection_exists(self._collection_name)
+                if not exists:
+                    return []
+                self._collection_ready = True
 
             [query_vector] = await self._embedder.embed([query])
             response = await self._client.query_points(
