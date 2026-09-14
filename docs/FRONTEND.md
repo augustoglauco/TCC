@@ -40,7 +40,7 @@ registrada aqui com o motivo.
 | Suporte / Central de Ajuda | `/suporte` | FAQ e documentação de produto — é justamente o conteúdo que o crawler (R4) e o RAG de Suporte/Atendimento (R7) devem indexar | Não |
 | Contato | `/contato` | Dados institucionais, formas de contato alternativas ao chat | Não |
 | **Chat** | widget global (todas as rotas) | Ponto de entrada único para os quatro domínios de atendimento — ver Seção 3 | Não (funciona anônimo; melhora com login) |
-| Admin — Ingestão de documentos | `/admin/ingestao` | Página interna (fora da navegação pública) para upload de PDF/texto e ingestão no RAG (R4), complementando `backend/scripts/ingest_sample_docs.py` — decisão registrada em `docs/ARCHITECTURE.md` §5 | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
+| Admin — Ingestão de documentos | `/admin/ingestao` | Página interna (fora do menu principal; link discreto só no rodapé, `components/layout/Footer.tsx`, para achar durante a demonstração do TCC) para upload de PDF/texto e ingestão no RAG (R4), complementando `backend/scripts/ingest_sample_docs.py` — decisão registrada em `docs/ARCHITECTURE.md` §5 | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
 
 Todas as páginas compartilham `layout.tsx`, que inclui o widget de chat — ele
 deve estar disponível em qualquer rota, inclusive durante o checkout.

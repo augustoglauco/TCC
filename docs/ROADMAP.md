@@ -181,9 +181,9 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       via chat, R11) — apenas stub de rota (`app/agendamentos/page.tsx`), sem
       consumir a API (que ainda não existe no backend)
 - [x] Implementar página administrativa de ingestão de documentos
-      (`/admin/ingestao`, fora da navegação pública) consumindo `POST
-      /api/rag/documents` — decisão registrada em `docs/ARCHITECTURE.md` §5 e
-      `docs/FRONTEND.md` §8
+      (`/admin/ingestao`, fora do menu principal; link discreto no rodapé,
+      `components/layout/Footer.tsx`) consumindo `POST /api/rag/documents` —
+      decisão registrada em `docs/ARCHITECTURE.md` §5 e `docs/FRONTEND.md` §8
 
 ## Fase 8 — Frontend: Widget de Chat (ver `docs/FRONTEND.md` §3)
 
