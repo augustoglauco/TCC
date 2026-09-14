@@ -5,7 +5,6 @@ Ver docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md.
 """
 
 import uuid
-from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,10 +24,6 @@ async def create_document(
     chunk_overlap: int,
     origin: str,
 ) -> RagDocument:
-    # MVP: usar datetime em Python (microsecond precision) em vez de confiar
-    # no server_default=func.now() do SQLite, que só tem segundo precision.
-    # Isso garante que docs criados em sequência rápida tenham timestamps
-    # diferentes, permitindo list_documents ordenar corretamente.
     document = RagDocument(
         id=uuid.UUID(document_id),
         filename=filename,
@@ -38,7 +33,6 @@ async def create_document(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
         origin=origin,
-        created_at=datetime.utcnow(),
     )
     session.add(document)
     await session.commit()
