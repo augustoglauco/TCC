@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 from app.rag.registry import create_document, delete_document, list_documents
@@ -28,6 +29,7 @@ async def test_create_document_grava_e_devolve_o_documento_criado(db_session):
 
 async def test_list_documents_retorna_mais_recente_primeiro(db_session):
     primeiro = await _cria(db_session, filename="primeiro.txt")
+    await asyncio.sleep(1.1)  # Ensure different SQLite second precision
     segundo = await _cria(db_session, filename="segundo.txt")
 
     documentos = await list_documents(db_session)
