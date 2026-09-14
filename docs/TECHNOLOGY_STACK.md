@@ -55,7 +55,7 @@
 | **Banco vetorial** | Qdrant | Busca vetorial nativa, payload filtering, roda em container Docker |
 | **Persistência** | Dois volumes Docker | Separação lógica e performance |
 | **Collections** | `docs_texto`, `catalogo_imagens` | RAG textual e multimodal isoladas |
-| **Embeddings (texto)** | sentence-transformers (~384–768 dims) | Modelo open-source, velocidade, qualidade suficiente para MVP |
+| **Embeddings (texto)** | sentence-transformers, modelo `paraphrase-multilingual-MiniLM-L12-v2` (384 dims) | Multilíngue (cobre português da empresa fictícia do TCC), leve, qualidade suficiente para MVP — configurável via `RAG_EMBEDDING_MODEL` |
 | **Embeddings (imagem)** | CLIP (ViT-B/32) | Multimodal, treinado em 400M pares imagem-texto, acesso via transformers |
 | **Reranking** | BM25 + similarity score | Heurística simples, sem modelo dedicado (MVP) |
 
@@ -63,7 +63,7 @@
 
 | Componente | Tecnologia | Versão | Razão |
 |---|---|---|---|
-| **Ingestão de PDF/texto** | PyPDF2 + langchain | latest | Extração de texto, chunking, integração com Qdrant |
+| **Ingestão de PDF/texto** | pypdf (extração) + chunking próprio | latest | Extração de texto de PDF; chunking por tamanho fixo com overlap implementado diretamente em `app/rag/chunking.py` — decisão revista na Fase 2: dispensa `langchain` (dependência pesada para uma necessidade de chunking simples), mantendo o MVP mais enxuto (`# MVP: chunking ingênuo, sem respeitar limites semânticos`, ver `app/rag/chunking.py`) |
 | **Busca vetorial** | Qdrant (conforme acima) | - | - |
 | **Conector de BD** | SQLAlchemy (PostgreSQL) | - | Leitura estruturada, filtros por domínio/categoria; MVP: sem escrita, sem incremental |
 | **Crawler Web** | requests + BeautifulSoup | latest | Parsing HTML simples, crawler restrito a ~5 páginas pré-definidas, sem agendamento |
@@ -223,7 +223,7 @@ dependencies = [
     "asyncpg",
     "alembic",
     "qdrant-client",
-    "langchain",
+    "pypdf",
     "sentence-transformers",
     "pillow",
     "pytesseract",

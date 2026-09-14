@@ -6,9 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.chat import router as chat_router
 from app.config import get_settings
 from app.logging_config import configure_logging
+from app.rag.embeddings import TextEmbedder
+from app.rag.qdrant_client import QdrantRAGClient
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
-from app.router.rag_client import NullRAGClient
 from app.stt.whisper_client import WhisperSttClient
 
 
@@ -42,9 +43,16 @@ def create_app() -> FastAPI:
         price_per_1k_input_tokens=settings.external_model_price_per_1k_input_tokens,
         price_per_1k_output_tokens=settings.external_model_price_per_1k_output_tokens,
     )
-    # MVP: RAG real (Qdrant) ainda não implementado — entra na Fase 2, junto
-    # da ingestão de PDFs/textos (ver docs/ROADMAP.md).
-    app.state.rag_client = NullRAGClient()
+    # RAG real via Qdrant (R4, Fase 2) — embeddings de texto com
+    # sentence-transformers, busca filtrada por domínio. Collection é criada
+    # sob demanda (ver `QdrantRAGClient.ensure_collection`); documentos de
+    # exemplo são ingeridos via `backend/scripts/ingest_sample_docs.py`.
+    app.state.rag_client = QdrantRAGClient(
+        host=settings.qdrant_host,
+        port=settings.qdrant_port,
+        embedder=TextEmbedder(settings.rag_embedding_model),
+        timeout_s=settings.qdrant_timeout_s,
+    )
     app.state.complexity_strategy = settings.router_complexity_strategy
     # MVP: modelo carregado sob demanda (lazy) na mesma GPU do modelo local de
     # chat — contenção de VRAM entre os dois é um risco conhecido (ver

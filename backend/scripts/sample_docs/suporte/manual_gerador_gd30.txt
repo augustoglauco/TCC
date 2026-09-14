@@ -1,0 +1,26 @@
+Manual técnico resumido — Gerador Diesel GD-30
+
+Instalação: o gerador deve ser instalado em local ventilado, nivelado e
+protegido de chuva direta, com distância mínima de 1 metro de paredes para
+dissipação de calor. Ligar o cabo terra antes de qualquer outra conexão
+elétrica.
+
+Solução de problemas comuns:
+- Gerador não liga: verificar nível de combustível, estado da bateria de
+  partida (12V) e se o botão de emergência não está acionado.
+- Gerador liga mas desliga sozinho após poucos minutos: sintoma comum de
+  superaquecimento — verificar se as grades de ventilação estão obstruídas
+  ou se o nível de óleo está abaixo do mínimo.
+- Ruído excessivo ou vibração fora do padrão: checar se os coxins de
+  fixação (borrachas antivibratórias) estão íntegros; se necessário, agendar
+  visita técnica para substituição.
+- Fumaça escura no escapamento: normalmente indica filtro de ar sujo ou
+  mistura ar-combustível desregulada — não é uma falha grave, mas recomenda-se
+  manutenção preventiva em até 30 dias.
+
+Manutenção preventiva recomendada: troca de óleo a cada 250 horas de uso ou
+6 meses (o que ocorrer primeiro); troca do filtro de ar a cada 500 horas;
+revisão geral anual por técnico autorizado.
+
+Garantia: 12 meses contra defeitos de fabricação, cobrindo peças e mão de
+obra, desde que respeitado o plano de manutenção preventiva acima.
