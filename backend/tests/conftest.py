@@ -5,6 +5,8 @@ import subprocess
 import pytest
 
 from app.config import get_settings
+from app.db.engine import create_db_engine, create_session_factory
+from app.db.models import Base
 from app.rag.embeddings import TextEmbedder
 
 
@@ -87,3 +89,23 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             item.add_marker(skip_gpu)
         if "qdrant" in item.keywords and not qdrant_ok:
             item.add_marker(skip_qdrant)
+
+
+@pytest.fixture
+async def db_session():
+    """Sessão contra um SQLite assíncrono em memória, schema já criado —
+    usado por todo teste que precisa do registro de documentos
+    (`app.rag.registry`), sem depender de um Postgres real no ar.
+
+    # MVP: teste de unidade da camada de acesso a dados usa SQLite em
+    # memória em vez do Postgres real — cobre a lógica de CRUD, não
+    # peculiaridades específicas do dialeto Postgres (ver
+    # docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md §7).
+    """
+    engine = create_db_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    factory = create_session_factory(engine)
+    async with factory() as session:
+        yield session
+    await engine.dispose()
