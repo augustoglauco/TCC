@@ -137,6 +137,19 @@ resolver confirmações curtas (R3) é mantido em memória por processo no
 backend (últimas 1-3 mensagens por `conversation_id`), sem persistência em
 Postgres nem resumo automático (isso é R9/Fase 6).
 
+**Estado atual do frontend (Fase 7/8, ver `docs/ROADMAP.md`):** o scaffold
+Next.js foi criado em `frontend/` (App Router, TypeScript `strict`, Tailwind
+CSS, ESLint + Prettier, Vitest + Testing Library) e o widget de chat consome
+`POST /api/chat/messages` (`frontend/lib/api/chat.ts`) na versão **texto
+apenas / síncrona**: sem upload de imagem, sem gravação de áudio, sem
+streaming (SSE) e sem cards ricos — essas partes dependem de R5/R6/R11/R12 no
+backend, ainda não implementados, e ficam para quando essas dependências
+existirem. Todas as demais páginas listadas na Seção 2 (exceto `/suporte`,
+que já tem um FAQ estático real) são *stubs* de navegação ("em construção"),
+sem nenhuma chamada de API — a integração real com o catálogo, pedidos,
+autenticação e agendamentos é tarefa futura de frontend, condicionada às
+respectivas APIs existirem no backend.
+
 Os tipos de request/response devem espelhar os schemas Pydantic do backend
 (`src/app/models/`, ver `docs/CONVENTIONS.md`) — ao gerar os tipos
 TypeScript, prefira derivá-los de um contrato compartilhado (ex.: OpenAPI
@@ -181,6 +194,13 @@ frontend/
 ├── .env.example
 └── package.json
 ```
+
+Estado atual (Fase 7/8): `AudioRecorder.tsx`, `ImageUploader.tsx` e
+`components/chat/cards/` ainda não existem (dependem de R5/R6/R11/R12 no
+backend). `lib/hooks/useChatStore.ts` contém o estado do widget via Zustand
+(aberto/fechado, mensagens, `conversation_id`) — ainda não há `useConversation`
+nem `useProducts` (sem dados de servidor além do chat nesta etapa). Os testes
+de componente vivem em `tests/components/` (Vitest + Testing Library).
 
 ## 6. Convenções específicas de frontend
 

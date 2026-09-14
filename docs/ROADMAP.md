@@ -129,36 +129,60 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 
-- [ ] Criar o projeto Next.js (TypeScript) em `frontend/` conforme
-      `docs/FRONTEND.md` §5
-- [ ] Implementar Home institucional e Contato
-- [ ] Implementar listagem e detalhe de produtos (`/produtos`), consumindo a
-      API do backend
-- [ ] Implementar autenticação simplificada (login/cadastro) e página de
-      perfil
-- [ ] Implementar fluxo de pedidos (carrinho/checkout) e histórico de pedidos
-- [ ] Implementar página de Suporte/Central de Ajuda (esse conteúdo também é
-      alvo do crawler do RAG, R4)
-- [ ] Implementar página de Agendamentos (leitura dos agendamentos criados
-      via chat, R11)
+- [x] Criar o projeto Next.js (TypeScript) em `frontend/` conforme
+      `docs/FRONTEND.md` §5 — scaffold com App Router, Tailwind CSS, ESLint +
+      Prettier, Vitest + Testing Library; pastas `app/`, `components/`,
+      `lib/`, `public/`, `tests/` populadas (não recriadas)
+- [~] Implementar Home institucional e Contato — `app/page.tsx` e
+      `app/contato/page.tsx` com conteúdo estático real (institucional/dados
+      de contato fictícios); sem chamada de API (não há dados dinâmicos
+      previstos para essas páginas no MVP)
+- [~] Implementar listagem e detalhe de produtos (`/produtos`), consumindo a
+      API do backend — apenas os stubs de rota (`app/produtos/page.tsx`,
+      `app/produtos/[id]/page.tsx`) foram criados nesta etapa, sem consumir a
+      API (que ainda não existe no backend); falta a integração real
+- [~] Implementar autenticação simplificada (login/cadastro) e página de
+      perfil — apenas stubs de rota (`app/conta/login/page.tsx`,
+      `app/conta/perfil/page.tsx`), sem lógica de autenticação
+- [~] Implementar fluxo de pedidos (carrinho/checkout) e histórico de pedidos
+      — apenas stubs de rota (`app/pedidos/page.tsx`,
+      `app/pedidos/historico/page.tsx`), sem carrinho/checkout real
+- [x] Implementar página de Suporte/Central de Ajuda (esse conteúdo também é
+      alvo do crawler do RAG, R4) — `app/suporte/page.tsx` com FAQ estático
+      real (sem API; conteúdo fica pronto para o crawler indexar na Fase 2/3)
+- [~] Implementar página de Agendamentos (leitura dos agendamentos criados
+      via chat, R11) — apenas stub de rota (`app/agendamentos/page.tsx`), sem
+      consumir a API (que ainda não existe no backend)
 
 ## Fase 8 — Frontend: Widget de Chat (ver `docs/FRONTEND.md` §3)
 
-- [ ] Implementar botão flutuante + painel de chat (`ChatWidget`,
-      `ChatPanel`), presente em todas as rotas
-- [ ] Implementar envio de texto e exibição do streaming de resposta (SSE)
+- [x] Implementar botão flutuante + painel de chat (`ChatWidget`,
+      `ChatPanel`), presente em todas as rotas — `components/chat/ChatWidget.tsx`,
+      `components/chat/ChatPanel.tsx`, incluído em `app/layout.tsx`
+- [~] Implementar envio de texto e exibição do streaming de resposta (SSE) —
+      envio de texto síncrono concluído (`lib/api/chat.ts`, `ChatPanel`),
+      consumindo `POST /api/chat/messages`; falta o streaming via SSE, que
+      depende de `GET /api/chat/stream/{conversation_id}` (ainda não existe
+      no backend)
 - [ ] Implementar upload de imagem (`ImageUploader`) e gravação de áudio
-      (`AudioRecorder`)
-- [ ] Implementar persistência do ID de conversa (retomar conversa entre
-      sessões/páginas, R9)
+      (`AudioRecorder`) — depende de R5/R6 no backend (STT, tratamento de
+      imagem), ainda não implementados
+- [x] Implementar persistência do ID de conversa (retomar conversa entre
+      sessões/páginas, R9) — `lib/hooks/useChatStore.ts`
+      (`getOrCreateConversationId`), persistido em `localStorage`
 - [ ] Implementar cards ricos: produto, confirmação de agendamento,
-      cotação/reserva
-- [ ] Implementar indicador de domínio identificado pelo roteador
-      (opcional, útil para a demonstração ao orientador)
+      cotação/reserva — depende de R6/R11/R12 no backend, ainda não
+      implementados
+- [x] Implementar indicador de domínio identificado pelo roteador
+      (opcional, útil para a demonstração ao orientador) — rótulo discreto em
+      `components/chat/MessageBubble.tsx`
 - [ ] Implementar banner de transferência para atendente humano (monitor de
-      tom, R8)
-- [ ] Implementar estados de erro (ex.: falha do MCP do Google Calendar) com
-      opção de tentar novamente
+      tom, R8) — depende de R8 no backend, ainda não implementado
+- [x] Implementar estados de erro (ex.: falha do MCP do Google Calendar) com
+      opção de tentar novamente — versão inicial cobre erro de rede/503 do
+      próprio `POST /api/chat/messages` (`ChatPanel`, bolha de erro com botão
+      "Tentar novamente", sem retry automático); o caso específico de falha
+      do MCP do Google Calendar será coberto quando R11 existir no backend
 
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 
