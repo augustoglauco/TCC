@@ -56,9 +56,10 @@ logado, permitindo retomar a conversa entre sessões/páginas.
 - Campo de texto padrão.
 - Botão de upload/drag-and-drop de imagem (uso espontâneo ou dirigido, ver
   `docs/ARCHITECTURE.md` §4) — preview da imagem antes de enviar.
-- Botão de gravação de áudio (push-to-talk ou toggle) com indicador visual de
-  gravação — o áudio é enviado ao backend para STT (R5); exibir o texto
-  transcrito na bolha do usuário assim que disponível.
+- Botão de gravação de áudio (**toggle** — decisão fechada, ver
+  `AudioRecorder` mais abaixo) com indicador visual de gravação — o áudio é
+  enviado ao backend para STT (R5); exibir o texto transcrito na bolha do
+  usuário assim que disponível.
 
 **Exibição de mensagens:**
 - Bolhas de texto padrão para usuário e assistente.
@@ -114,7 +115,7 @@ ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
 ```jsonc
 // Request
 {
-  "message": "Quero um orçamento para o produto X",
+  "message": "Quero um orçamento para o produto X", // opcional se `audio` vier preenchido
   "conversation_id": "uuid-opcional, omitir para iniciar conversa nova",
   "audio": null // opcional, base64 (wav ou mp3) — processado via STT (R5) quando presente
 }
@@ -125,7 +126,8 @@ ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
   "message": "texto da resposta do assistente",
   "domain": "vendas", // vendas | suporte | atendimento | agendamento | fora_escopo
   "backend_used": "local", // local | externo
-  "escalation_reason": "nenhum" // nenhum | fora_escopo | rag_vazio | complexidade_alta
+  "escalation_reason": "nenhum", // nenhum | fora_escopo | rag_vazio | complexidade_alta
+  "transcribed_message": null // só preenchido quando o request trouxe `audio`
 }
 ```
 
@@ -135,32 +137,57 @@ Fase 8, frontend); o formato do campo `audio` no contrato não mudou (só
 base64, sem campo novo para indicar o formato) — mas ele agora é processado
 via STT local (faster-whisper, ver `backend/src/app/stt/whisper_client.py`),
 com suporte a pelo menos wav e mp3 (formato detectado pelo conteúdo dos
-bytes, não pela extensão). Quando `audio` vem preenchido, o texto transcrito
-substitui `payload.message` como mensagem efetiva enviada ao roteador — o
-áudio é tratado como alternativa ao campo de texto (push-to-talk), não como
-complemento dele; se a transcrição vier vazia (áudio sem fala reconhecível),
-o backend usa `payload.message` como fallback, que por isso continua
-obrigatório no schema. Falha do serviço de STT retorna HTTP 503. Limitações
-que restam: sem robustez a áudio ruidoso/silencioso, sem VAD, idioma fixo em
-português (ver `docs/ARCHITECTURE.md` §5/§7). O histórico usado para resolver
-confirmações curtas (R3) é mantido em memória por processo no backend
-(últimas 1-3 mensagens por `conversation_id`), sem persistência em Postgres
-nem resumo automático (isso é R9/Fase 6).
+bytes, não pela extensão). `message` passou a ser **opcional** — é obrigatório
+enviar `message` e/ou `audio`; pedido sem nenhum dos dois retorna HTTP 422.
+Quando `audio` vem preenchido, o texto transcrito substitui `payload.message`
+como mensagem efetiva enviada ao roteador — o áudio é tratado como
+alternativa ao campo de texto (push-to-talk), não como complemento dele — e
+também é devolvido em `transcribed_message` na resposta, que é como o
+widget de chat exibe o texto transcrito na bolha do usuário (ver §3). Se a
+transcrição vier vazia (áudio sem fala reconhecível), o backend usa
+`payload.message` como fallback quando presente; se nenhum dos dois resultar
+em texto, retorna HTTP 422 pedindo para tentar de novo ou digitar a mensagem.
+Falha do serviço de STT retorna HTTP 503. Limitações que restam: sem
+robustez a áudio ruidoso/silencioso, sem VAD, idioma fixo em português (ver
+`docs/ARCHITECTURE.md` §5/§7). O histórico usado para resolver confirmações
+curtas (R3) é mantido em memória por processo no backend (últimas 1-3
+mensagens por `conversation_id`), sem persistência em Postgres nem resumo
+automático (isso é R9/Fase 6).
 
 **Estado atual do frontend (Fase 7/8, ver `docs/ROADMAP.md`):** o scaffold
 Next.js foi criado em `frontend/` (App Router, TypeScript `strict`, Tailwind
 CSS, ESLint + Prettier, Vitest + Testing Library) e o widget de chat consome
-`POST /api/chat/messages` (`frontend/lib/api/chat.ts`) na versão **texto
-apenas / síncrona**: sem upload de imagem, sem gravação de áudio (mesmo com
-R5 já implementado no backend — a UI de gravação em si é tarefa própria de
-frontend, ainda não feita), sem streaming (SSE) e sem cards ricos — essas
-partes dependem de R6/R11/R12 no backend (ainda não implementados) e/ou de
-trabalho de UI ainda não iniciado, e ficam para quando essas dependências
-existirem. Todas as demais páginas listadas na Seção 2 (exceto `/suporte`,
-que já tem um FAQ estático real) são *stubs* de navegação ("em construção"),
-sem nenhuma chamada de API — a integração real com o catálogo, pedidos,
-autenticação e agendamentos é tarefa futura de frontend, condicionada às
-respectivas APIs existirem no backend.
+`POST /api/chat/messages` (`frontend/lib/api/chat.ts`) com **texto e áudio,
+resposta síncrona**: sem upload de imagem, sem streaming (SSE) e sem cards
+ricos — essas partes dependem de R6/R11/R12 no backend (ainda não
+implementados) e/ou de trabalho de UI ainda não iniciado, e ficam para quando
+essas dependências existirem. Todas as demais páginas listadas na Seção 2
+(exceto `/suporte`, que já tem um FAQ estático real) são *stubs* de navegação
+("em construção"), sem nenhuma chamada de API — a integração real com o
+catálogo, pedidos, autenticação e agendamentos é tarefa futura de frontend,
+condicionada às respectivas APIs existirem no backend.
+
+**Gravação de áudio (`AudioRecorder`, R5):** botão de microfone
+(`components/chat/AudioRecorder.tsx`) ao lado do botão "Enviar" no
+`ChatPanel`. Comportamento **toggle** (não push-to-talk, ao contrário do que
+a Seção 3 lista como alternativa): um clique inicia a gravação
+(`navigator.mediaDevices.getUserMedia` + `MediaRecorder` do browser), outro
+clique para e dispara o envio automaticamente — sem edição/preview do áudio
+antes de enviar. Indicador visual de gravação: o próprio botão muda de ícone
+(🎤 → ⏹) e cor (vermelho, `animate-pulse`) enquanto grava, e outros controles
+do painel (campo de texto, botão "Enviar") ficam desabilitados durante a
+gravação. O `Blob` gravado (formato depende do browser, tipicamente
+`audio/webm`) é convertido para base64 no cliente antes de enviar — o
+backend detecta o formato pelo conteúdo via faster-whisper/ffmpeg, não pela
+extensão (ver `backend/src/app/stt/whisper_client.py`), então não há
+conversão para wav/mp3 no frontend. A bolha do usuário só é adicionada
+**depois** da resposta do backend, usando `transcribed_message` (o cliente
+não sabe o que foi dito antes da transcrição); erro de rede/503/422 usa a
+mesma bolha de erro com "Tentar novamente" do fluxo de texto, reenviando o
+mesmo áudio em base64. Permissão de microfone negada ou navegador sem suporte
+a `getUserMedia`/`MediaRecorder` são tratados localmente no próprio
+`AudioRecorder` (mensagem de erro ou botão desabilitado), sem afetar o resto
+do widget.
 
 Os tipos de request/response devem espelhar os schemas Pydantic do backend
 (`src/app/models/`, ver `docs/CONVENTIONS.md`) — ao gerar os tipos
@@ -207,8 +234,8 @@ frontend/
 └── package.json
 ```
 
-Estado atual (Fase 7/8): `AudioRecorder.tsx`, `ImageUploader.tsx` e
-`components/chat/cards/` ainda não existem (dependem de R5/R6/R11/R12 no
+Estado atual (Fase 7/8): `AudioRecorder.tsx` já existe (ver acima); `ImageUploader.tsx` e
+`components/chat/cards/` ainda não existem (dependem de R6/R11/R12 no
 backend). `lib/hooks/useChatStore.ts` contém o estado do widget via Zustand
 (aberto/fechado, mensagens, `conversation_id`) — ainda não há `useConversation`
 nem `useProducts` (sem dados de servidor além do chat nesta etapa). Os testes
@@ -226,13 +253,21 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
   streaming.
 - Testes: **Vitest + Testing Library** para componentes (ex.: `MessageBubble`
   renderiza cards corretamente); **Playwright** para os fluxos E2E críticos —
-  enviar mensagem de texto, enviar imagem, fluxo de pedido, login. Config em
-  `playwright.config.ts` (só Chromium; `webServer` reaproveita `npm run dev`
-  se já estiver rodando). `# MVP: os testes E2E do chat mockam
-  POST /api/chat/messages via page.route em vez de depender do backend e do
-  modelo local (Ollama) reais — cobre o comportamento da UI (envio, exibição
-  de resposta, erro/retry); integração real contra o backend fica para os
-  testes de integração da Fase 9` — ver `frontend/tests/e2e/chat.spec.ts`.
+  enviar mensagem de texto, gravar/enviar áudio, enviar imagem, fluxo de
+  pedido, login. Config em `playwright.config.ts` (só Chromium; `webServer`
+  reaproveita `npm run dev` se já estiver rodando). `# MVP: os testes E2E do
+  chat mockam POST /api/chat/messages via page.route em vez de depender do
+  backend e do modelo local (Ollama)/STT reais — cobre o comportamento da UI
+  (envio, exibição de resposta, erro/retry); integração real contra o backend
+  fica para os testes de integração da Fase 9` — ver
+  `frontend/tests/e2e/chat.spec.ts`. O teste de gravação de áudio usa o
+  dispositivo de mídia fake do próprio Chromium (flags
+  `--use-fake-device-for-media-stream` e `--use-fake-ui-for-media-stream` em
+  `use.launchOptions.args`, `playwright.config.ts`) em vez de um microfone
+  real — grava um tom de teste sintético gerado pelo browser. Testes de
+  componente do `AudioRecorder` (Vitest) mockam `navigator.mediaDevices.
+  getUserMedia` e a classe `MediaRecorder`, que o jsdom não implementa — ver
+  `frontend/tests/components/AudioRecorder.test.tsx`.
   Existe também um **smoke test manual** (`frontend/tests/smoke/chat.smoke.spec.ts`,
   `npm run test:e2e:smoke`, config separada `playwright.smoke.config.ts`) que
   bate no backend e no Ollama reais, sem mock — exige os dois rodando

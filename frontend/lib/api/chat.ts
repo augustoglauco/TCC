@@ -13,20 +13,30 @@ export class ChatApiError extends Error {
   }
 }
 
+export interface SendChatMessageParams {
+  /** Texto digitado pelo usuário. Opcional se `audioBase64` for informado. */
+  message?: string;
+  /** Áudio gravado (base64), alternativa ao texto — ver `AudioRecorder`. */
+  audioBase64?: string;
+  conversationId?: string;
+}
+
 /**
- * Envia uma mensagem de texto ao backend e retorna a resposta síncrona.
+ * Envia uma mensagem (texto e/ou áudio) ao backend e retorna a resposta
+ * síncrona.
  *
- * MVP: apenas texto — sem upload de imagem/áudio, sem streaming/SSE (ver
- * `docs/FRONTEND.md` §3/§4); o campo `audio` é sempre `null`.
+ * MVP: sem upload de imagem, sem streaming/SSE (ver `docs/FRONTEND.md`
+ * §3/§4) — apenas texto e/ou áudio.
  */
-export async function sendChatMessage(
-  message: string,
-  conversationId?: string,
-): Promise<ChatMessageResponse> {
+export async function sendChatMessage({
+  message,
+  audioBase64,
+  conversationId,
+}: SendChatMessageParams): Promise<ChatMessageResponse> {
   const payload: ChatMessageRequest = {
     message,
     conversation_id: conversationId,
-    audio: null,
+    audio: audioBase64 ?? null,
   };
 
   let response: Response;

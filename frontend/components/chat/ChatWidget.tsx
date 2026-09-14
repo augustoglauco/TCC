@@ -10,9 +10,9 @@ import ChatPanel from "./ChatPanel";
  * Botão flutuante (canto inferior direito) que abre/fecha o painel de chat.
  * Presente em todas as rotas via `app/layout.tsx`.
  *
- * MVP: texto apenas, resposta síncrona — sem upload de imagem/áudio, sem
- * streaming (SSE), sem cards ricos e sem banner de transferência humana
- * (ver docs/FRONTEND.md §3, itens pendentes da Fase 8).
+ * MVP: texto e áudio (via `AudioRecorder`), resposta síncrona — sem upload de
+ * imagem, sem streaming (SSE), sem cards ricos e sem banner de transferência
+ * humana (ver docs/FRONTEND.md §3, itens pendentes da Fase 8).
  */
 export default function ChatWidget() {
   const isOpen = useChatStore((state) => state.isOpen);

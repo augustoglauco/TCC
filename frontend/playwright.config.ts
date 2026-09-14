@@ -10,6 +10,12 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
+    // Permite testar o `AudioRecorder` (getUserMedia/MediaRecorder) sem um
+    // microfone real: o Chromium gera um dispositivo de áudio fake (tom de
+    // teste) e aceita automaticamente o prompt de permissão.
+    launchOptions: {
+      args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"],
+    },
   },
   projects: [
     {

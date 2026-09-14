@@ -65,3 +65,36 @@ test("mostra erro com opção de tentar novamente quando a API falha", async ({ 
   await expect(page.getByText("Agora funcionou.")).toBeVisible();
   await expect(page.getByTestId("chat-error")).not.toBeVisible();
 });
+
+test("grava um áudio (dispositivo fake) e exibe o texto transcrito na bolha do usuário", async ({
+  page,
+  context,
+}) => {
+  await context.grantPermissions(["microphone"]);
+
+  await page.route("**/api/chat/messages", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        conversation_id: "e2e-conversation-id",
+        message: "Posso ajudar a agendar sua visita.",
+        domain: "agendamento",
+        backend_used: "local",
+        escalation_reason: "nenhum",
+        transcribed_message: "Quero agendar uma visita",
+      }),
+    });
+  });
+
+  await page.goto("/suporte");
+  await page.getByRole("button", { name: "Abrir chat" }).click();
+
+  await page.getByRole("button", { name: "Gravar áudio" }).click();
+  await expect(page.getByRole("button", { name: "Parar gravação" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Parar gravação" }).click();
+
+  await expect(page.getByText("Quero agendar uma visita")).toBeVisible();
+  await expect(page.getByText("Posso ajudar a agendar sua visita.")).toBeVisible();
+});
