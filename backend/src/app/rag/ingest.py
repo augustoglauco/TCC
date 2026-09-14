@@ -8,6 +8,7 @@
 """
 
 import logging
+import uuid
 from pathlib import Path
 
 from app.rag.chunking import chunk_text
@@ -34,7 +35,9 @@ async def ingest_bytes(client: QdrantRAGClient, filename: str, content: bytes, d
     """
     text = _extract_text(filename, content)
     chunks = chunk_text(text)
-    count = await client.upsert_chunks(chunks, source=filename, domain=domain)
+    count = await client.upsert_chunks(
+        chunks, source=filename, domain=domain, document_id=str(uuid.uuid4())
+    )
     logger.info("rag_ingest_upload arquivo=%s domain=%s chunks=%d", filename, domain, count)
     return count
 

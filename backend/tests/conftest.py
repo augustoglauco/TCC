@@ -11,23 +11,33 @@ from app.rag.embeddings import TextEmbedder
 
 
 class _FakeQdrantRAGClient:
-    """Dublê de `QdrantRAGClient` — só registra o que seria gravado no Qdrant
-    (ou levanta `error`, se informado), sem depender de uma instância real.
+    """Dublê de `QdrantRAGClient` — só registra o que seria gravado/excluído
+    no Qdrant (ou levanta `error`, se informado), sem depender de uma
+    instância real.
 
     Compartilhado entre `test_rag_ingest.py` e `test_rag_api.py` (mesmo
-    contrato, `upsert_chunks`, exercitado em duas camadas diferentes: pipeline
-    de ingestão e endpoint HTTP).
+    contrato, exercitado em duas camadas diferentes: pipeline de ingestão e
+    endpoint HTTP).
     """
 
     def __init__(self, error: Exception | None = None) -> None:
         self._error = error
-        self.upserts: list[tuple[list[str], str, str]] = []
+        self.embedding_model_name = "fake-embedding-model"
+        self.upserts: list[tuple[list[str], str, str, str]] = []
+        self.deleted_document_ids: list[str] = []
 
-    async def upsert_chunks(self, chunks: list[str], source: str, domain: str) -> int:
+    async def upsert_chunks(
+        self, chunks: list[str], source: str, domain: str, document_id: str
+    ) -> int:
         if self._error is not None:
             raise self._error
-        self.upserts.append((chunks, source, domain))
+        self.upserts.append((chunks, source, domain, document_id))
         return len(chunks)
+
+    async def delete_by_document_id(self, document_id: str) -> None:
+        if self._error is not None:
+            raise self._error
+        self.deleted_document_ids.append(document_id)
 
 
 @pytest.fixture(scope="session")
