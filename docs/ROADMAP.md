@@ -188,8 +188,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 - [ ] Testes de integração cobrindo os quatro domínios de atendimento
       (backend)
-- [ ] Testes E2E do frontend cobrindo os fluxos críticos: chat (texto,
-      imagem, áudio), pedido, login (ver `docs/FRONTEND.md` §6)
+- [~] Testes E2E do frontend cobrindo os fluxos críticos: chat (texto,
+      imagem, áudio), pedido, login (ver `docs/FRONTEND.md` §6) — fluxo de
+      chat texto feito adiantado, junto do widget (Fase 8):
+      `frontend/tests/e2e/chat.spec.ts` (Playwright), cobrindo envio de
+      mensagem e erro/retry; `# MVP: mocka POST /api/chat/messages via
+      page.route em vez de rodar contra o backend/Ollama reais`. Faltam
+      imagem, áudio, pedido e login — dependem de R5/R6/R12 e do fluxo de
+      pedidos (Fase 7) ainda não implementados
 - [ ] Ajustes de robustez nas frentes mais custosas: RAG multimodal e monitor
       de tom
 - [ ] Revisão de tratamento de erro para dependências externas
