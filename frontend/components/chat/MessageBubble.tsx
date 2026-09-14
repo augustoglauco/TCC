@@ -16,13 +16,19 @@ interface MessageBubbleProps {
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
+  const isExternalLlm = !isUser && message.backendUsed === "externo";
   const domainLabel = message.domain ? (DOMAIN_LABELS[message.domain] ?? message.domain) : null;
 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
+        data-testid="message-bubble"
         className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-          isUser ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
+          isUser
+            ? "bg-blue-600 text-white"
+            : isExternalLlm
+              ? "bg-blue-50 text-blue-900 ring-1 ring-inset ring-blue-200"
+              : "bg-gray-100 text-gray-900"
         }`}
       >
         {!isUser && domainLabel && (

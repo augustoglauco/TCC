@@ -60,6 +60,7 @@ export default function ChatPanel() {
         role: "assistant",
         text: response.message,
         domain: response.domain,
+        backendUsed: response.backend_used,
       });
     } catch (caught) {
       const message =
@@ -96,6 +97,7 @@ export default function ChatPanel() {
         role: "assistant",
         text: response.message,
         domain: response.domain,
+        backendUsed: response.backend_used,
       });
     } catch (caught) {
       const message =

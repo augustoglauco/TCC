@@ -182,6 +182,9 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] Implementar indicador de domínio identificado pelo roteador
       (opcional, útil para a demonstração ao orientador) — rótulo discreto em
       `components/chat/MessageBubble.tsx`
+- [x] Implementar indicador visual de origem do modelo (local x externo) —
+      bolha do assistente em azul quando `backend_used` retornado pela API é
+      `"externo"`, mesmo arquivo (`MessageBubble.tsx`)
 - [ ] Implementar banner de transferência para atendente humano (monitor de
       tom, R8) — depende de R8 no backend, ainda não implementado
 - [x] Implementar estados de erro (ex.: falha do MCP do Google Calendar) com

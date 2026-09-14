@@ -77,6 +77,11 @@ logado, permitindo retomar a conversa entre sessões/páginas.
   TCC): um rótulo discreto mostrando qual domínio o roteador identificou
   (Vendas / Suporte Técnico / Atendimento ao Usuário / Agendamento) — ajuda a
   tornar visível o comportamento do Roteador/Orquestrador na apresentação.
+- **Indicador de origem do modelo:** bolhas de resposta do assistente cujo
+  `backend_used` retornado pela API é `"externo"` são destacadas em azul
+  (`bg-blue-50`/`ring-blue-200`, ver `components/chat/MessageBubble.tsx`) —
+  torna visível quando o roteador decidiu usar o modelo externo em vez do
+  local, útil para a demonstração do TCC (R1).
 - **Banner de transferência humana** quando o monitor de tom aciona a
   escalada (R8): mensagem clara ("Conectando você a um atendente...") — no
   MVP essa transferência é simulada no backend, mas a UI deve reagir a esse

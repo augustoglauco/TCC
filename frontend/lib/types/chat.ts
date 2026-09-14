@@ -39,4 +39,8 @@ export interface ChatUIMessage {
   role: "user" | "assistant";
   text: string;
   domain?: ChatDomain;
+  // Só preenchido em mensagens do assistente — origem do modelo que gerou a
+  // resposta (R1/R3), usada para destacar visualmente respostas de LLM
+  // externo (ver MessageBubble).
+  backendUsed?: ChatBackendUsed;
 }
