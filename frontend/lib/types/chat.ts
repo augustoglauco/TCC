@@ -11,12 +11,14 @@ export type ChatBackendUsed = "local" | "externo";
 export type ChatEscalationReason = "nenhum" | "fora_escopo" | "rag_vazio" | "complexidade_alta";
 
 export interface ChatMessageRequest {
-  message: string;
+  // Opcional: obrigatório enviar `message` e/ou `audio` (backend valida e
+  // retorna 422 se nenhum dos dois vier preenchido).
+  message?: string;
   conversation_id?: string;
-  // MVP: áudio ainda não é capturado pelo widget nesta etapa (texto apenas);
-  // o campo é sempre `null`, aceito e ignorado pelo backend (ver
-  // docs/FRONTEND.md §4, R5 pendente).
-  audio: null;
+  // Base64 do áudio gravado pelo `AudioRecorder` (qualquer formato aceito
+  // pelo backend, tipicamente audio/webm) — `null` quando a mensagem é só
+  // texto.
+  audio: string | null;
 }
 
 export interface ChatMessageResponse {
@@ -25,6 +27,10 @@ export interface ChatMessageResponse {
   domain: ChatDomain;
   backend_used: ChatBackendUsed;
   escalation_reason: ChatEscalationReason;
+  // Preenchido apenas quando o request trouxe `audio` — texto transcrito
+  // pelo STT do backend, usado para exibir "o que a pessoa falou" na bolha
+  // do usuário (o cliente não tem como saber isso sozinho).
+  transcribed_message: string | null;
 }
 
 /** Mensagem exibida no painel do chat (estado de UI, não o payload da API). */

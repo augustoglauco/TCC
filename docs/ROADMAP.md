@@ -165,9 +165,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       consumindo `POST /api/chat/messages`; falta o streaming via SSE, que
       depende de `GET /api/chat/stream/{conversation_id}` (ainda não existe
       no backend)
-- [ ] Implementar upload de imagem (`ImageUploader`) e gravação de áudio
-      (`AudioRecorder`) — depende de R5/R6 no backend (STT, tratamento de
-      imagem), ainda não implementados
+- [~] Implementar upload de imagem (`ImageUploader`) e gravação de áudio
+      (`AudioRecorder`) — gravação de áudio concluída:
+      `components/chat/AudioRecorder.tsx` (toggle, indicador visual de
+      gravação, tratamento de permissão negada e de navegador sem suporte),
+      integrado ao `ChatPanel` (envio automático ao parar, bolha do usuário
+      populada com `transcribed_message`, retry reenvia o mesmo áudio); falta
+      só o `ImageUploader`, que continua dependendo de R6 no backend (ainda
+      não implementado)
 - [x] Implementar persistência do ID de conversa (retomar conversa entre
       sessões/páginas, R9) — `lib/hooks/useChatStore.ts`
       (`getOrCreateConversationId`), persistido em `localStorage`
@@ -191,12 +196,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (backend)
 - [~] Testes E2E do frontend cobrindo os fluxos críticos: chat (texto,
       imagem, áudio), pedido, login (ver `docs/FRONTEND.md` §6) — fluxo de
-      chat texto feito adiantado, junto do widget (Fase 8):
+      chat texto e áudio feitos adiantado, junto do widget (Fase 8):
       `frontend/tests/e2e/chat.spec.ts` (Playwright), cobrindo envio de
-      mensagem e erro/retry; `# MVP: mocka POST /api/chat/messages via
-      page.route em vez de rodar contra o backend/Ollama reais`. Faltam
-      imagem, áudio, pedido e login — dependem de R5/R6/R12 e do fluxo de
-      pedidos (Fase 7) ainda não implementados
+      mensagem, erro/retry e gravação de áudio via dispositivo de mídia fake
+      do Chromium (`--use-fake-device-for-media-stream` /
+      `--use-fake-ui-for-media-stream`, `playwright.config.ts`); `# MVP: mocka
+      POST /api/chat/messages via page.route em vez de rodar contra o
+      backend/Ollama/STT reais`. Faltam imagem, pedido e login — dependem de
+      R6/R12 e do fluxo de pedidos (Fase 7) ainda não implementados
 - [ ] Ajustes de robustez nas frentes mais custosas: RAG multimodal e monitor
       de tom
 - [ ] Revisão de tratamento de erro para dependências externas

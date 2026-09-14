@@ -5,12 +5,24 @@ import { useState } from "react";
 import { ChatApiError, sendChatMessage } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
+import AudioRecorder from "./AudioRecorder";
 import MessageBubble from "./MessageBubble";
+
+interface PendingRetry {
+  message?: string;
+  audioBase64?: string;
+}
 
 interface PendingError {
   text: string;
-  retryMessage: string;
+  retry: PendingRetry;
 }
+
+// MVP: só deveria aparecer se o backend retornasse 200 com
+// `transcribed_message: null` para um envio de áudio puro, o que o contrato
+// atual não permite (nesse caso ele responde 422 antes) — mantido como rede
+// de segurança defensiva (ver docs/FRONTEND.md §4).
+const AUDIO_FALLBACK_TEXT = "(áudio sem fala reconhecível)";
 
 export default function ChatPanel() {
   const messages = useChatStore((state) => state.messages);
@@ -20,6 +32,7 @@ export default function ChatPanel() {
 
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<PendingError | null>(null);
 
   async function submitMessage(text: string) {
@@ -34,7 +47,10 @@ export default function ChatPanel() {
     setError(null);
 
     try {
-      const response = await sendChatMessage(trimmed, conversationId || undefined);
+      const response = await sendChatMessage({
+        message: trimmed,
+        conversationId: conversationId || undefined,
+      });
       setConversationId(response.conversation_id);
       addMessage({
         id: crypto.randomUUID(),
@@ -45,7 +61,44 @@ export default function ChatPanel() {
     } catch (caught) {
       const message =
         caught instanceof ChatApiError ? caught.message : "Erro inesperado. Tente novamente.";
-      setError({ text: message, retryMessage: trimmed });
+      setError({ text: message, retry: { message: trimmed } });
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  async function submitAudio(audioBase64: string) {
+    if (isSending) {
+      return;
+    }
+
+    setIsSending(true);
+    setError(null);
+
+    try {
+      const response = await sendChatMessage({
+        audioBase64,
+        conversationId: conversationId || undefined,
+      });
+      setConversationId(response.conversation_id);
+      // A bolha do usuário só existe depois da resposta: o cliente não sabe
+      // o que foi dito no áudio, só o backend transcreve (ver
+      // docs/FRONTEND.md §3/§4).
+      addMessage({
+        id: crypto.randomUUID(),
+        role: "user",
+        text: response.transcribed_message ?? AUDIO_FALLBACK_TEXT,
+      });
+      addMessage({
+        id: crypto.randomUUID(),
+        role: "assistant",
+        text: response.message,
+        domain: response.domain,
+      });
+    } catch (caught) {
+      const message =
+        caught instanceof ChatApiError ? caught.message : "Erro inesperado. Tente novamente.";
+      setError({ text: message, retry: { audioBase64 } });
     } finally {
       setIsSending(false);
     }
@@ -55,10 +108,16 @@ export default function ChatPanel() {
     if (!error) {
       return;
     }
-    const { retryMessage } = error;
+    const { retry } = error;
     setError(null);
-    void submitMessage(retryMessage);
+    if (retry.audioBase64) {
+      void submitAudio(retry.audioBase64);
+    } else if (retry.message) {
+      void submitMessage(retry.message);
+    }
   }
+
+  const controlsDisabled = isSending || isRecording;
 
   return (
     <div className="flex h-[32rem] w-80 flex-col rounded-lg border border-gray-200 bg-white shadow-xl sm:w-96">
@@ -106,13 +165,18 @@ export default function ChatPanel() {
           type="text"
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          disabled={isSending}
+          disabled={controlsDisabled}
           placeholder="Digite sua mensagem..."
           className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
         />
+        <AudioRecorder
+          disabled={isSending}
+          onRecordingComplete={(audioBase64) => void submitAudio(audioBase64)}
+          onRecordingStateChange={setIsRecording}
+        />
         <button
           type="submit"
-          disabled={isSending || !input.trim()}
+          disabled={controlsDisabled || !input.trim()}
           className="rounded bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
           Enviar
