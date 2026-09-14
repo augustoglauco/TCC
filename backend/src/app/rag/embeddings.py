@@ -35,6 +35,10 @@ class TextEmbedder:
         # em docs/ARCHITECTURE.md §7).
         self._load_lock = threading.Lock()
 
+    @property
+    def model_name(self) -> str:
+        return self._model_name
+
     def _load_model(self) -> SentenceTransformer:
         if self._model is None:
             with self._load_lock:

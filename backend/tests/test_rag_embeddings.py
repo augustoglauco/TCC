@@ -29,3 +29,9 @@ async def test_get_dimension_cai_para_nome_antigo_em_instalacao_desatualizada():
     embedder._model = _ModeloComNomeAntigo()
 
     assert await embedder.get_dimension() == 384
+
+
+def test_model_name_expoe_o_nome_do_modelo_configurado():
+    embedder = TextEmbedder("modelo-de-teste")
+
+    assert embedder.model_name == "modelo-de-teste"
