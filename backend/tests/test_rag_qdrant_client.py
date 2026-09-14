@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 import pytest
@@ -74,6 +75,73 @@ async def test_search_erro_de_conexao_vira_rag_connection_error(text_embedder: T
 
     with pytest.raises(RAGConnectionError):
         await client.search("qualquer coisa", domain="vendas")
+
+
+async def test_search_apos_drop_collection_volta_a_checar_existencia(
+    rag_client: QdrantRAGClient,
+):
+    """Regressão: a guarda em memória (`_collection_ready`) que evita
+    round trips repetidos ao Qdrant precisa ser invalidada por
+    `drop_collection`, senão uma busca depois do drop tentaria consultar
+    uma collection que não existe mais em vez de devolver lista vazia."""
+    await rag_client.upsert_chunks(
+        ["conteúdo de teste sobre o produto"], source="arquivo.txt", domain="vendas"
+    )
+    assert len(await rag_client.search("produto", domain="vendas")) == 1
+
+    await rag_client.drop_collection()
+
+    assert await rag_client.search("produto", domain="vendas") == []
+
+
+class _FailingEmbedder:
+    """`get_dimension` funciona normalmente (deixa `ensure_collection`
+    criar a collection) mas `embed` falha — simula um erro do modelo (ex.:
+    texto degenerado extraído de um PDF) durante o próprio `upsert_chunks`,
+    não na criação da collection."""
+
+    async def get_dimension(self) -> int:
+        return 384
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        raise RuntimeError("falha simulada do modelo de embeddings")
+
+
+async def test_upsert_chunks_com_falha_no_embedder_vira_rag_connection_error():
+    client = QdrantRAGClient(
+        host="unused",
+        port=0,
+        embedder=_FailingEmbedder(),
+        collection_name=f"test_{uuid.uuid4().hex}",
+        client=AsyncQdrantClient(location=":memory:"),
+    )
+
+    with pytest.raises(RAGConnectionError):
+        await client.upsert_chunks(["texto qualquer"], source="arquivo.txt", domain="vendas")
+
+
+async def test_upsert_chunks_concorrentes_nao_colidem_na_criacao_da_collection(
+    text_embedder: TextEmbedder,
+):
+    """Regressão: duas ingestões quase simultâneas contra uma collection que
+    ainda não existe não devem tentar criá-la em paralelo (race
+    check-then-act entre `collection_exists`/`create_collection`,
+    serializada por `_collection_lock`)."""
+    client = QdrantRAGClient(
+        host="unused",
+        port=0,
+        embedder=text_embedder,
+        collection_name=f"test_{uuid.uuid4().hex}",
+        client=AsyncQdrantClient(location=":memory:"),
+    )
+
+    resultados = await asyncio.gather(
+        client.upsert_chunks(["texto A sobre o produto"], source="a.txt", domain="vendas"),
+        client.upsert_chunks(["texto B sobre o produto"], source="b.txt", domain="vendas"),
+    )
+
+    assert resultados == [1, 1]
+    assert len(await client.search("produto", domain="vendas")) == 2
 
 
 @pytest.mark.qdrant

@@ -53,6 +53,22 @@ class TextEmbedder:
             return []
         return await asyncio.to_thread(self._embed_sync, texts)
 
+    def _get_dimension_sync(self) -> int:
+        model = self._load_model()
+        # `get_embedding_dimension` é o nome atual do método (renomeado numa
+        # versão recente do sentence-transformers); `get_sentence_embedding_
+        # dimension` é o nome antigo, mantido como alias depreciado nas
+        # versões novas mas o único que existe nas mais antigas —
+        # `pyproject.toml` fixa só `>=3.0`, sem teto, então uma instalação
+        # antiga não tem o nome novo. `getattr` com default avalia o default
+        # antes de checar o atributo, então usa `None` como sentinela em vez
+        # de `model.get_sentence_embedding_dimension` direto (isso quebraria
+        # numa instalação/dublê que só tenha o nome novo).
+        get_dimension = getattr(model, "get_embedding_dimension", None)
+        if get_dimension is None:
+            get_dimension = model.get_sentence_embedding_dimension
+        return get_dimension()
+
     async def get_dimension(self) -> int:
         """Dimensão dos vetores gerados pelo modelo carregado."""
-        return await asyncio.to_thread(lambda: self._load_model().get_embedding_dimension())
+        return await asyncio.to_thread(self._get_dimension_sync)
