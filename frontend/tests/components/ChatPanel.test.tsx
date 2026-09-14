@@ -141,6 +141,24 @@ describe("ChatPanel", () => {
     expect(await screen.findByText("(áudio sem fala reconhecível)")).toBeInTheDocument();
   });
 
+  it("mantém uma bolha visível para o áudio mesmo quando a API falha (regressão)", async () => {
+    const user = userEvent.setup();
+    mockedSendChatMessage.mockRejectedValueOnce(
+      new ChatApiError("Serviço temporariamente indisponível. Tente novamente.", 503),
+    );
+
+    render(<ChatPanel />);
+
+    await user.click(screen.getByRole("button", { name: "Simular gravação de áudio" }));
+
+    // Antes da correção, uma falha na API deixava a mensagem de áudio sem
+    // nenhum vestígio na conversa — só a bolha de erro genérica aparecia.
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(
+      screen.getByText("🎤 (não foi possível processar o áudio)"),
+    ).toBeInTheDocument();
+  });
+
   it("permite tentar novamente o mesmo áudio após falha da API", async () => {
     const user = userEvent.setup();
     mockedSendChatMessage.mockRejectedValueOnce(

@@ -23,11 +23,14 @@ interface PendingError {
 // atual não permite (nesse caso ele responde 422 antes) — mantido como rede
 // de segurança defensiva (ver docs/FRONTEND.md §4).
 const AUDIO_FALLBACK_TEXT = "(áudio sem fala reconhecível)";
+const AUDIO_PENDING_TEXT = "🎤 Transcrevendo áudio...";
+const AUDIO_FAILED_TEXT = "🎤 (não foi possível processar o áudio)";
 
 export default function ChatPanel() {
   const messages = useChatStore((state) => state.messages);
   const conversationId = useChatStore((state) => state.conversationId);
   const addMessage = useChatStore((state) => state.addMessage);
+  const updateMessage = useChatStore((state) => state.updateMessage);
   const setConversationId = useChatStore((state) => state.setConversationId);
 
   const [input, setInput] = useState("");
@@ -72,6 +75,12 @@ export default function ChatPanel() {
       return;
     }
 
+    // Bolha otimista: o cliente não sabe o que foi dito até a resposta
+    // voltar (só o backend transcreve), mas precisa mostrar *algo* na hora —
+    // sem isso, um erro depois deixava a mensagem de áudio sem nenhum
+    // vestígio na conversa (ver docs/FRONTEND.md §3/§4).
+    const pendingId = crypto.randomUUID();
+    addMessage({ id: pendingId, role: "user", text: AUDIO_PENDING_TEXT });
     setIsSending(true);
     setError(null);
 
@@ -81,14 +90,7 @@ export default function ChatPanel() {
         conversationId: conversationId || undefined,
       });
       setConversationId(response.conversation_id);
-      // A bolha do usuário só existe depois da resposta: o cliente não sabe
-      // o que foi dito no áudio, só o backend transcreve (ver
-      // docs/FRONTEND.md §3/§4).
-      addMessage({
-        id: crypto.randomUUID(),
-        role: "user",
-        text: response.transcribed_message ?? AUDIO_FALLBACK_TEXT,
-      });
+      updateMessage(pendingId, { text: response.transcribed_message ?? AUDIO_FALLBACK_TEXT });
       addMessage({
         id: crypto.randomUUID(),
         role: "assistant",
@@ -98,6 +100,7 @@ export default function ChatPanel() {
     } catch (caught) {
       const message =
         caught instanceof ChatApiError ? caught.message : "Erro inesperado. Tente novamente.";
+      updateMessage(pendingId, { text: AUDIO_FAILED_TEXT });
       setError({ text: message, retry: { audioBase64 } });
     } finally {
       setIsSending(false);

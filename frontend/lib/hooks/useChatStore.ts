@@ -32,6 +32,7 @@ interface ChatState {
   open: () => void;
   close: () => void;
   addMessage: (message: ChatUIMessage) => void;
+  updateMessage: (id: string, patch: Partial<Omit<ChatUIMessage, "id">>) => void;
   setConversationId: (id: string) => void;
 }
 
@@ -46,6 +47,12 @@ export const useChatStore = create<ChatState>((set) => ({
   open: () => set({ isOpen: true }),
   close: () => set({ isOpen: false }),
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
+  updateMessage: (id, patch) =>
+    set((state) => ({
+      messages: state.messages.map((message) =>
+        message.id === id ? { ...message, ...patch } : message,
+      ),
+    })),
   setConversationId: (id) => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, id);
