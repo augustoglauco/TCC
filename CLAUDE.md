@@ -42,16 +42,8 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 
 ## Stack técnica
 
-- **Linguagem/backend:** Python 3.11+, FastAPI (async-first).
 - **Modelo local:** servido via Ollama ou vLLM, modelo quantizado 7B–8B
   (ex.: Llama 3.1 8B, Qwen2.5 7B) — hardware-alvo: GPU única de 16GB de VRAM.
-- **RAG:** Qdrant (banco vetorial) para texto/PDF e para embeddings tipo CLIP
-  de imagem; PostgreSQL como banco relacional (conector do RAG, persistência
-  de conversas/usuário, backend do catálogo/estoque/preços).
-- **MCP:** cliente MCP para Google Calendar; servidor MCP próprio (B2B) usando
-  o SDK oficial de MCP em Python.
-- **Frontend:** Next.js + TypeScript, site institucional/produtos/pedidos com
-  o chat como widget flutuante global — ver `docs/FRONTEND.md`.
 - Detalhes de estrutura de pastas e ferramentas (lint, testes, etc.) estão em
   `docs/CONVENTIONS.md`.
 
