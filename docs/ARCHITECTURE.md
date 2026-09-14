@@ -116,6 +116,16 @@ conjunto restrito de páginas pré-definidas, sem agendamento; o catálogo de
 imagens do RAG multimodal é ampliado, mas ainda não completo, com reranking
 básico dos resultados.
 
+**Decisão registrada (Fase 2, resolve divergência entre o comentário original
+de `orchestrator.py` e o spec de design da Fase 1):** ao trocar o
+`NullRAGClient` pela busca vetorial real no Qdrant, o conteúdo dos documentos
+recuperados passa a ser **injetado no prompt do LLM** (a resposta fica
+fundamentada no que está nos PDFs/textos indexados), não só usado como sinal
+binário (vazio/não-vazio) para a decisão local x externo — esse sinal
+continua existindo (ainda decide o roteamento), mas deixa de ser o único
+efeito da busca. Sem isso, ter RAG de verdade não mudaria a qualidade da
+resposta, só a decisão de roteamento.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

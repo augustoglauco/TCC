@@ -99,6 +99,13 @@ Nesta fase, uma implementação stub (`NullRAGClient`) que sempre devolve
 lista vazia é suficiente para o `orchestrator.py` ser testável — a
 implementação real (Qdrant) entra na Fase 2 sem alterar o orchestrator.
 
+> **Nota (Fase 2, superada):** a frase acima ("sem alterar o orchestrator")
+> foi revista ao implementar o RAG real — o conteúdo dos documentos passou a
+> ser injetado no prompt do LLM, não só usado como sinal de roteamento.
+> Decisão registrada em `docs/ARCHITECTURE.md` (Seção 5, nota após a tabela
+> de escopo). Este spec fica como registro histórico da decisão original da
+> Fase 1, não como comportamento atual.
+
 ### 2.4 `orchestrator.py`
 
 Fluxo de decisão (ver também `docs/ARCHITECTURE.md`, tabela de escopo, linha

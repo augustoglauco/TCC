@@ -68,7 +68,23 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] Implementar STT (áudio → texto) com suporte a pelo menos dois formatos
       comuns (ex.: wav e mp3) — `backend/src/app/stt/whisper_client.py`
       (faster-whisper, GPU local), formato detectado pelo conteúdo dos bytes
-- [ ] Implementar ingestão de PDFs/textos e busca vetorial (RAG)
+- [x] Implementar ingestão de PDFs/textos e busca vetorial (RAG) —
+      `backend/src/app/rag/` (`embeddings.py`: sentence-transformers
+      `paraphrase-multilingual-MiniLM-L12-v2`, config `RAG_EMBEDDING_MODEL`;
+      `chunking.py`: tamanho fixo com overlap; `pdf_extract.py`: `pypdf`;
+      `qdrant_client.py`: `QdrantRAGClient`, busca filtrada por `domain` via
+      payload filtering na collection `docs_texto`). `NullRAGClient` trocado
+      pelo cliente real em `app.main`; conteúdo dos documentos recuperados
+      passa a ser injetado no prompt do LLM em `orchestrator.py`
+      (`_build_prompt`), preservando a decisão de roteamento (sinal vazio x
+      não-vazio) já existente. Ingestão de exemplo:
+      `backend/scripts/ingest_sample_docs.py` +
+      `backend/scripts/sample_docs/{vendas,suporte,atendimento}/*.txt`.
+      Testado contra o Qdrant real (`docker-compose.yml`, porta 6335) e com
+      `AsyncQdrantClient(location=":memory:")` nos testes automatizados.
+      Fora deste item: reranking (BM25 + score, ver tabela de escopo),
+      deduplicação/re-ingestão incremental, conector de BD relacional e
+      crawler de sites (itens separados da Fase 2, ver abaixo)
 - [ ] Implementar conector de leitura a um banco de dados relacional
       (`# MVP: somente leitura, sem sincronização incremental`)
 - [ ] Implementar crawler restrito a um conjunto pré-definido de páginas

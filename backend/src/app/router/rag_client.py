@@ -24,7 +24,13 @@ class RAGClient(Protocol):
 
 
 class NullRAGClient:
-    # MVP: stub sem implementação real — RAG de verdade (Qdrant) entra na
-    # Fase 2 (ver docs/ROADMAP.md), sem alterar o orchestrator.
+    """Stub que sempre devolve lista vazia — sem RAG de verdade.
+
+    A implementação real (`app.rag.qdrant_client.QdrantRAGClient`) foi
+    implementada na Fase 2 (ver docs/ROADMAP.md) e é o que `app.main` usa em
+    produção/dev. `NullRAGClient` segue existindo como stub simples para
+    testes e para cenários em que não se quer depender do Qdrant.
+    """
+
     async def search(self, query: str, domain: str) -> list[Document]:
         return []

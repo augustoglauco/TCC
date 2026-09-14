@@ -20,9 +20,11 @@ class _FakeLLMClient:
         self._response = response
         self._exception = exception
         self.calls = 0
+        self.last_prompt: str | None = None
 
     async def generate(self, prompt: str) -> LLMResponse:
         self.calls += 1
+        self.last_prompt = prompt
         if self._exception is not None:
             raise self._exception
         assert self._response is not None
@@ -127,6 +129,49 @@ async def test_rag_com_resultado_e_complexidade_baixa_fica_local():
 
     assert decisao.backend_escolhido == "local"
     assert decisao.motivo_escalonamento == "nenhum"
+
+
+async def test_documento_recuperado_pelo_rag_e_injetado_no_prompt_do_llm():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    documento = Document(
+        content="O gerador GD-30 tem potência de 30 kVA.",
+        source="catalogo_geradores.txt",
+        score=0.9,
+    )
+    rag_client = _FakeRAGClient(documents=[documento])
+
+    await handle_message(
+        "Qual o preço do gerador GD-30?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+
+    assert local_client.calls == 1
+    assert documento.content in local_client.last_prompt
+    assert "Qual o preço do gerador GD-30?" in local_client.last_prompt
+
+
+async def test_rag_vazio_nao_injeta_contexto_prompt_e_a_mensagem_original():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[])
+
+    await handle_message(
+        "Qual o preço desse produto?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+
+    # Sem documentos, o prompt enviado ao LLM é a própria mensagem do
+    # cliente — sem o texto de instrução extra do `_build_prompt`.
+    assert external_client.last_prompt == "Qual o preço desse produto?"
 
 
 async def test_rag_com_resultado_e_complexidade_alta_escala_para_externo():

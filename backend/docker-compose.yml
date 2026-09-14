@@ -1,0 +1,48 @@
+# Infraestrutura de desenvolvimento local: PostgreSQL (conector de leitura
+# R4, memória R9, perfil R10, catálogo do MCP B2B R12) e Qdrant (RAG de
+# texto/imagem, R4). Imagens/volumes conforme `docs/TECHNOLOGY_STACK.md`
+# (tabela de containers). Credenciais do Postgres abaixo casam com o default
+# de `POSTGRES_DSN` em `.env.example` — só para dev local, nunca usar essas
+# credenciais em produção.
+#
+# MVP: portas do HOST deslocadas do padrão (5433/6335/6336 em vez de
+# 5432/6333/6334) — esta máquina de dev também roda Postgres/Qdrant de
+# outros projetos nas portas padrão; deslocar evita conflito de bind sem
+# depender de qual desses outros stacks está de pé no momento. Dentro do
+# container a porta continua a padrão (postgres/qdrant não sabem da troca);
+# só o mapeamento host:container muda — `.env`/`.env.example` já refletem
+# isso (`POSTGRES_DSN` porta 5433, `QDRANT_PORT` 6335).
+#
+# Uso: `docker compose up -d postgres qdrant` (ver README.md, "Como Executar
+# o Projeto").
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: assistente
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: unless-stopped
+    ports:
+      - "6335:6333" # API HTTP/REST (QDRANT_PORT em .env.example)
+      - "6336:6334" # API gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  postgres_data:
+  qdrant_data:
