@@ -108,6 +108,35 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `POST /api/auth/login` , `POST /api/auth/signup` | Autenticação simplificada |
 | `GET /api/appointments` | Lista agendamentos criados via chat (leitura) |
 
+`POST /api/chat/messages` — contrato já implementado (Fase 2, texto apenas;
+ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
+
+```jsonc
+// Request
+{
+  "message": "Quero um orçamento para o produto X",
+  "conversation_id": "uuid-opcional, omitir para iniciar conversa nova",
+  "audio": null // MVP: campo reservado, aceito mas não processado (STT pendente)
+}
+
+// Response (200)
+{
+  "conversation_id": "uuid-da-conversa",
+  "message": "texto da resposta do assistente",
+  "domain": "vendas", // vendas | suporte | atendimento | agendamento | fora_escopo
+  "backend_used": "local", // local | externo
+  "escalation_reason": "nenhum" // nenhum | fora_escopo | rag_vazio | complexidade_alta
+}
+```
+
+MVP desta primeira versão do endpoint: resposta síncrona (JSON), sem
+streaming/SSE (`GET /api/chat/stream/{conversation_id}` continua tarefa da
+Fase 8, frontend); o campo `audio` é aceito no schema mas ignorado — o STT
+(R5) ainda não existe (ver `backend/src/app/stt/`); o histórico usado para
+resolver confirmações curtas (R3) é mantido em memória por processo no
+backend (últimas 1-3 mensagens por `conversation_id`), sem persistência em
+Postgres nem resumo automático (isso é R9/Fase 6).
+
 Os tipos de request/response devem espelhar os schemas Pydantic do backend
 (`src/app/models/`, ver `docs/CONVENTIONS.md`) — ao gerar os tipos
 TypeScript, prefira derivá-los de um contrato compartilhado (ex.: OpenAPI
