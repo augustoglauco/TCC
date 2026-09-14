@@ -51,4 +51,24 @@ describe("MessageBubble", () => {
 
     expect(screen.queryByTestId("message-domain-label")).not.toBeInTheDocument();
   });
+
+  it("destaca em azul a resposta do assistente quando vem de LLM externo", () => {
+    render(
+      <MessageBubble
+        message={makeMessage({ role: "assistant", text: "Resposta externa", backendUsed: "externo" })}
+      />,
+    );
+
+    expect(screen.getByTestId("message-bubble")).toHaveClass("bg-blue-50");
+  });
+
+  it("não destaca em azul a resposta do assistente quando vem do modelo local", () => {
+    render(
+      <MessageBubble
+        message={makeMessage({ role: "assistant", text: "Resposta local", backendUsed: "local" })}
+      />,
+    );
+
+    expect(screen.getByTestId("message-bubble")).not.toHaveClass("bg-blue-50");
+  });
 });
