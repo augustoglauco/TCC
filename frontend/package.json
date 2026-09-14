@@ -19,6 +19,7 @@
     "zustand": "^5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16",
@@ -34,6 +35,6 @@
     "prettier": "^3",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^2"
+    "vitest": "^4.1.11"
   }
 }
