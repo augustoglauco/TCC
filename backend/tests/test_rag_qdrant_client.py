@@ -32,7 +32,9 @@ async def test_search_sem_nada_indexado_retorna_lista_vazia(rag_client: QdrantRA
 
 
 async def test_upsert_chunks_vazio_nao_grava_e_retorna_zero(rag_client: QdrantRAGClient):
-    total = await rag_client.upsert_chunks([], source="arquivo.txt", domain="vendas")
+    total = await rag_client.upsert_chunks(
+        [], source="arquivo.txt", domain="vendas", document_id="doc-1"
+    )
 
     assert total == 0
     assert await rag_client.search("qualquer coisa", domain="vendas") == []
@@ -43,6 +45,7 @@ async def test_upsert_e_search_retorna_documento_com_conteudo_e_fonte(rag_client
         ["O gerador diesel GD-30 tem potência de 30 kVA e autonomia de 10 horas."],
         source="catalogo_geradores.txt",
         domain="vendas",
+        document_id="doc-1",
     )
 
     resultado = await rag_client.search("Qual a potência do gerador GD-30?", domain="vendas")
@@ -62,6 +65,7 @@ async def test_search_filtra_por_domain_nao_traz_documento_de_outro_dominio(
         ["O gerador não liga: verificar bateria de partida e nível de combustível."],
         source="manual_gd30.txt",
         domain="suporte",
+        document_id="doc-1",
     )
 
     resultado = await rag_client.search("gerador não liga", domain="vendas")
@@ -85,7 +89,10 @@ async def test_search_apos_drop_collection_volta_a_checar_existencia(
     `drop_collection`, senão uma busca depois do drop tentaria consultar
     uma collection que não existe mais em vez de devolver lista vazia."""
     await rag_client.upsert_chunks(
-        ["conteúdo de teste sobre o produto"], source="arquivo.txt", domain="vendas"
+        ["conteúdo de teste sobre o produto"],
+        source="arquivo.txt",
+        domain="vendas",
+        document_id="doc-1",
     )
     assert len(await rag_client.search("produto", domain="vendas")) == 1
 
@@ -117,7 +124,9 @@ async def test_upsert_chunks_com_falha_no_embedder_vira_rag_connection_error():
     )
 
     with pytest.raises(RAGConnectionError):
-        await client.upsert_chunks(["texto qualquer"], source="arquivo.txt", domain="vendas")
+        await client.upsert_chunks(
+            ["texto qualquer"], source="arquivo.txt", domain="vendas", document_id="doc-1"
+        )
 
 
 async def test_upsert_chunks_concorrentes_nao_colidem_na_criacao_da_collection(
@@ -136,8 +145,12 @@ async def test_upsert_chunks_concorrentes_nao_colidem_na_criacao_da_collection(
     )
 
     resultados = await asyncio.gather(
-        client.upsert_chunks(["texto A sobre o produto"], source="a.txt", domain="vendas"),
-        client.upsert_chunks(["texto B sobre o produto"], source="b.txt", domain="vendas"),
+        client.upsert_chunks(
+            ["texto A sobre o produto"], source="a.txt", domain="vendas", document_id="doc-a"
+        ),
+        client.upsert_chunks(
+            ["texto B sobre o produto"], source="b.txt", domain="vendas", document_id="doc-b"
+        ),
     )
 
     assert resultados == [1, 1]
@@ -163,6 +176,7 @@ async def test_upsert_e_search_contra_qdrant_real_do_docker_compose(text_embedde
             ["A garantia padrão dos geradores é de 12 meses contra defeitos de fabricação."],
             source="politicas_troca_garantia.txt",
             domain="atendimento",
+            document_id="doc-1",
         )
 
         resultado = await client.search("qual o prazo de garantia?", domain="atendimento")
@@ -177,3 +191,14 @@ async def test_embedding_model_name_expoe_o_nome_do_modelo_do_embedder(
     rag_client: QdrantRAGClient, text_embedder: TextEmbedder
 ):
     assert rag_client.embedding_model_name == text_embedder.model_name
+
+
+async def test_upsert_chunks_grava_document_id_no_payload_do_ponto(rag_client: QdrantRAGClient):
+    await rag_client.upsert_chunks(
+        ["conteúdo de teste"], source="arquivo.txt", domain="vendas", document_id="doc-xyz"
+    )
+
+    pontos, _ = await rag_client._client.scroll(rag_client._collection_name, limit=10)
+
+    assert len(pontos) == 1
+    assert pontos[0].payload["document_id"] == "doc-xyz"

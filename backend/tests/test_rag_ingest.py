@@ -13,7 +13,7 @@ async def test_ingest_file_le_txt_faz_chunking_e_grava_com_domain_informado(tmp_
     total = await ingest_file(client, arquivo, domain="vendas")
 
     assert total == 1
-    chunks, source, domain = client.upserts[0]
+    chunks, source, domain, _document_id = client.upserts[0]
     assert source == "catalogo.txt"
     assert domain == "vendas"
     assert "catálogo de produtos" in chunks[0]
@@ -27,7 +27,7 @@ async def test_ingest_file_extrai_texto_de_pdf(tmp_path: Path):
     total = await ingest_file(client, arquivo, domain="suporte")
 
     assert total == 1
-    chunks, _source, _domain = client.upserts[0]
+    chunks, _source, _domain, _document_id = client.upserts[0]
     assert "Texto do manual em PDF" in chunks[0]
 
 
@@ -44,7 +44,7 @@ async def test_ingest_directory_infere_domain_do_subdiretorio_e_ignora_extensao_
     total = await ingest_directory(client, tmp_path)
 
     assert total == 2
-    domains_ingeridos = {domain for _chunks, _source, domain in client.upserts}
+    domains_ingeridos = {domain for _chunks, _source, domain, _document_id in client.upserts}
     assert domains_ingeridos == {"vendas", "suporte"}
 
 
@@ -67,7 +67,7 @@ async def test_ingest_bytes_le_txt_faz_chunking_e_grava_com_domain_informado():
     )
 
     assert total == 1
-    chunks, source, domain = client.upserts[0]
+    chunks, source, domain, _document_id = client.upserts[0]
     assert source == "catalogo.txt"
     assert domain == "vendas"
     assert "catálogo" in chunks[0]
@@ -81,5 +81,5 @@ async def test_ingest_bytes_extrai_texto_de_pdf():
     )
 
     assert total == 1
-    chunks, _source, _domain = client.upserts[0]
+    chunks, _source, _domain, _document_id = client.upserts[0]
     assert "Texto do manual em PDF" in chunks[0]

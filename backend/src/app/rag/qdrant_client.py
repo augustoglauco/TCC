@@ -119,8 +119,17 @@ class QdrantRAGClient:
         except Exception as exc:
             raise RAGConnectionError(str(exc)) from exc
 
-    async def upsert_chunks(self, chunks: list[str], source: str, domain: str) -> int:
-        """Embeda e grava `chunks` na collection, com payload `source`/`domain`.
+    async def upsert_chunks(
+        self, chunks: list[str], source: str, domain: str, document_id: str
+    ) -> int:
+        """Embeda e grava `chunks` na collection, com payload
+        `source`/`domain`/`document_id`.
+
+        `document_id` amarra os pontos gravados ao registro em
+        `app.rag.registry` — é o que permite excluir só os pontos de um
+        documento específico (ver `delete_by_document_id`), mesmo quando o
+        mesmo `source`/`domain` foi ingerido mais de uma vez (sem
+        deduplicação — ver docstring do módulo).
 
         # MVP: sem deduplicação nem re-ingestão incremental — reingerir a
         # mesma fonte duas vezes cria pontos duplicados na collection (ver
@@ -142,7 +151,12 @@ class QdrantRAGClient:
                 PointStruct(
                     id=str(uuid.uuid4()),
                     vector=vector,
-                    payload={"content": chunk, "source": source, "domain": domain},
+                    payload={
+                        "content": chunk,
+                        "source": source,
+                        "domain": domain,
+                        "document_id": document_id,
+                    },
                 )
                 for chunk, vector in zip(chunks, vectors, strict=True)
             ]

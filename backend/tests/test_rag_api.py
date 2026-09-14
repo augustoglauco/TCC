@@ -28,7 +28,7 @@ def test_upload_documento_txt_ingere_e_retorna_numero_de_chunks():
     assert response.status_code == 200
     body = response.json()
     assert body == {"filename": "catalogo.txt", "domain": "vendas", "chunks": 1}
-    assert fake.upserts[0][1:] == ("catalogo.txt", "vendas")
+    assert fake.upserts[0][1:3] == ("catalogo.txt", "vendas")
 
 
 def test_upload_documento_pdf_ingere():
