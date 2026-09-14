@@ -40,6 +40,7 @@ registrada aqui com o motivo.
 | Suporte / Central de Ajuda | `/suporte` | FAQ e documentação de produto — é justamente o conteúdo que o crawler (R4) e o RAG de Suporte/Atendimento (R7) devem indexar | Não |
 | Contato | `/contato` | Dados institucionais, formas de contato alternativas ao chat | Não |
 | **Chat** | widget global (todas as rotas) | Ponto de entrada único para os quatro domínios de atendimento — ver Seção 3 | Não (funciona anônimo; melhora com login) |
+| Admin — Ingestão de documentos | `/admin/ingestao` | Página interna (fora da navegação pública) para upload de PDF/texto e ingestão no RAG (R4), complementando `backend/scripts/ingest_sample_docs.py` — decisão registrada em `docs/ARCHITECTURE.md` §5 | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
 
 Todas as páginas compartilham `layout.tsx`, que inclui o widget de chat — ele
 deve estar disponível em qualquer rota, inclusive durante o checkout.
@@ -113,6 +114,7 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` | Criação e histórico de pedidos |
 | `POST /api/auth/login` , `POST /api/auth/signup` | Autenticação simplificada |
 | `GET /api/appointments` | Lista agendamentos criados via chat (leitura) |
+| `POST /api/rag/documents` | Upload de um PDF/texto (`multipart/form-data`: `file` + `domain`) para ingestão no RAG — usado pela página `/admin/ingestao` (ver `backend/src/app/api/rag.py`) |
 
 `POST /api/chat/messages` — contrato já implementado (Fase 2, texto e áudio;
 ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
@@ -307,3 +309,17 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
 - Notificações push, aplicativo mobile nativo, múltiplos idiomas.
 - Painel administrativo para gestão de catálogo/estoque/preços — no MVP essa
   base é populada diretamente no banco (ver `docs/CONVENTIONS.md`), sem UI.
+
+**Decisão revista (Fase 2):** a exclusão acima era, na prática, uma regra
+geral contra qualquer UI administrativa no MVP. Ela fica mantida para
+catálogo/estoque/preços (não há necessidade concreta de UI ali — popular via
+banco é suficiente), mas deixa de ser uma proibição geral: uma página
+administrativa simples é aceitável no MVP quando (a) ela expõe uma
+capacidade de backend que já existe e só era acionável por script/CLI, e (b)
+sem ela a tarefa correspondente fica mais difícil de demonstrar/operar do
+que deveria. Primeiro caso: `/admin/ingestao` (upload de documentos para o
+RAG, ver linha na tabela da Seção 2 e `docs/ARCHITECTURE.md` §5) — antes só
+dava para ingerir documentos rodando `backend/scripts/ingest_sample_docs.py`
+manualmente. Novas páginas administrativas continuam exigindo essa mesma
+análise caso a caso (registrada aqui ou em `docs/ARCHITECTURE.md`), não uma
+liberação geral.

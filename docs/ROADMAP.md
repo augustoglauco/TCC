@@ -180,7 +180,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [~] Implementar página de Agendamentos (leitura dos agendamentos criados
       via chat, R11) — apenas stub de rota (`app/agendamentos/page.tsx`), sem
       consumir a API (que ainda não existe no backend)
-- [ ] Implementar página administrativa de ingestão de documentos
+- [x] Implementar página administrativa de ingestão de documentos
       (`/admin/ingestao`, fora da navegação pública) consumindo `POST
       /api/rag/documents` — decisão registrada em `docs/ARCHITECTURE.md` §5 e
       `docs/FRONTEND.md` §8
