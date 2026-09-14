@@ -207,3 +207,28 @@ class QdrantRAGClient:
             ]
         except Exception as exc:
             raise RAGConnectionError(str(exc)) from exc
+
+    async def delete_by_document_id(self, document_id: str) -> None:
+        """Remove todos os pontos com aquele `document_id` no payload.
+
+        A exclusão da linha correspondente no registro (Postgres) é feita
+        separadamente por quem chama este método (ver `app.api.rag`) — as
+        duas exclusões não são transacionais entre si (mesma decisão de
+        `upsert_chunks`, ver docs/superpowers/specs/2026-09-14-registro-
+        documentos-rag-design.md §3).
+        """
+        try:
+            if not self._collection_ready:
+                exists = await self._client.collection_exists(self._collection_name)
+                if not exists:
+                    return
+                self._collection_ready = True
+
+            await self._client.delete(
+                collection_name=self._collection_name,
+                points_selector=Filter(
+                    must=[FieldCondition(key="document_id", match=MatchValue(value=document_id))]
+                ),
+            )
+        except Exception as exc:
+            raise RAGConnectionError(str(exc)) from exc

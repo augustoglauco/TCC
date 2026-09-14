@@ -202,3 +202,38 @@ async def test_upsert_chunks_grava_document_id_no_payload_do_ponto(rag_client: Q
 
     assert len(pontos) == 1
     assert pontos[0].payload["document_id"] == "doc-xyz"
+
+
+async def test_delete_by_document_id_remove_so_os_pontos_daquele_documento(
+    rag_client: QdrantRAGClient,
+):
+    await rag_client.upsert_chunks(
+        ["conteúdo do documento A"], source="a.txt", domain="vendas", document_id="doc-a"
+    )
+    await rag_client.upsert_chunks(
+        ["conteúdo do documento B"], source="b.txt", domain="vendas", document_id="doc-b"
+    )
+
+    await rag_client.delete_by_document_id("doc-a")
+
+    resultado = await rag_client.search("conteúdo", domain="vendas")
+    assert len(resultado) == 1
+    assert resultado[0].source == "b.txt"
+
+
+async def test_delete_by_document_id_sem_collection_nao_levanta_erro(
+    rag_client: QdrantRAGClient,
+):
+    # Nada foi ingerido ainda — a collection não existe. Excluir um
+    # document_id nesse estado deve ser um no-op silencioso, mesmo
+    # espírito de `search` sem nada indexado (ver docstring da classe).
+    await rag_client.delete_by_document_id("doc-inexistente")
+
+
+async def test_delete_by_document_id_erro_de_conexao_vira_rag_connection_error(
+    text_embedder: TextEmbedder,
+):
+    client = QdrantRAGClient(host="localhost", port=1, embedder=text_embedder)
+
+    with pytest.raises(RAGConnectionError):
+        await client.delete_by_document_id("doc-1")
