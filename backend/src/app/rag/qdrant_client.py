@@ -87,6 +87,10 @@ class QdrantRAGClient:
         self._collection_ready = False
         self._collection_lock = asyncio.Lock()
 
+    @property
+    def embedding_model_name(self) -> str:
+        return self._embedder.model_name
+
     async def ensure_collection(self) -> None:
         """Cria a collection se ainda não existir (idempotente)."""
         if self._collection_ready:

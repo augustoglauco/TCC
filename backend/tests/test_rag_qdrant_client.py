@@ -171,3 +171,9 @@ async def test_upsert_e_search_contra_qdrant_real_do_docker_compose(text_embedde
         assert "garantia" in resultado[0].content.lower()
     finally:
         await client.drop_collection()
+
+
+async def test_embedding_model_name_expoe_o_nome_do_modelo_do_embedder(
+    rag_client: QdrantRAGClient, text_embedder: TextEmbedder
+):
+    assert rag_client.embedding_model_name == text_embedder.model_name
