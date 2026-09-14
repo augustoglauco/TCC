@@ -1,6 +1,7 @@
 """Ponto de entrada da API FastAPI do backend (`uvicorn app.main:app`)."""
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.chat import router as chat_router
 from app.config import get_settings
@@ -15,6 +16,15 @@ def create_app() -> FastAPI:
     configure_logging(settings.log_level)
 
     app = FastAPI(title="Assistente Multimodal — Backend", version="0.1.0")
+
+    # MVP: libera só a origem do frontend de dev — sem lista por
+    # ambiente/parceiro (ver docs/FRONTEND.md).
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[settings.cors_allowed_origin],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # Clientes de infraestrutura como singletons por processo — reaproveitados
     # entre requisições (mesmo padrão usado pelos testes do orchestrator).

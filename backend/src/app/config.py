@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     mcp_b2b_host: str = "0.0.0.0"
     mcp_b2b_port: int = 8100
 
+    # MVP: origem única do frontend em dev — sem lista configurável por
+    # ambiente/parceiro (isso seria necessário para um deploy real, R2/R9).
+    cors_allowed_origin: str = "http://localhost:3000"
+
 
 @lru_cache
 def get_settings() -> Settings:
