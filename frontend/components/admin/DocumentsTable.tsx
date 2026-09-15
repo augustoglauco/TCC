@@ -55,27 +55,27 @@ export function DocumentsTable({ documents, onDeleted }: DocumentsTableProps) {
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-gray-200 text-gray-500">
-            <th className="py-2">Arquivo</th>
-            <th className="py-2">Domínio</th>
-            <th className="py-2">Chunks</th>
-            <th className="py-2">Modelo de embedding</th>
-            <th className="py-2">Data</th>
-            <th className="py-2" />
+            <th className="py-2 pr-4">Arquivo</th>
+            <th className="py-2 pr-4">Domínio</th>
+            <th className="py-2 pr-4">Chunks</th>
+            <th className="py-2 pr-4">Modelo de embedding</th>
+            <th className="py-2 pr-4">Data</th>
+            <th className="py-2 pr-4" />
           </tr>
         </thead>
         <tbody>
           {documents.map((documento) => (
             <tr key={documento.id} className="border-b border-gray-100">
-              <td className="py-2 text-gray-900">{documento.filename}</td>
-              <td className="py-2">
+              <td className="py-2 pr-4 text-gray-900">{documento.filename}</td>
+              <td className="py-2 pr-4">
                 <DomainBadge domain={documento.domain} />
               </td>
-              <td className="py-2 text-gray-700">{documento.chunk_count}</td>
-              <td className="py-2 text-gray-700">{documento.embedding_model}</td>
-              <td className="py-2 text-gray-500" title={documento.created_at}>
+              <td className="py-2 pr-4 text-gray-700">{documento.chunk_count}</td>
+              <td className="py-2 pr-4 text-gray-700">{documento.embedding_model}</td>
+              <td className="py-2 pr-4 text-gray-500" title={documento.created_at}>
                 {formatarDataRelativa(documento.created_at)}
               </td>
-              <td className="py-2 text-right">
+              <td className="py-2 pr-4 text-right">
                 <button
                   type="button"
                   onClick={() => setDocumentoParaExcluir(documento)}
