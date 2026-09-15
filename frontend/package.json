@@ -15,6 +15,8 @@
     "test:e2e:smoke": "playwright test --config=playwright.smoke.config.ts"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-tabs": "^1.1.21",
     "next": "16.3.5",
     "react": "19.2.8",
     "react-dom": "19.2.8",
