@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.chat import router as chat_router
 from app.api.rag import router as rag_router
 from app.config import get_settings
+from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
 from app.rag.embeddings import TextEmbedder
 from app.rag.qdrant_client import QdrantRAGClient
@@ -54,6 +55,12 @@ def create_app() -> FastAPI:
         embedder=TextEmbedder(settings.rag_embedding_model),
         timeout_s=settings.qdrant_timeout_s,
     )
+    # Primeiro uso real do Postgres do projeto (registro de documentos do
+    # RAG, além do MVP — ver docs/ARCHITECTURE.md §5). Engine criado
+    # explicitamente aqui (não via singleton global), mesmo padrão dos
+    # outros clientes de infraestrutura desta função.
+    db_engine = create_db_engine(settings.postgres_dsn)
+    app.state.db_sessionmaker = create_session_factory(db_engine)
     app.state.complexity_strategy = settings.router_complexity_strategy
     # MVP: modelo carregado sob demanda (lazy) na mesma GPU do modelo local de
     # chat — contenção de VRAM entre os dois é um risco conhecido (ver
