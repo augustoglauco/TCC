@@ -9,10 +9,12 @@
 """
 
 import logging
+from collections.abc import AsyncIterator
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from pypdf.errors import PyPdfError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.chat import get_rag_client
 from app.models.rag import DocumentIngestResponse, RagDomain
@@ -23,6 +25,11 @@ from app.router.rag_client import RAGConnectionError
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/rag", tags=["rag"])
+
+
+async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:
+    async with request.app.state.db_sessionmaker() as session:
+        yield session
 
 
 @router.post("/documents", response_model=DocumentIngestResponse)
