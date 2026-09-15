@@ -3,7 +3,9 @@
 Contrato espelhado em `docs/FRONTEND.md` §4 (`POST /api/rag/documents`).
 """
 
+from datetime import datetime
 from typing import Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -19,3 +21,19 @@ class DocumentIngestResponse(BaseModel):
     filename: str = Field(..., description="Nome do arquivo enviado.")
     domain: RagDomain = Field(..., description="Domínio informado no upload.")
     chunks: int = Field(..., description="Número de chunks gravados no Qdrant.")
+
+
+class DocumentRegistryResponse(BaseModel):
+    """Um item de `GET /api/rag/documents` — espelha `app.db.models.RagDocument`."""
+
+    id: UUID
+    filename: str = Field(..., description="Nome do arquivo ingerido.")
+    domain: RagDomain
+    chunk_count: int = Field(..., description="Número de chunks gravados no Qdrant.")
+    embedding_model: str
+    chunk_size: int
+    chunk_overlap: int
+    origin: Literal["upload", "batch_script"]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
