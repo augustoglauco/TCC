@@ -13,3 +13,18 @@ export interface DocumentIngestResponse {
   domain: RagDomain;
   chunks: number;
 }
+
+export type RagDocumentOrigin = "upload" | "batch_script";
+
+/** Um item de `GET /api/rag/documents` (ver `backend/src/app/models/rag.py`). */
+export interface DocumentRegistryEntry {
+  id: string;
+  filename: string;
+  domain: RagDomain;
+  chunk_count: number;
+  embedding_model: string;
+  chunk_size: number;
+  chunk_overlap: number;
+  origin: RagDocumentOrigin;
+  created_at: string;
+}

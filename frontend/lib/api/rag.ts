@@ -1,4 +1,4 @@
-import type { DocumentIngestResponse, RagDomain } from "@/lib/types/rag";
+import type { DocumentIngestResponse, DocumentRegistryEntry, RagDomain } from "@/lib/types/rag";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -61,4 +61,47 @@ export async function uploadDocument({
   }
 
   return (await response.json()) as DocumentIngestResponse;
+}
+
+/**
+ * Lista os documentos registrados via `GET /api/rag/documents`.
+ *
+ * MVP: usado pela aba "Documentos ingeridos" de `/admin/ingestao` — sem
+ * paginação nem filtro no backend (lista completa, ordenada do mais recente
+ * para o mais antigo).
+ */
+export async function listDocuments(): Promise<DocumentRegistryEntry[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/rag/documents`);
+  } catch {
+    throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
+  }
+
+  if (!response.ok) {
+    throw new RagApiError("Não foi possível carregar os documentos. Tente novamente.", response.status);
+  }
+
+  return (await response.json()) as DocumentRegistryEntry[];
+}
+
+/**
+ * Exclui um documento (registro + pontos no Qdrant) via
+ * `DELETE /api/rag/documents/{id}`.
+ */
+export async function deleteDocument(id: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/rag/documents/${id}`, { method: "DELETE" });
+  } catch {
+    throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
+  }
+
+  if (!response.ok) {
+    const message =
+      response.status === 404
+        ? "Documento não encontrado (talvez já tenha sido excluído)."
+        : "Não foi possível excluir o documento. Tente novamente.";
+    throw new RagApiError(message, response.status);
+  }
 }
