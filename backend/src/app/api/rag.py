@@ -11,9 +11,11 @@
 import logging
 from collections.abc import AsyncIterator
 from pathlib import Path
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from pypdf.errors import PyPdfError
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.rag import DocumentIngestResponse, DocumentRegistryResponse, RagDomain
@@ -69,6 +71,18 @@ async def upload_document(
         raise HTTPException(
             status_code=400, detail=f"Não foi possível extrair texto de '{filename}': {exc}"
         ) from exc
+    except SQLAlchemyError as exc:
+        logger.error(
+            "rag_registro_indisponivel",
+            extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Serviço de registro de documentos temporariamente indisponível, "
+                "tente novamente."
+            ),
+        ) from exc
 
     return DocumentIngestResponse(filename=filename, domain=domain, chunks=documento.chunk_count)
 
@@ -77,22 +91,31 @@ async def upload_document(
 async def get_documents(
     session: AsyncSession = Depends(get_db_session),
 ) -> list[DocumentRegistryResponse]:
-    documentos = await list_documents(session)
+    try:
+        documentos = await list_documents(session)
+    except SQLAlchemyError as exc:
+        logger.error(
+            "rag_registro_indisponivel",
+            extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Serviço de registro de documentos temporariamente indisponível, "
+                "tente novamente."
+            ),
+        ) from exc
     return [DocumentRegistryResponse.model_validate(documento) for documento in documentos]
 
 
 @router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_document_endpoint(
-    document_id: str,
+    document_id: UUID,
     rag_client: QdrantRAGClient = Depends(get_rag_client),
     session: AsyncSession = Depends(get_db_session),
 ) -> None:
-    removido = await delete_document(session, document_id)
-    if not removido:
-        raise HTTPException(status_code=404, detail="Documento não encontrado.")
-
     try:
-        await rag_client.delete_by_document_id(document_id)
+        await rag_client.delete_by_document_id(str(document_id))
     except RAGConnectionError as exc:
         logger.error(
             "rag_delete_indisponivel",
@@ -101,3 +124,20 @@ async def delete_document_endpoint(
         raise HTTPException(
             status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
         ) from exc
+
+    try:
+        removido = await delete_document(session, str(document_id))
+    except SQLAlchemyError as exc:
+        logger.error(
+            "rag_registro_indisponivel",
+            extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Serviço de registro de documentos temporariamente indisponível, "
+                "tente novamente."
+            ),
+        ) from exc
+    if not removido:
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
