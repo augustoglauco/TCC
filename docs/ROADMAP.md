@@ -100,6 +100,21 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `PyPdfError` tratados explicitamente — sem isso viravam 500 crus),
       Qdrant indisponível 503
 
+## Extra fora do MVP — Registro e Configuração de Ingestão do RAG
+
+> Pedido explícito do usuário, fora do escopo original do MVP (ver
+> `docs/ARCHITECTURE.md` §5 e
+> `docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md`).
+> Três entregas combinadas na mesma sessão de brainstorming (2026-09-14).
+
+- [x] **Entrega A** — registro de documentos ingeridos (Postgres,
+      `rag_documents`) + exclusão (registro + pontos no Qdrant), com página
+      `/admin/ingestao` reorganizada em abas (Radix UI)
+- [ ] **Entrega B** — chunk size/overlap configuráveis por ingestão
+- [ ] **Entrega C+D** — configuração avançada da collection do Qdrant
+      (modelo de embedding/dimensão/métrica de distância, HNSW, quantização
+      de vetores, payload indexing)
+
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
 - [ ] Implementar entrada de imagem no chat (fluxo básico)

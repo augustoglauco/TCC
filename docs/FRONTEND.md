@@ -115,6 +115,8 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `POST /api/auth/login` , `POST /api/auth/signup` | Autenticação simplificada |
 | `GET /api/appointments` | Lista agendamentos criados via chat (leitura) |
 | `POST /api/rag/documents` | Upload de um PDF/texto (`multipart/form-data`: `file` + `domain`) para ingestão no RAG — usado pela página `/admin/ingestao` (ver `backend/src/app/api/rag.py`) |
+| `GET /api/rag/documents` | Lista o registro de documentos ingeridos (mais recente primeiro), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `DELETE /api/rag/documents/{document_id}` | Exclui um documento (registro + pontos no Qdrant), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 
 `POST /api/chat/messages` — contrato já implementado (Fase 2, texto e áudio;
 ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
@@ -323,3 +325,8 @@ dava para ingerir documentos rodando `backend/scripts/ingest_sample_docs.py`
 manualmente. Novas páginas administrativas continuam exigindo essa mesma
 análise caso a caso (registrada aqui ou em `docs/ARCHITECTURE.md`), não uma
 liberação geral.
+
+`/admin/ingestao` foi ampliada (fora do MVP original, a pedido explícito,
+2026-09-14) com um registro/exclusão de documentos e uma aba de
+configuração reservada para entregas futuras — ver
+`docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md`.

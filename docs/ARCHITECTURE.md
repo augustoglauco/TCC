@@ -140,6 +140,19 @@ simplificações do script — sem autenticação (rota não listada na navegaç
 pública, mas não protegida por login), sem deduplicação/reingestão
 incremental (mesma limitação de `app.rag.qdrant_client.upsert_chunks`).
 
+**Decisão registrada (além do MVP, a pedido explícito, 2026-09-14):** toda
+ingestão de documento no RAG (endpoint HTTP ou script em lote) passa a criar
+um registro persistente no Postgres (`rag_documents`) — o primeiro uso real
+dessa infraestrutura, até então só prevista em config/`docker-compose.yml`.
+A partir desse registro, um documento pode ser listado e excluído (linha do
+Postgres + pontos correspondentes no Qdrant, amarrados por um `document_id`
+gravado no payload de cada ponto). Esta funcionalidade **não faz parte do
+MVP original** — foi implementada por pedido explícito do usuário antes de
+retomar os itens pendentes da Fase 2 (conector de BD relacional, crawler).
+Fica registrada aqui para não ser confundida com um item do escopo original
+nem esquecida na revisão final (Fase 11). Detalhes de implementação:
+`docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
