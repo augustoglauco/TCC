@@ -20,10 +20,12 @@ Qdrant+Postgres").
 import logging
 import uuid
 from pathlib import Path
+from typing import get_args
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import RagDocument
+from app.models.rag import RagDomain
 from app.rag.chunking import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, chunk_text
 from app.rag.pdf_extract import extract_text_from_pdf
 from app.rag.qdrant_client import QdrantRAGClient
@@ -32,6 +34,7 @@ from app.rag.registry import create_document
 logger = logging.getLogger(__name__)
 
 SUPPORTED_SUFFIXES = {".txt", ".md", ".pdf"}
+_VALID_DOMAINS = set(get_args(RagDomain))
 
 
 def _extract_text(filename: str, content: bytes) -> str:
@@ -108,6 +111,9 @@ async def ingest_directory(
     # MVP: domínio inferido do nome do subdiretório imediato de cada arquivo
     # (ex.: `sample_docs/vendas/catalogo.txt` -> domain="vendas") — convenção
     # simples por convenção de pasta, sem metadados explícitos por arquivo.
+    # Arquivos em subdiretórios cujo nome não é um domínio válido (`RagDomain`)
+    # são ignorados (com aviso no log), para não gravar um `domain` inválido
+    # que quebraria `GET /api/rag/documents` (resposta tipada por `RagDomain`).
     Retorna um documento de registro por arquivo ingerido.
     """
     documentos = []
@@ -115,5 +121,14 @@ async def ingest_directory(
         if not path.is_file() or path.suffix.lower() not in SUPPORTED_SUFFIXES:
             continue
         domain = path.parent.name
+        if domain not in _VALID_DOMAINS:
+            logger.warning(
+                "rag_ingest_domain_invalido arquivo=%s domain=%s — ignorado, "
+                "domínios válidos: %s",
+                path,
+                domain,
+                sorted(_VALID_DOMAINS),
+            )
+            continue
         documentos.append(await ingest_file(client, path, domain, session, origin))
     return documentos

@@ -226,6 +226,9 @@ pip install -e .
 # Garantir que os containers de banco (PostgreSQL e Qdrant) estejam ativos
 docker compose up -d postgres qdrant
 
+# Aplicar as migrações do banco (cria a tabela rag_documents, entre outras)
+alembic upgrade head
+
 # Iniciar o servidor backend (FastAPI)
 uvicorn app.main:app --reload --port 8000
 ```

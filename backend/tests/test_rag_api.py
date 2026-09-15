@@ -155,7 +155,7 @@ def test_listar_documentos_apos_upload_retorna_o_documento(db_session):
 def test_excluir_documento_existente_remove_do_registro_e_do_qdrant(db_session):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session))
-    upload = client.post(
+    client.post(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
@@ -172,8 +172,9 @@ def test_excluir_documento_existente_remove_do_registro_e_do_qdrant(db_session):
 def test_excluir_documento_inexistente_retorna_404(db_session):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session))
+    document_id = "00000000-0000-0000-0000-000000000000"
 
-    response = client.delete("/api/rag/documents/00000000-0000-0000-0000-000000000000")
+    response = client.delete(f"/api/rag/documents/{document_id}")
 
     assert response.status_code == 404
-    assert fake.deleted_document_ids == []
+    assert fake.deleted_document_ids == [document_id]

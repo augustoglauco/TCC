@@ -7,7 +7,8 @@
 # demonstrar/testar o RAG, não é um pipeline de produção (ver
 # docs/ARCHITECTURE.md §5).
 
-Uso (a partir de `backend/`, com o Qdrant e o Postgres do docker-compose no ar):
+Uso (a partir de `backend/`, com o Qdrant e o Postgres do docker-compose no ar
+e a migração do Alembic já aplicada — `alembic upgrade head`):
 
     .venv/bin/python scripts/ingest_sample_docs.py
 """
