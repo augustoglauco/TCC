@@ -2,12 +2,12 @@
 
 # MVP: script de linha de comando único, sem agendamento nem observador de
 # diretório — reingestão é manual (rodar o script de novo), o que duplica
-# pontos no Qdrant, já que não há deduplicação (ver
+# pontos no Qdrant e cria novos registros, já que não há deduplicação (ver
 # `app.rag.qdrant_client.upsert_chunks`). Serve para ter algo indexado para
 # demonstrar/testar o RAG, não é um pipeline de produção (ver
 # docs/ARCHITECTURE.md §5).
 
-Uso (a partir de `backend/`, com o Qdrant do docker-compose no ar):
+Uso (a partir de `backend/`, com o Qdrant e o Postgres do docker-compose no ar):
 
     .venv/bin/python scripts/ingest_sample_docs.py
 """
@@ -17,6 +17,7 @@ import logging
 from pathlib import Path
 
 from app.config import get_settings
+from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
 from app.rag.embeddings import TextEmbedder
 from app.rag.ingest import ingest_directory
@@ -36,9 +37,18 @@ async def main() -> None:
         embedder=embedder,
         timeout_s=settings.qdrant_timeout_s,
     )
+    db_engine = create_db_engine(settings.postgres_dsn)
+    session_factory = create_session_factory(db_engine)
 
-    total = await ingest_directory(client, SAMPLE_DOCS_DIR)
-    print(f"Ingeridos {total} chunks a partir de {SAMPLE_DOCS_DIR}")
+    async with session_factory() as session:
+        documentos = await ingest_directory(client, SAMPLE_DOCS_DIR, session=session)
+
+    total_chunks = sum(documento.chunk_count for documento in documentos)
+    print(
+        f"Ingeridos {len(documentos)} documento(s), {total_chunks} chunk(s) "
+        f"a partir de {SAMPLE_DOCS_DIR}"
+    )
+    await db_engine.dispose()
 
 
 if __name__ == "__main__":
