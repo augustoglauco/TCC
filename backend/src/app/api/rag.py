@@ -1,8 +1,8 @@
-"""Endpoint HTTP de upload para ingestão de documentos no RAG (R4).
+"""Endpoints HTTP do registro de documentos do RAG (R4, além do MVP).
 
-# MVP: upload síncrono e sem autenticação (rota não listada na navegação
-# pública do frontend, mas não protegida por login) — complementa, sem
-# substituir, o script de ingestão em lote
+# MVP: sem autenticação (rotas não listadas na navegação pública do
+# frontend, mas não protegidas por login). `upload_document` complementa,
+# sem substituir, o script de ingestão em lote
 # (`backend/scripts/ingest_sample_docs.py`). Mesma limitação de
 # `app.rag.qdrant_client.upsert_chunks`: sem deduplicação/reingestão
 # incremental. Decisão registrada em `docs/ARCHITECTURE.md` §5.
@@ -12,19 +12,23 @@ import logging
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 from pypdf.errors import PyPdfError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.chat import get_rag_client
-from app.models.rag import DocumentIngestResponse, RagDomain
+from app.models.rag import DocumentIngestResponse, DocumentRegistryResponse, RagDomain
 from app.rag.ingest import SUPPORTED_SUFFIXES, ingest_bytes
 from app.rag.qdrant_client import QdrantRAGClient
+from app.rag.registry import delete_document, list_documents
 from app.router.rag_client import RAGConnectionError
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/rag", tags=["rag"])
+
+
+def get_rag_client(request: Request) -> QdrantRAGClient:
+    return request.app.state.rag_client
 
 
 async def get_db_session(request: Request) -> AsyncIterator[AsyncSession]:
@@ -37,6 +41,7 @@ async def upload_document(
     domain: RagDomain = Form(...),
     file: UploadFile = File(...),
     rag_client: QdrantRAGClient = Depends(get_rag_client),
+    session: AsyncSession = Depends(get_db_session),
 ) -> DocumentIngestResponse:
     filename = file.filename or ""
     suffix = Path(filename).suffix.lower()
@@ -49,7 +54,9 @@ async def upload_document(
 
     content = await file.read()
     try:
-        chunks = await ingest_bytes(rag_client, filename, content, domain)
+        documento = await ingest_bytes(
+            rag_client, filename, content, domain, session=session, origin="upload"
+        )
     except RAGConnectionError as exc:
         logger.error(
             "rag_upload_indisponivel",
@@ -59,12 +66,38 @@ async def upload_document(
             status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
         ) from exc
     except (UnicodeDecodeError, PyPdfError) as exc:
-        # Extensão suportada (.txt/.md/.pdf) não garante conteúdo válido —
-        # ex.: texto que não é UTF-8 (comum em .txt salvo como Windows-1252)
-        # ou PDF corrompido/criptografado. Sem isso, `_extract_text` deixa
-        # a exceção subir crua e vira 500 em vez de um erro de validação.
         raise HTTPException(
             status_code=400, detail=f"Não foi possível extrair texto de '{filename}': {exc}"
         ) from exc
 
-    return DocumentIngestResponse(filename=filename, domain=domain, chunks=chunks)
+    return DocumentIngestResponse(filename=filename, domain=domain, chunks=documento.chunk_count)
+
+
+@router.get("/documents", response_model=list[DocumentRegistryResponse])
+async def get_documents(
+    session: AsyncSession = Depends(get_db_session),
+) -> list[DocumentRegistryResponse]:
+    documentos = await list_documents(session)
+    return [DocumentRegistryResponse.model_validate(documento) for documento in documentos]
+
+
+@router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_document_endpoint(
+    document_id: str,
+    rag_client: QdrantRAGClient = Depends(get_rag_client),
+    session: AsyncSession = Depends(get_db_session),
+) -> None:
+    removido = await delete_document(session, document_id)
+    if not removido:
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+
+    try:
+        await rag_client.delete_by_document_id(document_id)
+    except RAGConnectionError as exc:
+        logger.error(
+            "rag_delete_indisponivel",
+            extra={"rag": {"event": "rag_delete_indisponivel", "erro": str(exc)}},
+        )
+        raise HTTPException(
+            status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
+        ) from exc
