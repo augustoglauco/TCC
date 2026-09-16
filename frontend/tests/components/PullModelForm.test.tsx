@@ -157,21 +157,90 @@ describe("PullModelForm", () => {
     await user.type(screen.getByLabelText(/nome do modelo/i), "modelo-a");
     await user.click(screen.getByRole("button", { name: "Baixar" }));
     expect(mockedPullModel).toHaveBeenCalledWith("modelo-a");
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("modelo-a");
 
     // Só agora a retomada de "modelo-b" resolve — com o polling de
-    // "modelo-a" já iniciado (interval A vivo em `intervalRef.current`).
+    // "modelo-a" já iniciado (interval A vivo em `intervalRef.current`). Como
+    // o submit manual já começou, a retomada deve descartar seu resultado em
+    // vez de sobrescrever o estado/interval de "modelo-a" — senão o download
+    // de "modelo-b", que continua rodando no servidor, fica órfão da UI.
     resolverRetomada({ status: "pulling", percent: 60, detail: "baixando modelo-b..." });
-    await waitFor(() => expect(screen.getByDisplayValue("modelo-b")).toBeInTheDocument());
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(screen.getByDisplayValue("modelo-a")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("modelo-b")).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("modelo-a");
 
     // Avança um ciclo de polling. Sem o fix, tanto o interval de "modelo-a"
-    // (vazado) quanto o de "modelo-b" disparariam juntos; com o fix, só o
-    // interval de "modelo-b" (o único vivo) deve ter dado tick.
+    // quanto o de "modelo-b" (aplicado pela retomada) disparariam juntos; com
+    // o fix, só o interval de "modelo-a" (o único vivo) deve ter dado tick.
     await vi.advanceTimersByTimeAsync(1500);
 
     const chamadasParaModeloA = mockedGetPullStatus.mock.calls.filter(([nome]) => nome === "modelo-a");
     const chamadasParaModeloB = mockedGetPullStatus.mock.calls.filter(([nome]) => nome === "modelo-b");
-    expect(chamadasParaModeloA).toHaveLength(0);
-    // 1ª chamada = checagem de retomada; 2ª = o tick do interval de B.
-    expect(chamadasParaModeloB).toHaveLength(2);
+    expect(chamadasParaModeloA.length).toBeGreaterThan(0);
+    // Única chamada para "modelo-b" = a checagem de retomada; nenhum tick de
+    // polling seguinte deve ter sido disparado para ele.
+    expect(chamadasParaModeloB).toHaveLength(1);
+  });
+
+  it("tolera falhas transitórias isoladas de polling e não interrompe o download", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mockedPullModel.mockResolvedValueOnce(undefined);
+    mockedGetPullStatus
+      .mockResolvedValueOnce({ status: "pulling", percent: 10, detail: "baixando..." })
+      // 2 falhas transitórias seguidas (ex.: instabilidade de rede) — não
+      // devem, sozinhas, interromper o polling nem marcar erro.
+      .mockRejectedValueOnce(new LocalModelsApiError("Falha transitória 1"))
+      .mockRejectedValueOnce(new LocalModelsApiError("Falha transitória 2"))
+      // Uma resposta de sucesso no meio reseta o contador de falhas
+      // consecutivas a zero.
+      .mockResolvedValueOnce({ status: "pulling", percent: 50, detail: "baixando..." })
+      .mockResolvedValueOnce({ status: "done", percent: 100, detail: "concluído" });
+    const onPulled = vi.fn();
+
+    render(<PullModelForm onPulled={onPulled} />);
+
+    await user.type(screen.getByLabelText(/nome do modelo/i), "llama3.1:8b");
+    await user.click(screen.getByRole("button", { name: "Baixar" }));
+
+    expect(await screen.findByText(/10/)).toBeInTheDocument();
+
+    // Duas falhas consecutivas: o polling continua vivo, sem erro exibido, e
+    // o download não é dado como abortado (localStorage/enviando mantidos).
+    await vi.advanceTimersByTimeAsync(2500);
+    expect(screen.queryByText(/Falha transitória/)).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("llama3.1:8b");
+    expect(screen.getByRole("button", { name: "Baixando..." })).toBeInTheDocument();
+
+    // A resposta de sucesso seguinte reseta o contador; o polling segue até
+    // "done" normalmente.
+    await vi.advanceTimersByTimeAsync(2000);
+    await waitFor(() => expect(onPulled).toHaveBeenCalled());
+    expect(screen.getByText(/concluído/i)).toBeInTheDocument();
+  });
+
+  it("marca erro fatal após N falhas consecutivas de polling", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mockedPullModel.mockResolvedValueOnce(undefined);
+    mockedGetPullStatus
+      .mockResolvedValueOnce({ status: "pulling", percent: 10, detail: "baixando..." })
+      .mockRejectedValueOnce(new LocalModelsApiError("Falha 1"))
+      .mockRejectedValueOnce(new LocalModelsApiError("Falha 2"))
+      .mockRejectedValueOnce(new LocalModelsApiError("Falha 3"));
+
+    render(<PullModelForm onPulled={vi.fn()} />);
+
+    await user.type(screen.getByLabelText(/nome do modelo/i), "llama3.1:8b");
+    await user.click(screen.getByRole("button", { name: "Baixar" }));
+
+    expect(await screen.findByText(/10/)).toBeInTheDocument();
+
+    await vi.advanceTimersByTimeAsync(3500);
+
+    expect(await screen.findByText("Falha 3")).toBeInTheDocument();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
+    // `enviando` volta a `false` — o formulário libera uma nova tentativa.
+    expect(screen.getByRole("button", { name: "Baixar" })).not.toBeDisabled();
   });
 });

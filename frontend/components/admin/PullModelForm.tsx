@@ -7,6 +7,11 @@ import type { PullStatusResponse } from "@/lib/types/localModels";
 
 const POLL_INTERVAL_MS = 1000;
 
+// Nº de falhas consecutivas de polling (ex.: instabilidade de rede, reinício
+// momentâneo do backend) toleradas antes de tratar como erro fatal. O
+// download em si continua rodando no servidor independentemente do polling.
+const MAX_FALHAS_CONSECUTIVAS = 3;
+
 const STORAGE_KEY = "gerenciador-modelos-locais:pull-em-andamento";
 
 function lerNomeEmAndamento(): string | null {
@@ -44,6 +49,10 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
   const [progresso, setProgresso] = useState<PullStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const falhasConsecutivasRef = useRef(0);
+  // Marca se uma submissão manual (handleSubmit) já começou — usado para o
+  // efeito de retomada (abaixo) não pisar num submit manual concorrente.
+  const submissaoManualIniciadaRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -65,7 +74,13 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
 
       try {
         const status = await getPullStatus(nomeSalvo);
-        if (cancelado) return;
+        // Uma submissão manual pode ter começado enquanto aguardávamos essa
+        // resposta (ex.: o usuário submeteu outro modelo antes desta
+        // retomada resolver) — nesse caso o submit manual já é dono do
+        // polling/localStorage atuais, então a retomada não deve mais
+        // aplicar seu resultado (evita derrubar o interval do submit manual
+        // e sobrescrever o nome salvo dele).
+        if (cancelado || submissaoManualIniciadaRef.current) return;
         if (status.status === "pulling") {
           setNome(nomeSalvo);
           setEnviando(true);
@@ -75,7 +90,7 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
           limparNomeEmAndamento();
         }
       } catch {
-        if (!cancelado) limparNomeEmAndamento();
+        if (!cancelado && !submissaoManualIniciadaRef.current) limparNomeEmAndamento();
       }
     }
 
@@ -96,9 +111,11 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
 
   function iniciarPolling(nomeModelo: string) {
     pararPolling(); // garante que nunca há dois intervals concorrentes (ex.: retomada + submit numa corrida)
+    falhasConsecutivasRef.current = 0;
     intervalRef.current = setInterval(async () => {
       try {
         const status = await getPullStatus(nomeModelo);
+        falhasConsecutivasRef.current = 0;
         setProgresso(status);
         if (status.status === "done") {
           pararPolling();
@@ -106,12 +123,20 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
           limparNomeEmAndamento();
           onPulled();
         } else if (status.status === "error") {
+          // Erro definitivo reportado pelo próprio backend (o pull falhou de
+          // verdade) — não é uma falha de polling, então para imediatamente.
           pararPolling();
           setEnviando(false);
           limparNomeEmAndamento();
           setError(status.detail ?? "Erro ao baixar o modelo.");
         }
       } catch (err) {
+        falhasConsecutivasRef.current += 1;
+        // Tolera falhas transitórias isoladas de polling (ex.: instabilidade
+        // de rede de 1-2s, reinício momentâneo do backend) sem interromper o
+        // download em andamento no servidor — só desiste após N falhas
+        // consecutivas.
+        if (falhasConsecutivasRef.current < MAX_FALHAS_CONSECUTIVAS) return;
         pararPolling();
         setEnviando(false);
         limparNomeEmAndamento();
@@ -124,6 +149,7 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
     event.preventDefault();
     if (!nome.trim() || enviando) return;
 
+    submissaoManualIniciadaRef.current = true;
     setEnviando(true);
     setError(null);
     setProgresso(null);
