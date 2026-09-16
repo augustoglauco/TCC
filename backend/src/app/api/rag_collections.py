@@ -19,6 +19,7 @@ from app.rag.collections_registry import (
     activate_collection,
     create_collection,
     delete_collection,
+    get_collection,
     get_collection_by_name,
     list_collections,
 )
@@ -73,6 +74,15 @@ async def create_collection_endpoint(
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
     session: AsyncSession = Depends(get_db_session),
 ) -> CollectionResponse:
+    # Limpeza da revisão final: checagem de nome duplicado é barata (uma
+    # consulta ao Postgres) e deve rodar antes de `embedder.get_dimension()`,
+    # que pode ser cara (carrega o modelo de embedding na primeira chamada).
+    existing = await get_collection_by_name(session, body.name)
+    if existing is not None:
+        raise HTTPException(
+            status_code=409, detail=f"Já existe uma collection chamada '{body.name}'."
+        )
+
     embedder = embedders.get(body.embedding_model)
     try:
         dimension = await embedder.get_dimension()
@@ -80,12 +90,6 @@ async def create_collection_endpoint(
         raise HTTPException(
             status_code=422, detail=f"Não foi possível carregar o modelo de embedding: {exc}"
         ) from exc
-
-    existing = await get_collection_by_name(session, body.name)
-    if existing is not None:
-        raise HTTPException(
-            status_code=409, detail=f"Já existe uma collection chamada '{body.name}'."
-        )
 
     payload_indexes = [item.model_dump() for item in body.payload_indexes]
     quantization_config = _quantization_config_dict(body.quantization)
@@ -134,11 +138,27 @@ async def create_collection_endpoint(
             payload_indexes=payload_indexes,
         )
     except SQLAlchemyError as exc:
-        logger.warning(
-            "rag_collection_orfa nome=%s — collection criada no Qdrant sem registro "
-            "correspondente no Postgres",
-            body.name,
-        )
+        # Achado #1 da revisão final: o registro no Postgres falhou depois
+        # do Qdrant já ter criado a collection — sem rollback, ela fica
+        # órfã (existe no Qdrant, invisível via `list_collections`, e um
+        # retry com o mesmo nome esbarraria num 409 permanente). Tenta
+        # desfazer a criação no Qdrant antes de propagar o erro.
+        try:
+            await qdrant.drop_collection(body.name)
+        except RAGConnectionError:
+            logger.warning(
+                "rag_collection_orfa nome=%s — collection criada no Qdrant sem registro "
+                "correspondente no Postgres, e o rollback (exclusão da collection no Qdrant) "
+                "também falhou; limpeza manual necessária",
+                body.name,
+            )
+        else:
+            logger.warning(
+                "rag_collection_orfa nome=%s — collection criada no Qdrant sem registro "
+                "correspondente no Postgres; rollback (exclusão da collection no Qdrant) "
+                "executado com sucesso",
+                body.name,
+            )
         raise HTTPException(
             status_code=503,
             detail=(
@@ -198,8 +218,10 @@ async def delete_collection_endpoint(
     session: AsyncSession = Depends(get_db_session),
 ) -> None:
     try:
-        collections = await list_collections(session)
-        collection = next((c for c in collections if c.id == collection_id), None)
+        # Limpeza da revisão final: `get_collection` (busca O(1) por chave
+        # primária) substitui a varredura O(n) em Python sobre
+        # `list_collections` que existia aqui antes.
+        collection = await get_collection(session, collection_id)
         if collection is None:
             raise HTTPException(status_code=404, detail="Collection não encontrada.")
         if collection.is_active:
@@ -239,6 +261,18 @@ async def delete_collection_endpoint(
             status_code=409, detail="Não é possível excluir a collection ativa."
         ) from exc
     except SQLAlchemyError as exc:
+        # Achado #2 da revisão final: diferente do caminho de criação, aqui
+        # o Qdrant já foi apagado com sucesso ANTES desta etapa — se o
+        # Postgres falhar agora, a linha de `RagCollection`/`RagDocument`
+        # sobrevive apontando para uma collection que não existe mais no
+        # Qdrant (órfã no sentido oposto do achado #1). Mesmo padrão de log
+        # (`rag_collection_orfa`) usado lá.
+        logger.warning(
+            "rag_collection_orfa id=%s nome=%s — collection já removida do Qdrant, mas o "
+            "registro no Postgres não pôde ser removido (drift entre os dois stores)",
+            collection.id,
+            collection.name,
+        )
         logger.error(
             "rag_collections_indisponivel",
             extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},

@@ -43,6 +43,40 @@ def _extract_text(filename: str, content: bytes) -> str:
     return content.decode("utf-8")
 
 
+async def _ensure_collection_exists(qdrant: QdrantRAGClient, collection: RagCollection) -> None:
+    """Recria `collection` no Qdrant a partir do perfil salvo se ela não
+    existir (self-healing) — fresh install, cuja migração só semeia a linha
+    em Postgres (ver
+    docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §4.1),
+    ou alguém apagou a collection no Qdrant por fora do app. Não é uma
+    garantia de transação distribuída Qdrant+Postgres, mesma tolerância já
+    aceita para o caso inverso (registro órfão) em `ingest_bytes`.
+
+    Compartilhada entre `ingest_bytes` e `reingest_document` (achado #5 da
+    revisão final: a segunda não tinha essa auto-cura, apesar de reingerir
+    em uma `RagCollection` cuja collection no Qdrant também pode estar
+    ausente)."""
+    if await qdrant.collection_exists(collection.name):
+        return
+    try:
+        await qdrant.create_collection(
+            name=collection.name,
+            vector_dimension=collection.vector_dimension,
+            distance_metric=collection.distance_metric,
+            hnsw_m=collection.hnsw_m,
+            hnsw_ef_construct=collection.hnsw_ef_construct,
+            hnsw_full_scan_threshold=collection.hnsw_full_scan_threshold,
+            hnsw_max_indexing_threads=collection.hnsw_max_indexing_threads,
+            hnsw_on_disk=collection.hnsw_on_disk,
+            hnsw_payload_m=collection.hnsw_payload_m,
+            quantization_type=collection.quantization_type,
+            quantization_config=collection.quantization_config,
+            payload_indexes=collection.payload_indexes,
+        )
+    except CollectionAlreadyExistsError:
+        pass  # corrida com uma ingestão concorrente recriando-a — tudo bem, já existe
+
+
 async def ingest_bytes(
     qdrant: QdrantRAGClient,
     embedder: TextEmbedder,
@@ -62,37 +96,30 @@ async def ingest_bytes(
     document_id = str(uuid.uuid4())
 
     # MVP: recriação idempotente/self-healing da collection no Qdrant se ela não
-    # existir (fresh install, cuja migração só semeia a linha em Postgres — ver
-    # docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §4.1 —,
-    # ou alguém apagou a collection no Qdrant por fora do app). Não é uma
-    # garantia de transação distribuída Qdrant+Postgres, mesma tolerância já
-    # aceita para o caso inverso (registro órfão) logo abaixo.
-    if not await qdrant.collection_exists(collection.name):
-        try:
-            await qdrant.create_collection(
-                name=collection.name,
-                vector_dimension=collection.vector_dimension,
-                distance_metric=collection.distance_metric,
-                hnsw_m=collection.hnsw_m,
-                hnsw_ef_construct=collection.hnsw_ef_construct,
-                hnsw_full_scan_threshold=collection.hnsw_full_scan_threshold,
-                hnsw_max_indexing_threads=collection.hnsw_max_indexing_threads,
-                hnsw_on_disk=collection.hnsw_on_disk,
-                hnsw_payload_m=collection.hnsw_payload_m,
-                quantization_type=collection.quantization_type,
-                quantization_config=collection.quantization_config,
-                payload_indexes=collection.payload_indexes,
-            )
-        except CollectionAlreadyExistsError:
-            pass  # corrida com uma ingestão concorrente recriando-a — tudo bem, já existe
+    # existir — ver docstring de `_ensure_collection_exists`.
+    await _ensure_collection_exists(qdrant, collection)
 
     chunk_count = await qdrant.upsert_chunks(
         collection.name, embedder, chunks, source=filename, domain=domain, document_id=document_id
     )
 
-    uploads_dir.mkdir(parents=True, exist_ok=True)
     storage_path = uploads_dir / f"{document_id}_{Path(filename).name}"
-    storage_path.write_bytes(content)
+    try:
+        uploads_dir.mkdir(parents=True, exist_ok=True)
+        storage_path.write_bytes(content)
+    except OSError:
+        # Achado #6 da revisão final: mesmo tratamento de órfão já aplicado
+        # abaixo para a falha de registro no Postgres — aqui os chunks já
+        # foram gravados no Qdrant, mas não há arquivo salvo em disco (e,
+        # por consequência, nenhum registro no Postgres, que depende do
+        # `storage_path` calculado aqui).
+        logger.warning(
+            "rag_registro_orfao document_id=%s arquivo=%s — pontos gravados no Qdrant sem "
+            "arquivo salvo em disco (e sem registro correspondente no Postgres)",
+            document_id,
+            filename,
+        )
+        raise
 
     logger.info(
         "rag_ingest arquivo=%s domain=%s chunks=%d document_id=%s collection=%s",
@@ -208,6 +235,13 @@ async def reingest_document(
         text, chunk_size=target_collection.chunk_size, overlap=target_collection.chunk_overlap
     )
     document_id = str(uuid.uuid4())
+
+    # Achado #5 da revisão final: mesma auto-cura de `ingest_bytes` — a
+    # collection destino pode ter sido apagada no Qdrant por fora do app, ou
+    # ser uma linha só-Postgres semeada, e reingerir não deveria depender
+    # dela já existir de fato.
+    await _ensure_collection_exists(qdrant, target_collection)
+
     chunk_count = await qdrant.upsert_chunks(
         target_collection.name,
         embedder,

@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import pytest
@@ -282,3 +283,89 @@ async def test_reingest_document_sem_storage_path_levanta_value_error(
         await reingest_document(
             client, text_embedder, documento_antigo, active_collection, session=db_session
         )
+
+
+async def test_reingest_document_recria_collection_destino_no_qdrant_se_nao_existir(
+    tmp_path: Path, db_session, active_collection, text_embedder
+):
+    """Achado #5 da revisão final: `reingest_document` não tinha a mesma
+    auto-cura (self-healing) de `ingest_bytes` — reingerir numa
+    `RagCollection` cuja collection no Qdrant está ausente (apagada por fora
+    do app, ou uma linha só-Postgres semeada) deve recriá-la a partir do
+    perfil salvo, em vez de levantar `RAGConnectionError` cru."""
+    from app.rag.collections_registry import create_collection
+
+    client = _FakeQdrantRAGClient()
+    original = await ingest_bytes(
+        client,
+        text_embedder,
+        active_collection,
+        tmp_path / "uploads",
+        "catalogo.txt",
+        "Conteúdo original.".encode(),
+        domain="vendas",
+        session=db_session,
+        origin="upload",
+    )
+    destino = await create_collection(
+        db_session,
+        name="destino",
+        embedding_model="outro-modelo",
+        vector_dimension=768,
+        distance_metric="cosine",
+        chunk_size=400,
+        chunk_overlap=50,
+        hnsw_m=16,
+        hnsw_ef_construct=100,
+        hnsw_full_scan_threshold=10000,
+        hnsw_max_indexing_threads=0,
+        hnsw_on_disk=False,
+        hnsw_payload_m=None,
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+    )
+    # A partir daqui, o dublê só reconhece a collection de origem como
+    # existente no Qdrant — a collection destino está "ausente".
+    client._collections_existentes = {active_collection.name}
+
+    reingerido = await reingest_document(
+        client, text_embedder, original, destino, session=db_session
+    )
+
+    assert reingerido.chunk_count == 1
+    assert client.created_collections == [destino.name]
+    assert await client.collection_exists(destino.name) is True
+
+
+async def test_ingest_bytes_falha_ao_salvar_arquivo_loga_orfao_e_propaga_erro(
+    tmp_path: Path, db_session, active_collection, text_embedder, caplog
+):
+    """Achado #6 da revisão final: `storage_path.write_bytes` rodava DEPOIS
+    do upsert no Qdrant ter sucesso, mas FORA do try/except que loga o
+    warning de registro órfão — uma falha de I/O ao salvar o arquivo (disco
+    cheio, uploads_dir sem permissão) subia crua sem nenhum log de
+    diagnóstico, ao contrário da falha de registro no Postgres."""
+    client = _FakeQdrantRAGClient()
+    # `uploads_dir` colide com um arquivo comum já existente no mesmo
+    # caminho — `uploads_dir.mkdir(parents=True, exist_ok=True)` levanta
+    # `FileExistsError` (subclasse de `OSError`), simulando uma falha de
+    # I/O na etapa de salvar o arquivo em disco.
+    uploads_dir = tmp_path / "uploads"
+    uploads_dir.write_text("não é um diretório")
+
+    with caplog.at_level(logging.WARNING), pytest.raises(OSError):
+        await ingest_bytes(
+            client,
+            text_embedder,
+            active_collection,
+            uploads_dir,
+            "catalogo.txt",
+            "Conteúdo qualquer.".encode(),
+            domain="vendas",
+            session=db_session,
+            origin="upload",
+        )
+
+    assert client.upserts  # os chunks já foram gravados no Qdrant antes da falha
+    assert "rag_registro_orfao" in caplog.text

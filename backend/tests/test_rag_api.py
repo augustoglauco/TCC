@@ -393,3 +393,50 @@ async def test_reingest_com_erro_no_postgres_retorna_503(db_session, active_coll
     )
 
     assert response.status_code == 503
+
+
+async def test_reingest_com_arquivo_ausente_em_disco_retorna_404(
+    db_session, active_collection, tmp_path
+):
+    """Achado #4 da revisão final: se o arquivo original foi apagado do
+    disco entre a checagem de `storage_path is None` e a leitura de fato
+    (ex.: DELETE concorrente do documento, limpeza externa de disco), o
+    endpoint deve responder 404 limpo — não deixar o `FileNotFoundError`/
+    `OSError` cru de `Path.read_bytes()` virar um 500."""
+    from app.rag.collections_registry import create_collection
+
+    fake = _FakeQdrantRAGClient()
+    client = TestClient(_build_app(fake, db_session, tmp_path))
+    client.post(
+        "/api/rag/documents",
+        data={"domain": "vendas"},
+        files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+    )
+    document_id = client.get("/api/rag/documents").json()[0]["id"]
+    destino = await create_collection(
+        db_session,
+        name="destino",
+        embedding_model="fake-embedding-model",
+        vector_dimension=384,
+        distance_metric="cosine",
+        chunk_size=400,
+        chunk_overlap=50,
+        hnsw_m=16,
+        hnsw_ef_construct=100,
+        hnsw_full_scan_threshold=10000,
+        hnsw_max_indexing_threads=0,
+        hnsw_on_disk=False,
+        hnsw_payload_m=None,
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+    )
+    arquivos_salvos = list(tmp_path.glob("*_catalogo.txt"))
+    assert len(arquivos_salvos) == 1
+    arquivos_salvos[0].unlink()
+
+    response = client.post(
+        f"/api/rag/documents/{document_id}/reingest", json={"target_collection_id": str(destino.id)}
+    )
+
+    assert response.status_code == 404
