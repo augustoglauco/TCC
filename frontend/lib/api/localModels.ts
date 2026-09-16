@@ -1,4 +1,5 @@
 import type { LocalModelsListResponse, PullStatusResponse } from "@/lib/types/localModels";
+import { extrairDetalheDeErro } from "@/lib/api/errors";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -13,11 +14,8 @@ export class LocalModelsApiError extends Error {
   }
 }
 
-async function _extrairDetalheDeErro(response: Response, mensagemPadrao: string): Promise<never> {
-  const detail = await response
-    .json()
-    .then((body: { detail?: string }) => body.detail)
-    .catch(() => undefined);
+async function _lancarErroComDetalhe(response: Response, mensagemPadrao: string): Promise<never> {
+  const detail = await extrairDetalheDeErro(response);
   throw new LocalModelsApiError(detail ?? mensagemPadrao, response.status);
 }
 
@@ -51,7 +49,7 @@ export async function activateModel(name: string): Promise<void> {
   }
 
   if (!response.ok) {
-    await _extrairDetalheDeErro(response, "Não foi possível ativar o modelo. Tente novamente.");
+    await _lancarErroComDetalhe(response, "Não foi possível ativar o modelo. Tente novamente.");
   }
 }
 
@@ -69,7 +67,7 @@ export async function pullModel(name: string): Promise<void> {
   }
 
   if (!response.ok) {
-    await _extrairDetalheDeErro(response, "Não foi possível iniciar o download. Tente novamente.");
+    await _lancarErroComDetalhe(response, "Não foi possível iniciar o download. Tente novamente.");
   }
 }
 

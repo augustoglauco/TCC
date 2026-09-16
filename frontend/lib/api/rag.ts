@@ -7,6 +7,7 @@ import type {
   RagCollection,
   RagDomain,
 } from "@/lib/types/rag";
+import { extrairDetalheDeErro } from "@/lib/api/errors";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
@@ -21,11 +22,8 @@ export class RagApiError extends Error {
   }
 }
 
-async function _extrairDetalheDeErro(response: Response, mensagemPadrao: string): Promise<never> {
-  const detail = await response
-    .json()
-    .then((body: { detail?: string }) => body.detail)
-    .catch(() => undefined);
+async function _lancarErroComDetalhe(response: Response, mensagemPadrao: string): Promise<never> {
+  const detail = await extrairDetalheDeErro(response);
   const message =
     detail ??
     (response.status === 503
@@ -67,7 +65,7 @@ export async function uploadDocument({
   }
 
   if (!response.ok) {
-    await _extrairDetalheDeErro(response, "Não foi possível enviar o documento. Tente novamente.");
+    await _lancarErroComDetalhe(response, "Não foi possível enviar o documento. Tente novamente.");
   }
 
   return (await response.json()) as DocumentIngestResponse;
@@ -137,7 +135,7 @@ export async function reingestDocument(
   }
 
   if (!response.ok) {
-    await _extrairDetalheDeErro(response, "Não foi possível reingerir o documento. Tente novamente.");
+    await _lancarErroComDetalhe(response, "Não foi possível reingerir o documento. Tente novamente.");
   }
 
   return (await response.json()) as DocumentRegistryEntry;
@@ -173,7 +171,7 @@ export async function createCollection(payload: CollectionCreatePayload): Promis
   }
 
   if (!response.ok) {
-    await _extrairDetalheDeErro(response, "Não foi possível criar a collection. Tente novamente.");
+    await _lancarErroComDetalhe(response, "Não foi possível criar a collection. Tente novamente.");
   }
 
   return (await response.json()) as RagCollection;
@@ -189,7 +187,7 @@ export async function activateCollection(id: string): Promise<void> {
   }
 
   if (!response.ok) {
-    throw new RagApiError("Não foi possível ativar a collection. Tente novamente.", response.status);
+    await _lancarErroComDetalhe(response, "Não foi possível ativar a collection. Tente novamente.");
   }
 }
 
@@ -227,7 +225,7 @@ export async function runPlaygroundSearch(
   }
 
   if (!response.ok) {
-    await _extrairDetalheDeErro(response, "Não foi possível rodar a busca. Tente novamente.");
+    await _lancarErroComDetalhe(response, "Não foi possível rodar a busca. Tente novamente.");
   }
 
   return (await response.json()) as PlaygroundSearchResponse;
