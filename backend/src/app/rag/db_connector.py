@@ -39,12 +39,29 @@ async def read_table_as_text(
 
     A tabela é lida por reflexão (`Table(..., autoload_with=...)`), não por
     um model SQLAlchemy fixo — o conector não fica acoplado a uma única
-    tabela do sistema. `columns`, se informado, restringe as colunas lidas.
+    tabela do sistema. `columns`, se informado, restringe as colunas lidas
+    (levanta `ValueError` se algum nome não existir na tabela).
     """
+    # MVP: "somente leitura" garantida aqui só por não haver nenhum
+    # INSERT/UPDATE/DELETE no código deste módulo — reforçada com a opção de
+    # execução `postgresql_readonly`, dialect-specific do Postgres (banco de
+    # produção, ver docstring do módulo), que faz o próprio banco rejeitar
+    # qualquer escrita acidental durante a leitura. Não é uma role de BD
+    # dedicada (infraestrutura nova, fora de escopo do MVP — ver
+    # docs/ARCHITECTURE.md §5); outros dialetos (ex.: SQLite usado nos
+    # testes) ignoram essa opção silenciosamente.
+    await connection.execution_options(postgresql_readonly=True)
+
     metadata = MetaData()
     table = await connection.run_sync(
         lambda sync_conn: Table(table_name, metadata, autoload_with=sync_conn)
     )
+    colunas_solicitadas = columns if columns is not None else [coluna.name for coluna in table.c]
+    colunas_invalidas = [nome for nome in colunas_solicitadas if nome not in table.c]
+    if colunas_invalidas:
+        raise ValueError(
+            f"coluna(s) inválida(s) para a tabela '{table_name}': {', '.join(colunas_invalidas)}"
+        )
     colunas_selecionadas = (
         [table.c[nome] for nome in columns] if columns is not None else list(table.c)
     )

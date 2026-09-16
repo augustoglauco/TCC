@@ -217,6 +217,15 @@ observação de mudanças) — mesma limitação de deduplicação/reingestão j
 aceita em `app.rag.qdrant_client.upsert_chunks``.
 
 **Decisão registrada (Fase 2, correção de revisão, 2026-09-16):**
+`app.rag.db_connector.read_table_as_text` reforça a garantia de "somente
+leitura" acima com a opção de execução `postgresql_readonly=True`
+(`connection.execution_options(...)`, dialect-specific do Postgres, banco de
+produção deste conector) — faz o próprio banco rejeitar qualquer
+INSERT/UPDATE/DELETE acidental durante a leitura, sem precisar de uma role de
+BD dedicada (infraestrutura nova, fora de escopo do MVP). Dialetos sem essa
+opção (ex.: SQLite, usado nos testes) simplesmente a ignoram.
+
+**Decisão registrada (Fase 2, correção de revisão, 2026-09-16):**
 `QdrantRAGClient.create_collection` usa um `asyncio.Lock` por instância para
 evitar a corrida TOCTOU entre checar se a collection já existe e criá-la de
 fato (duas requisições concorrentes de criação com o mesmo nome não devem

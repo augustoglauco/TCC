@@ -22,10 +22,12 @@ import argparse
 import asyncio
 import logging
 from pathlib import Path
+from typing import get_args
 
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
+from app.models.rag import RagDomain
 from app.rag.collections_registry import get_active_collection
 from app.rag.db_connector import read_table_as_text
 from app.rag.embedders_registry import EmbedderRegistry
@@ -39,7 +41,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--domain",
         required=True,
-        choices=["vendas", "suporte", "atendimento"],
+        choices=get_args(RagDomain),
         help="Domínio do RAG a associar às linhas ingeridas.",
     )
     parser.add_argument(
