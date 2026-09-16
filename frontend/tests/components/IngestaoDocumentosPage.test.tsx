@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import IngestaoDocumentosPage from "@/app/admin/ingestao/page";
 import { RagApiError } from "@/lib/api/rag";
-import type { DocumentRegistryEntry } from "@/lib/types/rag";
+import type { DocumentRegistryEntry, RagCollection } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/rag", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/rag")>("@/lib/api/rag");
@@ -22,6 +22,28 @@ const mockedUploadDocument = vi.mocked(uploadDocument);
 const mockedListDocuments = vi.mocked(listDocuments);
 const mockedListCollections = vi.mocked(listCollections);
 
+const COLLECTION_ATIVA: RagCollection = {
+  id: "col-1",
+  name: "docs_texto",
+  embedding_model: "paraphrase-multilingual-MiniLM-L12-v2",
+  vector_dimension: 384,
+  distance_metric: "cosine",
+  chunk_size: 800,
+  chunk_overlap: 100,
+  hnsw_m: 16,
+  hnsw_ef_construct: 100,
+  hnsw_full_scan_threshold: 10000,
+  hnsw_max_indexing_threads: 0,
+  hnsw_on_disk: false,
+  hnsw_payload_m: null,
+  quantization_type: "none",
+  quantization_config: {},
+  payload_indexes: [],
+  is_active: true,
+  document_count: 0,
+  created_at: new Date().toISOString(),
+};
+
 const DOCUMENTO: DocumentRegistryEntry = {
   id: "11111111-1111-1111-1111-111111111111",
   filename: "catalogo.txt",
@@ -37,27 +59,23 @@ describe("IngestaoDocumentosPage", () => {
   beforeEach(() => {
     mockedUploadDocument.mockReset();
     mockedListDocuments.mockReset();
-    mockedListDocuments.mockResolvedValue([]);
     mockedListCollections.mockReset();
-    mockedListCollections.mockResolvedValue([]);
+    mockedListDocuments.mockResolvedValue([]);
+    mockedListCollections.mockResolvedValue([COLLECTION_ATIVA]);
   });
 
-  it("envia o arquivo selecionado e exibe o resultado da ingestão", async () => {
+  it("envia o arquivo selecionado (com a collection ativa) e exibe o resultado da ingestão", async () => {
     const user = userEvent.setup();
-    mockedUploadDocument.mockResolvedValueOnce({
-      filename: "catalogo.txt",
-      domain: "vendas",
-      chunks: 3,
-    });
+    mockedUploadDocument.mockResolvedValueOnce({ filename: "catalogo.txt", domain: "vendas", chunks: 3 });
 
     render(<IngestaoDocumentosPage />);
 
     const file = new File(["conteudo"], "catalogo.txt", { type: "text/plain" });
-    await user.upload(screen.getByLabelText("Arquivo"), file);
+    await user.upload(await screen.findByLabelText("Arquivo"), file);
     await user.click(screen.getByRole("button", { name: "Enviar para ingestão" }));
 
     expect(await screen.findByText(/3 chunk\(s\) gravado\(s\)/)).toBeInTheDocument();
-    expect(mockedUploadDocument).toHaveBeenCalledWith({ file, domain: "vendas" });
+    expect(mockedUploadDocument).toHaveBeenCalledWith({ file, domain: "vendas", collectionId: "col-1" });
   });
 
   it("exibe mensagem de erro quando o upload falha", async () => {
@@ -69,16 +87,16 @@ describe("IngestaoDocumentosPage", () => {
     render(<IngestaoDocumentosPage />);
 
     const file = new File(["conteudo"], "catalogo.txt", { type: "text/plain" });
-    await user.upload(screen.getByLabelText("Arquivo"), file);
+    await user.upload(await screen.findByLabelText("Arquivo"), file);
     await user.click(screen.getByRole("button", { name: "Enviar para ingestão" }));
 
     expect(await screen.findByText(/temporariamente indisponível/)).toBeInTheDocument();
   });
 
-  it("desabilita o envio enquanto nenhum arquivo foi selecionado", () => {
+  it("desabilita o envio enquanto nenhum arquivo foi selecionado", async () => {
     render(<IngestaoDocumentosPage />);
 
-    expect(screen.getByRole("button", { name: "Enviar para ingestão" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "Enviar para ingestão" })).toBeDisabled();
   });
 
   it("aba 'Documentos ingeridos' lista os documentos ao ser aberta", async () => {
@@ -91,9 +109,21 @@ describe("IngestaoDocumentosPage", () => {
     expect(await screen.findByText("catalogo.txt")).toBeInTheDocument();
   });
 
-  it("aba 'Configuração' aparece desabilitada", () => {
+  it("aba 'Configuração' não fica mais desabilitada e lista as collections", async () => {
+    const user = userEvent.setup();
+
+    render(<IngestaoDocumentosPage />);
+    const abaConfiguracao = await screen.findByRole("tab", { name: "Configuração" });
+    expect(abaConfiguracao).not.toBeDisabled();
+
+    await user.click(abaConfiguracao);
+
+    expect(await screen.findByText("docs_texto")).toBeInTheDocument();
+  });
+
+  it("aba 'Playground' existe", async () => {
     render(<IngestaoDocumentosPage />);
 
-    expect(screen.getByRole("tab", { name: "Configuração" })).toBeDisabled();
+    expect(await screen.findByRole("tab", { name: "Playground" })).toBeInTheDocument();
   });
 });
