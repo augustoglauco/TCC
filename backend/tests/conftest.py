@@ -1,12 +1,13 @@
 import shutil
 import socket
 import subprocess
+import uuid
 
 import pytest
 
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
-from app.db.models import Base
+from app.db.models import Base, RagCollection
 from app.rag.embeddings import TextEmbedder
 
 
@@ -22,22 +23,27 @@ class _FakeQdrantRAGClient:
 
     def __init__(self, error: Exception | None = None) -> None:
         self._error = error
-        self.embedding_model_name = "fake-embedding-model"
-        self.upserts: list[tuple[list[str], str, str, str]] = []
-        self.deleted_document_ids: list[str] = []
+        self.upserts: list[tuple[str, list[str], str, str, str]] = []
+        self.deleted: list[tuple[str, str]] = []
+        self.dropped_collections: list[str] = []
 
     async def upsert_chunks(
-        self, chunks: list[str], source: str, domain: str, document_id: str
+        self, collection_name: str, embedder, chunks: list[str], source: str, domain: str, document_id: str
     ) -> int:
         if self._error is not None:
             raise self._error
-        self.upserts.append((chunks, source, domain, document_id))
+        self.upserts.append((collection_name, chunks, source, domain, document_id))
         return len(chunks)
 
-    async def delete_by_document_id(self, document_id: str) -> None:
+    async def delete_by_document_id(self, collection_name: str, document_id: str) -> None:
         if self._error is not None:
             raise self._error
-        self.deleted_document_ids.append(document_id)
+        self.deleted.append((collection_name, document_id))
+
+    async def drop_collection(self, collection_name: str) -> None:
+        if self._error is not None:
+            raise self._error
+        self.dropped_collections.append(collection_name)
 
 
 @pytest.fixture(scope="session")
@@ -49,6 +55,36 @@ def text_embedder() -> TextEmbedder:
     todos os testes que precisam de embeddings reais.
     """
     return TextEmbedder()
+
+
+@pytest.fixture
+async def active_collection(db_session) -> RagCollection:
+    """Uma `RagCollection` ativa já commitada — usada por todo teste que
+    precisa de uma collection para ingerir/buscar (ver
+    docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §3)."""
+    collection = RagCollection(
+        id=uuid.uuid4(),
+        name="docs_texto",
+        embedding_model="fake-embedding-model",
+        vector_dimension=384,
+        distance_metric="cosine",
+        chunk_size=800,
+        chunk_overlap=100,
+        hnsw_m=16,
+        hnsw_ef_construct=100,
+        hnsw_full_scan_threshold=10000,
+        hnsw_max_indexing_threads=0,
+        hnsw_on_disk=False,
+        hnsw_payload_m=None,
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+        is_active=True,
+    )
+    db_session.add(collection)
+    await db_session.commit()
+    await db_session.refresh(collection)
+    return collection
 
 
 def _gpu_disponivel() -> bool:
