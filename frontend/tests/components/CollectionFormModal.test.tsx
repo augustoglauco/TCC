@@ -79,6 +79,15 @@ describe("CollectionFormModal", () => {
     expect(screen.getByRole("button", { name: "Criar collection" })).toBeDisabled();
   });
 
+  it("selecionar schema_type 'text' num payload index revela os campos de text_params", async () => {
+    const user = userEvent.setup();
+    render(<CollectionFormModal open onOpenChange={vi.fn()} onCreated={vi.fn()} />);
+
+    await user.selectOptions(screen.getByLabelText("Tipo do índice 1"), "text");
+
+    expect(screen.getByLabelText("Tokenizer do índice 1")).toBeInTheDocument();
+  });
+
   it("exibe erro da API quando a criação falha (ex.: nome duplicado)", async () => {
     const user = userEvent.setup();
     mockedCreate.mockRejectedValueOnce(new RagApiError("Já existe uma collection chamada 'nova'."));
