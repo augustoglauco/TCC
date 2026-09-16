@@ -172,6 +172,22 @@ confundida com item do escopo original nem esquecida na revisão final (Fase
 11). Detalhes de implementação:
 `docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`.
 
+**Decisão registrada (além do MVP, a pedido explícito, 2026-09-16):** uma
+tela administrativa (`/admin/modelos`) passa a permitir listar os modelos
+locais já baixados no Ollama, trocar em runtime qual deles o chat usa, e
+baixar um novo — tanto da biblioteca padrão do Ollama quanto um GGUF
+hospedado no Hugging Face (`ollama pull hf.co/<usuário>/<repo>`, suportado
+nativamente pelo Ollama, sem motor de inferência adicional). O download
+roda em background (nunca bloqueia o backend), com progresso acompanhado
+por polling a partir do frontend. A seleção de modelo ativo fica só em
+memória (reseta a cada restart) e **não substitui nem antecipa** a decisão
+formal da Fase 10 (escolha do `LOCAL_MODEL_NAME` de produção via benchmark
+offline contra o sistema completo) — é uma ferramenta de teste manual em
+paralelo. Como as entregas anteriores fora do MVP, fica registrada aqui e
+no roadmap para não ser confundida com item do escopo original nem
+esquecida na revisão final (Fase 11). Detalhes de implementação:
+`docs/superpowers/specs/2026-09-16-local-model-manager-design.md`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
