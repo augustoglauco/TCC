@@ -153,6 +153,25 @@ Fica registrada aqui para não ser confundida com um item do escopo original
 nem esquecida na revisão final (Fase 11). Detalhes de implementação:
 `docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md`.
 
+**Decisão registrada (além do MVP, a pedido explícito, 2026-09-15):** o
+registro de documentos acima evolui para **múltiplos perfis de collection**
+configuráveis (chunk size/overlap, modelo de embedding, dimensão, métrica de
+distância, HNSW, quantização de vetores, payload indexing do Qdrant) —
+Entregas B e C+D anunciadas como "spec futura" na decisão anterior, agora
+combinadas numa só entrega por ficarem interdependentes. Cada collection é um
+perfil imutável (mudar um parâmetro é criar uma nova collection); uma delas é
+marcada como "ativa" e é a que o chat de fato usa, enquanto as demais servem
+para comparação num playground de busca administrativo (pergunta única
+rodada contra várias collections, resultados/score/latência lado a lado, sem
+métrica agregada de qualidade — isso continua reservado para a Fase 10,
+Avaliação Experimental). Documentos ganham um arquivo original salvo em
+disco (`backend/data/rag_uploads/`), permitindo reingerir o mesmo documento
+em outra collection para comparação. Como a entrega anterior, **não faz
+parte do MVP original** — fica registrada aqui e no roadmap para não ser
+confundida com item do escopo original nem esquecida na revisão final (Fase
+11). Detalhes de implementação:
+`docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
