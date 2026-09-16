@@ -32,3 +32,16 @@ def test_rotas_de_collections_e_playground_estao_registradas():
     assert "/api/rag/collections" in caminhos
     assert "/api/rag/playground/search" in caminhos
     del client  # só para garantir que a app sobe sem erro de import circular
+
+
+def test_create_app_inicializa_o_progress_store_de_pull_de_modelos():
+    app = create_app()
+
+    assert app.state.model_pull_progress == {}
+
+
+def test_rota_de_local_models_esta_registrada():
+    app = create_app()
+    caminhos = set(app.openapi()["paths"].keys())
+
+    assert "/api/admin/local-models" in caminhos

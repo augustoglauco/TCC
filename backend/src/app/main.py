@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.chat import router as chat_router
+from app.api.local_models import router as local_models_router
 from app.api.rag import router as rag_router
 from app.api.rag_collections import router as rag_collections_router
 from app.api.rag_playground import router as rag_playground_router
@@ -51,6 +52,12 @@ def create_app() -> FastAPI:
         price_per_1k_output_tokens=settings.external_model_price_per_1k_output_tokens,
     )
 
+    # Gerenciador de modelos locais (além do MVP — ver
+    # docs/superpowers/specs/2026-09-16-local-model-manager-design.md).
+    # Progresso de download em memória, por nome de modelo — nunca
+    # persistido, reseta a cada restart do processo.
+    app.state.model_pull_progress = {}
+
     # RAG real via Qdrant (R4, Fase 2), evoluído para múltiplas collections
     # configuráveis (Entregas B+C+D, além do MVP — ver
     # docs/superpowers/specs/2026-09-15-rag-collections-config-design.md).
@@ -86,6 +93,7 @@ def create_app() -> FastAPI:
     app.state.stt_client = WhisperSttClient(model_size=settings.stt_model_size)
 
     app.include_router(chat_router)
+    app.include_router(local_models_router)
     app.include_router(rag_router)
     app.include_router(rag_collections_router)
     app.include_router(rag_playground_router)
