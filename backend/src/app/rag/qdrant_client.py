@@ -17,6 +17,7 @@ docs/superpowers/specs/2026-09-05-roteador-basico-design.md §2.3 para a
 origem do Protocol.
 """
 
+import asyncio
 import logging
 import uuid
 
@@ -127,6 +128,20 @@ class QdrantRAGClient:
             if client is not None
             else AsyncQdrantClient(host=host, port=port, timeout=int(timeout_s))
         )
+        # Achado #7 da revisão final: guarda a corrida TOCTOU entre a
+        # checagem `collection_exists` e a criação de fato dentro de
+        # `create_collection` — sem isso, duas requisições concorrentes de
+        # criação com o mesmo nome podiam ambas ver `exists=False` e colidir
+        # na criação, caindo no `except Exception -> RAGConnectionError`
+        # genérico em vez do `CollectionAlreadyExistsError`/409 pretendido.
+        # Um único lock por instância (não por nome) é a abordagem mais
+        # simples: criação de collection é uma operação administrativa rara,
+        # não um caminho quente como busca/upsert — serializar todas as
+        # criações desta instância entre si é uma perda de concorrência
+        # desprezível. MVP: só dentro do processo (um único worker Uvicorn),
+        # não entre múltiplas instâncias do backend — ver decisão registrada
+        # em docs/ARCHITECTURE.md §5.
+        self._create_lock = asyncio.Lock()
 
     async def collection_exists(self, collection_name: str) -> bool:
         try:
@@ -163,31 +178,32 @@ class QdrantRAGClient:
         # inconsistência (achar que uma collection excluída ainda existe).
         """
         try:
-            if await self._client.collection_exists(name):
-                raise CollectionAlreadyExistsError(name)
-            await self._client.create_collection(
-                collection_name=name,
-                vectors_config=VectorParams(
-                    size=vector_dimension, distance=_DISTANCE_BY_METRIC[distance_metric]
-                ),
-                hnsw_config=HnswConfigDiff(
-                    m=hnsw_m,
-                    ef_construct=hnsw_ef_construct,
-                    full_scan_threshold=hnsw_full_scan_threshold,
-                    max_indexing_threads=hnsw_max_indexing_threads,
-                    on_disk=hnsw_on_disk,
-                    payload_m=hnsw_payload_m,
-                ),
-                quantization_config=_quantization_from_config(
-                    quantization_type, quantization_config
-                ),
-            )
-            for payload_index in payload_indexes:
-                await self._client.create_payload_index(
+            async with self._create_lock:
+                if await self._client.collection_exists(name):
+                    raise CollectionAlreadyExistsError(name)
+                await self._client.create_collection(
                     collection_name=name,
-                    field_name=payload_index["field"],
-                    field_schema=_payload_schema_from_index(payload_index),
+                    vectors_config=VectorParams(
+                        size=vector_dimension, distance=_DISTANCE_BY_METRIC[distance_metric]
+                    ),
+                    hnsw_config=HnswConfigDiff(
+                        m=hnsw_m,
+                        ef_construct=hnsw_ef_construct,
+                        full_scan_threshold=hnsw_full_scan_threshold,
+                        max_indexing_threads=hnsw_max_indexing_threads,
+                        on_disk=hnsw_on_disk,
+                        payload_m=hnsw_payload_m,
+                    ),
+                    quantization_config=_quantization_from_config(
+                        quantization_type, quantization_config
+                    ),
                 )
+                for payload_index in payload_indexes:
+                    await self._client.create_payload_index(
+                        collection_name=name,
+                        field_name=payload_index["field"],
+                        field_schema=_payload_schema_from_index(payload_index),
+                    )
         except CollectionAlreadyExistsError:
             raise
         except Exception as exc:

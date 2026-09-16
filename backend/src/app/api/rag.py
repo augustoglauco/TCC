@@ -234,6 +234,24 @@ async def reingest_document_endpoint(
         raise HTTPException(
             status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
         ) from exc
+    except (FileNotFoundError, OSError) as exc:
+        # Achado #4 da revisão final: o arquivo original pode ter sido
+        # apagado (DELETE concorrente do documento, limpeza externa de
+        # disco) entre a checagem de `storage_path is None` acima e a
+        # leitura de fato dentro de `reingest_document` — sem isso, o
+        # `read_bytes()` cru vira um 500 em vez de um erro HTTP limpo.
+        logger.warning(
+            "rag_reingest_arquivo_ausente document_id=%s storage_path=%s",
+            document_id,
+            source_document.storage_path,
+        )
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Arquivo original do documento não foi encontrado em disco — não é possível "
+                "reingerir."
+            ),
+        ) from exc
     except SQLAlchemyError as exc:
         logger.error(
             "rag_registro_indisponivel",

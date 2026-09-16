@@ -216,6 +216,18 @@ sincronização incremental (execução manual sob demanda, sem agendamento nem
 observação de mudanças) — mesma limitação de deduplicação/reingestão já
 aceita em `app.rag.qdrant_client.upsert_chunks``.
 
+**Decisão registrada (Fase 2, correção de revisão, 2026-09-16):**
+`QdrantRAGClient.create_collection` usa um `asyncio.Lock` por instância para
+evitar a corrida TOCTOU entre checar se a collection já existe e criá-la de
+fato (duas requisições concorrentes de criação com o mesmo nome não devem
+colidir no erro genérico do Qdrant em vez do `CollectionAlreadyExistsError`
+tratado). Funciona porque `QdrantRAGClient` é injetado como singleton por
+processo (`request.app.state.qdrant_client`, ver `rag_dependencies.py`).
+`# MVP: protege apenas concorrência dentro de um único worker Uvicorn — não
+protege contra múltiplas instâncias/processos do backend rodando
+simultaneamente contra o mesmo Qdrant`, o que é aceitável para o cenário de
+desenvolvimento/demonstração deste protótipo (um único processo backend).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

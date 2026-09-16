@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import FastAPI
@@ -9,6 +10,7 @@ from app.api.rag_collections import router as rag_collections_router
 from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_qdrant_client
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import QdrantRAGClient
+from app.router.rag_client import RAGConnectionError
 from tests.conftest import _CommitFailingSession
 
 _DEFAULT_HNSW = dict(
@@ -34,25 +36,72 @@ class _FakeEmbedderRegistry(EmbedderRegistry):
         return _FakeEmbedder()
 
 
+class _TrackingEmbedderRegistry(EmbedderRegistry):
+    """Como `_FakeEmbedderRegistry`, mas registra se `.get` foi chamado —
+    usada para confirmar que a checagem de nome duplicado (barata) roda
+    antes de `embedder.get_dimension()` (cara, achado de limpeza da
+    revisão final)."""
+
+    def __init__(self) -> None:
+        self.get_called = False
+
+    def get(self, model_name: str):
+        self.get_called = True
+
+        class _FakeEmbedder:
+            async def get_dimension(self) -> int:
+                return 384
+
+        return _FakeEmbedder()
+
+
+class _DropFailingQdrant:
+    """Encapsula um `QdrantRAGClient` real, mas `drop_collection` sempre
+    levanta `RAGConnectionError` — usada para simular a falha do rollback
+    (achado #1 da revisão final: quando o registro no Postgres falha DEPOIS
+    do Qdrant já ter criado a collection, e a tentativa de desfazer também
+    não funciona)."""
+
+    def __init__(self, client: QdrantRAGClient) -> None:
+        self._client = client
+
+    async def create_collection(self, **kwargs):
+        return await self._client.create_collection(**kwargs)
+
+    async def collection_exists(self, collection_name: str) -> bool:
+        return await self._client.collection_exists(collection_name)
+
+    async def drop_collection(self, collection_name: str) -> None:
+        raise RAGConnectionError("qdrant indisponível para o rollback")
+
+
 def _qdrant() -> QdrantRAGClient:
     return QdrantRAGClient(host="unused", port=0, client=AsyncQdrantClient(location=":memory:"))
 
 
-def _build_app(qdrant: QdrantRAGClient, db_session) -> FastAPI:
+def _build_app(
+    qdrant: QdrantRAGClient, db_session, embedders: EmbedderRegistry | None = None
+) -> FastAPI:
     app = FastAPI()
     app.include_router(rag_collections_router)
     app.dependency_overrides[get_qdrant_client] = lambda: qdrant
-    app.dependency_overrides[get_embedder_registry] = lambda: _FakeEmbedderRegistry()
+    app.dependency_overrides[get_embedder_registry] = lambda: embedders or _FakeEmbedderRegistry()
     app.dependency_overrides[get_db_session] = lambda: db_session
     return app
 
 
 class _FailingReadSession:
-    """Sessão-dublê cuja leitura (`execute`) levanta `SQLAlchemyError` — usada
-    para simular um Postgres fora do ar nos endpoints de leitura que ainda
-    não tratavam esse erro (achado #2 da revisão final)."""
+    """Sessão-dublê cuja leitura (`execute`/`get`) levanta `SQLAlchemyError`
+    — usada para simular um Postgres fora do ar nos endpoints de leitura que
+    ainda não tratavam esse erro (achado #2 da revisão final). `get` cobre
+    `delete_collection_endpoint`, que troca a varredura O(n) via
+    `list_collections`/`execute` pelo lookup O(1) via `get_collection`/`get`
+    (achado de limpeza da revisão final)."""
 
     async def execute(self, *args, **kwargs):
+        raise SQLAlchemyError("conexão com o banco indisponível")
+
+    async def get(self, *args, **kwargs):
         raise SQLAlchemyError("conexão com o banco indisponível")
 
 
@@ -343,3 +392,97 @@ async def test_excluir_collection_com_erro_no_postgres_ao_deletar_retorna_503_ma
     # fluxo já existente.
     response_ativa = client.delete(f"/api/rag/collections/{active_collection.id}")
     assert response_ativa.status_code == 409
+
+
+async def test_criar_collection_com_erro_no_postgres_desfaz_criacao_no_qdrant(db_session):
+    """Achado #1 da revisão final: se o registro no Postgres falhar DEPOIS
+    do Qdrant já ter criado a collection, o endpoint precisa desfazer
+    (rollback) essa criação — sem isso, um retry com o mesmo nome esbarraria
+    num 409 permanente para uma collection invisível via `list_collections`
+    e impossível de apagar pela API (ela nunca chegou a ter registro no
+    Postgres)."""
+    qdrant = _qdrant()
+    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session)))
+
+    response = client.post("/api/rag/collections", json=_PAYLOAD_MINIMO)
+
+    assert response.status_code == 503
+    assert await qdrant.collection_exists(_PAYLOAD_MINIMO["name"]) is False
+
+
+async def test_criar_collection_com_erro_no_postgres_e_rollback_tambem_falha_loga_orfao(
+    db_session, caplog
+):
+    """Mesmo achado #1: se o rollback (`drop_collection`) também falhar, o
+    estado órfão (collection existe só no Qdrant) precisa ficar registrado
+    em log para limpeza manual."""
+    qdrant = _DropFailingQdrant(_qdrant())
+    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session)))
+
+    with caplog.at_level(logging.WARNING):
+        response = client.post("/api/rag/collections", json=_PAYLOAD_MINIMO)
+
+    assert response.status_code == 503
+    assert "rag_collection_orfa" in caplog.text
+    assert _PAYLOAD_MINIMO["name"] in caplog.text
+
+
+async def test_excluir_collection_com_erro_no_postgres_ao_deletar_loga_warning_de_orfao(
+    db_session, active_collection, caplog
+):
+    """Achado #2 da revisão final: diferente do caminho de criação (achado
+    #1), `delete_collection_endpoint` apagava o Qdrant e, se o Postgres
+    falhasse na sequência, não deixava nenhum log do desalinhamento (linha
+    de `RagCollection`/`RagDocument` sobrevivendo apontando para uma
+    collection que não existe mais no Qdrant) — agora segue o mesmo padrão
+    de log (`rag_collection_orfa`) do achado #1."""
+    from app.rag.collections_registry import create_collection
+
+    inativa = await create_collection(
+        db_session,
+        name="para_excluir",
+        embedding_model="fake-embedding-model",
+        vector_dimension=384,
+        distance_metric="cosine",
+        chunk_size=800,
+        chunk_overlap=100,
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+        **_DEFAULT_HNSW,
+    )
+    qdrant = _qdrant()
+    await qdrant.create_collection(
+        name="para_excluir",
+        vector_dimension=384,
+        distance_metric="cosine",
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+        **_DEFAULT_HNSW,
+    )
+    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session)))
+
+    with caplog.at_level(logging.WARNING):
+        response = client.delete(f"/api/rag/collections/{inativa.id}")
+
+    assert response.status_code == 503
+    assert "rag_collection_orfa" in caplog.text
+    assert "para_excluir" in caplog.text
+
+
+async def test_criar_collection_com_nome_duplicado_nao_calcula_dimensao_do_embedder(
+    db_session, active_collection
+):
+    """Achado de limpeza da revisão final: a checagem de nome duplicado
+    (barata, uma consulta ao Postgres) deve rodar antes de
+    `embedder.get_dimension()` (cara — pode carregar o modelo de
+    embedding), não depois."""
+    tracking = _TrackingEmbedderRegistry()
+    client = TestClient(_build_app(_qdrant(), db_session, embedders=tracking))
+    payload = {**_PAYLOAD_MINIMO, "name": active_collection.name}
+
+    response = client.post("/api/rag/collections", json=payload)
+
+    assert response.status_code == 409
+    assert tracking.get_called is False

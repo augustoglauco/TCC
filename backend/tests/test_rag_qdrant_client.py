@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 import pytest
@@ -290,3 +291,68 @@ async def test_drop_collection_ja_inexistente_nao_levanta_erro(qdrant: QdrantRAG
     # sem 503 mesmo com drift entre Qdrant e Postgres (achado #1 da revisão
     # final).
     await qdrant.drop_collection("nome_nunca_criado")
+
+
+class _RaceProneQdrantClient:
+    """Dublê mínimo do `AsyncQdrantClient` real que insere um ponto de
+    suspensão real (`asyncio.sleep(0)`) tanto em `collection_exists` quanto
+    em `create_collection`, e levanta `ValueError` numa criação duplicada
+    (mesmo tipo que o backend em memória de verdade levanta).
+
+    O backend em memória real (`location=":memory:"`) não faz I/O — sem
+    pontos de suspensão, duas corrotinas concorrentes chamando
+    `create_collection` nunca cedem o controle uma para a outra no meio do
+    caminho (cada uma roda até o fim antes da próxima começar), escondendo a
+    corrida TOCTOU mesmo sem nenhuma proteção contra ela. Este dublê força
+    essa alternância de forma determinística para o teste de concorrência do
+    achado #7 da revisão final."""
+
+    def __init__(self) -> None:
+        self._existentes: set[str] = set()
+
+    async def collection_exists(self, collection_name: str, **kwargs) -> bool:
+        await asyncio.sleep(0)
+        return collection_name in self._existentes
+
+    async def create_collection(self, collection_name: str, **kwargs) -> bool:
+        await asyncio.sleep(0)
+        if collection_name in self._existentes:
+            raise ValueError(f"Collection {collection_name} already exists")
+        self._existentes.add(collection_name)
+        return True
+
+    async def create_payload_index(self, **kwargs) -> None:
+        return None
+
+
+async def test_create_collection_concorrentes_mesmo_nome_uma_cria_outra_levanta_already_exists():
+    """Regressão do teste removido em `ab325e1`
+    (`test_upsert_chunks_concorrentes_nao_colidem_na_criacao_da_collection`):
+    duas criações concorrentes da mesma collection não podem ambas ver
+    `collection_exists=False` e colidir na criação de fato — a segunda deve
+    levantar `CollectionAlreadyExistsError` (tratável como 409), nunca o
+    `RAGConnectionError` genérico do conflito cru do Qdrant (achado #7 da
+    revisão final)."""
+    qdrant = QdrantRAGClient(host="unused", port=0, client=_RaceProneQdrantClient())
+    name = f"test_{uuid.uuid4().hex}"
+
+    async def _create() -> None:
+        await qdrant.create_collection(
+            name=name,
+            vector_dimension=384,
+            distance_metric="cosine",
+            quantization_type="none",
+            quantization_config={},
+            payload_indexes=[],
+            **_DEFAULT_HNSW,
+        )
+
+    resultados = await asyncio.gather(_create(), _create(), return_exceptions=True)
+
+    sucessos = [resultado for resultado in resultados if resultado is None]
+    erros_de_conflito = [
+        resultado for resultado in resultados if isinstance(resultado, CollectionAlreadyExistsError)
+    ]
+    assert len(sucessos) == 1
+    assert len(erros_de_conflito) == 1
+    assert await qdrant.collection_exists(name) is True
