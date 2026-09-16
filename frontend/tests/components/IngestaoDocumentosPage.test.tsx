@@ -12,22 +12,23 @@ vi.mock("@/lib/api/rag", async () => {
     ...actual,
     uploadDocument: vi.fn(),
     listDocuments: vi.fn(),
+    listCollections: vi.fn(),
   };
 });
 
-import { listDocuments, uploadDocument } from "@/lib/api/rag";
+import { listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
 
 const mockedUploadDocument = vi.mocked(uploadDocument);
 const mockedListDocuments = vi.mocked(listDocuments);
+const mockedListCollections = vi.mocked(listCollections);
 
 const DOCUMENTO: DocumentRegistryEntry = {
   id: "11111111-1111-1111-1111-111111111111",
   filename: "catalogo.txt",
   domain: "vendas",
   chunk_count: 3,
-  embedding_model: "paraphrase-multilingual-MiniLM-L12-v2",
-  chunk_size: 800,
-  chunk_overlap: 100,
+  collection_id: "col-1",
+  collection_name: "docs_texto",
   origin: "upload",
   created_at: new Date().toISOString(),
 };
@@ -37,6 +38,8 @@ describe("IngestaoDocumentosPage", () => {
     mockedUploadDocument.mockReset();
     mockedListDocuments.mockReset();
     mockedListDocuments.mockResolvedValue([]);
+    mockedListCollections.mockReset();
+    mockedListCollections.mockResolvedValue([]);
   });
 
   it("envia o arquivo selecionado e exibe o resultado da ingestão", async () => {

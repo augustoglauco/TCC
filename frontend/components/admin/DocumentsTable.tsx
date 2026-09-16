@@ -3,10 +3,11 @@
 import { useState } from "react";
 
 import { DomainBadge } from "@/components/admin/DomainBadge";
+import { ReingestModal } from "@/components/admin/ReingestModal";
 import { Modal } from "@/components/ui/Modal";
 import { ToastStack, useToast } from "@/components/ui/Toast";
 import { RagApiError, deleteDocument } from "@/lib/api/rag";
-import type { DocumentRegistryEntry } from "@/lib/types/rag";
+import type { DocumentRegistryEntry, RagCollection } from "@/lib/types/rag";
 
 function formatarDataRelativa(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -18,13 +19,14 @@ function formatarDataRelativa(iso: string): string {
 
 export interface DocumentsTableProps {
   documents: DocumentRegistryEntry[];
+  collections: RagCollection[];
   onDeleted: (id: string) => void;
+  onReingested: () => void;
 }
 
-export function DocumentsTable({ documents, onDeleted }: DocumentsTableProps) {
-  const [documentoParaExcluir, setDocumentoParaExcluir] = useState<DocumentRegistryEntry | null>(
-    null,
-  );
+export function DocumentsTable({ documents, collections, onDeleted, onReingested }: DocumentsTableProps) {
+  const [documentoParaExcluir, setDocumentoParaExcluir] = useState<DocumentRegistryEntry | null>(null);
+  const [documentoParaReingerir, setDocumentoParaReingerir] = useState<DocumentRegistryEntry | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const { toasts, showToast, dismissToast } = useToast();
 
@@ -58,7 +60,7 @@ export function DocumentsTable({ documents, onDeleted }: DocumentsTableProps) {
             <th className="py-2 pr-4">Arquivo</th>
             <th className="py-2 pr-4">Domínio</th>
             <th className="py-2 pr-4">Chunks</th>
-            <th className="py-2 pr-4">Modelo de embedding</th>
+            <th className="py-2 pr-4">Collection</th>
             <th className="py-2 pr-4">Data</th>
             <th className="py-2 pr-4" />
           </tr>
@@ -71,11 +73,18 @@ export function DocumentsTable({ documents, onDeleted }: DocumentsTableProps) {
                 <DomainBadge domain={documento.domain} />
               </td>
               <td className="py-2 pr-4 text-gray-700">{documento.chunk_count}</td>
-              <td className="py-2 pr-4 text-gray-700">{documento.embedding_model}</td>
+              <td className="py-2 pr-4 text-gray-700">{documento.collection_name}</td>
               <td className="py-2 pr-4 text-gray-500" title={documento.created_at}>
                 {formatarDataRelativa(documento.created_at)}
               </td>
               <td className="py-2 pr-4 text-right">
+                <button
+                  type="button"
+                  onClick={() => setDocumentoParaReingerir(documento)}
+                  className="mr-3 text-gray-700 hover:text-gray-900"
+                >
+                  Reingerir
+                </button>
                 <button
                   type="button"
                   onClick={() => setDocumentoParaExcluir(documento)}
@@ -116,6 +125,18 @@ export function DocumentsTable({ documents, onDeleted }: DocumentsTableProps) {
         Tem certeza que deseja excluir &ldquo;{documentoParaExcluir?.filename}&rdquo;? Os chunks
         já indexados serão removidos do RAG e essa ação não pode ser desfeita.
       </Modal>
+
+      <ReingestModal
+        documento={documentoParaReingerir}
+        collections={collections}
+        onOpenChange={(open) => !open && setDocumentoParaReingerir(null)}
+        onReingested={() => {
+          setDocumentoParaReingerir(null);
+          showToast("Documento reingerido.", "success");
+          onReingested();
+        }}
+        onError={(message) => showToast(message, "error")}
+      />
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </>

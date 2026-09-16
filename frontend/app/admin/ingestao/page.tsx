@@ -10,8 +10,13 @@ import { useCallback, useEffect, useState } from "react";
 import { DocumentsTable } from "@/components/admin/DocumentsTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ToastStack, useToast } from "@/components/ui/Toast";
-import { RagApiError, listDocuments, uploadDocument } from "@/lib/api/rag";
-import type { DocumentIngestResponse, DocumentRegistryEntry, RagDomain } from "@/lib/types/rag";
+import { RagApiError, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
+import type {
+  DocumentIngestResponse,
+  DocumentRegistryEntry,
+  RagCollection,
+  RagDomain,
+} from "@/lib/types/rag";
 
 const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
   { value: "vendas", label: "Vendas" },
@@ -112,11 +117,17 @@ function AbaEnviarDocumento({ onIngerido }: { onIngerido: () => void }) {
 
 function AbaDocumentosIngeridos() {
   const [documentos, setDocumentos] = useState<DocumentRegistryEntry[] | null>(null);
+  const [collections, setCollections] = useState<RagCollection[]>([]);
   const { toasts, showToast, dismissToast } = useToast();
 
   const carregarDocumentos = useCallback(async () => {
     try {
-      setDocumentos(await listDocuments());
+      const [documentosCarregados, collectionsCarregadas] = await Promise.all([
+        listDocuments(),
+        listCollections(),
+      ]);
+      setDocumentos(documentosCarregados);
+      setCollections(collectionsCarregadas);
     } catch (err) {
       showToast(
         err instanceof RagApiError ? err.message : "Erro inesperado ao carregar os documentos.",
@@ -144,7 +155,12 @@ function AbaDocumentosIngeridos() {
       {documentos === null ? (
         <p className="text-sm text-gray-600">Carregando...</p>
       ) : (
-        <DocumentsTable documents={documentos} onDeleted={handleDeleted} />
+        <DocumentsTable
+          documents={documentos}
+          collections={collections}
+          onDeleted={handleDeleted}
+          onReingested={carregarDocumentos}
+        />
       )}
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
