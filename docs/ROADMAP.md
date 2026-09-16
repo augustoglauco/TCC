@@ -118,6 +118,17 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       reingestão de um documento em outra collection. Ver
       `docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`.
 
+## Extra fora do MVP — Gerenciador de Modelos Locais (Ollama)
+
+> Pedido explícito do usuário, fora do escopo original do MVP (ver
+> `docs/ARCHITECTURE.md` §5 e
+> `docs/superpowers/specs/2026-09-16-local-model-manager-design.md`).
+
+- [x] **Gerenciador de modelos locais** — tela `/admin/modelos` para
+      listar/ativar em runtime/baixar (Ollama ou Hugging Face GGUF) modelos
+      locais de chat, sem bloquear o backend durante o download. Não
+      substitui a escolha formal de produção da Fase 10.
+
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
 - [ ] Implementar entrada de imagem no chat (fluxo básico)
