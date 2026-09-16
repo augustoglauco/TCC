@@ -16,14 +16,22 @@ export interface ReingestModalProps {
 
 export function ReingestModal({ documento, collections, onOpenChange, onReingested, onError }: ReingestModalProps) {
   const destinos = collections.filter((collection) => collection.id !== documento?.collection_id);
+  // Este componente fica permanentemente montado dentro de DocumentsTable (visibilidade
+  // controlada pela prop `documento`/`open`, não por mount/unmount) — o inicializador do
+  // useState só roda uma vez, antes de `documento` existir, então `targetId` pode ficar
+  // "preso" em um valor que não é mais um destino válido (inclusive a própria collection de
+  // origem do documento atual). Por isso o valor efetivamente usado é derivado a cada render,
+  // caindo em destinos[0] sempre que o `targetId` guardado não é (mais) um destino válido —
+  // ver finding #2 da revisão final.
   const [targetId, setTargetId] = useState(destinos[0]?.id ?? "");
+  const targetIdEfetivo = destinos.some((c) => c.id === targetId) ? targetId : (destinos[0]?.id ?? "");
   const [enviando, setEnviando] = useState(false);
 
   async function confirmar() {
-    if (!documento || !targetId) return;
+    if (!documento || !targetIdEfetivo) return;
     setEnviando(true);
     try {
-      await reingestDocument(documento.id, targetId);
+      await reingestDocument(documento.id, targetIdEfetivo);
       onReingested();
     } catch (err) {
       onError(err instanceof RagApiError ? err.message : "Erro inesperado ao reingerir o documento.");
@@ -63,7 +71,7 @@ export function ReingestModal({ documento, collections, onOpenChange, onReingest
         <label className="block text-sm text-gray-700">
           Collection destino
           <select
-            value={targetId}
+            value={targetIdEfetivo}
             onChange={(e) => setTargetId(e.target.value)}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
           >

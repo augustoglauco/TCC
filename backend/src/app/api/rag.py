@@ -43,9 +43,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/rag", tags=["rag"])
 
 
-def _document_to_response(
-    document: RagDocument, collection_name: str
-) -> DocumentRegistryResponse:
+def _document_to_response(document: RagDocument, collection_name: str) -> DocumentRegistryResponse:
     return DocumentRegistryResponse(
         id=document.id,
         filename=document.filename,
@@ -92,8 +90,15 @@ async def upload_document(
     content = await file.read()
     try:
         documento = await ingest_bytes(
-            qdrant, embedder, collection, uploads_dir, filename, content, domain,
-            session=session, origin="upload",
+            qdrant,
+            embedder,
+            collection,
+            uploads_dir,
+            filename,
+            content,
+            domain,
+            session=session,
+            origin="upload",
         )
     except RAGConnectionError as exc:
         logger.error(
@@ -115,8 +120,7 @@ async def upload_document(
         raise HTTPException(
             status_code=503,
             detail=(
-                "Serviço de registro de documentos temporariamente indisponível, "
-                "tente novamente."
+                "Serviço de registro de documentos temporariamente indisponível, tente novamente."
             ),
         ) from exc
 
@@ -138,8 +142,7 @@ async def get_documents(
         raise HTTPException(
             status_code=503,
             detail=(
-                "Serviço de registro de documentos temporariamente indisponível, "
-                "tente novamente."
+                "Serviço de registro de documentos temporariamente indisponível, tente novamente."
             ),
         ) from exc
     nomes = {collection.id: collection.name for collection in collections}
@@ -186,8 +189,7 @@ async def delete_document_endpoint(
         raise HTTPException(
             status_code=503,
             detail=(
-                "Serviço de registro de documentos temporariamente indisponível, "
-                "tente novamente."
+                "Serviço de registro de documentos temporariamente indisponível, tente novamente."
             ),
         ) from exc
 
@@ -207,6 +209,12 @@ async def reingest_document_endpoint(
     target_collection = await get_collection(session, body.target_collection_id)
     if target_collection is None:
         raise HTTPException(status_code=404, detail="Collection destino não encontrada.")
+
+    if target_collection.id == source_document.collection_id:
+        raise HTTPException(
+            status_code=409,
+            detail="A collection destino não pode ser a mesma do documento de origem.",
+        )
 
     if source_document.storage_path is None:
         raise HTTPException(

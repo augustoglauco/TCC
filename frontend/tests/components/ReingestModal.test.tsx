@@ -110,6 +110,45 @@ describe("ReingestModal", () => {
     expect(onError).toHaveBeenCalledWith("Documento sem arquivo salvo.");
   });
 
+  it("componente permanentemente montado com documento inicial nulo nunca oferece a própria collection de origem como destino (regressão do finding #2)", async () => {
+    // ReingestModal fica sempre montado dentro de DocumentsTable — o `documento` começa
+    // como null e só é preenchido depois, via re-render (não via um novo mount). O
+    // useState de targetId, inicializado nesse primeiro render (documento=null, então
+    // `destinos` inclui todas as collections, inclusive a que depois será a de origem),
+    // não deve "vazar" para o valor de destino depois que um documento real é setado.
+    const user = userEvent.setup();
+    mockedReingest.mockResolvedValueOnce({ ...DOCUMENTO, id: "doc-2", collection_id: "destino" });
+
+    const { rerender } = render(
+      <ReingestModal
+        documento={null}
+        collections={[COLLECTION_ORIGEM, COLLECTION_DESTINO]}
+        onOpenChange={vi.fn()}
+        onReingested={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+    rerender(
+      <ReingestModal
+        documento={DOCUMENTO}
+        collections={[COLLECTION_ORIGEM, COLLECTION_DESTINO]}
+        onOpenChange={vi.fn()}
+        onReingested={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(select.value).not.toBe(DOCUMENTO.collection_id);
+    expect(select.value).toBe("destino");
+
+    await user.click(screen.getByRole("button", { name: "Reingerir" }));
+
+    expect(mockedReingest).toHaveBeenCalledWith("doc-1", "destino");
+    expect(mockedReingest).not.toHaveBeenCalledWith("doc-1", DOCUMENTO.collection_id);
+  });
+
   it("sem outra collection disponível, mostra aviso e desabilita o botão", () => {
     render(
       <ReingestModal

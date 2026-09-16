@@ -44,7 +44,9 @@ async def list_documents(session: AsyncSession) -> list[RagDocument]:
     return list(result.scalars().all())
 
 
-async def list_documents_by_collection(session: AsyncSession, collection_id: uuid.UUID) -> list[RagDocument]:
+async def list_documents_by_collection(
+    session: AsyncSession, collection_id: uuid.UUID
+) -> list[RagDocument]:
     result = await session.execute(
         select(RagDocument).where(RagDocument.collection_id == collection_id)
     )

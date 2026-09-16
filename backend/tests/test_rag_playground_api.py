@@ -15,7 +15,9 @@ class _FakeQdrantSearch:
         self._error = error
         self.chamadas: list[str] = []
 
-    async def search(self, collection_name, embedder, query, domain, top_k=None, score_threshold=None):
+    async def search(
+        self, collection_name, embedder, query, domain, top_k=None, score_threshold=None
+    ):
         self.chamadas.append(collection_name)
         if self._error is not None:
             raise self._error
@@ -39,7 +41,11 @@ async def test_playground_busca_em_uma_collection_e_retorna_resultado_com_latenc
 
     response = client.post(
         "/api/rag/playground/search",
-        json={"query": "pergunta de teste", "domain": "vendas", "collection_ids": [str(active_collection.id)]},
+        json={
+            "query": "pergunta de teste",
+            "domain": "vendas",
+            "collection_ids": [str(active_collection.id)],
+        },
     )
 
     assert response.status_code == 200
@@ -94,7 +100,9 @@ async def test_playground_erro_de_conexao_em_uma_collection_nao_derruba_as_outra
     )
 
     class _FlakyQdrant:
-        async def search(self, collection_name, embedder, query, domain, top_k=None, score_threshold=None):
+        async def search(
+            self, collection_name, embedder, query, domain, top_k=None, score_threshold=None
+        ):
             if collection_name == active_collection.name:
                 raise RAGConnectionError("fora do ar")
             return [Document(content="ok", source="b.txt", score=0.5)]
@@ -121,7 +129,8 @@ async def test_playground_sem_collection_ids_retorna_422(db_session):
     client = TestClient(_build_app(fake, db_session))
 
     response = client.post(
-        "/api/rag/playground/search", json={"query": "pergunta", "domain": "vendas", "collection_ids": []}
+        "/api/rag/playground/search",
+        json={"query": "pergunta", "domain": "vendas", "collection_ids": []},
     )
 
     assert response.status_code == 422

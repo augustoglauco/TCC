@@ -11,7 +11,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_qdrant_client
-from app.models.rag import PlaygroundDocumentResult, PlaygroundResultItem, PlaygroundSearchRequest, PlaygroundSearchResponse
+from app.models.rag import (
+    PlaygroundDocumentResult,
+    PlaygroundResultItem,
+    PlaygroundSearchRequest,
+    PlaygroundSearchResponse,
+)
 from app.rag.collections_registry import get_collection
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import QdrantRAGClient
@@ -34,7 +39,9 @@ async def playground_search(
         if collection is None:
             resultados.append(
                 PlaygroundResultItem(
-                    collection_id=collection_id, collection_name="?", error="Collection não encontrada."
+                    collection_id=collection_id,
+                    collection_name="?",
+                    error="Collection não encontrada.",
                 )
             )
             continue
@@ -45,7 +52,9 @@ async def playground_search(
             documentos = await qdrant.search(collection.name, embedder, body.query, body.domain)
         except RAGConnectionError as exc:
             resultados.append(
-                PlaygroundResultItem(collection_id=collection.id, collection_name=collection.name, error=str(exc))
+                PlaygroundResultItem(
+                    collection_id=collection.id, collection_name=collection.name, error=str(exc)
+                )
             )
             continue
         latencia_ms = (time.perf_counter() - inicio) * 1000
@@ -56,7 +65,9 @@ async def playground_search(
                 collection_name=collection.name,
                 latency_ms=latencia_ms,
                 results=[
-                    PlaygroundDocumentResult(content=documento.content, source=documento.source, score=documento.score)
+                    PlaygroundDocumentResult(
+                        content=documento.content, source=documento.source, score=documento.score
+                    )
                     for documento in documentos
                 ],
             )

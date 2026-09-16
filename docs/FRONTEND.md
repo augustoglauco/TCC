@@ -114,9 +114,15 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` | Criação e histórico de pedidos |
 | `POST /api/auth/login` , `POST /api/auth/signup` | Autenticação simplificada |
 | `GET /api/appointments` | Lista agendamentos criados via chat (leitura) |
-| `POST /api/rag/documents` | Upload de um PDF/texto (`multipart/form-data`: `file` + `domain`) para ingestão no RAG — usado pela página `/admin/ingestao` (ver `backend/src/app/api/rag.py`) |
+| `POST /api/rag/documents` | Upload de um PDF/texto (`multipart/form-data`: `file` + `domain` + `collection_id` opcional, default a collection ativa) para ingestão no RAG — usado pela página `/admin/ingestao` (ver `backend/src/app/api/rag.py`) |
 | `GET /api/rag/documents` | Lista o registro de documentos ingeridos (mais recente primeiro), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `DELETE /api/rag/documents/{document_id}` | Exclui um documento (registro + pontos no Qdrant), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `POST /api/rag/documents/{document_id}/reingest` | Reingere um documento já enviado em outra collection (a partir do arquivo original salvo em disco), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/rag/collections` | Lista os perfis de collection configurados, com contagem de documentos por collection, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `POST /api/rag/collections` | Cria um novo perfil de collection (nome, modelo de embedding, chunking, HNSW, quantização, payload indexing) e a collection real correspondente no Qdrant, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `POST /api/rag/collections/{collection_id}/activate` | Marca a collection como ativa (é a que o chat passa a usar na busca), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `DELETE /api/rag/collections/{collection_id}` | Exclui a collection em cascata (documentos, pontos no Qdrant e arquivos em disco); bloqueado (409) se for a collection ativa, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `POST /api/rag/playground/search` | Roda a mesma busca contra várias collections em paralelo e devolve resultados/latência por collection, para comparação manual, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 
 `POST /api/chat/messages` — contrato já implementado (Fase 2, texto e áudio;
 ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
