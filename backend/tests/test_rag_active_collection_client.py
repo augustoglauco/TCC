@@ -2,6 +2,7 @@ import uuid
 
 import pytest
 from qdrant_client import AsyncQdrantClient
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.db.engine import create_db_engine, create_session_factory
 from app.db.models import Base, RagCollection
@@ -9,6 +10,7 @@ from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.embeddings import TextEmbedder
 from app.rag.qdrant_client import QdrantRAGClient
+from app.router.rag_client import RAGConnectionError
 
 _DEFAULT_HNSW = dict(
     hnsw_m=16,
@@ -87,3 +89,26 @@ async def test_search_sem_collection_ativa_retorna_lista_vazia():
 
     assert resultado == []
     await engine.dispose()
+
+
+class _FailingSessionFactory:
+    """Dublê de `async_sessionmaker` cuja sessão levanta `SQLAlchemyError` ao
+    ser aberta — simula um Postgres indisponível no caminho do chat (ver
+    finding #4 da revisão final)."""
+
+    def __call__(self) -> "_FailingSessionFactory":
+        return self
+
+    async def __aenter__(self):
+        raise SQLAlchemyError("conexão com o banco indisponível")
+
+    async def __aexit__(self, *exc_info) -> bool:
+        return False
+
+
+async def test_search_com_erro_no_postgres_levanta_rag_connection_error():
+    qdrant = QdrantRAGClient(host="unused", port=0, client=AsyncQdrantClient(location=":memory:"))
+    client = ActiveCollectionRagClient(qdrant, _FailingSessionFactory(), EmbedderRegistry())
+
+    with pytest.raises(RAGConnectionError):
+        await client.search("qualquer coisa", domain="vendas")

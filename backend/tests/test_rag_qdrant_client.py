@@ -80,7 +80,9 @@ async def test_create_collection_com_payload_indexes_nao_levanta_erro(
 async def test_search_sem_collection_criada_retorna_lista_vazia(
     qdrant: QdrantRAGClient, text_embedder: TextEmbedder
 ):
-    resultado = await qdrant.search("nome_inexistente", text_embedder, "qualquer pergunta", domain="vendas")
+    resultado = await qdrant.search(
+        "nome_inexistente", text_embedder, "qualquer pergunta", domain="vendas"
+    )
 
     assert resultado == []
 
@@ -111,7 +113,9 @@ async def test_upsert_e_search_retorna_documento_com_conteudo_e_fonte(
         document_id="doc-1",
     )
 
-    resultado = await qdrant.search(name, text_embedder, "Qual a potência do gerador GD-30?", domain="vendas")
+    resultado = await qdrant.search(
+        name, text_embedder, "Qual a potência do gerador GD-30?", domain="vendas"
+    )
 
     assert len(resultado) == 1
     documento = resultado[0]
@@ -166,7 +170,12 @@ async def test_upsert_chunks_com_falha_no_embedder_vira_rag_connection_error(
 
     with pytest.raises(RAGConnectionError):
         await qdrant.upsert_chunks(
-            name, _FailingEmbedder(), ["texto qualquer"], source="arquivo.txt", domain="vendas", document_id="doc-1"
+            name,
+            _FailingEmbedder(),
+            ["texto qualquer"],
+            source="arquivo.txt",
+            domain="vendas",
+            document_id="doc-1",
         )
 
 
@@ -205,7 +214,9 @@ async def test_upsert_e_search_contra_qdrant_real_do_docker_compose(text_embedde
             document_id="doc-1",
         )
 
-        resultado = await client.search(name, text_embedder, "qual o prazo de garantia?", domain="atendimento")
+        resultado = await client.search(
+            name, text_embedder, "qual o prazo de garantia?", domain="atendimento"
+        )
 
         assert len(resultado) == 1
         assert "garantia" in resultado[0].content.lower()
@@ -218,7 +229,12 @@ async def test_upsert_chunks_grava_document_id_no_payload_do_ponto(
 ):
     name = await _cria_collection(qdrant, await text_embedder.get_dimension())
     await qdrant.upsert_chunks(
-        name, text_embedder, ["conteúdo de teste"], source="arquivo.txt", domain="vendas", document_id="doc-xyz"
+        name,
+        text_embedder,
+        ["conteúdo de teste"],
+        source="arquivo.txt",
+        domain="vendas",
+        document_id="doc-xyz",
     )
 
     pontos, _ = await qdrant._client.scroll(name, limit=10)
@@ -232,10 +248,20 @@ async def test_delete_by_document_id_remove_so_os_pontos_daquele_documento(
 ):
     name = await _cria_collection(qdrant, await text_embedder.get_dimension())
     await qdrant.upsert_chunks(
-        name, text_embedder, ["conteúdo do documento A"], source="a.txt", domain="vendas", document_id="doc-a"
+        name,
+        text_embedder,
+        ["conteúdo do documento A"],
+        source="a.txt",
+        domain="vendas",
+        document_id="doc-a",
     )
     await qdrant.upsert_chunks(
-        name, text_embedder, ["conteúdo do documento B"], source="b.txt", domain="vendas", document_id="doc-b"
+        name,
+        text_embedder,
+        ["conteúdo do documento B"],
+        source="b.txt",
+        domain="vendas",
+        document_id="doc-b",
     )
 
     await qdrant.delete_by_document_id(name, "doc-a")

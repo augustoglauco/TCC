@@ -19,6 +19,7 @@ from app.rag.collections_registry import (
     activate_collection,
     create_collection,
     delete_collection,
+    get_collection_by_name,
     list_collections,
 )
 from app.rag.embedders_registry import EmbedderRegistry
@@ -80,6 +81,12 @@ async def create_collection_endpoint(
             status_code=422, detail=f"Não foi possível carregar o modelo de embedding: {exc}"
         ) from exc
 
+    existing = await get_collection_by_name(session, body.name)
+    if existing is not None:
+        raise HTTPException(
+            status_code=409, detail=f"Já existe uma collection chamada '{body.name}'."
+        )
+
     payload_indexes = [item.model_dump() for item in body.payload_indexes]
     quantization_config = _quantization_config_dict(body.quantization)
 
@@ -135,8 +142,7 @@ async def create_collection_endpoint(
         raise HTTPException(
             status_code=503,
             detail=(
-                "Serviço de registro de collections temporariamente indisponível, "
-                "tente novamente."
+                "Serviço de registro de collections temporariamente indisponível, tente novamente."
             ),
         ) from exc
 
@@ -174,9 +180,7 @@ async def delete_collection_endpoint(
     if collection.is_active:
         raise HTTPException(
             status_code=409,
-            detail=(
-                "Não é possível excluir a collection ativa. Ative outra collection antes."
-            ),
+            detail=("Não é possível excluir a collection ativa. Ative outra collection antes."),
         )
 
     documentos = await list_documents_by_collection(session, collection_id)

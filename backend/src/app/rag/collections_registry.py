@@ -72,6 +72,11 @@ async def get_collection(session: AsyncSession, collection_id: uuid.UUID) -> Rag
     return await session.get(RagCollection, collection_id)
 
 
+async def get_collection_by_name(session: AsyncSession, name: str) -> RagCollection | None:
+    result = await session.execute(select(RagCollection).where(RagCollection.name == name))
+    return result.scalars().first()
+
+
 async def get_active_collection(session: AsyncSession) -> RagCollection | None:
     result = await session.execute(select(RagCollection).where(RagCollection.is_active.is_(True)))
     return result.scalars().first()

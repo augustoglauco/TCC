@@ -8,12 +8,13 @@ collection ativa em memória — um round trip extra ao Postgres por mensagem
 de chat é aceitável neste protótipo`.
 """
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from app.rag.collections_registry import get_active_collection
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import QdrantRAGClient
-from app.router.rag_client import Document
+from app.router.rag_client import Document, RAGConnectionError
 
 
 class ActiveCollectionRagClient:
@@ -28,8 +29,11 @@ class ActiveCollectionRagClient:
         self._embedders = embedders
 
     async def search(self, query: str, domain: str) -> list[Document]:
-        async with self._session_factory() as session:
-            collection = await get_active_collection(session)
+        try:
+            async with self._session_factory() as session:
+                collection = await get_active_collection(session)
+        except SQLAlchemyError as exc:
+            raise RAGConnectionError(str(exc)) from exc
         if collection is None:
             return []
         embedder = self._embedders.get(collection.embedding_model)

@@ -21,14 +21,42 @@ class _FakeQdrantRAGClient:
     endpoint HTTP).
     """
 
-    def __init__(self, error: Exception | None = None) -> None:
+    def __init__(
+        self,
+        error: Exception | None = None,
+        collections_existentes: set[str] | None = None,
+    ) -> None:
         self._error = error
+        # None = comportamento default (toda collection "já existe", como nos
+        # testes anteriores à checagem self-healing de `ingest_bytes`); um
+        # `set` explícito simula quais collections já existem no Qdrant,
+        # usado pelo teste da recriação idempotente (ver `test_rag_ingest.py`).
+        self._collections_existentes = collections_existentes
         self.upserts: list[tuple[str, list[str], str, str, str]] = []
         self.deleted: list[tuple[str, str]] = []
         self.dropped_collections: list[str] = []
+        self.created_collections: list[str] = []
+
+    async def collection_exists(self, collection_name: str) -> bool:
+        if self._collections_existentes is None:
+            return True
+        return collection_name in self._collections_existentes
+
+    async def create_collection(self, *, name: str, **kwargs) -> None:
+        if self._error is not None:
+            raise self._error
+        self.created_collections.append(name)
+        if self._collections_existentes is not None:
+            self._collections_existentes.add(name)
 
     async def upsert_chunks(
-        self, collection_name: str, embedder, chunks: list[str], source: str, domain: str, document_id: str
+        self,
+        collection_name: str,
+        embedder,
+        chunks: list[str],
+        source: str,
+        domain: str,
+        document_id: str,
     ) -> int:
         if self._error is not None:
             raise self._error
@@ -107,9 +135,7 @@ def _qdrant_disponivel() -> bool:
     coleta de testes)."""
     settings = get_settings()
     try:
-        with socket.create_connection(
-            (settings.qdrant_host, settings.qdrant_port), timeout=1.0
-        ):
+        with socket.create_connection((settings.qdrant_host, settings.qdrant_port), timeout=1.0):
             return True
     except OSError:
         return False

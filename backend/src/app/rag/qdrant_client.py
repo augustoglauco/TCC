@@ -178,7 +178,9 @@ class QdrantRAGClient:
                     on_disk=hnsw_on_disk,
                     payload_m=hnsw_payload_m,
                 ),
-                quantization_config=_quantization_from_config(quantization_type, quantization_config),
+                quantization_config=_quantization_from_config(
+                    quantization_type, quantization_config
+                ),
             )
             for payload_index in payload_indexes:
                 await self._client.create_payload_index(

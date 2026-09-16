@@ -95,9 +95,7 @@ def test_envia_mensagem_de_texto_simples(client):
 
 
 def test_conversation_id_mantem_historico_entre_chamadas(client):
-    first = client.post(
-        "/api/chat/messages", json={"message": "quero agendar uma visita"}
-    ).json()
+    first = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"}).json()
     conversation_id = first["conversation_id"]
 
     # Mensagem isolada e ambígua para o classificador por palavra-chave (não
@@ -115,9 +113,7 @@ def test_conversation_id_mantem_historico_entre_chamadas(client):
     # Sem conversation_id (conversa nova), a mesma mensagem isolada cai em
     # fora_escopo por falta de contexto — prova de que o histórico é o que
     # muda o resultado, não a heurística da mensagem em si.
-    isolated = client.post(
-        "/api/chat/messages", json={"message": "pode ser amanhã às 10h"}
-    ).json()
+    isolated = client.post("/api/chat/messages", json={"message": "pode ser amanhã às 10h"}).json()
     assert isolated["domain"] == "fora_escopo"
 
 

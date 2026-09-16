@@ -314,6 +314,26 @@ def test_reingest_documento_inexistente_retorna_404(db_session, active_collectio
     assert response.status_code == 404
 
 
+def test_reingest_para_a_propria_collection_de_origem_retorna_409(
+    db_session, active_collection, tmp_path
+):
+    fake = _FakeQdrantRAGClient()
+    client = TestClient(_build_app(fake, db_session, tmp_path))
+    client.post(
+        "/api/rag/documents",
+        data={"domain": "vendas"},
+        files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+    )
+    document_id = client.get("/api/rag/documents").json()[0]["id"]
+
+    response = client.post(
+        f"/api/rag/documents/{document_id}/reingest",
+        json={"target_collection_id": str(active_collection.id)},
+    )
+
+    assert response.status_code == 409
+
+
 def test_reingest_para_collection_destino_inexistente_retorna_404(
     db_session, active_collection, tmp_path
 ):

@@ -96,6 +96,20 @@ async def test_criar_collection_com_nome_duplicado_retorna_409(db_session, activ
     assert response.status_code == 409
 
 
+async def test_criar_collection_com_nome_duplicado_nao_toca_qdrant(db_session, active_collection):
+    """A checagem de nome duplicado é Postgres-first (ver finding #3 da
+    revisão final): o 409 deve sair sem nunca chamar `qdrant.create_collection`,
+    mesmo que a collection ainda não exista no Qdrant."""
+    qdrant = _qdrant()
+    client = TestClient(_build_app(qdrant, db_session))
+    payload = {**_PAYLOAD_MINIMO, "name": active_collection.name}
+
+    response = client.post("/api/rag/collections", json=payload)
+
+    assert response.status_code == 409
+    assert await qdrant.collection_exists(active_collection.name) is False
+
+
 def test_criar_collection_com_chunk_size_menor_que_overlap_retorna_422(db_session):
     client = TestClient(_build_app(_qdrant(), db_session))
     payload = {**_PAYLOAD_MINIMO, "chunk_size": 100, "chunk_overlap": 200}

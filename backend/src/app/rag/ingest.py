@@ -28,7 +28,7 @@ from app.models.rag import RagDomain
 from app.rag.chunking import chunk_text
 from app.rag.embeddings import TextEmbedder
 from app.rag.pdf_extract import extract_text_from_pdf
-from app.rag.qdrant_client import QdrantRAGClient
+from app.rag.qdrant_client import CollectionAlreadyExistsError, QdrantRAGClient
 from app.rag.registry import create_document
 
 logger = logging.getLogger(__name__)
@@ -60,12 +60,38 @@ async def ingest_bytes(
     text = _extract_text(filename, content)
     chunks = chunk_text(text, chunk_size=collection.chunk_size, overlap=collection.chunk_overlap)
     document_id = str(uuid.uuid4())
+
+    # MVP: recriação idempotente/self-healing da collection no Qdrant se ela não
+    # existir (fresh install, cuja migração só semeia a linha em Postgres — ver
+    # docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §4.1 —,
+    # ou alguém apagou a collection no Qdrant por fora do app). Não é uma
+    # garantia de transação distribuída Qdrant+Postgres, mesma tolerância já
+    # aceita para o caso inverso (registro órfão) logo abaixo.
+    if not await qdrant.collection_exists(collection.name):
+        try:
+            await qdrant.create_collection(
+                name=collection.name,
+                vector_dimension=collection.vector_dimension,
+                distance_metric=collection.distance_metric,
+                hnsw_m=collection.hnsw_m,
+                hnsw_ef_construct=collection.hnsw_ef_construct,
+                hnsw_full_scan_threshold=collection.hnsw_full_scan_threshold,
+                hnsw_max_indexing_threads=collection.hnsw_max_indexing_threads,
+                hnsw_on_disk=collection.hnsw_on_disk,
+                hnsw_payload_m=collection.hnsw_payload_m,
+                quantization_type=collection.quantization_type,
+                quantization_config=collection.quantization_config,
+                payload_indexes=collection.payload_indexes,
+            )
+        except CollectionAlreadyExistsError:
+            pass  # corrida com uma ingestão concorrente recriando-a — tudo bem, já existe
+
     chunk_count = await qdrant.upsert_chunks(
         collection.name, embedder, chunks, source=filename, domain=domain, document_id=document_id
     )
 
     uploads_dir.mkdir(parents=True, exist_ok=True)
-    storage_path = uploads_dir / f"{document_id}_{filename}"
+    storage_path = uploads_dir / f"{document_id}_{Path(filename).name}"
     storage_path.write_bytes(content)
 
     logger.info(
@@ -109,7 +135,15 @@ async def ingest_file(
 ) -> RagDocument:
     """Mesma lógica de `ingest_bytes`, a partir de um arquivo em disco."""
     return await ingest_bytes(
-        qdrant, embedder, collection, uploads_dir, path.name, path.read_bytes(), domain, session, origin
+        qdrant,
+        embedder,
+        collection,
+        uploads_dir,
+        path.name,
+        path.read_bytes(),
+        domain,
+        session,
+        origin,
     )
 
 
@@ -144,7 +178,9 @@ async def ingest_directory(
             )
             continue
         documentos.append(
-            await ingest_file(qdrant, embedder, collection, uploads_dir, path, domain, session, origin)
+            await ingest_file(
+                qdrant, embedder, collection, uploads_dir, path, domain, session, origin
+            )
         )
     return documentos
 
