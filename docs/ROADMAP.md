@@ -110,10 +110,13 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] **Entrega A** — registro de documentos ingeridos (Postgres,
       `rag_documents`) + exclusão (registro + pontos no Qdrant), com página
       `/admin/ingestao` reorganizada em abas (Radix UI)
-- [ ] **Entrega B** — chunk size/overlap configuráveis por ingestão
-- [ ] **Entrega C+D** — configuração avançada da collection do Qdrant
-      (modelo de embedding/dimensão/métrica de distância, HNSW, quantização
-      de vetores, payload indexing)
+- [x] **Entregas B+C+D** — perfis de collection configuráveis (chunk
+      size/overlap, modelo de embedding/dimensão/métrica de distância,
+      HNSW, quantização de vetores, payload indexing) combinadas numa só
+      entrega (ficaram interdependentes na sessão de brainstorming de
+      2026-09-15), com playground de busca comparativo entre collections e
+      reingestão de um documento em outra collection. Ver
+      `docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`.
 
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
