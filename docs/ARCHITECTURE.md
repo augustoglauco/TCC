@@ -188,6 +188,34 @@ no roadmap para não ser confundida com item do escopo original nem
 esquecida na revisão final (Fase 11). Detalhes de implementação:
 `docs/superpowers/specs/2026-09-16-local-model-manager-design.md`.
 
+**Decisão registrada (Fase 2, conector de BD relacional exigido por R4,
+2026-09-16):** o conector de leitura a BD relacional reaproveita o mesmo
+Postgres já provisionado em `docker-compose.yml` (o mesmo usado por
+`rag_documents`/`rag_collections`) — sem infraestrutura nova. Uma tabela
+fixture fictícia, `produtos` (`id`, `nome`, `descricao`, `preco`,
+`categoria`), é criada e semeada por migração Alembic
+(`backend/migrations/versions/0003_produtos_fixture.py`), análoga em
+espírito a `backend/scripts/sample_docs/` para PDFs/textos, mas para dados
+estruturados; seus dados fictícios são coerentes com o catálogo de exemplo já
+usado no RAG (geradores a diesel e acessórios, ver
+`backend/scripts/sample_docs/vendas/catalogo_geradores.txt`). A leitura em si
+(`app.rag.db_connector.read_table_as_text`) é genérica via reflexão de tabela
+do SQLAlchemy (`Table(..., autoload_with=...)`) — recebe nome de
+tabela/colunas e devolve linhas transformadas em texto (`coluna: valor` por
+linha), não fica acoplada à tabela `produtos`. Cada linha lida é ingerida
+como um documento próprio no RAG, reaproveitando `app.rag.ingest.ingest_bytes`
+sem duplicar chunking/embedding/upsert (o texto da linha vira o "conteúdo do
+arquivo", com um nome sintético `<tabela>_row<N>.txt`). Exposto só como
+script CLI (`backend/scripts/ingest_db_table.py --table <nome> --domain
+<dominio>`), no mesmo padrão de `backend/scripts/ingest_sample_docs.py` — sem
+endpoint HTTP dedicado (diferente da ingestão de PDF/texto, que já tinha essa
+necessidade validada via `/admin/ingestao`; aqui o caso de uso é
+administrativo/pontual via terminal, sem tela nova no frontend). `# MVP:
+somente leitura (sem INSERT/UPDATE/DELETE no BD de origem) e sem
+sincronização incremental (execução manual sob demanda, sem agendamento nem
+observação de mudanças) — mesma limitação de deduplicação/reingestão já
+aceita em `app.rag.qdrant_client.upsert_chunks``.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
