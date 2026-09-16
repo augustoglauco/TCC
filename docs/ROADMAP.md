@@ -85,8 +85,16 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       Fora deste item: reranking (BM25 + score, ver tabela de escopo),
       deduplicação/re-ingestão incremental, conector de BD relacional e
       crawler de sites (itens separados da Fase 2, ver abaixo)
-- [ ] Implementar conector de leitura a um banco de dados relacional
-      (`# MVP: somente leitura, sem sincronização incremental`)
+- [x] Implementar conector de leitura a um banco de dados relacional
+      (`# MVP: somente leitura, sem sincronização incremental`) —
+      `backend/src/app/rag/db_connector.py` (leitura genérica via reflexão de
+      tabela do SQLAlchemy, `read_table_as_text`), tabela fixture `produtos`
+      criada/semeada por migração
+      (`backend/migrations/versions/0003_produtos_fixture.py`), script CLI
+      `backend/scripts/ingest_db_table.py` (mesmo padrão de
+      `ingest_sample_docs.py`) reaproveitando `app.rag.ingest.ingest_bytes`
+      (um documento por linha lida) — decisão registrada em
+      `docs/ARCHITECTURE.md` §5
 - [ ] Implementar crawler restrito a um conjunto pré-definido de páginas
       (até ~5), sem agendamento (`# MVP: escopo restrito`)
 - [x] Implementar endpoint HTTP de upload para ingestão de documentos no RAG
