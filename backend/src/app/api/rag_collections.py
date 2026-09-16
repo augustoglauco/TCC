@@ -153,8 +153,20 @@ async def create_collection_endpoint(
 async def list_collections_endpoint(
     session: AsyncSession = Depends(get_db_session),
 ) -> list[CollectionResponse]:
-    collections = await list_collections(session)
-    counts = await count_documents_by_collection(session)
+    try:
+        collections = await list_collections(session)
+        counts = await count_documents_by_collection(session)
+    except SQLAlchemyError as exc:
+        logger.error(
+            "rag_collections_indisponivel",
+            extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Serviço de registro de collections temporariamente indisponível, tente novamente."
+            ),
+        ) from exc
     return [_to_response(collection, counts.get(collection.id, 0)) for collection in collections]
 
 
@@ -162,7 +174,19 @@ async def list_collections_endpoint(
 async def activate_collection_endpoint(
     collection_id: UUID, session: AsyncSession = Depends(get_db_session)
 ) -> None:
-    ativado = await activate_collection(session, collection_id)
+    try:
+        ativado = await activate_collection(session, collection_id)
+    except SQLAlchemyError as exc:
+        logger.error(
+            "rag_collections_indisponivel",
+            extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Serviço de registro de collections temporariamente indisponível, tente novamente."
+            ),
+        ) from exc
     if not ativado:
         raise HTTPException(status_code=404, detail="Collection não encontrada.")
 
@@ -173,17 +197,29 @@ async def delete_collection_endpoint(
     qdrant: QdrantRAGClient = Depends(get_qdrant_client),
     session: AsyncSession = Depends(get_db_session),
 ) -> None:
-    collections = await list_collections(session)
-    collection = next((c for c in collections if c.id == collection_id), None)
-    if collection is None:
-        raise HTTPException(status_code=404, detail="Collection não encontrada.")
-    if collection.is_active:
-        raise HTTPException(
-            status_code=409,
-            detail=("Não é possível excluir a collection ativa. Ative outra collection antes."),
-        )
+    try:
+        collections = await list_collections(session)
+        collection = next((c for c in collections if c.id == collection_id), None)
+        if collection is None:
+            raise HTTPException(status_code=404, detail="Collection não encontrada.")
+        if collection.is_active:
+            raise HTTPException(
+                status_code=409,
+                detail=("Não é possível excluir a collection ativa. Ative outra collection antes."),
+            )
 
-    documentos = await list_documents_by_collection(session, collection_id)
+        documentos = await list_documents_by_collection(session, collection_id)
+    except SQLAlchemyError as exc:
+        logger.error(
+            "rag_collections_indisponivel",
+            extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Serviço de registro de collections temporariamente indisponível, tente novamente."
+            ),
+        ) from exc
 
     try:
         await qdrant.drop_collection(collection.name)
@@ -201,4 +237,15 @@ async def delete_collection_endpoint(
     except CollectionActiveError as exc:
         raise HTTPException(
             status_code=409, detail="Não é possível excluir a collection ativa."
+        ) from exc
+    except SQLAlchemyError as exc:
+        logger.error(
+            "rag_collections_indisponivel",
+            extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Serviço de registro de collections temporariamente indisponível, tente novamente."
+            ),
         ) from exc

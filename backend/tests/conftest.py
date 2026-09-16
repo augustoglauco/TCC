@@ -4,6 +4,7 @@ import subprocess
 import uuid
 
 import pytest
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
@@ -72,6 +73,27 @@ class _FakeQdrantRAGClient:
         if self._error is not None:
             raise self._error
         self.dropped_collections.append(collection_name)
+
+
+class _CommitFailingSession:
+    """Encapsula uma `AsyncSession` real, repassando toda leitura/escrita
+    normalmente, exceto `commit()`, que levanta `SQLAlchemyError` — simula
+    uma falha de Postgres na escrita final de um endpoint (ex.:
+    `reingest_document`/`delete_collection` gravando o resultado), depois
+    que leituras/lookups anteriores no mesmo request já tiveram sucesso.
+    Usado nos testes de achado #2 da revisão final (endpoints das
+    collections/reingest que não tratavam `SQLAlchemyError` como os
+    handlers de documentos já tratavam).
+    """
+
+    def __init__(self, session) -> None:
+        self._session = session
+
+    def __getattr__(self, name):
+        return getattr(self._session, name)
+
+    async def commit(self) -> None:
+        raise SQLAlchemyError("conexão com o banco indisponível")
 
 
 @pytest.fixture(scope="session")

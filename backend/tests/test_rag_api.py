@@ -12,7 +12,7 @@ from app.api.rag_dependencies import (
 )
 from app.rag.embedders_registry import EmbedderRegistry
 from app.router.rag_client import RAGConnectionError
-from tests.conftest import _FakeQdrantRAGClient
+from tests.conftest import _CommitFailingSession, _FakeQdrantRAGClient
 from tests.test_rag_pdf_extract import _build_minimal_pdf
 
 
@@ -352,3 +352,44 @@ def test_reingest_para_collection_destino_inexistente_retorna_404(
     )
 
     assert response.status_code == 404
+
+
+async def test_reingest_com_erro_no_postgres_retorna_503(db_session, active_collection, tmp_path):
+    """`reingest_document_endpoint` também precisa tratar `SQLAlchemyError`
+    como os outros três endpoints deste arquivo (achado #2 da revisão
+    final) — antes só capturava `RAGConnectionError`."""
+    from app.rag.collections_registry import create_collection
+
+    fake = _FakeQdrantRAGClient()
+    setup_client = TestClient(_build_app(fake, db_session, tmp_path))
+    setup_client.post(
+        "/api/rag/documents",
+        data={"domain": "vendas"},
+        files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+    )
+    document_id = setup_client.get("/api/rag/documents").json()[0]["id"]
+    destino = await create_collection(
+        db_session,
+        name="destino",
+        embedding_model="fake-embedding-model",
+        vector_dimension=384,
+        distance_metric="cosine",
+        chunk_size=400,
+        chunk_overlap=50,
+        hnsw_m=16,
+        hnsw_ef_construct=100,
+        hnsw_full_scan_threshold=10000,
+        hnsw_max_indexing_threads=0,
+        hnsw_on_disk=False,
+        hnsw_payload_m=None,
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+    )
+    failing_client = TestClient(_build_app(fake, _CommitFailingSession(db_session), tmp_path))
+
+    response = failing_client.post(
+        f"/api/rag/documents/{document_id}/reingest", json={"target_collection_id": str(destino.id)}
+    )
+
+    assert response.status_code == 503

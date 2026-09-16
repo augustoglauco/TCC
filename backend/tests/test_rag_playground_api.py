@@ -2,6 +2,7 @@ import uuid
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_qdrant_client
 from app.api.rag_playground import router as rag_playground_router
@@ -22,6 +23,27 @@ class _FakeQdrantSearch:
         if self._error is not None:
             raise self._error
         return self._resultado
+
+
+class _SelectiveFailingGetSession:
+    """Encapsula uma sessão real, mas faz `get()` levantar `SQLAlchemyError`
+    apenas para um id específico — simula uma falha de Postgres pontual no
+    lookup de UMA collection do playground, mantendo as demais funcionando
+    (achado #2 da revisão final: isolamento por collection deve valer tanto
+    para `RAGConnectionError` do Qdrant quanto para `SQLAlchemyError` do
+    Postgres)."""
+
+    def __init__(self, session, failing_id) -> None:
+        self._session = session
+        self._failing_id = failing_id
+
+    def __getattr__(self, name):
+        return getattr(self._session, name)
+
+    async def get(self, model, ident, *args, **kwargs):
+        if ident == self._failing_id:
+            raise SQLAlchemyError("conexão com o banco indisponível")
+        return await self._session.get(model, ident, *args, **kwargs)
 
 
 def _build_app(qdrant, db_session) -> FastAPI:
@@ -122,6 +144,53 @@ async def test_playground_erro_de_conexao_em_uma_collection_nao_derruba_as_outra
     items = {item["collection_id"]: item for item in response.json()["items"]}
     assert items[str(active_collection.id)]["error"] is not None
     assert items[str(outra.id)]["results"][0]["source"] == "b.txt"
+
+
+async def test_playground_erro_no_postgres_ao_buscar_uma_collection_nao_derruba_as_outras(
+    db_session, active_collection
+):
+    """Mesmo isolamento por collection de
+    `test_playground_erro_de_conexao_em_uma_collection_nao_derruba_as_outras`,
+    mas para `SQLAlchemyError` no lookup de `get_collection` em vez de
+    `RAGConnectionError` na busca (achado #2 da revisão final)."""
+    from app.rag.collections_registry import create_collection
+
+    outra = await create_collection(
+        db_session,
+        name="outra",
+        embedding_model="fake-embedding-model",
+        vector_dimension=384,
+        distance_metric="cosine",
+        chunk_size=800,
+        chunk_overlap=100,
+        hnsw_m=16,
+        hnsw_ef_construct=100,
+        hnsw_full_scan_threshold=10000,
+        hnsw_max_indexing_threads=0,
+        hnsw_on_disk=False,
+        hnsw_payload_m=None,
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+    )
+    fake = _FakeQdrantSearch(resultado=[Document(content="ok", source="b.txt", score=0.5)])
+    session = _SelectiveFailingGetSession(db_session, failing_id=active_collection.id)
+    client = TestClient(_build_app(fake, session))
+
+    response = client.post(
+        "/api/rag/playground/search",
+        json={
+            "query": "pergunta",
+            "domain": "vendas",
+            "collection_ids": [str(active_collection.id), str(outra.id)],
+        },
+    )
+
+    assert response.status_code == 200
+    items = {item["collection_id"]: item for item in response.json()["items"]}
+    assert items[str(active_collection.id)]["error"] is not None
+    assert items[str(outra.id)]["results"][0]["source"] == "b.txt"
+    assert fake.chamadas == ["outra"]
 
 
 async def test_playground_sem_collection_ids_retorna_422(db_session):

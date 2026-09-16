@@ -282,3 +282,11 @@ async def test_delete_by_document_id_erro_de_conexao_vira_rag_connection_error()
 
     with pytest.raises(RAGConnectionError):
         await client.delete_by_document_id("qualquer_nome", "doc-1")
+
+
+async def test_drop_collection_ja_inexistente_nao_levanta_erro(qdrant: QdrantRAGClient):
+    # Collection nunca criada (ou já excluída por fora do app) — deve ser um
+    # no-op silencioso, permitindo que o endpoint DELETE seja chamado de novo
+    # sem 503 mesmo com drift entre Qdrant e Postgres (achado #1 da revisão
+    # final).
+    await qdrant.drop_collection("nome_nunca_criado")

@@ -170,6 +170,10 @@ function AbaDocumentosIngeridos({ collections }: { collections: RagCollection[] 
   }, [showToast]);
 
   useEffect(() => {
+    // `carregarDocumentos` só chama `setDocumentos`/`showToast` depois do
+    // `await` (assíncrono, não durante a execução síncrona do efeito) —
+    // falso positivo conhecido de `react-hooks/set-state-in-effect` para o
+    // padrão usual de "buscar dados ao montar".
     // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarDocumentos();
   }, [carregarDocumentos]);
@@ -259,6 +263,10 @@ export default function IngestaoDocumentosPage() {
   }, [showToast]);
 
   useEffect(() => {
+    // `carregarColecoes` só chama `setCollections`/`showToast` depois do
+    // `await` (assíncrono, não durante a execução síncrona do efeito) —
+    // falso positivo conhecido de `react-hooks/set-state-in-effect` para o
+    // padrão usual de "buscar dados ao montar".
     // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarColecoes();
   }, [carregarColecoes]);

@@ -8,7 +8,7 @@ from tests.test_rag_pdf_extract import _build_minimal_pdf
 
 
 async def test_ingest_file_le_txt_faz_chunking_e_grava_com_domain_informado(
-    tmp_path: Path, db_session, active_collection
+    tmp_path: Path, db_session, active_collection, text_embedder
 ):
     arquivo = tmp_path / "catalogo.txt"
     arquivo.write_text("Conteúdo de exemplo sobre o catálogo de produtos.", encoding="utf-8")
@@ -17,7 +17,7 @@ async def test_ingest_file_le_txt_faz_chunking_e_grava_com_domain_informado(
 
     documento = await ingest_file(
         client,
-        active_collection.embedding_model,
+        text_embedder,
         active_collection,
         uploads_dir,
         arquivo,
@@ -41,14 +41,16 @@ async def test_ingest_file_le_txt_faz_chunking_e_grava_com_domain_informado(
     assert "catálogo de produtos" in chunks[0]
 
 
-async def test_ingest_file_extrai_texto_de_pdf(tmp_path: Path, db_session, active_collection):
+async def test_ingest_file_extrai_texto_de_pdf(
+    tmp_path: Path, db_session, active_collection, text_embedder
+):
     arquivo = tmp_path / "manual.pdf"
     arquivo.write_bytes(_build_minimal_pdf("Texto do manual em PDF"))
     client = _FakeQdrantRAGClient()
 
     documento = await ingest_file(
         client,
-        active_collection.embedding_model,
+        text_embedder,
         active_collection,
         tmp_path / "uploads",
         arquivo,
@@ -63,7 +65,7 @@ async def test_ingest_file_extrai_texto_de_pdf(tmp_path: Path, db_session, activ
 
 
 async def test_ingest_directory_infere_domain_do_subdiretorio_e_ignora_extensao_nao_suportada(
-    tmp_path: Path, db_session, active_collection
+    tmp_path: Path, db_session, active_collection, text_embedder
 ):
     origem = tmp_path / "origem"
     (origem / "vendas").mkdir(parents=True)
@@ -75,7 +77,7 @@ async def test_ingest_directory_infere_domain_do_subdiretorio_e_ignora_extensao_
 
     documentos = await ingest_directory(
         client,
-        active_collection.embedding_model,
+        text_embedder,
         active_collection,
         tmp_path / "uploads",
         origem,
@@ -89,7 +91,7 @@ async def test_ingest_directory_infere_domain_do_subdiretorio_e_ignora_extensao_
 
 
 async def test_ingest_directory_sem_arquivos_suportados_retorna_lista_vazia(
-    tmp_path: Path, db_session, active_collection
+    tmp_path: Path, db_session, active_collection, text_embedder
 ):
     origem = tmp_path / "origem"
     (origem / "vendas").mkdir(parents=True)
@@ -98,7 +100,7 @@ async def test_ingest_directory_sem_arquivos_suportados_retorna_lista_vazia(
 
     documentos = await ingest_directory(
         client,
-        active_collection.embedding_model,
+        text_embedder,
         active_collection,
         tmp_path / "uploads",
         origem,
@@ -110,13 +112,13 @@ async def test_ingest_directory_sem_arquivos_suportados_retorna_lista_vazia(
 
 
 async def test_ingest_bytes_le_txt_faz_chunking_e_grava_com_domain_informado(
-    tmp_path: Path, db_session, active_collection
+    tmp_path: Path, db_session, active_collection, text_embedder
 ):
     client = _FakeQdrantRAGClient()
 
     documento = await ingest_bytes(
         client,
-        active_collection.embedding_model,
+        text_embedder,
         active_collection,
         tmp_path / "uploads",
         "catalogo.txt",
@@ -135,7 +137,7 @@ async def test_ingest_bytes_le_txt_faz_chunking_e_grava_com_domain_informado(
 
 
 async def test_ingest_bytes_recria_collection_no_qdrant_se_nao_existir(
-    tmp_path: Path, db_session, active_collection
+    tmp_path: Path, db_session, active_collection, text_embedder
 ):
     """Fresh install / collection apagada por fora do app: `ingest_bytes` não
     deve depender de a collection já existir no Qdrant, e sim recriá-la a
@@ -145,7 +147,7 @@ async def test_ingest_bytes_recria_collection_no_qdrant_se_nao_existir(
 
     documento = await ingest_bytes(
         client,
-        active_collection.embedding_model,
+        text_embedder,
         active_collection,
         tmp_path / "uploads",
         "catalogo.txt",
@@ -161,7 +163,7 @@ async def test_ingest_bytes_recria_collection_no_qdrant_se_nao_existir(
 
 
 async def test_ingest_bytes_sanitiza_filename_com_separador_de_diretorio(
-    tmp_path: Path, db_session, active_collection
+    tmp_path: Path, db_session, active_collection, text_embedder
 ):
     """`storage_path` não pode herdar componentes de diretório de um
     `filename` malicioso/inesperado — ver finding #5 da revisão final."""
@@ -170,7 +172,7 @@ async def test_ingest_bytes_sanitiza_filename_com_separador_de_diretorio(
 
     documento = await ingest_bytes(
         client,
-        active_collection.embedding_model,
+        text_embedder,
         active_collection,
         uploads_dir,
         "../evil.txt",
@@ -186,12 +188,14 @@ async def test_ingest_bytes_sanitiza_filename_com_separador_de_diretorio(
     assert storage_path.read_bytes() == "Conteúdo qualquer.".encode()
 
 
-async def test_ingest_bytes_extrai_texto_de_pdf(tmp_path: Path, db_session, active_collection):
+async def test_ingest_bytes_extrai_texto_de_pdf(
+    tmp_path: Path, db_session, active_collection, text_embedder
+):
     client = _FakeQdrantRAGClient()
 
     documento = await ingest_bytes(
         client,
-        active_collection.embedding_model,
+        text_embedder,
         active_collection,
         tmp_path / "uploads",
         "manual.pdf",
@@ -207,14 +211,14 @@ async def test_ingest_bytes_extrai_texto_de_pdf(tmp_path: Path, db_session, acti
 
 
 async def test_reingest_document_le_arquivo_salvo_e_grava_na_collection_destino(
-    tmp_path: Path, db_session, active_collection
+    tmp_path: Path, db_session, active_collection, text_embedder
 ):
     from app.rag.collections_registry import create_collection
 
     client = _FakeQdrantRAGClient()
     original = await ingest_bytes(
         client,
-        active_collection.embedding_model,
+        text_embedder,
         active_collection,
         tmp_path / "uploads",
         "catalogo.txt",
@@ -243,7 +247,7 @@ async def test_reingest_document_le_arquivo_salvo_e_grava_na_collection_destino(
     )
 
     reingerido = await reingest_document(
-        client, "outro-modelo", original, destino, session=db_session
+        client, text_embedder, original, destino, session=db_session
     )
 
     assert reingerido.id != original.id
@@ -256,7 +260,7 @@ async def test_reingest_document_le_arquivo_salvo_e_grava_na_collection_destino(
 
 
 async def test_reingest_document_sem_storage_path_levanta_value_error(
-    db_session, active_collection
+    db_session, active_collection, text_embedder
 ):
     import uuid
 
@@ -276,5 +280,5 @@ async def test_reingest_document_sem_storage_path_levanta_value_error(
 
     with pytest.raises(ValueError):
         await reingest_document(
-            client, "modelo", documento_antigo, active_collection, session=db_session
+            client, text_embedder, documento_antigo, active_collection, session=db_session
         )
