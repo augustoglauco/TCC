@@ -1,14 +1,19 @@
 """Ponto de entrada da API FastAPI do backend (`uvicorn app.main:app`)."""
 
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.chat import router as chat_router
 from app.api.rag import router as rag_router
+from app.api.rag_collections import router as rag_collections_router
+from app.api.rag_playground import router as rag_playground_router
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
-from app.rag.embeddings import TextEmbedder
+from app.rag.active_collection_client import ActiveCollectionRagClient
+from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import QdrantRAGClient
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
@@ -45,22 +50,35 @@ def create_app() -> FastAPI:
         price_per_1k_input_tokens=settings.external_model_price_per_1k_input_tokens,
         price_per_1k_output_tokens=settings.external_model_price_per_1k_output_tokens,
     )
-    # RAG real via Qdrant (R4, Fase 2) — embeddings de texto com
-    # sentence-transformers, busca filtrada por domínio. Collection é criada
-    # sob demanda (ver `QdrantRAGClient.ensure_collection`); documentos de
-    # exemplo são ingeridos via `backend/scripts/ingest_sample_docs.py`.
-    app.state.rag_client = QdrantRAGClient(
+
+    # RAG real via Qdrant (R4, Fase 2), evoluído para múltiplas collections
+    # configuráveis (Entregas B+C+D, além do MVP — ver
+    # docs/superpowers/specs/2026-09-15-rag-collections-config-design.md).
+    # `qdrant_client`/`embedder_registry` são de baixo nível (usados pelos
+    # endpoints administrativos de `app.api.rag`/`rag_collections`/
+    # `rag_playground`); `rag_client` é o adapter que resolve a collection
+    # ativa a cada busca, consumido pelo orchestrator via `app.api.chat`.
+    app.state.qdrant_client = QdrantRAGClient(
         host=settings.qdrant_host,
         port=settings.qdrant_port,
-        embedder=TextEmbedder(settings.rag_embedding_model),
         timeout_s=settings.qdrant_timeout_s,
     )
+    app.state.embedder_registry = EmbedderRegistry()
+    app.state.rag_uploads_dir = Path(settings.rag_uploads_dir)
+
     # Primeiro uso real do Postgres do projeto (registro de documentos do
     # RAG, além do MVP — ver docs/ARCHITECTURE.md §5). Engine criado
     # explicitamente aqui (não via singleton global), mesmo padrão dos
     # outros clientes de infraestrutura desta função.
     db_engine = create_db_engine(settings.postgres_dsn)
     app.state.db_sessionmaker = create_session_factory(db_engine)
+
+    app.state.rag_client = ActiveCollectionRagClient(
+        qdrant=app.state.qdrant_client,
+        session_factory=app.state.db_sessionmaker,
+        embedders=app.state.embedder_registry,
+    )
+
     app.state.complexity_strategy = settings.router_complexity_strategy
     # MVP: modelo carregado sob demanda (lazy) na mesma GPU do modelo local de
     # chat — contenção de VRAM entre os dois é um risco conhecido (ver
@@ -69,6 +87,8 @@ def create_app() -> FastAPI:
 
     app.include_router(chat_router)
     app.include_router(rag_router)
+    app.include_router(rag_collections_router)
+    app.include_router(rag_playground_router)
 
     return app
 

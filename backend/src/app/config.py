@@ -43,6 +43,12 @@ class Settings(BaseSettings):
 
     postgres_dsn: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/assistente"
 
+    # MVP: disco local gerenciado pelo processo do backend, sem object
+    # storage — coerente com o ambiente de desenvolvimento único deste
+    # protótipo de TCC (ver
+    # docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §3).
+    rag_uploads_dir: str = "./data/rag_uploads"
+
     google_calendar_credentials_path: str = "./secrets/google_calendar_credentials.json"
     google_calendar_calendar_id: str = "primary"
 
