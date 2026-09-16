@@ -7,6 +7,33 @@ import type { PullStatusResponse } from "@/lib/types/localModels";
 
 const POLL_INTERVAL_MS = 1000;
 
+const STORAGE_KEY = "gerenciador-modelos-locais:pull-em-andamento";
+
+function lerNomeEmAndamento(): string | null {
+  try {
+    return window.localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function salvarNomeEmAndamento(nome: string): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, nome);
+  } catch {
+    // localStorage indisponível (ex.: navegação privada) — o download em
+    // si não é afetado, só a retomada automática após reload.
+  }
+}
+
+function limparNomeEmAndamento(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ver salvarNomeEmAndamento
+  }
+}
+
 export interface PullModelFormProps {
   onPulled: () => void;
 }
@@ -24,6 +51,42 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
     };
   }, []);
 
+  // Retoma um download em andamento após remount/reload — o backend não
+  // tem noção de "quem está observando", ele só mantém
+  // `progress_store[name]` atualizado independentemente. Se havia um nome
+  // salvo e o download ainda está `pulling`, reconecta o polling nele; caso
+  // contrário (já terminou ou nunca existiu), limpa o nome salvo.
+  useEffect(() => {
+    let cancelado = false;
+
+    async function retomarSeNecessario() {
+      const nomeSalvo = lerNomeEmAndamento();
+      if (!nomeSalvo) return;
+
+      try {
+        const status = await getPullStatus(nomeSalvo);
+        if (cancelado) return;
+        if (status.status === "pulling") {
+          setNome(nomeSalvo);
+          setEnviando(true);
+          setProgresso(status);
+          iniciarPolling(nomeSalvo);
+        } else {
+          limparNomeEmAndamento();
+        }
+      } catch {
+        if (!cancelado) limparNomeEmAndamento();
+      }
+    }
+
+    retomarSeNecessario();
+
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function pararPolling() {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -39,15 +102,18 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
         if (status.status === "done") {
           pararPolling();
           setEnviando(false);
+          limparNomeEmAndamento();
           onPulled();
         } else if (status.status === "error") {
           pararPolling();
           setEnviando(false);
+          limparNomeEmAndamento();
           setError(status.detail ?? "Erro ao baixar o modelo.");
         }
       } catch (err) {
         pararPolling();
         setEnviando(false);
+        limparNomeEmAndamento();
         setError(err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao consultar o progresso.");
       }
     }, POLL_INTERVAL_MS);
@@ -63,6 +129,7 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
 
     try {
       await pullModel(nome);
+      salvarNomeEmAndamento(nome);
       iniciarPolling(nome);
     } catch (err) {
       setEnviando(false);
