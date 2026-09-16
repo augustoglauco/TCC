@@ -37,9 +37,6 @@ class Settings(BaseSettings):
     # Default da lib qdrant-client é 5s; em dev (WSL2), resolver "localhost"
     # às vezes demora mais que isso (ver `app/rag/qdrant_client.py`).
     qdrant_timeout_s: float = 10.0
-    # MVP: modelo de embeddings único fixo por config, sem seleção
-    # dinâmica por idioma/domínio (ver docs/ARCHITECTURE.md §5).
-    rag_embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
 
     postgres_dsn: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/assistente"
 

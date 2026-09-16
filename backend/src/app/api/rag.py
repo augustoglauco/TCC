@@ -234,5 +234,16 @@ async def reingest_document_endpoint(
         raise HTTPException(
             status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
         ) from exc
+    except SQLAlchemyError as exc:
+        logger.error(
+            "rag_registro_indisponivel",
+            extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Serviço de registro de documentos temporariamente indisponível, tente novamente."
+            ),
+        ) from exc
 
     return _document_to_response(novo_documento, target_collection.name)

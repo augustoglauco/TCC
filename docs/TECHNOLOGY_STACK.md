@@ -55,7 +55,7 @@
 | **Banco vetorial** | Qdrant | Busca vetorial nativa, payload filtering, roda em container Docker |
 | **Persistência** | Dois volumes Docker | Separação lógica e performance |
 | **Collections** | `docs_texto`, `catalogo_imagens` | RAG textual e multimodal isoladas |
-| **Embeddings (texto)** | sentence-transformers, modelo `paraphrase-multilingual-MiniLM-L12-v2` (384 dims) | Multilíngue (cobre português da empresa fictícia do TCC), leve, qualidade suficiente para MVP — configurável via `RAG_EMBEDDING_MODEL` |
+| **Embeddings (texto)** | sentence-transformers, default `paraphrase-multilingual-MiniLM-L12-v2` (384 dims) | Multilíngue (cobre português da empresa fictícia do TCC), leve, qualidade suficiente para MVP — configurável por perfil de collection (`RagCollection.embedding_model`, não mais uma única config fixa por processo, ver docs/superpowers/specs/2026-09-15-rag-collections-config-design.md) |
 | **Embeddings (imagem)** | CLIP (ViT-B/32) | Multimodal, treinado em 400M pares imagem-texto, acesso via transformers |
 | **Reranking** | BM25 + similarity score | Heurística simples, sem modelo dedicado (MVP) |
 

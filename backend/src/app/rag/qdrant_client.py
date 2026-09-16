@@ -194,7 +194,16 @@ class QdrantRAGClient:
             raise RAGConnectionError(str(exc)) from exc
 
     async def drop_collection(self, collection_name: str) -> None:
+        """Remove `collection_name` do Qdrant.
+
+        Idempotente: se a collection já não existir (drift entre Qdrant e
+        Postgres, ou exclusão repetida após uma falha parcial), é um no-op
+        silencioso em vez de propagar erro — mesmo espírito de
+        `search`/`delete_by_document_id` nesta classe.
+        """
         try:
+            if not await self._client.collection_exists(collection_name):
+                return
             await self._client.delete_collection(collection_name)
         except Exception as exc:
             raise RAGConnectionError(str(exc)) from exc
