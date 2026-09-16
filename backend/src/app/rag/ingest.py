@@ -1,20 +1,19 @@
-"""Pipeline mínimo de ingestão de PDFs/textos no RAG (R4).
+"""Pipeline de ingestão de PDFs/textos no RAG (R4) — por collection, com
+reingestão em outra collection (Entregas B+C+D, além do MVP).
 
-Toda ingestão (via `ingest_bytes`, usado tanto pelo endpoint de upload
-quanto — indiretamente, via `ingest_file`/`ingest_directory` — pelo script
-em lote) cria um registro em `app.rag.registry`, amarrado aos pontos do
-Qdrant pelo `document_id` gerado aqui (ver
-docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md §3).
+Toda ingestão cria um registro em `app.rag.registry`, amarrado aos pontos do
+Qdrant pelo `document_id` gerado aqui, e salva o arquivo original em disco
+(`uploads_dir`) para permitir reingestão futura em outra collection (ver
+docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §3, §5).
 
 # MVP: pipeline pensado para rodar sob demanda via script ou endpoint HTTP,
 # não como serviço/observador de diretório — sem deduplicação nem
-# re-ingestão incremental (reingerir a mesma fonte cria um registro novo e
-# pontos duplicados no Qdrant, ver `app.rag.qdrant_client.upsert_chunks`).
+# re-ingestão incremental automática (reingerir a mesma fonte cria um
+# registro novo e pontos duplicados no Qdrant).
 Ordem de escrita: upsert no Qdrant primeiro, registro no Postgres depois —
 se a escrita no Postgres falhar depois do upsert ter tido sucesso, sobra um
 ponto órfão no Qdrant sem registro; isso é logado como aviso, sem tentativa
-de rollback cross-store (ver spec §3, "sem transação distribuída
-Qdrant+Postgres").
+de rollback cross-store.
 """
 
 import logging
@@ -24,9 +23,10 @@ from typing import get_args
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import RagDocument
+from app.db.models import RagCollection, RagDocument
 from app.models.rag import RagDomain
-from app.rag.chunking import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, chunk_text
+from app.rag.chunking import chunk_text
+from app.rag.embeddings import TextEmbedder
 from app.rag.pdf_extract import extract_text_from_pdf
 from app.rag.qdrant_client import QdrantRAGClient
 from app.rag.registry import create_document
@@ -44,43 +44,47 @@ def _extract_text(filename: str, content: bytes) -> str:
 
 
 async def ingest_bytes(
-    client: QdrantRAGClient,
+    qdrant: QdrantRAGClient,
+    embedder: TextEmbedder,
+    collection: RagCollection,
+    uploads_dir: Path,
     filename: str,
     content: bytes,
     domain: str,
     session: AsyncSession,
     origin: str,
 ) -> RagDocument:
-    """Extrai texto, faz chunking, grava no Qdrant e cria o registro do
-    documento (`app.rag.registry.create_document`).
-
-    `origin` distingue quem disparou a ingestão ("upload" — endpoint HTTP,
-    "batch_script" — `scripts/ingest_sample_docs.py`), só para fins de
-    auditoria no registro.
-    """
+    """Extrai texto, faz chunking com os parâmetros de `collection`, grava
+    no Qdrant, salva o arquivo original em `uploads_dir` e cria o registro
+    do documento."""
     text = _extract_text(filename, content)
-    chunks = chunk_text(text)
+    chunks = chunk_text(text, chunk_size=collection.chunk_size, overlap=collection.chunk_overlap)
     document_id = str(uuid.uuid4())
-    chunk_count = await client.upsert_chunks(
-        chunks, source=filename, domain=domain, document_id=document_id
+    chunk_count = await qdrant.upsert_chunks(
+        collection.name, embedder, chunks, source=filename, domain=domain, document_id=document_id
     )
+
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    storage_path = uploads_dir / f"{document_id}_{filename}"
+    storage_path.write_bytes(content)
+
     logger.info(
-        "rag_ingest arquivo=%s domain=%s chunks=%d document_id=%s",
+        "rag_ingest arquivo=%s domain=%s chunks=%d document_id=%s collection=%s",
         filename,
         domain,
         chunk_count,
         document_id,
+        collection.name,
     )
     try:
         return await create_document(
             session,
             document_id=document_id,
+            collection_id=collection.id,
             filename=filename,
             domain=domain,
             chunk_count=chunk_count,
-            embedding_model=client.embedding_model_name,
-            chunk_size=DEFAULT_CHUNK_SIZE,
-            chunk_overlap=DEFAULT_CHUNK_OVERLAP,
+            storage_path=str(storage_path),
             origin=origin,
         )
     except Exception:
@@ -94,27 +98,37 @@ async def ingest_bytes(
 
 
 async def ingest_file(
-    client: QdrantRAGClient, path: Path, domain: str, session: AsyncSession, origin: str
+    qdrant: QdrantRAGClient,
+    embedder: TextEmbedder,
+    collection: RagCollection,
+    uploads_dir: Path,
+    path: Path,
+    domain: str,
+    session: AsyncSession,
+    origin: str,
 ) -> RagDocument:
     """Mesma lógica de `ingest_bytes`, a partir de um arquivo em disco."""
-    return await ingest_bytes(client, path.name, path.read_bytes(), domain, session, origin)
+    return await ingest_bytes(
+        qdrant, embedder, collection, uploads_dir, path.name, path.read_bytes(), domain, session, origin
+    )
 
 
 async def ingest_directory(
-    client: QdrantRAGClient,
+    qdrant: QdrantRAGClient,
+    embedder: TextEmbedder,
+    collection: RagCollection,
+    uploads_dir: Path,
     directory: Path,
     session: AsyncSession,
     origin: str = "batch_script",
 ) -> list[RagDocument]:
-    """Ingere todos os arquivos suportados (.txt/.md/.pdf) de `directory`.
+    """Ingere todos os arquivos suportados (.txt/.md/.pdf) de `directory` na
+    `collection` informada.
 
     # MVP: domínio inferido do nome do subdiretório imediato de cada arquivo
-    # (ex.: `sample_docs/vendas/catalogo.txt` -> domain="vendas") — convenção
-    # simples por convenção de pasta, sem metadados explícitos por arquivo.
-    # Arquivos em subdiretórios cujo nome não é um domínio válido (`RagDomain`)
-    # são ignorados (com aviso no log), para não gravar um `domain` inválido
-    # que quebraria `GET /api/rag/documents` (resposta tipada por `RagDomain`).
-    Retorna um documento de registro por arquivo ingerido.
+    # (ex.: `sample_docs/vendas/catalogo.txt` -> domain="vendas"). Arquivos
+    # em subdiretórios cujo nome não é um domínio válido são ignorados (com
+    # aviso no log).
     """
     documentos = []
     for path in sorted(directory.rglob("*")):
@@ -123,12 +137,56 @@ async def ingest_directory(
         domain = path.parent.name
         if domain not in _VALID_DOMAINS:
             logger.warning(
-                "rag_ingest_domain_invalido arquivo=%s domain=%s — ignorado, "
-                "domínios válidos: %s",
+                "rag_ingest_domain_invalido arquivo=%s domain=%s — ignorado, domínios válidos: %s",
                 path,
                 domain,
                 sorted(_VALID_DOMAINS),
             )
             continue
-        documentos.append(await ingest_file(client, path, domain, session, origin))
+        documentos.append(
+            await ingest_file(qdrant, embedder, collection, uploads_dir, path, domain, session, origin)
+        )
     return documentos
+
+
+async def reingest_document(
+    qdrant: QdrantRAGClient,
+    embedder: TextEmbedder,
+    source_document: RagDocument,
+    target_collection: RagCollection,
+    session: AsyncSession,
+) -> RagDocument:
+    """Reingere o arquivo original de `source_document` (lido de
+    `storage_path`) na `target_collection`, com os parâmetros de chunking e
+    o embedder dessa collection destino. Cria um documento **novo** — não
+    move nem apaga o original.
+    """
+    if source_document.storage_path is None:
+        raise ValueError(
+            f"documento {source_document.id} não tem arquivo salvo, não é possível reingerir "
+            "(ingerido antes desta funcionalidade existir)"
+        )
+    content = Path(source_document.storage_path).read_bytes()
+    text = _extract_text(source_document.filename, content)
+    chunks = chunk_text(
+        text, chunk_size=target_collection.chunk_size, overlap=target_collection.chunk_overlap
+    )
+    document_id = str(uuid.uuid4())
+    chunk_count = await qdrant.upsert_chunks(
+        target_collection.name,
+        embedder,
+        chunks,
+        source=source_document.filename,
+        domain=source_document.domain,
+        document_id=document_id,
+    )
+    return await create_document(
+        session,
+        document_id=document_id,
+        collection_id=target_collection.id,
+        filename=source_document.filename,
+        domain=source_document.domain,
+        chunk_count=chunk_count,
+        storage_path=source_document.storage_path,
+        origin="reingest",
+    )
