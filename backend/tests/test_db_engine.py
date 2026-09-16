@@ -3,15 +3,14 @@ from sqlalchemy import select
 from app.db.models import RagDocument
 
 
-async def test_db_session_permite_inserir_e_consultar_rag_document(db_session):
+async def test_db_session_permite_inserir_e_consultar_rag_document(db_session, active_collection):
     db_session.add(
         RagDocument(
             filename="a.txt",
             domain="vendas",
             chunk_count=1,
-            embedding_model="modelo-teste",
-            chunk_size=800,
-            chunk_overlap=100,
+            collection_id=active_collection.id,
+            storage_path=None,
             origin="upload",
         )
     )
