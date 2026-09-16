@@ -9,6 +9,7 @@ testes de `app.rag`.
 
 from pathlib import Path
 
+import pytest
 from sqlalchemy import text
 
 from app.rag.db_connector import read_table_as_text, row_to_text
@@ -72,6 +73,16 @@ async def test_read_table_as_text_restringe_colunas_informadas(db_session):
     textos = await read_table_as_text(connection, "produtos", columns=["nome"])
 
     assert textos == ["nome: Gerador Diesel GD-15"]
+
+
+async def test_read_table_as_text_coluna_invalida_levanta_value_error(db_session):
+    connection = await db_session.connection()
+    await connection.execute(
+        text("CREATE TABLE produtos (id INTEGER PRIMARY KEY, nome TEXT, preco NUMERIC)")
+    )
+
+    with pytest.raises(ValueError, match="coluna_que_nao_existe"):
+        await read_table_as_text(connection, "produtos", columns=["nome", "coluna_que_nao_existe"])
 
 
 async def test_read_table_as_text_tabela_vazia_retorna_lista_vazia(db_session):

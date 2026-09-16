@@ -118,6 +118,26 @@ def downgrade() -> None:
     op.add_column("rag_documents", sa.Column("embedding_model", sa.String(), nullable=True))
     op.add_column("rag_documents", sa.Column("chunk_size", sa.Integer(), nullable=True))
     op.add_column("rag_documents", sa.Column("chunk_overlap", sa.Integer(), nullable=True))
+
+    # Backfill a partir da `rag_collections` associada a cada linha, antes de
+    # apagá-la: os valores originais por linha foram descartados no upgrade()
+    # (que passou a guardá-los só uma vez por collection), então restaurar a
+    # constraint NOT NULL de 0001 sem popular esses valores primeiro quebraria
+    # com dados reais (ou deixaria linhas incoerentes com o schema de 0001).
+    op.execute(
+        sa.text(
+            "UPDATE rag_documents SET "
+            "embedding_model = rag_collections.embedding_model, "
+            "chunk_size = rag_collections.chunk_size, "
+            "chunk_overlap = rag_collections.chunk_overlap "
+            "FROM rag_collections "
+            "WHERE rag_documents.collection_id = rag_collections.id"
+        )
+    )
+    op.alter_column("rag_documents", "embedding_model", nullable=False)
+    op.alter_column("rag_documents", "chunk_size", nullable=False)
+    op.alter_column("rag_documents", "chunk_overlap", nullable=False)
+
     op.drop_constraint("fk_rag_documents_collection_id", "rag_documents", type_="foreignkey")
     op.drop_column("rag_documents", "collection_id")
     op.drop_column("rag_documents", "storage_path")
