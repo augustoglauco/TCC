@@ -60,8 +60,11 @@ def test_listar_modelos_marca_o_ativo(monkeypatch):
 
 def test_ativar_modelo_existente_troca_o_ativo():
     ollama = _FakeOllamaClient(
-        models=[LocalModel(name="llama3.1:8b", size_bytes=100, modified_at="2026-01-01")],
-        model_ativo="llama3.1:8b",
+        models=[
+            LocalModel(name="llama3.1:8b", size_bytes=100, modified_at="2026-01-01"),
+            LocalModel(name="qwen2.5:7b", size_bytes=200, modified_at="2026-01-02"),
+        ],
+        model_ativo="qwen2.5:7b",
     )
     client = TestClient(_build_app(ollama))
 

@@ -41,6 +41,7 @@ registrada aqui com o motivo.
 | Contato | `/contato` | Dados institucionais, formas de contato alternativas ao chat | Não |
 | **Chat** | widget global (todas as rotas) | Ponto de entrada único para os quatro domínios de atendimento — ver Seção 3 | Não (funciona anônimo; melhora com login) |
 | Admin — Ingestão de documentos | `/admin/ingestao` | Página interna (fora do menu principal; link discreto só no rodapé, `components/layout/Footer.tsx`, para achar durante a demonstração do TCC) para upload de PDF/texto e ingestão no RAG (R4), complementando `backend/scripts/ingest_sample_docs.py` — decisão registrada em `docs/ARCHITECTURE.md` §5 | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
+| Admin — Modelos locais (Ollama) | `/admin/modelos` | Página interna (fora do menu principal; link discreto no rodapé, `components/layout/Footer.tsx`) para listar/ativar em runtime/baixar (Ollama ou Hugging Face GGUF) modelos locais de chat — ferramenta de teste, não substitui a escolha de produção da Fase 10 — decisão registrada em `docs/ARCHITECTURE.md` §5 | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
 
 Todas as páginas compartilham `layout.tsx`, que inclui o widget de chat — ele
 deve estar disponível em qualquer rota, inclusive durante o checkout.
@@ -123,6 +124,10 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `POST /api/rag/collections/{collection_id}/activate` | Marca a collection como ativa (é a que o chat passa a usar na busca), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `DELETE /api/rag/collections/{collection_id}` | Exclui a collection em cascata (documentos, pontos no Qdrant e arquivos em disco); bloqueado (409) se for a collection ativa, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/playground/search` | Roda a mesma busca contra várias collections em paralelo e devolve resultados/latência por collection, para comparação manual, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/admin/local-models` | Lista os modelos locais já baixados no Ollama, com qual está ativo, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `POST /api/admin/local-models/activate` | Troca em runtime qual modelo local o chat usa (só em memória, reseta no restart), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `POST /api/admin/local-models/pull` | Dispara o download de um modelo (biblioteca do Ollama ou GGUF do Hugging Face) em background, sem bloquear o backend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/admin/local-models/pull-status` | Consulta o progresso de um download em andamento (query param `name`), usado em polling pelo frontend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 
 `POST /api/chat/messages` — contrato já implementado (Fase 2, texto e áudio;
 ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
