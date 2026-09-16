@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PullModelForm } from "@/components/admin/PullModelForm";
+import type { PullStatusResponse } from "@/lib/types/localModels";
 
 vi.mock("@/lib/api/localModels", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/localModels")>("@/lib/api/localModels");
@@ -109,5 +110,68 @@ describe("PullModelForm", () => {
     expect(screen.queryByDisplayValue("llama3.1:8b")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Baixar" })).toBeDisabled();
     await waitFor(() => expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull());
+  });
+
+  it("não vaza um segundo interval quando a retomada resolve depois de um submit manual concorrente", async () => {
+    // Regressão: `iniciarPolling` antes não chamava `pararPolling()` no
+    // início, então se o efeito de retomada (assíncrono, dispara no mount)
+    // resolvesse DEPOIS de um submit manual já ter iniciado o polling de um
+    // outro modelo, o segundo `setInterval` sobrescrevia `intervalRef.current`
+    // sem nunca dar `clearInterval` no primeiro — o interval do primeiro
+    // modelo ficava rodando pra sempre, "brigando" com o estado do segundo.
+    //
+    // Aqui: localStorage tem "modelo-b" salvo (== em download no servidor),
+    // mas a checagem de retomada (`getPullStatus("modelo-b")`) fica presa
+    // numa Promise controlada manualmente — só resolve depois que o usuário
+    // já submeteu "modelo-a" pelo formulário e o polling dele já foi
+    // iniciado. Isso reproduz exatamente a corrida do achado da revisão.
+    window.localStorage.setItem(STORAGE_KEY, "modelo-b");
+
+    let resolverRetomada: (status: PullStatusResponse) => void = () => {};
+    const statusDeRetomadaPendente = new Promise<PullStatusResponse>((resolve) => {
+      resolverRetomada = resolve;
+    });
+    let chamadaDeRetomadaJaConsumida = false;
+    mockedGetPullStatus.mockImplementation((nome: string) => {
+      if (nome === "modelo-b" && !chamadaDeRetomadaJaConsumida) {
+        chamadaDeRetomadaJaConsumida = true;
+        return statusDeRetomadaPendente;
+      }
+      // Chamadas de polling seguintes (depois que cada modelo já está com
+      // seu interval rodando) — respostas "pulling" genéricas, só para o
+      // interval continuar vivo e não terminar sozinho antes da asserção.
+      return Promise.resolve({
+        status: "pulling" as const,
+        percent: nome === "modelo-b" ? 60 : 10,
+        detail: `baixando ${nome}...`,
+      });
+    });
+    mockedPullModel.mockResolvedValueOnce(undefined);
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    render(<PullModelForm onPulled={vi.fn()} />);
+
+    // A checagem de retomada de "modelo-b" já foi disparada no mount (e está
+    // presa na Promise pendente) — antes dela resolver, o usuário submete um
+    // modelo diferente pelo formulário.
+    await user.type(screen.getByLabelText(/nome do modelo/i), "modelo-a");
+    await user.click(screen.getByRole("button", { name: "Baixar" }));
+    expect(mockedPullModel).toHaveBeenCalledWith("modelo-a");
+
+    // Só agora a retomada de "modelo-b" resolve — com o polling de
+    // "modelo-a" já iniciado (interval A vivo em `intervalRef.current`).
+    resolverRetomada({ status: "pulling", percent: 60, detail: "baixando modelo-b..." });
+    await waitFor(() => expect(screen.getByDisplayValue("modelo-b")).toBeInTheDocument());
+
+    // Avança um ciclo de polling. Sem o fix, tanto o interval de "modelo-a"
+    // (vazado) quanto o de "modelo-b" disparariam juntos; com o fix, só o
+    // interval de "modelo-b" (o único vivo) deve ter dado tick.
+    await vi.advanceTimersByTimeAsync(1500);
+
+    const chamadasParaModeloA = mockedGetPullStatus.mock.calls.filter(([nome]) => nome === "modelo-a");
+    const chamadasParaModeloB = mockedGetPullStatus.mock.calls.filter(([nome]) => nome === "modelo-b");
+    expect(chamadasParaModeloA).toHaveLength(0);
+    // 1ª chamada = checagem de retomada; 2ª = o tick do interval de B.
+    expect(chamadasParaModeloB).toHaveLength(2);
   });
 });

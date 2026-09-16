@@ -95,6 +95,7 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
   }
 
   function iniciarPolling(nomeModelo: string) {
+    pararPolling(); // garante que nunca há dois intervals concorrentes (ex.: retomada + submit numa corrida)
     intervalRef.current = setInterval(async () => {
       try {
         const status = await getPullStatus(nomeModelo);
