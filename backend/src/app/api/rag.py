@@ -18,9 +18,19 @@ from pypdf.errors import PyPdfError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_qdrant_client, get_uploads_dir
+from app.api.rag_dependencies import (
+    get_db_session,
+    get_embedder_registry,
+    get_qdrant_client,
+    get_uploads_dir,
+)
 from app.db.models import RagDocument
-from app.models.rag import DocumentIngestResponse, DocumentRegistryResponse, RagDomain, ReingestRequest
+from app.models.rag import (
+    DocumentIngestResponse,
+    DocumentRegistryResponse,
+    RagDomain,
+    ReingestRequest,
+)
 from app.rag.collections_registry import get_active_collection, get_collection, list_collections
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.ingest import SUPPORTED_SUFFIXES, ingest_bytes, reingest_document
@@ -33,7 +43,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/rag", tags=["rag"])
 
 
-def _document_to_response(document: RagDocument, collection_name: str) -> DocumentRegistryResponse:
+def _document_to_response(
+    document: RagDocument, collection_name: str
+) -> DocumentRegistryResponse:
     return DocumentRegistryResponse(
         id=document.id,
         filename=document.filename,
@@ -61,7 +73,10 @@ async def upload_document(
     if suffix not in SUPPORTED_SUFFIXES:
         raise HTTPException(
             status_code=400,
-            detail=f"Formato não suportado: '{suffix or filename}'. Use um destes: {sorted(SUPPORTED_SUFFIXES)}.",
+            detail=(
+                f"Formato não suportado: '{suffix or filename}'. "
+                f"Use um destes: {sorted(SUPPORTED_SUFFIXES)}."
+            ),
         )
 
     if collection_id is not None:
@@ -81,7 +96,10 @@ async def upload_document(
             session=session, origin="upload",
         )
     except RAGConnectionError as exc:
-        logger.error("rag_upload_indisponivel", extra={"rag": {"event": "rag_upload_indisponivel", "erro": str(exc)}})
+        logger.error(
+            "rag_upload_indisponivel",
+            extra={"rag": {"event": "rag_upload_indisponivel", "erro": str(exc)}},
+        )
         raise HTTPException(
             status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
         ) from exc
@@ -91,31 +109,44 @@ async def upload_document(
         ) from exc
     except SQLAlchemyError as exc:
         logger.error(
-            "rag_registro_indisponivel", extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}}
+            "rag_registro_indisponivel",
+            extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}},
         )
         raise HTTPException(
             status_code=503,
-            detail="Serviço de registro de documentos temporariamente indisponível, tente novamente.",
+            detail=(
+                "Serviço de registro de documentos temporariamente indisponível, "
+                "tente novamente."
+            ),
         ) from exc
 
     return DocumentIngestResponse(filename=filename, domain=domain, chunks=documento.chunk_count)
 
 
 @router.get("/documents", response_model=list[DocumentRegistryResponse])
-async def get_documents(session: AsyncSession = Depends(get_db_session)) -> list[DocumentRegistryResponse]:
+async def get_documents(
+    session: AsyncSession = Depends(get_db_session),
+) -> list[DocumentRegistryResponse]:
     try:
         documentos = await list_documents(session)
         collections = await list_collections(session)
     except SQLAlchemyError as exc:
         logger.error(
-            "rag_registro_indisponivel", extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}}
+            "rag_registro_indisponivel",
+            extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}},
         )
         raise HTTPException(
             status_code=503,
-            detail="Serviço de registro de documentos temporariamente indisponível, tente novamente.",
+            detail=(
+                "Serviço de registro de documentos temporariamente indisponível, "
+                "tente novamente."
+            ),
         ) from exc
     nomes = {collection.id: collection.name for collection in collections}
-    return [_document_to_response(documento, nomes.get(documento.collection_id, "?")) for documento in documentos]
+    return [
+        _document_to_response(documento, nomes.get(documento.collection_id, "?"))
+        for documento in documentos
+    ]
 
 
 @router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -133,9 +164,13 @@ async def delete_document_endpoint(
         try:
             await qdrant.delete_by_document_id(collection.name, str(document_id))
         except RAGConnectionError as exc:
-            logger.error("rag_delete_indisponivel", extra={"rag": {"event": "rag_delete_indisponivel", "erro": str(exc)}})
+            logger.error(
+                "rag_delete_indisponivel",
+                extra={"rag": {"event": "rag_delete_indisponivel", "erro": str(exc)}},
+            )
             raise HTTPException(
-                status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
+                status_code=503,
+                detail="Serviço de RAG temporariamente indisponível, tente novamente.",
             ) from exc
 
     if document.storage_path is not None:
@@ -145,11 +180,15 @@ async def delete_document_endpoint(
         await delete_document(session, str(document_id))
     except SQLAlchemyError as exc:
         logger.error(
-            "rag_registro_indisponivel", extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}}
+            "rag_registro_indisponivel",
+            extra={"rag": {"event": "rag_registro_indisponivel", "erro": str(exc)}},
         )
         raise HTTPException(
             status_code=503,
-            detail="Serviço de registro de documentos temporariamente indisponível, tente novamente.",
+            detail=(
+                "Serviço de registro de documentos temporariamente indisponível, "
+                "tente novamente."
+            ),
         ) from exc
 
 
@@ -172,12 +211,17 @@ async def reingest_document_endpoint(
     if source_document.storage_path is None:
         raise HTTPException(
             status_code=409,
-            detail="Documento sem arquivo salvo (ingerido antes desta funcionalidade existir) — não é possível reingerir.",
+            detail=(
+                "Documento sem arquivo salvo (ingerido antes desta funcionalidade existir) "
+                "— não é possível reingerir."
+            ),
         )
 
     embedder = embedders.get(target_collection.embedding_model)
     try:
-        novo_documento = await reingest_document(qdrant, embedder, source_document, target_collection, session)
+        novo_documento = await reingest_document(
+            qdrant, embedder, source_document, target_collection, session
+        )
     except RAGConnectionError as exc:
         raise HTTPException(
             status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
