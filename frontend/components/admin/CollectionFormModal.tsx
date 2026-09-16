@@ -10,6 +10,7 @@ import type {
   PayloadSchemaType,
   QuantizationType,
   RagCollection,
+  TextIndexParams,
 } from "@/lib/types/rag";
 
 const CURATED_MODELS = [
@@ -35,6 +36,13 @@ const PAYLOAD_INDEXES_PADRAO: PayloadIndex[] = [
   { field: "domain", schema_type: "keyword" },
   { field: "document_id", schema_type: "keyword" },
 ];
+
+const TEXT_PARAMS_PADRAO: TextIndexParams = {
+  tokenizer: "word",
+  min_token_len: null,
+  max_token_len: null,
+  lowercase: true,
+};
 
 export interface CollectionFormModalProps {
   open: boolean;
@@ -133,7 +141,13 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
             : null,
         binary: quantizationType === "binary" ? { always_ram: binaryAlwaysRam } : null,
       },
-      payload_indexes: payloadIndexes.filter((item) => item.field.trim() !== ""),
+      payload_indexes: payloadIndexes
+        .filter((item) => item.field.trim() !== "")
+        .map((item) =>
+          item.schema_type === "text"
+            ? { field: item.field, schema_type: item.schema_type, text_params: item.text_params ?? TEXT_PARAMS_PADRAO }
+            : { field: item.field, schema_type: item.schema_type },
+        ),
     };
 
     try {
@@ -354,29 +368,112 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium text-gray-900">Payload indexes</legend>
           {payloadIndexes.map((item, indice) => (
-            <div key={indice} className="flex items-center gap-2">
-              <input
-                aria-label={`Campo do índice ${indice + 1}`}
-                value={item.field}
-                onChange={(e) => atualizarPayloadIndex(indice, { field: e.target.value })}
-                placeholder="campo"
-                className="w-1/2 rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-              />
-              <select
-                aria-label={`Tipo do índice ${indice + 1}`}
-                value={item.schema_type}
-                onChange={(e) => atualizarPayloadIndex(indice, { schema_type: e.target.value as PayloadSchemaType })}
-                className="w-1/3 rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-              >
-                {SCHEMA_TYPES.map((tipo) => (
-                  <option key={tipo} value={tipo}>
-                    {tipo}
-                  </option>
-                ))}
-              </select>
-              <button type="button" onClick={() => removerPayloadIndex(indice)} className="text-red-600 hover:text-red-800">
-                Remover
-              </button>
+            <div key={indice} className="space-y-2 rounded-md border border-gray-100 p-2">
+              <div className="flex items-center gap-2">
+                <input
+                  aria-label={`Campo do índice ${indice + 1}`}
+                  value={item.field}
+                  onChange={(e) => atualizarPayloadIndex(indice, { field: e.target.value })}
+                  placeholder="campo"
+                  className="w-1/2 rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                />
+                <select
+                  aria-label={`Tipo do índice ${indice + 1}`}
+                  value={item.schema_type}
+                  onChange={(e) => {
+                    const schema_type = e.target.value as PayloadSchemaType;
+                    atualizarPayloadIndex(indice, {
+                      schema_type,
+                      text_params: schema_type === "text" ? (item.text_params ?? TEXT_PARAMS_PADRAO) : undefined,
+                    });
+                  }}
+                  className="w-1/3 rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                >
+                  {SCHEMA_TYPES.map((tipo) => (
+                    <option key={tipo} value={tipo}>
+                      {tipo}
+                    </option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => removerPayloadIndex(indice)} className="text-red-600 hover:text-red-800">
+                  Remover
+                </button>
+              </div>
+              {item.schema_type === "text" && (
+                <div className="grid grid-cols-2 gap-2 pl-1">
+                  <label className="text-sm text-gray-700">
+                    Tokenizer
+                    <select
+                      aria-label={`Tokenizer do índice ${indice + 1}`}
+                      value={item.text_params?.tokenizer ?? TEXT_PARAMS_PADRAO.tokenizer}
+                      onChange={(e) =>
+                        atualizarPayloadIndex(indice, {
+                          text_params: {
+                            ...(item.text_params ?? TEXT_PARAMS_PADRAO),
+                            tokenizer: e.target.value as TextIndexParams["tokenizer"],
+                          },
+                        })
+                      }
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    >
+                      <option value="prefix">prefix</option>
+                      <option value="whitespace">whitespace</option>
+                      <option value="word">word</option>
+                      <option value="multilingual">multilingual</option>
+                    </select>
+                  </label>
+                  <label className="text-sm text-gray-700">
+                    min_token_len (vazio = padrão)
+                    <input
+                      type="number"
+                      aria-label={`min_token_len do índice ${indice + 1}`}
+                      value={item.text_params?.min_token_len ?? ""}
+                      onChange={(e) =>
+                        atualizarPayloadIndex(indice, {
+                          text_params: {
+                            ...(item.text_params ?? TEXT_PARAMS_PADRAO),
+                            min_token_len: e.target.value === "" ? null : Number(e.target.value),
+                          },
+                        })
+                      }
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                  <label className="text-sm text-gray-700">
+                    max_token_len (vazio = padrão)
+                    <input
+                      type="number"
+                      aria-label={`max_token_len do índice ${indice + 1}`}
+                      value={item.text_params?.max_token_len ?? ""}
+                      onChange={(e) =>
+                        atualizarPayloadIndex(indice, {
+                          text_params: {
+                            ...(item.text_params ?? TEXT_PARAMS_PADRAO),
+                            max_token_len: e.target.value === "" ? null : Number(e.target.value),
+                          },
+                        })
+                      }
+                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+                    />
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-gray-700">
+                    <input
+                      type="checkbox"
+                      aria-label={`lowercase do índice ${indice + 1}`}
+                      checked={item.text_params?.lowercase ?? TEXT_PARAMS_PADRAO.lowercase}
+                      onChange={(e) =>
+                        atualizarPayloadIndex(indice, {
+                          text_params: {
+                            ...(item.text_params ?? TEXT_PARAMS_PADRAO),
+                            lowercase: e.target.checked,
+                          },
+                        })
+                      }
+                    />
+                    lowercase
+                  </label>
+                </div>
+              )}
             </div>
           ))}
           <button type="button" onClick={adicionarPayloadIndex} className="text-sm text-gray-700 underline">
