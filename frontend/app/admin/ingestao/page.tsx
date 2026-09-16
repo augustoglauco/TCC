@@ -46,7 +46,14 @@ function AbaEnviarDocumento({
   const [error, setError] = useState<string | null>(null);
 
   const collectionAtiva = collections.find((collection) => collection.is_active);
-  const collectionSelecionada = collectionId || collectionAtiva?.id || collections[0]?.id || "";
+  // `collectionId` pode ficar "preso" no id de uma collection que foi apagada em outra aba
+  // (ex.: via "Configuração") sem que este formulário seja remontado — por isso o valor
+  // efetivamente usado é derivado a cada render, caindo no mesmo fallback do valor padrão
+  // (collection ativa, senão a primeira da lista) sempre que `collectionId` não é (mais) uma
+  // collection válida. Mesmo padrão usado em `ReingestModal.tsx` para `targetIdEfetivo`.
+  const collectionSelecionada = collections.some((collection) => collection.id === collectionId)
+    ? collectionId
+    : collectionAtiva?.id || collections[0]?.id || "";
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

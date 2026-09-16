@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,14 +13,16 @@ vi.mock("@/lib/api/rag", async () => {
     uploadDocument: vi.fn(),
     listDocuments: vi.fn(),
     listCollections: vi.fn(),
+    deleteCollection: vi.fn(),
   };
 });
 
-import { listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
+import { deleteCollection, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
 
 const mockedUploadDocument = vi.mocked(uploadDocument);
 const mockedListDocuments = vi.mocked(listDocuments);
 const mockedListCollections = vi.mocked(listCollections);
+const mockedDeleteCollection = vi.mocked(deleteCollection);
 
 const COLLECTION_ATIVA: RagCollection = {
   id: "col-1",
@@ -55,11 +57,20 @@ const DOCUMENTO: DocumentRegistryEntry = {
   created_at: new Date().toISOString(),
 };
 
+const COLLECTION_TEMPORARIA: RagCollection = {
+  ...COLLECTION_ATIVA,
+  id: "col-2",
+  name: "temporaria",
+  is_active: false,
+  document_count: 0,
+};
+
 describe("IngestaoDocumentosPage", () => {
   beforeEach(() => {
     mockedUploadDocument.mockReset();
     mockedListDocuments.mockReset();
     mockedListCollections.mockReset();
+    mockedDeleteCollection.mockReset();
     mockedListDocuments.mockResolvedValue([]);
     mockedListCollections.mockResolvedValue([COLLECTION_ATIVA]);
   });
@@ -125,5 +136,39 @@ describe("IngestaoDocumentosPage", () => {
     render(<IngestaoDocumentosPage />);
 
     expect(await screen.findByRole("tab", { name: "Playground" })).toBeInTheDocument();
+  });
+
+  it("reseleciona a collection do formulário de envio quando a collection escolhida é apagada em outra aba", async () => {
+    const user = userEvent.setup();
+    mockedListCollections
+      .mockResolvedValueOnce([COLLECTION_ATIVA, COLLECTION_TEMPORARIA])
+      .mockResolvedValueOnce([COLLECTION_ATIVA]);
+    mockedDeleteCollection.mockResolvedValueOnce(undefined);
+    mockedUploadDocument.mockResolvedValueOnce({ filename: "catalogo.txt", domain: "vendas", chunks: 1 });
+
+    render(<IngestaoDocumentosPage />);
+
+    const selectCollection = await screen.findByLabelText("Collection destino");
+    await user.selectOptions(selectCollection, "col-2");
+    expect(selectCollection).toHaveValue("col-2");
+
+    await user.click(screen.getByRole("tab", { name: "Configuração" }));
+    const botoesExcluir = await screen.findAllByRole("button", { name: "Excluir" });
+    const botaoExcluirHabilitado = botoesExcluir.find((button) => !button.hasAttribute("disabled"));
+    expect(botaoExcluirHabilitado).toBeDefined();
+    await user.click(botaoExcluirHabilitado!);
+    await user.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
+
+    expect(mockedDeleteCollection).toHaveBeenCalledWith("col-2");
+
+    await user.click(screen.getByRole("tab", { name: "Enviar documento" }));
+    const selectAposExclusao = await screen.findByLabelText("Collection destino");
+    await waitFor(() => expect(selectAposExclusao).toHaveValue("col-1"));
+
+    const file = new File(["conteudo"], "catalogo.txt", { type: "text/plain" });
+    await user.upload(screen.getByLabelText("Arquivo"), file);
+    await user.click(screen.getByRole("button", { name: "Enviar para ingestão" }));
+
+    expect(mockedUploadDocument).toHaveBeenCalledWith({ file, domain: "vendas", collectionId: "col-1" });
   });
 });
