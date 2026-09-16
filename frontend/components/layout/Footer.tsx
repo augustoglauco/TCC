@@ -8,12 +8,15 @@ export default function Footer() {
           Empresa Fictícia TCC — projeto acadêmico de assistente virtual multimodal. Conteúdo
           institucional é ilustrativo.
         </p>
-        {/* MVP: link discreto para a página interna de ingestão do RAG — não
-            entra no menu principal (docs/FRONTEND.md §8), só facilita achá-la
-            durante a demonstração do TCC. */}
-        <p className="mt-2">
+        {/* MVP: links discretos para páginas internas administrativas — não
+            entram no menu principal (docs/FRONTEND.md §8), só facilitam
+            achá-las durante a demonstração do TCC. */}
+        <p className="mt-2 space-x-4">
           <Link href="/admin/ingestao" className="text-gray-400 hover:text-gray-600">
             Admin: ingestão de documentos (RAG)
+          </Link>
+          <Link href="/admin/modelos" className="text-gray-400 hover:text-gray-600">
+            Admin: modelos locais
           </Link>
         </p>
       </div>
