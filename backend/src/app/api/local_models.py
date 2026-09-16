@@ -3,10 +3,22 @@ listar, ativar em runtime e baixar (biblioteca do Ollama ou GGUF do
 Hugging Face) sem bloquear o backend. Ver
 docs/superpowers/specs/2026-09-16-local-model-manager-design.md.
 
-# MVP: sem autenticação (mesma limitação já aceita para `/admin/ingestao`).
+# MVP: sem autenticação — e aqui o raio de ação é maior que o de
+`/admin/ingestao` (upload de arquivo limitado): `/pull` faz o SERVIDOR
+buscar, de uma referência de registry informada pelo caller, um payload
+arbitrário e não limitado (múltiplos GB), sem cap de tamanho, sem rate
+limit e sem cap de concorrência além do dedupe por nome já existente —
+risco de esgotar disco, e o `name` pode apontar para qualquer host de
+registry (não só a lib do Ollama ou `hf.co`). Não expor além de
+localhost sem adicionar limites reais antes.
 Modelo ativo só em memória (`OllamaClient.model`) — não substitui nem
 antecipa a Fase 10 (escolha de produção via benchmark offline, ver
-docs/ROADMAP.md).
+docs/ROADMAP.md). Trocar o modelo ativo em runtime não descarrega o
+anterior da VRAM — o Ollama mantém cada modelo residente pela janela de
+`keep_alive` (padrão 5 min), então no alvo de GPU única de 16GB
+(contenção já sinalizada em `docs/ARCHITECTURE.md` §7 para STT/chat) uma
+troca logo antes de uma demo pode deixar dois modelos de chat e o
+Whisper residentes ao mesmo tempo.
 """
 
 import asyncio
@@ -32,11 +44,11 @@ def get_ollama_client(request: Request) -> OllamaClient:
     return request.app.state.local_client
 
 
-def get_pull_progress_store(request: Request) -> dict:
+def get_pull_progress_store(request: Request) -> dict[str, dict]:
     return request.app.state.model_pull_progress
 
 
-async def _consumir_pull(ollama: OllamaClient, name: str, progress_store: dict) -> None:
+async def _consumir_pull(ollama: OllamaClient, name: str, progress_store: dict[str, dict]) -> None:
     """Roda em background (`asyncio.create_task`) — nunca é aguardada pela
     requisição HTTP que a disparou. Atualiza `progress_store[name]` a cada
     linha do stream; `percent` é o da camada em download no momento, não
@@ -106,7 +118,7 @@ async def activate_model_endpoint(
 async def pull_model_endpoint(
     body: PullModelRequest,
     ollama: OllamaClient = Depends(get_ollama_client),
-    progress_store: dict = Depends(get_pull_progress_store),
+    progress_store: dict[str, dict] = Depends(get_pull_progress_store),
 ) -> dict:
     atual = progress_store.get(body.name)
     if atual is not None and atual.get("status") == "pulling":
@@ -120,7 +132,7 @@ async def pull_model_endpoint(
 @router.get("/pull-status", response_model=PullStatusResponse)
 async def pull_status_endpoint(
     name: str,
-    progress_store: dict = Depends(get_pull_progress_store),
+    progress_store: dict[str, dict] = Depends(get_pull_progress_store),
 ) -> PullStatusResponse:
     estado = progress_store.get(name)
     if estado is None:

@@ -16,12 +16,14 @@ import type { LocalModel } from "@/lib/types/localModels";
 
 export default function ModelosPage() {
   const [modelos, setModelos] = useState<LocalModel[] | null>(null);
+  const [activeModel, setActiveModel] = useState<string | null>(null);
   const { toasts, showToast, dismissToast } = useToast();
 
   const carregarModelos = useCallback(async () => {
     try {
       const resposta = await listLocalModels();
       setModelos(resposta.models);
+      setActiveModel(resposta.active_model);
     } catch (err) {
       showToast(
         err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao carregar os modelos.",
@@ -46,6 +48,11 @@ export default function ModelosPage() {
 
       <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-medium text-gray-900">Modelos baixados</h2>
+        {activeModel !== null && (
+          <p className="mt-1 text-sm text-gray-600">
+            Modelo ativo no chat: <strong>{activeModel || "Nenhum"}</strong>
+          </p>
+        )}
         <div className="mt-4">
           {modelos === null ? (
             <p className="text-sm text-gray-600">Carregando...</p>
