@@ -10,6 +10,14 @@ function formatarTamanho(bytes: number): string {
   return `${gb.toFixed(1)} GB`;
 }
 
+function formatarDataRelativa(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDias <= 0) return "hoje";
+  if (diffDias === 1) return "há 1 dia";
+  return `há ${diffDias} dias`;
+}
+
 export interface LocalModelsTableProps {
   models: LocalModel[];
   onChanged: () => void;
@@ -43,6 +51,7 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
         <tr className="border-b border-gray-200 text-gray-500">
           <th className="py-2 pr-4">Nome</th>
           <th className="py-2 pr-4">Tamanho</th>
+          <th className="py-2 pr-4">Baixado em</th>
           <th className="py-2 pr-4" />
         </tr>
       </thead>
@@ -58,6 +67,9 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
               )}
             </td>
             <td className="py-2 pr-4 text-gray-700">{formatarTamanho(modelo.size_bytes)}</td>
+            <td className="py-2 pr-4 text-gray-500" title={modelo.modified_at}>
+              {formatarDataRelativa(modelo.modified_at)}
+            </td>
             <td className="py-2 pr-4 text-right">
               {!modelo.is_active && (
                 <button

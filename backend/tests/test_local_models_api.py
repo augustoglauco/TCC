@@ -3,7 +3,7 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.local_models import get_ollama_client, get_pull_progress_store
+from app.api.local_models import _background_tasks, get_ollama_client, get_pull_progress_store
 from app.api.local_models import router as local_models_router
 from app.router.ollama_client import LocalModel, PullProgressLine
 
@@ -154,6 +154,70 @@ async def test_pull_atualiza_o_progresso_ate_done():
     body = response.json()
     assert body["status"] == "done"
     assert body["percent"] == 100.0
+
+
+async def test_pull_sem_linha_de_sucesso_marca_erro():
+    """Item 1 (nice-to-have parked): se o stream termina sem uma linha
+    `{"status": "success"}` (ex.: conexão encerrada de forma limpa antes da
+    confirmação do Ollama), o pull não deve ser marcado como `done`."""
+    ollama = _FakeOllamaClient(models=[], model_ativo="llama3.1:8b")
+    ollama.programar_pull(
+        "modelo-sem-confirmacao",
+        [
+            PullProgressLine(
+                status="pulling manifest", digest=None, total=None, completed=None, error=None
+            ),
+            PullProgressLine(
+                status="pulling sha256:abc",
+                digest="sha256:abc",
+                total=1000,
+                completed=1000,
+                error=None,
+            ),
+            # Sem linha "success" — stream terminou limpo, mas sem confirmação.
+        ],
+    )
+    progress_store: dict = {}
+    client = TestClient(_build_app(ollama, progress_store))
+
+    client.post("/api/admin/local-models/pull", json={"name": "modelo-sem-confirmacao"})
+    await asyncio.sleep(0)
+
+    response = client.get(
+        "/api/admin/local-models/pull-status", params={"name": "modelo-sem-confirmacao"}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "error"
+    assert "confirmação" in body["detail"].lower()
+
+
+async def test_pull_concluido_remove_a_tarefa_do_set_de_referencias_fortes():
+    """Item 2 (nice-to-have parked): a Task de background deve ser
+    descartada do set `_background_tasks` assim que termina, para não
+    vazar memória nem deixar o set crescendo indefinidamente."""
+    _background_tasks.clear()
+    ollama = _FakeOllamaClient(models=[], model_ativo="llama3.1:8b")
+    ollama.programar_pull(
+        "modelo-referencia-forte",
+        [
+            PullProgressLine(
+                status="success", digest=None, total=None, completed=None, error=None
+            ),
+        ],
+    )
+    progress_store: dict = {}
+    client = TestClient(_build_app(ollama, progress_store))
+
+    client.post("/api/admin/local-models/pull", json={"name": "modelo-referencia-forte"})
+    await asyncio.sleep(0)
+
+    response = client.get(
+        "/api/admin/local-models/pull-status", params={"name": "modelo-referencia-forte"}
+    )
+    assert response.json()["status"] == "done"
+    assert len(_background_tasks) == 0
 
 
 def test_pull_duplicado_nao_dispara_segunda_tarefa():

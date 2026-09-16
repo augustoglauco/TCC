@@ -14,11 +14,14 @@ import { LocalModelsApiError, getPullStatus, pullModel } from "@/lib/api/localMo
 const mockedPullModel = vi.mocked(pullModel);
 const mockedGetPullStatus = vi.mocked(getPullStatus);
 
+const STORAGE_KEY = "gerenciador-modelos-locais:pull-em-andamento";
+
 describe("PullModelForm", () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mockedPullModel.mockReset();
     mockedGetPullStatus.mockReset();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -46,11 +49,13 @@ describe("PullModelForm", () => {
 
     expect(mockedPullModel).toHaveBeenCalledWith("llama3.1:8b");
     expect(await screen.findByText(/30/)).toBeInTheDocument();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe("llama3.1:8b");
 
     await vi.advanceTimersByTimeAsync(1500);
 
     await waitFor(() => expect(onPulled).toHaveBeenCalled());
     expect(screen.getByText(/concluído/i)).toBeInTheDocument();
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
   it("status 'error' para o polling e mostra a mensagem", async () => {
@@ -81,5 +86,28 @@ describe("PullModelForm", () => {
 
     expect(await screen.findByText("Não foi possível iniciar o download.")).toBeInTheDocument();
     expect(mockedGetPullStatus).not.toHaveBeenCalled();
+  });
+
+  it("retoma um download em andamento salvo no localStorage após remount", async () => {
+    window.localStorage.setItem(STORAGE_KEY, "llama3.1:8b");
+    mockedGetPullStatus.mockResolvedValueOnce({ status: "pulling", percent: 40, detail: "baixando..." });
+
+    render(<PullModelForm onPulled={vi.fn()} />);
+
+    expect(await screen.findByDisplayValue("llama3.1:8b")).toBeInTheDocument();
+    expect(await screen.findByText(/40/)).toBeInTheDocument();
+    expect(mockedPullModel).not.toHaveBeenCalled();
+  });
+
+  it("não retoma e limpa o localStorage quando o download salvo já terminou", async () => {
+    window.localStorage.setItem(STORAGE_KEY, "llama3.1:8b");
+    mockedGetPullStatus.mockResolvedValueOnce({ status: "done", percent: 100, detail: "concluído" });
+
+    render(<PullModelForm onPulled={vi.fn()} />);
+
+    await waitFor(() => expect(mockedGetPullStatus).toHaveBeenCalledWith("llama3.1:8b"));
+    expect(screen.queryByDisplayValue("llama3.1:8b")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Baixar" })).toBeDisabled();
+    await waitFor(() => expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull());
   });
 });

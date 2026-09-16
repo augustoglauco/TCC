@@ -72,6 +72,17 @@ describe("LocalModelsTable", () => {
     expect(onError).toHaveBeenCalledWith("Modelo não encontrado entre os já baixados.");
   });
 
+  it("mostra a data de download com o timestamp completo no title", () => {
+    render(<LocalModelsTable models={[MODELO_ATIVO]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+
+    // Não asserta o texto relativo exato (ex.: "há N dias") pois depende da
+    // data em que o teste roda e ficaria flaky/errado com o tempo — o
+    // atributo `title` com o ISO completo é estável e determinístico.
+    const celulaData = screen.getByTitle(MODELO_ATIVO.modified_at);
+    expect(celulaData).toBeInTheDocument();
+    expect(celulaData.textContent).toMatch(/hoje|há \d+ dia/);
+  });
+
   it("sem modelos, mostra mensagem vazia", () => {
     render(<LocalModelsTable models={[]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
 

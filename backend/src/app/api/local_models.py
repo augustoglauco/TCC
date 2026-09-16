@@ -39,6 +39,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin/local-models", tags=["local-models"])
 
+# Referência forte às tarefas de download em background — asyncio só
+# guarda uma referência fraca a uma Task criada via `create_task`, o que
+# arrisca ela ser coletada pelo GC no meio da execução se nada mais a
+# referenciar. `add_done_callback` remove a tarefa do set assim que ela
+# termina (sucesso ou erro), então o set só cresce enquanto há downloads
+# genuinamente em andamento.
+_background_tasks: set[asyncio.Task] = set()
+
 
 def get_ollama_client(request: Request) -> OllamaClient:
     return request.app.state.local_client
@@ -53,6 +61,7 @@ async def _consumir_pull(ollama: OllamaClient, name: str, progress_store: dict[s
     requisição HTTP que a disparou. Atualiza `progress_store[name]` a cada
     linha do stream; `percent` é o da camada em download no momento, não
     agregado do modelo inteiro (ver spec §2)."""
+    sucesso_confirmado = False
     try:
         async for linha in ollama.pull_model_streaming(name):
             if linha.error:
@@ -65,6 +74,8 @@ async def _consumir_pull(ollama: OllamaClient, name: str, progress_store: dict[s
                     "local_model_pull_erro nome=%s erro=%s", name, linha.error
                 )
                 return
+            if linha.status == "success":
+                sucesso_confirmado = True
             percent = None
             if linha.total and linha.completed is not None:
                 percent = (linha.completed / linha.total) * 100
@@ -74,8 +85,16 @@ async def _consumir_pull(ollama: OllamaClient, name: str, progress_store: dict[s
                 "percent": percent if percent is not None else atual.get("percent"),
                 "detail": linha.status,
             }
-        progress_store[name] = {"status": "done", "percent": 100.0, "detail": "concluído"}
-        logger.info("local_model_pull_concluido nome=%s", name)
+        if sucesso_confirmado:
+            progress_store[name] = {"status": "done", "percent": 100.0, "detail": "concluído"}
+            logger.info("local_model_pull_concluido nome=%s", name)
+        else:
+            progress_store[name] = {
+                "status": "error",
+                "percent": None,
+                "detail": "Conexão encerrada antes da confirmação de sucesso pelo Ollama.",
+            }
+            logger.warning("local_model_pull_sem_confirmacao nome=%s", name)
     except Exception as exc:
         progress_store[name] = {"status": "error", "percent": None, "detail": str(exc)}
         logger.warning("local_model_pull_erro nome=%s erro=%s", name, exc)
@@ -125,7 +144,9 @@ async def pull_model_endpoint(
         return {"name": body.name}
 
     progress_store[body.name] = {"status": "pulling", "percent": None, "detail": "iniciando..."}
-    asyncio.create_task(_consumir_pull(ollama, body.name, progress_store))
+    task = asyncio.create_task(_consumir_pull(ollama, body.name, progress_store))
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
     return {"name": body.name}
 
 
