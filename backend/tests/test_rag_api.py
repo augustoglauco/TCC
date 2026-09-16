@@ -4,7 +4,12 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.rag import router as rag_router
-from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_qdrant_client, get_uploads_dir
+from app.api.rag_dependencies import (
+    get_db_session,
+    get_embedder_registry,
+    get_qdrant_client,
+    get_uploads_dir,
+)
 from app.rag.embedders_registry import EmbedderRegistry
 from app.router.rag_client import RAGConnectionError
 from tests.conftest import _FakeQdrantRAGClient
@@ -21,7 +26,9 @@ def _build_app(rag_client, db_session, uploads_dir) -> FastAPI:
     return app
 
 
-def test_upload_documento_txt_ingere_e_retorna_numero_de_chunks(db_session, active_collection, tmp_path):
+def test_upload_documento_txt_ingere_e_retorna_numero_de_chunks(
+    db_session, active_collection, tmp_path
+):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
@@ -39,7 +46,9 @@ def test_upload_documento_txt_ingere_e_retorna_numero_de_chunks(db_session, acti
     assert (source, domain) == ("catalogo.txt", "vendas")
 
 
-def test_upload_com_collection_id_explicito_usa_essa_collection(db_session, active_collection, tmp_path):
+def test_upload_com_collection_id_explicito_usa_essa_collection(
+    db_session, active_collection, tmp_path
+):
     import asyncio
 
     from app.rag.collections_registry import create_collection
@@ -98,7 +107,9 @@ def test_upload_documento_pdf_ingere(db_session, active_collection, tmp_path):
     response = client.post(
         "/api/rag/documents",
         data={"domain": "suporte"},
-        files={"file": ("manual.pdf", _build_minimal_pdf("Texto do manual em PDF"), "application/pdf")},
+        files={
+            "file": ("manual.pdf", _build_minimal_pdf("Texto do manual em PDF"), "application/pdf")
+        },
     )
 
     assert response.status_code == 200
@@ -145,7 +156,9 @@ def test_upload_com_qdrant_indisponivel_retorna_503(db_session, active_collectio
     assert response.status_code == 503
 
 
-def test_upload_txt_com_encoding_invalido_retorna_400_em_vez_de_500(db_session, active_collection, tmp_path):
+def test_upload_txt_com_encoding_invalido_retorna_400_em_vez_de_500(
+    db_session, active_collection, tmp_path
+):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
@@ -242,7 +255,9 @@ def test_excluir_documento_inexistente_retorna_404_sem_chamar_qdrant(db_session,
     assert fake.deleted == []
 
 
-def test_reingest_documento_cria_novo_registro_na_collection_destino(db_session, active_collection, tmp_path):
+def test_reingest_documento_cria_novo_registro_na_collection_destino(
+    db_session, active_collection, tmp_path
+):
     import asyncio
 
     from app.rag.collections_registry import create_collection
@@ -299,7 +314,9 @@ def test_reingest_documento_inexistente_retorna_404(db_session, active_collectio
     assert response.status_code == 404
 
 
-def test_reingest_para_collection_destino_inexistente_retorna_404(db_session, active_collection, tmp_path):
+def test_reingest_para_collection_destino_inexistente_retorna_404(
+    db_session, active_collection, tmp_path
+):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
     client.post(
