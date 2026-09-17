@@ -71,7 +71,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] Implementar ingestão de PDFs/textos e busca vetorial (RAG) —
       `backend/src/app/rag/` (`embeddings.py`: sentence-transformers
       `paraphrase-multilingual-MiniLM-L12-v2`, config `RAG_EMBEDDING_MODEL`;
-      `chunking.py`: tamanho fixo com overlap; `pdf_extract.py`: `pypdf`;
+      `chunking.py`: tamanho fixo com overlap, preferindo cortar em quebra
+      de linha quando há uma dentro da janela; `pdf_extract.py`:
+      `pdfplumber` com detecção de layout em 2 colunas (ver decisão
+      registrada em `docs/ARCHITECTURE.md` §5, 2026-09-17 — trocado de
+      `pypdf`, que embaralhava a ordem de leitura em catálogos com produtos
+      lado a lado);
       `qdrant_client.py`: `QdrantRAGClient`, busca filtrada por `domain` via
       payload filtering na collection `docs_texto`). `NullRAGClient` trocado
       pelo cliente real em `app.main`; conteúdo dos documentos recuperados
@@ -105,7 +110,8 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       função a partir de `path.read_bytes()`); erros de formato de arquivo
       (`.csv` etc.) viram 400, domínio inválido 422 (`Literal` do Pydantic),
       texto não-UTF-8/PDF corrompido também 400 (`UnicodeDecodeError`/
-      `PyPdfError` tratados explicitamente — sem isso viravam 500 crus),
+      `PdfExtractionError` tratados explicitamente — sem isso viravam 500
+      crus),
       Qdrant indisponível 503
 
 ## Extra fora do MVP — Registro e Configuração de Ingestão do RAG
