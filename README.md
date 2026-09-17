@@ -186,17 +186,23 @@ Como requisito metodológico do TCC, o protótipo é submetido a três baterias 
 O progresso é estruturado em 12 fases sequenciais conforme documentado em [`docs/ROADMAP.md`](docs/ROADMAP.md):
 
 - [x] **Fase 0 — Fundamentos e Infraestrutura**: Ambiente GPU (NVIDIA RTX 4080 16GB), Ollama 0.30.6 rodando localmente, estrutura do monorepo, logging estruturado com ID de conversa, ruff e pytest configurados.
-- [x] **Fase 1 — Modelo Local e Roteador Básico**: Cliente Ollama verificado contra `gemma4:12b-it-q4_K_M`, cliente OpenRouter implementado, classificador de intenção (regras + LLM) considerando histórico de 1–3 mensagens.
-- [ ] **Fase 2 — Entrada Multimodal e RAG Textual**: Entrada de texto/áudio, STT Whisper, ingestão de PDFs e conector de leitura PostgreSQL.
+- [~] **Fase 1 — Modelo Local e Roteador Básico**: Cliente Ollama verificado contra `gemma4:12b-it-q4_K_M`, cliente OpenRouter implementado, classificador de intenção (regras + LLM) considerando histórico de 1–3 mensagens; falta revisitar a resolução de ambiguidade entre domínios, que depende do conjunto de teste rotulado da Fase 10.
+- [~] **Fase 2 — Entrada Multimodal e RAG Textual**: Entrada de texto/áudio, STT (Whisper), ingestão de PDFs/textos com busca vetorial (Qdrant), conector de leitura a PostgreSQL e endpoint de upload — todos concluídos; falta só o crawler de páginas pré-definidas.
 - [ ] **Fase 3 — RAG Multimodal, Imagens e Domínios**: Upload de imagens, OCR, busca por embeddings CLIP, playbooks de Vendas, Suporte e Atendimento.
 - [ ] **Fase 4 — Agendamento MCP e Monitor de Tom**: Cliente MCP Google Calendar, confirmação por e-mail, classificador de sentimento/urgência e transbordo simulado.
 - [ ] **Fase 5 — Provedor MCP B2B**: Servidor MCP interno com catálogo, estoque, preços e 4 ferramentas transacionais (compatibilidade, frete, cotação, pedido).
 - [ ] **Fase 6 — Memória e Classificação de Usuário**: Persistência de conversas, sumarização automática e classificação Cliente/Lead/Esporádico.
-- [ ] **Fase 7 — Frontend: Site Institucional e Catálogo**: Aplicação Next.js, páginas `/produtos`, `/pedidos`, `/agendamentos` e `/suporte`.
-- [ ] **Fase 8 — Frontend: Widget de Chat Multimodal**: Chat floating global com streaming SSE, gravador de áudio, upload de imagem e cards ricos.
-- [ ] **Fase 9 — Integração Ponta a Ponta**: Testes de integração backend e testes E2E com Playwright.
+- [~] **Fase 7 — Frontend: Site Institucional e Catálogo**: Scaffold Next.js pronto, `/suporte` e `/admin/ingestao` completos; `/`, `/contato`, `/produtos`, `/pedidos`, `/conta` e `/agendamentos` existem como stubs de rota, aguardando as APIs de backend correspondentes (Fases 5–6).
+- [~] **Fase 8 — Frontend: Widget de Chat Multimodal**: Botão flutuante, painel, envio de texto/áudio, persistência de conversa e indicadores de domínio/origem do modelo prontos; faltam streaming (SSE), upload de imagem, cards ricos e banner de transferência humana — dependem de R6/R8/R11/R12 no backend.
+- [~] **Fase 9 — Integração Ponta a Ponta**: Testes E2E de chat (texto/áudio) prontos com mocks; faltam testes de integração multi-domínio no backend e os fluxos E2E de imagem/pedido/login.
 - [ ] **Fase 10 — Avaliação Experimental**: Execução dos benchmarks de acurácia, qualidade RAG, latência local vs externo e comparação dos 9 modelos locais.
 - [ ] **Fase 11 — Preparação da Entrega**: Checklist final de requisitos R1–R12 e consolidação da demonstração do TCC.
+
+> Fora das 12 fases do MVP original, dois extras foram entregues a pedido
+> explícito (ver `docs/ARCHITECTURE.md` §5 e `docs/ROADMAP.md`): configuração
+> de ingestão do RAG (`/admin/ingestao` — perfis de collection, playground de
+> busca comparativa) e um gerenciador de modelos locais do Ollama
+> (`/admin/modelos`).
 
 ---
 
