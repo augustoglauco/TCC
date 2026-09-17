@@ -237,6 +237,31 @@ protege contra múltiplas instâncias/processos do backend rodando
 simultaneamente contra o mesmo Qdrant`, o que é aceitável para o cenário de
 desenvolvimento/demonstração deste protótipo (um único processo backend).
 
+**Decisão registrada (Fase 2, melhoria de qualidade a pedido explícito,
+2026-09-17):** `app.rag.pdf_extract.extract_text_from_pdf` trocou de `pypdf`
+para `pdfplumber`, com uma heurística de detecção de layout em 2 colunas —
+procura um corredor vertical sem nenhuma palavra na faixa central da página
+(entre 15% e 85% da largura, corredor com pelo menos 2% da largura da
+página **e** pelo menos 15pt em valor absoluto, o que for maior — o
+segundo critério evita falso positivo em páginas com pouco texto, onde o
+espaçamento natural entre 2-3 palavras já passava do limite relativo) e, se
+achar, extrai cada coluna separadamente antes de concatenar. Motivo:
+catálogos de produto (ex.: `docs/Manuais_fornecedor/`) têm produtos lado a
+lado em colunas, e a extração anterior (`pypdf`, ordem "bruta" dos objetos
+do PDF) embaralhava título/bullets de produtos vizinhos num único texto
+corrido — verificado com os PDFs reais do projeto antes de implementar.
+`chunk_text` (`app.rag.chunking`) também passou a preservar quebras de
+linha como pontos de corte preferenciais (antes colapsava tudo em espaço
+único), senão o chunking desfazia a estrutura recém-recuperada pela
+extração. `# MVP: heurística cobre só 2 colunas e só quando existe um
+corredor "limpo" atravessando toda a altura da página — layouts com 3+
+colunas ou cabeçalhos de seção fora do padrão (testado com um caso real,
+ver commit) caem no fallback de extração de página inteira, que ainda
+assim preserva melhor a ordem de leitura do que a extração anterior; não
+há regressão, só ausência do ganho extra do split por coluna nesses
+casos`. Sem OCR para PDFs escaneados/baseados em imagem (isso continua
+sendo R6, Fase 3).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

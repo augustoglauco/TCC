@@ -14,7 +14,6 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from pypdf.errors import PyPdfError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -34,6 +33,7 @@ from app.models.rag import (
 from app.rag.collections_registry import get_active_collection, get_collection, list_collections
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.ingest import SUPPORTED_SUFFIXES, ingest_bytes, reingest_document
+from app.rag.pdf_extract import PdfExtractionError
 from app.rag.qdrant_client import QdrantRAGClient
 from app.rag.registry import delete_document, list_documents
 from app.router.rag_client import RAGConnectionError
@@ -108,7 +108,7 @@ async def upload_document(
         raise HTTPException(
             status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
         ) from exc
-    except (UnicodeDecodeError, PyPdfError) as exc:
+    except (UnicodeDecodeError, PdfExtractionError) as exc:
         raise HTTPException(
             status_code=400, detail=f"Não foi possível extrair texto de '{filename}': {exc}"
         ) from exc
