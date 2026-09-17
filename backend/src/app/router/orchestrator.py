@@ -129,6 +129,16 @@ async def handle_message(
         t_rag_start = time.perf_counter()
         try:
             documentos = await rag_client.search(message, classification.domain)
+            if not documentos and recent_messages:
+                # MVP: mensagem de acompanhamento sem match no RAG (ex.:
+                # "quais outras opções?" logo após perguntar sobre câmeras)
+                # — tenta de novo com o histórico recente concatenado à
+                # mensagem atual. Só dispara quando a busca direta veio
+                # vazia, para não diluir o embedding com contexto
+                # desnecessário no caso comum de pergunta autocontida (ver
+                # docs/ARCHITECTURE.md §5).
+                texto_busca = "\n".join([*recent_messages, message])
+                documentos = await rag_client.search(texto_busca, classification.domain)
         except RAGConnectionError:
             logger.error(
                 "rag_indisponivel",

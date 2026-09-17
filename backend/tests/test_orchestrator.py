@@ -67,14 +67,25 @@ class _FakeLLMClient:
 
 class _FakeRAGClient:
     def __init__(
-        self, documents: list[Document] | None = None, exception: Exception | None = None
+        self,
+        documents: list[Document] | None = None,
+        documents_sequence: list[list[Document]] | None = None,
+        exception: Exception | None = None,
     ) -> None:
         self._documents = documents if documents is not None else []
+        self._documents_sequence = documents_sequence
         self._exception = exception
+        self.queries: list[str] = []
 
     async def search(self, query: str, domain: str) -> list[Document]:
+        self.queries.append(query)
         if self._exception is not None:
             raise self._exception
+        if self._documents_sequence is not None:
+            index = len(self.queries) - 1
+            if index < len(self._documents_sequence):
+                return self._documents_sequence[index]
+            return self._documents_sequence[-1]
         return self._documents
 
 
@@ -187,6 +198,85 @@ async def test_rag_vazio_escala_para_externo():
     assert decisao.domain == "vendas"
     assert decisao.backend_escolhido == "externo"
     assert decisao.motivo_escalonamento == "rag_vazio"
+
+
+async def test_rag_vazio_sem_historico_nao_tenta_de_novo():
+    # Primeira mensagem da conversa (recent_messages vazio) — não há
+    # contexto pra concatenar, então só uma busca deve ocorrer (mesmo
+    # comportamento de antes desta mudança).
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[])
+
+    eventos = await _coletar_eventos(
+        "Qual o preço desse produto?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+
+    assert decisao.motivo_escalonamento == "rag_vazio"
+    assert rag_client.queries == ["Qual o preço desse produto?"]
+
+
+async def test_rag_vazio_com_historico_tenta_de_novo_com_contexto_e_acha():
+    # Mensagem de acompanhamento ("quais outras opções?") sozinha não bate
+    # com nada no RAG — a segunda tentativa, com o histórico concatenado,
+    # encontra o documento e mantém a resposta local (regressão do bug
+    # relatado: "perguntei sobre câmeras, [...] perguntei sobre outras
+    # opções e ele simplesmente roteou para externo").
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    documento = Document(content="câmera VHD 5830", source="catalogo", score=0.8)
+    rag_client = _FakeRAGClient(documents_sequence=[[], [documento]])
+
+    # MVP: precisa de uma palavra-chave (aqui "produto") pra classificação
+    # heurística acertar o domínio "vendas" sem depender de uma chamada real
+    # de LLM — o ponto do teste é o fallback de RAG, não o classificador.
+    eventos = await _coletar_eventos(
+        "quais outras opções de produto vocês têm?",
+        recent_messages=["você teria alguma câmera de boa resolução?"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+
+    assert decisao.backend_escolhido == "local"
+    assert decisao.motivo_escalonamento == "nenhum"
+    assert rag_client.queries == [
+        "quais outras opções de produto vocês têm?",
+        "você teria alguma câmera de boa resolução?\nquais outras opções de produto vocês têm?",
+    ]
+
+
+async def test_rag_com_resultado_na_primeira_busca_nao_tenta_de_novo():
+    # Busca direta já encontrou algo — não deve concatenar o histórico e
+    # gastar uma segunda busca (evita diluir o embedding sem necessidade).
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    documento = Document(content="...", source="catalogo", score=0.9)
+    rag_client = _FakeRAGClient(documents=[documento])
+
+    eventos = await _coletar_eventos(
+        "Qual o preço desse produto?",
+        recent_messages=["mensagem anterior qualquer"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+
+    assert decisao.motivo_escalonamento == "nenhum"
+    assert rag_client.queries == ["Qual o preço desse produto?"]
 
 
 async def test_rag_com_resultado_e_complexidade_baixa_fica_local():
