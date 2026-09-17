@@ -240,17 +240,17 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `ChatPanel.tsx` (painel fixo) originalmente; migrado para modal
       (`components/ui/Modal.tsx`, Radix Dialog) sem mudar a lógica de
       envio/áudio/métricas, só a apresentação — ver `docs/FRONTEND.md` §3
-- [~] Implementar envio de texto e exibição do streaming de resposta (SSE) —
-      `lib/api/chat.ts` reescrito: `sendChatMessage` agora consome o stream
-      SSE do backend (`POST /api/chat/messages`, `text/event-stream`) via
-      parser manual de blocos `event:`/`data:` e devolve `Promise<void>`,
-      entregando a resposta incrementalmente por callbacks
-      (`onConversationId`/`onTranscription`/`onStatus`/`onToken`/`onDone`/
-      `onError`) em vez de `response.json()` — testado em
-      `tests/lib/api/chat.test.ts`. Falta ainda adaptar `ChatModal.tsx` para
-      usar essa nova assinatura (exibição token a token na UI); até lá,
-      `ChatModal.tsx` está com erro de tipo contra `sendChatMessage` (esperado,
-      ver próximo item do roadmap a ser adicionado para essa adaptação)
+- [x] Implementar envio de texto e exibição do streaming de resposta (SSE) —
+      `POST /api/chat/messages` devolve `text/event-stream` (`app/api/chat.py`),
+      com evento `status` avisando cold-start do modelo local
+      (`OllamaClient.is_model_ready`, `GET /api/ps`) antes de gerar. Frontend:
+      `lib/api/chat.ts` reescrito para consumir o stream SSE via parser manual
+      de blocos `event:`/`data:` e devolver `Promise<void>`, entregando a
+      resposta incrementalmente por callbacks (`onConversationId`/
+      `onTranscription`/`onStatus`/`onToken`/`onDone`/`onError`) em vez de
+      `response.json()`. `ChatModal.tsx` adaptado para usar essa nova assinatura,
+      exibindo o texto token a token na UI com indicador visual de status —
+      decisão registrada em `docs/ARCHITECTURE.md` §5
 - [~] Implementar upload de imagem (`ImageUploader`) e gravação de áudio
       (`AudioRecorder`) — gravação de áudio concluída:
       `components/chat/AudioRecorder.tsx` (toggle, indicador visual de
