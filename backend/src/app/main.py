@@ -28,7 +28,10 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Assistente Multimodal — Backend", version="0.1.0")
 
     # MVP: libera só a origem do frontend de dev — sem lista por
-    # ambiente/parceiro (ver docs/FRONTEND.md).
+    # ambiente/parceiro (ver docs/FRONTEND.md). Configurável via
+    # CORS_ALLOWED_ORIGIN em .env (ex.: nesta máquina, http://localhost:3001,
+    # porque a 3000 já é ocupada por outro serviço) — não hardcode outras
+    # origens aqui, isso desliga o controle que a settings deveria ter.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings.cors_allowed_origin],
