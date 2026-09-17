@@ -1,7 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+
+// Detecta "estamos no cliente" sem `useState`+`useEffect` — useSyncExternalStore
+// é o jeito recomendado pelo React para esse caso específico (retorna o
+// snapshot do servidor até hidratar, depois o do cliente, sem o setState
+// síncrono dentro de efeito que o hook set-state-in-effect reclamaria).
+function subscribeNoop() {
+  return () => {};
+}
+function useEstaNoCliente(): boolean {
+  return useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
+}
 
 export type TooltipPosition = "top" | "bottom" | "left" | "right" | "auto";
 export type TooltipAlign = "start" | "center" | "end" | "auto";
@@ -26,16 +41,12 @@ export function Tooltip({
   align = "auto",
 }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useEstaNoCliente();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const updateCoords = () => {
+  const updateCoords = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
 
@@ -81,7 +92,7 @@ export function Tooltip({
     }
 
     setCoords({ top, left });
-  };
+  }, [align, position]);
 
   useEffect(() => {
     if (isVisible) {
@@ -93,7 +104,7 @@ export function Tooltip({
         window.removeEventListener("resize", updateCoords);
       };
     }
-  }, [isVisible, align, position]);
+  }, [isVisible, updateCoords]);
 
   const tooltipElement = isVisible ? (
     <span
