@@ -22,10 +22,12 @@ class _FakeLLMClient:
         response: LLMResponse | None = None,
         exception: Exception | None = None,
         model_ready: bool = True,
+        model_ready_exception: Exception | None = None,
     ) -> None:
         self._response = response
         self._exception = exception
         self._model_ready = model_ready
+        self._model_ready_exception = model_ready_exception
         self.calls = 0
         self.last_prompt: str | None = None
 
@@ -38,6 +40,8 @@ class _FakeLLMClient:
         return self._response
 
     async def is_model_ready(self) -> bool:
+        if self._model_ready_exception is not None:
+            raise self._model_ready_exception
         return self._model_ready
 
     async def generate_stream(self, prompt: str):
@@ -290,6 +294,31 @@ async def test_rag_indisponivel_propaga_erro_sem_fallback_para_externo():
 
 async def test_ollama_indisponivel_nao_faz_fallback_para_externo():
     local_client = _FakeLLMClient(exception=ConnectionError("ollama fora do ar"))
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient()
+
+    with pytest.raises(LocalBackendIndisponivelError):
+        await _coletar_eventos(
+            "quero agendar uma visita",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+        )
+
+    assert external_client.calls == 0
+
+
+async def test_falha_de_rede_em_is_model_ready_vira_local_backend_indisponivel():
+    # Regressão: `is_model_ready()` faz uma chamada de rede (ex.: GET
+    # /api/ps do Ollama) tão sujeita a falha de infraestrutura quanto
+    # `generate_stream` — antes da correção, uma falha aqui propagava crua
+    # em vez de virar LocalBackendIndisponivelError (e, no endpoint HTTP, em
+    # vez de virar o evento SSE `error`).
+    local_client = _FakeLLMClient(
+        response=_resposta_local(), model_ready_exception=ConnectionError("ollama fora do ar")
+    )
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient()
 
