@@ -4,10 +4,13 @@ import logging
 import pytest
 
 from app.logging_config import JsonFormatter
-from app.router.llm_client import LLMResponse
+from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.orchestrator import (
     ExternalBackendIndisponivelError,
     LocalBackendIndisponivelError,
+    RouterDecision,
+    StatusEvent,
+    TokenEvent,
     handle_message,
 )
 from app.router.rag_client import Document, RAGConnectionError
@@ -15,10 +18,14 @@ from app.router.rag_client import Document, RAGConnectionError
 
 class _FakeLLMClient:
     def __init__(
-        self, response: LLMResponse | None = None, exception: Exception | None = None
+        self,
+        response: LLMResponse | None = None,
+        exception: Exception | None = None,
+        model_ready: bool = True,
     ) -> None:
         self._response = response
         self._exception = exception
+        self._model_ready = model_ready
         self.calls = 0
         self.last_prompt: str | None = None
 
@@ -29,6 +36,29 @@ class _FakeLLMClient:
             raise self._exception
         assert self._response is not None
         return self._response
+
+    async def is_model_ready(self) -> bool:
+        return self._model_ready
+
+    async def generate_stream(self, prompt: str):
+        self.calls += 1
+        self.last_prompt = prompt
+        if self._exception is not None:
+            raise self._exception
+        assert self._response is not None
+        if self._response.text:
+            yield LLMStreamChunk(text=self._response.text)
+        yield LLMStreamChunk(
+            done=True,
+            prompt_tokens=self._response.prompt_tokens,
+            completion_tokens=self._response.completion_tokens,
+            total_duration_ms=self._response.total_duration_ms,
+            load_duration_ms=self._response.load_duration_ms,
+            prompt_eval_duration_ms=self._response.prompt_eval_duration_ms,
+            eval_duration_ms=self._response.eval_duration_ms,
+            estimated_cost_usd=self._response.estimated_cost_usd,
+            model_name=self._response.model_name,
+        )
 
 
 class _FakeRAGClient:
@@ -52,12 +82,16 @@ def _resposta_externa() -> LLMResponse:
     return LLMResponse(text="resposta externa", total_duration_ms=200.0)
 
 
+async def _coletar_eventos(message, **kwargs):
+    return [evento async for evento in handle_message(message, **kwargs)]
+
+
 async def test_agendamento_sempre_local():
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient()
 
-    decisao = await handle_message(
+    eventos = await _coletar_eventos(
         "quero agendar uma visita",
         recent_messages=[],
         local_client=local_client,
@@ -65,6 +99,8 @@ async def test_agendamento_sempre_local():
         rag_client=rag_client,
         complexity_strategy="heuristic",
     )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
 
     assert decisao.domain == "agendamento"
     assert decisao.backend_escolhido == "local"
@@ -89,7 +125,7 @@ async def test_ttft_usa_prompt_eval_duration_nao_load_duration():
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient()
 
-    decisao = await handle_message(
+    eventos = await _coletar_eventos(
         "quero agendar uma visita",
         recent_messages=[],
         local_client=local_client,
@@ -97,6 +133,8 @@ async def test_ttft_usa_prompt_eval_duration_nao_load_duration():
         rag_client=rag_client,
         complexity_strategy="heuristic",
     )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
 
     assert decisao.ttft_ms == 150.0
     # TPS usa eval_duration (geração pura): 100 tokens / 1.8s = 55.56
@@ -108,7 +146,7 @@ async def test_fora_escopo_sempre_externo_sem_tentar_rag():
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient(exception=RAGConnectionError("não deveria ser chamado"))
 
-    decisao = await handle_message(
+    eventos = await _coletar_eventos(
         "Qual a capital da França?",
         recent_messages=[],
         local_client=local_client,
@@ -116,6 +154,8 @@ async def test_fora_escopo_sempre_externo_sem_tentar_rag():
         rag_client=rag_client,
         complexity_strategy="heuristic",
     )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
 
     assert decisao.domain == "fora_escopo"
     assert decisao.backend_escolhido == "externo"
@@ -129,7 +169,7 @@ async def test_rag_vazio_escala_para_externo():
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient(documents=[])
 
-    decisao = await handle_message(
+    eventos = await _coletar_eventos(
         "Qual o preço desse produto?",
         recent_messages=[],
         local_client=local_client,
@@ -137,6 +177,8 @@ async def test_rag_vazio_escala_para_externo():
         rag_client=rag_client,
         complexity_strategy="heuristic",
     )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
 
     assert decisao.domain == "vendas"
     assert decisao.backend_escolhido == "externo"
@@ -148,7 +190,7 @@ async def test_rag_com_resultado_e_complexidade_baixa_fica_local():
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient(documents=[Document(content="...", source="catalogo", score=0.9)])
 
-    decisao = await handle_message(
+    eventos = await _coletar_eventos(
         "Qual o preço desse produto?",
         recent_messages=[],
         local_client=local_client,
@@ -156,6 +198,8 @@ async def test_rag_com_resultado_e_complexidade_baixa_fica_local():
         rag_client=rag_client,
         complexity_strategy="heuristic",
     )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
 
     assert decisao.backend_escolhido == "local"
     assert decisao.motivo_escalonamento == "nenhum"
@@ -171,7 +215,7 @@ async def test_documento_recuperado_pelo_rag_e_injetado_no_prompt_do_llm():
     )
     rag_client = _FakeRAGClient(documents=[documento])
 
-    await handle_message(
+    await _coletar_eventos(
         "Qual o preço do gerador GD-30?",
         recent_messages=[],
         local_client=local_client,
@@ -190,7 +234,7 @@ async def test_rag_vazio_nao_injeta_contexto_prompt_e_a_mensagem_original():
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient(documents=[])
 
-    await handle_message(
+    await _coletar_eventos(
         "Qual o preço desse produto?",
         recent_messages=[],
         local_client=local_client,
@@ -211,7 +255,7 @@ async def test_rag_com_resultado_e_complexidade_alta_escala_para_externo():
 
     mensagem_longa = "Preciso de um orçamento detalhado. " * 10 + " qual o preço?"
 
-    decisao = await handle_message(
+    eventos = await _coletar_eventos(
         mensagem_longa,
         recent_messages=[],
         local_client=local_client,
@@ -219,6 +263,8 @@ async def test_rag_com_resultado_e_complexidade_alta_escala_para_externo():
         rag_client=rag_client,
         complexity_strategy="heuristic",
     )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
 
     assert decisao.backend_escolhido == "externo"
     assert decisao.motivo_escalonamento == "complexidade_alta"
@@ -230,7 +276,7 @@ async def test_rag_indisponivel_propaga_erro_sem_fallback_para_externo():
     rag_client = _FakeRAGClient(exception=RAGConnectionError("qdrant fora do ar"))
 
     with pytest.raises(RAGConnectionError):
-        await handle_message(
+        await _coletar_eventos(
             "Qual o preço desse produto?",
             recent_messages=[],
             local_client=local_client,
@@ -248,7 +294,7 @@ async def test_ollama_indisponivel_nao_faz_fallback_para_externo():
     rag_client = _FakeRAGClient()
 
     with pytest.raises(LocalBackendIndisponivelError):
-        await handle_message(
+        await _coletar_eventos(
             "quero agendar uma visita",
             recent_messages=[],
             local_client=local_client,
@@ -270,7 +316,7 @@ async def test_falha_do_local_na_classificacao_llm_nao_faz_fallback_para_externo
     rag_client = _FakeRAGClient()
 
     with pytest.raises(LocalBackendIndisponivelError):
-        await handle_message(
+        await _coletar_eventos(
             "Qual a capital da França?",
             recent_messages=[],
             local_client=local_client,
@@ -288,7 +334,7 @@ async def test_log_de_decisao_tem_campos_json_de_primeiro_nivel(caplog):
     rag_client = _FakeRAGClient()
 
     with caplog.at_level(logging.INFO, logger="app.router.orchestrator"):
-        await handle_message(
+        await _coletar_eventos(
             "quero agendar uma visita",
             recent_messages=[],
             local_client=local_client,
@@ -335,7 +381,7 @@ async def test_openrouter_indisponivel_propaga_erro():
     rag_client = _FakeRAGClient()
 
     with pytest.raises(ExternalBackendIndisponivelError):
-        await handle_message(
+        await _coletar_eventos(
             "Qual a capital da França?",
             recent_messages=[],
             local_client=local_client,
@@ -343,3 +389,58 @@ async def test_openrouter_indisponivel_propaga_erro():
             rag_client=rag_client,
             complexity_strategy="heuristic",
         )
+
+
+async def test_modelo_local_nao_carregado_emite_status_antes_dos_tokens():
+    local_client = _FakeLLMClient(response=_resposta_local(), model_ready=False)
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient()
+
+    eventos = await _coletar_eventos(
+        "quero agendar uma visita",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+
+    assert isinstance(eventos[0], StatusEvent)
+    assert eventos[0].status == "carregando_modelo"
+
+
+async def test_modelo_local_ja_carregado_nao_emite_status():
+    local_client = _FakeLLMClient(response=_resposta_local(), model_ready=True)
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient()
+
+    eventos = await _coletar_eventos(
+        "quero agendar uma visita",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+
+    assert not any(isinstance(e, StatusEvent) for e in eventos)
+
+
+async def test_tokens_emitidos_em_ordem_e_resposta_final_e_a_concatenacao():
+    local_client = _FakeLLMClient(response=LLMResponse(text="Boa tarde!", total_duration_ms=50.0))
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient()
+
+    eventos = await _coletar_eventos(
+        "quero agendar uma visita",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+
+    tokens = [e for e in eventos if isinstance(e, TokenEvent)]
+    assert len(tokens) == 1
+    assert tokens[0].text == "Boa tarde!"
+    assert eventos[-1].resposta == "Boa tarde!"

@@ -1,10 +1,11 @@
 import logging
 import time
+from collections.abc import AsyncIterator
 
 from pydantic import BaseModel
 
 from app.router.classifier import classify
-from app.router.llm_client import LLMClient
+from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.rag_client import Document, RAGClient, RAGConnectionError
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,14 @@ class RouterDecision(BaseModel):
     rag_avg_score: float | None = None
 
 
+class StatusEvent(BaseModel):
+    status: str
+
+
+class TokenEvent(BaseModel):
+    text: str
+
+
 class LocalBackendIndisponivelError(Exception):
     """Falha de infraestrutura no backend local (Ollama) — sem fallback automático."""
 
@@ -77,7 +86,7 @@ async def handle_message(
     external_client: LLMClient,
     rag_client: RAGClient,
     complexity_strategy: str,
-) -> RouterDecision:
+) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision]:
     # Com strategy="llm" a classificação chama o backend local. Falha aqui é
     # falha de infraestrutura local, não "conteúdo não classificável" — vira
     # LocalBackendIndisponivelError em vez de degradar em silêncio para
@@ -145,8 +154,19 @@ async def handle_message(
     prompt = _build_prompt(message, documentos) if documentos else message
 
     client = local_client if backend_escolhido == "local" else external_client
+
+    if not await client.is_model_ready():
+        yield StatusEvent(status="carregando_modelo")
+
+    texto_partes: list[str] = []
+    chunk_final: LLMStreamChunk | None = None
     try:
-        response = await client.generate(prompt)
+        async for chunk in client.generate_stream(prompt):
+            if chunk.text:
+                texto_partes.append(chunk.text)
+                yield TokenEvent(text=chunk.text)
+            if chunk.done:
+                chunk_final = chunk
     except Exception as exc:
         logger.error(
             "backend_indisponivel",
@@ -164,14 +184,18 @@ async def handle_message(
             raise LocalBackendIndisponivelError(str(exc)) from exc
         raise ExternalBackendIndisponivelError(str(exc)) from exc
 
+    assert chunk_final is not None, "generate_stream deve sempre terminar com um chunk done=True"
+
     # TPS usa `eval_duration` (tempo de geração pura) — `total_duration`
     # inclui também `load_duration` (carregar o modelo) e
     # `prompt_eval_duration` (processar o prompt), então usar o total
     # subestimaria a taxa de geração de tokens.
     tps: float | None = None
-    if response.completion_tokens and response.eval_duration_ms:
-        gen_duration_s = max(response.eval_duration_ms / 1000.0, 0.001)
-        tps = round(response.completion_tokens / gen_duration_s, 2)
+    if chunk_final.completion_tokens and chunk_final.eval_duration_ms:
+        gen_duration_s = max(chunk_final.eval_duration_ms / 1000.0, 0.001)
+        tps = round(chunk_final.completion_tokens / gen_duration_s, 2)
+
+    resposta_completa = "".join(texto_partes)
 
     decisao = RouterDecision(
         domain=classification.domain,
@@ -180,13 +204,13 @@ async def handle_message(
         complexity_strategy_usada=complexity_strategy,
         backend_escolhido=backend_escolhido,
         motivo_escalonamento=motivo,
-        resposta=response.text,
-        latencia_ms=response.total_duration_ms,
-        tokens_entrada=response.prompt_tokens,
-        tokens_saida=response.completion_tokens,
-        custo_estimado_usd=response.estimated_cost_usd,
-        modelo_usado=response.model_name or getattr(client, "model", None),
-        ttft_ms=response.prompt_eval_duration_ms,
+        resposta=resposta_completa,
+        latencia_ms=chunk_final.total_duration_ms or 0.0,
+        tokens_entrada=chunk_final.prompt_tokens,
+        tokens_saida=chunk_final.completion_tokens,
+        custo_estimado_usd=chunk_final.estimated_cost_usd,
+        modelo_usado=chunk_final.model_name or getattr(client, "model", None),
+        ttft_ms=chunk_final.prompt_eval_duration_ms,
         tps=tps,
         rag_retrieval_ms=rag_retrieval_ms,
         rag_chunks_count=rag_chunks_count,
@@ -196,4 +220,4 @@ async def handle_message(
         "router_decision",
         extra={"router": {"event": "router_decision", **decisao.model_dump()}},
     )
-    return decisao
+    yield decisao
