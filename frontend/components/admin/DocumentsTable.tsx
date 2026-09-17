@@ -10,14 +10,6 @@ import { ToastStack, useToast } from "@/components/ui/Toast";
 import { RagApiError, deleteDocument } from "@/lib/api/rag";
 import type { DocumentRegistryEntry, RagCollection } from "@/lib/types/rag";
 
-function formatarDataRelativa(iso: string): string {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  if (diffDias <= 0) return "hoje";
-  if (diffDias === 1) return "há 1 dia";
-  return `há ${diffDias} dias`;
-}
-
 export interface DocumentsTableProps {
   documents: DocumentRegistryEntry[];
   collections: RagCollection[];
