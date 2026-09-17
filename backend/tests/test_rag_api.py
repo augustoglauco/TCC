@@ -442,7 +442,9 @@ async def test_reingest_com_arquivo_ausente_em_disco_retorna_404(
     assert response.status_code == 404
 
 
-def test_obter_conteudo_do_documento_retorna_arquivo_original(db_session, active_collection, tmp_path):
+def test_obter_conteudo_do_documento_retorna_arquivo_original(
+    db_session, active_collection, tmp_path
+):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
     client.post(
@@ -466,4 +468,3 @@ def test_obter_conteudo_de_documento_inexistente_retorna_404(db_session, tmp_pat
     response = client.get("/api/rag/documents/00000000-0000-0000-0000-000000000000/content")
 
     assert response.status_code == 404
-
