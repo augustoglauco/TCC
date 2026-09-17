@@ -101,6 +101,19 @@ class OllamaClient:
             for item in data.get("models", [])
         ]
 
+    async def is_model_ready(self) -> bool:
+        """Checa se `self._model` já está carregado na memória do Ollama
+        (`GET /api/ps` — modelos rodando agora, diferente de `/api/tags`
+        que lista todos os já baixados). Usado para decidir se emite o
+        evento `status` de "carregando" antes de uma geração que vai
+        pagar o custo de cold-start (ver
+        docs/superpowers/specs/2026-09-17-chat-streaming-sse-design.md).
+        """
+        response = await self._client.get(f"{self._base_url}/api/ps", timeout=self._timeout_s)
+        response.raise_for_status()
+        data = response.json()
+        return any(item.get("name") == self._model for item in data.get("models", []))
+
     async def pull_model_streaming(self, name: str) -> AsyncIterator[PullProgressLine]:
         """Baixa `name` (biblioteca do Ollama ou `hf.co/usuario/repo[:tag]`
         do Hugging Face), gerando uma `PullProgressLine` por linha do stream

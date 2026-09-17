@@ -185,3 +185,43 @@ async def test_pull_model_streaming_repassa_linha_de_erro():
     progresso = [linha async for linha in client.pull_model_streaming("nome-invalido")]
 
     assert progresso[-1].error == "pull model manifest: file does not exist"
+
+
+async def test_is_model_ready_true_quando_modelo_esta_na_lista_do_ps():
+    mock_response = {
+        "models": [
+            {"name": "outro-modelo:8b"},
+            {"name": "llama3.1:8b"},
+        ]
+    }
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_transport(mock_response)),
+    )
+
+    assert await client.is_model_ready() is True
+
+
+async def test_is_model_ready_false_quando_modelo_nao_esta_na_lista_do_ps():
+    mock_response = {"models": [{"name": "outro-modelo:8b"}]}
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_transport(mock_response)),
+    )
+
+    assert await client.is_model_ready() is False
+
+
+async def test_is_model_ready_false_quando_lista_vazia():
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_transport({"models": []})),
+    )
+
+    assert await client.is_model_ready() is False
