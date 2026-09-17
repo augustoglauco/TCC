@@ -37,16 +37,10 @@ export interface ChatMetrics {
   escalationReason?: ChatEscalationReason;
 }
 
-export interface ChatMessageResponse {
-  conversation_id: string;
-  message: string;
+export interface ChatDoneEventData {
   domain: ChatDomain;
   backend_used: ChatBackendUsed;
   escalation_reason: ChatEscalationReason;
-  // Preenchido apenas quando o request trouxe `audio` — texto transcrito
-  // pelo STT do backend, usado para exibir "o que a pessoa falou" na bolha
-  // do usuário (o cliente não tem como saber isso sozinho).
-  transcribed_message: string | null;
   model_name?: string | null;
   prompt_tokens?: number | null;
   completion_tokens?: number | null;

@@ -241,12 +241,16 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (`components/ui/Modal.tsx`, Radix Dialog) sem mudar a lógica de
       envio/áudio/métricas, só a apresentação — ver `docs/FRONTEND.md` §3
 - [~] Implementar envio de texto e exibição do streaming de resposta (SSE) —
-      envio de texto síncrono concluído (`lib/api/chat.ts`, `ChatModal`),
-      consumindo `POST /api/chat/messages`; o backend já devolve o contrato
-      SSE (`text/event-stream`, ver `docs/FRONTEND.md` §4), mas o frontend
-      ainda não foi adaptado para consumi-lo — `sendChatMessage` ainda chama
-      `response.json()`, que quebra contra o backend atual; falta essa
-      adaptação (parsing incremental de eventos SSE, exibição token a token)
+      `lib/api/chat.ts` reescrito: `sendChatMessage` agora consome o stream
+      SSE do backend (`POST /api/chat/messages`, `text/event-stream`) via
+      parser manual de blocos `event:`/`data:` e devolve `Promise<void>`,
+      entregando a resposta incrementalmente por callbacks
+      (`onConversationId`/`onTranscription`/`onStatus`/`onToken`/`onDone`/
+      `onError`) em vez de `response.json()` — testado em
+      `tests/lib/api/chat.test.ts`. Falta ainda adaptar `ChatModal.tsx` para
+      usar essa nova assinatura (exibição token a token na UI); até lá,
+      `ChatModal.tsx` está com erro de tipo contra `sendChatMessage` (esperado,
+      ver próximo item do roadmap a ser adicionado para essa adaptação)
 - [~] Implementar upload de imagem (`ImageUploader`) e gravação de áudio
       (`AudioRecorder`) — gravação de áudio concluída:
       `components/chat/AudioRecorder.tsx` (toggle, indicador visual de

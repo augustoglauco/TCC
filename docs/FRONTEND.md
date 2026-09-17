@@ -221,19 +221,25 @@ chega com sucesso, não em caso de `error`.
 **Estado atual do frontend (Fase 7/8, ver `docs/ROADMAP.md`):** o scaffold
 Next.js foi criado em `frontend/` (App Router, TypeScript `strict`, Tailwind
 CSS, ESLint + Prettier, Vitest + Testing Library) e o widget de chat consome
-`POST /api/chat/messages` (`frontend/lib/api/chat.ts`) com **texto e áudio,
-resposta síncrona (`frontend/lib/api/chat.ts` ainda chama
-`response.json()`)**: o backend já expõe o contrato SSE descrito acima, mas
-`sendChatMessage`/`ChatModal` ainda não foram adaptados para consumi-lo —
-como o body deixou de ser um único JSON, `response.json()` vai falhar contra
-o backend atual até essa adaptação acontecer (próxima tarefa de frontend do
-roadmap, Fase 8). Também sem upload de imagem e sem cards ricos — essas partes dependem de R6/R11/R12 no backend (ainda não
-implementados) e/ou de trabalho de UI ainda não iniciado, e ficam para quando
-essas dependências existirem. Todas as demais páginas listadas na Seção 2
-(exceto `/suporte`, que já tem um FAQ estático real) são *stubs* de navegação
-("em construção"), sem nenhuma chamada de API — a integração real com o
-catálogo, pedidos, autenticação e agendamentos é tarefa futura de frontend,
-condicionada às respectivas APIs existirem no backend.
+`POST /api/chat/messages` (`frontend/lib/api/chat.ts`) com **texto e áudio**.
+`sendChatMessage` foi reescrito para consumir o contrato SSE descrito acima:
+em vez de `response.json()`, faz o parsing manual de blocos `event:`/`data:`
+do `ReadableStream` da resposta (não usa `EventSource`, que só suporta GET) e
+entrega a resposta incrementalmente via callbacks — `onConversationId`,
+`onTranscription`, `onStatus`, `onToken`, `onDone`, `onError` — retornando
+`Promise<void>` em vez de um objeto de resposta único; nunca lança, erros de
+rede/HTTP/stream viram chamada a `onError` (ver
+`frontend/tests/lib/api/chat.test.ts`). `ChatModal.tsx` ainda não foi
+adaptado para essa nova assinatura (ainda espera um valor de retorno
+síncrono) — essa adaptação é a próxima tarefa de frontend do roadmap, Fase
+8. Também sem upload de imagem e sem cards ricos — essas partes dependem de
+R6/R11/R12 no backend (ainda não implementados) e/ou de trabalho de UI ainda
+não iniciado, e ficam para quando essas dependências existirem. Todas as
+demais páginas listadas na Seção 2 (exceto `/suporte`, que já tem um FAQ
+estático real) são *stubs* de navegação ("em construção"), sem nenhuma
+chamada de API — a integração real com o catálogo, pedidos, autenticação e
+agendamentos é tarefa futura de frontend, condicionada às respectivas APIs
+existirem no backend.
 
 **Gravação de áudio (`AudioRecorder`, R5):** botão de microfone
 (`components/chat/AudioRecorder.tsx`) ao lado do botão "Enviar" no
