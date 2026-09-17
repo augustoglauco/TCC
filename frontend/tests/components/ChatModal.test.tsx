@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChatModal } from "@/components/chat/ChatModal";
-import { ChatApiError } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
 vi.mock("@/lib/api/chat", async () => {
@@ -50,13 +49,10 @@ describe("ChatModal", () => {
 
   it("envia mensagem de texto e exibe a resposta do assistente", async () => {
     const user = userEvent.setup();
-    mockedSendChatMessage.mockResolvedValueOnce({
-      conversation_id: "conv-1",
-      message: "Temos esse produto em estoque.",
-      domain: "vendas",
-      backend_used: "local",
-      escalation_reason: "nenhum",
-      transcribed_message: null,
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Temos esse produto em estoque.");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
     });
 
     renderModal();
@@ -67,24 +63,23 @@ describe("ChatModal", () => {
     expect(await screen.findByText("Vocês têm o produto X?")).toBeInTheDocument();
     expect(await screen.findByText("Temos esse produto em estoque.")).toBeInTheDocument();
     expect(screen.getByTestId("message-domain-label")).toHaveTextContent("Vendas");
-    expect(mockedSendChatMessage).toHaveBeenCalledWith({
-      message: "Vocês têm o produto X?",
-      conversationId: undefined,
-    });
+    expect(mockedSendChatMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "Vocês têm o produto X?",
+        conversationId: undefined,
+      }),
+    );
   });
 
   it("mostra bolha de erro com opção de tentar novamente e permite reenviar", async () => {
     const user = userEvent.setup();
-    mockedSendChatMessage.mockRejectedValueOnce(
-      new ChatApiError("Serviço temporariamente indisponível. Tente novamente.", 503),
-    );
-    mockedSendChatMessage.mockResolvedValueOnce({
-      conversation_id: "conv-1",
-      message: "Tudo certo agora.",
-      domain: "suporte",
-      backend_used: "local",
-      escalation_reason: "nenhum",
-      transcribed_message: null,
+    mockedSendChatMessage.mockImplementationOnce(async ({ onError }) => {
+      onError("Serviço temporariamente indisponível. Tente novamente.");
+    });
+    mockedSendChatMessage.mockImplementationOnce(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Tudo certo agora.");
+      onDone({ domain: "suporte", backend_used: "local", escalation_reason: "nenhum" });
     });
 
     renderModal();
@@ -106,14 +101,14 @@ describe("ChatModal", () => {
 
   it("envia áudio gravado e exibe o texto transcrito na bolha do usuário", async () => {
     const user = userEvent.setup();
-    mockedSendChatMessage.mockResolvedValueOnce({
-      conversation_id: "conv-1",
-      message: "Posso ajudar com seu agendamento.",
-      domain: "agendamento",
-      backend_used: "local",
-      escalation_reason: "nenhum",
-      transcribed_message: "Quero agendar uma visita",
-    });
+    mockedSendChatMessage.mockImplementation(
+      async ({ onConversationId, onTranscription, onToken, onDone }) => {
+        onConversationId("conv-1");
+        onTranscription("Quero agendar uma visita");
+        onToken("Posso ajudar com seu agendamento.");
+        onDone({ domain: "agendamento", backend_used: "local", escalation_reason: "nenhum" });
+      },
+    );
 
     renderModal();
 
@@ -121,22 +116,24 @@ describe("ChatModal", () => {
 
     expect(await screen.findByText("Quero agendar uma visita")).toBeInTheDocument();
     expect(await screen.findByText("Posso ajudar com seu agendamento.")).toBeInTheDocument();
-    expect(mockedSendChatMessage).toHaveBeenCalledWith({
-      audioBase64: "base64-audio-fake",
-      conversationId: undefined,
-    });
+    expect(mockedSendChatMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audioBase64: "base64-audio-fake",
+        conversationId: undefined,
+      }),
+    );
   });
 
   it("usa texto de fallback quando a transcrição do áudio vem vazia (defensivo)", async () => {
     const user = userEvent.setup();
-    mockedSendChatMessage.mockResolvedValueOnce({
-      conversation_id: "conv-1",
-      message: "Não entendi, pode repetir?",
-      domain: "atendimento",
-      backend_used: "local",
-      escalation_reason: "nenhum",
-      transcribed_message: null,
-    });
+    mockedSendChatMessage.mockImplementation(
+      async ({ onConversationId, onTranscription, onToken, onDone }) => {
+        onConversationId("conv-1");
+        onTranscription("");
+        onToken("Não entendi, pode repetir?");
+        onDone({ domain: "atendimento", backend_used: "local", escalation_reason: "nenhum" });
+      },
+    );
 
     renderModal();
 
@@ -147,9 +144,9 @@ describe("ChatModal", () => {
 
   it("mantém uma bolha visível para o áudio mesmo quando a API falha (regressão)", async () => {
     const user = userEvent.setup();
-    mockedSendChatMessage.mockRejectedValueOnce(
-      new ChatApiError("Serviço temporariamente indisponível. Tente novamente.", 503),
-    );
+    mockedSendChatMessage.mockImplementationOnce(async ({ onError }) => {
+      onError("Serviço temporariamente indisponível. Tente novamente.");
+    });
 
     renderModal();
 
@@ -164,17 +161,17 @@ describe("ChatModal", () => {
 
   it("permite tentar novamente o mesmo áudio após falha da API", async () => {
     const user = userEvent.setup();
-    mockedSendChatMessage.mockRejectedValueOnce(
-      new ChatApiError("Serviço temporariamente indisponível. Tente novamente.", 503),
-    );
-    mockedSendChatMessage.mockResolvedValueOnce({
-      conversation_id: "conv-1",
-      message: "Agora funcionou.",
-      domain: "suporte",
-      backend_used: "local",
-      escalation_reason: "nenhum",
-      transcribed_message: "Preciso de suporte",
+    mockedSendChatMessage.mockImplementationOnce(async ({ onError }) => {
+      onError("Serviço temporariamente indisponível. Tente novamente.");
     });
+    mockedSendChatMessage.mockImplementationOnce(
+      async ({ onConversationId, onTranscription, onToken, onDone }) => {
+        onConversationId("conv-1");
+        onTranscription("Preciso de suporte");
+        onToken("Agora funcionou.");
+        onDone({ domain: "suporte", backend_used: "local", escalation_reason: "nenhum" });
+      },
+    );
 
     renderModal();
 
@@ -189,10 +186,52 @@ describe("ChatModal", () => {
     expect(await screen.findByText("Preciso de suporte")).toBeInTheDocument();
     expect(await screen.findByText("Agora funcionou.")).toBeInTheDocument();
     expect(mockedSendChatMessage).toHaveBeenCalledTimes(2);
-    expect(mockedSendChatMessage).toHaveBeenNthCalledWith(2, {
-      audioBase64: "base64-audio-fake",
-      conversationId: undefined,
-    });
+    expect(mockedSendChatMessage).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        audioBase64: "base64-audio-fake",
+        conversationId: undefined,
+      }),
+    );
+  });
+
+  it("mostra o texto de status e substitui pelo primeiro token", async () => {
+    mockedSendChatMessage.mockImplementation(
+      async ({ onConversationId, onStatus, onToken, onDone }) => {
+        onConversationId("conv-1");
+        onStatus("carregando_modelo");
+        // dá tempo da bolha de status renderizar antes do token chegar
+        await Promise.resolve();
+        onToken("Resposta real.");
+        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+      },
+    );
+
+    const user = userEvent.setup();
+    renderModal();
+    await user.type(screen.getByLabelText("Mensagem"), "oi");
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Resposta real.")).toBeInTheDocument();
+    expect(screen.queryByText(/consultando documentos internos/)).not.toBeInTheDocument();
+  });
+
+  it("concatena múltiplos tokens na mesma bolha", async () => {
+    mockedSendChatMessage.mockImplementation(
+      async ({ onConversationId, onToken, onDone }) => {
+        onConversationId("conv-1");
+        onToken("Olá");
+        onToken(", tudo bem?");
+        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+      },
+    );
+
+    const user = userEvent.setup();
+    renderModal();
+    await user.type(screen.getByLabelText("Mensagem"), "oi");
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Olá, tudo bem?")).toBeInTheDocument();
   });
 
   it("não renderiza o conteúdo quando `open` é false", () => {

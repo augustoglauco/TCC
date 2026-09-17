@@ -5,7 +5,7 @@ import { useState } from "react";
 import AudioRecorder from "@/components/chat/AudioRecorder";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
-import { ChatApiError, sendChatMessage } from "@/lib/api/chat";
+import { sendChatMessage } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetrics";
 
@@ -51,40 +51,63 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     setIsSending(true);
     setError(null);
 
-    try {
-      const response = await sendChatMessage({
-        message: trimmed,
-        conversationId: conversationId || undefined,
-      });
-      setConversationId(response.conversation_id);
-      addMessage({
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text: response.message,
-        domain: response.domain,
-        backendUsed: response.backend_used,
-        metrics: {
-          modelName: response.model_name || undefined,
-          promptTokens: response.prompt_tokens ?? undefined,
-          completionTokens: response.completion_tokens ?? undefined,
-          latencyMs: response.latency_ms ?? undefined,
-          ttftMs: response.ttft_ms ?? undefined,
-          tps: response.tps ?? undefined,
-          confidence: response.confidence ?? undefined,
-          complexity: response.complexity ?? undefined,
-          estimatedCostUsd: response.estimated_cost_usd ?? undefined,
-          ragRetrievalMs: response.rag_retrieval_ms ?? undefined,
-          ragChunksCount: response.rag_chunks_count ?? undefined,
-          ragAvgScore: response.rag_avg_score ?? undefined,
-          escalationReason: response.escalation_reason ?? undefined,
-        },
-      });
-    } catch (caught) {
-      const msg = caught instanceof ChatApiError ? caught.message : "Erro inesperado. Tente novamente.";
-      setError({ text: msg, retry: { message: trimmed } });
-    } finally {
-      setIsSending(false);
+    const assistantId = crypto.randomUUID();
+    let bolhaCriada = false;
+    let textoAcumulado = "";
+
+    function garantirBolha(textoInicial: string) {
+      if (!bolhaCriada) {
+        bolhaCriada = true;
+        addMessage({ id: assistantId, role: "assistant", text: textoInicial });
+      } else {
+        updateMessage(assistantId, { text: textoInicial });
+      }
     }
+
+    await sendChatMessage({
+      message: trimmed,
+      conversationId: conversationId || undefined,
+      onConversationId: (id) => setConversationId(id),
+      onTranscription: () => {},
+      onStatus: (status) => {
+        if (status === "carregando_modelo") {
+          garantirBolha("🤖 Aguarde, consultando documentos internos...");
+        }
+      },
+      onToken: (chunk) => {
+        textoAcumulado += chunk;
+        garantirBolha(textoAcumulado);
+      },
+      onDone: (data) => {
+        if (!bolhaCriada) {
+          garantirBolha(textoAcumulado);
+        }
+        updateMessage(assistantId, {
+          domain: data.domain,
+          backendUsed: data.backend_used,
+          metrics: {
+            modelName: data.model_name ?? undefined,
+            promptTokens: data.prompt_tokens ?? undefined,
+            completionTokens: data.completion_tokens ?? undefined,
+            latencyMs: data.latency_ms ?? undefined,
+            ttftMs: data.ttft_ms ?? undefined,
+            tps: data.tps ?? undefined,
+            confidence: data.confidence ?? undefined,
+            complexity: data.complexity ?? undefined,
+            estimatedCostUsd: data.estimated_cost_usd ?? undefined,
+            ragRetrievalMs: data.rag_retrieval_ms ?? undefined,
+            ragChunksCount: data.rag_chunks_count ?? undefined,
+            ragAvgScore: data.rag_avg_score ?? undefined,
+            escalationReason: data.escalation_reason,
+          },
+        });
+      },
+      onError: (msg) => {
+        setError({ text: msg, retry: { message: trimmed } });
+      },
+    });
+
+    setIsSending(false);
   }
 
   async function submitAudio(audioBase64: string) {
@@ -95,42 +118,70 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     setIsSending(true);
     setError(null);
 
-    try {
-      const response = await sendChatMessage({
-        audioBase64,
-        conversationId: conversationId || undefined,
-      });
-      setConversationId(response.conversation_id);
-      updateMessage(pendingId, { text: response.transcribed_message ?? AUDIO_FALLBACK_TEXT });
-      addMessage({
-        id: crypto.randomUUID(),
-        role: "assistant",
-        text: response.message,
-        domain: response.domain,
-        backendUsed: response.backend_used,
-        metrics: {
-          modelName: response.model_name || undefined,
-          promptTokens: response.prompt_tokens ?? undefined,
-          completionTokens: response.completion_tokens ?? undefined,
-          latencyMs: response.latency_ms ?? undefined,
-          ttftMs: response.ttft_ms ?? undefined,
-          tps: response.tps ?? undefined,
-          confidence: response.confidence ?? undefined,
-          complexity: response.complexity ?? undefined,
-          estimatedCostUsd: response.estimated_cost_usd ?? undefined,
-          ragRetrievalMs: response.rag_retrieval_ms ?? undefined,
-          ragChunksCount: response.rag_chunks_count ?? undefined,
-          ragAvgScore: response.rag_avg_score ?? undefined,
-          escalationReason: response.escalation_reason ?? undefined,
-        },
-      });
-    } catch (caught) {
-      const msg = caught instanceof ChatApiError ? caught.message : "Erro inesperado. Tente novamente.";
-      updateMessage(pendingId, { text: AUDIO_FAILED_TEXT });
-      setError({ text: msg, retry: { audioBase64 } });
-    } finally {
-      setIsSending(false);
+    const assistantId = crypto.randomUUID();
+    let bolhaCriada = false;
+    let textoAcumulado = "";
+    let transcricaoRecebida = false;
+
+    function garantirBolha(textoInicial: string) {
+      if (!bolhaCriada) {
+        bolhaCriada = true;
+        addMessage({ id: assistantId, role: "assistant", text: textoInicial });
+      } else {
+        updateMessage(assistantId, { text: textoInicial });
+      }
     }
+
+    await sendChatMessage({
+      audioBase64,
+      conversationId: conversationId || undefined,
+      onConversationId: (id) => setConversationId(id),
+      onTranscription: (text) => {
+        transcricaoRecebida = true;
+        updateMessage(pendingId, { text: text || AUDIO_FALLBACK_TEXT });
+      },
+      onStatus: (status) => {
+        if (status === "carregando_modelo") {
+          garantirBolha("🤖 Aguarde, consultando documentos internos...");
+        }
+      },
+      onToken: (chunk) => {
+        textoAcumulado += chunk;
+        garantirBolha(textoAcumulado);
+      },
+      onDone: (data) => {
+        if (!bolhaCriada) {
+          garantirBolha(textoAcumulado);
+        }
+        updateMessage(assistantId, {
+          domain: data.domain,
+          backendUsed: data.backend_used,
+          metrics: {
+            modelName: data.model_name ?? undefined,
+            promptTokens: data.prompt_tokens ?? undefined,
+            completionTokens: data.completion_tokens ?? undefined,
+            latencyMs: data.latency_ms ?? undefined,
+            ttftMs: data.ttft_ms ?? undefined,
+            tps: data.tps ?? undefined,
+            confidence: data.confidence ?? undefined,
+            complexity: data.complexity ?? undefined,
+            estimatedCostUsd: data.estimated_cost_usd ?? undefined,
+            ragRetrievalMs: data.rag_retrieval_ms ?? undefined,
+            ragChunksCount: data.rag_chunks_count ?? undefined,
+            ragAvgScore: data.rag_avg_score ?? undefined,
+            escalationReason: data.escalation_reason,
+          },
+        });
+      },
+      onError: (msg) => {
+        if (!transcricaoRecebida) {
+          updateMessage(pendingId, { text: AUDIO_FAILED_TEXT });
+        }
+        setError({ text: msg, retry: { audioBase64 } });
+      },
+    });
+
+    setIsSending(false);
   }
 
   function handleRetry() {
