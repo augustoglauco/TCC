@@ -3,6 +3,7 @@ import json
 import httpx
 import pytest
 
+from app.router.llm_client import LLMStreamChunk
 from app.router.ollama_client import LocalModel, OllamaClient, PullProgressLine
 
 
@@ -225,3 +226,71 @@ async def test_is_model_ready_false_quando_lista_vazia():
     )
 
     assert await client.is_model_ready() is False
+
+
+async def test_generate_stream_emite_um_chunk_de_texto_por_linha_e_chunk_final_com_telemetria():
+    lines = [
+        json.dumps({"response": "Olá"}),
+        json.dumps({"response": ", tudo bem?"}),
+        json.dumps(
+            {
+                "response": "",
+                "done": True,
+                "prompt_eval_count": 12,
+                "eval_count": 34,
+                "total_duration": 2_500_000_000,
+                "load_duration": 500_000_000,
+                "prompt_eval_duration": 200_000_000,
+                "eval_duration": 1_800_000_000,
+            }
+        ),
+    ]
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_streaming_transport(lines)),
+    )
+
+    chunks = [chunk async for chunk in client.generate_stream("oi")]
+
+    assert len(chunks) == 3
+    assert chunks[0] == LLMStreamChunk(text="Olá")
+    assert chunks[1] == LLMStreamChunk(text=", tudo bem?")
+    assert chunks[2].done is True
+    assert chunks[2].text is None
+    assert chunks[2].prompt_tokens == 12
+    assert chunks[2].completion_tokens == 34
+    assert chunks[2].total_duration_ms == 2500.0
+    assert chunks[2].load_duration_ms == 500.0
+    assert chunks[2].prompt_eval_duration_ms == 200.0
+    assert chunks[2].eval_duration_ms == 1800.0
+    assert chunks[2].model_name == "llama3.1:8b"
+
+
+async def test_generate_stream_com_resposta_de_uma_linha_so():
+    lines = [
+        json.dumps(
+            {
+                "response": "ok",
+                "done": True,
+                "prompt_eval_count": 1,
+                "eval_count": 1,
+                "total_duration": 100_000_000,
+            }
+        ),
+    ]
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_streaming_transport(lines)),
+    )
+
+    chunks = [chunk async for chunk in client.generate_stream("oi")]
+
+    # Uma linha só, mas com `response` não vazio E `done=True` — emite os
+    # dois: o fragmento de texto primeiro, depois o chunk final.
+    assert len(chunks) == 2
+    assert chunks[0] == LLMStreamChunk(text="ok")
+    assert chunks[1].done is True
