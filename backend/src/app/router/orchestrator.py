@@ -155,12 +155,18 @@ async def handle_message(
 
     client = local_client if backend_escolhido == "local" else external_client
 
-    if not await client.is_model_ready():
-        yield StatusEvent(status="carregando_modelo")
-
+    # `is_model_ready()` faz uma chamada de rede (ex.: GET /api/ps do Ollama)
+    # tão sujeita a falha de infraestrutura quanto `generate_stream` — por
+    # isso fica dentro do mesmo try/except abaixo, em vez de solta antes
+    # dele (correção de revisão: antes, uma falha aqui propagava crua até o
+    # endpoint, sem virar `LocalBackendIndisponivelError`/
+    # `ExternalBackendIndisponivelError` nem o evento SSE `error`).
     texto_partes: list[str] = []
     chunk_final: LLMStreamChunk | None = None
     try:
+        if not await client.is_model_ready():
+            yield StatusEvent(status="carregando_modelo")
+
         async for chunk in client.generate_stream(prompt):
             if chunk.text:
                 texto_partes.append(chunk.text)
