@@ -222,9 +222,11 @@ envolvendo um async generator que:
 propriamente, e só quando o backend escolhido é o local. Se o modelo não
 estiver carregado, o evento `status: carregando_modelo` sai imediatamente
 (antes de qualquer chamada lenta), dando ao frontend a chance de mostrar
-"Aguarde, carregando o modelo local..." enquanto a chamada de
+"Aguarde, consultando documentos internos..." enquanto a chamada de
 streaming (que vai demorar por causa do cold-start) ainda está em
-andamento.
+andamento — texto voltado ao cliente final, sem expor detalhe técnico
+("modelo", "carregar") que não faz sentido fora do contexto de
+desenvolvimento.
 
 ## Timeouts
 
@@ -256,8 +258,8 @@ tem por que trazer uma lib nova pra isso, é pouco código).
 `addMessage` no final, para: `addMessage` da bolha do usuário
 imediatamente (como hoje) → `addMessage` de uma bolha do assistente vazia
 (`text: ""`) → callbacks vão chamando `updateMessage` nela conforme os
-eventos chegam (`status` vira um texto temporário tipo "🤖 Carregando
-modelo local..."; o primeiro `token` substitui esse texto temporário em
+eventos chegam (`status` vira um texto temporário tipo "🤖 Aguarde,
+consultando documentos internos..."; o primeiro `token` substitui esse texto temporário em
 vez de concatenar; `token`s seguintes concatenam; `done` anexa `metrics`
 e os campos de domínio/backend_used à mesma mensagem). `error` funciona
 como hoje (bolha de erro separada com "Tentar novamente").
