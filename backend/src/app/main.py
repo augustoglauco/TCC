@@ -69,6 +69,7 @@ def create_app() -> FastAPI:
         host=settings.qdrant_host,
         port=settings.qdrant_port,
         timeout_s=settings.qdrant_timeout_s,
+        search_domain_fallback=settings.rag_search_domain_fallback,
     )
     app.state.embedder_registry = EmbedderRegistry()
     app.state.rag_uploads_dir = Path(settings.rag_uploads_dir)

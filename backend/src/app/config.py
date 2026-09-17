@@ -37,6 +37,16 @@ class Settings(BaseSettings):
     # Default da lib qdrant-client é 5s; em dev (WSL2), resolver "localhost"
     # às vezes demora mais que isso (ver `app/rag/qdrant_client.py`).
     qdrant_timeout_s: float = 10.0
+    # MVP: desligado por padrão — o comportamento documentado em
+    # docs/ARCHITECTURE.md (RAG vazio para o domínio → escala pro modelo
+    # externo) depende da busca filtrada por domínio poder retornar vazio de
+    # verdade. Ligar isso faz `search()` reforçar com uma segunda busca SEM
+    # filtro de domínio quando a filtrada não acha nada — sacrifica o
+    # isolamento entre domínios (pode trazer conteúdo de outro domínio) e
+    # corrompe esse sinal de escalonamento (a busca quase nunca fica vazia).
+    # Existe como flag para comparação/experimento (ver
+    # `app.rag.qdrant_client.QdrantRAGClient.search`), não como recomendação.
+    rag_search_domain_fallback: bool = False
 
     postgres_dsn: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/assistente"
 

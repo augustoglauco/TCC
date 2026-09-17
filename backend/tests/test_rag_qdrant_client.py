@@ -144,6 +144,33 @@ async def test_search_filtra_por_domain_nao_traz_documento_de_outro_dominio(
     assert resultado == []
 
 
+async def test_search_com_fallback_habilitado_traz_documento_de_outro_dominio(
+    qdrant: QdrantRAGClient, text_embedder: TextEmbedder
+):
+    # `search_domain_fallback=True` é opt-in (default é False, ver
+    # `Settings.rag_search_domain_fallback`) — com ele ligado, uma busca
+    # filtrada sem resultado tenta de novo sem filtro de domínio.
+    fallback_client = QdrantRAGClient(
+        host="unused", port=0, client=qdrant._client, search_domain_fallback=True
+    )
+    name = await _cria_collection(qdrant, await text_embedder.get_dimension())
+    await qdrant.upsert_chunks(
+        name,
+        text_embedder,
+        ["O gerador não liga: verificar bateria de partida e nível de combustível."],
+        source="manual_gd30.txt",
+        domain="suporte",
+        document_id="doc-1",
+    )
+
+    resultado = await fallback_client.search(
+        name, text_embedder, "gerador não liga", domain="vendas"
+    )
+
+    assert len(resultado) == 1
+    assert resultado[0].source == "manual_gd30.txt"
+
+
 async def test_search_erro_de_conexao_vira_rag_connection_error(text_embedder: TextEmbedder):
     # Porta sem nenhum serviço no ar — falha de conexão, não busca vazia.
     client = QdrantRAGClient(host="localhost", port=1)
