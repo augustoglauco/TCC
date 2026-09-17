@@ -318,6 +318,24 @@ em `docs/FRONTEND.md` §4. `# MVP: sem reconexão automática/`Last-Event-ID`
 se a conexão cair no meio do stream — o cliente perde os tokens já enviados
 e precisa reenviar a mensagem inteira, aceitável para este protótipo`.
 
+**Decisão registrada (RAG com contexto de fallback, R4, 2026-09-17):**
+A busca do RAG (`rag_client.search`) usava só a mensagem atual, mesmo o
+classificador já considerando as últimas mensagens da conversa (ver linha
+"Roteador/Orquestrador" abaixo). Isso fazia uma pergunta de acompanhamento
+que omite o assunto já estabelecido (ex.: perguntar sobre câmeras e depois
+"quais outras opções?") não encontrar nenhum chunk relevante — mesmo com o
+domínio corretamente classificado como `vendas` — e escalar
+desnecessariamente para o modelo externo (`motivo_escalonamento: rag_vazio`).
+Corrigido em `orchestrator.handle_message`: quando a busca com a mensagem
+isolada vem vazia **e** há histórico recente, uma segunda busca é feita com
+o histórico concatenado à mensagem atual (mesma janela do classificador,
+`_MAX_HISTORY_MESSAGES=3` em `api/chat.py`). A busca direta continua sendo
+tentada primeiro e sozinha resolve a maioria dos casos — a segunda tentativa
+só dispara quando necessário, para não diluir o embedding da busca com
+contexto desnecessário no caso comum de pergunta autocontida. `# MVP: sem
+reescrita de query via LLM (mais preciso, mas custaria uma chamada de rede
+extra) — concatenação simples do histórico basta para o caso relatado`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

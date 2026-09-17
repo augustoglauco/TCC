@@ -68,7 +68,13 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (`text/event-stream`, eventos `conversation`/`transcription`/`status`/
       `token`/`done`/`error`) em vez do JSON síncrono original — ver decisão
       registrada em `docs/ARCHITECTURE.md` §5 ("Streaming SSE do chat") e
-      contrato completo em `docs/FRONTEND.md` §4
+      contrato completo em `docs/FRONTEND.md` §4. A busca do RAG
+      (`orchestrator.handle_message`) tenta primeiro a mensagem isolada e,
+      se vier vazia e houver histórico recente, tenta de novo com o
+      histórico concatenado — evita escalar desnecessariamente para o
+      externo em mensagens de acompanhamento (ex.: "quais outras opções?")
+      — ver decisão registrada em `docs/ARCHITECTURE.md` §5 ("RAG com
+      contexto de fallback")
 - [x] Implementar STT (áudio → texto) com suporte a pelo menos dois formatos
       comuns (ex.: wav e mp3) — `backend/src/app/stt/whisper_client.py`
       (faster-whisper, GPU local), formato detectado pelo conteúdo dos bytes
