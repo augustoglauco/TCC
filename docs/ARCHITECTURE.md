@@ -262,6 +262,22 @@ há regressão, só ausência do ganho extra do split por coluna nesses
 casos`. Sem OCR para PDFs escaneados/baseados em imagem (isso continua
 sendo R6, Fase 3).
 
+**Decisão registrada (Fase 2/R3, correção de regressão, 2026-09-17):**
+`QdrantRAGClient.search` ganhou (em trabalho paralelo de outro agente sobre
+o chat) um fallback que, quando a busca filtrada por `domain` não retorna
+nada, refazia a busca sem filtro de domínio — quebrando o isolamento entre
+domínios (uma pergunta de "vendas" podia trazer conteúdo de "suporte") e
+corrompendo o sinal de escalonamento do roteador (RAG vazio → escala pro
+modelo externo, ver Seção 2/3): com o fallback, a busca quase nunca fica
+vazia, então esse sinal deixa de refletir a realidade. Em vez de remover
+esse comportamento, ele virou uma flag explícita —
+`Settings.rag_search_domain_fallback` (`RAG_SEARCH_DOMAIN_FALLBACK` em
+`.env`), passada para `QdrantRAGClient(search_domain_fallback=...)` —
+**desligada por padrão** (mantém o comportamento documentado/correto).
+`# MVP: existe só para comparação/experimento entre as duas estratégias,
+não é uma opção recomendada para uso normal — ligá-la sacrifica isolamento
+entre domínios e o sinal de escalonamento do roteador`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

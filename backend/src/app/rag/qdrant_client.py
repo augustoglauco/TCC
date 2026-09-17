@@ -122,7 +122,13 @@ class QdrantRAGClient:
         port: int,
         timeout_s: float = DEFAULT_TIMEOUT_S,
         client: AsyncQdrantClient | None = None,
+        search_domain_fallback: bool = False,
     ) -> None:
+        # Ver `Settings.rag_search_domain_fallback` (app.config) — desligado
+        # por padrão porque quebra o isolamento entre domínios e o sinal de
+        # escalonamento do roteador (RAG vazio → externo) documentado em
+        # docs/ARCHITECTURE.md. Existe como flag para comparação/experimento.
+        self._search_domain_fallback = search_domain_fallback
         self._client = (
             client
             if client is not None
@@ -276,22 +282,39 @@ class QdrantRAGClient:
 
         Lista vazia é devolvida tanto quando a collection ainda não existe
         quanto quando a busca roda normalmente e não acha nada acima do
-        limiar — os dois são sinal de negócio válido. Falha de
-        infraestrutura vira `RAGConnectionError`.
+        limiar — os dois são sinal de negócio válido (o segundo é o sinal
+        que o roteador usa para escalar pro modelo externo, ver
+        docs/ARCHITECTURE.md). Falha de infraestrutura vira
+        `RAGConnectionError`.
+
+        Se `search_domain_fallback=True` foi passado no construtor
+        (`Settings.rag_search_domain_fallback`, desligado por padrão), uma
+        busca filtrada sem resultado tenta de novo SEM o filtro de domínio
+        antes de devolver — sacrifica o isolamento entre domínios e o sinal
+        de escalonamento acima em troca de nunca devolver vazio. Existe só
+        para comparação/experimento, não é o comportamento recomendado.
         """
         try:
             if not await self._client.collection_exists(collection_name):
                 return []
             [query_vector] = await embedder.embed([query])
+            domain_filter = Filter(
+                must=[FieldCondition(key="domain", match=MatchValue(value=domain))]
+            )
             response = await self._client.query_points(
                 collection_name=collection_name,
                 query=query_vector,
-                query_filter=Filter(
-                    must=[FieldCondition(key="domain", match=MatchValue(value=domain))]
-                ),
+                query_filter=domain_filter,
                 limit=top_k,
                 score_threshold=score_threshold,
             )
+            if not response.points and self._search_domain_fallback:
+                response = await self._client.query_points(
+                    collection_name=collection_name,
+                    query=query_vector,
+                    limit=top_k,
+                    score_threshold=score_threshold,
+                )
             return [
                 Document(
                     content=point.payload["content"],
@@ -300,6 +323,7 @@ class QdrantRAGClient:
                 )
                 for point in response.points
             ]
+
         except Exception as exc:
             raise RAGConnectionError(str(exc)) from exc
 
