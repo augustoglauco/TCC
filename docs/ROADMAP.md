@@ -151,7 +151,11 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] **Gerenciador de modelos locais** — tela `/admin/modelos` para
       listar/ativar em runtime/baixar (Ollama ou Hugging Face GGUF) modelos
       locais de chat, sem bloquear o backend durante o download. Não
-      substitui a escolha formal de produção da Fase 10.
+      substitui a escolha formal de produção da Fase 10. Seção "Parâmetros
+      de execução" na mesma tela ajusta em runtime a temperatura do modelo
+      local, os timeouts local/externo e a flag de fallback de domínio do
+      RAG (`GET`/`PUT /api/admin/runtime-settings`) — decisão registrada em
+      `docs/ARCHITECTURE.md` §5
 
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 

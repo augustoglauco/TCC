@@ -70,6 +70,65 @@ async def test_model_property_e_setter():
     assert client.model == "qwen2.5:7b"
 
 
+async def test_timeout_s_property_e_setter():
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_transport({})),
+    )
+
+    assert client.timeout_s == 30.0
+
+    client.timeout_s = 60.0
+
+    assert client.timeout_s == 60.0
+
+
+def _capturing_transport(json_response: dict) -> tuple[httpx.MockTransport, list[dict]]:
+    payloads: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payloads.append(json.loads(request.content))
+        return httpx.Response(200, json=json_response)
+
+    return httpx.MockTransport(handler), payloads
+
+
+async def test_temperature_none_por_padrao_nao_manda_options():
+    transport, payloads = _capturing_transport({"response": "oi"})
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=transport),
+    )
+
+    assert client.temperature is None
+
+    await client.generate("oi")
+
+    assert "options" not in payloads[0]
+
+
+async def test_temperature_setada_manda_options_no_payload():
+    transport, payloads = _capturing_transport({"response": "oi"})
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=transport),
+    )
+
+    client.temperature = 0.0
+
+    assert client.temperature == 0.0
+
+    await client.generate("oi")
+
+    assert payloads[0]["options"] == {"temperature": 0.0}
+
+
 async def test_list_local_models_mapeia_a_resposta_do_ollama():
     mock_response = {
         "models": [

@@ -36,6 +36,14 @@ class OpenRouterClient:
         self._price_out = price_per_1k_output_tokens
         self._client = client or httpx.AsyncClient()
 
+    @property
+    def timeout_s(self) -> float:
+        return self._timeout_s
+
+    @timeout_s.setter
+    def timeout_s(self, value: float) -> None:
+        self._timeout_s = value
+
     async def is_model_ready(self) -> bool:
         return True
 

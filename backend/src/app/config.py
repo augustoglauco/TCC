@@ -27,6 +27,11 @@ class Settings(BaseSettings):
     router_complexity_strategy: Literal["heuristic", "llm"] = "heuristic"
     local_llm_timeout_s: float = 30.0
     external_llm_timeout_s: float = 30.0
+    # MVP: sem default fixado — `None` mantém o comportamento de sempre
+    # (usa a temperatura padrão do próprio modelo no Ollama, sem mandar
+    # `options.temperature`). Ajustável em runtime via
+    # `PUT /api/admin/runtime-settings` (ver `app/api/runtime_settings.py`).
+    local_llm_temperature: float | None = None
 
     # MVP: tamanho fixo por config, sem troca automática por VRAM disponível
     # em runtime (ver docs/ARCHITECTURE.md §7).
