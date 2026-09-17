@@ -268,6 +268,26 @@ async def test_generate_stream_emite_um_chunk_de_texto_por_linha_e_chunk_final_c
     assert chunks[2].model_name == "llama3.1:8b"
 
 
+async def test_generate_stream_levanta_excecao_quando_linha_traz_error():
+    # O Ollama pode emitir uma linha `{"error": "..."}` no meio do stream
+    # (ex.: falta de VRAM durante o cold-start do modelo) em vez de
+    # `response`/`done` — o cliente deve propagar isso como exceção, não
+    # ignorar silenciosamente a linha.
+    lines = [
+        json.dumps({"response": "Olá"}),
+        json.dumps({"error": "model requires more system memory than is available"}),
+    ]
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_streaming_transport(lines)),
+    )
+
+    with pytest.raises(RuntimeError, match="system memory"):
+        _ = [chunk async for chunk in client.generate_stream("oi")]
+
+
 async def test_generate_stream_com_resposta_de_uma_linha_so():
     lines = [
         json.dumps(

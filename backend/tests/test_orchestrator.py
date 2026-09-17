@@ -404,6 +404,42 @@ def test_json_formatter_nao_deixa_extra_sobrescrever_campos_base():
     assert payload["domain"] == "vendas"
 
 
+async def test_generate_stream_sem_chunk_final_vira_local_backend_indisponivel():
+    # Regressão: se `generate_stream` esgotar sem nunca emitir um chunk
+    # `done=True` (ex.: Ollama fecha a conexão no meio do cold-start), antes
+    # da correção isso escapava como `AssertionError` cru em vez de virar
+    # `LocalBackendIndisponivelError` (e, no endpoint HTTP, o evento SSE
+    # `error`).
+    class _StreamSemChunkFinal:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def is_model_ready(self) -> bool:
+            return True
+
+        async def generate_stream(self, prompt: str):
+            self.calls += 1
+            yield LLMStreamChunk(text="parcial")
+            return
+            yield  # pragma: no cover - nunca alcançado, só p/ ser async generator
+
+    local_client = _StreamSemChunkFinal()
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient()
+
+    with pytest.raises(LocalBackendIndisponivelError):
+        await _coletar_eventos(
+            "quero agendar uma visita",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+        )
+
+    assert external_client.calls == 0
+
+
 async def test_openrouter_indisponivel_propaga_erro():
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(exception=ConnectionError("openrouter fora do ar"))

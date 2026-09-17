@@ -196,12 +196,19 @@ describe("ChatModal", () => {
   });
 
   it("mostra o texto de status e substitui pelo primeiro token", async () => {
+    // Controla manualmente quando `onToken` dispara (via uma Promise externa)
+    // para conseguir observar o placeholder de status renderizado ANTES do
+    // token chegar — não só o estado final da bolha.
+    let liberarToken: () => void = () => {};
+    const aguardaLiberacao = new Promise<void>((resolve) => {
+      liberarToken = resolve;
+    });
+
     mockedSendChatMessage.mockImplementation(
       async ({ onConversationId, onStatus, onToken, onDone }) => {
         onConversationId("conv-1");
         onStatus("carregando_modelo");
-        // dá tempo da bolha de status renderizar antes do token chegar
-        await Promise.resolve();
+        await aguardaLiberacao;
         onToken("Resposta real.");
         onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
       },
@@ -211,6 +218,10 @@ describe("ChatModal", () => {
     renderModal();
     await user.type(screen.getByLabelText("Mensagem"), "oi");
     await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText(/consultando documentos internos/)).toBeInTheDocument();
+
+    liberarToken();
 
     expect(await screen.findByText("Resposta real.")).toBeInTheDocument();
     expect(screen.queryByText(/consultando documentos internos/)).not.toBeInTheDocument();

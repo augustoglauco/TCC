@@ -173,6 +173,16 @@ async def handle_message(
                 yield TokenEvent(text=chunk.text)
             if chunk.done:
                 chunk_final = chunk
+
+        if chunk_final is None:
+            # generate_stream terminou (loop `async for` esgotou) sem nunca
+            # emitir um chunk `done=True` — mesma família de falha de
+            # infraestrutura que uma exceção explícita, por isso fica dentro
+            # deste try/except (correção de revisão: antes, um
+            # `assert` fora do try deixava esse caso escapar como
+            # AssertionError cru em vez de virar `LocalBackendIndisponivelError`/
+            # `ExternalBackendIndisponivelError` e o evento SSE `error`).
+            raise RuntimeError("generate_stream terminou sem chunk final (done=True)")
     except Exception as exc:
         logger.error(
             "backend_indisponivel",
@@ -189,8 +199,6 @@ async def handle_message(
         if backend_escolhido == "local":
             raise LocalBackendIndisponivelError(str(exc)) from exc
         raise ExternalBackendIndisponivelError(str(exc)) from exc
-
-    assert chunk_final is not None, "generate_stream deve sempre terminar com um chunk done=True"
 
     # TPS usa `eval_duration` (tempo de geração pura) — `total_duration`
     # inclui também `load_duration` (carregar o modelo) e

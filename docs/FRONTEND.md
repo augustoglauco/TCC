@@ -66,7 +66,13 @@ logado, permitindo retomar a conversa entre sessões/páginas.
 
 **Exibição de mensagens:**
 - Bolhas de texto padrão para usuário e assistente.
-- Indicador de "digitando"/streaming enquanto a resposta chega via SSE.
+- Indicador de "digitando"/streaming enquanto a resposta chega via SSE: se o
+  backend emitir o evento `status` ("carregando_modelo", ver Seção 4), a
+  bolha do assistente é criada de imediato com um texto temporário ("🤖
+  Aguarde, consultando documentos internos..."), substituído pelo texto real
+  assim que o primeiro evento `token` chega; a partir daí a bolha é
+  preenchida incrementalmente (token a token) conforme os eventos chegam,
+  produzindo o efeito de "digitando" — ver `ChatModal.tsx`.
 - **Cards ricos** para respostas estruturadas, em vez de só texto — cobrem os
   casos onde o roteador aciona uma ferramenta ou o RAG retorna algo
   estruturado:
@@ -229,10 +235,14 @@ entrega a resposta incrementalmente via callbacks — `onConversationId`,
 `onTranscription`, `onStatus`, `onToken`, `onDone`, `onError` — retornando
 `Promise<void>` em vez de um objeto de resposta único; nunca lança, erros de
 rede/HTTP/stream viram chamada a `onError` (ver
-`frontend/tests/lib/api/chat.test.ts`). `ChatModal.tsx` ainda não foi
-adaptado para essa nova assinatura (ainda espera um valor de retorno
-síncrono) — essa adaptação é a próxima tarefa de frontend do roadmap, Fase
-8. Também sem upload de imagem e sem cards ricos — essas partes dependem de
+`frontend/tests/lib/api/chat.test.ts`). `ChatModal.tsx` já consome essa
+assinatura (Fase 8): acumula o texto dos eventos `token` numa bolha do
+assistente criada sob demanda, exibe um texto de status temporário enquanto
+o modelo local carrega (ver "Estados do widget" abaixo) e nunca deixa a
+bolha vazia ou travada no placeholder — se `onDone` chegar sem nenhum token
+(resposta vazia do modelo), o texto final vira um aviso de "sem resposta do
+modelo, tente novamente" em vez de ficar em branco. Também sem upload de
+imagem e sem cards ricos — essas partes dependem de
 R6/R11/R12 no backend (ainda não implementados) e/ou de trabalho de UI ainda
 não iniciado, e ficam para quando essas dependências existirem. Todas as
 demais páginas listadas na Seção 2 (exceto `/suporte`, que já tem um FAQ

@@ -267,6 +267,32 @@ def test_stt_indisponivel_retorna_503(fakes):
     assert response.status_code == 503
 
 
+class _FakeLLMClientNaoCarregado(_FakeLLMClient):
+    """`is_model_ready` sempre `False` — força o evento `status` do orchestrator."""
+
+    async def is_model_ready(self) -> bool:
+        return False
+
+
+def test_modelo_nao_carregado_gera_evento_status(fakes):
+    fakes["local"] = _FakeLLMClientNaoCarregado(
+        LLMResponse(text="resposta local", total_duration_ms=10.0)
+    )
+    app = _build_app(fakes)
+
+    reset_conversation_history()
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/api/chat/messages", json={"message": "quero agendar uma visita"}
+        )
+    reset_conversation_history()
+
+    assert response.status_code == 200
+    assert "event: status" in response.text
+    eventos = _parse_sse(response.text)
+    assert _find(eventos, "status")["status"] == "carregando_modelo"
+
+
 def test_dependencia_indisponivel_gera_evento_de_erro(fakes):
     class _FailingLLMClient:
         async def generate(self, prompt: str) -> LLMResponse:

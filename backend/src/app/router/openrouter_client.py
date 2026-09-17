@@ -114,7 +114,13 @@ class OpenRouterClient:
                 if raw == "[DONE]":
                     break
                 data = json.loads(raw)
-                delta = data.get("choices", [{}])[0].get("delta", {})
+                # MVP: `choices` pode vir PRESENTE mas VAZIO (ex.: o chunk de
+                # `usage` com `stream_options.include_usage=true` costuma vir
+                # como `{"choices": [], "usage": {...}}`) — `.get("choices",
+                # [{}])` só cobre a chave ausente, não a lista vazia, então
+                # `or [{}]` é necessário para não estourar IndexError.
+                choices = data.get("choices") or [{}]
+                delta = choices[0].get("delta") or {}
                 texto = delta.get("content") or ""
                 if texto:
                     yield LLMStreamChunk(text=texto)
