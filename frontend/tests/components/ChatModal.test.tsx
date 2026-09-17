@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import ChatPanel from "@/components/chat/ChatPanel";
+import { ChatModal } from "@/components/chat/ChatModal";
 import { ChatApiError } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
@@ -17,7 +17,7 @@ vi.mock("@/lib/api/chat", async () => {
 // MVP: o comportamento de gravação em si (permissão, MediaRecorder) é
 // testado isoladamente em `AudioRecorder.test.tsx`; aqui só precisamos de um
 // jeito de disparar `onRecordingComplete` para testar a integração com o
-// envio/exibição da resposta no painel.
+// envio/exibição da resposta no modal.
 vi.mock("@/components/chat/AudioRecorder", () => ({
   default: ({
     onRecordingComplete,
@@ -38,7 +38,11 @@ function resetStore() {
   useChatStore.setState({ isOpen: true, conversationId: "", messages: [] });
 }
 
-describe("ChatPanel", () => {
+function renderModal() {
+  return render(<ChatModal open onOpenChange={vi.fn()} />);
+}
+
+describe("ChatModal", () => {
   beforeEach(() => {
     resetStore();
     mockedSendChatMessage.mockReset();
@@ -55,7 +59,7 @@ describe("ChatPanel", () => {
       transcribed_message: null,
     });
 
-    render(<ChatPanel />);
+    renderModal();
 
     await user.type(screen.getByLabelText("Mensagem"), "Vocês têm o produto X?");
     await user.click(screen.getByRole("button", { name: "Enviar" }));
@@ -83,7 +87,7 @@ describe("ChatPanel", () => {
       transcribed_message: null,
     });
 
-    render(<ChatPanel />);
+    renderModal();
 
     await user.type(screen.getByLabelText("Mensagem"), "Preciso de ajuda");
     await user.click(screen.getByRole("button", { name: "Enviar" }));
@@ -111,7 +115,7 @@ describe("ChatPanel", () => {
       transcribed_message: "Quero agendar uma visita",
     });
 
-    render(<ChatPanel />);
+    renderModal();
 
     await user.click(screen.getByRole("button", { name: "Simular gravação de áudio" }));
 
@@ -134,7 +138,7 @@ describe("ChatPanel", () => {
       transcribed_message: null,
     });
 
-    render(<ChatPanel />);
+    renderModal();
 
     await user.click(screen.getByRole("button", { name: "Simular gravação de áudio" }));
 
@@ -147,16 +151,15 @@ describe("ChatPanel", () => {
       new ChatApiError("Serviço temporariamente indisponível. Tente novamente.", 503),
     );
 
-    render(<ChatPanel />);
+    renderModal();
 
     await user.click(screen.getByRole("button", { name: "Simular gravação de áudio" }));
 
-    // Antes da correção, uma falha na API deixava a mensagem de áudio sem
-    // nenhum vestígio na conversa — só a bolha de erro genérica aparecia.
+    // Antes da correção (em ChatPanel, precursor deste componente), uma
+    // falha na API deixava a mensagem de áudio sem nenhum vestígio na
+    // conversa — só a bolha de erro genérica aparecia.
     expect(await screen.findByRole("alert")).toBeInTheDocument();
-    expect(
-      screen.getByText("🎤 (não foi possível processar o áudio)"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("🎤 (não foi possível processar o áudio)")).toBeInTheDocument();
   });
 
   it("permite tentar novamente o mesmo áudio após falha da API", async () => {
@@ -173,7 +176,7 @@ describe("ChatPanel", () => {
       transcribed_message: "Preciso de suporte",
     });
 
-    render(<ChatPanel />);
+    renderModal();
 
     await user.click(screen.getByRole("button", { name: "Simular gravação de áudio" }));
 
@@ -190,5 +193,11 @@ describe("ChatPanel", () => {
       audioBase64: "base64-audio-fake",
       conversationId: undefined,
     });
+  });
+
+  it("não renderiza o conteúdo quando `open` é false", () => {
+    render(<ChatModal open={false} onOpenChange={vi.fn()} />);
+
+    expect(screen.queryByLabelText("Mensagem")).not.toBeInTheDocument();
   });
 });

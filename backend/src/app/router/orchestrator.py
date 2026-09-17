@@ -1,4 +1,5 @@
 import logging
+import time
 
 from pydantic import BaseModel
 
@@ -53,6 +54,12 @@ class RouterDecision(BaseModel):
     tokens_entrada: int | None
     tokens_saida: int | None
     custo_estimado_usd: float
+    modelo_usado: str | None = None
+    ttft_ms: float | None = None
+    tps: float | None = None
+    rag_retrieval_ms: float | None = None
+    rag_chunks_count: int | None = None
+    rag_avg_score: float | None = None
 
 
 class LocalBackendIndisponivelError(Exception):
@@ -100,6 +107,9 @@ async def handle_message(
     backend_escolhido = "local"
     motivo = "nenhum"
     documentos: list[Document] = []
+    rag_retrieval_ms: float | None = None
+    rag_chunks_count: int | None = None
+    rag_avg_score: float | None = None
 
     if classification.domain == "agendamento":
         backend_escolhido = "local"
@@ -107,6 +117,7 @@ async def handle_message(
         backend_escolhido = "externo"
         motivo = "fora_escopo"
     else:
+        t_rag_start = time.perf_counter()
         try:
             documentos = await rag_client.search(message, classification.domain)
         except RAGConnectionError:
@@ -115,6 +126,11 @@ async def handle_message(
                 extra={"router": {"event": "rag_indisponivel", "domain": classification.domain}},
             )
             raise
+        t_rag_end = time.perf_counter()
+        rag_retrieval_ms = round((t_rag_end - t_rag_start) * 1000.0, 2)
+        rag_chunks_count = len(documentos)
+        if documentos:
+            rag_avg_score = round(sum(d.score for d in documentos) / len(documentos), 4)
 
         if not documentos:
             backend_escolhido = "externo"
@@ -148,6 +164,15 @@ async def handle_message(
             raise LocalBackendIndisponivelError(str(exc)) from exc
         raise ExternalBackendIndisponivelError(str(exc)) from exc
 
+    # TPS usa `eval_duration` (tempo de geração pura) — `total_duration`
+    # inclui também `load_duration` (carregar o modelo) e
+    # `prompt_eval_duration` (processar o prompt), então usar o total
+    # subestimaria a taxa de geração de tokens.
+    tps: float | None = None
+    if response.completion_tokens and response.eval_duration_ms:
+        gen_duration_s = max(response.eval_duration_ms / 1000.0, 0.001)
+        tps = round(response.completion_tokens / gen_duration_s, 2)
+
     decisao = RouterDecision(
         domain=classification.domain,
         complexity=classification.complexity,
@@ -160,6 +185,12 @@ async def handle_message(
         tokens_entrada=response.prompt_tokens,
         tokens_saida=response.completion_tokens,
         custo_estimado_usd=response.estimated_cost_usd,
+        modelo_usado=response.model_name or getattr(client, "model", None),
+        ttft_ms=response.prompt_eval_duration_ms,
+        tps=tps,
+        rag_retrieval_ms=rag_retrieval_ms,
+        rag_chunks_count=rag_chunks_count,
+        rag_avg_score=rag_avg_score,
     )
     logger.info(
         "router_decision",

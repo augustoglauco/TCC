@@ -73,6 +73,36 @@ async def test_agendamento_sempre_local():
     assert external_client.calls == 0
 
 
+async def test_ttft_usa_prompt_eval_duration_nao_load_duration():
+    # `load_duration` é o tempo de carregar o MODELO na memória (~0 após o
+    # primeiro uso) — não deve ser usado como TTFT. `prompt_eval_duration` é
+    # o proxy correto (tempo de processar o prompt antes de gerar tokens).
+    resposta = LLMResponse(
+        text="resposta local",
+        completion_tokens=100,
+        total_duration_ms=2500.0,
+        load_duration_ms=500.0,
+        prompt_eval_duration_ms=150.0,
+        eval_duration_ms=1800.0,
+    )
+    local_client = _FakeLLMClient(response=resposta)
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient()
+
+    decisao = await handle_message(
+        "quero agendar uma visita",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+
+    assert decisao.ttft_ms == 150.0
+    # TPS usa eval_duration (geração pura): 100 tokens / 1.8s = 55.56
+    assert decisao.tps == pytest.approx(55.56, abs=0.01)
+
+
 async def test_fora_escopo_sempre_externo_sem_tentar_rag():
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())

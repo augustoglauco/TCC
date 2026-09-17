@@ -230,3 +230,40 @@ export async function runPlaygroundSearch(
 
   return (await response.json()) as PlaygroundSearchResponse;
 }
+
+/** Retorna a URL do endpoint de download/visualização do conteúdo de um documento. */
+export function getDocumentContentUrl(id: string): string {
+  return `${API_BASE_URL}/api/rag/documents/${id}/content`;
+}
+
+/** Busca o conteúdo bruto (blob/texto) de um documento para visualização. */
+export async function fetchDocumentContent(
+  id: string,
+): Promise<{ blob: Blob; contentType: string; text?: string }> {
+  let response: Response;
+  try {
+    response = await fetch(getDocumentContentUrl(id));
+  } catch {
+    throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
+  }
+
+  if (!response.ok) {
+    throw new RagApiError("Não foi possível carregar o conteúdo do documento.", response.status);
+  }
+
+  const contentType = response.headers.get("content-type") || "";
+  const blob = await response.blob();
+  let text: string | undefined;
+
+  if (
+    contentType.includes("text") ||
+    contentType.includes("json") ||
+    contentType.includes("csv") ||
+    contentType.includes("markdown")
+  ) {
+    text = await blob.text();
+  }
+
+  return { blob, contentType, text };
+}
+

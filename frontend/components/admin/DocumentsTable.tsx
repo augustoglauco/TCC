@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { DocumentViewModal } from "@/components/admin/DocumentViewModal";
 import { DomainBadge } from "@/components/admin/DomainBadge";
 import { ReingestModal } from "@/components/admin/ReingestModal";
 import { Modal } from "@/components/ui/Modal";
@@ -27,6 +28,7 @@ export interface DocumentsTableProps {
 export function DocumentsTable({ documents, collections, onDeleted, onReingested }: DocumentsTableProps) {
   const [documentoParaExcluir, setDocumentoParaExcluir] = useState<DocumentRegistryEntry | null>(null);
   const [documentoParaReingerir, setDocumentoParaReingerir] = useState<DocumentRegistryEntry | null>(null);
+  const [documentoParaVisualizar, setDocumentoParaVisualizar] = useState<DocumentRegistryEntry | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const { toasts, showToast, dismissToast } = useToast();
 
@@ -69,7 +71,20 @@ export function DocumentsTable({ documents, collections, onDeleted, onReingested
           <tbody className="divide-y divide-slate-100">
             {documents.map((documento) => (
               <tr key={documento.id} className="transition-colors hover:bg-slate-50/60">
-                <td className="py-3.5 px-4 font-semibold text-slate-900">{documento.filename}</td>
+                <td className="py-3.5 px-4 font-semibold text-slate-900">
+                  <button
+                    type="button"
+                    onClick={() => setDocumentoParaVisualizar(documento)}
+                    className="group inline-flex items-center gap-1.5 text-left text-slate-900 hover:text-blue-600 transition-colors focus:outline-none"
+                  >
+                    <span className="underline decoration-slate-300 group-hover:decoration-blue-500 underline-offset-2">
+                      {documento.filename}
+                    </span>
+                    <span className="opacity-0 group-hover:opacity-100 text-xs text-blue-500 transition-opacity">
+                      ↗
+                    </span>
+                  </button>
+                </td>
                 <td className="py-3.5 px-4">
                   <DomainBadge domain={documento.domain} />
                 </td>
@@ -99,6 +114,11 @@ export function DocumentsTable({ documents, collections, onDeleted, onReingested
           </tbody>
         </table>
       </div>
+
+      <DocumentViewModal
+        documento={documentoParaVisualizar}
+        onOpenChange={(open) => !open && setDocumentoParaVisualizar(null)}
+      />
 
       <Modal
         open={documentoParaExcluir !== null}
@@ -144,3 +164,4 @@ export function DocumentsTable({ documents, collections, onDeleted, onReingested
     </>
   );
 }
+

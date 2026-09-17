@@ -20,6 +20,7 @@ async def test_ollama_client_parses_response():
         "eval_count": 34,
         "total_duration": 2_500_000_000,
         "load_duration": 500_000_000,
+        "prompt_eval_duration": 200_000_000,
         "eval_duration": 1_800_000_000,
     }
     client = OllamaClient(
@@ -36,6 +37,7 @@ async def test_ollama_client_parses_response():
     assert result.completion_tokens == 34
     assert result.total_duration_ms == 2500.0
     assert result.load_duration_ms == 500.0
+    assert result.prompt_eval_duration_ms == 200.0
     assert result.eval_duration_ms == 1800.0
     assert result.estimated_cost_usd == 0.0
 

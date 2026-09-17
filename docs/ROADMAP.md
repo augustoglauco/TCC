@@ -230,11 +230,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 8 — Frontend: Widget de Chat (ver `docs/FRONTEND.md` §3)
 
-- [x] Implementar botão flutuante + painel de chat (`ChatWidget`,
-      `ChatPanel`), presente em todas as rotas — `components/chat/ChatWidget.tsx`,
-      `components/chat/ChatPanel.tsx`, incluído em `app/layout.tsx`
+- [x] Implementar botão flutuante + modal de chat (`ChatWidget`,
+      `ChatModal`), presente em todas as rotas — `components/chat/ChatWidget.tsx`,
+      `components/chat/ChatModal.tsx`, incluído em `app/layout.tsx`. Era
+      `ChatPanel.tsx` (painel fixo) originalmente; migrado para modal
+      (`components/ui/Modal.tsx`, Radix Dialog) sem mudar a lógica de
+      envio/áudio/métricas, só a apresentação — ver `docs/FRONTEND.md` §3
 - [~] Implementar envio de texto e exibição do streaming de resposta (SSE) —
-      envio de texto síncrono concluído (`lib/api/chat.ts`, `ChatPanel`),
+      envio de texto síncrono concluído (`lib/api/chat.ts`, `ChatModal`),
       consumindo `POST /api/chat/messages`; falta o streaming via SSE, que
       depende de `GET /api/chat/stream/{conversation_id}` (ainda não existe
       no backend)
@@ -242,7 +245,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (`AudioRecorder`) — gravação de áudio concluída:
       `components/chat/AudioRecorder.tsx` (toggle, indicador visual de
       gravação, tratamento de permissão negada e de navegador sem suporte),
-      integrado ao `ChatPanel` (envio automático ao parar, bolha do usuário
+      integrado ao `ChatModal` (envio automático ao parar, bolha do usuário
       populada com `transcribed_message`, retry reenvia o mesmo áudio); falta
       só o `ImageUploader`, que continua dependendo de R6 no backend (ainda
       não implementado)
@@ -262,9 +265,23 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       tom, R8) — depende de R8 no backend, ainda não implementado
 - [x] Implementar estados de erro (ex.: falha do MCP do Google Calendar) com
       opção de tentar novamente — versão inicial cobre erro de rede/503 do
-      próprio `POST /api/chat/messages` (`ChatPanel`, bolha de erro com botão
+      próprio `POST /api/chat/messages` (`ChatModal`, bolha de erro com botão
       "Tentar novamente", sem retry automático); o caso específico de falha
       do MCP do Google Calendar será coberto quando R11 existir no backend
+
+## Extra fora do MVP — Telemetria de Inferência no Chat
+
+> Pedido explícito do usuário, fora do escopo original do MVP (ver
+> `docs/ARCHITECTURE.md` §5).
+
+- [x] **Telemetria por mensagem** — `POST /api/chat/messages` devolve
+      modelo usado, tokens de entrada/saída, latência, TTFT, TPS, custo
+      estimado e métricas de RAG (tempo/qtd./score médio); `ChatModal`
+      mostra um painel com essas métricas e permite exportar a conversa em
+      CSV/JSON (`frontend/lib/utils/exportMetrics.ts`) — pensado para
+      alimentar a avaliação experimental da Fase 10, não como feature de
+      produto. TTFT só é preenchido para o backend local (ver
+      `docs/ARCHITECTURE.md` §5).
 
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 

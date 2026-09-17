@@ -62,6 +62,8 @@ class OpenRouterClient:
             completion_tokens=completion_tokens,
             total_duration_ms=elapsed_ms,
             load_duration_ms=None,
+            prompt_eval_duration_ms=None,
             eval_duration_ms=None,
             estimated_cost_usd=cost,
+            model_name=self._model,
         )

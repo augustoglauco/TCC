@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 
 // MVP: catálogo ilustrativo para demonstração (ver docs/ROADMAP.md, Fase 7)
 const SAMPLE_PRODUCTS = [
@@ -77,13 +80,14 @@ export default function ProdutosPage() {
             </div>
 
             <div className="mt-5 border-t border-slate-100 pt-3">
-              <a
-                href="#chat-widget"
-                className="flex items-center justify-center gap-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors"
+              <button
+                type="button"
+                onClick={() => useChatStore.getState().open()}
+                className="flex items-center justify-center gap-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors cursor-pointer"
               >
                 <span>Cotar via Chat</span>
                 <span>💬</span>
-              </a>
+              </button>
             </div>
           </div>
         ))}
@@ -91,3 +95,4 @@ export default function ProdutosPage() {
     </div>
   );
 }
+

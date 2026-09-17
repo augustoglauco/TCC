@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 import AdminGearMenu from "./AdminGearMenu";
 
 const NAV_LINKS = [
@@ -54,6 +55,15 @@ export default function Header() {
 
           {/* Menu de Administração (Engrenagem) */}
           <AdminGearMenu />
+
+          {/* Botão de abrir Chat / Agente */}
+          <button
+            type="button"
+            onClick={() => useChatStore.getState().open()}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 transition-colors cursor-pointer"
+          >
+            💬 Chat / Agente
+          </button>
 
           {/* Botão de Menu Mobile (Hambúrguer) */}
           <button
