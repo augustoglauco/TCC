@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 
 export default function HomePage() {
   return (
@@ -28,13 +31,15 @@ export default function HomePage() {
           </p>
 
           <div className="pt-2 flex flex-wrap gap-3">
-            <a
-              href="#chat-widget"
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            <button
+              type="button"
+              onClick={() => useChatStore.getState().open()}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
             >
               <span>Conversar com o Assistente</span>
               <span className="text-base">💬</span>
-            </a>
+            </button>
+
             <Link
               href="/produtos"
               className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800/80 px-5 py-3 text-sm font-semibold text-slate-200 backdrop-blur-xs transition-all hover:bg-slate-700 hover:text-white"

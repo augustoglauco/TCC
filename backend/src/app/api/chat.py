@@ -140,4 +140,17 @@ async def send_message(
         backend_used=decision.backend_escolhido,
         escalation_reason=decision.motivo_escalonamento,
         transcribed_message=transcribed_message,
+        model_name=decision.modelo_usado,
+        prompt_tokens=decision.tokens_entrada,
+        completion_tokens=decision.tokens_saida,
+        latency_ms=decision.latencia_ms,
+        ttft_ms=decision.ttft_ms,
+        tps=decision.tps,
+        confidence=decision.confidence,
+        complexity=decision.complexity,
+        estimated_cost_usd=decision.custo_estimado_usd,
+        rag_retrieval_ms=decision.rag_retrieval_ms,
+        rag_chunks_count=decision.rag_chunks_count,
+        rag_avg_score=decision.rag_avg_score,
     )
+

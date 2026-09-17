@@ -21,6 +21,22 @@ export interface ChatMessageRequest {
   audio: string | null;
 }
 
+export interface ChatMetrics {
+  modelName?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  latencyMs?: number;
+  ttftMs?: number;
+  tps?: number;
+  confidence?: number;
+  complexity?: string;
+  estimatedCostUsd?: number;
+  ragRetrievalMs?: number;
+  ragChunksCount?: number;
+  ragAvgScore?: number;
+  escalationReason?: ChatEscalationReason;
+}
+
 export interface ChatMessageResponse {
   conversation_id: string;
   message: string;
@@ -31,6 +47,18 @@ export interface ChatMessageResponse {
   // pelo STT do backend, usado para exibir "o que a pessoa falou" na bolha
   // do usuário (o cliente não tem como saber isso sozinho).
   transcribed_message: string | null;
+  model_name?: string | null;
+  prompt_tokens?: number | null;
+  completion_tokens?: number | null;
+  latency_ms?: number | null;
+  ttft_ms?: number | null;
+  tps?: number | null;
+  confidence?: number | null;
+  complexity?: string | null;
+  estimated_cost_usd?: number | null;
+  rag_retrieval_ms?: number | null;
+  rag_chunks_count?: number | null;
+  rag_avg_score?: number | null;
 }
 
 /** Mensagem exibida no painel do chat (estado de UI, não o payload da API). */
@@ -43,4 +71,6 @@ export interface ChatUIMessage {
   // resposta (R1/R3), usada para destacar visualmente respostas de LLM
   // externo (ver MessageBubble).
   backendUsed?: ChatBackendUsed;
+  metrics?: ChatMetrics;
 }
+

@@ -79,10 +79,16 @@ class OllamaClient:
             load_duration_ms=(
                 data["load_duration"] / _NS_PER_MS if "load_duration" in data else None
             ),
+            prompt_eval_duration_ms=(
+                data["prompt_eval_duration"] / _NS_PER_MS
+                if "prompt_eval_duration" in data
+                else None
+            ),
             eval_duration_ms=(
                 data["eval_duration"] / _NS_PER_MS if "eval_duration" in data else None
             ),
             estimated_cost_usd=0.0,
+            model_name=self._model,
         )
 
     async def list_local_models(self) -> list[LocalModel]:

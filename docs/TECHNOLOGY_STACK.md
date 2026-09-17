@@ -160,7 +160,7 @@
 | **Catálogo** | ProductList, ProductDetail | React + Tailwind |
 | **Pedidos** | CartWidget, CheckoutFlow, OrderHistory | Zustand (state) + React Query |
 | **Autenticação** | LoginForm, SignupForm, ProfilePage | Zustand + localStorage (token) |
-| **Chat** | ChatWidget, ChatPanel, MessageList, InputArea, AudioRecorder, ImageUploader | React + Zustand + SSE |
+| **Chat** | ChatWidget, ChatModal, MessageList, InputArea, AudioRecorder, ImageUploader | React + Zustand + SSE |
 | **Cards ricos** | ProductCard, OrderConfirmation, QuotationCard, AppointmentCard | React components |
 
 ### Testes Frontend

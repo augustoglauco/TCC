@@ -14,6 +14,7 @@ from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -150,6 +151,54 @@ async def get_documents(
         _document_to_response(documento, nomes.get(documento.collection_id, "?"))
         for documento in documentos
     ]
+
+
+@router.get("/documents/{document_id}/content")
+async def get_document_content_endpoint(
+    document_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    uploads_dir: Path = Depends(get_uploads_dir),
+) -> FileResponse:
+    document = await session.get(RagDocument, document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+
+    file_path: Path | None = None
+
+    if document.storage_path:
+        p = Path(document.storage_path)
+        if p.exists():
+            file_path = p
+        elif (uploads_dir / p.name).exists():
+            file_path = uploads_dir / p.name
+
+    if file_path is None:
+        candidate = uploads_dir / f"{document.id}_{document.filename}"
+        if candidate.exists():
+            file_path = candidate
+
+    if file_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Arquivo original do documento não encontrado em disco.",
+        )
+
+    suffix = file_path.suffix.lower()
+
+    media_type_map = {
+        ".pdf": "application/pdf",
+        ".txt": "text/plain; charset=utf-8",
+        ".md": "text/markdown; charset=utf-8",
+        ".csv": "text/csv; charset=utf-8",
+    }
+    media_type = media_type_map.get(suffix, "application/octet-stream")
+
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        filename=document.filename,
+        headers={"Content-Disposition": f'inline; filename="{document.filename}"'},
+    )
 
 
 @router.delete("/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

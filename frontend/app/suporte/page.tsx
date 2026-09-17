@@ -1,3 +1,7 @@
+"use client";
+
+import { useChatStore } from "@/lib/hooks/useChatStore";
+
 // MVP: FAQ estático — conteúdo fixo no componente, sem chamada à API. É
 // justamente este tipo de conteúdo que o crawler (R4) e o RAG de
 // Suporte/Atendimento (R7) devem indexar mais adiante (ver docs/ROADMAP.md,
@@ -82,13 +86,15 @@ export default function SuportePage() {
             Nosso assistente virtual inteligente está disponível 24 horas por dia no canto inferior direito.
           </p>
         </div>
-        <a
-          href="#chat-widget"
-          className="whitespace-nowrap rounded-lg bg-blue-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+        <button
+          type="button"
+          onClick={() => useChatStore.getState().open()}
+          className="whitespace-nowrap rounded-lg bg-blue-600 px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors cursor-pointer"
         >
           Perguntar ao Chat 💬
-        </a>
+        </button>
       </div>
     </div>
   );
 }
+

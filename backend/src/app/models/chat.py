@@ -53,3 +53,16 @@ class ChatMessageResponse(BaseModel):
     transcribed_message: str | None = Field(
         default=None, description="Texto transcrito do áudio enviado, quando aplicável."
     )
+    model_name: str | None = Field(default=None, description="Nome do modelo de LLM que gerou a resposta.")
+    prompt_tokens: int | None = Field(default=None, description="Quantidade de tokens de entrada (prompt).")
+    completion_tokens: int | None = Field(default=None, description="Quantidade de tokens de saída (resposta).")
+    latency_ms: float | None = Field(default=None, description="Tempo total de latência da resposta em ms.")
+    ttft_ms: float | None = Field(default=None, description="Tempo do primeiro token (Time To First Token) em ms.")
+    tps: float | None = Field(default=None, description="Taxa de geração de tokens por segundo (Tokens/s).")
+    confidence: float | None = Field(default=None, description="Confiança na classificação do roteador.")
+    complexity: str | None = Field(default=None, description="Complexidade estimada da mensagem.")
+    estimated_cost_usd: float | None = Field(default=None, description="Custo estimado da requisição em USD.")
+    rag_retrieval_ms: float | None = Field(default=None, description="Tempo de busca vetorial no RAG em ms.")
+    rag_chunks_count: int | None = Field(default=None, description="Quantidade de chunks recuperados do RAG.")
+    rag_avg_score: float | None = Field(default=None, description="Score médio de similaridade dos chunks do RAG.")
+

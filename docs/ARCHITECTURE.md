@@ -278,6 +278,22 @@ esse comportamento, ele virou uma flag explícita —
 não é uma opção recomendada para uso normal — ligá-la sacrifica isolamento
 entre domínios e o sinal de escalonamento do roteador`.
 
+**Decisão registrada (além do MVP, a pedido explícito, 2026-09-17):**
+`POST /api/chat/messages` passa a devolver telemetria detalhada por
+mensagem — modelo usado, tokens de entrada/saída, latência total, TTFT
+(proxy via `prompt_eval_duration` do Ollama), TPS (via `eval_duration`,
+geração pura), custo estimado, e tempo/qtd./score médio da busca no RAG
+(ver contrato completo em `docs/FRONTEND.md` §4). O `ChatModal` mostra
+essas métricas num painel e permite exportar a conversa em CSV/JSON
+(`frontend/lib/utils/exportMetrics.ts`). Motivo: alimentar a avaliação
+experimental da Fase 10 (`docs/EVALUATION.md`) com dados reais coletados
+durante o desenvolvimento/demonstração, não uma feature de produto para o
+usuário final. `# MVP: telemetria só em memória por resposta — não é
+persistida em banco (isso seria a tabela `router_logs` da Fase 6); TTFT só
+é preenchido para o backend local (Ollama expõe `prompt_eval_duration`),
+fica `null` para o externo (OpenRouter não expõe essa granularidade em modo
+não-streaming)`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

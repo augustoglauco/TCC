@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 
 // MVP: histórico de pedidos ilustrativo (ver docs/ROADMAP.md, Fase 7)
 const SAMPLE_ORDERS = [
@@ -24,17 +27,28 @@ export default function PedidosPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12 space-y-8">
       {/* Cabeçalho da página */}
-      <div className="border-b border-slate-200 pb-6">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-          <span>🛒</span> Gerenciamento de Pedidos
+      <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+            <span>🛒</span> Gerenciamento de Pedidos
+          </div>
+          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Meus Pedidos & Orçamentos
+          </h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Acompanhe o status de entregas, cotações aprovadas ou consulte pedidos via Chat.
+          </p>
         </div>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          Meus Pedidos & Orçamentos
-        </h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Acompanhe o status de entregas, cotações aprovadas ou consulte pedidos via Chat.
-        </p>
+
+        <button
+          type="button"
+          onClick={() => useChatStore.getState().open()}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
+        >
+          <span>Consultar via Chat</span> 💬
+        </button>
       </div>
+
 
       {/* Tabela / Cards de Pedidos */}
       <div className="space-y-4">

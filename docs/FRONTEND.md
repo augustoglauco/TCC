@@ -49,8 +49,9 @@ deve estar disponível em qualquer rota, inclusive durante o checkout.
 ## 3. Widget de chat (peça central da interface)
 
 **Comportamento geral:** botão flutuante no canto inferior direito, presente
-em todas as páginas; ao clicar, abre um painel (mobile: tela cheia; desktop:
-painel lateral). O ID de conversa (R9) é gerado no primeiro envio e
+em todas as páginas; ao clicar, abre um modal central (`ChatModal.tsx`,
+sobre `components/ui/Modal.tsx`, Radix Dialog), mesmo comportamento em
+mobile e desktop. O ID de conversa (R9) é gerado no primeiro envio e
 persistido em `localStorage` (usuário anônimo) ou associado ao usuário
 logado, permitindo retomar a conversa entre sessões/páginas.
 
@@ -119,6 +120,7 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `GET /api/rag/documents` | Lista o registro de documentos ingeridos (mais recente primeiro), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `DELETE /api/rag/documents/{document_id}` | Exclui um documento (registro + pontos no Qdrant), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/documents/{document_id}/reingest` | Reingere um documento já enviado em outra collection (a partir do arquivo original salvo em disco), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/rag/documents/{document_id}/content` | Devolve o arquivo original do documento (PDF/TXT/MD/CSV, `FileResponse` com `Content-Disposition: inline`), usado pelo preview em `DocumentViewModal.tsx` (`/admin/ingestao`) — 404 se o documento ou o arquivo em disco não existir, fora do MVP original |
 | `GET /api/rag/collections` | Lista os perfis de collection configurados, com contagem de documentos por collection, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/collections` | Cria um novo perfil de collection (nome, modelo de embedding, chunking, HNSW, quantização, payload indexing) e a collection real correspondente no Qdrant, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/collections/{collection_id}/activate` | Marca a collection como ativa (é a que o chat passa a usar na busca), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
@@ -147,7 +149,23 @@ ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
   "domain": "vendas", // vendas | suporte | atendimento | agendamento | fora_escopo
   "backend_used": "local", // local | externo
   "escalation_reason": "nenhum", // nenhum | fora_escopo | rag_vazio | complexidade_alta
-  "transcribed_message": null // só preenchido quando o request trouxe `audio`
+  "transcribed_message": null, // só preenchido quando o request trouxe `audio`
+
+  // Telemetria de inferência (além do MVP original, a pedido explícito —
+  // decisão registrada em docs/ARCHITECTURE.md §5). Todos opcionais
+  // (`null` quando a métrica não se aplica ao caminho tomado).
+  "model_name": "llama3.1:8b", // modelo de LLM que gerou a resposta (local ou externo)
+  "prompt_tokens": 128,
+  "completion_tokens": 342,
+  "latency_ms": 2500.0, // tempo total da requisição ao LLM
+  "ttft_ms": 150.0, // time to first token — proxy via prompt_eval_duration do Ollama (não confundir com tempo de carregar o modelo)
+  "tps": 190.0, // tokens/s de geração pura (eval_duration, não o total)
+  "confidence": 0.92, // confiança da classificação do roteador
+  "complexity": "baixa", // baixa | alta
+  "estimated_cost_usd": 0.0, // 0 para o modelo local; calculado para o externo (OpenRouter)
+  "rag_retrieval_ms": 38.3, // tempo da busca vetorial no RAG (domínios que passam por RAG)
+  "rag_chunks_count": 3,
+  "rag_avg_score": 0.71
 }
 ```
 
@@ -189,13 +207,13 @@ condicionada às respectivas APIs existirem no backend.
 
 **Gravação de áudio (`AudioRecorder`, R5):** botão de microfone
 (`components/chat/AudioRecorder.tsx`) ao lado do botão "Enviar" no
-`ChatPanel`. Comportamento **toggle** (não push-to-talk, ao contrário do que
+`ChatModal`. Comportamento **toggle** (não push-to-talk, ao contrário do que
 a Seção 3 lista como alternativa): um clique inicia a gravação
 (`navigator.mediaDevices.getUserMedia` + `MediaRecorder` do browser), outro
 clique para e dispara o envio automaticamente — sem edição/preview do áudio
 antes de enviar. Indicador visual de gravação: o próprio botão muda de ícone
 (🎤 → ⏹) e cor (vermelho, `animate-pulse`) enquanto grava, e outros controles
-do painel (campo de texto, botão "Enviar") ficam desabilitados durante a
+do modal (campo de texto, botão "Enviar") ficam desabilitados durante a
 gravação. O `Blob` gravado (formato depende do browser, tipicamente
 `audio/webm`) é convertido para base64 no cliente antes de enviar — o
 backend detecta o formato pelo conteúdo via faster-whisper/ffmpeg, não pela
@@ -208,6 +226,18 @@ mesmo áudio em base64. Permissão de microfone negada ou navegador sem suporte
 a `getUserMedia`/`MediaRecorder` são tratados localmente no próprio
 `AudioRecorder` (mensagem de erro ou botão desabilitado), sem afetar o resto
 do widget.
+
+**Telemetria e export de dataset** (além do MVP original, a pedido
+explícito — decisão registrada em `docs/ARCHITECTURE.md` §5): quando há
+pelo menos uma resposta do assistente na conversa, o `ChatModal` mostra um
+painel com os campos de telemetria da resposta (`model_name`,
+`prompt_tokens`/`completion_tokens`, `latency_ms`, `ttft_ms`, `tps`,
+`estimated_cost_usd`, `rag_retrieval_ms`/`rag_chunks_count`/`rag_avg_score`)
+e dois botões de exportação — CSV e JSON — que baixam as métricas de todas
+as mensagens da conversa atual (`frontend/lib/utils/exportMetrics.ts`),
+pensados para alimentar a avaliação experimental da Fase 10
+(`docs/EVALUATION.md`), não como uma feature de produto para o usuário
+final.
 
 Os tipos de request/response devem espelhar os schemas Pydantic do backend
 (`src/app/models/`, ver `docs/CONVENTIONS.md`) — ao gerar os tipos
@@ -237,7 +267,7 @@ frontend/
 ├── components/
 │   ├── chat/
 │   │   ├── ChatWidget.tsx          # botão flutuante + estado aberto/fechado
-│   │   ├── ChatPanel.tsx           # painel de conversa
+│   │   ├── ChatModal.tsx           # modal de conversa (sobre ui/Modal.tsx)
 │   │   ├── MessageBubble.tsx
 │   │   ├── AudioRecorder.tsx
 │   │   ├── ImageUploader.tsx
@@ -264,7 +294,7 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
 ## 6. Convenções específicas de frontend
 
 - TypeScript em modo `strict`; evitar `any` — tipar as respostas do backend.
-- Componentes pequenos e focados; o `ChatPanel` deve orquestrar
+- Componentes pequenos e focados; o `ChatModal` deve orquestrar
   subcomponentes (`MessageBubble`, `cards/*`), não conter toda a lógica.
 - Mobile-first: o widget de chat precisa funcionar bem em telas pequenas
   (é o principal ponto de contato do usuário com o produto do TCC).
