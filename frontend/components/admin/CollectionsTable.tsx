@@ -51,63 +51,68 @@ export function CollectionsTable({ collections, onChanged, onError, onSuccess }:
 
   return (
     <>
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-gray-500">
-            <th className="py-2 pr-4">Nome</th>
-            <th className="py-2 pr-4">Modelo</th>
-            <th className="py-2 pr-4">Dimensão</th>
-            <th className="py-2 pr-4">Métrica</th>
-            <th className="py-2 pr-4">HNSW</th>
-            <th className="py-2 pr-4">Quantização</th>
-            <th className="py-2 pr-4">Documentos</th>
-            <th className="py-2 pr-4" />
-          </tr>
-        </thead>
-        <tbody>
-          {collections.map((collection) => (
-            <tr key={collection.id} className="border-b border-gray-100">
-              <td className="py-2 pr-4 text-gray-900">
-                {collection.name}
-                {collection.is_active && (
-                  <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                    Ativa
-                  </span>
-                )}
-              </td>
-              <td className="py-2 pr-4 text-gray-700">{collection.embedding_model}</td>
-              <td className="py-2 pr-4 text-gray-700">{collection.vector_dimension}</td>
-              <td className="py-2 pr-4 text-gray-700">{collection.distance_metric}</td>
-              <td className="py-2 pr-4 text-gray-700">
-                m={collection.hnsw_m} / ef={collection.hnsw_ef_construct}
-              </td>
-              <td className="py-2 pr-4 text-gray-700">{collection.quantization_type}</td>
-              <td className="py-2 pr-4 text-gray-700">{collection.document_count}</td>
-              <td className="py-2 pr-4 text-right">
-                {!collection.is_active && (
+      <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <table className="w-full min-w-[700px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
+              <th className="py-3 px-4">Nome</th>
+              <th className="py-3 px-4">Modelo</th>
+              <th className="py-3 px-4">Dimensão</th>
+              <th className="py-3 px-4">Métrica</th>
+              <th className="py-3 px-4">HNSW</th>
+              <th className="py-3 px-4">Quantização</th>
+              <th className="py-3 px-4">Documentos</th>
+              <th className="py-3 px-4 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {collections.map((collection) => (
+              <tr key={collection.id} className="transition-colors hover:bg-slate-50/60">
+                <td className="py-3.5 px-4 font-semibold text-slate-900">
+                  <div className="inline-flex items-center gap-2">
+                    <span>{collection.name}</span>
+                    {collection.is_active && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 shadow-2xs">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        Ativa
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="py-3.5 px-4 text-slate-700 font-mono text-xs">{collection.embedding_model}</td>
+                <td className="py-3.5 px-4 text-slate-700">{collection.vector_dimension}</td>
+                <td className="py-3.5 px-4 text-slate-700 capitalize">{collection.distance_metric}</td>
+                <td className="py-3.5 px-4 text-slate-600 font-mono text-xs">
+                  m={collection.hnsw_m} / ef={collection.hnsw_ef_construct}
+                </td>
+                <td className="py-3.5 px-4 text-slate-700 capitalize">{collection.quantization_type}</td>
+                <td className="py-3.5 px-4 text-slate-700">{collection.document_count}</td>
+                <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                  {!collection.is_active && (
+                    <button
+                      type="button"
+                      onClick={() => handleAtivar(collection)}
+                      disabled={processando}
+                      className="mr-2 inline-flex items-center gap-1 rounded-lg border border-indigo-200/80 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 shadow-2xs transition-colors hover:bg-indigo-100/80 hover:text-indigo-800 disabled:opacity-50"
+                    >
+                      Ativar
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => handleAtivar(collection)}
-                    disabled={processando}
-                    className="mr-3 text-gray-700 hover:text-gray-900"
+                    onClick={() => setCollectionParaExcluir(collection)}
+                    disabled={processando || collection.is_active}
+                    title={collection.is_active ? "Ative outra collection antes de excluir esta." : undefined}
+                    className="inline-flex items-center gap-1 rounded-lg border border-red-200/80 bg-red-50/50 px-2.5 py-1 text-xs font-semibold text-red-600 shadow-2xs transition-colors hover:bg-red-100/80 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
-                    Ativar
+                    Excluir
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setCollectionParaExcluir(collection)}
-                  disabled={processando || collection.is_active}
-                  title={collection.is_active ? "Ative outra collection antes de excluir esta." : undefined}
-                  className="text-red-600 hover:text-red-800 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Excluir
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <Modal
         open={collectionParaExcluir !== null}

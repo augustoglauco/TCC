@@ -122,12 +122,24 @@ export default function ChatPanel() {
     }
   }
 
+  const toggleOpen = useChatStore((state) => state.toggleOpen);
   const controlsDisabled = isSending || isRecording;
 
   return (
-    <div className="flex h-[32rem] w-80 flex-col rounded-lg border border-gray-200 bg-white shadow-xl sm:w-96">
-      <header className="border-b border-gray-200 px-4 py-3">
-        <h2 className="text-sm font-semibold text-gray-900">Fale com a gente</h2>
+    <div className="fixed inset-x-3 bottom-20 top-auto z-50 flex h-[80vh] max-h-[540px] flex-col rounded-xl border border-slate-200 bg-white shadow-2xl sm:static sm:h-[32rem] sm:w-96">
+      <header className="flex items-center justify-between border-b border-slate-200 bg-slate-50/80 px-4 py-3 rounded-t-xl">
+        <div className="flex items-center gap-2">
+          <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <h2 className="text-sm font-bold text-slate-900">Assistente Virtual</h2>
+        </div>
+        <button
+          type="button"
+          onClick={toggleOpen}
+          aria-label="Fechar painel de chat"
+          className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+        >
+          ✕
+        </button>
       </header>
 
       <div aria-live="polite" className="flex-1 space-y-3 overflow-y-auto px-4 py-3">

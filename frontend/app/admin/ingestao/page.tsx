@@ -279,29 +279,41 @@ export default function IngestaoDocumentosPage() {
   }, [carregarColecoes]);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16">
-      <h1 className="text-2xl font-semibold text-gray-900">Ingestão de documentos (RAG)</h1>
-      <p className="mt-2 text-gray-600">Página interna, sem impacto na navegação pública do site.</p>
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12 space-y-6">
+      {/* Cabeçalho */}
+      <div className="border-b border-slate-200 pb-4">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+          <span>📄</span> Painel de Ingestão RAG
+        </div>
+        <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          Ingestão de Documentos & Coleções
+        </h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Gestão de documentos indexados, perfis de coleção no Qdrant e playground comparativo de busca semântica.
+        </p>
+      </div>
 
-      <Tabs defaultValue="enviar" className="mt-8">
-        <TabsList>
+      <Tabs defaultValue="enviar" className="mt-6 space-y-4">
+        <TabsList className="flex-wrap gap-1">
           <TabsTrigger value="enviar">Enviar documento</TabsTrigger>
           <TabsTrigger value="documentos">Documentos ingeridos</TabsTrigger>
           <TabsTrigger value="configuracao">Configuração</TabsTrigger>
           <TabsTrigger value="playground">Playground</TabsTrigger>
         </TabsList>
-        <TabsContent value="enviar">
-          <AbaEnviarDocumento collections={collections} onIngerido={() => setReloadKey((key) => key + 1)} />
-        </TabsContent>
-        <TabsContent value="documentos">
-          <AbaDocumentosIngeridos key={reloadKey} collections={collections} />
-        </TabsContent>
-        <TabsContent value="configuracao">
-          <AbaConfiguracao collections={collections} onChanged={carregarColecoes} />
-        </TabsContent>
-        <TabsContent value="playground">
-          <PlaygroundPanel collections={collections} />
-        </TabsContent>
+        <div className="max-h-[calc(78vh-140px)] min-h-[420px] overflow-y-auto pr-1">
+          <TabsContent value="enviar">
+            <AbaEnviarDocumento collections={collections} onIngerido={() => setReloadKey((key) => key + 1)} />
+          </TabsContent>
+          <TabsContent value="documentos">
+            <AbaDocumentosIngeridos key={reloadKey} collections={collections} />
+          </TabsContent>
+          <TabsContent value="configuracao">
+            <AbaConfiguracao collections={collections} onChanged={carregarColecoes} />
+          </TabsContent>
+          <TabsContent value="playground">
+            <PlaygroundPanel collections={collections} />
+          </TabsContent>
+        </div>
       </Tabs>
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
