@@ -10,6 +10,7 @@ from app.api.local_models import router as local_models_router
 from app.api.rag import router as rag_router
 from app.api.rag_collections import router as rag_collections_router
 from app.api.rag_playground import router as rag_playground_router
+from app.api.runtime_settings import router as runtime_settings_router
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
@@ -45,6 +46,7 @@ def create_app() -> FastAPI:
         base_url=settings.local_model_base_url,
         model=settings.local_model_name,
         timeout_s=settings.local_llm_timeout_s,
+        temperature=settings.local_llm_temperature,
     )
     app.state.external_client = OpenRouterClient(
         base_url=settings.external_model_base_url,
@@ -101,6 +103,7 @@ def create_app() -> FastAPI:
     app.include_router(rag_router)
     app.include_router(rag_collections_router)
     app.include_router(rag_playground_router)
+    app.include_router(runtime_settings_router)
 
     return app
 

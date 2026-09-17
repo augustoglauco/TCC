@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { LocalModelsTable } from "@/components/admin/LocalModelsTable";
 import { PullModelForm } from "@/components/admin/PullModelForm";
+import { RuntimeSettingsForm } from "@/components/admin/RuntimeSettingsForm";
 import { ToastStack, useToast } from "@/components/ui/Toast";
 import { LocalModelsApiError, listLocalModels } from "@/lib/api/localModels";
 import type { LocalModel } from "@/lib/types/localModels";
@@ -75,6 +76,19 @@ export default function ModelosPage() {
         </p>
         <div className="mt-4">
           <PullModelForm onPulled={carregarModelos} />
+        </div>
+      </div>
+
+      <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-medium text-gray-900">Parâmetros de execução</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Ajustáveis em runtime, só em memória — resetam a cada restart do backend.
+        </p>
+        <div className="mt-4">
+          <RuntimeSettingsForm
+            onError={(message) => showToast(message, "error")}
+            onSuccess={(message) => showToast(message, "success")}
+          />
         </div>
       </div>
 

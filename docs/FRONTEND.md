@@ -41,7 +41,7 @@ registrada aqui com o motivo.
 | Contato | `/contato` | Dados institucionais, formas de contato alternativas ao chat | Não |
 | **Chat** | widget global (todas as rotas) | Ponto de entrada único para os quatro domínios de atendimento — ver Seção 3 | Não (funciona anônimo; melhora com login) |
 | Admin — Ingestão de documentos | `/admin/ingestao` | Página interna (acessível pelo menu de engrenagem ⚙️ no cabeçalho e pelo rodapé) para upload de PDF/texto e ingestão no RAG (R4), complementando `backend/scripts/ingest_sample_docs.py` — decisão registrada em `docs/ARCHITECTURE.md` §5 | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
-| Admin — Modelos locais (Ollama) | `/admin/modelos` | Página interna (acessível pelo menu de engrenagem ⚙️ no cabeçalho e pelo rodapé) para listar/ativar em runtime/baixar (Ollama ou Hugging Face GGUF) modelos locais de chat — ferramenta de teste, não substitui a escolha de produção da Fase 10 — decisão registrada em `docs/ARCHITECTURE.md` §5 | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
+| Admin — Modelos locais (Ollama) | `/admin/modelos` | Página interna (acessível pelo menu de engrenagem ⚙️ no cabeçalho e pelo rodapé) para listar/ativar em runtime/baixar (Ollama ou Hugging Face GGUF) modelos locais de chat, além de ajustar em runtime a temperatura do modelo local, os timeouts local/externo e a flag de fallback de domínio do RAG (seção "Parâmetros de execução") — ferramenta de teste, não substitui a escolha de produção da Fase 10 — decisão registrada em `docs/ARCHITECTURE.md` §5 | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
 
 Todas as páginas compartilham `layout.tsx`, que inclui o widget de chat — ele
 deve estar disponível em qualquer rota, inclusive durante o checkout.
@@ -135,6 +135,8 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `POST /api/admin/local-models/activate` | Troca em runtime qual modelo local o chat usa (só em memória, reseta no restart), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/admin/local-models/pull` | Dispara o download de um modelo (biblioteca do Ollama ou GGUF do Hugging Face) em background, sem bloquear o backend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `GET /api/admin/local-models/pull-status` | Consulta o progresso de um download em andamento (query param `name`), usado em polling pelo frontend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/admin/runtime-settings` | Lê os parâmetros de execução ajustáveis em runtime (temperatura do modelo local, timeouts local/externo, fallback de domínio do RAG), só em memória, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `PUT /api/admin/runtime-settings` | Atualiza (parcialmente — só os campos enviados mudam) os parâmetros acima; `local_llm_temperature: null` explícito reseta para o default do próprio modelo, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 
 `POST /api/chat/messages` — contrato já implementado (Fase 2 para o request;
 streaming SSE do response adicionado depois, ver decisão em

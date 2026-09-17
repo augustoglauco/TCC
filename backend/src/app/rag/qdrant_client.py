@@ -149,6 +149,14 @@ class QdrantRAGClient:
         # em docs/ARCHITECTURE.md §5.
         self._create_lock = asyncio.Lock()
 
+    @property
+    def search_domain_fallback(self) -> bool:
+        return self._search_domain_fallback
+
+    @search_domain_fallback.setter
+    def search_domain_fallback(self, value: bool) -> None:
+        self._search_domain_fallback = value
+
     async def collection_exists(self, collection_name: str) -> bool:
         try:
             return await self._client.collection_exists(collection_name)

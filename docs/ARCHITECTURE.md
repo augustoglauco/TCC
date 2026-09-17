@@ -188,6 +188,28 @@ no roadmap para não ser confundida com item do escopo original nem
 esquecida na revisão final (Fase 11). Detalhes de implementação:
 `docs/superpowers/specs/2026-09-16-local-model-manager-design.md`.
 
+**Decisão registrada (além do MVP, a pedido explícito, 2026-09-17):** a
+mesma tela (`/admin/modelos`) ganhou uma seção "Parâmetros de execução"
+para ajustar em runtime, também só em memória (reseta a cada restart): a
+temperatura do modelo local (`OllamaClient.temperature`, `null` = usa o
+default do próprio modelo — nenhuma chamada manda `options.temperature`
+até alguém setar um valor explícito, sem mudar o comportamento anterior),
+o timeout das chamadas não-streaming ao backend local e ao externo
+(`OllamaClient.timeout_s`/`OpenRouterClient.timeout_s`), e a flag
+`QdrantRAGClient.search_domain_fallback` (antes só configurável via
+`.env`/restart, ver decisão de 2026-09-17 acima sobre o bug de isolamento
+de domínio). Um único endpoint, `GET`/`PUT /api/admin/runtime-settings`
+(`PUT` com atualização parcial — só os campos enviados mudam), cobre os
+quatro parâmetros, já que eles tocam três clients diferentes (Ollama,
+OpenRouter, Qdrant) e não fazem sentido debaixo do prefixo
+`/api/admin/local-models`. Motivo direto: a temperatura do Ollama também é
+usada pela chamada de classificação de intenção do roteador (mesmo
+client/model) — baixá-la reduz a instabilidade de classificação
+observada em mensagens de acompanhamento ambíguas, sem precisar de uma
+chamada de classificação separada com `temperature` fixo. `# MVP: sem
+persistência entre restarts, mesmo padrão do modelo ativo acima — não
+substitui a escolha formal de hiperparâmetros da Fase 10`.
+
 **Decisão registrada (Fase 2, conector de BD relacional exigido por R4,
 2026-09-16):** o conector de leitura a BD relacional reaproveita o mesmo
 Postgres já provisionado em `docker-compose.yml` (o mesmo usado por

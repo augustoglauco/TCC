@@ -49,6 +49,22 @@ async def test_openrouter_client_raises_on_http_error():
         await client.generate("oi")
 
 
+async def test_timeout_s_property_e_setter():
+    client = OpenRouterClient(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="test-key",
+        model="anthropic/claude-3.5-haiku",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_transport({})),
+    )
+
+    assert client.timeout_s == 30.0
+
+    client.timeout_s = 60.0
+
+    assert client.timeout_s == 60.0
+
+
 async def test_is_model_ready_sempre_true():
     client = OpenRouterClient(
         base_url="https://openrouter.ai/api/v1",

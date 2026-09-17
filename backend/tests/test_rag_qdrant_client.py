@@ -171,6 +171,14 @@ async def test_search_com_fallback_habilitado_traz_documento_de_outro_dominio(
     assert resultado[0].source == "manual_gd30.txt"
 
 
+async def test_search_domain_fallback_property_e_setter(qdrant: QdrantRAGClient):
+    assert qdrant.search_domain_fallback is False
+
+    qdrant.search_domain_fallback = True
+
+    assert qdrant.search_domain_fallback is True
+
+
 async def test_search_erro_de_conexao_vira_rag_connection_error(text_embedder: TextEmbedder):
     # Porta sem nenhum serviço no ar — falha de conexão, não busca vazia.
     client = QdrantRAGClient(host="localhost", port=1)

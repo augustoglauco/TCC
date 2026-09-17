@@ -48,11 +48,13 @@ class OllamaClient:
         base_url: str,
         model: str,
         timeout_s: float,
+        temperature: float | None = None,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._timeout_s = timeout_s
+        self._temperature = temperature
         self._client = client or httpx.AsyncClient()
 
     @property
@@ -63,10 +65,32 @@ class OllamaClient:
     def model(self, value: str) -> None:
         self._model = value
 
+    @property
+    def timeout_s(self) -> float:
+        return self._timeout_s
+
+    @timeout_s.setter
+    def timeout_s(self, value: float) -> None:
+        self._timeout_s = value
+
+    @property
+    def temperature(self) -> float | None:
+        return self._temperature
+
+    @temperature.setter
+    def temperature(self, value: float | None) -> None:
+        self._temperature = value
+
+    def _build_payload(self, prompt: str, stream: bool) -> dict:
+        payload: dict = {"model": self._model, "prompt": prompt, "stream": stream}
+        if self._temperature is not None:
+            payload["options"] = {"temperature": self._temperature}
+        return payload
+
     async def generate(self, prompt: str) -> LLMResponse:
         response = await self._client.post(
             f"{self._base_url}/api/generate",
-            json={"model": self._model, "prompt": prompt, "stream": False},
+            json=self._build_payload(prompt, stream=False),
             timeout=self._timeout_s,
         )
         response.raise_for_status()
@@ -103,7 +127,7 @@ class OllamaClient:
         async with self._client.stream(
             "POST",
             f"{self._base_url}/api/generate",
-            json={"model": self._model, "prompt": prompt, "stream": True},
+            json=self._build_payload(prompt, stream=True),
             timeout=None,
         ) as response:
             response.raise_for_status()
