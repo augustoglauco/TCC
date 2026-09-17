@@ -76,7 +76,9 @@ async def test_generate_stream_emite_delta_de_conteudo_e_chunk_final_com_usage()
     lines = [
         'data: {"choices":[{"delta":{"content":"Olá"}}]}',
         'data: {"choices":[{"delta":{"content":", tudo bem?"}}]}',
-        'data: {"choices":[{"delta":{}}],"usage":{"prompt_tokens":12,"completion_tokens":34}}',
+        # Formato real da API: o chunk de `usage` costuma vir com `choices`
+        # PRESENTE mas VAZIO, não com um item de `delta` vazio.
+        'data: {"choices":[],"usage":{"prompt_tokens":12,"completion_tokens":34}}',
         "data: [DONE]",
     ]
     client = OpenRouterClient(

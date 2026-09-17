@@ -111,6 +111,14 @@ class OllamaClient:
                 if not line.strip():
                     continue
                 data = json.loads(line)
+                if data.get("error"):
+                    # O Ollama pode emitir uma linha `{"error": "..."}` no meio
+                    # do stream (ex.: falta de VRAM durante o cold-start do
+                    # modelo) em vez de `response`/`done` — sem isso, o stream
+                    # terminava em silêncio, sem nunca emitir um chunk final.
+                    # Propaga como exceção normal para o orchestrator converter
+                    # em `LocalBackendIndisponivelError`.
+                    raise RuntimeError(data["error"])
                 texto = data.get("response") or ""
                 if texto:
                     yield LLMStreamChunk(text=texto)

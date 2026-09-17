@@ -167,4 +167,11 @@ async def send_message(
                 "error", {"detail": "Serviço temporariamente indisponível, tente novamente."}
             )
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        # MVP: headers mínimos anti-buffering — sem eles, um proxy reverso
+        # (ex. nginx) pode segurar o stream até fechar em vez de repassar
+        # cada chunk incrementalmente (ver docs/ARCHITECTURE.md §5).
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

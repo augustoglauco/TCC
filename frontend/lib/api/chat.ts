@@ -2,17 +2,6 @@ import type { ChatDoneEventData, ChatMessageRequest } from "@/lib/types/chat";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-/** Erro de comunicação com `POST /api/chat/messages` (rede ou HTTP não-2xx). */
-export class ChatApiError extends Error {
-  status?: number;
-
-  constructor(message: string, status?: number) {
-    super(message);
-    this.name = "ChatApiError";
-    this.status = status;
-  }
-}
-
 export interface SendChatMessageParams {
   /** Texto digitado pelo usuário. Opcional se `audioBase64` for informado. */
   message?: string;
@@ -90,6 +79,11 @@ export async function sendChatMessage({
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+  // MVP: se o stream terminar sem `onDone` nem `onError` terem sido
+  // chamados (ex.: o backend fecha a conexão sem emitir `done`/`error`), a
+  // UI ficaria travada sem nenhum feedback — essa flag garante que sempre
+  // sobra um `onError` nesse caso.
+  let concluiu = false;
 
   try {
     while (true) {
@@ -118,9 +112,11 @@ export async function sendChatMessage({
               onToken(json.text);
               break;
             case "done":
+              concluiu = true;
               onDone(json as ChatDoneEventData);
               break;
             case "error":
+              concluiu = true;
               onError(json.detail ?? "Erro inesperado. Tente novamente.");
               break;
           }
@@ -130,5 +126,10 @@ export async function sendChatMessage({
     }
   } catch {
     onError("Conexão perdida durante o recebimento da resposta. Tente novamente.");
+    return;
+  }
+
+  if (!concluiu) {
+    onError("Resposta incompleta do servidor. Tente novamente.");
   }
 }

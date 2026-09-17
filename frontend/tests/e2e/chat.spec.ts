@@ -5,19 +5,30 @@ import { expect, test } from "@playwright/test";
 // (abrir widget, enviar, exibir resposta/erro); a integração real com o
 // backend fica para os testes de integração ponta a ponta da Fase 9 (ver
 // docs/ROADMAP.md).
+//
+// O corpo mockado é o contrato real de streaming SSE (`text/event-stream`,
+// blocos `event:`/`data:`), não mais o JSON síncrono antigo — ver
+// `docs/FRONTEND.md` §4.
+
+function sseBody(events: Array<{ event: string; data: unknown }>): string {
+  return (
+    events.map(({ event, data }) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`).join("")
+  );
+}
 
 test("envia mensagem de texto e exibe a resposta do assistente", async ({ page }) => {
   await page.route("**/api/chat/messages", async (route) => {
     await route.fulfill({
       status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        conversation_id: "e2e-conversation-id",
-        message: "Posso ajudar a agendar sua visita.",
-        domain: "agendamento",
-        backend_used: "local",
-        escalation_reason: "nenhum",
-      }),
+      contentType: "text/event-stream",
+      body: sseBody([
+        { event: "conversation", data: { conversation_id: "e2e-conversation-id" } },
+        { event: "token", data: { text: "Posso ajudar a agendar sua visita." } },
+        {
+          event: "done",
+          data: { domain: "agendamento", backend_used: "local", escalation_reason: "nenhum" },
+        },
+      ]),
     });
   });
 
@@ -41,14 +52,15 @@ test("mostra erro com opção de tentar novamente quando a API falha", async ({ 
     }
     await route.fulfill({
       status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        conversation_id: "e2e-conversation-id",
-        message: "Agora funcionou.",
-        domain: "agendamento",
-        backend_used: "local",
-        escalation_reason: "nenhum",
-      }),
+      contentType: "text/event-stream",
+      body: sseBody([
+        { event: "conversation", data: { conversation_id: "e2e-conversation-id" } },
+        { event: "token", data: { text: "Agora funcionou." } },
+        {
+          event: "done",
+          data: { domain: "agendamento", backend_used: "local", escalation_reason: "nenhum" },
+        },
+      ]),
     });
   });
 
@@ -75,15 +87,16 @@ test("grava um áudio (dispositivo fake) e exibe o texto transcrito na bolha do 
   await page.route("**/api/chat/messages", async (route) => {
     await route.fulfill({
       status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        conversation_id: "e2e-conversation-id",
-        message: "Posso ajudar a agendar sua visita.",
-        domain: "agendamento",
-        backend_used: "local",
-        escalation_reason: "nenhum",
-        transcribed_message: "Quero agendar uma visita",
-      }),
+      contentType: "text/event-stream",
+      body: sseBody([
+        { event: "conversation", data: { conversation_id: "e2e-conversation-id" } },
+        { event: "transcription", data: { transcribed_message: "Quero agendar uma visita" } },
+        { event: "token", data: { text: "Posso ajudar a agendar sua visita." } },
+        {
+          event: "done",
+          data: { domain: "agendamento", backend_used: "local", escalation_reason: "nenhum" },
+        },
+      ]),
     });
   });
 

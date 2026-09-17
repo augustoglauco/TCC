@@ -22,6 +22,7 @@ interface PendingError {
 const AUDIO_FALLBACK_TEXT = "(áudio sem fala reconhecível)";
 const AUDIO_PENDING_TEXT = "🎤 Transcrevendo áudio...";
 const AUDIO_FAILED_TEXT = "🎤 (não foi possível processar o áudio)";
+const NO_RESPONSE_TEXT = "(sem resposta do modelo, tente novamente)";
 
 export interface ChatModalProps {
   open: boolean;
@@ -79,9 +80,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         garantirBolha(textoAcumulado);
       },
       onDone: (data) => {
-        if (!bolhaCriada) {
-          garantirBolha(textoAcumulado);
-        }
+        // MVP: garante que a bolha nunca fique travada mostrando o
+        // placeholder de status (ou vazia) quando a geração produz zero
+        // tokens — ex. logo após um cold-start do modelo local.
+        garantirBolha(textoAcumulado || NO_RESPONSE_TEXT);
         updateMessage(assistantId, {
           domain: data.domain,
           backendUsed: data.backend_used,
@@ -150,9 +152,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         garantirBolha(textoAcumulado);
       },
       onDone: (data) => {
-        if (!bolhaCriada) {
-          garantirBolha(textoAcumulado);
-        }
+        // MVP: mesma garantia do fluxo de texto — nunca deixa a bolha do
+        // assistente travada no placeholder de status (ou vazia) quando a
+        // geração produz zero tokens.
+        garantirBolha(textoAcumulado || NO_RESPONSE_TEXT);
         updateMessage(assistantId, {
           domain: data.domain,
           backendUsed: data.backend_used,
