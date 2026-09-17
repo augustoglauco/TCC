@@ -294,6 +294,30 @@ persistida em banco (isso seria a tabela `router_logs` da Fase 6); TTFT só
 fica `null` para o externo (OpenRouter não expõe essa granularidade em modo
 não-streaming)`.
 
+**Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
+`POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou
+a devolver a resposta como o próprio stream **Server-Sent Events** (SSE),
+`Content-Type: text/event-stream` — não existe um endpoint `GET` de stream
+separado (uma ideia cogitada inicialmente em `docs/FRONTEND.md`, mas
+descartada: manter tudo no mesmo `POST` evita duplicar a lógica de
+validação de entrada/histórico de conversa entre dois endpoints). Eventos
+emitidos, nesta ordem: `conversation` (id da conversa), `transcription`
+(opcional, só quando há áudio transcrito), `status` (opcional, quando o
+modelo escolhido ainda não está carregado), `token` (zero ou mais, um por
+trecho de texto gerado — o cliente concatena para montar a resposta
+completa) e, por fim, `done` (telemetria completa, mesmos campos que antes
+iam no JSON síncrono, exceto o texto da resposta em si, que já chegou via
+`token`) ou `error` em caso de falha de uma dependência (Ollama, OpenRouter,
+Qdrant) **depois** que o stream já abriu — nesse ponto o HTTP já é 200, não
+dá mais para trocar por um status de erro. Erros de validação de entrada
+anteriores à abertura do stream (áudio base64 inválido, nem `message` nem
+`audio`, STT indisponível) continuam HTTP 400/422/503 normal, sem SSE. O
+histórico de conversa em memória só é atualizado quando o `done` chega com
+sucesso, não em caso de `error`. Contrato completo (payload de cada evento)
+em `docs/FRONTEND.md` §4. `# MVP: sem reconexão automática/`Last-Event-ID`
+se a conexão cair no meio do stream — o cliente perde os tokens já enviados
+e precisa reenviar a mensagem inteira, aceitável para este protótipo`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

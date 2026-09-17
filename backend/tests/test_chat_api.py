@@ -1,4 +1,5 @@
 import base64
+import json
 
 import pytest
 from fastapi import FastAPI
@@ -13,9 +14,30 @@ from app.api.chat import (
     reset_conversation_history,
 )
 from app.api.chat import router as chat_router
-from app.router.llm_client import LLMResponse
+from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
 from app.stt.whisper_client import SttIndisponivelError
+
+
+def _parse_sse(body: str) -> list[tuple[str, dict]]:
+    eventos = []
+    for bloco in body.split("\n\n"):
+        if not bloco.strip():
+            continue
+        tipo = None
+        dados = None
+        for linha in bloco.split("\n"):
+            if linha.startswith("event:"):
+                tipo = linha[len("event:") :].strip()
+            elif linha.startswith("data:"):
+                dados = json.loads(linha[len("data:") :].strip())
+        if tipo and dados is not None:
+            eventos.append((tipo, dados))
+    return eventos
+
+
+def _find(eventos: list[tuple[str, dict]], tipo: str) -> dict:
+    return next(dados for t, dados in eventos if t == tipo)
 
 
 class _FakeLLMClient:
@@ -26,6 +48,25 @@ class _FakeLLMClient:
     async def generate(self, prompt: str) -> LLMResponse:
         self.prompts.append(prompt)
         return self._response
+
+    async def is_model_ready(self) -> bool:
+        return True
+
+    async def generate_stream(self, prompt: str):
+        self.prompts.append(prompt)
+        if self._response.text:
+            yield LLMStreamChunk(text=self._response.text)
+        yield LLMStreamChunk(
+            done=True,
+            prompt_tokens=self._response.prompt_tokens,
+            completion_tokens=self._response.completion_tokens,
+            total_duration_ms=self._response.total_duration_ms,
+            load_duration_ms=self._response.load_duration_ms,
+            prompt_eval_duration_ms=self._response.prompt_eval_duration_ms,
+            eval_duration_ms=self._response.eval_duration_ms,
+            estimated_cost_usd=self._response.estimated_cost_usd,
+            model_name=self._response.model_name,
+        )
 
 
 class _FakeRAGClient:
@@ -86,17 +127,27 @@ def test_envia_mensagem_de_texto_simples(client):
     response = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"})
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["message"] == "resposta local"
-    assert body["domain"] == "agendamento"
-    assert body["backend_used"] == "local"
-    assert body["escalation_reason"] == "nenhum"
-    assert isinstance(body["conversation_id"], str) and body["conversation_id"]
+    eventos = _parse_sse(response.text)
+    tipos = [tipo for tipo, _ in eventos]
+    assert tipos[0] == "conversation"
+    assert tipos[-1] == "done"
+
+    dados_conversation = _find(eventos, "conversation")
+    conversation_id = dados_conversation["conversation_id"]
+    assert isinstance(conversation_id, str) and conversation_id
+
+    dados_done = _find(eventos, "done")
+    assert dados_done["domain"] == "agendamento"
+    assert dados_done["backend_used"] == "local"
+    assert dados_done["escalation_reason"] == "nenhum"
+
+    textos_token = [dados["text"] for tipo, dados in eventos if tipo == "token"]
+    assert "".join(textos_token) == "resposta local"
 
 
 def test_conversation_id_mantem_historico_entre_chamadas(client):
-    first = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"}).json()
-    conversation_id = first["conversation_id"]
+    first = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"})
+    conversation_id = _find(_parse_sse(first.text), "conversation")["conversation_id"]
 
     # Mensagem isolada e ambígua para o classificador por palavra-chave (não
     # casa nenhum domínio sozinha); só resolve para "agendamento" se o
@@ -105,16 +156,16 @@ def test_conversation_id_mantem_historico_entre_chamadas(client):
     second = client.post(
         "/api/chat/messages",
         json={"message": "pode ser amanhã às 10h", "conversation_id": conversation_id},
-    ).json()
-
-    assert second["conversation_id"] == conversation_id
-    assert second["domain"] == "agendamento"
+    )
+    eventos_second = _parse_sse(second.text)
+    assert _find(eventos_second, "conversation")["conversation_id"] == conversation_id
+    assert _find(eventos_second, "done")["domain"] == "agendamento"
 
     # Sem conversation_id (conversa nova), a mesma mensagem isolada cai em
     # fora_escopo por falta de contexto — prova de que o histórico é o que
     # muda o resultado, não a heurística da mensagem em si.
-    isolated = client.post("/api/chat/messages", json={"message": "pode ser amanhã às 10h"}).json()
-    assert isolated["domain"] == "fora_escopo"
+    isolated = client.post("/api/chat/messages", json={"message": "pode ser amanhã às 10h"})
+    assert _find(_parse_sse(isolated.text), "done")["domain"] == "fora_escopo"
 
 
 def test_audio_e_transcrito_e_usado_como_mensagem(client, fakes):
@@ -131,13 +182,13 @@ def test_audio_e_transcrito_e_usado_como_mensagem(client, fakes):
     )
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["domain"] == "agendamento"
+    eventos = _parse_sse(response.text)
+    assert _find(eventos, "done")["domain"] == "agendamento"
     assert fakes["stt"].received_audio == [b"conteudo-de-audio-fake"]
     assert fakes["local"].prompts == ["quero agendar uma visita"]
 
 
-def test_audio_transcrito_aparece_em_transcribed_message(client, fakes):
+def test_audio_transcrito_aparece_em_transcription_event(client, fakes):
     fakes["stt"] = _FakeSttClient(text="quero agendar uma visita")
     client.app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
     audio_b64 = base64.b64encode(b"conteudo-de-audio-fake").decode()
@@ -145,16 +196,18 @@ def test_audio_transcrito_aparece_em_transcribed_message(client, fakes):
     response = client.post("/api/chat/messages", json={"audio": audio_b64})
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["transcribed_message"] == "quero agendar uma visita"
-    assert body["domain"] == "agendamento"
+    eventos = _parse_sse(response.text)
+    assert _find(eventos, "transcription")["transcribed_message"] == "quero agendar uma visita"
+    assert _find(eventos, "done")["domain"] == "agendamento"
 
 
-def test_mensagem_de_texto_simples_nao_preenche_transcribed_message(client):
+def test_mensagem_de_texto_simples_nao_gera_transcription_event(client):
     response = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"})
 
     assert response.status_code == 200
-    assert response.json()["transcribed_message"] is None
+    eventos = _parse_sse(response.text)
+    tipos = [tipo for tipo, _ in eventos]
+    assert "transcription" not in tipos
 
 
 def test_sem_message_e_sem_audio_retorna_422(client):
@@ -184,7 +237,8 @@ def test_audio_transcrito_vazio_cai_de_volta_para_mensagem_de_texto(client, fake
     )
 
     assert response.status_code == 200
-    assert response.json()["domain"] == "agendamento"
+    eventos = _parse_sse(response.text)
+    assert _find(eventos, "done")["domain"] == "agendamento"
     assert fakes["local"].prompts == ["quero agendar uma visita"]
 
 
@@ -213,10 +267,17 @@ def test_stt_indisponivel_retorna_503(fakes):
     assert response.status_code == 503
 
 
-def test_dependencia_indisponivel_retorna_503(fakes):
+def test_dependencia_indisponivel_gera_evento_de_erro(fakes):
     class _FailingLLMClient:
         async def generate(self, prompt: str) -> LLMResponse:
             raise ConnectionError("ollama fora do ar")
+
+        async def is_model_ready(self) -> bool:
+            return True
+
+        async def generate_stream(self, prompt: str):
+            raise ConnectionError("ollama fora do ar")
+            yield  # pragma: no cover - necessário para ser um async generator
 
     fakes["local"] = _FailingLLMClient()
     fakes["external"] = _FailingLLMClient()
@@ -229,4 +290,7 @@ def test_dependencia_indisponivel_retorna_503(fakes):
         )
     reset_conversation_history()
 
-    assert response.status_code == 503
+    assert response.status_code == 200
+    eventos = _parse_sse(response.text)
+    assert eventos[-1][0] == "error"
+    assert "temporariamente indisponível" in eventos[-1][1]["detail"]

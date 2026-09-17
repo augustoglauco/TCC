@@ -62,9 +62,13 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       /api/chat/messages` (`backend/src/app/api/chat.py`,
       `backend/src/app/models/chat.py`), encaminhando ao orchestrator com
       histórico em memória por processo (últimas 1-3 mensagens por
-      `conversation_id`, resposta síncrona/JSON, sem SSE); campo `audio`
-      (base64) processado via STT quando presente, com fallback para
-      `payload.message` se a transcrição vier vazia (`# MVP: ...`)
+      `conversation_id`); campo `audio` (base64) processado via STT quando
+      presente, com fallback para `payload.message` se a transcrição vier
+      vazia (`# MVP: ...`). Resposta passou a ser **streaming via SSE**
+      (`text/event-stream`, eventos `conversation`/`transcription`/`status`/
+      `token`/`done`/`error`) em vez do JSON síncrono original — ver decisão
+      registrada em `docs/ARCHITECTURE.md` §5 ("Streaming SSE do chat") e
+      contrato completo em `docs/FRONTEND.md` §4
 - [x] Implementar STT (áudio → texto) com suporte a pelo menos dois formatos
       comuns (ex.: wav e mp3) — `backend/src/app/stt/whisper_client.py`
       (faster-whisper, GPU local), formato detectado pelo conteúdo dos bytes
@@ -238,9 +242,11 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       envio/áudio/métricas, só a apresentação — ver `docs/FRONTEND.md` §3
 - [~] Implementar envio de texto e exibição do streaming de resposta (SSE) —
       envio de texto síncrono concluído (`lib/api/chat.ts`, `ChatModal`),
-      consumindo `POST /api/chat/messages`; falta o streaming via SSE, que
-      depende de `GET /api/chat/stream/{conversation_id}` (ainda não existe
-      no backend)
+      consumindo `POST /api/chat/messages`; o backend já devolve o contrato
+      SSE (`text/event-stream`, ver `docs/FRONTEND.md` §4), mas o frontend
+      ainda não foi adaptado para consumi-lo — `sendChatMessage` ainda chama
+      `response.json()`, que quebra contra o backend atual; falta essa
+      adaptação (parsing incremental de eventos SSE, exibição token a token)
 - [~] Implementar upload de imagem (`ImageUploader`) e gravação de áudio
       (`AudioRecorder`) — gravação de áudio concluída:
       `components/chat/AudioRecorder.tsx` (toggle, indicador visual de
