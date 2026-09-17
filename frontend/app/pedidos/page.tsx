@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
 // MVP: histórico de pedidos ilustrativo (ver docs/ROADMAP.md, Fase 7)

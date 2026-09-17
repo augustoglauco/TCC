@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
 // MVP: catálogo ilustrativo para demonstração (ver docs/ROADMAP.md, Fase 7)
