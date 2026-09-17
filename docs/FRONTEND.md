@@ -109,8 +109,7 @@ Fase 10/11 do `docs/ROADMAP.md`:
 
 | Endpoint | Uso |
 | --- | --- |
-| `POST /api/chat/messages` | Envia mensagem (texto e/ou imagem e/ou áudio) de uma conversa; retorna a resposta (ou inicia o stream) |
-| `GET /api/chat/stream/{conversation_id}` (SSE) | Stream da resposta do assistente em geração |
+| `POST /api/chat/messages` | Envia mensagem (texto e/ou imagem e/ou áudio) de uma conversa; resposta é o próprio stream Server-Sent Events (SSE) da geração — não há endpoint `GET` separado |
 | `GET /api/chat/conversations/{id}` | Recupera histórico/resumo da conversa (R9) |
 | `GET /api/products` , `GET /api/products/{id}` | Catálogo de produtos (mesma base do RAG/MCP B2B) |
 | `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` | Criação e histórico de pedidos |
@@ -131,8 +130,10 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `POST /api/admin/local-models/pull` | Dispara o download de um modelo (biblioteca do Ollama ou GGUF do Hugging Face) em background, sem bloquear o backend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `GET /api/admin/local-models/pull-status` | Consulta o progresso de um download em andamento (query param `name`), usado em polling pelo frontend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 
-`POST /api/chat/messages` — contrato já implementado (Fase 2, texto e áudio;
-ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
+`POST /api/chat/messages` — contrato já implementado (Fase 2 para o request;
+streaming SSE do response adicionado depois, ver decisão em
+`docs/ARCHITECTURE.md` §5 "Streaming SSE do chat"; ver
+`backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
 
 ```jsonc
 // Request
@@ -141,63 +142,92 @@ ver `backend/src/app/api/chat.py` e `backend/src/app/models/chat.py`):
   "conversation_id": "uuid-opcional, omitir para iniciar conversa nova",
   "audio": null // opcional, base64 (wav ou mp3) — processado via STT (R5) quando presente
 }
+```
 
-// Response (200)
-{
-  "conversation_id": "uuid-da-conversa",
-  "message": "texto da resposta do assistente",
-  "domain": "vendas", // vendas | suporte | atendimento | agendamento | fora_escopo
-  "backend_used": "local", // local | externo
-  "escalation_reason": "nenhum", // nenhum | fora_escopo | rag_vazio | complexidade_alta
-  "transcribed_message": null, // só preenchido quando o request trouxe `audio`
+A resposta (200) é o próprio stream: `Content-Type: text/event-stream`, uma
+sequência de eventos SSE (`event: <tipo>\ndata: <json>\n\n`), nesta ordem:
+
+```
+event: conversation
+data: {"conversation_id": "uuid-da-conversa"}
+
+event: transcription        // só emitido quando o request trouxe `audio` e a transcrição não veio vazia
+data: {"transcribed_message": "texto transcrito do áudio"}
+
+event: status                // opcional, só quando o modelo escolhido ainda não está "quente"
+data: {"status": "carregando_modelo"}
+
+event: token                 // um evento por trecho de texto gerado, zero ou mais vezes
+data: {"text": "trecho da resposta"}
+
+event: done                  // sempre o último evento em caso de sucesso — telemetria completa
+data: {
+  "domain": "vendas",              // vendas | suporte | atendimento | agendamento | fora_escopo
+  "backend_used": "local",         // local | externo
+  "escalation_reason": "nenhum",   // nenhum | fora_escopo | rag_vazio | complexidade_alta
 
   // Telemetria de inferência (além do MVP original, a pedido explícito —
   // decisão registrada em docs/ARCHITECTURE.md §5). Todos opcionais
   // (`null` quando a métrica não se aplica ao caminho tomado).
-  "model_name": "llama3.1:8b", // modelo de LLM que gerou a resposta (local ou externo)
+  "model_name": "llama3.1:8b",
   "prompt_tokens": 128,
   "completion_tokens": 342,
-  "latency_ms": 2500.0, // tempo total da requisição ao LLM
-  "ttft_ms": 150.0, // time to first token — proxy via prompt_eval_duration do Ollama (não confundir com tempo de carregar o modelo)
-  "tps": 190.0, // tokens/s de geração pura (eval_duration, não o total)
-  "confidence": 0.92, // confiança da classificação do roteador
-  "complexity": "baixa", // baixa | alta
-  "estimated_cost_usd": 0.0, // 0 para o modelo local; calculado para o externo (OpenRouter)
-  "rag_retrieval_ms": 38.3, // tempo da busca vetorial no RAG (domínios que passam por RAG)
+  "latency_ms": 2500.0,
+  "ttft_ms": 150.0,
+  "tps": 190.0,
+  "confidence": 0.92,
+  "complexity": "baixa",
+  "estimated_cost_usd": 0.0,
+  "rag_retrieval_ms": 38.3,
   "rag_chunks_count": 3,
   "rag_avg_score": 0.71
 }
 ```
 
-MVP desta primeira versão do endpoint: resposta síncrona (JSON), sem
-streaming/SSE (`GET /api/chat/stream/{conversation_id}` continua tarefa da
-Fase 8, frontend); o formato do campo `audio` no contrato não mudou (só
-base64, sem campo novo para indicar o formato) — mas ele agora é processado
-via STT local (faster-whisper, ver `backend/src/app/stt/whisper_client.py`),
-com suporte a pelo menos wav e mp3 (formato detectado pelo conteúdo dos
-bytes, não pela extensão). `message` passou a ser **opcional** — é obrigatório
-enviar `message` e/ou `audio`; pedido sem nenhum dos dois retorna HTTP 422.
-Quando `audio` vem preenchido, o texto transcrito substitui `payload.message`
-como mensagem efetiva enviada ao roteador — o áudio é tratado como
-alternativa ao campo de texto (push-to-talk), não como complemento dele — e
-também é devolvido em `transcribed_message` na resposta, que é como o
-widget de chat exibe o texto transcrito na bolha do usuário (ver §3). Se a
-transcrição vier vazia (áudio sem fala reconhecível), o backend usa
-`payload.message` como fallback quando presente; se nenhum dos dois resultar
-em texto, retorna HTTP 422 pedindo para tentar de novo ou digitar a mensagem.
-Falha do serviço de STT retorna HTTP 503. Limitações que restam: sem
-robustez a áudio ruidoso/silencioso, sem VAD, idioma fixo em português (ver
+O texto completo da resposta do assistente **não** vem em um campo único —
+o cliente reconstrói concatenando o `text` de cada evento `token`, na ordem
+em que chegam (é assim que a UI faz o efeito de "digitando"). O evento
+`transcribed_message` continua sendo como o widget de chat exibe o texto
+transcrito na bolha do usuário (ver §3), já que a transcrição só existe no
+backend.
+
+Se uma dependência (Ollama, OpenRouter, Qdrant) falhar **depois** que o
+stream já abriu, a resposta HTTP já começou (200) — não há mais como trocar
+o status code nesse ponto, então o backend emite um evento `error` como
+último evento:
+
+```
+event: error
+data: {"detail": "Serviço temporariamente indisponível, tente novamente."}
+```
+
+Erros de **validação de entrada**, que acontecem antes do stream abrir,
+continuam HTTP normal (sem SSE): `audio` não é base64 válido → 400; nem
+`message` nem `audio` preenchidos, ou transcrição vazia sem `message` de
+fallback → 422; STT indisponível → 503. `message` é **opcional** — é
+obrigatório enviar `message` e/ou `audio`. Quando `audio` vem preenchido, o
+texto transcrito substitui `payload.message` como mensagem efetiva enviada
+ao roteador — o áudio é tratado como alternativa ao campo de texto
+(push-to-talk), não como complemento dele. Se a transcrição vier vazia
+(áudio sem fala reconhecível), o backend usa `payload.message` como
+fallback quando presente. Limitações que restam: sem robustez a áudio
+ruidoso/silencioso, sem VAD, idioma fixo em português (ver
 `docs/ARCHITECTURE.md` §5/§7). O histórico usado para resolver confirmações
 curtas (R3) é mantido em memória por processo no backend (últimas 1-3
 mensagens por `conversation_id`), sem persistência em Postgres nem resumo
-automático (isso é R9/Fase 6).
+automático (isso é R9/Fase 6) — só é atualizado quando o evento `done`
+chega com sucesso, não em caso de `error`.
 
 **Estado atual do frontend (Fase 7/8, ver `docs/ROADMAP.md`):** o scaffold
 Next.js foi criado em `frontend/` (App Router, TypeScript `strict`, Tailwind
 CSS, ESLint + Prettier, Vitest + Testing Library) e o widget de chat consome
 `POST /api/chat/messages` (`frontend/lib/api/chat.ts`) com **texto e áudio,
-resposta síncrona**: sem upload de imagem, sem streaming (SSE) e sem cards
-ricos — essas partes dependem de R6/R11/R12 no backend (ainda não
+resposta síncrona (`frontend/lib/api/chat.ts` ainda chama
+`response.json()`)**: o backend já expõe o contrato SSE descrito acima, mas
+`sendChatMessage`/`ChatModal` ainda não foram adaptados para consumi-lo —
+como o body deixou de ser um único JSON, `response.json()` vai falhar contra
+o backend atual até essa adaptação acontecer (próxima tarefa de frontend do
+roadmap, Fase 8). Também sem upload de imagem e sem cards ricos — essas partes dependem de R6/R11/R12 no backend (ainda não
 implementados) e/ou de trabalho de UI ainda não iniciado, e ficam para quando
 essas dependências existirem. Todas as demais páginas listadas na Seção 2
 (exceto `/suporte`, que já tem um FAQ estático real) são *stubs* de navegação
