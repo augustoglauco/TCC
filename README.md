@@ -204,7 +204,13 @@ O progresso é estruturado em 12 fases sequenciais conforme documentado em [`doc
 
 ### 1. Pré-requisitos
 - **Docker** e **Docker Compose** instalados.
-- **Python 3.11+** com `pip` ou ambiente virtual (`venv`).
+- **Python 3.11+** (testado até 3.14) — recomendamos [`uv`](https://docs.astral.sh/uv/)
+  para criar o ambiente virtual: ele baixa/gerencia o próprio interpretador
+  isoladamente, sem depender de pacotes extras do sistema operacional (ex.:
+  `python3.11-venv`/`python3.14-venv` do apt, que costumam exigir `sudo` e
+  nem sempre estão instalados). Sem `uv`, `pip`/`venv` do sistema também
+  funcionam, desde que o pacote `venv` da sua versão de Python esteja
+  instalado.
 - **Node.js 18+** e `npm`.
 - **Ollama** instalado e rodando localmente com GPU NVIDIA (`ollama serve`).
 
@@ -213,15 +219,16 @@ O progresso é estruturado em 12 fases sequenciais conforme documentado em [`doc
 # Navegar até a pasta do backend
 cd backend
 
-# Criar e ativar o ambiente virtual Python
-python3.11 -m venv .venv
+# Criar o ambiente virtual com uv (usa um Python 3.11+ já disponível na
+# máquina, ou baixa um isolado se preciso — sem precisar de sudo/apt)
+uv venv .venv
 source .venv/bin/activate
 
 # Copiar modelo de variáveis de ambiente e ajustar credenciais
 cp .env.example .env
 
-# Instalar dependências em modo editável
-pip install -e .
+# Instalar dependências em modo editável (inclui pytest/ruff)
+uv pip install -e ".[dev]"
 
 # Garantir que os containers de banco (PostgreSQL e Qdrant) estejam ativos
 docker compose up -d postgres qdrant
@@ -232,6 +239,7 @@ alembic upgrade head
 # Iniciar o servidor backend (FastAPI)
 uvicorn app.main:app --reload --port 8000
 ```
+> Alternativa sem `uv`: `python3.11 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"` — só funciona se o Python 3.11 e seu pacote `venv` já estiverem instalados no sistema. Se quiser fixar uma versão específica com `uv` (ex.: para bater exatamente com CI), use `uv venv --python 3.11 .venv`.
 > O backend estará disponível em `http://localhost:8000` (Documentação Swagger em `http://localhost:8000/docs`).
 
 ### 3. Executar o Frontend
