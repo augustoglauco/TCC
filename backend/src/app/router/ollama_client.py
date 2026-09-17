@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import httpx
 
-from app.router.llm_client import LLMResponse
+from app.router.llm_client import LLMResponse, LLMStreamChunk
 
 _NS_PER_MS = 1_000_000
 
@@ -90,6 +90,54 @@ class OllamaClient:
             estimated_cost_usd=0.0,
             model_name=self._model,
         )
+
+    async def generate_stream(self, prompt: str) -> AsyncIterator[LLMStreamChunk]:
+        """Mesmo `/api/generate`, mas com `stream: true` — devolve um
+        `LLMStreamChunk` por linha NDJSON. `timeout=None`: uma resposta
+        longa (ou um cold-start do modelo) pode legitimamente levar mais
+        que `LOCAL_LLM_TIMEOUT_S`, que só vale para a chamada não-streaming
+        de classificação (ver
+        docs/superpowers/specs/2026-09-17-chat-streaming-sse-design.md,
+        seção Timeouts). Mesmo padrão de `pull_model_streaming`.
+        """
+        async with self._client.stream(
+            "POST",
+            f"{self._base_url}/api/generate",
+            json={"model": self._model, "prompt": prompt, "stream": True},
+            timeout=None,
+        ) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line.strip():
+                    continue
+                data = json.loads(line)
+                texto = data.get("response") or ""
+                if texto:
+                    yield LLMStreamChunk(text=texto)
+                if data.get("done"):
+                    yield LLMStreamChunk(
+                        done=True,
+                        prompt_tokens=data.get("prompt_eval_count"),
+                        completion_tokens=data.get("eval_count"),
+                        total_duration_ms=(
+                            data["total_duration"] / _NS_PER_MS
+                            if "total_duration" in data
+                            else None
+                        ),
+                        load_duration_ms=(
+                            data["load_duration"] / _NS_PER_MS if "load_duration" in data else None
+                        ),
+                        prompt_eval_duration_ms=(
+                            data["prompt_eval_duration"] / _NS_PER_MS
+                            if "prompt_eval_duration" in data
+                            else None
+                        ),
+                        eval_duration_ms=(
+                            data["eval_duration"] / _NS_PER_MS if "eval_duration" in data else None
+                        ),
+                        estimated_cost_usd=0.0,
+                        model_name=self._model,
+                    )
 
     async def list_local_models(self) -> list[LocalModel]:
         """Modelos já baixados localmente (`GET /api/tags`)."""
