@@ -5,9 +5,11 @@ import type { ReactNode } from "react";
 
 export const Tabs = RadixTabs.Root;
 
-export function TabsList({ children }: { children: ReactNode }) {
+export function TabsList({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <RadixTabs.List className="flex gap-1 border-b border-gray-200">{children}</RadixTabs.List>
+    <RadixTabs.List className={`flex flex-wrap gap-1 border-b border-slate-200 ${className}`}>
+      {children}
+    </RadixTabs.List>
   );
 }
 
@@ -24,7 +26,7 @@ export function TabsTrigger({
     <RadixTabs.Trigger
       value={value}
       disabled={disabled}
-      className="px-4 py-2 text-sm font-medium text-gray-600 data-[state=active]:border-b-2 data-[state=active]:border-gray-900 data-[state=active]:text-gray-900 disabled:cursor-not-allowed disabled:opacity-40"
+      className="rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </RadixTabs.Trigger>

@@ -54,49 +54,51 @@ export function DocumentsTable({ documents, collections, onDeleted, onReingested
 
   return (
     <>
-      <table className="w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-gray-200 text-gray-500">
-            <th className="py-2 pr-4">Arquivo</th>
-            <th className="py-2 pr-4">Domínio</th>
-            <th className="py-2 pr-4">Chunks</th>
-            <th className="py-2 pr-4">Collection</th>
-            <th className="py-2 pr-4">Data</th>
-            <th className="py-2 pr-4" />
-          </tr>
-        </thead>
-        <tbody>
-          {documents.map((documento) => (
-            <tr key={documento.id} className="border-b border-gray-100">
-              <td className="py-2 pr-4 text-gray-900">{documento.filename}</td>
-              <td className="py-2 pr-4">
-                <DomainBadge domain={documento.domain} />
-              </td>
-              <td className="py-2 pr-4 text-gray-700">{documento.chunk_count}</td>
-              <td className="py-2 pr-4 text-gray-700">{documento.collection_name}</td>
-              <td className="py-2 pr-4 text-gray-500" title={documento.created_at}>
-                {formatarDataRelativa(documento.created_at)}
-              </td>
-              <td className="py-2 pr-4 text-right">
-                <button
-                  type="button"
-                  onClick={() => setDocumentoParaReingerir(documento)}
-                  className="mr-3 text-gray-700 hover:text-gray-900"
-                >
-                  Reingerir
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDocumentoParaExcluir(documento)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  Excluir
-                </button>
-              </td>
+      <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <table className="w-full min-w-[700px] text-left text-sm">
+          <thead>
+            <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
+              <th className="py-3 px-4">Arquivo</th>
+              <th className="py-3 px-4">Domínio</th>
+              <th className="py-3 px-4">Chunks</th>
+              <th className="py-3 px-4">Collection</th>
+              <th className="py-3 px-4">Data</th>
+              <th className="py-3 px-4 text-right">Ações</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {documents.map((documento) => (
+              <tr key={documento.id} className="transition-colors hover:bg-slate-50/60">
+                <td className="py-3.5 px-4 font-semibold text-slate-900">{documento.filename}</td>
+                <td className="py-3.5 px-4">
+                  <DomainBadge domain={documento.domain} />
+                </td>
+                <td className="py-3.5 px-4 text-slate-700 font-mono text-xs">{documento.chunk_count}</td>
+                <td className="py-3.5 px-4 text-slate-700">{documento.collection_name || "-"}</td>
+                <td className="py-3.5 px-4 text-slate-500 text-xs whitespace-nowrap">
+                  {new Date(documento.created_at).toLocaleDateString("pt-BR")}
+                </td>
+                <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => setDocumentoParaReingerir(documento)}
+                    className="mr-2 inline-flex items-center gap-1 rounded-lg border border-indigo-200/80 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 shadow-2xs transition-colors hover:bg-indigo-100/80 hover:text-indigo-800"
+                  >
+                    Reingerir
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDocumentoParaExcluir(documento)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-red-200/80 bg-red-50/50 px-2.5 py-1 text-xs font-semibold text-red-600 shadow-2xs transition-colors hover:bg-red-100/80 hover:text-red-700"
+                  >
+                    Excluir
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <Modal
         open={documentoParaExcluir !== null}

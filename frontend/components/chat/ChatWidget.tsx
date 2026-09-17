@@ -27,7 +27,7 @@ export default function ChatWidget() {
   }, [conversationId, setConversationId]);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
+    <div id="chat-widget" className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
       {isOpen && <ChatPanel />}
       <button
         type="button"
