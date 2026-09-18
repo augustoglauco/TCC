@@ -315,6 +315,13 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `ChatModal` (seção "Fontes" do bloco RAG) e no export CSV/JSON. Hoje a
       busca RAG só recupera de arquivos ingeridos — sem fonte de internet
       (ver `docs/ARCHITECTURE.md` §5).
+- [x] **Painel de métricas por mensagem escondido por padrão** — o painel de
+      telemetria (antes sempre visível abaixo de cada resposta) passou a
+      ficar escondido por padrão; uma engrenagem pequena (⚙️, mesmo tamanho
+      de fonte do rótulo de domínio) ao lado do rótulo de domínio no topo da
+      bolha alterna a exibição (`MessageBubble.tsx`, `showDetails`). Não
+      afeta o export CSV/JSON do `ChatModal`, que continua agregando a
+      telemetria de todas as mensagens independente do painel estar aberto.
 
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 

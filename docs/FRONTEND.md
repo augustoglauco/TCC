@@ -282,19 +282,21 @@ a `getUserMedia`/`MediaRecorder` são tratados localmente no próprio
 do widget.
 
 **Telemetria e export de dataset** (além do MVP original, a pedido
-explícito — decisão registrada em `docs/ARCHITECTURE.md` §5): quando há
-pelo menos uma resposta do assistente na conversa, o `ChatModal` mostra um
-painel com os campos de telemetria da resposta (`model_name`,
-`prompt_tokens`/`completion_tokens`, `latency_ms`, `ttft_ms`, `tps`,
-`estimated_cost_usd`, `rag_retrieval_ms`/`rag_chunks_count`/`rag_avg_score`)
-e, quando a resposta usou RAG, a lista `rag_chunks` (fonte/arquivo e score de
-cada chunk recuperado, na seção "Fontes" do bloco RAG do painel — ver
-`MessageBubble.tsx`) e dois botões de exportação — CSV e JSON — que baixam
-as métricas de todas as mensagens da conversa atual
-(`frontend/lib/utils/exportMetrics.ts`),
-pensados para alimentar a avaliação experimental da Fase 10
-(`docs/EVALUATION.md`), não como uma feature de produto para o usuário
-final.
+explícito — decisão registrada em `docs/ARCHITECTURE.md` §5): cada bolha de
+resposta do assistente (`MessageBubble.tsx`) tem um painel com os campos de
+telemetria da resposta (`model_name`, `prompt_tokens`/`completion_tokens`,
+`latency_ms`, `ttft_ms`, `tps`, `estimated_cost_usd`,
+`rag_retrieval_ms`/`rag_chunks_count`/`rag_avg_score`) e, quando a resposta
+usou RAG, a lista `rag_chunks` (fonte/arquivo e score de cada chunk
+recuperado, na seção "Fontes" do bloco RAG do painel) — escondido por padrão,
+revelado por uma engrenagem pequena (⚙️, mesmo tamanho de fonte do rótulo de
+domínio) ao lado do rótulo de domínio no topo da bolha (`aria-label`
+"Mostrar/Ocultar métricas da resposta"). O `ChatModal` mostra dois botões de
+exportação — CSV e JSON — que baixam as métricas de todas as mensagens da
+conversa atual (`frontend/lib/utils/exportMetrics.ts`), independente do
+painel por mensagem estar aberto ou fechado, pensados para alimentar a
+avaliação experimental da Fase 10 (`docs/EVALUATION.md`), não como uma
+feature de produto para o usuário final.
 
 Os tipos de request/response devem espelhar os schemas Pydantic do backend
 (`src/app/models/`, ver `docs/CONVENTIONS.md`) — ao gerar os tipos

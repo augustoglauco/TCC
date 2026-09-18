@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import MessageBubble from "@/components/chat/MessageBubble";
@@ -50,6 +51,45 @@ describe("MessageBubble", () => {
     render(<MessageBubble message={makeMessage({ role: "assistant", text: "Oi" })} />);
 
     expect(screen.queryByTestId("message-domain-label")).not.toBeInTheDocument();
+  });
+
+  it("mantém o painel de métricas escondido por padrão", () => {
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Posso te ajudar com o pedido X",
+          domain: "vendas",
+          metrics: { modelName: "llama3.1:8b" },
+        })}
+      />,
+    );
+
+    expect(screen.queryByTestId("message-metrics")).not.toBeInTheDocument();
+  });
+
+  it("mostra o painel de métricas ao clicar na engrenagem ao lado do domínio", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Posso te ajudar com o pedido X",
+          domain: "vendas",
+          metrics: { modelName: "llama3.1:8b" },
+        })}
+      />,
+    );
+
+    const toggle = screen.getByRole("button", { name: "Mostrar métricas da resposta" });
+    await user.click(toggle);
+
+    expect(screen.getByTestId("message-metrics")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ocultar métricas da resposta" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ocultar métricas da resposta" }));
+
+    expect(screen.queryByTestId("message-metrics")).not.toBeInTheDocument();
   });
 
   it("destaca em azul a resposta do assistente quando vem de LLM externo", () => {
