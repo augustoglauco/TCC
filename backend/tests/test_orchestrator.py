@@ -583,6 +583,44 @@ async def test_modelo_local_ja_carregado_nao_emite_status():
     assert not any(isinstance(e, StatusEvent) for e in eventos)
 
 
+async def test_modelo_carrega_durante_classificacao_llm_ainda_assim_emite_status():
+    # Reproduz o bug relatado pelo usuário: com strategy="llm", quando a
+    # mensagem é ambígua para o classificador por palavra-chave,
+    # `classify()` chama `local_client.generate()` (bloqueante) — no Ollama
+    # real, é essa chamada (não a geração da resposta em si) que
+    # efetivamente paga o cold-start do modelo. Antes desta correção, o
+    # único check de `is_model_ready()` ficava logo antes de
+    # `generate_stream`, ou seja, DEPOIS do cold-start já ter acontecido em
+    # silêncio durante a classificação — o evento `status` nunca era
+    # emitido, mesmo a espera real tendo ocorrido (é o que o Fake abaixo
+    # simula: `is_model_ready` só volta a `True` depois da primeira
+    # chamada, igual o Ollama depois que `generate()` carrega o modelo).
+    class _FakeLLMClientCargaNaClassificacao(_FakeLLMClient):
+        async def is_model_ready(self) -> bool:
+            return self.calls > 0
+
+    local_client = _FakeLLMClientCargaNaClassificacao(
+        response=LLMResponse(
+            text='{"domain": "suporte", "complexity": "baixa", "confidence": 0.9}',
+            total_duration_ms=100.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="...", source="catalogo", score=0.9)])
+
+    eventos = await _coletar_eventos(
+        "Qual a capital da França?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="llm",
+    )
+
+    assert isinstance(eventos[0], StatusEvent)
+    assert eventos[0].status == "carregando_modelo"
+
+
 async def test_tokens_emitidos_em_ordem_e_resposta_final_e_a_concatenacao():
     local_client = _FakeLLMClient(response=LLMResponse(text="Boa tarde!", total_duration_ms=50.0))
     external_client = _FakeLLMClient(response=_resposta_externa())

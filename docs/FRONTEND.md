@@ -162,8 +162,14 @@ data: {"conversation_id": "uuid-da-conversa"}
 event: transcription        // só emitido quando o request trouxe `audio` e a transcrição não veio vazia
 data: {"transcribed_message": "texto transcrito do áudio"}
 
-event: status                // opcional, só quando o modelo escolhido ainda não está "quente"
+event: status                // opcional, zero ou mais vezes, só quando o modelo local ainda não está "quente"
 data: {"status": "carregando_modelo"}
+// Emitido antes de `generate_stream` (geração da resposta) e, quando
+// `ROUTER_COMPLEXITY_STRATEGY=llm`, também antes da classificação (que
+// chama o modelo local para resolver mensagens ambíguas) — correção de
+// 2026-09-18: antes, um cold-start disparado só pela classificação
+// acontecia em silêncio (o único check ficava depois dela), então a
+// mensagem de espera às vezes não aparecia (ver `orchestrator.py`).
 
 event: token                 // um evento por trecho de texto gerado, zero ou mais vezes
 data: {"text": "trecho da resposta"}
