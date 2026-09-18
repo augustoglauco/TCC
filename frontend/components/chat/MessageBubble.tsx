@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChatUIMessage } from "@/lib/types/chat";
 
 // MVP: rótulo de domínio é só um mapa fixo de texto — sem i18n nem vindo do
@@ -26,6 +26,19 @@ interface MessageBubbleProps {
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const bubbleRef = useRef<HTMLDivElement | null>(null);
+  // Largura real (borda a borda) da caixa de resposta — o painel de
+  // métricas abaixo dela usa esse valor para ter exatamente a mesma
+  // largura, em vez de um max-width fixo independente do tamanho da bolha.
+  const [bubbleWidth, setBubbleWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = bubbleRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => setBubbleWidth(el.getBoundingClientRect().width));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const isUser = message.role === "user";
   const isExternalLlm = !isUser && message.backendUsed === "externo";
@@ -46,6 +59,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   return (
     <div className={`flex flex-col ${isUser ? "items-end" : "items-start"} space-y-1.5 w-full`}>
       <div
+        ref={bubbleRef}
         data-testid="message-bubble"
         className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-xs ${
           isUser
@@ -81,11 +95,17 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       {!isUser && showDetails && (
-        <div className="flex flex-col max-w-full items-start space-y-1">
+        <div
+          className="flex flex-col max-w-full items-start space-y-1"
+          // Chunks de RAG/motivo/fonte não cabem legíveis abaixo de ~16rem —
+          // trava um piso só pra bolhas de resposta muito curtas, sem afetar
+          // o caso comum (largura = a da bolha).
+          style={bubbleWidth ? { width: bubbleWidth, minWidth: "16rem" } : undefined}
+        >
           {/* Main dynamic metrics bar */}
           <div
             data-testid="message-metrics"
-            className="flex flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl border border-slate-800 bg-slate-900/90 px-3 py-1.5 font-mono text-[11px] text-slate-300 shadow-md backdrop-blur-xs"
+            className="flex w-full flex-wrap items-center gap-x-2.5 gap-y-1 rounded-xl border border-slate-800 bg-slate-900/90 px-3 py-1.5 font-mono text-[11px] text-slate-300 shadow-md backdrop-blur-xs"
           >
             <span className="flex items-center gap-1 font-semibold text-slate-100">
               🤖{" "}
@@ -126,7 +146,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           </div>
 
           {/* Extended Telemetry Panel */}
-          <div className="w-full max-w-lg rounded-xl border border-slate-700/60 bg-slate-900/95 p-3 text-xs text-slate-200 shadow-xl space-y-2.5 font-mono animate-in fade-in slide-in-from-top-1 duration-200">
+          <div className="w-full rounded-xl border border-slate-700/60 bg-slate-900/95 p-3 text-xs text-slate-200 shadow-xl space-y-2.5 font-mono animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
               <span className="font-semibold text-slate-100 flex items-center gap-1.5">
                 🔍 Telemetria & Diagnóstico LLM

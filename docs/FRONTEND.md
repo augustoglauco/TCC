@@ -291,7 +291,11 @@ usou RAG, a lista `rag_chunks` (fonte/arquivo e score de cada chunk
 recuperado, na seção "Fontes" do bloco RAG do painel) — escondido por padrão,
 revelado por uma engrenagem pequena (⚙️, mesmo tamanho de fonte do rótulo de
 domínio) ao lado do rótulo de domínio no topo da bolha (`aria-label`
-"Mostrar/Ocultar métricas da resposta"). O `ChatModal` mostra dois botões de
+"Mostrar/Ocultar métricas da resposta"). A largura do painel (barra
+compacta + telemetria estendida) acompanha a largura real da bolha de
+resposta acima dele — medida via `ResizeObserver` sobre a bolha, não um
+`max-width` fixo — com um piso de `16rem` para não quebrar o grid em
+respostas muito curtas. O `ChatModal` mostra dois botões de
 exportação — CSV e JSON — que baixam as métricas de todas as mensagens da
 conversa atual (`frontend/lib/utils/exportMetrics.ts`), independente do
 painel por mensagem estar aberto ou fechado, pensados para alimentar a
