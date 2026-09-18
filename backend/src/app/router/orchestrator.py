@@ -95,6 +95,17 @@ async def handle_message(
     # fora_escopo (que rotearia ao backend externo). O wrapping fica aqui, e
     # não dentro de `classify()`, para não criar import circular.
     try:
+        # No Ollama real, é a primeira chamada bloqueante ao modelo — aqui,
+        # `classify()` com strategy="llm" — que paga o cold-start, não a
+        # geração da resposta em si. Sem este check aqui (só existia antes
+        # de `generate_stream`, mais abaixo), o cold-start acontecia em
+        # silêncio durante a classificação: quando o check de depois rodava,
+        # o modelo já estava carregado e o evento `status` nunca era
+        # emitido, apesar da espera real ter ocorrido (bug relatado pelo
+        # usuário: "a mensagem para aguardar não aparece").
+        if complexity_strategy == "llm" and not await local_client.is_model_ready():
+            yield StatusEvent(status="carregando_modelo")
+
         classification = await classify(
             message=message,
             recent_messages=recent_messages,

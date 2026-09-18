@@ -260,7 +260,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `onTranscription`/`onStatus`/`onToken`/`onDone`/`onError`) em vez de
       `response.json()`. `ChatModal.tsx` adaptado para usar essa nova assinatura,
       exibindo o texto token a token na UI com indicador visual de status —
-      decisão registrada em `docs/ARCHITECTURE.md` §5
+      decisão registrada em `docs/ARCHITECTURE.md` §5. Fix 2026-09-18: com
+      `ROUTER_COMPLEXITY_STRATEGY=llm`, o check de `is_model_ready()` também
+      passou a rodar antes da classificação (não só antes de
+      `generate_stream`) — a classificação de mensagem ambígua chama o
+      modelo local e, no Ollama real, é essa chamada que paga o cold-start;
+      sem o check ali, o evento `status` nunca era emitido, mesmo a espera
+      real tendo ocorrido (`backend/src/app/router/orchestrator.py`, ver
+      `docs/FRONTEND.md` §4)
 - [~] Implementar upload de imagem (`ImageUploader`) e gravação de áudio
       (`AudioRecorder`) — gravação de áudio concluída:
       `components/chat/AudioRecorder.tsx` (toggle, indicador visual de
