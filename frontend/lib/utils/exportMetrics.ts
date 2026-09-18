@@ -22,6 +22,7 @@ export function exportMetricsToJson(messages: ChatUIMessage[]) {
       rag_retrieval_ms: m.metrics?.ragRetrievalMs ?? null,
       rag_chunks_count: m.metrics?.ragChunksCount ?? null,
       rag_avg_score: m.metrics?.ragAvgScore ?? null,
+      rag_chunks: m.metrics?.ragChunks ?? null,
       escalation_reason: m.metrics?.escalationReason ?? null,
     }));
 
@@ -57,6 +58,7 @@ export function exportMetricsToCsv(messages: ChatUIMessage[]) {
     "RAG_Latency_ms",
     "RAG_Chunks",
     "RAG_Avg_Score",
+    "RAG_Sources",
     "Escalation_Reason",
   ];
 
@@ -78,6 +80,9 @@ export function exportMetricsToCsv(messages: ChatUIMessage[]) {
     m.metrics?.ragRetrievalMs ?? "",
     m.metrics?.ragChunksCount ?? "",
     m.metrics?.ragAvgScore ?? "",
+    m.metrics?.ragChunks
+      ? `"${m.metrics.ragChunks.map((c) => `${c.source}(${c.score.toFixed(4)})`).join(" | ")}"`
+      : "",
     m.metrics?.escalationReason ?? "",
   ]);
 

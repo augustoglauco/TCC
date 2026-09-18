@@ -189,6 +189,16 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                       ? metrics.ragAvgScore.toFixed(4)
                       : "N/A"}
                   </div>
+                  {metrics?.ragChunks && metrics.ragChunks.length > 0 && (
+                    <div className="pt-1 space-y-0.5">
+                      <div className="text-slate-400">Fontes:</div>
+                      {metrics.ragChunks.map((chunk, idx) => (
+                        <div key={`${chunk.source}-${idx}`} className="truncate pl-2" title={chunk.source}>
+                          {chunk.source} <span className="text-slate-500">({chunk.score.toFixed(4)})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

@@ -100,6 +100,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             ragRetrievalMs: data.rag_retrieval_ms ?? undefined,
             ragChunksCount: data.rag_chunks_count ?? undefined,
             ragAvgScore: data.rag_avg_score ?? undefined,
+            ragChunks: data.rag_chunks ?? undefined,
             escalationReason: data.escalation_reason,
           },
         });
@@ -172,6 +173,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             ragRetrievalMs: data.rag_retrieval_ms ?? undefined,
             ragChunksCount: data.rag_chunks_count ?? undefined,
             ragAvgScore: data.rag_avg_score ?? undefined,
+            ragChunks: data.rag_chunks ?? undefined,
             escalationReason: data.escalation_reason,
           },
         });

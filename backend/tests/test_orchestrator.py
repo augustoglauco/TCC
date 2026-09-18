@@ -4,6 +4,7 @@ import logging
 import pytest
 
 from app.logging_config import JsonFormatter
+from app.models.chat import RagChunkMetric
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.orchestrator import (
     ExternalBackendIndisponivelError,
@@ -297,6 +298,7 @@ async def test_rag_com_resultado_e_complexidade_baixa_fica_local():
 
     assert decisao.backend_escolhido == "local"
     assert decisao.motivo_escalonamento == "nenhum"
+    assert decisao.rag_chunks == [RagChunkMetric(source="catalogo", score=0.9)]
 
 
 async def test_documento_recuperado_pelo_rag_e_injetado_no_prompt_do_llm():
