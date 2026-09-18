@@ -23,7 +23,7 @@
 | Componente | Tecnologia | Versão | Razão |
 |---|---|---|---|
 | **Runtime de Inferência** | Ollama (decisão fechada) | latest | API HTTP simples, gestão de modelos trivial (`ollama pull`), e devolve `prompt_eval_count`/`eval_count` (tokens) e `load_duration`/`eval_duration` (breakdown de latência) prontos por requisição — reduz o código de instrumentação necessário para `docs/EVALUATION.md` |
-| **Modelos candidatos** | Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M, Q5_K_M); Qwen3 8B (Q5_K_M, Q8_0); Phi-4-mini/Phi-4; Gemma-4-12B (4-bit, 8-bit) | quantizado (GGUF) | 9 configurações na avaliação comparativa (ver `docs/ARCHITECTURE.md` tabela de escopo); Gemma-4-12B ainda não confirmado no registro do Ollama |
+| **Modelos candidatos** | Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M, Q5_K_M); Qwen3 8B (Q5_K_M, Q8_0); Phi-4-mini/Phi-4; Gemma-4-12B (4-bit, 8-bit) | quantizado (GGUF) | 9 configurações na avaliação comparativa (ver `docs/ARCHITECTURE.md` tabela de escopo); Gemma-4-12B (4-bit, `gemma4:12b-it-q4_K_M`) já confirmado no Ollama local — é o `LOCAL_MODEL_NAME` em uso no `.env` de desenvolvimento; os demais 8 ainda precisam ser baixados |
 | **Quantização** | GGUF | - | Reduz memory footprint, mantém qualidade aceitável |
 | **Hardware-alvo** | GPU NVIDIA | 16GB VRAM mín. | Limite do MVP; candidatos >~12–14B mesmo quantizados arriscam OOM (sem margem para KV cache) |
 | **Cliente de modelo externo** | OpenRouter | latest | API compatível com o formato OpenAI, uma única chave cobrindo múltiplos provedores/modelos — chave em `EXTERNAL_MODEL_API_KEY` e modelo em `EXTERNAL_MODEL_NAME` (`.env.example`; nomes propositalmente neutros de provedor) |
