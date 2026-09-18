@@ -426,9 +426,11 @@ autenticação por parceiro nem exposição pública**.
   versões quantizadas; candidatos maiores (ex.: Qwen3 14B, Gemma-4-12B) só
   entram na avaliação comparativa em quantizações que deixem margem para o
   KV cache — evitar variantes acima de ~12–14B mesmo quantizadas, pelo risco
-  de OOM. "Gemma-4-12B" ainda não foi verificado como disponível no registro
-  do Ollama; confirmar (`ollama pull` ou `ollama.com/library`) antes de
-  incluir nos resultados finais.
+  de OOM. `Gemma-4-12B` (4-bit, `gemma4:12b-it-q4_K_M`) já confirmado
+  disponível no Ollama local — é inclusive o `LOCAL_MODEL_NAME` em uso no
+  `.env` de desenvolvimento (ver `docs/ROADMAP.md`, Fase 10); os demais 8
+  candidatos da tabela de escopo ainda precisam ser baixados (`ollama pull`)
+  antes da avaliação comparativa.
 - STT (faster-whisper) roda na mesma GPU que o modelo local de chat —
   contenção de VRAM entre os dois é um risco real. `# MVP: default fechado
   em small (STT_MODEL_SIZE, ~1-2GB de VRAM), sem lógica automática de troca
