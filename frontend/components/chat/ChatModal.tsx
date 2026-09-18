@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import AudioRecorder from "@/components/chat/AudioRecorder";
 import MessageBubble from "@/components/chat/MessageBubble";
@@ -40,6 +40,14 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState<PendingError | null>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
+    }
+  }, [messages, error, open]);
 
   const hasAssistantMessages = messages.some((m) => m.role === "assistant");
 
@@ -258,6 +266,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
               </button>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         <form

@@ -250,4 +250,27 @@ describe("ChatModal", () => {
 
     expect(screen.queryByLabelText("Mensagem")).not.toBeInTheDocument();
   });
+
+  it("executa scrollIntoView para acompanhar o fluxo de mensagens", async () => {
+    const scrollIntoViewMock = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
+
+    mockedSendChatMessage.mockImplementation(
+      async ({ onConversationId, onToken, onDone }) => {
+        onConversationId("conv-1");
+        onToken("Resposta 1");
+        onToken(" Resposta 2");
+        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+      },
+    );
+
+    const user = userEvent.setup();
+    renderModal();
+
+    await user.type(screen.getByLabelText("Mensagem"), "oi");
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Resposta 1 Resposta 2")).toBeInTheDocument();
+    expect(scrollIntoViewMock).toHaveBeenCalled();
+  });
 });
