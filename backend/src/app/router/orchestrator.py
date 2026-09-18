@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 
 from pydantic import BaseModel
 
+from app.models.chat import RagChunkMetric
 from app.router.classifier import classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.rag_client import Document, RAGClient, RAGConnectionError
@@ -61,6 +62,7 @@ class RouterDecision(BaseModel):
     rag_retrieval_ms: float | None = None
     rag_chunks_count: int | None = None
     rag_avg_score: float | None = None
+    rag_chunks: list[RagChunkMetric] | None = None
 
 
 class StatusEvent(BaseModel):
@@ -119,6 +121,7 @@ async def handle_message(
     rag_retrieval_ms: float | None = None
     rag_chunks_count: int | None = None
     rag_avg_score: float | None = None
+    rag_chunks: list[RagChunkMetric] | None = None
 
     if classification.domain == "agendamento":
         backend_escolhido = "local"
@@ -150,6 +153,9 @@ async def handle_message(
         rag_chunks_count = len(documentos)
         if documentos:
             rag_avg_score = round(sum(d.score for d in documentos) / len(documentos), 4)
+            rag_chunks = [
+                RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in documentos
+            ]
 
         if not documentos:
             backend_escolhido = "externo"
@@ -239,6 +245,7 @@ async def handle_message(
         rag_retrieval_ms=rag_retrieval_ms,
         rag_chunks_count=rag_chunks_count,
         rag_avg_score=rag_avg_score,
+        rag_chunks=rag_chunks,
     )
     logger.info(
         "router_decision",

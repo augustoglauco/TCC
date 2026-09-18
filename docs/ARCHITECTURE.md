@@ -304,8 +304,12 @@ entre domínios e o sinal de escalonamento do roteador`.
 `POST /api/chat/messages` passa a devolver telemetria detalhada por
 mensagem — modelo usado, tokens de entrada/saída, latência total, TTFT
 (proxy via `prompt_eval_duration` do Ollama), TPS (via `eval_duration`,
-geração pura), custo estimado, e tempo/qtd./score médio da busca no RAG
-(ver contrato completo em `docs/FRONTEND.md` §4). O `ChatModal` mostra
+geração pura), custo estimado, e tempo/qtd./score médio da busca no RAG —
+inclusive, por chunk usado no contexto, o arquivo de origem e o score
+individual (`rag_chunks`, adicionado em 2026-09-18: já existia internamente
+em `Document.source`/`score`, só não era exposto na telemetria; hoje a busca
+RAG só recupera de arquivos ingeridos, sem fonte de internet) (ver contrato
+completo em `docs/FRONTEND.md` §4). O `ChatModal` mostra
 essas métricas num painel e permite exportar a conversa em CSV/JSON
 (`frontend/lib/utils/exportMetrics.ts`). Motivo: alimentar a avaliação
 experimental da Fase 10 (`docs/EVALUATION.md`) com dados reais coletados

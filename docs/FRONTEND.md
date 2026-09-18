@@ -281,8 +281,11 @@ pelo menos uma resposta do assistente na conversa, o `ChatModal` mostra um
 painel com os campos de telemetria da resposta (`model_name`,
 `prompt_tokens`/`completion_tokens`, `latency_ms`, `ttft_ms`, `tps`,
 `estimated_cost_usd`, `rag_retrieval_ms`/`rag_chunks_count`/`rag_avg_score`)
-e dois botões de exportação — CSV e JSON — que baixam as métricas de todas
-as mensagens da conversa atual (`frontend/lib/utils/exportMetrics.ts`),
+e, quando a resposta usou RAG, a lista `rag_chunks` (fonte/arquivo e score de
+cada chunk recuperado, na seção "Fontes" do bloco RAG do painel — ver
+`MessageBubble.tsx`) e dois botões de exportação — CSV e JSON — que baixam
+as métricas de todas as mensagens da conversa atual
+(`frontend/lib/utils/exportMetrics.ts`),
 pensados para alimentar a avaliação experimental da Fase 10
 (`docs/EVALUATION.md`), não como uma feature de produto para o usuário
 final.

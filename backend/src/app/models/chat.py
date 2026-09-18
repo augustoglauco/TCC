@@ -6,6 +6,13 @@ Contrato espelhado em `docs/FRONTEND.md` §4 (`POST /api/chat/messages`).
 from pydantic import BaseModel, Field, model_validator
 
 
+class RagChunkMetric(BaseModel):
+    """Fonte (arquivo ingerido) e score de um chunk usado no contexto do RAG."""
+
+    source: str = Field(..., description="Nome do arquivo de origem do chunk.")
+    score: float = Field(..., description="Score de similaridade do chunk na busca vetorial.")
+
+
 class ChatMessageRequest(BaseModel):
     """Corpo de `POST /api/chat/messages`."""
 
@@ -80,4 +87,8 @@ class ChatDoneEventData(BaseModel):
     )
     rag_avg_score: float | None = Field(
         default=None, description="Score médio de similaridade dos chunks do RAG."
+    )
+    rag_chunks: list[RagChunkMetric] | None = Field(
+        default=None,
+        description="Fonte e score de cada chunk do RAG, na ordem devolvida pela busca.",
     )

@@ -21,6 +21,12 @@ export interface ChatMessageRequest {
   audio: string | null;
 }
 
+/** Fonte (arquivo de origem) e score de um chunk usado no contexto do RAG. */
+export interface ChatRagChunk {
+  source: string;
+  score: number;
+}
+
 export interface ChatMetrics {
   modelName?: string;
   promptTokens?: number;
@@ -34,6 +40,7 @@ export interface ChatMetrics {
   ragRetrievalMs?: number;
   ragChunksCount?: number;
   ragAvgScore?: number;
+  ragChunks?: ChatRagChunk[];
   escalationReason?: ChatEscalationReason;
 }
 
@@ -53,6 +60,7 @@ export interface ChatDoneEventData {
   rag_retrieval_ms?: number | null;
   rag_chunks_count?: number | null;
   rag_avg_score?: number | null;
+  rag_chunks?: ChatRagChunk[] | null;
 }
 
 /** Mensagem exibida no painel do chat (estado de UI, não o payload da API). */

@@ -152,6 +152,7 @@ async def send_message(
                         rag_retrieval_ms=event.rag_retrieval_ms,
                         rag_chunks_count=event.rag_chunks_count,
                         rag_avg_score=event.rag_avg_score,
+                        rag_chunks=event.rag_chunks,
                     )
                     yield _sse("done", done_data.model_dump())
         except (

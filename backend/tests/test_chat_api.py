@@ -145,6 +145,25 @@ def test_envia_mensagem_de_texto_simples(client):
     assert "".join(textos_token) == "resposta local"
 
 
+def test_done_traz_fonte_e_score_de_cada_chunk_do_rag(fakes):
+    fakes["rag"] = _FakeRAGClient(
+        documents=[
+            Document(content="Câmera VHD 5830.", source="catalogo_cameras.txt", score=0.91),
+            Document(content="Garantia de 12 meses.", source="politica_garantia.pdf", score=0.72),
+        ]
+    )
+    app = _build_app(fakes)
+    reset_conversation_history()
+    with TestClient(app) as test_client:
+        response = test_client.post("/api/chat/messages", json={"message": "qual o preço?"})
+
+    dados_done = _find(_parse_sse(response.text), "done")
+    assert dados_done["rag_chunks"] == [
+        {"source": "catalogo_cameras.txt", "score": 0.91},
+        {"source": "politica_garantia.pdf", "score": 0.72},
+    ]
+
+
 def test_conversation_id_mantem_historico_entre_chamadas(client):
     first = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"})
     conversation_id = _find(_parse_sse(first.text), "conversation")["conversation_id"]

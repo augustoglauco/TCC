@@ -302,6 +302,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       alimentar a avaliação experimental da Fase 10, não como feature de
       produto. TTFT só é preenchido para o backend local (ver
       `docs/ARCHITECTURE.md` §5).
+- [x] **Fonte por chunk na telemetria de RAG** — `rag_chunks` (fonte/arquivo
+      + score de cada chunk usado no contexto) adicionado ao payload de
+      `rag_avg_score`/`rag_chunks_count` já existente; exibido no painel do
+      `ChatModal` (seção "Fontes" do bloco RAG) e no export CSV/JSON. Hoje a
+      busca RAG só recupera de arquivos ingeridos — sem fonte de internet
+      (ver `docs/ARCHITECTURE.md` §5).
 
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 
