@@ -61,6 +61,16 @@ class Settings(BaseSettings):
     # docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §3).
     rag_uploads_dir: str = "./data/rag_uploads"
 
+    # MVP: teto default (não rígido — o form do admin pode pedir mais por
+    # execução, ver `app.api.crawler`) de páginas por execução do crawler de
+    # páginas (R4). Ajustável em runtime via `PUT /api/admin/runtime-settings`
+    # (ver docs/superpowers/specs/2026-09-19-crawler-paginas-design.md).
+    crawler_max_pages: int = 20
+    # Limiar de confiança do classificador de domínio do crawler:
+    # `confidence >= limiar` ingere direto, abaixo vai pra fila de revisão
+    # manual. Ajustável em runtime via `PUT /api/admin/runtime-settings`.
+    crawler_confidence_threshold: float = 0.7
+
     google_calendar_credentials_path: str = "./secrets/google_calendar_credentials.json"
     google_calendar_calendar_id: str = "primary"
 

@@ -28,3 +28,9 @@ def test_settings_external_model_points_to_openrouter():
 def test_settings_have_stt_model_size_default():
     settings = Settings(_env_file=None)
     assert settings.stt_model_size == "small"
+
+
+def test_settings_have_crawler_defaults():
+    settings = Settings(_env_file=None)
+    assert settings.crawler_max_pages == 20
+    assert settings.crawler_confidence_threshold == 0.7
