@@ -78,6 +78,8 @@ def create_app() -> FastAPI:
     )
     app.state.embedder_registry = EmbedderRegistry()
     app.state.rag_uploads_dir = Path(settings.rag_uploads_dir)
+    app.state.crawler_max_pages_default = settings.crawler_max_pages
+    app.state.crawler_confidence_threshold = settings.crawler_confidence_threshold
 
     # Primeiro uso real do Postgres do projeto (registro de documentos do
     # RAG, além do MVP — ver docs/ARCHITECTURE.md §5). Engine criado

@@ -24,12 +24,16 @@ def _build_app(
     local_client: _FakeLocalClient,
     external_client: _FakeExternalClient,
     qdrant_client: _FakeQdrantClient,
+    crawler_max_pages_default: int = 20,
+    crawler_confidence_threshold: float = 0.7,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(runtime_settings_router)
     app.state.local_client = local_client
     app.state.external_client = external_client
     app.state.qdrant_client = qdrant_client
+    app.state.crawler_max_pages_default = crawler_max_pages_default
+    app.state.crawler_confidence_threshold = crawler_confidence_threshold
     return app
 
 
@@ -59,6 +63,8 @@ def test_get_devolve_valores_atuais_dos_clientes():
         "local_llm_timeout_s": 30.0,
         "external_llm_timeout_s": 30.0,
         "rag_search_domain_fallback": False,
+        "crawler_max_pages_default": 20,
+        "crawler_confidence_threshold": 0.7,
     }
 
 
@@ -124,5 +130,45 @@ def test_put_timeout_zero_ou_negativo_e_422():
     client = TestClient(app)
 
     response = client.put("/api/admin/runtime-settings", json={"local_llm_timeout_s": 0.0})
+
+    assert response.status_code == 422
+
+
+def test_put_atualiza_crawler_max_pages_default():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put("/api/admin/runtime-settings", json={"crawler_max_pages_default": 50})
+
+    assert response.status_code == 200
+    assert response.json()["crawler_max_pages_default"] == 50
+    assert app.state.crawler_max_pages_default == 50
+
+
+def test_put_atualiza_crawler_confidence_threshold():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put("/api/admin/runtime-settings", json={"crawler_confidence_threshold": 0.5})
+
+    assert response.status_code == 200
+    assert response.json()["crawler_confidence_threshold"] == 0.5
+    assert app.state.crawler_confidence_threshold == 0.5
+
+
+def test_put_crawler_confidence_threshold_fora_do_intervalo_e_422():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put("/api/admin/runtime-settings", json={"crawler_confidence_threshold": 1.5})
+
+    assert response.status_code == 422
+
+
+def test_put_crawler_max_pages_default_zero_ou_negativo_e_422():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put("/api/admin/runtime-settings", json={"crawler_max_pages_default": 0})
 
     assert response.status_code == 422

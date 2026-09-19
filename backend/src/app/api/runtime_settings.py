@@ -1,9 +1,10 @@
 """Endpoint HTTP dos parâmetros de execução ajustáveis em runtime (além do
-MVP) — temperatura do Ollama, timeouts dos backends local/externo e a flag
-de fallback de domínio do RAG. Mesmo padrão do gerenciador de modelos
-locais (`app.api.local_models`): valores só em memória
-(`request.app.state.*`), resetam a cada restart do processo. Ver decisão
-registrada em docs/ARCHITECTURE.md §5.
+MVP) — temperatura do Ollama, timeouts dos backends local/externo, a flag
+de fallback de domínio do RAG, e o teto default/limiar de confiança do
+crawler de páginas. Mesmo padrão do gerenciador de modelos locais
+(`app.api.local_models`): valores só em memória (`request.app.state.*`),
+resetam a cada restart do processo. Ver decisão registrada em
+docs/ARCHITECTURE.md §5.
 """
 
 from fastapi import APIRouter, Request
@@ -26,15 +27,21 @@ def _get_clients(
     )
 
 
-@router.get("", response_model=RuntimeSettingsResponse)
-async def get_runtime_settings(request: Request) -> RuntimeSettingsResponse:
+def _build_response(request: Request) -> RuntimeSettingsResponse:
     local_client, external_client, qdrant_client = _get_clients(request)
     return RuntimeSettingsResponse(
         local_llm_temperature=local_client.temperature,
         local_llm_timeout_s=local_client.timeout_s,
         external_llm_timeout_s=external_client.timeout_s,
         rag_search_domain_fallback=qdrant_client.search_domain_fallback,
+        crawler_max_pages_default=request.app.state.crawler_max_pages_default,
+        crawler_confidence_threshold=request.app.state.crawler_confidence_threshold,
     )
+
+
+@router.get("", response_model=RuntimeSettingsResponse)
+async def get_runtime_settings(request: Request) -> RuntimeSettingsResponse:
+    return _build_response(request)
 
 
 @router.put("", response_model=RuntimeSettingsResponse)
@@ -58,10 +65,9 @@ async def update_runtime_settings(
         external_client.timeout_s = campos["external_llm_timeout_s"]
     if "rag_search_domain_fallback" in campos:
         qdrant_client.search_domain_fallback = campos["rag_search_domain_fallback"]
+    if "crawler_max_pages_default" in campos:
+        request.app.state.crawler_max_pages_default = campos["crawler_max_pages_default"]
+    if "crawler_confidence_threshold" in campos:
+        request.app.state.crawler_confidence_threshold = campos["crawler_confidence_threshold"]
 
-    return RuntimeSettingsResponse(
-        local_llm_temperature=local_client.temperature,
-        local_llm_timeout_s=local_client.timeout_s,
-        external_llm_timeout_s=external_client.timeout_s,
-        rag_search_domain_fallback=qdrant_client.search_domain_fallback,
-    )
+    return _build_response(request)
