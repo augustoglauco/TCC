@@ -70,3 +70,27 @@ class RagDocument(Base):
     storage_path: Mapped[str | None]
     origin: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class CrawlerPendingPage(Base):
+    """Página crawleada com confiança de classificação abaixo do limiar,
+    aguardando aprovação manual (R4, crawler de páginas) — ver
+    docs/superpowers/specs/2026-09-19-crawler-paginas-design.md §"Dados".
+
+    Deletada ao aprovar ou rejeitar — a tabela só reflete o que está
+    pendente agora, sem histórico de decisões passadas. `url` é `unique`:
+    recrawlear a mesma URL ainda pendente atualiza esta linha em vez de
+    duplicar (upsert, ver `app.rag.crawler_pending.upsert_pending_page`).
+    """
+
+    __tablename__ = "crawler_pending_pages"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    url: Mapped[str] = mapped_column(unique=True)
+    extracted_text: Mapped[str]
+    domain_proposed: Mapped[str]
+    confidence: Mapped[float]
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
