@@ -110,8 +110,11 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `ingest_sample_docs.py`) reaproveitando `app.rag.ingest.ingest_bytes`
       (um documento por linha lida) — decisão registrada em
       `docs/ARCHITECTURE.md` §5
-- [ ] Implementar crawler restrito a um conjunto pré-definido de páginas
-      (até ~5), sem agendamento (`# MVP: escopo restrito`)
+- [ ] Implementar crawler disparado manualmente pelo admin a partir de uma
+      URL semente (interna ou externa), com profundidade e teto de páginas
+      parametrizáveis por execução, sem agendamento (`# MVP: escopo
+      restrito`) — ver
+      `docs/superpowers/specs/2026-09-19-crawler-paginas-design.md`
 - [x] Implementar endpoint HTTP de upload para ingestão de documentos no RAG
       (`POST /api/rag/documents`, `backend/src/app/api/rag.py`), complementando
       `backend/scripts/ingest_sample_docs.py` — decisão registrada em
