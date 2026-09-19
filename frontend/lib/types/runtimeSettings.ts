@@ -2,7 +2,8 @@
  * Tipos do contrato de `GET`/`PUT /api/admin/runtime-settings` (ver
  * `backend/src/app/models/runtime_settings.py`) — parâmetros de execução
  * ajustáveis em runtime (temperatura do Ollama, timeouts, fallback de
- * domínio do RAG), só em memória, resetam a cada restart do backend.
+ * domínio do RAG, teto default/limiar de confiança do crawler), só em
+ * memória, resetam a cada restart do backend.
  */
 
 export interface RuntimeSettings {
@@ -10,6 +11,8 @@ export interface RuntimeSettings {
   local_llm_timeout_s: number;
   external_llm_timeout_s: number;
   rag_search_domain_fallback: boolean;
+  crawler_max_pages_default: number;
+  crawler_confidence_threshold: number;
 }
 
 /** Corpo de `PUT /api/admin/runtime-settings` — atualização parcial, só os

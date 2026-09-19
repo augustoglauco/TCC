@@ -21,6 +21,8 @@ const SETTINGS_PADRAO: RuntimeSettings = {
   local_llm_timeout_s: 30.0,
   external_llm_timeout_s: 30.0,
   rag_search_domain_fallback: false,
+  crawler_max_pages_default: 50,
+  crawler_confidence_threshold: 0.8,
 };
 
 describe("RuntimeSettingsForm", () => {
