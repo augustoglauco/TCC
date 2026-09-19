@@ -2,10 +2,12 @@
 
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.chat import router as chat_router
+from app.api.crawler import router as crawler_router
 from app.api.local_models import router as local_models_router
 from app.api.rag import router as rag_router
 from app.api.rag_collections import router as rag_collections_router
@@ -80,6 +82,11 @@ def create_app() -> FastAPI:
     app.state.rag_uploads_dir = Path(settings.rag_uploads_dir)
     app.state.crawler_max_pages_default = settings.crawler_max_pages
     app.state.crawler_confidence_threshold = settings.crawler_confidence_threshold
+    # Cliente HTTP dedicado ao crawler (spec
+    # docs/superpowers/specs/2026-09-19-crawler-paginas-design.md) — separado
+    # de `external_client`/`local_client`, que são clientes de LLM, não de
+    # fetch de páginas arbitrárias.
+    app.state.crawler_http_client = httpx.AsyncClient()
 
     # Primeiro uso real do Postgres do projeto (registro de documentos do
     # RAG, além do MVP — ver docs/ARCHITECTURE.md §5). Engine criado
@@ -101,6 +108,7 @@ def create_app() -> FastAPI:
     app.state.stt_client = WhisperSttClient(model_size=settings.stt_model_size)
 
     app.include_router(chat_router)
+    app.include_router(crawler_router)
     app.include_router(local_models_router)
     app.include_router(rag_router)
     app.include_router(rag_collections_router)
