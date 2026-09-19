@@ -21,6 +21,16 @@ class RuntimeSettingsResponse(BaseModel):
         ...,
         description="Se a busca do RAG refaz sem filtro de domínio quando a filtrada vem vazia.",
     )
+    crawler_max_pages_default: int = Field(
+        ..., description="Teto default de páginas por execução do crawler, pré-preenche o form do admin."
+    )
+    crawler_confidence_threshold: float = Field(
+        ...,
+        description=(
+            "Limiar de confiança do classificador do crawler: acima ingere direto, "
+            "abaixo vai pra fila de revisão."
+        ),
+    )
 
 
 class RuntimeSettingsUpdateRequest(BaseModel):
@@ -30,3 +40,5 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     local_llm_timeout_s: float | None = Field(default=None, gt=0.0, le=300.0)
     external_llm_timeout_s: float | None = Field(default=None, gt=0.0, le=300.0)
     rag_search_domain_fallback: bool | None = None
+    crawler_max_pages_default: int | None = Field(default=None, ge=1)
+    crawler_confidence_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
