@@ -11,6 +11,8 @@ import { useCallback, useEffect, useState } from "react";
 
 import { CollectionFormModal } from "@/components/admin/CollectionFormModal";
 import { CollectionsTable } from "@/components/admin/CollectionsTable";
+import { CrawlerPanel } from "@/components/admin/CrawlerPanel";
+import { CrawlerReviewQueue } from "@/components/admin/CrawlerReviewQueue";
 import { DocumentsTable } from "@/components/admin/DocumentsTable";
 import { PlaygroundPanel } from "@/components/admin/playground/PlaygroundPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
@@ -253,6 +255,16 @@ function AbaConfiguracao({
   );
 }
 
+function AbaCrawler() {
+  const [reloadKey, setReloadKey] = useState(0);
+  return (
+    <div className="space-y-6">
+      <CrawlerPanel onFinished={() => setReloadKey((key) => key + 1)} />
+      <CrawlerReviewQueue reloadKey={reloadKey} />
+    </div>
+  );
+}
+
 export default function IngestaoDocumentosPage() {
   const [reloadKey, setReloadKey] = useState(0);
   const [collections, setCollections] = useState<RagCollection[]>([]);
@@ -299,6 +311,7 @@ export default function IngestaoDocumentosPage() {
           <TabsTrigger value="documentos">Documentos ingeridos</TabsTrigger>
           <TabsTrigger value="configuracao">Configuração</TabsTrigger>
           <TabsTrigger value="playground">Playground</TabsTrigger>
+          <TabsTrigger value="crawler">Crawler</TabsTrigger>
         </TabsList>
         <div className="max-h-[calc(78vh-140px)] min-h-[420px] overflow-y-auto pr-1">
           <TabsContent value="enviar">
@@ -312,6 +325,9 @@ export default function IngestaoDocumentosPage() {
           </TabsContent>
           <TabsContent value="playground">
             <PlaygroundPanel collections={collections} />
+          </TabsContent>
+          <TabsContent value="crawler">
+            <AbaCrawler />
           </TabsContent>
         </div>
       </Tabs>
