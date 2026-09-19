@@ -26,3 +26,4 @@ frontend/build/
 # Editor
 .vscode/
 .idea/
+.worktrees/
