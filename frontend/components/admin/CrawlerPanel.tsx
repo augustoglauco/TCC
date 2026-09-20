@@ -18,7 +18,6 @@ export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
     // Só usado pra pré-preencher `maxPages` — falha ao carregar não impede o
     // form de funcionar (o backend usa seu próprio default se `max_pages`
     // não for enviado).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     getRuntimeSettings()
       .then((settings) => setMaxPages(settings.crawler_max_pages_default))
       .catch(() => {});

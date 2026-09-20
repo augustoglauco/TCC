@@ -1,5 +1,4 @@
 import httpx
-import pytest
 
 from app.rag.crawler import crawl, extract_text_and_links, fetch_page
 
