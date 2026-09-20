@@ -323,6 +323,8 @@ async def test_documento_recuperado_pelo_rag_e_injetado_no_prompt_do_llm():
     assert local_client.calls == 1
     assert documento.content in local_client.last_prompt
     assert "Qual o preço do gerador GD-30?" in local_client.last_prompt
+    # O playbook do domínio (vendas) é anteposto ao contexto de RAG (Fase 3).
+    assert "Domínio: VENDAS" in local_client.last_prompt
 
 
 async def test_rag_vazio_nao_injeta_contexto_prompt_e_a_mensagem_original():
@@ -339,9 +341,32 @@ async def test_rag_vazio_nao_injeta_contexto_prompt_e_a_mensagem_original():
         complexity_strategy="heuristic",
     )
 
-    # Sem documentos, o prompt enviado ao LLM é a própria mensagem do
-    # cliente — sem o texto de instrução extra do `_build_prompt`.
-    assert external_client.last_prompt == "Qual o preço desse produto?"
+    # Sem documentos, não há bloco de contexto de RAG no prompt — mas, como
+    # a mensagem foi classificada em um domínio de negócio (vendas), o
+    # playbook do domínio (Fase 3) é anteposto mesmo escalando ao externo.
+    # O texto de "Informações recuperadas" (contexto de RAG) NÃO aparece.
+    assert "Qual o preço desse produto?" in external_client.last_prompt
+    assert "Informações recuperadas" not in external_client.last_prompt
+    assert "Domínio: VENDAS" in external_client.last_prompt
+
+
+async def test_fora_escopo_sem_playbook_envia_apenas_a_mensagem():
+    # Mensagem sem palavra-chave de domínio → fora_escopo → sem playbook.
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[])
+
+    await _coletar_eventos(
+        "Bom dia, tudo bem com você?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
+
+    # fora_escopo não tem playbook e não houve RAG: o prompt reduz à mensagem.
+    assert external_client.last_prompt == "Mensagem do cliente: Bom dia, tudo bem com você?"
 
 
 async def test_rag_com_resultado_e_complexidade_alta_escala_para_externo():
