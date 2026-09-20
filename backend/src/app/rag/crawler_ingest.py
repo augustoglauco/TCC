@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import RagCollection, RagDocument
+from app.models.rag import RagDocumentOrigin
 from app.rag.crawler_classifier import PageClassification
 from app.rag.crawler_pending import upsert_pending_page
 from app.rag.embeddings import TextEmbedder
@@ -17,7 +18,7 @@ from app.rag.ingest import ingest_bytes
 from app.rag.qdrant_client import QdrantRAGClient
 from app.rag.registry import delete_document
 
-_CRAWLER_ORIGIN = "crawler"
+_CRAWLER_ORIGIN: RagDocumentOrigin = "crawler"
 
 
 async def replace_previous_ingestion(
