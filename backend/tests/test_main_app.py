@@ -45,3 +45,24 @@ def test_rota_de_local_models_esta_registrada():
     caminhos = set(app.openapi()["paths"].keys())
 
     assert "/api/admin/local-models" in caminhos
+
+
+def test_rotas_do_crawler_estao_registradas_e_o_estado_correspondente_tambem():
+    """Achado #6 da revisão final: a Task 9 registrou `crawler_router` e o
+    `app.state` que ele depende (`crawler_http_client`,
+    `crawler_max_pages_default`, `crawler_confidence_threshold`) em
+    `create_app()`, mas nenhum teste exercitava a app real — os 255 testes
+    existentes montam `FastAPI()` "nuas" com dependency overrides, sem nunca
+    passar por `create_app()`. Sem esta checagem, remover essa fiação por
+    engano não quebraria nenhum teste."""
+    app = create_app()
+    caminhos = set(app.openapi()["paths"].keys())
+
+    assert "/api/rag/crawler/run" in caminhos
+    assert "/api/rag/crawler/pending" in caminhos
+    assert "/api/rag/crawler/pending/{page_id}/approve" in caminhos
+    assert "/api/rag/crawler/pending/{page_id}/reject" in caminhos
+
+    assert app.state.crawler_http_client is not None
+    assert isinstance(app.state.crawler_max_pages_default, int)
+    assert isinstance(app.state.crawler_confidence_threshold, float)
