@@ -30,6 +30,15 @@ class CrawlResult:
     errors: list[str] = field(default_factory=list)
 
 
+class NonHtmlContentError(Exception):
+    """Levantada internamente por `fetch_page` (achado #4 da revisão final)
+    quando o fetch teve sucesso (status 2xx) mas o content-type devolvido
+    não é `text/html` — ex.: um PDF ou uma imagem linkados a partir de uma
+    página HTML. Não é uma falha de fetch: só sinaliza a `crawl()` para
+    ignorar essa URL sem contá-la em `errors` (conteúdo não-HTML é
+    "ignorado", não um erro — ver docstring do módulo)."""
+
+
 def _normalize_url(url: str) -> str:
     """Remove o fragmento (`#...`) — necessário para o visited-set do BFS
     tratar âncoras diferentes da mesma página como a mesma URL."""
@@ -49,9 +58,18 @@ def extract_text_and_links(html: str, base_url: str) -> tuple[str, list[str]]:
 
 
 async def fetch_page(client: httpx.AsyncClient, url: str) -> FetchedPage | None:
-    """Busca `url`; devolve `None` (sem levantar) em qualquer falha de
-    rede/timeout/status não-2xx/content-type não-HTML — cabe ao chamador
-    (`crawl`) decidir registrar o erro."""
+    """Busca `url`; devolve `None` (sem levantar) em falha real de
+    rede/timeout/status não-2xx — cabe ao chamador (`crawl`) registrar como
+    erro. Levanta `NonHtmlContentError` quando o fetch teve sucesso mas o
+    content-type não é HTML (achado #4 da revisão final: antes retornava
+    `None` igual a uma falha real, fazendo `crawl()` contar PDFs/imagens
+    linkados como "erro" em vez de simplesmente ignorá-los).
+
+    Usa `response.url` (URL final após redirects, se houver) — não a `url`
+    originalmente requisitada — como base para resolver links relativos e
+    como `FetchedPage.url` (achado #3 da revisão final: sem isso, links
+    relativos de uma página que respondeu com redirect resolviam contra a
+    URL errada)."""
     try:
         response = await client.get(url, timeout=_FETCH_TIMEOUT_S, follow_redirects=True)
         response.raise_for_status()
@@ -59,9 +77,10 @@ async def fetch_page(client: httpx.AsyncClient, url: str) -> FetchedPage | None:
         return None
     content_type = response.headers.get("content-type", "")
     if "text/html" not in content_type:
-        return None
-    text, links = extract_text_and_links(response.text, url)
-    return FetchedPage(url=url, text=text, links=links)
+        raise NonHtmlContentError(url)
+    final_url = str(response.url)
+    text, links = extract_text_and_links(response.text, final_url)
+    return FetchedPage(url=final_url, text=text, links=links)
 
 
 async def crawl(
@@ -83,9 +102,23 @@ async def crawl(
             continue
         visited.add(url)
 
-        page = await fetch_page(client, url)
+        try:
+            page = await fetch_page(client, url)
+        except NonHtmlContentError:
+            # Fetch com sucesso, conteúdo não-HTML: ignorado, não é erro
+            # (achado #4 da revisão final).
+            continue
         if page is None:
             result.errors.append(url)
+            continue
+
+        if urlparse(page.url).netloc != seed_host:
+            # A URL originalmente enfileirada era do mesmo host (passou pelo
+            # filtro abaixo), mas um redirect levou a um host diferente —
+            # tratada como conteúdo ignorado: não conta como página nem
+            # alimenta a fila com seus links (achado #3 da revisão final,
+            # parte 2: fecha o gap de "restrito ao mesmo host" para o caso
+            # de redirect cross-host).
             continue
 
         result.pages.append(page)
