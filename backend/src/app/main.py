@@ -60,6 +60,7 @@ def create_app() -> FastAPI:
         timeout_s=settings.external_llm_timeout_s,
         price_per_1k_input_tokens=settings.external_model_price_per_1k_input_tokens,
         price_per_1k_output_tokens=settings.external_model_price_per_1k_output_tokens,
+        vision_model=settings.external_vision_model_name,
     )
 
     # Gerenciador de modelos locais (além do MVP — ver
@@ -110,6 +111,11 @@ def create_app() -> FastAPI:
     app.state.clip_image_store = ClipImageStore(app.state.qdrant_client.async_client)
 
     app.state.complexity_strategy = settings.router_complexity_strategy
+    # Limiares do fluxo de identificação de produto por imagem (R6, Fase 3),
+    # ajustáveis em runtime via PUT /api/admin/runtime-settings. O
+    # `external_vision_model_name` vive no OpenRouterClient (`vision_model`).
+    app.state.image_internal_confidence = settings.image_internal_confidence
+    app.state.image_external_confidence = settings.image_external_confidence
     # MVP: modelo carregado sob demanda (lazy) na mesma GPU do modelo local de
     # chat — contenção de VRAM entre os dois é um risco conhecido (ver
     # docs/ARCHITECTURE.md §7).

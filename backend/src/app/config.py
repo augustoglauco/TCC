@@ -22,6 +22,22 @@ class Settings(BaseSettings):
     external_model_price_per_1k_input_tokens: float = 0.0
     external_model_price_per_1k_output_tokens: float = 0.0
 
+    # --- Identificação de produto por imagem (R6, Fase 3) ---
+    # Fluxo: imagem espontânea = identificação (padrão); OCR só quando o
+    # sistema solicita comprovante (ver docs/ARCHITECTURE.md §4). Os três
+    # parâmetros abaixo têm default aqui só para popular o frontend; são
+    # ajustáveis em runtime via PUT /api/admin/runtime-settings.
+    # Modelo de visão via OpenRouter (formato "provider/model", ex.:
+    # "openai/gpt-4o-mini"). Vazio = fallback externo indisponível (o motor
+    # responde "não identificado" em vez de chamar o externo).
+    external_vision_model_name: str = ""
+    # Limiar alto de aceite do catálogo interno (CLIP): melhor score >= este
+    # valor aceita o interno sem chamar o externo.
+    image_internal_confidence: float = 0.30
+    # Confiança mínima que o modelo de visão externo precisa reportar para o
+    # resultado ser aceito.
+    image_external_confidence: float = 0.80
+
     # Tipado como Literal para falhar na carga das settings (erro claro) em vez
     # de estourar um ValueError obscuro dentro do classificador em runtime.
     router_complexity_strategy: Literal["heuristic", "llm"] = "heuristic"

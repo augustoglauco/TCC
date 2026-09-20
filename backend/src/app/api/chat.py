@@ -10,7 +10,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
-from app.ocr.image_processor import ImageFormatError, OcrIndisponivelError, extract_text_from_base64
+from app.ocr.image_processor import (
+    ImageFormatError,
+    OcrIndisponivelError,
+    detect_image_format,
+    extract_text_from_base64,
+)
+from app.rag.clip_embedder import ClipEmbedder
+from app.rag.image_identification import identify_product_by_image
+from app.rag.image_search import ClipImageStore
 from app.router.llm_client import LLMClient
 from app.router.orchestrator import (
     ExternalBackendIndisponivelError,
@@ -61,6 +69,14 @@ def get_stt_client(request: Request) -> SttClient:
     return request.app.state.stt_client
 
 
+def get_clip_store(request: Request) -> ClipImageStore:
+    return request.app.state.clip_image_store
+
+
+def get_clip_embedder(request: Request) -> ClipEmbedder:
+    return request.app.state.clip_embedder
+
+
 def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
@@ -68,11 +84,14 @@ def _sse(event: str, data: dict) -> str:
 @router.post("/messages")
 async def send_message(
     payload: ChatMessageRequest,
+    request: Request,
     local_client: LLMClient = Depends(get_local_client),
     external_client: LLMClient = Depends(get_external_client),
     rag_client: RAGClient = Depends(get_rag_client),
     complexity_strategy: str = Depends(get_complexity_strategy),
     stt_client: SttClient = Depends(get_stt_client),
+    clip_store: ClipImageStore = Depends(get_clip_store),
+    clip_embedder: ClipEmbedder = Depends(get_clip_embedder),
 ) -> StreamingResponse:
     conversation_id = payload.conversation_id or str(uuid4())
 
@@ -107,15 +126,17 @@ async def send_message(
             effective_message = transcribed
             transcribed_message = transcribed
 
-    # MVP: quando `payload.image` vem preenchido, OCR extrai o texto da
-    # imagem e o concatena à mensagem efetiva (pode combinar com texto
-    # digitado — ex.: "O que é isso?" + imagem de comprovante). Se o OCR
-    # não extrair nada, a imagem é ignorada silenciosamente e a mensagem
-    # de texto (se houver) segue sozinha. Se o Tesseract não estiver
-    # disponível mas já houver `effective_message` (texto digitado), degrada
-    # graciosamente em vez de derrubar a requisição — mesmo padrão do STT
-    # (que faz fallback para `payload.message` quando a transcrição vem vazia).
-    if payload.image:
+    # Fluxo de imagem (ver docs/ARCHITECTURE.md §4). O PADRÃO é identificação
+    # de produto (mais abaixo, no event_stream); o OCR só roda quando o
+    # sistema solicitou um comprovante/documento (`image_intent="documento"`).
+    is_identificacao_imagem = bool(payload.image) and payload.image_intent != "documento"
+
+    if payload.image and payload.image_intent == "documento":
+        # MVP: OCR extrai o texto da imagem e o concatena à mensagem efetiva
+        # (pode combinar com texto digitado). Se o OCR não extrair nada, a
+        # imagem é ignorada silenciosamente. Se o Tesseract não estiver
+        # disponível mas já houver `effective_message`, degrada graciosamente
+        # em vez de derrubar a requisição — mesmo padrão do STT.
         try:
             ocr_text = extract_text_from_base64(payload.image)
             if ocr_text:
@@ -133,16 +154,40 @@ async def send_message(
             )
             if not effective_message:
                 # Sem texto de fallback: sem OCR não há mensagem efetiva.
-                raise HTTPException(
-                    status_code=503, detail="Serviço de OCR indisponível."
-                ) from exc
+                raise HTTPException(status_code=503, detail="Serviço de OCR indisponível.") from exc
             # Já há texto digitado: ignora a imagem e continua com o texto.
 
-    if not effective_message:
+    # A identificação de produto não exige texto (a imagem é a "mensagem");
+    # só exigimos `effective_message` quando NÃO é o fluxo de identificação.
+    if not effective_message and not is_identificacao_imagem:
         raise HTTPException(
             status_code=422,
             detail="Não foi possível entender o áudio. Tente novamente ou digite sua mensagem.",
         )
+
+    # Decodifica a imagem para o fluxo de identificação (o base64 do OCR é
+    # decodificado dentro de `extract_text_from_base64`; aqui precisamos dos
+    # bytes crus para o motor de identificação).
+    identificacao_image_bytes: bytes | None = None
+    if is_identificacao_imagem:
+        try:
+            identificacao_image_bytes = base64.b64decode(payload.image, validate=True)
+        except binascii.Error as exc:
+            raise HTTPException(
+                status_code=400, detail="Campo 'image' não é base64 válido."
+            ) from exc
+        # Valida o formato ANTES do CLIP (mesma barreira de `_validate_image`
+        # nos endpoints de imagem). Sem isso, bytes inválidos chegariam ao
+        # `PIL.Image.open` dentro do embedder CLIP e estourariam
+        # `UnidentifiedImageError` sem tratamento — como o fluxo de
+        # identificação roda dentro do stream SSE, o erro travava a resposta
+        # silenciosamente (200 OK com corpo vazio, sem nenhum evento). Ver bug
+        # relatado 2026-09-20.
+        if detect_image_format(identificacao_image_bytes) is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Formato de imagem não suportado. Use PNG, JPG ou WEBP.",
+            )
 
     recent_messages = list(_conversation_history.get(conversation_id, []))
 
@@ -150,6 +195,50 @@ async def send_message(
         yield _sse("conversation", {"conversation_id": conversation_id})
         if transcribed_message is not None:
             yield _sse("transcription", {"transcribed_message": transcribed_message})
+
+        # Fluxo padrão de imagem: identificação de produto (ver
+        # docs/ARCHITECTURE.md §4). Não passa pelo orchestrator/LLM de texto —
+        # produz a própria resposta (detalhes do produto ou "não
+        # identificado") e a emite como token + done.
+        if is_identificacao_imagem:
+            try:
+                resultado = await identify_product_by_image(
+                    identificacao_image_bytes,
+                    clip_store=clip_store,
+                    clip_embedder=clip_embedder,
+                    vision_client=external_client,
+                    rag_client=rag_client,
+                    internal_confidence=request.app.state.image_internal_confidence,
+                    external_confidence=request.app.state.image_external_confidence,
+                    recent_messages=recent_messages,
+                )
+            except RAGConnectionError as exc:
+                logger.error(
+                    "chat_dependencia_indisponivel",
+                    extra={"router": {"event": "chat_dependencia_indisponivel", "erro": str(exc)}},
+                )
+                yield _sse(
+                    "error", {"detail": "Serviço temporariamente indisponível, tente novamente."}
+                )
+                return
+
+            if resultado.status == "nao_identificado":
+                texto = resultado.mensagem or "Não identifiquei o produto."
+            else:
+                cabecalho = f"Identifiquei: {resultado.produto}."
+                texto = f"{cabecalho}\n\n{resultado.detalhes}" if resultado.detalhes else cabecalho
+            yield _sse("token", {"text": texto})
+            yield _sse(
+                "identification",
+                resultado.model_dump(exclude_none=True),
+            )
+            done_data = ChatDoneEventData(
+                domain="vendas",
+                backend_used="identificacao_imagem",
+                escalation_reason="nenhum",
+            )
+            yield _sse("done", done_data.model_dump())
+            return
 
         try:
             async for event in handle_message(
