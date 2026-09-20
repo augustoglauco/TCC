@@ -260,6 +260,33 @@ protege contra múltiplas instâncias/processos do backend rodando
 simultaneamente contra o mesmo Qdrant`, o que é aceitável para o cenário de
 desenvolvimento/demonstração deste protótipo (um único processo backend).
 
+**Decisão registrada (Fase 3, R6, OCR para imagens dirigidas):**
+`POST /api/chat/messages` passou a aceitar um campo `image` (base64,
+PNG/JPG/WEBP). Quando presente, o OCR extrai o texto da imagem via
+`pytesseract` (Tesseract 5.x, idiomas `por+eng`) e o concatena à mensagem
+efetiva antes de passar ao orchestrator — o texto extraído é injetado como
+contexto adicional, não substitui a mensagem de texto digitada (os dois
+podem coexistir). Formato detectado por magic bytes, não pela extensão.
+Formato inválido → 400; Tesseract indisponível → 503. `# MVP: uso dirigido
+(comprovantes, documentos solicitados pelo sistema) — sem classificação
+automática de tipo de imagem nem pré-processamento avançado (binarização,
+deskew); busca por similaridade visual via CLIP é item separado abaixo`.
+
+**Decisão registrada (Fase 3, R6, busca multimodal via CLIP):**
+Busca por similaridade visual implementada via `ClipEmbedder` (CLIP
+ViT-B/32, 512 dims, via `sentence-transformers` — já era dependência do
+projeto, sem pacote novo) sobre uma collection dedicada `catalogo_imagens`
+no Qdrant. Dois endpoints novos: `POST /api/rag/images` (ingestão de imagem
+com `domain`) e `POST /api/rag/images/search` (busca por imagem de consulta
+ou descrição textual — mesmo espaço vetorial CLIP). A collection é criada
+automaticamente na primeira ingestão (dimensão 512, cosine fixos), diferente
+das collections de texto que exigem criação explícita via API admin — aceito
+porque `catalogo_imagens` é única e de configuração fixa neste protótipo.
+`# MVP: catálogo ampliado mas não completo; sem reranking (próximo item da
+Fase 3); sem deduplicação (mesmo comportamento de
+`QdrantRAGClient.upsert_chunks`); score threshold mais baixo (0.20) que o
+RAG de texto (0.35) porque scores cosine do CLIP são naturalmente menores`.
+
 **Decisão registrada (Fase 2, melhoria de qualidade a pedido explícito,
 2026-09-17):** `app.rag.pdf_extract.extract_text_from_pdf` trocou de `pypdf`
 para `pdfplumber`, com uma heurística de detecção de layout em 2 colunas —

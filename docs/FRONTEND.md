@@ -150,9 +150,10 @@ streaming SSE do response adicionado depois, ver decisão em
 ```jsonc
 // Request
 {
-  "message": "Quero um orçamento para o produto X", // opcional se `audio` vier preenchido
+  "message": "Quero um orçamento para o produto X", // opcional se `audio` ou `image` vier preenchido
   "conversation_id": "uuid-opcional, omitir para iniciar conversa nova",
-  "audio": null // opcional, base64 (wav ou mp3) — processado via STT (R5) quando presente
+  "audio": null, // opcional, base64 (wav ou mp3) — processado via STT (R5) quando presente
+  "image": null  // opcional, base64 (PNG/JPG/WEBP) — OCR extrai o texto no backend (R6); pode combinar com `message`
 }
 ```
 
@@ -351,8 +352,7 @@ frontend/
 └── package.json
 ```
 
-Estado atual (Fase 7/8): `AudioRecorder.tsx` já existe (ver acima); `ImageUploader.tsx` e
-`components/chat/cards/` ainda não existem (dependem de R6/R11/R12 no
+Estado atual (Fase 7/8): `AudioRecorder.tsx` e `ImageUploader.tsx` já existem (ver acima); `components/chat/cards/` ainda não existe (depende de R11/R12 no
 backend). `lib/hooks/useChatStore.ts` contém o estado do widget via Zustand
 (aberto/fechado, mensagens, `conversation_id`) — ainda não há `useConversation`
 nem `useProducts` (sem dados de servidor além do chat nesta etapa). Os testes

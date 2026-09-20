@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.chat import router as chat_router
 from app.api.crawler import router as crawler_router
+from app.api.image_search import router as image_search_router
 from app.api.local_models import router as local_models_router
 from app.api.rag import router as rag_router
 from app.api.rag_collections import router as rag_collections_router
@@ -17,7 +18,9 @@ from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
 from app.rag.active_collection_client import ActiveCollectionRagClient
+from app.rag.clip_embedder import ClipEmbedder
 from app.rag.embedders_registry import EmbedderRegistry
+from app.rag.image_search import ClipImageStore
 from app.rag.qdrant_client import QdrantRAGClient
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
@@ -101,6 +104,11 @@ def create_app() -> FastAPI:
         embedders=app.state.embedder_registry,
     )
 
+    # CLIP para busca multimodal por imagem (R6, Fase 3) — singleton lazy,
+    # mesmo padrão dos outros clientes de infraestrutura.
+    app.state.clip_embedder = ClipEmbedder()
+    app.state.clip_image_store = ClipImageStore(app.state.qdrant_client.async_client)
+
     app.state.complexity_strategy = settings.router_complexity_strategy
     # MVP: modelo carregado sob demanda (lazy) na mesma GPU do modelo local de
     # chat — contenção de VRAM entre os dois é um risco conhecido (ver
@@ -109,6 +117,7 @@ def create_app() -> FastAPI:
 
     app.include_router(chat_router)
     app.include_router(crawler_router)
+    app.include_router(image_search_router)
     app.include_router(local_models_router)
     app.include_router(rag_router)
     app.include_router(rag_collections_router)

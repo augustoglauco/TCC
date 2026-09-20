@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
+from app.ocr.image_processor import ImageFormatError, OcrIndisponivelError, extract_text_from_base64
 from app.router.llm_client import LLMClient
 from app.router.orchestrator import (
     ExternalBackendIndisponivelError,
@@ -105,6 +106,37 @@ async def send_message(
         if transcribed:
             effective_message = transcribed
             transcribed_message = transcribed
+
+    # MVP: quando `payload.image` vem preenchido, OCR extrai o texto da
+    # imagem e o concatena à mensagem efetiva (pode combinar com texto
+    # digitado — ex.: "O que é isso?" + imagem de comprovante). Se o OCR
+    # não extrair nada, a imagem é ignorada silenciosamente e a mensagem
+    # de texto (se houver) segue sozinha. Se o Tesseract não estiver
+    # disponível mas já houver `effective_message` (texto digitado), degrada
+    # graciosamente em vez de derrubar a requisição — mesmo padrão do STT
+    # (que faz fallback para `payload.message` quando a transcrição vem vazia).
+    if payload.image:
+        try:
+            ocr_text = extract_text_from_base64(payload.image)
+            if ocr_text:
+                effective_message = (
+                    f"{effective_message}\n\n[Texto extraído da imagem]:\n{ocr_text}"
+                    if effective_message
+                    else f"[Texto extraído da imagem]:\n{ocr_text}"
+                )
+        except ImageFormatError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except OcrIndisponivelError as exc:
+            logger.error(
+                "ocr_indisponivel",
+                extra={"router": {"event": "ocr_indisponivel", "erro": str(exc)}},
+            )
+            if not effective_message:
+                # Sem texto de fallback: sem OCR não há mensagem efetiva.
+                raise HTTPException(
+                    status_code=503, detail="Serviço de OCR indisponível."
+                ) from exc
+            # Já há texto digitado: ignora a imagem e continua com o texto.
 
     if not effective_message:
         raise HTTPException(

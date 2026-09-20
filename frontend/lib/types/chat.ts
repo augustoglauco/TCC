@@ -11,14 +11,16 @@ export type ChatBackendUsed = "local" | "externo";
 export type ChatEscalationReason = "nenhum" | "fora_escopo" | "rag_vazio" | "complexidade_alta";
 
 export interface ChatMessageRequest {
-  // Opcional: obrigatório enviar `message` e/ou `audio` (backend valida e
-  // retorna 422 se nenhum dos dois vier preenchido).
+  // Opcional: obrigatório enviar `message`, `audio` e/ou `image` (backend valida e
+  // retorna 422 se nenhum dos três vier preenchido).
   message?: string;
   conversation_id?: string;
   // Base64 do áudio gravado pelo `AudioRecorder` (qualquer formato aceito
   // pelo backend, tipicamente audio/webm) — `null` quando a mensagem é só
   // texto.
   audio: string | null;
+  // Base64 da imagem (PNG/JPG/WEBP) — OCR extrai o texto no backend (R6).
+  image?: string | null;
 }
 
 /** Fonte (arquivo de origem) e score de um chunk usado no contexto do RAG. */

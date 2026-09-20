@@ -157,6 +157,12 @@ class QdrantRAGClient:
     def search_domain_fallback(self, value: bool) -> None:
         self._search_domain_fallback = value
 
+    @property
+    def async_client(self) -> AsyncQdrantClient:
+        """Expõe o cliente Qdrant subjacente para uso por outros módulos
+        (ex.: `ClipImageStore`) sem acessar `_client` diretamente."""
+        return self._client
+
     async def collection_exists(self, collection_name: str) -> bool:
         try:
             return await self._client.collection_exists(collection_name)
