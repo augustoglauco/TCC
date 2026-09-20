@@ -18,10 +18,25 @@ considerando as últimas mensagens da conversa, com log das decisões.
 **Fase 2 — Entrada multimodal e RAG textual**
 Chat aceita texto e áudio (STT). RAG funcionando: ingestão de PDFs/textos com
 busca vetorial (Qdrant), **conector de leitura a banco de dados relacional**,
-endpoint de upload de documentos, e **extração de PDF de qualidade** —
-detecção de layout em 2 colunas (`pdfplumber`), corrige catálogos de produto
-que antes saíam com título/bullets embaralhados entre produtos vizinhos.
-Falta só o crawler de páginas fixas.
+endpoint de upload de documentos, **crawler de páginas** (navegação BFS de
+verdade a partir de uma URL semente, com profundidade e teto de páginas
+parametrizáveis por execução) e **extração de PDF de qualidade** — detecção de
+layout em 2 colunas (`pdfplumber`), corrige catálogos de produto que antes
+saíam com título/bullets embaralhados entre produtos vizinhos. Fase concluída.
+
+**Fase 3 — RAG multimodal, imagem e domínios (em andamento)**
+Entrada de **imagem** no chat, **OCR** para documentos dirigidos (comprovantes),
+**busca visual por CLIP** sobre catálogo de imagens (Qdrant), com **reranking
+básico** dos resultados. **Playbooks/prompts por domínio** (Vendas — com oferta
+proativa de agendamento; Suporte Técnico; Atendimento) antepostos ao prompt do
+LLM. **Identificação de produto por imagem com fallback externo:** imagem
+espontânea → CLIP interno → se baixa confiança, consulta um modelo de visão
+externo (OpenRouter) que responde de forma objetiva (nome + se é do portfólio +
+confiança); se for produto do portfólio e a confiança for alta, busca os
+detalhes no RAG de texto; senão informa que não identificou. O OCR virou a
+exceção (só quando o sistema pede um comprovante); a identificação é o padrão.
+Limiares e modelo de visão são parametrizáveis em runtime (`/admin/modelos`).
+Falta a costura visual no widget (enviar o intent e renderizar o card).
 
 **Fase 7 e 8 — Frontend (site + widget de chat)**
 Projeto Next.js criado; chat migrou de painel fixo para **modal central**
@@ -54,7 +69,8 @@ confundir com o escopo formal do TCC:
 
 ## ⏳ Ainda não iniciado
 
-- **Fase 3** — RAG multimodal (imagem/OCR/CLIP) e separação de prompts por domínio
+- **Fase 3 (resta)** — fallback de busca externa de imagem *já feito*; falta a
+  costura no widget de chat (enviar `image_intent`, renderizar card de produto)
 - **Fase 4** — Agendamento via MCP do Google Calendar + monitor de tom
 - **Fase 5** — MCP B2B provido pela empresa (catálogo/estoque/ferramentas)
 - **Fase 6** — Memória de conversa e classificação de usuário (Cliente/Lead)
@@ -64,9 +80,15 @@ confundir com o escopo formal do TCC:
 
 ## 🔧 Correções recentes de qualidade/robustez
 
-Além de features novas, esta rodada também corrigiu problemas reais
-encontrados numa auditoria do código (parte dele escrito em paralelo por
-outro agente, o Antigravity, que também trabalha neste repositório):
+Nesta rodada, além do avanço da Fase 3 (reranking de imagem, playbooks por
+domínio e identificação de produto por imagem com fallback externo), também
+sincronizamos o contexto entre as três ferramentas agênticas usadas no
+projeto — **Antigravity, Claude Code CLI e Kiro CLI** — via arquivos de regras
+que apontam para o mesmo `docs/` (fonte de verdade única).
+
+Rodadas anteriores corrigiram problemas reais encontrados numa auditoria do
+código (parte dele escrito em paralelo por outro agente, o Antigravity, que
+também trabalha neste repositório):
 
 - **Vazamento de domínio no RAG** — uma busca sem resultado no domínio certo
   chegou a "vazar" pra outros domínios (ex.: pergunta de vendas trazendo
