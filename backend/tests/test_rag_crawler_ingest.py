@@ -65,7 +65,9 @@ async def test_ingest_or_queue_confidence_baixa_enfileira(db_session, active_col
     assert pendentes[0].url == "https://exemplo.com/ambiguo"
 
 
-async def test_ingest_or_queue_recrawl_url_ja_ingerida_substitui(db_session, active_collection, tmp_path):
+async def test_ingest_or_queue_recrawl_url_ja_ingerida_substitui(
+    db_session, active_collection, tmp_path
+):
     from app.rag.embedders_registry import EmbedderRegistry
 
     fake = _FakeQdrantRAGClient()
@@ -73,14 +75,28 @@ async def test_ingest_or_queue_recrawl_url_ja_ingerida_substitui(db_session, act
     classification = PageClassification(domain="vendas", confidence=0.9)
 
     await ingest_or_queue(
-        db_session, fake, active_collection, embedder, tmp_path,
-        "https://exemplo.com/produtos", "versão 1", classification, confidence_threshold=0.7,
+        db_session,
+        fake,
+        active_collection,
+        embedder,
+        tmp_path,
+        "https://exemplo.com/produtos",
+        "versão 1",
+        classification,
+        confidence_threshold=0.7,
     )
     primeiro_document_id = fake.upserts[0][4]
 
     await ingest_or_queue(
-        db_session, fake, active_collection, embedder, tmp_path,
-        "https://exemplo.com/produtos", "versão 2", classification, confidence_threshold=0.7,
+        db_session,
+        fake,
+        active_collection,
+        embedder,
+        tmp_path,
+        "https://exemplo.com/produtos",
+        "versão 2",
+        classification,
+        confidence_threshold=0.7,
     )
 
     assert fake.deleted == [(active_collection.name, primeiro_document_id)]

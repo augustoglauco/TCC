@@ -1,5 +1,5 @@
-from app.router.llm_client import LLMResponse
 from app.rag.crawler_classifier import classify_page
+from app.router.llm_client import LLMResponse
 
 
 class _FakeLLMClient:

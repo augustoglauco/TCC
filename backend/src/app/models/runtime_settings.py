@@ -22,7 +22,10 @@ class RuntimeSettingsResponse(BaseModel):
         description="Se a busca do RAG refaz sem filtro de domínio quando a filtrada vem vazia.",
     )
     crawler_max_pages_default: int = Field(
-        ..., description="Teto default de páginas por execução do crawler, pré-preenche o form do admin."
+        ...,
+        description=(
+            "Teto default de páginas por execução do crawler, pré-preenche o form do admin."
+        ),
     )
     crawler_confidence_threshold: float = Field(
         ...,

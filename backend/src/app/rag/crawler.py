@@ -64,7 +64,9 @@ async def fetch_page(client: httpx.AsyncClient, url: str) -> FetchedPage | None:
     return FetchedPage(url=url, text=text, links=links)
 
 
-async def crawl(client: httpx.AsyncClient, seed_url: str, depth: int, max_pages: int) -> CrawlResult:
+async def crawl(
+    client: httpx.AsyncClient, seed_url: str, depth: int, max_pages: int
+) -> CrawlResult:
     """BFS a partir de `seed_url`, restrito ao mesmo host, até `depth`
     saltos ou `max_pages` páginas visitadas (o que vier primeiro).
     Visited-set por URL normalizada evita loop em links de retorno."""
