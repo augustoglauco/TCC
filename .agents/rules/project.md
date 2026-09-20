@@ -27,6 +27,14 @@ implementar qualquer mudança:
 - `docs/AGENTIC_WORKFLOW.md` — divisão de trabalho entre Antigravity e
   Claude Code CLI, loop de trabalho e boas práticas de revisão.
 - `CLAUDE.md` — o mesmo contexto, na versão consumida pelo Claude Code CLI.
+- `.kiro/steering/project.md` — o mesmo contexto, na versão consumida pelo
+  Kiro CLI (+ agentes customizados em `.kiro/agents/*.json`).
+
+> O projeto é desenvolvido em três ferramentas (Antigravity, Claude Code CLI
+> e Kiro CLI), muitas vezes em paralelo. Os três arquivos de regras são
+> ponteiros equivalentes para `docs/`. Manter `docs/` sempre atualizado
+> (regra 7 abaixo) é o que garante que todas as ferramentas vejam a mesma
+> coisa — ver `docs/AGENTIC_WORKFLOW.md`.
 
 ## Regras rápidas para qualquer agente neste workspace
 
