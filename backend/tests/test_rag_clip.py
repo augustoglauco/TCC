@@ -6,7 +6,12 @@ import pytest
 from qdrant_client import AsyncQdrantClient
 
 from app.rag.clip_embedder import CLIP_VECTOR_DIMENSION, ClipEmbedder
-from app.rag.image_search import IMAGE_COLLECTION_NAME, ClipImageStore
+from app.rag.image_search import (
+    IMAGE_COLLECTION_NAME,
+    ClipImageStore,
+    ImageSearchResult,
+    rerank_image_results,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -50,6 +55,17 @@ async def test_clip_embed_lista_vazia():
     embedder = ClipEmbedder()
     assert await embedder.embed_images([]) == []
     assert await embedder.embed_texts([]) == []
+
+
+async def test_clip_embed_images_bytes_invalidos_levanta_erro_tipado():
+    """Bytes que não são imagem devem virar InvalidImageError (não
+    UnidentifiedImageError cru) — root cause do bug 2026-09-20. Exercita o
+    PIL real, sem GPU (falha antes de tocar no modelo)."""
+    from app.rag.clip_embedder import InvalidImageError
+
+    embedder = ClipEmbedder()
+    with pytest.raises(InvalidImageError):
+        await embedder.embed_images([b"isto-nao-e-uma-imagem"])
 
 
 # ---------------------------------------------------------------------------
@@ -122,3 +138,47 @@ async def test_filtro_por_domain(qdrant_in_memory, fake_embedder):
     await store.upsert_image(fake_embedder, png, filename="manual.png", domain="suporte")
     results = await store.search_by_text(fake_embedder, "qualquer", domain="vendas")
     assert results == []
+
+
+# ---------------------------------------------------------------------------
+# rerank_image_results (reranking básico, Fase 3)
+# ---------------------------------------------------------------------------
+
+
+def _result(image_id: str, domain: str, score: float) -> ImageSearchResult:
+    return ImageSearchResult(
+        image_id=image_id, filename=f"{image_id}.png", domain=domain, score=score
+    )
+
+
+def test_rerank_sem_dominio_preserva_ordem_por_score_e_corta():
+    results = [
+        _result("a", "vendas", 0.90),
+        _result("b", "suporte", 0.80),
+        _result("c", "vendas", 0.70),
+    ]
+    reranked = rerank_image_results(results, query_domain=None, top_k=2)
+    assert [r.image_id for r in reranked] == ["a", "b"]
+
+
+def test_rerank_da_bonus_ao_dominio_consultado():
+    # 'c' (vendas, 0.70) recebe bônus 0.05 -> 0.75, ultrapassando
+    # 'b' (suporte, 0.72) na ordenação, mesmo com score bruto menor.
+    results = [
+        _result("a", "vendas", 0.90),
+        _result("b", "suporte", 0.72),
+        _result("c", "vendas", 0.70),
+    ]
+    reranked = rerank_image_results(results, query_domain="vendas", top_k=3)
+    assert [r.image_id for r in reranked] == ["a", "c", "b"]
+
+
+def test_rerank_nao_altera_o_score_exibido():
+    results = [_result("c", "vendas", 0.70)]
+    reranked = rerank_image_results(results, query_domain="vendas", top_k=1)
+    # O bônus é só chave de ordenação — o score reportado continua o original.
+    assert reranked[0].score == 0.70
+
+
+def test_rerank_lista_vazia():
+    assert rerank_image_results([], query_domain="vendas", top_k=5) == []

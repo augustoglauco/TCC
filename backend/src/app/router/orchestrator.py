@@ -5,8 +5,9 @@ from collections.abc import AsyncIterator
 from pydantic import BaseModel
 
 from app.models.chat import RagChunkMetric
-from app.router.classifier import classify
+from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
+from app.router.playbooks import build_system_prompt
 from app.router.rag_client import Document, RAGClient, RAGConnectionError
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,9 @@ logger = logging.getLogger(__name__)
 #   injetado no prompt do LLM — decisão registrada em docs/ARCHITECTURE.md
 #   §5 (nota após a tabela de escopo); a lógica de decisão local x externo
 #   em si não muda;
+# - o prompt de sistema por domínio (playbook, Fase 3) é anteposto ao prompt
+#   quando há um playbook para o domínio classificado (ver
+#   app/router/playbooks.py); `fora_escopo` não tem playbook;
 # - não há persistência das decisões do roteador em banco — a tabela
 #   `router_logs` é da Fase 6; por ora só o log estruturado;
 # - o texto completo da resposta do LLM vai para o log estruturado em nível
@@ -25,23 +29,33 @@ logger = logging.getLogger(__name__)
 #   (risco de PII/volume em produção) a revisitar antes de qualquer uso real.
 
 
-def _build_prompt(message: str, documentos: list[Document]) -> str:
-    """Injeta o conteúdo dos documentos recuperados como contexto no prompt.
+def _build_prompt(message: str, documentos: list[Document], domain: Domain) -> str:
+    """Monta o prompt final: prompt de sistema do domínio (playbook) +
+    contexto de RAG (quando houver) + mensagem do cliente.
 
     # MVP: concatenação simples dos `content` dos documentos, sem
     # sumarização/priorização por score além da ordem já devolvida pelo RAG,
     # e sem truncar por limite de tokens do modelo (ver docs/ARCHITECTURE.md
-    # §5). Só é chamada quando `documentos` não é vazio.
+    # §5). O playbook do domínio (ver app/router/playbooks.py) é anteposto
+    # quando existe; `fora_escopo` não tem playbook.
     """
-    contexto = "\n\n".join(f"- {documento.content}" for documento in documentos)
-    return (
-        "Use as informações a seguir, recuperadas da base de conhecimento da "
-        "empresa, para responder à mensagem do cliente. Se as informações não "
-        "forem suficientes, responda com o que souber, sem inventar dados "
-        "específicos (preços, prazos, números de série).\n\n"
-        f"Informações recuperadas:\n{contexto}\n\n"
-        f"Mensagem do cliente: {message}"
-    )
+    system_prompt = build_system_prompt(domain)
+    partes: list[str] = []
+    if system_prompt is not None:
+        partes.append(system_prompt)
+
+    if documentos:
+        contexto = "\n\n".join(f"- {documento.content}" for documento in documentos)
+        partes.append(
+            "Use as informações a seguir, recuperadas da base de conhecimento "
+            "da empresa, para responder à mensagem do cliente. Se as "
+            "informações não forem suficientes, responda com o que souber, sem "
+            "inventar dados específicos (preços, prazos, números de série).\n\n"
+            f"Informações recuperadas:\n{contexto}"
+        )
+
+    partes.append(f"Mensagem do cliente: {message}")
+    return "\n\n".join(partes)
 
 
 class RouterDecision(BaseModel):
@@ -178,7 +192,10 @@ async def handle_message(
     # A decisão de roteamento (backend_escolhido/motivo) usa só o sinal
     # vazio x não-vazio acima, sem mudar aqui; o conteúdo dos documentos
     # (quando houver) só entra a partir deste ponto, no prompt em si.
-    prompt = _build_prompt(message, documentos) if documentos else message
+    # _build_prompt é sempre chamado para anexar o playbook do domínio (Fase
+    # 3); para `fora_escopo` (sem playbook) e sem documentos, ele reduz a
+    # apenas "Mensagem do cliente: ...".
+    prompt = _build_prompt(message, documentos, classification.domain)
 
     client = local_client if backend_escolhido == "local" else external_client
 
