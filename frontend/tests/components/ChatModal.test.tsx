@@ -29,6 +29,27 @@ vi.mock("@/components/chat/AudioRecorder", () => ({
   ),
 }));
 
+// Mock do ImageUploader: expõe um botão que dispara onImageSelected com
+// dados determinísticos — o comportamento real do FileReader é testado
+// isoladamente em ImageUploader.test.tsx.
+vi.mock("@/components/chat/ImageUploader", () => ({
+  default: ({
+    onImageSelected,
+    disabled,
+  }: {
+    onImageSelected: (base64: string, name: string) => void;
+    disabled?: boolean;
+  }) => (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={() => onImageSelected("base64-imagem-fake", "produto.png")}
+    >
+      Simular upload de imagem
+    </button>
+  ),
+}));
+
 import { sendChatMessage } from "@/lib/api/chat";
 
 const mockedSendChatMessage = vi.mocked(sendChatMessage);
@@ -272,5 +293,166 @@ describe("ChatModal", () => {
 
     expect(await screen.findByText("Resposta 1 Resposta 2")).toBeInTheDocument();
     expect(scrollIntoViewMock).toHaveBeenCalled();
+  });
+
+  // --- Fluxo de imagem (R6, Fase 3) ---
+
+  it("selecionar imagem exibe badge com nome do arquivo e habilita Enviar", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    await user.click(screen.getByRole("button", { name: "Simular upload de imagem" }));
+
+    expect(screen.getByText(/produto\.png/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enviar" })).not.toBeDisabled();
+  });
+
+  it("botão × remove a imagem pendente e desabilita Enviar (sem texto)", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    await user.click(screen.getByRole("button", { name: "Simular upload de imagem" }));
+    expect(screen.getByText(/produto\.png/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Remover imagem" }));
+
+    expect(screen.queryByText(/produto\.png/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enviar" })).toBeDisabled();
+  });
+
+  it("envia imagem e exibe bolha com nome do arquivo", async () => {
+    const user = userEvent.setup();
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Produto encontrado.");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+    });
+
+    renderModal();
+
+    await user.click(screen.getByRole("button", { name: "Simular upload de imagem" }));
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText(/produto\.png/)).toBeInTheDocument();
+    expect(await screen.findByText("Produto encontrado.")).toBeInTheDocument();
+    expect(mockedSendChatMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ imageBase64: "base64-imagem-fake" }),
+    );
+  });
+
+  it("envia texto + imagem juntos", async () => {
+    const user = userEvent.setup();
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Entendido.");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+    });
+
+    renderModal();
+
+    await user.click(screen.getByRole("button", { name: "Simular upload de imagem" }));
+    await user.type(screen.getByLabelText("Mensagem"), "O que é isso?");
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(mockedSendChatMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "O que é isso?",
+        imageBase64: "base64-imagem-fake",
+      }),
+    );
+  });
+
+  it("badge de imagem é removido após o envio", async () => {
+    const user = userEvent.setup();
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Ok.");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+    });
+
+    renderModal();
+
+    await user.click(screen.getByRole("button", { name: "Simular upload de imagem" }));
+    expect(screen.getByText(/produto\.png/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    await waitFor(() => {
+      // Após o envio, o badge do form deve sumir (a bolha do usuário ainda
+      // mostra o nome, mas o badge de "pendente" no input deve desaparecer).
+      const badges = screen.queryAllByText(/produto\.png/);
+      // Só a bolha do usuário deve restar, não o badge do form.
+      expect(badges.length).toBeLessThanOrEqual(1);
+    });
+  });
+
+  it("retry de imagem reenvia a imagem corretamente (bug #1 — regressão)", async () => {
+    const user = userEvent.setup();
+    // Primeira chamada: falha.
+    mockedSendChatMessage.mockImplementationOnce(async ({ onError }) => {
+      onError("Serviço indisponível.");
+    });
+    // Segunda chamada: sucesso.
+    mockedSendChatMessage.mockImplementationOnce(
+      async ({ onConversationId, onToken, onDone }) => {
+        onConversationId("conv-1");
+        onToken("Produto encontrado.");
+        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+      },
+    );
+
+    renderModal();
+
+    await user.click(screen.getByRole("button", { name: "Simular upload de imagem" }));
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Serviço indisponível.");
+
+    await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    // O retry deve reenviar a imagem — sem o fix do bug #1, imageBase64
+    // seria undefined na segunda chamada.
+    await waitFor(() => {
+      expect(mockedSendChatMessage).toHaveBeenCalledTimes(2);
+    });
+    expect(mockedSendChatMessage).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ imageBase64: "base64-imagem-fake" }),
+    );
+    expect(await screen.findByText("Produto encontrado.")).toBeInTheDocument();
+  });
+
+  it("retry de só-imagem (sem texto) reenvia a imagem corretamente (bug #1 — regressão)", async () => {
+    const user = userEvent.setup();
+    mockedSendChatMessage.mockImplementationOnce(async ({ onError }) => {
+      onError("Serviço indisponível.");
+    });
+    mockedSendChatMessage.mockImplementationOnce(
+      async ({ onConversationId, onToken, onDone }) => {
+        onConversationId("conv-1");
+        onToken("Ok.");
+        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+      },
+    );
+
+    renderModal();
+
+    // Só imagem, sem texto digitado.
+    await user.click(screen.getByRole("button", { name: "Simular upload de imagem" }));
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Tentar novamente" }));
+
+    // Sem o fix, submitMessage retornava cedo (pendingImage era null) e
+    // sendChatMessage nunca era chamado uma segunda vez.
+    await waitFor(() => {
+      expect(mockedSendChatMessage).toHaveBeenCalledTimes(2);
+    });
+    expect(mockedSendChatMessage).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ imageBase64: "base64-imagem-fake" }),
+    );
   });
 });
