@@ -131,11 +131,15 @@ Fase 10/11 do `docs/ROADMAP.md`:
 | `POST /api/rag/collections/{collection_id}/activate` | Marca a collection como ativa (é a que o chat passa a usar na busca), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `DELETE /api/rag/collections/{collection_id}` | Exclui a collection em cascata (documentos, pontos no Qdrant e arquivos em disco); bloqueado (409) se for a collection ativa, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/playground/search` | Roda a mesma busca contra várias collections em paralelo e devolve resultados/latência por collection, para comparação manual, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `POST /api/rag/crawler/run` | Dispara um crawl síncrono a partir de uma URL semente (`url`, `depth`, `max_pages` opcional — default `crawler_max_pages_default`); classifica cada página por LLM e ingere direto (`>=` limiar de confiança) ou enfileira para revisão (abaixo do limiar), usado pela aba "Crawler" de `/admin/ingestao` — ver `backend/src/app/api/crawler.py` |
+| `GET /api/rag/crawler/pending` | Lista as páginas crawleadas cuja classificação de domínio ficou abaixo do limiar de confiança, aguardando revisão manual (aba "Crawler" de `/admin/ingestao`) |
+| `POST /api/rag/crawler/pending/{page_id}/approve` | Aprova uma página pendente com o domínio escolhido pelo revisor e a ingere no RAG (`origin="crawler"`) |
+| `POST /api/rag/crawler/pending/{page_id}/reject` | Descarta uma página pendente sem ingerir |
 | `GET /api/admin/local-models` | Lista os modelos locais já baixados no Ollama, com qual está ativo, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/admin/local-models/activate` | Troca em runtime qual modelo local o chat usa (só em memória, reseta no restart), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/admin/local-models/pull` | Dispara o download de um modelo (biblioteca do Ollama ou GGUF do Hugging Face) em background, sem bloquear o backend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `GET /api/admin/local-models/pull-status` | Consulta o progresso de um download em andamento (query param `name`), usado em polling pelo frontend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
-| `GET /api/admin/runtime-settings` | Lê os parâmetros de execução ajustáveis em runtime (temperatura do modelo local, timeouts local/externo, fallback de domínio do RAG), só em memória, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/admin/runtime-settings` | Lê os parâmetros de execução ajustáveis em runtime (temperatura do modelo local, timeouts local/externo, fallback de domínio do RAG, `crawler_max_pages_default`, `crawler_confidence_threshold`), só em memória, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `PUT /api/admin/runtime-settings` | Atualiza (parcialmente — só os campos enviados mudam) os parâmetros acima; `local_llm_temperature: null` explícito reseta para o default do próprio modelo, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 
 `POST /api/chat/messages` — contrato já implementado (Fase 2 para o request;
@@ -431,6 +435,12 @@ análise caso a caso (registrada aqui ou em `docs/ARCHITECTURE.md`), não uma
 liberação geral.
 
 `/admin/ingestao` foi ampliada (fora do MVP original, a pedido explícito,
-2026-09-14) com um registro/exclusão de documentos e uma aba de
-configuração reservada para entregas futuras — ver
-`docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md`.
+2026-09-14) com um registro/exclusão de documentos e abas de configuração de
+collections e playground de busca comparativo — ver
+`docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md` e
+`docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`. A aba
+"Crawler" (R4, Fase 2) foi adicionada depois: formulário de disparo (URL
+semente, profundidade, teto de páginas opcional) e fila de revisão das
+páginas cuja classificação de domínio ficou abaixo do limiar de confiança,
+com aprovação (escolhendo o domínio) ou rejeição — ver
+`docs/superpowers/specs/2026-09-19-crawler-paginas-design.md`.

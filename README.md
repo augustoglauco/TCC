@@ -187,7 +187,7 @@ O progresso é estruturado em 12 fases sequenciais conforme documentado em [`doc
 
 - [x] **Fase 0 — Fundamentos e Infraestrutura**: Ambiente GPU (NVIDIA RTX 4080 16GB), Ollama 0.30.6 rodando localmente, estrutura do monorepo, logging estruturado com ID de conversa, ruff e pytest configurados.
 - [~] **Fase 1 — Modelo Local e Roteador Básico**: Cliente Ollama verificado contra `gemma4:12b-it-q4_K_M`, cliente OpenRouter implementado, classificador de intenção (regras + LLM) considerando histórico de 1–3 mensagens; falta revisitar a resolução de ambiguidade entre domínios, que depende do conjunto de teste rotulado da Fase 10.
-- [~] **Fase 2 — Entrada Multimodal e RAG Textual**: Entrada de texto/áudio, STT (Whisper), ingestão de PDFs/textos com busca vetorial (Qdrant), conector de leitura a PostgreSQL e endpoint de upload — todos concluídos; falta só o crawler de páginas pré-definidas.
+- [x] **Fase 2 — Entrada Multimodal e RAG Textual**: Entrada de texto/áudio, STT (Whisper), ingestão de PDFs/textos com busca vetorial (Qdrant), conector de leitura a PostgreSQL, endpoint de upload e crawler de páginas (navegação BFS de verdade a partir de uma URL semente, sem lista fixa) — todos concluídos.
 - [ ] **Fase 3 — RAG Multimodal, Imagens e Domínios**: Upload de imagens, OCR, busca por embeddings CLIP, playbooks de Vendas, Suporte e Atendimento.
 - [ ] **Fase 4 — Agendamento MCP e Monitor de Tom**: Cliente MCP Google Calendar, confirmação por e-mail, classificador de sentimento/urgência e transbordo simulado.
 - [ ] **Fase 5 — Provedor MCP B2B**: Servidor MCP interno com catálogo, estoque, preços e 4 ferramentas transacionais (compatibilidade, frete, cotação, pedido).

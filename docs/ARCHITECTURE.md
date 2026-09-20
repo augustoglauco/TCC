@@ -111,10 +111,11 @@ R4 estabelece que o RAG deve buscar em BD, textos, PDFs, sites e banco de
 imagens — por isso, conector a BD relacional, crawler de sites e RAG
 multimodal sobre imagens são **obrigatórios no MVP**, não itens adiáveis, mas
 entram em versões simplificadas frente a uma versão de produção: o conector
-ao BD é somente leitura, sem sincronização incremental; o crawler cobre um
-conjunto restrito de páginas pré-definidas, sem agendamento; o catálogo de
-imagens do RAG multimodal é ampliado, mas ainda não completo, com reranking
-básico dos resultados.
+ao BD é somente leitura, sem sincronização incremental; o crawler navega de
+verdade a partir de uma URL semente informada pelo admin, com profundidade e
+teto de páginas parametrizáveis por execução, disparo sempre manual, sem
+agendamento; o catálogo de imagens do RAG multimodal é ampliado, mas ainda
+não completo, com reranking básico dos resultados.
 
 **Decisão registrada (Fase 2, resolve divergência entre o comentário original
 de `orchestrator.py` e o spec de design da Fase 1):** ao trocar o

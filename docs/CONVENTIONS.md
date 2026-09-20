@@ -108,7 +108,7 @@ escopo (ver tabela em `docs/ARCHITECTURE.md`), marque com um comentário no
 formato:
 
 ```python
-# MVP: crawler restrito a páginas pré-definidas, sem agendamento (ver docs/ARCHITECTURE.md §5)
+# MVP: crawler com execução síncrona por chamada, sem fila de background nem agendamento (ver docs/ARCHITECTURE.md §5)
 ```
 
 Isso evita que uma sessão futura do Claude Code "corrija" uma simplificação
