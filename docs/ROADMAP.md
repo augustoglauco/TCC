@@ -167,17 +167,45 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       pelo sistema)
 - [x] Implementar busca multimodal via embeddings (ex.: CLIP) sobre um
       catálogo de imagens ampliado (`# MVP: catálogo ampliado, não completo`)
-- [ ] Implementar reranking básico dos resultados de busca por imagem
-- [ ] Implementar fallback para busca externa de imagem quando não encontrado
-      no catálogo interno
-- [ ] Separar fluxo/prompts por domínio: Vendas, Suporte Técnico, Atendimento
-      ao Usuário, Agendamento de Visita
-- [ ] Escrever playbooks iniciais de atendimento para Suporte Técnico e
-      Atendimento ao Usuário
-- [ ] Escrever playbook de Vendas com oferta proativa de agendamento de
+- [x] Implementar reranking básico dos resultados de busca por imagem —
+      `app.rag.image_search.rerank_image_results`: busca pool maior
+      (`top_k * 3`) e reordena com bônus por domínio consultado antes de
+      cortar para `top_k` (score exibido inalterado). Decisão registrada em
+      `docs/ARCHITECTURE.md` §5; testes em `tests/test_rag_clip.py`
+- [x] Implementar fallback para busca externa de imagem quando não encontrado
+      no catálogo interno — motor `app.rag.image_identification`
+      (`identify_product_by_image`): CLIP interno (aceita se score >=
+      `IMAGE_INTERNAL_CONFIDENCE`) → visão externa via OpenRouter
+      (`describe_image`, retorna JSON {produto, e_do_portfolio, confianca}) →
+      se do portfólio e confiança >= `IMAGE_EXTERNAL_CONFIDENCE`, busca
+      detalhes no RAG de texto pelo nome (+ contexto recente); senão "não
+      identificado". Endpoint `POST /api/rag/images/identify` e integração no
+      chat (imagem sem `image_intent` = identificação, que é o padrão; OCR só
+      com `image_intent="documento"`). Três parâmetros parametrizáveis em
+      runtime (`EXTERNAL_VISION_MODEL_NAME`, `IMAGE_INTERNAL_CONFIDENCE`,
+      `IMAGE_EXTERNAL_CONFIDENCE`) via `/admin/modelos`. Decisão registrada em
+      `docs/ARCHITECTURE.md` §4; testes em `tests/test_image_identification.py`,
+      `tests/test_image_api.py`, `tests/test_openrouter_client.py`,
+      `tests/test_runtime_settings_api.py`.
+      > NOTA: a lógica de negócio que faz o assistente *solicitar* um
+      > comprovante (e assim ativar o modo OCR do lado do servidor) depende de
+      > estado de conversa das Fases 4/6; por ora o modo documento é acionado
+      > pelo frontend ao sinalizar `image_intent="documento"`.
+- [x] Separar fluxo/prompts por domínio: Vendas, Suporte Técnico, Atendimento
+      ao Usuário, Agendamento de Visita — `app.router.playbooks` (prompt de
+      sistema por domínio), anteposto pelo orchestrator em `_build_prompt`
+      (com ou sem RAG); `fora_escopo` sem playbook. Decisão registrada em
+      `docs/ARCHITECTURE.md` §5; testes em `tests/test_playbooks.py` e
+      `tests/test_orchestrator.py`
+- [x] Escrever playbooks iniciais de atendimento para Suporte Técnico e
+      Atendimento ao Usuário — `app.router.playbooks` (`_SUPORTE_PLAYBOOK`,
+      `_ATENDIMENTO_PLAYBOOK`)
+- [x] Escrever playbook de Vendas com oferta proativa de agendamento de
       visita quando a conversa indica intenção de compra e o portfólio de
       produtos é compatível (ver `docs/ARCHITECTURE.md`, linha "Domínios"
-      da tabela de escopo)
+      da tabela de escopo) — `_VENDAS_PLAYBOOK`: oferece o agendamento como
+      pergunta ao final, sem confirmar/inventar data (a criação real do
+      evento é R11, Fase 4)
 
 ## Fase 4 — Agendamento via MCP e Monitor de Tom (R8, R11)
 

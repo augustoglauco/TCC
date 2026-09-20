@@ -153,9 +153,18 @@ streaming SSE do response adicionado depois, ver decisão em
   "message": "Quero um orçamento para o produto X", // opcional se `audio` ou `image` vier preenchido
   "conversation_id": "uuid-opcional, omitir para iniciar conversa nova",
   "audio": null, // opcional, base64 (wav ou mp3) — processado via STT (R5) quando presente
-  "image": null  // opcional, base64 (PNG/JPG/WEBP) — OCR extrai o texto no backend (R6); pode combinar com `message`
+  "image": null, // opcional, base64 (PNG/JPG/WEBP) — ver `image_intent` (R6)
+  "image_intent": null // opcional: "documento" = OCR (só quando o sistema pede comprovante); ausente/"produto" = identificação de produto (PADRÃO, ver docs/ARCHITECTURE.md §4)
 }
 ```
+
+> **Fluxo de imagem (docs/ARCHITECTURE.md §4):** o padrão para qualquer
+> imagem é **identificação de produto** (CLIP interno → visão externa → RAG
+> texto). O OCR só roda quando o widget marca `image_intent="documento"` — o
+> que o frontend faz apenas quando o assistente solicitou um
+> comprovante/extrato. No fluxo de identificação a resposta sai como
+> `token` + um evento `identification` (ver abaixo); o OCR segue o fluxo
+> normal do orchestrator (classificação + geração).
 
 A resposta (200) é o próprio stream: `Content-Type: text/event-stream`, uma
 sequência de eventos SSE (`event: <tipo>\ndata: <json>\n\n`), nesta ordem:
@@ -178,6 +187,19 @@ data: {"status": "carregando_modelo"}
 
 event: token                 // um evento por trecho de texto gerado, zero ou mais vezes
 data: {"text": "trecho da resposta"}
+
+event: identification        // SÓ no fluxo de identificação de produto por imagem (image sem image_intent="documento")
+data: {
+  "status": "encontrado_interno",   // encontrado_interno | encontrado_externo | nao_identificado
+  "produto": "Câmera IP 4MP",        // ausente quando nao_identificado
+  "fonte": "catalogo_imagens",        // catalogo_imagens | visao_externa+rag_texto
+  "detalhes": "...texto do RAG...",   // opcional (null se o RAG não trouxe nada)
+  "confianca_interna": 0.45,          // presente no caso interno
+  "confianca_externa": 0.88,          // presente no caso externo
+  "mensagem": "Não consegui identificar..." // presente só no nao_identificado
+}
+// No fluxo de identificação, o `done` traz backend_used="identificacao_imagem"
+// e domain="vendas" (o restante da telemetria de inferência não se aplica).
 
 event: done                  // sempre o último evento em caso de sucesso — telemetria completa
 data: {

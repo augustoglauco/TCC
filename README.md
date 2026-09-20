@@ -278,6 +278,12 @@ ruff check . && ruff format --check .
 
 Para detalhes aprofundados sobre cada componente da solução, consulte a documentação técnica na pasta [`docs/`](docs/):
 
+### 📖 Manuais Operacionais (How-To)
+- 🛠️ [HOWTO_IMPLANTACAO_INFRA.md](docs/HOWTO_IMPLANTACAO_INFRA.md) — Manual de Implantação e Infraestrutura (GPU, Docker, Ollama, Backend, Frontend e Troubleshooting).
+- ⚙️ [HOWTO_ADMINISTRADOR.md](docs/HOWTO_ADMINISTRADOR.md) — Manual do Administrador do Sistema (Gestão RAG/PDFs, Web Crawler, Parametrização da IA em runtime, Catálogo e Tom).
+- 👤 [HOWTO_USUARIO.md](docs/HOWTO_USUARIO.md) — Manual do Usuário e Cliente (Recursos do Website + Guia do Chat Multimodal com Texto, Áudio, Imagem e Cards).
+
+### 📐 Especificações Técnicas e Arquitetura
 - 📘 [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Visão geral da arquitetura, requisitos funcionais (R1–R12), fluxos de decisão e limitações.
 - 💻 [FRONTEND.md](docs/FRONTEND.md) — Especificação da interface Next.js, componentes do widget, rotas e contratos da API REST.
 - 🛠️ [TECHNOLOGY_STACK.md](docs/TECHNOLOGY_STACK.md) — Justificativa técnica, versões de bibliotecas e matriz de requisitos.

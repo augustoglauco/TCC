@@ -5,11 +5,14 @@ repositório. Ele é lido automaticamente no início de cada sessão. Leia-o por
 completo antes de propor ou implementar qualquer mudança.
 
 O projeto também é desenvolvido na IDE **Antigravity**, que lê suas próprias
-regras de workspace em `.agents/rules/project.md`. Esse arquivo e o presente
-`CLAUDE.md` **apontam para os mesmos documentos em `docs/`** — evite duplicar
-decisões de arquitetura ou escopo diretamente nos arquivos de regras; atualize
-sempre os documentos em `docs/` e deixe os dois arquivos de regras como
-resumos/ponteiros.
+regras de workspace em `.agents/rules/project.md`, e no **Kiro CLI**, que lê
+`.kiro/steering/project.md` (+ agentes em `.kiro/agents/*.json`). Esses três
+arquivos de regras **apontam para os mesmos documentos em `docs/`** — evite
+duplicar decisões de arquitetura ou escopo diretamente nos arquivos de regras;
+atualize sempre os documentos em `docs/` e deixe os três arquivos de regras
+como resumos/ponteiros. O trabalho é dividido entre as três ferramentas, então
+manter `docs/` sempre atualizado (regra 9) é o que garante que todas vejam a
+mesma coisa — ver `docs/AGENTIC_WORKFLOW.md`.
 
 ## O que é este projeto
 

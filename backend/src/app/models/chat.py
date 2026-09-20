@@ -36,13 +36,23 @@ class ChatMessageRequest(BaseModel):
         default=None,
         description="Áudio da mensagem em base64 (ex.: wav, mp3) — processado via STT (R5).",
     )
-    # MVP: quando preenchido, OCR extrai o texto da imagem (PNG/JPG/WEBP) e
-    # o injeta como contexto adicional na mensagem enviada ao orchestrator
-    # (R6 — uso dirigido: comprovantes, documentos). Busca por similaridade
-    # visual via CLIP fica para o próximo item da Fase 3.
+    # MVP: fluxo de imagem (ver docs/ARCHITECTURE.md §4). O PADRÃO para
+    # qualquer imagem enviada é a IDENTIFICAÇÃO DE PRODUTO (CLIP → visão
+    # externa → RAG texto). O OCR é a exceção, acionado só quando o sistema
+    # solicitou um comprovante/documento — sinalizado por
+    # `image_intent="documento"`. O cliente nunca envia imagem para OCR sem
+    # solicitação.
     image: str | None = Field(
         default=None,
-        description="Imagem em base64 (PNG/JPG/WEBP) — texto extraído via OCR (R6).",
+        description="Imagem em base64 (PNG/JPG/WEBP). Ver image_intent para o tratamento.",
+    )
+    image_intent: str | None = Field(
+        default=None,
+        description=(
+            'Tratamento da imagem: "documento" = OCR (só quando o sistema '
+            'pede comprovante); ausente ou "produto" = identificação de '
+            "produto (padrão)."
+        ),
     )
 
     @model_validator(mode="after")
