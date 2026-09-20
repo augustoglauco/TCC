@@ -110,7 +110,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `ingest_sample_docs.py`) reaproveitando `app.rag.ingest.ingest_bytes`
       (um documento por linha lida) — decisão registrada em
       `docs/ARCHITECTURE.md` §5
-- [ ] Implementar crawler disparado manualmente pelo admin a partir de uma
+- [x] Implementar crawler disparado manualmente pelo admin a partir de uma
       URL semente (interna ou externa), com profundidade e teto de páginas
       parametrizáveis por execução, sem agendamento (`# MVP: escopo
       restrito`) — ver
