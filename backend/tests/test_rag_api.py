@@ -222,6 +222,43 @@ def test_listar_documentos_apos_upload_retorna_o_documento_com_a_collection(
     assert body[0]["collection_name"] == active_collection.name
 
 
+async def test_listar_documentos_com_origem_crawler_nao_quebra_o_endpoint(
+    db_session, active_collection, tmp_path
+):
+    """Achado #1 (crítico) da revisão final: `origin="crawler"` não estava no
+    `Literal` de `DocumentRegistryResponse.origin`, então um único documento
+    ingerido pelo crawler fazia a *lista inteira* de `GET /api/rag/documents`
+    retornar 500 (Pydantic falha ao construir o item da lista, sem tratamento
+    de exceção nesse ponto). Este teste cobre exatamente essa fronteira."""
+    import uuid
+
+    from app.rag.registry import create_document
+
+    await create_document(
+        db_session,
+        document_id=str(uuid.uuid4()),
+        collection_id=active_collection.id,
+        filename="https://exemplo.com/pagina",
+        domain="vendas",
+        chunk_count=2,
+        storage_path=None,
+        origin="crawler",
+    )
+    fake = _FakeQdrantRAGClient()
+    client = TestClient(_build_app(fake, db_session, tmp_path))
+
+    response = client.get("/api/rag/documents")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["origin"] == "crawler"
+    assert body[0]["filename"] == "https://exemplo.com/pagina"
+    assert body[0]["domain"] == "vendas"
+    assert body[0]["chunk_count"] == 2
+    assert body[0]["collection_id"] == str(active_collection.id)
+
+
 def test_excluir_documento_existente_remove_do_registro_do_qdrant_e_do_disco(
     db_session, active_collection, tmp_path
 ):

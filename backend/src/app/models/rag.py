@@ -17,6 +17,12 @@ from pydantic import BaseModel, Field, model_validator
 # não têm collection própria (ver `app.router.classifier.Domain`).
 RagDomain = Literal["vendas", "suporte", "atendimento"]
 
+# Fonte única de verdade para os valores de origem de um `RagDocument`
+# (achado #1 da revisão final do branch do crawler): reutilizado tanto aqui
+# quanto em `app.rag.crawler_ingest` para evitar o mesmo valor duplicado
+# como string literal em dois lugares e divergir de novo.
+RagDocumentOrigin = Literal["upload", "batch_script", "reingest", "crawler"]
+
 DistanceMetric = Literal["cosine", "euclid", "dot", "manhattan"]
 QuantizationType = Literal["none", "scalar", "product", "binary"]
 PayloadSchemaTypeLiteral = Literal[
@@ -41,7 +47,7 @@ class DocumentRegistryResponse(BaseModel):
     chunk_count: int
     collection_id: UUID
     collection_name: str
-    origin: Literal["upload", "batch_script", "reingest"]
+    origin: RagDocumentOrigin
     created_at: datetime
 
 
