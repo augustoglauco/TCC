@@ -102,6 +102,23 @@ async def run_crawler(
                 confidence_threshold,
             )
         except _ERROS_POR_PAGINA as exc:
+            # Achado #2 da revisão final: sem o rollback, um `SQLAlchemyError`
+            # (ex.: falha no commit) deixa a `AsyncSession` em estado de
+            # pending-rollback — toda operação seguinte na mesma sessão passa
+            # a levantar `PendingRollbackError` (também um `SQLAlchemyError`),
+            # convertendo silenciosamente todas as páginas seguintes deste
+            # crawl em "erro", mesmo sem falha própria delas. Chamado
+            # incondicionalmente (é um no-op seguro quando não há transação
+            # pendente) para cobrir também os outros erros de `_ERROS_POR_PAGINA`.
+            await session.rollback()
+            # `rollback()` expira todas as instâncias ORM anexadas à sessão
+            # (inclusive `collection`, carregada uma única vez antes do loop
+            # e reutilizada em toda página) — sem o refresh, o acesso a um
+            # atributo de `collection` na próxima iteração dispara um lazy
+            # load implícito que o `AsyncSession` não suporta
+            # (`MissingGreenlet`), quebrando a página seguinte mesmo depois
+            # do rollback já ter "limpo" a sessão.
+            await session.refresh(collection)
             logger.error(
                 "crawler_pagina_indisponivel",
                 extra={
