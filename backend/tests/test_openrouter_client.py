@@ -145,3 +145,69 @@ async def test_generate_stream_sintetiza_chunk_final_se_provedor_nunca_manda_usa
     assert chunks[1].prompt_tokens is None
     assert chunks[1].completion_tokens is None
     assert chunks[1].model_name == "anthropic/claude-3.5-haiku"
+
+
+def _png_bytes() -> bytes:
+    import io
+
+    pytest.importorskip("PIL", reason="Pillow não instalado")
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (4, 4), color="white").save(buf, format="PNG")
+    return buf.getvalue()
+
+
+async def test_describe_image_sem_vision_model_levanta_indisponivel():
+    from app.router.openrouter_client import VisionModelIndisponivelError
+
+    client = OpenRouterClient(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="chave-fake",
+        model="anthropic/claude-3.5-haiku",
+        timeout_s=30.0,
+        # vision_model vazio (default)
+    )
+    with pytest.raises(VisionModelIndisponivelError):
+        await client.describe_image(_png_bytes(), "identifique")
+
+
+async def test_describe_image_ok_retorna_conteudo():
+    mock_response = {"choices": [{"message": {"content": '{"produto":"X"}'}}]}
+    client = OpenRouterClient(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="chave-fake",
+        model="anthropic/claude-3.5-haiku",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_transport(mock_response)),
+        vision_model="openai/gpt-4o-mini",
+    )
+    texto = await client.describe_image(_png_bytes(), "identifique")
+    assert texto == '{"produto":"X"}'
+
+
+async def test_describe_image_erro_http_vira_indisponivel():
+    from app.router.openrouter_client import VisionModelIndisponivelError
+
+    client = OpenRouterClient(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="chave-fake",
+        model="anthropic/claude-3.5-haiku",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_transport({"error": "x"}, status_code=500)),
+        vision_model="openai/gpt-4o-mini",
+    )
+    with pytest.raises(VisionModelIndisponivelError):
+        await client.describe_image(_png_bytes(), "identifique")
+
+
+async def test_vision_model_property_e_setter():
+    client = OpenRouterClient(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="chave-fake",
+        model="anthropic/claude-3.5-haiku",
+        timeout_s=30.0,
+    )
+    assert client.vision_model == ""
+    client.vision_model = "openai/gpt-4o-mini"
+    assert client.vision_model == "openai/gpt-4o-mini"

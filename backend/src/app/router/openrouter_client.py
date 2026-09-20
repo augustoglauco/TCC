@@ -1,10 +1,17 @@
+import base64
 import json
 import time
 from collections.abc import AsyncIterator
 
 import httpx
 
+from app.ocr.image_processor import detect_image_format
 from app.router.llm_client import LLMResponse, LLMStreamChunk
+
+
+class VisionModelIndisponivelError(Exception):
+    """Modelo de visão externo não configurado ou falhou — o motor de
+    identificação de imagem trata como 'não identificado' (sem fallback)."""
 
 
 class OpenRouterClient:
@@ -27,6 +34,7 @@ class OpenRouterClient:
         price_per_1k_input_tokens: float = 0.0,
         price_per_1k_output_tokens: float = 0.0,
         client: httpx.AsyncClient | None = None,
+        vision_model: str = "",
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -35,6 +43,10 @@ class OpenRouterClient:
         self._price_in = price_per_1k_input_tokens
         self._price_out = price_per_1k_output_tokens
         self._client = client or httpx.AsyncClient()
+        # Modelo multimodal usado só no fluxo de identificação de imagem
+        # (R6, Fase 3) — separado do modelo de texto (`_model`), ajustável em
+        # runtime. Vazio = fallback externo de visão desligado.
+        self._vision_model = vision_model
 
     @property
     def timeout_s(self) -> float:
@@ -43,6 +55,14 @@ class OpenRouterClient:
     @timeout_s.setter
     def timeout_s(self, value: float) -> None:
         self._timeout_s = value
+
+    @property
+    def vision_model(self) -> str:
+        return self._vision_model
+
+    @vision_model.setter
+    def vision_model(self, value: str) -> None:
+        self._vision_model = value
 
     async def is_model_ready(self) -> bool:
         return True
@@ -85,6 +105,52 @@ class OpenRouterClient:
             estimated_cost_usd=self._custo(prompt_tokens, completion_tokens),
             model_name=self._model,
         )
+
+    async def describe_image(self, image_bytes: bytes, prompt: str) -> str:
+        """Envia uma imagem + prompt a um modelo de visão e devolve o texto cru.
+
+        Usado pelo motor de identificação de produto (R6, Fase 3). A imagem
+        vai como data URI base64 no formato multimodal OpenAI-compatible
+        (`image_url`). Levanta `VisionModelIndisponivelError` se o modelo de
+        visão não estiver configurado ou a chamada falhar — o chamador trata
+        isso como "não identificado", sem escalar erro ao usuário.
+
+        # MVP: sem streaming (resposta curta e estruturada) e sem cálculo de
+        # custo (o benchmark de custo da Fase 10 é sobre o modelo de texto).
+        """
+        if not self._vision_model:
+            raise VisionModelIndisponivelError("EXTERNAL_VISION_MODEL_NAME não configurado.")
+
+        fmt = detect_image_format(image_bytes)
+        if fmt is None:
+            raise VisionModelIndisponivelError("Formato de imagem não reconhecido.")
+        mime = f"image/{fmt.lower()}"
+        b64 = base64.b64encode(image_bytes).decode("ascii")
+        data_uri = f"data:{mime};base64,{b64}"
+
+        try:
+            response = await self._client.post(
+                f"{self._base_url}/chat/completions",
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                json={
+                    "model": self._vision_model,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": prompt},
+                                {"type": "image_url", "image_url": {"url": data_uri}},
+                            ],
+                        }
+                    ],
+                },
+                timeout=self._timeout_s,
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+        except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+            raise VisionModelIndisponivelError(str(exc)) from exc
 
     async def generate_stream(self, prompt: str) -> AsyncIterator[LLMStreamChunk]:
         """`stream: true` no formato OpenAI-compatible — a resposta já vem

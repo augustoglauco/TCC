@@ -11,8 +11,9 @@ class _FakeLocalClient:
 
 
 class _FakeExternalClient:
-    def __init__(self, timeout_s: float) -> None:
+    def __init__(self, timeout_s: float, vision_model: str = "") -> None:
         self.timeout_s = timeout_s
+        self.vision_model = vision_model
 
 
 class _FakeQdrantClient:
@@ -26,6 +27,8 @@ def _build_app(
     qdrant_client: _FakeQdrantClient,
     crawler_max_pages_default: int = 20,
     crawler_confidence_threshold: float = 0.7,
+    image_internal_confidence: float = 0.30,
+    image_external_confidence: float = 0.80,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(runtime_settings_router)
@@ -34,6 +37,8 @@ def _build_app(
     app.state.qdrant_client = qdrant_client
     app.state.crawler_max_pages_default = crawler_max_pages_default
     app.state.crawler_confidence_threshold = crawler_confidence_threshold
+    app.state.image_internal_confidence = image_internal_confidence
+    app.state.image_external_confidence = image_external_confidence
     return app
 
 
@@ -65,6 +70,9 @@ def test_get_devolve_valores_atuais_dos_clientes():
         "rag_search_domain_fallback": False,
         "crawler_max_pages_default": 20,
         "crawler_confidence_threshold": 0.7,
+        "external_vision_model_name": "",
+        "image_internal_confidence": 0.30,
+        "image_external_confidence": 0.80,
     }
 
 
@@ -170,5 +178,46 @@ def test_put_crawler_max_pages_default_zero_ou_negativo_e_422():
     client = TestClient(app)
 
     response = client.put("/api/admin/runtime-settings", json={"crawler_max_pages_default": 0})
+
+    assert response.status_code == 422
+
+
+def test_put_atualiza_external_vision_model_name():
+    app, _, external_client, _ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"external_vision_model_name": "openai/gpt-4o-mini"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["external_vision_model_name"] == "openai/gpt-4o-mini"
+    assert external_client.vision_model == "openai/gpt-4o-mini"
+
+
+def test_put_atualiza_limiares_de_identificacao_de_imagem():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"image_internal_confidence": 0.5, "image_external_confidence": 0.9},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["image_internal_confidence"] == 0.5
+    assert response.json()["image_external_confidence"] == 0.9
+    assert app.state.image_internal_confidence == 0.5
+    assert app.state.image_external_confidence == 0.9
+
+
+def test_put_limiar_de_imagem_fora_do_intervalo_e_422():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings", json={"image_external_confidence": 1.5}
+    )
 
     assert response.status_code == 422

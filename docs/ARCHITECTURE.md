@@ -84,11 +84,52 @@ chamados via ticketing é evolução futura (ver Seção 6 e `docs/ROADMAP.md`).
 
 ## 4. Fluxos de decisão: imagem e monitoramento de tom
 
-**(a) Tratamento de imagem:** imagem recebida → foi solicitada pelo sistema
-(ex.: comprovante)? → **sim:** OCR + validação (uso dirigido). → **não**
-(espontânea): busca interna de produto via embeddings (CLIP) → encontrou no
-catálogo interno? → **sim:** retorna produto correspondente. → **não:**
-fallback para busca externa de imagem.
+**(a) Tratamento de imagem:** imagem recebida → o sistema **solicitou** um
+comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **não**
+(padrão — o cliente nunca envia imagem para OCR sem solicitação): fluxo de
+**identificação de produto**.
+
+> **Decisão registrada (Fase 3, 2026-09-20 — fluxo de imagem e fallback
+> externo):** o padrão para qualquer imagem enviada no chat é a
+> **identificação de produto**; o OCR é a exceção, acionado apenas quando o
+> sistema solicitou explicitamente um comprovante/extrato. No contrato do
+> chat isso é sinalizado por `image_intent`: ausente/`"produto"` → fluxo de
+> identificação (padrão); `"documento"` → OCR (comportamento atual). A regra
+> de negócio que faz o assistente *pedir* um comprovante (e assim ativar o
+> modo OCR do lado do servidor) depende de estado de conversa das Fases 4/6;
+> por ora o gatilho do modo documento é carregado pelo frontend quando o
+> assistente pede o comprovante.
+>
+> **Fluxo de identificação de produto** (motor em
+> `app.rag.image_identification`, endpoint `POST /api/rag/images/identify` e
+> integração no chat):
+> 1. **Catálogo interno (CLIP):** embeda a imagem e busca em
+>    `catalogo_imagens`. Se o melhor score ≥ `IMAGE_INTERNAL_CONFIDENCE`
+>    (limiar alto, default 0.30, configurável em runtime) → retorna o produto
+>    do catálogo, sem chamar o externo.
+> 2. **Visão externa (fallback):** se o interno não teve confiança
+>    suficiente, consulta um modelo de visão via OpenRouter
+>    (`EXTERNAL_VISION_MODEL_NAME`) pedindo resposta objetiva em JSON:
+>    `{"produto": "<nome>", "e_do_portfolio": bool, "confianca": 0..1}`. O
+>    prompt informa o portfólio da empresa: **produtos de segurança —
+>    câmeras, sensores, automação, equipamentos de rede, catracas
+>    eletrônicas, identificadores biométricos e gravadores de imagem**.
+> 3. **Decisão:** se `e_do_portfolio == true` **e**
+>    `confianca >= IMAGE_EXTERNAL_CONFIDENCE` (limiar alto, default 0.80,
+>    configurável) → usa o nome retornado (mais o contexto de mensagens
+>    recentes do usuário, quando houver) para buscar no **RAG de texto**
+>    (`docs_texto`) e retorna os detalhes do produto. Caso contrário (não é
+>    do portfólio, confiança baixa, ou resposta não-parseável) → responde
+>    objetivamente que **não identificou o produto**.
+>
+> Os três parâmetros (`EXTERNAL_VISION_MODEL_NAME`, `IMAGE_INTERNAL_CONFIDENCE`,
+> `IMAGE_EXTERNAL_CONFIDENCE`) têm default no `.env` (apenas para popular o
+> frontend) e são ajustáveis em runtime via `GET`/`PUT
+> /api/admin/runtime-settings`, exibidos na tela `/admin/modelos`. `# MVP:
+> chamada a provedor externo pago no fluxo de imagem — decisão consciente,
+> não evolução futura; sem busca reversa de imagem nem catálogo visual
+> externo, o "externo" é um modelo de visão que só nomeia/classifica o
+> produto`.
 
 **(b) Monitoramento de tom:** nova mensagem no chat → classificador de
 sentimento/urgência → ultrapassou o limiar de urgência/insatisfação? →
@@ -282,10 +323,29 @@ ou descrição textual — mesmo espaço vetorial CLIP). A collection é criada
 automaticamente na primeira ingestão (dimensão 512, cosine fixos), diferente
 das collections de texto que exigem criação explícita via API admin — aceito
 porque `catalogo_imagens` é única e de configuração fixa neste protótipo.
-`# MVP: catálogo ampliado mas não completo; sem reranking (próximo item da
-Fase 3); sem deduplicação (mesmo comportamento de
+`# MVP: catálogo ampliado mas não completo; reranking básico implementado
+(ver decisão abaixo); sem deduplicação (mesmo comportamento de
 `QdrantRAGClient.upsert_chunks`); score threshold mais baixo (0.20) que o
 RAG de texto (0.35) porque scores cosine do CLIP são naturalmente menores`.
+
+**Decisão registrada (Fase 3, reranking básico da busca por imagem):** a
+busca por imagem (`app.rag.image_search`) agora recupera um pool maior
+(`top_k * 3`) do Qdrant e reordena via `rerank_image_results` antes de cortar
+para `top_k`. O rerank mantém a ordem por score do CLIP, mas soma um bônus
+pequeno (0.05, só como chave de ordenação — o score exibido não muda) aos
+resultados cujo `domain` bate com o domínio consultado, priorizando o domínio
+pedido quando o pool é misto. `# MVP: reranking heurístico por domínio, sem
+cross-encoder nem segundo modelo — o "básico" pedido no roadmap`.
+
+**Decisão registrada (Fase 3, playbooks/prompts por domínio):** cada domínio
+de atendimento (vendas, suporte, atendimento, agendamento) tem um prompt de
+sistema estático em `app.router.playbooks`, anteposto pelo orchestrator ao
+prompt antes de chamar o LLM (com ou sem contexto de RAG). `fora_escopo` não
+tem playbook. Reflete a assimetria intencional da Seção 3: Vendas oferece
+proativamente o agendamento de visita quando há intenção de compra (a criação
+real do evento é R11, Fase 4); Suporte e Atendimento são LLM + RAG, sem camada
+de ação. `# MVP: playbooks são strings estáticas, sem versionamento nem edição
+em runtime`.
 
 **Decisão registrada (Fase 2, melhoria de qualidade a pedido explícito,
 2026-09-17):** `app.rag.pdf_extract.extract_text_from_pdf` trocou de `pypdf`

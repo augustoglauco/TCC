@@ -6,6 +6,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.chat import (
+    get_clip_embedder,
+    get_clip_store,
     get_complexity_strategy,
     get_external_client,
     get_local_client,
@@ -14,6 +16,7 @@ from app.api.chat import (
     reset_conversation_history,
 )
 from app.api.chat import router as chat_router
+from app.rag.image_search import ImageSearchResult
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
 from app.stt.whisper_client import SttIndisponivelError
@@ -41,9 +44,11 @@ def _find(eventos: list[tuple[str, dict]], tipo: str) -> dict:
 
 
 class _FakeLLMClient:
-    def __init__(self, response: LLMResponse) -> None:
+    def __init__(self, response: LLMResponse, vision_answer: str | None = None) -> None:
         self._response = response
         self.prompts: list[str] = []
+        self._vision_answer = vision_answer
+        self.vision_calls = 0
 
     async def generate(self, prompt: str) -> LLMResponse:
         self.prompts.append(prompt)
@@ -51,6 +56,15 @@ class _FakeLLMClient:
 
     async def is_model_ready(self) -> bool:
         return True
+
+    async def describe_image(self, image_bytes: bytes, prompt: str) -> str:
+        self.vision_calls += 1
+        # Sem resposta de visão configurada = comporta como modelo ausente.
+        if self._vision_answer is None:
+            from app.router.openrouter_client import VisionModelIndisponivelError
+
+            raise VisionModelIndisponivelError("sem modelo de visão no teste")
+        return self._vision_answer
 
     async def generate_stream(self, prompt: str):
         self.prompts.append(prompt)
@@ -67,6 +81,14 @@ class _FakeLLMClient:
             estimated_cost_usd=self._response.estimated_cost_usd,
             model_name=self._response.model_name,
         )
+
+
+class _FakeClipStore:
+    def __init__(self, results: list[ImageSearchResult] | None = None) -> None:
+        self._results = results or []
+
+    async def search_by_image(self, embedder, image_bytes, domain=None):
+        return self._results
 
 
 class _FakeRAGClient:
@@ -99,6 +121,9 @@ def fakes():
         # MVP: STT não é exercitado por padrão nos testes que não enviam
         # `audio` — texto vazio nunca chega a ser usado nesses casos.
         "stt": _FakeSttClient(text=""),
+        # Catálogo CLIP vazio por padrão — testes de identificação populam.
+        "clip_store": _FakeClipStore(results=[]),
+        "clip_embedder": object(),
     }
 
 
@@ -109,7 +134,12 @@ def _build_app(fakes: dict, complexity_strategy: str = "heuristic") -> FastAPI:
     app.dependency_overrides[get_external_client] = lambda: fakes["external"]
     app.dependency_overrides[get_rag_client] = lambda: fakes["rag"]
     app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
+    app.dependency_overrides[get_clip_store] = lambda: fakes["clip_store"]
+    app.dependency_overrides[get_clip_embedder] = lambda: fakes["clip_embedder"]
     app.dependency_overrides[get_complexity_strategy] = lambda: complexity_strategy
+    # Limiares lidos via request.app.state no fluxo de identificação.
+    app.state.image_internal_confidence = 0.30
+    app.state.image_external_confidence = 0.80
     return app
 
 
@@ -204,7 +234,11 @@ def test_audio_e_transcrito_e_usado_como_mensagem(client, fakes):
     eventos = _parse_sse(response.text)
     assert _find(eventos, "done")["domain"] == "agendamento"
     assert fakes["stt"].received_audio == [b"conteudo-de-audio-fake"]
-    assert fakes["local"].prompts == ["quero agendar uma visita"]
+    # O prompt agora inclui o playbook do domínio (Fase 3); o que importa
+    # aqui é que a mensagem efetiva seja a transcrição, não o texto "ignorado".
+    assert len(fakes["local"].prompts) == 1
+    assert "quero agendar uma visita" in fakes["local"].prompts[0]
+    assert "ignorado" not in fakes["local"].prompts[0]
 
 
 def test_audio_transcrito_aparece_em_transcription_event(client, fakes):
@@ -258,7 +292,10 @@ def test_audio_transcrito_vazio_cai_de_volta_para_mensagem_de_texto(client, fake
     assert response.status_code == 200
     eventos = _parse_sse(response.text)
     assert _find(eventos, "done")["domain"] == "agendamento"
-    assert fakes["local"].prompts == ["quero agendar uma visita"]
+    # Transcrição vazia → cai de volta para a mensagem de texto, que agora
+    # aparece dentro do prompt com o playbook do domínio (Fase 3).
+    assert len(fakes["local"].prompts) == 1
+    assert "quero agendar uma visita" in fakes["local"].prompts[0]
 
 
 def test_audio_base64_invalido_retorna_400(client):
