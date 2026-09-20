@@ -66,7 +66,7 @@
 | **Ingestão de PDF/texto** | pypdf (extração) + chunking próprio | latest | Extração de texto de PDF; chunking por tamanho fixo com overlap implementado diretamente em `app/rag/chunking.py` — decisão revista na Fase 2: dispensa `langchain` (dependência pesada para uma necessidade de chunking simples), mantendo o MVP mais enxuto (`# MVP: chunking ingênuo, sem respeitar limites semânticos`, ver `app/rag/chunking.py`) |
 | **Busca vetorial** | Qdrant (conforme acima) | - | - |
 | **Conector de BD** | SQLAlchemy (PostgreSQL) | - | Leitura estruturada, filtros por domínio/categoria; MVP: sem escrita, sem incremental |
-| **Crawler Web** | requests + BeautifulSoup | latest | Parsing HTML simples, crawler restrito a ~5 páginas pré-definidas, sem agendamento |
+| **Crawler Web** | httpx + beautifulsoup4 | latest | Parsing HTML assíncrono, navegação BFS de verdade a partir de uma URL semente (sem lista fixa de páginas), profundidade e teto parametrizáveis por execução, sem agendamento |
 | **OCR** | Tesseract (pytesseract) | 4.x | Extração de texto em imagens dirigidas (ex.: comprovante) |
 | **Processamento de imagem** | Pillow (PIL) | latest | Redimensionamento, validação, normalização para CLIP |
 
