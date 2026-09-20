@@ -3,10 +3,12 @@ import type { ChatDoneEventData, ChatMessageRequest } from "@/lib/types/chat";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
 export interface SendChatMessageParams {
-  /** Texto digitado pelo usuário. Opcional se `audioBase64` for informado. */
+  /** Texto digitado pelo usuário. Opcional se `audioBase64` ou `imageBase64` for informado. */
   message?: string;
   /** Áudio gravado (base64), alternativa ao texto — ver `AudioRecorder`. */
   audioBase64?: string;
+  /** Imagem (base64 PNG/JPG/WEBP) — OCR extrai o texto no backend (R6). */
+  imageBase64?: string;
   conversationId?: string;
   onConversationId: (id: string) => void;
   onTranscription: (text: string) => void;
@@ -31,16 +33,14 @@ function parseSseBlock(block: string): { event: string; data: string } | null {
 }
 
 /**
- * Envia uma mensagem (texto e/ou áudio) ao backend e entrega a resposta
+ * Envia uma mensagem (texto, áudio e/ou imagem) ao backend e entrega a resposta
  * incrementalmente via os callbacks (SSE) — nunca lança, erros de
  * rede/HTTP/stream viram chamada a `onError`.
- *
- * MVP: sem upload de imagem (ver `docs/FRONTEND.md` §3/§4) — apenas texto
- * e/ou áudio.
  */
 export async function sendChatMessage({
   message,
   audioBase64,
+  imageBase64,
   conversationId,
   onConversationId,
   onTranscription,
@@ -53,6 +53,7 @@ export async function sendChatMessage({
     message,
     conversation_id: conversationId,
     audio: audioBase64 ?? null,
+    image: imageBase64 ?? null,
   };
 
   let response: Response;

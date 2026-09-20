@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import AudioRecorder from "@/components/chat/AudioRecorder";
+import ImageUploader from "@/components/chat/ImageUploader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
 import { sendChatMessage } from "@/lib/api/chat";
@@ -12,6 +13,8 @@ import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetri
 interface PendingRetry {
   message?: string;
   audioBase64?: string;
+  imageBase64?: string;
+  imageName?: string;
 }
 
 interface PendingError {
@@ -39,6 +42,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [pendingImage, setPendingImage] = useState<{ base64: string; name: string } | null>(null);
   const [error, setError] = useState<PendingError | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -51,11 +55,24 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
 
   const hasAssistantMessages = messages.some((m) => m.role === "assistant");
 
-  async function submitMessage(text: string) {
+  async function submitMessage(text: string, overrideImage?: { base64: string; name: string } | null) {
     const trimmed = text.trim();
-    if (!trimmed || isSending) return;
+    // `overrideImage` é usado pelo retry para passar a imagem diretamente,
+    // sem depender do estado React (que ainda não teria sido atualizado pelo
+    // setPendingImage chamado logo antes no handleRetry).
+    const imageToSend = overrideImage !== undefined ? overrideImage : pendingImage;
+    if (!trimmed && !imageToSend) return;
+    if (isSending) return;
 
-    addMessage({ id: crypto.randomUUID(), role: "user", text: trimmed });
+    setPendingImage(null);
+
+    const userText = trimmed
+      ? imageToSend
+        ? `${trimmed} [🖼️ ${imageToSend.name}]`
+        : trimmed
+      : `[🖼️ ${imageToSend!.name}]`;
+
+    addMessage({ id: crypto.randomUUID(), role: "user", text: userText });
     setInput("");
     setIsSending(true);
     setError(null);
@@ -74,7 +91,8 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     }
 
     await sendChatMessage({
-      message: trimmed,
+      message: trimmed || undefined,
+      imageBase64: imageToSend?.base64,
       conversationId: conversationId || undefined,
       onConversationId: (id) => setConversationId(id),
       onTranscription: () => {},
@@ -114,7 +132,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         });
       },
       onError: (msg) => {
-        setError({ text: msg, retry: { message: trimmed } });
+        setError({ text: msg, retry: { message: trimmed, imageBase64: imageToSend?.base64, imageName: imageToSend?.name } });
       },
     });
 
@@ -201,11 +219,22 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     if (!error) return;
     const { retry } = error;
     setError(null);
-    if (retry.audioBase64) void submitAudio(retry.audioBase64);
-    else if (retry.message) void submitMessage(retry.message);
+    if (retry.audioBase64) {
+      void submitAudio(retry.audioBase64);
+    } else {
+      // Passa a imagem diretamente para submitMessage em vez de chamar
+      // setPendingImage antes — setState é assíncrono e o estado ainda seria
+      // null quando submitMessage lesse pendingImage no mesmo ciclo de render.
+      const img =
+        retry.imageBase64 && retry.imageName
+          ? { base64: retry.imageBase64, name: retry.imageName }
+          : null;
+      void submitMessage(retry.message ?? "", img);
+    }
   }
 
   const controlsDisabled = isSending || isRecording;
+  const canSend = !controlsDisabled && (!!input.trim() || !!pendingImage);
 
   return (
     <Modal
@@ -279,6 +308,19 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           <label htmlFor="chat-modal-input" className="sr-only">
             Mensagem
           </label>
+          {pendingImage && (
+            <div className="flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700">
+              <span>🖼️ {pendingImage.name}</span>
+              <button
+                type="button"
+                onClick={() => setPendingImage(null)}
+                className="ml-1 font-bold hover:text-blue-900"
+                aria-label="Remover imagem"
+              >
+                ×
+              </button>
+            </div>
+          )}
           <input
             id="chat-modal-input"
             type="text"
@@ -288,6 +330,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             placeholder="Digite sua mensagem ou pergunte sobre nossos produtos..."
             className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400/20 disabled:opacity-50"
           />
+          <ImageUploader
+            disabled={controlsDisabled}
+            onImageSelected={(base64, name) => setPendingImage({ base64, name })}
+          />
           <AudioRecorder
             disabled={isSending}
             onRecordingComplete={(audioBase64) => void submitAudio(audioBase64)}
@@ -295,7 +341,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           />
           <button
             type="submit"
-            disabled={controlsDisabled || !input.trim()}
+            disabled={!canSend}
             className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-2xs"
           >
             Enviar

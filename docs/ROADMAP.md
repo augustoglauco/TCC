@@ -162,10 +162,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
-- [ ] Implementar entrada de imagem no chat (fluxo básico)
-- [ ] Implementar OCR para imagens dirigidas (ex.: comprovante solicitado
+- [x] Implementar entrada de imagem no chat (fluxo básico)
+- [x] Implementar OCR para imagens dirigidas (ex.: comprovante solicitado
       pelo sistema)
-- [ ] Implementar busca multimodal via embeddings (ex.: CLIP) sobre um
+- [x] Implementar busca multimodal via embeddings (ex.: CLIP) sobre um
       catálogo de imagens ampliado (`# MVP: catálogo ampliado, não completo`)
 - [ ] Implementar reranking básico dos resultados de busca por imagem
 - [ ] Implementar fallback para busca externa de imagem quando não encontrado

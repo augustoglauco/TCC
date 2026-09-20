@@ -36,11 +36,19 @@ class ChatMessageRequest(BaseModel):
         default=None,
         description="Áudio da mensagem em base64 (ex.: wav, mp3) — processado via STT (R5).",
     )
+    # MVP: quando preenchido, OCR extrai o texto da imagem (PNG/JPG/WEBP) e
+    # o injeta como contexto adicional na mensagem enviada ao orchestrator
+    # (R6 — uso dirigido: comprovantes, documentos). Busca por similaridade
+    # visual via CLIP fica para o próximo item da Fase 3.
+    image: str | None = Field(
+        default=None,
+        description="Imagem em base64 (PNG/JPG/WEBP) — texto extraído via OCR (R6).",
+    )
 
     @model_validator(mode="after")
     def _message_ou_audio_obrigatorio(self) -> "ChatMessageRequest":
-        if not self.message and not self.audio:
-            raise ValueError("Informe 'message' e/ou 'audio'.")
+        if not self.message and not self.audio and not self.image:
+            raise ValueError("Informe 'message', 'audio' e/ou 'image'.")
         return self
 
 

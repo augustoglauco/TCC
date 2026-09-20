@@ -27,3 +27,8 @@ frontend/build/
 .vscode/
 .idea/
 .worktrees/
+
+# Antigravity CLI / ferramentas externas
+.antigravitycli/
+install.cmd
+%NVM_HOME%PATH.txt
