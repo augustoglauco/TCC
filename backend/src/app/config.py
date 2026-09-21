@@ -95,7 +95,7 @@ class Settings(BaseSettings):
 
     # MVP: origem única do frontend em dev — sem lista configurável por
     # ambiente/parceiro (isso seria necessário para um deploy real, R2/R9).
-    cors_allowed_origin: str = "http://localhost:3000"
+    cors_allowed_origin: str = "http://localhost:3001"
 
 
 @lru_cache

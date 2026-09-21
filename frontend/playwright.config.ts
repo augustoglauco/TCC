@@ -8,7 +8,7 @@ export default defineConfig({
   retries: 0,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3001",
     trace: "on-first-retry",
     // Permite testar o `AudioRecorder` (getUserMedia/MediaRecorder) sem um
     // microfone real: o Chromium gera um dispositivo de áudio fake (tom de
@@ -24,8 +24,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
+    // PORT=3001 porque a 3000 já é ocupada por outro serviço nesta máquina
+    // (Open WebUI); ver goup.md.
+    command: "PORT=3001 npm run dev",
+    url: "http://localhost:3001",
     reuseExistingServer: true,
   },
 });

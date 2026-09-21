@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 //
 // Pré-requisitos: backend rodando em NEXT_PUBLIC_API_BASE_URL (padrão
 // http://localhost:8000) com Ollama no ar e o modelo de LOCAL_MODEL_NAME
-// carregado; frontend em http://localhost:3000 (`npm run dev`).
+// carregado; frontend em http://localhost:3001 (`PORT=3001 npm run dev`).
 //
 // Rodar com: npm run test:e2e:smoke
 test("mensagem de agendamento roda contra o backend/Ollama reais e responde localmente", async ({

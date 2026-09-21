@@ -106,7 +106,7 @@ A aplicação é implantada e executada em ambiente de servidor local GPU e disp
 * **Banco Relacional & Vetorial**: PostgreSQL 15+ e Qdrant Vector DB containerizados via Docker (`docker-compose up -d`).
 * **Inferência Local**: Serviço Ollama rodando localmente com suporte a GPU NVIDIA 16GB VRAM (CUDA 11.8+).
 * **Backend**: FastAPI (Python 3.11) executando na porta `8000` (documentação Swagger em `/docs`).
-* **Frontend**: Next.js 14+ / Node.js 18+ executando na porta `3000` e publicado publicamente via proxy reverso HTTPS em `https://augustoglauco.duckdns.org:3001`.
+* **Frontend**: Next.js 14+ / Node.js 18+ executando na porta `3001` e publicado publicamente via proxy reverso HTTPS em `https://augustoglauco.duckdns.org:3001`.
 
 *Para o guia completo de provisionamento de infraestrutura, consulte o manual:* [HOWTO_IMPLANTACAO_INFRA.md](docs/HOWTO_IMPLANTACAO_INFRA.md).
 

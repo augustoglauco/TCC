@@ -259,7 +259,7 @@ npm install
 # Iniciar o servidor de desenvolvimento Next.js
 npm run dev
 ```
-> O frontend estará disponível em `http://localhost:3000`.
+> O frontend estará disponível em `http://localhost:3001`.
 
 ### 4. Testes e Qualidade de Código
 ```bash
