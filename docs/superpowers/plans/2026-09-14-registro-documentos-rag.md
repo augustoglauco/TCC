@@ -2988,7 +2988,7 @@ Expected: sem erros.
 - [ ] **Step 7: Testar manualmente no navegador**
 
 Run: `cd frontend && npm run dev` (com o backend do Task 12 no ar)
-Abrir `http://localhost:3000/admin/ingestao`, alternar entre as três abas, enviar um documento, confirmar que ele aparece na aba "Documentos ingeridos", excluir e confirmar que a linha some e o toast aparece.
+Abrir `http://localhost:3001/admin/ingestao`, alternar entre as três abas, enviar um documento, confirmar que ele aparece na aba "Documentos ingeridos", excluir e confirmar que a linha some e o toast aparece.
 
 - [ ] **Step 8: Commit**
 

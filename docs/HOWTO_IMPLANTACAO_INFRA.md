@@ -244,7 +244,7 @@ A plataforma opera com arquitetura **Dual MCP**:
    ```bash
    npm run dev
    ```
-   *O site estará acessível em `http://localhost:3000`.*
+   *O site estará acessível em `http://localhost:3001`.*
 
 5. **Build para Produção**:
    ```bash

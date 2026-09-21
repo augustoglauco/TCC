@@ -22,10 +22,9 @@ tudo de novo, limpo. Rode a partir da raiz do repositório
 > ⚠️ **Não usamos a porta 3000** — nesta máquina ela já é ocupada pelo
 > **Open WebUI**, um serviço separado que não é deste projeto. O frontend
 > deste projeto sobe na **3001**, e o backend já está configurado para
-> aceitar CORS de `http://localhost:3001` (`CORS_ALLOWED_ORIGIN` em
-> `backend/.env` — local, não commitado; o padrão em `.env.example`
-> continua 3000, pois isso é uma particularidade desta máquina, não do
-> projeto). **Nunca derrube nada na porta 3000.**
+> aceitar CORS de `http://localhost:3001` (default de `CORS_ALLOWED_ORIGIN`
+> tanto em `.env.example` quanto em `config.py`; pode ser sobrescrito no
+> `backend/.env` local, não commitado). **Nunca derrube nada na porta 3000.**
 
 Só backend e frontend costumam precisar ser "derrubados" manualmente — Docker
 e Ollama normalmente já ficam de pé entre sessões.
