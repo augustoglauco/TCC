@@ -33,6 +33,7 @@ const COLLECTION: RagCollection = {
   quantization_config: {},
   payload_indexes: [],
   is_active: true,
+  purpose: "chat",
   document_count: 1,
   created_at: new Date().toISOString(),
 };

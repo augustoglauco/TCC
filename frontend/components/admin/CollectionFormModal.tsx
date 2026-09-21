@@ -7,6 +7,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { RagApiError, createCollection } from "@/lib/api/rag";
 import type {
   CollectionCreatePayload,
+  CollectionPurpose,
   PayloadIndex,
   PayloadSchemaType,
   QuantizationType,
@@ -53,6 +54,7 @@ export interface CollectionFormModalProps {
 
 export function CollectionFormModal({ open, onOpenChange, onCreated }: CollectionFormModalProps) {
   const [name, setName] = useState("");
+  const [purpose, setPurpose] = useState<CollectionPurpose>("chat");
   const [modelSelecionado, setModelSelecionado] = useState<string>(CURATED_MODELS[0].value);
   const [modeloCustom, setModeloCustom] = useState("");
   const [distanceMetric, setDistanceMetric] = useState<CollectionCreatePayload["distance_metric"]>("cosine");
@@ -79,6 +81,7 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
 
   function resetar() {
     setName("");
+    setPurpose("chat");
     setModelSelecionado(CURATED_MODELS[0].value);
     setModeloCustom("");
     setDistanceMetric("cosine");
@@ -149,6 +152,7 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
             ? { field: item.field, schema_type: item.schema_type, text_params: item.text_params ?? TEXT_PARAMS_PADRAO }
             : { field: item.field, schema_type: item.schema_type },
         ),
+      purpose,
     };
 
     try {
@@ -190,12 +194,37 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           />
         </div>
 
+        <div>
+          <div className="flex items-center">
+            <label htmlFor="collection-purpose" className="text-sm font-medium text-gray-900">
+              Finalidade
+            </label>
+            <Tooltip content="Chat (pública): conteúdo usado pelo chat. Restrita ao MCP B2B: conteúdo não aparece no chat; será consultado pelo canal MCP B2B (Fase 5)." />
+          </div>
+          <select
+            id="collection-purpose"
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value as CollectionPurpose)}
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+          >
+            <option value="chat">Chat (pública)</option>
+            <option value="mcp_b2b">Restrita ao MCP B2B</option>
+          </select>
+          {purpose === "mcp_b2b" && (
+            <p className="mt-1 text-xs text-amber-700">
+              Conteúdo não aparece no chat; será consultado pelo canal MCP B2B (Fase 5). Esta
+              collection não pode ser ativada para o chat.
+            </p>
+          )}
+        </div>
+
         <fieldset className="space-y-2">
           <legend className="flex items-center text-sm font-medium text-gray-900">
             Modelo de embedding
             <Tooltip content="Modelo de IA responsável por gerar os vetores densos a partir dos textos dos documentos." />
           </legend>
           <select
+            aria-label="Modelo de embedding"
             value={modelSelecionado}
             onChange={(e) => setModelSelecionado(e.target.value)}
             className="block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"

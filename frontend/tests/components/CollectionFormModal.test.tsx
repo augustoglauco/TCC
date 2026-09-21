@@ -32,6 +32,7 @@ const COLLECTION_CRIADA: RagCollection = {
   quantization_config: {},
   payload_indexes: [],
   is_active: false,
+  purpose: "chat",
   document_count: 0,
   created_at: new Date().toISOString(),
 };
@@ -57,11 +58,39 @@ describe("CollectionFormModal", () => {
     expect(onCreated).toHaveBeenCalledWith(COLLECTION_CRIADA);
   });
 
+  it("selecionar finalidade 'Restrita ao MCP B2B' envia purpose=mcp_b2b e mostra aviso", async () => {
+    const user = userEvent.setup();
+    mockedCreate.mockResolvedValueOnce({ ...COLLECTION_CRIADA, purpose: "mcp_b2b" });
+
+    render(<CollectionFormModal open onOpenChange={vi.fn()} onCreated={vi.fn()} />);
+
+    await user.type(screen.getByLabelText("Nome"), "mcp_docs");
+    await user.selectOptions(screen.getByLabelText("Finalidade"), "mcp_b2b");
+
+    expect(screen.getByText(/consultado pelo canal MCP B2B/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Criar collection" }));
+
+    expect(mockedCreate).toHaveBeenCalledWith(expect.objectContaining({ purpose: "mcp_b2b" }));
+  });
+
+  it("por padrão envia purpose=chat", async () => {
+    const user = userEvent.setup();
+    mockedCreate.mockResolvedValueOnce(COLLECTION_CRIADA);
+
+    render(<CollectionFormModal open onOpenChange={vi.fn()} onCreated={vi.fn()} />);
+
+    await user.type(screen.getByLabelText("Nome"), "nova");
+    await user.click(screen.getByRole("button", { name: "Criar collection" }));
+
+    expect(mockedCreate).toHaveBeenCalledWith(expect.objectContaining({ purpose: "chat" }));
+  });
+
   it("selecionar 'Outro' revela campo de texto livre para o modelo", async () => {
     const user = userEvent.setup();
     render(<CollectionFormModal open onOpenChange={vi.fn()} onCreated={vi.fn()} />);
 
-    await user.selectOptions(screen.getAllByRole("combobox")[0], "__custom__");
+    await user.selectOptions(screen.getByLabelText("Modelo de embedding"), "__custom__");
 
     expect(screen.getByLabelText("Nome do modelo")).toBeInTheDocument();
   });

@@ -74,6 +74,7 @@ describe("createCollection", () => {
       },
       quantization: { type: "none" },
       payload_indexes: [],
+      purpose: "chat",
     };
 
     await expect(createCollection(payload)).rejects.toMatchObject({

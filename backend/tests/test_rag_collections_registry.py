@@ -4,6 +4,7 @@ import pytest
 
 from app.rag.collections_registry import (
     CollectionActiveError,
+    CollectionNotActivatableError,
     activate_collection,
     create_collection,
     delete_collection,
@@ -80,6 +81,29 @@ async def test_activate_collection_ativa_a_escolhida_e_desativa_as_demais(db_ses
 
 async def test_activate_collection_inexistente_retorna_false(db_session):
     assert await activate_collection(db_session, uuid.uuid4()) is False
+
+
+async def test_create_collection_purpose_default_e_chat(db_session):
+    collection = await _cria_collection(db_session, name="padrao")
+
+    assert collection.purpose == "chat"
+
+
+async def test_create_collection_aceita_purpose_mcp_b2b(db_session):
+    collection = await _cria_collection(db_session, name="mcp", purpose="mcp_b2b")
+
+    assert collection.purpose == "mcp_b2b"
+
+
+async def test_activate_collection_mcp_b2b_e_bloqueada(db_session):
+    mcp = await _cria_collection(db_session, name="mcp", purpose="mcp_b2b", is_active=False)
+
+    with pytest.raises(CollectionNotActivatableError):
+        await activate_collection(db_session, mcp.id)
+
+    await db_session.refresh(mcp)
+    assert mcp.is_active is False
+    assert await get_active_collection(db_session) is None
 
 
 async def test_delete_collection_inexistente_retorna_false(db_session):

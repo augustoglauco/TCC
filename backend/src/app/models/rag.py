@@ -25,6 +25,10 @@ RagDocumentOrigin = Literal["upload", "batch_script", "reingest", "crawler"]
 
 DistanceMetric = Literal["cosine", "euclid", "dot", "manhattan"]
 QuantizationType = Literal["none", "scalar", "product", "binary"]
+# Finalidade da collection: "chat" (pública, elegível a ativa/busca do chat)
+# vs "mcp_b2b" (restrita ao canal MCP B2B, nunca ativada nem buscada pelo
+# chat) — ver docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §2.
+CollectionPurpose = Literal["chat", "mcp_b2b"]
 PayloadSchemaTypeLiteral = Literal[
     "keyword", "integer", "float", "bool", "geo", "datetime", "uuid", "text"
 ]
@@ -109,6 +113,7 @@ class CollectionCreateRequest(BaseModel):
     hnsw: HnswConfigRequest = Field(default_factory=HnswConfigRequest)
     quantization: QuantizationRequest = Field(default_factory=QuantizationRequest)
     payload_indexes: list[PayloadIndexRequest] = Field(default_factory=list)
+    purpose: CollectionPurpose = "chat"
 
     @model_validator(mode="after")
     def _valida_chunking(self) -> "CollectionCreateRequest":
@@ -135,6 +140,7 @@ class CollectionResponse(BaseModel):
     quantization_config: dict
     payload_indexes: list[PayloadIndexRequest]
     is_active: bool
+    purpose: CollectionPurpose
     document_count: int
     created_at: datetime
 

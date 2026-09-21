@@ -30,15 +30,12 @@ export interface DocumentRegistryEntry {
 
 export type DistanceMetric = "cosine" | "euclid" | "dot" | "manhattan";
 export type QuantizationType = "none" | "scalar" | "product" | "binary";
+// Finalidade da collection: "chat" (pública, buscada pelo chat) vs "mcp_b2b"
+// (restrita ao canal MCP B2B, nunca ativada nem buscada pelo chat) — ver
+// docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §2.
+export type CollectionPurpose = "chat" | "mcp_b2b";
 export type PayloadSchemaType =
-  | "keyword"
-  | "integer"
-  | "float"
-  | "bool"
-  | "geo"
-  | "datetime"
-  | "uuid"
-  | "text";
+  "keyword" | "integer" | "float" | "bool" | "geo" | "datetime" | "uuid" | "text";
 
 export interface HnswConfig {
   m: number;
@@ -93,6 +90,7 @@ export interface CollectionCreatePayload {
   hnsw: HnswConfig;
   quantization: QuantizationConfig;
   payload_indexes: PayloadIndex[];
+  purpose: CollectionPurpose;
 }
 
 /** Um item de `GET /api/rag/collections`. */
@@ -114,6 +112,7 @@ export interface RagCollection {
   quantization_config: Record<string, unknown>;
   payload_indexes: PayloadIndex[];
   is_active: boolean;
+  purpose: CollectionPurpose;
   document_count: number;
   created_at: string;
 }

@@ -246,6 +246,54 @@ def test_ativar_collection_inexistente_retorna_404(db_session):
     assert response.status_code == 404
 
 
+def test_criar_collection_mcp_b2b_expoe_purpose_na_resposta(db_session):
+    client = TestClient(_build_app(_qdrant(), db_session))
+    payload = {**_PAYLOAD_MINIMO, "name": "mcp_docs", "purpose": "mcp_b2b"}
+
+    response = client.post("/api/rag/collections", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["purpose"] == "mcp_b2b"
+    assert body["is_active"] is False
+
+
+def test_criar_collection_sem_purpose_default_chat(db_session):
+    client = TestClient(_build_app(_qdrant(), db_session))
+
+    response = client.post("/api/rag/collections", json=_PAYLOAD_MINIMO)
+
+    assert response.status_code == 200
+    assert response.json()["purpose"] == "chat"
+
+
+async def test_ativar_collection_mcp_b2b_retorna_409(db_session):
+    from app.rag.collections_registry import create_collection
+
+    mcp = await create_collection(
+        db_session,
+        name="mcp_docs",
+        embedding_model="fake-embedding-model",
+        vector_dimension=384,
+        distance_metric="cosine",
+        chunk_size=800,
+        chunk_overlap=100,
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+        purpose="mcp_b2b",
+        **_DEFAULT_HNSW,
+    )
+    client = TestClient(_build_app(_qdrant(), db_session))
+
+    response = client.post(f"/api/rag/collections/{mcp.id}/activate")
+
+    assert response.status_code == 409
+    # continua inativa
+    await db_session.refresh(mcp)
+    assert mcp.is_active is False
+
+
 async def test_excluir_collection_ativa_retorna_409_sem_tocar_qdrant(db_session, active_collection):
     qdrant = _qdrant()
     await qdrant.create_collection(

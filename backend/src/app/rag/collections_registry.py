@@ -18,6 +18,12 @@ class CollectionActiveError(Exception):
     """Levantada ao tentar excluir a collection atualmente ativa."""
 
 
+class CollectionNotActivatableError(Exception):
+    """Levantada ao tentar ativar uma collection restrita ao MCP B2B
+    (`purpose="mcp_b2b"`) — ver
+    docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §4."""
+
+
 async def create_collection(
     session: AsyncSession,
     *,
@@ -36,6 +42,7 @@ async def create_collection(
     quantization_type: str,
     quantization_config: dict,
     payload_indexes: list,
+    purpose: str = "chat",
     is_active: bool = False,
 ) -> RagCollection:
     collection = RagCollection(
@@ -55,6 +62,7 @@ async def create_collection(
         quantization_type=quantization_type,
         quantization_config=quantization_config,
         payload_indexes=payload_indexes,
+        purpose=purpose,
         is_active=is_active,
     )
     session.add(collection)
@@ -86,6 +94,11 @@ async def activate_collection(session: AsyncSession, collection_id: uuid.UUID) -
     collection = await session.get(RagCollection, collection_id)
     if collection is None:
         return False
+    if collection.purpose == "mcp_b2b":
+        # Garantia central do isolamento: uma collection restrita ao MCP B2B
+        # nunca vira a ativa, logo nunca é buscada pelo chat público (ver
+        # docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §4).
+        raise CollectionNotActivatableError(str(collection_id))
     await session.execute(update(RagCollection).values(is_active=False))
     collection.is_active = True
     await session.commit()

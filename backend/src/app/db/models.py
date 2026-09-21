@@ -46,6 +46,11 @@ class RagCollection(Base):
     quantization_config: Mapped[dict] = mapped_column(_JsonVariant, default=dict)
     payload_indexes: Mapped[list] = mapped_column(_JsonVariant, default=list)
     is_active: Mapped[bool] = mapped_column(default=False)
+    # "chat" (default): collection elegível a ser ativada e buscada pelo chat
+    # público. "mcp_b2b": collection de conteúdo restrito ao canal MCP B2B —
+    # nunca pode ser ativada nem buscada pelo chat (ver
+    # docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §2/§4).
+    purpose: Mapped[str] = mapped_column(default="chat")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

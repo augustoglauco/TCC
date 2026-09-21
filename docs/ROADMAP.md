@@ -159,6 +159,15 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       2026-09-15), com playground de busca comparativo entre collections e
       reingestão de um documento em outra collection. Ver
       `docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`.
+- [x] **Ingestão restrita ao canal MCP B2B** — collections ganham finalidade
+      (`purpose`: `chat` vs `mcp_b2b`); o admin ingere documentação exclusiva
+      do canal MCP B2B numa collection dedicada `mcp_b2b`, que nunca é ativada
+      (ativação bloqueada com 409) nem buscada pelo chat público (guarda de
+      defesa em profundidade em `ActiveCollectionRagClient.search`). Só a
+      **ingestão + isolamento** (metade 1); o **consumo** dessa collection
+      pelo servidor MCP B2B fica na Fase 5 (R12). Segue fora do MVP:
+      autenticação por parceiro, isolamento multi-tenant, exposição pública.
+      Ver `docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md`.
 
 ## Extra fora do MVP — Gerenciador de Modelos Locais (Ollama)
 
