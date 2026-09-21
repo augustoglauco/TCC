@@ -1,7 +1,13 @@
 import httpx
 import pytest
 
-from app.rag.crawler import NonHtmlContentError, crawl, extract_text_and_links, fetch_page
+from app.rag.crawler import (
+    NonHtmlContentError,
+    crawl,
+    crawl_stream,
+    extract_text_and_links,
+    fetch_page,
+)
 
 
 def test_extract_text_and_links_remove_script_style_nav_footer():
@@ -233,3 +239,64 @@ async def test_crawl_ignora_pagina_que_redireciona_para_host_diferente():
     urls = {page.url for page in result.pages}
     assert urls == {"https://exemplo.com/"}
     assert result.errors == []
+
+
+async def test_crawl_stream_emite_visitando_antes_de_pagina():
+    """`crawl_stream` emite um evento "visitando" (heartbeat) ANTES do fetch
+    e um "pagina" no sucesso — nessa ordem, por URL."""
+    html = "<html><body><p>conteúdo</p></body></html>"
+    transport = _mock_transport({"https://exemplo.com/": (200, "text/html", html)})
+    client = httpx.AsyncClient(transport=transport)
+
+    eventos = [
+        ev async for ev in crawl_stream(client, "https://exemplo.com/", depth=0, max_pages=5)
+    ]
+
+    tipos = [(ev.event, ev.url) for ev in eventos]
+    assert tipos == [
+        ("visitando", "https://exemplo.com/"),
+        ("pagina", "https://exemplo.com/"),
+    ]
+    assert eventos[1].page is not None
+    assert "conteúdo" in eventos[1].page.text
+
+
+async def test_crawl_stream_emite_erro_para_pagina_com_falha():
+    """URL que falha no fetch (404) vira um evento "erro" (não interrompe o
+    stream)."""
+    transport = _mock_transport({})  # tudo 404
+    client = httpx.AsyncClient(transport=transport)
+
+    eventos = [
+        ev async for ev in crawl_stream(client, "https://exemplo.com/x", depth=0, max_pages=5)
+    ]
+
+    assert [(ev.event, ev.url) for ev in eventos] == [
+        ("visitando", "https://exemplo.com/x"),
+        ("erro", "https://exemplo.com/x"),
+    ]
+
+
+async def test_crawl_e_crawl_stream_produzem_o_mesmo_resultado():
+    """`crawl()` é reimplementado sobre `crawl_stream` — o resultado
+    acumulado tem de bater com o que o stream emite."""
+    html_indice = '<html><body><a href="/a">a</a></body></html>'
+    paginas = {
+        "https://exemplo.com/": (200, "text/html", html_indice),
+        "https://exemplo.com/a": (200, "text/html", "<html><body>página a</body></html>"),
+        # /b não existe -> 404 (erro), mas não é linkado, então não aparece
+    }
+    transport = _mock_transport(paginas)
+
+    client_stream = httpx.AsyncClient(transport=transport)
+    eventos = [
+        ev
+        async for ev in crawl_stream(client_stream, "https://exemplo.com/", depth=1, max_pages=10)
+    ]
+    urls_pagina_stream = [ev.url for ev in eventos if ev.event == "pagina"]
+
+    client_crawl = httpx.AsyncClient(transport=transport)
+    result = await crawl(client_crawl, "https://exemplo.com/", depth=1, max_pages=10)
+
+    assert [p.url for p in result.pages] == urls_pagina_stream
+    assert len(result.pages) == 2
