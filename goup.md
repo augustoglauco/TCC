@@ -67,7 +67,7 @@ cd backend && .venv/bin/alembic upgrade head && cd ..
 ## 4. Subir o backend (porta 8000, em background)
 
 ```bash
-cd backend && nohup .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/tcc-backend.log 2>&1 & disown; cd ..
+cd backend && nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 > /tmp/tcc-backend.log 2>&1 & disown; cd ..
 ```
 
 ## 5. Subir o frontend (porta 3001, em background)
@@ -92,13 +92,24 @@ e `/tmp/tcc-frontend.log` caso algo não suba.
 ```bash
 fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; sleep 1
 cd backend && docker compose up -d postgres qdrant && .venv/bin/alembic upgrade head
-nohup .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 > /tmp/tcc-backend.log 2>&1 & disown
+nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 > /tmp/tcc-backend.log 2>&1 & disown
 cd ../frontend && PORT=3001 nohup npm run dev > /tmp/tcc-frontend.log 2>&1 & disown
 cd ..
 sleep 3
 curl -s -o /dev/null -w "backend (8000): %{http_code}\n" --max-time 5 http://localhost:8000/docs
 curl -s -o /dev/null -w "frontend (3001): %{http_code}\n" --max-time 5 http://localhost:3001
 ```
+
+## 🌐 Acesso Externo via Internet (WSL2 + Windows + DuckDNS)
+
+Como o projeto executa dentro do **WSL2**, para receber acessos vindos da internet via **DuckDNS** (`http://augustoglauco.duckdns.org:3001`), é necessário autorizar as portas no **Windows Defender Firewall** do host Windows (executar uma vez no **PowerShell como Administrador** no Windows):
+
+```powershell
+New-NetFirewallRule -DisplayName "TCC WSL2 Frontend (3001)" -Direction Inbound -LocalPort 3001 -Protocol TCP -Action Allow
+New-NetFirewallRule -DisplayName "TCC WSL2 Backend (8000)" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
+```
+
+> 💡 **Dica de Teste Externo:** Devido à ausência de *NAT Loopback* em muitos roteadores residenciais (ex.: Huawei AX3 Pro), teste o acesso externo desligando o Wi-Fi do celular e abrindo pelo **4G/5G móvel**: `http://augustoglauco.duckdns.org:3001` (utilizando **http://** sem `s`).
 
 ## Derrubar tudo de novo (encerrar a sessão de testes)
 
