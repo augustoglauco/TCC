@@ -6,14 +6,14 @@
 
 import type { RagDomain } from "@/lib/types/rag";
 
-/** Corpo de `POST /api/rag/crawler/run`. */
+/** Parâmetros de um crawl (query do endpoint SSE `GET /api/rag/crawler/run/stream`). */
 export interface CrawlRunPayload {
   url: string;
   depth: number;
   max_pages?: number;
 }
 
-/** Resposta de `POST /api/rag/crawler/run`. */
+/** Resumo final de um crawl (evento `done` do SSE `GET /api/rag/crawler/run/stream`). */
 export interface CrawlRunResponse {
   pages_visited: number;
   auto_ingested: string[];

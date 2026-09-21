@@ -58,7 +58,7 @@ def test_rotas_do_crawler_estao_registradas_e_o_estado_correspondente_tambem():
     app = create_app()
     caminhos = set(app.openapi()["paths"].keys())
 
-    assert "/api/rag/crawler/run" in caminhos
+    assert "/api/rag/crawler/run/stream" in caminhos
     assert "/api/rag/crawler/pending" in caminhos
     assert "/api/rag/crawler/pending/{page_id}/approve" in caminhos
     assert "/api/rag/crawler/pending/{page_id}/reject" in caminhos

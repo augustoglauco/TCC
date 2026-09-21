@@ -68,30 +68,9 @@ def _build_app(
     return app
 
 
-def test_run_confidence_alta_ingere_direto(db_session, active_collection, tmp_path):
-    html = "<html><body><p>Conteúdo de vendas</p></body></html>"
-    fake_qdrant = _FakeQdrantRAGClient()
-    llm = _FakeLLMClient(domain="vendas", confidence=0.9)
-    app = _build_app(
-        fake_qdrant,
-        db_session,
-        tmp_path,
-        llm,
-        paginas={"https://exemplo.com/": (200, "text/html", html)},
-    )
-    client = TestClient(app)
-
-    response = client.post("/api/rag/crawler/run", json={"url": "https://exemplo.com/", "depth": 0})
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["pages_visited"] == 1
-    assert body["auto_ingested"] == ["https://exemplo.com/"]
-    assert body["queued"] == []
-    assert len(fake_qdrant.upserts) == 1
-
-
-def test_run_confidence_baixa_enfileira(db_session, active_collection, tmp_path):
+def test_stream_confidence_baixa_enfileira_e_aparece_em_pending(
+    db_session, active_collection, tmp_path
+):
     html = "<html><body><p>Conteúdo ambíguo</p></body></html>"
     fake_qdrant = _FakeQdrantRAGClient()
     llm = _FakeLLMClient(domain="vendas", confidence=0.3)
@@ -104,11 +83,13 @@ def test_run_confidence_baixa_enfileira(db_session, active_collection, tmp_path)
     )
     client = TestClient(app)
 
-    response = client.post("/api/rag/crawler/run", json={"url": "https://exemplo.com/", "depth": 0})
+    response = client.get("/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0")
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["queued"] == ["https://exemplo.com/"]
+    eventos = _parse_sse(response.text)
+    assert "enfileirada" in [ev for ev, _ in eventos]
+    done = eventos[-1][1]
+    assert done["queued"] == ["https://exemplo.com/"]
+    assert done["auto_ingested"] == []
     assert fake_qdrant.upserts == []
 
     pendentes = client.get("/api/rag/crawler/pending").json()
@@ -117,7 +98,7 @@ def test_run_confidence_baixa_enfileira(db_session, active_collection, tmp_path)
     assert pendentes[0]["domain_proposed"] == "vendas"
 
 
-def test_run_usa_max_pages_default_quando_nao_informado(db_session, active_collection, tmp_path):
+def test_stream_usa_max_pages_default_quando_nao_informado(db_session, active_collection, tmp_path):
     html_com_link = (
         '<html><body><a href="/a">a</a><a href="/b">b</a><a href="/c">c</a></body></html>'
     )
@@ -132,9 +113,10 @@ def test_run_usa_max_pages_default_quando_nao_informado(db_session, active_colle
     app = _build_app(fake_qdrant, db_session, tmp_path, llm, max_pages_default=2, paginas=paginas)
     client = TestClient(app)
 
-    response = client.post("/api/rag/crawler/run", json={"url": "https://exemplo.com/", "depth": 1})
+    response = client.get("/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1")
 
-    assert response.json()["pages_visited"] == 2
+    done = _parse_sse(response.text)[-1][1]
+    assert done["pages_visited"] == 2
 
 
 class _PoisonedAfterFirstCommitFailureSession:
@@ -143,8 +125,8 @@ class _PoisonedAfterFirstCommitFailureSession:
     partir daí, simula o estado de pending-rollback real do SQLAlchemy —
     qualquer operação seguinte (`execute`, `commit`) também levanta
     `SQLAlchemyError`, até que `rollback()` seja chamado. Usada para cobrir
-    o achado #2 da revisão final: sem `session.rollback()` no `except` de
-    `run_crawler`, uma falha de commit na página N convertia silenciosamente
+    o achado #2 da revisão final: sem `session.rollback()` no `except` do
+    endpoint SSE, uma falha de commit na página N convertia silenciosamente
     todas as páginas N+1..fim do mesmo crawl em "erro" também."""
 
     def __init__(self, session) -> None:
@@ -174,7 +156,7 @@ class _PoisonedAfterFirstCommitFailureSession:
         await self._session.rollback()
 
 
-def test_run_com_falha_de_commit_em_uma_pagina_nao_contamina_as_seguintes(
+def test_stream_com_falha_de_commit_em_uma_pagina_nao_contamina_as_seguintes(
     db_session, active_collection, tmp_path
 ):
     """Achado #2 da revisão final: uma falha de `SQLAlchemyError` na página 1
@@ -191,24 +173,13 @@ def test_run_com_falha_de_commit_em_uma_pagina_nao_contamina_as_seguintes(
     app = _build_app(fake_qdrant, session_com_falha, tmp_path, llm, paginas=paginas)
     client = TestClient(app)
 
-    response = client.post("/api/rag/crawler/run", json={"url": "https://exemplo.com/", "depth": 1})
+    response = client.get("/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1")
 
     assert response.status_code == 200
-    body = response.json()
-    assert body["pages_visited"] == 2
-    assert body["errors"] == ["https://exemplo.com/"]
-    assert body["auto_ingested"] == ["https://exemplo.com/outra"]
-
-
-def test_run_sem_collection_ativa_retorna_503(db_session, tmp_path):
-    fake_qdrant = _FakeQdrantRAGClient()
-    llm = _FakeLLMClient(domain="vendas", confidence=0.9)
-    app = _build_app(fake_qdrant, db_session, tmp_path, llm)
-    client = TestClient(app)
-
-    response = client.post("/api/rag/crawler/run", json={"url": "https://exemplo.com/", "depth": 0})
-
-    assert response.status_code == 503
+    done = _parse_sse(response.text)[-1][1]
+    assert done["pages_visited"] == 2
+    assert done["errors"] == ["https://exemplo.com/"]
+    assert done["auto_ingested"] == ["https://exemplo.com/outra"]
 
 
 def test_approve_pending_page_ingere_com_domain_escolhido(db_session, active_collection, tmp_path):
@@ -351,29 +322,6 @@ def test_stream_emite_visitando_ingerida_e_done(db_session, active_collection, t
     assert done["auto_ingested"] == ["https://exemplo.com/"]
     assert done["queued"] == []
     assert done["errors"] == []
-
-
-def test_stream_confidence_baixa_emite_enfileirada(db_session, active_collection, tmp_path):
-    html = "<html><body><p>Conteúdo ambíguo</p></body></html>"
-    fake_qdrant = _FakeQdrantRAGClient()
-    llm = _FakeLLMClient(domain="vendas", confidence=0.3)
-    app = _build_app(
-        fake_qdrant,
-        db_session,
-        tmp_path,
-        llm,
-        paginas={"https://exemplo.com/": (200, "text/html", html)},
-    )
-    client = TestClient(app)
-
-    response = client.get("/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0")
-
-    eventos = _parse_sse(response.text)
-    tipos = [ev for ev, _ in eventos]
-    assert "enfileirada" in tipos
-    done = eventos[-1][1]
-    assert done["queued"] == ["https://exemplo.com/"]
-    assert done["auto_ingested"] == []
 
 
 def test_stream_url_invalida_retorna_422(db_session, active_collection, tmp_path):

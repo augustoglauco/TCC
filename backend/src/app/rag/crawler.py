@@ -26,16 +26,8 @@ class FetchedPage:
     links: list[str] = field(default_factory=list)
 
 
-@dataclass
-class CrawlResult:
-    pages: list[FetchedPage] = field(default_factory=list)
-    errors: list[str] = field(default_factory=list)
-
-
 # Tipos de evento emitidos por `crawl_stream` (consumidos pelo endpoint SSE
-# `GET /api/rag/crawler/run/stream`). O `crawl()` clássico é reimplementado
-# sobre o mesmo gerador, garantindo que os dois caminhos compartilhem
-# exatamente a lógica de BFS (sem duplicação).
+# `GET /api/rag/crawler/run/stream`).
 CrawlEventType = Literal["visitando", "pagina", "erro"]
 
 
@@ -81,10 +73,10 @@ def extract_text_and_links(html: str, base_url: str) -> tuple[str, list[str]]:
 
 async def fetch_page(client: httpx.AsyncClient, url: str) -> FetchedPage | None:
     """Busca `url`; devolve `None` (sem levantar) em falha real de
-    rede/timeout/status não-2xx — cabe ao chamador (`crawl`) registrar como
-    erro. Levanta `NonHtmlContentError` quando o fetch teve sucesso mas o
+    rede/timeout/status não-2xx — cabe ao chamador (`crawl_stream`) registrar
+    como erro. Levanta `NonHtmlContentError` quando o fetch teve sucesso mas o
     content-type não é HTML (achado #4 da revisão final: antes retornava
-    `None` igual a uma falha real, fazendo `crawl()` contar PDFs/imagens
+    `None` igual a uma falha real, fazendo o crawl contar PDFs/imagens
     linkados como "erro" em vez de simplesmente ignorá-los).
 
     Usa `response.url` (URL final após redirects, se houver) — não a `url`
@@ -108,12 +100,14 @@ async def fetch_page(client: httpx.AsyncClient, url: str) -> FetchedPage | None:
 async def crawl_stream(
     client: httpx.AsyncClient, seed_url: str, depth: int, max_pages: int
 ) -> AsyncIterator[CrawlEvent]:
-    """Igual a `crawl`, mas emite um `CrawlEvent` por passo do BFS — permite
-    ao chamador (endpoint SSE) reportar progresso em tempo real e servir de
-    heartbeat. A ordem por URL é: um evento "visitando" (antes do fetch) e,
-    em seguida, "pagina" (sucesso) ou "erro" (falha). Conteúdo não-HTML e
-    redirects cross-host são ignorados silenciosamente (sem evento), igual
-    ao `crawl` clássico."""
+    """BFS a partir de `seed_url`, restrito ao mesmo host, até `depth` saltos
+    ou `max_pages` páginas visitadas (o que vier primeiro); visited-set por
+    URL normalizada evita loop em links de retorno. Emite um `CrawlEvent` por
+    passo do BFS — permite ao chamador (endpoint SSE) reportar progresso em
+    tempo real e servir de heartbeat. A ordem por URL é: um evento
+    "visitando" (antes do fetch) e, em seguida, "pagina" (sucesso) ou "erro"
+    (falha). Conteúdo não-HTML e redirects cross-host são ignorados
+    silenciosamente (sem evento)."""
     seed_normalizada = _normalize_url(seed_url)
     seed_host = urlparse(seed_normalizada).netloc
 
@@ -150,22 +144,3 @@ async def crawl_stream(
         for link in page.links:
             if link not in visited and urlparse(link).netloc == seed_host:
                 fila.append((link, nivel + 1))
-
-
-async def crawl(
-    client: httpx.AsyncClient, seed_url: str, depth: int, max_pages: int
-) -> CrawlResult:
-    """BFS a partir de `seed_url`, restrito ao mesmo host, até `depth`
-    saltos ou `max_pages` páginas visitadas (o que vier primeiro).
-    Visited-set por URL normalizada evita loop em links de retorno.
-
-    Reimplementado sobre `crawl_stream` para não duplicar a lógica de BFS —
-    consome todos os eventos e monta o `CrawlResult` acumulado (contrato
-    inalterado do `POST /run`)."""
-    result = CrawlResult()
-    async for evento in crawl_stream(client, seed_url, depth, max_pages):
-        if evento.event == "pagina" and evento.page is not None:
-            result.pages.append(evento.page)
-        elif evento.event == "erro":
-            result.errors.append(evento.url)
-    return result
