@@ -33,11 +33,14 @@ const COLLECTION_ATIVA: RagCollection = {
   quantization_config: {},
   payload_indexes: [],
   is_active: true,
+  purpose: "chat",
   document_count: 3,
   created_at: new Date().toISOString(),
 };
 
 const COLLECTION_INATIVA: RagCollection = { ...COLLECTION_ATIVA, id: "222", name: "teste", is_active: false, document_count: 1 };
+
+const COLLECTION_MCP: RagCollection = { ...COLLECTION_ATIVA, id: "333", name: "mcp_docs", is_active: false, purpose: "mcp_b2b", document_count: 2 };
 
 describe("CollectionsTable", () => {
   beforeEach(() => {
@@ -50,6 +53,22 @@ describe("CollectionsTable", () => {
 
     expect(screen.getByText("docs_texto")).toBeInTheDocument();
     expect(screen.getByText("Ativa")).toBeInTheDocument();
+  });
+
+  it("collection mcp_b2b mostra badge 'MCP B2B' e botão Ativar desabilitado", () => {
+    render(<CollectionsTable collections={[COLLECTION_MCP]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+
+    expect(screen.getByText("MCP B2B")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ativar" })).toBeDisabled();
+  });
+
+  it("não chama a API ao clicar em Ativar de uma collection mcp_b2b (botão desabilitado)", async () => {
+    const user = userEvent.setup();
+    render(<CollectionsTable collections={[COLLECTION_MCP]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Ativar" }));
+
+    expect(mockedActivate).not.toHaveBeenCalled();
   });
 
   it("botão excluir da collection ativa fica desabilitado", () => {

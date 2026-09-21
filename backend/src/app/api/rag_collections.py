@@ -16,6 +16,7 @@ from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_
 from app.models.rag import CollectionCreateRequest, CollectionResponse
 from app.rag.collections_registry import (
     CollectionActiveError,
+    CollectionNotActivatableError,
     activate_collection,
     create_collection,
     delete_collection,
@@ -62,6 +63,7 @@ def _to_response(collection, document_count: int) -> CollectionResponse:
         quantization_config=collection.quantization_config,
         payload_indexes=collection.payload_indexes,
         is_active=collection.is_active,
+        purpose=collection.purpose,
         document_count=document_count,
         created_at=collection.created_at,
     )
@@ -136,6 +138,7 @@ async def create_collection_endpoint(
             quantization_type=body.quantization.type,
             quantization_config=quantization_config,
             payload_indexes=payload_indexes,
+            purpose=body.purpose,
         )
     except SQLAlchemyError as exc:
         # Achado #1 da revisão final: o registro no Postgres falhou depois
@@ -196,6 +199,11 @@ async def activate_collection_endpoint(
 ) -> None:
     try:
         ativado = await activate_collection(session, collection_id)
+    except CollectionNotActivatableError as exc:
+        raise HTTPException(
+            status_code=409,
+            detail="Collections restritas ao MCP B2B não podem ser ativadas para o chat.",
+        ) from exc
     except SQLAlchemyError as exc:
         logger.error(
             "rag_collections_indisponivel",

@@ -123,6 +123,7 @@ function AbaEnviarDocumento({
             {collections.map((collection) => (
               <option key={collection.id} value={collection.id}>
                 {collection.name}
+                {collection.purpose === "mcp_b2b" ? " [MCP B2B]" : ""}
                 {collection.is_active ? " (ativa)" : ""}
               </option>
             ))}

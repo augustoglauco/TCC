@@ -214,6 +214,25 @@ confundida com item do escopo original nem esquecida na revisão final (Fase
 11). Detalhes de implementação:
 `docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`.
 
+**Decisão registrada (além do MVP, a pedido explícito, 2026-09-21):**
+collections ganham um campo de **finalidade** (`purpose`): `chat` (default,
+pública, elegível a ser ativada e buscada pelo chat) vs `mcp_b2b` (restrita
+ao canal MCP B2B). O admin pode ingerir, pela mesma tela `/admin/ingestao`,
+documentação **exclusiva do canal MCP B2B** numa collection dedicada
+`purpose="mcp_b2b"`, que **nunca é ativada** (a ativação é bloqueada com 409)
+nem buscada pelo chat público — há ainda uma guarda de defesa em profundidade
+em `ActiveCollectionRagClient.search` que falha fechado caso a invariante
+seja quebrada. A **metade de consumo** desse conteúdo (o servidor MCP B2B de
+fato lendo a collection restrita) permanece na **Fase 5 (R12)**, não
+antecipada aqui — por ora o conteúdo fica ingerido e isolado, sem consumidor.
+Segue **fora do MVP** tudo que caracteriza acesso externo real: autenticação
+por parceiro, isolamento multi-tenant, exposição pública, rate limiting e
+auditoria (ver seção "Explicitamente fora do MVP" no roadmap). Como as demais
+entregas fora do MVP, fica registrada aqui e no roadmap para não ser
+confundida com item do escopo original nem esquecida na revisão final (Fase
+11). Detalhes de implementação:
+`docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md`.
+
 **Decisão registrada (além do MVP, a pedido explícito, 2026-09-16):** uma
 tela administrativa (`/admin/modelos`) passa a permitir listar os modelos
 locais já baixados no Ollama, trocar em runtime qual deles o chat usa, e

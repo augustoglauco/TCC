@@ -33,6 +33,7 @@ function collection(overrides: Partial<RagCollection>): RagCollection {
     quantization_config: {},
     payload_indexes: [],
     is_active: true,
+    purpose: "chat",
     document_count: 0,
     created_at: new Date().toISOString(),
     ...overrides,

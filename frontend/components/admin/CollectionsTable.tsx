@@ -56,6 +56,7 @@ export function CollectionsTable({ collections, onChanged, onError, onSuccess }:
           <thead>
             <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
               <th className="py-3 px-4">Nome</th>
+              <th className="py-3 px-4">Finalidade</th>
               <th className="py-3 px-4">Modelo</th>
               <th className="py-3 px-4">Dimensão</th>
               <th className="py-3 px-4">Métrica</th>
@@ -79,6 +80,17 @@ export function CollectionsTable({ collections, onChanged, onError, onSuccess }:
                     )}
                   </div>
                 </td>
+                <td className="py-3.5 px-4">
+                  {collection.purpose === "mcp_b2b" ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-purple-200/80 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700 shadow-2xs">
+                      MCP B2B
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-600 shadow-2xs">
+                      Chat
+                    </span>
+                  )}
+                </td>
                 <td className="py-3.5 px-4 text-slate-700 font-mono text-xs">{collection.embedding_model}</td>
                 <td className="py-3.5 px-4 text-slate-700">{collection.vector_dimension}</td>
                 <td className="py-3.5 px-4 text-slate-700 capitalize">{collection.distance_metric}</td>
@@ -88,16 +100,26 @@ export function CollectionsTable({ collections, onChanged, onError, onSuccess }:
                 <td className="py-3.5 px-4 text-slate-700 capitalize">{collection.quantization_type}</td>
                 <td className="py-3.5 px-4 text-slate-700">{collection.document_count}</td>
                 <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                  {!collection.is_active && (
-                    <button
-                      type="button"
-                      onClick={() => handleAtivar(collection)}
-                      disabled={processando}
-                      className="mr-2 inline-flex items-center gap-1 rounded-lg border border-indigo-200/80 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 shadow-2xs transition-colors hover:bg-indigo-100/80 hover:text-indigo-800 disabled:opacity-50"
-                    >
-                      Ativar
-                    </button>
-                  )}
+                  {!collection.is_active &&
+                    (collection.purpose === "mcp_b2b" ? (
+                      <button
+                        type="button"
+                        disabled
+                        title="Collections do MCP B2B não podem ser ativadas para o chat."
+                        className="mr-2 inline-flex cursor-not-allowed items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-50/50 px-2.5 py-1 text-xs font-semibold text-slate-400 shadow-2xs"
+                      >
+                        Ativar
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleAtivar(collection)}
+                        disabled={processando}
+                        className="mr-2 inline-flex items-center gap-1 rounded-lg border border-indigo-200/80 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 shadow-2xs transition-colors hover:bg-indigo-100/80 hover:text-indigo-800 disabled:opacity-50"
+                      >
+                        Ativar
+                      </button>
+                    ))}
                   <button
                     type="button"
                     onClick={() => setCollectionParaExcluir(collection)}

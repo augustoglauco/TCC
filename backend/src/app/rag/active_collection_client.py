@@ -36,5 +36,13 @@ class ActiveCollectionRagClient:
             raise RAGConnectionError(str(exc)) from exc
         if collection is None:
             return []
+        # Defesa em profundidade: a collection ativa nunca deveria ser
+        # `mcp_b2b` (a ativação dessas é bloqueada em
+        # `activate_collection`), mas falhamos fechado se a invariante for
+        # quebrada no futuro — conteúdo restrito ao MCP B2B jamais é servido
+        # ao chat público (ver
+        # docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §4).
+        if collection.purpose == "mcp_b2b":
+            return []
         embedder = self._embedders.get(collection.embedding_model)
         return await self._qdrant.search(collection.name, embedder, query, domain)
