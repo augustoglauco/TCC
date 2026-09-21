@@ -4,7 +4,8 @@ cuja classificação de domínio ficou abaixo do limiar de confiança. Ver
 docs/superpowers/specs/2026-09-19-crawler-paginas-design.md.
 
 # MVP: sem autenticação (mesma decisão do restante de `app.api.rag`) e
-execução síncrona do `/run` — sem fila de background nem agendamento.
+execução síncrona do crawl (`/run/stream`) — sem fila de background nem
+agendamento.
 """
 
 import json
@@ -30,12 +31,10 @@ from app.db.models import CrawlerPendingPage
 from app.models.crawler import (
     ApprovedPageResponse,
     ApprovePendingPageRequest,
-    CrawlRunRequest,
-    CrawlRunResponse,
     PendingPageResponse,
 )
 from app.rag.collections_registry import get_active_collection
-from app.rag.crawler import crawl, crawl_stream
+from app.rag.crawler import crawl_stream
 from app.rag.crawler_classifier import classify_page
 from app.rag.crawler_ingest import ingest_or_queue, replace_previous_ingestion
 from app.rag.crawler_pending import delete_pending_page, get_pending_page, list_pending_pages
@@ -54,9 +53,9 @@ _TEXT_SNIPPET_CHARS = 300
 # crawl (spec §5) — capturadas aqui e reportadas em `errors`.
 _ERROS_POR_PAGINA = (RAGConnectionError, httpx.HTTPError, SQLAlchemyError)
 
-# Valida `url` do endpoint SSE (GET, query param) com a mesma regra do
-# `CrawlRunRequest.url` (HttpUrl) — EventSource só faz GET, então não dá para
-# reaproveitar o body Pydantic do POST.
+# Valida `url` do endpoint SSE (GET, query param) com a regra de `HttpUrl` —
+# EventSource só faz GET, então a URL semente vem como query param (não há
+# body Pydantic a reaproveitar).
 _HTTP_URL_ADAPTER = TypeAdapter(HttpUrl)
 
 
@@ -76,86 +75,6 @@ def _to_pending_response(page: CrawlerPendingPage) -> PendingPageResponse:
     )
 
 
-@router.post("/run", response_model=CrawlRunResponse)
-async def run_crawler(
-    body: CrawlRunRequest,
-    request: Request,
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    embedders: EmbedderRegistry = Depends(get_embedder_registry),
-    uploads_dir: Path = Depends(get_uploads_dir),
-    session: AsyncSession = Depends(get_db_session),
-) -> CrawlRunResponse:
-    collection = await get_active_collection(session)
-    if collection is None:
-        raise HTTPException(status_code=503, detail="Nenhuma collection ativa configurada.")
-
-    max_pages = body.max_pages or request.app.state.crawler_max_pages_default
-    confidence_threshold = request.app.state.crawler_confidence_threshold
-    embedder = embedders.get(collection.embedding_model)
-
-    result = await crawl(
-        request.app.state.crawler_http_client, str(body.url), body.depth, max_pages
-    )
-
-    auto_ingested: list[str] = []
-    queued: list[str] = []
-    errors = list(result.errors)
-
-    for page in result.pages:
-        try:
-            classification = await classify_page(request.app.state.external_client, page.text)
-            outcome = await ingest_or_queue(
-                session,
-                qdrant,
-                collection,
-                embedder,
-                uploads_dir,
-                page.url,
-                page.text,
-                classification,
-                confidence_threshold,
-            )
-        except _ERROS_POR_PAGINA as exc:
-            # Achado #2 da revisão final: sem o rollback, um `SQLAlchemyError`
-            # (ex.: falha no commit) deixa a `AsyncSession` em estado de
-            # pending-rollback — toda operação seguinte na mesma sessão passa
-            # a levantar `PendingRollbackError` (também um `SQLAlchemyError`),
-            # convertendo silenciosamente todas as páginas seguintes deste
-            # crawl em "erro", mesmo sem falha própria delas. Chamado
-            # incondicionalmente (é um no-op seguro quando não há transação
-            # pendente) para cobrir também os outros erros de `_ERROS_POR_PAGINA`.
-            await session.rollback()
-            # `rollback()` expira todas as instâncias ORM anexadas à sessão
-            # (inclusive `collection`, carregada uma única vez antes do loop
-            # e reutilizada em toda página) — sem o refresh, o acesso a um
-            # atributo de `collection` na próxima iteração dispara um lazy
-            # load implícito que o `AsyncSession` não suporta
-            # (`MissingGreenlet`), quebrando a página seguinte mesmo depois
-            # do rollback já ter "limpo" a sessão.
-            await session.refresh(collection)
-            logger.error(
-                "crawler_pagina_indisponivel",
-                extra={
-                    "crawler": {
-                        "event": "crawler_pagina_indisponivel",
-                        "url": page.url,
-                        "erro": str(exc),
-                    }
-                },
-            )
-            errors.append(page.url)
-            continue
-
-        if outcome == "ingested":
-            auto_ingested.append(page.url)
-        else:
-            queued.append(page.url)
-
-    return CrawlRunResponse(
-        pages_visited=len(result.pages), auto_ingested=auto_ingested, queued=queued, errors=errors
-    )
-
-
 @router.get("/run/stream")
 async def run_crawler_stream(
     request: Request,
@@ -167,14 +86,13 @@ async def run_crawler_stream(
     uploads_dir: Path = Depends(get_uploads_dir),
     session: AsyncSession = Depends(get_db_session),
 ) -> StreamingResponse:
-    """Versão SSE de `POST /run` — emite progresso em tempo real, um evento
-    por página, para que o frontend saiba que o crawl está vivo (e detecte
-    travamento por ausência de eventos). Consumido via `EventSource`.
+    """Dispara um crawl a partir de uma URL semente e emite progresso em
+    tempo real via SSE — um evento por página, para que o frontend saiba que
+    o crawl está vivo (e detecte travamento por ausência de eventos).
+    Consumido via `EventSource`.
 
     Eventos: `visitando` (URL atual, heartbeat), `ingerida`, `enfileirada`,
-    `erro` (por página) e `done` (resumo final). Mantido em paralelo ao
-    `POST /run` clássico enquanto o novo fluxo é validado (será o único
-    depois — decisão registrada em docs/ROADMAP.md).
+    `erro` (por página) e `done` (resumo final).
     """
     try:
         seed_url = str(_HTTP_URL_ADAPTER.validate_python(url))
@@ -227,9 +145,16 @@ async def run_crawler_stream(
                         confidence_threshold,
                     )
                 except _ERROS_POR_PAGINA as exc:
-                    # Mesmo tratamento do POST /run: rollback + refresh para
-                    # não contaminar as páginas seguintes (ver comentário
-                    # detalhado em `run_crawler`).
+                    # Rollback + refresh para não contaminar as páginas
+                    # seguintes: sem o rollback, um `SQLAlchemyError` (ex.:
+                    # falha no commit) deixa a `AsyncSession` em estado de
+                    # pending-rollback — toda operação seguinte passa a
+                    # levantar `PendingRollbackError` (também `SQLAlchemyError`),
+                    # convertendo silenciosamente as páginas seguintes deste
+                    # crawl em "erro". O `refresh(collection)` reidrata a
+                    # instância ORM expirada pelo rollback (senão o acesso a
+                    # um atributo dela na próxima página dispara um lazy load
+                    # que o `AsyncSession` não suporta — `MissingGreenlet`).
                     await session.rollback()
                     await session.refresh(collection)
                     logger.error(

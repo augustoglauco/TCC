@@ -31,26 +31,6 @@ async function _lancarErroComDetalhe(response: Response, mensagemPadrao: string)
   throw new CrawlerApiError(message, response.status);
 }
 
-/** Dispara um crawl a partir de uma URL semente via `POST /api/rag/crawler/run`. */
-export async function runCrawler(payload: CrawlRunPayload): Promise<CrawlRunResponse> {
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE_URL}/api/rag/crawler/run`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    throw new CrawlerApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
-  }
-
-  if (!response.ok) {
-    await _lancarErroComDetalhe(response, "Não foi possível rodar o crawler. Tente novamente.");
-  }
-
-  return (await response.json()) as CrawlRunResponse;
-}
-
 /** Lista a fila de revisão via `GET /api/rag/crawler/pending`. */
 export async function listPendingPages(): Promise<PendingPage[]> {
   let response: Response;
@@ -97,7 +77,9 @@ export async function approvePendingPage(
 export async function rejectPendingPage(id: string): Promise<void> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/rag/crawler/pending/${id}/reject`, { method: "POST" });
+    response = await fetch(`${API_BASE_URL}/api/rag/crawler/pending/${id}/reject`, {
+      method: "POST",
+    });
   } catch {
     throw new CrawlerApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }
@@ -110,7 +92,6 @@ export async function rejectPendingPage(id: string): Promise<void> {
     throw new CrawlerApiError(message, response.status);
   }
 }
-
 
 /** Extrai `{ event, data }` de um bloco SSE (mesmo parser de `lib/api/chat.ts`). */
 function parseSseBlock(block: string): { event: string; data: string } | null {

@@ -3,11 +3,27 @@ import pytest
 
 from app.rag.crawler import (
     NonHtmlContentError,
-    crawl,
     crawl_stream,
     extract_text_and_links,
     fetch_page,
 )
+
+
+async def _accumulate_crawl(
+    client, seed_url: str, depth: int, max_pages: int
+) -> tuple[list, list[str]]:
+    """Consome `crawl_stream` e devolve `(pages, errors)` acumulados — mesmo
+    contrato que o antigo `crawl()` expunha, para os testes de BFS abaixo
+    (profundidade, max_pages, host, loop, erro, não-HTML) continuarem
+    exercitando a lógica de navegação sem depender do wrapper removido."""
+    pages = []
+    errors: list[str] = []
+    async for evento in crawl_stream(client, seed_url, depth, max_pages):
+        if evento.event == "pagina" and evento.page is not None:
+            pages.append(evento.page)
+        elif evento.event == "erro":
+            errors.append(evento.url)
+    return pages, errors
 
 
 def test_extract_text_and_links_remove_script_style_nav_footer():
@@ -150,9 +166,9 @@ async def test_crawl_respeita_profundidade():
     transport = _mock_transport(_site_com_grafo_de_links())
     client = httpx.AsyncClient(transport=transport)
 
-    result = await crawl(client, "https://exemplo.com/", depth=1, max_pages=10)
+    pages, _errors = await _accumulate_crawl(client, "https://exemplo.com/", depth=1, max_pages=10)
 
-    urls = {page.url for page in result.pages}
+    urls = {page.url for page in pages}
     assert urls == {"https://exemplo.com/", "https://exemplo.com/a"}
 
 
@@ -160,18 +176,18 @@ async def test_crawl_respeita_max_pages():
     transport = _mock_transport(_site_com_grafo_de_links())
     client = httpx.AsyncClient(transport=transport)
 
-    result = await crawl(client, "https://exemplo.com/", depth=5, max_pages=2)
+    pages, _errors = await _accumulate_crawl(client, "https://exemplo.com/", depth=5, max_pages=2)
 
-    assert len(result.pages) == 2
+    assert len(pages) == 2
 
 
 async def test_crawl_nao_segue_host_diferente():
     transport = _mock_transport(_site_com_grafo_de_links())
     client = httpx.AsyncClient(transport=transport)
 
-    result = await crawl(client, "https://exemplo.com/", depth=5, max_pages=10)
+    pages, _errors = await _accumulate_crawl(client, "https://exemplo.com/", depth=5, max_pages=10)
 
-    urls = {page.url for page in result.pages}
+    urls = {page.url for page in pages}
     assert "https://outrosite.com/x" not in urls
 
 
@@ -179,9 +195,9 @@ async def test_crawl_evita_loop_com_link_de_retorno():
     transport = _mock_transport(_site_com_grafo_de_links())
     client = httpx.AsyncClient(transport=transport)
 
-    result = await crawl(client, "https://exemplo.com/", depth=5, max_pages=10)
+    pages, _errors = await _accumulate_crawl(client, "https://exemplo.com/", depth=5, max_pages=10)
 
-    urls = [page.url for page in result.pages]
+    urls = [page.url for page in pages]
     assert len(urls) == len(set(urls))
     assert urls.count("https://exemplo.com/") == 1
 
@@ -192,10 +208,10 @@ async def test_crawl_registra_erro_e_continua():
     transport = _mock_transport(paginas)
     client = httpx.AsyncClient(transport=transport)
 
-    result = await crawl(client, "https://exemplo.com/", depth=5, max_pages=10)
+    pages, errors = await _accumulate_crawl(client, "https://exemplo.com/", depth=5, max_pages=10)
 
-    assert "https://exemplo.com/a" in result.errors
-    urls = {page.url for page in result.pages}
+    assert "https://exemplo.com/a" in errors
+    urls = {page.url for page in pages}
     assert "https://exemplo.com/" in urls
     # "b" só é alcançável a partir de "a", que falhou — não é visitada
     assert "https://exemplo.com/b" not in urls
@@ -212,11 +228,11 @@ async def test_crawl_ignora_conteudo_nao_html_sem_contar_como_erro():
     transport = _mock_transport(paginas)
     client = httpx.AsyncClient(transport=transport)
 
-    result = await crawl(client, "https://exemplo.com/", depth=1, max_pages=10)
+    pages, errors = await _accumulate_crawl(client, "https://exemplo.com/", depth=1, max_pages=10)
 
-    urls = {page.url for page in result.pages}
+    urls = {page.url for page in pages}
     assert urls == {"https://exemplo.com/"}
-    assert result.errors == []
+    assert errors == []
 
 
 async def test_crawl_ignora_pagina_que_redireciona_para_host_diferente():
@@ -234,11 +250,11 @@ async def test_crawl_ignora_pagina_que_redireciona_para_host_diferente():
     transport = _mock_transport(paginas)
     client = httpx.AsyncClient(transport=transport)
 
-    result = await crawl(client, "https://exemplo.com/", depth=1, max_pages=10)
+    pages, errors = await _accumulate_crawl(client, "https://exemplo.com/", depth=1, max_pages=10)
 
-    urls = {page.url for page in result.pages}
+    urls = {page.url for page in pages}
     assert urls == {"https://exemplo.com/"}
-    assert result.errors == []
+    assert errors == []
 
 
 async def test_crawl_stream_emite_visitando_antes_de_pagina():
@@ -275,28 +291,3 @@ async def test_crawl_stream_emite_erro_para_pagina_com_falha():
         ("visitando", "https://exemplo.com/x"),
         ("erro", "https://exemplo.com/x"),
     ]
-
-
-async def test_crawl_e_crawl_stream_produzem_o_mesmo_resultado():
-    """`crawl()` é reimplementado sobre `crawl_stream` — o resultado
-    acumulado tem de bater com o que o stream emite."""
-    html_indice = '<html><body><a href="/a">a</a></body></html>'
-    paginas = {
-        "https://exemplo.com/": (200, "text/html", html_indice),
-        "https://exemplo.com/a": (200, "text/html", "<html><body>página a</body></html>"),
-        # /b não existe -> 404 (erro), mas não é linkado, então não aparece
-    }
-    transport = _mock_transport(paginas)
-
-    client_stream = httpx.AsyncClient(transport=transport)
-    eventos = [
-        ev
-        async for ev in crawl_stream(client_stream, "https://exemplo.com/", depth=1, max_pages=10)
-    ]
-    urls_pagina_stream = [ev.url for ev in eventos if ev.event == "pagina"]
-
-    client_crawl = httpx.AsyncClient(transport=transport)
-    result = await crawl(client_crawl, "https://exemplo.com/", depth=1, max_pages=10)
-
-    assert [p.url for p in result.pages] == urls_pagina_stream
-    assert len(result.pages) == 2
