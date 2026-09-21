@@ -7,12 +7,16 @@ docs/superpowers/specs/2026-09-19-crawler-paginas-design.md.
 execução síncrona do `/run` — sem fila de background nem agendamento.
 """
 
+import json
 import logging
+from collections.abc import AsyncIterator
 from pathlib import Path
 from uuid import UUID
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import StreamingResponse
+from pydantic import HttpUrl, TypeAdapter, ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,7 +35,7 @@ from app.models.crawler import (
     PendingPageResponse,
 )
 from app.rag.collections_registry import get_active_collection
-from app.rag.crawler import crawl
+from app.rag.crawler import crawl, crawl_stream
 from app.rag.crawler_classifier import classify_page
 from app.rag.crawler_ingest import ingest_or_queue, replace_previous_ingestion
 from app.rag.crawler_pending import delete_pending_page, get_pending_page, list_pending_pages
@@ -49,6 +53,16 @@ _TEXT_SNIPPET_CHARS = 300
 # Falhas ao classificar/ingerir uma página específica não abortam o resto do
 # crawl (spec §5) — capturadas aqui e reportadas em `errors`.
 _ERROS_POR_PAGINA = (RAGConnectionError, httpx.HTTPError, SQLAlchemyError)
+
+# Valida `url` do endpoint SSE (GET, query param) com a mesma regra do
+# `CrawlRunRequest.url` (HttpUrl) — EventSource só faz GET, então não dá para
+# reaproveitar o body Pydantic do POST.
+_HTTP_URL_ADAPTER = TypeAdapter(HttpUrl)
+
+
+def _sse(event: str, data: dict) -> str:
+    """Formata um bloco SSE (mesmo helper de `app.api.chat`)."""
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 def _to_pending_response(page: CrawlerPendingPage) -> PendingPageResponse:
@@ -140,6 +154,122 @@ async def run_crawler(
     return CrawlRunResponse(
         pages_visited=len(result.pages), auto_ingested=auto_ingested, queued=queued, errors=errors
     )
+
+
+@router.get("/run/stream")
+async def run_crawler_stream(
+    request: Request,
+    url: str = Query(..., description="URL semente do crawl."),
+    depth: int = Query(..., ge=0),
+    max_pages: int | None = Query(default=None, ge=1),
+    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
+    embedders: EmbedderRegistry = Depends(get_embedder_registry),
+    uploads_dir: Path = Depends(get_uploads_dir),
+    session: AsyncSession = Depends(get_db_session),
+) -> StreamingResponse:
+    """Versão SSE de `POST /run` — emite progresso em tempo real, um evento
+    por página, para que o frontend saiba que o crawl está vivo (e detecte
+    travamento por ausência de eventos). Consumido via `EventSource`.
+
+    Eventos: `visitando` (URL atual, heartbeat), `ingerida`, `enfileirada`,
+    `erro` (por página) e `done` (resumo final). Mantido em paralelo ao
+    `POST /run` clássico enquanto o novo fluxo é validado (será o único
+    depois — decisão registrada em docs/ROADMAP.md).
+    """
+    try:
+        seed_url = str(_HTTP_URL_ADAPTER.validate_python(url))
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail="URL semente inválida.") from exc
+
+    collection = await get_active_collection(session)
+    if collection is None:
+        raise HTTPException(status_code=503, detail="Nenhuma collection ativa configurada.")
+
+    effective_max_pages = max_pages or request.app.state.crawler_max_pages_default
+    confidence_threshold = request.app.state.crawler_confidence_threshold
+    embedder = embedders.get(collection.embedding_model)
+
+    async def event_stream() -> AsyncIterator[str]:
+        pages_visited = 0
+        auto_ingested: list[str] = []
+        queued: list[str] = []
+        errors: list[str] = []
+
+        try:
+            async for evento in crawl_stream(
+                request.app.state.crawler_http_client, seed_url, depth, effective_max_pages
+            ):
+                if evento.event == "visitando":
+                    yield _sse("visitando", {"url": evento.url})
+                    continue
+                if evento.event == "erro":
+                    errors.append(evento.url)
+                    yield _sse("erro", {"url": evento.url})
+                    continue
+
+                # evento.event == "pagina"
+                page = evento.page
+                assert page is not None
+                pages_visited += 1
+                try:
+                    classification = await classify_page(
+                        request.app.state.external_client, page.text
+                    )
+                    outcome = await ingest_or_queue(
+                        session,
+                        qdrant,
+                        collection,
+                        embedder,
+                        uploads_dir,
+                        page.url,
+                        page.text,
+                        classification,
+                        confidence_threshold,
+                    )
+                except _ERROS_POR_PAGINA as exc:
+                    # Mesmo tratamento do POST /run: rollback + refresh para
+                    # não contaminar as páginas seguintes (ver comentário
+                    # detalhado em `run_crawler`).
+                    await session.rollback()
+                    await session.refresh(collection)
+                    logger.error(
+                        "crawler_pagina_indisponivel",
+                        extra={
+                            "crawler": {
+                                "event": "crawler_pagina_indisponivel",
+                                "url": page.url,
+                                "erro": str(exc),
+                            }
+                        },
+                    )
+                    errors.append(page.url)
+                    yield _sse("erro", {"url": page.url})
+                    continue
+
+                if outcome == "ingested":
+                    auto_ingested.append(page.url)
+                    yield _sse("ingerida", {"url": page.url, "domain": classification.domain})
+                else:
+                    queued.append(page.url)
+                    yield _sse("enfileirada", {"url": page.url, "domain": classification.domain})
+        except Exception as exc:  # noqa: BLE001
+            # Falha inesperada do próprio crawl (não de uma página): emite um
+            # `error` para o cliente não ficar "pendurado" achando que travou.
+            logger.exception("crawler_stream_falhou")
+            yield _sse("error", {"detail": f"Falha no crawl: {exc}"})
+            return
+
+        yield _sse(
+            "done",
+            {
+                "pages_visited": pages_visited,
+                "auto_ingested": auto_ingested,
+                "queued": queued,
+                "errors": errors,
+            },
+        )
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.get("/pending", response_model=list[PendingPageResponse])

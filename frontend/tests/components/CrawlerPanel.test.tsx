@@ -1,13 +1,13 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CrawlerPanel } from "@/components/admin/CrawlerPanel";
-import { CrawlerApiError } from "@/lib/api/crawler";
+import type { CrawlerStreamCallbacks, CrawlRunPayload } from "@/lib/types/crawler";
 
 vi.mock("@/lib/api/crawler", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/crawler")>("@/lib/api/crawler");
-  return { ...actual, runCrawler: vi.fn() };
+  return { ...actual, runCrawlerStream: vi.fn() };
 });
 vi.mock("@/lib/api/runtimeSettings", async () => {
   const actual =
@@ -15,15 +15,15 @@ vi.mock("@/lib/api/runtimeSettings", async () => {
   return { ...actual, getRuntimeSettings: vi.fn() };
 });
 
-import { runCrawler } from "@/lib/api/crawler";
+import { runCrawlerStream } from "@/lib/api/crawler";
 import { getRuntimeSettings } from "@/lib/api/runtimeSettings";
 
-const mockedRunCrawler = vi.mocked(runCrawler);
+const mockedRunCrawlerStream = vi.mocked(runCrawlerStream);
 const mockedGetRuntimeSettings = vi.mocked(getRuntimeSettings);
 
 describe("CrawlerPanel", () => {
   beforeEach(() => {
-    mockedRunCrawler.mockReset();
+    mockedRunCrawlerStream.mockReset();
     mockedGetRuntimeSettings.mockReset();
     mockedGetRuntimeSettings.mockResolvedValue({
       local_llm_temperature: null,
@@ -35,36 +35,98 @@ describe("CrawlerPanel", () => {
     });
   });
 
-  it("dispara o crawl com a URL/profundidade informadas e mostra o resumo", async () => {
+  it("mostra progresso ao vivo (URL atual + contadores) e o resumo final", async () => {
     const user = userEvent.setup();
-    mockedRunCrawler.mockResolvedValueOnce({
-      pages_visited: 3,
-      auto_ingested: ["https://exemplo.com/", "https://exemplo.com/a"],
-      queued: ["https://exemplo.com/b"],
-      errors: [],
-    });
+    // Captura os callbacks para dirigir o "stream" manualmente no teste.
+    let cbs: CrawlerStreamCallbacks | null = null;
+    mockedRunCrawlerStream.mockImplementation(
+      async (_payload: CrawlRunPayload, callbacks: CrawlerStreamCallbacks) => {
+        cbs = callbacks;
+        return new Promise<void>(() => {}); // não resolve sozinho — controlado no teste
+      },
+    );
     const onFinished = vi.fn();
 
     render(<CrawlerPanel onFinished={onFinished} />);
-
     await user.type(screen.getByLabelText("URL semente"), "https://exemplo.com");
     await user.click(screen.getByRole("button", { name: "Rodar crawler" }));
 
-    expect(await screen.findByText(/3 página\(s\) visitada\(s\)/)).toBeInTheDocument();
-    expect(mockedRunCrawler).toHaveBeenCalledWith(
-      expect.objectContaining({ url: "https://exemplo.com", depth: 1 }),
+    await waitFor(() => expect(cbs).not.toBeNull());
+
+    act(() => cbs!.onVisiting("https://exemplo.com/"));
+    expect(await screen.findByTestId("crawler-live-status")).toHaveTextContent(
+      "https://exemplo.com/",
     );
+
+    act(() => cbs!.onIngested("https://exemplo.com/", "vendas"));
+    act(() => cbs!.onVisiting("https://exemplo.com/a"));
+    act(() => cbs!.onQueued("https://exemplo.com/a", "suporte"));
+
+    const status = screen.getByTestId("crawler-live-status");
+    // 2 visitadas, 1 ingerida, 1 na fila, 0 erros
+    expect(status).toHaveTextContent("Visitadas");
+    expect(status).toHaveTextContent("2");
+    expect(status).toHaveTextContent("Ingeridas");
+    expect(status).toHaveTextContent("Fila");
+
+    act(() =>
+      cbs!.onDone({
+        pages_visited: 2,
+        auto_ingested: ["https://exemplo.com/"],
+        queued: ["https://exemplo.com/a"],
+        errors: [],
+      }),
+    );
+
+    expect(await screen.findByText(/2 página\(s\) visitada\(s\)/)).toBeInTheDocument();
     await waitFor(() => expect(onFinished).toHaveBeenCalled());
   });
 
-  it("mostra o erro quando o crawler falha", async () => {
-    const user = userEvent.setup();
-    mockedRunCrawler.mockRejectedValueOnce(new CrawlerApiError("Serviço indisponível."));
+  it("avisa possível travamento após silêncio prolongado do servidor", async () => {
+    vi.useFakeTimers();
+    try {
+      let cbs: CrawlerStreamCallbacks | null = null;
+      mockedRunCrawlerStream.mockImplementation(
+        (_payload: CrawlRunPayload, callbacks: CrawlerStreamCallbacks) => {
+          // Captura síncrona: `cbs` fica disponível assim que o clique dispara.
+          cbs = callbacks;
+          return new Promise<void>(() => {});
+        },
+      );
+
+      render(<CrawlerPanel onFinished={vi.fn()} />);
+      fireEvent.change(screen.getByLabelText("URL semente"), {
+        target: { value: "https://exemplo.com" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Rodar crawler" }));
+
+      // `cbs` já foi capturado de forma síncrona no clique; sinaliza uma
+      // atividade e então avança o relógio além do limiar (20s) sem novos
+      // eventos — a interval do heartbeat (criada com fake timers ativos)
+      // deve marcar o travamento.
+      expect(cbs).not.toBeNull();
+      act(() => cbs!.onVisiting("https://exemplo.com/"));
+      act(() => vi.advanceTimersByTime(21_000));
+
+      expect(screen.getByTestId("crawler-stall-warning")).toBeInTheDocument();
+      expect(screen.getByTestId("crawler-stall-warning")).toHaveTextContent(/travad/i);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("mostra o erro quando o stream falha", async () => {
+    mockedRunCrawlerStream.mockImplementation(
+      async (_payload: CrawlRunPayload, callbacks: CrawlerStreamCallbacks) => {
+        callbacks.onError("Serviço indisponível.");
+      },
+    );
 
     render(<CrawlerPanel onFinished={vi.fn()} />);
-
-    await user.type(screen.getByLabelText("URL semente"), "https://exemplo.com");
-    await user.click(screen.getByRole("button", { name: "Rodar crawler" }));
+    fireEvent.change(screen.getByLabelText("URL semente"), {
+      target: { value: "https://exemplo.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Rodar crawler" }));
 
     expect(await screen.findByText("Serviço indisponível.")).toBeInTheDocument();
   });

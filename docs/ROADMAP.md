@@ -115,6 +115,18 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       parametrizáveis por execução, sem agendamento (`# MVP: escopo
       restrito`) — ver
       `docs/superpowers/specs/2026-09-19-crawler-paginas-design.md`
+- [x] Progresso do crawler em tempo real (SSE): endpoint
+      `GET /api/rag/crawler/run/stream` emite eventos por página
+      (`visitando`/`ingerida`/`enfileirada`/`erro`/`done`); `crawl_stream()`
+      é um gerador assíncrono e o `crawl()` clássico foi reimplementado
+      sobre ele (sem duplicar o BFS). No frontend, `runCrawlerStream()`
+      consome o SSE (fetch+getReader, mesmo padrão do chat) e o
+      `CrawlerPanel` mostra URL atual, contadores ao vivo e um heartbeat
+      ("última atividade há Xs") com aviso de possível travamento após
+      silêncio prolongado. `# MVP:` o `POST /api/rag/crawler/run` clássico
+      foi mantido **em paralelo** ao `/run/stream` apenas durante a validação
+      do novo fluxo — remover assim que o streaming for confirmado, deixando
+      só o endpoint SSE.
 - [x] Implementar endpoint HTTP de upload para ingestão de documentos no RAG
       (`POST /api/rag/documents`, `backend/src/app/api/rag.py`), complementando
       `backend/scripts/ingest_sample_docs.py` — decisão registrada em
