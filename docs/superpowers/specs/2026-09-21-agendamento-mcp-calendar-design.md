@@ -113,22 +113,30 @@ backend_escolhido = "local"` atual (`app/router/orchestrator.py:151`):
 2. Roda a extração LLM, faz merge dos campos não-nulos nos slots.
 3. **Slots incompletos** → playbook de agendamento (ajustado para saber o que
    já tem e o que falta) pede só os campos que faltam. Sem chamar o MCP.
-4. **Slots completos, ainda não confirmados** (`awaiting_confirmation=False`)
-   → assistente resume os dados coletados e pergunta explicitamente "posso
-   confirmar?"; marca `awaiting_confirmation=True`. Sem chamar o MCP ainda —
-   decisão do desenvolvedor de sempre pedir uma confirmação explícita antes
-   de criar o evento de verdade, para não agendar em cima de um dado mal
-   interpretado (ex.: data extraída errado de áudio transcrito via STT).
-5. **`awaiting_confirmation=True`** e a mensagem atual é interpretada como
+4. **Slots completos, ainda não validados** → antes de pedir confirmação,
+   valida o horário (ver §4.3): fora do expediente/no passado, ou em
+   conflito com outro evento já na agenda → explica o motivo, **limpa só
+   `data_hora`** e volta ao passo 3 pedindo um novo horário (nome/e-mail/
+   telefone já coletados continuam guardados). Passa na validação →
+   segue para o passo 5.
+5. **Slots completos e válidos, ainda não confirmados**
+   (`awaiting_confirmation=False`) → assistente resume os dados coletados e
+   pergunta explicitamente "posso confirmar?"; marca
+   `awaiting_confirmation=True`. Sem chamar `create_event` ainda — decisão do
+   desenvolvedor de sempre pedir uma confirmação explícita antes de criar o
+   evento de verdade, para não agendar em cima de um dado mal interpretado
+   (ex.: data extraída errado de áudio transcrito via STT).
+6. **`awaiting_confirmation=True`** e a mensagem atual é interpretada como
    confirmação afirmativa (mesma chamada de extração do passo 2 também
    classifica isso, ver §4.2) → chama `GoogleCalendarMCPClient.create_event`
    (ver §5). Sucesso: confirma o agendamento, avisa que o convite chega por
    e-mail, **limpa os slots da conversa** (agendamento concluído). Falha: ver
    §6.
-6. **`awaiting_confirmation=True`** mas a mensagem não é uma confirmação clara
+7. **`awaiting_confirmation=True`** mas a mensagem não é uma confirmação clara
    (quer mudar um dado, por exemplo) → volta a tratar como passo 2/3: extrai
    de novo, atualiza os slots que mudaram, `awaiting_confirmation` volta a
-   `False` até nova confirmação.
+   `False` até nova confirmação (e, se `data_hora` mudou, revalida pelo
+   passo 4 de novo).
 
 ### 4.2. Detecção de confirmação
 
@@ -137,6 +145,35 @@ O mesmo prompt de extração (§4) devolve também um campo
 ("sim", "pode confirmar", "isso mesmo") no contexto de
 `awaiting_confirmation=True` (informado no prompt), `null`/`false` caso
 contrário. Evita uma segunda chamada LLM só para essa checagem.
+
+### 4.3. Validação de horário (antes da confirmação)
+
+Decisão do desenvolvedor: não confiar cegamente no horário que o visitante
+pedir — validar expediente **e** conflito de agenda antes de sequer pedir
+confirmação (revisando a ideia inicial deste spec, que deixava isso como
+não-objetivo).
+
+1. **Expediente** — checagem local, sem chamar o MCP: `data_hora` não pode
+   estar no passado, precisa cair num dia útil e dentro do horário
+   configurados (`AGENDAMENTO_EXPEDIENTE_DIAS`,
+   `AGENDAMENTO_EXPEDIENTE_INICIO`, `AGENDAMENTO_EXPEDIENTE_FIM`, ver §8),
+   interpretados no fuso `AGENDAMENTO_TIMEZONE`. Fora disso → mensagem
+   explicando o expediente válido, pede outro horário.
+2. **Conflito de agenda** — só roda se a checagem de expediente passou:
+   `GoogleCalendarMCPClient.is_time_available(start, end)` (ver §5), que usa
+   a tool `list_events` do MCP filtrada pela janela `[data_hora, data_hora +
+   30min)`. Se houver qualquer evento nessa janela → horário indisponível,
+   mesma mensagem/loop do passo 4. Se a chamada ao MCP falhar (conexão/auth)
+   → mesmo tratamento de erro do §6 (não dá pra confirmar automaticamente
+   agora), mesmo sem ainda estar em `awaiting_confirmation`.
+
+`# MVP: checagem de conflito busca só na mesma agenda (GOOGLE_CALENDAR_CALENDAR_ID),
+sem checar múltiplas agendas (explicitamente fora do MVP, ver CLAUDE.md); não
+sugere automaticamente um horário alternativo livre (a tool suggest_time não
+é usada) — o visitante propõe o próximo horário, o sistema só valida; existe
+uma janela de corrida pequena entre esta checagem e a criação do evento no
+passo 6 (dois visitantes confirmando quase ao mesmo tempo para o mesmo
+horário) — aceitável no protótipo, sem lock/reserva temporária`.
 
 ## 5. `GoogleCalendarMCPClient`
 
@@ -148,6 +185,9 @@ class GoogleCalendarAuthError(Exception): ...
 class GoogleCalendarConnectionError(Exception): ...
 
 class GoogleCalendarMCPClient:
+    async def is_time_available(self, start: datetime, end: datetime) -> bool:
+        ...  # True se não houver nenhum evento na janela [start, end)
+
     async def create_event(
         self,
         summary: str,
@@ -159,6 +199,11 @@ class GoogleCalendarMCPClient:
     ) -> str:  # retorna o link do evento (htmlLink) para incluir na resposta
         ...
 ```
+
+`is_time_available` chama a tool `list_events` (filtrando por
+`GOOGLE_CALENDAR_CALENDAR_ID` e a janela `[start, end)`) e devolve `True`
+quando a lista vier vazia — usada na validação de horário (§4.3), antes da
+etapa de confirmação.
 
 - Usa o SDK oficial `mcp` (já em `backend/pyproject.toml`, `mcp>=1.0`) com
   transporte Streamable HTTP (`mcp.client.streamable_http`) apontando para
@@ -216,15 +261,19 @@ Backend (pytest, mesmo padrão de mock usado para `OllamaClient`/
   quebrar o turno (mesmo espírito de `_classify_heuristic_fallback`, mas aqui
   o fallback é "trata como não extraído, pergunta de novo" — não há
   heurística de agendamento por regex).
-- `orchestrator.py`: os 6 ramos do fluxo (§4.1) — slots incompletos, slots
-  completos pedindo confirmação, confirmação afirmativa cria evento, resposta
-  ambígua durante `awaiting_confirmation` volta a extrair, sucesso limpa
-  slots, falha do MCP mantém slots e reseta `awaiting_confirmation`.
-- `google_calendar.py`: `GoogleCalendarMCPClient.create_event` com
-  `ClientSession`/transporte mockados — chamada bem-sucedida (parâmetros
-  corretos, incluindo `attendees`), refresh de token expirado, erro de
-  conexão vira `GoogleCalendarConnectionError`, erro de auth vira
-  `GoogleCalendarAuthError`.
+- `orchestrator.py`: os ramos do fluxo (§4.1/§4.3) — slots incompletos,
+  horário fora do expediente/no passado (limpa `data_hora`, mantém o resto),
+  horário em conflito de agenda (mesma limpeza), horário válido pede
+  confirmação, confirmação afirmativa cria evento, resposta ambígua durante
+  `awaiting_confirmation` volta a extrair, sucesso limpa slots, falha do MCP
+  (na checagem de disponibilidade ou na criação) mantém slots e reseta
+  `awaiting_confirmation`.
+- `google_calendar.py`: `GoogleCalendarMCPClient` com `ClientSession`/
+  transporte mockados — `is_time_available` com janela livre/ocupada,
+  `create_event` bem-sucedido (parâmetros corretos, incluindo convidado),
+  refresh de token expirado, erro de conexão vira
+  `GoogleCalendarConnectionError`, erro de auth vira `GoogleCalendarAuthError`
+  (para os dois métodos).
 
 `eval/` (Fase 10) não é tocado por esta entrega — mede qualidade/latência,
 não corretude funcional (`docs/CONVENTIONS.md`).
@@ -236,23 +285,36 @@ não corretude funcional (`docs/CONVENTIONS.md`).
 GOOGLE_CALENDAR_CREDENTIALS_PATH=./secrets/google_calendar_credentials.json
 GOOGLE_CALENDAR_TOKEN_PATH=./secrets/google_calendar_token.json   # novo
 GOOGLE_CALENDAR_CALENDAR_ID=primary
+
+# --- Validação de horário do agendamento (R11) --- # novo
+AGENDAMENTO_TIMEZONE=America/Sao_Paulo
+AGENDAMENTO_EXPEDIENTE_DIAS=seg-sex
+AGENDAMENTO_EXPEDIENTE_INICIO=09:00
+AGENDAMENTO_EXPEDIENTE_FIM=18:00
 ```
 
 `GOOGLE_CALENDAR_CREDENTIALS_PATH` já existia (placeholder de uma sessão
 anterior); `GOOGLE_CALENDAR_TOKEN_PATH` é novo, para o refresh token gerado
-pelo script de autorização (§3). Nenhum segredo real entra em `.env.example`
-nem em commit — só os caminhos de arquivo, seguindo o padrão já usado pelo
-resto do projeto (`docs/CONVENTIONS.md`).
+pelo script de autorização (§3). As quatro variáveis de expediente (novas)
+alimentam a validação do §4.3. Nenhum segredo real entra em `.env.example`
+nem em commit — só os caminhos de arquivo e configuração de expediente,
+seguindo o padrão já usado pelo resto do projeto (`docs/CONVENTIONS.md`).
 
 ## 9. Não-objetivos explícitos (fora desta entrega)
 
 - Monitor de tom (R8) — subsistema independente, spec própria (Fase 4B).
-- Reagendamento/cancelamento e checagem de disponibilidade em múltiplas
-  agendas — explicitamente fora do MVP (`CLAUDE.md`, `docs/ROADMAP.md`).
-- Verificação de conflito de horário/disponibilidade antes de criar o evento
-  — cria direto no horário pedido, sem checar a agenda antes (`suggest_time`
-  não é usado nesta entrega). Simplificação consciente de escopo, não
-  esquecimento.
+- Reagendamento/cancelamento de visita — explicitamente fora do MVP
+  (`CLAUDE.md`, `docs/ROADMAP.md`).
+- Sugestão automática de horário alternativo livre (`suggest_time`) — quando
+  o horário pedido é inválido/indisponível, o sistema só explica o motivo e
+  pede que o visitante proponha outro; não busca proativamente um horário
+  livre. Simplificação consciente de escopo, não esquecimento.
+- Checagem de disponibilidade em múltiplas agendas — só a agenda configurada
+  em `GOOGLE_CALENDAR_CALENDAR_ID`, explicitamente fora do MVP
+  (`CLAUDE.md`).
+- Reserva/lock temporário do horário durante a janela entre a checagem de
+  disponibilidade e a criação do evento — risco de corrida pequeno, aceito
+  no protótipo (ver nota de MVP em §4.3).
 - Confirmação por SMS — só e-mail, via o próprio Google Calendar (§5).
 - Servidor MCP próprio para Calendar — decisão de consumir o oficial do
   Google (§2).
