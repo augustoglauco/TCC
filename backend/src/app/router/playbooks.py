@@ -8,11 +8,14 @@ sem contexto de RAG) antes de chamar o modelo.
 # MVP: playbooks são strings estáticas por domínio, sem versionamento nem
 # edição em runtime (ver docs/ARCHITECTURE.md §3-4 — assimetria intencional
 # entre domínios). Suporte Técnico e Atendimento ao Usuário são resolvidos
-# por LLM + RAG, sem camada de ação (ticketing é evolução futura). Vendas e
-# Agendamento terão ferramentas de ação (MCP B2B e Google Calendar) nas
-# Fases 4-5; por ora o playbook de Vendas apenas *oferece proativamente* o
-# agendamento de visita quando há intenção de compra (a criação real do
-# evento é R11, Fase 4).
+# por LLM + RAG, sem camada de ação (ticketing é evolução futura). Vendas
+# tem ferramenta de ação na Fase 5 (MCP B2B); por ora o playbook de Vendas
+# apenas *oferece proativamente* o agendamento de visita quando há intenção
+# de compra. Agendamento (Fase 4A, R11) NÃO usa playbook — é tratado
+# inteiramente por `app.router.orchestrator._handle_agendamento` e
+# `app.router.scheduling`, uma máquina de estado própria em vez de um
+# prompt de sistema (ver
+# docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md).
 """
 
 from app.router.classifier import Domain
@@ -62,22 +65,10 @@ _ATENDIMENTO_PLAYBOOK = (
     "canal correto em vez de inventar uma política."
 )
 
-# Agendamento tem tratamento próprio no orchestrator (sempre local, R11 na
-# Fase 4). Mantido aqui por completude, mas hoje o orchestrator roteia
-# agendamento sem passar por contexto de RAG.
-_AGENDAMENTO_PLAYBOOK = (
-    "Domínio: AGENDAMENTO DE VISITA.\n"
-    "- Ajude o cliente a marcar uma visita, coletando de forma cordial a "
-    "data/horário de preferência e os dados básicos necessários.\n"
-    "- Não confirme um evento nem invente confirmações: a criação real do "
-    "agendamento é feita em outro passo do atendimento."
-)
-
 _PLAYBOOKS: dict[Domain, str] = {
     "vendas": _VENDAS_PLAYBOOK,
     "suporte": _SUPORTE_PLAYBOOK,
     "atendimento": _ATENDIMENTO_PLAYBOOK,
-    "agendamento": _AGENDAMENTO_PLAYBOOK,
 }
 
 

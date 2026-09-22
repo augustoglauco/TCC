@@ -4,8 +4,16 @@ from app.router.playbooks import build_system_prompt, get_playbook
 
 
 def test_todos_os_dominios_de_negocio_tem_playbook():
-    for domain in ("vendas", "suporte", "atendimento", "agendamento"):
+    for domain in ("vendas", "suporte", "atendimento"):
         assert get_playbook(domain) is not None
+
+
+def test_agendamento_nao_tem_mais_playbook():
+    # Desde a Fase 4A, o domínio "agendamento" é tratado por
+    # `app.router.orchestrator._handle_agendamento` (máquina de estado
+    # própria), sem passar mais por `build_system_prompt`/playbook — ver
+    # docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md.
+    assert get_playbook("agendamento") is None
 
 
 def test_fora_escopo_nao_tem_playbook():
