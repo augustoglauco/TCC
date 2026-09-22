@@ -4,11 +4,31 @@ from collections.abc import AsyncIterator
 
 from pydantic import BaseModel
 
+from app.mcp_client.google_calendar import (
+    CalendarClient,
+    GoogleCalendarAuthError,
+    GoogleCalendarConnectionError,
+)
 from app.models.chat import RagChunkMetric
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
 from app.router.rag_client import Document, RAGClient, RAGConnectionError
+from app.router.scheduling import (
+    DURACAO_VISITA,
+    MSG_ERRO_MCP,
+    HorarioInvalidoError,
+    SchedulingConfig,
+    clear_booking_slots,
+    extract_booking_slots,
+    get_booking_slots,
+    mensagem_campos_faltando,
+    mensagem_pedir_confirmacao,
+    mensagem_sucesso,
+    merge_slots,
+    set_booking_slots,
+    validar_expediente,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +85,8 @@ class RouterDecision(BaseModel):
     complexity_strategy_usada: str
     backend_escolhido: str  # "local" | "externo"
     motivo_escalonamento: str  # "fora_escopo" | "rag_vazio" | "complexidade_alta" | "nenhum"
+    # | (agendamento) "coleta_dados" | "horario_invalido" | "aguardando_confirmacao"
+    # | "confirmado" | "mcp_indisponivel"
     resposta: str
     latencia_ms: float
     tokens_entrada: int | None
@@ -95,6 +117,126 @@ class ExternalBackendIndisponivelError(Exception):
     """Falha de infraestrutura no backend externo (OpenRouter) — sem fallback automático."""
 
 
+async def _emitir_resposta_agendamento(
+    texto: str, motivo: str
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    yield TokenEvent(text=texto)
+    yield RouterDecision(
+        domain="agendamento",
+        complexity="baixa",
+        confidence=1.0,
+        complexity_strategy_usada="agendamento",
+        backend_escolhido="local",
+        motivo_escalonamento=motivo,
+        resposta=texto,
+        latencia_ms=0.0,
+        tokens_entrada=None,
+        tokens_saida=None,
+        custo_estimado_usd=0.0,
+    )
+
+
+async def _handle_agendamento(
+    conversation_id: str,
+    message: str,
+    recent_messages: list[str],
+    local_client: LLMClient,
+    calendar_client: CalendarClient,
+    scheduling_config: SchedulingConfig,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    slots = get_booking_slots(conversation_id)
+    extraction = await extract_booking_slots(message, recent_messages, slots, local_client)
+    slots = merge_slots(slots, extraction)
+
+    if not slots.is_complete():
+        set_booking_slots(conversation_id, slots)
+        async for evento in _emitir_resposta_agendamento(
+            mensagem_campos_faltando(slots), "coleta_dados"
+        ):
+            yield evento
+        return
+
+    if not slots.awaiting_confirmation:
+        try:
+            validar_expediente(slots.data_hora, scheduling_config)
+            fim = slots.data_hora + DURACAO_VISITA
+            disponivel = await calendar_client.is_time_available(slots.data_hora, fim)
+            if not disponivel:
+                raise HorarioInvalidoError(
+                    "Esse horário já está reservado. Pode sugerir outro horário?"
+                )
+        except HorarioInvalidoError as exc:
+            slots.data_hora = None
+            set_booking_slots(conversation_id, slots)
+            async for evento in _emitir_resposta_agendamento(exc.motivo, "horario_invalido"):
+                yield evento
+            return
+        except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
+            logger.error(
+                "google_calendar_indisponivel",
+                extra={
+                    "router": {
+                        "event": "google_calendar_indisponivel",
+                        "etapa": "checagem_disponibilidade",
+                        "erro": str(exc),
+                    }
+                },
+            )
+            set_booking_slots(conversation_id, slots)
+            async for evento in _emitir_resposta_agendamento(MSG_ERRO_MCP, "mcp_indisponivel"):
+                yield evento
+            return
+
+        slots.awaiting_confirmation = True
+        set_booking_slots(conversation_id, slots)
+        async for evento in _emitir_resposta_agendamento(
+            mensagem_pedir_confirmacao(slots, scheduling_config.timezone), "aguardando_confirmacao"
+        ):
+            yield evento
+        return
+
+    if extraction.confirmacao:
+        try:
+            fim = slots.data_hora + DURACAO_VISITA
+            await calendar_client.create_event(
+                summary=f"Visita — {slots.nome}",
+                start=slots.data_hora,
+                end=fim,
+                attendee_email=slots.email,
+                attendee_name=slots.nome,
+                description=f"Telefone: {slots.telefone}",
+            )
+        except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
+            logger.error(
+                "google_calendar_indisponivel",
+                extra={
+                    "router": {
+                        "event": "google_calendar_indisponivel",
+                        "etapa": "criacao_evento",
+                        "erro": str(exc),
+                    }
+                },
+            )
+            slots.awaiting_confirmation = False
+            set_booking_slots(conversation_id, slots)
+            async for evento in _emitir_resposta_agendamento(MSG_ERRO_MCP, "mcp_indisponivel"):
+                yield evento
+            return
+
+        texto = mensagem_sucesso(slots, scheduling_config.timezone)
+        clear_booking_slots(conversation_id)
+        async for evento in _emitir_resposta_agendamento(texto, "confirmado"):
+            yield evento
+        return
+
+    # Não confirmou claramente — mantém os slots e volta a pedir confirmação.
+    set_booking_slots(conversation_id, slots)
+    async for evento in _emitir_resposta_agendamento(
+        mensagem_pedir_confirmacao(slots, scheduling_config.timezone), "aguardando_confirmacao"
+    ):
+        yield evento
+
+
 async def handle_message(
     message: str,
     recent_messages: list[str],
@@ -102,6 +244,9 @@ async def handle_message(
     external_client: LLMClient,
     rag_client: RAGClient,
     complexity_strategy: str,
+    conversation_id: str = "",
+    calendar_client: CalendarClient | None = None,
+    scheduling_config: SchedulingConfig | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision]:
     # Com strategy="llm" a classificação chama o backend local. Falha aqui é
     # falha de infraestrutura local, não "conteúdo não classificável" — vira
@@ -140,6 +285,30 @@ async def handle_message(
         )
         raise LocalBackendIndisponivelError(str(exc)) from exc
 
+    # MVP: o gatilho para o fluxo de agendamento é a presença de
+    # `calendar_client`/`scheduling_config` (ambos passados pelo chamador,
+    # ver `app.api.chat`, Task 10/11), não `classification.domain`. A
+    # classificação por palavra-chave (`app.router.classifier`) não tem
+    # memória de conversa própria — mensagens de continuação do fluxo (ex.:
+    # "meu nome é Maria", "sim, pode confirmar") não contêm nenhuma palavra-
+    # chave de domínio e cairiam em "fora_escopo" se o gatilho dependesse de
+    # `classification.domain == "agendamento"`. Dar memória de conversa ao
+    # classificador é maior que o escopo deste ramo (ver
+    # docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md
+    # §4.1) — por ora, o chamador decide quando a conversa está no fluxo de
+    # agendamento (ex.: usuário clicou em "Agendar Visita" na UI).
+    if calendar_client is not None and scheduling_config is not None:
+        async for evento in _handle_agendamento(
+            conversation_id=conversation_id,
+            message=message,
+            recent_messages=recent_messages,
+            local_client=local_client,
+            calendar_client=calendar_client,
+            scheduling_config=scheduling_config,
+        ):
+            yield evento
+        return
+
     backend_escolhido = "local"
     motivo = "nenhum"
     documentos: list[Document] = []
@@ -148,9 +317,7 @@ async def handle_message(
     rag_avg_score: float | None = None
     rag_chunks: list[RagChunkMetric] | None = None
 
-    if classification.domain == "agendamento":
-        backend_escolhido = "local"
-    elif classification.domain == "fora_escopo":
+    if classification.domain == "fora_escopo":
         backend_escolhido = "externo"
         motivo = "fora_escopo"
     else:

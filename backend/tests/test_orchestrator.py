@@ -1,9 +1,11 @@
 import json
 import logging
+from datetime import datetime
 
 import pytest
 
 from app.logging_config import JsonFormatter
+from app.mcp_client.google_calendar import GoogleCalendarConnectionError
 from app.models.chat import RagChunkMetric
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.orchestrator import (
@@ -15,6 +17,13 @@ from app.router.orchestrator import (
     handle_message,
 )
 from app.router.rag_client import Document, RAGConnectionError
+from app.router.scheduling import (
+    BookingSlots,
+    SchedulingConfig,
+    get_booking_slots,
+    reset_all_booking_slots,
+    set_booking_slots,
+)
 
 
 class _FakeLLMClient:
@@ -102,27 +111,282 @@ async def _coletar_eventos(message, **kwargs):
     return [evento async for evento in handle_message(message, **kwargs)]
 
 
-async def test_agendamento_sempre_local():
-    local_client = _FakeLLMClient(response=_resposta_local())
-    external_client = _FakeLLMClient(response=_resposta_externa())
-    rag_client = _FakeRAGClient()
+class _FakeCalendarClient:
+    def __init__(
+        self,
+        available: bool = True,
+        create_event_link: str = "https://calendar.google.com/evt1",
+        availability_exception: Exception | None = None,
+        create_exception: Exception | None = None,
+    ) -> None:
+        self._available = available
+        self._create_event_link = create_event_link
+        self._availability_exception = availability_exception
+        self._create_exception = create_exception
+        self.create_event_calls: list[dict] = []
+
+    async def is_time_available(self, start, end) -> bool:
+        if self._availability_exception is not None:
+            raise self._availability_exception
+        return self._available
+
+    async def create_event(self, **kwargs) -> str:
+        if self._create_exception is not None:
+            raise self._create_exception
+        self.create_event_calls.append(kwargs)
+        return self._create_event_link
+
+
+_SCHEDULING_CONFIG = SchedulingConfig(
+    timezone="America/Sao_Paulo",
+    expediente_dias="seg-sex",
+    expediente_inicio="09:00",
+    expediente_fim="18:00",
+)
+
+
+def setup_function():
+    reset_all_booking_slots()
+
+
+async def test_agendamento_slots_incompletos_pede_dados_sem_chamar_mcp():
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": null, "nome": "Maria", "email": null, "telefone": null, '
+                '"confirmacao": null}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient()
 
     eventos = await _coletar_eventos(
-        "quero agendar uma visita",
+        "meu nome é Maria",
         recent_messages=[],
         local_client=local_client,
-        external_client=external_client,
-        rag_client=rag_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
         complexity_strategy="heuristic",
+        conversation_id="conv-1",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
     )
+
     decisao = eventos[-1]
     assert isinstance(decisao, RouterDecision)
-
     assert decisao.domain == "agendamento"
-    assert decisao.backend_escolhido == "local"
-    assert decisao.motivo_escalonamento == "nenhum"
-    assert local_client.calls == 1
-    assert external_client.calls == 0
+    assert decisao.motivo_escalonamento == "coleta_dados"
+    assert "telefone" in decisao.resposta.lower() or "e-mail" in decisao.resposta.lower()
+    assert calendar_client.create_event_calls == []
+
+
+async def test_agendamento_horario_fora_do_expediente_pede_novo_horario():
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": "2020-01-01T10:00:00-03:00", "nome": "Maria", '
+                '"email": "maria@example.com", "telefone": "11999999999", "confirmacao": null}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient()
+
+    eventos = await _coletar_eventos(
+        "quero marcar em 2020",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-2",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "horario_invalido"
+    assert calendar_client.create_event_calls == []
+
+
+async def test_agendamento_horario_em_conflito_pede_novo_horario():
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": "2026-10-01T10:00:00-03:00", "nome": "Maria", '
+                '"email": "maria@example.com", "telefone": "11999999999", "confirmacao": null}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient(available=False)
+
+    eventos = await _coletar_eventos(
+        "quero marcar quinta às 10h",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-3",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "horario_invalido"
+    assert calendar_client.create_event_calls == []
+
+
+async def test_agendamento_horario_valido_pede_confirmacao():
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": "2026-10-01T10:00:00-03:00", "nome": "Maria", '
+                '"email": "maria@example.com", "telefone": "11999999999", "confirmacao": null}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient(available=True)
+
+    eventos = await _coletar_eventos(
+        "quero marcar quinta às 10h",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-4",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "aguardando_confirmacao"
+    assert "confirmar" in decisao.resposta.lower()
+    assert calendar_client.create_event_calls == []
+
+
+async def test_agendamento_confirmacao_cria_evento_e_limpa_slots():
+    set_booking_slots(
+        "conv-5",
+        BookingSlots(
+            data_hora=datetime(2026, 10, 1, 10, 0),
+            nome="Maria",
+            email="maria@example.com",
+            telefone="11999999999",
+            awaiting_confirmation=True,
+        ),
+    )
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": null, "nome": null, "email": null, "telefone": null, '
+                '"confirmacao": true}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient()
+
+    eventos = await _coletar_eventos(
+        "sim, pode confirmar",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-5",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "confirmado"
+    assert len(calendar_client.create_event_calls) == 1
+    assert get_booking_slots("conv-5") == BookingSlots()
+
+
+async def test_agendamento_falha_do_mcp_na_confirmacao_mantem_slots():
+    set_booking_slots(
+        "conv-6",
+        BookingSlots(
+            data_hora=datetime(2026, 10, 1, 10, 0),
+            nome="Maria",
+            email="maria@example.com",
+            telefone="11999999999",
+            awaiting_confirmation=True,
+        ),
+    )
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": null, "nome": null, "email": null, "telefone": null, '
+                '"confirmacao": true}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient(create_exception=GoogleCalendarConnectionError("timeout"))
+
+    eventos = await _coletar_eventos(
+        "sim, pode confirmar",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-6",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "mcp_indisponivel"
+    slots_restantes = get_booking_slots("conv-6")
+    assert slots_restantes.nome == "Maria"  # dados preservados
+    assert slots_restantes.awaiting_confirmation is False  # pode tentar confirmar de novo
+
+
+async def test_agendamento_resposta_ambigua_durante_confirmacao_volta_a_perguntar():
+    set_booking_slots(
+        "conv-7",
+        BookingSlots(
+            data_hora=datetime(2026, 10, 1, 10, 0),
+            nome="Maria",
+            email="maria@example.com",
+            telefone="11999999999",
+            awaiting_confirmation=True,
+        ),
+    )
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": null, "nome": null, "email": null, "telefone": null, '
+                '"confirmacao": null}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient()
+
+    eventos = await _coletar_eventos(
+        "quanto tempo dura a visita?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-7",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "aguardando_confirmacao"
+    assert calendar_client.create_event_calls == []
 
 
 async def test_ttft_usa_prompt_eval_duration_nao_load_duration():
@@ -139,10 +403,12 @@ async def test_ttft_usa_prompt_eval_duration_nao_load_duration():
     )
     local_client = _FakeLLMClient(response=resposta)
     external_client = _FakeLLMClient(response=_resposta_externa())
-    rag_client = _FakeRAGClient()
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="conteúdo", source="doc1.txt", score=0.9)]
+    )
 
     eventos = await _coletar_eventos(
-        "quero agendar uma visita",
+        "não funciona, me ajuda",  # domínio "suporte" via keyword, RAG não-vazio → local garantido
         recent_messages=[],
         local_client=local_client,
         external_client=external_client,
@@ -412,11 +678,13 @@ async def test_rag_indisponivel_propaga_erro_sem_fallback_para_externo():
 async def test_ollama_indisponivel_nao_faz_fallback_para_externo():
     local_client = _FakeLLMClient(exception=ConnectionError("ollama fora do ar"))
     external_client = _FakeLLMClient(response=_resposta_externa())
-    rag_client = _FakeRAGClient()
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="conteúdo", source="doc1.txt", score=0.9)]
+    )
 
     with pytest.raises(LocalBackendIndisponivelError):
         await _coletar_eventos(
-            "quero agendar uma visita",
+            "não funciona, me ajuda",
             recent_messages=[],
             local_client=local_client,
             external_client=external_client,
@@ -437,11 +705,13 @@ async def test_falha_de_rede_em_is_model_ready_vira_local_backend_indisponivel()
         response=_resposta_local(), model_ready_exception=ConnectionError("ollama fora do ar")
     )
     external_client = _FakeLLMClient(response=_resposta_externa())
-    rag_client = _FakeRAGClient()
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="conteúdo", source="doc1.txt", score=0.9)]
+    )
 
     with pytest.raises(LocalBackendIndisponivelError):
         await _coletar_eventos(
-            "quero agendar uma visita",
+            "não funciona, me ajuda",
             recent_messages=[],
             local_client=local_client,
             external_client=external_client,
@@ -477,11 +747,13 @@ async def test_falha_do_local_na_classificacao_llm_nao_faz_fallback_para_externo
 async def test_log_de_decisao_tem_campos_json_de_primeiro_nivel(caplog):
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())
-    rag_client = _FakeRAGClient()
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="conteúdo", source="doc1.txt", score=0.9)]
+    )
 
     with caplog.at_level(logging.INFO, logger="app.router.orchestrator"):
         await _coletar_eventos(
-            "quero agendar uma visita",
+            "não funciona, me ajuda",
             recent_messages=[],
             local_client=local_client,
             external_client=external_client,
@@ -495,7 +767,7 @@ async def test_log_de_decisao_tem_campos_json_de_primeiro_nivel(caplog):
     payload = json.loads(JsonFormatter().format(registros[0]))
 
     assert payload["message"] == "router_decision"
-    assert payload["domain"] == "agendamento"
+    assert payload["domain"] == "suporte"
     assert payload["backend_escolhido"] == "local"
     assert payload["motivo_escalonamento"] == "nenhum"
     assert payload["custo_estimado_usd"] == 0.0
@@ -542,11 +814,13 @@ async def test_generate_stream_sem_chunk_final_vira_local_backend_indisponivel()
 
     local_client = _StreamSemChunkFinal()
     external_client = _FakeLLMClient(response=_resposta_externa())
-    rag_client = _FakeRAGClient()
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="conteúdo", source="doc1.txt", score=0.9)]
+    )
 
     with pytest.raises(LocalBackendIndisponivelError):
         await _coletar_eventos(
-            "quero agendar uma visita",
+            "não funciona, me ajuda",
             recent_messages=[],
             local_client=local_client,
             external_client=external_client,
@@ -576,10 +850,12 @@ async def test_openrouter_indisponivel_propaga_erro():
 async def test_modelo_local_nao_carregado_emite_status_antes_dos_tokens():
     local_client = _FakeLLMClient(response=_resposta_local(), model_ready=False)
     external_client = _FakeLLMClient(response=_resposta_externa())
-    rag_client = _FakeRAGClient()
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="conteúdo", source="doc1.txt", score=0.9)]
+    )
 
     eventos = await _coletar_eventos(
-        "quero agendar uma visita",
+        "não funciona, me ajuda",
         recent_messages=[],
         local_client=local_client,
         external_client=external_client,
@@ -594,10 +870,12 @@ async def test_modelo_local_nao_carregado_emite_status_antes_dos_tokens():
 async def test_modelo_local_ja_carregado_nao_emite_status():
     local_client = _FakeLLMClient(response=_resposta_local(), model_ready=True)
     external_client = _FakeLLMClient(response=_resposta_externa())
-    rag_client = _FakeRAGClient()
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="conteúdo", source="doc1.txt", score=0.9)]
+    )
 
     eventos = await _coletar_eventos(
-        "quero agendar uma visita",
+        "não funciona, me ajuda",
         recent_messages=[],
         local_client=local_client,
         external_client=external_client,
@@ -649,10 +927,12 @@ async def test_modelo_carrega_durante_classificacao_llm_ainda_assim_emite_status
 async def test_tokens_emitidos_em_ordem_e_resposta_final_e_a_concatenacao():
     local_client = _FakeLLMClient(response=LLMResponse(text="Boa tarde!", total_duration_ms=50.0))
     external_client = _FakeLLMClient(response=_resposta_externa())
-    rag_client = _FakeRAGClient()
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="conteúdo", source="doc1.txt", score=0.9)]
+    )
 
     eventos = await _coletar_eventos(
-        "quero agendar uma visita",
+        "não funciona, me ajuda",
         recent_messages=[],
         local_client=local_client,
         external_client=external_client,
