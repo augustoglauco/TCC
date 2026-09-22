@@ -17,6 +17,7 @@ from app.router.rag_client import Document, RAGClient, RAGConnectionError
 from app.router.scheduling import (
     DURACAO_VISITA,
     MSG_ERRO_MCP,
+    BookingSlots,
     HorarioInvalidoError,
     SchedulingConfig,
     clear_booking_slots,
@@ -285,19 +286,31 @@ async def handle_message(
         )
         raise LocalBackendIndisponivelError(str(exc)) from exc
 
-    # MVP: o gatilho para o fluxo de agendamento é a presença de
-    # `calendar_client`/`scheduling_config` (ambos passados pelo chamador,
-    # ver `app.api.chat`, Task 10/11), não `classification.domain`. A
-    # classificação por palavra-chave (`app.router.classifier`) não tem
-    # memória de conversa própria — mensagens de continuação do fluxo (ex.:
-    # "meu nome é Maria", "sim, pode confirmar") não contêm nenhuma palavra-
-    # chave de domínio e cairiam em "fora_escopo" se o gatilho dependesse de
-    # `classification.domain == "agendamento"`. Dar memória de conversa ao
-    # classificador é maior que o escopo deste ramo (ver
+    # MVP: o ramo de agendamento só roda quando (a) o chamador forneceu
+    # `calendar_client`/`scheduling_config` para esta chamada E (b) a
+    # classificação por palavra-chave disse "agendamento" OU já existe
+    # estado parcial de agendamento salvo para `conversation_id`. A
+    # condição (b) sozinha não basta: `classify()` não tem memória de
+    # conversa — mensagens de continuação do fluxo (ex.: "meu nome é
+    # Maria", "sim, pode confirmar") não contêm nenhuma palavra-chave de
+    # domínio, então o estado parcial salvo (b, segunda metade) é quem
+    # mantém a conversa no fluxo depois do primeiro turno. A condição (a)
+    # sozinha também não basta: assim que `app.api.chat` (Task 10/11)
+    # passar a injetar esses dois objetos como singletons de vida da
+    # aplicação em toda chamada, (a) por si só viraria sempre-verdadeiro e
+    # roubaria vendas/suporte/atendimento/fora_escopo para este ramo — por
+    # isso a combinação com (b). Hoje (antes da Task 10/11), `app.api.chat`
+    # ainda não passa `calendar_client`/`scheduling_config`, então (a) é
+    # sempre falso e o comportamento de todo domínio (inclusive mensagens
+    # com palavra-chave de agendamento) permanece o do fluxo genérico até
+    # a integração ser ligada — ver
     # docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md
-    # §4.1) — por ora, o chamador decide quando a conversa está no fluxo de
-    # agendamento (ex.: usuário clicou em "Agendar Visita" na UI).
-    if calendar_client is not None and scheduling_config is not None:
+    # §4.1.
+    slots_existentes = get_booking_slots(conversation_id)
+    agendamento_em_andamento = (
+        classification.domain == "agendamento" or slots_existentes != BookingSlots()
+    )
+    if calendar_client is not None and scheduling_config is not None and agendamento_em_andamento:
         async for evento in _handle_agendamento(
             conversation_id=conversation_id,
             message=message,
