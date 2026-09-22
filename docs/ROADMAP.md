@@ -233,11 +233,15 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 4 — Agendamento via MCP e Monitor de Tom (R8, R11)
 
-- [ ] Implementar cliente MCP para o Google Calendar
-- [ ] Implementar nova intenção de agendamento no roteador (coleta de
+> R11 (agendamento via MCP Calendar) implementado como Fase 4A — ver
+> `docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`.
+> R8 (monitor de tom) é a Fase 4B, com spec própria ainda a escrever.
+
+- [x] Implementar cliente MCP para o Google Calendar
+- [x] Implementar nova intenção de agendamento no roteador (coleta de
       data/hora e dados básicos na conversa)
-- [ ] Implementar confirmação automática por e-mail após criar o evento
-- [ ] Implementar tratamento de erro claro para falha de conexão/autenticação
+- [x] Implementar confirmação automática por e-mail após criar o evento
+- [x] Implementar tratamento de erro claro para falha de conexão/autenticação
       do MCP do Google Calendar (sugerir nova tentativa ou transferir para
       atendente)
 - [ ] Implementar classificador leve de sentimento/urgência (heurística +
