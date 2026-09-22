@@ -13,11 +13,30 @@ docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md.
 
 import json
 import re
-from datetime import datetime
+from datetime import datetime, time as dt_time, timedelta
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ValidationError
 
 from app.router.llm_client import LLMClient
+
+DURACAO_VISITA = timedelta(minutes=30)
+
+_DIAS_SEMANA = {"seg": 0, "ter": 1, "qua": 2, "qui": 3, "sex": 4, "sab": 5, "dom": 6}
+
+
+class SchedulingConfig(BaseModel):
+    timezone: str
+    expediente_dias: str
+    expediente_inicio: str
+    expediente_fim: str
+
+
+class HorarioInvalidoError(Exception):
+    def __init__(self, motivo: str) -> None:
+        self.motivo = motivo
+        super().__init__(motivo)
+
 
 _CAMPOS_OBRIGATORIOS = ("data_hora", "nome", "email", "telefone")
 
@@ -137,3 +156,90 @@ def merge_slots(current: BookingSlots, extraction: SlotExtractionResult) -> Book
     }
     atualizacoes = {campo: valor for campo, valor in campos_extraidos.items() if valor is not None}
     return current.model_copy(update=atualizacoes)
+
+
+def _parse_dias_expediente(dias_str: str) -> set[int]:
+    # MVP: só o formato "seg-sex" (intervalo contíguo) ou "seg,qua,sex"
+    # (lista) — sem combinações mais ricas (ex. "seg-qua,sex").
+    dias_str = dias_str.strip().lower()
+    if "-" in dias_str:
+        inicio_str, fim_str = dias_str.split("-", 1)
+        inicio, fim = _DIAS_SEMANA[inicio_str.strip()], _DIAS_SEMANA[fim_str.strip()]
+        if inicio <= fim:
+            return set(range(inicio, fim + 1))
+        return set(range(inicio, 7)) | set(range(0, fim + 1))
+    return {_DIAS_SEMANA[dia.strip()] for dia in dias_str.split(",")}
+
+
+def validar_expediente(data_hora: datetime, config: SchedulingConfig) -> None:
+    tz = ZoneInfo(config.timezone)
+    agora = datetime.now(tz)
+    dh = data_hora if data_hora.tzinfo else data_hora.replace(tzinfo=tz)
+    dh = dh.astimezone(tz)
+
+    if dh <= agora:
+        raise HorarioInvalidoError(
+            "Esse horário já passou. Pode sugerir uma data e hora futuras?"
+        )
+
+    dias_validos = _parse_dias_expediente(config.expediente_dias)
+    if dh.weekday() not in dias_validos:
+        raise HorarioInvalidoError(
+            f"Nosso expediente inclui apenas {config.expediente_dias}. "
+            "Pode escolher outro dia?"
+        )
+
+    hora_inicio = dt_time.fromisoformat(config.expediente_inicio)
+    hora_fim = dt_time.fromisoformat(config.expediente_fim)
+    if not (hora_inicio <= dh.time() < hora_fim):
+        raise HorarioInvalidoError(
+            f"Nosso expediente para visitas é das {config.expediente_inicio} às "
+            f"{config.expediente_fim}. Pode escolher outro horário nessa faixa?"
+        )
+
+
+_ROTULOS_CAMPOS = {
+    "data_hora": "a data e o horário desejados para a visita",
+    "nome": "seu nome",
+    "email": "seu e-mail",
+    "telefone": "seu telefone",
+}
+
+
+def mensagem_campos_faltando(slots: BookingSlots) -> str:
+    faltando = [_ROTULOS_CAMPOS[campo] for campo in slots.missing_fields()]
+    if len(faltando) == 1:
+        pedido = faltando[0]
+    else:
+        pedido = ", ".join(faltando[:-1]) + " e " + faltando[-1]
+    return f"Para agendar sua visita, ainda preciso de: {pedido}."
+
+
+def _formatar_data_hora(data_hora: datetime, timezone: str) -> str:
+    tz = ZoneInfo(timezone)
+    dh = data_hora if data_hora.tzinfo else data_hora.replace(tzinfo=tz)
+    return dh.astimezone(tz).strftime("%d/%m/%Y às %H:%M")
+
+
+def mensagem_pedir_confirmacao(slots: BookingSlots, timezone: str) -> str:
+    data_formatada = _formatar_data_hora(slots.data_hora, timezone)
+    return (
+        f"Só confirmando antes de agendar: visita em {data_formatada}, em nome "
+        f"de {slots.nome}, e-mail {slots.email}, telefone {slots.telefone}. "
+        "Posso confirmar?"
+    )
+
+
+def mensagem_sucesso(slots: BookingSlots, timezone: str) -> str:
+    data_formatada = _formatar_data_hora(slots.data_hora, timezone)
+    return (
+        f"Prontinho! Sua visita foi agendada para {data_formatada}. Você vai "
+        f"receber a confirmação por e-mail em {slots.email}."
+    )
+
+
+MSG_ERRO_MCP = (
+    "No momento não consegui confirmar o agendamento automaticamente. Um "
+    "atendente da nossa equipe vai entrar em contato para confirmar os "
+    "detalhes. Pedimos desculpas pelo transtorno."
+)
