@@ -6,12 +6,14 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.chat import (
+    get_calendar_client,
     get_clip_embedder,
     get_clip_store,
     get_complexity_strategy,
     get_external_client,
     get_local_client,
     get_rag_client,
+    get_scheduling_config,
     get_stt_client,
     reset_conversation_history,
 )
@@ -137,6 +139,15 @@ def _build_app(fakes: dict, complexity_strategy: str = "heuristic") -> FastAPI:
     app.dependency_overrides[get_clip_store] = lambda: fakes["clip_store"]
     app.dependency_overrides[get_clip_embedder] = lambda: fakes["clip_embedder"]
     app.dependency_overrides[get_complexity_strategy] = lambda: complexity_strategy
+    # `calendar_client`/`scheduling_config` ausentes (None) preserva o
+    # comportamento pré-Task 11 destes testes: o gate de agendamento em
+    # `orchestrator.handle_message` (Task 9) só entra no fluxo de coleta de
+    # slots quando ambos não são None — como estes testes não exercitam esse
+    # fluxo (são cobertos nos testes do orchestrator/scheduling), manter None
+    # aqui evita mudar silenciosamente o que "domain == agendamento" significa
+    # nas asserções abaixo (resposta normal do LLM, não o fluxo de booking).
+    app.dependency_overrides[get_calendar_client] = lambda: None
+    app.dependency_overrides[get_scheduling_config] = lambda: None
     # Limiares lidos via request.app.state no fluxo de identificação.
     app.state.image_internal_confidence = 0.30
     app.state.image_external_confidence = 0.80

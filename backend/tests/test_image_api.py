@@ -393,12 +393,14 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400():
     from qdrant_client import AsyncQdrantClient
 
     from app.api.chat import (
+        get_calendar_client,
         get_clip_embedder,
         get_clip_store,
         get_complexity_strategy,
         get_external_client,
         get_local_client,
         get_rag_client,
+        get_scheduling_config,
         get_stt_client,
         reset_conversation_history,
     )
@@ -428,6 +430,12 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400():
     app.dependency_overrides[get_clip_store] = lambda: real_store
     app.dependency_overrides[get_clip_embedder] = lambda: real_embedder
     app.dependency_overrides[get_complexity_strategy] = lambda: "heuristic"
+    # `calendar_client`/`scheduling_config` ausentes (None) — mesma razão do
+    # `_build_app` de test_chat_api.py: este teste nem chega ao orchestrator
+    # (a validação de formato barra antes, com 400), só precisa que a
+    # dependência resolva sem estourar `AttributeError` em app.state.
+    app.dependency_overrides[get_calendar_client] = lambda: None
+    app.dependency_overrides[get_scheduling_config] = lambda: None
     app.state.image_internal_confidence = 0.30
     app.state.image_external_confidence = 0.80
 

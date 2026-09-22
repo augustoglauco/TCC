@@ -5,9 +5,11 @@ docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §4.1)."""
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.mcp_client.google_calendar import GoogleCalendarMCPClient
 from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import QdrantRAGClient
+from app.router.scheduling import SchedulingConfig
 
 
 def test_create_app_monta_o_estado_do_rag_corretamente():
@@ -66,3 +68,11 @@ def test_rotas_do_crawler_estao_registradas_e_o_estado_correspondente_tambem():
     assert app.state.crawler_http_client is not None
     assert isinstance(app.state.crawler_max_pages_default, int)
     assert isinstance(app.state.crawler_confidence_threshold, float)
+
+
+def test_create_app_monta_o_cliente_de_calendario_e_config_de_agendamento():
+    app = create_app()
+
+    assert isinstance(app.state.calendar_client, GoogleCalendarMCPClient)
+    assert isinstance(app.state.scheduling_config, SchedulingConfig)
+    assert app.state.scheduling_config.timezone == "America/Sao_Paulo"
