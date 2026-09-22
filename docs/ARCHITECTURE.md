@@ -357,14 +357,37 @@ pedido quando o pool é misto. `# MVP: reranking heurístico por domínio, sem
 cross-encoder nem segundo modelo — o "básico" pedido no roadmap`.
 
 **Decisão registrada (Fase 3, playbooks/prompts por domínio):** cada domínio
-de atendimento (vendas, suporte, atendimento, agendamento) tem um prompt de
+de atendimento de negócio (vendas, suporte, atendimento) tem um prompt de
 sistema estático em `app.router.playbooks`, anteposto pelo orchestrator ao
 prompt antes de chamar o LLM (com ou sem contexto de RAG). `fora_escopo` não
 tem playbook. Reflete a assimetria intencional da Seção 3: Vendas oferece
 proativamente o agendamento de visita quando há intenção de compra (a criação
 real do evento é R11, Fase 4); Suporte e Atendimento são LLM + RAG, sem camada
 de ação. `# MVP: playbooks são strings estáticas, sem versionamento nem edição
-em runtime`.
+em runtime`. **Agendamento (Fase 4A) não usa playbook** — o
+`_AGENDAMENTO_PLAYBOOK` estático foi removido (commit `a529f2b`, "remove
+playbook morto") e substituído por um fluxo procedural dedicado,
+`orchestrator._handle_agendamento` + `app.router.scheduling` (máquina de
+estado de coleta/validação/confirmação, ver decisão registrada logo abaixo e
+`docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`).
+
+**Decisão registrada (Fase 4A, agendamento via MCP Calendar, R11):** três
+escolhas de implementação feitas nesta fase, detalhadas em
+`docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`:
+(a) o assistente **consome** o servidor MCP remoto oficial do Google
+(`calendarmcp.googleapis.com`) em vez de construir um servidor MCP próprio
+que envolveria a API do Calendar — replicar do lado do servidor o que o
+Google já publica de forma padronizada não ganharia a interoperabilidade que
+é o motivo de existir do MCP (spec §2); (b) autenticação por **consentimento
+único do admin** (OAuth `access_type=offline`, refresh token guardado em
+`GOOGLE_CALENDAR_TOKEN_PATH`) em vez de autenticação por visitante — o caso de
+uso é um backend headless agendando numa única agenda da empresa, não há
+usuário final logado a cada visita (spec §3); (c) mensagens ao visitante
+durante a coleta/confirmação são **templates determinísticos** (não geradas
+por LLM), ver `app.router.scheduling` (`mensagem_campos_faltando`,
+`mensagem_pedir_confirmacao`, `mensagem_sucesso`) — decisão para não arriscar
+o LLM inventar/alucinar detalhes de confirmação (data, nome, e-mail) numa ação
+irreversível (criação real de evento na agenda).
 
 **Decisão registrada (Fase 2, melhoria de qualidade a pedido explícito,
 2026-09-17):** `app.rag.pdf_extract.extract_text_from_pdf` trocou de `pypdf`
@@ -479,7 +502,7 @@ extra) — concatenação simples do histórico basta para o caso relatado`.
 | RAG — textos, PDFs, BD e sites (obrigatório) | Ingestão de PDFs/textos + busca vetorial; conector básico de leitura a um BD relacional; crawler disparado manualmente a partir de uma URL semente, com profundidade e teto de páginas parametrizáveis por execução, classificação de domínio por LLM com fila de revisão humana abaixo de um limiar de confiança | Conector com escrita/sincronização incremental, crawler agendado, múltiplas fontes web |
 | RAG sobre imagens / tratamento de imagem (obrigatório) | Busca multimodal via embeddings (ex.: CLIP) em catálogo ampliado, com reranking básico + OCR para imagens dirigidas | Catálogo completo, embeddings mais robustos, busca externa refinada |
 | Domínios (Vendas/Suporte/Atendimento) | Separação lógica de fluxo e prompts por domínio, com playbooks iniciais para Suporte Técnico e Atendimento ao Usuário. Playbook de Vendas inclui a oferta proativa de agendamento de visita quando a conversa indica intenção de compra e o portfólio de produtos é compatível (o roteador só reclassifica como `agendamento` na resposta seguinte do cliente, usando o contexto curto de conversa citado na linha "Roteador/Orquestrador") | Playbooks completos por domínio, integração com sistema de ticketing |
-| Agendamento de visita (MCP consumido) | Nova intenção reconhecida pelo roteador; coleta data/hora e dados básicos; chama o MCP do Google Calendar e envia confirmação automática por e-mail | Reagendamento/cancelamento, checagem de disponibilidade em múltiplas agendas, confirmação também por SMS |
+| Agendamento de visita (MCP consumido) | Nova intenção reconhecida pelo roteador; coleta data/hora e dados básicos; valida expediente e conflito de agenda (na mesma agenda configurada) local/via MCP antes de sequer pedir confirmação; exige confirmação explícita do visitante antes de criar o evento; chama o MCP do Google Calendar e envia confirmação automática por e-mail | Reagendamento/cancelamento, checagem de disponibilidade em múltiplas agendas, confirmação também por SMS |
 | MCP de integração B2B (MCP provido) | Servidor MCP de uso interno, reaproveitando a base do catálogo/estoque/preços do RAG; recursos de leitura + as quatro ferramentas já implementadas; sem autenticação por parceiro nem exposição pública | Exposição a integradores externos reais, autenticação por parceiro (API key/OAuth), auditoria de ações transacionais e limites de uso |
 | Monitor de tom | Classificador de sentimento/urgência (heurística + LLM leve) com alerta, transferência simulada e log dos casos escalonados | Integração real com fila de atendentes humanos, escalonamento por SLA |
 | Memória da conversa | Persistência por ID + resumo automático periódico (não só ao final) | Perfil de cliente enriquecido a partir do histórico de conversas |
@@ -564,6 +587,17 @@ autenticação por parceiro nem exposição pública**.
 - Dependência do MCP do Google Calendar: falhas de conexão/permissão
   precisam de tratamento de erro claro (ex.: tentar novamente, transferir
   para atendente).
+- Fluxo de agendamento (Fase 4A) sem mecanismo de saída: uma vez que uma
+  conversa entra no fluxo (por palavra-chave OU por já ter estado parcial de
+  agendamento salvo), não há como sair a não ser completando um agendamento
+  com sucesso — os ramos de horário inválido/falha de MCP preservam os slots
+  de propósito (para permitir nova tentativa), o que mantém a conversa presa
+  ao fluxo indefinidamente; combinado à palavra-chave isolada "horário" no
+  classificador heurístico, uma pergunta como "qual o horário de
+  funcionamento?" pode entrar no fluxo por falso positivo. Limitação aceita
+  do MVP — deferida para a Fase 10 junto do ajuste de palavras-chave do
+  classificador (ver `docs/ROADMAP.md`, Fase 1); um mecanismo de
+  abandono/timeout pertence a uma futura fase de memória/gestão de sessão.
 - MCP B2B sem autenticação por parceiro/auditoria: ferramentas transacionais
   (reserva, pedido) ficam restritas a uso interno no protótipo.
 - Escopo do MVP relativamente amplo (4 ferramentas do MCP B2B, playbooks
