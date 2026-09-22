@@ -172,7 +172,16 @@ def _parse_dias_expediente(dias_str: str) -> set[int]:
     return {_DIAS_SEMANA[dia.strip()] for dia in dias_str.split(",")}
 
 
-def validar_expediente(data_hora: datetime, config: SchedulingConfig) -> None:
+def validar_expediente(data_hora: datetime, config: SchedulingConfig) -> datetime:
+    """Valida `data_hora` contra o expediente configurado e devolve a versão
+    com fuso horário aplicado (`config.timezone`).
+
+    Devolve (em vez de descartar) o `datetime` aware usado internamente para
+    a checagem — o chamador deve persistir esse valor de volta nos slots
+    (`slots.data_hora = validar_expediente(...)`) antes de passá-lo ao MCP: um
+    `datetime` naive não carrega offset UTC, e `.isoformat()` nele não é um
+    RFC3339 válido para a API do Google Calendar.
+    """
     tz = ZoneInfo(config.timezone)
     agora = datetime.now(tz)
     dh = data_hora if data_hora.tzinfo else data_hora.replace(tzinfo=tz)
@@ -194,6 +203,8 @@ def validar_expediente(data_hora: datetime, config: SchedulingConfig) -> None:
             f"Nosso expediente para visitas é das {config.expediente_inicio} às "
             f"{config.expediente_fim}. Pode escolher outro horário nessa faixa?"
         )
+
+    return dh
 
 
 _ROTULOS_CAMPOS = {

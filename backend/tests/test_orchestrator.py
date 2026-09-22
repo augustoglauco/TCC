@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -150,12 +151,23 @@ def setup_function():
 
 
 def _data_futura_valida() -> datetime:
-    """Um dia útil (seg-sex) bem no futuro, às 10h — dentro do expediente
-    configurado em `_SCHEDULING_CONFIG` (09:00-18:00). Computado em cima de
+    """Um dia útil (seg-sex) bem no futuro, às 10h, com fuso horário aplicado
+    (`America/Sao_Paulo`, o mesmo de `_SCHEDULING_CONFIG`) — dentro do
+    expediente configurado (09:00-18:00). Computado em cima de
     `datetime.now()` em vez de hardcodado, para não "apodrecer": uma data
     fixa como "2026-10-01" passa a ser rejeitada por `validar_expediente`
-    (horário no passado) assim que o calendário andar até lá."""
-    referencia = datetime.now() + timedelta(days=365)
+    (horário no passado) assim que o calendário andar até lá.
+
+    # Fix (revisão final, achado 3): antes, este helper devolvia um datetime
+    # NAIVE — os testes que pré-populam `BookingSlots` diretamente com ele
+    # (em vez de passar pela extração LLM, que já produz datetime aware a
+    # partir do ISO8601 com offset) certificavam sem querer o caso quebrado
+    # de um `.isoformat()` sem offset UTC chegando às chamadas do MCP.
+    # `validar_expediente`/`_validar_horario_para_agendamento` normalizam
+    # isso de qualquer forma agora, mas o helper devolver aware por padrão
+    # reflete o que um sistema correto realmente envia ao MCP.
+    """
+    referencia = datetime.now(ZoneInfo("America/Sao_Paulo")) + timedelta(days=365)
     while referencia.weekday() > 4:  # 0=segunda ... 4=sexta
         referencia += timedelta(days=1)
     return referencia.replace(hour=10, minute=0, second=0, microsecond=0)
@@ -335,6 +347,59 @@ async def test_agendamento_confirmacao_cria_evento_e_limpa_slots():
     assert decisao.motivo_escalonamento == "confirmado"
     assert len(calendar_client.create_event_calls) == 1
     assert get_booking_slots("conv-5") == BookingSlots()
+    # Achado 3 da revisão final: o datetime passado ao MCP precisa ter fuso
+    # horário (aware) — um naive `.isoformat()` não tem offset UTC, inválido
+    # para a API do Google Calendar.
+    chamada = calendar_client.create_event_calls[0]
+    assert chamada["start"].tzinfo is not None
+    assert chamada["end"].tzinfo is not None
+
+
+async def test_agendamento_confirmacao_com_nova_data_invalida_revalida_antes_de_criar_evento():
+    # Achado crítico 1 da revisão final: uma mensagem que confirma E muda a
+    # data ao mesmo tempo ("sim, pode confirmar, mas prefiro em 2020") não
+    # pode pular a validação de horário só porque `confirmacao=True` —
+    # `merge_slots` já aplicou a nova `data_hora` extraída desta mesma
+    # mensagem antes deste ponto do fluxo (o horário original, válido,
+    # nunca chega a ser usado). A nova data extraída está no passado/fora do
+    # expediente — a resposta deve ser `horario_invalido`, e `create_event`
+    # nunca deve ser chamado.
+    set_booking_slots(
+        "conv-11",
+        BookingSlots(
+            data_hora=_data_futura_valida(),
+            nome="Maria",
+            email="maria@example.com",
+            telefone="11999999999",
+            awaiting_confirmation=True,
+        ),
+    )
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": "2020-01-01T10:00:00-03:00", "nome": null, "email": null, '
+                '"telefone": null, "confirmacao": true}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient()
+
+    eventos = await _coletar_eventos(
+        "sim, pode confirmar, mas na verdade prefiro em 2020",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-11",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "horario_invalido"
+    assert calendar_client.create_event_calls == []
 
 
 async def test_agendamento_falha_do_mcp_na_confirmacao_mantem_slots():

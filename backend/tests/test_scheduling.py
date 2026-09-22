@@ -164,13 +164,41 @@ _CONFIG = SchedulingConfig(
 )
 
 
+def _data_futura_util(dia_semana_alvo: int) -> datetime:
+    """Um dia útil bem no futuro (10h, dentro do expediente 09:00-18:00 de
+    `_CONFIG`) cujo `weekday()` é `dia_semana_alvo` (0=segunda ... 6=domingo).
+    Computado em cima de `datetime.now()` em vez de hardcodado, para não
+    "apodrecer": uma data fixa como "2026-09-24" passa a ser rejeitada por
+    `validar_expediente` (horário no passado) assim que o calendário andar
+    até lá — mesmo padrão usado em `test_orchestrator.py`
+    (`_data_futura_valida`)."""
+    referencia = datetime.now() + timedelta(days=365)
+    while referencia.weekday() != dia_semana_alvo:
+        referencia += timedelta(days=1)
+    return referencia.replace(hour=10, minute=0, second=0, microsecond=0)
+
+
 def test_duracao_visita_e_30_minutos():
     assert DURACAO_VISITA == timedelta(minutes=30)
 
 
 def test_validar_expediente_aceita_horario_valido():
-    # 2026-09-24 é uma quinta-feira, 10h — dentro do expediente seg-sex 9-18h.
-    validar_expediente(datetime(2026, 9, 24, 10, 0), _CONFIG)  # não levanta
+    # Quinta-feira, 10h — dentro do expediente seg-sex 9-18h.
+    validar_expediente(_data_futura_util(3), _CONFIG)  # não levanta
+
+
+def test_validar_expediente_devolve_datetime_com_fuso_horario():
+    # Achado 3 da revisão final: o chamador precisa do datetime AWARE de
+    # volta (não só a validação sem efeito) para persistir nos slots — um
+    # naive `.isoformat()` não tem offset UTC, inválido para a API do
+    # Google Calendar.
+    data_naive = _data_futura_util(3)
+    assert data_naive.tzinfo is None
+
+    resultado = validar_expediente(data_naive, _CONFIG)
+
+    assert resultado.tzinfo is not None
+    assert resultado.replace(tzinfo=None) == data_naive
 
 
 def test_validar_expediente_rejeita_data_no_passado():
@@ -179,9 +207,9 @@ def test_validar_expediente_rejeita_data_no_passado():
 
 
 def test_validar_expediente_rejeita_fim_de_semana():
-    # 2026-09-26 é sábado.
+    # Sábado.
     with pytest.raises(HorarioInvalidoError) as exc_info:
-        validar_expediente(datetime(2026, 9, 26, 10, 0), _CONFIG)
+        validar_expediente(_data_futura_util(5), _CONFIG)
     assert "expediente" in exc_info.value.motivo.lower()
 
 

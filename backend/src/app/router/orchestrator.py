@@ -1,6 +1,7 @@
 import logging
 import time
 from collections.abc import AsyncIterator
+from datetime import datetime
 
 from pydantic import BaseModel
 
@@ -118,6 +119,67 @@ class ExternalBackendIndisponivelError(Exception):
     """Falha de infraestrutura no backend externo (OpenRouter) — sem fallback automático."""
 
 
+class _AgendamentoFalhaValidacao(Exception):
+    """Carrega a resposta já pronta para o visitante quando
+    `_validar_horario_para_agendamento` falha — motivo é sempre
+    "horario_invalido" (expediente ou conflito de agenda) ou
+    "mcp_indisponivel" (falha ao consultar disponibilidade)."""
+
+    def __init__(self, texto: str, motivo: str) -> None:
+        self.texto = texto
+        self.motivo = motivo
+        super().__init__(texto)
+
+
+async def _validar_horario_para_agendamento(
+    slots: BookingSlots,
+    scheduling_config: SchedulingConfig,
+    calendar_client: CalendarClient,
+) -> datetime:
+    """Valida expediente e disponibilidade de agenda para `slots.data_hora`.
+
+    Devolve o `datetime` com fuso horário aplicado (mesmo valor devolvido por
+    `validar_expediente`, para persistir de volta em `slots.data_hora` — sem
+    isso, um `datetime` naive chegaria às chamadas do MCP, ver Fix 3). Em
+    falha, levanta `_AgendamentoFalhaValidacao` já com o texto de resposta e
+    o motivo de escalonamento prontos.
+
+    Compartilhado pelos dois pontos do fluxo que precisam desta validação: a
+    validação original antes de pedir confirmação, E a revalidação
+    obrigatória logo antes de `create_event`, mesmo quando a mensagem atual
+    confirma — uma confirmação que também muda a data (ou uma confirmação
+    tardia sobre um horário que ficou stale) não pode pular a checagem de
+    expediente/conflito só porque `slots.awaiting_confirmation` já era
+    `True`.
+    """
+    try:
+        dh = validar_expediente(slots.data_hora, scheduling_config)
+    except HorarioInvalidoError as exc:
+        raise _AgendamentoFalhaValidacao(exc.motivo, "horario_invalido") from exc
+
+    fim = dh + DURACAO_VISITA
+    try:
+        disponivel = await calendar_client.is_time_available(dh, fim)
+    except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
+        logger.error(
+            "google_calendar_indisponivel",
+            extra={
+                "router": {
+                    "event": "google_calendar_indisponivel",
+                    "etapa": "checagem_disponibilidade",
+                    "erro": str(exc),
+                }
+            },
+        )
+        raise _AgendamentoFalhaValidacao(MSG_ERRO_MCP, "mcp_indisponivel") from exc
+
+    if not disponivel:
+        raise _AgendamentoFalhaValidacao(
+            "Esse horário já está reservado. Pode sugerir outro horário?", "horario_invalido"
+        )
+    return dh
+
+
 async def _emitir_resposta_agendamento(
     texto: str, motivo: str
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
@@ -173,6 +235,27 @@ async def _handle_agendamento(
 
     if slots.awaiting_confirmation:
         if extraction.confirmacao:
+            # Fix (revisão final, achado crítico 1): mesmo já confirmado,
+            # revalida expediente/disponibilidade antes de criar o evento de
+            # verdade — `merge_slots` já aplicou qualquer `data_hora` nova
+            # extraída desta mesma mensagem ANTES deste ponto, então uma
+            # mensagem que muda a data e confirma ao mesmo tempo (ou uma
+            # confirmação tardia sobre um horário que ficou stale) não pode
+            # pular a checagem só porque `awaiting_confirmation` já era
+            # `True`.
+            try:
+                slots.data_hora = await _validar_horario_para_agendamento(
+                    slots, scheduling_config, calendar_client
+                )
+            except _AgendamentoFalhaValidacao as falha:
+                if falha.motivo == "horario_invalido":
+                    slots.data_hora = None
+                slots.awaiting_confirmation = False
+                set_booking_slots(conversation_id, slots)
+                async for evento in _emitir_resposta_agendamento(falha.texto, falha.motivo):
+                    yield evento
+                return
+
             try:
                 fim = slots.data_hora + DURACAO_VISITA
                 await calendar_client.create_event(
@@ -217,32 +300,14 @@ async def _handle_agendamento(
         slots.awaiting_confirmation = False
 
     try:
-        validar_expediente(slots.data_hora, scheduling_config)
-        fim = slots.data_hora + DURACAO_VISITA
-        disponivel = await calendar_client.is_time_available(slots.data_hora, fim)
-        if not disponivel:
-            raise HorarioInvalidoError(
-                "Esse horário já está reservado. Pode sugerir outro horário?"
-            )
-    except HorarioInvalidoError as exc:
-        slots.data_hora = None
-        set_booking_slots(conversation_id, slots)
-        async for evento in _emitir_resposta_agendamento(exc.motivo, "horario_invalido"):
-            yield evento
-        return
-    except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
-        logger.error(
-            "google_calendar_indisponivel",
-            extra={
-                "router": {
-                    "event": "google_calendar_indisponivel",
-                    "etapa": "checagem_disponibilidade",
-                    "erro": str(exc),
-                }
-            },
+        slots.data_hora = await _validar_horario_para_agendamento(
+            slots, scheduling_config, calendar_client
         )
+    except _AgendamentoFalhaValidacao as falha:
+        if falha.motivo == "horario_invalido":
+            slots.data_hora = None
         set_booking_slots(conversation_id, slots)
-        async for evento in _emitir_resposta_agendamento(MSG_ERRO_MCP, "mcp_indisponivel"):
+        async for evento in _emitir_resposta_agendamento(falha.texto, falha.motivo):
             yield evento
         return
 
@@ -326,6 +391,21 @@ async def handle_message(
     agendamento_em_andamento = (
         classification.domain == "agendamento" or slots_existentes != BookingSlots()
     )
+    # MVP: limitação aceita (ver docs/ARCHITECTURE.md §7) — uma vez que uma
+    # conversa entra no fluxo de agendamento (por palavra-chave OU por já
+    # ter estado parcial salvo, condição `agendamento_em_andamento` acima),
+    # não há como sair dele a não ser completando um agendamento com
+    # sucesso: os ramos de `horario_invalido` e falha de MCP preservam os
+    # slots de propósito (para permitir nova tentativa), o que mantém
+    # `slots_existentes != BookingSlots()` verdadeiro indefinidamente — e o
+    # classificador por palavra-chave (`ROUTER_COMPLEXITY_STRATEGY=heuristic`
+    # em produção) inclui a palavra isolada "horário" entre as palavras-chave
+    # de agendamento, então uma pergunta como "qual o horário de
+    # funcionamento?" pode entrar no fluxo por falso positivo. Sem
+    # mecanismo de abandono/timeout nesta fase — decisão do controlador:
+    # ajuste de palavras-chave do classificador fica para a Fase 10 (ver
+    # docs/ROADMAP.md, Fase 1) e um mecanismo de abandono pertence a uma
+    # futura fase de memória/gestão de sessão, não a esta.
     if calendar_client is not None and scheduling_config is not None and agendamento_em_andamento:
         async for evento in _handle_agendamento(
             conversation_id=conversation_id,
