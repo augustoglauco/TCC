@@ -150,6 +150,16 @@ def setup_function():
 
 
 async def test_agendamento_slots_incompletos_pede_dados_sem_chamar_mcp():
+    # Continuação de um fluxo já em andamento: o visitante já informou a
+    # data/hora num turno anterior (slots parciais já salvos para a
+    # conversa) e agora informa o nome. A mensagem em si ("meu nome é
+    # Maria") não contém nenhuma palavra-chave de domínio — é a presença de
+    # slots parciais para `conversation_id` que mantém o roteador no fluxo
+    # de agendamento (ver gatilho em `handle_message`).
+    set_booking_slots(
+        "conv-1",
+        BookingSlots(data_hora=datetime(2026, 10, 1, 10, 0)),
+    )
     local_client = _FakeLLMClient(
         response=LLMResponse(
             text=(
