@@ -17,6 +17,7 @@ from app.api.runtime_settings import router as runtime_settings_router
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
+from app.mcp_client.google_calendar import GoogleCalendarMCPClient
 from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.embedders_registry import EmbedderRegistry
@@ -24,6 +25,7 @@ from app.rag.image_search import ClipImageStore
 from app.rag.qdrant_client import QdrantRAGClient
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
+from app.router.scheduling import SchedulingConfig
 from app.stt.whisper_client import WhisperSttClient
 
 
@@ -120,6 +122,23 @@ def create_app() -> FastAPI:
     # chat — contenção de VRAM entre os dois é um risco conhecido (ver
     # docs/ARCHITECTURE.md §7).
     app.state.stt_client = WhisperSttClient(model_size=settings.stt_model_size)
+
+    # MCP do Google Calendar (R11, Fase 4A) — carregamento de
+    # credenciais/refresh token é lazy (só no primeiro uso real), então
+    # construir o cliente aqui não exige que os arquivos já existam em todo
+    # ambiente de dev (ver
+    # docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md §3).
+    app.state.calendar_client = GoogleCalendarMCPClient(
+        credentials_path=settings.google_calendar_credentials_path,
+        token_path=settings.google_calendar_token_path,
+        calendar_id=settings.google_calendar_calendar_id,
+    )
+    app.state.scheduling_config = SchedulingConfig(
+        timezone=settings.agendamento_timezone,
+        expediente_dias=settings.agendamento_expediente_dias,
+        expediente_inicio=settings.agendamento_expediente_inicio,
+        expediente_fim=settings.agendamento_expediente_fim,
+    )
 
     app.include_router(chat_router)
     app.include_router(crawler_router)

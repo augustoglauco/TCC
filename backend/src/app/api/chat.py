@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from app.mcp_client.google_calendar import CalendarClient
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
 from app.ocr.image_processor import (
     ImageFormatError,
@@ -29,6 +30,7 @@ from app.router.orchestrator import (
     handle_message,
 )
 from app.router.rag_client import RAGClient, RAGConnectionError
+from app.router.scheduling import SchedulingConfig
 from app.stt.whisper_client import SttClient, SttIndisponivelError
 
 logger = logging.getLogger(__name__)
@@ -77,6 +79,14 @@ def get_clip_embedder(request: Request) -> ClipEmbedder:
     return request.app.state.clip_embedder
 
 
+def get_calendar_client(request: Request) -> CalendarClient:
+    return request.app.state.calendar_client
+
+
+def get_scheduling_config(request: Request) -> SchedulingConfig:
+    return request.app.state.scheduling_config
+
+
 def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
@@ -92,6 +102,8 @@ async def send_message(
     stt_client: SttClient = Depends(get_stt_client),
     clip_store: ClipImageStore = Depends(get_clip_store),
     clip_embedder: ClipEmbedder = Depends(get_clip_embedder),
+    calendar_client: CalendarClient = Depends(get_calendar_client),
+    scheduling_config: SchedulingConfig = Depends(get_scheduling_config),
 ) -> StreamingResponse:
     conversation_id = payload.conversation_id or str(uuid4())
 
@@ -248,6 +260,9 @@ async def send_message(
                 external_client=external_client,
                 rag_client=rag_client,
                 complexity_strategy=complexity_strategy,
+                conversation_id=conversation_id,
+                calendar_client=calendar_client,
+                scheduling_config=scheduling_config,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
