@@ -13,7 +13,8 @@ docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md.
 
 import json
 import re
-from datetime import datetime, time as dt_time, timedelta
+from datetime import datetime, timedelta
+from datetime import time as dt_time
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ValidationError
@@ -178,15 +179,12 @@ def validar_expediente(data_hora: datetime, config: SchedulingConfig) -> None:
     dh = dh.astimezone(tz)
 
     if dh <= agora:
-        raise HorarioInvalidoError(
-            "Esse horário já passou. Pode sugerir uma data e hora futuras?"
-        )
+        raise HorarioInvalidoError("Esse horário já passou. Pode sugerir uma data e hora futuras?")
 
     dias_validos = _parse_dias_expediente(config.expediente_dias)
     if dh.weekday() not in dias_validos:
         raise HorarioInvalidoError(
-            f"Nosso expediente inclui apenas {config.expediente_dias}. "
-            "Pode escolher outro dia?"
+            f"Nosso expediente inclui apenas {config.expediente_dias}. Pode escolher outro dia?"
         )
 
     hora_inicio = dt_time.fromisoformat(config.expediente_inicio)

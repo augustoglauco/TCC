@@ -1,11 +1,25 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
+import pytest
+
+from app.router.llm_client import LLMResponse
 from app.router.scheduling import (
+    DURACAO_VISITA,
+    MSG_ERRO_MCP,
     BookingSlots,
+    HorarioInvalidoError,
+    SchedulingConfig,
+    SlotExtractionResult,
     clear_booking_slots,
+    extract_booking_slots,
     get_booking_slots,
+    mensagem_campos_faltando,
+    mensagem_pedir_confirmacao,
+    mensagem_sucesso,
+    merge_slots,
     reset_all_booking_slots,
     set_booking_slots,
+    validar_expediente,
 )
 
 
@@ -54,14 +68,6 @@ def test_clear_booking_slots_remove_apenas_a_conversa_informada():
 
 
 # Task 2 tests
-import pytest
-
-from app.router.llm_client import LLMResponse
-from app.router.scheduling import (
-    SlotExtractionResult,
-    extract_booking_slots,
-    merge_slots,
-)
 
 
 class _FakeLLMClient:
@@ -150,19 +156,6 @@ def test_merge_slots_sobrescreve_quando_novo_valor_vem_preenchido():
 
 
 # Task 3 tests
-from datetime import timedelta
-
-from app.router.scheduling import (
-    DURACAO_VISITA,
-    MSG_ERRO_MCP,
-    HorarioInvalidoError,
-    SchedulingConfig,
-    mensagem_campos_faltando,
-    mensagem_pedir_confirmacao,
-    mensagem_sucesso,
-    validar_expediente,
-)
-
 _CONFIG = SchedulingConfig(
     timezone="America/Sao_Paulo",
     expediente_dias="seg-sex",
