@@ -233,6 +233,26 @@ async def test_create_event_retorna_link_do_evento(tmp_path):
     assert argumentos["attendees"] == [{"email": "maria@example.com", "displayName": "Maria"}]
 
 
+async def test_is_time_available_sem_chave_events_falha_fechado(tmp_path):
+    # Achado 4 da revisão final: se o schema real do MCP divergir do
+    # assumido (ex.: campo renomeado), não pode silenciosamente tratar como
+    # "sem eventos" — arriscaria criar um evento em cima de outro já
+    # existente (double-booking). Deve falhar fechado.
+    session = _FakeMCPSession(result=_FakeCallToolResult(structured_content={"outro_campo": []}))
+    client = _client_com_sessao_fake(tmp_path, session)
+
+    with pytest.raises(GoogleCalendarConnectionError):
+        await client.is_time_available(datetime(2026, 9, 24, 10, 0), datetime(2026, 9, 24, 10, 30))
+
+
+async def test_is_time_available_structured_content_none_falha_fechado(tmp_path):
+    session = _FakeMCPSession(result=_FakeCallToolResult(structured_content=None))
+    client = _client_com_sessao_fake(tmp_path, session)
+
+    with pytest.raises(GoogleCalendarConnectionError):
+        await client.is_time_available(datetime(2026, 9, 24, 10, 0), datetime(2026, 9, 24, 10, 30))
+
+
 async def test_call_tool_com_is_error_vira_connection_error(tmp_path):
     session = _FakeMCPSession(result=_FakeCallToolResult(is_error=True, content=["deu erro"]))
     client = _client_com_sessao_fake(tmp_path, session)

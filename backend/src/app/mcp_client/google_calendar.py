@@ -186,7 +186,18 @@ class GoogleCalendarMCPClient:
         # NOTA: nomes de parâmetros/campos de resposta da tool a confirmar via
         # `tools/list` contra o endpoint real na primeira execução (ver spec
         # §2) — ajustar aqui se o schema real divergir.
-        eventos = resultado.get("events", [])
+        # Falha FECHADA (revisão final, achado 4): se a resposta não tiver a
+        # chave "events" — schema inesperado do endpoint real, ainda não
+        # confirmado contra a nota acima — não assume "lista vazia" (que
+        # tornaria qualquer horário "disponível" e arriscaria um
+        # double-booking real). Trata como falha de MCP, mesmo tratamento de
+        # `GoogleCalendarConnectionError` já usado pelo resto do cliente.
+        if "events" not in resultado:
+            raise GoogleCalendarConnectionError(
+                "Resposta inesperada da tool 'list_events' do MCP do Google "
+                f"Calendar: não contém a chave 'events' (recebido: {resultado!r})."
+            )
+        eventos = resultado["events"]
         return len(eventos) == 0
 
     async def create_event(
