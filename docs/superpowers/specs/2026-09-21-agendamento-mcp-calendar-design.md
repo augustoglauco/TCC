@@ -113,6 +113,18 @@ backend_escolhido = "local"` atual (`app/router/orchestrator.py:151`):
 2. Roda a extração LLM, faz merge dos campos não-nulos nos slots.
 3. **Slots incompletos** → playbook de agendamento (ajustado para saber o que
    já tem e o que falta) pede só os campos que faltam. Sem chamar o MCP.
+
+   `Nota (implementação, revisão final): o "playbook de agendamento" acima
+   não existe mais como prompt de sistema estático/LLM-gerado —
+   `_AGENDAMENTO_PLAYBOOK` foi removido (commit `a529f2b`, "remove playbook
+   morto") e substituído por templates de mensagem determinísticos em
+   `scheduling.py` (`mensagem_campos_faltando`, `mensagem_pedir_confirmacao`,
+   `mensagem_sucesso`, `MSG_ERRO_MCP`), montados sem chamada ao LLM. Mesmo
+   motivo do §5: durante a coleta/confirmação de uma ação irreversível
+   (criar um evento real na agenda), o risco de o LLM inventar/alucinar um
+   detalhe (nome, data, e-mail) na resposta ao visitante não compensa a
+   flexibilidade de um prompt gerado — ver decisão registrada em
+   `docs/ARCHITECTURE.md` (Fase 4A).`
 4. **Slots completos, ainda não validados** → antes de pedir confirmação,
    valida o horário (ver §4.3): fora do expediente/no passado, ou em
    conflito com outro evento já na agenda → explica o motivo, **limpa só
