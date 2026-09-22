@@ -68,7 +68,9 @@ def _mock_transport(json_response: dict, status_code: int = 200) -> httpx.MockTr
 
 def _client(tmp_path, transport: httpx.MockTransport) -> GoogleCalendarMCPClient:
     credentials_path = tmp_path / "credentials.json"
-    credentials_path.write_text(json.dumps({"installed": {"client_id": "cid", "client_secret": "csecret"}}))
+    credentials_path.write_text(
+        json.dumps({"installed": {"client_id": "cid", "client_secret": "csecret"}})
+    )
     token_path = tmp_path / "token.json"
     token_path.write_text(json.dumps({"refresh_token": "rtoken"}))
 
@@ -134,3 +136,126 @@ async def test_get_access_token_resposta_sem_access_token_vira_auth_error(tmp_pa
 
     with pytest.raises(GoogleCalendarAuthError):
         await client._get_access_token()
+
+
+from contextlib import asynccontextmanager
+from datetime import datetime
+
+from app.mcp_client.google_calendar import GoogleCalendarConnectionError
+
+
+class _FakeCallToolResult:
+    def __init__(self, structured_content=None, is_error=False, content=None):
+        self.structured_content = structured_content
+        self.is_error = is_error
+        self.content = content or []
+
+
+class _FakeMCPSession:
+    def __init__(self, result=None, exception=None):
+        self._result = result
+        self._exception = exception
+        self.calls: list[tuple[str, dict]] = []
+
+    async def call_tool(self, name, arguments):
+        self.calls.append((name, arguments))
+        if self._exception is not None:
+            raise self._exception
+        return self._result
+
+
+def _fake_session_factory(session: _FakeMCPSession):
+    @asynccontextmanager
+    async def factory(access_token: str):
+        yield session
+
+    return factory
+
+
+def _client_com_sessao_fake(tmp_path, session: _FakeMCPSession) -> GoogleCalendarMCPClient:
+    credentials_path = tmp_path / "credentials.json"
+    credentials_path.write_text(
+        json.dumps({"installed": {"client_id": "cid", "client_secret": "csecret"}})
+    )
+    token_path = tmp_path / "token.json"
+    token_path.write_text(json.dumps({"refresh_token": "rtoken"}))
+
+    client = GoogleCalendarMCPClient(
+        credentials_path=str(credentials_path),
+        token_path=str(token_path),
+        calendar_id="primary",
+        token_http_client=httpx.AsyncClient(
+            transport=_mock_transport({"access_token": "tok", "expires_in": 3600})
+        ),
+        session_factory=_fake_session_factory(session),
+    )
+    return client
+
+
+async def test_is_time_available_true_quando_nao_ha_eventos(tmp_path):
+    session = _FakeMCPSession(result=_FakeCallToolResult(structured_content={"events": []}))
+    client = _client_com_sessao_fake(tmp_path, session)
+
+    disponivel = await client.is_time_available(
+        datetime(2026, 9, 24, 10, 0), datetime(2026, 9, 24, 10, 30)
+    )
+
+    assert disponivel is True
+    assert session.calls[0][0] == "list_events"
+
+
+async def test_is_time_available_false_quando_ha_evento_na_janela(tmp_path):
+    session = _FakeMCPSession(
+        result=_FakeCallToolResult(structured_content={"events": [{"id": "evt1"}]})
+    )
+    client = _client_com_sessao_fake(tmp_path, session)
+
+    disponivel = await client.is_time_available(
+        datetime(2026, 9, 24, 10, 0), datetime(2026, 9, 24, 10, 30)
+    )
+
+    assert disponivel is False
+
+
+async def test_create_event_retorna_link_do_evento(tmp_path):
+    session = _FakeMCPSession(
+        result=_FakeCallToolResult(
+            structured_content={"htmlLink": "https://calendar.google.com/evt1"}
+        )
+    )
+    client = _client_com_sessao_fake(tmp_path, session)
+
+    link = await client.create_event(
+        summary="Visita — Maria",
+        start=datetime(2026, 9, 24, 10, 0),
+        end=datetime(2026, 9, 24, 10, 30),
+        attendee_email="maria@example.com",
+        attendee_name="Maria",
+    )
+
+    assert link == "https://calendar.google.com/evt1"
+    nome_tool, argumentos = session.calls[0]
+    assert nome_tool == "create_event"
+    assert argumentos["attendees"] == [{"email": "maria@example.com", "displayName": "Maria"}]
+
+
+async def test_call_tool_com_is_error_vira_connection_error(tmp_path):
+    session = _FakeMCPSession(result=_FakeCallToolResult(is_error=True, content=["deu erro"]))
+    client = _client_com_sessao_fake(tmp_path, session)
+
+    with pytest.raises(GoogleCalendarConnectionError):
+        await client.is_time_available(datetime(2026, 9, 24, 10, 0), datetime(2026, 9, 24, 10, 30))
+
+
+async def test_call_tool_excecao_de_transporte_vira_connection_error(tmp_path):
+    session = _FakeMCPSession(exception=RuntimeError("conexão recusada"))
+    client = _client_com_sessao_fake(tmp_path, session)
+
+    with pytest.raises(GoogleCalendarConnectionError):
+        await client.create_event(
+            summary="Visita",
+            start=datetime(2026, 9, 24, 10, 0),
+            end=datetime(2026, 9, 24, 10, 30),
+            attendee_email="a@b.com",
+            attendee_name="A",
+        )

@@ -11,11 +11,17 @@ automática (ver spec §3).
 
 import json
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 import httpx
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+from mcp.shared._httpx_utils import create_mcp_http_client
+
+_CALENDAR_MCP_URL = "https://calendarmcp.googleapis.com/mcp/v1"
 
 
 class GoogleCalendarAuthError(Exception):
@@ -45,8 +51,7 @@ def _load_client_secrets(path: str) -> tuple[str, str]:
         raw = json.loads(Path(path).read_text())
     except (FileNotFoundError, json.JSONDecodeError) as exc:
         raise GoogleCalendarAuthError(
-            f"Não foi possível ler o arquivo de credenciais do Google Calendar "
-            f"({path}): {exc}"
+            f"Não foi possível ler o arquivo de credenciais do Google Calendar ({path}): {exc}"
         ) from exc
 
     bloco = raw.get("installed") or raw.get("web")
@@ -137,4 +142,72 @@ class GoogleCalendarMCPClient:
         return access_token
 
     def _default_session_factory(self, access_token: str):
-        raise NotImplementedError  # implementado no Task 6
+        @asynccontextmanager
+        async def factory():
+            headers = {"Authorization": f"Bearer {access_token}"}
+            async with create_mcp_http_client(headers=headers) as http_client:
+                async with streamable_http_client(_CALENDAR_MCP_URL, http_client=http_client) as (
+                    read_stream,
+                    write_stream,
+                ):
+                    async with ClientSession(read_stream, write_stream) as session:
+                        await session.initialize()
+                        yield session
+
+        return factory()
+
+    async def _call_tool(self, name: str, arguments: dict) -> dict[str, Any]:
+        access_token = await self._get_access_token()
+        try:
+            async with self._session_factory(access_token) as session:
+                result = await session.call_tool(name, arguments)
+        except GoogleCalendarAuthError:
+            raise
+        except Exception as exc:
+            raise GoogleCalendarConnectionError(
+                f"Falha ao chamar a tool '{name}' do MCP do Google Calendar: {exc}"
+            ) from exc
+
+        if result.is_error:
+            raise GoogleCalendarConnectionError(
+                f"Tool '{name}' do MCP do Google Calendar retornou erro: {result.content}"
+            )
+        return result.structured_content or {}
+
+    async def is_time_available(self, start: datetime, end: datetime) -> bool:
+        resultado = await self._call_tool(
+            "list_events",
+            {
+                "calendarId": self._calendar_id,
+                "timeMin": start.isoformat(),
+                "timeMax": end.isoformat(),
+            },
+        )
+        # NOTA: nomes de parâmetros/campos de resposta da tool a confirmar via
+        # `tools/list` contra o endpoint real na primeira execução (ver spec
+        # §2) — ajustar aqui se o schema real divergir.
+        eventos = resultado.get("events", [])
+        return len(eventos) == 0
+
+    async def create_event(
+        self,
+        summary: str,
+        start: datetime,
+        end: datetime,
+        attendee_email: str,
+        attendee_name: str,
+        description: str = "",
+    ) -> str:
+        resultado = await self._call_tool(
+            "create_event",
+            {
+                "calendarId": self._calendar_id,
+                "summary": summary,
+                "description": description,
+                "start": {"dateTime": start.isoformat()},
+                "end": {"dateTime": end.isoformat()},
+                "attendees": [{"email": attendee_email, "displayName": attendee_name}],
+                "sendUpdates": "all",
+            },
+        )
+        return resultado.get("htmlLink", "")
