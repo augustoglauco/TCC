@@ -146,7 +146,21 @@ async def _handle_agendamento(
     scheduling_config: SchedulingConfig,
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     slots = get_booking_slots(conversation_id)
-    extraction = await extract_booking_slots(message, recent_messages, slots, local_client)
+    try:
+        extraction = await extract_booking_slots(message, recent_messages, slots, local_client)
+    except Exception as exc:
+        logger.error(
+            "backend_indisponivel",
+            extra={
+                "router": {
+                    "event": "backend_indisponivel",
+                    "backend": "local",
+                    "etapa": "extracao_agendamento",
+                    "erro": str(exc),
+                }
+            },
+        )
+        raise LocalBackendIndisponivelError(str(exc)) from exc
     slots = merge_slots(slots, extraction)
 
     if not slots.is_complete():
@@ -157,80 +171,82 @@ async def _handle_agendamento(
             yield evento
         return
 
-    if not slots.awaiting_confirmation:
-        try:
-            validar_expediente(slots.data_hora, scheduling_config)
-            fim = slots.data_hora + DURACAO_VISITA
-            disponivel = await calendar_client.is_time_available(slots.data_hora, fim)
-            if not disponivel:
-                raise HorarioInvalidoError(
-                    "Esse horário já está reservado. Pode sugerir outro horário?"
+    if slots.awaiting_confirmation:
+        if extraction.confirmacao:
+            try:
+                fim = slots.data_hora + DURACAO_VISITA
+                await calendar_client.create_event(
+                    summary=f"Visita — {slots.nome}",
+                    start=slots.data_hora,
+                    end=fim,
+                    attendee_email=slots.email,
+                    attendee_name=slots.nome,
+                    description=f"Telefone: {slots.telefone}",
                 )
-        except HorarioInvalidoError as exc:
-            slots.data_hora = None
-            set_booking_slots(conversation_id, slots)
-            async for evento in _emitir_resposta_agendamento(exc.motivo, "horario_invalido"):
-                yield evento
-            return
-        except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
-            logger.error(
-                "google_calendar_indisponivel",
-                extra={
-                    "router": {
-                        "event": "google_calendar_indisponivel",
-                        "etapa": "checagem_disponibilidade",
-                        "erro": str(exc),
-                    }
-                },
-            )
-            set_booking_slots(conversation_id, slots)
-            async for evento in _emitir_resposta_agendamento(MSG_ERRO_MCP, "mcp_indisponivel"):
+            except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
+                logger.error(
+                    "google_calendar_indisponivel",
+                    extra={
+                        "router": {
+                            "event": "google_calendar_indisponivel",
+                            "etapa": "criacao_evento",
+                            "erro": str(exc),
+                        }
+                    },
+                )
+                slots.awaiting_confirmation = False
+                set_booking_slots(conversation_id, slots)
+                async for evento in _emitir_resposta_agendamento(MSG_ERRO_MCP, "mcp_indisponivel"):
+                    yield evento
+                return
+
+            texto = mensagem_sucesso(slots, scheduling_config.timezone)
+            clear_booking_slots(conversation_id)
+            async for evento in _emitir_resposta_agendamento(texto, "confirmado"):
                 yield evento
             return
 
-        slots.awaiting_confirmation = True
+        # Resposta ambígua durante awaiting_confirmation=True (ex.: o
+        # visitante mudou data/hora em vez de confirmar claramente): volta
+        # a "não confirmado ainda" em vez de só repetir a pergunta, para
+        # cair no bloco de validação abaixo NO MESMO turno — se a
+        # data_hora mudou para algo inválido (fora do expediente/em
+        # conflito), o visitante não recebe "posso confirmar?" de novo
+        # sobre um horário que na verdade não é mais válido (spec §4.1
+        # passo 7).
+        slots.awaiting_confirmation = False
+
+    try:
+        validar_expediente(slots.data_hora, scheduling_config)
+        fim = slots.data_hora + DURACAO_VISITA
+        disponivel = await calendar_client.is_time_available(slots.data_hora, fim)
+        if not disponivel:
+            raise HorarioInvalidoError(
+                "Esse horário já está reservado. Pode sugerir outro horário?"
+            )
+    except HorarioInvalidoError as exc:
+        slots.data_hora = None
         set_booking_slots(conversation_id, slots)
-        async for evento in _emitir_resposta_agendamento(
-            mensagem_pedir_confirmacao(slots, scheduling_config.timezone), "aguardando_confirmacao"
-        ):
+        async for evento in _emitir_resposta_agendamento(exc.motivo, "horario_invalido"):
+            yield evento
+        return
+    except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
+        logger.error(
+            "google_calendar_indisponivel",
+            extra={
+                "router": {
+                    "event": "google_calendar_indisponivel",
+                    "etapa": "checagem_disponibilidade",
+                    "erro": str(exc),
+                }
+            },
+        )
+        set_booking_slots(conversation_id, slots)
+        async for evento in _emitir_resposta_agendamento(MSG_ERRO_MCP, "mcp_indisponivel"):
             yield evento
         return
 
-    if extraction.confirmacao:
-        try:
-            fim = slots.data_hora + DURACAO_VISITA
-            await calendar_client.create_event(
-                summary=f"Visita — {slots.nome}",
-                start=slots.data_hora,
-                end=fim,
-                attendee_email=slots.email,
-                attendee_name=slots.nome,
-                description=f"Telefone: {slots.telefone}",
-            )
-        except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
-            logger.error(
-                "google_calendar_indisponivel",
-                extra={
-                    "router": {
-                        "event": "google_calendar_indisponivel",
-                        "etapa": "criacao_evento",
-                        "erro": str(exc),
-                    }
-                },
-            )
-            slots.awaiting_confirmation = False
-            set_booking_slots(conversation_id, slots)
-            async for evento in _emitir_resposta_agendamento(MSG_ERRO_MCP, "mcp_indisponivel"):
-                yield evento
-            return
-
-        texto = mensagem_sucesso(slots, scheduling_config.timezone)
-        clear_booking_slots(conversation_id)
-        async for evento in _emitir_resposta_agendamento(texto, "confirmado"):
-            yield evento
-        return
-
-    # Não confirmou claramente — mantém os slots e volta a pedir confirmação.
+    slots.awaiting_confirmation = True
     set_booking_slots(conversation_id, slots)
     async for evento in _emitir_resposta_agendamento(
         mensagem_pedir_confirmacao(slots, scheduling_config.timezone), "aguardando_confirmacao"

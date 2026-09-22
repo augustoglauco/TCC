@@ -1,6 +1,6 @@
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -149,6 +149,24 @@ def setup_function():
     reset_all_booking_slots()
 
 
+def _data_futura_valida() -> datetime:
+    """Um dia útil (seg-sex) bem no futuro, às 10h — dentro do expediente
+    configurado em `_SCHEDULING_CONFIG` (09:00-18:00). Computado em cima de
+    `datetime.now()` em vez de hardcodado, para não "apodrecer": uma data
+    fixa como "2026-10-01" passa a ser rejeitada por `validar_expediente`
+    (horário no passado) assim que o calendário andar até lá."""
+    referencia = datetime.now() + timedelta(days=365)
+    while referencia.weekday() > 4:  # 0=segunda ... 4=sexta
+        referencia += timedelta(days=1)
+    return referencia.replace(hour=10, minute=0, second=0, microsecond=0)
+
+
+def _data_futura_valida_iso() -> str:
+    # America/Sao_Paulo não observa horário de verão desde 2019 — deslocamento
+    # fixo -03:00, seguro de hardcodar aqui.
+    return _data_futura_valida().strftime("%Y-%m-%dT%H:%M:%S-03:00")
+
+
 async def test_agendamento_slots_incompletos_pede_dados_sem_chamar_mcp():
     # Continuação de um fluxo já em andamento: o visitante já informou a
     # data/hora num turno anterior (slots parciais já salvos para a
@@ -158,7 +176,7 @@ async def test_agendamento_slots_incompletos_pede_dados_sem_chamar_mcp():
     # de agendamento (ver gatilho em `handle_message`).
     set_booking_slots(
         "conv-1",
-        BookingSlots(data_hora=datetime(2026, 10, 1, 10, 0)),
+        BookingSlots(data_hora=_data_futura_valida()),
     )
     local_client = _FakeLLMClient(
         response=LLMResponse(
@@ -224,7 +242,7 @@ async def test_agendamento_horario_em_conflito_pede_novo_horario():
     local_client = _FakeLLMClient(
         response=LLMResponse(
             text=(
-                '{"data_hora": "2026-10-01T10:00:00-03:00", "nome": "Maria", '
+                '{"data_hora": "' + _data_futura_valida_iso() + '", "nome": "Maria", '
                 '"email": "maria@example.com", "telefone": "11999999999", "confirmacao": null}'
             ),
             total_duration_ms=10.0,
@@ -253,7 +271,7 @@ async def test_agendamento_horario_valido_pede_confirmacao():
     local_client = _FakeLLMClient(
         response=LLMResponse(
             text=(
-                '{"data_hora": "2026-10-01T10:00:00-03:00", "nome": "Maria", '
+                '{"data_hora": "' + _data_futura_valida_iso() + '", "nome": "Maria", '
                 '"email": "maria@example.com", "telefone": "11999999999", "confirmacao": null}'
             ),
             total_duration_ms=10.0,
@@ -283,7 +301,7 @@ async def test_agendamento_confirmacao_cria_evento_e_limpa_slots():
     set_booking_slots(
         "conv-5",
         BookingSlots(
-            data_hora=datetime(2026, 10, 1, 10, 0),
+            data_hora=_data_futura_valida(),
             nome="Maria",
             email="maria@example.com",
             telefone="11999999999",
@@ -323,7 +341,7 @@ async def test_agendamento_falha_do_mcp_na_confirmacao_mantem_slots():
     set_booking_slots(
         "conv-6",
         BookingSlots(
-            data_hora=datetime(2026, 10, 1, 10, 0),
+            data_hora=_data_futura_valida(),
             nome="Maria",
             email="maria@example.com",
             telefone="11999999999",
@@ -364,7 +382,7 @@ async def test_agendamento_resposta_ambigua_durante_confirmacao_volta_a_pergunta
     set_booking_slots(
         "conv-7",
         BookingSlots(
-            data_hora=datetime(2026, 10, 1, 10, 0),
+            data_hora=_data_futura_valida(),
             nome="Maria",
             email="maria@example.com",
             telefone="11999999999",
@@ -397,6 +415,114 @@ async def test_agendamento_resposta_ambigua_durante_confirmacao_volta_a_pergunta
     decisao = eventos[-1]
     assert decisao.motivo_escalonamento == "aguardando_confirmacao"
     assert calendar_client.create_event_calls == []
+
+
+async def test_agendamento_resposta_ambigua_muda_para_horario_invalido_revalida_no_mesmo_turno():
+    # Regressão (fix-round Task 9, achado 3): durante awaiting_confirmation,
+    # uma resposta ambígua que também muda data_hora (em vez de confirmar
+    # claramente) não pode simplesmente repetir "posso confirmar?" sobre um
+    # horário que deixou de ser válido — precisa revalidar antes de pedir
+    # confirmação de novo (spec §4.1 passo 7). Aqui a nova data_hora
+    # extraída é no passado (2020), então a resposta já deve vir como
+    # "horario_invalido" no mesmo turno, sem re-perguntar "posso confirmar?"
+    # e sem chamar create_event.
+    set_booking_slots(
+        "conv-8",
+        BookingSlots(
+            data_hora=_data_futura_valida(),
+            nome="Maria",
+            email="maria@example.com",
+            telefone="11999999999",
+            awaiting_confirmation=True,
+        ),
+    )
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": "2020-01-01T10:00:00-03:00", "nome": null, "email": null, '
+                '"telefone": null, "confirmacao": null}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient()
+
+    eventos = await _coletar_eventos(
+        "na verdade prefiro em 2020",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-8",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "horario_invalido"
+    assert calendar_client.create_event_calls == []
+
+
+async def test_agendamento_falha_do_mcp_na_checagem_de_disponibilidade_mantem_slots():
+    # Regressão (fix-round Task 9, achado 1): o except de
+    # GoogleCalendarAuthError/GoogleCalendarConnectionError no ponto de
+    # checagem de disponibilidade (is_time_available) não tinha cobertura de
+    # teste — só o except homônimo em create_event tinha.
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": "' + _data_futura_valida_iso() + '", "nome": "Maria", '
+                '"email": "maria@example.com", "telefone": "11999999999", "confirmacao": null}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient(
+        availability_exception=GoogleCalendarConnectionError("timeout")
+    )
+
+    eventos = await _coletar_eventos(
+        "quero marcar uma visita",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-9",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "mcp_indisponivel"
+    slots_restantes = get_booking_slots("conv-9")
+    assert slots_restantes.nome == "Maria"  # dados preservados
+    assert calendar_client.create_event_calls == []
+
+
+async def test_agendamento_falha_do_local_na_extracao_vira_local_backend_indisponivel():
+    # Regressão (fix-round Task 9, achado 2): a chamada a
+    # extract_booking_slots (que usa o LLM local) não era protegida por
+    # try/except, ao contrário de toda outra chamada ao backend local neste
+    # arquivo (classificação, geração) — uma falha do Ollama no meio do
+    # fluxo de agendamento vazava crua em vez de virar
+    # LocalBackendIndisponivelError.
+    local_client = _FakeLLMClient(exception=ConnectionError("ollama fora do ar"))
+    calendar_client = _FakeCalendarClient()
+
+    with pytest.raises(LocalBackendIndisponivelError):
+        await _coletar_eventos(
+            "quero marcar uma visita",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=_FakeLLMClient(response=_resposta_externa()),
+            rag_client=_FakeRAGClient(),
+            complexity_strategy="heuristic",
+            conversation_id="conv-10",
+            calendar_client=calendar_client,
+            scheduling_config=_SCHEDULING_CONFIG,
+        )
 
 
 async def test_ttft_usa_prompt_eval_duration_nao_load_duration():
