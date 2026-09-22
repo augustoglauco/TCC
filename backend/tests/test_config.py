@@ -34,3 +34,13 @@ def test_settings_have_crawler_defaults():
     settings = Settings(_env_file=None)
     assert settings.crawler_max_pages == 20
     assert settings.crawler_confidence_threshold == 0.7
+
+
+def test_settings_tem_defaults_de_agendamento():
+    settings = Settings(_env_file=None)
+
+    assert settings.google_calendar_token_path == "./secrets/google_calendar_token.json"
+    assert settings.agendamento_timezone == "America/Sao_Paulo"
+    assert settings.agendamento_expediente_dias == "seg-sex"
+    assert settings.agendamento_expediente_inicio == "09:00"
+    assert settings.agendamento_expediente_fim == "18:00"

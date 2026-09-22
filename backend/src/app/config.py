@@ -89,6 +89,15 @@ class Settings(BaseSettings):
 
     google_calendar_credentials_path: str = "./secrets/google_calendar_credentials.json"
     google_calendar_calendar_id: str = "primary"
+    # Refresh token gerado por scripts/authorize_google_calendar.py (R11,
+    # Fase 4A — ver docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md §3).
+    google_calendar_token_path: str = "./secrets/google_calendar_token.json"
+
+    # --- Validação de horário do agendamento (R11, Fase 4A) ---
+    agendamento_timezone: str = "America/Sao_Paulo"
+    agendamento_expediente_dias: str = "seg-sex"
+    agendamento_expediente_inicio: str = "09:00"
+    agendamento_expediente_fim: str = "18:00"
 
     mcp_b2b_host: str = "0.0.0.0"
     mcp_b2b_port: int = 8100
