@@ -147,3 +147,94 @@ def test_merge_slots_sobrescreve_quando_novo_valor_vem_preenchido():
     resultado = merge_slots(atual, extraido)
 
     assert resultado.nome == "Maria Silva"
+
+
+# Task 3 tests
+from datetime import timedelta
+
+from app.router.scheduling import (
+    DURACAO_VISITA,
+    MSG_ERRO_MCP,
+    HorarioInvalidoError,
+    SchedulingConfig,
+    mensagem_campos_faltando,
+    mensagem_pedir_confirmacao,
+    mensagem_sucesso,
+    validar_expediente,
+)
+
+_CONFIG = SchedulingConfig(
+    timezone="America/Sao_Paulo",
+    expediente_dias="seg-sex",
+    expediente_inicio="09:00",
+    expediente_fim="18:00",
+)
+
+
+def test_duracao_visita_e_30_minutos():
+    assert DURACAO_VISITA == timedelta(minutes=30)
+
+
+def test_validar_expediente_aceita_horario_valido():
+    # 2026-09-24 é uma quinta-feira, 10h — dentro do expediente seg-sex 9-18h.
+    validar_expediente(datetime(2026, 9, 24, 10, 0), _CONFIG)  # não levanta
+
+
+def test_validar_expediente_rejeita_data_no_passado():
+    with pytest.raises(HorarioInvalidoError):
+        validar_expediente(datetime(2020, 1, 1, 10, 0), _CONFIG)
+
+
+def test_validar_expediente_rejeita_fim_de_semana():
+    # 2026-09-26 é sábado.
+    with pytest.raises(HorarioInvalidoError) as exc_info:
+        validar_expediente(datetime(2026, 9, 26, 10, 0), _CONFIG)
+    assert "expediente" in exc_info.value.motivo.lower()
+
+
+def test_validar_expediente_rejeita_fora_do_horario():
+    # 2026-09-24 é quinta, 20h — fora do expediente até 18h.
+    with pytest.raises(HorarioInvalidoError):
+        validar_expediente(datetime(2026, 9, 24, 20, 0), _CONFIG)
+
+
+def test_mensagem_campos_faltando_lista_um_campo():
+    slots = BookingSlots(data_hora=datetime(2026, 9, 24, 10, 0), nome="Maria", email="m@x.com")
+    texto = mensagem_campos_faltando(slots)
+    assert "telefone" in texto.lower()
+
+
+def test_mensagem_campos_faltando_lista_varios_campos():
+    slots = BookingSlots()
+    texto = mensagem_campos_faltando(slots)
+    assert "nome" in texto.lower()
+    assert "e-mail" in texto.lower()
+    assert "telefone" in texto.lower()
+
+
+def test_mensagem_pedir_confirmacao_inclui_dados_coletados():
+    slots = BookingSlots(
+        data_hora=datetime(2026, 9, 24, 10, 0),
+        nome="Maria",
+        email="maria@example.com",
+        telefone="11999999999",
+    )
+    texto = mensagem_pedir_confirmacao(slots, "America/Sao_Paulo")
+    assert "Maria" in texto
+    assert "maria@example.com" in texto
+    assert "confirmar" in texto.lower()
+
+
+def test_mensagem_sucesso_menciona_email():
+    slots = BookingSlots(
+        data_hora=datetime(2026, 9, 24, 10, 0),
+        nome="Maria",
+        email="maria@example.com",
+        telefone="11999999999",
+    )
+    texto = mensagem_sucesso(slots, "America/Sao_Paulo")
+    assert "maria@example.com" in texto
+
+
+def test_msg_erro_mcp_nao_promete_confirmacao_automatica():
+    assert "não consegui confirmar" in MSG_ERRO_MCP.lower()
