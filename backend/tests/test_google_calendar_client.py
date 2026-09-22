@@ -1,9 +1,14 @@
 import json
+from contextlib import asynccontextmanager
+from datetime import datetime
 
+import httpx
 import pytest
 
 from app.mcp_client.google_calendar import (
     GoogleCalendarAuthError,
+    GoogleCalendarConnectionError,
+    GoogleCalendarMCPClient,
     _load_client_secrets,
     _load_refresh_token,
 )
@@ -52,11 +57,6 @@ def test_load_refresh_token_le_do_arquivo(tmp_path):
 def test_load_refresh_token_arquivo_inexistente_vira_auth_error():
     with pytest.raises(GoogleCalendarAuthError):
         _load_refresh_token("/caminho/que/nao/existe.json")
-
-
-import httpx
-
-from app.mcp_client.google_calendar import GoogleCalendarMCPClient
 
 
 def _mock_transport(json_response: dict, status_code: int = 200) -> httpx.MockTransport:
@@ -136,12 +136,6 @@ async def test_get_access_token_resposta_sem_access_token_vira_auth_error(tmp_pa
 
     with pytest.raises(GoogleCalendarAuthError):
         await client._get_access_token()
-
-
-from contextlib import asynccontextmanager
-from datetime import datetime
-
-from app.mcp_client.google_calendar import GoogleCalendarConnectionError
 
 
 class _FakeCallToolResult:
