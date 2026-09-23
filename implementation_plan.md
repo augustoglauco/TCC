@@ -1,258 +1,384 @@
-# Suporte ao TypeSafe Jev no Roteador com Alternância no Admin Implementation Plan
+# Monitor de Tom (R8, Fase 4B) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Adicionar o **TypeSafe Jev (via OpenRouter)** como opção configurável para o Roteador de Intenção e Domínios (Fase 1), permitindo alternância dinâmica em runtime entre o **Método Clássico** (Heurística + LLM Local Ollama) e o **TypeSafe Jev** (OpenRouter) através da página administrativa de parâmetros de execução, com fallback automático e telemetria transparente.
+**Goal:** Fechar R8 do roadmap — monitorar o tom de cada mensagem do cliente em paralelo ao roteamento normal e, quando a urgência/insatisfação ultrapassa um limiar, emitir um alerta SSE, registrar o caso no Postgres para follow-up humano e expor uma listagem administrativa — sem interromper a resposta normal do domínio.
 
-**Architecture:** O parâmetro `intent_router_provider` é gerenciado em memória no `app.state` do FastAPI via `RuntimeSettings` (`GET`/`PUT /api/admin/runtime-settings`). No fluxo do chat (`app/api/chat.py`), o provedor ativo é obtido do estado e injetado em `orchestrator.handle_message(...)`, que o repassa para `classifier.classify(...)`. No modo `jev_openrouter`, o classificador aciona o modelo `typesafe/jev-latest` (TypeSafe Jev, um modelo "System One" de decisão estruturada) através do **endpoint dedicado do OpenRouter `POST /api/v1/systemone`** — não o `/chat/completions` genérico usado pelo restante do `OpenRouterClient` — com um corpo `{model, state, questions}` (pergunta única do tipo `choice` cobrindo os 5 domínios) e resposta já tipada (`answers.dominio.choice`/`.confidence`), sem geração de texto livre nem parsing de JSON solto. Reaproveita a mesma chave (`EXTERNAL_MODEL_API_KEY`) e `base_url` já configurados para o modelo externo de chat. Em caso de falha de rede/API externa, o sistema degrada graciosamente para a heurística local sem interromper o atendimento. A decisão do roteador é registrada na telemetria SSE (`ChatDoneEventData`) e exibida no painel administrativo e no modal de chat. Decisão de arquitetura registrada em `docs/ARCHITECTURE.md` §5 (2026-09-23) e item correspondente em `docs/ROADMAP.md` ("Extra fora do MVP — Gerenciador de Modelos Locais (Ollama)").
+**Architecture:** Novo módulo puro `app.router.tone_monitor` (heurística de palavras-chave/sinais estruturais → fallback configurável entre LLM local e TypeSafe Jev via OpenRouter) roda no início de `handle_message`, em paralelo lógico à classificação de domínio (não substitui a resposta). Primeira escalada de uma conversa emite um evento SSE `escalonamento` antes do `done`, persiste um registro em `tom_escalonamentos` (Postgres) e loga um evento estruturado. Backend-only: o banner visual no frontend fica para a Fase 8 (fora de escopo desta entrega).
 
-> **Nota de verificação:** este plano foi revisado contra a API real do TypeSafe Jev via OpenRouter (`docs.typesafe.ai`, `openrouter.ai/~typesafe/jev-latest`, `openrouter.ai/docs/api/api-reference/systemone/submit-a-system-one-request.md`) — a versão anterior deste documento assumia incorretamente uma chamada `/chat/completions` com prompt em texto livre, que não funcionaria contra o modelo real (`output_modalities: ["decisions"]`, `has_text_output: false`). As assinaturas de função abaixo (`handle_message`, `RouterDecision`, etc.) refletem o estado do código em 2026-09-23 — **reconfirme contra o arquivo real antes de implementar cada task**, já que o código evolui entre o momento em que este plano foi escrito e sua execução.
+**Tech Stack:** FastAPI, Pydantic v2, SQLAlchemy 2.0 async + Alembic, pytest + pytest-asyncio, httpx (`MockTransport` para testes do OpenRouter), Ollama (`think: false` já ativo), OpenRouter `/systemone` (TypeSafe Jev).
 
-> **Nota pós-implementação (revisão final, 2026-09-23):** o slug de modelo mostrado ao longo deste plano (`typesafe/jev-latest`, sem til) estava errado — a verificação E2E da Task 6 descobriu que o valor real e funcional é `~typesafe/jev-latest` (com til). Este documento é um artefato histórico de planejamento e não foi reescrito retroativamente; o valor autoritativo e corrigido está em `backend/src/app/config.py` e em `docs/ARCHITECTURE.md` §5.
-
-**Tech Stack:** Python 3.13, FastAPI, Pydantic v2, `httpx`, Next.js 14 (App Router), TypeScript, Tailwind CSS, Pytest.
-
----
+**Spec:** `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md` — o plano abaixo argumenta a partir dela; qualquer conflito entre um passo deste plano e o texto da spec resolve-se a favor da spec.
 
 ## Global Constraints
 
-- **Padrão Default Preservado:** O provedor padrão do roteador inicializa como `"heuristica_llm"`, garantindo total compatibilidade regressiva e independência de rede externa no boot padrão.
-- **Desacoplamento de Camadas:** As funções em `app/router/` (`classifier.py`, `orchestrator.py`) permanecem puras e desacopladas do framework FastAPI — nenhuma função de domínio acessa `request.app.state` diretamente; dependências são sempre injetadas como parâmetros.
-- **Resiliência e Fallback Gracioso:** Qualquer falha na chamada ao OpenRouter/Jev (timeout, HTTP 4xx/5xx, chave de API ausente ou payload malformado) degrada imediatamente para a heurística local de palavras-chave, emitindo warning no log estruturado e nunca derrubando a requisição do usuário com erro 500/503.
-- **Modelo e Endpoint Oficiais do Jev:** Chamadas para o Jev usam o **endpoint dedicado do OpenRouter `POST {base_url}/systemone`** (não `/chat/completions`), identificador de modelo `typesafe/jev-latest` (configurável via `JEV_MODEL_NAME`), com uma única pergunta de escolha (`type: "choice"`) cobrindo exatamente os 5 domínios do sistema: `vendas`, `suporte`, `atendimento`, `agendamento` e `fora_escopo`. Resposta lida de `answers.dominio.choice`/`answers.dominio.confidence` — a API já devolve um resultado tipado, não texto para parsear.
-- **Complexidade Local:** A avaliação de complexidade (`baixa` ou `alta`) continua utilizando o cálculo heurístico rápido local (`_heuristic_complexity`), garantindo resposta instantânea e sem requisições adicionais.
-- **Telemetria de Ponta a Ponta:** O provedor utilizado (`heuristica_llm` ou `jev_openrouter`) deve ser propagado pelo `RouterDecision`, incluído no evento `done` (`ChatDoneEventData`) do stream SSE e disponibilizado na UI do chat.
+- `ToneResult.provider_efetivo` só assume dois valores: `"heuristica_llm"` (heurística OU fallback ao LLM local — mesmo provedor configurado) e `"jev_openrouter"` (só quando o Jev respondeu de fato). Qualquer falha do Jev degrada para `"heuristica_llm"`, nunca derruba a mensagem do usuário (mesma convenção de `ClassificationResult.provider_efetivo`, docs/ARCHITECTURE.md §5).
+- `ToneResult.motivo` só assume três valores: `"urgencia"`, `"insatisfacao"`, ou `None` (quando `escalate=False`).
+- `TONE_MONITOR_ENABLED` default `true`; `TONE_MONITOR_PROVIDER` default `"heuristica_llm"` (valores possíveis: `"heuristica_llm"` | `"jev_openrouter"`).
+- Migração Alembic desta entrega: `revision = "0006"`, `down_revision = "0005"` (a migração mais recente hoje é `0005_rag_collection_purpose.py`).
+- Evento SSE novo: `event: escalonamento`, payload `{"motivo": <str|null>, "confianca": <float>}`, emitido **antes** do `done`, só na primeira escalada de cada `conversation_id` (estado em memória, mesmo padrão MVP de `booking_slots`/`_conversation_history` — perdido em restart do processo).
+- Endpoint novo: `GET /api/admin/tom/escalonamentos`, `LIMIT 100` fixo, sem paginação, mais recente primeiro.
+- Sem mecanismo de "des-escalar" uma conversa já marcada — `# MVP` aceito, mesmo espírito do fluxo de agendamento.
+- Banner visual no frontend, fila real de atendimento humano e painel administrativo visual estão **fora de escopo** desta entrega (spec §9).
 
 ---
 
-## Review Focus
-
-1. **Injeção limpa de dependência:** Garantir que `intent_router_provider` seja extraído de `request.app.state` em `chat.py` e repassado explicitamente para `handle_message` e `classify`, sem acoplamento estático.
-2. **Degradação graciosa em timeout/erro:** Simular falha de conexão HTTP na chamada ao Jev e assegurar que o classificador retorna o domínio heurístico sem levantar exceção não tratada.
-3. **Persistência em memória no Admin:** Garantir que `PUT /api/admin/runtime-settings` atualiza `intent_router_provider` e reflete imediatamente no próximo `GET` e nas próximas mensagens de chat.
-4. **Validação de payload inválido no PUT:** Garantir que strings fora de `["heuristica_llm", "jev_openrouter"]` resultem em HTTP 422 Unprocessable Entity.
-5. **Telemetria completa no frontend:** Confirmar que o evento SSE `done` inclui `router_provider` sem quebrar clientes legados.
-
----
-
-## File Structure
-
-**Modificar (Backend):**
-- `backend/src/app/models/runtime_settings.py`: Adiciona `intent_router_provider` a `RuntimeSettingsResponse` e `RuntimeSettingsUpdateRequest`.
-- `backend/src/app/api/runtime_settings.py`: Gerencia `intent_router_provider` no `app.state` em `_build_response` e `update_runtime_settings`.
-- `backend/src/app/config.py`: Adiciona `jev_model_name: str = "typesafe/jev-latest"` a `Settings` (env `JEV_MODEL_NAME`, já em `.env.example`).
-- `backend/src/app/main.py`: Inicializa `app.state.intent_router_provider = "heuristica_llm"` e passa `jev_model=settings.jev_model_name` na construção de `app.state.external_client` (`OpenRouterClient(...)`, linha ~58 de `main.py`).
-- `backend/src/app/router/openrouter_client.py`: Adiciona parâmetro de construtor `jev_model` e método `classify_intent_jev(...)`, que chama o endpoint dedicado `POST {base_url}/systemone` (distinto de `/chat/completions`).
-- `backend/src/app/router/classifier.py`: Atualiza `classify(...)` e cria `_classify_with_jev(...)` com fallback gracioso.
-- `backend/src/app/models/chat.py`: Adiciona `router_provider: str` a `ChatDoneEventData`.
-- `backend/src/app/router/orchestrator.py`: Adiciona `router_provider: str` a `RouterDecision`, recebe `intent_router_provider` em `handle_message` e repassa para `classify`.
-- `backend/src/app/api/chat.py`: Injeta `intent_router_provider` e preenche `ChatDoneEventData.router_provider`.
-
-**Testes (Backend):**
-- `backend/tests/test_runtime_settings_api.py`: Testa leitura e atualização de `intent_router_provider`.
-- `backend/tests/test_openrouter_client.py`: Testa chamada formatada para `typesafe/jev-latest`.
-- `backend/tests/test_classifier.py`: Testa classificação via Jev e fallback gracioso em erro.
-- `backend/tests/test_orchestrator.py`: Testa fluxo completo com telemetria do roteador.
-- `backend/tests/test_chat_api.py`: Testa evento SSE `done` contendo `router_provider`.
-
-**Modificar (Frontend):**
-- `frontend/lib/types/runtimeSettings.ts`: Adiciona `intent_router_provider` na tipagem de `RuntimeSettings`.
-- `frontend/lib/types/chat.ts`: Adiciona `router_provider?: string` em `ChatMetrics` e `ChatDoneEventData`.
-- `frontend/components/admin/RuntimeSettingsForm.tsx`: Adiciona controle visual (radio buttons estilizados) para alternar o classificador de intenção.
-- `frontend/components/chat/ChatModal.tsx`: Repassa `router_provider` para as métricas da mensagem.
-- `frontend/components/chat/MessageBubble.tsx`: Exibe o provedor do roteador no painel expansível de métricas.
-
----
-
-## Task 1: Parâmetros de Execução em Runtime — Schema e Endpoint
+### Task 1: Configuração e Runtime Settings
 
 **Files:**
+- Modify: `backend/src/app/config.py`
 - Modify: `backend/src/app/models/runtime_settings.py`
 - Modify: `backend/src/app/api/runtime_settings.py`
 - Modify: `backend/src/app/main.py`
+- Modify: `backend/.env.example`
+- Test: `backend/tests/test_config.py`
 - Test: `backend/tests/test_runtime_settings_api.py`
 
 **Interfaces:**
-- Produces: `RuntimeSettingsResponse.intent_router_provider: Literal["heuristica_llm", "jev_openrouter"] = "heuristica_llm"`; `RuntimeSettingsUpdateRequest.intent_router_provider: Literal["heuristica_llm", "jev_openrouter"] | None = None`.
+- Produces: `Settings.tone_monitor_enabled: bool` (default `True`), `Settings.tone_monitor_provider: Literal["heuristica_llm", "jev_openrouter"]` (default `"heuristica_llm"`) em `app.config`.
+- Produces: `ToneMonitorProvider = Literal["heuristica_llm", "jev_openrouter"]` e `DEFAULT_TONE_MONITOR_PROVIDER: ToneMonitorProvider = "heuristica_llm"` em `app.models.runtime_settings` — consumidos pelas Tasks 4, 6 e 7.
+- Produces: `app.state.tone_monitor_enabled: bool` e `app.state.tone_monitor_provider: str`, lidos/escritos via `GET`/`PUT /api/admin/runtime-settings` — consumidos pela Task 7 (`app.api.chat`).
 
-- [ ] **Step 1: Write failing tests in `test_runtime_settings_api.py`**
+- [ ] **Step 1: Escrever o teste que falha (config.py)**
+
+Em `backend/tests/test_config.py`, adicionar ao final do arquivo:
 
 ```python
-# backend/tests/test_runtime_settings_api.py (adicionar ao final)
-def test_get_retorna_intent_router_provider_default():
+def test_settings_have_tone_monitor_defaults():
+    settings = Settings(_env_file=None)
+    assert settings.tone_monitor_enabled is True
+    assert settings.tone_monitor_provider == "heuristica_llm"
+```
+
+- [ ] **Step 2: Rodar e confirmar a falha**
+
+Run: `cd backend && .venv/bin/pytest tests/test_config.py::test_settings_have_tone_monitor_defaults -v`
+Expected: FAIL com `AttributeError: 'Settings' object has no attribute 'tone_monitor_enabled'`
+
+- [ ] **Step 3: Adicionar os campos em `Settings`**
+
+Em `backend/src/app/config.py`, logo após o bloco `jev_timeout_s` (linhas 48-53), adicionar:
+
+```python
+    # Monitor de Tom (R8, Fase 4B, além do MVP original — ver
+    # docs/ARCHITECTURE.md §5, decisão 2026-09-23, e
+    # docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md). Mesmo
+    # padrão de dois provedores do classificador de intenção acima
+    # (heuristica_llm/jev_openrouter) — ajustável em runtime via
+    # PUT /api/admin/runtime-settings (ver app/api/runtime_settings.py).
+    tone_monitor_enabled: bool = True
+    tone_monitor_provider: Literal["heuristica_llm", "jev_openrouter"] = "heuristica_llm"
+```
+
+- [ ] **Step 4: Rodar e confirmar que passa**
+
+Run: `cd backend && .venv/bin/pytest tests/test_config.py -v`
+Expected: PASS (todos os testes do arquivo)
+
+- [ ] **Step 5: Adicionar o tipo e a constante em `runtime_settings.py`**
+
+Em `backend/src/app/models/runtime_settings.py`, logo após a definição de `DEFAULT_INTENT_ROUTER_PROVIDER` (linha 15), adicionar:
+
+```python
+ToneMonitorProvider = Literal["heuristica_llm", "jev_openrouter"]
+# Mesmo padrão de DEFAULT_INTENT_ROUTER_PROVIDER acima — único ponto de
+# definição do default do Monitor de Tom (R8, Fase 4B).
+DEFAULT_TONE_MONITOR_PROVIDER: ToneMonitorProvider = "heuristica_llm"
+```
+
+Em seguida, adicionar dois campos ao final de `RuntimeSettingsResponse` (depois de `intent_router_provider`):
+
+```python
+    tone_monitor_enabled: bool = Field(
+        ..., description="Liga/desliga o Monitor de Tom (R8) — heurística e fallback nunca rodam quando false."
+    )
+    tone_monitor_provider: ToneMonitorProvider = Field(
+        default=DEFAULT_TONE_MONITOR_PROVIDER,
+        description="Provedor do fallback ambíguo do Monitor de Tom quando a heurística não encontra sinal forte.",
+    )
+```
+
+E dois campos ao final de `RuntimeSettingsUpdateRequest`:
+
+```python
+    tone_monitor_enabled: bool | None = None
+    tone_monitor_provider: ToneMonitorProvider | None = None
+```
+
+- [ ] **Step 6: Escrever o teste que falha (runtime_settings_api.py)**
+
+Em `backend/tests/test_runtime_settings_api.py`, adicionar `DEFAULT_TONE_MONITOR_PROVIDER` ao import existente de `app.models.runtime_settings` (linha 5), e em `_build_app` adicionar o parâmetro `tone_monitor_enabled: bool = True, tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER` com as respectivas linhas `app.state.tone_monitor_enabled = tone_monitor_enabled` e `app.state.tone_monitor_provider = tone_monitor_provider` (mesmo padrão de `intent_router_provider` já existente na função). Depois, adicionar ao final do arquivo:
+
+```python
+def test_get_runtime_settings_traz_defaults_do_monitor_de_tom():
     app, *_ = _build_default_app()
     client = TestClient(app)
 
     response = client.get("/api/admin/runtime-settings")
+
     assert response.status_code == 200
-    data = response.json()
-    assert data["intent_router_provider"] == "heuristica_llm"
+    body = response.json()
+    assert body["tone_monitor_enabled"] is True
+    assert body["tone_monitor_provider"] == "heuristica_llm"
 
 
-def test_put_atualiza_intent_router_provider():
+def test_put_runtime_settings_atualiza_monitor_de_tom():
     app, *_ = _build_default_app()
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
-        json={"intent_router_provider": "jev_openrouter"},
+        json={"tone_monitor_enabled": False, "tone_monitor_provider": "jev_openrouter"},
     )
+
     assert response.status_code == 200
-    assert response.json()["intent_router_provider"] == "jev_openrouter"
-    assert app.state.intent_router_provider == "jev_openrouter"
-
-    # Confirma persistência em subsequente GET
-    get_resp = client.get("/api/admin/runtime-settings")
-    assert get_resp.json()["intent_router_provider"] == "jev_openrouter"
-
-
-def test_put_rejeita_intent_router_provider_invalido():
-    app, *_ = _build_default_app()
-    client = TestClient(app)
-
-    response = client.put(
-        "/api/admin/runtime-settings",
-        json={"intent_router_provider": "provedor_inexistente"},
-    )
-    assert response.status_code == 422
+    body = response.json()
+    assert body["tone_monitor_enabled"] is False
+    assert body["tone_monitor_provider"] == "jev_openrouter"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 7: Rodar e confirmar a falha**
 
-Run: `pytest backend/tests/test_runtime_settings_api.py -k "intent_router_provider" -v`
-Expected: FAIL (campos ausentes no modelo e retorno da API).
+Run: `cd backend && .venv/bin/pytest tests/test_runtime_settings_api.py -k monitor_de_tom -v`
+Expected: FAIL (campos ausentes na resposta/estado)
 
-- [ ] **Step 3: Implement changes in models, API and main**
+- [ ] **Step 8: Ler/escrever os dois novos campos em `app/api/runtime_settings.py`**
 
-Em `backend/src/app/models/runtime_settings.py`:
+Em `backend/src/app/api/runtime_settings.py`, importar `DEFAULT_TONE_MONITOR_PROVIDER` junto de `DEFAULT_INTENT_ROUTER_PROVIDER` (linha 13). Em `_build_response`, logo após a leitura de `intent_provider` (linhas 36-38), adicionar:
+
 ```python
-from typing import Literal
-
-IntentRouterProvider = Literal["heuristica_llm", "jev_openrouter"]
-
-# Em RuntimeSettingsResponse:
-    intent_router_provider: IntentRouterProvider = Field(
-        default="heuristica_llm",
-        description="Provedor ativo para classificação de intenção do roteador.",
+    tone_monitor_enabled = getattr(request.app.state, "tone_monitor_enabled", True)
+    tone_monitor_provider = getattr(
+        request.app.state, "tone_monitor_provider", DEFAULT_TONE_MONITOR_PROVIDER
     )
-
-# Em RuntimeSettingsUpdateRequest:
-    intent_router_provider: IntentRouterProvider | None = None
 ```
 
-Em `backend/src/app/api/runtime_settings.py`:
+E no `return RuntimeSettingsResponse(...)`, adicionar as duas linhas finais:
+
 ```python
-def _build_response(request: Request) -> RuntimeSettingsResponse:
-    local_client, external_client, qdrant_client = _get_clients(request)
-    intent_provider = getattr(request.app.state, "intent_router_provider", "heuristica_llm")
-    return RuntimeSettingsResponse(
-        ...
-        intent_router_provider=intent_provider,
-    )
-
-# No update_runtime_settings:
-    if "intent_router_provider" in campos:
-        request.app.state.intent_router_provider = campos["intent_router_provider"]
+        tone_monitor_enabled=tone_monitor_enabled,
+        tone_monitor_provider=tone_monitor_provider,
 ```
 
-Em `backend/src/app/main.py`:
+Em `update_runtime_settings`, logo após o bloco `if "intent_router_provider" in campos:` (linhas 89-90), adicionar:
+
 ```python
-app.state.intent_router_provider = "heuristica_llm"
+    if "tone_monitor_enabled" in campos:
+        request.app.state.tone_monitor_enabled = campos["tone_monitor_enabled"]
+    if "tone_monitor_provider" in campos:
+        request.app.state.tone_monitor_provider = campos["tone_monitor_provider"]
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 9: Rodar e confirmar que passa**
 
-Run: `pytest backend/tests/test_runtime_settings_api.py -v`
-Expected: PASS em todos os testes.
+Run: `cd backend && .venv/bin/pytest tests/test_runtime_settings_api.py -v`
+Expected: PASS (todos os testes do arquivo)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 10: Inicializar o estado em `main.py`**
+
+Em `backend/src/app/main.py`, importar `DEFAULT_TONE_MONITOR_PROVIDER` junto de `DEFAULT_INTENT_ROUTER_PROVIDER` (linha 21). Logo após a linha `app.state.intent_router_provider = DEFAULT_INTENT_ROUTER_PROVIDER`, adicionar:
+
+```python
+    # Monitor de Tom (R8, Fase 4B) — diferente de intent_router_provider
+    # acima, aqui o valor inicial vem de settings/env (TONE_MONITOR_ENABLED/
+    # TONE_MONITOR_PROVIDER), não de uma constante fixa: a spec pede default
+    # configurável por ambiente (docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §7).
+    app.state.tone_monitor_enabled = settings.tone_monitor_enabled
+    app.state.tone_monitor_provider = settings.tone_monitor_provider
+```
+
+- [ ] **Step 11: Documentar as duas variáveis em `.env.example`**
+
+Em `backend/.env.example`, logo após `JEV_TIMEOUT_S=10.0`, adicionar:
+
+```
+# --- Monitor de Tom (R8, Fase 4B) ---
+# Fora do MVP original, ver docs/ARCHITECTURE.md §5 (decisão 2026-09-23) e
+# docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md. Mesmo padrão de
+# dois provedores do classificador de intenção acima
+# (heuristica_llm/jev_openrouter).
+TONE_MONITOR_ENABLED=true
+TONE_MONITOR_PROVIDER=heuristica_llm
+```
+
+- [ ] **Step 12: Rodar a suíte completa e commitar**
+
+Run: `cd backend && .venv/bin/pytest tests/test_config.py tests/test_runtime_settings_api.py -v`
+Expected: PASS
 
 ```bash
-git add backend/src/app/models/runtime_settings.py backend/src/app/api/runtime_settings.py backend/src/app/main.py backend/tests/test_runtime_settings_api.py
-git commit -m "feat(runtime-settings): adiciona intent_router_provider para alternância de roteador"
+git add backend/src/app/config.py backend/src/app/models/runtime_settings.py \
+  backend/src/app/api/runtime_settings.py backend/src/app/main.py backend/.env.example \
+  backend/tests/test_config.py backend/tests/test_runtime_settings_api.py
+git commit -m "feat(tom): adiciona config e runtime settings do Monitor de Tom (R8)"
 ```
 
 ---
 
-## Task 2: Cliente OpenRouter para Chamadas do TypeSafe Jev (endpoint System One)
+### Task 2: Modelo ORM e migração `tom_escalonamentos`
 
-**Referência da API (verificada, 2026-09-23):**
-`docs.typesafe.ai` + `openrouter.ai/docs/api/api-reference/systemone/submit-a-system-one-request.md`
-— o Jev **não** é um modelo de chat comum: `output_modalities: ["decisions"]`,
-`has_text_output: false`. É chamado por um endpoint próprio do OpenRouter,
-`POST https://openrouter.ai/api/v1/systemone` (mesma auth Bearer/chave dos
-demais clientes OpenRouter do projeto), com corpo estruturado:
+**Files:**
+- Modify: `backend/src/app/db/models.py`
+- Create: `backend/migrations/versions/0006_tom_escalonamentos.py`
+- Test: `backend/tests/test_db_models.py` (criar se não existir — ver Step 1)
 
-```json
-{
-  "model": "typesafe/jev-latest",
-  "state": "texto da mensagem + contexto recente",
-  "questions": {
-    "dominio": {
-      "type": "choice",
-      "instructions": "Classifique a mensagem do cliente em um dos domínios de atendimento.",
-      "criteria": {
-        "vendas": "Interesse em comprar, orçamento, preço ou catálogo de produtos.",
-        "suporte": "Produto com defeito, erro ou problema técnico já adquirido.",
-        "atendimento": "Nota fiscal, troca, devolução, cancelamento ou reclamação.",
-        "agendamento": "Quer marcar, remarcar ou confirmar uma visita/horário.",
-        "fora_escopo": "Não se encaixa claramente em nenhuma opção acima."
-      }
-    }
-  }
-}
+**Interfaces:**
+- Produces: `app.db.models.TomEscalonamento` (colunas `id: uuid.UUID`, `conversation_id: str`, `mensagem: str`, `motivo: str | None`, `confianca: float`, `provider_efetivo: str`, `criado_em: datetime`) — consumido pela Task 5 (`criar_escalonamento`/`listar_escalonamentos`).
+
+- [ ] **Step 1: Escrever o teste que falha**
+
+Verificar se `backend/tests/test_db_models.py` já existe (`ls backend/tests/test_db_models.py`). Se não existir, criar com este conteúdo; se existir, só adicionar a função de teste ao final:
+
+```python
+from app.db.models import Base, TomEscalonamento
+from app.db.engine import create_db_engine, create_session_factory
+
+
+async def test_tom_escalonamento_tem_colunas_esperadas():
+    engine = create_db_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    factory = create_session_factory(engine)
+
+    async with factory() as session:
+        registro = TomEscalonamento(
+            conversation_id="conv-1",
+            mensagem="preciso falar com um atendente AGORA",
+            motivo="urgencia",
+            confianca=0.9,
+            provider_efetivo="heuristica_llm",
+        )
+        session.add(registro)
+        await session.commit()
+        await session.refresh(registro)
+
+        assert registro.id is not None
+        assert registro.conversation_id == "conv-1"
+        assert registro.criado_em is not None
+
+    await engine.dispose()
 ```
 
-E resposta já tipada (sem texto livre para parsear):
+- [ ] **Step 2: Rodar e confirmar a falha**
 
-```json
-{
-  "answers": {
-    "dominio": {
-      "type": "choice",
-      "choice": "vendas",
-      "confidence": 0.95,
-      "probabilities": {"vendas": 0.95, "suporte": 0.03, "...": "..."}
-    }
-  },
-  "usage": {"input_tokens": 120, "output_tokens": 12, "cost": 0.000005}
-}
+Run: `cd backend && .venv/bin/pytest tests/test_db_models.py -v`
+Expected: FAIL com `ImportError: cannot import name 'TomEscalonamento'`
+
+- [ ] **Step 3: Adicionar a classe ORM**
+
+Em `backend/src/app/db/models.py`, ao final do arquivo (depois de `CrawlerPendingPage`), adicionar:
+
+```python
+
+
+class TomEscalonamento(Base):
+    """Caso de escalonamento do Monitor de Tom (R8, Fase 4B) — ver
+    docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §5.
+
+    Append-only: cada linha é o momento em que uma conversa escalou pela
+    primeira vez (o estado "já escalada", que evita repetir o alerta, vive
+    em memória em `app.router.tone_monitor._conversas_escaladas`, não
+    nesta tabela). Sem mecanismo de "des-escalar" — decisão aceita da spec.
+    """
+
+    __tablename__ = "tom_escalonamentos"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    conversation_id: Mapped[str]
+    mensagem: Mapped[str]
+    motivo: Mapped[str | None]
+    confianca: Mapped[float]
+    provider_efetivo: Mapped[str]
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 ```
+
+- [ ] **Step 4: Rodar e confirmar que passa**
+
+Run: `cd backend && .venv/bin/pytest tests/test_db_models.py -v`
+Expected: PASS
+
+- [ ] **Step 5: Criar a migração Alembic**
+
+Criar `backend/migrations/versions/0006_tom_escalonamentos.py`:
+
+```python
+"""tom_escalonamentos (Monitor de Tom, R8, Fase 4B)
+
+Ver docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §5. Tabela
+append-only — sem coluna de atualização, cada linha é uma escalada.
+
+Revision ID: 0006
+Revises: 0005
+Create Date: 2026-09-23
+
+"""
+
+from collections.abc import Sequence
+
+import sqlalchemy as sa
+from alembic import op
+
+revision: str = "0006"
+down_revision: str | None = "0005"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
+
+
+def upgrade() -> None:
+    op.create_table(
+        "tom_escalonamentos",
+        sa.Column("id", sa.Uuid(), primary_key=True),
+        sa.Column("conversation_id", sa.String(), nullable=False),
+        sa.Column("mensagem", sa.String(), nullable=False),
+        sa.Column("motivo", sa.String(), nullable=True),
+        sa.Column("confianca", sa.Float(), nullable=False),
+        sa.Column("provider_efetivo", sa.String(), nullable=False),
+        sa.Column(
+            "criado_em", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+    )
+
+
+def downgrade() -> None:
+    op.drop_table("tom_escalonamentos")
+```
+
+- [ ] **Step 6: Validar a migração contra um Postgres real (se disponível neste ambiente)**
+
+Run: `cd backend && .venv/bin/alembic upgrade head && .venv/bin/alembic downgrade -1 && .venv/bin/alembic upgrade head`
+Expected: os três comandos rodam sem erro. Se não houver Postgres no ar neste ambiente (`could not connect to server`), pule este passo e registre no relatório da task — a Task 9 (verificação E2E) repete esta checagem com a infraestrutura completa no ar.
+
+- [ ] **Step 7: Commitar**
+
+```bash
+git add backend/src/app/db/models.py backend/migrations/versions/0006_tom_escalonamentos.py backend/tests/test_db_models.py
+git commit -m "feat(tom): adiciona modelo e migração da tabela tom_escalonamentos (R8)"
+```
+
+---
+
+### Task 3: `OpenRouterClient.classify_tone_jev`
 
 **Files:**
 - Modify: `backend/src/app/router/openrouter_client.py`
 - Test: `backend/tests/test_openrouter_client.py`
 
 **Interfaces:**
-- `OpenRouterClient.__init__` ganha parâmetro `jev_model: str = ""`.
-- Produces: `OpenRouterClient.classify_intent_jev(message: str, recent_messages: list[str] | None = None) -> tuple[str, float]`
-  Retorna tupla `(dominio, confianca)`.
+- Produces: `OpenRouterClient.classify_tone_jev(message: str, recent_messages: list[str] | None = None) -> tuple[bool, float]` — consumido pela Task 4 (`tone_monitor._analyze_with_jev`).
 
-- [ ] **Step 1: Write failing tests in `test_openrouter_client.py`**
+- [ ] **Step 1: Escrever os testes que falham**
+
+Em `backend/tests/test_openrouter_client.py`, ao final do arquivo, adicionar:
 
 ```python
-# backend/tests/test_openrouter_client.py (adicionar ao arquivo existente)
-import pytest
-import httpx
-from app.router.openrouter_client import OpenRouterClient
-
 @pytest.mark.asyncio
-async def test_classify_intent_jev_sucesso():
+async def test_classify_tone_jev_noul_alto_escala():
     captured_request: dict = {}
 
     def mock_handler(request: httpx.Request) -> httpx.Response:
         captured_request["url"] = str(request.url)
-        captured_request["body"] = httpx.Request(request.method, request.url).read()
-        data = {
-            "answers": {
-                "dominio": {
-                    "type": "choice",
-                    "choice": "vendas",
-                    "confidence": 0.95,
-                }
-            },
-            "usage": {"input_tokens": 42, "output_tokens": 5, "cost": 0.000002},
-        }
+        captured_request["body"] = json.loads(request.content)
+        data = {"answers": {"escalar": {"type": "noul", "noul": 0.92}}}
         return httpx.Response(200, json=data)
 
     transport = httpx.MockTransport(mock_handler)
@@ -265,19 +391,22 @@ async def test_classify_intent_jev_sucesso():
             client=mock_client,
             jev_model="typesafe/jev-latest",
         )
-        domain, confidence = await client.classify_intent_jev(
-            message="quanto custa o produto?", recent_messages=[]
+        escalate, confidence = await client.classify_tone_jev(
+            message="Ninguém me ajuda, preciso falar com um atendente agora!",
+            recent_messages=[],
         )
-        assert domain == "vendas"
-        assert confidence == 0.95
-        # Endpoint dedicado, distinto de /chat/completions
+        assert escalate is True
+        assert confidence == 0.92
         assert captured_request["url"].endswith("/systemone")
+        body = captured_request["body"]
+        assert body["model"] == "typesafe/jev-latest"
+        assert body["questions"]["escalar"]["type"] == "noul"
 
 
 @pytest.mark.asyncio
-async def test_classify_intent_jev_choice_fora_do_enum_vira_fora_escopo():
+async def test_classify_tone_jev_noul_baixo_nao_escala():
     def mock_handler(request: httpx.Request) -> httpx.Response:
-        data = {"answers": {"dominio": {"type": "choice", "choice": "lixo", "confidence": 0.4}}}
+        data = {"answers": {"escalar": {"type": "noul", "noul": 0.1}}}
         return httpx.Response(200, json=data)
 
     transport = httpx.MockTransport(mock_handler)
@@ -290,60 +419,51 @@ async def test_classify_intent_jev_choice_fora_do_enum_vira_fora_escopo():
             client=mock_client,
             jev_model="typesafe/jev-latest",
         )
-        domain, _ = await client.classify_intent_jev(message="teste", recent_messages=[])
-        assert domain == "fora_escopo"
+        escalate, confidence = await client.classify_tone_jev(
+            message="Só queria saber o horário de funcionamento.", recent_messages=[]
+        )
+        assert escalate is False
+        assert confidence == 0.1
+
+
+@pytest.mark.asyncio
+async def test_classify_tone_jev_falha_http_propaga_excecao():
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500)
+
+    transport = httpx.MockTransport(mock_handler)
+    async with httpx.AsyncClient(transport=transport) as mock_client:
+        client = OpenRouterClient(
+            base_url="https://openrouter.ai/api/v1",
+            api_key="test-key",
+            model="meta-llama/llama-3",
+            timeout_s=5.0,
+            client=mock_client,
+            jev_model="typesafe/jev-latest",
+        )
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.classify_tone_jev(message="teste", recent_messages=[])
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Rodar e confirmar a falha**
 
-Run: `pytest backend/tests/test_openrouter_client.py -k "classify_intent_jev" -v`
-Expected: FAIL (`TypeError` no construtor — `jev_model` não existe — e/ou `AttributeError: 'OpenRouterClient' object has no attribute 'classify_intent_jev'`).
+Run: `cd backend && .venv/bin/pytest tests/test_openrouter_client.py -k classify_tone_jev -v`
+Expected: FAIL com `AttributeError: 'OpenRouterClient' object has no attribute 'classify_tone_jev'`
 
-- [ ] **Step 3: Implement `classify_intent_jev` in `OpenRouterClient`**
+- [ ] **Step 3: Implementar `classify_tone_jev`**
+
+Em `backend/src/app/router/openrouter_client.py`, ao final do arquivo (depois de `classify_intent_jev`), adicionar:
 
 ```python
-# backend/src/app/router/openrouter_client.py
-_VALID_DOMAINS = {"vendas", "suporte", "atendimento", "agendamento", "fora_escopo"}
 
-_DOMAIN_CRITERIA = {
-    "vendas": "Interesse em comprar, orçamento, preço ou catálogo de produtos.",
-    "suporte": "Produto com defeito, erro ou problema técnico já adquirido.",
-    "atendimento": "Nota fiscal, troca, devolução, cancelamento ou reclamação.",
-    "agendamento": "Quer marcar, remarcar ou confirmar uma visita/horário.",
-    "fora_escopo": "Não se encaixa claramente em nenhuma opção acima.",
-}
-
-class OpenRouterClient:
-    def __init__(
-        self,
-        base_url: str,
-        api_key: str,
-        model: str,
-        timeout_s: float,
-        price_per_1k_input_tokens: float = 0.0,
-        price_per_1k_output_tokens: float = 0.0,
-        client: httpx.AsyncClient | None = None,
-        vision_model: str = "",
-        jev_model: str = "",
-    ) -> None:
-        ...
-        # Modelo do classificador estruturado TypeSafe Jev (R3, Fase 1,
-        # além do MVP — ver docs/ARCHITECTURE.md §5).
-        # MVP: nome do modelo só configurável via env/restart (JEV_MODEL_NAME),
-        # diferente de `vision_model` acima, que é editável em runtime pelo
-        # admin — não há caso de uso que justifique trocar o modelo do Jev
-        # sem redeploy. Vazio = provedor "jev_openrouter" no admin fica sem
-        # efeito prático (classify_intent_jev levanta erro, capturado pelo
-        # fallback gracioso do classificador).
-        self._jev_model = jev_model
-
-    async def classify_intent_jev(
+    async def classify_tone_jev(
         self, message: str, recent_messages: list[str] | None = None
-    ) -> tuple[str, float]:
-        """Classifica o domínio via TypeSafe Jev, endpoint dedicado do
-        OpenRouter (`/systemone`, não `/chat/completions`) — o modelo devolve
-        uma decisão tipada (`answers.dominio.choice`/`.confidence`), sem
-        geração de texto livre nem parsing de JSON solto.
+    ) -> tuple[bool, float]:
+        """Avalia urgência/insatisfação via TypeSafe Jev (R8, Fase 4B) —
+        mesmo endpoint dedicado de `classify_intent_jev` (`/systemone`), mas
+        com uma pergunta do tipo `noul` (sim/não com probabilidade
+        calibrada) em vez de `choice` — ver
+        docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §3.2.
         """
         if not self._jev_model:
             raise ValueError("jev_model não configurado (JEV_MODEL_NAME).")
@@ -356,266 +476,730 @@ class OpenRouterClient:
                 "model": self._jev_model,
                 "state": f"Contexto prévio:\n{contexto}\n\nMensagem: {message}",
                 "questions": {
-                    "dominio": {
-                        "type": "choice",
+                    "escalar": {
+                        "type": "noul",
                         "instructions": (
-                            "Classifique a mensagem do cliente em um dos "
-                            "domínios de atendimento."
+                            "O cliente está demonstrando urgência ou insatisfação forte "
+                            "que justifique transferência para atendimento humano?"
                         ),
-                        "criteria": _DOMAIN_CRITERIA,
+                        "criteria": {
+                            "true": (
+                                "Mensagem com tom de urgência, raiva, ameaça de "
+                                "cancelamento/processo, ou insatisfação explícita e forte."
+                            ),
+                            "false": (
+                                "Tom neutro ou normal de atendimento, mesmo com dúvida "
+                                "ou reclamação leve."
+                            ),
+                        },
                     }
                 },
             },
-            timeout=self._timeout_s,
+            timeout=self._jev_timeout_s,
         )
         response.raise_for_status()
-        answer = response.json()["answers"]["dominio"]
-        choice = str(answer.get("choice", "fora_escopo")).lower().strip()
-        confidence = float(answer.get("confidence", 0.5))
-        if choice not in _VALID_DOMAINS:
-            choice = "fora_escopo"
-        return choice, confidence
+        noul = float(response.json()["answers"]["escalar"]["noul"])
+        return noul >= 0.5, noul
 ```
 
-Em `backend/src/app/config.py`:
-```python
-    # Provedor alternativo do classificador de intenção (além do MVP, ver
-    # docs/ARCHITECTURE.md §5, decisão 2026-09-23). Reaproveita
-    # external_model_api_key/external_model_base_url (mesma conta OpenRouter).
-    jev_model_name: str = "typesafe/jev-latest"
-```
+- [ ] **Step 4: Rodar e confirmar que passa**
 
-Em `backend/src/app/main.py` (dentro da construção de `app.state.external_client`):
-```python
-    app.state.external_client = OpenRouterClient(
-        base_url=settings.external_model_base_url,
-        api_key=settings.external_model_api_key,
-        model=settings.external_model_name,
-        timeout_s=settings.external_llm_timeout_s,
-        price_per_1k_input_tokens=settings.external_model_price_per_1k_input_tokens,
-        price_per_1k_output_tokens=settings.external_model_price_per_1k_output_tokens,
-        vision_model=settings.external_vision_model_name,
-        jev_model=settings.jev_model_name,
-    )
-```
+Run: `cd backend && .venv/bin/pytest tests/test_openrouter_client.py -v`
+Expected: PASS (todos os testes do arquivo)
 
-- [ ] **Step 4: Run tests to verify they pass**
-
-Run: `pytest backend/tests/test_openrouter_client.py -v`
-Expected: PASS.
-
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Commitar**
 
 ```bash
-git add backend/src/app/router/openrouter_client.py backend/src/app/config.py backend/src/app/main.py backend/tests/test_openrouter_client.py
-git commit -m "feat(openrouter): implementa classify_intent_jev via endpoint /systemone"
+git add backend/src/app/router/openrouter_client.py backend/tests/test_openrouter_client.py
+git commit -m "feat(tom): adiciona OpenRouterClient.classify_tone_jev (R8)"
 ```
 
 ---
 
-## Task 3: Classificador de Intenção com Suporte ao Jev e Fallback Gracioso
+### Task 4: `app/router/tone_monitor.py` — heurística, `analyze_tone` e estado de conversa
 
 **Files:**
-- Modify: `backend/src/app/router/classifier.py`
-- Test: `backend/tests/test_classifier.py`
+- Create: `backend/src/app/router/tone_monitor.py`
+- Test: `backend/tests/test_tone_monitor.py`
 
 **Interfaces:**
-- Consumes: `OpenRouterClient.classify_intent_jev`
-- Produces: `classify(message, recent_messages, strategy, llm_client, provider="heuristica_llm", external_client=None) -> ClassificationResult`
+- Consumes: `app.router.classifier._normalize(text: str) -> str`; `app.router.classifier._strip_code_fence(text: str) -> str`; `app.router.llm_client.LLMClient` (`async def generate(prompt: str) -> LLMResponse`); `OpenRouterClient.classify_tone_jev(message, recent_messages) -> tuple[bool, float]` (Task 3).
+- Produces: `ToneResult(BaseModel)` com `escalate: bool`, `motivo: str | None`, `confidence: float`, `provider_efetivo: str`. `async def analyze_tone(message: str, recent_messages: list[str], strategy_provider: str, llm_client: LLMClient, external_client: Any) -> ToneResult`. `marcar_escalada(conversation_id: str) -> None`, `ja_escalada(conversation_id: str) -> bool`, `reset_escalated_conversations() -> None` — todos consumidos pela Task 6 (`orchestrator.handle_message`).
 
-- [ ] **Step 1: Write failing tests in `test_classifier.py`**
+- [ ] **Step 1: Escrever os testes que falham**
+
+Criar `backend/tests/test_tone_monitor.py`:
 
 ```python
-# backend/tests/test_classifier.py
 import pytest
-from app.router.classifier import classify
 
-class _FakeOpenRouterJevClient:
-    def __init__(self, domain: str = "vendas", confidence: float = 0.9, fail: bool = False):
-        self.domain = domain
-        self.confidence = confidence
-        self.fail = fail
+from app.router.llm_client import LLMResponse
+from app.router.tone_monitor import (
+    ToneResult,
+    analyze_tone,
+    ja_escalada,
+    marcar_escalada,
+    reset_escalated_conversations,
+)
 
-    async def classify_intent_jev(self, message: str, recent_messages: list[str] | None = None):
-        if self.fail:
-            raise RuntimeError("Conexão com OpenRouter falhou")
-        return self.domain, self.confidence
+
+class _FakeLLMClient:
+    def __init__(self, response: LLMResponse | None = None, exception: Exception | None = None) -> None:
+        self._response = response
+        self._exception = exception
+        self.prompts: list[str] = []
+
+    async def generate(self, prompt: str) -> LLMResponse:
+        self.prompts.append(prompt)
+        if self._exception is not None:
+            raise self._exception
+        assert self._response is not None
+        return self._response
+
+
+class _FakeJevClient:
+    def __init__(self, escalate: bool = False, confidence: float = 0.0, exception: Exception | None = None) -> None:
+        self._escalate = escalate
+        self._confidence = confidence
+        self._exception = exception
+
+    async def classify_tone_jev(self, message: str, recent_messages: list[str] | None = None):
+        if self._exception is not None:
+            raise self._exception
+        return self._escalate, self._confidence
+
 
 @pytest.mark.asyncio
-async def test_classify_com_jev_sucesso():
-    fake_client = _FakeOpenRouterJevClient(domain="vendas", confidence=0.92)
-    result = await classify(
-        message="Quero saber o valor do plano",
-        provider="jev_openrouter",
-        external_client=fake_client,
+async def test_heuristica_palavra_chave_de_insatisfacao_escala_sem_chamar_llm():
+    llm = _FakeLLMClient()
+    resultado = await analyze_tone(
+        message="Isso é um absurdo, nunca mais compro nessa loja",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
     )
-    assert result.domain == "vendas"
-    assert result.confidence == 0.92
-    assert result.complexity == "baixa"
+    assert resultado.escalate is True
+    assert resultado.motivo == "insatisfacao"
+    assert resultado.provider_efetivo == "heuristica_llm"
+    assert llm.prompts == []
+
 
 @pytest.mark.asyncio
-async def test_classify_com_jev_fallback_em_falha():
-    fake_client = _FakeOpenRouterJevClient(fail=True)
-    # Deve degradar para a heurística sem estourar exceção
-    result = await classify(
-        message="Qual o preço desse produto?",
-        provider="jev_openrouter",
-        external_client=fake_client,
+async def test_heuristica_maiusculas_e_exclamacao_escala_como_urgencia():
+    llm = _FakeLLMClient()
+    resultado = await analyze_tone(
+        message="PRECISO FALAR COM ALGUEM AGORA!!!",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
     )
-    # Heurística reconhece "preço" como vendas. Confidence fixo em 0.3: o
-    # fallback do Jev cai em `_classify_heuristic_fallback` (não no
-    # short-circuit de match direto de `classify()`, que usaria 0.6) —
-    # conferir contra `classifier.py` real antes de implementar, esse valor
-    # é fixo na função (`ClassificationResult(..., confidence=0.3)`).
-    assert result.domain == "vendas"
-    assert result.confidence == 0.3
+    assert resultado.escalate is True
+    assert resultado.motivo == "urgencia"
+    assert llm.prompts == []
+
+
+@pytest.mark.asyncio
+async def test_mensagem_neutra_cai_no_fallback_llm_local():
+    llm = _FakeLLMClient(
+        LLMResponse(
+            text='{"escalar": false, "motivo": null, "confianca": 0.1}', total_duration_ms=5.0
+        )
+    )
+    resultado = await analyze_tone(
+        message="Qual o horário de funcionamento da loja?",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert resultado.escalate is False
+    assert resultado.motivo is None
+    assert resultado.provider_efetivo == "heuristica_llm"
+    assert len(llm.prompts) == 1
+
+
+@pytest.mark.asyncio
+async def test_fallback_llm_escala_quando_modelo_reporta_true():
+    llm = _FakeLLMClient(
+        LLMResponse(
+            text='{"escalar": true, "motivo": "urgencia", "confianca": 0.8}', total_duration_ms=5.0
+        )
+    )
+    resultado = await analyze_tone(
+        message="Isso está demorando muito, quando vai resolver?",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert resultado.escalate is True
+    assert resultado.motivo == "urgencia"
+    assert resultado.confidence == 0.8
+
+
+@pytest.mark.asyncio
+async def test_fallback_llm_resposta_nao_parseavel_nao_escala():
+    llm = _FakeLLMClient(LLMResponse(text="não é json", total_duration_ms=5.0))
+    resultado = await analyze_tone(
+        message="Mensagem ambígua qualquer",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert resultado.escalate is False
+    assert resultado.provider_efetivo == "heuristica_llm"
+
+
+@pytest.mark.asyncio
+async def test_fallback_jev_sucesso_usa_provider_jev_openrouter():
+    llm = _FakeLLMClient()
+    jev = _FakeJevClient(escalate=True, confidence=0.9)
+    resultado = await analyze_tone(
+        message="Mensagem ambígua qualquer",
+        recent_messages=[],
+        strategy_provider="jev_openrouter",
+        llm_client=llm,
+        external_client=jev,
+    )
+    assert resultado.escalate is True
+    assert resultado.provider_efetivo == "jev_openrouter"
+    assert resultado.confidence == 0.9
+    assert llm.prompts == []
+
+
+@pytest.mark.asyncio
+async def test_fallback_jev_falha_degrada_para_heuristica_llm_sem_escalar():
+    llm = _FakeLLMClient()
+    jev = _FakeJevClient(exception=TimeoutError("timeout"))
+    resultado = await analyze_tone(
+        message="Mensagem ambígua qualquer",
+        recent_messages=[],
+        strategy_provider="jev_openrouter",
+        llm_client=llm,
+        external_client=jev,
+    )
+    assert resultado.escalate is False
+    assert resultado.provider_efetivo == "heuristica_llm"
+
+
+@pytest.mark.asyncio
+async def test_fallback_jev_sem_client_valido_degrada():
+    llm = _FakeLLMClient()
+    resultado = await analyze_tone(
+        message="Mensagem ambígua qualquer",
+        recent_messages=[],
+        strategy_provider="jev_openrouter",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert resultado.escalate is False
+    assert resultado.provider_efetivo == "heuristica_llm"
+
+
+def test_estado_de_conversa_marcar_e_consultar_escalada():
+    reset_escalated_conversations()
+    assert ja_escalada("conv-1") is False
+    marcar_escalada("conv-1")
+    assert ja_escalada("conv-1") is True
+    assert ja_escalada("conv-2") is False
+    reset_escalated_conversations()
+    assert ja_escalada("conv-1") is False
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Rodar e confirmar a falha**
 
-Run: `pytest backend/tests/test_classifier.py -k "jev" -v`
-Expected: FAIL (parâmetros não aceitos em `classify`).
+Run: `cd backend && .venv/bin/pytest tests/test_tone_monitor.py -v`
+Expected: FAIL com `ModuleNotFoundError: No module named 'app.router.tone_monitor'`
 
-- [ ] **Step 3: Implement Jev routing and graceful fallback in `classifier.py`**
+- [ ] **Step 3: Implementar `tone_monitor.py`**
+
+Criar `backend/src/app/router/tone_monitor.py`:
 
 ```python
-# backend/src/app/router/classifier.py
+import json
 import logging
 from typing import Any
 
+from pydantic import BaseModel
+
+from app.models.runtime_settings import DEFAULT_TONE_MONITOR_PROVIDER
+from app.router.classifier import _normalize, _strip_code_fence
+from app.router.llm_client import LLMClient
+
 logger = logging.getLogger(__name__)
 
-async def _classify_with_jev(
-    message: str,
-    recent_messages: list[str],
-    external_client: Any,
-) -> ClassificationResult:
+
+class ToneResult(BaseModel):
+    escalate: bool
+    motivo: str | None  # "urgencia" | "insatisfacao" | None quando escalate=False
+    confidence: float
+    # Mesma convenção de ClassificationResult.provider_efetivo
+    # (docs/ARCHITECTURE.md §5): só distingue qual dos DOIS provedores
+    # configuráveis (TONE_MONITOR_PROVIDER) decidiu de fato — falha do Jev
+    # sempre degrada para "heuristica_llm", nunca derruba a mensagem do
+    # usuário (ver docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §3).
+    provider_efetivo: str = DEFAULT_TONE_MONITOR_PROVIDER
+
+
+# MVP: heurística simples de palavras-chave, mesmo espírito de
+# app.router.classifier._DOMAIN_KEYWORDS — sem NLP mais robusto, lista a
+# refinar contra casos reais quando existirem.
+_URGENCIA_KEYWORDS = ["urgente", "agora mesmo", "imediatamente"]
+_INSATISFACAO_KEYWORDS = [
+    "pessimo",
+    "absurdo",
+    "cancelar tudo",
+    "processar",
+    "reclamacao procon",
+    "nunca mais compro",
+]
+
+_UPPERCASE_ALPHA_MIN = 10
+_UPPERCASE_RATIO_THRESHOLD = 0.7
+_EXCLAMATION_RUN_MIN = 3
+
+
+def _match_keyword_signal(message: str) -> str | None:
+    normalized = _normalize(message)
+    if any(k in normalized for k in _URGENCIA_KEYWORDS):
+        return "urgencia"
+    if any(k in normalized for k in _INSATISFACAO_KEYWORDS):
+        return "insatisfacao"
+    return None
+
+
+def _match_structural_signal(message: str) -> str | None:
+    # Sinal estrutural (maiúsculas/pontuação) lido como urgência — não há
+    # como a pontuação por si só distinguir insatisfação de urgência, ver
+    # docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §3.1.
+    alpha_chars = [c for c in message if c.isalpha()]
+    if len(alpha_chars) >= _UPPERCASE_ALPHA_MIN:
+        uppercase_ratio = sum(1 for c in alpha_chars if c.isupper()) / len(alpha_chars)
+        if uppercase_ratio >= _UPPERCASE_RATIO_THRESHOLD:
+            return "urgencia"
+    if "!" * _EXCLAMATION_RUN_MIN in message:
+        return "urgencia"
+    return None
+
+
+def _match_heuristic_signal(message: str) -> str | None:
+    return _match_keyword_signal(message) or _match_structural_signal(message)
+
+
+_TONE_PROMPT_TEMPLATE = """\
+Avalie se a mensagem do cliente abaixo demonstra urgência ou insatisfação \
+forte o suficiente para justificar transferência a um atendente humano.
+
+Contexto recente:
+{contexto}
+
+Mensagem atual: {mensagem}
+
+Responda apenas com JSON no formato: \
+{{"escalar": true|false, "motivo": "urgencia"|"insatisfacao"|null, "confianca": 0.0}}"""
+
+
+async def _analyze_with_llm(
+    message: str, recent_messages: list[str], llm_client: LLMClient
+) -> ToneResult:
+    contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
+    prompt = _TONE_PROMPT_TEMPLATE.format(contexto=contexto, mensagem=message)
     try:
-        if external_client is None or not hasattr(external_client, "classify_intent_jev"):
-            raise ValueError("external_client inválido para Jev")
-        domain, confidence = await external_client.classify_intent_jev(message, recent_messages)
-        return ClassificationResult(
-            domain=domain,
-            complexity=_heuristic_complexity(message),
+        response = await llm_client.generate(prompt)
+        parsed = json.loads(_strip_code_fence(response.text))
+        escalate = bool(parsed.get("escalar", False))
+        motivo = parsed.get("motivo") if escalate else None
+        confidence = float(parsed.get("confianca", 0.0))
+        return ToneResult(
+            escalate=escalate,
+            motivo=motivo,
             confidence=confidence,
+            provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER,
+        )
+    except (json.JSONDecodeError, TypeError, ValueError, KeyError):
+        # Resposta não-parseável: ambíguo sem sinal claro não escala por
+        # padrão, lado seguro contra falso positivo (mesmo espírito de
+        # classifier._classify_heuristic_fallback).
+        return ToneResult(
+            escalate=False, motivo=None, confidence=0.0, provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER
+        )
+
+
+async def _analyze_with_jev(
+    message: str, recent_messages: list[str], external_client: Any
+) -> ToneResult:
+    try:
+        if external_client is None or not hasattr(external_client, "classify_tone_jev"):
+            raise ValueError("external_client inválido para Jev")
+        escalate, confidence = await external_client.classify_tone_jev(message, recent_messages)
+        # Jev responde com uma única pergunta noul (sim/não) — não distingue
+        # motivo. "insatisfacao" é um rótulo genérico quando escala; refinar
+        # com duas perguntas noul separadas fica para uma iteração futura.
+        return ToneResult(
+            escalate=escalate,
+            motivo="insatisfacao" if escalate else None,
+            confidence=confidence,
+            provider_efetivo="jev_openrouter",
         )
     except Exception as exc:
         logger.warning(
-            "jev_classificacao_falhou_fallback_heuristica",
-            extra={
-                "router": {
-                    "event": "jev_falha_fallback",
-                    "erro": str(exc),
-                }
-            },
+            "jev_tom_falhou_fallback_heuristica",
+            extra={"router": {"event": "jev_tom_falha_fallback", "erro": str(exc)}},
         )
-        return _classify_heuristic_fallback(message, recent_messages)
+        return ToneResult(
+            escalate=False, motivo=None, confidence=0.0, provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER
+        )
 
-async def classify(
+
+async def analyze_tone(
     message: str,
-    recent_messages: list[str] | None = None,
-    strategy: str = "heuristic",
-    llm_client: LLMClient | None = None,
-    provider: str = "heuristica_llm",
-    external_client: Any = None,
-) -> ClassificationResult:
-    recent_messages = recent_messages or []
-
-    if provider == "jev_openrouter":
-        return await _classify_with_jev(message, recent_messages, external_client)
-
-    # Fluxo clássico (heurística de palavras-chave + fallback Ollama)
-    domain = _match_domain_by_keywords(message)
-    if domain is not None:
-        return ClassificationResult(
-            domain=domain, complexity=_heuristic_complexity(message), confidence=0.6
+    recent_messages: list[str],
+    strategy_provider: str,
+    llm_client: LLMClient,
+    external_client: Any,
+) -> ToneResult:
+    sinal = _match_heuristic_signal(message)
+    if sinal is not None:
+        return ToneResult(
+            escalate=True,
+            motivo=sinal,
+            confidence=1.0,
+            provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER,
         )
 
-    if strategy == "heuristic":
-        return _classify_heuristic_fallback(message, recent_messages)
+    if strategy_provider == "jev_openrouter":
+        return await _analyze_with_jev(message, recent_messages, external_client)
 
-    if llm_client is None:
-        raise ValueError("llm_client é obrigatório quando strategy='llm'")
+    return await _analyze_with_llm(message, recent_messages, llm_client)
 
-    return await _classify_with_llm(message, recent_messages, llm_client)
+
+# MVP: estado em memória por processo, mesmo padrão de
+# app.router.scheduling.booking_slots e app.api.chat._conversation_history —
+# perdido em restart do processo, sem mecanismo de "des-escalar" (decisão
+# aceita da spec §2).
+_conversas_escaladas: set[str] = set()
+
+
+def marcar_escalada(conversation_id: str) -> None:
+    _conversas_escaladas.add(conversation_id)
+
+
+def ja_escalada(conversation_id: str) -> bool:
+    return conversation_id in _conversas_escaladas
+
+
+def reset_escalated_conversations() -> None:
+    """Limpa o estado em memória — usado pelos testes para isolar casos."""
+    _conversas_escaladas.clear()
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 4: Rodar e confirmar que passa**
 
-Run: `pytest backend/tests/test_classifier.py -v`
-Expected: PASS.
+Run: `cd backend && .venv/bin/pytest tests/test_tone_monitor.py -v`
+Expected: PASS (todos os testes do arquivo)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Commitar**
 
 ```bash
-git add backend/src/app/router/classifier.py backend/tests/test_classifier.py
-git commit -m "feat(classifier): suporte ao TypeSafe Jev com fallback gracioso para heurística"
+git add backend/src/app/router/tone_monitor.py backend/tests/test_tone_monitor.py
+git commit -m "feat(tom): adiciona classificação de tom (heurística + fallback LLM/Jev) (R8)"
 ```
 
 ---
 
-## Task 4: Injeção no Orquestrador e Telemetria no Endpoint de Chat
+### Task 5: Persistência — `criar_escalonamento`/`listar_escalonamentos`
+
+**Files:**
+- Modify: `backend/src/app/router/tone_monitor.py`
+- Test: `backend/tests/test_tone_monitor.py`
+
+**Interfaces:**
+- Consumes: `app.db.models.TomEscalonamento` (Task 2).
+- Produces: `async def criar_escalonamento(session: AsyncSession, *, conversation_id: str, mensagem: str, motivo: str | None, confianca: float, provider_efetivo: str) -> TomEscalonamento`; `async def listar_escalonamentos(session: AsyncSession, limit: int = 100) -> list[TomEscalonamento]` — consumidos pela Task 7 (`app.api.chat`) e Task 8 (`app.api.tom_escalonamentos`).
+
+- [ ] **Step 1: Escrever os testes que falham**
+
+Em `backend/tests/test_tone_monitor.py`, adicionar ao topo do import existente `from app.router.tone_monitor import (...)` os novos nomes `criar_escalonamento` e `listar_escalonamentos`, e ao final do arquivo:
+
+```python
+async def test_criar_escalonamento_persiste_e_retorna_o_registro(db_session):
+    registro = await criar_escalonamento(
+        db_session,
+        conversation_id="conv-1",
+        mensagem="preciso falar com um atendente AGORA",
+        motivo="urgencia",
+        confianca=0.9,
+        provider_efetivo="heuristica_llm",
+    )
+
+    assert registro.id is not None
+    assert registro.conversation_id == "conv-1"
+    assert registro.motivo == "urgencia"
+
+
+async def test_listar_escalonamentos_ordena_mais_recente_primeiro(db_session):
+    import asyncio
+
+    await criar_escalonamento(
+        db_session,
+        conversation_id="conv-a",
+        mensagem="primeira",
+        motivo="urgencia",
+        confianca=0.9,
+        provider_efetivo="heuristica_llm",
+    )
+    await asyncio.sleep(1.1)  # garante precisão de segundo diferente no SQLite
+    await criar_escalonamento(
+        db_session,
+        conversation_id="conv-b",
+        mensagem="segunda",
+        motivo="insatisfacao",
+        confianca=0.8,
+        provider_efetivo="jev_openrouter",
+    )
+
+    resultado = await listar_escalonamentos(db_session)
+
+    assert [r.conversation_id for r in resultado] == ["conv-b", "conv-a"]
+
+
+async def test_listar_escalonamentos_respeita_limit(db_session):
+    for i in range(3):
+        await criar_escalonamento(
+            db_session,
+            conversation_id=f"conv-{i}",
+            mensagem="msg",
+            motivo="urgencia",
+            confianca=0.5,
+            provider_efetivo="heuristica_llm",
+        )
+
+    resultado = await listar_escalonamentos(db_session, limit=2)
+
+    assert len(resultado) == 2
+```
+
+- [ ] **Step 2: Rodar e confirmar a falha**
+
+Run: `cd backend && .venv/bin/pytest tests/test_tone_monitor.py -k escalonamento -v`
+Expected: FAIL com `ImportError: cannot import name 'criar_escalonamento'`
+
+- [ ] **Step 3: Implementar as funções de persistência**
+
+Em `backend/src/app/router/tone_monitor.py`, adicionar os imports no topo do arquivo (junto dos existentes):
+
+```python
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.models import TomEscalonamento
+```
+
+E ao final do arquivo (depois de `reset_escalated_conversations`):
+
+```python
+
+
+async def criar_escalonamento(
+    session: AsyncSession,
+    *,
+    conversation_id: str,
+    mensagem: str,
+    motivo: str | None,
+    confianca: float,
+    provider_efetivo: str,
+) -> TomEscalonamento:
+    registro = TomEscalonamento(
+        conversation_id=conversation_id,
+        mensagem=mensagem,
+        motivo=motivo,
+        confianca=confianca,
+        provider_efetivo=provider_efetivo,
+    )
+    session.add(registro)
+    await session.commit()
+    await session.refresh(registro)
+    return registro
+
+
+async def listar_escalonamentos(session: AsyncSession, limit: int = 100) -> list[TomEscalonamento]:
+    result = await session.execute(
+        select(TomEscalonamento).order_by(TomEscalonamento.criado_em.desc()).limit(limit)
+    )
+    return list(result.scalars().all())
+```
+
+- [ ] **Step 4: Rodar e confirmar que passa**
+
+Run: `cd backend && .venv/bin/pytest tests/test_tone_monitor.py -v`
+Expected: PASS (todos os testes do arquivo, incluindo os da Task 4)
+
+- [ ] **Step 5: Commitar**
+
+```bash
+git add backend/src/app/router/tone_monitor.py backend/tests/test_tone_monitor.py
+git commit -m "feat(tom): adiciona persistência de escalonamentos (R8)"
+```
+
+---
+
+### Task 6: Wiring no `orchestrator.py` — `EscalonamentoEvent`
 
 **Files:**
 - Modify: `backend/src/app/router/orchestrator.py`
-- Modify: `backend/src/app/models/chat.py`
-- Modify: `backend/src/app/api/chat.py`
 - Test: `backend/tests/test_orchestrator.py`
-- Test: `backend/tests/test_chat_api.py`
 
 **Interfaces:**
-- Produces: `RouterDecision.router_provider: str = "heuristica_llm"`; `ChatDoneEventData.router_provider: str | None`.
+- Consumes: `app.router.tone_monitor.analyze_tone`, `.ja_escalada`, `.marcar_escalada` (Task 4); `app.models.runtime_settings.DEFAULT_TONE_MONITOR_PROVIDER` (Task 1).
+- Produces: `EscalonamentoEvent(BaseModel)` com `motivo: str | None`, `confianca: float`, `provider_efetivo: str`. `handle_message(..., tone_monitor_enabled: bool = True, tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER)` agora pode `yield EscalonamentoEvent` — consumido pela Task 7 (`app.api.chat`).
 
-- [ ] **Step 1: Write failing tests in `test_orchestrator.py` and `test_chat_api.py`**
+- [ ] **Step 1: Escrever os testes que falham**
 
-Em `backend/tests/test_orchestrator.py`:
+Em `backend/tests/test_orchestrator.py`, adicionar `EscalonamentoEvent` ao import existente de `app.router.orchestrator` (linha 11-18) e `reset_escalated_conversations` a um novo import `from app.router.tone_monitor import reset_escalated_conversations`. Adicionar ao final do arquivo:
+
 ```python
-@pytest.mark.asyncio
-async def test_handle_message_propaga_router_provider_jev():
-    # Verifica que RouterDecision recebe router_provider="jev_openrouter"
-    decision = None
-    async for event in handle_message(
-        message="Quero orçamento",
+async def test_mensagem_com_sinal_forte_emite_escalonamento_alem_do_fluxo_normal():
+    reset_escalated_conversations()
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"domain": "suporte", "complexity": "baixa", "confidence": 0.9}',
+            total_duration_ms=1.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=LLMResponse(text="resposta externa", total_duration_ms=1.0))
+    rag_client = _FakeRAGClient(documents=[Document(content="doc", source="manual", score=0.9)])
+
+    eventos = [
+        e
+        async for e in handle_message(
+            message="Isso é um absurdo, nunca mais compro nessa loja!",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            conversation_id="conv-tom-1",
+        )
+    ]
+
+    escalonamentos = [e for e in eventos if isinstance(e, EscalonamentoEvent)]
+    decisoes = [e for e in eventos if isinstance(e, RouterDecision)]
+    assert len(escalonamentos) == 1
+    assert escalonamentos[0].motivo == "insatisfacao"
+    assert escalonamentos[0].provider_efetivo == "heuristica_llm"
+    assert len(decisoes) == 1  # fluxo normal do domínio continua rodando
+
+
+async def test_segunda_mensagem_na_mesma_conversa_nao_repete_escalonamento():
+    reset_escalated_conversations()
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"domain": "suporte", "complexity": "baixa", "confidence": 0.9}',
+            total_duration_ms=1.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=LLMResponse(text="resposta externa", total_duration_ms=1.0))
+    rag_client = _FakeRAGClient(documents=[Document(content="doc", source="manual", score=0.9)])
+
+    async for _ in handle_message(
+        message="Isso é um absurdo, nunca mais compro nessa loja!",
         recent_messages=[],
-        local_client=_FakeLLMClient(LLMResponse(text="resposta")),
-        external_client=_FakeLLMClient(LLMResponse(text="resposta")),
-        rag_client=_FakeRAGClient([]),
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
         complexity_strategy="heuristic",
-        intent_router_provider="jev_openrouter",
+        conversation_id="conv-tom-2",
     ):
-        if isinstance(event, RouterDecision):
-            decision = event
-    assert decision is not None
-    assert decision.router_provider == "jev_openrouter"
+        pass
+
+    eventos_segunda_mensagem = [
+        e
+        async for e in handle_message(
+            message="Ainda é um absurdo, processar vocês é a única saída",
+            recent_messages=["Isso é um absurdo, nunca mais compro nessa loja!"],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            conversation_id="conv-tom-2",
+        )
+    ]
+
+    escalonamentos = [e for e in eventos_segunda_mensagem if isinstance(e, EscalonamentoEvent)]
+    assert escalonamentos == []
+
+
+async def test_tone_monitor_desligado_nunca_emite_escalonamento():
+    reset_escalated_conversations()
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"domain": "suporte", "complexity": "baixa", "confidence": 0.9}',
+            total_duration_ms=1.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=LLMResponse(text="resposta externa", total_duration_ms=1.0))
+    rag_client = _FakeRAGClient(documents=[Document(content="doc", source="manual", score=0.9)])
+
+    eventos = [
+        e
+        async for e in handle_message(
+            message="Isso é um absurdo, nunca mais compro nessa loja!",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            conversation_id="conv-tom-3",
+            tone_monitor_enabled=False,
+        )
+    ]
+
+    escalonamentos = [e for e in eventos if isinstance(e, EscalonamentoEvent)]
+    assert escalonamentos == []
 ```
 
-Em `backend/tests/test_chat_api.py`:
-```python
-def test_chat_stream_emite_router_provider_no_done():
-    # Verifica que o evento 'done' do stream SSE contém o campo 'router_provider'
-    app = _build_test_app()
-    app.state.intent_router_provider = "jev_openrouter"
-    client = TestClient(app)
+Verificar se `_FakeRAGClient`/`Document` já estão importados em `test_orchestrator.py` (linha 20: `from app.router.rag_client import Document, RAGConnectionError`) — se `_FakeRAGClient` não existir como classe auxiliar no arquivo, adicionar antes dos novos testes:
 
-    response = client.post("/api/chat/messages", json={"message": "olá"})
-    eventos = _parse_sse(response.text)
-    done_data = _find(eventos, "done")
-    assert done_data["router_provider"] == "jev_openrouter"
+```python
+class _FakeRAGClient:
+    def __init__(self, documents: list[Document] | None = None) -> None:
+        self._documents = documents if documents is not None else []
+
+    async def search(self, query: str, domain: str) -> list[Document]:
+        return self._documents
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Rodar e confirmar a falha**
 
-Run: `pytest backend/tests/test_orchestrator.py backend/tests/test_chat_api.py -k "router_provider" -v`
-Expected: FAIL.
+Run: `cd backend && .venv/bin/pytest tests/test_orchestrator.py -k escalonamento -v`
+Expected: FAIL com `ImportError: cannot import name 'EscalonamentoEvent'`
 
-- [ ] **Step 3: Implement orchestrator and chat endpoint changes**
+- [ ] **Step 3: Adicionar `EscalonamentoEvent` e o wiring em `handle_message`**
 
-Em `backend/src/app/router/orchestrator.py`:
+Em `backend/src/app/router/orchestrator.py`, adicionar os imports no topo (junto dos existentes):
+
 ```python
-class RouterDecision(BaseModel):
-    ...
-    router_provider: str = "heuristica_llm"
+from app.models.runtime_settings import DEFAULT_TONE_MONITOR_PROVIDER
+from app.router.tone_monitor import analyze_tone, ja_escalada, marcar_escalada
+```
 
+Logo após a classe `TokenEvent` (linhas 108-109), adicionar:
+
+```python
+
+
+class EscalonamentoEvent(BaseModel):
+    motivo: str | None
+    confianca: float
+    provider_efetivo: str
+```
+
+Alterar a assinatura de `handle_message` (linhas 344-354) adicionando dois parâmetros ao final e atualizando o tipo de retorno:
+
+```python
 async def handle_message(
     message: str,
     recent_messages: list[str],
@@ -623,172 +1207,579 @@ async def handle_message(
     external_client: LLMClient,
     rag_client: RAGClient,
     complexity_strategy: str,
-    intent_router_provider: str = "heuristica_llm",
-) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision]:
-    ...
-    # Ajusta emissão de cold-start: só quando for Ollama local
-    if intent_router_provider == "heuristica_llm" and complexity_strategy == "llm" and not await local_client.is_model_ready():
-        yield StatusEvent(status="carregando_modelo")
-
-    classification = await classify(
-        message=message,
-        recent_messages=recent_messages,
-        strategy=complexity_strategy,
-        llm_client=local_client,
-        provider=intent_router_provider,
-        external_client=external_client,
-    )
-    ...
-    # Ao criar RouterDecision:
-    yield RouterDecision(
-        ...
-        router_provider=intent_router_provider,
-    )
+    conversation_id: str = "",
+    calendar_client: CalendarClient | None = None,
+    scheduling_config: SchedulingConfig | None = None,
+    intent_router_provider: str = DEFAULT_INTENT_ROUTER_PROVIDER,
+    tone_monitor_enabled: bool = True,
+    tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
+) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
 ```
 
-Em `backend/src/app/models/chat.py`:
-```python
-class ChatDoneEventData(BaseModel):
-    ...
-    router_provider: str | None = Field(
-        default="heuristica_llm",
-        description='Provedor de roteamento utilizado ("heuristica_llm" ou "jev_openrouter").',
-    )
-```
+Logo no início do corpo de `handle_message` — a primeira linha executável, antes do `try:` do bloco de classificação (linha 361) — inserir:
 
-Em `backend/src/app/api/chat.py`:
 ```python
-def get_intent_router_provider(request: Request) -> str:
-    return getattr(request.app.state, "intent_router_provider", "heuristica_llm")
-
-# No endpoint send_message:
-    intent_router_provider: str = Depends(get_intent_router_provider),
-    ...
-    async for event in handle_message(
-        ...
-        intent_router_provider=intent_router_provider,
-    ):
-        ...
-        elif isinstance(event, RouterDecision):
-            done_data = ChatDoneEventData(
-                ...
-                router_provider=event.router_provider,
+    # Monitor de Tom (R8, Fase 4B) — roda antes da classificação de
+    # domínio, transversal a todo domínio (ver
+    # docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §2). Nunca
+    # substitui a resposta normal: só adiciona um evento a mais no stream.
+    if tone_monitor_enabled:
+        tone_result = await analyze_tone(
+            message=message,
+            recent_messages=recent_messages,
+            strategy_provider=tone_monitor_provider,
+            llm_client=local_client,
+            external_client=external_client,
+        )
+        if tone_result.escalate and not ja_escalada(conversation_id):
+            marcar_escalada(conversation_id)
+            yield EscalonamentoEvent(
+                motivo=tone_result.motivo,
+                confianca=tone_result.confidence,
+                provider_efetivo=tone_result.provider_efetivo,
             )
-            yield _sse("done", done_data.model_dump())
+
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [ ] **Step 4: Rodar e confirmar que passa**
 
-Run: `pytest backend/tests/test_orchestrator.py backend/tests/test_chat_api.py -v`
-Expected: PASS.
+Run: `cd backend && .venv/bin/pytest tests/test_orchestrator.py -v`
+Expected: PASS (todos os testes do arquivo — inclusive os pré-existentes, que agora passam `tone_monitor_enabled=True` implícito por padrão; conferir que nenhum teste antigo quebrou por causa disso)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Se algum teste pré-existente quebrar por causa do Monitor de Tom ligado por padrão**
+
+Alguns testes pré-existentes de `test_orchestrator.py` usam mensagens que podem coincidir por acaso com um sinal heurístico forte (ex.: muita pontuação/maiúsculas em um texto de teste). Se isso acontecer, ajustar a mensagem usada nesse teste específico para um texto neutro equivalente — não desligar o Monitor de Tom nos testes existentes só para "fazer passar", a menos que o teste em questão exista especificamente para validar um comportamento que o Monitor de Tom não deveria interferir (nesse caso, passar `tone_monitor_enabled=False` explicitamente nesse teste, com um comentário curto explicando o motivo).
+
+- [ ] **Step 6: Commitar**
 
 ```bash
-git add backend/src/app/router/orchestrator.py backend/src/app/models/chat.py backend/src/app/api/chat.py backend/tests/test_orchestrator.py backend/tests/test_chat_api.py
-git commit -m "feat(router): propaga intent_router_provider no orquestrador e telemetria do chat"
+git add backend/src/app/router/orchestrator.py backend/tests/test_orchestrator.py
+git commit -m "feat(tom): integra Monitor de Tom ao handle_message via EscalonamentoEvent (R8)"
 ```
 
 ---
 
-## Task 5: Frontend — Tipagem, Exibição de Telemetria e Seletor no Admin
+### Task 7: Wiring no `chat.py` — evento SSE, persistência, log e documentação
 
 **Files:**
-- Modify: `frontend/lib/types/runtimeSettings.ts`
-- Modify: `frontend/lib/types/chat.ts`
-- Modify: `frontend/components/admin/RuntimeSettingsForm.tsx`
-- Modify: `frontend/components/chat/ChatModal.tsx`
-- Modify: `frontend/components/chat/MessageBubble.tsx`
+- Modify: `backend/src/app/api/chat.py`
+- Modify: `docs/FRONTEND.md`
+- Test: `backend/tests/test_chat_api.py`
 
 **Interfaces:**
-- `RuntimeSettings.intent_router_provider: "heuristica_llm" | "jev_openrouter"`
-- `ChatMetrics.routerProvider?: string`
+- Consumes: `app.router.orchestrator.EscalonamentoEvent` (Task 6); `app.router.tone_monitor.criar_escalonamento` (Task 5); `app.api.rag_dependencies.get_db_session`; `app.models.runtime_settings.DEFAULT_TONE_MONITOR_PROVIDER` (Task 1).
+- Produces: dependências `get_tone_monitor_enabled(request) -> bool`, `get_tone_monitor_provider(request) -> str` em `app.api.chat` (mesmo padrão de `get_intent_router_provider`); evento SSE `escalonamento` no stream de `POST /api/chat/messages`.
 
-- [ ] **Step 1: Update TypeScript types**
+- [ ] **Step 1: Escrever os testes que falham**
 
-Em `frontend/lib/types/runtimeSettings.ts`:
-```typescript
-export interface RuntimeSettings {
-  local_llm_temperature: number | null;
-  local_llm_timeout_s: number;
-  external_llm_timeout_s: number;
-  rag_search_domain_fallback: boolean;
-  crawler_max_pages_default: number;
-  crawler_confidence_threshold: number;
-  intent_router_provider?: "heuristica_llm" | "jev_openrouter";
-}
+Em `backend/tests/test_chat_api.py`, adicionar `get_db_session` ao import de `app.api.rag_dependencies` (novo import) e `EscalonamentoEvent` não precisa ser importado no teste (só verificado via SSE). Alterar a fixture `fakes` (linha 138-150) para depender de `db_session`:
+
+```python
+@pytest.fixture
+def fakes(db_session):
+    return {
+        "local": _FakeLLMClient(LLMResponse(text="resposta local", total_duration_ms=10.0)),
+        "external": _FakeLLMClient(LLMResponse(text="resposta externa", total_duration_ms=20.0)),
+        "rag": _FakeRAGClient(documents=[Document(content="...", source="catalogo", score=0.9)]),
+        "stt": _FakeSttClient(text=""),
+        "clip_store": _FakeClipStore(results=[]),
+        "clip_embedder": object(),
+        "db_session": db_session,
+    }
 ```
 
-Em `frontend/lib/types/chat.ts`:
-```typescript
-export interface ChatMetrics {
-  ...
-  routerProvider?: string;
-}
+Em `_build_app` (linha 153-175), adicionar o import `from app.api.rag_dependencies import get_db_session` ao topo do arquivo e, dentro da função, adicionar:
 
-export interface ChatDoneEventData {
-  ...
-  router_provider?: string | null;
-}
+```python
+    app.dependency_overrides[get_db_session] = lambda: fakes["db_session"]
 ```
 
-- [ ] **Step 2: Add router provider control in `RuntimeSettingsForm.tsx`**
+E ao final do arquivo, adicionar:
 
-No componente `RuntimeSettingsForm.tsx`:
-1. Adicionar estado `const [routerProvider, setRouterProvider] = useState<"heuristica_llm" | "jev_openrouter">("heuristica_llm");`.
-2. No `carregar()`, inicializar `setRouterProvider(atual.intent_router_provider ?? "heuristica_llm");`.
-3. No `handleSubmit()`, incluir `intent_router_provider: routerProvider` no payload de `updateRuntimeSettings`.
-4. Renderizar o campo na UI com radio buttons elegantes e descritivos:
-   - Opção 1: **Heurística + LLM Local (Ollama)** — *Padrão: palavras-chave locais e fallback para modelo Ollama configurado.*
-   - Opção 2: **TypeSafe Jev (OpenRouter)** — *Modelo System One de decisão estruturada de alta velocidade e baixo custo.*
+```python
+def test_mensagem_com_sinal_forte_emite_evento_escalonamento_antes_do_done(client):
+    from app.router.tone_monitor import reset_escalated_conversations
 
-- [ ] **Step 3: Update `ChatModal.tsx` and `MessageBubble.tsx` for telemetry display**
+    reset_escalated_conversations()
+    response = client.post(
+        "/api/chat/messages",
+        json={"message": "Isso é um absurdo, nunca mais compro nessa loja!"},
+    )
 
-Em `frontend/components/chat/ChatModal.tsx`:
-Mapear `routerProvider: data.router_provider ?? undefined` no callback `onDone`.
+    assert response.status_code == 200
+    eventos = _parse_sse(response.text)
+    tipos = [tipo for tipo, _ in eventos]
+    assert "escalonamento" in tipos
+    assert tipos.index("escalonamento") < tipos.index("done")
+    escalonamento = _find(eventos, "escalonamento")
+    assert escalonamento["motivo"] == "insatisfacao"
+    assert isinstance(escalonamento["confianca"], float)
 
-Em `frontend/components/chat/MessageBubble.tsx`:
-No painel expansível de detalhes técnicos/métricas, exibir:
-```tsx
-{metrics?.routerProvider && (
-  <div className="flex justify-between">
-    <span className="text-gray-500">Roteador de Intenção:</span>
-    <span className="font-mono text-gray-800">
-      {metrics.routerProvider === "jev_openrouter" ? "TypeSafe Jev (OpenRouter)" : "Heurística + LLM Local"}
-    </span>
-  </div>
-)}
+
+def test_mensagem_neutra_nao_emite_evento_escalonamento(client):
+    from app.router.tone_monitor import reset_escalated_conversations
+
+    reset_escalated_conversations()
+    response = client.post(
+        "/api/chat/messages", json={"message": "Qual o horário de funcionamento?"}
+    )
+
+    assert response.status_code == 200
+    eventos = _parse_sse(response.text)
+    tipos = [tipo for tipo, _ in eventos]
+    assert "escalonamento" not in tipos
+
+
+async def test_escalonamento_e_persistido_no_banco(fakes):
+    from app.router.tone_monitor import listar_escalonamentos, reset_escalated_conversations
+
+    reset_escalated_conversations()
+    app = _build_app(fakes)
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/chat/messages",
+            json={"message": "Isso é um absurdo, nunca mais compro nessa loja!"},
+        )
+    assert response.status_code == 200
+
+    # Teste assíncrono (em vez de asyncio.run() isolado): reaproveita o
+    # mesmo loop gerenciado pelo pytest-asyncio da fixture `db_session`,
+    # evitando abrir um segundo loop independente para consultar a MESMA
+    # sessão SQLite em memória usada pela requisição acima.
+    registros = await listar_escalonamentos(fakes["db_session"])
+    assert len(registros) == 1
+    assert registros[0].motivo == "insatisfacao"
+    assert registros[0].provider_efetivo == "heuristica_llm"
 ```
 
-- [ ] **Step 4: Verify typecheck and frontend build**
+- [ ] **Step 2: Rodar e confirmar a falha**
 
-Run: `cd frontend && npm run build` (ou `npx tsc --noEmit`)
-Expected: Sucesso sem erros de tipagem.
+Run: `cd backend && .venv/bin/pytest tests/test_chat_api.py -k escalonamento -v`
+Expected: FAIL (evento `escalonamento` nunca aparece / `get_db_session` não usado ainda)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 3: Adicionar as dependências e o wiring em `chat.py`**
+
+Em `backend/src/app/api/chat.py`, atualizar os imports:
+
+```python
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.rag_dependencies import get_db_session
+from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER, DEFAULT_TONE_MONITOR_PROVIDER
+from app.router.orchestrator import (
+    EscalonamentoEvent,
+    ExternalBackendIndisponivelError,
+    LocalBackendIndisponivelError,
+    RouterDecision,
+    StatusEvent,
+    TokenEvent,
+    handle_message,
+)
+from app.router.tone_monitor import criar_escalonamento
+```
+
+Logo após `get_intent_router_provider` (linhas 71-72), adicionar:
+
+```python
+def get_tone_monitor_enabled(request: Request) -> bool:
+    return getattr(request.app.state, "tone_monitor_enabled", True)
+
+
+def get_tone_monitor_provider(request: Request) -> str:
+    return getattr(request.app.state, "tone_monitor_provider", DEFAULT_TONE_MONITOR_PROVIDER)
+```
+
+Na assinatura de `send_message` (linhas 100-113), adicionar três parâmetros ao final:
+
+```python
+    tone_monitor_enabled: bool = Depends(get_tone_monitor_enabled),
+    tone_monitor_provider: str = Depends(get_tone_monitor_provider),
+    session: AsyncSession = Depends(get_db_session),
+) -> StreamingResponse:
+```
+
+Na chamada a `handle_message` dentro de `event_stream()` (linhas 262-273), adicionar os dois parâmetros novos:
+
+```python
+            async for event in handle_message(
+                message=effective_message,
+                recent_messages=recent_messages,
+                local_client=local_client,
+                external_client=external_client,
+                rag_client=rag_client,
+                complexity_strategy=complexity_strategy,
+                conversation_id=conversation_id,
+                calendar_client=calendar_client,
+                scheduling_config=scheduling_config,
+                intent_router_provider=intent_router_provider,
+                tone_monitor_enabled=tone_monitor_enabled,
+                tone_monitor_provider=tone_monitor_provider,
+            ):
+```
+
+E, no laço `if isinstance(event, StatusEvent): ... elif isinstance(event, TokenEvent): ... elif isinstance(event, RouterDecision): ...` (linhas 274-301), adicionar um novo ramo antes do `elif isinstance(event, RouterDecision):`:
+
+```python
+                elif isinstance(event, EscalonamentoEvent):
+                    yield _sse(
+                        "escalonamento", {"motivo": event.motivo, "confianca": event.confianca}
+                    )
+                    logger.info(
+                        "tom_escalonado",
+                        extra={
+                            "router": {
+                                "event": "tom_escalonado",
+                                "conversation_id": conversation_id,
+                                "motivo": event.motivo,
+                                "confianca": event.confianca,
+                                "provider_efetivo": event.provider_efetivo,
+                            }
+                        },
+                    )
+                    await criar_escalonamento(
+                        session,
+                        conversation_id=conversation_id,
+                        mensagem=effective_message,
+                        motivo=event.motivo,
+                        confianca=event.confianca,
+                        provider_efetivo=event.provider_efetivo,
+                    )
+```
+
+- [ ] **Step 4: Rodar e confirmar que passa**
+
+Run: `cd backend && .venv/bin/pytest tests/test_chat_api.py -v`
+Expected: PASS (todos os testes do arquivo, incluindo os pré-existentes — a fixture `fakes`/`_build_app` foi ajustada no Step 1, então nenhum teste antigo deveria precisar de outra mudança)
+
+- [ ] **Step 5: Documentar o evento SSE em `docs/FRONTEND.md`**
+
+Em `docs/FRONTEND.md`, no bloco de exemplo dos eventos SSE (Seção 4), inserir um novo bloco `event: escalonamento` logo **antes** do comentário `event: done` (linha 204), assim:
+
+```
+event: escalonamento         // opcional, no máximo uma vez por conversation_id — Monitor de Tom (R8)
+data: {"motivo": "urgencia", "confianca": 0.87}
+// motivo: "urgencia" | "insatisfacao". Emitido quando o Monitor de Tom
+// (heurística + fallback heuristica_llm/jev_openrouter, ver
+// docs/ARCHITECTURE.md §5) detecta urgência/insatisfação forte na mensagem
+// atual — não substitui a resposta normal do domínio, que continua sendo
+// gerada e streamada. Só dispara uma vez por conversa (estado em memória
+// por processo, perdido em restart). O caso também é persistido em
+// `tom_escalonamentos` (Postgres) e exposto para consulta manual em
+// GET /api/admin/tom/escalonamentos.
+
+event: done                  // sempre o último evento em caso de sucesso — telemetria completa
+```
+
+- [ ] **Step 6: Commitar**
 
 ```bash
-git add frontend/lib/types/runtimeSettings.ts frontend/lib/types/chat.ts frontend/components/admin/RuntimeSettingsForm.tsx frontend/components/chat/ChatModal.tsx frontend/components/chat/MessageBubble.tsx
-git commit -m "feat(frontend): adiciona seletor de roteador no admin e indicador de telemetria no chat"
+git add backend/src/app/api/chat.py backend/tests/test_chat_api.py docs/FRONTEND.md
+git commit -m "feat(tom): emite evento SSE escalonamento e persiste o caso (R8)"
 ```
 
 ---
 
-## Task 6: Verificação de Ponta a Ponta
+### Task 8: Endpoint `GET /api/admin/tom/escalonamentos`
 
-- [ ] **Step 1: Rodar suíte completa de testes no backend**
-Run: `cd backend && pytest -v`
-Expected: Todos os testes passando sem quebras ou regressões.
+**Files:**
+- Create: `backend/src/app/models/tom_escalonamentos.py`
+- Create: `backend/src/app/api/tom_escalonamentos.py`
+- Modify: `backend/src/app/main.py`
+- Test: `backend/tests/test_tom_escalonamentos_api.py`
 
-- [ ] **Step 2: Teste manual no Painel Admin**
-1. Iniciar os serviços locais (`backend` e `frontend`).
-2. Acessar `http://localhost:3000/admin/modelos`.
-3. Localizar a seção **Parâmetros de execução** e verificar o seletor do Roteador de Intenção.
-4. Selecionar **TypeSafe Jev (OpenRouter)** e clicar em **Salvar parâmetros**.
-5. Recarregar a página para confirmar que a opção permanece selecionada.
+**Interfaces:**
+- Consumes: `app.router.tone_monitor.listar_escalonamentos` (Task 5); `app.api.rag_dependencies.get_db_session`.
+- Produces: `EscalonamentoResponse(BaseModel)`; rota `GET /api/admin/tom/escalonamentos -> list[EscalonamentoResponse]`.
 
-- [ ] **Step 3: Teste de ponta a ponta no Chat**
-1. Abrir o widget do chat.
-2. Enviar uma pergunta (ex.: *"Quanto custa o serviço?"*).
-3. Abrir os detalhes da mensagem e verificar no painel de telemetria o campo **Roteador de Intenção: TypeSafe Jev (OpenRouter)**.
-4. Voltar ao admin, alternar para **Heurística + LLM Local (Ollama)**, salvar e repetir o teste no chat, verificando a alteração imediata da telemetria.
+- [ ] **Step 1: Escrever o teste que falha**
+
+Criar `backend/tests/test_tom_escalonamentos_api.py`:
+
+```python
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+
+from app.api.rag_dependencies import get_db_session
+from app.api.tom_escalonamentos import router as tom_escalonamentos_router
+from app.router.tone_monitor import criar_escalonamento
+
+
+def _build_app(db_session) -> FastAPI:
+    app = FastAPI()
+    app.include_router(tom_escalonamentos_router)
+    app.dependency_overrides[get_db_session] = lambda: db_session
+    return app
+
+
+def test_get_escalonamentos_vazio_quando_nao_ha_casos(db_session):
+    client = TestClient(_build_app(db_session))
+
+    response = client.get("/api/admin/tom/escalonamentos")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+async def test_get_escalonamentos_retorna_caso_persistido(db_session):
+    await criar_escalonamento(
+        db_session,
+        conversation_id="conv-1",
+        mensagem="preciso falar com um atendente AGORA",
+        motivo="urgencia",
+        confianca=0.9,
+        provider_efetivo="heuristica_llm",
+    )
+    client = TestClient(_build_app(db_session))
+
+    response = client.get("/api/admin/tom/escalonamentos")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["conversation_id"] == "conv-1"
+    assert body[0]["motivo"] == "urgencia"
+    assert body[0]["provider_efetivo"] == "heuristica_llm"
+
+
+async def test_get_escalonamentos_ordena_mais_recente_primeiro(db_session):
+    import asyncio
+
+    await criar_escalonamento(
+        db_session,
+        conversation_id="conv-a",
+        mensagem="primeira",
+        motivo="urgencia",
+        confianca=0.9,
+        provider_efetivo="heuristica_llm",
+    )
+    await asyncio.sleep(1.1)
+    await criar_escalonamento(
+        db_session,
+        conversation_id="conv-b",
+        mensagem="segunda",
+        motivo="insatisfacao",
+        confianca=0.8,
+        provider_efetivo="jev_openrouter",
+    )
+    client = TestClient(_build_app(db_session))
+
+    response = client.get("/api/admin/tom/escalonamentos")
+
+    body = response.json()
+    assert [r["conversation_id"] for r in body] == ["conv-b", "conv-a"]
+```
+
+- [ ] **Step 2: Rodar e confirmar a falha**
+
+Run: `cd backend && .venv/bin/pytest tests/test_tom_escalonamentos_api.py -v`
+Expected: FAIL com `ModuleNotFoundError: No module named 'app.api.tom_escalonamentos'`
+
+- [ ] **Step 3: Criar o schema de resposta**
+
+Criar `backend/src/app/models/tom_escalonamentos.py`:
+
+```python
+"""Schema Pydantic do endpoint de listagem do Monitor de Tom (R8, Fase 4B)
+— ver docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §6.2.
+"""
+
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel
+
+
+class EscalonamentoResponse(BaseModel):
+    id: UUID
+    conversation_id: str
+    mensagem: str
+    motivo: str | None
+    confianca: float
+    provider_efetivo: str
+    criado_em: datetime
+```
+
+- [ ] **Step 4: Criar o endpoint**
+
+Criar `backend/src/app/api/tom_escalonamentos.py`:
+
+```python
+"""Endpoint administrativo de listagem dos casos escalonados pelo Monitor
+de Tom (R8, Fase 4B) — ver
+docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §6.2. Sem UI
+dedicada nesta entrega, só a API, para inspeção manual/demonstração.
+"""
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.rag_dependencies import get_db_session
+from app.db.models import TomEscalonamento
+from app.models.tom_escalonamentos import EscalonamentoResponse
+from app.router.tone_monitor import listar_escalonamentos
+
+router = APIRouter(prefix="/api/admin/tom", tags=["tom-escalonamentos"])
+
+
+def _to_response(registro: TomEscalonamento) -> EscalonamentoResponse:
+    return EscalonamentoResponse(
+        id=registro.id,
+        conversation_id=registro.conversation_id,
+        mensagem=registro.mensagem,
+        motivo=registro.motivo,
+        confianca=registro.confianca,
+        provider_efetivo=registro.provider_efetivo,
+        criado_em=registro.criado_em,
+    )
+
+
+@router.get("/escalonamentos", response_model=list[EscalonamentoResponse])
+async def get_escalonamentos(
+    session: AsyncSession = Depends(get_db_session),
+) -> list[EscalonamentoResponse]:
+    # MVP: LIMIT 100 fixo, sem paginação — mesma simplicidade de outras
+    # listagens administrativas do projeto.
+    registros = await listar_escalonamentos(session)
+    return [_to_response(registro) for registro in registros]
+```
+
+- [ ] **Step 5: Registrar o router em `main.py`**
+
+Em `backend/src/app/main.py`, adicionar o import junto dos demais routers (ordem alfabética, depois de `app.api.runtime_settings`):
+
+```python
+from app.api.tom_escalonamentos import router as tom_escalonamentos_router
+```
+
+E, junto dos demais `app.include_router(...)` ao final de `create_app`, adicionar:
+
+```python
+    app.include_router(tom_escalonamentos_router)
+```
+
+- [ ] **Step 6: Rodar e confirmar que passa**
+
+Run: `cd backend && .venv/bin/pytest tests/test_tom_escalonamentos_api.py -v`
+Expected: PASS (todos os testes do arquivo)
+
+- [ ] **Step 7: Commitar**
+
+```bash
+git add backend/src/app/models/tom_escalonamentos.py backend/src/app/api/tom_escalonamentos.py \
+  backend/src/app/main.py backend/tests/test_tom_escalonamentos_api.py
+git commit -m "feat(tom): adiciona GET /api/admin/tom/escalonamentos (R8)"
+```
+
+---
+
+### Task 9: Verificação E2E, ROADMAP.md e ARCHITECTURE.md
+
+**Files:**
+- Modify: `docs/ROADMAP.md`
+- Modify: `docs/ARCHITECTURE.md`
+
+**Interfaces:** Nenhuma nova — task de verificação e fechamento de documentação.
+
+- [ ] **Step 1: Rodar a suíte completa do backend**
+
+Run: `cd backend && .venv/bin/pytest -v`
+Expected: PASS (nenhum teste pré-existente quebrado pelas Tasks 1-8)
+
+- [ ] **Step 2: Rodar `ruff` (lint) sobre os arquivos tocados**
+
+Run: `cd backend && .venv/bin/ruff check src/app/config.py src/app/models/runtime_settings.py src/app/api/runtime_settings.py src/app/main.py src/app/db/models.py src/app/router/openrouter_client.py src/app/router/tone_monitor.py src/app/router/orchestrator.py src/app/api/chat.py src/app/models/tom_escalonamentos.py src/app/api/tom_escalonamentos.py`
+Expected: sem erros. Corrigir qualquer achado antes de prosseguir.
+
+- [ ] **Step 3: Subir a infraestrutura local e aplicar a migração contra o Postgres real**
+
+Run: `cd backend && docker compose up -d postgres && .venv/bin/alembic upgrade head`
+Expected: migração `0006` aplicada sem erro. Se `docker compose` não estiver disponível neste ambiente, reportar isso explicitamente em vez de simular — não é bloqueante para o restante da verificação (SQLite já cobriu a lógica de CRUD nas Tasks 2/5/8).
+
+- [ ] **Step 4: Subir o backend e verificar o fluxo real via chat**
+
+Run: `cd backend && .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000` (background)
+
+Com o backend no ar (e Ollama respondendo em `local_model_base_url`), enviar uma mensagem com sinal forte de insatisfação:
+
+```bash
+curl -N -X POST http://localhost:8000/api/chat/messages \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Isso é um absurdo, nunca mais compro nessa loja!"}'
+```
+
+(`-N` desliga o buffer do curl para exibir o stream SSE bruto conforme chega.) Confirmar visualmente:
+- o evento `escalonamento` aparece antes do `done`, com `motivo` e `confianca`;
+- a resposta normal do domínio (`token`s + `done`) continua sendo gerada normalmente, sem ser interrompida;
+- `curl http://localhost:8000/api/admin/tom/escalonamentos` retorna o caso recém-criado (`motivo`, `confianca`, `provider_efetivo` preenchidos).
+
+Isso confirma que a dependência `Depends(get_db_session)` permanece aberta durante toda a duração do `StreamingResponse` (comportamento do FastAPI/Starlette instalados neste projeto, versões atuais — ver Task 7) e que a persistência realmente acontece em produção, não só nos testes com SQLite em memória.
+
+- [ ] **Step 5: Marcar os dois itens do roadmap como concluídos**
+
+Em `docs/ROADMAP.md`, alterar as linhas 258-261 de:
+
+```
+- [ ] Implementar classificador leve de sentimento/urgência (heurística +
+      LLM leve)
+- [ ] Implementar alerta e transferência simulada para atendente humano + log
+      dos casos escalonados
+```
+
+para:
+
+```
+- [x] Implementar classificador leve de sentimento/urgência (heurística +
+      LLM leve)
+- [x] Implementar alerta e transferência simulada para atendente humano + log
+      dos casos escalonados (evento SSE `escalonamento` + tabela
+      `tom_escalonamentos` — o banner visual no frontend fica para a Fase 8,
+      ver `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md` §9)
+```
+
+E atualizar a nota de contexto logo acima (linha 246), de:
+
+```
+> R8 (monitor de tom) é a Fase 4B, com spec própria ainda a escrever.
+```
+
+para:
+
+```
+> R8 (monitor de tom) implementado como Fase 4B (backend) — ver
+> `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md`. Banner
+> visual no frontend consumindo o evento `escalonamento` fica para a
+> Fase 8 (item próprio do roadmap).
+```
+
+- [ ] **Step 6: Registrar a decisão em `docs/ARCHITECTURE.md` §5**
+
+Em `docs/ARCHITECTURE.md`, logo antes de `### Tabela de escopo por requisito` (depois do parágrafo "Correção (achado importante 1 da revisão final do branch, 2026-09-23)..."), adicionar:
+
+```markdown
+**Monitor de Tom (R8, Fase 4B, decisão registrada em 2026-09-23):**
+implementado como checagem transversal (`app.router.tone_monitor.analyze_tone`)
+que roda no início de `handle_message`, antes da classificação de domínio,
+sem substituir a resposta normal — ver
+`docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md`. Mesmo padrão
+de dois provedores configuráveis do classificador de intenção
+(`TONE_MONITOR_PROVIDER`: `heuristica_llm` — heurística de palavras-chave +
+sinais estruturais, com fallback ao LLM local, — ou `jev_openrouter`, com
+degradação automática para `heuristica_llm` em qualquer falha do Jev, mesma
+lógica de `ClassificationResult.provider_efetivo`). Primeira escalada de
+cada conversa emite o evento SSE `escalonamento` (`docs/FRONTEND.md` §4),
+persiste um registro em `tom_escalonamentos` (Postgres, migração `0006`) e
+loga o evento estruturado `tom_escalonado`. `# MVP: sem mecanismo de
+"des-escalar" uma conversa já marcada (estado em memória por processo, mesma
+limitação já aceita para o fluxo de agendamento); sem fila real de
+atendimento humano nem painel administrativo visual — só a API de listagem
+(`GET /api/admin/tom/escalonamentos`) e o log estruturado, para inspeção
+manual/demonstração`. Banner visual no frontend consumindo o evento
+`escalonamento` é a Fase 8 (fora de escopo desta entrega).
+```
+
+- [ ] **Step 7: Commitar**
+
+```bash
+git add docs/ROADMAP.md docs/ARCHITECTURE.md
+git commit -m "docs(tom): fecha R8 no roadmap e registra decisão em ARCHITECTURE.md"
+```
