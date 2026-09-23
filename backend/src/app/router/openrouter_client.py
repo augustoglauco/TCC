@@ -14,6 +14,17 @@ class VisionModelIndisponivelError(Exception):
     identificação de imagem trata como 'não identificado' (sem fallback)."""
 
 
+_VALID_DOMAINS = {"vendas", "suporte", "atendimento", "agendamento", "fora_escopo"}
+
+_DOMAIN_CRITERIA = {
+    "vendas": "Interesse em comprar, orçamento, preço ou catálogo de produtos.",
+    "suporte": "Produto com defeito, erro ou problema técnico já adquirido.",
+    "atendimento": "Nota fiscal, troca, devolução, cancelamento ou reclamação.",
+    "agendamento": "Quer marcar, remarcar ou confirmar uma visita/horário.",
+    "fora_escopo": "Não se encaixa claramente em nenhuma opção acima.",
+}
+
+
 class OpenRouterClient:
     """Cliente para o backend externo via OpenRouter (docs/TECHNOLOGY_STACK.md).
 
@@ -35,6 +46,7 @@ class OpenRouterClient:
         price_per_1k_output_tokens: float = 0.0,
         client: httpx.AsyncClient | None = None,
         vision_model: str = "",
+        jev_model: str = "",
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -47,6 +59,15 @@ class OpenRouterClient:
         # (R6, Fase 3) — separado do modelo de texto (`_model`), ajustável em
         # runtime. Vazio = fallback externo de visão desligado.
         self._vision_model = vision_model
+        # Modelo do classificador estruturado TypeSafe Jev (R3, Fase 1,
+        # além do MVP — ver docs/ARCHITECTURE.md §5).
+        # MVP: nome do modelo só configurável via env/restart (JEV_MODEL_NAME),
+        # diferente de `vision_model` acima, que é editável em runtime pelo
+        # admin — não há caso de uso que justifique trocar o modelo do Jev
+        # sem redeploy. Vazio = provedor "jev_openrouter" no admin fica sem
+        # efeito prático (classify_intent_jev levanta erro, capturado pelo
+        # fallback gracioso do classificador).
+        self._jev_model = jev_model
 
     @property
     def timeout_s(self) -> float:
@@ -219,3 +240,41 @@ class OpenRouterClient:
                 total_duration_ms=(time.monotonic() - started_at) * 1000,
                 model_name=self._model,
             )
+
+    async def classify_intent_jev(
+        self, message: str, recent_messages: list[str] | None = None
+    ) -> tuple[str, float]:
+        """Classifica o domínio via TypeSafe Jev, endpoint dedicado do
+        OpenRouter (`/systemone`, não `/chat/completions`) — o modelo devolve
+        uma decisão tipada (`answers.dominio.choice`/`.confidence`), sem
+        geração de texto livre nem parsing de JSON solto.
+        """
+        if not self._jev_model:
+            raise ValueError("jev_model não configurado (JEV_MODEL_NAME).")
+
+        contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
+        response = await self._client.post(
+            f"{self._base_url}/systemone",
+            headers={"Authorization": f"Bearer {self._api_key}"},
+            json={
+                "model": self._jev_model,
+                "state": f"Contexto prévio:\n{contexto}\n\nMensagem: {message}",
+                "questions": {
+                    "dominio": {
+                        "type": "choice",
+                        "instructions": (
+                            "Classifique a mensagem do cliente em um dos domínios de atendimento."
+                        ),
+                        "criteria": _DOMAIN_CRITERIA,
+                    }
+                },
+            },
+            timeout=self._timeout_s,
+        )
+        response.raise_for_status()
+        answer = response.json()["answers"]["dominio"]
+        choice = str(answer.get("choice", "fora_escopo")).lower().strip()
+        confidence = float(answer.get("confidence", 0.5))
+        if choice not in _VALID_DOMAINS:
+            choice = "fora_escopo"
+        return choice, confidence

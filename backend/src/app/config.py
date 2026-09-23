@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     # resultado ser aceito.
     image_external_confidence: float = 0.80
 
+    # Provedor alternativo do classificador de intenção (além do MVP, ver
+    # docs/ARCHITECTURE.md §5, decisão 2026-09-23). Reaproveita
+    # external_model_api_key/external_model_base_url (mesma conta OpenRouter).
+    jev_model_name: str = "typesafe/jev-latest"
+
     # Tipado como Literal para falhar na carga das settings (erro claro) em vez
     # de estourar um ValueError obscuro dentro do classificador em runtime.
     router_complexity_strategy: Literal["heuristic", "llm"] = "heuristic"

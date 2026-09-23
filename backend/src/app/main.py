@@ -63,6 +63,7 @@ def create_app() -> FastAPI:
         price_per_1k_input_tokens=settings.external_model_price_per_1k_input_tokens,
         price_per_1k_output_tokens=settings.external_model_price_per_1k_output_tokens,
         vision_model=settings.external_vision_model_name,
+        jev_model=settings.jev_model_name,
     )
 
     # Gerenciador de modelos locais (além do MVP — ver
