@@ -511,8 +511,11 @@ HTTP, chave ausente, payload inesperado) degrada imediatamente para a
 heurística local de palavras-chave, sem interromper o atendimento — o
 padrão do roteador continua sendo `heuristica_llm`, preservando
 independência de rede externa no boot. Modelo identificado por
-`typesafe/jev-latest` (alias que sempre aponta para a versão mais recente
-da família Jev; configurável via `JEV_MODEL_NAME` em `.env`). **Não faz
+`~typesafe/jev-latest` (o til é parte do slug do modelo no OpenRouter, não
+um artefato de URL — sem ele a API devolve 400 "Model ... does not exist",
+achado na verificação E2E da Task 6/Fase 1 com chamada real à API; alias
+que sempre aponta para a versão mais recente da família Jev; configurável
+via `JEV_MODEL_NAME` em `.env`). **Não faz
 parte do MVP original** (não descrito em nenhuma fase do roadmap) — fica
 registrada aqui e no roadmap para não ser confundida com item do escopo
 original nem esquecida na revisão final (Fase 11). `# MVP: seleção só em

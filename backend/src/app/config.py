@@ -41,7 +41,11 @@ class Settings(BaseSettings):
     # Provedor alternativo do classificador de intenção (além do MVP, ver
     # docs/ARCHITECTURE.md §5, decisão 2026-09-23). Reaproveita
     # external_model_api_key/external_model_base_url (mesma conta OpenRouter).
-    jev_model_name: str = "typesafe/jev-latest"
+    # O til em "~typesafe/jev-latest" é parte do slug do modelo, não um
+    # artefato de URL — sem ele o OpenRouter devolve 400 "Model ... does not
+    # exist" (achado na verificação E2E da Task 6, confirmado com chamada
+    # real à API).
+    jev_model_name: str = "~typesafe/jev-latest"
 
     # Tipado como Literal para falhar na carga das settings (erro claro) em vez
     # de estourar um ValueError obscuro dentro do classificador em runtime.
