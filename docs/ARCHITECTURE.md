@@ -426,6 +426,32 @@ permanece inalterado. `# MVP: endpoint MCP local sem autenticação própria
 — mesma confiança de rede local que Qdrant/Postgres neste protótipo, não
 exposto publicamente`.
 
+**Decisão registrada (correção de qualidade, achado ao validar o
+agendamento com API real, 2026-09-23):** `OllamaClient.generate()` (chamada
+não-streaming, usada só pelos três classificadores/extratores de JSON curto
+do backend — `classifier._classify_with_llm`,
+`scheduling.extract_booking_slots`, `rag.crawler_classifier`) passa a mandar
+`"think": false` no payload do `POST /api/generate`. Achado real, medido
+diretamente: modelos com a capability `thinking` do Ollama (confirmado via
+`ollama show`, é o caso de `gemma4:12b-it-q4_K_M`) geram um raciocínio
+interno antes da resposta mesmo quando só se pede um JSON curto — medido
+**2684 tokens gerados** (`eval_count`) para uma resposta de ~30 tokens,
+**~50s** de latência, e nessa mesma rodada a extração de `data_hora` saiu
+`null` apesar do dado estar claro na mensagem (o raciocínio não convergiu
+de forma limpa). Isso explicava timeouts intermitentes na extração de
+agendamento (`local_llm_timeout_s`, default 60s) que pareciam só "GPU
+ocupada", mas na verdade eram o modelo pensando ~50s para uma tarefa
+trivial. Com `think: false`: mesma chamada, **2.6s**, **91 tokens**,
+extração correta. `generate_stream()` (resposta de chat de verdade, onde o
+usuário já vê tokens chegando via streaming e "pensar" pode ajudar a
+qualidade) não muda — só as três chamadas de classificação/extração
+estruturada, que nunca se beneficiam de raciocínio livre. Confirmado que
+Ollama ignora `think` com segurança em modelos sem essa capability (testado
+contra `qwen2.5-coder:14b-local`, sem erro). Risco residual (não
+corrigido): a data extraída às vezes vem com ano errado (raciocínio
+temporal relativo — "quarta-feira que vem" — sem saber a data de hoje);
+separado deste achado, não investigado.
+
 **Decisão registrada (Fase 2, melhoria de qualidade a pedido explícito,
 2026-09-17):** `app.rag.pdf_extract.extract_text_from_pdf` trocou de `pypdf`
 para `pdfplumber`, com uma heurística de detecção de layout em 2 colunas —

@@ -129,6 +129,27 @@ async def test_temperature_setada_manda_options_no_payload():
     assert payloads[0]["options"] == {"temperature": 0.0}
 
 
+async def test_generate_manda_think_false():
+    # Achado real (2026-09-23): modelos com capability "thinking" (ex.:
+    # gemma4:12b-it-q4_K_M) geram milhares de tokens de raciocínio interno
+    # antes de responder um JSON curto — ~50s e às vezes resposta vazia/
+    # incorreta para os três chamadores de generate() (classificador,
+    # extração de agendamento, classificador do crawler), que só querem
+    # JSON estruturado curto. think=False evita isso; confirmado que Ollama
+    # ignora o campo com segurança em modelos sem a capability.
+    transport, payloads = _capturing_transport({"response": "oi"})
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=transport),
+    )
+
+    await client.generate("oi")
+
+    assert payloads[0]["think"] is False
+
+
 async def test_list_local_models_mapeia_a_resposta_do_ollama():
     mock_response = {
         "models": [
