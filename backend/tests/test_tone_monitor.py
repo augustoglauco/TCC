@@ -121,6 +121,28 @@ async def test_fallback_llm_resposta_nao_parseavel_nao_escala():
 
 
 @pytest.mark.asyncio
+async def test_fallback_llm_motivo_invalido_degrada_com_validacao():
+    # LLM hallucinates invalid motivo value (e.g., "raiva" instead of "urgencia"/"insatisfacao")
+    llm = _FakeLLMClient(
+        LLMResponse(
+            text='{"escalar": true, "motivo": "raiva", "confianca": 0.8}', total_duration_ms=5.0
+        )
+    )
+    resultado = await analyze_tone(
+        message="Mensagem com tom inválido",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    # Should catch pydantic ValidationError (ValueError subclass) and degrade to safe default
+    assert resultado.escalate is False
+    assert resultado.motivo is None
+    assert resultado.confidence == 0.0
+    assert resultado.provider_efetivo == "heuristica_llm"
+
+
+@pytest.mark.asyncio
 async def test_fallback_jev_sucesso_usa_provider_jev_openrouter():
     llm = _FakeLLMClient()
     jev = _FakeJevClient(escalate=True, confidence=0.9)
