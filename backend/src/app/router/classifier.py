@@ -2,16 +2,30 @@ import json
 import logging
 import re
 import unicodedata
-from typing import Any, Literal
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, ValidationError
 
+from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
 from app.router.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
 
 Domain = Literal["vendas", "suporte", "atendimento", "agendamento", "fora_escopo"]
 Complexity = Literal["baixa", "alta"]
+
+
+class IntentClassifierClient(Protocol):
+    """Contrato mínimo que `external_client` precisa satisfazer quando
+    `provider="jev_openrouter"` — documenta a interface duck-typed em vez de
+    `Any` (achado da revisão final; sem `mypy` configurado neste projeto,
+    isso é só documentação estática para quem lê/edita, não checagem em
+    runtime — a guarda real continua sendo o `hasattr` em `_classify_with_jev`,
+    que cobre o caso de o chamador passar um cliente sem o método)."""
+
+    async def classify_intent_jev(
+        self, message: str, recent_messages: list[str] | None = None
+    ) -> tuple[str, float]: ...
 
 
 class ClassificationResult(BaseModel):
@@ -28,7 +42,7 @@ class ClassificationResult(BaseModel):
     # no orchestrator (ver docs/EVALUATION.md: comparação de acurácia/latência
     # entre provedores fica corrompida se uma resposta da heurística for
     # atribuída ao Jev).
-    provider_efetivo: str = "heuristica_llm"
+    provider_efetivo: str = DEFAULT_INTENT_ROUTER_PROVIDER
 
 
 # MVP: heurística simples de palavras-chave, sem NLP mais robusto — refinar
@@ -104,7 +118,7 @@ def _classify_heuristic_fallback(message: str, recent_messages: list[str]) -> Cl
         domain=domain,
         complexity=_heuristic_complexity(message),
         confidence=0.3,
-        provider_efetivo="heuristica_llm",
+        provider_efetivo=DEFAULT_INTENT_ROUTER_PROVIDER,
     )
 
 
@@ -125,7 +139,7 @@ def _strip_code_fence(text: str) -> str:
 
 def _parse_llm_classification(raw_text: str) -> ClassificationResult:
     parsed = json.loads(_strip_code_fence(raw_text))
-    return ClassificationResult(**parsed, provider_efetivo="heuristica_llm")
+    return ClassificationResult(**parsed, provider_efetivo=DEFAULT_INTENT_ROUTER_PROVIDER)
 
 
 async def _classify_with_llm(
@@ -152,7 +166,7 @@ async def _classify_with_llm(
 async def _classify_with_jev(
     message: str,
     recent_messages: list[str],
-    external_client: Any,
+    external_client: IntentClassifierClient | None,
 ) -> ClassificationResult:
     try:
         if external_client is None or not hasattr(external_client, "classify_intent_jev"):
@@ -185,15 +199,15 @@ async def classify(
     recent_messages: list[str] | None = None,
     strategy: str = "heuristic",
     llm_client: LLMClient | None = None,
-    provider: str = "heuristica_llm",
-    external_client: Any = None,
+    provider: str = DEFAULT_INTENT_ROUTER_PROVIDER,
+    external_client: IntentClassifierClient | None = None,
 ) -> ClassificationResult:
     recent_messages = recent_messages or []
 
     if provider == "jev_openrouter":
         return await _classify_with_jev(message, recent_messages, external_client)
 
-    if provider != "heuristica_llm":
+    if provider != DEFAULT_INTENT_ROUTER_PROVIDER:
         # MVP: hoje inalcançável pelo único chamador real (validado por
         # Literal a montante), mas evita que um valor futuro digitado errado
         # caia em silêncio no caminho clássico sem nenhum diagnóstico.
@@ -213,7 +227,7 @@ async def classify(
             domain=domain,
             complexity=_heuristic_complexity(message),
             confidence=0.6,
-            provider_efetivo="heuristica_llm",
+            provider_efetivo=DEFAULT_INTENT_ROUTER_PROVIDER,
         )
 
     if strategy == "heuristic":

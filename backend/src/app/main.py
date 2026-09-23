@@ -18,6 +18,7 @@ from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
 from app.mcp_client.google_calendar import GoogleCalendarMCPClient
+from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
 from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.embedders_registry import EmbedderRegistry
@@ -64,6 +65,7 @@ def create_app() -> FastAPI:
         price_per_1k_output_tokens=settings.external_model_price_per_1k_output_tokens,
         vision_model=settings.external_vision_model_name,
         jev_model=settings.jev_model_name,
+        jev_timeout_s=settings.jev_timeout_s,
     )
 
     # Gerenciador de modelos locais (além do MVP — ver
@@ -119,7 +121,7 @@ def create_app() -> FastAPI:
     # `external_vision_model_name` vive no OpenRouterClient (`vision_model`).
     app.state.image_internal_confidence = settings.image_internal_confidence
     app.state.image_external_confidence = settings.image_external_confidence
-    app.state.intent_router_provider = "heuristica_llm"
+    app.state.intent_router_provider = DEFAULT_INTENT_ROUTER_PROVIDER
     # MVP: modelo carregado sob demanda (lazy) na mesma GPU do modelo local de
     # chat — contenção de VRAM entre os dois é um risco conhecido (ver
     # docs/ARCHITECTURE.md §7).

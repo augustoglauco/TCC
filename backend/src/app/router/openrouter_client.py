@@ -47,6 +47,7 @@ class OpenRouterClient:
         client: httpx.AsyncClient | None = None,
         vision_model: str = "",
         jev_model: str = "",
+        jev_timeout_s: float = 10.0,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -68,6 +69,14 @@ class OpenRouterClient:
         # efeito prático (classify_intent_jev levanta erro, capturado pelo
         # fallback gracioso do classificador).
         self._jev_model = jev_model
+        # Orçamento de timeout PRÓPRIO do Jev (achado da revisão final):
+        # compartilhar `timeout_s`/`external_llm_timeout_s` (30s default, do
+        # LLM de chat) faria uma chamada travada ao Jev — um modelo "System
+        # One" anunciado como rápido, sub-segundo — custar até 30s ao
+        # visitante antes do fallback gracioso disparar. Não editável em
+        # runtime pelo admin (mesmo padrão de `jev_model`, só `JEV_TIMEOUT_S`
+        # via env/restart).
+        self._jev_timeout_s = jev_timeout_s
 
     @property
     def timeout_s(self) -> float:
@@ -269,7 +278,7 @@ class OpenRouterClient:
                     }
                 },
             },
-            timeout=self._timeout_s,
+            timeout=self._jev_timeout_s,
         )
         response.raise_for_status()
         answer = response.json()["answers"]["dominio"]
