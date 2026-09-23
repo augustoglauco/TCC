@@ -81,16 +81,29 @@ class OllamaClient:
     def temperature(self, value: float | None) -> None:
         self._temperature = value
 
-    def _build_payload(self, prompt: str, stream: bool) -> dict:
+    def _build_payload(self, prompt: str, stream: bool, think: bool | None = None) -> dict:
         payload: dict = {"model": self._model, "prompt": prompt, "stream": stream}
         if self._temperature is not None:
             payload["options"] = {"temperature": self._temperature}
+        if think is not None:
+            payload["think"] = think
         return payload
 
     async def generate(self, prompt: str) -> LLMResponse:
+        # think=False: os três chamadores de generate() (classify_with_llm,
+        # extract_booking_slots, crawler_classifier) só querem um JSON curto
+        # — sem geração em streaming, então "pensamento" do modelo (achado
+        # real: 2684 tokens de raciocínio para uma resposta de ~30 tokens,
+        # ~50s, às vezes resposta vazia/errada) nunca aparece pro usuário e
+        # só atrasa/arrisca estourar o timeout. generate_stream() (resposta
+        # de chat de verdade) não muda — lá o "pensamento" pode ajudar a
+        # qualidade e o usuário já vê tokens chegando (TTFT não é afetado do
+        # mesmo jeito). Ollama ignora "think" para modelos sem essa
+        # capability (ver `ollama show <modelo>`), então isso não quebra
+        # nada em modelos que não pensam.
         response = await self._client.post(
             f"{self._base_url}/api/generate",
-            json=self._build_payload(prompt, stream=False),
+            json=self._build_payload(prompt, stream=False, think=False),
             timeout=self._timeout_s,
         )
         response.raise_for_status()
