@@ -1,11 +1,14 @@
 import json
+import logging
 import re
 import unicodedata
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ValidationError
 
 from app.router.llm_client import LLMClient
+
+logger = logging.getLogger(__name__)
 
 Domain = Literal["vendas", "suporte", "atendimento", "agendamento", "fora_escopo"]
 Complexity = Literal["baixa", "alta"]
@@ -132,13 +135,48 @@ async def _classify_with_llm(
         return _classify_heuristic_fallback(message, recent_messages)
 
 
+async def _classify_with_jev(
+    message: str,
+    recent_messages: list[str],
+    external_client: Any,
+) -> ClassificationResult:
+    try:
+        if external_client is None or not hasattr(external_client, "classify_intent_jev"):
+            raise ValueError("external_client inválido para Jev")
+        domain, confidence = await external_client.classify_intent_jev(message, recent_messages)
+        return ClassificationResult(
+            domain=domain,
+            complexity=_heuristic_complexity(message),
+            confidence=confidence,
+        )
+    except Exception as exc:
+        # MVP: qualquer falha do provedor Jev (timeout, cliente ausente,
+        # resposta malformada) degrada silenciosamente para a heurística
+        # local — nunca deve derrubar a requisição de chat.
+        logger.warning(
+            "jev_classificacao_falhou_fallback_heuristica",
+            extra={
+                "router": {
+                    "event": "jev_falha_fallback",
+                    "erro": str(exc),
+                }
+            },
+        )
+        return _classify_heuristic_fallback(message, recent_messages)
+
+
 async def classify(
     message: str,
     recent_messages: list[str] | None = None,
     strategy: str = "heuristic",
     llm_client: LLMClient | None = None,
+    provider: str = "heuristica_llm",
+    external_client: Any = None,
 ) -> ClassificationResult:
     recent_messages = recent_messages or []
+
+    if provider == "jev_openrouter":
+        return await _classify_with_jev(message, recent_messages, external_client)
 
     domain = _match_domain_by_keywords(message)
     if domain is not None:

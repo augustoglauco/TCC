@@ -155,3 +155,65 @@ async def test_classify_ignora_acentos_no_contexto_recente():
     )
 
     assert result.domain == "agendamento"
+
+
+class _FakeOpenRouterJevClient:
+    def __init__(self, domain: str = "vendas", confidence: float = 0.9, fail: bool = False):
+        self.domain = domain
+        self.confidence = confidence
+        self.fail = fail
+
+    async def classify_intent_jev(self, message: str, recent_messages: list[str] | None = None):
+        if self.fail:
+            raise RuntimeError("Conexão com OpenRouter falhou")
+        return self.domain, self.confidence
+
+
+async def test_classify_com_jev_sucesso():
+    fake_client = _FakeOpenRouterJevClient(domain="vendas", confidence=0.92)
+    result = await classify(
+        message="Quero saber o valor do plano",
+        provider="jev_openrouter",
+        external_client=fake_client,
+    )
+    assert result.domain == "vendas"
+    assert result.confidence == 0.92
+    assert result.complexity == "baixa"
+
+
+async def test_classify_com_jev_fallback_em_falha():
+    fake_client = _FakeOpenRouterJevClient(fail=True)
+    # Deve degradar para a heurística sem estourar exceção
+    result = await classify(
+        message="Qual o preço desse produto?",
+        provider="jev_openrouter",
+        external_client=fake_client,
+    )
+    # Heurística reconhece "preço" como vendas. Confidence fixo em 0.3: o
+    # fallback do Jev cai em `_classify_heuristic_fallback` (não no
+    # short-circuit de match direto de `classify()`, que usaria 0.6).
+    assert result.domain == "vendas"
+    assert result.confidence == 0.3
+
+
+async def test_classify_com_jev_sem_external_client_cai_para_heuristica():
+    result = await classify(
+        message="Qual o preço desse produto?",
+        provider="jev_openrouter",
+        external_client=None,
+    )
+    assert result.domain == "vendas"
+    assert result.confidence == 0.3
+
+
+async def test_classify_com_jev_client_sem_metodo_cai_para_heuristica():
+    class _ClienteIncompativel:
+        pass
+
+    result = await classify(
+        message="Qual o preço desse produto?",
+        provider="jev_openrouter",
+        external_client=_ClienteIncompativel(),
+    )
+    assert result.domain == "vendas"
+    assert result.confidence == 0.3
