@@ -92,6 +92,30 @@ describe("ChatModal", () => {
     );
   });
 
+  it("propaga o provedor do roteador para o painel de métricas", async () => {
+    const user = userEvent.setup();
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Resposta via Jev.");
+      onDone({
+        domain: "vendas",
+        backend_used: "local",
+        escalation_reason: "nenhum",
+        router_provider: "jev_openrouter",
+      });
+    });
+
+    renderModal();
+
+    await user.type(screen.getByLabelText("Mensagem"), "oi");
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Resposta via Jev.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Mostrar métricas da resposta" }));
+
+    expect(screen.getByText("TypeSafe Jev (OpenRouter)")).toBeInTheDocument();
+  });
+
   it("mostra bolha de erro com opção de tentar novamente e permite reenviar", async () => {
     const user = userEvent.setup();
     mockedSendChatMessage.mockImplementationOnce(async ({ onError }) => {

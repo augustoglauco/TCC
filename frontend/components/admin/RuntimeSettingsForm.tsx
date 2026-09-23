@@ -21,6 +21,9 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
   const [localTimeout, setLocalTimeout] = useState("");
   const [externalTimeout, setExternalTimeout] = useState("");
   const [ragFallback, setRagFallback] = useState(false);
+  const [routerProvider, setRouterProvider] = useState<"heuristica_llm" | "jev_openrouter">(
+    "heuristica_llm",
+  );
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -35,6 +38,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         setLocalTimeout(String(atual.local_llm_timeout_s));
         setExternalTimeout(String(atual.external_llm_timeout_s));
         setRagFallback(atual.rag_search_domain_fallback);
+        setRouterProvider(atual.intent_router_provider ?? "heuristica_llm");
       } catch (err) {
         if (!cancelado) {
           onError(
@@ -66,6 +70,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         local_llm_timeout_s: Number(localTimeout),
         external_llm_timeout_s: Number(externalTimeout),
         rag_search_domain_fallback: ragFallback,
+        intent_router_provider: routerProvider,
       });
       setSettings(atualizado);
       onSuccess("Parâmetros de execução aplicados.");
@@ -153,6 +158,49 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         Desligado por padrão — ligar sacrifica o isolamento entre domínios e o sinal de
         escalonamento do roteador (ver docs/ARCHITECTURE.md §5). Existe para comparação/experimento.
       </p>
+
+      <div>
+        <span className="block text-sm font-medium text-gray-900">
+          Provedor de classificação de intenção
+        </span>
+        <div className="mt-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              id="rt-router-provider-heuristica"
+              type="radio"
+              name="rt-router-provider"
+              value="heuristica_llm"
+              checked={routerProvider === "heuristica_llm"}
+              onChange={() => setRouterProvider("heuristica_llm")}
+              className="h-4 w-4 border-gray-300"
+            />
+            <label htmlFor="rt-router-provider-heuristica" className="text-sm text-gray-900">
+              Heurística + LLM Local (Ollama)
+            </label>
+          </div>
+          <p className="ml-6 text-xs text-gray-500">
+            Padrão: palavras-chave locais com fallback para o modelo Ollama configurado.
+          </p>
+          <div className="flex items-center gap-2">
+            <input
+              id="rt-router-provider-jev"
+              type="radio"
+              name="rt-router-provider"
+              value="jev_openrouter"
+              checked={routerProvider === "jev_openrouter"}
+              onChange={() => setRouterProvider("jev_openrouter")}
+              className="h-4 w-4 border-gray-300"
+            />
+            <label htmlFor="rt-router-provider-jev" className="text-sm text-gray-900">
+              TypeSafe Jev (OpenRouter)
+            </label>
+          </div>
+          <p className="ml-6 text-xs text-gray-500">
+            Classificação estruturada via endpoint /systemone, com fallback gracioso para a
+            heurística em caso de erro.
+          </p>
+        </div>
+      </div>
 
       <button
         type="submit"

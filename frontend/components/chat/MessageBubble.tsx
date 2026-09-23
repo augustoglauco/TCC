@@ -164,6 +164,14 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                   <span className="text-slate-400">Backend:</span>{" "}
                   {message.backendUsed === "externo" ? "Cloud (OpenRouter)" : "Local (Ollama)"}
                 </div>
+                {metrics?.routerProvider && (
+                  <div>
+                    <span className="text-slate-400">Provedor:</span>{" "}
+                    {metrics.routerProvider === "jev_openrouter"
+                      ? "TypeSafe Jev (OpenRouter)"
+                      : "Heurística + LLM Local"}
+                  </div>
+                )}
                 <div>
                   <span className="text-slate-400">Modelo:</span> {metrics?.modelName || "-"}
                 </div>
