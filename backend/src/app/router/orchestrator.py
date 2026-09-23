@@ -209,7 +209,9 @@ async def _handle_agendamento(
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     slots = get_booking_slots(conversation_id)
     try:
-        extraction = await extract_booking_slots(message, recent_messages, slots, local_client)
+        extraction = await extract_booking_slots(
+            message, recent_messages, slots, local_client, scheduling_config.timezone
+        )
     except Exception as exc:
         logger.error(
             "backend_indisponivel",
