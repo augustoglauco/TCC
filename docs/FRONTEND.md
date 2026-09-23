@@ -221,7 +221,13 @@ data: {
   "estimated_cost_usd": 0.0,
   "rag_retrieval_ms": 38.3,
   "rag_chunks_count": 3,
-  "rag_avg_score": 0.71
+  "rag_avg_score": 0.71,
+
+  // Provedor usado pelo classificador de intenção nesta requisição —
+  // "heuristica_llm" (padrão) ou "jev_openrouter" (ver
+  // docs/ARCHITECTURE.md, decisão do TypeSafe Jev como provedor
+  // alternativo). Alternado via runtime settings, não por request.
+  "router_provider": "heuristica_llm"
 }
 ```
 

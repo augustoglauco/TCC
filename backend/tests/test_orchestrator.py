@@ -590,6 +590,83 @@ async def test_agendamento_falha_do_local_na_extracao_vira_local_backend_indispo
         )
 
 
+async def test_handle_message_propaga_router_provider_jev():
+    # Verifica que RouterDecision recebe router_provider="jev_openrouter"
+    # quando `intent_router_provider` é passado explicitamente para
+    # `handle_message` (Task 4). O `_FakeLLMClient` não tem
+    # `classify_intent_jev`, então `_classify_with_jev` degrada para a
+    # heurística local — comportamento já coberto pelos testes do
+    # classifier; aqui o interesse é só a propagação do provider escolhido
+    # até o `RouterDecision` final, não o resultado da classificação em si.
+    eventos = await _coletar_eventos(
+        "Quero orçamento",
+        recent_messages=[],
+        local_client=_FakeLLMClient(response=_resposta_local()),
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        intent_router_provider="jev_openrouter",
+    )
+
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+    assert decisao.router_provider == "jev_openrouter"
+
+
+async def test_router_provider_default_e_heuristica_llm():
+    # Sem passar `intent_router_provider`, o default do parâmetro deve
+    # aparecer no RouterDecision (compatibilidade retroativa com chamadores
+    # existentes, ex.: testes de agendamento que não conhecem o provider).
+    eventos = await _coletar_eventos(
+        "Quero orçamento",
+        recent_messages=[],
+        local_client=_FakeLLMClient(response=_resposta_local()),
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+    )
+
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+    assert decisao.router_provider == "heuristica_llm"
+
+
+async def test_agendamento_propaga_router_provider_no_fluxo_de_coleta():
+    # Ruling do controlador (Task 4): o fluxo de agendamento constrói seus
+    # próprios RouterDecision via `_emitir_resposta_agendamento`, chamado a
+    # partir de `_handle_agendamento` — sem threading explícito do provider
+    # por esses dois helpers, essas decisões usariam sempre o default do
+    # campo em vez do provider realmente configurado para a requisição.
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": null, "nome": "Maria", "email": null, "telefone": null, '
+                '"confirmacao": null}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient()
+
+    eventos = await _coletar_eventos(
+        "quero marcar uma visita",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-router-provider",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+        intent_router_provider="jev_openrouter",
+    )
+
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+    assert decisao.domain == "agendamento"
+    assert decisao.router_provider == "jev_openrouter"
+
+
 async def test_ttft_usa_prompt_eval_duration_nao_load_duration():
     # `load_duration` é o tempo de carregar o MODELO na memória (~0 após o
     # primeiro uso) — não deve ser usado como TTFT. `prompt_eval_duration` é

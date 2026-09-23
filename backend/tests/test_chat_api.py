@@ -205,6 +205,27 @@ def test_done_traz_fonte_e_score_de_cada_chunk_do_rag(fakes):
     ]
 
 
+def test_chat_stream_emite_router_provider_no_done(fakes):
+    app = _build_app(fakes)
+    app.state.intent_router_provider = "jev_openrouter"
+    reset_conversation_history()
+    with TestClient(app) as test_client:
+        response = test_client.post("/api/chat/messages", json={"message": "olá"})
+
+    dados_done = _find(_parse_sse(response.text), "done")
+    assert dados_done["router_provider"] == "jev_openrouter"
+
+
+def test_chat_stream_router_provider_default_sem_app_state(client):
+    # `_build_app` (fixture `client`) não define `app.state.intent_router_provider`
+    # — a dependência precisa cair no default "heuristica_llm" (getattr com
+    # fallback), não estourar AttributeError.
+    response = client.post("/api/chat/messages", json={"message": "olá"})
+
+    dados_done = _find(_parse_sse(response.text), "done")
+    assert dados_done["router_provider"] == "heuristica_llm"
+
+
 def test_conversation_id_mantem_historico_entre_chamadas(client):
     first = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"})
     conversation_id = _find(_parse_sse(first.text), "conversation")["conversation_id"]

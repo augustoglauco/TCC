@@ -110,3 +110,7 @@ class ChatDoneEventData(BaseModel):
         default=None,
         description="Fonte e score de cada chunk do RAG, na ordem devolvida pela busca.",
     )
+    router_provider: str | None = Field(
+        default="heuristica_llm",
+        description='Provedor de roteamento utilizado ("heuristica_llm" ou "jev_openrouter").',
+    )
