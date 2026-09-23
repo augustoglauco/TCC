@@ -21,13 +21,13 @@ export default function ChatWidget() {
   return (
     <>
       <ChatModal open={isOpen} onOpenChange={(openState) => !openState && close()} />
-      <div id="chat-widget" className="fixed bottom-6 right-6 z-50">
+      <div id="chat-widget" className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
         <button
           type="button"
           onClick={toggleOpen}
           aria-expanded={isOpen}
           aria-label={isOpen ? "Fechar chat" : "Abrir chat"}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-2xl text-white shadow-2xl hover:bg-slate-800 hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full bg-slate-900 text-xl sm:text-2xl text-white shadow-2xl hover:bg-slate-800 hover:scale-105 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           💬
         </button>

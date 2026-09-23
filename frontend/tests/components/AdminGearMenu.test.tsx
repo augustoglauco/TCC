@@ -25,7 +25,7 @@ describe("AdminGearMenu", () => {
     expect(screen.getByRole("menu")).toBeInTheDocument();
 
     const ingestaoLink = screen.getByRole("menuitem", { name: /ingestão de documentos/i });
-    const modelosLink = screen.getByRole("menuitem", { name: /modelos locais/i });
+    const modelosLink = screen.getByRole("menuitem", { name: /administração geral/i });
 
     expect(ingestaoLink).toHaveAttribute("href", "/admin/ingestao");
     expect(modelosLink).toHaveAttribute("href", "/admin/modelos");

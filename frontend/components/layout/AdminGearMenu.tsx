@@ -87,8 +87,8 @@ export default function AdminGearMenu() {
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
             >
-              <span className="text-base">🤖</span>
-              <span>Modelos locais (Ollama)</span>
+              <span className="text-base">⚙️</span>
+              <span>Administração Geral</span>
             </Link>
           </div>
         </div>
