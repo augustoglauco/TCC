@@ -39,7 +39,7 @@ def test_settings_have_crawler_defaults():
 def test_settings_tem_defaults_de_agendamento():
     settings = Settings(_env_file=None)
 
-    assert settings.google_calendar_token_path == "./secrets/google_calendar_token.json"
+    assert settings.calendar_mcp_url == "http://127.0.0.1:8090/mcp"
     assert settings.agendamento_timezone == "America/Sao_Paulo"
     assert settings.agendamento_expediente_dias == "seg-sex"
     assert settings.agendamento_expediente_inicio == "09:00"

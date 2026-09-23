@@ -127,14 +127,14 @@ def create_app() -> FastAPI:
     # docs/ARCHITECTURE.md §7).
     app.state.stt_client = WhisperSttClient(model_size=settings.stt_model_size)
 
-    # MCP do Google Calendar (R11, Fase 4A) — carregamento de
-    # credenciais/refresh token é lazy (só no primeiro uso real), então
-    # construir o cliente aqui não exige que os arquivos já existam em todo
-    # ambiente de dev (ver
-    # docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md §3).
+    # MCP do Google Calendar (R11, Fase 4A) — servidor de terceiro
+    # `calendar-mcp-server` rodando localmente, autenticação gerenciada por
+    # ele mesmo (ver docs/ARCHITECTURE.md §5, decisão revista 2026-09-23).
+    # Conexão MCP só é aberta no primeiro uso real, então construir o
+    # cliente aqui não exige que o servidor já esteja no ar em todo
+    # ambiente de dev.
     app.state.calendar_client = GoogleCalendarMCPClient(
-        credentials_path=settings.google_calendar_credentials_path,
-        token_path=settings.google_calendar_token_path,
+        mcp_server_url=settings.calendar_mcp_url,
         calendar_id=settings.google_calendar_calendar_id,
     )
     app.state.scheduling_config = SchedulingConfig(

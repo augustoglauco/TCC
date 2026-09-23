@@ -245,7 +245,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 > `docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`.
 > R8 (monitor de tom) é a Fase 4B, com spec própria ainda a escrever.
 
-- [x] Implementar cliente MCP para o Google Calendar
+- [x] Implementar cliente MCP para o Google Calendar (trocado em 2026-09-23
+      do MCP oficial do Google, em Developer Preview, para um MCP de
+      terceiro self-hosted — `calendar-mcp-server` — ver decisão revista em
+      `docs/ARCHITECTURE.md` §5)
 - [x] Implementar nova intenção de agendamento no roteador (coleta de
       data/hora e dados básicos na conversa)
 - [x] Implementar confirmação automática por e-mail após criar o evento

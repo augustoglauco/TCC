@@ -101,11 +101,16 @@ class Settings(BaseSettings):
     # manual. Ajustável em runtime via `PUT /api/admin/runtime-settings`.
     crawler_confidence_threshold: float = 0.7
 
-    google_calendar_credentials_path: str = "./secrets/google_calendar_credentials.json"
+    # URL do servidor MCP de terceiro `calendar-mcp-server` (pacote PyPI,
+    # https://github.com/deciduus/calendar-mcp), rodando localmente via
+    # `calendar-mcp-server serve --transport http --port 8090` — substitui o
+    # MCP oficial do Google (`calendarmcp.googleapis.com`), que está em
+    # Developer Preview e não aceita contas Gmail pessoais (achado em
+    # docs/ARCHITECTURE.md §5, 2026-09-23). Autenticação OAuth é gerenciada
+    # pelo próprio `calendar-mcp-server` (`calendar-mcp-server auth`), não
+    # por este backend.
+    calendar_mcp_url: str = "http://127.0.0.1:8090/mcp"
     google_calendar_calendar_id: str = "primary"
-    # Refresh token gerado por scripts/authorize_google_calendar.py (R11,
-    # Fase 4A — ver docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md §3).
-    google_calendar_token_path: str = "./secrets/google_calendar_token.json"
 
     # --- Validação de horário do agendamento (R11, Fase 4A) ---
     agendamento_timezone: str = "America/Sao_Paulo"
