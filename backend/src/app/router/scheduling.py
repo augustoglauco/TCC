@@ -96,11 +96,27 @@ class SlotExtractionResult(BaseModel):
     confirmacao: bool | None = None
 
 
+_NOMES_DIAS_SEMANA = [
+    "segunda-feira",
+    "terça-feira",
+    "quarta-feira",
+    "quinta-feira",
+    "sexta-feira",
+    "sábado",
+    "domingo",
+]
+
 _EXTRACTION_PROMPT_TEMPLATE = """\
 Você está ajudando a coletar dados para agendar uma visita comercial. \
 Extraia da mensagem do cliente os campos que ele informou NESTA mensagem, \
 sem inventar nada e sem repetir dados que não foram ditos agora. Datas/horas \
 devem vir em ISO 8601 com fuso (ex.: "2026-09-25T15:00:00-03:00").
+
+Hoje é {hoje_dia_semana}, {hoje_data}. Próximos dias, para consultar em vez \
+de calcular datas relativas ("amanhã", "quarta-feira que vem", "daqui a 3 \
+dias" etc.) — nunca assuma um ano diferente do ano corrente sem o cliente \
+dizer explicitamente:
+{proximos_dias}
 
 Dados já coletados até agora: {slots_conhecidos}
 O sistema está aguardando uma confirmação do cliente? {aguardando_confirmacao}
@@ -123,14 +139,39 @@ def _parse_extraction(raw_text: str) -> SlotExtractionResult:
     return SlotExtractionResult(**parsed)
 
 
+_DIAS_TABELA_REFERENCIA = 14
+
+
+def _formatar_proximos_dias(hoje: datetime) -> str:
+    # Achado real (2026-09-23): mesmo informando a data de hoje, o modelo
+    # errava o dia da semana ao CALCULAR datas relativas ("quarta-feira que
+    # vem" virou uma quinta-feira). Uma tabela de referência pronta troca
+    # "fazer conta" por "consultar" — bem mais confiável para LLMs.
+    linhas = []
+    for offset in range(1, _DIAS_TABELA_REFERENCIA + 1):
+        dia = hoje + timedelta(days=offset)
+        linhas.append(f"{dia.strftime('%Y-%m-%d')}: {_NOMES_DIAS_SEMANA[dia.weekday()]}")
+    return "\n".join(linhas)
+
+
 async def extract_booking_slots(
     message: str,
     recent_messages: list[str],
     current_slots: BookingSlots,
     llm_client: LLMClient,
+    timezone: str,
 ) -> SlotExtractionResult:
+    # Achado real (2026-09-23): sem a data de hoje no prompt, o modelo não
+    # tem como calcular corretamente datas relativas ("quarta-feira que
+    # vem") — às vezes extraía um ano errado (ex.: 2024 em vez do ano
+    # corrente), fazendo a validação de horário rejeitar como "já passou"
+    # uma data que na verdade era futura.
+    agora = datetime.now(ZoneInfo(timezone))
     contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
     prompt = _EXTRACTION_PROMPT_TEMPLATE.format(
+        hoje_dia_semana=_NOMES_DIAS_SEMANA[agora.weekday()],
+        proximos_dias=_formatar_proximos_dias(agora),
+        hoje_data=agora.strftime("%Y-%m-%d"),
         slots_conhecidos=current_slots.model_dump_json(exclude={"awaiting_confirmation"}),
         aguardando_confirmacao="sim" if current_slots.awaiting_confirmation else "não",
         contexto=contexto,

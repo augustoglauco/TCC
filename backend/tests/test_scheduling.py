@@ -97,12 +97,16 @@ async def test_extract_booking_slots_parseia_json_da_resposta():
         recent_messages=[],
         current_slots=BookingSlots(),
         llm_client=llm,
+        timezone="America/Sao_Paulo",
     )
 
     assert resultado.nome == "Maria"
     assert resultado.email is None
     assert resultado.confirmacao is None
     assert "quero marcar dia 25" in llm.last_prompt
+    # Achado real (2026-09-23): sem a data de hoje no prompt, o modelo não
+    # conseguia calcular datas relativas corretamente (extraía ano errado).
+    assert "Hoje é" in llm.last_prompt
 
 
 async def test_extract_booking_slots_aceita_json_em_bloco_de_codigo():
@@ -116,6 +120,7 @@ async def test_extract_booking_slots_aceita_json_em_bloco_de_codigo():
         recent_messages=[],
         current_slots=BookingSlots(nome="Maria", awaiting_confirmation=True),
         llm_client=llm,
+        timezone="America/Sao_Paulo",
     )
 
     assert resultado.email == "a@b.com"
@@ -130,6 +135,7 @@ async def test_extract_booking_slots_resposta_invalida_nao_quebra_o_turno():
         recent_messages=[],
         current_slots=BookingSlots(),
         llm_client=llm,
+        timezone="America/Sao_Paulo",
     )
 
     assert resultado == SlotExtractionResult()
