@@ -101,6 +101,7 @@ class RouterDecision(BaseModel):
     rag_chunks_count: int | None = None
     rag_avg_score: float | None = None
     rag_chunks: list[RagChunkMetric] | None = None
+    router_provider: str = "heuristica_llm"
 
 
 class StatusEvent(BaseModel):
@@ -181,7 +182,7 @@ async def _validar_horario_para_agendamento(
 
 
 async def _emitir_resposta_agendamento(
-    texto: str, motivo: str
+    texto: str, motivo: str, intent_router_provider: str
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     yield TokenEvent(text=texto)
     yield RouterDecision(
@@ -196,6 +197,7 @@ async def _emitir_resposta_agendamento(
         tokens_entrada=None,
         tokens_saida=None,
         custo_estimado_usd=0.0,
+        router_provider=intent_router_provider,
     )
 
 
@@ -206,6 +208,7 @@ async def _handle_agendamento(
     local_client: LLMClient,
     calendar_client: CalendarClient,
     scheduling_config: SchedulingConfig,
+    intent_router_provider: str,
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     slots = get_booking_slots(conversation_id)
     try:
@@ -228,7 +231,7 @@ async def _handle_agendamento(
     if not slots.is_complete():
         set_booking_slots(conversation_id, slots)
         async for evento in _emitir_resposta_agendamento(
-            mensagem_campos_faltando(slots), "coleta_dados"
+            mensagem_campos_faltando(slots), "coleta_dados", intent_router_provider
         ):
             yield evento
         return
@@ -252,7 +255,9 @@ async def _handle_agendamento(
                     slots.data_hora = None
                 slots.awaiting_confirmation = False
                 set_booking_slots(conversation_id, slots)
-                async for evento in _emitir_resposta_agendamento(falha.texto, falha.motivo):
+                async for evento in _emitir_resposta_agendamento(
+                    falha.texto, falha.motivo, intent_router_provider
+                ):
                     yield evento
                 return
 
@@ -279,13 +284,17 @@ async def _handle_agendamento(
                 )
                 slots.awaiting_confirmation = False
                 set_booking_slots(conversation_id, slots)
-                async for evento in _emitir_resposta_agendamento(MSG_ERRO_MCP, "mcp_indisponivel"):
+                async for evento in _emitir_resposta_agendamento(
+                    MSG_ERRO_MCP, "mcp_indisponivel", intent_router_provider
+                ):
                     yield evento
                 return
 
             texto = mensagem_sucesso(slots, scheduling_config.timezone)
             clear_booking_slots(conversation_id)
-            async for evento in _emitir_resposta_agendamento(texto, "confirmado"):
+            async for evento in _emitir_resposta_agendamento(
+                texto, "confirmado", intent_router_provider
+            ):
                 yield evento
             return
 
@@ -307,14 +316,18 @@ async def _handle_agendamento(
         if falha.motivo == "horario_invalido":
             slots.data_hora = None
         set_booking_slots(conversation_id, slots)
-        async for evento in _emitir_resposta_agendamento(falha.texto, falha.motivo):
+        async for evento in _emitir_resposta_agendamento(
+            falha.texto, falha.motivo, intent_router_provider
+        ):
             yield evento
         return
 
     slots.awaiting_confirmation = True
     set_booking_slots(conversation_id, slots)
     async for evento in _emitir_resposta_agendamento(
-        mensagem_pedir_confirmacao(slots, scheduling_config.timezone), "aguardando_confirmacao"
+        mensagem_pedir_confirmacao(slots, scheduling_config.timezone),
+        "aguardando_confirmacao",
+        intent_router_provider,
     ):
         yield evento
 
@@ -329,6 +342,7 @@ async def handle_message(
     conversation_id: str = "",
     calendar_client: CalendarClient | None = None,
     scheduling_config: SchedulingConfig | None = None,
+    intent_router_provider: str = "heuristica_llm",
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision]:
     # Com strategy="llm" a classificação chama o backend local. Falha aqui é
     # falha de infraestrutura local, não "conteúdo não classificável" — vira
@@ -344,7 +358,11 @@ async def handle_message(
         # o modelo já estava carregado e o evento `status` nunca era
         # emitido, apesar da espera real ter ocorrido (bug relatado pelo
         # usuário: "a mensagem para aguardar não aparece").
-        if complexity_strategy == "llm" and not await local_client.is_model_ready():
+        if (
+            intent_router_provider == "heuristica_llm"
+            and complexity_strategy == "llm"
+            and not await local_client.is_model_ready()
+        ):
             yield StatusEvent(status="carregando_modelo")
 
         classification = await classify(
@@ -352,6 +370,8 @@ async def handle_message(
             recent_messages=recent_messages,
             strategy=complexity_strategy,
             llm_client=local_client,
+            provider=intent_router_provider,
+            external_client=external_client,
         )
     except Exception as exc:
         logger.error(
@@ -414,6 +434,7 @@ async def handle_message(
             local_client=local_client,
             calendar_client=calendar_client,
             scheduling_config=scheduling_config,
+            intent_router_provider=intent_router_provider,
         ):
             yield evento
         return
@@ -550,6 +571,7 @@ async def handle_message(
         rag_chunks_count=rag_chunks_count,
         rag_avg_score=rag_avg_score,
         rag_chunks=rag_chunks,
+        router_provider=intent_router_provider,
     )
     logger.info(
         "router_decision",

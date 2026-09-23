@@ -67,6 +67,10 @@ def get_complexity_strategy(request: Request) -> str:
     return request.app.state.complexity_strategy
 
 
+def get_intent_router_provider(request: Request) -> str:
+    return getattr(request.app.state, "intent_router_provider", "heuristica_llm")
+
+
 def get_stt_client(request: Request) -> SttClient:
     return request.app.state.stt_client
 
@@ -104,6 +108,7 @@ async def send_message(
     clip_embedder: ClipEmbedder = Depends(get_clip_embedder),
     calendar_client: CalendarClient = Depends(get_calendar_client),
     scheduling_config: SchedulingConfig = Depends(get_scheduling_config),
+    intent_router_provider: str = Depends(get_intent_router_provider),
 ) -> StreamingResponse:
     conversation_id = payload.conversation_id or str(uuid4())
 
@@ -263,6 +268,7 @@ async def send_message(
                 conversation_id=conversation_id,
                 calendar_client=calendar_client,
                 scheduling_config=scheduling_config,
+                intent_router_provider=intent_router_provider,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
@@ -289,6 +295,7 @@ async def send_message(
                         rag_chunks_count=event.rag_chunks_count,
                         rag_avg_score=event.rag_avg_score,
                         rag_chunks=event.rag_chunks,
+                        router_provider=event.router_provider,
                     )
                     yield _sse("done", done_data.model_dump())
         except (
