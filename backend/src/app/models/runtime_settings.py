@@ -14,6 +14,11 @@ IntentRouterProvider = Literal["heuristica_llm", "jev_openrouter"]
 # em ~10 lugares (achado da revisão final do branch do Jev).
 DEFAULT_INTENT_ROUTER_PROVIDER: IntentRouterProvider = "heuristica_llm"
 
+ToneMonitorProvider = Literal["heuristica_llm", "jev_openrouter"]
+# Mesmo padrão de DEFAULT_INTENT_ROUTER_PROVIDER acima — único ponto de
+# definição do default do Monitor de Tom (R8, Fase 4B).
+DEFAULT_TONE_MONITOR_PROVIDER: ToneMonitorProvider = "heuristica_llm"
+
 
 class RuntimeSettingsResponse(BaseModel):
     local_llm_temperature: float | None = Field(
@@ -61,6 +66,13 @@ class RuntimeSettingsResponse(BaseModel):
         default=DEFAULT_INTENT_ROUTER_PROVIDER,
         description="Provedor ativo para classificação de intenção do roteador.",
     )
+    tone_monitor_enabled: bool = Field(
+        ..., description="Liga/desliga o Monitor de Tom (R8) — heurística e fallback nunca rodam quando false."
+    )
+    tone_monitor_provider: ToneMonitorProvider = Field(
+        default=DEFAULT_TONE_MONITOR_PROVIDER,
+        description="Provedor do fallback ambíguo do Monitor de Tom quando a heurística não encontra sinal forte.",
+    )
 
 
 class RuntimeSettingsUpdateRequest(BaseModel):
@@ -76,3 +88,5 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     image_internal_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     image_external_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     intent_router_provider: IntentRouterProvider | None = None
+    tone_monitor_enabled: bool | None = None
+    tone_monitor_provider: ToneMonitorProvider | None = None

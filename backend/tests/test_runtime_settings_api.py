@@ -2,7 +2,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.runtime_settings import router as runtime_settings_router
-from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER, IntentRouterProvider
+from app.models.runtime_settings import (
+    DEFAULT_INTENT_ROUTER_PROVIDER,
+    DEFAULT_TONE_MONITOR_PROVIDER,
+    IntentRouterProvider,
+)
 
 
 class _FakeLocalClient:
@@ -31,6 +35,8 @@ def _build_app(
     image_internal_confidence: float = 0.30,
     image_external_confidence: float = 0.80,
     intent_router_provider: IntentRouterProvider = DEFAULT_INTENT_ROUTER_PROVIDER,
+    tone_monitor_enabled: bool = True,
+    tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(runtime_settings_router)
@@ -42,6 +48,8 @@ def _build_app(
     app.state.image_internal_confidence = image_internal_confidence
     app.state.image_external_confidence = image_external_confidence
     app.state.intent_router_provider = intent_router_provider
+    app.state.tone_monitor_enabled = tone_monitor_enabled
+    app.state.tone_monitor_provider = tone_monitor_provider
     return app
 
 
@@ -77,6 +85,8 @@ def test_get_devolve_valores_atuais_dos_clientes():
         "image_internal_confidence": 0.30,
         "image_external_confidence": 0.80,
         "intent_router_provider": "heuristica_llm",
+        "tone_monitor_enabled": True,
+        "tone_monitor_provider": "heuristica_llm",
     }
 
 
@@ -263,3 +273,30 @@ def test_put_rejeita_intent_router_provider_invalido():
         json={"intent_router_provider": "provedor_inexistente"},
     )
     assert response.status_code == 422
+
+
+def test_get_runtime_settings_traz_defaults_do_monitor_de_tom():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.get("/api/admin/runtime-settings")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tone_monitor_enabled"] is True
+    assert body["tone_monitor_provider"] == "heuristica_llm"
+
+
+def test_put_runtime_settings_atualiza_monitor_de_tom():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"tone_monitor_enabled": False, "tone_monitor_provider": "jev_openrouter"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["tone_monitor_enabled"] is False
+    assert body["tone_monitor_provider"] == "jev_openrouter"

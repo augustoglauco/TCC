@@ -52,6 +52,15 @@ class Settings(BaseSettings):
     # fallback gracioso disparar.
     jev_timeout_s: float = 10.0
 
+    # Monitor de Tom (R8, Fase 4B, além do MVP original — ver
+    # docs/ARCHITECTURE.md §5, decisão 2026-09-23, e
+    # docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md). Mesmo
+    # padrão de dois provedores do classificador de intenção acima
+    # (heuristica_llm/jev_openrouter) — ajustável em runtime via
+    # PUT /api/admin/runtime-settings (ver app/api/runtime_settings.py).
+    tone_monitor_enabled: bool = True
+    tone_monitor_provider: Literal["heuristica_llm", "jev_openrouter"] = "heuristica_llm"
+
     # Tipado como Literal para falhar na carga das settings (erro claro) em vez
     # de estourar um ValueError obscuro dentro do classificador em runtime.
     router_complexity_strategy: Literal["heuristic", "llm"] = "heuristic"
