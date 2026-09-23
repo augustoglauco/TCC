@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import pytest
 
@@ -219,7 +221,7 @@ async def test_classify_intent_jev_sucesso():
 
     def mock_handler(request: httpx.Request) -> httpx.Response:
         captured_request["url"] = str(request.url)
-        captured_request["body"] = httpx.Request(request.method, request.url).read()
+        captured_request["body"] = json.loads(request.content)
         data = {
             "answers": {
                 "dominio": {
@@ -249,6 +251,18 @@ async def test_classify_intent_jev_sucesso():
         assert confidence == 0.95
         # Endpoint dedicado, distinto de /chat/completions
         assert captured_request["url"].endswith("/systemone")
+        # Corpo da requisição segue o schema estruturado do System One
+        # (model/state/questions.dominio), não o formato de chat.
+        body = captured_request["body"]
+        assert body["model"] == "typesafe/jev-latest"
+        assert body["questions"]["dominio"]["type"] == "choice"
+        assert set(body["questions"]["dominio"]["criteria"]) == {
+            "vendas",
+            "suporte",
+            "atendimento",
+            "agendamento",
+            "fora_escopo",
+        }
 
 
 @pytest.mark.asyncio
