@@ -287,3 +287,48 @@ class OpenRouterClient:
         if choice not in _VALID_DOMAINS:
             choice = "fora_escopo"
         return choice, confidence
+
+    async def classify_tone_jev(
+        self, message: str, recent_messages: list[str] | None = None
+    ) -> tuple[bool, float]:
+        """Avalia urgência/insatisfação via TypeSafe Jev (R8, Fase 4B) —
+        mesmo endpoint dedicado de `classify_intent_jev` (`/systemone`), mas
+        com uma pergunta do tipo `noul` (sim/não com probabilidade
+        calibrada) em vez de `choice` — ver
+        docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §3.2.
+        """
+        if not self._jev_model:
+            raise ValueError("jev_model não configurado (JEV_MODEL_NAME).")
+
+        contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
+        response = await self._client.post(
+            f"{self._base_url}/systemone",
+            headers={"Authorization": f"Bearer {self._api_key}"},
+            json={
+                "model": self._jev_model,
+                "state": f"Contexto prévio:\n{contexto}\n\nMensagem: {message}",
+                "questions": {
+                    "escalar": {
+                        "type": "noul",
+                        "instructions": (
+                            "O cliente está demonstrando urgência ou insatisfação forte "
+                            "que justifique transferência para atendimento humano?"
+                        ),
+                        "criteria": {
+                            "true": (
+                                "Mensagem com tom de urgência, raiva, ameaça de "
+                                "cancelamento/processo, ou insatisfação explícita e forte."
+                            ),
+                            "false": (
+                                "Tom neutro ou normal de atendimento, mesmo com dúvida "
+                                "ou reclamação leve."
+                            ),
+                        },
+                    }
+                },
+            },
+            timeout=self._jev_timeout_s,
+        )
+        response.raise_for_status()
+        noul = float(response.json()["answers"]["escalar"]["noul"])
+        return noul >= 0.5, noul
