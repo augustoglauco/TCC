@@ -211,3 +211,61 @@ async def test_vision_model_property_e_setter():
     assert client.vision_model == ""
     client.vision_model = "openai/gpt-4o-mini"
     assert client.vision_model == "openai/gpt-4o-mini"
+
+
+@pytest.mark.asyncio
+async def test_classify_intent_jev_sucesso():
+    captured_request: dict = {}
+
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        captured_request["url"] = str(request.url)
+        captured_request["body"] = httpx.Request(request.method, request.url).read()
+        data = {
+            "answers": {
+                "dominio": {
+                    "type": "choice",
+                    "choice": "vendas",
+                    "confidence": 0.95,
+                }
+            },
+            "usage": {"input_tokens": 42, "output_tokens": 5, "cost": 0.000002},
+        }
+        return httpx.Response(200, json=data)
+
+    transport = httpx.MockTransport(mock_handler)
+    async with httpx.AsyncClient(transport=transport) as mock_client:
+        client = OpenRouterClient(
+            base_url="https://openrouter.ai/api/v1",
+            api_key="test-key",
+            model="meta-llama/llama-3",
+            timeout_s=5.0,
+            client=mock_client,
+            jev_model="typesafe/jev-latest",
+        )
+        domain, confidence = await client.classify_intent_jev(
+            message="quanto custa o produto?", recent_messages=[]
+        )
+        assert domain == "vendas"
+        assert confidence == 0.95
+        # Endpoint dedicado, distinto de /chat/completions
+        assert captured_request["url"].endswith("/systemone")
+
+
+@pytest.mark.asyncio
+async def test_classify_intent_jev_choice_fora_do_enum_vira_fora_escopo():
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        data = {"answers": {"dominio": {"type": "choice", "choice": "lixo", "confidence": 0.4}}}
+        return httpx.Response(200, json=data)
+
+    transport = httpx.MockTransport(mock_handler)
+    async with httpx.AsyncClient(transport=transport) as mock_client:
+        client = OpenRouterClient(
+            base_url="https://openrouter.ai/api/v1",
+            api_key="test-key",
+            model="meta-llama/llama-3",
+            timeout_s=5.0,
+            client=mock_client,
+            jev_model="typesafe/jev-latest",
+        )
+        domain, _ = await client.classify_intent_jev(message="teste", recent_messages=[])
+        assert domain == "fora_escopo"
