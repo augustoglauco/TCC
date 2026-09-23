@@ -447,10 +447,30 @@ usuário já vê tokens chegando via streaming e "pensar" pode ajudar a
 qualidade) não muda — só as três chamadas de classificação/extração
 estruturada, que nunca se beneficiam de raciocínio livre. Confirmado que
 Ollama ignora `think` com segurança em modelos sem essa capability (testado
-contra `qwen2.5-coder:14b-local`, sem erro). Risco residual (não
-corrigido): a data extraída às vezes vem com ano errado (raciocínio
-temporal relativo — "quarta-feira que vem" — sem saber a data de hoje);
-separado deste achado, não investigado.
+contra `qwen2.5-coder:14b-local`, sem erro). Risco residual identificado
+nesta mesma investigação (data extraída às vezes com ano errado) —
+resolvido na decisão seguinte.
+
+**Decisão registrada (correção de qualidade, mesma investigação acima,
+2026-09-23):** `extract_booking_slots` (`app.router.scheduling`) ganha um
+novo parâmetro obrigatório `timezone` e passa a incluir no prompt de
+extração (a) a data de hoje (dia da semana + `YYYY-MM-DD`) e (b) uma
+**tabela de referência com os próximos 14 dias e seus dias da semana já
+calculados** (`_formatar_proximos_dias`). Motivo: informar só "hoje é X"
+resolveu o ano errado (o modelo já não confundia mais 2024/2026), mas o
+modelo ainda errava o **dia da semana** ao tentar calcular datas relativas
+de cabeça — pedido "quarta-feira que vem" numa quarta-feira, devolveu uma
+quinta-feira (medido, não hipotético). Trocar cálculo por consulta a uma
+tabela pronta no próprio prompt é uma técnica conhecida para reduzir erro
+de aritmética de datas em LLMs — mais confiável que só descrever a regra e
+esperar o modelo calcular certo. `orchestrator._handle_agendamento` passa
+`scheduling_config.timezone` (já existente) para essa nova assinatura, sem
+mudança de comportamento em nenhum outro ponto. Validado com múltiplas
+frases reais pelo chat após a correção: "quarta-feira que vem" → data e
+dia da semana corretos; "daqui a 3 dias" → corretamente identificado como
+sábado, rejeitado pela validação de expediente (não pela extração).
+`# MVP: janela de 14 dias fixa — suficiente para o horizonte típico de
+agendamento de visita comercial deste protótipo, não parametrizada`.
 
 **Decisão registrada (Fase 2, melhoria de qualidade a pedido explícito,
 2026-09-17):** `app.rag.pdf_extract.extract_text_from_pdf` trocou de `pypdf`
