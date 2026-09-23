@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse
 
 from app.mcp_client.google_calendar import CalendarClient
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
+from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
 from app.ocr.image_processor import (
     ImageFormatError,
     OcrIndisponivelError,
@@ -68,7 +69,7 @@ def get_complexity_strategy(request: Request) -> str:
 
 
 def get_intent_router_provider(request: Request) -> str:
-    return getattr(request.app.state, "intent_router_provider", "heuristica_llm")
+    return getattr(request.app.state, "intent_router_provider", DEFAULT_INTENT_ROUTER_PROVIDER)
 
 
 def get_stt_client(request: Request) -> SttClient:

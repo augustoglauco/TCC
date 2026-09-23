@@ -9,7 +9,11 @@ docs/ARCHITECTURE.md §5.
 
 from fastapi import APIRouter, Request
 
-from app.models.runtime_settings import RuntimeSettingsResponse, RuntimeSettingsUpdateRequest
+from app.models.runtime_settings import (
+    DEFAULT_INTENT_ROUTER_PROVIDER,
+    RuntimeSettingsResponse,
+    RuntimeSettingsUpdateRequest,
+)
 from app.rag.qdrant_client import QdrantRAGClient
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
@@ -29,7 +33,9 @@ def _get_clients(
 
 def _build_response(request: Request) -> RuntimeSettingsResponse:
     local_client, external_client, qdrant_client = _get_clients(request)
-    intent_provider = getattr(request.app.state, "intent_router_provider", "heuristica_llm")
+    intent_provider = getattr(
+        request.app.state, "intent_router_provider", DEFAULT_INTENT_ROUTER_PROVIDER
+    )
     return RuntimeSettingsResponse(
         local_llm_temperature=local_client.temperature,
         local_llm_timeout_s=local_client.timeout_s,

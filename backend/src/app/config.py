@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     # exist" (achado na verificação E2E da Task 6, confirmado com chamada
     # real à API).
     jev_model_name: str = "~typesafe/jev-latest"
+    # Orçamento de timeout próprio do Jev, menor que o do LLM de chat externo
+    # (achado da revisão final) — evita que um travamento na chamada custe
+    # até external_llm_timeout_s (30s default) ao visitante antes do
+    # fallback gracioso disparar.
+    jev_timeout_s: float = 10.0
 
     # Tipado como Literal para falhar na carga das settings (erro claro) em vez
     # de estourar um ValueError obscuro dentro do classificador em runtime.

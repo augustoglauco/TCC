@@ -228,7 +228,15 @@ async def test_upsert_e_search_contra_qdrant_real_do_docker_compose(text_embedde
     docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §4).
     """
     settings = get_settings()
-    client = QdrantRAGClient(host=settings.qdrant_host, port=settings.qdrant_port)
+    # timeout_s explícito acima do default (10s): este é o único teste que
+    # cria collection real com HNSW/quantização/payload indexing e roda
+    # embedding de verdade — sob a suíte completa (outros processos
+    # concorrentes disputando CPU/IO), o default ocasionalmente estoura por
+    # contenção, não por lentidão real do Qdrant (achado ao investigar
+    # flakiness intermitente deste teste).
+    client = QdrantRAGClient(
+        host=settings.qdrant_host, port=settings.qdrant_port, timeout_s=30.0
+    )
     name = f"test_{uuid.uuid4().hex}"
 
     try:

@@ -525,6 +525,21 @@ exposta no evento `done` do SSE e no painel de métricas do chat, mas não
 persistida (mesma limitação já aceita para as demais métricas de
 telemetria)`.
 
+**Correção (achado importante 1 da revisão final do branch, 2026-09-23):** a
+telemetria (`RouterDecision.router_provider`/`ChatDoneEventData.router_provider`)
+reflete o provedor **que de fato produziu a classificação**
+(`ClassificationResult.provider_efetivo`), não o provedor apenas
+*selecionado* no admin — quando o Jev falha e degrada para a heurística
+local, a telemetria passa a registrar `heuristica_llm`, não
+`jev_openrouter`. Sem essa correção, uma execução com fallback silencioso
+seria contabilizada como sucesso do Jev na comparação de acurácia/latência
+entre provedores prevista em `docs/EVALUATION.md` — o próprio propósito
+deste TCC. O Jev também ganhou um orçamento de timeout próprio
+(`JEV_TIMEOUT_S`, default 10s, contra os 30s default de
+`EXTERNAL_LLM_TIMEOUT_S` do LLM de chat) — mesma decisão de "sem
+persistência/edição em runtime" do nome do modelo, evita que uma chamada
+travada custe até 30s ao visitante antes do fallback gracioso disparar.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

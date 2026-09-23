@@ -11,6 +11,7 @@ from app.mcp_client.google_calendar import (
     GoogleCalendarConnectionError,
 )
 from app.models.chat import RagChunkMetric
+from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
@@ -101,7 +102,7 @@ class RouterDecision(BaseModel):
     rag_chunks_count: int | None = None
     rag_avg_score: float | None = None
     rag_chunks: list[RagChunkMetric] | None = None
-    router_provider: str = "heuristica_llm"
+    router_provider: str = DEFAULT_INTENT_ROUTER_PROVIDER
 
 
 class StatusEvent(BaseModel):
@@ -352,7 +353,7 @@ async def handle_message(
     conversation_id: str = "",
     calendar_client: CalendarClient | None = None,
     scheduling_config: SchedulingConfig | None = None,
-    intent_router_provider: str = "heuristica_llm",
+    intent_router_provider: str = DEFAULT_INTENT_ROUTER_PROVIDER,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision]:
     # Com strategy="llm" a classificação chama o backend local. Falha aqui é
     # falha de infraestrutura local, não "conteúdo não classificável" — vira
@@ -369,7 +370,7 @@ async def handle_message(
         # emitido, apesar da espera real ter ocorrido (bug relatado pelo
         # usuário: "a mensagem para aguardar não aparece").
         if (
-            intent_router_provider == "heuristica_llm"
+            intent_router_provider == DEFAULT_INTENT_ROUTER_PROVIDER
             and complexity_strategy == "llm"
             and not await local_client.is_model_ready()
         ):

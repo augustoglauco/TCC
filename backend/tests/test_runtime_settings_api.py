@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.runtime_settings import router as runtime_settings_router
+from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER, IntentRouterProvider
 
 
 class _FakeLocalClient:
@@ -29,6 +30,7 @@ def _build_app(
     crawler_confidence_threshold: float = 0.7,
     image_internal_confidence: float = 0.30,
     image_external_confidence: float = 0.80,
+    intent_router_provider: IntentRouterProvider = DEFAULT_INTENT_ROUTER_PROVIDER,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(runtime_settings_router)
@@ -39,6 +41,7 @@ def _build_app(
     app.state.crawler_confidence_threshold = crawler_confidence_threshold
     app.state.image_internal_confidence = image_internal_confidence
     app.state.image_external_confidence = image_external_confidence
+    app.state.intent_router_provider = intent_router_provider
     return app
 
 

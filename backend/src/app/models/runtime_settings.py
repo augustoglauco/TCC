@@ -9,6 +9,10 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 IntentRouterProvider = Literal["heuristica_llm", "jev_openrouter"]
+# Único ponto de definição do default — reaproveitado em app/router/,
+# app/api/ e app/main.py em vez de repetir a string-mágica "heuristica_llm"
+# em ~10 lugares (achado da revisão final do branch do Jev).
+DEFAULT_INTENT_ROUTER_PROVIDER: IntentRouterProvider = "heuristica_llm"
 
 
 class RuntimeSettingsResponse(BaseModel):
@@ -54,7 +58,7 @@ class RuntimeSettingsResponse(BaseModel):
         description="Confiança mínima reportada pelo modelo de visão externo para aceitar.",
     )
     intent_router_provider: IntentRouterProvider = Field(
-        default="heuristica_llm",
+        default=DEFAULT_INTENT_ROUTER_PROVIDER,
         description="Provedor ativo para classificação de intenção do roteador.",
     )
 
