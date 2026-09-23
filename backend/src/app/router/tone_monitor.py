@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class ToneResult(BaseModel):
     escalate: bool
-    motivo: str | None  # "urgencia" | "insatisfacao" | None quando escalate=False
+    motivo: Literal["urgencia", "insatisfacao"] | None  # Only valid values or None
     confidence: float
     # Mesma convenção de ClassificationResult.provider_efetivo
     # (docs/ARCHITECTURE.md §5): só distingue qual dos DOIS provedores
