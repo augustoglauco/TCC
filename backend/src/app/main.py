@@ -118,6 +118,7 @@ def create_app() -> FastAPI:
     # `external_vision_model_name` vive no OpenRouterClient (`vision_model`).
     app.state.image_internal_confidence = settings.image_internal_confidence
     app.state.image_external_confidence = settings.image_external_confidence
+    app.state.intent_router_provider = "heuristica_llm"
     # MVP: modelo carregado sob demanda (lazy) na mesma GPU do modelo local de
     # chat — contenção de VRAM entre os dois é um risco conhecido (ver
     # docs/ARCHITECTURE.md §7).

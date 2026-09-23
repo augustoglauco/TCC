@@ -29,6 +29,7 @@ def _get_clients(
 
 def _build_response(request: Request) -> RuntimeSettingsResponse:
     local_client, external_client, qdrant_client = _get_clients(request)
+    intent_provider = getattr(request.app.state, "intent_router_provider", "heuristica_llm")
     return RuntimeSettingsResponse(
         local_llm_temperature=local_client.temperature,
         local_llm_timeout_s=local_client.timeout_s,
@@ -39,6 +40,7 @@ def _build_response(request: Request) -> RuntimeSettingsResponse:
         external_vision_model_name=external_client.vision_model,
         image_internal_confidence=request.app.state.image_internal_confidence,
         image_external_confidence=request.app.state.image_external_confidence,
+        intent_router_provider=intent_provider,
     )
 
 
@@ -78,5 +80,7 @@ async def update_runtime_settings(
         request.app.state.image_internal_confidence = campos["image_internal_confidence"]
     if "image_external_confidence" in campos:
         request.app.state.image_external_confidence = campos["image_external_confidence"]
+    if "intent_router_provider" in campos:
+        request.app.state.intent_router_provider = campos["intent_router_provider"]
 
     return _build_response(request)
