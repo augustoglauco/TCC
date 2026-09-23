@@ -18,7 +18,7 @@ from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
 from app.mcp_client.google_calendar import GoogleCalendarMCPClient
-from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
+from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER, DEFAULT_TONE_MONITOR_PROVIDER
 from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.embedders_registry import EmbedderRegistry
@@ -122,6 +122,12 @@ def create_app() -> FastAPI:
     app.state.image_internal_confidence = settings.image_internal_confidence
     app.state.image_external_confidence = settings.image_external_confidence
     app.state.intent_router_provider = DEFAULT_INTENT_ROUTER_PROVIDER
+    # Monitor de Tom (R8, Fase 4B) — diferente de intent_router_provider
+    # acima, aqui o valor inicial vem de settings/env (TONE_MONITOR_ENABLED/
+    # TONE_MONITOR_PROVIDER), não de uma constante fixa: a spec pede default
+    # configurável por ambiente (docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §7).
+    app.state.tone_monitor_enabled = settings.tone_monitor_enabled
+    app.state.tone_monitor_provider = settings.tone_monitor_provider
     # MVP: modelo carregado sob demanda (lazy) na mesma GPU do modelo local de
     # chat — contenção de VRAM entre os dois é um risco conhecido (ver
     # docs/ARCHITECTURE.md §7).

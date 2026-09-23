@@ -11,6 +11,7 @@ from fastapi import APIRouter, Request
 
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
+    DEFAULT_TONE_MONITOR_PROVIDER,
     RuntimeSettingsResponse,
     RuntimeSettingsUpdateRequest,
 )
@@ -36,6 +37,10 @@ def _build_response(request: Request) -> RuntimeSettingsResponse:
     intent_provider = getattr(
         request.app.state, "intent_router_provider", DEFAULT_INTENT_ROUTER_PROVIDER
     )
+    tone_monitor_enabled = getattr(request.app.state, "tone_monitor_enabled", True)
+    tone_monitor_provider = getattr(
+        request.app.state, "tone_monitor_provider", DEFAULT_TONE_MONITOR_PROVIDER
+    )
     return RuntimeSettingsResponse(
         local_llm_temperature=local_client.temperature,
         local_llm_timeout_s=local_client.timeout_s,
@@ -47,6 +52,8 @@ def _build_response(request: Request) -> RuntimeSettingsResponse:
         image_internal_confidence=request.app.state.image_internal_confidence,
         image_external_confidence=request.app.state.image_external_confidence,
         intent_router_provider=intent_provider,
+        tone_monitor_enabled=tone_monitor_enabled,
+        tone_monitor_provider=tone_monitor_provider,
     )
 
 
@@ -88,5 +95,9 @@ async def update_runtime_settings(
         request.app.state.image_external_confidence = campos["image_external_confidence"]
     if "intent_router_provider" in campos:
         request.app.state.intent_router_provider = campos["intent_router_provider"]
+    if "tone_monitor_enabled" in campos:
+        request.app.state.tone_monitor_enabled = campos["tone_monitor_enabled"]
+    if "tone_monitor_provider" in campos:
+        request.app.state.tone_monitor_provider = campos["tone_monitor_provider"]
 
     return _build_response(request)

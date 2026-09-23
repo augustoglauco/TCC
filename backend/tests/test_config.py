@@ -44,3 +44,9 @@ def test_settings_tem_defaults_de_agendamento():
     assert settings.agendamento_expediente_dias == "seg-sex"
     assert settings.agendamento_expediente_inicio == "09:00"
     assert settings.agendamento_expediente_fim == "18:00"
+
+
+def test_settings_have_tone_monitor_defaults():
+    settings = Settings(_env_file=None)
+    assert settings.tone_monitor_enabled is True
+    assert settings.tone_monitor_provider == "heuristica_llm"
