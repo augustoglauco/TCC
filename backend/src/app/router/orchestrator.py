@@ -5,11 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from app.mcp_client.google_calendar import (
-    CalendarClient,
-    GoogleCalendarAuthError,
-    GoogleCalendarConnectionError,
-)
+from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
 from app.models.chat import RagChunkMetric
 from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
 from app.router.classifier import Domain, classify
@@ -162,7 +158,7 @@ async def _validar_horario_para_agendamento(
     fim = dh + DURACAO_VISITA
     try:
         disponivel = await calendar_client.is_time_available(dh, fim)
-    except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
+    except GoogleCalendarConnectionError as exc:
         logger.error(
             "google_calendar_indisponivel",
             extra={
@@ -276,7 +272,7 @@ async def _handle_agendamento(
                     attendee_name=slots.nome,
                     description=f"Telefone: {slots.telefone}",
                 )
-            except (GoogleCalendarAuthError, GoogleCalendarConnectionError) as exc:
+            except GoogleCalendarConnectionError as exc:
                 logger.error(
                     "google_calendar_indisponivel",
                     extra={

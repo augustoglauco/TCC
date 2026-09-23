@@ -1,5 +1,14 @@
 # Design — Agendamento via MCP Calendar (R11, Fase 4A)
 
+> **Nota (2026-09-23):** o MCP consumido descrito abaixo
+> (`calendarmcp.googleapis.com`, endpoint/auth/script `authorize_google_calendar.py`)
+> mudou — o MCP oficial do Google está em Developer Preview e não aceita
+> contas Gmail pessoais. Trocado por um MCP de terceiro self-hosted
+> (`calendar-mcp-server`). Ver decisão revista em `docs/ARCHITECTURE.md` §5
+> ("Decisão revista (Fase 4A, troca do MCP consumido, 2026-09-23)") para os
+> detalhes atuais e corretos — este documento fica como registro histórico
+> da decisão original.
+
 > Spec resultante de sessão de brainstorm com o desenvolvedor em 2026-09-21.
 > Cobre só a metade "Agendamento" da Fase 4 do roadmap (R11). O "Monitor de
 > Tom" (R8: classificador de sentimento/urgência, alerta, transferência

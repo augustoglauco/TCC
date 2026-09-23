@@ -389,6 +389,43 @@ por LLM), ver `app.router.scheduling` (`mensagem_campos_faltando`,
 o LLM inventar/alucinar detalhes de confirmação (data, nome, e-mail) numa ação
 irreversível (criação real de evento na agenda).
 
+**Decisão revista (Fase 4A, troca do MCP consumido, 2026-09-23):** o item
+(a) acima muda — o assistente deixa de consumir o MCP remoto oficial do
+Google (`calendarmcp.googleapis.com`) e passa a consumir um **MCP de
+terceiro self-hosted**, `calendar-mcp-server` (pacote PyPI, código em
+https://github.com/deciduus/calendar-mcp), rodando como processo local
+(`uvx calendar-mcp-server serve --transport http --port 8090`). Motivo:
+validado contra a API real, o MCP oficial do Google está em **Developer
+Preview** — toda chamada de tool retorna `isError: true` pedindo inscrição
+em https://developers.google.com/workspace/preview, um programa de
+aprovação manual (fila de alguns dias) que pela documentação do próprio
+Google não aceita contas Gmail pessoais (só Workspace pago ou Workspace for
+Education) — inviável para o ambiente de desenvolvimento/demonstração deste
+TCC. O objetivo do requisito R11 nesta etapa é demonstrar o **consumo de um
+MCP externo disponível** — trocar por uma chamada REST direta à API do
+Calendar abandonaria esse objetivo; um MCP de terceiro mantém a
+arquitetura "consome um MCP" pedida, só troca qual MCP.
+Isso também revisa o item (b): a autenticação OAuth (mesmo client "Desktop
+app" já criado, mesmo escopo `https://www.googleapis.com/auth/calendar`)
+passa a ser gerenciada pelo **próprio `calendar-mcp-server`**
+(`calendar-mcp-server auth`, token salvo via `TOKEN_FILE_PATH`) — o backend
+FastAPI não guarda mais `client_id`/`client_secret`/refresh token nenhum,
+só fala MCP HTTP local com o servidor (`CALENDAR_MCP_URL`,
+`app.mcp_client.google_calendar.GoogleCalendarMCPClient`), o que também
+simplificou o cliente (`_load_client_secrets`/`_load_refresh_token`/
+`_get_access_token` removidos, junto com `scripts/authorize_google_calendar.py`,
+que ficou obsoleto). Tools reais confirmadas lendo o código-fonte do pacote
+(não documentação de terceiros): `find_events` (parâmetros `calendar_id`,
+`time_min`, `time_max`; resposta com `count`/`events`, usada para checar
+disponibilidade) e `create_event` (parâmetros `calendar_id`, `summary`,
+`start_time`/`end_time` como string ISO 8601 solta — não mais objeto
+`{"dateTime": ...}` —, `description`, `attendee_emails` como lista de
+e-mails, sem nome de exibição por convidado — o nome do visitante passou a
+ir na descrição do evento). O item (c) (mensagens determinísticas)
+permanece inalterado. `# MVP: endpoint MCP local sem autenticação própria
+— mesma confiança de rede local que Qdrant/Postgres neste protótipo, não
+exposto publicamente`.
+
 **Decisão registrada (Fase 2, melhoria de qualidade a pedido explícito,
 2026-09-17):** `app.rag.pdf_extract.extract_text_from_pdf` trocou de `pypdf`
 para `pdfplumber`, com uma heurística de detecção de layout em 2 colunas —
@@ -634,7 +671,18 @@ autenticação por parceiro nem exposição pública**.
   tratar como hipótese a validar com mais dados.
 - Dependência do MCP do Google Calendar: falhas de conexão/permissão
   precisam de tratamento de erro claro (ex.: tentar novamente, transferir
-  para atendente).
+  para atendente). **Achado ao validar contra a API real (2026-09-23) e
+  decisão resultante:** o MCP oficial do Google
+  (`calendarmcp.googleapis.com`) está em **Developer Preview**, exige
+  inscrição em programa de aprovação manual
+  (https://developers.google.com/workspace/preview) que não aceita contas
+  Gmail pessoais — inviabilizando o ambiente de dev/demonstração deste TCC.
+  Resolvido trocando para um MCP de terceiro self-hosted,
+  `calendar-mcp-server`, rodando localmente — ver decisão revista na Fase
+  4A acima. Risco residual: dependência de um pacote open-source de
+  terceiro (não do Google) para o requisito R11 — se o projeto parar de ser
+  mantido, seria necessário migrar para outro MCP de Calendar ou revisitar
+  a inscrição no programa de preview.
 - Fluxo de agendamento (Fase 4A) sem mecanismo de saída: uma vez que uma
   conversa entra no fluxo (por palavra-chave OU por já ter estado parcial de
   agendamento salvo), não há como sair a não ser completando um agendamento
