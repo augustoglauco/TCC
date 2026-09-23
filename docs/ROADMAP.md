@@ -183,6 +183,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       local, os timeouts local/externo e a flag de fallback de domínio do
       RAG (`GET`/`PUT /api/admin/runtime-settings`) — decisão registrada em
       `docs/ARCHITECTURE.md` §5
+- [ ] **Provedor alternativo do classificador de intenção — TypeSafe Jev
+      (OpenRouter)** — `intent_router_provider` (`"heuristica_llm"` default
+      ou `"jev_openrouter"`) na mesma seção "Parâmetros de execução",
+      alternando o classificador do roteador entre a heurística local
+      (padrão) e o modelo de decisão estruturada Jev via endpoint dedicado
+      `POST https://openrouter.ai/api/v1/systemone` do OpenRouter, com
+      fallback gracioso para a heurística em qualquer falha — decisão
+      registrada em `docs/ARCHITECTURE.md` §5
 
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
