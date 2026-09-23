@@ -99,3 +99,24 @@ class CrawlerPendingPage(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class TomEscalonamento(Base):
+    """Caso de escalonamento do Monitor de Tom (R8, Fase 4B) — ver
+    docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §5.
+
+    Append-only: cada linha é o momento em que uma conversa escalou pela
+    primeira vez (o estado "já escalada", que evita repetir o alerta, vive
+    em memória em `app.router.tone_monitor._conversas_escaladas`, não
+    nesta tabela). Sem mecanismo de "des-escalar" — decisão aceita da spec.
+    """
+
+    __tablename__ = "tom_escalonamentos"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    conversation_id: Mapped[str]
+    mensagem: Mapped[str]
+    motivo: Mapped[str | None]
+    confianca: Mapped[float]
+    provider_efetivo: Mapped[str]
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
