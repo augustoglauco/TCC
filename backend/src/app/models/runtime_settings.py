@@ -4,7 +4,11 @@ entre restarts do processo). Ver decisão registrada em
 docs/ARCHITECTURE.md §5.
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+IntentRouterProvider = Literal["heuristica_llm", "jev_openrouter"]
 
 
 class RuntimeSettingsResponse(BaseModel):
@@ -49,6 +53,10 @@ class RuntimeSettingsResponse(BaseModel):
         ...,
         description="Confiança mínima reportada pelo modelo de visão externo para aceitar.",
     )
+    intent_router_provider: IntentRouterProvider = Field(
+        default="heuristica_llm",
+        description="Provedor ativo para classificação de intenção do roteador.",
+    )
 
 
 class RuntimeSettingsUpdateRequest(BaseModel):
@@ -63,3 +71,4 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     external_vision_model_name: str | None = None
     image_internal_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     image_external_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    intent_router_provider: IntentRouterProvider | None = None

@@ -73,6 +73,7 @@ def test_get_devolve_valores_atuais_dos_clientes():
         "external_vision_model_name": "",
         "image_internal_confidence": 0.30,
         "image_external_confidence": 0.80,
+        "intent_router_provider": "heuristica_llm",
     }
 
 
@@ -220,4 +221,42 @@ def test_put_limiar_de_imagem_fora_do_intervalo_e_422():
         "/api/admin/runtime-settings", json={"image_external_confidence": 1.5}
     )
 
+    assert response.status_code == 422
+
+
+def test_get_retorna_intent_router_provider_default():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.get("/api/admin/runtime-settings")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["intent_router_provider"] == "heuristica_llm"
+
+
+def test_put_atualiza_intent_router_provider():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"intent_router_provider": "jev_openrouter"},
+    )
+    assert response.status_code == 200
+    assert response.json()["intent_router_provider"] == "jev_openrouter"
+    assert app.state.intent_router_provider == "jev_openrouter"
+
+    # Confirma persistência em subsequente GET
+    get_resp = client.get("/api/admin/runtime-settings")
+    assert get_resp.json()["intent_router_provider"] == "jev_openrouter"
+
+
+def test_put_rejeita_intent_router_provider_invalido():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"intent_router_provider": "provedor_inexistente"},
+    )
     assert response.status_code == 422
