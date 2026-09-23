@@ -15,9 +15,19 @@ tudo de novo, limpo. Rode a partir da raiz do repositório
 | --- | --- | --- |
 | Backend (FastAPI/uvicorn) | 8000 | processo solto (`.venv`) |
 | Frontend (Next.js) | **3001** | processo solto (`npm run dev`) |
+| **calendar-mcp-server (MCP do agendamento)** | **8090** | processo solto (`uvx calendar-mcp-server`) |
 | Postgres | 5433 | Docker (`backend/docker-compose.yml`) |
 | Qdrant | 6335 / 6336 | Docker (`backend/docker-compose.yml`) |
 | Ollama | 11434 | serviço do sistema (`ollama serve`) |
+
+> **Novo desde 2026-09-23:** o agendamento de visita (R11) não fala mais
+> direto com o MCP do Google — fala com um MCP de terceiro self-hosted
+> (`calendar-mcp-server`) rodando localmente na porta 8090. Sem ele no ar,
+> o backend sobe normal (conexão é lazy), mas qualquer mensagem de
+> agendamento falha com "MCP do Google Calendar indisponível". Ver
+> `docs/ARCHITECTURE.md` §5 e `docs/GUIA_TESTE_AGENDAMENTO.md` §2.2 para
+> detalhes de autenticação (só precisa rodar `calendar-mcp-server auth`
+> uma vez; depois disso só `calendar-mcp-server serve` a cada sessão).
 
 > ⚠️ **Não usamos a porta 3000** — nesta máquina ela já é ocupada pelo
 > **Open WebUI**, um serviço separado que não é deste projeto. O frontend
@@ -29,22 +39,22 @@ tudo de novo, limpo. Rode a partir da raiz do repositório
 Só backend e frontend costumam precisar ser "derrubados" manualmente — Docker
 e Ollama normalmente já ficam de pé entre sessões.
 
-## 1. Derrubar processos antigos do projeto (portas 8000 e 3001)
+## 1. Derrubar processos antigos do projeto (portas 8000, 3001 e 8090)
 
 ```bash
-fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; sleep 1; echo "portas 8000/3001 liberadas"
+fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; fuser -k 8090/tcp 2>/dev/null; sleep 1; echo "portas 8000/3001/8090 liberadas"
 ```
 
 Se `fuser` não existir na sua máquina, alternativa com `lsof`:
 
 ```bash
-lsof -ti:8000 | xargs -r kill; lsof -ti:3001 | xargs -r kill; sleep 1; echo "portas 8000/3001 liberadas"
+lsof -ti:8000 | xargs -r kill; lsof -ti:3001 | xargs -r kill; lsof -ti:8090 | xargs -r kill; sleep 1; echo "portas 8000/3001/8090 liberadas"
 ```
 
 Conferir se ficou algo preso:
 
 ```bash
-ss -ltnp 2>/dev/null | grep -E ':(8000|3001)\s' || echo "nada escutando em 8000/3001"
+ss -ltnp 2>/dev/null | grep -E ':(8000|3001|8090)\s' || echo "nada escutando em 8000/3001/8090"
 ```
 
 ## 2. Garantir a infraestrutura (Docker + Ollama) no ar
@@ -63,40 +73,68 @@ curl -s -o /dev/null -w "ollama: %{http_code}\n" --max-time 3 http://localhost:1
 cd backend && .venv/bin/alembic upgrade head && cd ..
 ```
 
-## 4. Subir o backend (porta 8000, em background)
+## 4. Subir o calendar-mcp-server (porta 8090, em background)
+
+Precisa do `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (mesmas credenciais
+"Desktop app" já usadas) e de já ter rodado `calendar-mcp-server auth` uma
+vez (gera `backend/secrets/calendar_mcp_token.json` — ver
+`docs/GUIA_TESTE_AGENDAMENTO.md` §2.2 se ainda não fez isso):
+
+```bash
+cd backend
+export GOOGLE_CLIENT_ID=$(python3 -c "import json; d=json.load(open('secrets/google_calendar_credentials.json')); b=d.get('installed') or d.get('web'); print(b['client_id'])")
+export GOOGLE_CLIENT_SECRET=$(python3 -c "import json; d=json.load(open('secrets/google_calendar_credentials.json')); b=d.get('installed') or d.get('web'); print(b['client_secret'])")
+export TOKEN_FILE_PATH=./secrets/calendar_mcp_token.json
+nohup uvx calendar-mcp-server serve --transport http --port 8090 > /tmp/tcc-calendar-mcp.log 2>&1 & disown
+cd ..
+```
+
+Sem ele no ar, backend/frontend sobem normal — só mensagens de agendamento
+no chat falham (`GoogleCalendarConnectionError`).
+
+## 5. Subir o backend (porta 8000, em background)
 
 ```bash
 cd backend && nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 > /tmp/tcc-backend.log 2>&1 & disown; cd ..
 ```
 
-## 5. Subir o frontend (porta 3001, em background)
+## 6. Subir o frontend (porta 3001, em background)
 
 ```bash
 cd frontend && PORT=3001 nohup npm run dev > /tmp/tcc-frontend.log 2>&1 & disown; cd ..
 ```
 
-## 6. Checar se tudo respondeu
+## 7. Checar se tudo respondeu
 
 ```bash
 sleep 3
 curl -s -o /dev/null -w "backend (8000): %{http_code}\n" --max-time 5 http://localhost:8000/docs
 curl -s -o /dev/null -w "frontend (3001): %{http_code}\n" --max-time 5 http://localhost:3001
+curl -s -o /dev/null -w "calendar-mcp (8090): %{http_code}\n" --max-time 5 http://localhost:8090/mcp
 ```
 
-`200` nos dois significa que está tudo no ar. Logs ficam em `/tmp/tcc-backend.log`
-e `/tmp/tcc-frontend.log` caso algo não suba.
+`200` no backend/frontend e `400` no calendar-mcp (a rota `/mcp` exige o
+protocolo MCP, então um `GET` simples sem handshake retorna 400 — é sinal
+de que o processo está no ar, não de erro) significa que está tudo certo.
+Logs ficam em `/tmp/tcc-backend.log`, `/tmp/tcc-frontend.log` e
+`/tmp/tcc-calendar-mcp.log` caso algo não suba.
 
 ## Tudo de uma vez (script único)
 
 ```bash
-fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; sleep 1
+fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; fuser -k 8090/tcp 2>/dev/null; sleep 1
 cd backend && docker compose up -d postgres qdrant && .venv/bin/alembic upgrade head
+export GOOGLE_CLIENT_ID=$(python3 -c "import json; d=json.load(open('secrets/google_calendar_credentials.json')); b=d.get('installed') or d.get('web'); print(b['client_id'])")
+export GOOGLE_CLIENT_SECRET=$(python3 -c "import json; d=json.load(open('secrets/google_calendar_credentials.json')); b=d.get('installed') or d.get('web'); print(b['client_secret'])")
+export TOKEN_FILE_PATH=./secrets/calendar_mcp_token.json
+nohup uvx calendar-mcp-server serve --transport http --port 8090 > /tmp/tcc-calendar-mcp.log 2>&1 & disown
 nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 > /tmp/tcc-backend.log 2>&1 & disown
 cd ../frontend && PORT=3001 nohup npm run dev > /tmp/tcc-frontend.log 2>&1 & disown
 cd ..
 sleep 3
 curl -s -o /dev/null -w "backend (8000): %{http_code}\n" --max-time 5 http://localhost:8000/docs
 curl -s -o /dev/null -w "frontend (3001): %{http_code}\n" --max-time 5 http://localhost:3001
+curl -s -o /dev/null -w "calendar-mcp (8090): %{http_code}\n" --max-time 5 http://localhost:8090/mcp
 ```
 
 ## 🌐 Acesso Externo via Internet (WSL2 + Windows + DuckDNS)
@@ -113,7 +151,7 @@ New-NetFirewallRule -DisplayName "TCC WSL2 Backend (8000)" -Direction Inbound -L
 ## Derrubar tudo de novo (encerrar a sessão de testes)
 
 ```bash
-fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; echo "backend e frontend encerrados"
+fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; fuser -k 8090/tcp 2>/dev/null; echo "backend, frontend e calendar-mcp encerrados"
 ```
 
 Docker (postgres/qdrant) fica de pé de propósito — não precisa derrubar entre
