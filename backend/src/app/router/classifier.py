@@ -18,6 +18,17 @@ class ClassificationResult(BaseModel):
     domain: Domain
     complexity: Complexity
     confidence: float
+    # Fix (revisão final, achado importante 1): qual provedor REALMENTE
+    # produziu esta classificação — não confundir com o parâmetro `provider`
+    # pedido pelo chamador em `classify()`. Quando o Jev falha,
+    # `_classify_with_jev` degrada para `_classify_heuristic_fallback`, cujo
+    # resultado tem `provider_efetivo="heuristica_llm"` mesmo que o chamador
+    # tenha pedido `provider="jev_openrouter"` — é este campo, não o
+    # parâmetro do chamador, que deve alimentar `RouterDecision.router_provider`
+    # no orchestrator (ver docs/EVALUATION.md: comparação de acurácia/latência
+    # entre provedores fica corrompida se uma resposta da heurística for
+    # atribuída ao Jev).
+    provider_efetivo: str = "heuristica_llm"
 
 
 # MVP: heurística simples de palavras-chave, sem NLP mais robusto — refinar
@@ -90,7 +101,10 @@ def _classify_heuristic_fallback(message: str, recent_messages: list[str]) -> Cl
     combined = " ".join([*recent_messages, message])
     domain = _match_domain_by_keywords(combined) or "fora_escopo"
     return ClassificationResult(
-        domain=domain, complexity=_heuristic_complexity(message), confidence=0.3
+        domain=domain,
+        complexity=_heuristic_complexity(message),
+        confidence=0.3,
+        provider_efetivo="heuristica_llm",
     )
 
 
@@ -111,7 +125,7 @@ def _strip_code_fence(text: str) -> str:
 
 def _parse_llm_classification(raw_text: str) -> ClassificationResult:
     parsed = json.loads(_strip_code_fence(raw_text))
-    return ClassificationResult(**parsed)
+    return ClassificationResult(**parsed, provider_efetivo="heuristica_llm")
 
 
 async def _classify_with_llm(
@@ -148,6 +162,7 @@ async def _classify_with_jev(
             domain=domain,
             complexity=_heuristic_complexity(message),
             confidence=confidence,
+            provider_efetivo="jev_openrouter",
         )
     except Exception as exc:
         # MVP: qualquer falha do provedor Jev (timeout, cliente ausente,
@@ -178,10 +193,27 @@ async def classify(
     if provider == "jev_openrouter":
         return await _classify_with_jev(message, recent_messages, external_client)
 
+    if provider != "heuristica_llm":
+        # MVP: hoje inalcançável pelo único chamador real (validado por
+        # Literal a montante), mas evita que um valor futuro digitado errado
+        # caia em silêncio no caminho clássico sem nenhum diagnóstico.
+        logger.warning(
+            "classify_provider_desconhecido",
+            extra={
+                "router": {
+                    "event": "classify_provider_desconhecido",
+                    "provider": provider,
+                }
+            },
+        )
+
     domain = _match_domain_by_keywords(message)
     if domain is not None:
         return ClassificationResult(
-            domain=domain, complexity=_heuristic_complexity(message), confidence=0.6
+            domain=domain,
+            complexity=_heuristic_complexity(message),
+            confidence=0.6,
+            provider_efetivo="heuristica_llm",
         )
 
     if strategy == "heuristic":

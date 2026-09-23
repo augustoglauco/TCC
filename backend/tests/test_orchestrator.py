@@ -76,6 +76,33 @@ class _FakeLLMClient:
         )
 
 
+class _FakeLLMClientComJev(_FakeLLMClient):
+    """`_FakeLLMClient` com `classify_intent_jev` — usada como
+    `external_client` nos testes de telemetria de `provider_efetivo` (Fix
+    revisão final, achado importante 1) que precisam de um provedor Jev que
+    REALMENTE responde, ao contrário de `_FakeLLMClient` puro (sem esse
+    método, sempre cai no fallback heurístico dentro de
+    `_classify_with_jev`)."""
+
+    def __init__(
+        self,
+        *args,
+        jev_domain: str = "vendas",
+        jev_confidence: float = 0.9,
+        jev_fail: bool = False,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self._jev_domain = jev_domain
+        self._jev_confidence = jev_confidence
+        self._jev_fail = jev_fail
+
+    async def classify_intent_jev(self, message: str, recent_messages: list[str] | None = None):
+        if self._jev_fail:
+            raise RuntimeError("Conexão com OpenRouter falhou")
+        return self._jev_domain, self._jev_confidence
+
+
 class _FakeRAGClient:
     def __init__(
         self,
@@ -590,19 +617,44 @@ async def test_agendamento_falha_do_local_na_extracao_vira_local_backend_indispo
         )
 
 
-async def test_handle_message_propaga_router_provider_jev():
-    # Verifica que RouterDecision recebe router_provider="jev_openrouter"
-    # quando `intent_router_provider` é passado explicitamente para
-    # `handle_message` (Task 4). O `_FakeLLMClient` não tem
-    # `classify_intent_jev`, então `_classify_with_jev` degrada para a
-    # heurística local — comportamento já coberto pelos testes do
-    # classifier; aqui o interesse é só a propagação do provider escolhido
-    # até o `RouterDecision` final, não o resultado da classificação em si.
+async def test_handle_message_propaga_router_provider_jev_quando_client_falha():
+    # Fix (revisão final, achado importante 1) — REGRESSÃO do bug corrigido
+    # nesta rodada: `intent_router_provider="jev_openrouter"` é pedido, mas
+    # o `_FakeLLMClient` usado como `external_client` não tem
+    # `classify_intent_jev`, então `_classify_with_jev` degrada
+    # silenciosamente para a heurística local (comportamento já coberto
+    # pelos testes do classifier). Antes do fix, `RouterDecision.router_provider`
+    # vinha direto do parâmetro bruto `intent_router_provider` e mentia
+    # "jev_openrouter" mesmo quando a heurística respondeu de fato. Agora
+    # deve refletir `classification.provider_efetivo`, ou seja
+    # "heuristica_llm" — ver também o teste de sucesso logo abaixo.
     eventos = await _coletar_eventos(
         "Quero orçamento",
         recent_messages=[],
         local_client=_FakeLLMClient(response=_resposta_local()),
         external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        intent_router_provider="jev_openrouter",
+    )
+
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+    assert decisao.router_provider == "heuristica_llm"
+
+
+async def test_handle_message_propaga_router_provider_jev_quando_client_sucede():
+    # Contraparte do teste acima: quando o Jev de fato responde (client com
+    # `classify_intent_jev` funcional), `RouterDecision.router_provider`
+    # deve ser "jev_openrouter" — o provedor que realmente classificou.
+    external_client = _FakeLLMClientComJev(
+        response=_resposta_externa(), jev_domain="vendas", jev_confidence=0.9
+    )
+    eventos = await _coletar_eventos(
+        "Quero orçamento",
+        recent_messages=[],
+        local_client=_FakeLLMClient(response=_resposta_local()),
+        external_client=external_client,
         rag_client=_FakeRAGClient(),
         complexity_strategy="heuristic",
         intent_router_provider="jev_openrouter",

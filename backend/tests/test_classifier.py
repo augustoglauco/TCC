@@ -179,6 +179,11 @@ async def test_classify_com_jev_sucesso():
     assert result.domain == "vendas"
     assert result.confidence == 0.92
     assert result.complexity == "baixa"
+    # Fix (revisão final, achado importante 1): sucesso do Jev deve marcar
+    # o provedor efetivo como "jev_openrouter" — é este campo (não o
+    # parâmetro `provider` pedido pelo chamador) que o orchestrator usa para
+    # popular `RouterDecision.router_provider`.
+    assert result.provider_efetivo == "jev_openrouter"
 
 
 async def test_classify_com_jev_fallback_em_falha():
@@ -194,6 +199,13 @@ async def test_classify_com_jev_fallback_em_falha():
     # short-circuit de match direto de `classify()`, que usaria 0.6).
     assert result.domain == "vendas"
     assert result.confidence == 0.3
+    # Fix (revisão final, achado importante 1): mesmo com `provider`
+    # pedido="jev_openrouter", a falha degrada o campo `provider_efetivo`
+    # para "heuristica_llm" — é o que aconteceu de fato, não o que foi
+    # pedido. Regressão específica do bug corrigido nesta rodada: sem isso,
+    # a telemetria (RouterDecision/ChatDoneEventData) atribuiria ao Jev uma
+    # resposta que na verdade veio da heurística local.
+    assert result.provider_efetivo == "heuristica_llm"
 
 
 async def test_classify_com_jev_sem_external_client_cai_para_heuristica():
@@ -204,6 +216,7 @@ async def test_classify_com_jev_sem_external_client_cai_para_heuristica():
     )
     assert result.domain == "vendas"
     assert result.confidence == 0.3
+    assert result.provider_efetivo == "heuristica_llm"
 
 
 async def test_classify_com_jev_client_sem_metodo_cai_para_heuristica():
@@ -217,3 +230,4 @@ async def test_classify_com_jev_client_sem_metodo_cai_para_heuristica():
     )
     assert result.domain == "vendas"
     assert result.confidence == 0.3
+    assert result.provider_efetivo == "heuristica_llm"

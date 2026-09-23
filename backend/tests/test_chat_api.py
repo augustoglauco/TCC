@@ -85,6 +85,27 @@ class _FakeLLMClient:
         )
 
 
+class _FakeLLMClientComJev(_FakeLLMClient):
+    """`_FakeLLMClient` com `classify_intent_jev` — para testar o caminho em
+    que o Jev de fato responde (ao contrário do `_FakeLLMClient` puro, que
+    não tem esse método e sempre degrada para a heurística dentro de
+    `_classify_with_jev`). Ver Fix (revisão final, achado importante 1)."""
+
+    def __init__(
+        self,
+        response: LLMResponse,
+        jev_domain: str = "vendas",
+        jev_confidence: float = 0.9,
+        **kwargs,
+    ) -> None:
+        super().__init__(response, **kwargs)
+        self._jev_domain = jev_domain
+        self._jev_confidence = jev_confidence
+
+    async def classify_intent_jev(self, message: str, recent_messages: list[str] | None = None):
+        return self._jev_domain, self._jev_confidence
+
+
 class _FakeClipStore:
     def __init__(self, results: list[ImageSearchResult] | None = None) -> None:
         self._results = results or []
@@ -205,7 +226,30 @@ def test_done_traz_fonte_e_score_de_cada_chunk_do_rag(fakes):
     ]
 
 
-def test_chat_stream_emite_router_provider_no_done(fakes):
+def test_chat_stream_router_provider_reflete_fallback_do_jev(fakes):
+    # Fix (revisão final, achado importante 1) — REGRESSÃO: com
+    # `intent_router_provider="jev_openrouter"` pedido, mas o
+    # `_FakeLLMClient` de `fakes["external"]` sem `classify_intent_jev`, o
+    # classificador degrada para a heurística local (`jev_falha_fallback`).
+    # `router_provider` no `done` deve refletir o que REALMENTE aconteceu
+    # ("heuristica_llm"), não o que foi pedido — antes do fix, este teste
+    # esperava (incorretamente) "jev_openrouter" aqui.
+    app = _build_app(fakes)
+    app.state.intent_router_provider = "jev_openrouter"
+    reset_conversation_history()
+    with TestClient(app) as test_client:
+        response = test_client.post("/api/chat/messages", json={"message": "olá"})
+
+    dados_done = _find(_parse_sse(response.text), "done")
+    assert dados_done["router_provider"] == "heuristica_llm"
+
+
+def test_chat_stream_router_provider_jev_quando_client_sucede(fakes):
+    # Contraparte do teste acima: quando o Jev de fato responde,
+    # `router_provider` no `done` deve ser "jev_openrouter".
+    fakes["external"] = _FakeLLMClientComJev(
+        LLMResponse(text="resposta externa", total_duration_ms=20.0)
+    )
     app = _build_app(fakes)
     app.state.intent_router_provider = "jev_openrouter"
     reset_conversation_history()

@@ -182,7 +182,7 @@ async def _validar_horario_para_agendamento(
 
 
 async def _emitir_resposta_agendamento(
-    texto: str, motivo: str, intent_router_provider: str
+    texto: str, motivo: str, *, intent_router_provider: str
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     yield TokenEvent(text=texto)
     yield RouterDecision(
@@ -231,7 +231,9 @@ async def _handle_agendamento(
     if not slots.is_complete():
         set_booking_slots(conversation_id, slots)
         async for evento in _emitir_resposta_agendamento(
-            mensagem_campos_faltando(slots), "coleta_dados", intent_router_provider
+            mensagem_campos_faltando(slots),
+            "coleta_dados",
+            intent_router_provider=intent_router_provider,
         ):
             yield evento
         return
@@ -256,7 +258,9 @@ async def _handle_agendamento(
                 slots.awaiting_confirmation = False
                 set_booking_slots(conversation_id, slots)
                 async for evento in _emitir_resposta_agendamento(
-                    falha.texto, falha.motivo, intent_router_provider
+                    falha.texto,
+                    falha.motivo,
+                    intent_router_provider=intent_router_provider,
                 ):
                     yield evento
                 return
@@ -285,7 +289,9 @@ async def _handle_agendamento(
                 slots.awaiting_confirmation = False
                 set_booking_slots(conversation_id, slots)
                 async for evento in _emitir_resposta_agendamento(
-                    MSG_ERRO_MCP, "mcp_indisponivel", intent_router_provider
+                    MSG_ERRO_MCP,
+                    "mcp_indisponivel",
+                    intent_router_provider=intent_router_provider,
                 ):
                     yield evento
                 return
@@ -293,7 +299,9 @@ async def _handle_agendamento(
             texto = mensagem_sucesso(slots, scheduling_config.timezone)
             clear_booking_slots(conversation_id)
             async for evento in _emitir_resposta_agendamento(
-                texto, "confirmado", intent_router_provider
+                texto,
+                "confirmado",
+                intent_router_provider=intent_router_provider,
             ):
                 yield evento
             return
@@ -317,7 +325,9 @@ async def _handle_agendamento(
             slots.data_hora = None
         set_booking_slots(conversation_id, slots)
         async for evento in _emitir_resposta_agendamento(
-            falha.texto, falha.motivo, intent_router_provider
+            falha.texto,
+            falha.motivo,
+            intent_router_provider=intent_router_provider,
         ):
             yield evento
         return
@@ -327,7 +337,7 @@ async def _handle_agendamento(
     async for evento in _emitir_resposta_agendamento(
         mensagem_pedir_confirmacao(slots, scheduling_config.timezone),
         "aguardando_confirmacao",
-        intent_router_provider,
+        intent_router_provider=intent_router_provider,
     ):
         yield evento
 
@@ -571,7 +581,18 @@ async def handle_message(
         rag_chunks_count=rag_chunks_count,
         rag_avg_score=rag_avg_score,
         rag_chunks=rag_chunks,
-        router_provider=intent_router_provider,
+        # Fix (revisão final, achado importante 1): usa o provedor QUE
+        # REALMENTE classificou (`classification.provider_efetivo`), não o
+        # parâmetro bruto `intent_router_provider` pedido pelo chamador —
+        # senão uma falha silenciosa do Jev (que degrada para a heurística
+        # dentro de `_classify_with_jev`) ficaria atribuída ao Jev na
+        # telemetria, corrompendo a comparação entre provedores (ver
+        # docs/EVALUATION.md). O sub-fluxo de agendamento em
+        # `_emitir_resposta_agendamento` NÃO chama `classify()` (tem sua
+        # própria lógica de extração/estado), então continua usando o
+        # parâmetro bruto — não há `ClassificationResult` de onde tirar um
+        # valor efetivo ali.
+        router_provider=classification.provider_efetivo,
     )
     logger.info(
         "router_decision",

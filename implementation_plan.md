@@ -8,6 +8,8 @@
 
 > **Nota de verificação:** este plano foi revisado contra a API real do TypeSafe Jev via OpenRouter (`docs.typesafe.ai`, `openrouter.ai/~typesafe/jev-latest`, `openrouter.ai/docs/api/api-reference/systemone/submit-a-system-one-request.md`) — a versão anterior deste documento assumia incorretamente uma chamada `/chat/completions` com prompt em texto livre, que não funcionaria contra o modelo real (`output_modalities: ["decisions"]`, `has_text_output: false`). As assinaturas de função abaixo (`handle_message`, `RouterDecision`, etc.) refletem o estado do código em 2026-09-23 — **reconfirme contra o arquivo real antes de implementar cada task**, já que o código evolui entre o momento em que este plano foi escrito e sua execução.
 
+> **Nota pós-implementação (revisão final, 2026-09-23):** o slug de modelo mostrado ao longo deste plano (`typesafe/jev-latest`, sem til) estava errado — a verificação E2E da Task 6 descobriu que o valor real e funcional é `~typesafe/jev-latest` (com til). Este documento é um artefato histórico de planejamento e não foi reescrito retroativamente; o valor autoritativo e corrigido está em `backend/src/app/config.py` e em `docs/ARCHITECTURE.md` §5.
+
 **Tech Stack:** Python 3.13, FastAPI, Pydantic v2, `httpx`, Next.js 14 (App Router), TypeScript, Tailwind CSS, Pytest.
 
 ---

@@ -111,6 +111,8 @@ class ChatDoneEventData(BaseModel):
         description="Fonte e score de cada chunk do RAG, na ordem devolvida pela busca.",
     )
     router_provider: str | None = Field(
-        default="heuristica_llm",
-        description='Provedor de roteamento utilizado ("heuristica_llm" ou "jev_openrouter").',
+        default=None,
+        description='Provedor de roteamento utilizado ("heuristica_llm" ou "jev_openrouter"). '
+        "None quando a resposta não passou por classificação de intenção "
+        "(ex.: caminho de identificação de imagem).",
     )
