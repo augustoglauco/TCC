@@ -283,3 +283,77 @@ async def test_classify_intent_jev_choice_fora_do_enum_vira_fora_escopo():
         )
         domain, _ = await client.classify_intent_jev(message="teste", recent_messages=[])
         assert domain == "fora_escopo"
+
+
+@pytest.mark.asyncio
+async def test_classify_tone_jev_noul_alto_escala():
+    captured_request: dict = {}
+
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        captured_request["url"] = str(request.url)
+        captured_request["body"] = json.loads(request.content)
+        data = {"answers": {"escalar": {"type": "noul", "noul": 0.92}}}
+        return httpx.Response(200, json=data)
+
+    transport = httpx.MockTransport(mock_handler)
+    async with httpx.AsyncClient(transport=transport) as mock_client:
+        client = OpenRouterClient(
+            base_url="https://openrouter.ai/api/v1",
+            api_key="test-key",
+            model="meta-llama/llama-3",
+            timeout_s=5.0,
+            client=mock_client,
+            jev_model="typesafe/jev-latest",
+        )
+        escalate, confidence = await client.classify_tone_jev(
+            message="Ninguém me ajuda, preciso falar com um atendente agora!",
+            recent_messages=[],
+        )
+        assert escalate is True
+        assert confidence == 0.92
+        assert captured_request["url"].endswith("/systemone")
+        body = captured_request["body"]
+        assert body["model"] == "typesafe/jev-latest"
+        assert body["questions"]["escalar"]["type"] == "noul"
+
+
+@pytest.mark.asyncio
+async def test_classify_tone_jev_noul_baixo_nao_escala():
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        data = {"answers": {"escalar": {"type": "noul", "noul": 0.1}}}
+        return httpx.Response(200, json=data)
+
+    transport = httpx.MockTransport(mock_handler)
+    async with httpx.AsyncClient(transport=transport) as mock_client:
+        client = OpenRouterClient(
+            base_url="https://openrouter.ai/api/v1",
+            api_key="test-key",
+            model="meta-llama/llama-3",
+            timeout_s=5.0,
+            client=mock_client,
+            jev_model="typesafe/jev-latest",
+        )
+        escalate, confidence = await client.classify_tone_jev(
+            message="Só queria saber o horário de funcionamento.", recent_messages=[]
+        )
+        assert escalate is False
+        assert confidence == 0.1
+
+
+@pytest.mark.asyncio
+async def test_classify_tone_jev_falha_http_propaga_excecao():
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(500)
+
+    transport = httpx.MockTransport(mock_handler)
+    async with httpx.AsyncClient(transport=transport) as mock_client:
+        client = OpenRouterClient(
+            base_url="https://openrouter.ai/api/v1",
+            api_key="test-key",
+            model="meta-llama/llama-3",
+            timeout_s=5.0,
+            client=mock_client,
+            jev_model="typesafe/jev-latest",
+        )
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.classify_tone_jev(message="teste", recent_messages=[])
