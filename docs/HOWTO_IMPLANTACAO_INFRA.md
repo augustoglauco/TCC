@@ -37,54 +37,34 @@
 
 ## 🐳 Passo 1: Infraestrutura Containerizada (Docker)
 
-O sistema utiliza PostgreSQL (banco relacional de mensagens, sessões e catálogo) e Qdrant (banco de dados vetorial para RAG multimodal).
+O sistema utiliza PostgreSQL (conector de leitura R4, memória R9, perfil
+R10, catálogo do MCP B2B R12) e Qdrant (banco de dados vetorial para RAG
+multimodal). O `docker-compose.yml` **já existe no repositório**
+(`backend/docker-compose.yml`) — não precisa criar nada, só subir:
 
-1. Navegue até o diretório raiz do projeto:
+1. Navegue até a pasta do backend:
    ```bash
-   cd /caminho/para/TCC
+   cd backend
    ```
 
-2. Crie ou valide o arquivo `docker-compose.yml` na raiz:
-   ```yaml
-   version: '3.8'
-   services:
-     postgres:
-       image: postgres:15-alpine
-       container_name: tcc_postgres
-       restart: always
-       environment:
-         POSTGRES_USER: postgres
-         POSTGRES_PASSWORD: postgrespassword
-         POSTGRES_DB: tcc_assistant
-       ports:
-         - "5432:5432"
-       volumes:
-         - pgdata:/var/lib/postgresql/data
-
-     qdrant:
-       image: qdrant/qdrant:v1.7.4
-       container_name: tcc_qdrant
-       restart: always
-       ports:
-         - "6333:6333"
-         - "6334:6334"
-       volumes:
-         - qdrantdata:/qdrant/storage
-
-   volumes:
-     pgdata:
-     qdrantdata:
-   ```
-
-3. Inicie os serviços containerizados:
+2. Suba os dois serviços (comando real, Docker Compose v2 — sem hífen):
    ```bash
-   docker-compose up -d
+   docker compose up -d postgres qdrant
    ```
 
-4. Verifique a execução dos containers:
+3. Verifique a execução dos containers:
    ```bash
-   docker-compose ps
+   docker compose ps
    ```
+
+> **Portas deslocadas do padrão de propósito** — esta é uma decisão
+> registrada no próprio `docker-compose.yml`: as portas do HOST são
+> **5433** (Postgres) e **6335**/**6336** (Qdrant HTTP/gRPC), não as
+> portas padrão 5432/6333/6334 — para não conflitar com Postgres/Qdrant de
+> outros projetos rodando na mesma máquina de desenvolvimento. Dentro do
+> container a porta continua a padrão; só o mapeamento host:container
+> muda. `POSTGRES_DSN`/`QDRANT_PORT` em `.env.example` já refletem isso —
+> não altere só um lado do par porta-host/env var.
 
 ---
 
@@ -124,85 +104,109 @@ O Ollama é responsável por servir localmente os modelos de linguagem em GPU se
 
 ## 🐍 Passo 3: Configuração do Backend (FastAPI & Python)
 
+> **Ferramenta real: `uv`, não `pip`/`venv` puro** — este projeto usa
+> [`uv`](https://docs.astral.sh/uv/) (`backend/pyproject.toml` +
+> `backend/uv.lock`), não `requirements.txt`. `uv` baixa/gerencia o próprio
+> interpretador Python isoladamente, sem depender de pacotes extras do SO.
+> Alternativa sem `uv`: `python3.11 -m venv .venv && source
+> .venv/bin/activate && pip install -e ".[dev]"` — só funciona se o Python
+> 3.11+ e seu pacote `venv` já estiverem instalados no sistema.
+
 1. **Navegue até o diretório do backend**:
    ```bash
    cd backend
    ```
 
-2. **Crie e ative o ambiente virtual Python**:
+2. **Crie o ambiente virtual com `uv`**:
    ```bash
-   python3.11 -m venv .venv
+   uv venv .venv
    source .venv/bin/activate
    ```
 
-3. **Instale as dependências**:
+3. **Instale as dependências** (modo editável, inclui `pytest`/`ruff`):
    ```bash
-   pip install --upgrade pip
-   pip install -r requirements.txt
+   uv pip install -e ".[dev]"
    ```
 
 4. **Configuração de Variáveis de Ambiente (`.env`)**:
-   Crie o arquivo `backend/.env` baseado no modelo abaixo:
+   Copie o modelo real do projeto — **não crie um `.env` do zero**, os
+   nomes de variável abaixo são os que o backend de fato lê
+   (`backend/src/app/config.py`):
+   ```bash
+   cp .env.example .env
+   ```
+   Principais grupos de variáveis (ver `backend/.env.example` para a lista
+   completa e comentada — inclui RAG, crawler, agendamento, MCP B2B):
    ```ini
-   # Ambiente
-   ENV=production
+   # Aplicação
+   APP_ENV=development
    LOG_LEVEL=INFO
 
-   # Banco Relacional PostgreSQL
-   DATABASE_URL=postgresql+asyncpg://postgres:postgrespassword@localhost:5432/tcc_assistant
+   # Modelo local (Ollama)
+   LOCAL_MODEL_BASE_URL=http://localhost:11434
+   LOCAL_MODEL_NAME=llama3.1:8b
 
-   # Banco Vetorial Qdrant
+   # Modelo externo via OpenRouter (roteador, transbordo/fallback)
+   EXTERNAL_MODEL_BASE_URL=https://openrouter.ai/api/v1
+   EXTERNAL_MODEL_API_KEY=changeme
+   EXTERNAL_MODEL_NAME=   # formato "provider/model", ex.: anthropic/claude-3.5-haiku
+
+   # Qdrant (RAG texto/imagem) — porta 6335, ver Passo 1
    QDRANT_HOST=localhost
-   QDRANT_PORT=6333
+   QDRANT_PORT=6335
 
-   # Provedor de Inferência Local (Ollama)
-   OLLAMA_BASE_URL=http://localhost:11434
-   OLLAMA_DEFAULT_MODEL=llama3.1:8b
+   # PostgreSQL — porta 5433, ver Passo 1
+   POSTGRES_DSN=postgresql+asyncpg://postgres:postgres@localhost:5433/assistente
 
-   # Provedor de Inferência Externa (OpenRouter API - Transbordo/Fallback)
-   OPENROUTER_API_KEY=sk-or-v1-sua-chave-aqui
-   OPENROUTER_DEFAULT_MODEL=meta-llama/llama-3.1-70b-instruct
-
-   # Requisitos Multimodais & OCR
-   TESSERACT_CMD=/usr/bin/tesseract
-   WHISPER_MODEL_SIZE=base
+   # STT local (faster-whisper)
+   STT_MODEL_SIZE=small
 
    # MCP do Google Calendar — ver Passo 5 abaixo (servidor de terceiro
    # self-hosted, não credenciais direto no .env do backend)
    CALENDAR_MCP_URL=http://127.0.0.1:8090/mcp
    ```
+   Requisitos multimodais/OCR (Tesseract) não são configurados por env var
+   neste projeto — o binário `tesseract` só precisa estar no `PATH` do
+   sistema (`sudo apt install tesseract-ocr tesseract-ocr-por`).
 
 5. **Execução de Migrações do Banco de Dados (Alembic)**:
    ```bash
-   alembic upgrade head
+   .venv/bin/alembic upgrade head
    ```
 
-6. **Iniciar Servidor Backend em Desenvolvimento/Produção**:
+6. **Iniciar Servidor Backend em Desenvolvimento**:
    ```bash
-   uvicorn src.app.main:app --host 0.0.0.0 --port 8000 --reload
+   .venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
    ```
+   Documentação Swagger em `http://localhost:8000/docs`.
 
 ---
 
 ## 📚 Passo 4: Inicialização da Base RAG e Vetores
 
-Para que o RAG Multimodal funcione nos domínios de Vendas, Suporte e Atendimento:
+Para que o RAG funcione nos domínios de Vendas, Suporte e Atendimento —
+scripts reais de `backend/scripts/` (rodar a partir de `backend/`, com
+Postgres/Qdrant no ar e a migração do Alembic já aplicada):
 
-1. **Popular Dados Iniciais do Catálogo de Produtos**:
+1. **Ingerir os documentos de exemplo do RAG** (PDFs/textos já incluídos
+   em `backend/scripts/sample_docs/`, um domínio por subpasta):
    ```bash
-   python -m src.app.scripts.seed_products
+   .venv/bin/python scripts/ingest_sample_docs.py
    ```
 
-2. **Indexar Documentos e Manuais (PDFs/Textos)**:
-   Insira os arquivos `.pdf` e `.txt` no diretório `backend/data/docs/` e execute o script de ingestão:
+2. **(Opcional) Ingerir uma tabela do banco relacional** — conector de
+   leitura R4, tabela fixture `produtos` criada/semeada pela própria
+   migração do Alembic (passo anterior):
    ```bash
-   python -m src.app.scripts.ingest_sample_docs
+   .venv/bin/python scripts/ingest_db_table.py --table produtos --domain vendas
    ```
 
-3. **Gerar Embeddings Multimodais para Imagens de Catálogo (CLIP)**:
-   ```bash
-   python -m src.app.scripts.ingest_catalog_images
-   ```
+> Não existem scripts `seed_products`/`ingest_catalog_images` neste
+> projeto — o catálogo de produtos de exemplo já vem semeado pela migração
+> do Alembic (tabela `produtos`); imagens de catálogo para a busca
+> multimodal (CLIP) são ingeridas via `POST /api/rag/images`
+> (`backend/src/app/api/image_search.py`), sem UI dedicada no frontend
+> ainda nem script de linha de comando — chame o endpoint diretamente.
 
 ---
 
@@ -232,12 +236,17 @@ A plataforma opera com arquitetura **Dual MCP**:
      (`CALENDAR_MCP_URL=http://127.0.0.1:8090/mcp`, ver Passo 3 acima) —
      não guarda nenhuma credencial OAuth do Google.
 
-2. **Provedor MCP B2B Próprio (Catálogo e Transações B2B)**:
-   - O backend expõe o servidor MCP interno integrado às tabelas do PostgreSQL e repositório de manuais.
-   - Teste o status dos endpoints de ferramentas MCP:
-     ```bash
-     curl http://localhost:8000/api/v1/mcp/b2b/tools
-     ```
+2. **Provedor MCP B2B Próprio (Catálogo e Transações B2B) — ainda não implementado**:
+   - Faz parte do escopo do MVP (R12, Fase 5 do `docs/ROADMAP.md`), mas
+     **nenhuma tarefa da Fase 5 foi concluída ainda** — `src/app/mcp_server/`
+     existe como pasta vazia (`__init__.py` sem conteúdo). Não há
+     endpoint/comando real para testar hoje; os exemplos de `curl` que
+     existiam aqui antes eram aspiracionais, não refletiam o código.
+   - Quando a Fase 5 for implementada, atualize esta seção com o comando
+     real de start do servidor MCP (`MCP_B2B_HOST`/`MCP_B2B_PORT`, já
+     configuráveis em `.env.example`, mas ainda sem consumidor) e a forma
+     real de testar as 4 ferramentas (compatibilidade, frete, cotação,
+     reserva/pedido) — ver `docs/ARCHITECTURE.md` §6.
 
 ---
 
@@ -275,17 +284,20 @@ A plataforma opera com arquitetura **Dual MCP**:
 ## 📊 Passo 7: Logs, Monitoramento e Troubleshooting
 
 ### Logs do Sistema
-* **Backend (FastAPI)**: Logs gravados em stdout e em `backend/logs/app.log`.
+* **Backend (FastAPI)**: logging estruturado (JSON) só em **stdout** — não há arquivo de log próprio (`backend/logs/app.log` não existe neste projeto). Redirecione você mesmo se quiser persistir (`uvicorn ... > backend.log 2>&1 &`, ver `goup.md`).
 * **Ollama**: Verifique logs do serviço via `journalctl -u ollama -f` (Linux) ou no terminal Ollama.
-* **Qdrant**: `docker logs -f tcc_qdrant`
-* **PostgreSQL**: `docker logs -f tcc_postgres`
+* **Qdrant**: `docker logs -f backend-qdrant-1`
+* **PostgreSQL**: `docker logs -f backend-postgres-1`
+* **calendar-mcp-server** (agendamento, R11): stdout do processo — ver `goup.md` (`/tmp/tcc-calendar-mcp.log` se subiu pelo script de lá).
 
 ### Problemas Frequentes & Soluções (Troubleshooting)
 
 | Sintoma | Causa Provável | Solução |
 |---|---|---|
-| **Erro `Out of Memory` (VRAM GPU)** | Modelo Ollama muito grande para 16GB VRAM ou concorrência excessiva. | Alterne para modelo quantizado 4-bit (`llama3.1:8b`) ou ajuste `OLLAMA_NUM_PARALLEL=1`. |
-| **Resposta lenta ou timeout no Chat** | Falha na comunicação local com Ollama ou fallback externo instável. | Verifique se o serviço Ollama responde em `http://localhost:11434` e valide sua `OPENROUTER_API_KEY`. |
-| **Erro ao processar imagem (OCR)** | Binário `tesseract` não encontrado no PATH do sistema. | Instale o Tesseract: `sudo apt install tesseract-ocr tesseract-ocr-por` e configure `TESSERACT_CMD`. |
-| **Erro na gravação/transcrição de áudio** | Modelo Whisper não baixado ou falta da biblioteca `ffmpeg`. | Instale o ffmpeg: `sudo apt install ffmpeg` e certifique-se que PyTorch tem suporte CUDA. |
-| **Containers não sobem** | Conflito de porta (`5432` ou `6333` já em uso). | Verifique processos em uso com `sudo lsof -i :5432` ou altere as portas publicadas no `docker-compose.yml`. |
+| **Erro `Out of Memory` (VRAM GPU)** | Modelo Ollama muito grande para 16GB VRAM ou concorrência excessiva (ex.: STT/CLIP disputando a mesma GPU, ver `docs/ARCHITECTURE.md` §7). | Alterne para um modelo mais leve (`LOCAL_MODEL_NAME` em `.env`) ou evite rodar identificação de imagem/áudio simultânea a testes pesados de chat. |
+| **Resposta lenta ou timeout no Chat** | Falha na comunicação local com Ollama ou fallback externo instável. | Verifique se o serviço Ollama responde em `http://localhost:11434` e valide sua `EXTERNAL_MODEL_API_KEY`. |
+| **Extração de agendamento lenta/travando (~50s+)** | Modelo local com capability `thinking` habilitada gera raciocínio interno longo mesmo para respostas curtas (achado real, ver `docs/ARCHITECTURE.md` §5, 2026-09-23). | Já corrigido no código (`OllamaClient.generate()` manda `think: false`) — se voltar a acontecer com um modelo novo, confirme via `ollama show <modelo>` se ele tem a capability `thinking`. |
+| **Erro ao processar imagem (OCR)** | Binário `tesseract` não encontrado no PATH do sistema. | Instale o Tesseract: `sudo apt install tesseract-ocr tesseract-ocr-por` (sem variável de ambiente própria neste projeto — só precisa estar no PATH). |
+| **Erro na gravação/transcrição de áudio** | Modelo `faster-whisper` (`STT_MODEL_SIZE`) não baixado ou falta da biblioteca `ffmpeg`. | Instale o ffmpeg: `sudo apt install ffmpeg` e certifique-se que a GPU tem VRAM livre (STT roda na mesma GPU do modelo local). |
+| **Containers não sobem** | Conflito de porta (`5433` ou `6335`/`6336` já em uso — não `5432`/`6333`, que são as portas *internas* do container, ver Passo 1). | Verifique processos em uso com `sudo lsof -i :5433` ou altere as portas publicadas no `backend/docker-compose.yml` (lembre de atualizar `POSTGRES_DSN`/`QDRANT_PORT` em `.env` junto). |
+| **Agendamento falha com "MCP do Google Calendar indisponível"** | `calendar-mcp-server` não está rodando na porta 8090, ou o token expirou. | Ver `docs/GUIA_TESTE_AGENDAMENTO.md` §5 e `goup.md` — confirme com `curl http://127.0.0.1:8090/mcp` (400 = processo no ar; sem resposta = subir de novo). |
