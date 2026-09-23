@@ -492,6 +492,36 @@ contexto desnecessário no caso comum de pergunta autocontida. `# MVP: sem
 reescrita de query via LLM (mais preciso, mas custaria uma chamada de rede
 extra) — concatenação simples do histórico basta para o caso relatado`.
 
+**Decisão registrada (além do MVP, a pedido explícito, 2026-09-23):** o
+classificador de intenção do roteador (Fase 1) ganha um segundo provedor
+opcional, alternável em runtime pelo mesmo painel `/admin/modelos` →
+"Parâmetros de execução" (`intent_router_provider`, `"heuristica_llm"`
+default ou `"jev_openrouter"`): o **TypeSafe Jev**, um modelo de decisão
+estruturada ("System One") acessado via **OpenRouter**, reaproveitando a
+mesma chave (`EXTERNAL_MODEL_API_KEY`) já usada para o modelo externo de
+chat. Diferente de um LLM de chat, o Jev é chamado por um endpoint dedicado
+do OpenRouter — `POST https://openrouter.ai/api/v1/systemone` (não
+`/chat/completions`) — com corpo estruturado (`state` + `questions`
+tipadas `choice`/`score`/`noul`) e resposta tipada
+(`answers.<pergunta>.choice`/`.confidence`), sem geração de texto livre nem
+parsing de JSON solto a partir de um prompt. O classificador usa uma única
+pergunta `choice` cobrindo os 5 domínios do sistema (`vendas`, `suporte`,
+`atendimento`, `agendamento`, `fora_escopo`). Qualquer falha (timeout, erro
+HTTP, chave ausente, payload inesperado) degrada imediatamente para a
+heurística local de palavras-chave, sem interromper o atendimento — o
+padrão do roteador continua sendo `heuristica_llm`, preservando
+independência de rede externa no boot. Modelo identificado por
+`typesafe/jev-latest` (alias que sempre aponta para a versão mais recente
+da família Jev; configurável via `JEV_MODEL_NAME` em `.env`). **Não faz
+parte do MVP original** (não descrito em nenhuma fase do roadmap) — fica
+registrada aqui e no roadmap para não ser confundida com item do escopo
+original nem esquecida na revisão final (Fase 11). `# MVP: seleção só em
+memória, mesmo padrão de `intent_router_provider`/demais "Parâmetros de
+execução" acima — reseta a cada restart; telemetria do provedor usado é
+exposta no evento `done` do SSE e no painel de métricas do chat, mas não
+persistida (mesma limitação já aceita para as demais métricas de
+telemetria)`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
