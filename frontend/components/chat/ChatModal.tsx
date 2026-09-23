@@ -128,6 +128,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             ragAvgScore: data.rag_avg_score ?? undefined,
             ragChunks: data.rag_chunks ?? undefined,
             escalationReason: data.escalation_reason,
+            routerProvider: data.router_provider ?? undefined,
           },
         });
       },
@@ -201,6 +202,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             ragAvgScore: data.rag_avg_score ?? undefined,
             ragChunks: data.rag_chunks ?? undefined,
             escalationReason: data.escalation_reason,
+            routerProvider: data.router_provider ?? undefined,
           },
         });
       },

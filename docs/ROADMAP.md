@@ -183,7 +183,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       local, os timeouts local/externo e a flag de fallback de domínio do
       RAG (`GET`/`PUT /api/admin/runtime-settings`) — decisão registrada em
       `docs/ARCHITECTURE.md` §5
-- [ ] **Provedor alternativo do classificador de intenção — TypeSafe Jev
+- [x] **Provedor alternativo do classificador de intenção — TypeSafe Jev
       (OpenRouter)** — `intent_router_provider` (`"heuristica_llm"` default
       ou `"jev_openrouter"`) na mesma seção "Parâmetros de execução",
       alternando o classificador do roteador entre a heurística local

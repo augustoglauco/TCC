@@ -44,6 +44,7 @@ export interface ChatMetrics {
   ragAvgScore?: number;
   ragChunks?: ChatRagChunk[];
   escalationReason?: ChatEscalationReason;
+  routerProvider?: string;
 }
 
 export interface ChatDoneEventData {
@@ -63,6 +64,7 @@ export interface ChatDoneEventData {
   rag_chunks_count?: number | null;
   rag_avg_score?: number | null;
   rag_chunks?: ChatRagChunk[] | null;
+  router_provider?: string | null;
 }
 
 /** Mensagem exibida no painel do chat (estado de UI, não o payload da API). */

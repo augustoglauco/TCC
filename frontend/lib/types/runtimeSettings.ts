@@ -13,6 +13,7 @@ export interface RuntimeSettings {
   rag_search_domain_fallback: boolean;
   crawler_max_pages_default: number;
   crawler_confidence_threshold: number;
+  intent_router_provider?: "heuristica_llm" | "jev_openrouter";
 }
 
 /** Corpo de `PUT /api/admin/runtime-settings` — atualização parcial, só os

@@ -23,6 +23,7 @@ const SETTINGS_PADRAO: RuntimeSettings = {
   rag_search_domain_fallback: false,
   crawler_max_pages_default: 50,
   crawler_confidence_threshold: 0.8,
+  intent_router_provider: "heuristica_llm",
 };
 
 describe("RuntimeSettingsForm", () => {
@@ -40,6 +41,8 @@ describe("RuntimeSettingsForm", () => {
     expect(screen.getByLabelText(/timeout do modelo externo/i)).toHaveValue(30);
     expect(screen.getByLabelText(/temperatura/i)).toHaveValue(null);
     expect(screen.getByLabelText(/buscar sem filtro de domínio/i)).not.toBeChecked();
+    expect(screen.getByLabelText(/heurística \+ llm local \(ollama\)/i)).toBeChecked();
+    expect(screen.getByLabelText(/typesafe jev \(openrouter\)/i)).not.toBeChecked();
   });
 
   it("mostra erro via onError quando o carregamento falha", async () => {
@@ -69,7 +72,26 @@ describe("RuntimeSettingsForm", () => {
       local_llm_timeout_s: 30,
       external_llm_timeout_s: 30,
       rag_search_domain_fallback: false,
+      intent_router_provider: "heuristica_llm",
     });
+    await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
+  });
+
+  it("seleciona o provedor Jev e envia no payload", async () => {
+    mockedGet.mockResolvedValueOnce(SETTINGS_PADRAO);
+    mockedUpdate.mockResolvedValueOnce({ ...SETTINGS_PADRAO, intent_router_provider: "jev_openrouter" });
+    const onSuccess = vi.fn();
+    const user = userEvent.setup();
+
+    render(<RuntimeSettingsForm onError={vi.fn()} onSuccess={onSuccess} />);
+
+    await screen.findByLabelText(/typesafe jev \(openrouter\)/i);
+    await user.click(screen.getByLabelText(/typesafe jev \(openrouter\)/i));
+    await user.click(screen.getByRole("button", { name: "Aplicar" }));
+
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ intent_router_provider: "jev_openrouter" }),
+    );
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
   });
 

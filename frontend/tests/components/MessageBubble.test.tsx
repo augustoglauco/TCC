@@ -92,6 +92,60 @@ describe("MessageBubble", () => {
     expect(screen.queryByTestId("message-metrics")).not.toBeInTheDocument();
   });
 
+  it("mostra o provedor TypeSafe Jev quando routerProvider é jev_openrouter", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Resposta",
+          domain: "vendas",
+          metrics: { modelName: "jev", routerProvider: "jev_openrouter" },
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Mostrar métricas da resposta" }));
+
+    expect(screen.getByText("TypeSafe Jev (OpenRouter)")).toBeInTheDocument();
+  });
+
+  it("mostra o provedor Heurística + LLM Local quando routerProvider é heuristica_llm", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Resposta",
+          domain: "vendas",
+          metrics: { modelName: "llama3.1:8b", routerProvider: "heuristica_llm" },
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Mostrar métricas da resposta" }));
+
+    expect(screen.getByText("Heurística + LLM Local")).toBeInTheDocument();
+  });
+
+  it("não mostra a linha de provedor quando routerProvider não vem no metrics", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Resposta",
+          domain: "vendas",
+          metrics: { modelName: "llama3.1:8b" },
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Mostrar métricas da resposta" }));
+
+    expect(screen.queryByText(/^Provedor:/)).not.toBeInTheDocument();
+  });
+
   it("destaca em azul a resposta do assistente quando vem de LLM externo", () => {
     render(
       <MessageBubble
