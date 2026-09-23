@@ -246,36 +246,36 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       description="Assistente IA multimodal com métricas de inferência em tempo real"
       size="2xl"
     >
-      <div className="flex h-[68vh] flex-col rounded-xl border border-slate-200 bg-slate-50/50">
+      <div className="flex h-[62vh] sm:h-[68vh] min-h-[380px] max-h-[600px] flex-col rounded-xl border border-slate-200 bg-slate-50/50">
         {hasAssistantMessages && (
-          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100/80 px-4 py-2 text-xs">
-            <span className="text-slate-600 font-medium flex items-center gap-1.5">
-              📊 Métricas de Desempenho & Telemetria
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100/80 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs shrink-0">
+            <span className="text-slate-600 font-medium flex items-center gap-1 text-[11px] sm:text-xs">
+              📊 <span className="hidden sm:inline">Métricas de Desempenho & Telemetria</span><span className="sm:hidden">Telemetria</span>
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => exportMetricsToCsv(messages)}
-                className="rounded bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-slate-800 transition-colors flex items-center gap-1"
+                className="rounded bg-slate-900 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-white hover:bg-slate-800 transition-colors flex items-center gap-1"
               >
-                📥 Exportar CSV
+                📥 <span className="hidden xs:inline">Exportar </span>CSV
               </button>
               <button
                 type="button"
                 onClick={() => exportMetricsToJson(messages)}
-                className="rounded bg-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-800 hover:bg-slate-300 transition-colors flex items-center gap-1"
+                className="rounded bg-slate-200 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 hover:bg-slate-300 transition-colors flex items-center gap-1"
               >
-                📥 Exportar JSON
+                📥 <span className="hidden xs:inline">Exportar </span>JSON
               </button>
             </div>
           </div>
         )}
 
-        <div aria-live="polite" className="flex-1 space-y-4 overflow-y-auto p-4">
+        <div aria-live="polite" className="flex-1 space-y-3 sm:space-y-4 overflow-y-auto p-2.5 sm:p-4">
           {messages.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400">
+            <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400 p-4">
               <span className="text-3xl">💬</span>
-              <p className="text-sm font-medium">Envie uma mensagem ou grave um áudio para iniciar o atendimento.</p>
+              <p className="text-xs sm:text-sm font-medium">Envie uma mensagem ou grave um áudio para iniciar o atendimento.</p>
             </div>
           )}
           {messages.map((message) => (
@@ -305,18 +305,18 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             e.preventDefault();
             void submitMessage(input);
           }}
-          className="flex items-center gap-2 border-t border-slate-200 bg-white p-3 rounded-b-xl"
+          className="flex items-center gap-1.5 sm:gap-2 border-t border-slate-200 bg-white p-2 sm:p-3 rounded-b-xl shrink-0"
         >
           <label htmlFor="chat-modal-input" className="sr-only">
             Mensagem
           </label>
           {pendingImage && (
-            <div className="flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700">
-              <span>🖼️ {pendingImage.name}</span>
+            <div className="flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700 max-w-[120px] sm:max-w-none truncate">
+              <span className="truncate">🖼️ {pendingImage.name}</span>
               <button
                 type="button"
                 onClick={() => setPendingImage(null)}
-                className="ml-1 font-bold hover:text-blue-900"
+                className="ml-1 font-bold hover:text-blue-900 shrink-0"
                 aria-label="Remover imagem"
               >
                 ×
@@ -329,8 +329,8 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={controlsDisabled}
-            placeholder="Digite sua mensagem ou pergunte sobre nossos produtos..."
-            className="flex-1 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400/20 disabled:opacity-50"
+            placeholder="Digite sua mensagem..."
+            className="flex-1 min-w-0 rounded-xl border border-slate-300 bg-slate-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400/20 disabled:opacity-50"
           />
           <ImageUploader
             disabled={controlsDisabled}
@@ -344,7 +344,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           <button
             type="submit"
             disabled={!canSend}
-            className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-2xs"
+            className="rounded-xl bg-slate-900 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-colors shadow-2xs shrink-0"
           >
             Enviar
           </button>

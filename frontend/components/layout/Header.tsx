@@ -20,24 +20,24 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md transition-all shadow-xs">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3.5 sm:px-6">
+      <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:px-6">
         {/* Logo / Marca */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-base shadow-sm group-hover:scale-105 transition-transform">
+        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0 min-w-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-base shadow-sm group-hover:scale-105 transition-transform">
             ⚡
           </div>
-          <div className="flex flex-col">
-            <span className="text-base font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors">
+          <div className="flex flex-col min-w-0">
+            <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors truncate">
               Empresa Fictícia
             </span>
-            <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+            <span className="hidden xs:block text-[9px] sm:text-[10px] font-medium text-slate-500 uppercase tracking-wider truncate">
               Assistente Multimodal
             </span>
           </div>
         </Link>
 
         {/* Links desktop & Ações */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <nav aria-label="Navegação principal" className="hidden md:block">
             <ul className="flex items-center gap-1 text-sm font-medium text-slate-700">
               {NAV_LINKS.map((link) => (
@@ -60,9 +60,11 @@ export default function Header() {
           <button
             type="button"
             onClick={() => useChatStore.getState().open()}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 rounded-xl bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 transition-colors cursor-pointer shrink-0"
           >
-            💬 Chat / Agente
+            <span>💬</span>
+            <span className="hidden sm:inline">Chat / Agente</span>
+            <span className="sm:hidden">Chat</span>
           </button>
 
           {/* Botão de Menu Mobile (Hambúrguer) */}
@@ -71,7 +73,7 @@ export default function Header() {
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             aria-expanded={isMobileMenuOpen}
             aria-label={isMobileMenuOpen ? "Fechar menu principal" : "Abrir menu principal"}
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 md:hidden"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 md:hidden"
           >
             <svg
               className="h-5 w-5"
@@ -93,15 +95,28 @@ export default function Header() {
 
       {/* Drawer do Menu Mobile */}
       {isMobileMenuOpen && (
-        <div className="border-b border-slate-200 bg-white px-4 py-3 md:hidden shadow-lg animate-in slide-in-from-top duration-200">
+        <div className="border-b border-slate-200 bg-white px-4 py-3 md:hidden shadow-lg transition-all duration-200">
           <nav aria-label="Navegação principal móvel">
             <ul className="flex flex-col space-y-1">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    useChatStore.getState().open();
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg bg-blue-50 px-3 py-2.5 text-base font-semibold text-blue-700 hover:bg-blue-100 transition-colors text-left"
+                >
+                  <span className="text-lg">💬</span>
+                  <span>Abrir Chat / Assistente IA</span>
+                </button>
+              </li>
               {NAV_LINKS.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium text-slate-700 hover:bg-slate-100 hover:text-blue-700 transition-colors"
                   >
                     <span className="text-lg">{link.icon}</span>
                     <span>{link.label}</span>

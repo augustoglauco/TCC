@@ -26,13 +26,21 @@ describe("ModelosPage", () => {
     mockedListLocalModels.mockResolvedValue(RESPOSTA);
   });
 
-  it("carrega e lista os modelos ao montar", async () => {
+  it("carrega e exibe o título 'Administração Geral' e a lista de modelos", async () => {
     render(<ModelosPage />);
 
+    expect(screen.getByRole("heading", { level: 1, name: "Administração Geral" })).toBeInTheDocument();
     expect(await screen.findByText("llama3.1:8b")).toBeInTheDocument();
   });
 
-  it("renderiza o formulário de download", async () => {
+  it("renderiza as abas de 'Modelos' e 'Parâmetros de execução'", async () => {
+    render(<ModelosPage />);
+
+    expect(screen.getByRole("tab", { name: /modelos/i })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /parâmetros de execução/i })).toBeInTheDocument();
+  });
+
+  it("renderiza o formulário de download na aba de Modelos", async () => {
     render(<ModelosPage />);
 
     await screen.findByText("llama3.1:8b");
