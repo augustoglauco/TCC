@@ -223,10 +223,16 @@ data: {
   "rag_chunks_count": 3,
   "rag_avg_score": 0.71,
 
-  // Provedor usado pelo classificador de intenção nesta requisição —
-  // "heuristica_llm" (padrão) ou "jev_openrouter" (ver
-  // docs/ARCHITECTURE.md, decisão do TypeSafe Jev como provedor
-  // alternativo). Alternado via runtime settings, não por request.
+  // Provedor que REALMENTE classificou a intenção nesta requisição —
+  // "heuristica_llm" ou "jev_openrouter" (ver docs/ARCHITECTURE.md, decisão
+  // do TypeSafe Jev como provedor alternativo). Alternado via runtime
+  // settings, não por request. Reflete o provedor efetivo, não
+  // necessariamente o selecionado: se o Jev falhar (timeout, erro HTTP,
+  // resposta malformada), o classificador degrada para a heurística local e
+  // este campo mostra "heuristica_llm" mesmo com "jev_openrouter"
+  // selecionado no admin (correção de revisão final — antes vazava o valor
+  // selecionado, não o usado de fato). `null` no fluxo de identificação de
+  // imagem, que não passa por classificação de intenção.
   "router_provider": "heuristica_llm"
 }
 ```
