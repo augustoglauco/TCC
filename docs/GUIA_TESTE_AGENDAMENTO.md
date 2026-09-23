@@ -8,7 +8,7 @@ Ele descreve os pré-requisitos de ambiente, os cenários de teste passo a passo
 
 ## 📋 1. Visão Geral do Fluxo
 
-O agendamento é orquestrado via máquina de estados (`backend/src/app/router/scheduling.py`) integrada ao **MCP oficial do Google Calendar** (`https://calendarmcp.googleapis.com/mcp/v1`).
+O agendamento é orquestrado via máquina de estados (`backend/src/app/router/scheduling.py`) integrada ao **MCP do Google Calendar via `calendar-mcp-server`** — um servidor MCP de terceiro self-hosted (`http://127.0.0.1:8090/mcp` local), não mais o MCP oficial remoto do Google (trocado em 2026-09-23, ver nota abaixo e `docs/ARCHITECTURE.md` §5).
 
 O assistente coleta **4 campos obrigatórios**:
 1. 📅 **Data e Hora desejadas** (validada contra o expediente configurado e disponibilidade na agenda)
@@ -197,8 +197,9 @@ Ao concluir os testes manuais, valide as seguintes evidências:
 
 ## 🛠️ 5. Resolução de Problemas Comuns (Troubleshooting)
 
-* **Erro `GoogleCalendarAuthError`**:
-  * O refresh token pode ter sido revogado ou expirado. Execute novamente `python backend/scripts/authorize_google_calendar.py`.
+* **Erro `GoogleCalendarConnectionError` ("MCP do Google Calendar indisponível")**:
+  * Confirme que o `calendar-mcp-server` está rodando (`curl http://127.0.0.1:8090/mcp` deve responder — `400` é normal para um `GET` simples, só confirma que o processo está no ar; timeout/conexão recusada indica que ele não está rodando, ver `goup.md`).
+  * Se o processo está no ar mas mesmo assim falha: o token pode ter sido revogado/expirado. Execute novamente `calendar-mcp-server auth` (mesmos `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`/`TOKEN_FILE_PATH` do passo 2.2).
 * **Fuso Horário Incorreto**:
   * Caso a hora no Google Calendar apareça deslocada (ex.: 3 horas a mais ou a menos), confirme se `AGENDAMENTO_TIMEZONE=America/Sao_Paulo` está definido no `.env`.
 * **Perda do Estado de Agendamento**:

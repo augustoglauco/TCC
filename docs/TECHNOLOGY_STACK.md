@@ -85,9 +85,19 @@
 | Aspecto | Escolha | Justificativa |
 |---|---|---|
 | **SDK** | MCP SDK oficial (Python) | Padrão do protocolo, manutenção |
-| **Autenticação** | OAuth 2.0 (var. de ambiente) | Google Calendar requer OAuth; credenciais em `.env.example` |
+| **Servidor MCP** | `calendar-mcp-server` (PyPI, self-hosted, porta 8090) — não o MCP remoto oficial do Google | Trocado em 2026-09-23: `calendarmcp.googleapis.com` está em Developer Preview, não aceita Gmail pessoal (ver `docs/ARCHITECTURE.md` §5) |
+| **Autenticação** | OAuth 2.0 gerenciado pelo próprio `calendar-mcp-server` (`calendar-mcp-server auth`) | Backend não guarda client_id/secret/refresh token — só a URL local (`CALENDAR_MCP_URL`) |
 | **Integração** | Roteador (intenção de agendamento) | Fase 4: nova intenção que chama MCP |
 | **Fallback de erro** | Sugerir nova tentativa ou transferir para atendente | Tratamento de erro claro (R11) |
+
+#### Provedor alternativo do classificador de intenção — TypeSafe Jev (além do MVP)
+
+| Aspecto | Escolha | Justificativa |
+|---|---|---|
+| **Serviço** | TypeSafe Jev, via OpenRouter (endpoint dedicado `POST /api/v1/systemone`, não `/chat/completions`) | Modelo "System One" de decisão estruturada — resposta tipada, não texto livre a parsear |
+| **Alternável em runtime** | `/admin/modelos` → Parâmetros de Execução (`intent_router_provider`) | Comparação com a heurística/LLM local existente, ver `docs/EVALUATION.md` |
+| **Fallback de erro** | Degrada para a heurística local em qualquer falha (nunca 500/503) | Mesmo padrão de resiliência do cliente MCP do Calendar |
+| **Escopo** | Fora do MVP original, a pedido explícito (2026-09-23) | Decisão registrada em `docs/ARCHITECTURE.md` §5 |
 
 #### Servidor MCP — B2B Próprio
 

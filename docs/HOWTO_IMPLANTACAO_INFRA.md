@@ -167,9 +167,9 @@ O Ollama é responsável por servir localmente os modelos de linguagem em GPU se
    TESSERACT_CMD=/usr/bin/tesseract
    WHISPER_MODEL_SIZE=base
 
-   # Credenciais MCP (Google Calendar Integrator)
-   GOOGLE_CALENDAR_CLIENT_ID=seu-client-id.apps.googleusercontent.com
-   GOOGLE_CALENDAR_CLIENT_SECRET=seu-client-secret
+   # MCP do Google Calendar — ver Passo 5 abaixo (servidor de terceiro
+   # self-hosted, não credenciais direto no .env do backend)
+   CALENDAR_MCP_URL=http://127.0.0.1:8090/mcp
    ```
 
 5. **Execução de Migrações do Banco de Dados (Alembic)**:
@@ -210,9 +210,27 @@ Para que o RAG Multimodal funcione nos domínios de Vendas, Suporte e Atendiment
 
 A plataforma opera com arquitetura **Dual MCP**:
 
-1. **Cliente MCP (Google Calendar)**:
-   - Certifique-se de habilitar a **Google Calendar API** no Google Cloud Console.
-   - Configure a URI de redirecionamento OAuth para `http://localhost:8000/api/v1/mcp/google/callback`.
+1. **Cliente MCP (Google Calendar) — atualizado em 2026-09-23**:
+   - O backend **não fala mais direto com o MCP remoto oficial do Google**
+     (`calendarmcp.googleapis.com`) — esse serviço está em Developer
+     Preview e não aceita contas Gmail pessoais (ver `docs/ARCHITECTURE.md`
+     §5). Em vez disso, consome um MCP de terceiro self-hosted,
+     [`calendar-mcp-server`](https://github.com/deciduus/calendar-mcp)
+     (pacote PyPI, Python), rodando como processo local separado.
+   - Instale/rode com `uvx` (não precisa `pip install` manual): crie um
+     OAuth Client ID tipo **"App para computador"** no Google Cloud
+     Console (com a Google Calendar API habilitada), rode
+     `calendar-mcp-server auth` uma vez (`GOOGLE_CLIENT_ID`/
+     `GOOGLE_CLIENT_SECRET` do client criado, via variável de ambiente) e
+     depois `calendar-mcp-server serve --transport http --port 8090` a
+     cada sessão. Não existe URI de redirecionamento a configurar no
+     Console — o fluxo usa `http://localhost:8080` (porta do próprio
+     `calendar-mcp-server`, não a 8000 do backend).
+   - Passo a passo completo, com troubleshooting: `docs/GUIA_TESTE_AGENDAMENTO.md`
+     §2.2, e o startup consolidado em `goup.md`.
+   - O backend só precisa saber onde esse processo está escutando
+     (`CALENDAR_MCP_URL=http://127.0.0.1:8090/mcp`, ver Passo 3 acima) —
+     não guarda nenhuma credencial OAuth do Google.
 
 2. **Provedor MCP B2B Próprio (Catálogo e Transações B2B)**:
    - O backend expõe o servidor MCP interno integrado às tabelas do PostgreSQL e repositório de manuais.

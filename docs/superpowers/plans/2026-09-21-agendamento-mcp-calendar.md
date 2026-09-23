@@ -2,6 +2,20 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Nota (2026-09-23):** o "MCP oficial do Google Calendar" descrito neste
+> plano (`calendarmcp.googleapis.com`, autenticação via
+> `scripts/authorize_google_calendar.py` guardando client_id/secret/refresh
+> token no backend) foi trocado — esse serviço está em Developer Preview e
+> não aceita contas Gmail pessoais. O sistema hoje consome um MCP de
+> terceiro self-hosted (`calendar-mcp-server`), que gerencia sua própria
+> autenticação; `scripts/authorize_google_calendar.py` e
+> `_load_client_secrets`/`_load_refresh_token`/`_get_access_token` em
+> `google_calendar.py` foram removidos. Ver decisão completa e atual em
+> `docs/ARCHITECTURE.md` §5 ("Decisão revista (Fase 4A, troca do MCP
+> consumido, 2026-09-23)"). Este documento fica como registro histórico do
+> plano original — as tarefas/código abaixo não refletem o estado atual do
+> cliente MCP do Calendar.
+
 **Goal:** Fechar R11 — o assistente reconhece a intenção de agendamento de visita, coleta data/hora/nome/e-mail/telefone ao longo da conversa, valida o horário (expediente + conflito de agenda) e, com confirmação explícita do visitante, cria o evento na agenda da empresa via o MCP oficial do Google Calendar, que dispara a confirmação por e-mail sozinho.
 
 **Architecture:** Três módulos novos — `app/router/scheduling.py` (máquina de estado pura: slots, extração via LLM, validação de horário, mensagens), `app/mcp_client/google_calendar.py` (cliente MCP Streamable HTTP com OAuth de refresh token) e `scripts/authorize_google_calendar.py` (consentimento único do admin) — mais um novo ramo em `orchestrator.handle_message` para `domain == "agendamento"` que substitui o stub atual.
