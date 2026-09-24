@@ -116,7 +116,10 @@ async def _analyze_with_llm(
             extra={"router": {"event": "llm_tom_falha_fallback", "erro": str(exc)}},
         )
         return ToneResult(
-            escalate=False, motivo=None, confidence=0.0, provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER
+            escalate=False,
+            motivo=None,
+            confidence=0.0,
+            provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER,
         )
 
 
@@ -142,7 +145,10 @@ async def _analyze_with_jev(
             extra={"router": {"event": "jev_tom_falha_fallback", "erro": str(exc)}},
         )
         return ToneResult(
-            escalate=False, motivo=None, confidence=0.0, provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER
+            escalate=False,
+            motivo=None,
+            confidence=0.0,
+            provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER,
         )
 
 

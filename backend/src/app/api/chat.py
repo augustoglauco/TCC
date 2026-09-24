@@ -13,7 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.rag_dependencies import get_db_session
 from app.mcp_client.google_calendar import CalendarClient
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
-from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER, DEFAULT_TONE_MONITOR_PROVIDER
+from app.models.runtime_settings import (
+    DEFAULT_INTENT_ROUTER_PROVIDER,
+    DEFAULT_TONE_MONITOR_PROVIDER,
+)
 from app.ocr.image_processor import (
     ImageFormatError,
     OcrIndisponivelError,
