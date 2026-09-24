@@ -24,6 +24,7 @@ from app.rag.image_search import ImageSearchResult
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
 from app.stt.whisper_client import SttIndisponivelError
+from tests.conftest import _CommitFailingSession
 
 
 def _parse_sse(body: str) -> list[tuple[str, dict]]:
@@ -523,3 +524,31 @@ async def test_escalonamento_e_persistido_no_banco(fakes):
     assert len(registros) == 1
     assert registros[0].motivo == "insatisfacao"
     assert registros[0].provider_efetivo == "heuristica_llm"
+
+
+def test_falha_ao_persistir_escalonamento_nao_derruba_o_stream(fakes):
+    # Achado crítico da revisão final (item 1): antes do fix em
+    # `app.api.chat`, uma exceção em `criar_escalonamento` (ex.: commit
+    # falhando por instabilidade do Postgres) propagava crua de dentro de
+    # `event_stream()` e matava a conexão SSE inteira DEPOIS do evento
+    # `escalonamento` já ter sido enviado — sem `token`, sem `done`, sem
+    # `error`. Aqui simulamos essa falha com `_CommitFailingSession` (mesmo
+    # padrão usado em test_rag_api.py) e garantimos que o stream ainda
+    # termina normalmente com `token` e `done`.
+    from app.router.tone_monitor import reset_escalated_conversations
+
+    reset_escalated_conversations()
+    fakes["db_session"] = _CommitFailingSession(fakes["db_session"])
+    app = _build_app(fakes)
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/chat/messages",
+            json={"message": "Isso é um absurdo, nunca mais compro nessa loja!"},
+        )
+
+    assert response.status_code == 200
+    eventos = _parse_sse(response.text)
+    tipos = [tipo for tipo, _ in eventos]
+    assert "escalonamento" in tipos
+    assert "token" in tipos
+    assert tipos[-1] == "done"
