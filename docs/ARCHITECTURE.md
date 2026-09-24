@@ -133,8 +133,10 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 
 **(b) Monitoramento de tom:** nova mensagem no chat → classificador de
 sentimento/urgência → ultrapassou o limiar de urgência/insatisfação? →
-**não:** fluxo normal continua. → **sim:** alerta e transferência para
-atendente humano.
+**não:** fluxo normal continua. → **sim:** alerta e registro para
+acompanhamento humano — a resposta normal do domínio continua sendo gerada e
+streamada normalmente, o monitoramento roda em paralelo e nunca substitui/
+interrompe o fluxo (ver decisão na Seção 5 sobre o Monitor de Tom).
 
 ## 5. Escopo do MVP e evolução futura
 
@@ -630,7 +632,7 @@ sem substituir a resposta normal — ver
 `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md`. Mesmo padrão
 de dois provedores configuráveis do classificador de intenção
 (`TONE_MONITOR_PROVIDER`: `heuristica_llm` — heurística de palavras-chave +
-sinais estruturais, com fallback ao LLM local, — ou `jev_openrouter`, com
+sinais estruturais, com fallback ao LLM local — ou `jev_openrouter`, com
 degradação automática para `heuristica_llm` em qualquer falha do Jev, mesma
 lógica de `ClassificationResult.provider_efetivo`). Primeira escalada de
 cada conversa emite o evento SSE `escalonamento` (`docs/FRONTEND.md` §4),
