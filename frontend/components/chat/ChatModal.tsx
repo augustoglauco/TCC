@@ -9,6 +9,7 @@ import { Modal } from "@/components/ui/Modal";
 import { sendChatMessage } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetrics";
+import { generateId } from "@/lib/utils/generateId";
 
 interface PendingRetry {
   message?: string;
@@ -55,7 +56,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
 
   const hasAssistantMessages = messages.some((m) => m.role === "assistant");
 
-  async function submitMessage(text: string, overrideImage?: { base64: string; name: string } | null) {
+  async function submitMessage(
+    text: string,
+    overrideImage?: { base64: string; name: string } | null,
+  ) {
     const trimmed = text.trim();
     // `overrideImage` é usado pelo retry para passar a imagem diretamente,
     // sem depender do estado React (que ainda não teria sido atualizado pelo
@@ -72,12 +76,12 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         : trimmed
       : `[🖼️ ${imageToSend!.name}]`;
 
-    addMessage({ id: crypto.randomUUID(), role: "user", text: userText });
+    addMessage({ id: generateId(), role: "user", text: userText });
     setInput("");
     setIsSending(true);
     setError(null);
 
-    const assistantId = crypto.randomUUID();
+    const assistantId = generateId();
     let bolhaCriada = false;
     let textoAcumulado = "";
 
@@ -133,7 +137,14 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         });
       },
       onError: (msg) => {
-        setError({ text: msg, retry: { message: trimmed, imageBase64: imageToSend?.base64, imageName: imageToSend?.name } });
+        setError({
+          text: msg,
+          retry: {
+            message: trimmed,
+            imageBase64: imageToSend?.base64,
+            imageName: imageToSend?.name,
+          },
+        });
       },
     });
 
@@ -143,12 +154,12 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   async function submitAudio(audioBase64: string) {
     if (isSending) return;
 
-    const pendingId = crypto.randomUUID();
+    const pendingId = generateId();
     addMessage({ id: pendingId, role: "user", text: AUDIO_PENDING_TEXT });
     setIsSending(true);
     setError(null);
 
-    const assistantId = crypto.randomUUID();
+    const assistantId = generateId();
     let bolhaCriada = false;
     let textoAcumulado = "";
     let transcricaoRecebida = false;
@@ -250,7 +261,8 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         {hasAssistantMessages && (
           <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100/80 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs shrink-0">
             <span className="text-slate-600 font-medium flex items-center gap-1 text-[11px] sm:text-xs">
-              📊 <span className="hidden sm:inline">Métricas de Desempenho & Telemetria</span><span className="sm:hidden">Telemetria</span>
+              📊 <span className="hidden sm:inline">Métricas de Desempenho & Telemetria</span>
+              <span className="sm:hidden">Telemetria</span>
             </span>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
@@ -271,11 +283,16 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           </div>
         )}
 
-        <div aria-live="polite" className="flex-1 space-y-3 sm:space-y-4 overflow-y-auto p-2.5 sm:p-4">
+        <div
+          aria-live="polite"
+          className="flex-1 space-y-3 sm:space-y-4 overflow-y-auto p-2.5 sm:p-4"
+        >
           {messages.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400 p-4">
               <span className="text-3xl">💬</span>
-              <p className="text-xs sm:text-sm font-medium">Envie uma mensagem ou grave um áudio para iniciar o atendimento.</p>
+              <p className="text-xs sm:text-sm font-medium">
+                Envie uma mensagem ou grave um áudio para iniciar o atendimento.
+              </p>
             </div>
           )}
           {messages.map((message) => (
