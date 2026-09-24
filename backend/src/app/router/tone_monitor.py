@@ -101,7 +101,7 @@ async def _analyze_with_llm(
             confidence=confidence,
             provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER,
         )
-    except Exception:
+    except Exception as exc:
         # Resposta não-parseável (json.JSONDecodeError, TypeError, ValueError,
         # KeyError) OU falha de infraestrutura (ex.: ConnectionError com o
         # Ollama fora do ar): em ambos os casos, ambíguo sem sinal claro não
@@ -111,6 +111,10 @@ async def _analyze_with_llm(
         # aplicada por _analyze_with_jev acima). Achado na integração da
         # Task 7: antes deste fix, uma falha de conexão aqui propagava crua
         # em vez de degradar como um erro de parsing já degradava.
+        logger.warning(
+            "llm_tom_falhou_fallback_degradado",
+            extra={"router": {"event": "llm_tom_falha_fallback", "erro": str(exc)}},
+        )
         return ToneResult(
             escalate=False, motivo=None, confidence=0.0, provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER
         )
