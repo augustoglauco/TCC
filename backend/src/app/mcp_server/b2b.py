@@ -1,28 +1,34 @@
 """Servidor MCP B2B provido pela empresa (R12, Fase 5) — expõe os 4 recursos
-de leitura descritos em `docs/ARCHITECTURE.md` §6: catálogo, estoque, tabela
-de preços e manuais/documentação.
+de leitura e as 4 ferramentas transacionais descritos em
+`docs/ARCHITECTURE.md` §6: catálogo, estoque, tabela de preços e
+manuais/documentação (recursos); validação de compatibilidade, consulta de
+frete e prazos, cotação automática e reserva/pedido (ferramentas).
 
 Reaproveita o "backend único de dados" já modelado no item anterior desta
 fase (`app.db.catalog`, sobre `Produto`/`ProdutoEstoque`/
-`ProdutoDescontoVolume`) para os três recursos estruturados, e a
-infraestrutura RAG já existente (`app.rag.qdrant_client`) para o quarto
-recurso — buscando especificamente nas collections com
-`purpose="mcp_b2b"` (nunca a collection ativa do chat público, ver decisão
-de 2026-09-21 em `docs/ARCHITECTURE.md` §5).
+`ProdutoDescontoVolume`/`ProdutoCompatibilidade`/`Pedido`/`PedidoItem`) para
+os recursos/ferramentas estruturados, e a infraestrutura RAG já existente
+(`app.rag.qdrant_client`) para o recurso de manuais — buscando
+especificamente nas collections com `purpose="mcp_b2b"` (nunca a collection
+ativa do chat público, ver decisão de 2026-09-21 em `docs/ARCHITECTURE.md`
+§5).
 
 # MVP: servidor de uso interno, sem autenticação por parceiro nem exposição
 pública (ver `docs/ARCHITECTURE.md` §5/§6 e `docs/ROADMAP.md`, Fase 5) — o
 mesmo nível de confiança de rede local já aceito para Qdrant/Postgres/
-`calendar-mcp-server` neste protótipo. Só os 4 recursos de LEITURA — as 4
-ferramentas transacionais (compatibilidade, frete, cotação, reserva/pedido)
-são o próximo item desta mesma fase, ainda não implementadas aqui.
+`calendar-mcp-server` neste protótipo.
 
-Modelado como *MCP resources* (não *tools*): os quatro itens deste item são
-dados somente-leitura, endereçáveis por URI (`catalogo://`, `estoque://`,
-`precos://`, `manuais://`) — o protocolo MCP reserva "tools" para
-ações/automações, que é exatamente a categoria das 4 ferramentas
-transacionais do próximo item (ver "Recursos" vs "Ferramentas" em
-`docs/ARCHITECTURE.md` §6).
+Modelado como *MCP resources* os quatro itens de dados somente-leitura,
+endereçáveis por URI (`catalogo://`, `estoque://`, `precos://`,
+`manuais://`), e como *MCP tools* as quatro ferramentas transacionais
+(`validar_compatibilidade`, `consultar_frete`, `cotar`, `reservar_pedido`) —
+o protocolo MCP reserva "tools" para ações/automações (ver "Recursos" vs
+"Ferramentas" em `docs/ARCHITECTURE.md` §6). Erros anticipados de tool usam
+`ToolError` (equivalente a `ResourceError` do lado dos resources, ver
+`mcp.server.mcpserver.exceptions`) — o SDK também levanta `ToolError`
+automaticamente quando os argumentos falham a validação Pydantic do input
+schema da tool (ex.: `quantidade` sem ser `> 0`), sem precisar de tratamento
+explícito aqui.
 
 SDK: `mcp` (Python SDK oficial), interface `mcp.server.mcpserver.MCPServer`
 — nesta versão instalada do pacote (2.x), a antiga `FastMCP` foi renomeada
@@ -34,20 +40,39 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from datetime import UTC, datetime
+from decimal import Decimal
 
 from mcp.server.mcpserver import MCPServer
-from mcp.server.mcpserver.exceptions import ResourceError, ResourceNotFoundError
+from mcp.server.mcpserver.exceptions import ResourceError, ResourceNotFoundError, ToolError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.catalog import listar_estoque, listar_produtos, obter_produto
+from app.db.catalog import (
+    EstoqueInsuficienteError,
+    ProdutoInexistenteError,
+    calcular_item_cotacao,
+    criar_pedido,
+    listar_estoque,
+    listar_produtos,
+    obter_produto,
+    sao_compativeis,
+)
 from app.models.mcp_b2b import (
     CatalogoProdutoOut,
+    CompatibilidadeOut,
+    CotacaoItemIn,
+    CotacaoItemOut,
+    CotacaoOut,
     DescontoVolumeOut,
     EstoqueCentroOut,
     EstoqueProdutoOut,
+    FreteItemIn,
+    FreteOut,
     ManualBuscaOut,
     ManualResultadoOut,
+    PedidoItemIn,
+    PedidoOut,
     PrecoProdutoOut,
 )
 from app.rag.collections_registry import list_collections
@@ -63,6 +88,27 @@ logger = logging.getLogger(__name__)
 # protótipo").
 DEFAULT_MANUAIS_TOP_K = 5
 
+# Ferramenta 2 (consulta de frete e prazos): estimativa determinística
+# interna a partir do primeiro dígito do CEP (região dos Correios, 0-9) —
+# tabela fixa de custo-base/prazo por região + um adicional por kg, todos
+# constantes deste módulo (não um domínio de configuração via admin, fora do
+# escopo deste item). `# MVP: estimativa, não frete real — nenhuma
+# transportadora é consultada` (ver docs/ARCHITECTURE.md §5, decisão de
+# 2026-09-24).
+_FRETE_CUSTO_BASE_E_PRAZO_POR_REGIAO: dict[str, tuple[Decimal, int]] = {
+    "0": (Decimal("35.00"), 2),  # SP capital/região metropolitana
+    "1": (Decimal("40.00"), 3),  # interior de SP
+    "2": (Decimal("45.00"), 3),  # RJ/ES
+    "3": (Decimal("45.00"), 3),  # MG
+    "4": (Decimal("55.00"), 5),  # BA/SE
+    "5": (Decimal("60.00"), 5),  # PE/AL/PB/RN
+    "6": (Decimal("70.00"), 7),  # CE/PI/MA/PA/AM/AP/RR/AC/RO
+    "7": (Decimal("50.00"), 4),  # DF/GO/TO/MT/MS
+    "8": (Decimal("55.00"), 4),  # PR/SC
+    "9": (Decimal("50.00"), 4),  # RS
+}
+_FRETE_ADICIONAL_POR_KG = Decimal("2.50")
+
 
 def _parse_produto_id(produto_id: str) -> int:
     try:
@@ -76,22 +122,26 @@ def create_b2b_mcp_server(
     qdrant: QdrantRAGClient,
     embedders: EmbedderRegistry,
 ) -> MCPServer:
-    """Monta o servidor MCP B2B com os 4 recursos de leitura, recebendo as
-    dependências já prontas (mesmo estilo de injeção por closure usado pelas
-    dependências do FastAPI em `app.api.rag_dependencies`) — facilita testar
-    o servidor de verdade (`server.read_resource(...)`) sem subir HTTP nem
+    """Monta o servidor MCP B2B com os 4 recursos de leitura e as 4
+    ferramentas transacionais, recebendo as dependências já prontas (mesmo
+    estilo de injeção por closure usado pelas dependências do FastAPI em
+    `app.api.rag_dependencies`) — facilita testar o servidor de verdade
+    (`server.read_resource(...)`/`server.call_tool(...)`) sem subir HTTP nem
     depender de `app.state`.
     """
 
     server = MCPServer(
         name="mcp-b2b",
-        title="MCP B2B — Catálogo, Estoque, Preços e Manuais",
+        title="MCP B2B — Catálogo, Estoque, Preços, Manuais e Ferramentas Transacionais",
         instructions=(
             "Servidor MCP interno da empresa (uso interno/prototípo de TCC, "
             "sem autenticação por parceiro). Expõe catálogo de produtos, "
             "estoque por centro de distribuição, tabela de preços "
             "(promoção + descontos por volume) e busca semântica em "
-            "manuais/documentação técnica."
+            "manuais/documentação técnica (resources); validação de "
+            "compatibilidade entre produtos, consulta de frete/prazo "
+            "estimados, cotação automática com desconto por volume e "
+            "reserva/pedido de estoque (tools)."
         ),
     )
 
@@ -248,5 +298,143 @@ def create_b2b_mcp_server(
         resultados.sort(key=lambda r: r.score, reverse=True)
         saida = ManualBuscaOut(resultados=resultados[:DEFAULT_MANUAIS_TOP_K])
         return saida.model_dump_json()
+
+    # --- Ferramenta 1: validação de compatibilidade --------------------------
+
+    @server.tool(
+        name="validar_compatibilidade",
+        description=(
+            "Valida se dois produtos do catálogo são compatíveis entre si "
+            "(ex.: peça/acessório e equipamento principal). A relação é "
+            "simétrica: não importa qual dos dois é o 'principal'."
+        ),
+    )
+    async def validar_compatibilidade(
+        produto_id: int, produto_relacionado_id: int
+    ) -> CompatibilidadeOut:
+        try:
+            async with session_factory() as session:
+                produto = await obter_produto(session, produto_id)
+                relacionado = await obter_produto(session, produto_relacionado_id)
+                if produto is None or relacionado is None:
+                    ausente = produto_id if produto is None else produto_relacionado_id
+                    raise ToolError(f"Produto {ausente} não encontrado no catálogo.")
+                compativel = await sao_compativeis(session, produto_id, produto_relacionado_id)
+        except SQLAlchemyError as exc:
+            raise ToolError(f"Falha ao consultar a compatibilidade: {exc}") from exc
+        return CompatibilidadeOut(
+            produto_id=produto_id,
+            produto_relacionado_id=produto_relacionado_id,
+            compativel=compativel,
+        )
+
+    # --- Ferramenta 2: consulta de frete e prazos -----------------------------
+
+    @server.tool(
+        name="consultar_frete",
+        description=(
+            "Estima custo e prazo de frete para um CEP a partir do peso total "
+            "dos itens informados. Estimativa interna determinística — não "
+            "consulta nenhuma transportadora/Correios real."
+        ),
+    )
+    async def consultar_frete(cep: str, itens: list[FreteItemIn]) -> FreteOut:
+        cep_digitos = "".join(ch for ch in cep if ch.isdigit())
+        if len(cep_digitos) != 8:
+            raise ToolError(f"CEP inválido (esperado 8 dígitos): {cep!r}")
+        regiao = cep_digitos[0]
+        custo_base, prazo_dias = _FRETE_CUSTO_BASE_E_PRAZO_POR_REGIAO[regiao]
+
+        try:
+            async with session_factory() as session:
+                peso_total = Decimal("0")
+                for item in itens:
+                    produto = await obter_produto(session, item.produto_id)
+                    if produto is None:
+                        raise ToolError(f"Produto {item.produto_id} não encontrado no catálogo.")
+                    # MVP: produto sem peso_kg cadastrado entra como peso zero
+                    # na estimativa (não bloqueia a cotação de frete) — ver
+                    # docs/ARCHITECTURE.md §5, decisão de 2026-09-24.
+                    peso_unitario = produto.peso_kg or Decimal("0")
+                    peso_total += peso_unitario * item.quantidade
+        except SQLAlchemyError as exc:
+            raise ToolError(f"Falha ao consultar o catálogo para o frete: {exc}") from exc
+
+        # Arredondado a centavos (2 casas) — mesmo motivo do arredondamento
+        # em `calcular_item_cotacao` (ver docstring lá): a multiplicação por
+        # `_FRETE_ADICIONAL_POR_KG` produz mais casas decimais que
+        # `Numeric(10, 2)` comporta.
+        custo_estimado = (custo_base + _FRETE_ADICIONAL_POR_KG * peso_total).quantize(
+            Decimal("0.01")
+        )
+        return FreteOut(
+            cep=cep_digitos,
+            peso_total_kg=peso_total,
+            custo_estimado=custo_estimado,
+            prazo_dias=prazo_dias,
+        )
+
+    # --- Ferramenta 3: cotação automática --------------------------------------
+
+    @server.tool(
+        name="cotar",
+        description=(
+            "Gera uma cotação automática para uma lista de itens (produto + "
+            "quantidade), aplicando preço promocional vigente e a maior faixa "
+            "de desconto por volume atingida por cada item."
+        ),
+    )
+    async def cotar(itens: list[CotacaoItemIn]) -> CotacaoOut:
+        agora = datetime.now(UTC)
+        try:
+            async with session_factory() as session:
+                itens_saida: list[CotacaoItemOut] = []
+                for item in itens:
+                    produto = await obter_produto(session, item.produto_id)
+                    if produto is None:
+                        raise ToolError(f"Produto {item.produto_id} não encontrado no catálogo.")
+                    preco_unitario, percentual, subtotal = calcular_item_cotacao(
+                        produto, item.quantidade, agora
+                    )
+                    itens_saida.append(
+                        CotacaoItemOut(
+                            produto_id=item.produto_id,
+                            quantidade=item.quantidade,
+                            preco_unitario=preco_unitario,
+                            percentual_desconto_aplicado=percentual,
+                            subtotal=subtotal,
+                        )
+                    )
+        except SQLAlchemyError as exc:
+            raise ToolError(f"Falha ao consultar o catálogo para a cotação: {exc}") from exc
+
+        total = sum((item.subtotal for item in itens_saida), Decimal("0"))
+        return CotacaoOut(itens=itens_saida, total=total)
+
+    # --- Ferramenta 4: reserva/pedido -------------------------------------------
+
+    @server.tool(
+        name="reservar_pedido",
+        description=(
+            "Cria uma reserva/pedido para uma lista de itens (produto, "
+            "quantidade e centro de distribuição), decrementando o estoque "
+            "correspondente. Falha sem gravar nada se qualquer item não tiver "
+            "estoque suficiente."
+        ),
+    )
+    async def reservar_pedido(itens: list[PedidoItemIn]) -> PedidoOut:
+        itens_tuplas = [
+            (item.produto_id, item.quantidade, item.centro_distribuicao) for item in itens
+        ]
+        try:
+            async with session_factory() as session:
+                pedido = await criar_pedido(session, itens_tuplas)
+        except ProdutoInexistenteError as exc:
+            raise ToolError(str(exc)) from exc
+        except EstoqueInsuficienteError as exc:
+            raise ToolError(str(exc)) from exc
+        except SQLAlchemyError as exc:
+            raise ToolError(f"Falha ao gravar a reserva/pedido: {exc}") from exc
+        return PedidoOut.model_validate(pedido)
 
     return server

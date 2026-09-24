@@ -8,13 +8,20 @@ dados por baixo (já coberta por `test_catalog.py`). Mesmo espírito de
 
 import json
 import uuid
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
-from mcp.server.mcpserver.exceptions import ResourceError, ResourceNotFoundError
+from mcp.server.mcpserver.exceptions import ResourceError, ResourceNotFoundError, ToolError
 from qdrant_client import AsyncQdrantClient
 
-from app.db.catalog import adicionar_desconto_volume, atualizar_estoque, criar_produto
+from app.db.catalog import (
+    adicionar_desconto_volume,
+    atualizar_estoque,
+    criar_compatibilidade,
+    criar_produto,
+    listar_estoque,
+)
 from app.db.engine import create_db_engine, create_session_factory
 from app.db.models import Base, RagCollection
 from app.mcp_server.b2b import create_b2b_mcp_server
@@ -377,3 +384,208 @@ async def test_manuais_busca_ignora_collection_com_falha_e_devolve_as_demais(
     item = json.loads(_conteudo_texto(resultado))
     fontes = {r["source"] for r in item["resultados"]}
     assert fontes == {"manual_ok.pdf"}
+
+
+# --- Ferramenta 1: validação de compatibilidade ------------------------------
+
+
+async def test_validar_compatibilidade_retorna_true_para_par_cadastrado(factory, qdrant, embedders):
+    id_a = await _cria_produto_completo(factory, nome="QTA-100")
+    id_b = await _cria_produto_completo(factory, nome="GD-15")
+    async with factory() as session:
+        await criar_compatibilidade(session, id_a, id_b)
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    resultado = await server.call_tool(
+        "validar_compatibilidade", {"produto_id": id_a, "produto_relacionado_id": id_b}
+    )
+
+    assert resultado.structured_content == {
+        "produto_id": id_a,
+        "produto_relacionado_id": id_b,
+        "compativel": True,
+    }
+
+
+async def test_validar_compatibilidade_retorna_false_para_par_nao_cadastrado(
+    factory, qdrant, embedders
+):
+    id_a = await _cria_produto_completo(factory, nome="QTA-100")
+    id_b = await _cria_produto_completo(factory, nome="GD-15")
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    resultado = await server.call_tool(
+        "validar_compatibilidade", {"produto_id": id_a, "produto_relacionado_id": id_b}
+    )
+
+    assert resultado.structured_content["compativel"] is False
+
+
+async def test_validar_compatibilidade_produto_inexistente_levanta_tool_error(
+    factory, qdrant, embedders
+):
+    id_a = await _cria_produto_completo(factory, nome="QTA-100")
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    with pytest.raises(ToolError):
+        await server.call_tool(
+            "validar_compatibilidade", {"produto_id": id_a, "produto_relacionado_id": 999}
+        )
+
+
+# --- Ferramenta 2: consulta de frete e prazos --------------------------------
+
+
+async def test_consultar_frete_calcula_custo_e_prazo_pela_regiao_e_peso(factory, qdrant, embedders):
+    produto_id = await _cria_produto_completo(factory, peso_kg=Decimal("10.00"))
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    resultado = await server.call_tool(
+        "consultar_frete",
+        {"cep": "01310-100", "itens": [{"produto_id": produto_id, "quantidade": 2}]},
+    )
+
+    saida = resultado.structured_content
+    assert saida["cep"] == "01310100"
+    assert saida["peso_total_kg"] == "20.000"
+    # Região "0" (custo-base 35.00, prazo 2 dias) + 20kg * 2.50/kg = 85.00.
+    assert saida["custo_estimado"] == "85.00"
+    assert saida["prazo_dias"] == 2
+
+
+async def test_consultar_frete_cep_invalido_levanta_tool_error(factory, qdrant, embedders):
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    with pytest.raises(ToolError):
+        await server.call_tool("consultar_frete", {"cep": "123", "itens": []})
+
+
+async def test_consultar_frete_produto_inexistente_levanta_tool_error(factory, qdrant, embedders):
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    with pytest.raises(ToolError):
+        await server.call_tool(
+            "consultar_frete", {"cep": "01310-100", "itens": [{"produto_id": 999, "quantidade": 1}]}
+        )
+
+
+# --- Ferramenta 3: cotação automática -----------------------------------------
+
+
+async def test_cotar_sem_faixa_de_desconto_atingida(factory, qdrant, embedders):
+    produto_id = await _cria_produto_completo(factory, preco=Decimal("100.00"))
+    async with factory() as session:
+        await adicionar_desconto_volume(session, produto_id, 10, Decimal("10.00"))
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    resultado = await server.call_tool(
+        "cotar", {"itens": [{"produto_id": produto_id, "quantidade": 3}]}
+    )
+
+    saida = resultado.structured_content
+    assert saida["total"] == "300.00"
+    [item] = saida["itens"]
+    assert item["percentual_desconto_aplicado"] == "0"
+    assert item["subtotal"] == "300.00"
+
+
+async def test_cotar_aplica_desconto_por_volume(factory, qdrant, embedders):
+    produto_id = await _cria_produto_completo(factory, preco=Decimal("100.00"))
+    async with factory() as session:
+        await adicionar_desconto_volume(session, produto_id, 10, Decimal("10.00"))
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    resultado = await server.call_tool(
+        "cotar", {"itens": [{"produto_id": produto_id, "quantidade": 10}]}
+    )
+
+    saida = resultado.structured_content
+    [item] = saida["itens"]
+    assert item["percentual_desconto_aplicado"] == "10.00"
+    assert item["subtotal"] == "900.00"
+    assert saida["total"] == "900.00"
+
+
+async def test_cotar_ignora_promocao_vencida(factory, qdrant, embedders):
+    produto_id = await _cria_produto_completo(
+        factory,
+        preco=Decimal("100.00"),
+        preco_promocional=Decimal("80.00"),
+        promocao_valida_ate=datetime(2020, 1, 1, tzinfo=UTC),
+    )
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    resultado = await server.call_tool(
+        "cotar", {"itens": [{"produto_id": produto_id, "quantidade": 1}]}
+    )
+
+    [item] = resultado.structured_content["itens"]
+    assert item["preco_unitario"] == "100.00"
+
+
+async def test_cotar_produto_inexistente_levanta_tool_error(factory, qdrant, embedders):
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    with pytest.raises(ToolError):
+        await server.call_tool("cotar", {"itens": [{"produto_id": 999, "quantidade": 1}]})
+
+
+async def test_cotar_quantidade_invalida_levanta_tool_error(factory, qdrant, embedders):
+    produto_id = await _cria_produto_completo(factory)
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    with pytest.raises(ToolError):
+        await server.call_tool("cotar", {"itens": [{"produto_id": produto_id, "quantidade": 0}]})
+
+
+# --- Ferramenta 4: reserva/pedido ---------------------------------------------
+
+
+async def test_reservar_pedido_decrementa_estoque_e_devolve_o_pedido(factory, qdrant, embedders):
+    produto_id = await _cria_produto_completo(factory, preco=Decimal("100.00"))
+    async with factory() as session:
+        await atualizar_estoque(session, produto_id, "CD-SP", 10)
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    resultado = await server.call_tool(
+        "reservar_pedido",
+        {"itens": [{"produto_id": produto_id, "quantidade": 3, "centro_distribuicao": "CD-SP"}]},
+    )
+
+    saida = resultado.structured_content
+    assert saida["status"] == "reservado"
+    [item] = saida["itens"]
+    assert item["produto_id"] == produto_id
+    assert item["quantidade"] == 3
+    assert item["preco_unitario"] == "100.00"
+
+    async with factory() as session:
+        estoques = await listar_estoque(session, produto_id)
+    assert estoques[0].quantidade == 7
+
+
+async def test_reservar_pedido_com_estoque_insuficiente_levanta_tool_error_e_nao_grava(
+    factory, qdrant, embedders
+):
+    produto_id = await _cria_produto_completo(factory)
+    async with factory() as session:
+        await atualizar_estoque(session, produto_id, "CD-SP", 2)
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    item = {"produto_id": produto_id, "quantidade": 5, "centro_distribuicao": "CD-SP"}
+    with pytest.raises(ToolError):
+        await server.call_tool("reservar_pedido", {"itens": [item]})
+
+    async with factory() as session:
+        estoques = await listar_estoque(session, produto_id)
+    assert estoques[0].quantidade == 2
+
+
+async def test_reservar_pedido_produto_inexistente_levanta_tool_error(factory, qdrant, embedders):
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    with pytest.raises(ToolError):
+        await server.call_tool(
+            "reservar_pedido",
+            {"itens": [{"produto_id": 999, "quantidade": 1, "centro_distribuicao": "CD-SP"}]},
+        )

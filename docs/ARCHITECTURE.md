@@ -772,6 +772,54 @@ Testado chamando o servidor pela mesma superfície que um cliente MCP usaria
 dependências de teste — SQLite em memória + Qdrant `:memory:`), não só a
 camada de dados por baixo (já coberta por `test_catalog.py`).
 
+**Decisão registrada (Fase 5, ferramentas transacionais do MCP B2B, R12,
+2026-09-24):** o terceiro item da Fase 5 ("implementar as 4 ferramentas do
+MCP B2B") entra como `@server.tool(...)` em `app.mcp_server.b2b`, ao lado
+dos recursos já existentes (decisão anterior nesta mesma seção) — mesma
+distinção resource x tool do protocolo MCP já registrada ali. Quatro
+decisões de modelagem/lógica, uma por ferramenta:
+
+1. **Validação de compatibilidade:** nova tabela `produto_compatibilidades`
+   (par `produto_id`/`compativel_com_id`, ambos FK para `produtos.id`,
+   direcional mas consultado nos dois sentidos pela ferramenta — "A
+   compatível com B" implica "B compatível com A" do ponto de vista da
+   consulta, sem duplicar a escrita). `# MVP: pares cadastrados manualmente
+   via fixture de migração (mesmo padrão dos 5 produtos/estoque/descontos
+   já semeados na migração 0008) — sem regra automática de dedução por
+   categoria/especificação técnica; evolução futura, não este item.`
+2. **Consulta de frete e prazos:** estimativa determinística interna, **sem
+   integração com serviço externo de transportadora/Correios** — a
+   Seção 6/tabela de escopo não especifica o método, e a leitura mais
+   simples que atende ao MVP (regra 8 do `CLAUDE.md`) é reaproveitar dados
+   já modelados (`peso_kg` do produto) em vez de introduzir uma dependência
+   externa nova só para este item. Regra: custo e prazo calculados a partir
+   do primeiro dígito do CEP informado (região dos Correios, 0–9) e do peso
+   total do pedido (`peso_kg * quantidade`, somado se múltiplos itens),
+   com uma tabela fixa de custo-base/dia por região e um adicional por kg
+   — constantes no módulo, não um novo domínio de configuração via admin
+   (isso ficaria fora do escopo deste item). `# MVP: estimativa, não
+   frete real — nenhuma transportadora é consultada.`
+3. **Cotação automática:** reaproveita `preco`/`preco_promocional` (se
+   `promocao_valida_ate` vigente) e `produto_descontos_volume` já
+   modelados — para cada item da cotação, aplica a maior faixa de desconto
+   cuja `quantidade_minima` a quantidade pedida atinge, soma os itens.
+   Nenhuma tabela nova; só lógica sobre o que já existe.
+4. **Reserva/pedido:** novas tabelas `pedidos` (cabeçalho: status, criado em)
+   e `pedido_itens` (produto, quantidade, preço unitário no momento da
+   reserva). Cria o pedido com status `"reservado"` e decrementa
+   `produto_estoque.quantidade` via upsert simples (ler-depois-escrever,
+   mesmo padrão já aceito em `atualizar_estoque`) — `# MVP: sem lock
+   otimista/pessimista (corrida entre duas reservas concorrentes pode
+   sobre-reservar), sem trilha de auditoria, sem pagamento/gateway real —
+   simplificação já registrada na modelagem do backend único desta fase
+   (Seção 6, "Governança e segurança", evolução futura explícita)`. Reserva
+   com quantidade indisponível falha (não decrementa abaixo de zero,
+   consistente com a garantia mínima que `atualizar_estoque` já mantém).
+
+Migração `0009` cria as tabelas novas (`produto_compatibilidades`,
+`pedidos`, `pedido_itens`) e semeia 2-3 pares de compatibilidade fictícios
+entre os 5 produtos já existentes.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

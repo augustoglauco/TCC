@@ -1,13 +1,14 @@
 """Backend único de dados de catálogo/estoque/preços (R12, Fase 5).
 
 Camada de acesso a dados sobre `Produto`/`ProdutoEstoque`/
-`ProdutoDescontoVolume` (`app.db.models`) — reaproveitada tanto pelo RAG
-(R4, via leitura genérica em `app.rag.db_connector`, que continua
-funcionando sem mudanças por ser baseada em reflexão de tabela) quanto pelo
-futuro servidor MCP B2B (recursos de leitura + ferramentas transacionais,
-itens seguintes desta mesma fase — ver `docs/ARCHITECTURE.md` §6). Só a
-camada de dados e CRUD básico nesta etapa: nenhuma ferramenta MCP é exposta
-aqui ainda.
+`ProdutoDescontoVolume`/`ProdutoCompatibilidade`/`Pedido`/`PedidoItem`
+(`app.db.models`) — reaproveitada tanto pelo RAG (R4, via leitura genérica em
+`app.rag.db_connector`, que continua funcionando sem mudanças por ser
+baseada em reflexão de tabela) quanto pelo servidor MCP B2B
+(`app.mcp_server.b2b`), que expõe os 4 recursos de leitura como resources e
+as 4 ferramentas transacionais (compatibilidade, frete, cotação, reserva/
+pedido) como tools sobre estas mesmas funções — ver `docs/ARCHITECTURE.md`
+§6.
 
 Mesmo padrão de funções livres recebendo `AsyncSession` já usado em
 `app.router.tone_monitor` (`criar_escalonamento`/`listar_escalonamentos`),
@@ -16,21 +17,41 @@ em vez de um repositório em classe — mais simples de testar isoladamente
 
 # MVP: sem tratamento de concorrência em reservas/pedidos nem trilha de
 auditoria — evolução futura explícita registrada em `docs/ARCHITECTURE.md`
-§6 ("Governança e segurança"), não antecipada aqui. `atualizar_estoque` faz
-um simples upsert (ler, depois escrever) sem lock otimista/pessimista; sob
-concorrência real duas escritas simultâneas podem se sobrepor — aceitável
-neste protótipo porque a ferramenta de reserva/pedido que de fato disputaria
-esse recurso ainda não existe (item futuro desta fase).
+§6 ("Governança e segurança"), não antecipada aqui. `atualizar_estoque` e
+`criar_pedido` fazem um simples upsert/decremento (ler, depois escrever) sem
+lock otimista/pessimista; sob concorrência real, duas reservas simultâneas
+do mesmo item podem sobre-reservar entre si (`criar_pedido` só evita
+inconsistência *dentro* de uma única chamada com vários itens, ver seu
+docstring — não entre chamadas concorrentes).
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import delete, select
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import Produto, ProdutoDescontoVolume, ProdutoEstoque
+from app.db.models import (
+    Pedido,
+    PedidoItem,
+    Produto,
+    ProdutoCompatibilidade,
+    ProdutoDescontoVolume,
+    ProdutoEstoque,
+)
+
+
+class EstoqueInsuficienteError(Exception):
+    """Levantada por `criar_pedido` quando algum item da reserva pede mais
+    quantidade do que o disponível no centro de distribuição informado —
+    nenhum item do pedido é gravado (checagem de todos os itens acontece
+    antes de qualquer escrita, ver `criar_pedido`)."""
+
+
+class ProdutoInexistenteError(Exception):
+    """Levantada por `criar_pedido` quando um `produto_id` referenciado num
+    item não existe no catálogo."""
 
 
 def _produto_query():
@@ -123,17 +144,32 @@ async def atualizar_produto(
 
 
 async def deletar_produto(session: AsyncSession, produto_id: int) -> bool:
-    """Remove o produto e os registros filhos (estoque/descontos). Os filhos
-    são apagados por `DELETE` explícito em vez de depender só do
-    `cascade="all, delete-orphan"` do relationship — mais robusto contra o
-    caso de a coleção `produto.estoques`/`descontos_volume` não estar
-    carregada na identity map da sessão no momento da exclusão.
+    """Remove o produto e os registros filhos (estoque/descontos/
+    compatibilidades/itens de pedido). Os filhos são apagados por `DELETE`
+    explícito em vez de depender só do `cascade="all, delete-orphan"` do
+    relationship — mais robusto contra o caso de a coleção
+    `produto.estoques`/`descontos_volume` não estar carregada na identity
+    map da sessão no momento da exclusão.
 
     Achado no code-review (2026-09-24): cheguei a remover os `DELETE`s
     explícitos supondo que o cascade bastaria, já que `obter_produto`
     sempre carrega as coleções via `selectinload` — verificado
     empiricamente que NÃO basta (os filhos sobreviviam à exclusão do pai
-    nos testes). Mantidos."""
+    nos testes). Mantidos.
+
+    Achado no code-review (2026-09-24, item das ferramentas MCP B2B): as
+    duas tabelas novas desta mesma fase (`ProdutoCompatibilidade`,
+    `PedidoItem`) referenciam `produtos.id` por FK sem `ondelete=CASCADE` e
+    sem relationship/cascade do lado do `Produto` — sem os `DELETE`s abaixo,
+    excluir um produto com par de compatibilidade cadastrado (a fixture da
+    migração 0009 cadastra vários) ou com item de pedido associado
+    levantaria `IntegrityError` no Postgres real (a violação passa
+    despercebida no SQLite dos testes, que não aplica FK por padrão) — mesma
+    limitação de "sem soft-delete/arquivamento" já aceita para
+    estoque/descontos acima, agora estendida às duas tabelas novas.
+    `ProdutoCompatibilidade` é direcional na escrita (ver seu docstring) —
+    apaga nos dois sentidos (`produto_id` OU `compativel_com_id`).
+    """
     produto = await obter_produto(session, produto_id)
     if produto is None:
         return False
@@ -141,6 +177,15 @@ async def deletar_produto(session: AsyncSession, produto_id: int) -> bool:
     await session.execute(
         delete(ProdutoDescontoVolume).where(ProdutoDescontoVolume.produto_id == produto_id)
     )
+    await session.execute(
+        delete(ProdutoCompatibilidade).where(
+            or_(
+                ProdutoCompatibilidade.produto_id == produto_id,
+                ProdutoCompatibilidade.compativel_com_id == produto_id,
+            )
+        )
+    )
+    await session.execute(delete(PedidoItem).where(PedidoItem.produto_id == produto_id))
     await session.delete(produto)
     await session.commit()
     return True
@@ -211,3 +256,203 @@ async def listar_descontos_volume(
         .order_by(ProdutoDescontoVolume.quantidade_minima)
     )
     return list(result.scalars().all())
+
+
+# --- Ferramenta 1: validação de compatibilidade ------------------------------
+
+
+async def criar_compatibilidade(
+    session: AsyncSession, produto_id: int, compativel_com_id: int
+) -> ProdutoCompatibilidade:
+    """Cadastra um par de produtos compatíveis (escrita direcional — a
+    consulta em `sao_compativeis` cobre os dois sentidos). Usado hoje só pela
+    fixture da migração `0009` e pelos testes; a ferramenta MCP de
+    compatibilidade só lê (`sao_compativeis`)."""
+    compatibilidade = ProdutoCompatibilidade(
+        produto_id=produto_id, compativel_com_id=compativel_com_id
+    )
+    session.add(compatibilidade)
+    await session.commit()
+    await session.refresh(compatibilidade)
+    return compatibilidade
+
+
+async def sao_compativeis(session: AsyncSession, produto_id: int, outro_produto_id: int) -> bool:
+    """Verifica se dois produtos são compatíveis, nos dois sentidos (par
+    cadastrado como A->B ou B->A conta igual, ver `ProdutoCompatibilidade`)."""
+    result = await session.execute(
+        select(ProdutoCompatibilidade.id).where(
+            or_(
+                and_(
+                    ProdutoCompatibilidade.produto_id == produto_id,
+                    ProdutoCompatibilidade.compativel_com_id == outro_produto_id,
+                ),
+                and_(
+                    ProdutoCompatibilidade.produto_id == outro_produto_id,
+                    ProdutoCompatibilidade.compativel_com_id == produto_id,
+                ),
+            )
+        )
+    )
+    return result.scalars().first() is not None
+
+
+# --- Ferramenta 3: cotação automática (reaproveitada pela ferramenta 4) -----
+
+
+def preco_vigente(produto: Produto, agora: datetime | None = None) -> Decimal:
+    """Preço efetivo de um produto no momento: `preco_promocional` se a
+    campanha estiver vigente (`promocao_valida_ate` definido e ainda não
+    vencido), senão `preco` "de tabela". `promocao_valida_ate=None` conta
+    como "sem campanha vigente" mesmo com `preco_promocional` preenchido —
+    exige uma data de validade explícita para considerar a promoção ativa.
+    Não aplica desconto por volume (ver `calcular_item_cotacao` para isso) —
+    é o preço unitário "base" reaproveitado tanto pela cotação quanto pela
+    reserva/pedido (preço gravado em `pedido_itens.preco_unitario`).
+
+    # MVP: SQLite (usado nos testes de unidade, ver `docs/CONVENTIONS.md`)
+    # não preserva timezone em `DateTime(timezone=True)` — devolve
+    # `promocao_valida_ate` como naive mesmo quando gravado como aware; o
+    # Postgres real (produção) preserva. Normalizado para UTC aqui (em vez
+    # de deixar `TypeError: can't compare offset-naive and offset-aware
+    # datetimes` vazar) para a função funcionar igual nos dois dialetos.
+    """
+    agora = agora or datetime.now(UTC)
+    promocao_valida_ate = produto.promocao_valida_ate
+    if promocao_valida_ate is not None and promocao_valida_ate.tzinfo is None:
+        promocao_valida_ate = promocao_valida_ate.replace(tzinfo=UTC)
+    if (
+        produto.preco_promocional is not None
+        and promocao_valida_ate is not None
+        and promocao_valida_ate >= agora
+    ):
+        return produto.preco_promocional
+    return produto.preco
+
+
+def calcular_item_cotacao(
+    produto: Produto, quantidade: int, agora: datetime | None = None
+) -> tuple[Decimal, Decimal, Decimal]:
+    """Calcula `(preco_unitario_base, percentual_desconto_aplicado, subtotal)`
+    de um item de cotação: preço vigente (`preco_vigente`) com a maior faixa
+    de `produto_descontos_volume` cuja `quantidade_minima` a `quantidade`
+    atinge (0% se nenhuma faixa é atingida) — "maior faixa" = maior
+    `quantidade_minima` entre as atingidas, não maior percentual (mais fiel
+    à leitura de "a maior faixa... atinge" da decisão de arquitetura, mesmo
+    que na prática, com faixas cadastradas de forma crescente, dê o mesmo
+    resultado que escolher o maior percentual)."""
+    preco_base = preco_vigente(produto, agora)
+    percentual = Decimal("0")
+    maior_faixa_atingida = -1
+    for desconto in produto.descontos_volume:
+        atinge_faixa = quantidade >= desconto.quantidade_minima
+        if atinge_faixa and desconto.quantidade_minima > maior_faixa_atingida:
+            maior_faixa_atingida = desconto.quantidade_minima
+            percentual = desconto.percentual_desconto
+    preco_com_desconto = preco_base * (Decimal("1") - percentual / Decimal("100"))
+    subtotal = preco_com_desconto * quantidade
+    # Arredonda para centavos (2 casas) — a divisão por 100 acima produz
+    # mais casas decimais do que o `Numeric(10, 2)` de `preco`/
+    # `preco_promocional` tem, mesmo quando o resultado matematicamente
+    # "fecha" em centavos (ex.: 100.00 * 0.90 = 90.0000).
+    subtotal = subtotal.quantize(Decimal("0.01"))
+    return preco_base, percentual, subtotal
+
+
+# --- Ferramenta 4: reserva/pedido --------------------------------------------
+
+
+async def criar_pedido(session: AsyncSession, itens: list[tuple[int, int, str]]) -> Pedido:
+    """Cria um pedido/reserva com os itens informados
+    (`[(produto_id, quantidade, centro_distribuicao), ...]`) e decrementa o
+    estoque de cada um.
+
+    Valida a disponibilidade de TODOS os itens antes de gravar qualquer
+    coisa (inclusive antes de decrementar o primeiro item) — decisão de
+    implementação desta função, não coberta literalmente pela decisão de
+    arquitetura: evita reservar parcialmente um pedido com vários itens
+    quando só um deles não tem estoque suficiente. Não é lock otimista/
+    pessimista (duas chamadas concorrentes a `criar_pedido` ainda podem
+    sobre-reservar entre si, MVP aceito) — só evita o caso mais simples de
+    inconsistência dentro de uma única chamada.
+
+    Levanta `ProdutoInexistenteError` se algum `produto_id` não existe, e
+    `EstoqueInsuficienteError` se a soma das quantidades pedidas para o
+    mesmo par (produto, centro de distribuição) — mesmo em itens separados
+    da lista — exceder o disponível.
+
+    Achado no security-review (2026-09-24): a checagem original validava
+    cada item da lista contra `disponivel`, mas repetia a mesma leitura
+    "crua" do estoque para cada ocorrência de um par (produto_id,
+    centro_distribuicao) repetido — dois itens de 6 unidades cada contra um
+    estoque de 10 passavam individualmente (6 < 10) e o estoque final ficava
+    negativo (10 - 6 - 6 = -2), apesar do docstring já prometer validar
+    "TODOS os itens antes de gravar". `reservado_no_pedido` abaixo acumula a
+    quantidade pedida por chave DENTRO desta mesma chamada antes de comparar
+    com o disponível — resolve isso sem mexer na limitação de concorrência
+    ENTRE chamadas (essa continua aceita como MVP).
+    """
+    produtos: dict[int, Produto] = {}
+    estoques: dict[tuple[int, str], ProdutoEstoque | None] = {}
+    reservado_no_pedido: dict[tuple[int, str], int] = {}
+    for produto_id, quantidade, centro_distribuicao in itens:
+        # Achado no code-review (2026-09-24): a validação de `quantidade > 0`
+        # já existe no schema Pydantic da ferramenta MCP (`Field(gt=0)`), mas
+        # esta função é reaproveitável por qualquer chamador (ver docstring
+        # do módulo) — sem essa guarda aqui, uma `quantidade` negativa
+        # nunca fazia `reservado_no_pedido[chave] > disponivel` ficar
+        # verdadeiro (negativo nunca é maior), e a escrita
+        # `estoque.quantidade -= quantidade` AUMENTAVA o estoque em vez de
+        # falhar; `quantidade == 0` para um produto sem linha de estoque
+        # (`estoque is None`) passava a checagem (0 > 0 é falso) e só
+        # quebrava depois, com um `AssertionError` cru, em vez do erro
+        # documentado.
+        if quantidade <= 0:
+            raise ValueError(
+                f"Quantidade inválida para o produto {produto_id}: {quantidade} (deve ser > 0)."
+            )
+        if produto_id not in produtos:
+            produto = await obter_produto(session, produto_id)
+            if produto is None:
+                raise ProdutoInexistenteError(f"Produto {produto_id} não encontrado no catálogo.")
+            produtos[produto_id] = produto
+        chave = (produto_id, centro_distribuicao)
+        if chave not in estoques:
+            result = await session.execute(
+                select(ProdutoEstoque).where(
+                    ProdutoEstoque.produto_id == produto_id,
+                    ProdutoEstoque.centro_distribuicao == centro_distribuicao,
+                )
+            )
+            estoques[chave] = result.scalars().first()
+        estoque = estoques[chave]
+        disponivel = estoque.quantidade if estoque is not None else 0
+        reservado_no_pedido[chave] = reservado_no_pedido.get(chave, 0) + quantidade
+        if reservado_no_pedido[chave] > disponivel:
+            raise EstoqueInsuficienteError(
+                f"Estoque insuficiente do produto {produto_id} em "
+                f"{centro_distribuicao}: disponível {disponivel}, "
+                f"pedido {reservado_no_pedido[chave]}."
+            )
+
+    pedido = Pedido()
+    session.add(pedido)
+    for produto_id, quantidade, centro_distribuicao in itens:
+        produto = produtos[produto_id]
+        preco_unitario = preco_vigente(produto)
+        session.add(
+            PedidoItem(
+                pedido=pedido,
+                produto_id=produto_id,
+                centro_distribuicao=centro_distribuicao,
+                quantidade=quantidade,
+                preco_unitario=preco_unitario,
+            )
+        )
+        estoque = estoques[(produto_id, centro_distribuicao)]
+        assert estoque is not None  # garantido pela checagem de disponibilidade acima
+        estoque.quantidade -= quantidade
+
+    await session.commit()
+    await session.refresh(pedido, attribute_names=["itens"])
+    return pedido
