@@ -19,7 +19,6 @@ from app.router.orchestrator import (
     handle_message,
 )
 from app.router.rag_client import Document, RAGConnectionError
-from app.router.tone_monitor import reset_escalated_conversations
 from app.router.scheduling import (
     BookingSlots,
     SchedulingConfig,
@@ -27,6 +26,7 @@ from app.router.scheduling import (
     reset_all_booking_slots,
     set_booking_slots,
 )
+from app.router.tone_monitor import reset_escalated_conversations
 
 
 class _FakeLLMClient:
@@ -1251,13 +1251,22 @@ async def test_modelo_carrega_durante_classificacao_llm_ainda_assim_emite_status
     # mensagem é ambígua para o classificador por palavra-chave,
     # `classify()` chama `local_client.generate()` (bloqueante) — no Ollama
     # real, é essa chamada (não a geração da resposta em si) que
-    # efetivamente paga o cold-start do modelo. Antes desta correção, o
-    # único check de `is_model_ready()` ficava logo antes de
+    # efetivamente paga o cold-start do modelo. Antes da correção original,
+    # o único check de `is_model_ready()` ficava logo antes de
     # `generate_stream`, ou seja, DEPOIS do cold-start já ter acontecido em
     # silêncio durante a classificação — o evento `status` nunca era
     # emitido, mesmo a espera real tendo ocorrido (é o que o Fake abaixo
     # simula: `is_model_ready` só volta a `True` depois da primeira
     # chamada, igual o Ollama depois que `generate()` carrega o modelo).
+    #
+    # Monitor de Tom habilitado (padrão, achado da revisão final do branch):
+    # antes só passava com `tone_monitor_enabled=False` porque o check de
+    # `is_model_ready()` ficava DEPOIS do bloco do Monitor de Tom — a
+    # chamada LLM de `analyze_tone()` incrementava `calls` primeiro e fazia
+    # o fake reportar "pronto" cedo demais, mascarando o próprio bug que
+    # este teste existe para pegar. Com o check movido para o topo de
+    # `handle_message` (antes de qualquer chamada bloqueante, inclusive a do
+    # Monitor de Tom), o teste passa a validar o cenário real por padrão.
     class _FakeLLMClientCargaNaClassificacao(_FakeLLMClient):
         async def is_model_ready(self) -> bool:
             return self.calls > 0
@@ -1278,12 +1287,6 @@ async def test_modelo_carrega_durante_classificacao_llm_ainda_assim_emite_status
         external_client=external_client,
         rag_client=rag_client,
         complexity_strategy="llm",
-        # Monitor de Tom (R8) também chamaria local_client.generate() antes
-        # da classificação, incrementando `calls` e fazendo o fake
-        # `is_model_ready` (que simula o cold-start real via `calls > 0`)
-        # reportar "pronto" cedo demais — mascarando exatamente o bug de
-        # cold-start que este teste valida. Desligado aqui.
-        tone_monitor_enabled=False,
     )
 
     assert isinstance(eventos[0], StatusEvent)
@@ -1320,7 +1323,9 @@ async def test_mensagem_com_sinal_forte_emite_escalonamento_alem_do_fluxo_normal
             total_duration_ms=1.0,
         )
     )
-    external_client = _FakeLLMClient(response=LLMResponse(text="resposta externa", total_duration_ms=1.0))
+    external_client = _FakeLLMClient(
+        response=LLMResponse(text="resposta externa", total_duration_ms=1.0)
+    )
     rag_client = _FakeRAGClient(documents=[Document(content="doc", source="manual", score=0.9)])
 
     eventos = [
@@ -1352,7 +1357,9 @@ async def test_segunda_mensagem_na_mesma_conversa_nao_repete_escalonamento():
             total_duration_ms=1.0,
         )
     )
-    external_client = _FakeLLMClient(response=LLMResponse(text="resposta externa", total_duration_ms=1.0))
+    external_client = _FakeLLMClient(
+        response=LLMResponse(text="resposta externa", total_duration_ms=1.0)
+    )
     rag_client = _FakeRAGClient(documents=[Document(content="doc", source="manual", score=0.9)])
 
     async for _ in handle_message(
@@ -1391,7 +1398,9 @@ async def test_tone_monitor_desligado_nunca_emite_escalonamento():
             total_duration_ms=1.0,
         )
     )
-    external_client = _FakeLLMClient(response=LLMResponse(text="resposta externa", total_duration_ms=1.0))
+    external_client = _FakeLLMClient(
+        response=LLMResponse(text="resposta externa", total_duration_ms=1.0)
+    )
     rag_client = _FakeRAGClient(documents=[Document(content="doc", source="manual", score=0.9)])
 
     eventos = [

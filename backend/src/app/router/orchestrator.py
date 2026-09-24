@@ -2,6 +2,7 @@ import logging
 import time
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -114,7 +115,10 @@ class TokenEvent(BaseModel):
 
 
 class EscalonamentoEvent(BaseModel):
-    motivo: str | None
+    # Mesmo tipo de ToneResult.motivo (tone_monitor.py) — o valor vem direto
+    # de tone_result.motivo, sem transformação (revisão final, achado
+    # menor 5).
+    motivo: Literal["urgencia", "insatisfacao"] | None
     confianca: float
     provider_efetivo: str
 
@@ -365,6 +369,49 @@ async def handle_message(
     tone_monitor_enabled: bool = True,
     tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
+    # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
+    # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
+    # fallback LLM do Monitor de Tom dentro de `analyze_tone()` (bloco
+    # seguinte) — que paga o cold-start, não a geração da resposta em si.
+    # Sem este check aqui (só existia antes de `generate_stream`, mais
+    # abaixo), o cold-start acontecia em silêncio: quando o check de depois
+    # rodava, o modelo já estava carregado e o evento `status` nunca era
+    # emitido, apesar da espera real ter ocorrido (bug relatado pelo
+    # usuário: "a mensagem para aguardar não aparece").
+    #
+    # Achado na revisão final do branch Monitor de Tom (R8): este check
+    # cobria só a condição de classificação e ficava DEPOIS do bloco do
+    # Monitor de Tom — com tone_monitor_enabled=True e
+    # tone_monitor_provider="heuristica_llm" (ambos padrão), a chamada LLM
+    # de `analyze_tone()` passou a ser, com frequência, a primeira chamada
+    # bloqueante de verdade, reintroduzindo o mesmo bug por uma rota
+    # diferente da originalmente corrigida. Por isso o check foi movido para
+    # o topo da função e a condição de disparo foi ampliada para cobrir
+    # também o caminho do Monitor de Tom — mesmo quando a heurística acaba
+    # resolvendo sozinha e o LLM nunca chega a ser chamado: um
+    # `carregando_modelo` a mais quando o modelo já está quente (ou quando a
+    # heurística resolve sozinha) é inofensivo para o frontend; a FALTA dele
+    # quando o modelo está realmente frio é que é o bug real.
+    deve_checar_modelo_local = (
+        intent_router_provider == DEFAULT_INTENT_ROUTER_PROVIDER and complexity_strategy == "llm"
+    ) or (tone_monitor_enabled and tone_monitor_provider == DEFAULT_TONE_MONITOR_PROVIDER)
+    try:
+        if deve_checar_modelo_local and not await local_client.is_model_ready():
+            yield StatusEvent(status="carregando_modelo")
+    except Exception as exc:
+        logger.error(
+            "backend_indisponivel",
+            extra={
+                "router": {
+                    "event": "backend_indisponivel",
+                    "backend": "local",
+                    "etapa": "verificacao_modelo",
+                    "erro": str(exc),
+                }
+            },
+        )
+        raise LocalBackendIndisponivelError(str(exc)) from exc
+
     # Monitor de Tom (R8, Fase 4B) — roda antes da classificação de
     # domínio, transversal a todo domínio (ver
     # docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §2). Nunca
@@ -391,21 +438,6 @@ async def handle_message(
     # fora_escopo (que rotearia ao backend externo). O wrapping fica aqui, e
     # não dentro de `classify()`, para não criar import circular.
     try:
-        # No Ollama real, é a primeira chamada bloqueante ao modelo — aqui,
-        # `classify()` com strategy="llm" — que paga o cold-start, não a
-        # geração da resposta em si. Sem este check aqui (só existia antes
-        # de `generate_stream`, mais abaixo), o cold-start acontecia em
-        # silêncio durante a classificação: quando o check de depois rodava,
-        # o modelo já estava carregado e o evento `status` nunca era
-        # emitido, apesar da espera real ter ocorrido (bug relatado pelo
-        # usuário: "a mensagem para aguardar não aparece").
-        if (
-            intent_router_provider == DEFAULT_INTENT_ROUTER_PROVIDER
-            and complexity_strategy == "llm"
-            and not await local_client.is_model_ready()
-        ):
-            yield StatusEvent(status="carregando_modelo")
-
         classification = await classify(
             message=message,
             recent_messages=recent_messages,
