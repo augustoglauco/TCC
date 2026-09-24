@@ -145,6 +145,28 @@ async def test_fallback_llm_motivo_invalido_degrada_com_validacao():
 
 
 @pytest.mark.asyncio
+async def test_fallback_llm_erro_de_conexao_degrada_sem_propagar():
+    # Achado na integração da Task 7 (chat.py): antes do fix, uma
+    # ConnectionError do backend local (ex.: Ollama fora do ar) durante o
+    # fallback heuristica_llm propagava crua em vez de degradar como já
+    # acontece para JSON não-parseável — violando a mesma promessa de
+    # "nunca derruba a mensagem do usuário" que _analyze_with_jev já cumpre
+    # com seu `except Exception` (ver docstring de ToneResult).
+    llm = _FakeLLMClient(exception=ConnectionError("ollama fora do ar"))
+    resultado = await analyze_tone(
+        message="Mensagem ambígua qualquer",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert resultado.escalate is False
+    assert resultado.motivo is None
+    assert resultado.confidence == 0.0
+    assert resultado.provider_efetivo == "heuristica_llm"
+
+
+@pytest.mark.asyncio
 async def test_fallback_jev_sucesso_usa_provider_jev_openrouter():
     llm = _FakeLLMClient()
     jev = _FakeJevClient(escalate=True, confidence=0.9)

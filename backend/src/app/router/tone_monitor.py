@@ -101,10 +101,16 @@ async def _analyze_with_llm(
             confidence=confidence,
             provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER,
         )
-    except (json.JSONDecodeError, TypeError, ValueError, KeyError):
-        # Resposta não-parseável: ambíguo sem sinal claro não escala por
-        # padrão, lado seguro contra falso positivo (mesmo espírito de
-        # classifier._classify_heuristic_fallback).
+    except Exception:
+        # Resposta não-parseável (json.JSONDecodeError, TypeError, ValueError,
+        # KeyError) OU falha de infraestrutura (ex.: ConnectionError com o
+        # Ollama fora do ar): em ambos os casos, ambíguo sem sinal claro não
+        # escala por padrão, lado seguro contra falso positivo (mesmo
+        # espírito de classifier._classify_heuristic_fallback) — e nunca
+        # derruba a mensagem do usuário (mesma filosofia de degradação já
+        # aplicada por _analyze_with_jev acima). Achado na integração da
+        # Task 7: antes deste fix, uma falha de conexão aqui propagava crua
+        # em vez de degradar como um erro de parsing já degradava.
         return ToneResult(
             escalate=False, motivo=None, confidence=0.0, provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER
         )
