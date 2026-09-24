@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from collections.abc import AsyncIterator
@@ -32,7 +33,7 @@ from app.router.scheduling import (
     set_booking_slots,
     validar_expediente,
 )
-from app.router.tone_monitor import analyze_tone, ja_escalada, marcar_escalada
+from app.router.tone_monitor import ToneResult, analyze_tone, ja_escalada, marcar_escalada
 
 logger = logging.getLogger(__name__)
 
@@ -355,6 +356,17 @@ async def _handle_agendamento(
         yield evento
 
 
+async def _sem_analise_de_tom() -> ToneResult:
+    """Substituto de `analyze_tone()` quando `tone_monitor_enabled=False` —
+    devolve um resultado neutro sem nenhuma chamada de rede, só para manter
+    `asyncio.gather` com a mesma forma (duas corrotinas) independente do
+    toggle, sem duplicar o try/except de `classify()` em `handle_message`.
+    """
+    return ToneResult(
+        escalate=False, motivo=None, confidence=0.0, provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER
+    )
+
+
 async def handle_message(
     message: str,
     recent_messages: list[str],
@@ -392,59 +404,82 @@ async def handle_message(
     # `carregando_modelo` a mais quando o modelo já está quente (ou quando a
     # heurística resolve sozinha) é inofensivo para o frontend; a FALTA dele
     # quando o modelo está realmente frio é que é o bug real.
+    # Achado no code-review (2026-09-24): com o Monitor de Tom no padrão
+    # (habilitado, provedor "heuristica_llm"), `deve_checar_modelo_local`
+    # fica quase sempre `True` — inclusive para mensagens que a heurística
+    # de tom resolve sozinha (sem chamar o LLM) e que a classificação vai
+    # rotear 100% pro backend externo (ex.: `fora_escopo`). Antes desta
+    # correção, uma falha aqui (Ollama fora do ar) virava
+    # `LocalBackendIndisponivelError` e derrubava a requisição inteira,
+    # mesmo quando o backend local nunca seria de fato necessário para essa
+    # mensagem. Esta checagem é só uma otimização de UX (mostrar
+    # "carregando_modelo" antes de um cold-start real) — não é a fonte de
+    # verdade sobre disponibilidade do backend local; essa fonte de verdade
+    # continua sendo o try/except em volta de `classify()` logo abaixo (que
+    # SÓ dispara quando o backend local é de fato chamado) e a degradação
+    # graciosa já embutida em `analyze_tone()`. Por isso uma falha aqui vira
+    # só um log de aviso, não uma exceção.
     deve_checar_modelo_local = (
         intent_router_provider == DEFAULT_INTENT_ROUTER_PROVIDER and complexity_strategy == "llm"
     ) or (tone_monitor_enabled and tone_monitor_provider == DEFAULT_TONE_MONITOR_PROVIDER)
-    try:
-        if deve_checar_modelo_local and not await local_client.is_model_ready():
+    if deve_checar_modelo_local:
+        try:
+            modelo_pronto = await local_client.is_model_ready()
+        except Exception as exc:
+            logger.warning(
+                "verificacao_modelo_local_falhou",
+                extra={
+                    "router": {
+                        "event": "verificacao_modelo_local_falhou",
+                        "erro": str(exc),
+                    }
+                },
+            )
+            modelo_pronto = True  # não emite carregando_modelo; segue o fluxo normal
+        if not modelo_pronto:
             yield StatusEvent(status="carregando_modelo")
-    except Exception as exc:
-        logger.error(
-            "backend_indisponivel",
-            extra={
-                "router": {
-                    "event": "backend_indisponivel",
-                    "backend": "local",
-                    "etapa": "verificacao_modelo",
-                    "erro": str(exc),
-                }
-            },
-        )
-        raise LocalBackendIndisponivelError(str(exc)) from exc
 
-    # Monitor de Tom (R8, Fase 4B) — roda antes da classificação de
-    # domínio, transversal a todo domínio (ver
+    # Monitor de Tom (R8, Fase 4B) — transversal a todo domínio (ver
     # docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §2). Nunca
     # substitui a resposta normal: só adiciona um evento a mais no stream.
+    #
+    # Achado no code-review (2026-09-24): `analyze_tone()` e `classify()`
+    # são independentes (nenhum usa o resultado do outro) mas eram
+    # `await`ados em sequência — em uma GPU única (16GB), isso dobra a
+    # espera antes do primeiro token em toda mensagem sem sinal heurístico
+    # de tom. `asyncio.gather` roda as duas em paralelo; quando o Monitor de
+    # Tom está desligado, `_sem_analise_de_tom()` só devolve um resultado
+    # neutro sem custo de rede, mantendo um único caminho de código em vez
+    # de duplicar o try/except de `classify()`.
     if tone_monitor_enabled:
-        tone_result = await analyze_tone(
+        tone_coro = analyze_tone(
             message=message,
             recent_messages=recent_messages,
             strategy_provider=tone_monitor_provider,
             llm_client=local_client,
             external_client=external_client,
         )
-        if tone_result.escalate and not ja_escalada(conversation_id):
-            marcar_escalada(conversation_id)
-            yield EscalonamentoEvent(
-                motivo=tone_result.motivo,
-                confianca=tone_result.confidence,
-                provider_efetivo=tone_result.provider_efetivo,
-            )
+    else:
+        tone_coro = _sem_analise_de_tom()
 
     # Com strategy="llm" a classificação chama o backend local. Falha aqui é
     # falha de infraestrutura local, não "conteúdo não classificável" — vira
     # LocalBackendIndisponivelError em vez de degradar em silêncio para
     # fora_escopo (que rotearia ao backend externo). O wrapping fica aqui, e
     # não dentro de `classify()`, para não criar import circular.
+    # `analyze_tone()` nunca levanta exceção (degrada sozinha), então só a
+    # falha de `classify()` chega aqui mesmo rodando as duas via gather.
     try:
-        classification = await classify(
-            message=message,
-            recent_messages=recent_messages,
-            strategy=complexity_strategy,
-            llm_client=local_client,
-            provider=intent_router_provider,
-            external_client=external_client,
+        tone_result, classification = await asyncio.gather(
+            tone_coro,
+            classify(
+                message=message,
+                recent_messages=recent_messages,
+                strategy=complexity_strategy,
+                llm_client=local_client,
+                provider=intent_router_provider,
+                external_client=external_client,
+            ),
         )
     except Exception as exc:
         logger.error(
@@ -459,6 +494,14 @@ async def handle_message(
             },
         )
         raise LocalBackendIndisponivelError(str(exc)) from exc
+
+    if tone_monitor_enabled and tone_result.escalate and not ja_escalada(conversation_id):
+        marcar_escalada(conversation_id)
+        yield EscalonamentoEvent(
+            motivo=tone_result.motivo,
+            confianca=tone_result.confidence,
+            provider_efetivo=tone_result.provider_efetivo,
+        )
 
     # MVP: o ramo de agendamento só roda quando (a) o chamador forneceu
     # `calendar_client`/`scheduling_config` para esta chamada E (b) a

@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 
@@ -19,7 +20,6 @@ from app.api.chat import (
     reset_conversation_history,
 )
 from app.api.chat import router as chat_router
-from app.api.rag_dependencies import get_db_session
 from app.rag.image_search import ImageSearchResult
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
@@ -138,6 +138,27 @@ class _FakeSttClient:
         return self._text
 
 
+class _SingleSessionMaker:
+    """Fake de `db_sessionmaker` (achado no code-review, 2026-09-24: chat.py
+    passou a abrir sua própria sessão via `request.app.state.db_sessionmaker`
+    em vez de receber uma via `Depends`) — sempre devolve a MESMA sessão da
+    fixture `db_session`, envolta num `async with` que não a fecha de
+    verdade, pra permitir inspecionar o banco depois da requisição.
+    """
+
+    def __init__(self, session) -> None:
+        self._session = session
+
+    def __call__(self):
+        return self
+
+    async def __aenter__(self):
+        return self._session
+
+    async def __aexit__(self, *exc_info) -> bool:
+        return False
+
+
 @pytest.fixture
 def fakes(db_session):
     return {
@@ -173,7 +194,7 @@ def _build_app(fakes: dict, complexity_strategy: str = "heuristic") -> FastAPI:
     # nas asserções abaixo (resposta normal do LLM, não o fluxo de booking).
     app.dependency_overrides[get_calendar_client] = lambda: None
     app.dependency_overrides[get_scheduling_config] = lambda: None
-    app.dependency_overrides[get_db_session] = lambda: fakes["db_session"]
+    app.state.db_sessionmaker = _SingleSessionMaker(fakes["db_session"])
     # Limiares lidos via request.app.state no fluxo de identificação.
     app.state.image_internal_confidence = 0.30
     app.state.image_external_confidence = 0.80
@@ -504,8 +525,28 @@ def test_mensagem_neutra_nao_emite_evento_escalonamento(client):
     assert "escalonamento" not in tipos
 
 
-async def test_escalonamento_e_persistido_no_banco(fakes):
-    from app.router.tone_monitor import listar_escalonamentos, reset_escalated_conversations
+async def test_escalonamento_e_persistido_no_banco(fakes, monkeypatch):
+    from app.router.tone_monitor import reset_escalated_conversations
+
+    # A persistência agora roda em background (`asyncio.create_task`,
+    # achado no code-review) numa sessão PRÓPRIA — não mais a mesma sessão
+    # de teste usada em outros pontos. `TestClient` roda a app numa thread/
+    # loop separada (portal do anyio); uma task de background disparada de
+    # lá e ainda em execução quando o teste (rodando no loop do
+    # pytest-asyncio) volta a tocar a MESMA sessão já causou
+    # `PendingRollbackError` (`AsyncSession` não é segura entre loops/
+    # threads diferentes). Em vez de reproduzir esse cross-loop na
+    # verificação, este teste substitui `criar_escalonamento` por um
+    # espião — confirma que a persistência é *chamada* com os dados
+    # certos, sem depender de mexer na sessão SQLite fora do loop onde ela
+    # foi criada (a gravação de verdade em si já é coberta por
+    # test_tone_monitor.py).
+    chamadas: list[dict] = []
+
+    async def _criar_escalonamento_espiao(session, **kwargs):
+        chamadas.append(kwargs)
+
+    monkeypatch.setattr("app.api.chat.criar_escalonamento", _criar_escalonamento_espiao)
 
     reset_escalated_conversations()
     app = _build_app(fakes)
@@ -516,14 +557,17 @@ async def test_escalonamento_e_persistido_no_banco(fakes):
         )
     assert response.status_code == 200
 
-    # Teste assíncrono (em vez de asyncio.run() isolado): reaproveita o
-    # mesmo loop gerenciado pelo pytest-asyncio da fixture `db_session`,
-    # evitando abrir um segundo loop independente para consultar a MESMA
-    # sessão SQLite em memória usada pela requisição acima.
-    registros = await listar_escalonamentos(fakes["db_session"])
-    assert len(registros) == 1
-    assert registros[0].motivo == "insatisfacao"
-    assert registros[0].provider_efetivo == "heuristica_llm"
+    # A task de background pode ainda não ter rodado quando a resposta HTTP
+    # volta — espera curta para dar chance dela terminar.
+    for _ in range(50):
+        if chamadas:
+            break
+        await asyncio.sleep(0.01)
+
+    assert len(chamadas) == 1
+    assert chamadas[0]["mensagem"] == "Isso é um absurdo, nunca mais compro nessa loja!"
+    assert chamadas[0]["motivo"] == "insatisfacao"
+    assert chamadas[0]["provider_efetivo"] == "heuristica_llm"
 
 
 def test_falha_ao_persistir_escalonamento_nao_derruba_o_stream(fakes):
