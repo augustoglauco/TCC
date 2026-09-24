@@ -453,6 +453,24 @@ contra `qwen2.5-coder:14b-local`, sem erro). Risco residual identificado
 nesta mesma investigação (data extraída às vezes com ano errado) —
 resolvido na decisão seguinte.
 
+**Correção (achado na verificação E2E do Monitor de Tom, 2026-09-24):** a
+decisão acima de deixar `generate_stream()` sem `think: false` — supondo
+que "pensar" só ajuda a qualidade do chat — se mostrou incompleta.
+Reproduzido direto contra `POST /api/generate` com `qwen3.5:9b`
+(`stream: true`, sem `think`): o modelo pode gastar **todo** o orçamento de
+geração (`num_predict`/janela de contexto) só na fase de raciocínio — o
+stream chega em `done: true`/`done_reason: "length"` com `response` vazio
+em 100% das linhas e `eval_count` não-zero, sem nunca emitir texto de
+resposta. Nesse caso o usuário via o fallback genérico "(sem resposta do
+modelo, tente novamente)" (`ChatModal.tsx`) depois de pagar o custo total
+de latência/GPU do raciocínio — silencioso, sem nenhum erro. `think: false`
+passa a valer também para `generate_stream()`, igualando ao comportamento
+de `generate()`: mesmo teste (prompt sobre motor de combustão interna,
+antes truncado a 20 tokens só de raciocínio) passou a responder
+normalmente, 1573 chunks de texto real. `# MVP: sem mecanismo pra reativar
+"thinking" seletivamente por complexidade da pergunta — trade-off aceito,
+mesmo espírito da simplificação já registrada para generate()`.
+
 **Decisão registrada (correção de qualidade, mesma investigação acima,
 2026-09-23):** `extract_booking_slots` (`app.router.scheduling`) ganha um
 novo parâmetro obrigatório `timezone` e passa a incluir no prompt de

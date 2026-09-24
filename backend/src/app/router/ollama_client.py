@@ -136,11 +136,24 @@ class OllamaClient:
         de classificação (ver
         docs/superpowers/specs/2026-09-17-chat-streaming-sse-design.md,
         seção Timeouts). Mesmo padrão de `pull_model_streaming`.
+
+        think=False: correção de 2026-09-24 (docs/ARCHITECTURE.md §5) — a
+        decisão original de `think: false` só em `generate()` supunha que
+        "pensar" nunca prejudica o chat via streaming. Achado real,
+        reproduzido direto contra `POST /api/generate`: um modelo com
+        capability `thinking` (`qwen3.5:9b`) pode gastar TODO o orçamento de
+        geração (`num_predict`/janela de contexto) só na fase de raciocínio
+        — o payload chega em `done: true` com `response` vazio em 100% das
+        linhas e `eval_count` não-zero, sem nunca emitir texto de resposta.
+        Como o `response` real (quando existe) sempre vem em linhas
+        separadas do campo `thinking`, ignorar `thinking` (como este método
+        já fazia) não bastava — o problema é o orçamento consumido antes de
+        chegar no `response`, não o parsing.
         """
         async with self._client.stream(
             "POST",
             f"{self._base_url}/api/generate",
-            json=self._build_payload(prompt, stream=True),
+            json=self._build_payload(prompt, stream=True, think=False),
             timeout=None,
         ) as response:
             response.raise_for_status()

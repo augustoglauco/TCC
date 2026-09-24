@@ -348,6 +348,68 @@ async def test_generate_stream_emite_um_chunk_de_texto_por_linha_e_chunk_final_c
     assert chunks[2].model_name == "llama3.1:8b"
 
 
+async def test_generate_stream_manda_think_false():
+    # Correção de 2026-09-24 (docs/ARCHITECTURE.md §5): a decisão original
+    # de think=False só em generate() (2026-09-23) não previa que um modelo
+    # com capability thinking pudesse gastar todo o orçamento de geração
+    # raciocinando no chat via streaming também — reproduzido direto contra
+    # o Ollama com qwen3.5:9b (ver teste seguinte).
+    payloads: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        payloads.append(json.loads(request.content))
+        body = json.dumps({"response": "oi", "done": True}).encode()
+        return httpx.Response(200, content=body)
+
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="llama3.1:8b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    _ = [chunk async for chunk in client.generate_stream("oi")]
+
+    assert payloads[0]["think"] is False
+
+
+async def test_generate_stream_thinking_esgota_orcamento_sem_gerar_resposta():
+    # Reproduz o achado real: um modelo com capability thinking pode
+    # devolver só linhas com `thinking` preenchido e `response` vazio, até
+    # `done: true` com `eval_count` não-zero — o orçamento inteiro foi
+    # consumido "pensando", sem nunca chegar no texto de resposta. Este
+    # teste documenta que o parsing atual (ignora `thinking`, só lê
+    # `response`) não quebra nesse caso — não emite chunk de texto algum,
+    # só o chunk final com a telemetria — mas é justamente esse caminho que
+    # think=False (testado acima) evita entrar.
+    lines = [
+        json.dumps({"response": "", "thinking": "Deixa eu pensar", "done": False}),
+        json.dumps({"response": "", "thinking": " nisso...", "done": False}),
+        json.dumps(
+            {
+                "response": "",
+                "done": True,
+                "done_reason": "length",
+                "prompt_eval_count": 36,
+                "eval_count": 20,
+                "total_duration": 991_332_838,
+            }
+        ),
+    ]
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="qwen3.5:9b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_streaming_transport(lines)),
+    )
+
+    chunks = [chunk async for chunk in client.generate_stream("oi")]
+
+    assert len(chunks) == 1
+    assert chunks[0].done is True
+    assert chunks[0].completion_tokens == 20
+
+
 async def test_generate_stream_levanta_excecao_quando_linha_traz_error():
     # O Ollama pode emitir uma linha `{"error": "..."}` no meio do stream
     # (ex.: falta de VRAM durante o cold-start do modelo) em vez de
