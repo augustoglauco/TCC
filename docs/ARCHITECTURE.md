@@ -663,6 +663,46 @@ atendimento humano nem painel administrativo visual — só a API de listagem
 manual/demonstração`. Banner visual no frontend consumindo o evento
 `escalonamento` é a Fase 8 (fora de escopo desta entrega).
 
+**Decisão registrada (Fase 5, backend único de dados do MCP B2B, R12,
+2026-09-24):** o primeiro item da Fase 5 ("modelar o backend único de dados
+reaproveitado tanto pelo RAG quanto pelo servidor MCP", Seção 6) estende a
+tabela fixture `produtos` (migração `0003`, Fase 2) em vez de criar um
+schema paralelo — mesma tabela, agora com um model SQLAlchemy próprio
+(`app.db.models.Produto`, antes só lida por reflexão genérica em
+`app.rag.db_connector`, que continua funcionando sem alteração). Cobre os
+três recursos estruturados do R12 (Seção 6):
+- **Catálogo:** `produtos` ganha `especificacoes_tecnicas`, `dimensoes_cm` e
+  `peso_kg`.
+- **Estoque:** nova tabela `produto_estoque` (produto × centro de
+  distribuição × quantidade) — relação 1:N porque um produto tem estoque em
+  vários centros, não caberia como coluna única em `produtos`.
+- **Preços:** `produtos` ganha `preco_promocional`/`promocao_valida_ate`
+  (cobre "campanhas"); nova tabela `produto_descontos_volume` (produto ×
+  quantidade mínima × percentual) cobre "descontos por volume".
+
+O quarto recurso do R12, **manuais e documentação**, **não** ganha tabela
+nem linha nova aqui — continua sendo servido pela infraestrutura RAG já
+existente (documentos PDF/texto ingeridos via `app.rag.ingest`, inclusive a
+collection `purpose="mcp_b2b"` já criada na decisão de 2026-09-21 para
+conteúdo exclusivo do canal B2B). Manuais são texto longo não-estruturado —
+modelar como linhas de banco duplicaria o pipeline de busca semântica que o
+RAG já resolve; o "backend único" do R12 cobre os três recursos
+estruturados, o RAG cobre o quarto.
+
+Acesso via novo módulo `app.db.catalog` (funções livres recebendo
+`AsyncSession`, mesmo padrão de `app.router.tone_monitor`), com CRUD básico
+sobre as três tabelas — consumido a partir da próxima etapa desta fase tanto
+pelo servidor MCP (recursos de leitura) quanto, potencialmente, pelo RAG.
+Migração `0008` (`backend/migrations/versions/0008_catalog_mcp_b2b.py`) semeia
+dados fictícios coerentes com a fixture original (mesmos 5 produtos), com
+estoque em `CD-SP`/`CD-RJ` e duas faixas de desconto por produto (5%/10+
+unidades). `# MVP: sem tratamento de concorrência em reservas/pedidos
+(atualizar_estoque é um upsert simples, ler-depois-escrever) nem trilha de
+auditoria — evolução futura explícita (Seção 6, "Governança e segurança"),
+não antecipada por este item de modelagem; nenhuma ferramenta MCP nem
+endpoint HTTP é exposto ainda — isso fica para os próximos itens desta
+mesma fase (servidor MCP e as 4 ferramentas)`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

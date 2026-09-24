@@ -267,7 +267,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 5 — MCP B2B Provido pela Empresa (R12)
 
-- [ ] Modelar o backend único de dados (catálogo, estoque, preços, manuais)
+- [x] Modelar o backend único de dados (catálogo, estoque, preços, manuais)
       reaproveitado tanto pelo RAG quanto pelo servidor MCP
 - [ ] Implementar servidor MCP interno expondo os 4 recursos de leitura
       (catálogo, estoque, tabela de preços, manuais)
