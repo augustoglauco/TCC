@@ -2,7 +2,6 @@ import pytest
 
 from app.router.llm_client import LLMResponse
 from app.router.tone_monitor import (
-    ToneResult,
     analyze_tone,
     criar_escalonamento,
     ja_escalada,
@@ -13,7 +12,9 @@ from app.router.tone_monitor import (
 
 
 class _FakeLLMClient:
-    def __init__(self, response: LLMResponse | None = None, exception: Exception | None = None) -> None:
+    def __init__(
+        self, response: LLMResponse | None = None, exception: Exception | None = None
+    ) -> None:
         self._response = response
         self._exception = exception
         self.prompts: list[str] = []
@@ -27,7 +28,12 @@ class _FakeLLMClient:
 
 
 class _FakeJevClient:
-    def __init__(self, escalate: bool = False, confidence: float = 0.0, exception: Exception | None = None) -> None:
+    def __init__(
+        self,
+        escalate: bool = False,
+        confidence: float = 0.0,
+        exception: Exception | None = None,
+    ) -> None:
         self._escalate = escalate
         self._confidence = confidence
         self._exception = exception
@@ -59,6 +65,120 @@ async def test_heuristica_maiusculas_e_exclamacao_escala_como_urgencia():
     llm = _FakeLLMClient()
     resultado = await analyze_tone(
         message="PRECISO FALAR COM ALGUEM AGORA!!!",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert resultado.escalate is True
+    assert resultado.motivo == "urgencia"
+    assert llm.prompts == []
+
+
+@pytest.mark.asyncio
+async def test_heuristica_processar_pagamento_nao_escala_como_falso_positivo():
+    # Achado na revisão final (item 2, problema A): "processar" sozinho
+    # (substring sem âncora) casava com português comercial neutro. Este
+    # caso não deve bater a heurística — precisa cair no fallback LLM (que
+    # aqui responde escalar=false).
+    llm = _FakeLLMClient(
+        LLMResponse(
+            text='{"escalar": false, "motivo": null, "confianca": 0.05}', total_duration_ms=5.0
+        )
+    )
+    resultado = await analyze_tone(
+        message="Vocês conseguem processar o pagamento no cartão?",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert len(llm.prompts) == 1  # heurística não deve ter escalado sozinha
+    assert resultado.escalate is False
+
+
+@pytest.mark.asyncio
+async def test_heuristica_processar_pedido_nao_escala_como_falso_positivo():
+    llm = _FakeLLMClient(
+        LLMResponse(
+            text='{"escalar": false, "motivo": null, "confianca": 0.05}', total_duration_ms=5.0
+        )
+    )
+    resultado = await analyze_tone(
+        message="Quanto tempo leva para processar meu pedido?",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert len(llm.prompts) == 1
+    assert resultado.escalate is False
+
+
+@pytest.mark.asyncio
+async def test_heuristica_processar_nota_fiscal_nao_escala_como_falso_positivo():
+    llm = _FakeLLMClient(
+        LLMResponse(
+            text='{"escalar": false, "motivo": null, "confianca": 0.05}', total_duration_ms=5.0
+        )
+    )
+    resultado = await analyze_tone(
+        message="Preciso processar a nota fiscal desse pedido, pode ajudar?",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert len(llm.prompts) == 1
+    assert resultado.escalate is False
+
+
+@pytest.mark.asyncio
+async def test_heuristica_ameaca_juridica_explicita_ainda_escala_como_insatisfacao():
+    # Forma inequívoca ("vou processar" / "processar vocês") continua
+    # escalando sem chamar o LLM, como antes.
+    llm = _FakeLLMClient()
+    resultado = await analyze_tone(
+        message="Vou processar vocês na justiça por isso",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert resultado.escalate is True
+    assert resultado.motivo == "insatisfacao"
+    assert llm.prompts == []
+
+
+@pytest.mark.asyncio
+async def test_heuristica_sku_curto_maiusculo_nao_escala_como_falso_positivo():
+    # Achado na revisão final (item 2, problema B): um código de produto
+    # curto colado na conversa batia o limiar de caracteres/proporção
+    # maiúscula sem ser, de fato, uma frase em caixa alta. Com o requisito
+    # adicional de >= 3 palavras, este caso deve cair no fallback LLM.
+    llm = _FakeLLMClient(
+        LLMResponse(
+            text='{"escalar": false, "motivo": null, "confianca": 0.05}', total_duration_ms=5.0
+        )
+    )
+    resultado = await analyze_tone(
+        message="SKU ABCD-1234-EFGH",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    assert len(llm.prompts) == 1
+    assert resultado.escalate is False
+
+
+@pytest.mark.asyncio
+async def test_heuristica_frase_longa_em_caixa_alta_ainda_escala_como_urgencia():
+    # Frase real de várias palavras em caixa alta continua sendo lida como
+    # sinal estrutural de urgência (sem depender de "!!!").
+    llm = _FakeLLMClient()
+    resultado = await analyze_tone(
+        message="ISSO AQUI NUNCA FUNCIONA DIREITO",
         recent_messages=[],
         strategy_provider="heuristica_llm",
         llm_client=llm,
