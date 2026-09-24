@@ -1,6 +1,5 @@
 """Endpoint HTTP do chat (R2, R3, R5) — encaminha para o orchestrator do roteador."""
 
-import asyncio
 import base64
 import binascii
 import json
@@ -10,6 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from app.background_tasks import spawn_background_task
 from app.mcp_client.google_calendar import CalendarClient
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
 from app.models.runtime_settings import (
@@ -110,16 +110,8 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-# Achado no code-review (2026-09-24): guarda referências às tasks de
-# persistência do escalonamento em background — sem isso, o event loop pode
-# coletar (e cancelar) a task antes dela terminar, já que nada mais no
-# processo mantém uma referência forte a ela. Mesmo padrão de
-# `app.api.local_models._background_tasks`.
-_background_tasks: set[asyncio.Task] = set()
-
-
 async def _persistir_escalonamento_em_background(
-    db_sessionmaker,
+    app_state,
     *,
     conversation_id: str,
     mensagem: str,
@@ -134,9 +126,19 @@ async def _persistir_escalonamento_em_background(
     não é segura para uso concorrente, e a sessão do request pode já ter
     sido encerrada pelo FastAPI antes desta task terminar, já que ela sobra
     rodando depois do generator do stream ser exaurido.
+
+    Recebe `app_state` (não `db_sessionmaker` já resolvido) e só acessa
+    `.db_sessionmaker` DENTRO do try/except — achado no code-review
+    (2026-09-24, dois agentes independentes): antes, `request.app.state.
+    db_sessionmaker` era lido no ponto de chamada, numa expressão síncrona
+    fora deste try/except, ao montar os argumentos de `asyncio.create_task`
+    — um `AttributeError` ali (ex.: app.state sem esse atributo, cenário só
+    de teste/config incompleta) propagaria cru e derrubaria o stream SSE
+    logo após o evento `escalonamento`, exatamente o bug que este try/except
+    existe para evitar.
     """
     try:
-        async with db_sessionmaker() as session:
+        async with app_state.db_sessionmaker() as session:
             await criar_escalonamento(
                 session,
                 conversation_id=conversation_id,
@@ -363,9 +365,9 @@ async def send_message(
                     # que o cliente já está insatisfeito. Roda em background
                     # (nunca aguardada pelo stream); a falha, se houver, só
                     # vira log (já rastreável pelo "tom_escalonado" acima).
-                    task = asyncio.create_task(
+                    spawn_background_task(
                         _persistir_escalonamento_em_background(
-                            request.app.state.db_sessionmaker,
+                            request.app.state,
                             conversation_id=conversation_id,
                             mensagem=effective_message,
                             motivo=event.motivo,
@@ -373,8 +375,6 @@ async def send_message(
                             provider_efetivo=event.provider_efetivo,
                         )
                     )
-                    _background_tasks.add(task)
-                    task.add_done_callback(_background_tasks.discard)
                 elif isinstance(event, RouterDecision):
                     history = _conversation_history.setdefault(conversation_id, [])
                     history.append(effective_message)

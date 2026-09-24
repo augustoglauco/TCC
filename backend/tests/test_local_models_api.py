@@ -3,8 +3,9 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.local_models import _background_tasks, get_ollama_client, get_pull_progress_store
+from app.api.local_models import get_ollama_client, get_pull_progress_store
 from app.api.local_models import router as local_models_router
+from app.background_tasks import _background_tasks
 from app.router.ollama_client import LocalModel, PullProgressLine
 
 

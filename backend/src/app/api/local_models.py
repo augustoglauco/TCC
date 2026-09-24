@@ -21,11 +21,11 @@ troca logo antes de uma demo pode deixar dois modelos de chat e o
 Whisper residentes ao mesmo tempo.
 """
 
-import asyncio
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.background_tasks import spawn_background_task
 from app.models.local_models import (
     ActivateModelRequest,
     LocalModelResponse,
@@ -38,14 +38,6 @@ from app.router.ollama_client import OllamaClient
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin/local-models", tags=["local-models"])
-
-# Referência forte às tarefas de download em background — asyncio só
-# guarda uma referência fraca a uma Task criada via `create_task`, o que
-# arrisca ela ser coletada pelo GC no meio da execução se nada mais a
-# referenciar. `add_done_callback` remove a tarefa do set assim que ela
-# termina (sucesso ou erro), então o set só cresce enquanto há downloads
-# genuinamente em andamento.
-_background_tasks: set[asyncio.Task] = set()
 
 
 def get_ollama_client(request: Request) -> OllamaClient:
@@ -144,9 +136,7 @@ async def pull_model_endpoint(
         return {"name": body.name}
 
     progress_store[body.name] = {"status": "pulling", "percent": None, "detail": "iniciando..."}
-    task = asyncio.create_task(_consumir_pull(ollama, body.name, progress_store))
-    _background_tasks.add(task)
-    task.add_done_callback(_background_tasks.discard)
+    spawn_background_task(_consumir_pull(ollama, body.name, progress_store))
     return {"name": body.name}
 
 

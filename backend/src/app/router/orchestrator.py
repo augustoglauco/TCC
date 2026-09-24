@@ -468,20 +468,30 @@ async def handle_message(
     # fora_escopo (que rotearia ao backend externo). O wrapping fica aqui, e
     # não dentro de `classify()`, para não criar import circular.
     # `analyze_tone()` nunca levanta exceção (degrada sozinha), então só a
-    # falha de `classify()` chega aqui mesmo rodando as duas via gather.
+    # falha de `classify()` chega aqui mesmo rodando as duas em paralelo.
+    #
+    # Achado no code-review (2026-09-24): `asyncio.gather` (sem
+    # `return_exceptions=True`) propaga a exceção de `classify()` assim que
+    # ela acontece, mas NÃO cancela `tone_coro` se ainda estiver rodando —
+    # a chamada LLM/Jev do Monitor de Tom ficava órfã, continuando depois
+    # da requisição já ter falhado. `asyncio.TaskGroup` resolve isso: ao
+    # sair do bloco com uma exceção, cancela automaticamente as outras
+    # tasks do grupo (aqui, só há uma tarefa irmã: `tone_task`).
     try:
-        tone_result, classification = await asyncio.gather(
-            tone_coro,
-            classify(
-                message=message,
-                recent_messages=recent_messages,
-                strategy=complexity_strategy,
-                llm_client=local_client,
-                provider=intent_router_provider,
-                external_client=external_client,
-            ),
-        )
-    except Exception as exc:
+        async with asyncio.TaskGroup() as tg:
+            tone_task = tg.create_task(tone_coro)
+            classification_task = tg.create_task(
+                classify(
+                    message=message,
+                    recent_messages=recent_messages,
+                    strategy=complexity_strategy,
+                    llm_client=local_client,
+                    provider=intent_router_provider,
+                    external_client=external_client,
+                )
+            )
+    except* Exception as eg:
+        exc = eg.exceptions[0]
         logger.error(
             "backend_indisponivel",
             extra={
@@ -494,6 +504,9 @@ async def handle_message(
             },
         )
         raise LocalBackendIndisponivelError(str(exc)) from exc
+
+    tone_result = tone_task.result()
+    classification = classification_task.result()
 
     if tone_monitor_enabled and tone_result.escalate and not ja_escalada(conversation_id):
         marcar_escalada(conversation_id)

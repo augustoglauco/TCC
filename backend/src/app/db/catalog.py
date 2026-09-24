@@ -34,6 +34,13 @@ from app.db.models import Produto, ProdutoDescontoVolume, ProdutoEstoque
 
 
 def _produto_query():
+    # `app.mcp_server.b2b` (resources de catálogo/estoque) acessa
+    # `produto.estoques`/`.descontos_volume` DEPOIS de fechar a sessão que
+    # chamou `obter_produto`/`listar_produtos` — só funciona sem
+    # `MissingGreenlet` porque o `selectinload` abaixo já carregou as
+    # coleções em memória durante a query. Se este `selectinload` for
+    # removido, os handlers do MCP B2B quebram também, não só quem chama
+    # direto por aqui.
     return select(Produto).options(
         selectinload(Produto.estoques), selectinload(Produto.descontos_volume)
     )

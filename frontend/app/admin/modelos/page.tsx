@@ -15,6 +15,13 @@ import type { LocalModel } from "@/lib/types/localModels";
 export default function ModelosPage() {
   const [modelos, setModelos] = useState<LocalModel[] | null>(null);
   const [activeModel, setActiveModel] = useState<string | null>(null);
+  // Achado no code-review (2026-09-24): o card "Status Runtime" mostrava
+  // sempre "Operacional (Ollama)" com um ponto verde fixo, sem nenhuma
+  // ligação com o estado real — se o Ollama estivesse fora do ar (e
+  // listLocalModels() já falhasse por causa disso), o card continuava
+  // mostrando operacional, exatamente no momento em que o admin mais
+  // precisa de uma informação correta.
+  const [runtimeStatus, setRuntimeStatus] = useState<"checking" | "ok" | "error">("checking");
   const { toasts, showToast, dismissToast } = useToast();
 
   const carregarModelos = useCallback(async () => {
@@ -22,12 +29,14 @@ export default function ModelosPage() {
       const resposta = await listLocalModels();
       setModelos(resposta.models);
       setActiveModel(resposta.active_model);
+      setRuntimeStatus("ok");
     } catch (err) {
       showToast(
         err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao carregar os modelos.",
         "error",
       );
       setModelos([]);
+      setRuntimeStatus("error");
     }
   }, [showToast]);
 
@@ -94,10 +103,24 @@ export default function ModelosPage() {
             <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
               Status Runtime
             </span>
-            <span className="block text-sm font-bold text-emerald-700 flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              Operacional (Ollama)
-            </span>
+            {runtimeStatus === "checking" && (
+              <span className="block text-sm font-bold text-slate-500 flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-slate-400 animate-pulse" />
+                Verificando...
+              </span>
+            )}
+            {runtimeStatus === "ok" && (
+              <span className="block text-sm font-bold text-emerald-700 flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Operacional (Ollama)
+              </span>
+            )}
+            {runtimeStatus === "error" && (
+              <span className="block text-sm font-bold text-red-700 flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-red-500" />
+                Indisponível (Ollama)
+              </span>
+            )}
           </div>
         </div>
       </div>

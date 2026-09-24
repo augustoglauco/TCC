@@ -250,13 +250,19 @@ class OpenRouterClient:
                 model_name=self._model,
             )
 
-    async def classify_intent_jev(
-        self, message: str, recent_messages: list[str] | None = None
-    ) -> tuple[str, float]:
-        """Classifica o domínio via TypeSafe Jev, endpoint dedicado do
-        OpenRouter (`/systemone`, não `/chat/completions`) — o modelo devolve
-        uma decisão tipada (`answers.dominio.choice`/`.confidence`), sem
-        geração de texto livre nem parsing de JSON solto.
+    async def _perguntar_systemone_jev(
+        self,
+        message: str,
+        recent_messages: list[str] | None,
+        question_key: str,
+        question: dict,
+    ) -> dict:
+        """Faz uma pergunta tipada via TypeSafe Jev, endpoint dedicado do
+        OpenRouter (`/systemone`, não `/chat/completions`) — devolve a
+        decisão tipada (`answers[question_key]`), sem geração de texto livre
+        nem parsing de JSON solto. Compartilhado por `classify_intent_jev`
+        (pergunta `choice`) e `classify_tone_jev` (pergunta `noul`, R8) —
+        acha review (2026-09-24): as duas duplicavam a mesma chamada HTTP.
         """
         if not self._jev_model:
             raise ValueError("jev_model não configurado (JEV_MODEL_NAME).")
@@ -268,20 +274,29 @@ class OpenRouterClient:
             json={
                 "model": self._jev_model,
                 "state": f"Contexto prévio:\n{contexto}\n\nMensagem: {message}",
-                "questions": {
-                    "dominio": {
-                        "type": "choice",
-                        "instructions": (
-                            "Classifique a mensagem do cliente em um dos domínios de atendimento."
-                        ),
-                        "criteria": _DOMAIN_CRITERIA,
-                    }
-                },
+                "questions": {question_key: question},
             },
             timeout=self._jev_timeout_s,
         )
         response.raise_for_status()
-        answer = response.json()["answers"]["dominio"]
+        return response.json()["answers"][question_key]
+
+    async def classify_intent_jev(
+        self, message: str, recent_messages: list[str] | None = None
+    ) -> tuple[str, float]:
+        """Classifica o domínio via TypeSafe Jev — ver `_perguntar_systemone_jev`."""
+        answer = await self._perguntar_systemone_jev(
+            message,
+            recent_messages,
+            "dominio",
+            {
+                "type": "choice",
+                "instructions": (
+                    "Classifique a mensagem do cliente em um dos domínios de atendimento."
+                ),
+                "criteria": _DOMAIN_CRITERIA,
+            },
+        )
         choice = str(answer.get("choice", "fora_escopo")).lower().strip()
         confidence = float(answer.get("confidence", 0.5))
         if choice not in _VALID_DOMAINS:
@@ -297,39 +312,28 @@ class OpenRouterClient:
         calibrada) em vez de `choice` — ver
         docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §3.2.
         """
-        if not self._jev_model:
-            raise ValueError("jev_model não configurado (JEV_MODEL_NAME).")
-
-        contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
-        response = await self._client.post(
-            f"{self._base_url}/systemone",
-            headers={"Authorization": f"Bearer {self._api_key}"},
-            json={
-                "model": self._jev_model,
-                "state": f"Contexto prévio:\n{contexto}\n\nMensagem: {message}",
-                "questions": {
-                    "escalar": {
-                        "type": "noul",
-                        "instructions": (
-                            "O cliente está demonstrando urgência ou insatisfação forte "
-                            "que justifique transferência para atendimento humano?"
-                        ),
-                        "criteria": {
-                            "true": (
-                                "Mensagem com tom de urgência, raiva, ameaça de "
-                                "cancelamento/processo, ou insatisfação explícita e forte."
-                            ),
-                            "false": (
-                                "Tom neutro ou normal de atendimento, mesmo com dúvida "
-                                "ou reclamação leve."
-                            ),
-                        },
-                    }
+        answer = await self._perguntar_systemone_jev(
+            message,
+            recent_messages,
+            "escalar",
+            {
+                "type": "noul",
+                "instructions": (
+                    "O cliente está demonstrando urgência ou insatisfação forte "
+                    "que justifique transferência para atendimento humano?"
+                ),
+                "criteria": {
+                    "true": (
+                        "Mensagem com tom de urgência, raiva, ameaça de "
+                        "cancelamento/processo, ou insatisfação explícita e forte."
+                    ),
+                    "false": (
+                        "Tom neutro ou normal de atendimento, mesmo com dúvida "
+                        "ou reclamação leve."
+                    ),
                 },
             },
-            timeout=self._jev_timeout_s,
         )
-        response.raise_for_status()
         # Achado no code-review (2026-09-24): sem `.get()` defensivo (ao
         # contrário do irmão `classify_intent_jev` acima), uma resposta sem
         # a chave "noul" levantava KeyError cru em vez de degradar — o
@@ -337,6 +341,5 @@ class OpenRouterClient:
         # exceção e já degrada com segurança, mas o default aqui evita
         # depender só disso. Default `0.0` (não escala) é o lado seguro,
         # mesmo espírito de `_classify_heuristic_fallback`.
-        answer = response.json()["answers"]["escalar"]
         noul = float(answer.get("noul", 0.0))
         return noul >= 0.5, noul

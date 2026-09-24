@@ -596,3 +596,32 @@ def test_falha_ao_persistir_escalonamento_nao_derruba_o_stream(fakes):
     assert "escalonamento" in tipos
     assert "token" in tipos
     assert tipos[-1] == "done"
+
+
+def test_app_state_sem_db_sessionmaker_nao_derruba_o_stream(fakes):
+    # Achado no code-review (2026-09-24, dois agentes independentes): o fix
+    # acima protege só a chamada a criar_escalonamento(), mas
+    # `request.app.state.db_sessionmaker` era lido no PONTO DE CHAMADA (uma
+    # expressão síncrona, fora de qualquer try/except) ao montar os
+    # argumentos de `asyncio.create_task`. Se esse atributo não existisse
+    # (app.state incompleto), o AttributeError propagava cru e matava o
+    # stream — o mesmo bug de novo, por uma rota diferente. Aqui simulamos
+    # exatamente isso: um app cujo `app.state` não tem `db_sessionmaker`
+    # nenhum.
+    from app.router.tone_monitor import reset_escalated_conversations
+
+    reset_escalated_conversations()
+    app = _build_app(fakes)
+    del app.state.db_sessionmaker
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/chat/messages",
+            json={"message": "Isso é um absurdo, nunca mais compro nessa loja!"},
+        )
+
+    assert response.status_code == 200
+    eventos = _parse_sse(response.text)
+    tipos = [tipo for tipo, _ in eventos]
+    assert "escalonamento" in tipos
+    assert "token" in tipos
+    assert tipos[-1] == "done"
