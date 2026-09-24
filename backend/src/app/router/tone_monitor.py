@@ -34,7 +34,15 @@ _INSATISFACAO_KEYWORDS = [
     "pessimo",
     "absurdo",
     "cancelar tudo",
-    "processar",
+    # Achado na revisão final (item 2): "processar" sozinho (substring, sem
+    # âncora) casava com português comercial comum e neutro — "processar o
+    # pagamento", "processar meu pedido" — gerando falso positivo com
+    # confidence=1.0 e escalonamento PERMANENTE (sem des-escalar, decisão da
+    # spec §2). As formas abaixo são as únicas que capturam o sentido
+    # pretendido (ameaça de ação judicial, par com "reclamação procon" na
+    # spec), casadas contra a mensagem já normalizada por `_normalize()`.
+    "vou processar",
+    "processar voces",
     "reclamacao procon",
     "nunca mais compro",
 ]
@@ -42,6 +50,13 @@ _INSATISFACAO_KEYWORDS = [
 _UPPERCASE_ALPHA_MIN = 10
 _UPPERCASE_RATIO_THRESHOLD = 0.7
 _EXCLAMATION_RUN_MIN = 3
+# MVP: exige pelo menos 3 palavras separadas além da contagem de
+# caracteres alfabéticos — achado na revisão final (item 2): um código de
+# produto curto colado na conversa (ex.: "SKU ABCD-1234-EFGH") já batia o
+# limiar de caracteres/proporção maiúscula sem ser, de fato, alguém
+# "gritando" em uma frase. 3 é um ponto de partida razoável (frase mínima
+# reconhecível), não uma contagem calibrada contra dados reais.
+_UPPERCASE_WORD_COUNT_MIN = 3
 
 
 def _match_keyword_signal(message: str) -> str | None:
@@ -58,7 +73,9 @@ def _match_structural_signal(message: str) -> str | None:
     # como a pontuação por si só distinguir insatisfação de urgência, ver
     # docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §3.1.
     alpha_chars = [c for c in message if c.isalpha()]
-    if len(alpha_chars) >= _UPPERCASE_ALPHA_MIN:
+    has_enough_alpha = len(alpha_chars) >= _UPPERCASE_ALPHA_MIN
+    has_enough_words = len(message.split()) >= _UPPERCASE_WORD_COUNT_MIN
+    if has_enough_alpha and has_enough_words:
         uppercase_ratio = sum(1 for c in alpha_chars if c.isupper()) / len(alpha_chars)
         if uppercase_ratio >= _UPPERCASE_RATIO_THRESHOLD:
             return "urgencia"
