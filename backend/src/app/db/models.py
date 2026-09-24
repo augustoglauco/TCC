@@ -201,6 +201,71 @@ class ProdutoEstoque(Base):
     produto: Mapped["Produto"] = relationship(back_populates="estoques")
 
 
+class ProdutoCompatibilidade(Base):
+    """Par de produtos compatíveis entre si (R12, Fase 5, ferramenta
+    "validação de compatibilidade") — ver decisão registrada em
+    `docs/ARCHITECTURE.md` §5 (2026-09-24).
+
+    A linha é direcional na escrita (`produto_id` -> `compativel_com_id`),
+    mas a consulta (`app.db.catalog.sao_compativeis`) verifica os dois
+    sentidos — "A compatível com B" implica "B compatível com A" do ponto de
+    vista de quem consulta, sem duplicar a escrita com uma segunda linha
+    invertida.
+
+    # MVP: pares cadastrados manualmente via fixture de migração (mesmo
+    # padrão dos 5 produtos/estoque/descontos já semeados na migração 0008)
+    # — sem regra automática de dedução por categoria/especificação técnica;
+    # evolução futura, não este item.
+    """
+
+    __tablename__ = "produto_compatibilidades"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    produto_id: Mapped[int] = mapped_column(ForeignKey("produtos.id"), index=True)
+    compativel_com_id: Mapped[int] = mapped_column(ForeignKey("produtos.id"), index=True)
+
+
+class Pedido(Base):
+    """Cabeçalho de uma reserva/pedido (R12, Fase 5, ferramenta "reserva ou
+    pedido") — ver decisão registrada em `docs/ARCHITECTURE.md` §5
+    (2026-09-24).
+
+    # MVP: sem lock otimista/pessimista (corrida entre duas reservas
+    # concorrentes pode sobre-reservar), sem trilha de auditoria, sem
+    # pagamento/gateway real — simplificação já registrada na modelagem do
+    # backend único desta fase (`docs/ARCHITECTURE.md` §6, "Governança e
+    # segurança", evolução futura explícita). `status` fica sempre
+    # `"reservado"` neste protótipo (sem fluxo de confirmação/cancelamento).
+    """
+
+    __tablename__ = "pedidos"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    status: Mapped[str] = mapped_column(default="reservado")
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    itens: Mapped[list["PedidoItem"]] = relationship(
+        back_populates="pedido", cascade="all, delete-orphan"
+    )
+
+
+class PedidoItem(Base):
+    """Item de um pedido/reserva — produto, quantidade e o preço unitário
+    vigente no momento da reserva (não recalculado depois, mesmo que o
+    preço do produto mude)."""
+
+    __tablename__ = "pedido_itens"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    pedido_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pedidos.id"), index=True)
+    produto_id: Mapped[int] = mapped_column(ForeignKey("produtos.id"), index=True)
+    centro_distribuicao: Mapped[str]
+    quantidade: Mapped[int]
+    preco_unitario: Mapped[Decimal] = mapped_column(Numeric(10, 2))
+
+    pedido: Mapped["Pedido"] = relationship(back_populates="itens")
+
+
 class ProdutoDescontoVolume(Base):
     """Faixa de desconto por quantidade mínima comprada (R12) — parte do
     recurso "tabela de preços" (`docs/ARCHITECTURE.md` §6: "descontos por

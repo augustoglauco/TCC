@@ -274,8 +274,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       rodando como processo próprio (`scripts/run_mcp_b2b_server.py`, porta
       `MCP_B2B_PORT`/8100), ver decisão registrada em `docs/ARCHITECTURE.md`
       §5
-- [ ] Implementar as 4 ferramentas do MCP B2B: validação de compatibilidade,
-      consulta de frete e prazos, cotação automática, reserva/pedido
+- [x] Implementar as 4 ferramentas do MCP B2B: validação de compatibilidade,
+      consulta de frete e prazos, cotação automática, reserva/pedido —
+      `@server.tool(...)` em `app.mcp_server.b2b`, sobre as tabelas novas
+      `produto_compatibilidades`/`pedidos`/`pedido_itens` (migração `0009`)
+      e a lógica de preço/desconto em `app.db.catalog`, ver decisão
+      registrada em `docs/ARCHITECTURE.md` §5
 - [ ] Integrar o Roteador/Orquestrador como "mais um integrador" do MCP B2B
       para intenções de Vendas (cotação, compatibilidade, estoque)
 - [ ] Garantir e documentar que autenticação por parceiro e exposição
@@ -429,6 +433,25 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `generate_stream()`, igual a `generate()` — verificado ao vivo contra
       Ollama real (mesmo prompt que antes zerava a resposta, agora responde
       normalmente)
+- [x] Corrigir acesso ao frontend quebrado fora da máquina de dev (IP da LAN,
+      domínio DuckDNS) — achado durante teste manual no celular (2026-09-24,
+      não é bug de nenhum requisito específico). Duas causas em sequência:
+      (1) `crypto.randomUUID()` exige contexto seguro (https/localhost),
+      indisponível ao acessar via HTTP pelo IP da LAN — `generateId()`
+      (`frontend/lib/utils/generateId.ts`) adiciona fallback; (2) Next.js 16
+      bloqueia por padrão o dev server (HMR + assets) para origens fora de
+      localhost — `allowedDevOrigins` em `frontend/next.config.ts` libera o
+      IP da LAN e o domínio DuckDNS. Regressão descoberta em seguida: as 6
+      chamadoras de API do frontend hardcodeavam
+      `NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"` — em qualquer
+      origem que não fosse a própria máquina de dev, "localhost" no
+      navegador aponta pro dispositivo do usuário, não pro backend, e todo
+      fetch falhava. Resolvido com `frontend/lib/api/apiBaseUrl.ts`
+      (deriva `<protocolo>//<hostname da página>:8000` em runtime) e
+      `Settings.cors_allowed_origins` no backend virando lista separada por
+      vírgula (antes só `http://localhost:3001`) — ver
+      `docs/FRONTEND.md` §4. Commits `412c053`, `d7f0e4a`, `ab9c468`,
+      `7d8426b`.
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 

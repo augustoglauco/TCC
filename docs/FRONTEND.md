@@ -113,6 +113,18 @@ O frontend fala apenas com a API REST do próprio backend (nunca diretamente
 com os MCPs). Endpoints sugeridos como ponto de partida — refinar durante a
 Fase 10/11 do `docs/ROADMAP.md`:
 
+**Resolução da URL base do backend (`frontend/lib/api/apiBaseUrl.ts`,
+2026-09-24):** cada módulo de `frontend/lib/api/*.ts` obtém a URL base via
+`getApiBaseUrl()` em vez de hardcodear `http://localhost:8000` — se
+`NEXT_PUBLIC_API_BASE_URL` estiver definida (sem barra final, que duplicaria
+no path), usa esse valor; senão deriva `"<protocolo><hostname>:8000"` a
+partir da própria página (`window.location`) em runtime no navegador. Isso
+permite acessar o frontend por `localhost`, IP da LAN ou o domínio DuckDNS
+(mesmas origens de `allowedDevOrigins` em `frontend/next.config.ts`) sem
+reconfigurar nada — `localhost` hardcoded apontaria para o próprio
+dispositivo do usuário, não para a máquina de dev, quando acessado de fora
+dela (bug de acesso mobile, commit `7d8426b`).
+
 | Endpoint | Uso |
 | --- | --- |
 | `POST /api/chat/messages` | Envia mensagem (texto e/ou imagem e/ou áudio) de uma conversa; resposta é o próprio stream Server-Sent Events (SSE) da geração — não há endpoint `GET` separado |
