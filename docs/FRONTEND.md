@@ -201,6 +201,17 @@ data: {
 // No fluxo de identificação, o `done` traz backend_used="identificacao_imagem"
 // e domain="vendas" (o restante da telemetria de inferência não se aplica).
 
+event: escalonamento         // opcional, no máximo uma vez por conversation_id — Monitor de Tom (R8)
+data: {"motivo": "urgencia", "confianca": 0.87}
+// motivo: "urgencia" | "insatisfacao". Emitido quando o Monitor de Tom
+// (heurística + fallback heuristica_llm/jev_openrouter, ver
+// docs/ARCHITECTURE.md §5) detecta urgência/insatisfação forte na mensagem
+// atual — não substitui a resposta normal do domínio, que continua sendo
+// gerada e streamada. Só dispara uma vez por conversa (estado em memória
+// por processo, perdido em restart). O caso também é persistido em
+// `tom_escalonamentos` (Postgres) e exposto para consulta manual em
+// GET /api/admin/tom/escalonamentos.
+
 event: done                  // sempre o último evento em caso de sucesso — telemetria completa
 data: {
   "domain": "vendas",              // vendas | suporte | atendimento | agendamento | fora_escopo

@@ -378,7 +378,7 @@ def test_chat_nao_identifica_produto_fora_do_portfolio(monkeypatch):
     assert ident["status"] == "nao_identificado"
 
 
-def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400():
+def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400(db_session):
     """Regressão (bug 2026-09-20): imagem-lixo no fluxo de identificação
     (sem image_intent) travava o chat silenciosamente (200 OK, corpo vazio),
     porque os bytes chegavam ao PIL.Image.open dentro do CLIP sem validação.
@@ -405,6 +405,7 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400():
         reset_conversation_history,
     )
     from app.api.chat import router as chat_router
+    from app.api.rag_dependencies import get_db_session
     from app.rag.clip_embedder import ClipEmbedder
     from app.rag.image_search import ClipImageStore
 
@@ -436,6 +437,11 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400():
     # dependência resolva sem estourar `AttributeError` em app.state.
     app.dependency_overrides[get_calendar_client] = lambda: None
     app.dependency_overrides[get_scheduling_config] = lambda: None
+    # Task 7 (R8): `send_message` agora também depende de `get_db_session`
+    # (persistência de escalonamento do Monitor de Tom) — precisa resolver
+    # sem estourar AttributeError em app.state mesmo neste teste, que nem
+    # chega a escalar (a validação de formato barra antes, com 400).
+    app.dependency_overrides[get_db_session] = lambda: db_session
     app.state.image_internal_confidence = 0.30
     app.state.image_external_confidence = 0.80
 

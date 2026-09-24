@@ -8,10 +8,12 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.rag_dependencies import get_db_session
 from app.mcp_client.google_calendar import CalendarClient
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
-from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
+from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER, DEFAULT_TONE_MONITOR_PROVIDER
 from app.ocr.image_processor import (
     ImageFormatError,
     OcrIndisponivelError,
@@ -23,6 +25,7 @@ from app.rag.image_identification import identify_product_by_image
 from app.rag.image_search import ClipImageStore
 from app.router.llm_client import LLMClient
 from app.router.orchestrator import (
+    EscalonamentoEvent,
     ExternalBackendIndisponivelError,
     LocalBackendIndisponivelError,
     RouterDecision,
@@ -32,6 +35,7 @@ from app.router.orchestrator import (
 )
 from app.router.rag_client import RAGClient, RAGConnectionError
 from app.router.scheduling import SchedulingConfig
+from app.router.tone_monitor import criar_escalonamento
 from app.stt.whisper_client import SttClient, SttIndisponivelError
 
 logger = logging.getLogger(__name__)
@@ -72,6 +76,14 @@ def get_intent_router_provider(request: Request) -> str:
     return getattr(request.app.state, "intent_router_provider", DEFAULT_INTENT_ROUTER_PROVIDER)
 
 
+def get_tone_monitor_enabled(request: Request) -> bool:
+    return getattr(request.app.state, "tone_monitor_enabled", True)
+
+
+def get_tone_monitor_provider(request: Request) -> str:
+    return getattr(request.app.state, "tone_monitor_provider", DEFAULT_TONE_MONITOR_PROVIDER)
+
+
 def get_stt_client(request: Request) -> SttClient:
     return request.app.state.stt_client
 
@@ -110,6 +122,9 @@ async def send_message(
     calendar_client: CalendarClient = Depends(get_calendar_client),
     scheduling_config: SchedulingConfig = Depends(get_scheduling_config),
     intent_router_provider: str = Depends(get_intent_router_provider),
+    tone_monitor_enabled: bool = Depends(get_tone_monitor_enabled),
+    tone_monitor_provider: str = Depends(get_tone_monitor_provider),
+    session: AsyncSession = Depends(get_db_session),
 ) -> StreamingResponse:
     conversation_id = payload.conversation_id or str(uuid4())
 
@@ -270,11 +285,37 @@ async def send_message(
                 calendar_client=calendar_client,
                 scheduling_config=scheduling_config,
                 intent_router_provider=intent_router_provider,
+                tone_monitor_enabled=tone_monitor_enabled,
+                tone_monitor_provider=tone_monitor_provider,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
                 elif isinstance(event, TokenEvent):
                     yield _sse("token", {"text": event.text})
+                elif isinstance(event, EscalonamentoEvent):
+                    yield _sse(
+                        "escalonamento", {"motivo": event.motivo, "confianca": event.confianca}
+                    )
+                    logger.info(
+                        "tom_escalonado",
+                        extra={
+                            "router": {
+                                "event": "tom_escalonado",
+                                "conversation_id": conversation_id,
+                                "motivo": event.motivo,
+                                "confianca": event.confianca,
+                                "provider_efetivo": event.provider_efetivo,
+                            }
+                        },
+                    )
+                    await criar_escalonamento(
+                        session,
+                        conversation_id=conversation_id,
+                        mensagem=effective_message,
+                        motivo=event.motivo,
+                        confianca=event.confianca,
+                        provider_efetivo=event.provider_efetivo,
+                    )
                 elif isinstance(event, RouterDecision):
                     history = _conversation_history.setdefault(conversation_id, [])
                     history.append(effective_message)
