@@ -95,7 +95,8 @@ Na seção **Parâmetros de Execução**, você pode ajustar o comportamento do 
 * **O que faz**: Quantos segundos esperar caso a requisição precise recorrer à IA em nuvem externa.
 * **Valor Recomendado**: `20` segundos.
 
-#### 🔄 4. Fallback Automático de RAG (`RAG Domain Fallback`)
+#### 🔄 4. Fallback Automático de RAG (`RAG Domain Fallback`) — em `/admin/ingestao`
+* **Onde fica**: movido do formulário de "Parâmetros de Execução" (`/admin/modelos`) para a seção "Regras de Busca & Isolamento de Domínios RAG" em `/admin/ingestao`, junto dos demais controles de RAG/crawler.
 * **O que faz**: Chave de Liga/Desliga (`Sim` / `Não`).
 * **Uso prático**: Quando ativado (`Sim`), se um cliente fizer uma pergunta de Suporte Técnico enquanto estiver navegando na página de Vendas, o assistente é autorizado a buscar nos manuais técnicos para responder ao cliente, sem bloqueá-lo.
 

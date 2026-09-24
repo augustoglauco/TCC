@@ -80,7 +80,6 @@ describe("RuntimeSettingsForm", () => {
       local_llm_temperature: 0.2,
       local_llm_timeout_s: 30,
       external_llm_timeout_s: 30,
-      rag_search_domain_fallback: false,
       intent_router_provider: "heuristica_llm",
       tone_monitor_enabled: true,
       tone_monitor_provider: "heuristica_llm",
