@@ -269,8 +269,11 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 - [x] Modelar o backend único de dados (catálogo, estoque, preços, manuais)
       reaproveitado tanto pelo RAG quanto pelo servidor MCP
-- [ ] Implementar servidor MCP interno expondo os 4 recursos de leitura
-      (catálogo, estoque, tabela de preços, manuais)
+- [x] Implementar servidor MCP interno expondo os 4 recursos de leitura
+      (catálogo, estoque, tabela de preços, manuais) — `app.mcp_server.b2b`,
+      rodando como processo próprio (`scripts/run_mcp_b2b_server.py`, porta
+      `MCP_B2B_PORT`/8100), ver decisão registrada em `docs/ARCHITECTURE.md`
+      §5
 - [ ] Implementar as 4 ferramentas do MCP B2B: validação de compatibilidade,
       consulta de frete e prazos, cotação automática, reserva/pedido
 - [ ] Integrar o Roteador/Orquestrador como "mais um integrador" do MCP B2B

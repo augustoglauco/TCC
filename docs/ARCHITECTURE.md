@@ -703,6 +703,75 @@ não antecipada por este item de modelagem; nenhuma ferramenta MCP nem
 endpoint HTTP é exposto ainda — isso fica para os próximos itens desta
 mesma fase (servidor MCP e as 4 ferramentas)`.
 
+**Decisão registrada (Fase 5, servidor MCP B2B — recursos de leitura, R12,
+2026-09-24):** o segundo item da Fase 5 ("implementar servidor MCP interno
+expondo os 4 recursos de leitura") entra em `app.mcp_server.b2b`
+(`create_b2b_mcp_server`), espelhando `app.mcp_client` (cliente do MCP do
+Google Calendar) — mesmo padrão de pastas já reservado em
+`docs/CONVENTIONS.md`. Quatro decisões de implementação:
+
+1. **SDK e API usadas:** `mcp` (Python SDK oficial), mas a versão
+   efetivamente instalada no projeto é a série **2.x**, onde a antiga
+   `FastMCP` foi **renomeada para `MCPServer`**
+   (`mcp.server.mcpserver.MCPServer`) — confirmado lendo o próprio pacote
+   instalado (`mcp.server.fastmcp` na 2.x só existe como um stub que levanta
+   `ModuleNotFoundError` apontando para o guia de migração). `pyproject.toml`
+   passa a pinar `mcp>=2.0` (antes `mcp>=1.0`, que não garantia qual das
+   duas APIs incompatíveis estaria disponível) para deixar explícito que o
+   servidor depende da API 2.x.
+2. **Resources, não tools, para os 4 itens de leitura:** o protocolo MCP
+   distingue *resources* (dados endereçáveis por URI, tipicamente
+   somente-leitura) de *tools* (ações/funções com efeitos ou lógica
+   arbitrária). A Seção 6 deste documento já separa os "Recursos (dados,
+   somente leitura)" das "Ferramentas (ações e automações transacionais)" —
+   mapeamento direto: os 4 recursos deste item viram `@server.resource(...)`
+   com URIs próprias (`catalogo://produtos`, `catalogo://produtos/{id}`,
+   `estoque://produtos/{id}`, `precos://produtos/{id}`,
+   `manuais://busca/{domain}?query=...`); as 4 ferramentas transacionais do
+   próximo item desta fase (compatibilidade, frete, cotação, reserva/pedido)
+   é que serão `tools` de verdade, por terem efeito colateral/parâmetros de
+   ação.
+3. **Processo próprio, não embutido no backend FastAPI principal:**
+   `scripts/run_mcp_b2b_server.py` sobe o servidor via transporte
+   `streamable-http` em `MCP_B2B_HOST:MCP_B2B_PORT` (settings já reservados
+   desde a modelagem do backend único, default `0.0.0.0:8100`) — mesmo
+   padrão de execução já usado para o `calendar-mcp-server` consumido em
+   R11 (processo solto, gerenciado via `goup.md`). Motivo: R12 descreve o
+   MCP B2B como um serviço voltado a **consumidores externos** (IAs de
+   parceiros integradores), papel distinto da API HTTP do chat — mantê-lo
+   num processo/porta própria evita acoplar o ciclo de vida dos dois (um
+   reinício do backend do chat não derruba o MCP B2B e vice-versa) e é
+   consistente com os hosts/portas que já estavam reservados em
+   `app.config.Settings` antes deste item existir. `goup.md` ganhou uma
+   nova seção para subir/derrubar esse processo (porta 8100).
+4. **Busca de manuais restrita a collections `purpose="mcp_b2b"`:** o
+   recurso `manuais://busca/{domain}?query=...` lista todas as
+   `RagCollection` via `app.rag.collections_registry.list_collections` e
+   filtra em memória as com `purpose == "mcp_b2b"` (sem função dedicada nova
+   em `collections_registry` — único consumidor desse recorte até agora,
+   regra 8 do `CLAUDE.md`), busca em cada uma via
+   `QdrantRAGClient.search(collection.name, embedder, query, domain)` e
+   agrega os resultados ordenados por score, cortando em
+   `DEFAULT_MANUAIS_TOP_K=5`. Nunca toca a collection ativa do chat
+   (`purpose="chat"`) — completa a "metade de consumo" que a decisão de
+   2026-09-21 (ingestão de documentação restrita ao MCP B2B) deixou em
+   aberto para esta fase. `domain` continua sendo um parâmetro obrigatório
+   do recurso (um dos três domínios de R7), pelo mesmo motivo já registrado
+   para o playground de busca: `QdrantRAGClient.search` sempre filtra por
+   domínio, sem modo "todos os domínios" — estender esse contrato fica fora
+   do escopo deste item.
+
+`# MVP: mesmo uso interno/sem autenticação por parceiro já registrado para
+o backend único de dados (item anterior desta fase) — este servidor herda
+essa limitação; catálogo/estoque/preços expostos sem paginação (mesmo
+comportamento de app.db.catalog.listar_produtos, que já não pagina); busca
+de manuais sem reranking entre collections além da ordenação por score
+(mesma simplificação já aceita para o reranking de imagem, "básico").`
+Testado chamando o servidor pela mesma superfície que um cliente MCP usaria
+(`MCPServer.read_resource(...)`, via `create_b2b_mcp_server` injetado com
+dependências de teste — SQLite em memória + Qdrant `:memory:`), não só a
+camada de dados por baixo (já coberta por `test_catalog.py`).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
