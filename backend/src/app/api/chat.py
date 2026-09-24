@@ -311,14 +311,33 @@ async def send_message(
                             }
                         },
                     )
-                    await criar_escalonamento(
-                        session,
-                        conversation_id=conversation_id,
-                        mensagem=effective_message,
-                        motivo=event.motivo,
-                        confianca=event.confianca,
-                        provider_efetivo=event.provider_efetivo,
-                    )
+                    try:
+                        await criar_escalonamento(
+                            session,
+                            conversation_id=conversation_id,
+                            mensagem=effective_message,
+                            motivo=event.motivo,
+                            confianca=event.confianca,
+                            provider_efetivo=event.provider_efetivo,
+                        )
+                    except Exception as exc:
+                        # Achado na revisão final do branch Monitor de Tom: sem este
+                        # try/except, uma falha ao persistir (sessão, constraint,
+                        # instabilidade do Postgres) propagava crua e derrubava todo o
+                        # stream SSE — mesmo depois do evento `escalonamento` já ter
+                        # sido enviado ao cliente e de marcar_escalada() já ter rodado
+                        # no orchestrator. O caso já é rastreável pelo log
+                        # "tom_escalonado" acima; aqui só evitamos perder a resposta.
+                        logger.warning(
+                            "tom_escalonamento_persistencia_falhou",
+                            extra={
+                                "router": {
+                                    "event": "tom_escalonamento_persistencia_falhou",
+                                    "conversation_id": conversation_id,
+                                    "erro": str(exc),
+                                }
+                            },
+                        )
                 elif isinstance(event, RouterDecision):
                     history = _conversation_history.setdefault(conversation_id, [])
                     history.append(effective_message)
