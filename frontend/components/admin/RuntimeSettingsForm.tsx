@@ -24,7 +24,6 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
   const [temperatura, setTemperatura] = useState("");
   const [localTimeout, setLocalTimeout] = useState("");
   const [externalTimeout, setExternalTimeout] = useState("");
-  const [ragFallback, setRagFallback] = useState(false);
   const [routerProvider, setRouterProvider] = useState<"heuristica_llm" | "jev_openrouter">(
     "heuristica_llm",
   );
@@ -47,7 +46,6 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         );
         setLocalTimeout(String(atual.local_llm_timeout_s));
         setExternalTimeout(String(atual.external_llm_timeout_s));
-        setRagFallback(atual.rag_search_domain_fallback);
         setRouterProvider(atual.intent_router_provider ?? "heuristica_llm");
         setToneMonitorEnabled(atual.tone_monitor_enabled ?? true);
         setToneMonitorProvider(atual.tone_monitor_provider ?? "heuristica_llm");
@@ -81,7 +79,11 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         local_llm_temperature: temperatura.trim() === "" ? null : Number(temperatura),
         local_llm_timeout_s: Number(localTimeout),
         external_llm_timeout_s: Number(externalTimeout),
-        rag_search_domain_fallback: ragFallback,
+        // rag_search_domain_fallback não é mandado daqui: o controle real
+        // mora em RagSearchConfigSection (app/admin/ingestao/page.tsx) —
+        // ter os dois componentes lendo/reenviando o mesmo campo permitia
+        // que salvar este form sobrescrevesse silenciosamente uma mudança
+        // feita na outra tela sem recarregar (achado no code-review).
         intent_router_provider: routerProvider,
         tone_monitor_enabled: toneMonitorEnabled,
         tone_monitor_provider: toneMonitorProvider,
