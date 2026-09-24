@@ -104,187 +104,219 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label htmlFor="rt-temperature" className="block text-sm font-medium text-gray-900">
-          Temperatura do modelo local (0.0–2.0, vazio = default do modelo)
-        </label>
-        <input
-          id="rt-temperature"
-          type="number"
-          min={0}
-          max={2}
-          step={0.1}
-          value={temperatura}
-          onChange={(e) => setTemperatura(e.target.value)}
-          placeholder="default do modelo"
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-        />
-        <p className="mt-1 text-xs text-gray-500">
-          Também afeta a classificação de intenção do roteador — valores baixos reduzem a variação
-          entre chamadas idênticas.
-        </p>
-      </div>
-
-      <div>
-        <label htmlFor="rt-local-timeout" className="block text-sm font-medium text-gray-900">
-          Timeout do modelo local (segundos)
-        </label>
-        <input
-          id="rt-local-timeout"
-          type="number"
-          min={0}
-          max={300}
-          step={1}
-          value={localTimeout}
-          onChange={(e) => setLocalTimeout(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="rt-external-timeout" className="block text-sm font-medium text-gray-900">
-          Timeout do modelo externo (segundos)
-        </label>
-        <input
-          id="rt-external-timeout"
-          type="number"
-          min={0}
-          max={300}
-          step={1}
-          value={externalTimeout}
-          onChange={(e) => setExternalTimeout(e.target.value)}
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-        />
-      </div>
-
-      <div className="flex items-center gap-2">
-        <input
-          id="rt-rag-fallback"
-          type="checkbox"
-          checked={ragFallback}
-          onChange={(e) => setRagFallback(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300"
-        />
-        <label htmlFor="rt-rag-fallback" className="text-sm font-medium text-gray-900">
-          RAG: buscar sem filtro de domínio quando a busca filtrada vem vazia
-        </label>
-      </div>
-      <p className="text-xs text-gray-500">
-        Desligado por padrão — ligar sacrifica o isolamento entre domínios e o sinal de
-        escalonamento do roteador (ver docs/ARCHITECTURE.md §5). Existe para comparação/experimento.
-      </p>
-
-      <div>
-        <span className="block text-sm font-medium text-gray-900">
-          Provedor de classificação de intenção
-        </span>
-        <div className="mt-1 space-y-2">
-          <div className="flex items-center gap-2">
-            <input
-              id="rt-router-provider-heuristica"
-              type="radio"
-              name="rt-router-provider"
-              value="heuristica_llm"
-              checked={routerProvider === "heuristica_llm"}
-              onChange={() => setRouterProvider("heuristica_llm")}
-              className="h-4 w-4 border-gray-300"
-            />
-            <label htmlFor="rt-router-provider-heuristica" className="text-sm text-gray-900">
-              Heurística + LLM Local (Ollama)
-            </label>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Seção 1: Inferencia LLM */}
+      <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 sm:p-5 space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3">
+          <span className="text-base">🎛️</span>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Configurações de Inferência LLM</h3>
+            <p className="text-xs text-slate-500">Temperatura e orçamentos de timeout de execução</p>
           </div>
-          <p className="ml-6 text-xs text-gray-500">
-            Padrão: palavras-chave locais com fallback para o modelo Ollama configurado.
-          </p>
-          <div className="flex items-center gap-2">
-            <input
-              id="rt-router-provider-jev"
-              type="radio"
-              name="rt-router-provider"
-              value="jev_openrouter"
-              checked={routerProvider === "jev_openrouter"}
-              onChange={() => setRouterProvider("jev_openrouter")}
-              className="h-4 w-4 border-gray-300"
-            />
-            <label htmlFor="rt-router-provider-jev" className="text-sm text-gray-900">
-              TypeSafe Jev (OpenRouter)
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="space-y-1">
+            <label htmlFor="rt-temperature" className="block text-xs font-semibold text-slate-800">
+              Temperatura do modelo local (0.0–2.0, vazio = default do modelo)
             </label>
+            <input
+              id="rt-temperature"
+              type="number"
+              min={0}
+              max={2}
+              step={0.1}
+              value={temperatura}
+              onChange={(e) => setTemperatura(e.target.value)}
+              placeholder="Default do modelo"
+              className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+            <p className="text-[11px] text-slate-500">Vazio = usa o padrão do modelo</p>
           </div>
-          <p className="ml-6 text-xs text-gray-500">
-            Classificação estruturada via endpoint /systemone, com fallback gracioso para a
-            heurística em caso de erro.
-          </p>
+
+          <div className="space-y-1">
+            <label htmlFor="rt-local-timeout" className="block text-xs font-semibold text-slate-800">
+              Timeout do modelo local (segundos)
+            </label>
+            <input
+              id="rt-local-timeout"
+              type="number"
+              min={0}
+              max={300}
+              step={1}
+              value={localTimeout}
+              onChange={(e) => setLocalTimeout(e.target.value)}
+              className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+            <p className="text-[11px] text-slate-500">Limite Ollama</p>
+          </div>
+
+          <div className="space-y-1">
+            <label htmlFor="rt-external-timeout" className="block text-xs font-semibold text-slate-800">
+              Timeout do modelo externo (segundos)
+            </label>
+            <input
+              id="rt-external-timeout"
+              type="number"
+              min={0}
+              max={300}
+              step={1}
+              value={externalTimeout}
+              onChange={(e) => setExternalTimeout(e.target.value)}
+              className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+            <p className="text-[11px] text-slate-500">Limite OpenRouter API</p>
+          </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <input
-          id="rt-tone-monitor-enabled"
-          type="checkbox"
-          checked={toneMonitorEnabled}
-          onChange={(e) => setToneMonitorEnabled(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300"
-        />
-        <label htmlFor="rt-tone-monitor-enabled" className="text-sm font-medium text-gray-900">
-          Monitor de Tom ativo (R8)
-        </label>
-      </div>
-      <p className="text-xs text-gray-500">
-        Ligado por padrão — monitora urgência/insatisfação em cada mensagem e escalona pra
-        atendimento humano quando detecta um sinal forte. Desligar remove qualquer custo extra (nem
-        a heurística roda).
-      </p>
+      {/* Seção 2: Roteador de Intenções */}
+      <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 sm:p-5 space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3">
+          <span className="text-base">🧭</span>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Roteador de Intenções & Classificação</h3>
+            <p className="text-xs text-slate-500">Selecione o mecanismo de triagem e direcionamento de mensagens</p>
+          </div>
+        </div>
 
-      <div>
-        <span className="block text-sm font-medium text-gray-900">
-          Provedor do Monitor de Tom (fallback ambíguo)
-        </span>
-        <div className="mt-1 space-y-2">
-          <div className="flex items-center gap-2">
-            <input
-              id="rt-tone-monitor-provider-heuristica"
-              type="radio"
-              name="rt-tone-monitor-provider"
-              value="heuristica_llm"
-              checked={toneMonitorProvider === "heuristica_llm"}
-              onChange={() => setToneMonitorProvider("heuristica_llm")}
-              disabled={!toneMonitorEnabled}
-              className="h-4 w-4 border-gray-300"
-            />
-            <label htmlFor="rt-tone-monitor-provider-heuristica" className="text-sm text-gray-900">
-              Heurística + LLM Local (Ollama)
+        <div>
+          <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+            Provedor de classificação de intenção
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label
+              htmlFor="rt-router-provider-heuristica"
+              className={`flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer ${
+                routerProvider === "heuristica_llm"
+                  ? "border-blue-500 bg-blue-50/60 ring-1 ring-blue-500"
+                  : "border-slate-200 bg-white hover:border-slate-300"
+              }`}
+            >
+              <input
+                id="rt-router-provider-heuristica"
+                type="radio"
+                name="rt-router-provider"
+                value="heuristica_llm"
+                checked={routerProvider === "heuristica_llm"}
+                onChange={() => setRouterProvider("heuristica_llm")}
+                className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500"
+              />
+              <div className="space-y-0.5">
+                <span className="block text-xs font-semibold text-slate-900">
+                  Heurística + LLM Local (Ollama)
+                </span>
+                <span className="block text-[11px] text-slate-500 leading-relaxed">
+                  Padrão: Palavras-chave locais com fallback para o modelo Ollama local.
+                </span>
+              </div>
+            </label>
+
+            <label
+              htmlFor="rt-router-provider-jev"
+              className={`flex items-start gap-3 rounded-xl border p-3.5 transition-all cursor-pointer ${
+                routerProvider === "jev_openrouter"
+                  ? "border-blue-500 bg-blue-50/60 ring-1 ring-blue-500"
+                  : "border-slate-200 bg-white hover:border-slate-300"
+              }`}
+            >
+              <input
+                id="rt-router-provider-jev"
+                type="radio"
+                name="rt-router-provider"
+                value="jev_openrouter"
+                checked={routerProvider === "jev_openrouter"}
+                onChange={() => setRouterProvider("jev_openrouter")}
+                className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500"
+              />
+              <div className="space-y-0.5">
+                <span className="block text-xs font-semibold text-slate-900">
+                  TypeSafe Jev (OpenRouter)
+                </span>
+                <span className="block text-[11px] text-slate-500 leading-relaxed">
+                  Classificação estruturada via endpoint /systemone de alta velocidade.
+                </span>
+              </div>
             </label>
           </div>
-          <div className="flex items-center gap-2">
-            <input
-              id="rt-tone-monitor-provider-jev"
-              type="radio"
-              name="rt-tone-monitor-provider"
-              value="jev_openrouter"
-              checked={toneMonitorProvider === "jev_openrouter"}
-              onChange={() => setToneMonitorProvider("jev_openrouter")}
-              disabled={!toneMonitorEnabled}
-              className="h-4 w-4 border-gray-300"
-            />
-            <label htmlFor="rt-tone-monitor-provider-jev" className="text-sm text-gray-900">
-              TypeSafe Jev (OpenRouter)
-            </label>
-          </div>
-          <p className="ml-6 text-xs text-gray-500">
-            Só decide quando a heurística de palavras-chave não encontra sinal forte. Falha do Jev
-            degrada para a heurística automaticamente.
-          </p>
         </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={salvando}
-        className="rounded-md bg-gray-900 px-4 py-2 text-sm text-white disabled:opacity-50"
-      >
-        {salvando ? "Aplicando..." : "Aplicar"}
-      </button>
+      {/* Seção 3: Monitor de Tom */}
+      <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 sm:p-5 space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3">
+          <span className="text-base">🛡️</span>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">Monitor de Tom (R8)</h3>
+            <p className="text-xs text-slate-500">Monitoramento em tempo real de urgência e insatisfação do cliente</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3.5">
+            <input
+              id="rt-tone-monitor-enabled"
+              type="checkbox"
+              checked={toneMonitorEnabled}
+              onChange={(e) => setToneMonitorEnabled(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <div className="space-y-0.5">
+              <label htmlFor="rt-tone-monitor-enabled" className="text-xs font-semibold text-slate-900 cursor-pointer">
+                Monitor de Tom ativo (R8)
+              </label>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Monitora sinais de insatisfação/urgência nas mensagens para transição e escalonamento humano.
+              </p>
+            </div>
+          </div>
+
+          <div className="pl-2 border-l-2 border-slate-200 ml-2 space-y-2">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Provedor do Monitor de Tom (fallback ambíguo)
+            </span>
+            <div className="flex flex-wrap gap-4">
+              <label htmlFor="rt-tone-monitor-provider-heuristica" className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                <input
+                  id="rt-tone-monitor-provider-heuristica"
+                  type="radio"
+                  name="rt-tone-monitor-provider"
+                  value="heuristica_llm"
+                  checked={toneMonitorProvider === "heuristica_llm"}
+                  onChange={() => setToneMonitorProvider("heuristica_llm")}
+                  disabled={!toneMonitorEnabled}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 disabled:opacity-40"
+                />
+                Heurística + LLM Local (Ollama)
+              </label>
+
+              <label htmlFor="rt-tone-monitor-provider-jev" className="flex items-center gap-2 text-xs font-medium text-slate-800 cursor-pointer">
+                <input
+                  id="rt-tone-monitor-provider-jev"
+                  type="radio"
+                  name="rt-tone-monitor-provider"
+                  value="jev_openrouter"
+                  checked={toneMonitorProvider === "jev_openrouter"}
+                  onChange={() => setToneMonitorProvider("jev_openrouter")}
+                  disabled={!toneMonitorEnabled}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 disabled:opacity-40"
+                />
+                TypeSafe Jev (OpenRouter)
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button
+          type="submit"
+          disabled={salvando}
+          className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-6 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-800 hover:shadow-lg disabled:opacity-50 cursor-pointer"
+        >
+          {salvando ? "Aplicando..." : "Aplicar"}
+        </button>
+      </div>
     </form>
   );
 }
