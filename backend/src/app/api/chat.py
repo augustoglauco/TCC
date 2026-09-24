@@ -1,5 +1,6 @@
 """Endpoint HTTP do chat (R2, R3, R5) — encaminha para o orchestrator do roteador."""
 
+import asyncio
 import base64
 import binascii
 import json
@@ -8,9 +9,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.rag_dependencies import get_db_session
 from app.mcp_client.google_calendar import CalendarClient
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
 from app.models.runtime_settings import (
@@ -111,6 +110,54 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+# Achado no code-review (2026-09-24): guarda referências às tasks de
+# persistência do escalonamento em background — sem isso, o event loop pode
+# coletar (e cancelar) a task antes dela terminar, já que nada mais no
+# processo mantém uma referência forte a ela. Mesmo padrão de
+# `app.api.local_models._background_tasks`.
+_background_tasks: set[asyncio.Task] = set()
+
+
+async def _persistir_escalonamento_em_background(
+    db_sessionmaker,
+    *,
+    conversation_id: str,
+    mensagem: str,
+    motivo: str | None,
+    confianca: float,
+    provider_efetivo: str,
+) -> None:
+    """Roda via `asyncio.create_task` — nunca aguardada pelo stream SSE que a
+    disparou, pra não travar a entrega de `token`s bem na mensagem em que o
+    cliente já está insatisfeito (achado no code-review, 2026-09-24). Abre
+    sua PRÓPRIA sessão (não reaproveita a do request) porque `AsyncSession`
+    não é segura para uso concorrente, e a sessão do request pode já ter
+    sido encerrada pelo FastAPI antes desta task terminar, já que ela sobra
+    rodando depois do generator do stream ser exaurido.
+    """
+    try:
+        async with db_sessionmaker() as session:
+            await criar_escalonamento(
+                session,
+                conversation_id=conversation_id,
+                mensagem=mensagem,
+                motivo=motivo,
+                confianca=confianca,
+                provider_efetivo=provider_efetivo,
+            )
+    except Exception as exc:
+        logger.warning(
+            "tom_escalonamento_persistencia_falhou",
+            extra={
+                "router": {
+                    "event": "tom_escalonamento_persistencia_falhou",
+                    "conversation_id": conversation_id,
+                    "erro": str(exc),
+                }
+            },
+        )
+
+
 @router.post("/messages")
 async def send_message(
     payload: ChatMessageRequest,
@@ -127,7 +174,6 @@ async def send_message(
     intent_router_provider: str = Depends(get_intent_router_provider),
     tone_monitor_enabled: bool = Depends(get_tone_monitor_enabled),
     tone_monitor_provider: str = Depends(get_tone_monitor_provider),
-    session: AsyncSession = Depends(get_db_session),
 ) -> StreamingResponse:
     conversation_id = payload.conversation_id or str(uuid4())
 
@@ -311,33 +357,24 @@ async def send_message(
                             }
                         },
                     )
-                    try:
-                        await criar_escalonamento(
-                            session,
+                    # Achado no code-review (2026-09-24): `await`ar a
+                    # persistência aqui travava a entrega de `token`s pelo
+                    # tempo do round-trip ao Postgres — bem na mensagem em
+                    # que o cliente já está insatisfeito. Roda em background
+                    # (nunca aguardada pelo stream); a falha, se houver, só
+                    # vira log (já rastreável pelo "tom_escalonado" acima).
+                    task = asyncio.create_task(
+                        _persistir_escalonamento_em_background(
+                            request.app.state.db_sessionmaker,
                             conversation_id=conversation_id,
                             mensagem=effective_message,
                             motivo=event.motivo,
                             confianca=event.confianca,
                             provider_efetivo=event.provider_efetivo,
                         )
-                    except Exception as exc:
-                        # Achado na revisão final do branch Monitor de Tom: sem este
-                        # try/except, uma falha ao persistir (sessão, constraint,
-                        # instabilidade do Postgres) propagava crua e derrubava todo o
-                        # stream SSE — mesmo depois do evento `escalonamento` já ter
-                        # sido enviado ao cliente e de marcar_escalada() já ter rodado
-                        # no orchestrator. O caso já é rastreável pelo log
-                        # "tom_escalonado" acima; aqui só evitamos perder a resposta.
-                        logger.warning(
-                            "tom_escalonamento_persistencia_falhou",
-                            extra={
-                                "router": {
-                                    "event": "tom_escalonamento_persistencia_falhou",
-                                    "conversation_id": conversation_id,
-                                    "erro": str(exc),
-                                }
-                            },
-                        )
+                    )
+                    _background_tasks.add(task)
+                    task.add_done_callback(_background_tasks.discard)
                 elif isinstance(event, RouterDecision):
                     history = _conversation_history.setdefault(conversation_id, [])
                     history.append(effective_message)

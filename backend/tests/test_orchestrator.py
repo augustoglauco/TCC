@@ -1045,12 +1045,21 @@ async def test_ollama_indisponivel_nao_faz_fallback_para_externo():
     assert external_client.calls == 0
 
 
-async def test_falha_de_rede_em_is_model_ready_vira_local_backend_indisponivel():
-    # Regressão: `is_model_ready()` faz uma chamada de rede (ex.: GET
-    # /api/ps do Ollama) tão sujeita a falha de infraestrutura quanto
-    # `generate_stream` — antes da correção, uma falha aqui propagava crua
-    # em vez de virar LocalBackendIndisponivelError (e, no endpoint HTTP, em
-    # vez de virar o evento SSE `error`).
+async def test_falha_em_is_model_ready_nao_derruba_a_requisicao():
+    # Achado no code-review (2026-09-24): `is_model_ready()` é só uma
+    # otimização de UX (mostrar "carregando_modelo" antes de um cold-start
+    # real) — com o Monitor de Tom no padrão (habilitado), essa checagem
+    # passou a rodar para quase toda mensagem, inclusive as que nunca
+    # chamariam o backend local pra classificação de verdade (ex.:
+    # classificação por palavra-chave resolve sozinha). Antes desta
+    # correção, uma falha de rede só na *checagem* (não numa chamada real)
+    # já derrubava a requisição inteira via LocalBackendIndisponivelError —
+    # mesmo quando o backend local nunca seria necessário pra classificar.
+    # Agora essa falha só gera um log de aviso e a requisição segue
+    # normalmente. Monitor de Tom continua habilitado (padrão) nesta
+    # mensagem — sua própria chamada ao LLM (resposta não-JSON) já degrada
+    # graciosamente sozinha, sem escalar (comportamento à parte, já coberto
+    # em test_tone_monitor.py).
     local_client = _FakeLLMClient(
         response=_resposta_local(), model_ready_exception=ConnectionError("ollama fora do ar")
     )
@@ -1059,17 +1068,27 @@ async def test_falha_de_rede_em_is_model_ready_vira_local_backend_indisponivel()
         documents=[Document(content="conteúdo", source="doc1.txt", score=0.9)]
     )
 
-    with pytest.raises(LocalBackendIndisponivelError):
-        await _coletar_eventos(
-            "não funciona, me ajuda",
-            recent_messages=[],
-            local_client=local_client,
-            external_client=external_client,
-            rag_client=rag_client,
-            complexity_strategy="heuristic",
-        )
+    eventos = await _coletar_eventos(
+        # Sem palavra-chave de nenhum domínio: classify() resolve
+        # "fora_escopo" só pela heurística (sem chamar o LLM local), e a
+        # geração da resposta em si roteia pro backend EXTERNO — o backend
+        # local nunca é de fato necessário nesta mensagem, além da própria
+        # checagem (que falha) e do fallback do Monitor de Tom (que
+        # degrada sozinho).
+        "Qual a capital da França?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+    )
 
-    assert external_client.calls == 0
+    decisoes = [e for e in eventos if isinstance(e, RouterDecision)]
+    assert len(decisoes) == 1
+    assert decisoes[0].domain == "fora_escopo"
+    assert decisoes[0].backend_escolhido == "externo"
+    assert not any(isinstance(e, StatusEvent) for e in eventos)
+    assert not any(isinstance(e, EscalonamentoEvent) for e in eventos)
 
 
 async def test_falha_do_local_na_classificacao_llm_nao_faz_fallback_para_externo():
