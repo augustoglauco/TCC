@@ -160,7 +160,7 @@ Postgres já provisionado (`docker-compose.yml`, mesmo usado por
 | `mensagem` | text | mensagem que disparou a escalada (truncada se necessário) |
 | `motivo` | text | nullable |
 | `confianca` | float | |
-| `provider_efetivo` | text | `"heuristica"` \| `"heuristica_llm"` \| `"jev_openrouter"` |
+| `provider_efetivo` | text | `"heuristica_llm"` \| `"jev_openrouter"` |
 | `criado_em` | timestamp with time zone | default `now()` |
 
 **Decisão: não faz parte da Fase 6** (memória/persistência de conversa) —
@@ -225,7 +225,7 @@ algum, nem heurística).
 - `backend/tests/test_chat_api.py`: evento SSE `escalonamento` aparece
   antes do `done` no stream real via `TestClient`.
 - `backend/tests/test_tom_escalonamentos_api.py`: `GET
-  /api/admin/runtime-settings` reflete zero casos, um caso persistido
+  /api/admin/tom/escalonamentos` reflete zero casos, um caso persistido
   aparece na listagem, ordem mais-recente-primeiro.
 - `backend/tests/test_config.py`: defaults de
   `TONE_MONITOR_ENABLED`/`TONE_MONITOR_PROVIDER`.
