@@ -15,9 +15,11 @@ from app.api.chat import (
     get_rag_client,
     get_scheduling_config,
     get_stt_client,
+    get_tone_monitor_enabled,
     reset_conversation_history,
 )
 from app.api.chat import router as chat_router
+from app.api.rag_dependencies import get_db_session
 from app.rag.image_search import ImageSearchResult
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
@@ -136,7 +138,7 @@ class _FakeSttClient:
 
 
 @pytest.fixture
-def fakes():
+def fakes(db_session):
     return {
         "local": _FakeLLMClient(LLMResponse(text="resposta local", total_duration_ms=10.0)),
         "external": _FakeLLMClient(LLMResponse(text="resposta externa", total_duration_ms=20.0)),
@@ -147,6 +149,7 @@ def fakes():
         # Catálogo CLIP vazio por padrão — testes de identificação populam.
         "clip_store": _FakeClipStore(results=[]),
         "clip_embedder": object(),
+        "db_session": db_session,
     }
 
 
@@ -169,6 +172,7 @@ def _build_app(fakes: dict, complexity_strategy: str = "heuristic") -> FastAPI:
     # nas asserções abaixo (resposta normal do LLM, não o fluxo de booking).
     app.dependency_overrides[get_calendar_client] = lambda: None
     app.dependency_overrides[get_scheduling_config] = lambda: None
+    app.dependency_overrides[get_db_session] = lambda: fakes["db_session"]
     # Limiares lidos via request.app.state no fluxo de identificação.
     app.state.image_internal_confidence = 0.30
     app.state.image_external_confidence = 0.80
@@ -299,6 +303,12 @@ def test_audio_e_transcrito_e_usado_como_mensagem(client, fakes):
     # `app.api.chat.send_message`).
     fakes["stt"] = _FakeSttClient(text="quero agendar uma visita")
     client.app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
+    # Monitor de Tom (R8) também chamaria local_client.generate() (fallback
+    # heuristica_llm) para a mensagem sem sinal heurístico forte, inflando a
+    # contagem de prompts verificada abaixo — desligado aqui para isolar
+    # especificamente o comportamento de transcrição de áudio que este teste
+    # valida (mesmo padrão usado em test_orchestrator.py, Task 6).
+    client.app.dependency_overrides[get_tone_monitor_enabled] = lambda: False
     audio_b64 = base64.b64encode(b"conteudo-de-audio-fake").decode()
 
     response = client.post(
@@ -358,6 +368,12 @@ def test_audio_sem_fala_e_sem_message_retorna_422(client, fakes):
 def test_audio_transcrito_vazio_cai_de_volta_para_mensagem_de_texto(client, fakes):
     fakes["stt"] = _FakeSttClient(text="")
     client.app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
+    # Monitor de Tom (R8) também chamaria local_client.generate() (fallback
+    # heuristica_llm) para a mensagem sem sinal heurístico forte, inflando a
+    # contagem de prompts verificada abaixo — desligado aqui para isolar
+    # especificamente o comportamento de fallback de transcrição vazia que
+    # este teste valida (mesmo padrão usado em test_orchestrator.py, Task 6).
+    client.app.dependency_overrides[get_tone_monitor_enabled] = lambda: False
     audio_b64 = base64.b64encode(b"audio-sem-fala-reconhecivel").decode()
 
     response = client.post(
@@ -452,3 +468,58 @@ def test_dependencia_indisponivel_gera_evento_de_erro(fakes):
     eventos = _parse_sse(response.text)
     assert eventos[-1][0] == "error"
     assert "temporariamente indisponível" in eventos[-1][1]["detail"]
+
+
+def test_mensagem_com_sinal_forte_emite_evento_escalonamento_antes_do_done(client):
+    from app.router.tone_monitor import reset_escalated_conversations
+
+    reset_escalated_conversations()
+    response = client.post(
+        "/api/chat/messages",
+        json={"message": "Isso é um absurdo, nunca mais compro nessa loja!"},
+    )
+
+    assert response.status_code == 200
+    eventos = _parse_sse(response.text)
+    tipos = [tipo for tipo, _ in eventos]
+    assert "escalonamento" in tipos
+    assert tipos.index("escalonamento") < tipos.index("done")
+    escalonamento = _find(eventos, "escalonamento")
+    assert escalonamento["motivo"] == "insatisfacao"
+    assert isinstance(escalonamento["confianca"], float)
+
+
+def test_mensagem_neutra_nao_emite_evento_escalonamento(client):
+    from app.router.tone_monitor import reset_escalated_conversations
+
+    reset_escalated_conversations()
+    response = client.post(
+        "/api/chat/messages", json={"message": "Qual o horário de funcionamento?"}
+    )
+
+    assert response.status_code == 200
+    eventos = _parse_sse(response.text)
+    tipos = [tipo for tipo, _ in eventos]
+    assert "escalonamento" not in tipos
+
+
+async def test_escalonamento_e_persistido_no_banco(fakes):
+    from app.router.tone_monitor import listar_escalonamentos, reset_escalated_conversations
+
+    reset_escalated_conversations()
+    app = _build_app(fakes)
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/chat/messages",
+            json={"message": "Isso é um absurdo, nunca mais compro nessa loja!"},
+        )
+    assert response.status_code == 200
+
+    # Teste assíncrono (em vez de asyncio.run() isolado): reaproveita o
+    # mesmo loop gerenciado pelo pytest-asyncio da fixture `db_session`,
+    # evitando abrir um segundo loop independente para consultar a MESMA
+    # sessão SQLite em memória usada pela requisição acima.
+    registros = await listar_escalonamentos(fakes["db_session"])
+    assert len(registros) == 1
+    assert registros[0].motivo == "insatisfacao"
+    assert registros[0].provider_efetivo == "heuristica_llm"
