@@ -243,7 +243,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 > R11 (agendamento via MCP Calendar) implementado como Fase 4A — ver
 > `docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`.
-> R8 (monitor de tom) é a Fase 4B, com spec própria ainda a escrever.
+> R8 (monitor de tom) implementado como Fase 4B (backend) — ver
+> `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md`. Banner
+> visual no frontend consumindo o evento `escalonamento` fica para a
+> Fase 8 (item próprio do roadmap).
 
 - [x] Implementar cliente MCP para o Google Calendar (trocado em 2026-09-23
       do MCP oficial do Google, em Developer Preview, para um MCP de
@@ -255,10 +258,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] Implementar tratamento de erro claro para falha de conexão/autenticação
       do MCP do Google Calendar (sugerir nova tentativa ou transferir para
       atendente)
-- [ ] Implementar classificador leve de sentimento/urgência (heurística +
+- [x] Implementar classificador leve de sentimento/urgência (heurística +
       LLM leve)
-- [ ] Implementar alerta e transferência simulada para atendente humano + log
-      dos casos escalonados
+- [x] Implementar alerta e transferência simulada para atendente humano + log
+      dos casos escalonados (evento SSE `escalonamento` + tabela
+      `tom_escalonamentos` — o banner visual no frontend fica para a Fase 8,
+      ver `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md` §9)
 
 ## Fase 5 — MCP B2B Provido pela Empresa (R12)
 
