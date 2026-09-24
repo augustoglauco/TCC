@@ -1,5 +1,5 @@
-from app.db.models import Base, TomEscalonamento
 from app.db.engine import create_db_engine, create_session_factory
+from app.db.models import Base, TomEscalonamento
 
 
 async def test_tom_escalonamento_tem_colunas_esperadas():
