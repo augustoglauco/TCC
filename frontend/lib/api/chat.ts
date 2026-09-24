@@ -1,6 +1,7 @@
 import type { ChatDoneEventData, ChatMessageRequest } from "@/lib/types/chat";
+import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE_URL = getApiBaseUrl();
 
 export interface SendChatMessageParams {
   /** Texto digitado pelo usuário. Opcional se `audioBase64` ou `imageBase64` for informado. */

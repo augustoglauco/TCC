@@ -50,3 +50,19 @@ def test_settings_have_tone_monitor_defaults():
     settings = Settings(_env_file=None)
     assert settings.tone_monitor_enabled is True
     assert settings.tone_monitor_provider == "heuristica_llm"
+
+
+def test_cors_allowed_origins_aceita_uma_unica_origem():
+    settings = Settings(_env_file=None)
+    assert settings.cors_allowed_origins == ["http://localhost:3001"]
+
+
+def test_cors_allowed_origins_faz_split_por_virgula_e_ignora_espacos():
+    settings = Settings(
+        _env_file=None,
+        cors_allowed_origin="http://localhost:3001, http://192.168.1.200:3001 ,,",
+    )
+    assert settings.cors_allowed_origins == [
+        "http://localhost:3001",
+        "http://192.168.1.200:3001",
+    ]

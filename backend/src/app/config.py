@@ -130,9 +130,16 @@ class Settings(BaseSettings):
     mcp_b2b_host: str = "0.0.0.0"
     mcp_b2b_port: int = 8100
 
-    # MVP: origem única do frontend em dev — sem lista configurável por
-    # ambiente/parceiro (isso seria necessário para um deploy real, R2/R9).
+    # MVP: origens do frontend em dev, separadas por vírgula em uma única
+    # variável — sem lista por ambiente/parceiro (isso seria necessário para
+    # um deploy real, R2/R9). Mais de uma origem é necessária mesmo em dev
+    # porque o mesmo frontend é acessado por localhost, IP da LAN e domínio
+    # DuckDNS (achado do bug de acesso mobile, 2026-09-24).
     cors_allowed_origin: str = "http://localhost:3001"
+
+    @property
+    def cors_allowed_origins(self) -> list[str]:
+        return [origem.strip() for origem in self.cors_allowed_origin.split(",") if origem.strip()]
 
 
 @lru_cache
