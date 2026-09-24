@@ -341,6 +341,30 @@ async def test_classify_tone_jev_noul_baixo_nao_escala():
 
 
 @pytest.mark.asyncio
+async def test_classify_tone_jev_resposta_sem_noul_usa_default_seguro():
+    # Achado no code-review (2026-09-24): sem `.get()` defensivo, uma
+    # resposta sem a chave "noul" levantava KeyError cru em vez de
+    # degradar com o mesmo default seguro do irmão classify_intent_jev.
+    def mock_handler(request: httpx.Request) -> httpx.Response:
+        data = {"answers": {"escalar": {"type": "noul"}}}
+        return httpx.Response(200, json=data)
+
+    transport = httpx.MockTransport(mock_handler)
+    async with httpx.AsyncClient(transport=transport) as mock_client:
+        client = OpenRouterClient(
+            base_url="https://openrouter.ai/api/v1",
+            api_key="test-key",
+            model="meta-llama/llama-3",
+            timeout_s=5.0,
+            client=mock_client,
+            jev_model="typesafe/jev-latest",
+        )
+        escalate, confidence = await client.classify_tone_jev(message="teste", recent_messages=[])
+        assert escalate is False
+        assert confidence == 0.0
+
+
+@pytest.mark.asyncio
 async def test_classify_tone_jev_falha_http_propaga_excecao():
     def mock_handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(500)

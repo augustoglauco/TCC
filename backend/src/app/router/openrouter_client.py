@@ -330,5 +330,13 @@ class OpenRouterClient:
             timeout=self._jev_timeout_s,
         )
         response.raise_for_status()
-        noul = float(response.json()["answers"]["escalar"]["noul"])
+        # Achado no code-review (2026-09-24): sem `.get()` defensivo (ao
+        # contrário do irmão `classify_intent_jev` acima), uma resposta sem
+        # a chave "noul" levantava KeyError cru em vez de degradar — o
+        # chamador (`tone_monitor._analyze_with_jev`) captura qualquer
+        # exceção e já degrada com segurança, mas o default aqui evita
+        # depender só disso. Default `0.0` (não escala) é o lado seguro,
+        # mesmo espírito de `_classify_heuristic_fallback`.
+        answer = response.json()["answers"]["escalar"]
+        noul = float(answer.get("noul", 0.0))
         return noul >= 0.5, noul
