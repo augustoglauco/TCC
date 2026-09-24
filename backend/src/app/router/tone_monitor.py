@@ -3,7 +3,10 @@ import logging
 from typing import Any, Literal
 
 from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models import TomEscalonamento
 from app.models.runtime_settings import DEFAULT_TONE_MONITOR_PROVIDER
 from app.router.classifier import _normalize, _strip_code_fence
 from app.router.llm_client import LLMClient
@@ -173,3 +176,32 @@ def ja_escalada(conversation_id: str) -> bool:
 def reset_escalated_conversations() -> None:
     """Limpa o estado em memória — usado pelos testes para isolar casos."""
     _conversas_escaladas.clear()
+
+
+async def criar_escalonamento(
+    session: AsyncSession,
+    *,
+    conversation_id: str,
+    mensagem: str,
+    motivo: str | None,
+    confianca: float,
+    provider_efetivo: str,
+) -> TomEscalonamento:
+    registro = TomEscalonamento(
+        conversation_id=conversation_id,
+        mensagem=mensagem,
+        motivo=motivo,
+        confianca=confianca,
+        provider_efetivo=provider_efetivo,
+    )
+    session.add(registro)
+    await session.commit()
+    await session.refresh(registro)
+    return registro
+
+
+async def listar_escalonamentos(session: AsyncSession, limit: int = 100) -> list[TomEscalonamento]:
+    result = await session.execute(
+        select(TomEscalonamento).order_by(TomEscalonamento.criado_em.desc()).limit(limit)
+    )
+    return list(result.scalars().all())
