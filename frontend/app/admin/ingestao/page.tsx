@@ -243,11 +243,15 @@ function RagSearchConfigSection({
     setSalvando(true);
     setRagFallback(checked);
     try {
-      const atual = await getRuntimeSettings();
-      await updateRuntimeSettings({
-        ...atual,
-        rag_search_domain_fallback: checked,
-      });
+      // Achado no code-review (2026-09-24): buscar o estado atual e
+      // reenviar o objeto inteiro (spread) criava uma race de leitura-e-
+      // escrita — se outro admin salvasse um campo diferente (ex.:
+      // tone_monitor_provider em /admin/modelos) entre o GET e o PUT
+      // daqui, esse PUT reenviava o valor antigo e revertia a mudança
+      // alheia em silêncio. O PUT já é uma atualização parcial no backend
+      // (RuntimeSettingsUpdateRequest, exclude_unset=True) — mandar só o
+      // campo que mudou evita a race sem precisar do GET antes.
+      await updateRuntimeSettings({ rag_search_domain_fallback: checked });
       onSuccess("Regra de busca do RAG atualizada.");
     } catch (err) {
       setRagFallback(!checked);
