@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pytest
 
 from app.router.llm_client import LLMResponse
@@ -359,10 +361,24 @@ async def test_criar_escalonamento_persiste_e_retorna_o_registro(db_session):
 
 
 @pytest.mark.asyncio
-async def test_listar_escalonamentos_ordena_mais_recente_primeiro(db_session):
-    import asyncio
+async def test_criar_escalonamento_trunca_mensagem_muito_longa(db_session):
+    mensagem_longa = "x" * 5000
 
-    await criar_escalonamento(
+    registro = await criar_escalonamento(
+        db_session,
+        conversation_id="conv-1",
+        mensagem=mensagem_longa,
+        motivo="urgencia",
+        confianca=0.9,
+        provider_efetivo="heuristica_llm",
+    )
+
+    assert len(registro.mensagem) == 2000
+
+
+@pytest.mark.asyncio
+async def test_listar_escalonamentos_ordena_mais_recente_primeiro(db_session):
+    primeiro = await criar_escalonamento(
         db_session,
         conversation_id="conv-a",
         mensagem="primeira",
@@ -370,7 +386,11 @@ async def test_listar_escalonamentos_ordena_mais_recente_primeiro(db_session):
         confianca=0.9,
         provider_efetivo="heuristica_llm",
     )
-    await asyncio.sleep(1.1)  # garante precisão de segundo diferente no SQLite
+    # Empurra o primeiro registro 1s pro passado em vez de dormir o teste —
+    # server_default=now() do SQLite só tem precisão de segundo, então dois
+    # inserts no mesmo segundo empatariam sem isso (achado na revisão final).
+    primeiro.criado_em -= timedelta(seconds=1)
+    await db_session.commit()
     await criar_escalonamento(
         db_session,
         conversation_id="conv-b",

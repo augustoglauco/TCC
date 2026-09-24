@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import TomEscalonamento
 from app.models.runtime_settings import DEFAULT_TONE_MONITOR_PROVIDER
-from app.router.classifier import _normalize, _strip_code_fence
+from app.router.classifier import normalize, strip_code_fence
 from app.router.llm_client import LLMClient
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ _INSATISFACAO_KEYWORDS = [
     # confidence=1.0 e escalonamento PERMANENTE (sem des-escalar, decisão da
     # spec §2). As formas abaixo são as únicas que capturam o sentido
     # pretendido (ameaça de ação judicial, par com "reclamação procon" na
-    # spec), casadas contra a mensagem já normalizada por `_normalize()`.
+    # spec), casadas contra a mensagem já normalizada por `normalize()`.
     "vou processar",
     "processar voces",
     "reclamacao procon",
@@ -60,7 +60,7 @@ _UPPERCASE_WORD_COUNT_MIN = 3
 
 
 def _match_keyword_signal(message: str) -> str | None:
-    normalized = _normalize(message)
+    normalized = normalize(message)
     if any(k in normalized for k in _URGENCIA_KEYWORDS):
         return "urgencia"
     if any(k in normalized for k in _INSATISFACAO_KEYWORDS):
@@ -108,7 +108,7 @@ async def _analyze_with_llm(
     prompt = _TONE_PROMPT_TEMPLATE.format(contexto=contexto, mensagem=message)
     try:
         response = await llm_client.generate(prompt)
-        parsed = json.loads(_strip_code_fence(response.text))
+        parsed = json.loads(strip_code_fence(response.text))
         escalate = bool(parsed.get("escalar", False))
         motivo = parsed.get("motivo") if escalate else None
         confidence = float(parsed.get("confianca", 0.0))
@@ -211,6 +211,13 @@ def reset_escalated_conversations() -> None:
     _conversas_escaladas.clear()
 
 
+# MVP: truncamento fixo, sem limite configurável — spec §5 pede "mensagem
+# truncada se necessário" sem definir um tamanho; 2000 chars preserva
+# contexto suficiente pra revisão humana sem deixar a coluna sem teto
+# (achado na revisão final).
+_MENSAGEM_MAX_CHARS = 2000
+
+
 async def criar_escalonamento(
     session: AsyncSession,
     *,
@@ -222,7 +229,7 @@ async def criar_escalonamento(
 ) -> TomEscalonamento:
     registro = TomEscalonamento(
         conversation_id=conversation_id,
-        mensagem=mensagem,
+        mensagem=mensagem[:_MENSAGEM_MAX_CHARS],
         motivo=motivo,
         confianca=confianca,
         provider_efetivo=provider_efetivo,

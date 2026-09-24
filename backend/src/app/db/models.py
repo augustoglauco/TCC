@@ -119,4 +119,6 @@ class TomEscalonamento(Base):
     motivo: Mapped[str | None]
     confianca: Mapped[float]
     provider_efetivo: Mapped[str]
-    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )

@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -44,9 +46,7 @@ async def test_get_escalonamentos_retorna_caso_persistido(db_session):
 
 
 async def test_get_escalonamentos_ordena_mais_recente_primeiro(db_session):
-    import asyncio
-
-    await criar_escalonamento(
+    primeiro = await criar_escalonamento(
         db_session,
         conversation_id="conv-a",
         mensagem="primeira",
@@ -54,7 +54,11 @@ async def test_get_escalonamentos_ordena_mais_recente_primeiro(db_session):
         confianca=0.9,
         provider_efetivo="heuristica_llm",
     )
-    await asyncio.sleep(1.1)
+    # Empurra o primeiro registro 1s pro passado em vez de dormir o teste —
+    # server_default=now() do SQLite só tem precisão de segundo (achado na
+    # revisão final do Monitor de Tom).
+    primeiro.criado_em -= timedelta(seconds=1)
+    await db_session.commit()
     await criar_escalonamento(
         db_session,
         conversation_id="conv-b",
