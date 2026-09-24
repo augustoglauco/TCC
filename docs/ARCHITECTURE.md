@@ -623,6 +623,26 @@ deste TCC. O Jev também ganhou um orçamento de timeout próprio
 persistência/edição em runtime" do nome do modelo, evita que uma chamada
 travada custe até 30s ao visitante antes do fallback gracioso disparar.
 
+**Monitor de Tom (R8, Fase 4B, decisão registrada em 2026-09-23):**
+implementado como checagem transversal (`app.router.tone_monitor.analyze_tone`)
+que roda no início de `handle_message`, antes da classificação de domínio,
+sem substituir a resposta normal — ver
+`docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md`. Mesmo padrão
+de dois provedores configuráveis do classificador de intenção
+(`TONE_MONITOR_PROVIDER`: `heuristica_llm` — heurística de palavras-chave +
+sinais estruturais, com fallback ao LLM local, — ou `jev_openrouter`, com
+degradação automática para `heuristica_llm` em qualquer falha do Jev, mesma
+lógica de `ClassificationResult.provider_efetivo`). Primeira escalada de
+cada conversa emite o evento SSE `escalonamento` (`docs/FRONTEND.md` §4),
+persiste um registro em `tom_escalonamentos` (Postgres, migração `0006`) e
+loga o evento estruturado `tom_escalonado`. `# MVP: sem mecanismo de
+"des-escalar" uma conversa já marcada (estado em memória por processo, mesma
+limitação já aceita para o fluxo de agendamento); sem fila real de
+atendimento humano nem painel administrativo visual — só a API de listagem
+(`GET /api/admin/tom/escalonamentos`) e o log estruturado, para inspeção
+manual/demonstração`. Banner visual no frontend consumindo o evento
+`escalonamento` é a Fase 8 (fora de escopo desta entrega).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
