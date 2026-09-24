@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   // responde a toque (menu hambúrguer, modal do chat). Só o hostname é
   // comparado (sem porta/esquema) — ver
   // node_modules/next/dist/docs/.../allowedDevOrigins.md.
-  allowedDevOrigins: ["192.168.1.200"],
+  allowedDevOrigins: ["192.168.1.200", "augustoglauco.duckdns.org"],
 };
 
 export default nextConfig;
