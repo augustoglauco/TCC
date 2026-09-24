@@ -7,8 +7,9 @@ import type {
   PendingPage,
 } from "@/lib/types/crawler";
 import { extrairDetalheDeErro } from "@/lib/api/errors";
+import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE_URL = getApiBaseUrl();
 
 /** Erro de comunicação com os endpoints do crawler (rede ou HTTP não-2xx). */
 export class CrawlerApiError extends Error {

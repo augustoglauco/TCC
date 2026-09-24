@@ -1,7 +1,8 @@
 import type { RuntimeSettings, RuntimeSettingsUpdate } from "@/lib/types/runtimeSettings";
 import { extrairDetalheDeErro } from "@/lib/api/errors";
+import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE_URL = getApiBaseUrl();
 
 /** Erro de comunicação com o endpoint de parâmetros de execução. */
 export class RuntimeSettingsApiError extends Error {

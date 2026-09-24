@@ -37,14 +37,15 @@ def create_app() -> FastAPI:
 
     app = FastAPI(title="Assistente Multimodal — Backend", version="0.1.0")
 
-    # MVP: libera só a origem do frontend de dev — sem lista por
-    # ambiente/parceiro (ver docs/FRONTEND.md). Configurável via
-    # CORS_ALLOWED_ORIGIN em .env (padrão: http://localhost:3001, a porta do
-    # frontend Next.js) — não hardcode outras origens aqui, isso desliga o
-    # controle que a settings deveria ter.
+    # MVP: libera as origens do frontend de dev (lista, ver
+    # Settings.cors_allowed_origins) — sem lista por ambiente/parceiro
+    # (ver docs/FRONTEND.md). Configurável via CORS_ALLOWED_ORIGIN em .env
+    # (padrão: http://localhost:3001, a porta do frontend Next.js;
+    # separado por vírgula para mais de uma origem) — não hardcode outras
+    # origens aqui, isso desliga o controle que a settings deveria ter.
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[settings.cors_allowed_origin],
+        allow_origins=settings.cors_allowed_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
