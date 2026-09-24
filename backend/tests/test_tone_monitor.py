@@ -4,7 +4,9 @@ from app.router.llm_client import LLMResponse
 from app.router.tone_monitor import (
     ToneResult,
     analyze_tone,
+    criar_escalonamento,
     ja_escalada,
+    listar_escalonamentos,
     marcar_escalada,
     reset_escalated_conversations,
 )
@@ -196,3 +198,63 @@ def test_estado_de_conversa_marcar_e_consultar_escalada():
     assert ja_escalada("conv-2") is False
     reset_escalated_conversations()
     assert ja_escalada("conv-1") is False
+
+
+@pytest.mark.asyncio
+async def test_criar_escalonamento_persiste_e_retorna_o_registro(db_session):
+    registro = await criar_escalonamento(
+        db_session,
+        conversation_id="conv-1",
+        mensagem="preciso falar com um atendente AGORA",
+        motivo="urgencia",
+        confianca=0.9,
+        provider_efetivo="heuristica_llm",
+    )
+
+    assert registro.id is not None
+    assert registro.conversation_id == "conv-1"
+    assert registro.motivo == "urgencia"
+
+
+@pytest.mark.asyncio
+async def test_listar_escalonamentos_ordena_mais_recente_primeiro(db_session):
+    import asyncio
+
+    await criar_escalonamento(
+        db_session,
+        conversation_id="conv-a",
+        mensagem="primeira",
+        motivo="urgencia",
+        confianca=0.9,
+        provider_efetivo="heuristica_llm",
+    )
+    await asyncio.sleep(1.1)  # garante precisão de segundo diferente no SQLite
+    await criar_escalonamento(
+        db_session,
+        conversation_id="conv-b",
+        mensagem="segunda",
+        motivo="insatisfacao",
+        confianca=0.8,
+        provider_efetivo="jev_openrouter",
+    )
+
+    resultado = await listar_escalonamentos(db_session)
+
+    assert [r.conversation_id for r in resultado] == ["conv-b", "conv-a"]
+
+
+@pytest.mark.asyncio
+async def test_listar_escalonamentos_respeita_limit(db_session):
+    for i in range(3):
+        await criar_escalonamento(
+            db_session,
+            conversation_id=f"conv-{i}",
+            mensagem="msg",
+            motivo="urgencia",
+            confianca=0.5,
+            provider_efetivo="heuristica_llm",
+        )
+
+    resultado = await listar_escalonamentos(db_session, limit=2)
+
+    assert len(resultado) == 2
