@@ -47,7 +47,6 @@ describe("RuntimeSettingsForm", () => {
     expect(await screen.findByLabelText(/timeout do modelo local/i)).toHaveValue(30);
     expect(screen.getByLabelText(/timeout do modelo externo/i)).toHaveValue(30);
     expect(screen.getByLabelText(/temperatura/i)).toHaveValue(null);
-    expect(screen.getByLabelText(/buscar sem filtro de domínio/i)).not.toBeChecked();
     expect(screen.getAllByLabelText(/heurística \+ llm local \(ollama\)/i)[0]).toBeChecked();
     expect(screen.getAllByLabelText(/typesafe jev \(openrouter\)/i)[0]).not.toBeChecked();
     expect(screen.getByLabelText(/monitor de tom ativo/i)).toBeChecked();

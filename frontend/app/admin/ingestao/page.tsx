@@ -18,6 +18,7 @@ import { PlaygroundPanel } from "@/components/admin/playground/PlaygroundPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ToastStack, useToast } from "@/components/ui/Toast";
 import { RagApiError, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
+import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
 import type {
   DocumentIngestResponse,
   DocumentRegistryEntry,
@@ -209,6 +210,85 @@ function AbaDocumentosIngeridos({ collections }: { collections: RagCollection[] 
   );
 }
 
+function RagSearchConfigSection({
+  onError,
+  onSuccess,
+}: {
+  onError: (msg: string) => void;
+  onSuccess: (msg: string) => void;
+}) {
+  const [ragFallback, setRagFallback] = useState(false);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    async function carregar() {
+      try {
+        const atual = await getRuntimeSettings();
+        if (!cancelado) setRagFallback(atual.rag_search_domain_fallback);
+      } catch {
+        // Ignora erro inicial em testes/mocks
+      } finally {
+        if (!cancelado) setCarregando(false);
+      }
+    }
+    carregar();
+    return () => {
+      cancelado = true;
+    };
+  }, []);
+
+  async function handleToggle(checked: boolean) {
+    setSalvando(true);
+    setRagFallback(checked);
+    try {
+      const atual = await getRuntimeSettings();
+      await updateRuntimeSettings({
+        ...atual,
+        rag_search_domain_fallback: checked,
+      });
+      onSuccess("Regra de busca do RAG atualizada.");
+    } catch (err) {
+      setRagFallback(!checked);
+      onError(err instanceof Error ? err.message : "Erro ao atualizar regra de busca.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+        <span className="text-xl">🔍</span>
+        <div>
+          <h2 className="text-base font-bold text-slate-900">Regras de Busca & Isolamento de Domínios RAG</h2>
+          <p className="text-xs text-slate-500">Configuração do comportamento de busca vetorial no Qdrant</p>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-3 rounded-xl border border-amber-200/80 bg-amber-50/50 p-4">
+        <input
+          id="rt-rag-fallback"
+          type="checkbox"
+          checked={ragFallback}
+          disabled={carregando || salvando}
+          onChange={(e) => handleToggle(e.target.checked)}
+          className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500 cursor-pointer disabled:opacity-50"
+        />
+        <div className="space-y-0.5">
+          <label htmlFor="rt-rag-fallback" className="text-xs font-semibold text-amber-900 cursor-pointer">
+            RAG: buscar sem filtro de domínio quando a busca filtrada vem vazia
+          </label>
+          <p className="text-[11px] text-amber-700 leading-relaxed">
+            Desligado por padrão (recomendado) para preservar o isolamento estrito entre domínios (vendas, suporte, atendimento) e manter a precisão do roteador de escalonamento.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AbaConfiguracao({
   collections,
   onChanged,
@@ -220,36 +300,46 @@ function AbaConfiguracao({
   const { toasts, showToast, dismissToast } = useToast();
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-gray-600">Perfis de collection do Qdrant usados pelo RAG.</p>
-        <button
-          type="button"
-          onClick={() => setModalAberto(true)}
-          className="rounded-md bg-gray-900 px-4 py-2 text-sm text-white"
-        >
-          Nova collection
-        </button>
-      </div>
+    <div className="space-y-6">
+      <RagSearchConfigSection
+        onError={(msg) => showToast(msg, "error")}
+        onSuccess={(msg) => showToast(msg, "success")}
+      />
 
-      <div className="mt-6">
-        <CollectionsTable
-          collections={collections}
-          onChanged={onChanged}
-          onError={(message) => showToast(message, "error")}
-          onSuccess={(message) => showToast(message, "success")}
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Perfis de Coleções Qdrant</h2>
+            <p className="text-xs text-gray-600">Perfis de collection do Qdrant usados pelo RAG.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setModalAberto(true)}
+            className="rounded-md bg-gray-900 px-4 py-2 text-sm text-white"
+          >
+            Nova collection
+          </button>
+        </div>
+
+        <div className="mt-6">
+          <CollectionsTable
+            collections={collections}
+            onChanged={onChanged}
+            onError={(message) => showToast(message, "error")}
+            onSuccess={(message) => showToast(message, "success")}
+          />
+        </div>
+
+        <CollectionFormModal
+          open={modalAberto}
+          onOpenChange={setModalAberto}
+          onCreated={() => {
+            setModalAberto(false);
+            showToast("Collection criada.", "success");
+            onChanged();
+          }}
         />
       </div>
-
-      <CollectionFormModal
-        open={modalAberto}
-        onOpenChange={setModalAberto}
-        onCreated={() => {
-          setModalAberto(false);
-          showToast("Collection criada.", "success");
-          onChanged();
-        }}
-      />
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>

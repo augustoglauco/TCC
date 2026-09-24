@@ -36,34 +36,102 @@ export default function ModelosPage() {
     carregarModelos();
   }, [carregarModelos]);
 
+  const totalBytes = modelos?.reduce((acc, m) => acc + (m.size_bytes || 0), 0) ?? 0;
+  const totalGb = (totalBytes / 1024 ** 3).toFixed(1);
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12 sm:py-16">
-      <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">Administração Geral</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Painel de controle administrativo para gerenciamento de modelos LLM locais (Ollama) e parâmetros de execução em runtime.
-        </p>
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
+      {/* Header com badge de contexto */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 shadow-2xs mb-2">
+            <span>⚙️ Painel de Controle Admin</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            Administração Geral
+          </h1>
+          <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-2xl">
+            Gerenciamento de modelos LLM locais (Ollama), downloads do Hugging Face e parâmetros de inferência em tempo de execução.
+          </p>
+        </div>
       </div>
 
-      <div className="mt-6">
+      {/* KPI Stats Grid */}
+      <div className="mt-6 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center gap-3.5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 text-xl font-bold">
+            🤖
+          </div>
+          <div className="min-w-0">
+            <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              Modelo Ativo
+            </span>
+            <span className="block text-sm font-bold text-slate-900 truncate" title={activeModel || "Nenhum"}>
+              {activeModel ? activeModel : "Nenhum selecionado"}
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center gap-3.5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 text-xl font-bold">
+            📦
+          </div>
+          <div>
+            <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              Modelos Baixados
+            </span>
+            <span className="block text-sm font-bold text-slate-900">
+              {modelos === null ? "..." : `${modelos.length} modelo(s) (${totalGb} GB)`}
+            </span>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center gap-3.5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 text-xl font-bold">
+            ⚡
+          </div>
+          <div>
+            <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              Status Runtime
+            </span>
+            <span className="block text-sm font-bold text-emerald-700 flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Operacional (Ollama)
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Conteúdo com Abas */}
+      <div className="mt-8">
         <Tabs defaultValue="modelos">
-          <TabsList>
+          <TabsList className="p-1 bg-slate-100 rounded-xl border border-slate-200/80 inline-flex">
             <TabsTrigger value="modelos">🤖 Modelos Locais</TabsTrigger>
             <TabsTrigger value="parametros">⚙️ Parâmetros de Execução</TabsTrigger>
           </TabsList>
 
           <TabsContent value="modelos">
             <div className="space-y-6">
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
-                <h2 className="text-lg font-semibold text-slate-900">Modelos baixados</h2>
-                {activeModel !== null && (
-                  <p className="mt-1 text-sm text-slate-600">
-                    Modelo ativo no chat: <strong className="font-mono text-slate-900">{activeModel || "Nenhum"}</strong>
-                  </p>
-                )}
-                <div className="mt-4">
+              {/* Card 1: Modelos Baixados */}
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900">Modelos Locais Instalados</h2>
+                    <p className="text-xs text-slate-500">Modelos armazenados na biblioteca do Ollama e prontos para uso</p>
+                  </div>
+                  {activeModel !== null && (
+                    <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 text-xs text-slate-700">
+                      <span>Modelo ativo no chat:</span>
+                      <strong className="font-mono text-slate-900">{activeModel || "Nenhum"}</strong>
+                    </div>
+                  )}
+                </div>
+
+                <div>
                   {modelos === null ? (
-                    <p className="text-sm text-slate-500">Carregando modelos...</p>
+                    <div className="flex items-center justify-center py-8 text-xs text-slate-500">
+                      Carregando repositório de modelos...
+                    </div>
                   ) : (
                     <LocalModelsTable
                       models={modelos}
@@ -75,31 +143,31 @@ export default function ModelosPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
-                <h2 className="text-lg font-semibold text-slate-900">Baixar um modelo novo</h2>
-                <p className="mt-1 text-xs sm:text-sm text-slate-600">
-                  Nome da biblioteca do Ollama (ex.: <code className="rounded bg-slate-100 px-1 py-0.5 font-mono">llama3.1:8b</code>) ou um GGUF do Hugging Face
-                  (ex.: <code className="rounded bg-slate-100 px-1 py-0.5 font-mono">hf.co/usuario/repo:Q4_K_M</code>).
-                </p>
-                <div className="mt-4">
-                  <PullModelForm onPulled={carregarModelos} />
+              {/* Card 2: Baixar Novo Modelo */}
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+                <div className="border-b border-slate-100 pb-4">
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900">Baixar Novo Modelo LLM</h2>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Insira a tag da biblioteca do Ollama (ex.: <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-slate-800">llama3.1:8b</code>) ou URL GGUF do Hugging Face.
+                  </p>
                 </div>
+                <PullModelForm onPulled={carregarModelos} />
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="parametros">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs">
-              <h2 className="text-lg font-semibold text-slate-900">Parâmetros de execução</h2>
-              <p className="mt-1 text-xs sm:text-sm text-slate-600">
-                Ajustáveis em runtime, só em memória — resetam a cada restart do backend.
-              </p>
-              <div className="mt-4">
-                <RuntimeSettingsForm
-                  onError={(message) => showToast(message, "error")}
-                  onSuccess={(message) => showToast(message, "success")}
-                />
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+              <div className="border-b border-slate-100 pb-4">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900">Parâmetros de Execução em Runtime</h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Configurações de inferência, timeouts e mecanismo de roteamento mantidos em memória no backend.
+                </p>
               </div>
+              <RuntimeSettingsForm
+                onError={(message) => showToast(message, "error")}
+                onSuccess={(message) => showToast(message, "success")}
+              />
             </div>
           </TabsContent>
         </Tabs>
