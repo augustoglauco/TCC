@@ -55,14 +55,14 @@ _DOMAIN_KEYWORDS: dict[Domain, list[str]] = {
 }
 
 
-def _normalize(text: str) -> str:
+def normalize(text: str) -> str:
     """Minúsculas sem diacríticos — usuário real escreve "nao funciona"/"preco"."""
     decomposed = unicodedata.normalize("NFKD", text.lower())
     return decomposed.encode("ascii", "ignore").decode("ascii")
 
 
 _DOMAIN_KEYWORDS_NORMALIZED: dict[Domain, list[str]] = {
-    domain: [_normalize(k) for k in keywords] for domain, keywords in _DOMAIN_KEYWORDS.items()
+    domain: [normalize(k) for k in keywords] for domain, keywords in _DOMAIN_KEYWORDS.items()
 }
 
 _COMPLEXITY_LENGTH_THRESHOLD = 280
@@ -84,7 +84,7 @@ Responda apenas com JSON no formato: \
 
 
 def _match_domain_by_keywords(message: str) -> Domain | None:
-    normalized = _normalize(message)
+    normalized = normalize(message)
     matched = [
         domain
         for domain, keywords in _DOMAIN_KEYWORDS_NORMALIZED.items()
@@ -131,14 +131,14 @@ def _classify_heuristic_fallback(message: str, recent_messages: list[str]) -> Cl
 _CODE_FENCE_RE = re.compile(r"^```(?:\w+)?\s*\n?(.*?)\n?```$", re.DOTALL)
 
 
-def _strip_code_fence(text: str) -> str:
+def strip_code_fence(text: str) -> str:
     stripped = text.strip()
     match = _CODE_FENCE_RE.match(stripped)
     return match.group(1) if match else stripped
 
 
 def _parse_llm_classification(raw_text: str) -> ClassificationResult:
-    parsed = json.loads(_strip_code_fence(raw_text))
+    parsed = json.loads(strip_code_fence(raw_text))
     return ClassificationResult(**parsed, provider_efetivo=DEFAULT_INTENT_ROUTER_PROVIDER)
 
 
