@@ -10,6 +10,7 @@ from app.mcp_client.google_calendar import GoogleCalendarConnectionError
 from app.models.chat import RagChunkMetric
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.orchestrator import (
+    EscalonamentoEvent,
     ExternalBackendIndisponivelError,
     LocalBackendIndisponivelError,
     RouterDecision,
@@ -18,6 +19,7 @@ from app.router.orchestrator import (
     handle_message,
 )
 from app.router.rag_client import Document, RAGConnectionError
+from app.router.tone_monitor import reset_escalated_conversations
 from app.router.scheduling import (
     BookingSlots,
     SchedulingConfig,
@@ -614,6 +616,11 @@ async def test_agendamento_falha_do_local_na_extracao_vira_local_backend_indispo
             conversation_id="conv-10",
             calendar_client=calendar_client,
             scheduling_config=_SCHEDULING_CONFIG,
+            # Monitor de Tom (R8) também chamaria local_client.generate() e
+            # geraria o mesmo ConnectionError cru (não empacotado) antes do
+            # try/except de extração que este teste valida — desligado aqui
+            # para isolar especificamente esse comportamento.
+            tone_monitor_enabled=False,
         )
 
 
@@ -765,6 +772,10 @@ async def test_fora_escopo_sempre_externo_sem_tentar_rag():
         external_client=external_client,
         rag_client=rag_client,
         complexity_strategy="heuristic",
+        # Monitor de Tom (R8) também chamaria local_client.generate() (sem
+        # sinal heurístico na mensagem) e quebraria a contagem de chamadas
+        # que este teste valida especificamente — desligado aqui.
+        tone_monitor_enabled=False,
     )
     decisao = eventos[-1]
     assert isinstance(decisao, RouterDecision)
@@ -914,6 +925,10 @@ async def test_documento_recuperado_pelo_rag_e_injetado_no_prompt_do_llm():
         external_client=external_client,
         rag_client=rag_client,
         complexity_strategy="heuristic",
+        # Monitor de Tom (R8) também chamaria local_client.generate() (sem
+        # sinal heurístico na mensagem) e quebraria a contagem de chamadas
+        # que este teste valida especificamente — desligado aqui.
+        tone_monitor_enabled=False,
     )
 
     assert local_client.calls == 1
@@ -1020,6 +1035,11 @@ async def test_ollama_indisponivel_nao_faz_fallback_para_externo():
             external_client=external_client,
             rag_client=rag_client,
             complexity_strategy="heuristic",
+            # Monitor de Tom (R8) também chamaria local_client.generate() e
+            # geraria o mesmo ConnectionError cru (não empacotado) antes do
+            # try/except de classificação que este teste valida — desligado
+            # aqui para isolar especificamente esse comportamento.
+            tone_monitor_enabled=False,
         )
 
     assert external_client.calls == 0
@@ -1069,6 +1089,11 @@ async def test_falha_do_local_na_classificacao_llm_nao_faz_fallback_para_externo
             external_client=external_client,
             rag_client=rag_client,
             complexity_strategy="llm",
+            # Monitor de Tom (R8) também chamaria local_client.generate() e
+            # geraria o mesmo ConnectionError cru (não empacotado) antes do
+            # try/except de classificação que este teste valida — desligado
+            # aqui para isolar especificamente esse comportamento.
+            tone_monitor_enabled=False,
         )
 
     assert external_client.calls == 0
@@ -1156,6 +1181,11 @@ async def test_generate_stream_sem_chunk_final_vira_local_backend_indisponivel()
             external_client=external_client,
             rag_client=rag_client,
             complexity_strategy="heuristic",
+            # Monitor de Tom (R8) chamaria local_client.generate(), mas
+            # _StreamSemChunkFinal (fake deste teste) não implementa esse
+            # método — AttributeError não relacionado ao que este teste
+            # valida (generate_stream sem chunk final). Desligado aqui.
+            tone_monitor_enabled=False,
         )
 
     assert external_client.calls == 0
@@ -1248,6 +1278,12 @@ async def test_modelo_carrega_durante_classificacao_llm_ainda_assim_emite_status
         external_client=external_client,
         rag_client=rag_client,
         complexity_strategy="llm",
+        # Monitor de Tom (R8) também chamaria local_client.generate() antes
+        # da classificação, incrementando `calls` e fazendo o fake
+        # `is_model_ready` (que simula o cold-start real via `calls > 0`)
+        # reportar "pronto" cedo demais — mascarando exatamente o bug de
+        # cold-start que este teste valida. Desligado aqui.
+        tone_monitor_enabled=False,
     )
 
     assert isinstance(eventos[0], StatusEvent)
@@ -1274,3 +1310,103 @@ async def test_tokens_emitidos_em_ordem_e_resposta_final_e_a_concatenacao():
     assert len(tokens) == 1
     assert tokens[0].text == "Boa tarde!"
     assert eventos[-1].resposta == "Boa tarde!"
+
+
+async def test_mensagem_com_sinal_forte_emite_escalonamento_alem_do_fluxo_normal():
+    reset_escalated_conversations()
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"domain": "suporte", "complexity": "baixa", "confidence": 0.9}',
+            total_duration_ms=1.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=LLMResponse(text="resposta externa", total_duration_ms=1.0))
+    rag_client = _FakeRAGClient(documents=[Document(content="doc", source="manual", score=0.9)])
+
+    eventos = [
+        e
+        async for e in handle_message(
+            message="Isso é um absurdo, nunca mais compro nessa loja!",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            conversation_id="conv-tom-1",
+        )
+    ]
+
+    escalonamentos = [e for e in eventos if isinstance(e, EscalonamentoEvent)]
+    decisoes = [e for e in eventos if isinstance(e, RouterDecision)]
+    assert len(escalonamentos) == 1
+    assert escalonamentos[0].motivo == "insatisfacao"
+    assert escalonamentos[0].provider_efetivo == "heuristica_llm"
+    assert len(decisoes) == 1  # fluxo normal do domínio continua rodando
+
+
+async def test_segunda_mensagem_na_mesma_conversa_nao_repete_escalonamento():
+    reset_escalated_conversations()
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"domain": "suporte", "complexity": "baixa", "confidence": 0.9}',
+            total_duration_ms=1.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=LLMResponse(text="resposta externa", total_duration_ms=1.0))
+    rag_client = _FakeRAGClient(documents=[Document(content="doc", source="manual", score=0.9)])
+
+    async for _ in handle_message(
+        message="Isso é um absurdo, nunca mais compro nessa loja!",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        conversation_id="conv-tom-2",
+    ):
+        pass
+
+    eventos_segunda_mensagem = [
+        e
+        async for e in handle_message(
+            message="Ainda é um absurdo, processar vocês é a única saída",
+            recent_messages=["Isso é um absurdo, nunca mais compro nessa loja!"],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            conversation_id="conv-tom-2",
+        )
+    ]
+
+    escalonamentos = [e for e in eventos_segunda_mensagem if isinstance(e, EscalonamentoEvent)]
+    assert escalonamentos == []
+
+
+async def test_tone_monitor_desligado_nunca_emite_escalonamento():
+    reset_escalated_conversations()
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"domain": "suporte", "complexity": "baixa", "confidence": 0.9}',
+            total_duration_ms=1.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=LLMResponse(text="resposta externa", total_duration_ms=1.0))
+    rag_client = _FakeRAGClient(documents=[Document(content="doc", source="manual", score=0.9)])
+
+    eventos = [
+        e
+        async for e in handle_message(
+            message="Isso é um absurdo, nunca mais compro nessa loja!",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            conversation_id="conv-tom-3",
+            tone_monitor_enabled=False,
+        )
+    ]
+
+    escalonamentos = [e for e in eventos if isinstance(e, EscalonamentoEvent)]
+    assert escalonamentos == []

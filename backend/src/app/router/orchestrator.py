@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
 from app.models.chat import RagChunkMetric
-from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
+from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER, DEFAULT_TONE_MONITOR_PROVIDER
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
@@ -28,6 +28,7 @@ from app.router.scheduling import (
     set_booking_slots,
     validar_expediente,
 )
+from app.router.tone_monitor import analyze_tone, ja_escalada, marcar_escalada
 
 logger = logging.getLogger(__name__)
 
@@ -107,6 +108,12 @@ class StatusEvent(BaseModel):
 
 class TokenEvent(BaseModel):
     text: str
+
+
+class EscalonamentoEvent(BaseModel):
+    motivo: str | None
+    confianca: float
+    provider_efetivo: str
 
 
 class LocalBackendIndisponivelError(Exception):
@@ -352,7 +359,29 @@ async def handle_message(
     calendar_client: CalendarClient | None = None,
     scheduling_config: SchedulingConfig | None = None,
     intent_router_provider: str = DEFAULT_INTENT_ROUTER_PROVIDER,
-) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision]:
+    tone_monitor_enabled: bool = True,
+    tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
+) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
+    # Monitor de Tom (R8, Fase 4B) — roda antes da classificação de
+    # domínio, transversal a todo domínio (ver
+    # docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §2). Nunca
+    # substitui a resposta normal: só adiciona um evento a mais no stream.
+    if tone_monitor_enabled:
+        tone_result = await analyze_tone(
+            message=message,
+            recent_messages=recent_messages,
+            strategy_provider=tone_monitor_provider,
+            llm_client=local_client,
+            external_client=external_client,
+        )
+        if tone_result.escalate and not ja_escalada(conversation_id):
+            marcar_escalada(conversation_id)
+            yield EscalonamentoEvent(
+                motivo=tone_result.motivo,
+                confianca=tone_result.confidence,
+                provider_efetivo=tone_result.provider_efetivo,
+            )
+
     # Com strategy="llm" a classificação chama o backend local. Falha aqui é
     # falha de infraestrutura local, não "conteúdo não classificável" — vira
     # LocalBackendIndisponivelError em vez de degradar em silêncio para
