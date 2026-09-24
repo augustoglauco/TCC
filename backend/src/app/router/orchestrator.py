@@ -7,7 +7,10 @@ from pydantic import BaseModel
 
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
 from app.models.chat import RagChunkMetric
-from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER, DEFAULT_TONE_MONITOR_PROVIDER
+from app.models.runtime_settings import (
+    DEFAULT_INTENT_ROUTER_PROVIDER,
+    DEFAULT_TONE_MONITOR_PROVIDER,
+)
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt

@@ -67,11 +67,17 @@ class RuntimeSettingsResponse(BaseModel):
         description="Provedor ativo para classificação de intenção do roteador.",
     )
     tone_monitor_enabled: bool = Field(
-        ..., description="Liga/desliga o Monitor de Tom (R8) — heurística e fallback nunca rodam quando false."
+        ...,
+        description=(
+            "Liga/desliga o Monitor de Tom (R8) — heurística e fallback nunca rodam quando false."
+        ),
     )
     tone_monitor_provider: ToneMonitorProvider = Field(
         default=DEFAULT_TONE_MONITOR_PROVIDER,
-        description="Provedor do fallback ambíguo do Monitor de Tom quando a heurística não encontra sinal forte.",
+        description=(
+            "Provedor do fallback ambíguo do Monitor de Tom quando a heurística não encontra "
+            "sinal forte."
+        ),
     )
 
 

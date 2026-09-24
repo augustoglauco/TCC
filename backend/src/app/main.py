@@ -19,7 +19,9 @@ from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
 from app.mcp_client.google_calendar import GoogleCalendarMCPClient
-from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER, DEFAULT_TONE_MONITOR_PROVIDER
+from app.models.runtime_settings import (
+    DEFAULT_INTENT_ROUTER_PROVIDER,
+)
 from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.embedders_registry import EmbedderRegistry
