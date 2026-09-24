@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import type { ChatUIMessage } from "@/lib/types/chat";
+import { generateId } from "@/lib/utils/generateId";
 
 const CONVERSATION_ID_STORAGE_KEY = "tcc_chat_conversation_id";
 
@@ -19,7 +20,7 @@ export function getOrCreateConversationId(): string {
   if (existing) {
     return existing;
   }
-  const newId = crypto.randomUUID();
+  const newId = generateId();
   window.localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, newId);
   return newId;
 }
