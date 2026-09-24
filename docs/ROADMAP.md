@@ -415,21 +415,17 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [ ] Ajustes de robustez nas frentes mais custosas: RAG multimodal e monitor
       de tom
 - [ ] Revisão de tratamento de erro para dependências externas
-- [ ] Investigar resposta vazia de `OllamaClient.generate_stream()` com
+- [x] Investigar resposta vazia de `OllamaClient.generate_stream()` com
       modelos com capability `thinking` — achado durante a verificação E2E
-      do Monitor de Tom (2026-09-24, não é bug do Monitor de Tom em si):
-      com um modelo como `qwen3.5:9b`, o chat via streaming pode produzir
-      zero eventos `token` enquanto a telemetria reporta
-      `completion_tokens` não-zero (o raciocínio interno do modelo consome
-      a resposta sem gerar texto final visível). Diferente da correção já
-      registrada em `docs/ARCHITECTURE.md` §5 (`generate()`, não-streaming,
-      passa `think: false`) — ali a decisão foi deliberadamente **não**
-      mexer em `generate_stream()`, já que "pensar" pode ajudar a
-      qualidade da resposta de chat de verdade; a correção aqui precisa
-      lidar com o caso de zero tokens (filtrar/expor o raciocínio,
-      detectar resposta vazia e cair para um fallback, ou reavaliar a
-      decisão original à luz deste achado), não simplesmente repetir
-      `think: false`
+      do Monitor de Tom (2026-09-24, não é bug do Monitor de Tom em si).
+      Reproduzido direto contra o Ollama (`qwen3.5:9b`): o raciocínio pode
+      consumir todo o orçamento de geração antes de chegar na resposta,
+      `done: true` com `response` vazio em 100% das linhas. Resolvido
+      reavaliando a decisão original (`docs/ARCHITECTURE.md` §5, correção
+      de 2026-09-24): `think: false` passa a valer também em
+      `generate_stream()`, igual a `generate()` — verificado ao vivo contra
+      Ollama real (mesmo prompt que antes zerava a resposta, agora responde
+      normalmente)
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
