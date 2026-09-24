@@ -106,6 +106,11 @@ Na seção **Parâmetros de Execução**, você pode ajustar o comportamento do 
 * **Uso prático**: Pense nisso como um experimento A/B de classificação — trocar aqui não muda o resto do atendimento, só QUEM decide o domínio da mensagem. Se o Jev falhar (rede, indisponibilidade), o sistema volta sozinho pra heurística local, sem interromper o cliente — você vê qual dos dois realmente respondeu no painel de métricas do chat (ícone ⚙️ ao lado do domínio, em cada resposta).
 * **Por que trocar**: útil para comparar acurácia/latência/custo entre os dois provedores (ver `docs/EVALUATION.md`) — não há um "certo" fixo, é uma opção de avaliação.
 
+#### 🚨 6. Monitor de Tom (`Habilitar` / `Provedor`) — novo em 2026-09-23
+* **O que faz**: Liga/desliga o Monitor de Tom (R8) e, quando ligado, escolhe qual motor decide o fallback ambíguo (quando a heurística de palavras-chave não encontra um sinal forte de urgência/insatisfação) — mesmas duas opções do Roteador de Intenção acima: **Heurística + LLM Local (Ollama)** (padrão) ou **TypeSafe Jev (OpenRouter)**.
+* **Uso prático**: Desligar (`Não`) remove qualquer custo extra por mensagem — nem a heurística roda. Ligado (padrão), toda mensagem passa pela checagem; ao detectar um sinal forte, o assistente continua respondendo normalmente E registra o caso para acompanhamento (ver seção "Monitor de Tom e Escalada" abaixo) — a resposta ao cliente nunca é interrompida por isso.
+* **Onde ver os casos escalonados**: por ora só via API (`GET /api/admin/tom/escalonamentos`), sem painel visual dedicado nesta entrega.
+
 ---
 
 ## 🛍️ Gestão do Catálogo B2B e Ferramentas MCP

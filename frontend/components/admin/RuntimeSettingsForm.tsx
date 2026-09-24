@@ -7,7 +7,11 @@
 // registrada em docs/ARCHITECTURE.md §5.
 import { useEffect, useState } from "react";
 
-import { RuntimeSettingsApiError, getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
+import {
+  RuntimeSettingsApiError,
+  getRuntimeSettings,
+  updateRuntimeSettings,
+} from "@/lib/api/runtimeSettings";
 import type { RuntimeSettings } from "@/lib/types/runtimeSettings";
 
 export interface RuntimeSettingsFormProps {
@@ -24,6 +28,10 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
   const [routerProvider, setRouterProvider] = useState<"heuristica_llm" | "jev_openrouter">(
     "heuristica_llm",
   );
+  const [toneMonitorEnabled, setToneMonitorEnabled] = useState(true);
+  const [toneMonitorProvider, setToneMonitorProvider] = useState<
+    "heuristica_llm" | "jev_openrouter"
+  >("heuristica_llm");
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -34,11 +42,15 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         const atual = await getRuntimeSettings();
         if (cancelado) return;
         setSettings(atual);
-        setTemperatura(atual.local_llm_temperature === null ? "" : String(atual.local_llm_temperature));
+        setTemperatura(
+          atual.local_llm_temperature === null ? "" : String(atual.local_llm_temperature),
+        );
         setLocalTimeout(String(atual.local_llm_timeout_s));
         setExternalTimeout(String(atual.external_llm_timeout_s));
         setRagFallback(atual.rag_search_domain_fallback);
         setRouterProvider(atual.intent_router_provider ?? "heuristica_llm");
+        setToneMonitorEnabled(atual.tone_monitor_enabled ?? true);
+        setToneMonitorProvider(atual.tone_monitor_provider ?? "heuristica_llm");
       } catch (err) {
         if (!cancelado) {
           onError(
@@ -71,12 +83,16 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         external_llm_timeout_s: Number(externalTimeout),
         rag_search_domain_fallback: ragFallback,
         intent_router_provider: routerProvider,
+        tone_monitor_enabled: toneMonitorEnabled,
+        tone_monitor_provider: toneMonitorProvider,
       });
       setSettings(atualizado);
       onSuccess("Parâmetros de execução aplicados.");
     } catch (err) {
       onError(
-        err instanceof RuntimeSettingsApiError ? err.message : "Erro inesperado ao aplicar os parâmetros.",
+        err instanceof RuntimeSettingsApiError
+          ? err.message
+          : "Erro inesperado ao aplicar os parâmetros.",
       );
     } finally {
       setSalvando(false);
@@ -105,8 +121,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
           className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
         />
         <p className="mt-1 text-xs text-gray-500">
-          Também afeta a classificação de intenção do roteador — valores baixos reduzem a
-          variação entre chamadas idênticas.
+          Também afeta a classificação de intenção do roteador — valores baixos reduzem a variação
+          entre chamadas idênticas.
         </p>
       </div>
 
@@ -198,6 +214,66 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
           <p className="ml-6 text-xs text-gray-500">
             Classificação estruturada via endpoint /systemone, com fallback gracioso para a
             heurística em caso de erro.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <input
+          id="rt-tone-monitor-enabled"
+          type="checkbox"
+          checked={toneMonitorEnabled}
+          onChange={(e) => setToneMonitorEnabled(e.target.checked)}
+          className="h-4 w-4 rounded border-gray-300"
+        />
+        <label htmlFor="rt-tone-monitor-enabled" className="text-sm font-medium text-gray-900">
+          Monitor de Tom ativo (R8)
+        </label>
+      </div>
+      <p className="text-xs text-gray-500">
+        Ligado por padrão — monitora urgência/insatisfação em cada mensagem e escalona pra
+        atendimento humano quando detecta um sinal forte. Desligar remove qualquer custo extra (nem
+        a heurística roda).
+      </p>
+
+      <div>
+        <span className="block text-sm font-medium text-gray-900">
+          Provedor do Monitor de Tom (fallback ambíguo)
+        </span>
+        <div className="mt-1 space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              id="rt-tone-monitor-provider-heuristica"
+              type="radio"
+              name="rt-tone-monitor-provider"
+              value="heuristica_llm"
+              checked={toneMonitorProvider === "heuristica_llm"}
+              onChange={() => setToneMonitorProvider("heuristica_llm")}
+              disabled={!toneMonitorEnabled}
+              className="h-4 w-4 border-gray-300"
+            />
+            <label htmlFor="rt-tone-monitor-provider-heuristica" className="text-sm text-gray-900">
+              Heurística + LLM Local (Ollama)
+            </label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              id="rt-tone-monitor-provider-jev"
+              type="radio"
+              name="rt-tone-monitor-provider"
+              value="jev_openrouter"
+              checked={toneMonitorProvider === "jev_openrouter"}
+              onChange={() => setToneMonitorProvider("jev_openrouter")}
+              disabled={!toneMonitorEnabled}
+              className="h-4 w-4 border-gray-300"
+            />
+            <label htmlFor="rt-tone-monitor-provider-jev" className="text-sm text-gray-900">
+              TypeSafe Jev (OpenRouter)
+            </label>
+          </div>
+          <p className="ml-6 text-xs text-gray-500">
+            Só decide quando a heurística de palavras-chave não encontra sinal forte. Falha do Jev
+            degrada para a heurística automaticamente.
           </p>
         </div>
       </div>

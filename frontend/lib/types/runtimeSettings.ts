@@ -14,6 +14,8 @@ export interface RuntimeSettings {
   crawler_max_pages_default: number;
   crawler_confidence_threshold: number;
   intent_router_provider?: "heuristica_llm" | "jev_openrouter";
+  tone_monitor_enabled?: boolean;
+  tone_monitor_provider?: "heuristica_llm" | "jev_openrouter";
 }
 
 /** Corpo de `PUT /api/admin/runtime-settings` — atualização parcial, só os
