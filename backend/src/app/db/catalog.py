@@ -65,6 +65,15 @@ async def criar_produto(
     )
     session.add(produto)
     await session.commit()
+    # Achado no code-review (2026-09-24): tentei remover este refresh
+    # supondo que um objeto recém-criado já começaria com as coleções de
+    # relationship vazias em memória, sem I/O — verificado empiricamente
+    # que NÃO é o caso aqui (`MissingGreenlet` ao acessar `produto.estoques`
+    # sem ele, `lazy="select"` tenta carregar de verdade mesmo pós-commit).
+    # Mantido — ao contrário de `atualizar_produto`/`deletar_produto`
+    # abaixo, que reaproveitam um `produto` já carregado com
+    # `selectinload` via `obter_produto`, este é o único ponto do módulo
+    # que precisa do refresh de verdade.
     await session.refresh(produto, attribute_names=["estoques", "descontos_volume"])
     return produto
 
@@ -99,7 +108,10 @@ async def atualizar_produto(
     for campo, valor in updates.items():
         setattr(produto, campo, valor)
     await session.commit()
-    await session.refresh(produto, attribute_names=["estoques", "descontos_volume"])
+    # Achado no code-review (2026-09-24): `obter_produto` já carrega
+    # `estoques`/`descontos_volume` via `selectinload` (`_produto_query()`)
+    # e `updates` nunca toca essas coleções (só colunas escalares) — o
+    # refresh delas aqui era uma query supérflua a cada atualização.
     return produto
 
 
@@ -108,7 +120,13 @@ async def deletar_produto(session: AsyncSession, produto_id: int) -> bool:
     são apagados por `DELETE` explícito em vez de depender só do
     `cascade="all, delete-orphan"` do relationship — mais robusto contra o
     caso de a coleção `produto.estoques`/`descontos_volume` não estar
-    carregada na identity map da sessão no momento da exclusão."""
+    carregada na identity map da sessão no momento da exclusão.
+
+    Achado no code-review (2026-09-24): cheguei a remover os `DELETE`s
+    explícitos supondo que o cascade bastaria, já que `obter_produto`
+    sempre carrega as coleções via `selectinload` — verificado
+    empiricamente que NÃO basta (os filhos sobreviviam à exclusão do pai
+    nos testes). Mantidos."""
     produto = await obter_produto(session, produto_id)
     if produto is None:
         return False
