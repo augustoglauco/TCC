@@ -127,25 +127,46 @@ async def _consultar_vendas(
     Nunca levanta exceção — qualquer falha (erro de banco, resposta do LLM
     não-JSON já tratada dentro de `extract_sales_slots`) loga e devolve
     `None`, mesmo espírito de `analyze_tone` nunca derrubar o turno."""
+    diagnostico: dict = {"event": "vendas_catalogo_consulta"}
     try:
         termos = extrair_termos_busca(message)
+        diagnostico["termos"] = termos
         if not termos:
-            return None
+            return _logar_consulta_vendas(diagnostico, "sem_termos")
         candidatos = await sales_catalog_client.buscar_candidatos(termos)
+        diagnostico["candidatos"] = [candidato.nome for candidato in candidatos]
         if not candidatos:
-            return None
+            return _logar_consulta_vendas(diagnostico, "sem_candidatos")
         slots = await extract_sales_slots(message, recent_messages, candidatos, local_client)
+        diagnostico["slots"] = slots.model_dump()
         if slots.produto_id is None:
-            return None
-        return await sales_catalog_client.consultar_detalhes(
+            return _logar_consulta_vendas(diagnostico, "llm_sem_produto")
+        dados = await sales_catalog_client.consultar_detalhes(
             slots.produto_id, slots.produto_relacionado_id, slots.quantidade
         )
+        if dados is None:
+            return _logar_consulta_vendas(diagnostico, "produto_inexistente")
+        diagnostico["bloco"] = _formatar_dados_catalogo_vendas(dados)
+        _logar_consulta_vendas(diagnostico, "ok")
+        return dados
     except Exception as exc:
         logger.warning(
             "vendas_catalogo_consulta_falhou",
             extra={"router": {"event": "vendas_catalogo_consulta_falhou", "erro": str(exc)}},
         )
         return None
+
+
+def _logar_consulta_vendas(diagnostico: dict, resultado: str) -> None:
+    """Uma linha de log por consulta de vendas, dizendo em qual etapa ela
+    parou (`resultado`) e o que cada etapa viu (termos, candidatos, slots do
+    LLM, bloco injetado no prompt) — o prompt final não sai na resposta
+    SSE, então é por aqui que o teste manual confirma o que o LLM recebeu.
+    Devolve `None` para servir de `return` nas saídas antecipadas."""
+    logger.info(
+        "vendas_catalogo_consulta",
+        extra={"router": {**diagnostico, "resultado": resultado}},
+    )
 
 
 def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:

@@ -42,6 +42,7 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 | `docs/CONVENTIONS.md` | Antes de escrever código — stack, estrutura de pastas, estilo, testes, git. |
 | `docs/EVALUATION.md` | Ao implementar ou rodar a avaliação experimental (roteador, RAG, latência). |
 | `docs/AGENTIC_WORKFLOW.md` | Para entender a divisão de trabalho entre Antigravity e Claude Code CLI. |
+| `docs/TESTE_LOCAL.md` | Quando o código precisa ser validado na máquina do desenvolvedor (GPU/Ollama/dados reais) — roteiro `backend/scripts/teste_local.py` e formato do relatório devolvido ao agente. |
 
 ## Stack técnica
 

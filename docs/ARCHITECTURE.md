@@ -866,7 +866,13 @@ Cinco decisões:
    Vendas com o cliente injetado (ver `docs/FRONTEND.md` §4).
 4. **Falha isolada:** `_consultar_vendas` nunca levanta. Qualquer erro
    (banco, LLM) gera o log `vendas_catalogo_consulta_falhou` e devolve
-   `None`, e o turno segue só com RAG, como antes. O `TaskGroup` usa
+   `None`, e o turno segue só com RAG, como antes. Cada consulta também
+   emite uma linha `vendas_catalogo_consulta` (nível INFO) dizendo em qual
+   etapa parou (`resultado`: `sem_termos`, `sem_candidatos`,
+   `llm_sem_produto`, `produto_inexistente` ou `ok`) e o que cada etapa viu
+   (termos, candidatos, slots do LLM, bloco injetado). O prompt final não
+   sai na resposta SSE, então é por esse log que o teste manual confirma o
+   que o LLM recebeu (`docs/TESTE_LOCAL.md`). O `TaskGroup` usa
    `except* Exception` (não só `RAGConnectionError`) e relança a exceção
    original, sem `ExceptionGroup`. Assim quem chama `handle_message`
    continua recebendo `RAGConnectionError` como antes. O log
@@ -887,7 +893,8 @@ cotação; valores muito grandes não são validados)`. Testado em
 `tests/test_sales_catalog.py` (tokenização, busca, detalhes, extração com
 LLM fake), `tests/test_orchestrator.py` (bloco no prompt, formatação da
 cotação com e sem desconto, ausência do cliente, mensagem sem produto,
-falha isolada, outros domínios não chamam o cliente, log de
+falha isolada, outros domínios não chamam o cliente, log de diagnóstico
+`vendas_catalogo_consulta`, log de
 `rag_indisponivel`) e `tests/test_main_app.py` (wiring em `app.main`).
 
 ### Tabela de escopo por requisito
