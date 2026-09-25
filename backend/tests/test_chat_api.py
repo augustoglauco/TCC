@@ -393,6 +393,22 @@ def test_get_conversa_devolve_o_historico_gravado(client):
     assert set(corpo) == {"conversation_id", "resumo", "mensagens"}
 
 
+def test_get_conversa_devolve_as_metricas_de_cada_resposta(client):
+    envio = client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "conversation_id": "conv-met-1"},
+    )
+    done = _find(_parse_sse(envio.text), "done")
+
+    cliente, assistente = client.get("/api/chat/conversations/conv-met-1").json()["mensagens"]
+
+    # As métricas gravadas são o próprio evento `done` — o painel ⚙️
+    # reaparece igual nas mensagens recarregadas.
+    assert assistente["metricas"] == done
+    assert assistente["metricas"]["perfil_usuario"] == "lead"
+    assert cliente["metricas"] is None
+
+
 def test_get_conversa_inexistente_da_404(client):
     assert client.get("/api/chat/conversations/nao-existe").status_code == 404
 

@@ -24,8 +24,20 @@ describe("fetchConversationHistory (retomada da conversa, R9)", () => {
         conversation_id: "conv-1",
         resumo: null,
         mensagens: [
-          { papel: "cliente", texto: "Quanto custa o GD-15?", dominio: null, criada_em: "x" },
-          { papel: "assistente", texto: "R$ 24.900,00", dominio: "vendas", criada_em: "x" },
+          {
+            papel: "cliente",
+            texto: "Quanto custa o GD-15?",
+            dominio: null,
+            criada_em: "x",
+            metricas: null,
+          },
+          {
+            papel: "assistente",
+            texto: "R$ 24.900,00",
+            dominio: "vendas",
+            criada_em: "x",
+            metricas: null,
+          },
         ],
       }),
     });
@@ -37,6 +49,44 @@ describe("fetchConversationHistory (retomada da conversa, R9)", () => {
       { role: "assistant", text: "R$ 24.900,00", domain: "vendas" },
     ]);
     expect(vi.mocked(fetch).mock.calls[0][0]).toMatch(/\/api\/chat\/conversations\/conv-1$/);
+  });
+
+  it("resposta com métricas gravadas volta com o painel completo, perfil incluído", async () => {
+    mockFetch({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        conversation_id: "conv-1",
+        resumo: null,
+        mensagens: [
+          {
+            papel: "assistente",
+            texto: "R$ 24.900,00",
+            dominio: "vendas",
+            criada_em: "x",
+            metricas: {
+              domain: "vendas",
+              backend_used: "local",
+              escalation_reason: "nenhum",
+              model_name: "gemma4:12b",
+              latency_ms: 4200,
+              perfil_usuario: "lead",
+              perfil_motivo: "intenção de compra",
+            },
+          },
+        ],
+      }),
+    });
+
+    const [resposta] = (await fetchConversationHistory("conv-1")) ?? [];
+
+    expect(resposta.backendUsed).toBe("local");
+    expect(resposta.metrics).toMatchObject({
+      modelName: "gemma4:12b",
+      latencyMs: 4200,
+      perfilUsuario: "lead",
+      perfilMotivo: "intenção de compra",
+    });
   });
 
   it("conversa que ainda não existe (404) devolve lista vazia", async () => {

@@ -339,8 +339,10 @@ conversa e classificação do usuário").
       e carregamento no `ChatWidget` ao montar. Implementado (backend +
       `fetchConversationHistory`/`loadHistory` no frontend). Backend
       validado no teste local (R1, GET da conversa) e retomada conferida no
-      navegador (2026-09-25: mensagens voltam após F5). As mensagens
-      recarregadas vêm só com texto e domínio, sem as métricas do painel ⚙️
+      navegador (2026-09-25: mensagens voltam após F5). Depois, a pedido do
+      desenvolvedor, cada resposta passou a guardar as métricas do `done`
+      (coluna `metricas`, migração `0012`), e o painel ⚙️ reaparece igual nas
+      mensagens recarregadas
 - [x] Implementar heurística inicial de classificação Cliente/Lead/Esporádico
       com base em histórico de compras/perguntas — base de clientes fictícia,
       e-mail captado no momento natural (pós-venda, agendamento), perfil no

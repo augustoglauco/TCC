@@ -18,6 +18,7 @@ from app.memory.store import (
     ContextoConversa,
     carregar_contexto,
     contar_mensagens,
+    gravar_metricas,
     listar_mensagens,
     registrar_troca,
 )
@@ -81,18 +82,26 @@ async def _registrar_troca_segura(
     resposta: str,
     dominio: str | None,
     local_client: LLMClient,
+    done_data: ChatDoneEventData,
 ) -> Classificacao | None:
     """Grava a troca antes do `done`: a próxima mensagem sempre encontra esta
     no histórico. Mesma proteção de `_carregar_contexto_seguro`. Na mesma
-    sessão recalcula o perfil do visitante (R10), que sai no `done`. A cada
-    `INTERVALO_RESUMO` mensagens novas, dispara o resumo em segundo plano,
-    sem esperar por ele."""
+    sessão recalcula o perfil do visitante (R10), preenche-o em `done_data`
+    e guarda as métricas do `done` na resposta (o painel ⚙️ reaparece no
+    histórico). A cada `INTERVALO_RESUMO` mensagens novas, dispara o resumo
+    em segundo plano, sem esperar por ele."""
     try:
         async with app_state.db_sessionmaker() as session:
-            conversa = await registrar_troca(session, conversation_id, mensagem, resposta, dominio)
+            conversa, assistente = await registrar_troca(
+                session, conversation_id, mensagem, resposta, dominio
+            )
             total = await contar_mensagens(session, conversation_id)
             resumir = precisa_resumir(total, conversa.mensagens_resumidas)
             classificacao = await atualizar_perfil(session, conversation_id, mensagem)
+            if classificacao is not None:
+                done_data.perfil_usuario = classificacao.perfil
+                done_data.perfil_motivo = classificacao.motivo
+            await gravar_metricas(session, assistente, done_data.model_dump(mode="json"))
     except Exception as exc:
         _logar_memoria_indisponivel("registrar", exc)
         return None
@@ -259,7 +268,11 @@ async def obter_conversa(conversation_id: str, request: Request) -> ConversaHist
         resumo=conversa.resumo,
         mensagens=[
             ConversaMensagemOut(
-                papel=m.papel, texto=m.texto, dominio=m.dominio, criada_em=m.criada_em
+                papel=m.papel,
+                texto=m.texto,
+                dominio=m.dominio,
+                criada_em=m.criada_em,
+                metricas=m.metricas,
             )
             for m in mensagens
         ],
@@ -504,14 +517,6 @@ async def send_message(
                         )
                     )
                 elif isinstance(event, RouterDecision):
-                    classificacao = await _registrar_troca_segura(
-                        request.app.state,
-                        conversation_id,
-                        effective_message,
-                        "".join(partes_resposta),
-                        event.domain,
-                        local_client,
-                    )
                     done_data = ChatDoneEventData(
                         domain=event.domain,
                         backend_used=event.backend_escolhido,
@@ -530,8 +535,16 @@ async def send_message(
                         rag_avg_score=event.rag_avg_score,
                         rag_chunks=event.rag_chunks,
                         router_provider=event.router_provider,
-                        perfil_usuario=classificacao.perfil if classificacao else None,
-                        perfil_motivo=classificacao.motivo if classificacao else None,
+                    )
+                    # Preenche perfil_usuario/perfil_motivo em done_data.
+                    await _registrar_troca_segura(
+                        request.app.state,
+                        conversation_id,
+                        effective_message,
+                        "".join(partes_resposta),
+                        event.domain,
+                        local_client,
+                        done_data,
                     )
                     yield _sse("done", done_data.model_dump())
         except (
