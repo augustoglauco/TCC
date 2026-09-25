@@ -2,7 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ChatModal } from "@/components/chat/ChatModal";
+import { ChatModal, WELCOME_MESSAGE } from "@/components/chat/ChatModal";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
 vi.mock("@/lib/api/chat", async () => {
@@ -18,11 +18,7 @@ vi.mock("@/lib/api/chat", async () => {
 // jeito de disparar `onRecordingComplete` para testar a integração com o
 // envio/exibição da resposta no modal.
 vi.mock("@/components/chat/AudioRecorder", () => ({
-  default: ({
-    onRecordingComplete,
-  }: {
-    onRecordingComplete: (audioBase64: string) => void;
-  }) => (
+  default: ({ onRecordingComplete }: { onRecordingComplete: (audioBase64: string) => void }) => (
     <button type="button" onClick={() => onRecordingComplete("base64-audio-fake")}>
       Simular gravação de áudio
     </button>
@@ -66,6 +62,27 @@ describe("ChatModal", () => {
   beforeEach(() => {
     resetStore();
     mockedSendChatMessage.mockReset();
+  });
+
+  it("conversa vazia mostra a boas-vindas com o convite opcional para o e-mail", () => {
+    renderModal();
+
+    const boasVindas = screen.getByText(/Sou o assistente virtual da empresa/);
+    expect(boasVindas).toHaveTextContent("informe seu e-mail junto com a sua pergunta");
+    expect(boasVindas).toHaveTextContent("É opcional");
+    // Só de interface: não vira mensagem da conversa.
+    expect(useChatStore.getState().messages).toEqual([]);
+    // Sem domínio, sem painel de métricas.
+    expect(screen.queryByRole("button", { name: "Mostrar métricas da resposta" })).toBeNull();
+  });
+
+  it("boas-vindas some quando a conversa tem mensagens", () => {
+    useChatStore.setState({ messages: [{ id: "m1", role: "user", text: "oi" }] });
+
+    renderModal();
+
+    expect(screen.queryByText(/Sou o assistente virtual da empresa/)).toBeNull();
+    expect(WELCOME_MESSAGE).toContain("e-mail");
   });
 
   it("envia mensagem de texto e exibe a resposta do assistente", async () => {
@@ -273,14 +290,12 @@ describe("ChatModal", () => {
   });
 
   it("concatena múltiplos tokens na mesma bolha", async () => {
-    mockedSendChatMessage.mockImplementation(
-      async ({ onConversationId, onToken, onDone }) => {
-        onConversationId("conv-1");
-        onToken("Olá");
-        onToken(", tudo bem?");
-        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
-      },
-    );
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Olá");
+      onToken(", tudo bem?");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+    });
 
     const user = userEvent.setup();
     renderModal();
@@ -300,14 +315,12 @@ describe("ChatModal", () => {
     const scrollIntoViewMock = vi.fn();
     window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
 
-    mockedSendChatMessage.mockImplementation(
-      async ({ onConversationId, onToken, onDone }) => {
-        onConversationId("conv-1");
-        onToken("Resposta 1");
-        onToken(" Resposta 2");
-        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
-      },
-    );
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Resposta 1");
+      onToken(" Resposta 2");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+    });
 
     const user = userEvent.setup();
     renderModal();
@@ -417,13 +430,11 @@ describe("ChatModal", () => {
       onError("Serviço indisponível.");
     });
     // Segunda chamada: sucesso.
-    mockedSendChatMessage.mockImplementationOnce(
-      async ({ onConversationId, onToken, onDone }) => {
-        onConversationId("conv-1");
-        onToken("Produto encontrado.");
-        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
-      },
-    );
+    mockedSendChatMessage.mockImplementationOnce(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Produto encontrado.");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+    });
 
     renderModal();
 
@@ -451,13 +462,11 @@ describe("ChatModal", () => {
     mockedSendChatMessage.mockImplementationOnce(async ({ onError }) => {
       onError("Serviço indisponível.");
     });
-    mockedSendChatMessage.mockImplementationOnce(
-      async ({ onConversationId, onToken, onDone }) => {
-        onConversationId("conv-1");
-        onToken("Ok.");
-        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
-      },
-    );
+    mockedSendChatMessage.mockImplementationOnce(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onToken("Ok.");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+    });
 
     renderModal();
 

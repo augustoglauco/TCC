@@ -53,7 +53,13 @@ em todas as páginas; ao clicar, abre um modal central (`ChatModal.tsx`,
 sobre `components/ui/Modal.tsx`, Radix Dialog), mesmo comportamento em
 mobile e desktop. O ID de conversa (R9) é gerado no primeiro envio e
 persistido em `localStorage` (usuário anônimo) ou associado ao usuário
-logado, permitindo retomar a conversa entre sessões/páginas.
+logado, permitindo retomar a conversa entre sessões/páginas. Com a conversa
+vazia, o modal mostra uma bolha de boas-vindas do assistente
+(`WELCOME_MESSAGE` em `ChatModal.tsx`): apresenta o que o assistente faz e
+convida, de forma opcional, a informar o e-mail junto com a pergunta, o que
+permite ao backend identificar o cadastro e as compras (R10). A bolha é só de
+interface: não entra no store nem no banco e some com a primeira mensagem ou
+com o histórico recarregado.
 
 **Entrada multimodal (R2):**
 - Campo de texto padrão.

@@ -965,8 +965,11 @@ implementação.
    B2B são reservas de parceiros). Entram duas tabelas fictícias,
    semeadas em migração como os produtos: `clientes` (e-mail, nome) e
    `cliente_compras` (produto, valor, data). O e-mail é captado quando o
-   visitante o escreve em qualquer mensagem (o agendamento já pede); não há
-   pergunta no início do chat. No pós-venda (`suporte`/`atendimento`), sem
+   visitante o escreve em qualquer mensagem (o agendamento já pede). Ao
+   abrir o chat com a conversa vazia, uma mensagem de boas-vindas (só de
+   interface, não gravada) convida a informar o e-mail junto com a
+   pergunta, deixando claro que é opcional e que facilita o relacionamento
+   com a empresa; não há pergunta obrigatória nem bloqueio. No pós-venda (`suporte`/`atendimento`), sem
    e-mail conhecido, o prompt instrui o assistente a pedir educadamente o
    e-mail usado na compra.
 6. **Regras**, recalculadas a cada mensagem e gravadas com o motivo:

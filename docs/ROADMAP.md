@@ -352,6 +352,10 @@ conversa e classificação do usuário").
       `MessageBubble`). Validado no teste local (R3 a R9: pedido de e-mail
       no pós-venda, cliente, esporádico x2, lead, não classificado, e-mail
       lembrado)
+- [x] Mensagem de boas-vindas ao abrir o chat com a conversa vazia, com
+      convite opcional para informar o e-mail junto com a pergunta (R10) —
+      bolha só de interface (`WELCOME_MESSAGE` em `ChatModal.tsx`), pedido do
+      desenvolvedor em 2026-09-25
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 
