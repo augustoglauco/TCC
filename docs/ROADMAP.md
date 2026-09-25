@@ -472,6 +472,22 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
          (`app/models/mcp_b2b.py`) redeclaram cada uma o mesmo par
          `produto_id: int` / `quantidade: int = Field(gt=0)` em vez de um
          schema base comum.
+      4. `cotar`/`consultar_frete` (`app.mcp_server.b2b`) e `criar_pedido`
+         (`app.db.catalog`) buscam produto por produto num loop
+         (`obter_produto` por item) em vez de uma única query em lote
+         (`select(...).where(Produto.id.in_(ids))`) — irrelevante no
+         tamanho atual do catálogo fictício (5 produtos), mas descrito
+         pelo code-review como um padrão N+1 que escalaria mal com um
+         catálogo maior; para `criar_pedido` também estende o tempo de
+         retenção da transação de escrita.
+      5. `allowedDevOrigins` (`frontend/next.config.ts`) tem o IP da LAN e
+         o domínio DuckDNS de uma máquina/rede específica hardcoded no
+         repositório — funciona só para quem desenvolve nessa mesma
+         rede; qualquer outra pessoa (ou a mesma rede com IP diferente via
+         DHCP) reproduziria o bug de acesso mobile já corrigido. Aceito
+         como limitação de projeto de um único desenvolvedor (TCC), não
+         um descuido — registrado aqui só para rastreabilidade, não
+         necessariamente para corrigir.
       Todos de baixa severidade (estilo/robustez, não correção); avaliar
       se compensa corrigir junto de um item maior desta fase ou como
       tarefa isolada.
