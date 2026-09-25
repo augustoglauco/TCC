@@ -43,7 +43,7 @@ main() {
     echo "⚠️  Ollama não respondeu em localhost:11434 — os cenários de chat vão falhar."
   fi
 
-  passo "4/6 Backend (8000), MCP B2B (8100) e Caddy (8443)"
+  passo "4/6 Backend (8000), MCP B2B (8100), frontend (3001) e Caddy (8443)"
   fuser -k 8000/tcp 2>/dev/null || lsof -ti:8000 | xargs -r kill 2>/dev/null
   sleep 1
   (cd backend && nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 \
@@ -76,6 +76,25 @@ main() {
   else
     tail -15 /tmp/tcc-mcp-b2b.log
     echo "⚠️  MCP B2B não subiu (log acima) — a suíte mcp_b2b vai falhar; as outras seguem."
+  fi
+
+  # Frontend (porta 3001): reiniciado para pegar o código do git pull — o
+  # `next dev` antigo continuaria servindo a versão velha na tela. Não
+  # interrompe o teste (o roteiro fala direto com o backend), só avisa.
+  echo "Reiniciando o frontend (porta 3001, log em /tmp/tcc-frontend.log)"
+  fuser -k 3001/tcp 2>/dev/null || lsof -ti:3001 | xargs -r kill 2>/dev/null
+  sleep 1
+  (cd frontend && npm install --no-audit --no-fund --silent >/dev/null 2>&1; \
+    PORT=3001 nohup npm run dev > /tmp/tcc-frontend.log 2>&1 & disown)
+  for _ in $(seq 1 60); do
+    if curl -s -o /dev/null --max-time 2 http://localhost:3001; then break; fi
+    sleep 1
+  done
+  if curl -s -o /dev/null --max-time 2 http://localhost:3001; then
+    echo "Frontend no ar"
+  else
+    tail -10 /tmp/tcc-frontend.log
+    echo "⚠️  Frontend não subiu em 60 s (log acima) — o teste segue; confira à mão."
   fi
 
   # Caddy (HTTPS público do MCP B2B, porta 8443): fica rodando entre sessões,

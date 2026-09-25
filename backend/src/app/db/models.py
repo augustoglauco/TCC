@@ -284,3 +284,88 @@ class ProdutoDescontoVolume(Base):
     percentual_desconto: Mapped[Decimal] = mapped_column(Numeric(5, 2))
 
     produto: Mapped["Produto"] = relationship(back_populates="descontos_volume")
+
+
+class Conversa(Base):
+    """Uma conversa do chat (R9, Fase 6) — ver decisão de 2026-09-25 em
+    `docs/ARCHITECTURE.md` §5. `id` é o mesmo `conversation_id` que o widget
+    guarda no `localStorage`.
+
+    # MVP: um visitante = um navegador, sem login. `email`/`perfil` (R10)
+    # ficam aqui mesmo, sem tabela de visitante separada.
+    """
+
+    __tablename__ = "conversas"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    atualizada_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    # Resumo automático periódico (R9) e quantas mensagens ele já cobre.
+    resumo: Mapped[str | None]
+    mensagens_resumidas: Mapped[int] = mapped_column(default=0)
+    # Classificação do usuário (R10).
+    email: Mapped[str | None]
+    perfil: Mapped[str | None]
+    perfil_motivo: Mapped[str | None]
+
+    mensagens: Mapped[list["ConversaMensagem"]] = relationship(
+        back_populates="conversa", order_by="ConversaMensagem.id"
+    )
+
+
+class ConversaMensagem(Base):
+    """Uma mensagem de uma conversa: do cliente ou a resposta do assistente
+    (R9). `id` inteiro autoincremental dá a ordem de gravação — duas
+    mensagens gravadas no mesmo instante teriam o mesmo `criada_em`."""
+
+    __tablename__ = "conversa_mensagens"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    conversa_id: Mapped[str] = mapped_column(ForeignKey("conversas.id"), index=True)
+    papel: Mapped[str]  # "cliente" | "assistente"
+    texto: Mapped[str]
+    # Domínio da resposta (só nas mensagens do assistente) — usado pela
+    # classificação do usuário (R10: intenção de compra).
+    dominio: Mapped[str | None]
+    # Métricas do evento `done` da resposta (modelo, tokens, latência, RAG,
+    # perfil) — o painel ⚙️ reaparece nas mensagens recarregadas (R9).
+    metricas: Mapped[dict | None] = mapped_column(_JsonVariant, nullable=True)
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    conversa: Mapped["Conversa"] = relationship(back_populates="mensagens")
+
+
+class Cliente(Base):
+    """Base de clientes fictícia (R10, Fase 6) — ver decisão de 2026-09-25 em
+    `docs/ARCHITECTURE.md` §5. O e-mail captado na conversa é cruzado com
+    esta tabela para classificar o visitante (Cliente/Esporádico).
+
+    # MVP: base fictícia semeada na migração `0011`, sem cadastro pelo site.
+    """
+
+    __tablename__ = "clientes"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(unique=True, index=True)
+    nome: Mapped[str]
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    compras: Mapped[list["ClienteCompra"]] = relationship(back_populates="cliente")
+
+
+class ClienteCompra(Base):
+    """Compra de um cliente (R10) — quantidade e recência definem se ele é
+    Cliente ou Esporádico."""
+
+    __tablename__ = "cliente_compras"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    cliente_id: Mapped[int] = mapped_column(ForeignKey("clientes.id"), index=True)
+    produto_id: Mapped[int | None] = mapped_column(ForeignKey("produtos.id"))
+    quantidade: Mapped[int]
+    valor_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    comprado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    cliente: Mapped["Cliente"] = relationship(back_populates="compras")

@@ -53,7 +53,13 @@ em todas as páginas; ao clicar, abre um modal central (`ChatModal.tsx`,
 sobre `components/ui/Modal.tsx`, Radix Dialog), mesmo comportamento em
 mobile e desktop. O ID de conversa (R9) é gerado no primeiro envio e
 persistido em `localStorage` (usuário anônimo) ou associado ao usuário
-logado, permitindo retomar a conversa entre sessões/páginas.
+logado, permitindo retomar a conversa entre sessões/páginas. Com a conversa
+vazia, o modal mostra uma bolha de boas-vindas do assistente
+(`WELCOME_MESSAGE` em `ChatModal.tsx`): apresenta o que o assistente faz e
+convida, de forma opcional, a informar o e-mail junto com a pergunta, o que
+permite ao backend identificar o cadastro e as compras (R10). A bolha é só de
+interface: não entra no store nem no banco e some com a primeira mensagem ou
+com o histórico recarregado.
 
 **Entrada multimodal (R2):**
 - Campo de texto padrão.
@@ -128,7 +134,7 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | Endpoint | Uso |
 | --- | --- |
 | `POST /api/chat/messages` | Envia mensagem (texto e/ou imagem e/ou áudio) de uma conversa; resposta é o próprio stream Server-Sent Events (SSE) da geração — não há endpoint `GET` separado |
-| `GET /api/chat/conversations/{id}` | Recupera histórico/resumo da conversa (R9) |
+| `GET /api/chat/conversations/{id}` | Recupera histórico/resumo da conversa (R9, Fase 6): `{conversation_id, resumo, mensagens: [{papel: "cliente"\|"assistente", texto, dominio, criada_em, metricas}]}` — `metricas` é o evento `done` da resposta (só nas do assistente; `null` nas gravadas antes da migração `0012`), convertido por `metricsFromDone` (`lib/utils/chatMetrics.ts`, o mesmo usado ao receber o `done`) para o painel ⚙️ reaparecer igual, mais antiga primeiro (até 50); `404` se a conversa não existe, `503` se o banco está fora do ar. Usado pelo `ChatWidget` ao montar (`fetchConversationHistory` em `lib/api/chat.ts`): carrega as mensagens só se a tela estiver vazia; qualquer falha deixa o chat vazio, sem erro |
 | `GET /api/products` , `GET /api/products/{id}` | Catálogo de produtos (mesma base do RAG/MCP B2B) |
 | `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` | Criação e histórico de pedidos |
 | `POST /api/auth/login` , `POST /api/auth/signup` | Autenticação simplificada |
@@ -228,7 +234,8 @@ data: {"motivo": "urgencia", "confianca": 0.87}
 event: done                  // sempre o último evento em caso de sucesso — telemetria completa
 data: {
   "domain": "vendas",              // vendas | suporte | atendimento | agendamento | fora_escopo
-  "backend_used": "local",         // local | externo
+  "backend_used": "local",         // local | externo | resposta_fixa (mensagem só com
+                                   // e-mail, sem LLM, R10) | identificacao_imagem
   "escalation_reason": "nenhum",   // nenhum | fora_escopo | rag_vazio | complexidade_alta
 
   // Telemetria de inferência (além do MVP original, a pedido explícito —
@@ -259,7 +266,13 @@ data: {
   // selecionado no admin (correção de revisão final — antes vazava o valor
   // selecionado, não o usado de fato). `null` no fluxo de identificação de
   // imagem, que não passa por classificação de intenção.
-  "router_provider": "heuristica_llm"
+  "router_provider": "heuristica_llm",
+
+  // Classificação do visitante (R10, Fase 6): "cliente" | "esporadico" |
+  // "lead" | "nao_classificado", com o motivo. `null` quando a memória da
+  // conversa está indisponível ou no fluxo de identificação de imagem.
+  "perfil_usuario": "lead",
+  "perfil_motivo": "intenção de compra"
 }
 ```
 
@@ -292,10 +305,9 @@ ao roteador — o áudio é tratado como alternativa ao campo de texto
 fallback quando presente. Limitações que restam: sem robustez a áudio
 ruidoso/silencioso, sem VAD, idioma fixo em português (ver
 `docs/ARCHITECTURE.md` §5/§7). O histórico usado para resolver confirmações
-curtas (R3) é mantido em memória por processo no backend (últimas 1-3
-mensagens por `conversation_id`), sem persistência em Postgres nem resumo
-automático (isso é R9/Fase 6) — só é atualizado quando o evento `done`
-chega com sucesso, não em caso de `error`.
+curtas (R3) vem da memória da conversa no Postgres (R9, Fase 6: as 3
+mensagens mais recentes do cliente naquele `conversation_id`). A troca só é
+gravada quando o evento `done` chega com sucesso, não em caso de `error`.
 
 **Estado atual do frontend (Fase 7/8, ver `docs/ROADMAP.md`):** o scaffold
 Next.js foi criado em `frontend/` (App Router, TypeScript `strict`, Tailwind
@@ -351,7 +363,8 @@ explícito — decisão registrada em `docs/ARCHITECTURE.md` §5): cada bolha de
 resposta do assistente (`MessageBubble.tsx`) tem um painel com os campos de
 telemetria da resposta (`model_name`, `prompt_tokens`/`completion_tokens`,
 `latency_ms`, `ttft_ms`, `tps`, `estimated_cost_usd`,
-`rag_retrieval_ms`/`rag_chunks_count`/`rag_avg_score`) e, quando a resposta
+`rag_retrieval_ms`/`rag_chunks_count`/`rag_avg_score`, e o perfil do
+visitante `perfil_usuario`/`perfil_motivo`, R10) e, quando a resposta
 usou RAG, a lista `rag_chunks` (fonte/arquivo e score de cada chunk
 recuperado, na seção "Fontes" do bloco RAG do painel) — escondido por padrão,
 revelado por uma engrenagem pequena (⚙️, mesmo tamanho de fonte do rótulo de

@@ -71,7 +71,8 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       /api/chat/messages` (`backend/src/app/api/chat.py`,
       `backend/src/app/models/chat.py`), encaminhando ao orchestrator com
       histórico em memória por processo (últimas 1-3 mensagens por
-      `conversation_id`); campo `audio` (base64) processado via STT quando
+      `conversation_id`; desde a Fase 6 esse histórico vem do Postgres, ver
+      `app.memory.store`); campo `audio` (base64) processado via STT quando
       presente, com fallback para `payload.message` se a transcrição vier
       vazia (`# MVP: ...`). Resposta passou a ser **streaming via SSE**
       (`text/event-stream`, eventos `conversation`/`transcription`/`status`/
@@ -322,10 +323,43 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 6 — Memória e Classificação do Usuário (R9, R10)
 
-- [ ] Implementar persistência da conversa por ID único
-- [ ] Implementar resumo automático periódico da conversa (não só ao final)
-- [ ] Implementar heurística inicial de classificação Cliente/Lead/Esporádico
-      com base em histórico de compras/perguntas
+Decisões de 2026-09-25 em `docs/ARCHITECTURE.md` §5 ("Fase 6, memória da
+conversa e classificação do usuário").
+
+- [x] Implementar persistência da conversa por ID único — tabelas
+      `conversas`/`conversa_mensagens` no Postgres (mensagens do cliente e
+      do assistente), gravadas antes do evento `done`. Implementado
+      (`app.memory.store`, migração `0010`, `app.api.chat`). Validado no
+      Postgres real (`testes_locais/20260925-1243-memoria.md`, R1)
+- [x] Implementar resumo automático periódico da conversa (não só ao final)
+      — a cada 6 mensagens, em segundo plano, com o resumo no prompt.
+      Implementado (`app.memory.resumo`, `_build_prompt`). Validado com o
+      LLM local (R2: resumo em 2 s, usado na resposta seguinte)
+- [x] Retomar a conversa no widget — `GET /api/chat/conversations/{id}`
+      e carregamento no `ChatWidget` ao montar. Implementado (backend +
+      `fetchConversationHistory`/`loadHistory` no frontend). Backend
+      validado no teste local (R1, GET da conversa) e retomada conferida no
+      navegador (2026-09-25: mensagens voltam após F5). Depois, a pedido do
+      desenvolvedor, cada resposta passou a guardar as métricas do `done`
+      (coluna `metricas`, migração `0012`), e o painel ⚙️ reaparece igual nas
+      mensagens recarregadas
+- [x] Implementar heurística inicial de classificação Cliente/Lead/Esporádico
+      com base em histórico de compras/perguntas — base de clientes fictícia,
+      e-mail captado no momento natural (pós-venda, agendamento), perfil no
+      evento `done` e no painel de métricas. Implementado
+      (`app.user_profile.classificacao`, migração `0011` com 3 clientes
+      fictícios, pedido de e-mail no pós-venda em `_build_prompt`,
+      `MessageBubble`). Validado no teste local (R3 a R9: pedido de e-mail
+      no pós-venda, cliente, esporádico x2, lead, não classificado, e-mail
+      lembrado)
+- [x] Mensagem de boas-vindas ao abrir o chat com a conversa vazia, com
+      convite opcional para informar o e-mail junto com a pergunta (R10) —
+      bolha só de interface (`WELCOME_MESSAGE` em `ChatModal.tsx`), pedido do
+      desenvolvedor em 2026-09-25
+- [x] E-mail guardado na chegada da mensagem (não se perde se o LLM falhar)
+      e mensagem só com o e-mail respondida sem LLM (`resposta_fixa`, sem
+      revelar se há cadastro) — correções do teste local de 2026-09-25 (R6/R9
+      falharam com 429 do OpenRouter)
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 

@@ -10,9 +10,25 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.background_tasks import spawn_background_task
+from app.db.models import Conversa
 from app.logging_config import conversation_id_ctx
 from app.mcp_client.google_calendar import CalendarClient
-from app.models.chat import ChatDoneEventData, ChatMessageRequest
+from app.memory.resumo import atualizar_resumo, precisa_resumir
+from app.memory.store import (
+    ContextoConversa,
+    carregar_contexto,
+    contar_mensagens,
+    gravar_metricas,
+    listar_mensagens,
+    registrar_email,
+    registrar_troca,
+)
+from app.models.chat import (
+    ChatDoneEventData,
+    ChatMessageRequest,
+    ConversaHistoricoOut,
+    ConversaMensagemOut,
+)
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
@@ -41,23 +57,102 @@ from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
 from app.router.tone_monitor import criar_escalonamento
 from app.stt.whisper_client import SttClient, SttIndisponivelError
+from app.user_profile.classificacao import (
+    RESPOSTA_SO_EMAIL,
+    Classificacao,
+    atualizar_perfil,
+    e_mensagem_so_de_email,
+    extrair_email,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
-_MAX_HISTORY_MESSAGES = 3
 
-# MVP: histórico de conversa mantido em memória por processo (dict simples
-# `conversation_id -> últimas mensagens`) — sem persistência em banco nem
-# resumo automático, que ficam para a Fase 6 (R9, ver docs/ROADMAP.md). O
-# histórico também não sobrevive a um restart do processo.
-_conversation_history: dict[str, list[str]] = {}
+async def _carregar_contexto_seguro(app_state, conversation_id: str) -> ContextoConversa:
+    """Histórico recente e resumo da conversa, lidos do Postgres (R9, Fase 6).
+    Falha do banco (ou `app.state` sem `db_sessionmaker`) vira log e um
+    contexto vazio: a resposta sai sem memória, mas sai."""
+    try:
+        async with app_state.db_sessionmaker() as session:
+            return await carregar_contexto(session, conversation_id)
+    except Exception as exc:
+        _logar_memoria_indisponivel("carregar", exc)
+        return ContextoConversa()
 
 
-def reset_conversation_history() -> None:
-    """Limpa o histórico em memória — usado pelos testes para isolar casos."""
-    _conversation_history.clear()
+async def _registrar_troca_segura(
+    app_state,
+    conversation_id: str,
+    mensagem: str,
+    resposta: str,
+    dominio: str | None,
+    local_client: LLMClient,
+    done_data: ChatDoneEventData,
+) -> Classificacao | None:
+    """Grava a troca antes do `done`: a próxima mensagem sempre encontra esta
+    no histórico. Mesma proteção de `_carregar_contexto_seguro`. Na mesma
+    sessão recalcula o perfil do visitante (R10), preenche-o em `done_data`
+    e guarda as métricas do `done` na resposta (o painel ⚙️ reaparece no
+    histórico). A cada `INTERVALO_RESUMO` mensagens novas, dispara o resumo
+    em segundo plano, sem esperar por ele."""
+    try:
+        async with app_state.db_sessionmaker() as session:
+            conversa, assistente = await registrar_troca(
+                session, conversation_id, mensagem, resposta, dominio
+            )
+            total = await contar_mensagens(session, conversation_id)
+            resumir = precisa_resumir(total, conversa.mensagens_resumidas)
+            classificacao = await atualizar_perfil(session, conversation_id, mensagem)
+            if classificacao is not None:
+                done_data.perfil_usuario = classificacao.perfil
+                done_data.perfil_motivo = classificacao.motivo
+            await gravar_metricas(session, assistente, done_data.model_dump(mode="json"))
+    except Exception as exc:
+        _logar_memoria_indisponivel("registrar", exc)
+        return None
+    if resumir:
+        spawn_background_task(
+            atualizar_resumo(app_state.db_sessionmaker, conversation_id, local_client)
+        )
+    if classificacao is not None:
+        # Só perfil e motivo: o e-mail do visitante nunca vai para o log.
+        logger.info(
+            "perfil_classificado",
+            extra={
+                "router": {
+                    "event": "perfil_classificado",
+                    "perfil": classificacao.perfil,
+                    "motivo": classificacao.motivo,
+                }
+            },
+        )
+    return classificacao
+
+
+async def _registrar_email_seguro(app_state, conversation_id: str, email: str) -> None:
+    """Guarda o e-mail na chegada da mensagem (R10). Mesma proteção de
+    `_carregar_contexto_seguro`; o e-mail nunca vai para o log."""
+    try:
+        async with app_state.db_sessionmaker() as session:
+            await registrar_email(session, conversation_id, email)
+    except Exception as exc:
+        _logar_memoria_indisponivel("registrar_email", exc)
+
+
+def _logar_memoria_indisponivel(operacao: str, exc: Exception) -> None:
+    logger.warning(
+        "memoria_indisponivel",
+        extra={
+            "router": {
+                "event": "memoria_indisponivel",
+                "operacao": operacao,
+                "tipo": type(exc).__name__,
+                "erro": str(exc),
+            }
+        },
+    )
 
 
 def get_local_client(request: Request) -> LLMClient:
@@ -164,6 +259,41 @@ async def _persistir_escalonamento_em_background(
                 }
             },
         )
+
+
+@router.get("/conversations/{conversation_id}", response_model=ConversaHistoricoOut)
+async def obter_conversa(conversation_id: str, request: Request) -> ConversaHistoricoOut:
+    """Histórico gravado da conversa (R9, Fase 6), mais antigo primeiro — o
+    widget chama ao abrir, para reexibir a conversa no mesmo navegador.
+
+    # MVP: quem tiver o `conversation_id` (UUID aleatório guardado no
+    # navegador) lê a conversa; sem login nem outra verificação.
+    """
+    try:
+        async with request.app.state.db_sessionmaker() as session:
+            conversa = await session.get(Conversa, conversation_id)
+            if conversa is None:
+                raise HTTPException(status_code=404, detail="Conversa não encontrada.")
+            mensagens = await listar_mensagens(session, conversation_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _logar_memoria_indisponivel("obter_conversa", exc)
+        raise HTTPException(status_code=503, detail="Histórico indisponível no momento.") from exc
+    return ConversaHistoricoOut(
+        conversation_id=conversation_id,
+        resumo=conversa.resumo,
+        mensagens=[
+            ConversaMensagemOut(
+                papel=m.papel,
+                texto=m.texto,
+                dominio=m.dominio,
+                criada_em=m.criada_em,
+                metricas=m.metricas,
+            )
+            for m in mensagens
+        ],
+    )
 
 
 @router.post("/messages")
@@ -284,7 +414,21 @@ async def send_message(
                 detail="Formato de imagem não suportado. Use PNG, JPG ou WEBP.",
             )
 
-    recent_messages = list(_conversation_history.get(conversation_id, []))
+    contexto = await _carregar_contexto_seguro(request.app.state, conversation_id)
+    recent_messages = contexto.mensagens_recentes
+
+    # R10: o e-mail é guardado já na chegada, antes do LLM — uma falha na
+    # resposta (ex.: 429 do modelo externo) não o perde.
+    email_na_mensagem = extrair_email(effective_message) if effective_message else None
+    if email_na_mensagem:
+        await _registrar_email_seguro(request.app.state, conversation_id, email_na_mensagem)
+        contexto.email = email_na_mensagem
+    # Mensagem que é só o e-mail: resposta fixa, sem LLM (ver abaixo).
+    so_email = (
+        not is_identificacao_imagem
+        and bool(effective_message)
+        and e_mensagem_so_de_email(effective_message)
+    )
 
     async def event_stream():
         # De novo aqui: o Starlette itera o corpo do `StreamingResponse` numa
@@ -299,6 +443,8 @@ async def send_message(
         # docs/ARCHITECTURE.md §4). Não passa pelo orchestrator/LLM de texto —
         # produz a própria resposta (detalhes do produto ou "não
         # identificado") e a emite como token + done.
+        # MVP: esta troca não entra na memória da conversa (R9) — a
+        # mensagem pode ser só a imagem, sem texto do cliente para gravar.
         if is_identificacao_imagem:
             try:
                 resultado = await identify_product_by_image(
@@ -339,6 +485,29 @@ async def send_message(
             yield _sse("done", done_data.model_dump())
             return
 
+        if so_email:
+            # Antes caía em `fora_escopo` e ia para o modelo externo (lento, com
+            # custo e sujeito a 429). A resposta não diz se o e-mail tem
+            # cadastro, para não permitir descobrir quem é cliente testando
+            # e-mails; o perfil sai só no painel de métricas.
+            yield _sse("token", {"text": RESPOSTA_SO_EMAIL})
+            done_data = ChatDoneEventData(
+                domain="atendimento", backend_used="resposta_fixa", escalation_reason="nenhum"
+            )
+            await _registrar_troca_segura(
+                request.app.state,
+                conversation_id,
+                effective_message,
+                RESPOSTA_SO_EMAIL,
+                "atendimento",
+                local_client,
+                done_data,
+            )
+            yield _sse("done", done_data.model_dump())
+            return
+
+        # Texto completo da resposta, para gravar na memória da conversa.
+        partes_resposta: list[str] = []
         try:
             async for event in handle_message(
                 message=effective_message,
@@ -354,10 +523,15 @@ async def send_message(
                 intent_router_provider=intent_router_provider,
                 tone_monitor_enabled=tone_monitor_enabled,
                 tone_monitor_provider=tone_monitor_provider,
+                resumo_conversa=contexto.resumo,
+                # R10: no pós-venda, sem e-mail conhecido (nem nesta
+                # mensagem), o assistente pede o e-mail usado na compra.
+                pedir_email_pos_venda=contexto.email is None,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
                 elif isinstance(event, TokenEvent):
+                    partes_resposta.append(event.text)
                     yield _sse("token", {"text": event.text})
                 elif isinstance(event, EscalonamentoEvent):
                     yield _sse(
@@ -392,9 +566,6 @@ async def send_message(
                         )
                     )
                 elif isinstance(event, RouterDecision):
-                    history = _conversation_history.setdefault(conversation_id, [])
-                    history.append(effective_message)
-                    del history[:-_MAX_HISTORY_MESSAGES]
                     done_data = ChatDoneEventData(
                         domain=event.domain,
                         backend_used=event.backend_escolhido,
@@ -413,6 +584,16 @@ async def send_message(
                         rag_avg_score=event.rag_avg_score,
                         rag_chunks=event.rag_chunks,
                         router_provider=event.router_provider,
+                    )
+                    # Preenche perfil_usuario/perfil_motivo em done_data.
+                    await _registrar_troca_segura(
+                        request.app.state,
+                        conversation_id,
+                        effective_message,
+                        "".join(partes_resposta),
+                        event.domain,
+                        local_client,
+                        done_data,
                     )
                     yield _sse("done", done_data.model_dump())
         except (

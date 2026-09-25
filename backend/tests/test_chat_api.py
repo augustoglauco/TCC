@@ -2,6 +2,8 @@ import asyncio
 import base64
 import json
 import logging
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 from fastapi import FastAPI
@@ -19,14 +21,16 @@ from app.api.chat import (
     get_scheduling_config,
     get_stt_client,
     get_tone_monitor_enabled,
-    reset_conversation_history,
 )
 from app.api.chat import router as chat_router
+from app.db.models import Cliente, ClienteCompra, Conversa
 from app.logging_config import ConversationIdFilter
+from app.memory.store import listar_mensagens
 from app.rag.image_search import ImageSearchResult
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
 from app.stt.whisper_client import SttIndisponivelError
+from app.user_profile.classificacao import RESPOSTA_SO_EMAIL
 from tests.conftest import _CommitFailingSession
 
 
@@ -151,14 +155,21 @@ class _SingleSessionMaker:
 
     def __init__(self, session) -> None:
         self._session = session
+        # Uma sessão só não aguenta uso simultâneo (a memória da conversa
+        # grava enquanto a persistência do escalonamento roda em segundo
+        # plano). Na aplicação cada `db_sessionmaker()` abre uma sessão
+        # própria; aqui o lock faz os usos se revezarem.
+        self._lock = asyncio.Lock()
 
     def __call__(self):
         return self
 
     async def __aenter__(self):
+        await self._lock.acquire()
         return self._session
 
     async def __aexit__(self, *exc_info) -> bool:
+        self._lock.release()
         return False
 
 
@@ -208,11 +219,8 @@ def _build_app(fakes: dict, complexity_strategy: str = "heuristic") -> FastAPI:
 @pytest.fixture
 def client(fakes):
     app = _build_app(fakes)
-
-    reset_conversation_history()
     with TestClient(app) as test_client:
         yield test_client
-    reset_conversation_history()
 
 
 def test_envia_mensagem_de_texto_simples(client):
@@ -245,7 +253,6 @@ def test_done_traz_fonte_e_score_de_cada_chunk_do_rag(fakes):
         ]
     )
     app = _build_app(fakes)
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post("/api/chat/messages", json={"message": "qual o preço?"})
 
@@ -266,7 +273,6 @@ def test_chat_stream_router_provider_reflete_fallback_do_jev(fakes):
     # esperava (incorretamente) "jev_openrouter" aqui.
     app = _build_app(fakes)
     app.state.intent_router_provider = "jev_openrouter"
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post("/api/chat/messages", json={"message": "olá"})
 
@@ -282,7 +288,6 @@ def test_chat_stream_router_provider_jev_quando_client_sucede(fakes):
     )
     app = _build_app(fakes)
     app.state.intent_router_provider = "jev_openrouter"
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post("/api/chat/messages", json={"message": "olá"})
 
@@ -352,6 +357,165 @@ def test_conversation_id_mantem_historico_entre_chamadas(client):
     # muda o resultado, não a heurística da mensagem em si.
     isolated = client.post("/api/chat/messages", json={"message": "pode ser amanhã às 10h"})
     assert _find(_parse_sse(isolated.text), "done")["domain"] == "fora_escopo"
+
+
+async def test_troca_fica_gravada_na_memoria_da_conversa(client, fakes):
+    client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "conversation_id": "conv-memoria-1"},
+    )
+
+    mensagens = await listar_mensagens(fakes["db_session"], "conv-memoria-1")
+
+    # Mensagem do cliente E resposta completa do assistente, com o domínio
+    # da resposta (usado depois pela classificação do usuário, R10).
+    assert [(m.papel, m.texto, m.dominio) for m in mensagens] == [
+        ("cliente", "quero agendar uma visita", None),
+        ("assistente", "resposta local", "agendamento"),
+    ]
+
+
+def test_get_conversa_devolve_o_historico_gravado(client):
+    client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "conversation_id": "conv-get-1"},
+    )
+
+    resposta = client.get("/api/chat/conversations/conv-get-1")
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["conversation_id"] == "conv-get-1"
+    assert [(m["papel"], m["texto"], m["dominio"]) for m in corpo["mensagens"]] == [
+        ("cliente", "quero agendar uma visita", None),
+        ("assistente", "resposta local", "agendamento"),
+    ]
+    # E-mail e perfil do visitante (R10) não saem por este endpoint.
+    assert set(corpo) == {"conversation_id", "resumo", "mensagens"}
+
+
+def test_get_conversa_devolve_as_metricas_de_cada_resposta(client):
+    envio = client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "conversation_id": "conv-met-1"},
+    )
+    done = _find(_parse_sse(envio.text), "done")
+
+    cliente, assistente = client.get("/api/chat/conversations/conv-met-1").json()["mensagens"]
+
+    # As métricas gravadas são o próprio evento `done` — o painel ⚙️
+    # reaparece igual nas mensagens recarregadas.
+    assert assistente["metricas"] == done
+    assert assistente["metricas"]["perfil_usuario"] == "lead"
+    assert cliente["metricas"] is None
+
+
+def test_get_conversa_inexistente_da_404(client):
+    assert client.get("/api/chat/conversations/nao-existe").status_code == 404
+
+
+def test_get_conversa_com_banco_fora_do_ar_da_503(fakes):
+    class _SessaoQueFalha:
+        def __call__(self):
+            return self
+
+        async def __aenter__(self):
+            raise ConnectionError("postgres fora do ar")
+
+        async def __aexit__(self, *exc_info) -> bool:
+            return False
+
+    app = _build_app(fakes)
+    app.state.db_sessionmaker = _SessaoQueFalha()
+    with TestClient(app) as client:
+        assert client.get("/api/chat/conversations/conv-x").status_code == 503
+
+
+def test_done_traz_o_perfil_lead_por_intencao_de_compra(client):
+    resposta = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"})
+
+    done = _find(_parse_sse(resposta.text), "done")
+    assert (done["perfil_usuario"], done["perfil_motivo"]) == ("lead", "intenção de compra")
+
+
+async def test_done_traz_o_perfil_cliente_pelo_email_da_base(client, fakes):
+    sessao = fakes["db_session"]
+    ana = Cliente(email="ana.recorrente@example.com", nome="Ana")
+    sessao.add(ana)
+    await sessao.flush()
+    agora = datetime.now(UTC)
+    sessao.add_all(
+        [
+            ClienteCompra(
+                cliente_id=ana.id,
+                quantidade=1,
+                valor_total=Decimal("100"),
+                comprado_em=agora - timedelta(days=dias),
+            )
+            for dias in (30, 90)
+        ]
+    )
+    await sessao.commit()
+
+    resposta = client.post(
+        "/api/chat/messages",
+        json={"message": "meu gerador não funciona, meu e-mail é ana.recorrente@example.com"},
+    )
+
+    done = _find(_parse_sse(resposta.text), "done")
+    assert done["perfil_usuario"] == "cliente"
+    # Com o e-mail na própria mensagem, o assistente não é instruído a pedi-lo.
+    assert "e-mail usado na compra" not in fakes["local"].prompts[-1]
+
+
+def test_pos_venda_sem_email_instrui_o_assistente_a_pedir(client, fakes):
+    client.post("/api/chat/messages", json={"message": "meu gerador não funciona"})
+
+    assert "e-mail usado na compra" in fakes["local"].prompts[-1]
+
+
+async def test_resumo_da_conversa_entra_no_prompt(client, fakes):
+    fakes["db_session"].add(Conversa(id="conv-resumo-1", resumo="Cliente quer 2 geradores GD-15."))
+    await fakes["db_session"].commit()
+
+    client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "conversation_id": "conv-resumo-1"},
+    )
+
+    assert "Resumo da conversa até aqui" in fakes["local"].prompts[-1]
+    assert "Cliente quer 2 geradores GD-15." in fakes["local"].prompts[-1]
+
+
+def test_banco_fora_do_ar_nao_derruba_a_resposta(fakes, caplog):
+    class _SessaoQueFalha:
+        def __call__(self):
+            return self
+
+        async def __aenter__(self):
+            raise ConnectionError("postgres fora do ar")
+
+        async def __aexit__(self, *exc_info) -> bool:
+            return False
+
+    app = _build_app(fakes)
+    app.state.db_sessionmaker = _SessaoQueFalha()
+    with caplog.at_level(logging.WARNING, logger="app.api.chat"):
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/chat/messages", json={"message": "quero agendar uma visita"}
+            )
+
+    eventos = _parse_sse(response.text)
+    assert "".join(dados["text"] for tipo, dados in eventos if tipo == "token") == (
+        "resposta local"
+    )
+    assert _find(eventos, "done")["domain"] == "agendamento"
+    # Uma linha ao carregar o contexto e outra ao gravar a troca.
+    operacoes = [
+        r.router["operacao"] for r in caplog.records if r.getMessage() == "memoria_indisponivel"
+    ]
+    assert operacoes == ["carregar", "registrar"]
 
 
 def test_audio_e_transcrito_e_usado_como_mensagem(client, fakes):
@@ -460,14 +624,11 @@ def test_stt_indisponivel_retorna_503(fakes):
     fakes["stt"] = _FakeSttClient(error=SttIndisponivelError("modelo não carregou"))
     app = _build_app(fakes)
     audio_b64 = base64.b64encode(b"audio").decode()
-
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post(
             "/api/chat/messages",
             json={"message": "quero agendar uma visita", "audio": audio_b64},
         )
-    reset_conversation_history()
 
     assert response.status_code == 503
 
@@ -484,13 +645,10 @@ def test_modelo_nao_carregado_gera_evento_status(fakes):
         LLMResponse(text="resposta local", total_duration_ms=10.0)
     )
     app = _build_app(fakes)
-
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post(
             "/api/chat/messages", json={"message": "quero agendar uma visita"}
         )
-    reset_conversation_history()
 
     assert response.status_code == 200
     assert "event: status" in response.text
@@ -513,18 +671,79 @@ def test_dependencia_indisponivel_gera_evento_de_erro(fakes):
     fakes["local"] = _FailingLLMClient()
     fakes["external"] = _FailingLLMClient()
     app = _build_app(fakes)
-
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post(
             "/api/chat/messages", json={"message": "quero agendar uma visita"}
         )
-    reset_conversation_history()
 
     assert response.status_code == 200
     eventos = _parse_sse(response.text)
     assert eventos[-1][0] == "error"
     assert "temporariamente indisponível" in eventos[-1][1]["detail"]
+
+
+async def test_email_e_guardado_mesmo_quando_o_llm_falha(fakes):
+    # Cenário real do teste local (R9, 2026-09-25): o modelo externo deu 429
+    # e o e-mail da mensagem se perdia junto com a resposta.
+    class _FailingLLMClient:
+        async def generate(self, prompt: str) -> LLMResponse:
+            raise ConnectionError("429 Too Many Requests")
+
+        async def is_model_ready(self) -> bool:
+            return True
+
+        async def generate_stream(self, prompt: str):
+            raise ConnectionError("429 Too Many Requests")
+            yield  # pragma: no cover - necessário para ser um async generator
+
+    fakes["local"] = _FailingLLMClient()
+    fakes["external"] = _FailingLLMClient()
+    app = _build_app(fakes)
+    with TestClient(app) as test_client:
+        resposta = test_client.post(
+            "/api/chat/messages",
+            json={
+                "message": "Quero trocar uma peça, meu e-mail é carla.antiga@example.com",
+                "conversation_id": "conv-email-falha",
+            },
+        )
+
+    assert _parse_sse(resposta.text)[-1][0] == "error"
+    conversa = await fakes["db_session"].get(Conversa, "conv-email-falha")
+    assert conversa.email == "carla.antiga@example.com"
+
+
+def test_mensagem_so_com_email_tem_resposta_fixa_sem_llm(client, fakes):
+    resposta = client.post(
+        "/api/chat/messages",
+        json={"message": "Sou bruno.unico@example.com", "conversation_id": "conv-so-email"},
+    )
+
+    eventos = _parse_sse(resposta.text)
+    texto = "".join(dados["text"] for tipo, dados in eventos if tipo == "token")
+    assert texto == RESPOSTA_SO_EMAIL
+    done = _find(eventos, "done")
+    assert (done["backend_used"], done["domain"]) == ("resposta_fixa", "atendimento")
+    # Nenhum LLM chamado (nem classificador, nem monitor de tom, nem resposta).
+    assert fakes["local"].prompts == []
+    assert fakes["external"].prompts == []
+    # A troca fica no histórico, como qualquer outra.
+    historico = client.get("/api/chat/conversations/conv-so-email").json()["mensagens"]
+    assert [m["texto"] for m in historico] == ["Sou bruno.unico@example.com", RESPOSTA_SO_EMAIL]
+
+
+def test_email_ja_informado_nao_e_pedido_de_novo_no_pos_venda(client, fakes):
+    client.post(
+        "/api/chat/messages",
+        json={"message": "meu e-mail é ana.recorrente@example.com", "conversation_id": "conv-e1"},
+    )
+
+    client.post(
+        "/api/chat/messages",
+        json={"message": "meu gerador não funciona", "conversation_id": "conv-e1"},
+    )
+
+    assert "e-mail usado na compra" not in fakes["local"].prompts[-1]
 
 
 def test_mensagem_com_sinal_forte_emite_evento_escalonamento_antes_do_done(client):

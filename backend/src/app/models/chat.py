@@ -3,6 +3,9 @@
 Contrato espelhado em `docs/FRONTEND.md` §4 (`POST /api/chat/messages`).
 """
 
+from datetime import datetime
+from typing import Literal
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -121,3 +124,34 @@ class ChatDoneEventData(BaseModel):
         "None quando a resposta não passou por classificação de intenção "
         "(ex.: caminho de identificação de imagem).",
     )
+    perfil_usuario: Literal["cliente", "esporadico", "lead", "nao_classificado"] | None = Field(
+        default=None,
+        description="Classificação do visitante (R10, Fase 6). None quando a memória "
+        "da conversa está indisponível ou a resposta não foi gravada.",
+    )
+    perfil_motivo: str | None = Field(
+        default=None, description="Por que o visitante recebeu esse perfil (R10)."
+    )
+
+
+class ConversaMensagemOut(BaseModel):
+    """Uma mensagem gravada da conversa (R9, Fase 6)."""
+
+    papel: Literal["cliente", "assistente"]
+    texto: str
+    dominio: str | None = None
+    criada_em: datetime
+    # Conteúdo do evento `done` da resposta (só nas mensagens do assistente;
+    # `None` nas gravadas antes da migração 0012).
+    metricas: dict | None = None
+
+
+class ConversaHistoricoOut(BaseModel):
+    """Corpo de `GET /api/chat/conversations/{id}` — o widget usa para
+    reexibir o histórico ao reabrir o chat (R9). Não inclui o e-mail do
+    visitante; o perfil vem só dentro das métricas de cada resposta, como no
+    painel ⚙️."""
+
+    conversation_id: str
+    resumo: str | None = None
+    mensagens: list[ConversaMensagemOut]

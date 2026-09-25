@@ -85,7 +85,9 @@ describe("MessageBubble", () => {
     await user.click(toggle);
 
     expect(screen.getByTestId("message-metrics")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ocultar métricas da resposta" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Ocultar métricas da resposta" }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Ocultar métricas da resposta" }));
 
@@ -128,6 +130,62 @@ describe("MessageBubble", () => {
     expect(screen.getByText("Heurística + LLM Local")).toBeInTheDocument();
   });
 
+  it("mostra o perfil do visitante e o motivo (R10)", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Resposta",
+          domain: "vendas",
+          metrics: { perfilUsuario: "lead", perfilMotivo: "intenção de compra" },
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Mostrar métricas da resposta" }));
+
+    expect(screen.getByText("Lead")).toBeInTheDocument();
+    expect(screen.getByText("(intenção de compra)")).toBeInTheDocument();
+  });
+
+  it("resposta fixa (mensagem só com e-mail) aparece como sem LLM no painel", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Obrigado! Anotei o seu e-mail.",
+          domain: "atendimento",
+          backendUsed: "resposta_fixa",
+          metrics: { perfilUsuario: "esporadico" },
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Mostrar métricas da resposta" }));
+
+    expect(screen.getByText("Resposta fixa (sem LLM)")).toBeInTheDocument();
+  });
+
+  it("não mostra a linha de perfil quando o perfil não vem no metrics", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Resposta",
+          domain: "vendas",
+          metrics: { modelName: "llama3.1:8b" },
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Mostrar métricas da resposta" }));
+
+    expect(screen.queryByText("Perfil:")).not.toBeInTheDocument();
+  });
+
   it("não mostra a linha de provedor quando routerProvider não vem no metrics", async () => {
     const user = userEvent.setup();
     render(
@@ -149,7 +207,11 @@ describe("MessageBubble", () => {
   it("destaca em azul a resposta do assistente quando vem de LLM externo", () => {
     render(
       <MessageBubble
-        message={makeMessage({ role: "assistant", text: "Resposta externa", backendUsed: "externo" })}
+        message={makeMessage({
+          role: "assistant",
+          text: "Resposta externa",
+          backendUsed: "externo",
+        })}
       />,
     );
 

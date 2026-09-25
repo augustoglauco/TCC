@@ -8,8 +8,23 @@ import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
 import { sendChatMessage } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
+import { metricsFromDone } from "@/lib/utils/chatMetrics";
 import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetrics";
 import { generateId } from "@/lib/utils/generateId";
+
+/**
+ * Mensagem de boas-vindas mostrada com a conversa vazia. Convida a informar o
+ * e-mail junto com a pergunta (opcional): com ele o backend identifica o
+ * cadastro e as compras do visitante (R10, classificação do usuário).
+ */
+export const WELCOME_MESSAGE =
+  "Olá! 👋 Sou o assistente virtual da empresa. Posso ajudar com produtos e " +
+  "orçamentos, suporte técnico, atendimento (nota fiscal, trocas) e agendamento " +
+  "de visitas.\n\n" +
+  "Se quiser, informe seu e-mail junto com a sua pergunta. Com ele identificamos " +
+  "o seu cadastro e o seu histórico de compras, o que facilita o atendimento e o " +
+  "nosso relacionamento com você. É opcional: você pode conversar normalmente " +
+  "sem informá-lo. Pode escrever ou gravar um áudio.";
 
 interface PendingRetry {
   message?: string;
@@ -117,23 +132,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         updateMessage(assistantId, {
           domain: data.domain,
           backendUsed: data.backend_used,
-          metrics: {
-            modelName: data.model_name ?? undefined,
-            promptTokens: data.prompt_tokens ?? undefined,
-            completionTokens: data.completion_tokens ?? undefined,
-            latencyMs: data.latency_ms ?? undefined,
-            ttftMs: data.ttft_ms ?? undefined,
-            tps: data.tps ?? undefined,
-            confidence: data.confidence ?? undefined,
-            complexity: data.complexity ?? undefined,
-            estimatedCostUsd: data.estimated_cost_usd ?? undefined,
-            ragRetrievalMs: data.rag_retrieval_ms ?? undefined,
-            ragChunksCount: data.rag_chunks_count ?? undefined,
-            ragAvgScore: data.rag_avg_score ?? undefined,
-            ragChunks: data.rag_chunks ?? undefined,
-            escalationReason: data.escalation_reason,
-            routerProvider: data.router_provider ?? undefined,
-          },
+          metrics: metricsFromDone(data),
         });
       },
       onError: (msg) => {
@@ -198,23 +197,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         updateMessage(assistantId, {
           domain: data.domain,
           backendUsed: data.backend_used,
-          metrics: {
-            modelName: data.model_name ?? undefined,
-            promptTokens: data.prompt_tokens ?? undefined,
-            completionTokens: data.completion_tokens ?? undefined,
-            latencyMs: data.latency_ms ?? undefined,
-            ttftMs: data.ttft_ms ?? undefined,
-            tps: data.tps ?? undefined,
-            confidence: data.confidence ?? undefined,
-            complexity: data.complexity ?? undefined,
-            estimatedCostUsd: data.estimated_cost_usd ?? undefined,
-            ragRetrievalMs: data.rag_retrieval_ms ?? undefined,
-            ragChunksCount: data.rag_chunks_count ?? undefined,
-            ragAvgScore: data.rag_avg_score ?? undefined,
-            ragChunks: data.rag_chunks ?? undefined,
-            escalationReason: data.escalation_reason,
-            routerProvider: data.router_provider ?? undefined,
-          },
+          metrics: metricsFromDone(data),
         });
       },
       onError: (msg) => {
@@ -288,12 +271,11 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           className="flex-1 space-y-3 sm:space-y-4 overflow-y-auto p-2.5 sm:p-4"
         >
           {messages.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400 p-4">
-              <span className="text-3xl">💬</span>
-              <p className="text-xs sm:text-sm font-medium">
-                Envie uma mensagem ou grave um áudio para iniciar o atendimento.
-              </p>
-            </div>
+            // Boas-vindas só de interface (R10): não entra no store nem no
+            // banco, e some quando chega a primeira mensagem ou o histórico.
+            <MessageBubble
+              message={{ id: "boas-vindas", role: "assistant", text: WELCOME_MESSAGE }}
+            />
           )}
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
