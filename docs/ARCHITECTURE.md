@@ -1002,7 +1002,9 @@ habilitado". A autorização completa (OAuth etc.) continua fora do MVP.
      nem 443, só a 8443.
    - Sem TLS, a chave trafegaria em texto claro e poderia ser capturada no
      caminho; por isso HTTPS é obrigatório nesse acesso.
-   - Configuração em `infra/caddy/Caddyfile` e passos em `goup.md`.
+   - Configuração em `infra/caddy/Caddyfile` e passos em `goup.md` ("MCP
+     B2B público"). `scripts/cliente_mcp_b2b.py` é um cliente MCP de teste
+     que faz o papel do fornecedor, rodando de fora da rede.
 2. **Chave por parceiro:** `MCP_B2B_PARTNER_KEYS` (só no `.env`, nunca no
    código; formato `nome:chave,nome2:chave2`). O parceiro envia
    `Authorization: Bearer <chave>` em toda requisição, que é o cabeçalho
@@ -1034,7 +1036,12 @@ habilitado". A autorização completa (OAuth etc.) continua fora do MVP.
 
 `# MVP: autenticação por chave estática por parceiro (Bearer), sem OAuth,
 escopos, expiração nem rate limiting` aparece em `app.mcp_server.auth`,
-`app.config`, `.env.example` e `scripts/run_mcp_b2b_server.py`.
+`app.config`, `.env.example` e `scripts/run_mcp_b2b_server.py`. Testado em
+`tests/test_mcp_b2b_auth.py`, pelo app HTTP real do SDK: `401` sem chave e
+com chave errada, `200` com a chave certa e log com o parceiro, `421` para
+um `Host` fora da URL pública, leitura das chaves e falha fechada. A suíte
+`mcp_b2b` do teste local (`docs/TESTE_LOCAL.md`) confere o caminho real
+(Caddy, porta, certificado).
 
 ## 7. Riscos e limitações conhecidos
 

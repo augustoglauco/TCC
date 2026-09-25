@@ -1,0 +1,38 @@
+# Proxy HTTPS do MCP B2B (R12, Fase 5) — decisão de 2026-09-25 em
+# docs/ARCHITECTURE.md §6. Parceiros fora da rede local chegam por
+#   https://{$DUCKDNS_DOMAIN}:8443/mcp
+# e o Caddy repassa para o servidor MCP, que só escuta em 127.0.0.1:8100.
+#
+# Certificado Let's Encrypt pelo desafio DNS do DuckDNS: não precisa abrir as
+# portas 80/443 no roteador, só a 8443. Exige o Caddy com o módulo
+# caddy-dns/duckdns (ver goup.md, "MCP B2B público").
+#
+# Variáveis em infra/caddy/caddy.env (fora do git; modelo em
+# caddy.env.example): DUCKDNS_DOMAIN e DUCKDNS_TOKEN.
+#
+# Subir (a partir da raiz do repo):
+#   caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env
+
+{
+	# Nenhuma porta além da 8443: sem redirecionamento automático de HTTP.
+	auto_https disable_redirects
+}
+
+{$DUCKDNS_DOMAIN}:8443 {
+	tls {
+		dns duckdns {env.DUCKDNS_TOKEN}
+	}
+
+	# O MCP B2B autentica cada requisição pela chave do parceiro
+	# (Authorization: Bearer); o Caddy só cuida do HTTPS e repassa.
+	# O Host original (domínio:8443) segue para o servidor, que o aceita
+	# por causa de MCP_B2B_PUBLIC_URL no backend/.env.
+	reverse_proxy 127.0.0.1:8100 {
+		# Respostas em streaming (SSE) do MCP passam sem buffer.
+		flush_interval -1
+	}
+
+	log {
+		output file /tmp/tcc-caddy-mcp-b2b.log
+	}
+}

@@ -38,7 +38,7 @@ main() {
     echo "⚠️  Ollama não respondeu em localhost:11434 — os cenários de chat vão falhar."
   fi
 
-  passo "4/6 Reiniciando o backend (porta 8000, log em /tmp/tcc-backend.log)"
+  passo "4/6 Reiniciando o backend (porta 8000) e o MCP B2B (porta 8100)"
   fuser -k 8000/tcp 2>/dev/null || lsof -ti:8000 | xargs -r kill 2>/dev/null
   sleep 1
   (cd backend && nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 \
@@ -50,6 +50,25 @@ main() {
   curl -s -o /dev/null --max-time 2 http://localhost:8000/docs \
     || { tail -30 /tmp/tcc-backend.log; falha "Backend não subiu em 60s (log acima)."; }
   echo "Backend no ar"
+
+  # MCP B2B (porta 8100, só 127.0.0.1): não sobe sem MCP_B2B_PARTNER_KEYS no
+  # backend/.env. Falhar aqui não interrompe o teste — só a suíte mcp_b2b
+  # depende dele, e ela mostra o problema no relatório.
+  echo "Reiniciando o MCP B2B (porta 8100, log em /tmp/tcc-mcp-b2b.log)"
+  fuser -k 8100/tcp 2>/dev/null || lsof -ti:8100 | xargs -r kill 2>/dev/null
+  sleep 1
+  (cd backend && nohup .venv/bin/python scripts/run_mcp_b2b_server.py \
+    > /tmp/tcc-mcp-b2b.log 2>&1 & disown)
+  for _ in $(seq 1 20); do
+    if curl -s -o /dev/null --max-time 2 http://127.0.0.1:8100/mcp; then break; fi
+    sleep 1
+  done
+  if curl -s -o /dev/null --max-time 2 http://127.0.0.1:8100/mcp; then
+    echo "MCP B2B no ar"
+  else
+    tail -5 /tmp/tcc-mcp-b2b.log
+    echo "⚠️  MCP B2B não subiu (log acima) — a suíte mcp_b2b vai falhar; as outras seguem."
+  fi
 
   passo "5/6 Rodando o teste"
   (cd backend && .venv/bin/python scripts/teste_local.py "$@") || falha "O roteiro de teste quebrou — copie o erro acima e mande para o agente."
