@@ -27,6 +27,7 @@ from app.rag.image_search import ClipImageStore
 from app.rag.qdrant_client import QdrantRAGClient
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
+from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
 from app.stt.whisper_client import WhisperSttClient
 
@@ -111,6 +112,12 @@ def create_app() -> FastAPI:
         session_factory=app.state.db_sessionmaker,
         embedders=app.state.embedder_registry,
     )
+
+    # Orquestrador como integrador do MCP B2B em Vendas (R12, Fase 5) — ver
+    # docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md.
+    # Chama app.db.catalog diretamente (mesmo processo), não abre uma
+    # conexão MCP real contra o mcp-b2b-server separado (spec §4).
+    app.state.sales_catalog_client = SalesCatalogClient(app.state.db_sessionmaker)
 
     # CLIP para busca multimodal por imagem (R6, Fase 3) — singleton lazy,
     # mesmo padrão dos outros clientes de infraestrutura.

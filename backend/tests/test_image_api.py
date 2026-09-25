@@ -400,6 +400,7 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400(db_session):
         get_external_client,
         get_local_client,
         get_rag_client,
+        get_sales_catalog_client,
         get_scheduling_config,
         get_stt_client,
         reset_conversation_history,
@@ -437,6 +438,7 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400(db_session):
     # dependência resolva sem estourar `AttributeError` em app.state.
     app.dependency_overrides[get_calendar_client] = lambda: None
     app.dependency_overrides[get_scheduling_config] = lambda: None
+    app.dependency_overrides[get_sales_catalog_client] = lambda: None
     # Task 7 (R8): `send_message` agora também depende de `get_db_session`
     # (persistência de escalonamento do Monitor de Tom) — precisa resolver
     # sem estourar AttributeError em app.state mesmo neste teste, que nem

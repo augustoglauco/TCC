@@ -36,6 +36,7 @@ from app.router.orchestrator import (
     handle_message,
 )
 from app.router.rag_client import RAGClient, RAGConnectionError
+from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
 from app.router.tone_monitor import criar_escalonamento
 from app.stt.whisper_client import SttClient, SttIndisponivelError
@@ -106,6 +107,10 @@ def get_scheduling_config(request: Request) -> SchedulingConfig:
     return request.app.state.scheduling_config
 
 
+def get_sales_catalog_client(request: Request) -> SalesCatalogClient:
+    return request.app.state.sales_catalog_client
+
+
 def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
@@ -173,6 +178,7 @@ async def send_message(
     clip_embedder: ClipEmbedder = Depends(get_clip_embedder),
     calendar_client: CalendarClient = Depends(get_calendar_client),
     scheduling_config: SchedulingConfig = Depends(get_scheduling_config),
+    sales_catalog_client: SalesCatalogClient = Depends(get_sales_catalog_client),
     intent_router_provider: str = Depends(get_intent_router_provider),
     tone_monitor_enabled: bool = Depends(get_tone_monitor_enabled),
     tone_monitor_provider: str = Depends(get_tone_monitor_provider),
@@ -335,6 +341,7 @@ async def send_message(
                 conversation_id=conversation_id,
                 calendar_client=calendar_client,
                 scheduling_config=scheduling_config,
+                sales_catalog_client=sales_catalog_client,
                 intent_router_provider=intent_router_provider,
                 tone_monitor_enabled=tone_monitor_enabled,
                 tone_monitor_provider=tone_monitor_provider,

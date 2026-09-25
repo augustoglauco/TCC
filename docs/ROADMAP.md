@@ -280,8 +280,13 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `produto_compatibilidades`/`pedidos`/`pedido_itens` (migração `0009`)
       e a lógica de preço/desconto em `app.db.catalog`, ver decisão
       registrada em `docs/ARCHITECTURE.md` §5
-- [ ] Integrar o Roteador/Orquestrador como "mais um integrador" do MCP B2B
-      para intenções de Vendas (cotação, compatibilidade, estoque)
+- [x] Integrar o Roteador/Orquestrador como "mais um integrador" do MCP B2B
+      para intenções de Vendas (cotação, compatibilidade, estoque) — novo módulo
+      `app.router.sales_catalog` (`SalesCatalogClient`, two-stage resolution:
+      candidates por SQL + LLM choice), desambiguação por LLM necessária por
+      catálogo ~1000 produtos (spec §2), chamada direta a `app.db.catalog` no mesmo
+      processo (spec §4). Injeção de dependência wired em `main.py` + `chat.py` +
+      `test_chat_api.py`. Ver `docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
 - [ ] Garantir e documentar que autenticação por parceiro e exposição
       pública **não** fazem parte do MVP
       (`# MVP: uso interno, sem autenticação por parceiro`)
