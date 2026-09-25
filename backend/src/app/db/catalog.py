@@ -39,6 +39,7 @@ from app.db.models import (
     ProdutoCompatibilidade,
     ProdutoDescontoVolume,
     ProdutoEstoque,
+    ProdutoImagem,
 )
 
 
@@ -63,7 +64,9 @@ def _produto_query():
     # removido, os handlers do MCP B2B quebram também, não só quem chama
     # direto por aqui.
     return select(Produto).options(
-        selectinload(Produto.estoques), selectinload(Produto.descontos_volume)
+        selectinload(Produto.estoques),
+        selectinload(Produto.descontos_volume),
+        selectinload(Produto.imagens),
     )
 
 
@@ -79,6 +82,8 @@ async def criar_produto(
     peso_kg: Decimal | None = None,
     preco_promocional: Decimal | None = None,
     promocao_valida_ate: datetime | None = None,
+    preco_base_fornecedor: Decimal | None = None,
+    imagem_url: str | None = None,
 ) -> Produto:
     produto = Produto(
         nome=nome,
@@ -90,6 +95,8 @@ async def criar_produto(
         peso_kg=peso_kg,
         preco_promocional=preco_promocional,
         promocao_valida_ate=promocao_valida_ate,
+        preco_base_fornecedor=preco_base_fornecedor,
+        imagem_url=imagem_url,
     )
     session.add(produto)
     await session.commit()
@@ -102,7 +109,7 @@ async def criar_produto(
     # abaixo, que reaproveitam um `produto` já carregado com
     # `selectinload` via `obter_produto`, este é o único ponto do módulo
     # que precisa do refresh de verdade.
-    await session.refresh(produto, attribute_names=["estoques", "descontos_volume"])
+    await session.refresh(produto, attribute_names=["estoques", "descontos_volume", "imagens"])
     return produto
 
 
@@ -177,6 +184,7 @@ async def deletar_produto(session: AsyncSession, produto_id: int) -> bool:
     await session.execute(
         delete(ProdutoDescontoVolume).where(ProdutoDescontoVolume.produto_id == produto_id)
     )
+    await session.execute(delete(ProdutoImagem).where(ProdutoImagem.produto_id == produto_id))
     await session.execute(
         delete(ProdutoCompatibilidade).where(
             or_(
