@@ -326,26 +326,29 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 Decisões de 2026-09-25 em `docs/ARCHITECTURE.md` §5 ("Fase 6, memória da
 conversa e classificação do usuário").
 
-- [~] Implementar persistência da conversa por ID único — tabelas
+- [x] Implementar persistência da conversa por ID único — tabelas
       `conversas`/`conversa_mensagens` no Postgres (mensagens do cliente e
       do assistente), gravadas antes do evento `done`. Implementado
-      (`app.memory.store`, migração `0010`, `app.api.chat`); falta validar
-      no Postgres real pelo teste local
-- [~] Implementar resumo automático periódico da conversa (não só ao final)
+      (`app.memory.store`, migração `0010`, `app.api.chat`). Validado no
+      Postgres real (`testes_locais/20260925-1243-memoria.md`, R1)
+- [x] Implementar resumo automático periódico da conversa (não só ao final)
       — a cada 6 mensagens, em segundo plano, com o resumo no prompt.
-      Implementado (`app.memory.resumo`, `_build_prompt`); falta validar
-      com o LLM local pelo teste local
+      Implementado (`app.memory.resumo`, `_build_prompt`). Validado com o
+      LLM local (R2: resumo em 2 s, usado na resposta seguinte)
 - [~] Retomar a conversa no widget — `GET /api/chat/conversations/{id}`
       e carregamento no `ChatWidget` ao montar. Implementado (backend +
-      `fetchConversationHistory`/`loadHistory` no frontend); falta validar
-      no navegador
-- [~] Implementar heurística inicial de classificação Cliente/Lead/Esporádico
+      `fetchConversationHistory`/`loadHistory` no frontend). Backend
+      validado no teste local (R1, GET da conversa); falta conferir a
+      retomada no navegador
+- [x] Implementar heurística inicial de classificação Cliente/Lead/Esporádico
       com base em histórico de compras/perguntas — base de clientes fictícia,
       e-mail captado no momento natural (pós-venda, agendamento), perfil no
       evento `done` e no painel de métricas. Implementado
       (`app.user_profile.classificacao`, migração `0011` com 3 clientes
       fictícios, pedido de e-mail no pós-venda em `_build_prompt`,
-      `MessageBubble`); falta validar no teste local
+      `MessageBubble`). Validado no teste local (R3 a R9: pedido de e-mail
+      no pós-venda, cliente, esporádico x2, lead, não classificado, e-mail
+      lembrado)
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 
