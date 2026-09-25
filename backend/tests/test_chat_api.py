@@ -14,6 +14,7 @@ from app.api.chat import (
     get_external_client,
     get_local_client,
     get_rag_client,
+    get_sales_catalog_client,
     get_scheduling_config,
     get_stt_client,
     get_tone_monitor_enabled,
@@ -194,6 +195,7 @@ def _build_app(fakes: dict, complexity_strategy: str = "heuristic") -> FastAPI:
     # nas asserções abaixo (resposta normal do LLM, não o fluxo de booking).
     app.dependency_overrides[get_calendar_client] = lambda: None
     app.dependency_overrides[get_scheduling_config] = lambda: None
+    app.dependency_overrides[get_sales_catalog_client] = lambda: None
     app.state.db_sessionmaker = _SingleSessionMaker(fakes["db_session"])
     # Limiares lidos via request.app.state no fluxo de identificação.
     app.state.image_internal_confidence = 0.30
