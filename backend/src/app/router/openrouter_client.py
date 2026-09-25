@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 import httpx
 
 from app.ocr.image_processor import detect_image_format
+from app.router.classifier import DOMAIN_CRITERIA
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 
 
@@ -15,14 +16,6 @@ class VisionModelIndisponivelError(Exception):
 
 
 _VALID_DOMAINS = {"vendas", "suporte", "atendimento", "agendamento", "fora_escopo"}
-
-_DOMAIN_CRITERIA = {
-    "vendas": "Interesse em comprar, orçamento, preço ou catálogo de produtos.",
-    "suporte": "Produto com defeito, erro ou problema técnico já adquirido.",
-    "atendimento": "Nota fiscal, troca, devolução, cancelamento ou reclamação.",
-    "agendamento": "Quer marcar, remarcar ou confirmar uma visita/horário.",
-    "fora_escopo": "Não se encaixa claramente em nenhuma opção acima.",
-}
 
 
 class OpenRouterClient:
@@ -294,7 +287,7 @@ class OpenRouterClient:
                 "instructions": (
                     "Classifique a mensagem do cliente em um dos domínios de atendimento."
                 ),
-                "criteria": _DOMAIN_CRITERIA,
+                "criteria": DOMAIN_CRITERIA,
             },
         )
         choice = str(answer.get("choice", "fora_escopo")).lower().strip()

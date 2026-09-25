@@ -609,7 +609,10 @@ tipadas `choice`/`score`/`noul`) e resposta tipada
 (`answers.<pergunta>.choice`/`.confidence`), sem geração de texto livre nem
 parsing de JSON solto a partir de um prompt. O classificador usa uma única
 pergunta `choice` cobrindo os 5 domínios do sistema (`vendas`, `suporte`,
-`atendimento`, `agendamento`, `fora_escopo`). Qualquer falha (timeout, erro
+`atendimento`, `agendamento`, `fora_escopo`), com a descrição de cada um em
+`app.router.classifier.DOMAIN_CRITERIA`. O classificador LLM local
+(`heuristica_llm`) usa as mesmas descrições no prompt, para os dois
+provedores não divergirem sobre o que cada domínio cobre. Qualquer falha (timeout, erro
 HTTP, chave ausente, payload inesperado) degrada imediatamente para a
 heurística local de palavras-chave, sem interromper o atendimento — o
 padrão do roteador continua sendo `heuristica_llm`, preservando
@@ -858,7 +861,12 @@ Cinco decisões:
    no mesmo `asyncio.TaskGroup` da busca RAG. O bloco "Dados do catálogo
    interno" (estoque total somado entre CDs; cotação para N unidades, com
    o percentual de desconto só quando for maior que zero; compatibilidade
-   com o segundo produto) é anteposto ao contexto RAG em `_build_prompt`.
+   com o segundo produto) é anteposto ao contexto RAG em `_build_prompt`,
+   com um cabeçalho que manda o LLM usar exatamente aqueles nomes e valores
+   e preferi-los a trechos do RAG que digam outra coisa. O prompt final não
+   leva o histórico da conversa, então numa mensagem de acompanhamento
+   ("E se eu levar 5 unidades?") o bloco é a única fonte do produto em
+   questão.
    Manuais, garantia e texto não estruturado continuam vindo do RAG. A
    decisão local x externo continua usando só o sinal RAG vazio x não
    vazio. Efeito colateral aceito: `rag_retrieval_ms` passa a medir o
@@ -878,7 +886,16 @@ Cinco decisões:
    continua recebendo `RAGConnectionError` como antes. O log
    `rag_indisponivel` registra `tipo`/`erro` para que uma exceção
    inesperada não fique muda.
-5. **Fora desta entrega (decisão consciente):** `consultar_frete` e
+5. **Ajustes do 1º teste local (2026-09-25, `docs/TESTE_LOCAL.md`):**
+   6 de 7 cenários passaram. Dois problemas corrigidos: (a) "o QTA-100 é
+   compatível com o GD-30?" foi classificado como `suporte` e o catálogo
+   não foi consultado. O prompt do classificador LLM local só listava os
+   nomes dos domínios, então passou a trazer `DOMAIN_CRITERIA`, e
+   compatibilidade/estoque ficaram explícitos em `vendas`, como a Seção 6
+   já previa. (b) Na mensagem de acompanhamento o bloco estava certo (GD-15,
+   5 unidades, 5% de desconto), mas a resposta citou o GD-60 e o preço dele,
+   tirados de um trecho do RAG. Daí o cabeçalho do item 3.
+6. **Fora desta entrega (decisão consciente):** `consultar_frete` e
    `reservar_pedido` continuam só como tools MCP para integradores externos.
    Reserva tem efeito colateral real e exigiria um fluxo de confirmação
    explícita como o do agendamento. Também ficam de fora: cards

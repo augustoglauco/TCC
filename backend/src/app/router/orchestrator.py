@@ -170,7 +170,19 @@ def _logar_consulta_vendas(diagnostico: dict, resultado: str) -> None:
 
 
 def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
-    linhas = [f"Dados do catálogo interno (produto identificado: {dados.produto_nome}):"]
+    # O cabeçalho diz ao LLM que estes dados valem mais que os trechos do RAG:
+    # sem ele, no teste local de 2026-09-25 (cenário V8, "E se eu levar 5
+    # unidades?" depois de perguntar do GD-15) o modelo respondeu com preço
+    # e nome do GD-60 tirados de um trecho do RAG, ignorando o bloco. O prompt
+    # final não leva o histórico da conversa, então o bloco é a única fonte do
+    # produto de que se está falando.
+    linhas = [
+        "Dados oficiais do catálogo interno, já calculados para esta mensagem. "
+        "O cliente está falando deste produto: use exatamente estes nomes, "
+        "valores e quantidades, e prefira-os a qualquer informação recuperada "
+        "abaixo que seja diferente.",
+        f"Dados do catálogo interno (produto identificado: {dados.produto_nome}):",
+    ]
     linhas.append(f"- Estoque disponível: {dados.estoque_total} unidade(s)")
     if dados.cotacao is not None:
         preco_unitario, percentual, subtotal = dados.cotacao

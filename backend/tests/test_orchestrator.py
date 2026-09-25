@@ -1542,7 +1542,16 @@ def test_formatar_dados_catalogo_vendas_sem_desconto_omite_percentual():
     texto = _formatar_dados_catalogo_vendas(dados)
 
     assert "- Cotação para 2 unidade(s): R$ 49800.00" in texto
-    assert "desconto" not in texto
+    assert "desconto" not in texto.split("\n", 2)[2]
+
+
+def test_formatar_dados_catalogo_vendas_manda_preferir_o_catalogo_ao_rag():
+    dados = DadosCatalogoVendas(produto_nome="Gerador Diesel GD-15", estoque_total=17)
+
+    primeira_linha = _formatar_dados_catalogo_vendas(dados).split("\n")[0]
+
+    assert "Dados oficiais do catálogo interno" in primeira_linha
+    assert "prefira-os a qualquer informação recuperada" in primeira_linha
 
 
 def test_formatar_dados_catalogo_vendas_com_desconto_mostra_percentual():
