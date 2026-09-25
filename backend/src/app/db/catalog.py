@@ -118,10 +118,23 @@ async def obter_produto(session: AsyncSession, produto_id: int) -> Produto | Non
     return result.scalars().first()
 
 
-async def listar_produtos(session: AsyncSession, categoria: str | None = None) -> list[Produto]:
+async def listar_produtos(
+    session: AsyncSession,
+    categoria: str | None = None,
+    termo: str | None = None,
+) -> list[Produto]:
     query = _produto_query().order_by(Produto.id)
     if categoria is not None:
         query = query.where(Produto.categoria == categoria)
+    if termo is not None and termo.strip():
+        padrao = f"%{termo.strip()}%"
+        query = query.where(
+            or_(
+                Produto.nome.ilike(padrao),
+                Produto.descricao.ilike(padrao),
+                Produto.especificacoes_tecnicas.ilike(padrao),
+            )
+        )
     result = await session.execute(query)
     return list(result.scalars().unique().all())
 
