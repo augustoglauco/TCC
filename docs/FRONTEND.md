@@ -259,7 +259,13 @@ data: {
   // selecionado no admin (correção de revisão final — antes vazava o valor
   // selecionado, não o usado de fato). `null` no fluxo de identificação de
   // imagem, que não passa por classificação de intenção.
-  "router_provider": "heuristica_llm"
+  "router_provider": "heuristica_llm",
+
+  // Classificação do visitante (R10, Fase 6): "cliente" | "esporadico" |
+  // "lead" | "nao_classificado", com o motivo. `null` quando a memória da
+  // conversa está indisponível ou no fluxo de identificação de imagem.
+  "perfil_usuario": "lead",
+  "perfil_motivo": "intenção de compra"
 }
 ```
 
@@ -350,7 +356,8 @@ explícito — decisão registrada em `docs/ARCHITECTURE.md` §5): cada bolha de
 resposta do assistente (`MessageBubble.tsx`) tem um painel com os campos de
 telemetria da resposta (`model_name`, `prompt_tokens`/`completion_tokens`,
 `latency_ms`, `ttft_ms`, `tps`, `estimated_cost_usd`,
-`rag_retrieval_ms`/`rag_chunks_count`/`rag_avg_score`) e, quando a resposta
+`rag_retrieval_ms`/`rag_chunks_count`/`rag_avg_score`, e o perfil do
+visitante `perfil_usuario`/`perfil_motivo`, R10) e, quando a resposta
 usou RAG, a lista `rag_chunks` (fonte/arquivo e score de cada chunk
 recuperado, na seção "Fontes" do bloco RAG do painel) — escondido por padrão,
 revelado por uma engrenagem pequena (⚙️, mesmo tamanho de fonte do rótulo de

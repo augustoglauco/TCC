@@ -124,6 +124,14 @@ class ChatDoneEventData(BaseModel):
         "None quando a resposta não passou por classificação de intenção "
         "(ex.: caminho de identificação de imagem).",
     )
+    perfil_usuario: Literal["cliente", "esporadico", "lead", "nao_classificado"] | None = Field(
+        default=None,
+        description="Classificação do visitante (R10, Fase 6). None quando a memória "
+        "da conversa está indisponível ou a resposta não foi gravada.",
+    )
+    perfil_motivo: str | None = Field(
+        default=None, description="Por que o visitante recebeu esse perfil (R10)."
+    )
 
 
 class ConversaMensagemOut(BaseModel):

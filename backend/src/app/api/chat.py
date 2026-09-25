@@ -55,6 +55,7 @@ from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
 from app.router.tone_monitor import criar_escalonamento
 from app.stt.whisper_client import SttClient, SttIndisponivelError
+from app.user_profile.classificacao import Classificacao, atualizar_perfil, extrair_email
 
 logger = logging.getLogger(__name__)
 
@@ -80,9 +81,10 @@ async def _registrar_troca_segura(
     resposta: str,
     dominio: str | None,
     local_client: LLMClient,
-) -> None:
+) -> Classificacao | None:
     """Grava a troca antes do `done`: a próxima mensagem sempre encontra esta
-    no histórico. Mesma proteção de `_carregar_contexto_seguro`. A cada
+    no histórico. Mesma proteção de `_carregar_contexto_seguro`. Na mesma
+    sessão recalcula o perfil do visitante (R10), que sai no `done`. A cada
     `INTERVALO_RESUMO` mensagens novas, dispara o resumo em segundo plano,
     sem esperar por ele."""
     try:
@@ -90,13 +92,27 @@ async def _registrar_troca_segura(
             conversa = await registrar_troca(session, conversation_id, mensagem, resposta, dominio)
             total = await contar_mensagens(session, conversation_id)
             resumir = precisa_resumir(total, conversa.mensagens_resumidas)
+            classificacao = await atualizar_perfil(session, conversation_id, mensagem)
     except Exception as exc:
         _logar_memoria_indisponivel("registrar", exc)
-        return
+        return None
     if resumir:
         spawn_background_task(
             atualizar_resumo(app_state.db_sessionmaker, conversation_id, local_client)
         )
+    if classificacao is not None:
+        # Só perfil e motivo: o e-mail do visitante nunca vai para o log.
+        logger.info(
+            "perfil_classificado",
+            extra={
+                "router": {
+                    "event": "perfil_classificado",
+                    "perfil": classificacao.perfil,
+                    "motivo": classificacao.motivo,
+                }
+            },
+        )
+    return classificacao
 
 
 def _logar_memoria_indisponivel(operacao: str, exc: Exception) -> None:
@@ -444,6 +460,11 @@ async def send_message(
                 tone_monitor_enabled=tone_monitor_enabled,
                 tone_monitor_provider=tone_monitor_provider,
                 resumo_conversa=contexto.resumo,
+                # R10: no pós-venda, sem e-mail conhecido (nem nesta
+                # mensagem), o assistente pede o e-mail usado na compra.
+                pedir_email_pos_venda=(
+                    contexto.email is None and extrair_email(effective_message) is None
+                ),
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
@@ -483,7 +504,7 @@ async def send_message(
                         )
                     )
                 elif isinstance(event, RouterDecision):
-                    await _registrar_troca_segura(
+                    classificacao = await _registrar_troca_segura(
                         request.app.state,
                         conversation_id,
                         effective_message,
@@ -509,6 +530,8 @@ async def send_message(
                         rag_avg_score=event.rag_avg_score,
                         rag_chunks=event.rag_chunks,
                         router_provider=event.router_provider,
+                        perfil_usuario=classificacao.perfil if classificacao else None,
+                        perfil_motivo=classificacao.motivo if classificacao else None,
                     )
                     yield _sse("done", done_data.model_dump())
         except (

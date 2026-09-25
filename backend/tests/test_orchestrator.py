@@ -1576,6 +1576,33 @@ async def test_sem_resumo_o_prompt_nao_tem_o_bloco():
     assert "Resumo da conversa" not in local_client.last_prompt
 
 
+@pytest.mark.parametrize(
+    ("mensagem", "pedir_email", "deve_pedir"),
+    [
+        ("meu gerador não funciona", True, True),  # suporte, e-mail desconhecido
+        ("meu gerador não funciona", False, False),  # suporte, e-mail já conhecido
+        ("qual o preço do gerador?", True, False),  # vendas não é pós-venda
+    ],
+)
+async def test_pedido_de_email_so_no_pos_venda_sem_email(mensagem, pedir_email, deve_pedir):
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+
+    await _coletar_eventos(
+        mensagem,
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        pedir_email_pos_venda=pedir_email,
+    )
+
+    assert ("e-mail usado na compra" in local_client.last_prompt) is deve_pedir
+
+
 def test_formatar_dados_catalogo_vendas_sem_desconto_omite_percentual():
     dados = DadosCatalogoVendas(
         produto_nome="Gerador Diesel GD-15",

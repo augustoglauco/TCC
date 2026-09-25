@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ChatUIMessage } from "@/lib/types/chat";
+import type { ChatPerfilUsuario, ChatUIMessage } from "@/lib/types/chat";
 
 // MVP: rótulo de domínio é só um mapa fixo de texto — sem i18n nem vindo do
 // backend (ver docs/FRONTEND.md §3, "Indicador de domínio").
@@ -11,6 +11,14 @@ const DOMAIN_LABELS: Record<string, string> = {
   atendimento: "Atendimento ao Usuário",
   agendamento: "Agendamento",
   fora_escopo: "Fora de escopo",
+};
+
+// Classificação do visitante (R10, Fase 6).
+const PERFIL_LABELS: Record<ChatPerfilUsuario, string> = {
+  cliente: "Cliente",
+  esporadico: "Cliente esporádico",
+  lead: "Lead",
+  nao_classificado: "Não classificado",
 };
 
 const REASON_LABELS: Record<string, string> = {
@@ -178,6 +186,15 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 <div>
                   <span className="text-slate-400">Domínio:</span> {domainLabel || "-"}
                 </div>
+                {metrics?.perfilUsuario && (
+                  <div>
+                    <span className="text-slate-400">Perfil:</span>{" "}
+                    {PERFIL_LABELS[metrics.perfilUsuario]}
+                    {metrics.perfilMotivo && (
+                      <span className="text-[10px] text-slate-400"> ({metrics.perfilMotivo})</span>
+                    )}
+                  </div>
+                )}
                 <div>
                   <span className="text-slate-400">Complexidade:</span>{" "}
                   {metrics?.complexity || "baixa"}

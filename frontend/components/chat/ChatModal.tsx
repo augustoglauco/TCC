@@ -133,6 +133,8 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             ragChunks: data.rag_chunks ?? undefined,
             escalationReason: data.escalation_reason,
             routerProvider: data.router_provider ?? undefined,
+            perfilUsuario: data.perfil_usuario ?? undefined,
+            perfilMotivo: data.perfil_motivo ?? undefined,
           },
         });
       },
@@ -214,6 +216,8 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             ragChunks: data.rag_chunks ?? undefined,
             escalationReason: data.escalation_reason,
             routerProvider: data.router_provider ?? undefined,
+            perfilUsuario: data.perfil_usuario ?? undefined,
+            perfilMotivo: data.perfil_motivo ?? undefined,
           },
         });
       },

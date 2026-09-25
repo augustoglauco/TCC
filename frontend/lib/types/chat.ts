@@ -29,6 +29,9 @@ export interface ChatRagChunk {
   score: number;
 }
 
+/** Classificação do visitante (R10, Fase 6) — ver docs/ARCHITECTURE.md §5. */
+export type ChatPerfilUsuario = "cliente" | "esporadico" | "lead" | "nao_classificado";
+
 export interface ChatMetrics {
   modelName?: string;
   promptTokens?: number;
@@ -45,6 +48,8 @@ export interface ChatMetrics {
   ragChunks?: ChatRagChunk[];
   escalationReason?: ChatEscalationReason;
   routerProvider?: string;
+  perfilUsuario?: ChatPerfilUsuario;
+  perfilMotivo?: string;
 }
 
 export interface ChatDoneEventData {
@@ -65,6 +70,8 @@ export interface ChatDoneEventData {
   rag_avg_score?: number | null;
   rag_chunks?: ChatRagChunk[] | null;
   router_provider?: string | null;
+  perfil_usuario?: ChatPerfilUsuario | null;
+  perfil_motivo?: string | null;
 }
 
 /** Mensagem exibida no painel do chat (estado de UI, não o payload da API). */

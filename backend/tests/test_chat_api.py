@@ -2,6 +2,8 @@ import asyncio
 import base64
 import json
 import logging
+from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 from fastapi import FastAPI
@@ -21,7 +23,7 @@ from app.api.chat import (
     get_tone_monitor_enabled,
 )
 from app.api.chat import router as chat_router
-from app.db.models import Conversa
+from app.db.models import Cliente, ClienteCompra, Conversa
 from app.logging_config import ConversationIdFilter
 from app.memory.store import listar_mensagens
 from app.rag.image_search import ImageSearchResult
@@ -410,6 +412,49 @@ def test_get_conversa_com_banco_fora_do_ar_da_503(fakes):
     app.state.db_sessionmaker = _SessaoQueFalha()
     with TestClient(app) as client:
         assert client.get("/api/chat/conversations/conv-x").status_code == 503
+
+
+def test_done_traz_o_perfil_lead_por_intencao_de_compra(client):
+    resposta = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"})
+
+    done = _find(_parse_sse(resposta.text), "done")
+    assert (done["perfil_usuario"], done["perfil_motivo"]) == ("lead", "intenção de compra")
+
+
+async def test_done_traz_o_perfil_cliente_pelo_email_da_base(client, fakes):
+    sessao = fakes["db_session"]
+    ana = Cliente(email="ana.recorrente@example.com", nome="Ana")
+    sessao.add(ana)
+    await sessao.flush()
+    agora = datetime.now(UTC)
+    sessao.add_all(
+        [
+            ClienteCompra(
+                cliente_id=ana.id,
+                quantidade=1,
+                valor_total=Decimal("100"),
+                comprado_em=agora - timedelta(days=dias),
+            )
+            for dias in (30, 90)
+        ]
+    )
+    await sessao.commit()
+
+    resposta = client.post(
+        "/api/chat/messages",
+        json={"message": "meu gerador não funciona, meu e-mail é ana.recorrente@example.com"},
+    )
+
+    done = _find(_parse_sse(resposta.text), "done")
+    assert done["perfil_usuario"] == "cliente"
+    # Com o e-mail na própria mensagem, o assistente não é instruído a pedi-lo.
+    assert "e-mail usado na compra" not in fakes["local"].prompts[-1]
+
+
+def test_pos_venda_sem_email_instrui_o_assistente_a_pedir(client, fakes):
+    client.post("/api/chat/messages", json={"message": "meu gerador não funciona"})
+
+    assert "e-mail usado na compra" in fakes["local"].prompts[-1]
 
 
 async def test_resumo_da_conversa_entra_no_prompt(client, fakes):
