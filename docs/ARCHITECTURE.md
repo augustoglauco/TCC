@@ -948,9 +948,11 @@ implementação.
    resumo entra no prompt da resposta ("Resumo da conversa até aqui"). Isso
    também cobre uma lacuna vista nos testes de Vendas: o LLM que responde
    não via o histórico da conversa.
-4. **Retomada no widget:** `GET /api/chat/conversations/{id}/messages`
-   devolve as mensagens gravadas, e o widget as carrega ao abrir, quando
-   ainda não tem nenhuma na tela.
+4. **Retomada no widget:** `GET /api/chat/conversations/{id}` (caminho
+   que o `docs/FRONTEND.md` §4 já previa) devolve o resumo e as mensagens
+   gravadas, sem e-mail nem perfil. O widget as carrega ao montar, só se
+   ainda não houver mensagem na tela. `# MVP: quem tiver o
+   conversation_id (UUID aleatório no navegador) lê a conversa, sem login`.
 
 *R10: classificação do usuário.*
 

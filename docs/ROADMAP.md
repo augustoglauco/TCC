@@ -335,8 +335,10 @@ conversa e classificação do usuário").
       — a cada 6 mensagens, em segundo plano, com o resumo no prompt.
       Implementado (`app.memory.resumo`, `_build_prompt`); falta validar
       com o LLM local pelo teste local
-- [ ] Retomar a conversa no widget — `GET /api/chat/conversations/{id}/messages`
-      e carregamento ao abrir o chat
+- [~] Retomar a conversa no widget — `GET /api/chat/conversations/{id}`
+      e carregamento no `ChatWidget` ao montar. Implementado (backend +
+      `fetchConversationHistory`/`loadHistory` no frontend); falta validar
+      no navegador
 - [ ] Implementar heurística inicial de classificação Cliente/Lead/Esporádico
       com base em histórico de compras/perguntas — base de clientes fictícia,
       e-mail captado no momento natural (pós-venda, agendamento), perfil no

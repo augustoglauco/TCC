@@ -80,3 +80,17 @@ export interface ChatUIMessage {
   metrics?: ChatMetrics;
 }
 
+/** Uma mensagem gravada da conversa — `GET /api/chat/conversations/{id}` (R9). */
+export interface ConversaMensagem {
+  papel: "cliente" | "assistente";
+  texto: string;
+  dominio: ChatDomain | null;
+  criada_em: string;
+}
+
+/** Corpo de `GET /api/chat/conversations/{id}` (R9). */
+export interface ConversaHistorico {
+  conversation_id: string;
+  resumo: string | null;
+  mensagens: ConversaMensagem[];
+}

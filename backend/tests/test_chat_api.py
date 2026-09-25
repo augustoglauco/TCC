@@ -372,6 +372,46 @@ async def test_troca_fica_gravada_na_memoria_da_conversa(client, fakes):
     ]
 
 
+def test_get_conversa_devolve_o_historico_gravado(client):
+    client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "conversation_id": "conv-get-1"},
+    )
+
+    resposta = client.get("/api/chat/conversations/conv-get-1")
+
+    assert resposta.status_code == 200
+    corpo = resposta.json()
+    assert corpo["conversation_id"] == "conv-get-1"
+    assert [(m["papel"], m["texto"], m["dominio"]) for m in corpo["mensagens"]] == [
+        ("cliente", "quero agendar uma visita", None),
+        ("assistente", "resposta local", "agendamento"),
+    ]
+    # E-mail e perfil do visitante (R10) não saem por este endpoint.
+    assert set(corpo) == {"conversation_id", "resumo", "mensagens"}
+
+
+def test_get_conversa_inexistente_da_404(client):
+    assert client.get("/api/chat/conversations/nao-existe").status_code == 404
+
+
+def test_get_conversa_com_banco_fora_do_ar_da_503(fakes):
+    class _SessaoQueFalha:
+        def __call__(self):
+            return self
+
+        async def __aenter__(self):
+            raise ConnectionError("postgres fora do ar")
+
+        async def __aexit__(self, *exc_info) -> bool:
+            return False
+
+    app = _build_app(fakes)
+    app.state.db_sessionmaker = _SessaoQueFalha()
+    with TestClient(app) as client:
+        assert client.get("/api/chat/conversations/conv-x").status_code == 503
+
+
 async def test_resumo_da_conversa_entra_no_prompt(client, fakes):
     fakes["db_session"].add(Conversa(id="conv-resumo-1", resumo="Cliente quer 2 geradores GD-15."))
     await fakes["db_session"].commit()
