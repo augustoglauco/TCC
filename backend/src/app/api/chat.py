@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.background_tasks import spawn_background_task
+from app.db.models import Conversa
 from app.logging_config import conversation_id_ctx
 from app.mcp_client.google_calendar import CalendarClient
 from app.memory.resumo import atualizar_resumo, precisa_resumir
@@ -17,9 +18,15 @@ from app.memory.store import (
     ContextoConversa,
     carregar_contexto,
     contar_mensagens,
+    listar_mensagens,
     registrar_troca,
 )
-from app.models.chat import ChatDoneEventData, ChatMessageRequest
+from app.models.chat import (
+    ChatDoneEventData,
+    ChatMessageRequest,
+    ConversaHistoricoOut,
+    ConversaMensagemOut,
+)
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
@@ -210,6 +217,37 @@ async def _persistir_escalonamento_em_background(
                 }
             },
         )
+
+
+@router.get("/conversations/{conversation_id}", response_model=ConversaHistoricoOut)
+async def obter_conversa(conversation_id: str, request: Request) -> ConversaHistoricoOut:
+    """Histórico gravado da conversa (R9, Fase 6), mais antigo primeiro — o
+    widget chama ao abrir, para reexibir a conversa no mesmo navegador.
+
+    # MVP: quem tiver o `conversation_id` (UUID aleatório guardado no
+    # navegador) lê a conversa; sem login nem outra verificação.
+    """
+    try:
+        async with request.app.state.db_sessionmaker() as session:
+            conversa = await session.get(Conversa, conversation_id)
+            if conversa is None:
+                raise HTTPException(status_code=404, detail="Conversa não encontrada.")
+            mensagens = await listar_mensagens(session, conversation_id)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _logar_memoria_indisponivel("obter_conversa", exc)
+        raise HTTPException(status_code=503, detail="Histórico indisponível no momento.") from exc
+    return ConversaHistoricoOut(
+        conversation_id=conversation_id,
+        resumo=conversa.resumo,
+        mensagens=[
+            ConversaMensagemOut(
+                papel=m.papel, texto=m.texto, dominio=m.dominio, criada_em=m.criada_em
+            )
+            for m in mensagens
+        ],
+    )
 
 
 @router.post("/messages")
