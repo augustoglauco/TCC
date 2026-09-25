@@ -116,7 +116,7 @@ class CollectionCreateRequest(BaseModel):
     purpose: CollectionPurpose = "chat"
 
     @model_validator(mode="after")
-    def _valida_chunking(self) -> "CollectionCreateRequest":
+    def _valida_chunking(self) -> CollectionCreateRequest:
         if self.chunk_size <= self.chunk_overlap:
             raise ValueError("chunk_size deve ser maior que chunk_overlap")
         return self

@@ -44,7 +44,6 @@ import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from decimal import Decimal
-from typing import ParamSpec, TypeVar
 
 from mcp.server.auth.provider import TokenVerifier
 from mcp.server.auth.settings import AuthSettings
@@ -127,13 +126,9 @@ def host_somente_local(host: str) -> bool:
     return host.strip().lower() in _HOSTS_SOMENTE_LOCAL
 
 
-_P = ParamSpec("_P")
-_R = TypeVar("_R")
-
-
-def _registrar_chamada(
-    ferramenta: Callable[_P, Awaitable[_R]],
-) -> Callable[_P, Awaitable[_R]]:
+def _registrar_chamada[**P, R](
+    ferramenta: Callable[P, Awaitable[R]],
+) -> Callable[P, Awaitable[R]]:
     """Uma linha de log `mcp_b2b_ferramenta` por chamada: parceiro que
     chamou (da chave), ferramenta e resultado (`ok`/`erro`). Só log, não a
     auditoria persistida (fora do MVP, `docs/ARCHITECTURE.md` §6).
@@ -141,7 +136,7 @@ def _registrar_chamada(
     de entrada da ferramenta."""
 
     @functools.wraps(ferramenta)
-    async def envolvida(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+    async def envolvida(*args: P.args, **kwargs: P.kwargs) -> R:
         registro = {"event": "mcp_b2b_ferramenta", "parceiro": parceiro_atual()}
         registro["ferramenta"] = ferramenta.__name__
         try:

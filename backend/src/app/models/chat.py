@@ -59,7 +59,7 @@ class ChatMessageRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def _message_ou_audio_obrigatorio(self) -> "ChatMessageRequest":
+    def _message_ou_audio_obrigatorio(self) -> ChatMessageRequest:
         if not self.message and not self.audio and not self.image:
             raise ValueError("Informe 'message', 'audio' e/ou 'image'.")
         return self
