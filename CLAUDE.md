@@ -43,6 +43,7 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 | `docs/EVALUATION.md` | Ao implementar ou rodar a avaliação experimental (roteador, RAG, latência). |
 | `docs/AGENTIC_WORKFLOW.md` | Para entender a divisão de trabalho entre Antigravity e Claude Code CLI. |
 | `docs/TESTE_LOCAL.md` | Quando o código precisa ser validado na máquina do desenvolvedor (GPU/Ollama/dados reais) — `./testar.sh` roda o teste (`backend/scripts/teste_local.py`, suíte `SUITE_ATUAL`) e dá push do relatório em `testes_locais/`. |
+| `docs/ROLLBACK_PYTHON314.md` | Caso seja necessário reverter a migração do Python 3.14 e restaurar o ambiente para Python 3.13 / 3.11+. |
 
 ## Stack técnica
 
