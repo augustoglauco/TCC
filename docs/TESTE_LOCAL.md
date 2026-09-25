@@ -18,12 +18,16 @@ desenvolvedor**, e o resultado volta para o agente num arquivo só.
    ```
 
    Ele faz tudo sozinho:
-   1. `git pull` (para se houver alteração local sem commit);
+   1. `git pull --rebase` (para se houver alteração local sem commit em
+      arquivo versionado; arquivos soltos não atrapalham);
    2. `docker compose up -d`, `uv sync` e `alembic upgrade head`;
    3. confere se o Ollama responde;
-   4. reinicia o backend na porta 8000, logando em `/tmp/tcc-backend.log`;
-   5. roda o roteiro (`ruff` + `pytest` + cenários de chat);
-   6. faz commit e push do relatório em `testes_locais/`.
+   4. reinicia o backend (porta 8000, log em `/tmp/tcc-backend.log`) e o
+      MCP B2B (porta 8100, log em `/tmp/tcc-mcp-b2b.log`), e inicia o Caddy
+      (porta 8443) se ele não estiver no ar e estiver configurado;
+   5. roda o roteiro (`ruff` + `pytest` + a suíte `SUITE_ATUAL`);
+   6. faz commit e push do relatório em `testes_locais/`, atualizando e
+      tentando de novo se o branch remoto mudou durante o teste.
 
    Pode usar o chat no navegador enquanto ele roda: cada linha de log do
    backend carrega o `conversation_id`, e o roteiro só pega as linhas das
