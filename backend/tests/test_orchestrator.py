@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime, timedelta
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -19,6 +20,7 @@ from app.router.orchestrator import (
     handle_message,
 )
 from app.router.rag_client import Document, RAGConnectionError
+from app.router.sales_catalog import CandidatoProduto, DadosCatalogoVendas
 from app.router.scheduling import (
     BookingSlots,
     SchedulingConfig,
@@ -165,6 +167,32 @@ class _FakeCalendarClient:
             raise self._create_exception
         self.create_event_calls.append(kwargs)
         return self._create_event_link
+
+
+class _FakeSalesCatalogClient:
+    def __init__(
+        self,
+        candidatos: list[CandidatoProduto] | None = None,
+        dados: DadosCatalogoVendas | None = None,
+        buscar_exception: Exception | None = None,
+    ) -> None:
+        self._candidatos = candidatos if candidatos is not None else []
+        self._dados = dados
+        self._buscar_exception = buscar_exception
+        self.termos_buscados: list[list[str]] = []
+        self.detalhes_consultados: list[tuple[int, int | None, int | None]] = []
+
+    async def buscar_candidatos(
+        self, termos: list[str], limite: int = 10
+    ) -> list[CandidatoProduto]:
+        self.termos_buscados.append(termos)
+        if self._buscar_exception is not None:
+            raise self._buscar_exception
+        return self._candidatos
+
+    async def consultar_detalhes(self, produto_id, produto_relacionado_id, quantidade):
+        self.detalhes_consultados.append((produto_id, produto_relacionado_id, quantidade))
+        return self._dados
 
 
 _SCHEDULING_CONFIG = SchedulingConfig(
@@ -1438,3 +1466,122 @@ async def test_tone_monitor_desligado_nunca_emite_escalonamento():
 
     escalonamentos = [e for e in eventos if isinstance(e, EscalonamentoEvent)]
     assert escalonamentos == []
+
+
+async def test_vendas_com_produto_identificado_injeta_dados_do_catalogo_no_prompt():
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"produto_id": 1, "produto_relacionado_id": null, "quantidade": 2}',
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    candidatos = [CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")]
+    dados = DadosCatalogoVendas(
+        produto_nome="Gerador Diesel GD-15",
+        estoque_total=8,
+        cotacao=(Decimal("24900.00"), Decimal("0"), Decimal("49800.00")),
+        produto_relacionado_nome=None,
+        compativel=None,
+    )
+    sales_catalog_client = _FakeSalesCatalogClient(candidatos=candidatos, dados=dados)
+
+    await _coletar_eventos(
+        "Quero cotação de 2 geradores GD-15",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+    )
+
+    assert "Dados do catálogo interno" in local_client.last_prompt
+    assert "Gerador Diesel GD-15" in local_client.last_prompt
+    assert "8 unidade" in local_client.last_prompt
+
+
+async def test_vendas_sem_sales_catalog_client_comportamento_identico_ao_atual():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+
+    await _coletar_eventos(
+        "Quero cotação de 2 geradores GD-15",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+    )
+
+    assert "Dados do catálogo interno" not in local_client.last_prompt
+
+
+async def test_vendas_sem_produto_reconhecivel_nao_chama_llm_de_extracao():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    sales_catalog_client = _FakeSalesCatalogClient(candidatos=[])
+
+    await _coletar_eventos(
+        "Quero cotação de um produto qualquer",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+    )
+
+    # Só a chamada final de generate_stream — zero candidatos corta antes de
+    # qualquer chamada LLM de desambiguação.
+    assert local_client.calls == 1
+    assert "Dados do catálogo interno" not in local_client.last_prompt
+
+
+async def test_falha_no_sales_catalog_client_nao_derruba_a_resposta():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    sales_catalog_client = _FakeSalesCatalogClient(buscar_exception=RuntimeError("db indisponível"))
+
+    eventos = await _coletar_eventos(
+        "Quero cotação de 2 geradores GD-15",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+    )
+
+    assert any(isinstance(evento, TokenEvent) for evento in eventos)
+    assert "Dados do catálogo interno" not in local_client.last_prompt
+
+
+async def test_dominio_suporte_nunca_chama_sales_catalog_client():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    sales_catalog_client = _FakeSalesCatalogClient(
+        candidatos=[CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")]
+    )
+
+    await _coletar_eventos(
+        "Meu produto não funciona, está com defeito",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+    )
+
+    assert sales_catalog_client.termos_buscados == []
