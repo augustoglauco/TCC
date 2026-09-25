@@ -72,7 +72,7 @@ _TOKEN_RE = re.compile(r"[a-z0-9]+")
 # Etapa 1 (spec §8): teto de candidatos devolvidos por `buscar_candidatos`
 # antes da desambiguação por LLM (etapa 2) — nome explícito no módulo por
 # ser o mesmo valor citado na spec, não um "10" mágico solto na assinatura.
-_SALES_CANDIDATOS_LIMITE = 10
+SALES_CANDIDATOS_LIMITE = 10
 
 
 def extrair_termos_busca(message: str) -> list[str]:
@@ -106,7 +106,7 @@ class SalesCatalogClient:
         self._session_factory = session_factory
 
     async def buscar_candidatos(
-        self, termos: list[str], limite: int = _SALES_CANDIDATOS_LIMITE
+        self, termos: list[str], limite: int = SALES_CANDIDATOS_LIMITE
     ) -> list[CandidatoProduto]:
         """`OR` de `ILIKE '%termo%'` contra `Produto.nome`/`Produto.categoria`
         por termo, `LIMIT limite`. Sem ranking por relevância — a
