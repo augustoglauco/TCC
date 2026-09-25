@@ -13,10 +13,10 @@ especificamente nas collections com `purpose="mcp_b2b"` (nunca a collection
 ativa do chat público, ver decisão de 2026-09-21 em `docs/ARCHITECTURE.md`
 §5).
 
-# MVP: servidor de uso interno, sem autenticação por parceiro nem exposição
-pública (ver `docs/ARCHITECTURE.md` §5/§6 e `docs/ROADMAP.md`, Fase 5) — o
-mesmo nível de confiança de rede local já aceito para Qdrant/Postgres/
-`calendar-mcp-server` neste protótipo.
+# MVP: exposto publicamente (via Caddy/HTTPS) só com chave estática por
+parceiro (`app.mcp_server.auth`), sem OAuth, escopos nem rate limiting — ver
+decisão de 2026-09-25 em `docs/ARCHITECTURE.md` §6. Cada chamada de
+ferramenta gera o log `mcp_b2b_ferramenta` com o parceiro que chamou.
 
 Modelado como *MCP resources* os quatro itens de dados somente-leitura,
 endereçáveis por URI (`catalogo://`, `estoque://`, `precos://`,
@@ -38,11 +38,16 @@ para `MCPServer` (ver `pyproject.toml`, `mcp>=2.0`).
 from __future__ import annotations
 
 import asyncio
+import functools
 import json
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from decimal import Decimal
+from typing import ParamSpec, TypeVar
 
+from mcp.server.auth.provider import TokenVerifier
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ResourceError, ResourceNotFoundError, ToolError
 from sqlalchemy.exc import SQLAlchemyError
@@ -58,6 +63,7 @@ from app.db.catalog import (
     obter_produto,
     sao_compativeis,
 )
+from app.mcp_server.auth import parceiro_atual
 from app.models.mcp_b2b import (
     CatalogoProdutoOut,
     CompatibilidadeOut,
@@ -121,6 +127,37 @@ def host_somente_local(host: str) -> bool:
     return host.strip().lower() in _HOSTS_SOMENTE_LOCAL
 
 
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+
+
+def _registrar_chamada(
+    ferramenta: Callable[_P, Awaitable[_R]],
+) -> Callable[_P, Awaitable[_R]]:
+    """Uma linha de log `mcp_b2b_ferramenta` por chamada: parceiro que
+    chamou (da chave), ferramenta e resultado (`ok`/`erro`). Só log, não a
+    auditoria persistida (fora do MVP, `docs/ARCHITECTURE.md` §6).
+    `functools.wraps` preserva a assinatura, de onde o SDK gera o schema
+    de entrada da ferramenta."""
+
+    @functools.wraps(ferramenta)
+    async def envolvida(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        registro = {"event": "mcp_b2b_ferramenta", "parceiro": parceiro_atual()}
+        registro["ferramenta"] = ferramenta.__name__
+        try:
+            resultado = await ferramenta(*args, **kwargs)
+        except Exception as exc:
+            logger.warning(
+                "mcp_b2b_ferramenta",
+                extra={"router": {**registro, "resultado": "erro", "erro": str(exc)}},
+            )
+            raise
+        logger.info("mcp_b2b_ferramenta", extra={"router": {**registro, "resultado": "ok"}})
+        return resultado
+
+    return envolvida
+
+
 def _parse_produto_id(produto_id: str) -> int:
     try:
         return int(produto_id)
@@ -132,6 +169,8 @@ def create_b2b_mcp_server(
     session_factory: async_sessionmaker[AsyncSession],
     qdrant: QdrantRAGClient,
     embedders: EmbedderRegistry,
+    token_verifier: TokenVerifier | None = None,
+    auth: AuthSettings | None = None,
 ) -> MCPServer:
     """Monta o servidor MCP B2B com os 4 recursos de leitura e as 4
     ferramentas transacionais, recebendo as dependências já prontas (mesmo
@@ -139,14 +178,20 @@ def create_b2b_mcp_server(
     `app.api.rag_dependencies`) — facilita testar o servidor de verdade
     (`server.read_resource(...)`/`server.call_tool(...)`) sem subir HTTP nem
     depender de `app.state`.
+
+    `token_verifier`/`auth` ligam a autenticação por chave de parceiro
+    (`app.mcp_server.auth`) no transporte HTTP. Ficam `None` nos testes que
+    chamam o servidor direto, sem HTTP; `scripts/run_mcp_b2b_server.py`
+    sempre passa os dois e não sobe sem chave.
     """
 
     server = MCPServer(
         name="mcp-b2b",
         title="MCP B2B — Catálogo, Estoque, Preços, Manuais e Ferramentas Transacionais",
         instructions=(
-            "Servidor MCP interno da empresa (uso interno/prototípo de TCC, "
-            "sem autenticação por parceiro). Expõe catálogo de produtos, "
+            "Servidor MCP B2B da empresa (protótipo de TCC) para "
+            "fornecedores/parceiros habilitados, autenticados por chave "
+            "(Authorization: Bearer <chave>). Expõe catálogo de produtos, "
             "estoque por centro de distribuição, tabela de preços "
             "(promoção + descontos por volume) e busca semântica em "
             "manuais/documentação técnica (resources); validação de "
@@ -154,6 +199,8 @@ def create_b2b_mcp_server(
             "estimados, cotação automática com desconto por volume e "
             "reserva/pedido de estoque (tools)."
         ),
+        token_verifier=token_verifier,
+        auth=auth,
     )
 
     @server.resource(
@@ -320,6 +367,7 @@ def create_b2b_mcp_server(
             "simétrica: não importa qual dos dois é o 'principal'."
         ),
     )
+    @_registrar_chamada
     async def validar_compatibilidade(
         produto_id: int, produto_relacionado_id: int
     ) -> CompatibilidadeOut:
@@ -349,6 +397,7 @@ def create_b2b_mcp_server(
             "consulta nenhuma transportadora/Correios real."
         ),
     )
+    @_registrar_chamada
     async def consultar_frete(cep: str, itens: list[FreteItemIn]) -> FreteOut:
         cep_digitos = "".join(ch for ch in cep if ch.isdigit())
         if len(cep_digitos) != 8:
@@ -395,6 +444,7 @@ def create_b2b_mcp_server(
             "de desconto por volume atingida por cada item."
         ),
     )
+    @_registrar_chamada
     async def cotar(itens: list[CotacaoItemIn]) -> CotacaoOut:
         agora = datetime.now(UTC)
         try:
@@ -433,6 +483,7 @@ def create_b2b_mcp_server(
             "estoque suficiente."
         ),
     )
+    @_registrar_chamada
     async def reservar_pedido(itens: list[PedidoItemIn]) -> PedidoOut:
         itens_tuplas = [
             (item.produto_id, item.quantidade, item.centro_distribuicao) for item in itens
