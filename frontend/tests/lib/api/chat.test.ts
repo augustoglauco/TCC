@@ -145,4 +145,32 @@ describe("sendChatMessage", () => {
 
     expect(onError).toHaveBeenCalledWith("Serviço temporariamente indisponível. Tente novamente.");
   });
+
+  it("chama onEscalonamento quando o evento escalonamento chega no stream", async () => {
+    mockFetchOnce(
+      sseStream([
+        'event: conversation\ndata: {"conversation_id":"conv-1"}\n\n',
+        'event: escalonamento\ndata: {"motivo":"urgencia","confianca":0.85}\n\n',
+        'event: token\ndata: {"text":"Atendimento registrado."}\n\n',
+        'event: done\ndata: {"domain":"atendimento","backend_used":"local","escalation_reason":"nenhum"}\n\n',
+      ]),
+    );
+
+    const onEscalonamento = vi.fn();
+    await sendChatMessage({
+      message: "preciso disso urgente!",
+      onConversationId: vi.fn(),
+      onTranscription: vi.fn(),
+      onStatus: vi.fn(),
+      onToken: vi.fn(),
+      onDone: vi.fn(),
+      onError: vi.fn(),
+      onEscalonamento,
+    });
+
+    expect(onEscalonamento).toHaveBeenCalledWith({
+      motivo: "urgencia",
+      confianca: 0.85,
+    });
+  });
 });

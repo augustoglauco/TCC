@@ -274,7 +274,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       LLM leve)
 - [x] Implementar alerta e transferência simulada para atendente humano + log
       dos casos escalonados (evento SSE `escalonamento` + tabela
-      `tom_escalonamentos` — o banner visual no frontend fica para a Fase 8,
+      `tom_escalonamentos` — banner visual no frontend implementado na Fase 8,
       ver `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md` §9)
 
 ## Fase 5 — MCP B2B Provido pela Empresa (R12)
@@ -438,8 +438,15 @@ conversa e classificação do usuário").
 - [x] Implementar indicador visual de origem do modelo (local x externo) —
       bolha do assistente em azul quando `backend_used` retornado pela API é
       `"externo"`, mesmo arquivo (`MessageBubble.tsx`)
-- [ ] Implementar banner de transferência para atendente humano (monitor de
-      tom, R8) — depende de R8 no backend, ainda não implementado
+- [x] Implementar banner de transferência para atendente humano (monitor de
+      tom, R8) — componente `components/chat/EscalonamentoBanner.tsx`,
+      integrado ao `ChatModal.tsx`, consumindo o evento SSE `escalonamento`
+      emitido pelo backend (`backend/src/app/api/chat.py`). Exibe aviso
+      contextual de atendimento humano prioritário com motivo (`urgencia` vs.
+      `insatisfacao`), badge explicativo de "Alerta de Tom" e botão para
+      dispensar o aviso (`onDismiss`). Suportado tanto no fluxo de mensagem de
+      texto quanto no envio de áudio via callback `onEscalonamento` em
+      `lib/api/chat.ts`.
 - [x] Implementar estados de erro (ex.: falha do MCP do Google Calendar) com
       opção de tentar novamente — versão inicial cobre erro de rede/503 do
       próprio `POST /api/chat/messages` (`ChatModal`, bolha de erro com botão

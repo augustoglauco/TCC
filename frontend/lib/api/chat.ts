@@ -1,5 +1,6 @@
 import type {
   ChatDoneEventData,
+  ChatEscalonamentoData,
   ChatMessageRequest,
   ChatUIMessage,
   ConversaHistorico,
@@ -24,6 +25,8 @@ export interface SendChatMessageParams {
   onToken: (text: string) => void;
   onDone: (data: ChatDoneEventData) => void;
   onError: (message: string) => void;
+  /** Alerta de escalonamento emitido pelo Monitor de Tom (R8). */
+  onEscalonamento?: (data: ChatEscalonamentoData) => void;
 }
 
 /** Extrai `{ event, data }` de um bloco SSE (linhas `event:`/`data:` até uma linha em branco). */
@@ -56,6 +59,7 @@ export async function sendChatMessage({
   onToken,
   onDone,
   onError,
+  onEscalonamento,
 }: SendChatMessageParams): Promise<void> {
   const payload: ChatMessageRequest = {
     message,
@@ -119,6 +123,9 @@ export async function sendChatMessage({
               break;
             case "token":
               onToken(json.text);
+              break;
+            case "escalonamento":
+              onEscalonamento?.(json as ChatEscalonamentoData);
               break;
             case "done":
               concluiu = true;

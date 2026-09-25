@@ -98,9 +98,15 @@ com o histórico recarregado.
   torna visível quando o roteador decidiu usar o modelo externo em vez do
   local, útil para a demonstração do TCC (R1).
 - **Banner de transferência humana** quando o monitor de tom aciona a
-  escalada (R8): mensagem clara ("Conectando você a um atendente...") — no
-  MVP essa transferência é simulada no backend, mas a UI deve reagir a esse
-  evento como se fosse real.
+  escalada (R8): implementado em `components/chat/EscalonamentoBanner.tsx`
+  e integrado ao topo da listagem de mensagens em `ChatModal.tsx`. Consome o
+  evento SSE `escalonamento` (`lib/api/chat.ts`, callback `onEscalonamento`)
+  com mensagem contextualizada de acordo com o motivo detectado (`urgencia`:
+  "Identificamos urgência na sua solicitação. Um atendente humano foi notificado...";
+  `insatisfacao`: "Percebemos sua insatisfação e lamentamos o transtorno..."),
+  badge explicativo "Alerta de Tom" e botão de fechar (`aria-label="Fechar aviso de atendimento humano"`).
+  No MVP essa transferência é simulada no backend (registrada na tabela `tom_escalonamentos`),
+  mas a UI reage ao evento informando o usuário com transparência.
 
 **Estados do widget:** ocioso · enviando · aguardando streaming · gravando
 áudio · processando imagem · transferido para atendente · erro (ex.: falha
@@ -229,7 +235,9 @@ data: {"motivo": "urgencia", "confianca": 0.87}
 // gerada e streamada. Só dispara uma vez por conversa (estado em memória
 // por processo, perdido em restart). O caso também é persistido em
 // `tom_escalonamentos` (Postgres) e exposto para consulta manual em
-// GET /api/admin/tom/escalonamentos.
+// GET /api/admin/tom/escalonamentos. No frontend, é recebido via
+// callback `onEscalonamento` em `lib/api/chat.ts` e renderiza o
+// componente `components/chat/EscalonamentoBanner.tsx` em `ChatModal.tsx`.
 
 event: done                  // sempre o último evento em caso de sucesso — telemetria completa
 data: {
