@@ -11,7 +11,7 @@
 # caddy.env.example): DUCKDNS_DOMAIN e DUCKDNS_TOKEN.
 #
 # Subir (a partir da raiz do repo):
-#   caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env
+#   ~/.local/bin/caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env
 
 {
 	# Nenhuma porta além da 8443: sem redirecionamento automático de HTTP.
