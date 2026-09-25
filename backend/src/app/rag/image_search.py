@@ -47,6 +47,8 @@ class ImageSearchResult(BaseModel):
     filename: str
     domain: str
     score: float
+    produto_id: int | None = None
+    imagem_url: str | None = None
 
 
 def rerank_image_results(
@@ -109,19 +111,31 @@ class ClipImageStore:
         image_bytes: bytes,
         filename: str,
         domain: str,
+        produto_id: int | None = None,
+        imagem_url: str | None = None,
     ) -> str:
         """Embeda e grava uma imagem. Retorna o `image_id` gerado."""
         await self._ensure_collection()
         try:
             [vector] = await embedder.embed_images([image_bytes])
             image_id = str(uuid.uuid4())
+            payload = {
+                "filename": filename,
+                "domain": domain,
+                "image_id": image_id,
+            }
+            if produto_id is not None:
+                payload["produto_id"] = produto_id
+            if imagem_url is not None:
+                payload["imagem_url"] = imagem_url
+
             await self._client.upsert(
                 collection_name=IMAGE_COLLECTION_NAME,
                 points=[
                     PointStruct(
                         id=image_id,
                         vector=vector,
-                        payload={"filename": filename, "domain": domain, "image_id": image_id},
+                        payload=payload,
                     )
                 ],
             )
@@ -130,6 +144,19 @@ class ClipImageStore:
         except Exception as exc:
             raise RAGConnectionError(str(exc)) from exc
         return image_id
+
+    async def delete_image(self, image_id: str) -> bool:
+        """Exclui um ponto por ID da collection CLIP."""
+        try:
+            if not await self._client.collection_exists(IMAGE_COLLECTION_NAME):
+                return False
+            await self._client.delete(
+                collection_name=IMAGE_COLLECTION_NAME,
+                points_selector=[image_id],
+            )
+            return True
+        except Exception as exc:
+            raise RAGConnectionError(str(exc)) from exc
 
     async def search_by_image(
         self,
@@ -194,10 +221,12 @@ class ClipImageStore:
 
         candidatos = [
             ImageSearchResult(
-                image_id=point.payload["image_id"],
-                filename=point.payload["filename"],
-                domain=point.payload["domain"],
+                image_id=point.payload.get("image_id", str(point.id)),
+                filename=point.payload.get("filename", ""),
+                domain=point.payload.get("domain", ""),
                 score=round(point.score, 4),
+                produto_id=point.payload.get("produto_id"),
+                imagem_url=point.payload.get("imagem_url"),
             )
             for point in response.points
         ]

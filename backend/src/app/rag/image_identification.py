@@ -71,6 +71,8 @@ class ImageIdentificationResult(BaseModel):
 
     status: str
     produto: str | None = None
+    produto_id: int | None = None
+    imagem_url: str | None = None
     fonte: str | None = None
     detalhes: str | None = None
     confianca_interna: float | None = None
@@ -126,6 +128,8 @@ async def identify_product_by_image(
         return ImageIdentificationResult(
             status="encontrado_interno",
             produto=melhor.filename,
+            produto_id=melhor.produto_id,
+            imagem_url=melhor.imagem_url,
             fonte="catalogo_imagens",
             detalhes=detalhes,
             confianca_interna=melhor.score,
