@@ -100,13 +100,16 @@ As conclusões finais sobre o impacto arquitetural da utilização de RAG Multim
 
 A aplicação é implantada e executada em ambiente de servidor local GPU e disponibilizada publicamente através do endereço:
 
-🌐 **URL de Acesso Público**: [https://augustoglauco.duckdns.org:3001](https://augustoglauco.duckdns.org:3001)
+🌐 **URL de Acesso Público**: [http://augustoglauco.duckdns.org:3001](http://augustoglauco.duckdns.org:3001) (HTTP, sem TLS; ver nota abaixo)
 
 #### Resumo da Infraestrutura Local:
 * **Banco Relacional & Vetorial**: PostgreSQL 15+ e Qdrant Vector DB containerizados via Docker (`docker-compose up -d`).
 * **Inferência Local**: Serviço Ollama rodando localmente com suporte a GPU NVIDIA 16GB VRAM (CUDA 11.8+).
 * **Backend**: FastAPI (Python 3.11) executando na porta `8000` (documentação Swagger em `/docs`).
-* **Frontend**: Next.js 14+ / Node.js 18+ executando na porta `3001` e publicado publicamente via proxy reverso HTTPS em `https://augustoglauco.duckdns.org:3001`.
+* **Frontend**: Next.js 14+ / Node.js 18+ executando na porta `3001` (`next dev`, HTTP) e acessível pela internet em `http://augustoglauco.duckdns.org:3001`, com a porta liberada no firewall do Windows e encaminhada no roteador (ver `goup.md`, "Acesso Externo via Internet").
+* **MCP B2B** (R12): servidor em `127.0.0.1:8100`, exposto a fornecedores só por HTTPS, via proxy reverso Caddy em `https://augustoglauco.duckdns.org:8443/mcp`, com chave por parceiro (ver `goup.md`, "MCP B2B público", e `docs/ARCHITECTURE.md` §6).
+
+> **Por que o site não usa HTTPS:** o frontend e o backend (porta 8000) rodam em HTTP puro. Abrir o site por `https://` não funciona, porque a página passaria a chamar o backend em `https://…:8000`, que não fala HTTPS. Só o MCP B2B tem HTTPS, porque é o único serviço que trafega uma credencial (a chave do parceiro) pela internet.
 
 *Para o guia completo de provisionamento de infraestrutura, consulte o manual:* [HOWTO_IMPLANTACAO_INFRA.md](docs/HOWTO_IMPLANTACAO_INFRA.md).
 
@@ -116,7 +119,7 @@ A aplicação é implantada e executada em ambiente de servidor local GPU e disp
 
 Para interagir com o sistema e explorar todas as suas funcionalidades:
 
-1. Acesse o endereço público da aplicação: **[https://augustoglauco.duckdns.org:3001](https://augustoglauco.duckdns.org:3001)**.
+1. Acesse o endereço público da aplicação: **[http://augustoglauco.duckdns.org:3001](http://augustoglauco.duckdns.org:3001)** (com `http://`, sem `s`; de dentro da própria rede, se o roteador não tiver NAT loopback, use `http://localhost:3001`).
 2. **Navegação no Website**:
    - Explore o catálogo de produtos em `/produtos` e veja especificações detalhadas em `/produtos/[id]`.
    - Consulte o histórico de pedidos e carrinho em `/pedidos`.
