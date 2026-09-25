@@ -969,7 +969,16 @@ implementação.
    abrir o chat com a conversa vazia, uma mensagem de boas-vindas (só de
    interface, não gravada) convida a informar o e-mail junto com a
    pergunta, deixando claro que é opcional e que facilita o relacionamento
-   com a empresa; não há pergunta obrigatória nem bloqueio. No pós-venda (`suporte`/`atendimento`), sem
+   com a empresa; não há pergunta obrigatória nem bloqueio.
+   O e-mail é guardado assim que a mensagem chega, antes de chamar o LLM:
+   uma falha na resposta (ex.: 429 do modelo externo) não o perde. Uma
+   mensagem que é basicamente só o e-mail ("Sou fulano@…", "meu e-mail é
+   …") recebe uma resposta fixa, sem LLM (`backend_used="resposta_fixa"`),
+   que agradece e pergunta como ajudar; antes ela caía em `fora_escopo` e
+   ia para o modelo externo. A resposta não diz se o e-mail tem cadastro,
+   para não permitir descobrir quem é cliente testando e-mails; o perfil
+   sai só no painel de métricas. Correções vindas do teste local de
+   2026-09-25 (cenários R6/R9 com 429 do OpenRouter). No pós-venda (`suporte`/`atendimento`), sem
    e-mail conhecido, o prompt instrui o assistente a pedir educadamente o
    e-mail usado na compra.
 6. **Regras**, recalculadas a cada mensagem e gravadas com o motivo:

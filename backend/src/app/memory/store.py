@@ -104,6 +104,17 @@ async def gravar_metricas(
     await session.commit()
 
 
+async def registrar_email(session: AsyncSession, conversation_id: str, email: str) -> None:
+    """Guarda o e-mail na conversa (criando-a, se preciso) assim que a
+    mensagem chega, antes do LLM: uma falha na resposta não o perde (R10)."""
+    conversa = await session.get(Conversa, conversation_id)
+    if conversa is None:
+        conversa = Conversa(id=conversation_id, mensagens_resumidas=0)
+        session.add(conversa)
+    conversa.email = email
+    await session.commit()
+
+
 async def contar_mensagens(session: AsyncSession, conversation_id: str) -> int:
     resultado = await session.execute(
         select(func.count())

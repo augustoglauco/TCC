@@ -6,7 +6,9 @@
 
 export type ChatDomain = "vendas" | "suporte" | "atendimento" | "agendamento" | "fora_escopo";
 
-export type ChatBackendUsed = "local" | "externo";
+// "resposta_fixa": mensagem só com e-mail, respondida sem LLM (R10);
+// "identificacao_imagem": fluxo de identificação de produto por imagem.
+export type ChatBackendUsed = "local" | "externo" | "resposta_fixa" | "identificacao_imagem";
 
 export type ChatEscalationReason = "nenhum" | "fora_escopo" | "rag_vazio" | "complexidade_alta";
 

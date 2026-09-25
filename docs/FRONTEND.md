@@ -234,7 +234,8 @@ data: {"motivo": "urgencia", "confianca": 0.87}
 event: done                  // sempre o último evento em caso de sucesso — telemetria completa
 data: {
   "domain": "vendas",              // vendas | suporte | atendimento | agendamento | fora_escopo
-  "backend_used": "local",         // local | externo
+  "backend_used": "local",         // local | externo | resposta_fixa (mensagem só com
+                                   // e-mail, sem LLM, R10) | identificacao_imagem
   "escalation_reason": "nenhum",   // nenhum | fora_escopo | rag_vazio | complexidade_alta
 
   // Telemetria de inferência (além do MVP original, a pedido explícito —

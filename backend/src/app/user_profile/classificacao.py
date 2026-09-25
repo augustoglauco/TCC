@@ -47,6 +47,35 @@ def extrair_email(texto: str) -> str | None:
     return encontrado.group(0).lower() if encontrado else None
 
 
+# Palavras que podem acompanhar um e-mail numa mensagem que só o informa
+# ("Sou fulano@…", "meu e-mail é …", "segue meu email: …").
+_PALAVRAS_SO_EMAIL = frozenset(
+    {
+        "sou", "o", "a", "meu", "minha", "e", "mail", "email", "é", "eh", "e-mail",
+        "segue", "aqui", "está", "esta", "ai", "aí", "oi", "olá", "ola", "bom",
+        "boa", "dia", "tarde", "noite", "obrigado", "obrigada", "de", "do",
+        "contato", "cadastro", "pode", "anotar",
+    }
+)  # fmt: skip
+
+RESPOSTA_SO_EMAIL = (
+    "Obrigado! Anotei o seu e-mail — isso facilita o nosso atendimento e o "
+    "relacionamento com você. Em que posso ajudar?"
+)
+
+
+def e_mensagem_so_de_email(texto: str) -> bool:
+    """`True` quando a mensagem é basicamente só um e-mail — respondida sem
+    LLM (resposta fixa). Com uma pergunta junto ("meu e-mail é X, quanto
+    custa o GD-15?"), segue o fluxo normal do roteador."""
+    email = extrair_email(texto)
+    if email is None:
+        return False
+    resto = _EMAIL_RE.sub(" ", texto.lower())
+    palavras = re.findall(r"[\wà-ú-]+", resto)
+    return len(palavras) <= 8 and all(p in _PALAVRAS_SO_EMAIL for p in palavras)
+
+
 def classificar(
     datas_compras: list[datetime] | None,
     tem_email: bool,
