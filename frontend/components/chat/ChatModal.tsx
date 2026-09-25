@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 
 import AudioRecorder from "@/components/chat/AudioRecorder";
+import EscalonamentoBanner from "@/components/chat/EscalonamentoBanner";
 import ImageUploader from "@/components/chat/ImageUploader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
 import { sendChatMessage } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
+import type { ChatEscalonamentoData } from "@/lib/types/chat";
 import { metricsFromDone } from "@/lib/utils/chatMetrics";
 import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetrics";
 import { generateId } from "@/lib/utils/generateId";
@@ -60,6 +62,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [pendingImage, setPendingImage] = useState<{ base64: string; name: string } | null>(null);
   const [error, setError] = useState<PendingError | null>(null);
+  const [escalonamento, setEscalonamento] = useState<ChatEscalonamentoData | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -115,6 +118,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       conversationId: conversationId || undefined,
       onConversationId: (id) => setConversationId(id),
       onTranscription: () => {},
+      onEscalonamento: (data) => setEscalonamento(data),
       onStatus: (status) => {
         if (status === "carregando_modelo") {
           garantirBolha("🤖 Aguarde, consultando documentos internos...");
@@ -180,6 +184,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         transcricaoRecebida = true;
         updateMessage(pendingId, { text: text || AUDIO_FALLBACK_TEXT });
       },
+      onEscalonamento: (data) => setEscalonamento(data),
       onStatus: (status) => {
         if (status === "carregando_modelo") {
           garantirBolha("🤖 Aguarde, consultando documentos internos...");
@@ -270,6 +275,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           aria-live="polite"
           className="flex-1 space-y-3 sm:space-y-4 overflow-y-auto p-2.5 sm:p-4"
         >
+          <EscalonamentoBanner
+            escalonamento={escalonamento}
+            onDismiss={() => setEscalonamento(null)}
+          />
           {messages.length === 0 && (
             // Boas-vindas só de interface (R10): não entra no store nem no
             // banco, e some quando chega a primeira mensagem ou o histórico.

@@ -665,7 +665,7 @@ limitação já aceita para o fluxo de agendamento); sem fila real de
 atendimento humano nem painel administrativo visual — só a API de listagem
 (`GET /api/admin/tom/escalonamentos`) e o log estruturado, para inspeção
 manual/demonstração`. Banner visual no frontend consumindo o evento
-`escalonamento` é a Fase 8 (fora de escopo desta entrega).
+`escalonamento` implementado na Fase 8 (`components/chat/EscalonamentoBanner.tsx`).
 
 **Decisão registrada (Fase 5, backend único de dados do MCP B2B, R12,
 2026-09-24):** o primeiro item da Fase 5 ("modelar o backend único de dados
