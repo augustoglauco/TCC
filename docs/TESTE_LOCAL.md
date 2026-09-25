@@ -25,10 +25,9 @@ desenvolvedor**, e o resultado volta para o agente num arquivo só.
    5. roda o roteiro (`ruff` + `pytest` + cenários de chat);
    6. faz commit e push do relatório em `testes_locais/`.
 
-   Não use o chat no navegador enquanto ele roda. Os logs do backend hoje
-   não carregam `conversation_id`, então o roteiro separa os logs de cada
-   cenário pela posição no arquivo, e mensagens de outra origem entrariam no
-   relatório.
+   Pode usar o chat no navegador enquanto ele roda: cada linha de log do
+   backend carrega o `conversation_id`, e o roteiro só pega as linhas das
+   conversas dele.
 3. **Você:** avisa o agente: "rodei o teste".
 4. **Agente:** lê o relatório no branch, corrige o que falhou e volta ao
    passo 1.
@@ -60,7 +59,7 @@ roda outra suíte.
 
 | Suíte | O que cobre | Logs usados |
 | --- | --- | --- |
-| `vendas` | Integração do Orquestrador com o catálogo (R12, Fase 5): estoque, cotação com e sem desconto por volume, compatibilidade sim/não, produto inexistente, domínio que não é vendas e um cenário exploratório de conversa em duas mensagens | `vendas_catalogo_consulta` (campo `resultado`: `sem_termos`, `sem_candidatos`, `llm_sem_produto`, `produto_inexistente` ou `ok`, mais `termos`, `candidatos`, `slots` e o `bloco` injetado no prompt), `vendas_catalogo_consulta_falhou`, `rag_indisponivel` |
+| `vendas` | Integração do Orquestrador com o catálogo (R12, Fase 5): estoque, cotação com e sem desconto por volume, compatibilidade sim/não, produto inexistente, domínio que não é vendas e duas conversas de acompanhamento em que a 2ª mensagem não cita o produto (V8, V9) | `vendas_catalogo_consulta` (campo `resultado`: `sem_termos`, `sem_candidatos`, `llm_sem_produto`, `produto_inexistente` ou `ok`, mais `termos`, `termos_historico`, `candidatos`, `slots` e o `bloco` injetado no prompt), `vendas_catalogo_consulta_falhou`, `rag_indisponivel` |
 
 Os cenários de `vendas` assumem os dados semeados pelas migrações
 `0003`/`0008`/`0009`: 5 produtos, 17 unidades de cada, desconto de 5% a

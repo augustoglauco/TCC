@@ -19,6 +19,7 @@ from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
 from app.router.rag_client import Document, RAGClient
 from app.router.sales_catalog import (
+    SALES_CANDIDATOS_LIMITE,
     DadosCatalogoVendas,
     SalesCatalogClient,
     extract_sales_slots,
@@ -130,10 +131,32 @@ async def _consultar_vendas(
     diagnostico: dict = {"event": "vendas_catalogo_consulta"}
     try:
         termos = extrair_termos_busca(message)
+        # Termos das mensagens anteriores entram só como complemento: numa
+        # mensagem de acompanhamento ("E se eu levar 3 unidades?") o produto
+        # foi citado antes, e sem isso a busca não achava nada — ou achava o
+        # produto errado por coincidência (o "5" de "5 unidades" casando com
+        # "GD-15"; teste local de 2026-09-25, cenário V8). O LLM da etapa 2 já
+        # recebe o histórico e escolhe entre os candidatos das duas buscas.
+        termos_historico = [
+            termo
+            for termo in extrair_termos_busca(" ".join(recent_messages))
+            if termo not in termos
+        ]
         diagnostico["termos"] = termos
-        if not termos:
+        diagnostico["termos_historico"] = termos_historico
+        if not termos and not termos_historico:
             return _logar_consulta_vendas(diagnostico, "sem_termos")
-        candidatos = await sales_catalog_client.buscar_candidatos(termos)
+        candidatos = await sales_catalog_client.buscar_candidatos(termos) if termos else []
+        if termos_historico and len(candidatos) < SALES_CANDIDATOS_LIMITE:
+            # Candidatos da mensagem atual primeiro; os do histórico
+            # completam a lista até o mesmo teto, sem repetir produto.
+            ids_atuais = {candidato.id for candidato in candidatos}
+            candidatos += [
+                candidato
+                for candidato in await sales_catalog_client.buscar_candidatos(termos_historico)
+                if candidato.id not in ids_atuais
+            ]
+            candidatos = candidatos[:SALES_CANDIDATOS_LIMITE]
         diagnostico["candidatos"] = [candidato.nome for candidato in candidatos]
         if not candidatos:
             return _logar_consulta_vendas(diagnostico, "sem_candidatos")

@@ -19,7 +19,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] Configurar `.env.example` e carregamento de configuração
       (pydantic-settings ou equivalente) — `backend/src/app/config.py`
 - [x] Configurar logging estruturado com ID de conversa (pré-requisito de R9)
-      — `backend/src/app/logging_config.py` (contextvar + formatter JSON)
+      — `backend/src/app/logging_config.py` (contextvar + formatter JSON).
+      Correção de 2026-09-25: nada preenchia o contextvar e todo log saía com
+      `conversation_id: null`; agora `POST /api/chat/messages` o define no
+      início da requisição e do stream SSE (`app.api.chat`).
 - [x] Configurar lint/format (ruff/black) e pipeline de testes (pytest) —
       `backend/pyproject.toml` ([tool.ruff], [tool.pytest.ini_options])
 - [x] Roteiro de teste local para o loop "agente implementa na nuvem,

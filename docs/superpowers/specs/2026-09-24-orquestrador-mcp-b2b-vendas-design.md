@@ -259,7 +259,7 @@ projeto):
 ## 8. Mudanças em `.env.example`
 
 Nenhuma — sem configuração nova. O limite de candidatos (10) fica como
-constante no módulo (`_SALES_CANDIDATOS_LIMITE`), mesmo padrão de
+constante no módulo (`SALES_CANDIDATOS_LIMITE`), mesmo padrão de
 `DEFAULT_MANUAIS_TOP_K` em `app.mcp_server.b2b`.
 
 ## 9. Não-objetivos explícitos (fora desta entrega)

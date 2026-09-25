@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import logging
 
 import pytest
 from fastapi import FastAPI
@@ -21,6 +22,7 @@ from app.api.chat import (
     reset_conversation_history,
 )
 from app.api.chat import router as chat_router
+from app.logging_config import ConversationIdFilter
 from app.rag.image_search import ImageSearchResult
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
@@ -296,6 +298,37 @@ def test_chat_stream_router_provider_default_sem_app_state(client):
 
     dados_done = _find(_parse_sse(response.text), "done")
     assert dados_done["router_provider"] == "heuristica_llm"
+
+
+class _ListaHandler(logging.Handler):
+    def __init__(self) -> None:
+        super().__init__()
+        self.records: list[logging.LogRecord] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.records.append(record)
+
+
+def test_logs_do_roteador_saem_com_o_conversation_id_da_requisicao(client):
+    # Mesmo filtro que `configure_logging` pendura no handler de produção.
+    handler = _ListaHandler()
+    handler.addFilter(ConversationIdFilter())
+    logger = logging.getLogger("app.router.orchestrator")
+    nivel_anterior = logger.level
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    try:
+        client.post(
+            "/api/chat/messages",
+            json={"message": "quero agendar uma visita", "conversation_id": "conv-log-1"},
+        )
+    finally:
+        logger.removeHandler(handler)
+        logger.setLevel(nivel_anterior)
+
+    decisoes = [r for r in handler.records if r.getMessage() == "router_decision"]
+    assert len(decisoes) == 1
+    assert decisoes[0].conversation_id == "conv-log-1"
 
 
 def test_conversation_id_mantem_historico_entre_chamadas(client):

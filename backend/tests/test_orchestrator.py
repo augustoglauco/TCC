@@ -176,8 +176,12 @@ class _FakeSalesCatalogClient:
         candidatos: list[CandidatoProduto] | None = None,
         dados: DadosCatalogoVendas | None = None,
         buscar_exception: Exception | None = None,
+        candidatos_por_chamada: list[list[CandidatoProduto]] | None = None,
     ) -> None:
         self._candidatos = candidatos if candidatos is not None else []
+        # Quando preenchido, cada chamada a `buscar_candidatos` consome a
+        # próxima lista (mensagem atual, depois histórico).
+        self._candidatos_por_chamada = list(candidatos_por_chamada or [])
         self._dados = dados
         self._buscar_exception = buscar_exception
         self.termos_buscados: list[list[str]] = []
@@ -189,6 +193,8 @@ class _FakeSalesCatalogClient:
         self.termos_buscados.append(termos)
         if self._buscar_exception is not None:
             raise self._buscar_exception
+        if self._candidatos_por_chamada:
+            return self._candidatos_por_chamada.pop(0)
         return self._candidatos
 
     async def consultar_detalhes(self, produto_id, produto_relacionado_id, quantidade):
@@ -1626,6 +1632,80 @@ async def test_vendas_loga_diagnostico_quando_nao_ha_candidatos(caplog):
     assert len(registros) == 1
     assert registros[0].router["resultado"] == "sem_candidatos"
     assert "bloco" not in registros[0].router
+
+
+async def test_vendas_mensagem_de_acompanhamento_busca_candidatos_tambem_no_historico(caplog):
+    # "E se eu levar 3 unidades?" não cita o produto: sem o histórico a busca
+    # não achava nada (ou, com "5 unidades", achava o GD-15 por coincidência).
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"produto_id": 2, "produto_relacionado_id": null, "quantidade": 3}',
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    gd15 = CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")
+    gd30 = CandidatoProduto(id=2, nome="Gerador Diesel GD-30", categoria="geradores")
+    dados = DadosCatalogoVendas(produto_nome="Gerador Diesel GD-30", estoque_total=17)
+    sales_catalog_client = _FakeSalesCatalogClient(
+        # 1ª busca (mensagem atual) acha o GD-15 por coincidência; 2ª busca
+        # (histórico) acha GD-15 de novo e o GD-30.
+        candidatos_por_chamada=[[gd15], [gd15, gd30]],
+        dados=dados,
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.router.orchestrator"):
+        await _coletar_eventos(
+            "E se eu levar 3 unidades?",
+            recent_messages=["Quero comprar um gerador GD-30"],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            tone_monitor_enabled=False,
+            sales_catalog_client=sales_catalog_client,
+        )
+
+    assert sales_catalog_client.termos_buscados == [
+        ["levar", "3", "unidades"],
+        ["comprar", "gerador", "30"],
+    ]
+    registro = next(
+        r for r in caplog.records if r.getMessage() == "vendas_catalogo_consulta"
+    ).router
+    # Mensagem atual primeiro, histórico completa, sem repetir produto.
+    assert registro["candidatos"] == ["Gerador Diesel GD-15", "Gerador Diesel GD-30"]
+    assert registro["resultado"] == "ok"
+    assert sales_catalog_client.detalhes_consultados == [(2, None, 3)]
+
+
+async def test_vendas_sem_termos_na_mensagem_busca_so_pelo_historico():
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"produto_id": 2, "produto_relacionado_id": null, "quantidade": null}',
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    gd30 = CandidatoProduto(id=2, nome="Gerador Diesel GD-30", categoria="geradores")
+    dados = DadosCatalogoVendas(produto_nome="Gerador Diesel GD-30", estoque_total=17)
+    sales_catalog_client = _FakeSalesCatalogClient(candidatos=[gd30], dados=dados)
+
+    await _coletar_eventos(
+        "Tem?",
+        recent_messages=["Quero comprar um gerador GD-30"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+    )
+
+    assert sales_catalog_client.termos_buscados == [["comprar", "gerador", "30"]]
+    assert "Gerador Diesel GD-30" in local_client.last_prompt
 
 
 async def test_vendas_sem_sales_catalog_client_comportamento_identico_ao_atual():
