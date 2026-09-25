@@ -280,15 +280,19 @@ em `docs/ARCHITECTURE.md` §6.
 
 ### A cada sessão
 
+O `./testar.sh` já sobe o Caddy sozinho quando ele não está rodando (e o
+`infra/caddy/caddy.env` existe), e espera o certificado. Para subir à mão:
+
 ```bash
 nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 & disown
 ```
 
+Para desligar: `pkill -f "caddy run"`.
+
 Na primeira vez o Caddy leva de 30 s a 2 min para obter o certificado:
 acompanhe com `tail -f /tmp/tcc-caddy.log` até aparecer
 `certificate obtained successfully`. Se aparecer "address already in use",
-um PortProxy esquecido está ocupando a 8443 (ver passo 4). O `./testar.sh` reinicia o servidor MCP
-B2B, mas não o Caddy.
+um PortProxy esquecido está ocupando a 8443 (ver passo 4).
 
 ### Testar
 

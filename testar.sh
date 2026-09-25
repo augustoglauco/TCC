@@ -43,7 +43,7 @@ main() {
     echo "⚠️  Ollama não respondeu em localhost:11434 — os cenários de chat vão falhar."
   fi
 
-  passo "4/6 Reiniciando o backend (porta 8000) e o MCP B2B (porta 8100)"
+  passo "4/6 Backend (8000), MCP B2B (8100) e Caddy (8443)"
   fuser -k 8000/tcp 2>/dev/null || lsof -ti:8000 | xargs -r kill 2>/dev/null
   sleep 1
   (cd backend && nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 \
@@ -76,6 +76,42 @@ main() {
   else
     tail -15 /tmp/tcc-mcp-b2b.log
     echo "⚠️  MCP B2B não subiu (log acima) — a suíte mcp_b2b vai falhar; as outras seguem."
+  fi
+
+  # Caddy (HTTPS público do MCP B2B, porta 8443): fica rodando entre sessões,
+  # então só é iniciado se não estiver no ar. Pula se ainda não foi
+  # configurado (goup.md, "MCP B2B público"). Não interrompe o teste.
+  caddy_bin=$(command -v caddy || echo "$HOME/.local/bin/caddy")
+  if [ ! -f infra/caddy/caddy.env ] || [ ! -x "$caddy_bin" ]; then
+    echo "Caddy não configurado (falta infra/caddy/caddy.env ou o binário) — pulando."
+  else
+    dominio=$(sed -n 's/^DUCKDNS_DOMAIN=//p' infra/caddy/caddy.env | tr -d '[:space:]')
+    pid_caddy=""
+    if ss -ltnH 'sport = :8443' 2>/dev/null | grep -q .; then
+      echo "Caddy já está rodando (porta 8443 ocupada)"
+    else
+      echo "Iniciando o Caddy (porta 8443, log em /tmp/tcc-caddy.log)"
+      nohup "$caddy_bin" run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env \
+        > /tmp/tcc-caddy.log 2>&1 &
+      pid_caddy=$!
+      disown
+    fi
+    # Até 2 min: na primeira vez o Caddy obtém o certificado pelo DuckDNS.
+    # Qualquer código HTTP (esperado 401) indica HTTPS com certificado válido.
+    status_caddy=000
+    for _ in $(seq 1 120); do
+      status_caddy=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 \
+        --resolve "$dominio:8443:127.0.0.1" "https://$dominio:8443/mcp")
+      [ "$status_caddy" != "000" ] && break
+      if [ -n "$pid_caddy" ] && ! kill -0 "$pid_caddy" 2>/dev/null; then break; fi
+      sleep 1
+    done
+    if [ "$status_caddy" = "000" ]; then
+      tail -15 /tmp/tcc-caddy.log
+      echo "⚠️  Caddy sem HTTPS em $dominio:8443 (log acima) — as verificações M5/M6 vão falhar; o resto segue."
+    else
+      echo "Caddy no ar com HTTPS (HTTP $status_caddy em https://$dominio:8443/mcp)"
+    fi
   fi
 
   passo "5/6 Rodando o teste"
