@@ -34,6 +34,12 @@ export interface ChatRagChunk {
 /** Classificação do visitante (R10, Fase 6) — ver docs/ARCHITECTURE.md §5. */
 export type ChatPerfilUsuario = "cliente" | "esporadico" | "lead" | "nao_classificado";
 
+/** Alerta de escalonamento disparado pelo Monitor de Tom (R8, Fase 4B/8). */
+export interface ChatEscalonamentoData {
+  motivo?: "urgencia" | "insatisfacao" | string | null;
+  confianca?: number | null;
+}
+
 export interface ChatMetrics {
   modelName?: string;
   promptTokens?: number;

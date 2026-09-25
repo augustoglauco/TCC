@@ -488,4 +488,29 @@ describe("ChatModal", () => {
       expect.objectContaining({ imageBase64: "base64-imagem-fake" }),
     );
   });
+
+  it("exibe o banner de escalonamento do monitor de tom quando o evento chega e permite fechar", async () => {
+    const user = userEvent.setup();
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onEscalonamento, onToken, onDone }) => {
+      onConversationId("conv-1");
+      onEscalonamento?.({ motivo: "urgencia", confianca: 0.9 });
+      onToken("Estou verificando sua solicitação com urgência.");
+      onDone({ domain: "suporte", backend_used: "local", escalation_reason: "nenhum" });
+    });
+
+    renderModal();
+
+    expect(screen.queryByTestId("escalonamento-banner")).toBeNull();
+
+    await user.type(screen.getByLabelText("Mensagem"), "Preciso de ajuda urgente!");
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByTestId("escalonamento-banner")).toBeInTheDocument();
+    expect(screen.getByText(/Atendimento Humano Prioritário/i)).toBeInTheDocument();
+    expect(screen.getByText(/Identificamos urgência na sua solicitação/i)).toBeInTheDocument();
+
+    // Fecha o banner
+    await user.click(screen.getByRole("button", { name: /Fechar aviso de atendimento humano/i }));
+    expect(screen.queryByTestId("escalonamento-banner")).toBeNull();
+  });
 });
