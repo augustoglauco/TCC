@@ -71,7 +71,8 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       /api/chat/messages` (`backend/src/app/api/chat.py`,
       `backend/src/app/models/chat.py`), encaminhando ao orchestrator com
       histórico em memória por processo (últimas 1-3 mensagens por
-      `conversation_id`); campo `audio` (base64) processado via STT quando
+      `conversation_id`; desde a Fase 6 esse histórico vem do Postgres, ver
+      `app.memory.store`); campo `audio` (base64) processado via STT quando
       presente, com fallback para `payload.message` se a transcrição vier
       vazia (`# MVP: ...`). Resposta passou a ser **streaming via SSE**
       (`text/event-stream`, eventos `conversation`/`transcription`/`status`/
@@ -325,9 +326,11 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 Decisões de 2026-09-25 em `docs/ARCHITECTURE.md` §5 ("Fase 6, memória da
 conversa e classificação do usuário").
 
-- [ ] Implementar persistência da conversa por ID único — tabelas
+- [~] Implementar persistência da conversa por ID único — tabelas
       `conversas`/`conversa_mensagens` no Postgres (mensagens do cliente e
-      do assistente), gravadas antes do evento `done`
+      do assistente), gravadas antes do evento `done`. Implementado
+      (`app.memory.store`, migração `0010`, `app.api.chat`); falta validar
+      no Postgres real pelo teste local
 - [ ] Implementar resumo automático periódico da conversa (não só ao final)
       — a cada 6 mensagens, em segundo plano, com o resumo no prompt
 - [ ] Retomar a conversa no widget — `GET /api/chat/conversations/{id}/messages`

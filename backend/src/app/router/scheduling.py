@@ -6,9 +6,10 @@ streaming e chama o MCP de verdade. Ver
 docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md.
 
 # MVP: estado de agendamento guardado em memória por `conversation_id`
-(dict de processo), mesmo padrão MVP de `_conversation_history` em
-`app.api.chat` — perdido em restart do processo, sem persistência em banco
-(a persistência de conversa é Fase 6, ainda não implementada).
+(dict de processo) — perdido em restart do processo, sem persistência em
+banco. As mensagens da conversa em si já ficam no Postgres (R9, Fase 6,
+`app.memory.store`); só os dados parciais do agendamento em andamento
+continuam em memória.
 """
 
 import json

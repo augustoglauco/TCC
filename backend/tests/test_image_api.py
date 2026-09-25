@@ -403,7 +403,6 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400(db_session):
         get_sales_catalog_client,
         get_scheduling_config,
         get_stt_client,
-        reset_conversation_history,
     )
     from app.api.chat import router as chat_router
     from app.api.rag_dependencies import get_db_session
@@ -446,11 +445,8 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400(db_session):
     app.dependency_overrides[get_db_session] = lambda: db_session
     app.state.image_internal_confidence = 0.30
     app.state.image_external_confidence = 0.80
-
-    reset_conversation_history()
     client = TestClient(app)
     lixo_b64 = base64.b64encode(b"isto-nao-e-uma-imagem").decode()
     resp = client.post("/api/chat/messages", json={"image": lixo_b64})
-    reset_conversation_history()
 
     assert resp.status_code == 400

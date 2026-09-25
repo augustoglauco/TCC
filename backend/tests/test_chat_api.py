@@ -19,10 +19,10 @@ from app.api.chat import (
     get_scheduling_config,
     get_stt_client,
     get_tone_monitor_enabled,
-    reset_conversation_history,
 )
 from app.api.chat import router as chat_router
 from app.logging_config import ConversationIdFilter
+from app.memory.store import listar_mensagens
 from app.rag.image_search import ImageSearchResult
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
@@ -151,14 +151,21 @@ class _SingleSessionMaker:
 
     def __init__(self, session) -> None:
         self._session = session
+        # Uma sessão só não aguenta uso simultâneo (a memória da conversa
+        # grava enquanto a persistência do escalonamento roda em segundo
+        # plano). Na aplicação cada `db_sessionmaker()` abre uma sessão
+        # própria; aqui o lock faz os usos se revezarem.
+        self._lock = asyncio.Lock()
 
     def __call__(self):
         return self
 
     async def __aenter__(self):
+        await self._lock.acquire()
         return self._session
 
     async def __aexit__(self, *exc_info) -> bool:
+        self._lock.release()
         return False
 
 
@@ -208,11 +215,8 @@ def _build_app(fakes: dict, complexity_strategy: str = "heuristic") -> FastAPI:
 @pytest.fixture
 def client(fakes):
     app = _build_app(fakes)
-
-    reset_conversation_history()
     with TestClient(app) as test_client:
         yield test_client
-    reset_conversation_history()
 
 
 def test_envia_mensagem_de_texto_simples(client):
@@ -245,7 +249,6 @@ def test_done_traz_fonte_e_score_de_cada_chunk_do_rag(fakes):
         ]
     )
     app = _build_app(fakes)
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post("/api/chat/messages", json={"message": "qual o preço?"})
 
@@ -266,7 +269,6 @@ def test_chat_stream_router_provider_reflete_fallback_do_jev(fakes):
     # esperava (incorretamente) "jev_openrouter" aqui.
     app = _build_app(fakes)
     app.state.intent_router_provider = "jev_openrouter"
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post("/api/chat/messages", json={"message": "olá"})
 
@@ -282,7 +284,6 @@ def test_chat_stream_router_provider_jev_quando_client_sucede(fakes):
     )
     app = _build_app(fakes)
     app.state.intent_router_provider = "jev_openrouter"
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post("/api/chat/messages", json={"message": "olá"})
 
@@ -352,6 +353,53 @@ def test_conversation_id_mantem_historico_entre_chamadas(client):
     # muda o resultado, não a heurística da mensagem em si.
     isolated = client.post("/api/chat/messages", json={"message": "pode ser amanhã às 10h"})
     assert _find(_parse_sse(isolated.text), "done")["domain"] == "fora_escopo"
+
+
+async def test_troca_fica_gravada_na_memoria_da_conversa(client, fakes):
+    client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "conversation_id": "conv-memoria-1"},
+    )
+
+    mensagens = await listar_mensagens(fakes["db_session"], "conv-memoria-1")
+
+    # Mensagem do cliente E resposta completa do assistente, com o domínio
+    # da resposta (usado depois pela classificação do usuário, R10).
+    assert [(m.papel, m.texto, m.dominio) for m in mensagens] == [
+        ("cliente", "quero agendar uma visita", None),
+        ("assistente", "resposta local", "agendamento"),
+    ]
+
+
+def test_banco_fora_do_ar_nao_derruba_a_resposta(fakes, caplog):
+    class _SessaoQueFalha:
+        def __call__(self):
+            return self
+
+        async def __aenter__(self):
+            raise ConnectionError("postgres fora do ar")
+
+        async def __aexit__(self, *exc_info) -> bool:
+            return False
+
+    app = _build_app(fakes)
+    app.state.db_sessionmaker = _SessaoQueFalha()
+    with caplog.at_level(logging.WARNING, logger="app.api.chat"):
+        with TestClient(app) as client:
+            response = client.post(
+                "/api/chat/messages", json={"message": "quero agendar uma visita"}
+            )
+
+    eventos = _parse_sse(response.text)
+    assert "".join(dados["text"] for tipo, dados in eventos if tipo == "token") == (
+        "resposta local"
+    )
+    assert _find(eventos, "done")["domain"] == "agendamento"
+    # Uma linha ao carregar o contexto e outra ao gravar a troca.
+    operacoes = [
+        r.router["operacao"] for r in caplog.records if r.getMessage() == "memoria_indisponivel"
+    ]
+    assert operacoes == ["carregar", "registrar"]
 
 
 def test_audio_e_transcrito_e_usado_como_mensagem(client, fakes):
@@ -460,14 +508,11 @@ def test_stt_indisponivel_retorna_503(fakes):
     fakes["stt"] = _FakeSttClient(error=SttIndisponivelError("modelo não carregou"))
     app = _build_app(fakes)
     audio_b64 = base64.b64encode(b"audio").decode()
-
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post(
             "/api/chat/messages",
             json={"message": "quero agendar uma visita", "audio": audio_b64},
         )
-    reset_conversation_history()
 
     assert response.status_code == 503
 
@@ -484,13 +529,10 @@ def test_modelo_nao_carregado_gera_evento_status(fakes):
         LLMResponse(text="resposta local", total_duration_ms=10.0)
     )
     app = _build_app(fakes)
-
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post(
             "/api/chat/messages", json={"message": "quero agendar uma visita"}
         )
-    reset_conversation_history()
 
     assert response.status_code == 200
     assert "event: status" in response.text
@@ -513,13 +555,10 @@ def test_dependencia_indisponivel_gera_evento_de_erro(fakes):
     fakes["local"] = _FailingLLMClient()
     fakes["external"] = _FailingLLMClient()
     app = _build_app(fakes)
-
-    reset_conversation_history()
     with TestClient(app) as test_client:
         response = test_client.post(
             "/api/chat/messages", json={"message": "quero agendar uma visita"}
         )
-    reset_conversation_history()
 
     assert response.status_code == 200
     eventos = _parse_sse(response.text)
