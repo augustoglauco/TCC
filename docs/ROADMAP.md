@@ -339,10 +339,13 @@ conversa e classificação do usuário").
       e carregamento no `ChatWidget` ao montar. Implementado (backend +
       `fetchConversationHistory`/`loadHistory` no frontend); falta validar
       no navegador
-- [ ] Implementar heurística inicial de classificação Cliente/Lead/Esporádico
+- [~] Implementar heurística inicial de classificação Cliente/Lead/Esporádico
       com base em histórico de compras/perguntas — base de clientes fictícia,
       e-mail captado no momento natural (pós-venda, agendamento), perfil no
-      evento `done` e no painel de métricas
+      evento `done` e no painel de métricas. Implementado
+      (`app.user_profile.classificacao`, migração `0011` com 3 clientes
+      fictícios, pedido de e-mail no pós-venda em `_build_prompt`,
+      `MessageBubble`); falta validar no teste local
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 
