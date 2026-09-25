@@ -26,7 +26,9 @@ main() {
     git status --short --untracked-files=no -- . ':!testes_locais'
     falha "Há alterações locais sem commit (lista acima). Faça commit ou 'git stash' e rode de novo."
   fi
-  git pull --ff-only || falha "git pull falhou."
+  # --rebase: se um relatório de uma rodada anterior ficou só aqui (push
+  # recusado), ele é reaplicado em cima do código novo em vez de travar.
+  git pull --rebase || falha "git pull falhou."
   echo "Branch $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse --short HEAD)"
 
   passo "2/6 Dependências e migrações do banco"
@@ -86,7 +88,10 @@ main() {
   git commit -q -m "test: resultado do teste local ($(basename "$relatorio" .md))" || falha "git commit falhou."
   for espera in 0 2 4 8; do
     sleep "$espera"
-    if git push -q -u origin "$(git rev-parse --abbrev-ref HEAD)"; then
+    # Se o branch remoto mudou durante o teste (push recusado), atualiza e
+    # tenta de novo — o commit local só tem o relatório.
+    if git push -q -u origin "$(git rev-parse --abbrev-ref HEAD)" \
+      || { git pull -q --rebase && git push -q -u origin "$(git rev-parse --abbrev-ref HEAD)"; }; then
       printf '\n✅ Pronto. Relatório enviado: %s\n   Avise o agente: "rodei o teste".\n' "$relatorio"
       exit 0
     fi
