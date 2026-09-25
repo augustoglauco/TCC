@@ -8,6 +8,7 @@ import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
 import { sendChatMessage } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
+import { metricsFromDone } from "@/lib/utils/chatMetrics";
 import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetrics";
 import { generateId } from "@/lib/utils/generateId";
 
@@ -117,25 +118,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         updateMessage(assistantId, {
           domain: data.domain,
           backendUsed: data.backend_used,
-          metrics: {
-            modelName: data.model_name ?? undefined,
-            promptTokens: data.prompt_tokens ?? undefined,
-            completionTokens: data.completion_tokens ?? undefined,
-            latencyMs: data.latency_ms ?? undefined,
-            ttftMs: data.ttft_ms ?? undefined,
-            tps: data.tps ?? undefined,
-            confidence: data.confidence ?? undefined,
-            complexity: data.complexity ?? undefined,
-            estimatedCostUsd: data.estimated_cost_usd ?? undefined,
-            ragRetrievalMs: data.rag_retrieval_ms ?? undefined,
-            ragChunksCount: data.rag_chunks_count ?? undefined,
-            ragAvgScore: data.rag_avg_score ?? undefined,
-            ragChunks: data.rag_chunks ?? undefined,
-            escalationReason: data.escalation_reason,
-            routerProvider: data.router_provider ?? undefined,
-            perfilUsuario: data.perfil_usuario ?? undefined,
-            perfilMotivo: data.perfil_motivo ?? undefined,
-          },
+          metrics: metricsFromDone(data),
         });
       },
       onError: (msg) => {
@@ -200,25 +183,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         updateMessage(assistantId, {
           domain: data.domain,
           backendUsed: data.backend_used,
-          metrics: {
-            modelName: data.model_name ?? undefined,
-            promptTokens: data.prompt_tokens ?? undefined,
-            completionTokens: data.completion_tokens ?? undefined,
-            latencyMs: data.latency_ms ?? undefined,
-            ttftMs: data.ttft_ms ?? undefined,
-            tps: data.tps ?? undefined,
-            confidence: data.confidence ?? undefined,
-            complexity: data.complexity ?? undefined,
-            estimatedCostUsd: data.estimated_cost_usd ?? undefined,
-            ragRetrievalMs: data.rag_retrieval_ms ?? undefined,
-            ragChunksCount: data.rag_chunks_count ?? undefined,
-            ragAvgScore: data.rag_avg_score ?? undefined,
-            ragChunks: data.rag_chunks ?? undefined,
-            escalationReason: data.escalation_reason,
-            routerProvider: data.router_provider ?? undefined,
-            perfilUsuario: data.perfil_usuario ?? undefined,
-            perfilMotivo: data.perfil_motivo ?? undefined,
-          },
+          metrics: metricsFromDone(data),
         });
       },
       onError: (msg) => {

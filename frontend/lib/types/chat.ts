@@ -93,6 +93,8 @@ export interface ConversaMensagem {
   texto: string;
   dominio: ChatDomain | null;
   criada_em: string;
+  /** Evento `done` da resposta (só do assistente); `null` em mensagens antigas. */
+  metricas: ChatDoneEventData | null;
 }
 
 /** Corpo de `GET /api/chat/conversations/{id}` (R9). */

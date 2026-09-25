@@ -64,13 +64,20 @@ async def registrar_troca(
     mensagem_cliente: str,
     resposta: str,
     dominio: str | None,
-) -> Conversa:
+) -> tuple[Conversa, ConversaMensagem]:
     """Grava a mensagem do cliente e a resposta do assistente (criando a
-    conversa na primeira troca) e devolve a conversa atualizada."""
+    conversa na primeira troca) e devolve a conversa atualizada e a mensagem
+    do assistente (para as métricas, gravadas depois do perfil)."""
     conversa = await session.get(Conversa, conversation_id)
     if conversa is None:
         conversa = Conversa(id=conversation_id, mensagens_resumidas=0)
         session.add(conversa)
+    assistente = ConversaMensagem(
+        conversa_id=conversation_id,
+        papel=PAPEL_ASSISTENTE,
+        texto=resposta[:_TEXTO_MAX_CHARS],
+        dominio=dominio,
+    )
     session.add_all(
         [
             ConversaMensagem(
@@ -78,12 +85,7 @@ async def registrar_troca(
                 papel=PAPEL_CLIENTE,
                 texto=mensagem_cliente[:_TEXTO_MAX_CHARS],
             ),
-            ConversaMensagem(
-                conversa_id=conversation_id,
-                papel=PAPEL_ASSISTENTE,
-                texto=resposta[:_TEXTO_MAX_CHARS],
-                dominio=dominio,
-            ),
+            assistente,
         ]
     )
     # `onupdate` do `atualizada_em` só dispara quando alguma coluna da
@@ -91,7 +93,15 @@ async def registrar_troca(
     conversa.atualizada_em = func.now()
     await session.commit()
     await session.refresh(conversa)
-    return conversa
+    return conversa, assistente
+
+
+async def gravar_metricas(
+    session: AsyncSession, mensagem: ConversaMensagem, metricas: dict
+) -> None:
+    """Guarda as métricas do `done` na resposta do assistente (R9)."""
+    mensagem.metricas = metricas
+    await session.commit()
 
 
 async def contar_mensagens(session: AsyncSession, conversation_id: str) -> int:

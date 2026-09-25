@@ -141,12 +141,16 @@ class ConversaMensagemOut(BaseModel):
     texto: str
     dominio: str | None = None
     criada_em: datetime
+    # Conteúdo do evento `done` da resposta (só nas mensagens do assistente;
+    # `None` nas gravadas antes da migração 0012).
+    metricas: dict | None = None
 
 
 class ConversaHistoricoOut(BaseModel):
     """Corpo de `GET /api/chat/conversations/{id}` — o widget usa para
-    reexibir o histórico ao reabrir o chat (R9). Não inclui e-mail nem
-    perfil do visitante (R10)."""
+    reexibir o histórico ao reabrir o chat (R9). Não inclui o e-mail do
+    visitante; o perfil vem só dentro das métricas de cada resposta, como no
+    painel ⚙️."""
 
     conversation_id: str
     resumo: str | None = None

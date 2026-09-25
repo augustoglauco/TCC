@@ -4,6 +4,7 @@ import type {
   ChatUIMessage,
   ConversaHistorico,
 } from "@/lib/types/chat";
+import { metricsFromDone } from "@/lib/utils/chatMetrics";
 import { generateId } from "@/lib/utils/generateId";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 
@@ -165,10 +166,21 @@ export async function fetchConversationHistory(
     return null;
   }
   const historico = (await response.json()) as ConversaHistorico;
-  return historico.mensagens.map((mensagem) => ({
-    id: generateId(),
-    role: mensagem.papel === "cliente" ? "user" : "assistant",
-    text: mensagem.texto,
-    domain: mensagem.papel === "assistente" ? (mensagem.dominio ?? undefined) : undefined,
-  }));
+  return historico.mensagens.map((mensagem) => {
+    if (mensagem.papel === "cliente") {
+      return { id: generateId(), role: "user", text: mensagem.texto };
+    }
+    // Com as métricas gravadas, o painel ⚙️ reaparece igual ao da resposta
+    // original; sem elas (mensagens anteriores à migração 0012), só o domínio.
+    return {
+      id: generateId(),
+      role: "assistant",
+      text: mensagem.texto,
+      domain: mensagem.dominio ?? undefined,
+      ...(mensagem.metricas && {
+        backendUsed: mensagem.metricas.backend_used,
+        metrics: metricsFromDone(mensagem.metricas),
+      }),
+    };
+  });
 }

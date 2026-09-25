@@ -128,7 +128,7 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | Endpoint | Uso |
 | --- | --- |
 | `POST /api/chat/messages` | Envia mensagem (texto e/ou imagem e/ou áudio) de uma conversa; resposta é o próprio stream Server-Sent Events (SSE) da geração — não há endpoint `GET` separado |
-| `GET /api/chat/conversations/{id}` | Recupera histórico/resumo da conversa (R9, Fase 6): `{conversation_id, resumo, mensagens: [{papel: "cliente"\|"assistente", texto, dominio, criada_em}]}`, mais antiga primeiro (até 50); `404` se a conversa não existe, `503` se o banco está fora do ar. Usado pelo `ChatWidget` ao montar (`fetchConversationHistory` em `lib/api/chat.ts`): carrega as mensagens só se a tela estiver vazia; qualquer falha deixa o chat vazio, sem erro |
+| `GET /api/chat/conversations/{id}` | Recupera histórico/resumo da conversa (R9, Fase 6): `{conversation_id, resumo, mensagens: [{papel: "cliente"\|"assistente", texto, dominio, criada_em, metricas}]}` — `metricas` é o evento `done` da resposta (só nas do assistente; `null` nas gravadas antes da migração `0012`), convertido por `metricsFromDone` (`lib/utils/chatMetrics.ts`, o mesmo usado ao receber o `done`) para o painel ⚙️ reaparecer igual, mais antiga primeiro (até 50); `404` se a conversa não existe, `503` se o banco está fora do ar. Usado pelo `ChatWidget` ao montar (`fetchConversationHistory` em `lib/api/chat.ts`): carrega as mensagens só se a tela estiver vazia; qualquer falha deixa o chat vazio, sem erro |
 | `GET /api/products` , `GET /api/products/{id}` | Catálogo de produtos (mesma base do RAG/MCP B2B) |
 | `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` | Criação e histórico de pedidos |
 | `POST /api/auth/login` , `POST /api/auth/signup` | Autenticação simplificada |

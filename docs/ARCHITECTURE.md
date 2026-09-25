@@ -950,8 +950,12 @@ implementação.
    não via o histórico da conversa.
 4. **Retomada no widget:** `GET /api/chat/conversations/{id}` (caminho
    que o `docs/FRONTEND.md` §4 já previa) devolve o resumo e as mensagens
-   gravadas, sem e-mail nem perfil. O widget as carrega ao montar, só se
-   ainda não houver mensagem na tela. `# MVP: quem tiver o
+   gravadas, sem e-mail. O widget as carrega ao montar, só se ainda não
+   houver mensagem na tela. Cada resposta do assistente guarda também as
+   métricas do seu evento `done` (coluna `metricas`, JSON, migração `0012`:
+   modelo, tokens, latência, RAG, perfil), para o painel ⚙️ reaparecer igual
+   nas mensagens recarregadas e a telemetria ficar consultável no banco
+   (ajuste pedido pelo desenvolvedor após a conferência no navegador). `# MVP: quem tiver o
    conversation_id (UUID aleatório no navegador) lê a conversa, sem login`.
 
 *R10: classificação do usuário.*

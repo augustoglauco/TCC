@@ -329,6 +329,9 @@ class ConversaMensagem(Base):
     # Domínio da resposta (só nas mensagens do assistente) — usado pela
     # classificação do usuário (R10: intenção de compra).
     dominio: Mapped[str | None]
+    # Métricas do evento `done` da resposta (modelo, tokens, latência, RAG,
+    # perfil) — o painel ⚙️ reaparece nas mensagens recarregadas (R9).
+    metricas: Mapped[dict | None] = mapped_column(_JsonVariant, nullable=True)
     criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     conversa: Mapped["Conversa"] = relationship(back_populates="mensagens")
