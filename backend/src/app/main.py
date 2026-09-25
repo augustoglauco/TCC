@@ -15,6 +15,7 @@ from app.api.rag_collections import router as rag_collections_router
 from app.api.rag_playground import router as rag_playground_router
 from app.api.runtime_settings import router as runtime_settings_router
 from app.api.tom_escalonamentos import router as tom_escalonamentos_router
+from app.api.uploads import router as uploads_router
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.logging_config import configure_logging
@@ -92,6 +93,9 @@ def create_app() -> FastAPI:
     )
     app.state.embedder_registry = EmbedderRegistry()
     app.state.rag_uploads_dir = Path(settings.rag_uploads_dir)
+    app.state.product_images_dir = Path(settings.product_images_dir)
+    app.state.product_images_dir.mkdir(parents=True, exist_ok=True)
+    (app.state.product_images_dir / "temp").mkdir(parents=True, exist_ok=True)
     app.state.crawler_max_pages_default = settings.crawler_max_pages
     app.state.crawler_confidence_threshold = settings.crawler_confidence_threshold
     # Cliente HTTP dedicado ao crawler (spec
@@ -168,6 +172,7 @@ def create_app() -> FastAPI:
     app.include_router(rag_playground_router)
     app.include_router(runtime_settings_router)
     app.include_router(tom_escalonamentos_router)
+    app.include_router(uploads_router)
 
     return app
 
