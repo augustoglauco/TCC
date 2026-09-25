@@ -227,11 +227,11 @@ em `docs/ARCHITECTURE.md` §6.
    mkdir -p ~/.local/bin
    curl -fL -o ~/.local/bin/caddy "https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fcaddy-dns%2Fduckdns"
    chmod +x ~/.local/bin/caddy
-   caddy list-modules | grep duckdns   # deve mostrar dns.providers.duckdns
+   ~/.local/bin/caddy list-modules | grep duckdns   # deve mostrar dns.providers.duckdns
    ```
 
-   Se `caddy` não for encontrado, `~/.local/bin` não está no `PATH`: use
-   `~/.local/bin/caddy` no lugar.
+   Os comandos abaixo usam o caminho completo (`~/.local/bin/caddy`), que
+   funciona mesmo se `~/.local/bin` não estiver no `PATH`.
 
 3. **Token do DuckDNS** (o certificado HTTPS sai pelo desafio DNS, sem abrir
    as portas 80/443):
@@ -240,7 +240,7 @@ em `docs/ARCHITECTURE.md` §6.
    cp infra/caddy/caddy.env.example infra/caddy/caddy.env
    # edite infra/caddy/caddy.env: DUCKDNS_DOMAIN=augustoglauco.duckdns.org
    # e DUCKDNS_TOKEN=<token do topo da página em duckdns.org>
-   caddy validate --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env
+   ~/.local/bin/caddy validate --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env
    ```
 
    O `infra/caddy/caddy.env` fica fora do git.
@@ -251,8 +251,11 @@ em `docs/ARCHITECTURE.md` §6.
    New-NetFirewallRule -DisplayName "TCC WSL2 MCP B2B HTTPS (8443)" -Direction Inbound -LocalPort 8443 -Protocol TCP -Action Allow
    ```
 
-   Depois, confira o modo de rede do WSL2 (no terminal do WSL):
-   `wslinfo --networking-mode`.
+   Depois, confira o modo de rede do WSL2. No PowerShell:
+   `wsl wslinfo --networking-mode` (ou `wslinfo --networking-mode` direto no
+   terminal do WSL). Em versões antigas do WSL, sem o `wslinfo`, use
+   `Get-Content $env:USERPROFILE\.wslconfig`: a linha
+   `networkingMode=mirrored` indica o modo espelhado; sem ela, é `nat`.
 
    - **`mirrored`** (o caso desta máquina: a 3001 funciona sem PortProxy): o
      WSL2 compartilha o IP do Windows, e a regra de firewall basta. **Não
@@ -278,11 +281,13 @@ em `docs/ARCHITECTURE.md` §6.
 ### A cada sessão
 
 ```bash
-nohup caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 & disown
+nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 & disown
 ```
 
-Na primeira vez o Caddy leva de 30 s a 2 min para obter o certificado
-(acompanhe em `/tmp/tcc-caddy.log`). O `./testar.sh` reinicia o servidor MCP
+Na primeira vez o Caddy leva de 30 s a 2 min para obter o certificado:
+acompanhe com `tail -f /tmp/tcc-caddy.log` até aparecer
+`certificate obtained successfully`. Se aparecer "address already in use",
+um PortProxy esquecido está ocupando a 8443 (ver passo 4). O `./testar.sh` reinicia o servidor MCP
 B2B, mas não o Caddy.
 
 ### Testar
