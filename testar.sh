@@ -19,8 +19,11 @@ falha() { printf '\n❌ %s\n' "$1"; exit 1; }
 
 main() {
   passo "1/6 Atualizando o código (git pull)"
-  if [ -n "$(git status --porcelain -- . ':!testes_locais')" ]; then
-    git status --short -- . ':!testes_locais'
+  # Só arquivos já versionados e alterados bloqueiam: um arquivo novo solto
+  # (não rastreado) não atrapalha o `git pull` e não entra no commit do
+  # relatório, que adiciona só o arquivo em testes_locais/.
+  if [ -n "$(git status --porcelain --untracked-files=no -- . ':!testes_locais')" ]; then
+    git status --short --untracked-files=no -- . ':!testes_locais'
     falha "Há alterações locais sem commit (lista acima). Faça commit ou 'git stash' e rode de novo."
   fi
   git pull --ff-only || falha "git pull falhou."
