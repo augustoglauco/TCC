@@ -106,7 +106,7 @@
 | **SDK** | MCP SDK oficial (Python) | Padrão do protocolo |
 | **Recursos expostos** | Catálogo, estoque, preços, manuais (leitura) | Reutilizam backend único (PostgreSQL + RAG) |
 | **Ferramentas** | Compatibilidade, frete, cotação, reserva/pedido | 4 operações transacionais sobre o backend |
-| **Autenticação** | Nenhuma (MVP) | Uso interno apenas; autenticação por parceiro é evolução futura |
+| **Autenticação** | Chave estática por parceiro (`Authorization: Bearer`, `TokenVerifier` do SDK MCP) | MVP: exposição pública via HTTPS com uma chave por parceiro; OAuth, escopos e rate limiting são evolução futura (`docs/ARCHITECTURE.md` §6) |
 | **Rate limiting** | Nenhum (MVP) | Não implementado no protótipo |
 
 ### Monitoramento e Logging
