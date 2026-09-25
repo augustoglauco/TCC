@@ -14,16 +14,18 @@ Mesmo padrão de módulo de `app.router.scheduling`: lógica de domínio pura
 (sem tipos de streaming SSE), consumida por `app.router.orchestrator`.
 """
 
+import json
 import re
 from decimal import Decimal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.catalog import calcular_item_cotacao, listar_estoque, obter_produto, sao_compativeis
 from app.db.models import Produto
-from app.router.classifier import normalize
+from app.router.classifier import normalize, strip_code_fence
+from app.router.llm_client import LLMClient
 
 
 class CandidatoProduto(BaseModel):
@@ -144,3 +146,72 @@ class SalesCatalogClient:
                 produto_relacionado_nome=produto_relacionado_nome,
                 compativel=compativel,
             )
+
+
+_EXTRACTION_PROMPT_TEMPLATE = """\
+Você está ajudando um cliente numa conversa de vendas. A partir da lista de \
+produtos candidatos abaixo (já filtrada do catálogo da empresa), identifique \
+qual produto o cliente está perguntando, se houver um segundo produto \
+mencionado para checar compatibilidade, e a quantidade desejada.
+
+Produtos candidatos (escolha o ID de um deles, ou null se nenhum corresponder \
+ao que o cliente pediu):
+{candidatos}
+
+Contexto recente da conversa:
+{contexto}
+
+Mensagem atual do cliente: {mensagem}
+
+Responda APENAS com JSON no formato: {{"produto_id": <id ou null>, \
+"produto_relacionado_id": <id ou null>, "quantidade": <número ou null>}}. \
+"produto_id" e "produto_relacionado_id" DEVEM ser um dos IDs listados acima \
+(nunca invente um ID que não está na lista); use null se o cliente não \
+mencionar um segundo produto para checar compatibilidade, ou nenhum produto \
+da lista corresponder ao pedido."""
+
+
+def _formatar_candidatos(candidatos: list[CandidatoProduto]) -> str:
+    return "\n".join(
+        f"- id={candidato.id}: {candidato.nome} (categoria: {candidato.categoria})"
+        for candidato in candidatos
+    )
+
+
+def _parse_extraction(raw_text: str) -> VendaSlots:
+    parsed = json.loads(strip_code_fence(raw_text))
+    return VendaSlots(**parsed)
+
+
+async def extract_sales_slots(
+    message: str,
+    recent_messages: list[str],
+    candidatos: list[CandidatoProduto],
+    llm_client: LLMClient,
+) -> VendaSlots:
+    """Uma chamada LLM: recebe a mensagem do cliente junto com a lista de
+    candidatos já filtrada (etapa 1, `SalesCatalogClient.buscar_candidatos`)
+    e escolhe o `produto_id` certo entre eles — copiar um ID de uma lista
+    real e pequena é uma tarefa muito mais confiável para o LLM do que
+    inventar um nome livre que depois precisa ser casado (spec §2). Mesmo
+    padrão de `app.router.scheduling.extract_booking_slots`: prompt → JSON →
+    parse com `ValidationError`/`JSONDecodeError` tratado, fallback pra
+    `VendaSlots()` vazio em qualquer falha de parsing (não quebra o turno)."""
+    contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
+    prompt = _EXTRACTION_PROMPT_TEMPLATE.format(
+        candidatos=_formatar_candidatos(candidatos),
+        contexto=contexto,
+        mensagem=message,
+    )
+    response = await llm_client.generate(prompt)
+    try:
+        slots = _parse_extraction(response.text)
+    except (json.JSONDecodeError, ValidationError, TypeError):
+        return VendaSlots()
+
+    ids_validos = {candidato.id for candidato in candidatos}
+    if slots.produto_id is not None and slots.produto_id not in ids_validos:
+        slots.produto_id = None
+    if slots.produto_relacionado_id is not None and slots.produto_relacionado_id not in ids_validos:
+        slots.produto_relacionado_id = None
+    return slots

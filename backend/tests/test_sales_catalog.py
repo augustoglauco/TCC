@@ -15,7 +15,14 @@ from app.db.catalog import (
 )
 from app.db.engine import create_db_engine, create_session_factory
 from app.db.models import Base
-from app.router.sales_catalog import SalesCatalogClient, extrair_termos_busca
+from app.router.llm_client import LLMResponse
+from app.router.sales_catalog import (
+    CandidatoProduto,
+    SalesCatalogClient,
+    VendaSlots,
+    extract_sales_slots,
+    extrair_termos_busca,
+)
 
 
 async def _cria_produto(session, **overrides):
@@ -176,3 +183,71 @@ async def test_consultar_detalhes_produto_relacionado_inexistente_ignora_compati
 
     assert dados.produto_relacionado_nome is None
     assert dados.compativel is None
+
+
+class _FakeLLMClient:
+    def __init__(self, response_text: str) -> None:
+        self._text = response_text
+        self.last_prompt: str | None = None
+
+    async def generate(self, prompt: str) -> LLMResponse:
+        self.last_prompt = prompt
+        return LLMResponse(text=self._text, total_duration_ms=10.0)
+
+
+async def test_extract_sales_slots_escolhe_o_produto_certo_entre_candidatos():
+    candidatos = [
+        CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores"),
+        CandidatoProduto(id=2, nome="Cabine de Insonorização", categoria="cabines"),
+    ]
+    llm = _FakeLLMClient('{"produto_id": 1, "produto_relacionado_id": null, "quantidade": 3}')
+
+    slots = await extract_sales_slots("Quero 3 geradores GD-15", [], candidatos, llm)
+
+    assert slots.produto_id == 1
+    assert slots.quantidade == 3
+    assert "Gerador Diesel GD-15" in llm.last_prompt
+    assert "Cabine de Insonorização" in llm.last_prompt
+
+
+async def test_extract_sales_slots_extrai_produto_relacionado_para_compatibilidade():
+    candidatos = [
+        CandidatoProduto(id=1, nome="QTA-100", categoria="quadros"),
+        CandidatoProduto(id=2, nome="Gerador Diesel GD-15", categoria="geradores"),
+    ]
+    llm = _FakeLLMClient('{"produto_id": 1, "produto_relacionado_id": 2, "quantidade": null}')
+
+    slots = await extract_sales_slots("O QTA-100 funciona com o GD-15?", [], candidatos, llm)
+
+    assert slots.produto_id == 1
+    assert slots.produto_relacionado_id == 2
+
+
+async def test_extract_sales_slots_sem_match_devolve_produto_id_none():
+    candidatos = [CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")]
+    llm = _FakeLLMClient('{"produto_id": null, "produto_relacionado_id": null, "quantidade": null}')
+
+    slots = await extract_sales_slots("Vocês vendem parafusos?", [], candidatos, llm)
+
+    assert slots.produto_id is None
+
+
+async def test_extract_sales_slots_resposta_nao_json_cai_em_fallback_vazio():
+    candidatos = [CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")]
+    llm = _FakeLLMClient("desculpe, não entendi")
+
+    slots = await extract_sales_slots("oi", [], candidatos, llm)
+
+    assert slots == VendaSlots()
+
+
+async def test_extract_sales_slots_ignora_id_inventado_fora_da_lista_de_candidatos():
+    # Achado de robustez (mesmo espírito de scheduling.py): o LLM pode
+    # "inventar" um ID que não está na lista de candidatos apesar da
+    # instrução do prompt — valida contra os IDs reais antes de devolver.
+    candidatos = [CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")]
+    llm = _FakeLLMClient('{"produto_id": 999, "produto_relacionado_id": null, "quantidade": null}')
+
+    slots = await extract_sales_slots("Quero o produto X", [], candidatos, llm)
+
+    assert slots.produto_id is None
