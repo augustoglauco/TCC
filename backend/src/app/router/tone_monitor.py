@@ -192,7 +192,7 @@ async def analyze_tone(
 
 
 # MVP: estado em memória por processo, mesmo padrão de
-# app.router.scheduling.booking_slots e app.api.chat._conversation_history —
+# app.router.scheduling.booking_slots —
 # perdido em restart do processo, sem mecanismo de "des-escalar" (decisão
 # aceita da spec §2).
 _conversas_escaladas: set[str] = set()

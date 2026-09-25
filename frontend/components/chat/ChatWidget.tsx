@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 
 import { ChatModal } from "@/components/chat/ChatModal";
+import { fetchConversationHistory } from "@/lib/api/chat";
 import { getOrCreateConversationId, useChatStore } from "@/lib/hooks/useChatStore";
 
 export default function ChatWidget() {
@@ -11,12 +12,30 @@ export default function ChatWidget() {
   const close = useChatStore((state) => state.close);
   const conversationId = useChatStore((state) => state.conversationId);
   const setConversationId = useChatStore((state) => state.setConversationId);
+  const loadHistory = useChatStore((state) => state.loadHistory);
 
   useEffect(() => {
     if (!conversationId) {
       setConversationId(getOrCreateConversationId());
     }
   }, [conversationId, setConversationId]);
+
+  // Retomada (R9): ao ter o id, busca uma vez as mensagens gravadas no
+  // backend. Falha ou conversa nova: o chat abre vazio, como antes.
+  useEffect(() => {
+    if (!conversationId) {
+      return;
+    }
+    let cancelado = false;
+    fetchConversationHistory(conversationId).then((historico) => {
+      if (!cancelado && historico && historico.length > 0) {
+        loadHistory(historico);
+      }
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [conversationId, loadHistory]);
 
   return (
     <>
@@ -35,4 +54,3 @@ export default function ChatWidget() {
     </>
   );
 }
-

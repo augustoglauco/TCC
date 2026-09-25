@@ -1,4 +1,11 @@
-import type { ChatDoneEventData, ChatMessageRequest } from "@/lib/types/chat";
+import type {
+  ChatDoneEventData,
+  ChatMessageRequest,
+  ChatUIMessage,
+  ConversaHistorico,
+} from "@/lib/types/chat";
+import { metricsFromDone } from "@/lib/utils/chatMetrics";
+import { generateId } from "@/lib/utils/generateId";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 
 const API_BASE_URL = getApiBaseUrl();
@@ -134,4 +141,46 @@ export async function sendChatMessage({
   if (!concluiu) {
     onError("Resposta incompleta do servidor. Tente novamente.");
   }
+}
+
+/**
+ * Busca o histórico gravado da conversa (R9) para reexibir ao reabrir o chat.
+ * Conversa que ainda não existe no backend (404) devolve `[]`. Qualquer outra
+ * falha devolve `null`: o widget abre vazio, como antes, sem mostrar erro.
+ */
+export async function fetchConversationHistory(
+  conversationId: string,
+): Promise<ChatUIMessage[] | null> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `${API_BASE_URL}/api/chat/conversations/${encodeURIComponent(conversationId)}`,
+    );
+  } catch {
+    return null;
+  }
+  if (response.status === 404) {
+    return [];
+  }
+  if (!response.ok) {
+    return null;
+  }
+  const historico = (await response.json()) as ConversaHistorico;
+  return historico.mensagens.map((mensagem) => {
+    if (mensagem.papel === "cliente") {
+      return { id: generateId(), role: "user", text: mensagem.texto };
+    }
+    // Com as métricas gravadas, o painel ⚙️ reaparece igual ao da resposta
+    // original; sem elas (mensagens anteriores à migração 0012), só o domínio.
+    return {
+      id: generateId(),
+      role: "assistant",
+      text: mensagem.texto,
+      domain: mensagem.dominio ?? undefined,
+      ...(mensagem.metricas && {
+        backendUsed: mensagem.metricas.backend_used,
+        metrics: metricsFromDone(mensagem.metricas),
+      }),
+    };
+  });
 }

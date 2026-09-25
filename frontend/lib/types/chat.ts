@@ -6,7 +6,9 @@
 
 export type ChatDomain = "vendas" | "suporte" | "atendimento" | "agendamento" | "fora_escopo";
 
-export type ChatBackendUsed = "local" | "externo";
+// "resposta_fixa": mensagem só com e-mail, respondida sem LLM (R10);
+// "identificacao_imagem": fluxo de identificação de produto por imagem.
+export type ChatBackendUsed = "local" | "externo" | "resposta_fixa" | "identificacao_imagem";
 
 export type ChatEscalationReason = "nenhum" | "fora_escopo" | "rag_vazio" | "complexidade_alta";
 
@@ -29,6 +31,9 @@ export interface ChatRagChunk {
   score: number;
 }
 
+/** Classificação do visitante (R10, Fase 6) — ver docs/ARCHITECTURE.md §5. */
+export type ChatPerfilUsuario = "cliente" | "esporadico" | "lead" | "nao_classificado";
+
 export interface ChatMetrics {
   modelName?: string;
   promptTokens?: number;
@@ -45,6 +50,8 @@ export interface ChatMetrics {
   ragChunks?: ChatRagChunk[];
   escalationReason?: ChatEscalationReason;
   routerProvider?: string;
+  perfilUsuario?: ChatPerfilUsuario;
+  perfilMotivo?: string;
 }
 
 export interface ChatDoneEventData {
@@ -65,6 +72,8 @@ export interface ChatDoneEventData {
   rag_avg_score?: number | null;
   rag_chunks?: ChatRagChunk[] | null;
   router_provider?: string | null;
+  perfil_usuario?: ChatPerfilUsuario | null;
+  perfil_motivo?: string | null;
 }
 
 /** Mensagem exibida no painel do chat (estado de UI, não o payload da API). */
@@ -80,3 +89,19 @@ export interface ChatUIMessage {
   metrics?: ChatMetrics;
 }
 
+/** Uma mensagem gravada da conversa — `GET /api/chat/conversations/{id}` (R9). */
+export interface ConversaMensagem {
+  papel: "cliente" | "assistente";
+  texto: string;
+  dominio: ChatDomain | null;
+  criada_em: string;
+  /** Evento `done` da resposta (só do assistente); `null` em mensagens antigas. */
+  metricas: ChatDoneEventData | null;
+}
+
+/** Corpo de `GET /api/chat/conversations/{id}` (R9). */
+export interface ConversaHistorico {
+  conversation_id: string;
+  resumo: string | null;
+  mensagens: ConversaMensagem[];
+}

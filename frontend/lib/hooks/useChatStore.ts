@@ -8,9 +8,9 @@ const CONVERSATION_ID_STORAGE_KEY = "tcc_chat_conversation_id";
 /**
  * Lê o `conversation_id` do `localStorage` ou gera um novo (R9).
  *
- * MVP: persistência apenas no navegador (localStorage) — sem histórico
- * recuperável no backend nesta etapa; o backend também só guarda as
- * últimas mensagens em memória por processo (ver docs/FRONTEND.md §4).
+ * MVP: o id fica no navegador (localStorage); as mensagens ficam no
+ * backend (Postgres, R9) e o `ChatWidget` as recarrega ao montar, via
+ * `GET /api/chat/conversations/{id}` (ver docs/FRONTEND.md §4).
  */
 export function getOrCreateConversationId(): string {
   if (typeof window === "undefined") {
@@ -35,6 +35,8 @@ interface ChatState {
   addMessage: (message: ChatUIMessage) => void;
   updateMessage: (id: string, patch: Partial<Omit<ChatUIMessage, "id">>) => void;
   setConversationId: (id: string) => void;
+  /** Reexibe o histórico gravado — só se ainda não houver mensagem na tela. */
+  loadHistory: (messages: ChatUIMessage[]) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -60,4 +62,8 @@ export const useChatStore = create<ChatState>((set) => ({
     }
     set({ conversationId: id });
   },
+  // Se o visitante já mandou algo antes da resposta do backend chegar, o
+  // histórico não é aplicado (não intercala mensagens antigas com a nova).
+  loadHistory: (history) =>
+    set((state) => (state.messages.length === 0 ? { messages: history } : {})),
 }));

@@ -571,9 +571,9 @@ iam no JSON síncrono, exceto o texto da resposta em si, que já chegou via
 Qdrant) **depois** que o stream já abriu — nesse ponto o HTTP já é 200, não
 dá mais para trocar por um status de erro. Erros de validação de entrada
 anteriores à abertura do stream (áudio base64 inválido, nem `message` nem
-`audio`, STT indisponível) continuam HTTP 400/422/503 normal, sem SSE. O
-histórico de conversa em memória só é atualizado quando o `done` chega com
-sucesso, não em caso de `error`. Contrato completo (payload de cada evento)
+`audio`, STT indisponível) continuam HTTP 400/422/503 normal, sem SSE. A
+troca só é gravada na memória da conversa (Postgres, R9) quando o `done`
+chega com sucesso, não em caso de `error`. Contrato completo (payload de cada evento)
 em `docs/FRONTEND.md` §4. `# MVP: sem reconexão automática/`Last-Event-ID`
 se a conexão cair no meio do stream — o cliente perde os tokens já enviados
 e precisa reenviar a mensagem inteira, aceitável para este protótipo`.
@@ -924,6 +924,80 @@ falha isolada, outros domínios não chamam o cliente, log de diagnóstico
 `vendas_catalogo_consulta`, log de
 `rag_indisponivel`) e `tests/test_main_app.py` (wiring em `app.main`).
 
+**Decisão registrada (Fase 6, memória da conversa e classificação do
+usuário, R9/R10, 2026-09-25):** decisões do desenvolvedor, tomadas antes da
+implementação.
+
+*R9: persistência, resumo e retomada.*
+
+1. **Onde:** duas tabelas no Postgres. `conversas` guarda o id (o mesmo
+   `conversation_id` que o widget já guarda no `localStorage`), as datas,
+   o resumo, o e-mail e o perfil. `conversa_mensagens` guarda cada mensagem
+   do cliente **e** a resposta do assistente, com o domínio da resposta.
+   Substitui o histórico em memória de `app.api.chat`, que se perdia a cada
+   reinício. O histórico recente usado pelo roteador (últimas 3 mensagens
+   do cliente) passa a vir do banco, com o mesmo conteúdo de antes.
+2. **Quando grava:** quando a resposta termina, antes do evento `done`. O
+   perfil calculado (R10) sai já no `done` daquela resposta, e a próxima
+   mensagem sempre encontra a anterior gravada. Uma falha do banco vira log
+   (`memoria_indisponivel`) e a conversa segue sem memória naquela
+   mensagem; nunca derruba a resposta.
+3. **Resumo automático periódico:** a cada 6 mensagens gravadas (3 trocas),
+   o LLM local reescreve o resumo a partir do resumo anterior e das
+   mensagens novas. Roda em segundo plano, sem atrasar a resposta. O
+   resumo entra no prompt da resposta ("Resumo da conversa até aqui"). Isso
+   também cobre uma lacuna vista nos testes de Vendas: o LLM que responde
+   não via o histórico da conversa.
+4. **Retomada no widget:** `GET /api/chat/conversations/{id}` (caminho
+   que o `docs/FRONTEND.md` §4 já previa) devolve o resumo e as mensagens
+   gravadas, sem e-mail. O widget as carrega ao montar, só se ainda não
+   houver mensagem na tela. Cada resposta do assistente guarda também as
+   métricas do seu evento `done` (coluna `metricas`, JSON, migração `0012`:
+   modelo, tokens, latência, RAG, perfil), para o painel ⚙️ reaparecer igual
+   nas mensagens recarregadas e a telemetria ficar consultável no banco
+   (ajuste pedido pelo desenvolvedor após a conferência no navegador). `# MVP: quem tiver o
+   conversation_id (UUID aleatório no navegador) lê a conversa, sem login`.
+
+*R10: classificação do usuário.*
+
+5. **Identidade pelo e-mail, no momento natural:** o chat não tem login, e
+   não existia base de clientes nem compras de pessoas (os pedidos do MCP
+   B2B são reservas de parceiros). Entram duas tabelas fictícias,
+   semeadas em migração como os produtos: `clientes` (e-mail, nome) e
+   `cliente_compras` (produto, valor, data). O e-mail é captado quando o
+   visitante o escreve em qualquer mensagem (o agendamento já pede). Ao
+   abrir o chat com a conversa vazia, uma mensagem de boas-vindas (só de
+   interface, não gravada) convida a informar o e-mail junto com a
+   pergunta, deixando claro que é opcional e que facilita o relacionamento
+   com a empresa; não há pergunta obrigatória nem bloqueio.
+   O e-mail é guardado assim que a mensagem chega, antes de chamar o LLM:
+   uma falha na resposta (ex.: 429 do modelo externo) não o perde. Uma
+   mensagem que é basicamente só o e-mail ("Sou fulano@…", "meu e-mail é
+   …") recebe uma resposta fixa, sem LLM (`backend_used="resposta_fixa"`),
+   que agradece e pergunta como ajudar; antes ela caía em `fora_escopo` e
+   ia para o modelo externo. A resposta não diz se o e-mail tem cadastro,
+   para não permitir descobrir quem é cliente testando e-mails; o perfil
+   sai só no painel de métricas. Correções vindas do teste local de
+   2026-09-25 (cenários R6/R9 com 429 do OpenRouter). No pós-venda (`suporte`/`atendimento`), sem
+   e-mail conhecido, o prompt instrui o assistente a pedir educadamente o
+   e-mail usado na compra.
+6. **Regras**, recalculadas a cada mensagem e gravadas com o motivo:
+   - **Cliente:** e-mail cadastrado, com 2 ou mais compras e a última nos
+     últimos 12 meses.
+   - **Esporádico:** e-mail cadastrado, mas só 1 compra ou a última há mais
+     de 12 meses.
+   - **Lead:** sem cadastro (ou sem e-mail), mas com intenção de compra na
+     conversa (alguma resposta nos domínios `vendas` ou `agendamento`).
+   - **Não classificado:** nenhum sinal ainda.
+7. **Exibição:** `perfil_usuario` e `perfil_motivo` no evento `done` do SSE,
+   mostrados no painel de métricas da resposta (⚙️). O perfil não entra no
+   prompt.
+
+`# MVP: um visitante = um navegador (conversation_id no localStorage), sem
+login; base de clientes fictícia; e-mail captado por expressão regular, sem
+confirmação de posse; classificação por regras fixas, sem modelo preditivo;
+e-mail guardado sem política de consentimento/retenção (LGPD), ver Seção 7`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
@@ -937,8 +1011,8 @@ falha isolada, outros domínios não chamam o cliente, log de diagnóstico
 | Agendamento de visita (MCP consumido) | Nova intenção reconhecida pelo roteador; coleta data/hora e dados básicos; valida expediente e conflito de agenda (na mesma agenda configurada) local/via MCP antes de sequer pedir confirmação; exige confirmação explícita do visitante antes de criar o evento; chama o MCP do Google Calendar e envia confirmação automática por e-mail | Reagendamento/cancelamento, checagem de disponibilidade em múltiplas agendas, confirmação também por SMS |
 | MCP de integração B2B (MCP provido) | Servidor MCP reaproveitando a base do catálogo/estoque/preços do RAG; recursos de leitura + as quatro ferramentas já implementadas; exposto publicamente via DuckDNS + HTTPS (Caddy), protegido por chave estática por parceiro (Bearer) e com log de qual parceiro chamou cada ferramenta; Roteador/Orquestrador consome o mesmo backend em Vendas (estoque, cotação, compatibilidade), por chamada direta no mesmo processo | OAuth/servidor de autorização, permissões por ferramenta, auditoria persistida de ações transacionais, rate limiting e expiração/rotação de chaves |
 | Monitor de tom | Classificador de sentimento/urgência (heurística + LLM leve) com alerta, transferência simulada e log dos casos escalonados | Integração real com fila de atendentes humanos, escalonamento por SLA |
-| Memória da conversa | Persistência por ID + resumo automático periódico (não só ao final) | Perfil de cliente enriquecido a partir do histórico de conversas |
-| Classificação do usuário | Heurística inicial (histórico de compras/perguntas) — Cliente/Lead/Esporádico, com revisão dos critérios a partir dos primeiros dados coletados | Modelo preditivo, score de propensão, enriquecimento de dados externos |
+| Memória da conversa | Persistência por ID no Postgres (mensagens do cliente e do assistente) + resumo automático periódico no prompt + retomada do histórico no widget | Perfil de cliente enriquecido a partir do histórico de conversas, memória entre dispositivos (login) |
+| Classificação do usuário | Regras fixas sobre uma base de clientes fictícia: e-mail captado no momento natural da conversa (pós-venda, agendamento) e cruzado com as compras; Cliente/Esporádico por quantidade e recência das compras, Lead por intenção de compra sem cadastro | Modelo preditivo, score de propensão, enriquecimento de dados externos, confirmação de identidade |
 
 ## 6. MCP de integração com parceiros B2B (recursos e ferramentas)
 
@@ -1112,6 +1186,12 @@ um `Host` fora da URL pública, leitura das chaves e falha fechada. A suíte
   A porta 8443 fica aberta na rede doméstica, e o token do DuckDNS usado
   pelo Caddy também é um segredo. Aceitável para o protótipo; a evolução
   está na Seção 8.
+- Dados pessoais na memória da conversa (R9/R10): o e-mail do visitante e o
+  texto das conversas ficam guardados no Postgres sem política de
+  consentimento, retenção ou exclusão (LGPD) e sem confirmação de que o
+  e-mail é de quem o digitou. Aceitável num protótipo com base de clientes
+  fictícia; exigiria tratamento próprio antes de uso real. O e-mail não
+  entra nos logs.
 - Escopo do MVP relativamente amplo (4 ferramentas do MCP B2B, playbooks
   iniciais, crawler/catálogo maiores) aumenta a superfície de testes dentro
   do próprio protótipo.

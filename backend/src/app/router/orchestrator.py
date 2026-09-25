@@ -42,6 +42,7 @@ from app.router.scheduling import (
     validar_expediente,
 )
 from app.router.tone_monitor import ToneResult, analyze_tone, ja_escalada, marcar_escalada
+from app.user_profile.classificacao import DOMINIOS_POS_VENDA
 
 logger = logging.getLogger(__name__)
 
@@ -67,10 +68,13 @@ def _build_prompt(
     documentos: list[Document],
     domain: Domain,
     dados_catalogo: str | None = None,
+    resumo_conversa: str | None = None,
+    pedir_email_pos_venda: bool = False,
 ) -> str:
     """Monta o prompt final: prompt de sistema do domínio (playbook) +
-    dados do catálogo de Vendas (quando houver, R12 Fase 5) + contexto de
-    RAG (quando houver) + mensagem do cliente.
+    resumo da conversa até aqui (quando houver, R9 Fase 6) + dados do
+    catálogo de Vendas (quando houver, R12 Fase 5) + contexto de RAG (quando
+    houver) + mensagem do cliente.
 
     # MVP: concatenação simples dos `content` dos documentos, sem
     # sumarização/priorização por score além da ordem já devolvida pelo RAG,
@@ -83,6 +87,14 @@ def _build_prompt(
     if system_prompt is not None:
         partes.append(system_prompt)
 
+    if resumo_conversa:
+        # O prompt não leva as mensagens anteriores; o resumo periódico é o
+        # que dá ao LLM o contexto da conversa (ex.: de que produto se fala).
+        partes.append(
+            "Resumo da conversa até aqui (use como contexto; se a mensagem "
+            f"atual disser algo diferente, ela vale):\n{resumo_conversa}"
+        )
+
     if dados_catalogo is not None:
         partes.append(dados_catalogo)
 
@@ -94,6 +106,15 @@ def _build_prompt(
             "informações não forem suficientes, responda com o que souber, sem "
             "inventar dados específicos (preços, prazos, números de série).\n\n"
             f"Informações recuperadas:\n{contexto}"
+        )
+
+    if pedir_email_pos_venda and domain in DOMINIOS_POS_VENDA:
+        # R10 (Fase 6): identidade pelo e-mail, pedida só no momento natural
+        # — no pós-venda, para localizar a compra.
+        partes.append(
+            "Ainda não sabemos o e-mail do cliente. Se fizer sentido para "
+            "localizar a compra dele, peça educadamente, uma única vez, o "
+            "e-mail usado na compra."
         )
 
     partes.append(f"Mensagem do cliente: {message}")
@@ -519,6 +540,8 @@ async def handle_message(
     intent_router_provider: str = DEFAULT_INTENT_ROUTER_PROVIDER,
     tone_monitor_enabled: bool = True,
     tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
+    resumo_conversa: str | None = None,
+    pedir_email_pos_venda: bool = False,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -808,6 +831,8 @@ async def handle_message(
             if dados_catalogo_vendas is not None
             else None
         ),
+        resumo_conversa=resumo_conversa,
+        pedir_email_pos_venda=pedir_email_pos_venda,
     )
 
     client = local_client if backend_escolhido == "local" else external_client
