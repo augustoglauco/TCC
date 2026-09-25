@@ -144,6 +144,21 @@ SUITES: dict[str, list[Cenario]] = {
             resposta_contem=["GD-15"],
             resposta_nao_contem=["GD-60", "GD-30"],
         ),
+        Cenario(
+            nome="V9 — acompanhamento sem o produto na mensagem",
+            mensagens=["Quero comprar um gerador GD-30", "E se eu levar 3 unidades?"],
+            esperado=(
+                "2ª mensagem: o produto vem do histórico (termos_historico no log). "
+                "Bloco com GD-30 e cotação de 3 unidades sem desconto (R$ 127500.00); "
+                "a resposta fala do GD-30. Antes da correção, '3 unidades' não "
+                "achava produto nenhum."
+            ),
+            resultado_vendas="ok",
+            bloco_contem=["GD-30", "Cotação para 3 unidade(s)", "127500.00"],
+            bloco_nao_contem=["desconto aplicado"],
+            resposta_contem=["GD-30"],
+            resposta_nao_contem=["GD-15", "GD-60"],
+        ),
     ],
 }
 
@@ -194,7 +209,7 @@ def _ler_sse(resposta: httpx.Response) -> tuple[str | None, str, dict | None, st
     return conversation_id, "".join(texto), done, erro
 
 
-def _novas_linhas_de_log(log_path: Path, offset: int, conversation_id: str | None) -> list[dict]:
+def _novas_linhas_de_log(log_path: Path, offset: int, conversation_id: str) -> list[dict]:
     if not log_path.exists():
         return []
     with log_path.open("r", encoding="utf-8", errors="replace") as arquivo:
@@ -208,8 +223,12 @@ def _novas_linhas_de_log(log_path: Path, offset: int, conversation_id: str | Non
             continue
         if not isinstance(registro, dict) or registro.get("message") not in _EVENTOS_DE_LOG:
             continue
-        cid = registro.get("conversation_id")
-        if conversation_id and cid and cid != conversation_id:
+        # Desde 2026-09-25 o backend grava o `conversation_id` em cada linha:
+        # só entram as da conversa do cenário (o navegador pode ficar em uso
+        # durante o teste). Se o campo vier vazio, a linha fica de fora e o
+        # cenário reprova por falta de log — sinal de que essa correção
+        # regrediu.
+        if registro.get("conversation_id") != conversation_id:
             continue
         registros.append(registro)
     return registros

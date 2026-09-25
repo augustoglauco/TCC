@@ -842,10 +842,15 @@ Cinco decisões:
    caracteres **exceto os que têm dígito**, para preservar códigos de
    produto como o "15" de "GD-15") e `buscar_candidatos` faz um `OR` de
    `ILIKE '%termo%'` contra `Produto.nome`/`Produto.categoria`, limitado a
-   `_SALES_CANDIDATOS_LIMITE = 10`. Etapa 2 (uma chamada ao LLM local): o
+   `SALES_CANDIDATOS_LIMITE = 10`. Etapa 2 (uma chamada ao LLM local): o
    LLM recebe a mensagem **e a lista de candidatos** e devolve só IDs
    dessa lista (`produto_id`, `produto_relacionado_id`, `quantidade`); IDs
-   fora da lista são descartados. Sem candidatos, a etapa 2 nem roda. Sem
+   fora da lista são descartados. Sem candidatos, a etapa 2 nem roda.
+   Os termos das mensagens anteriores da conversa também são buscados,
+   como complemento: os candidatos da mensagem atual vêm primeiro e os do
+   histórico completam a lista até o mesmo teto, sem repetir produto. Isso
+   cobre mensagens de acompanhamento que não citam o produto ("E se eu
+   levar 3 unidades?"). Sem
    embeddings nem `pg_trgm`, para manter a paridade SQLite/Postgres dos
    testes.
 2. **Chamada direta a `app.db.catalog`, não protocolo MCP via rede:**
@@ -894,7 +899,10 @@ Cinco decisões:
    compatibilidade/estoque ficaram explícitos em `vendas`, como a Seção 6
    já previa. (b) Na mensagem de acompanhamento o bloco estava certo (GD-15,
    5 unidades, 5% de desconto), mas a resposta citou o GD-60 e o preço dele,
-   tirados de um trecho do RAG. Daí o cabeçalho do item 3.
+   tirados de um trecho do RAG. Daí o cabeçalho do item 3. Além disso, o
+   produto só foi achado por coincidência: o "5" de "5 unidades" casou com
+   "GD-15". Com "3 unidades" a busca não acharia nada. Daí a busca
+   complementar no histórico (item 1).
 6. **Fora desta entrega (decisão consciente):** `consultar_frete` e
    `reservar_pedido` continuam só como tools MCP para integradores externos.
    Reserva tem efeito colateral real e exigiria um fluxo de confirmação
