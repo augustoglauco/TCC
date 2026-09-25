@@ -3,10 +3,10 @@ docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md).
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Numeric, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Numeric, String, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -167,6 +167,8 @@ class Produto(Base):
     promocao_valida_ate: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    preco_base_fornecedor: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
+    imagem_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     estoques: Mapped[list[ProdutoEstoque]] = relationship(
         back_populates="produto", cascade="all, delete-orphan"
@@ -174,6 +176,33 @@ class Produto(Base):
     descontos_volume: Mapped[list[ProdutoDescontoVolume]] = relationship(
         back_populates="produto", cascade="all, delete-orphan"
     )
+    imagens: Mapped[list["ProdutoImagem"]] = relationship(
+        back_populates="produto",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        lazy="selectin",
+    )
+
+
+class ProdutoImagem(Base):
+    """Associação de imagens físicas e vetoriais ao catálogo de produtos."""
+
+    __tablename__ = "produto_imagens"
+    __mapper_args__ = {"confirm_deleted_rows": False}
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    produto_id: Mapped[int] = mapped_column(
+        ForeignKey("produtos.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    imagem_url: Mapped[str] = mapped_column(String(500), nullable=False)
+    clip_image_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    is_principal: Mapped[bool] = mapped_column(Boolean, default=True)
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+    produto: Mapped["Produto"] = relationship(back_populates="imagens")
+
 
 
 class ProdutoEstoque(Base):

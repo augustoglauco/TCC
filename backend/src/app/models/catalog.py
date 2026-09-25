@@ -28,6 +28,16 @@ class ProdutoDescontoVolumeOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ProdutoImagemOut(BaseModel):
+    id: int
+    imagem_url: str
+    clip_image_id: str | None = None
+    is_principal: bool
+    criado_em: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class ProdutoOut(BaseModel):
     """Visão completa de um produto do catálogo, incluindo estoque por
     centro de distribuição e faixas de desconto por volume."""
@@ -42,8 +52,11 @@ class ProdutoOut(BaseModel):
     peso_kg: Decimal | None
     preco_promocional: Decimal | None
     promocao_valida_ate: datetime | None
+    preco_base_fornecedor: Decimal | None = None
+    imagem_url: str | None = None
     estoques: list[ProdutoEstoqueOut] = []
     descontos_volume: list[ProdutoDescontoVolumeOut] = []
+    imagens: list[ProdutoImagemOut] = []
 
     model_config = {"from_attributes": True}
 
@@ -58,6 +71,8 @@ class ProdutoCreate(BaseModel):
     peso_kg: Decimal | None = None
     preco_promocional: Decimal | None = None
     promocao_valida_ate: datetime | None = None
+    preco_base_fornecedor: Decimal | None = None
+    imagem_url: str | None = None
 
 
 class ProdutoUpdate(BaseModel):
@@ -73,3 +88,5 @@ class ProdutoUpdate(BaseModel):
     peso_kg: Decimal | None = None
     preco_promocional: Decimal | None = None
     promocao_valida_ate: datetime | None = None
+    preco_base_fornecedor: Decimal | None = None
+    imagem_url: str | None = None
