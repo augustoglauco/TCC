@@ -19,9 +19,18 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] Configurar `.env.example` e carregamento de configuração
       (pydantic-settings ou equivalente) — `backend/src/app/config.py`
 - [x] Configurar logging estruturado com ID de conversa (pré-requisito de R9)
-      — `backend/src/app/logging_config.py` (contextvar + formatter JSON)
+      — `backend/src/app/logging_config.py` (contextvar + formatter JSON).
+      Correção de 2026-09-25: nada preenchia o contextvar e todo log saía com
+      `conversation_id: null`; agora `POST /api/chat/messages` o define no
+      início da requisição e do stream SSE (`app.api.chat`).
 - [x] Configurar lint/format (ruff/black) e pipeline de testes (pytest) —
       `backend/pyproject.toml` ([tool.ruff], [tool.pytest.ini_options])
+- [x] Roteiro de teste local para o loop "agente implementa na nuvem,
+      desenvolvedor valida na máquina com GPU" —
+      `./testar.sh` na raiz atualiza o código, reinicia o backend, roda
+      `backend/scripts/teste_local.py` e dá push do relatório em
+      `testes_locais/` (primeira suíte: `vendas`, R12). Ver
+      `docs/TESTE_LOCAL.md`.
 
 ## Fase 1 — Modelo Local e Roteador Básico (R1, R3)
 
@@ -285,8 +294,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `app.router.sales_catalog` (`SalesCatalogClient`, two-stage resolution:
       candidates por SQL + LLM choice), desambiguação por LLM necessária por
       catálogo ~1000 produtos (spec §2), chamada direta a `app.db.catalog` no mesmo
-      processo (spec §4). Injeção de dependência wired em `main.py` + `chat.py` +
-      `test_chat_api.py`. Ver `docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
+      processo (spec §4). Injeção de dependência em `main.py` + `chat.py`
+      (+ `test_chat_api.py`/`test_main_app.py`). Ver decisão registrada em
+      `docs/ARCHITECTURE.md` §5 e
+      `docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
 - [ ] Garantir e documentar que autenticação por parceiro e exposição
       pública **não** fazem parte do MVP
       (`# MVP: uso interno, sem autenticação por parceiro`)

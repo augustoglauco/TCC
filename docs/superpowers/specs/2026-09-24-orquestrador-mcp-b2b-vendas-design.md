@@ -64,6 +64,7 @@ class DadosCatalogoVendas(BaseModel):
     produto_nome: str
     estoque_total: int
     cotacao: tuple[Decimal, Decimal, Decimal] | None = None  # (unitário, % desconto, subtotal), só se quantidade veio
+    quantidade: int | None = None  # repassada para a linha "Cotação para N unidade(s)"
     produto_relacionado_nome: str | None = None
     compativel: bool | None = None  # só se produto_relacionado_id veio
 
@@ -73,7 +74,7 @@ _STOPWORDS = frozenset({"de", "da", "do", "das", "dos", "para", "com", "uma", "u
                          "queria", "quero", "gostaria", "ola", "olá", "por", "favor"})
 
 
-def _extrair_termos_busca(message: str) -> list[str]:
+def extrair_termos_busca(message: str) -> list[str]:
     """Tokeniza a mensagem em palavras significativas para a busca de
     candidatos (etapa 1, ver §2) — minúsculas, sem pontuação, descarta
     palavras com 2 caracteres ou menos e a stopword list acima. Heurística
@@ -188,7 +189,7 @@ busca RAG já roda (`orchestrator.py:582-609`):
 2. A consulta de vendas em si, dentro de um `try/except Exception` amplo
    (loga e devolve `None`, nunca propaga — mesmo espírito de `analyze_tone`
    nunca derrubar o turno):
-   a. `termos = _extrair_termos_busca(message)`; se vazio, para aqui (sem
+   a. `termos = extrair_termos_busca(message)`; se vazio, para aqui (sem
       bloco extra).
    b. `candidatos = await sales_catalog_client.buscar_candidatos(termos)`;
       se vazio, para aqui.
@@ -206,7 +207,7 @@ busca RAG já roda (`orchestrator.py:582-609`):
    ```
    Dados do catálogo interno (produto identificado: {produto_nome}):
    - Estoque disponível: {estoque_total} unidade(s)
-   - Cotação para {quantidade} unidade(s): R$ {subtotal} ({percentual}% de desconto aplicado)  # só se cotacao is not None
+   - Cotação para {quantidade} unidade(s): R$ {subtotal} ({percentual}% de desconto aplicado sobre R$ {unitário}/unidade)  # só se cotacao is not None; parênteses só se percentual > 0
    - Compatível com {produto_relacionado_nome}: sim/não  # só se compativel is not None
    ```
 
@@ -229,7 +230,8 @@ Backend (pytest, mesmo padrão de mock de LLM/DB já usado no resto do
 projeto):
 
 - `sales_catalog.py`:
-  - `_extrair_termos_busca`: filtra stopwords/palavras curtas, minúsculas.
+  - `extrair_termos_busca`: filtra stopwords/palavras curtas, minúsculas,
+    preserva tokens curtos com dígito (código de produto).
   - `SalesCatalogClient.buscar_candidatos`: encontra por nome/categoria,
     respeita o limite, catálogo vazio devolve lista vazia.
   - `SalesCatalogClient.consultar_detalhes`: com/sem quantidade (cotação
@@ -257,7 +259,7 @@ projeto):
 ## 8. Mudanças em `.env.example`
 
 Nenhuma — sem configuração nova. O limite de candidatos (10) fica como
-constante no módulo (`_SALES_CANDIDATOS_LIMITE`), mesmo padrão de
+constante no módulo (`SALES_CANDIDATOS_LIMITE`), mesmo padrão de
 `DEFAULT_MANUAIS_TOP_K` em `app.mcp_server.b2b`.
 
 ## 9. Não-objetivos explícitos (fora desta entrega)
@@ -283,3 +285,21 @@ constante no módulo (`_SALES_CANDIDATOS_LIMITE`), mesmo padrão de
 - Sem ranking de relevância na busca de candidatos — a etapa 1 devolve até
   10 candidatos sem ordenar por qualidade de match; a desambiguação real é
   a etapa 2 (LLM).
+
+## 10. Notas pós-implementação (2026-09-25)
+
+Ajustes feitos na revisão da entrega. A decisão consolidada está em
+`docs/ARCHITECTURE.md` §5:
+
+- A função pública ficou `extrair_termos_busca` (sem `_`), porque o
+  orquestrador a importa. Tokens de até 2 caracteres que contêm dígito são
+  preservados (ex.: "15" em "GD-15"). "cotacao", "estoque", "preco" e
+  "disponivel" entraram na stopword list, porque aparecem em quase toda
+  mensagem de Vendas e não ajudam a achar o produto.
+- O bloco em volta do `TaskGroup` (§5, passo 1) usa `except* Exception`
+  (não `except* RAGConnectionError`) e relança a exceção original. O log
+  `rag_indisponivel` inclui `tipo`/`erro`.
+- `rag_retrieval_ms` passa a medir o bloco paralelo inteiro (RAG + consulta
+  de vendas) em mensagens de Vendas com `sales_catalog_client` injetado.
+  Isso está documentado no campo (`app.models.chat.ChatDoneEventData`) e em
+  `docs/FRONTEND.md` §4.

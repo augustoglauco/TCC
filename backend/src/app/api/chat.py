@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.background_tasks import spawn_background_task
+from app.logging_config import conversation_id_ctx
 from app.mcp_client.google_calendar import CalendarClient
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
 from app.models.runtime_settings import (
@@ -184,6 +185,10 @@ async def send_message(
     tone_monitor_provider: str = Depends(get_tone_monitor_provider),
 ) -> StreamingResponse:
     conversation_id = payload.conversation_id or str(uuid4())
+    # Todo log emitido a partir daqui (STT, OCR, roteador, tasks filhas do
+    # TaskGroup, que copiam o contexto) sai com este `conversation_id` — o
+    # `ConversationIdFilter` de `app.logging_config` lê este contextvar.
+    conversation_id_ctx.set(conversation_id)
 
     # MVP: quando `payload.audio` vem preenchido, o texto transcrito
     # substitui `payload.message` como mensagem efetiva enviada ao
@@ -282,6 +287,10 @@ async def send_message(
     recent_messages = list(_conversation_history.get(conversation_id, []))
 
     async def event_stream():
+        # De novo aqui: o Starlette itera o corpo do `StreamingResponse` numa
+        # task própria, e definir dentro do gerador não depende de como esse
+        # contexto é copiado.
+        conversation_id_ctx.set(conversation_id)
         yield _sse("conversation", {"conversation_id": conversation_id})
         if transcribed_message is not None:
             yield _sse("transcription", {"transcribed_message": transcribed_message})

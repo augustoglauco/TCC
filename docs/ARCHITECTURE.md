@@ -609,7 +609,10 @@ tipadas `choice`/`score`/`noul`) e resposta tipada
 (`answers.<pergunta>.choice`/`.confidence`), sem geração de texto livre nem
 parsing de JSON solto a partir de um prompt. O classificador usa uma única
 pergunta `choice` cobrindo os 5 domínios do sistema (`vendas`, `suporte`,
-`atendimento`, `agendamento`, `fora_escopo`). Qualquer falha (timeout, erro
+`atendimento`, `agendamento`, `fora_escopo`), com a descrição de cada um em
+`app.router.classifier.DOMAIN_CRITERIA`. O classificador LLM local
+(`heuristica_llm`) usa as mesmas descrições no prompt, para os dois
+provedores não divergirem sobre o que cada domínio cobre. Qualquer falha (timeout, erro
 HTTP, chave ausente, payload inesperado) degrada imediatamente para a
 heurística local de palavras-chave, sem interromper o atendimento — o
 padrão do roteador continua sendo `heuristica_llm`, preservando
@@ -820,6 +823,105 @@ Migração `0009` cria as tabelas novas (`produto_compatibilidades`,
 `pedidos`, `pedido_itens`) e semeia 2-3 pares de compatibilidade fictícios
 entre os 5 produtos já existentes.
 
+**Decisão registrada (Fase 5, Orquestrador como integrador do MCP B2B em
+Vendas, R12, 2026-09-24):** o quarto item da Fase 5 fecha a frase final da
+Seção 6 ("o próprio Roteador/Orquestrador deve ser tratado como 'mais um
+integrador' desse MCP para intenções de Vendas") no novo módulo
+`app.router.sales_catalog` (`SalesCatalogClient` + `extract_sales_slots`),
+injetado opcionalmente em `handle_message` (mesmo padrão de
+`calendar_client`/`scheduling_config`, construído em `app.main` e guardado
+em `app.state.sales_catalog_client`). Design completo em
+`docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
+Cinco decisões:
+
+1. **Resolução do produto em duas etapas, não casamento por nome:** com o
+   catálogo previsto para ~1000 produtos, termos genéricos ("gerador")
+   casam dezenas de itens, então um "match único por `ILIKE`" quase nunca
+   dispara. Etapa 1 (sem LLM): `extrair_termos_busca` tokeniza a mensagem
+   (minúsculas, sem acentos, sem stopwords, descarta tokens de até 2
+   caracteres **exceto os que têm dígito**, para preservar códigos de
+   produto como o "15" de "GD-15") e `buscar_candidatos` faz um `OR` de
+   `ILIKE '%termo%'` contra `Produto.nome`/`Produto.categoria`, limitado a
+   `SALES_CANDIDATOS_LIMITE = 10`. Etapa 2 (uma chamada ao LLM local): o
+   LLM recebe a mensagem **e a lista de candidatos** e devolve só IDs
+   dessa lista (`produto_id`, `produto_relacionado_id`, `quantidade`); IDs
+   fora da lista são descartados. Sem candidatos, a etapa 2 nem roda.
+   Os termos das mensagens anteriores da conversa também são buscados,
+   como complemento: os candidatos da mensagem atual vêm primeiro e os do
+   histórico completam a lista até o mesmo teto, sem repetir produto. Isso
+   cobre mensagens de acompanhamento que não citam o produto ("E se eu
+   levar 3 unidades?"). Sem
+   embeddings nem `pg_trgm`, para manter a paridade SQLite/Postgres dos
+   testes.
+2. **Chamada direta a `app.db.catalog`, não protocolo MCP via rede:**
+   `SalesCatalogClient` chama no mesmo processo as mesmas funções que
+   `app.mcp_server.b2b` usa por baixo (`obter_produto`, `listar_estoque`,
+   `calcular_item_cotacao`, `sao_compativeis`). "Mais um integrador" é lido
+   como simetria arquitetural (mesmo backend único, mesmas regras de
+   negócio), não como obrigação de usar o protocolo MCP dentro do próprio
+   backend. Assim o chat não passa a depender do processo `mcp-b2b-server`
+   (porta 8100) estar de pé. É o mesmo padrão do `app.rag.db_connector`.
+3. **Roda em paralelo com o RAG e complementa, não substitui:** só para
+   `domain == "vendas"` com o cliente injetado. `_consultar_vendas` roda
+   no mesmo `asyncio.TaskGroup` da busca RAG. O bloco "Dados do catálogo
+   interno" (estoque total somado entre CDs; cotação para N unidades, com
+   o percentual de desconto só quando for maior que zero; compatibilidade
+   com o segundo produto) é anteposto ao contexto RAG em `_build_prompt`,
+   com um cabeçalho que manda o LLM usar exatamente aqueles nomes e valores
+   e preferi-los a trechos do RAG que digam outra coisa. O prompt final não
+   leva o histórico da conversa, então numa mensagem de acompanhamento
+   ("E se eu levar 5 unidades?") o bloco é a única fonte do produto em
+   questão.
+   Manuais, garantia e texto não estruturado continuam vindo do RAG. A
+   decisão local x externo continua usando só o sinal RAG vazio x não
+   vazio. Efeito colateral aceito: `rag_retrieval_ms` passa a medir o
+   bloco paralelo inteiro (RAG + consulta de vendas) em mensagens de
+   Vendas com o cliente injetado (ver `docs/FRONTEND.md` §4).
+4. **Falha isolada:** `_consultar_vendas` nunca levanta. Qualquer erro
+   (banco, LLM) gera o log `vendas_catalogo_consulta_falhou` e devolve
+   `None`, e o turno segue só com RAG, como antes. Cada consulta também
+   emite uma linha `vendas_catalogo_consulta` (nível INFO) dizendo em qual
+   etapa parou (`resultado`: `sem_termos`, `sem_candidatos`,
+   `llm_sem_produto`, `produto_inexistente` ou `ok`) e o que cada etapa viu
+   (termos, candidatos, slots do LLM, bloco injetado). O prompt final não
+   sai na resposta SSE, então é por esse log que o teste manual confirma o
+   que o LLM recebeu (`docs/TESTE_LOCAL.md`). O `TaskGroup` usa
+   `except* Exception` (não só `RAGConnectionError`) e relança a exceção
+   original, sem `ExceptionGroup`. Assim quem chama `handle_message`
+   continua recebendo `RAGConnectionError` como antes. O log
+   `rag_indisponivel` registra `tipo`/`erro` para que uma exceção
+   inesperada não fique muda.
+5. **Ajustes do 1º teste local (2026-09-25, `docs/TESTE_LOCAL.md`):**
+   6 de 7 cenários passaram. Dois problemas corrigidos: (a) "o QTA-100 é
+   compatível com o GD-30?" foi classificado como `suporte` e o catálogo
+   não foi consultado. O prompt do classificador LLM local só listava os
+   nomes dos domínios, então passou a trazer `DOMAIN_CRITERIA`, e
+   compatibilidade/estoque ficaram explícitos em `vendas`, como a Seção 6
+   já previa. (b) Na mensagem de acompanhamento o bloco estava certo (GD-15,
+   5 unidades, 5% de desconto), mas a resposta citou o GD-60 e o preço dele,
+   tirados de um trecho do RAG. Daí o cabeçalho do item 3. Além disso, o
+   produto só foi achado por coincidência: o "5" de "5 unidades" casou com
+   "GD-15". Com "3 unidades" a busca não acharia nada. Daí a busca
+   complementar no histórico (item 1).
+6. **Fora desta entrega (decisão consciente):** `consultar_frete` e
+   `reservar_pedido` continuam só como tools MCP para integradores externos.
+   Reserva tem efeito colateral real e exigiria um fluxo de confirmação
+   explícita como o do agendamento. Também ficam de fora: cards
+   estruturados no frontend (Fase 8), toggle em runtime settings, busca
+   semântica e ranking de relevância na busca de candidatos.
+
+`# MVP: busca de candidatos por tokenização simples + ILIKE, sem ranking
+nem busca semântica; SalesCatalogClient chama app.db.catalog diretamente,
+sem conexão MCP real; quantidade extraída pelo LLM usada sem faixa de
+sanidade (valor não numérico descarta a extração inteira; <=0 só omite a
+cotação; valores muito grandes não são validados)`. Testado em
+`tests/test_sales_catalog.py` (tokenização, busca, detalhes, extração com
+LLM fake), `tests/test_orchestrator.py` (bloco no prompt, formatação da
+cotação com e sem desconto, ausência do cliente, mensagem sem produto,
+falha isolada, outros domínios não chamam o cliente, log de diagnóstico
+`vendas_catalogo_consulta`, log de
+`rag_indisponivel`) e `tests/test_main_app.py` (wiring em `app.main`).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
@@ -831,7 +933,7 @@ entre os 5 produtos já existentes.
 | RAG sobre imagens / tratamento de imagem (obrigatório) | Busca multimodal via embeddings (ex.: CLIP) em catálogo ampliado, com reranking básico + OCR para imagens dirigidas | Catálogo completo, embeddings mais robustos, busca externa refinada |
 | Domínios (Vendas/Suporte/Atendimento) | Separação lógica de fluxo e prompts por domínio, com playbooks iniciais para Suporte Técnico e Atendimento ao Usuário. Playbook de Vendas inclui a oferta proativa de agendamento de visita quando a conversa indica intenção de compra e o portfólio de produtos é compatível (o roteador só reclassifica como `agendamento` na resposta seguinte do cliente, usando o contexto curto de conversa citado na linha "Roteador/Orquestrador") | Playbooks completos por domínio, integração com sistema de ticketing |
 | Agendamento de visita (MCP consumido) | Nova intenção reconhecida pelo roteador; coleta data/hora e dados básicos; valida expediente e conflito de agenda (na mesma agenda configurada) local/via MCP antes de sequer pedir confirmação; exige confirmação explícita do visitante antes de criar o evento; chama o MCP do Google Calendar e envia confirmação automática por e-mail | Reagendamento/cancelamento, checagem de disponibilidade em múltiplas agendas, confirmação também por SMS |
-| MCP de integração B2B (MCP provido) | Servidor MCP de uso interno, reaproveitando a base do catálogo/estoque/preços do RAG; recursos de leitura + as quatro ferramentas já implementadas; sem autenticação por parceiro nem exposição pública | Exposição a integradores externos reais, autenticação por parceiro (API key/OAuth), auditoria de ações transacionais e limites de uso |
+| MCP de integração B2B (MCP provido) | Servidor MCP de uso interno, reaproveitando a base do catálogo/estoque/preços do RAG; recursos de leitura + as quatro ferramentas já implementadas; Roteador/Orquestrador consome o mesmo backend em Vendas (estoque, cotação, compatibilidade), por chamada direta no mesmo processo; sem autenticação por parceiro nem exposição pública | Exposição a integradores externos reais, autenticação por parceiro (API key/OAuth), auditoria de ações transacionais e limites de uso |
 | Monitor de tom | Classificador de sentimento/urgência (heurística + LLM leve) com alerta, transferência simulada e log dos casos escalonados | Integração real com fila de atendentes humanos, escalonamento por SLA |
 | Memória da conversa | Persistência por ID + resumo automático periódico (não só ao final) | Perfil de cliente enriquecido a partir do histórico de conversas |
 | Classificação do usuário | Heurística inicial (histórico de compras/perguntas) — Cliente/Lead/Esporádico, com revisão dos critérios a partir dos primeiros dados coletados | Modelo preditivo, score de propensão, enriquecimento de dados externos |
@@ -863,7 +965,9 @@ do site. Implemente **um único backend** desses dados e exponha duas
 frentes sobre ele — RAG/chat consultando internamente, servidor MCP expondo a
 mesma base a integradores externos — em vez de duplicar lógica. O próprio
 Roteador/Orquestrador deve ser tratado como "mais um integrador" desse MCP
-para intenções de Vendas (cotação, compatibilidade, estoque).
+para intenções de Vendas (cotação, compatibilidade, estoque). No MVP isso é
+feito por `app.router.sales_catalog`, que chama o backend único diretamente,
+no mesmo processo (ver decisão de 2026-09-24 na Seção 5).
 
 **Governança e segurança (relevante para a evolução futura, não para o
 MVP):** autenticação por parceiro (API key/OAuth), permissões granulares por

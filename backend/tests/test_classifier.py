@@ -1,15 +1,17 @@
 import pytest
 from pydantic import ValidationError
 
-from app.router.classifier import ClassificationResult, classify
+from app.router.classifier import DOMAIN_CRITERIA, ClassificationResult, classify
 from app.router.llm_client import LLMResponse
 
 
 class _FakeLLMClient:
     def __init__(self, text: str) -> None:
         self._text = text
+        self.last_prompt: str | None = None
 
     async def generate(self, prompt: str) -> LLMResponse:
+        self.last_prompt = prompt
         return LLMResponse(text=self._text, total_duration_ms=10.0)
 
 
@@ -73,6 +75,22 @@ async def test_classify_uses_llm_when_keywords_inconclusive_and_strategy_llm():
     )
 
     assert result == ClassificationResult(domain="suporte", complexity="alta", confidence=0.9)
+
+
+async def test_prompt_do_classificador_llm_descreve_os_dominios():
+    # Sem a descrição, o LLM local mandava "o QTA-100 é compatível com o
+    # GD-30?" para suporte e o catálogo de Vendas não era consultado.
+    llm_client = _FakeLLMClient('{"domain": "vendas", "complexity": "baixa", "confidence": 0.9}')
+
+    await classify(
+        "O quadro QTA-100 é compatível com o gerador GD-30?",
+        strategy="llm",
+        llm_client=llm_client,
+    )
+
+    assert f"- vendas: {DOMAIN_CRITERIA['vendas']}" in llm_client.last_prompt
+    assert "compatibilidade entre produtos" in llm_client.last_prompt
+    assert f"- suporte: {DOMAIN_CRITERIA['suporte']}" in llm_client.last_prompt
 
 
 async def test_classify_falls_back_to_heuristic_when_llm_returns_invalid_json():

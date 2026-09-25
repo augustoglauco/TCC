@@ -1,0 +1,75 @@
+# Teste local — o agente escreve o código, o desenvolvedor testa
+
+O Claude Code na nuvem não tem GPU, Ollama, Qdrant nem Postgres com os dados
+reais. Além disso, a rede do container bloqueia o download de modelos do
+Hugging Face, então ~17 testes do Qdrant e do MCP B2B falham lá mesmo com o
+código certo. Por isso a validação de verdade roda **na máquina do
+desenvolvedor**, e o resultado volta para o agente num arquivo só.
+
+## O loop
+
+1. **Agente:** implementa no branch de trabalho, deixa o teste certo
+   configurado (`SUITE_ATUAL` em `backend/scripts/teste_local.py`), faz push
+   e pede "roda o teste".
+2. **Você:** na raiz do repositório, roda:
+
+   ```bash
+   ./testar.sh
+   ```
+
+   Ele faz tudo sozinho:
+   1. `git pull` (para se houver alteração local sem commit);
+   2. `docker compose up -d`, `uv sync` e `alembic upgrade head`;
+   3. confere se o Ollama responde;
+   4. reinicia o backend na porta 8000, logando em `/tmp/tcc-backend.log`;
+   5. roda o roteiro (`ruff` + `pytest` + cenários de chat);
+   6. faz commit e push do relatório em `testes_locais/`.
+
+   Pode usar o chat no navegador enquanto ele roda: cada linha de log do
+   backend carrega o `conversation_id`, e o roteiro só pega as linhas das
+   conversas dele.
+3. **Você:** avisa o agente: "rodei o teste".
+4. **Agente:** lê o relatório no branch, corrige o que falhou e volta ao
+   passo 1.
+
+**Primeira vez:** o `testar.sh` testa o branch em que você está. Antes da
+primeira execução, entre no branch de trabalho do agente
+(`git fetch origin && git checkout <branch>`).
+
+Opções, repassadas ao roteiro: `./testar.sh --sem-pytest` pula ruff +
+pytest; `./testar.sh --so V3` roda só um cenário; `./testar.sh --suite <nome>`
+roda outra suíte.
+
+## O que o relatório contém
+
+- **Checks automáticos:** resultado de `ruff check` e do `pytest` completo,
+  com a lista de testes que falharam.
+- **Cenários de chat:** para cada mensagem enviada a
+  `POST /api/chat/messages`:
+  - domínio, backend, motivo de escalonamento, modelo e `rag_retrieval_ms`
+    (evento SSE `done`);
+  - o texto completo da resposta;
+  - as linhas de log do backend relevantes para a suíte.
+- **Veredito automático:** só onde dá para decidir pelo log (ex.: em qual
+  etapa a consulta de vendas parou e o que entrou no bloco do prompt).
+  Cenários marcados como exploratórios têm veredito `—` e servem para
+  observar o comportamento.
+
+## Suítes disponíveis
+
+| Suíte | O que cobre | Logs usados |
+| --- | --- | --- |
+| `vendas` | Integração do Orquestrador com o catálogo (R12, Fase 5): estoque, cotação com e sem desconto por volume, compatibilidade sim/não, produto inexistente, domínio que não é vendas e duas conversas de acompanhamento em que a 2ª mensagem não cita o produto (V8, V9) | `vendas_catalogo_consulta` (campo `resultado`: `sem_termos`, `sem_candidatos`, `llm_sem_produto`, `produto_inexistente` ou `ok`, mais `termos`, `termos_historico`, `candidatos`, `slots` e o `bloco` injetado no prompt), `vendas_catalogo_consulta_falhou`, `rag_indisponivel` |
+
+Os cenários de `vendas` assumem os dados semeados pelas migrações
+`0003`/`0008`/`0009`: 5 produtos, 17 unidades de cada, desconto de 5% a
+partir de 5 unidades e de 10% a partir de 10. Se você alterou o catálogo
+local, os vereditos que conferem números podem falhar sem que o código esteja
+errado. Nesse caso, anote nas observações.
+
+Novas suítes entram no dicionário `SUITES` de `backend/scripts/teste_local.py`
+e numa linha desta tabela, na mesma tarefa que implementa a funcionalidade. O
+agente aponta `SUITE_ATUAL` para a suíte que o próximo `./testar.sh` deve rodar.
+
+`# MVP: roteiro de apoio ao teste manual, não avaliação experimental — a
+avaliação do TCC continua em eval/ (docs/EVALUATION.md).`

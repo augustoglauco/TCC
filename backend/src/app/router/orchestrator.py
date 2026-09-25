@@ -19,6 +19,7 @@ from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
 from app.router.rag_client import Document, RAGClient
 from app.router.sales_catalog import (
+    SALES_CANDIDATOS_LIMITE,
     DadosCatalogoVendas,
     SalesCatalogClient,
     extract_sales_slots,
@@ -127,19 +128,50 @@ async def _consultar_vendas(
     Nunca levanta exceção — qualquer falha (erro de banco, resposta do LLM
     não-JSON já tratada dentro de `extract_sales_slots`) loga e devolve
     `None`, mesmo espírito de `analyze_tone` nunca derrubar o turno."""
+    diagnostico: dict = {"event": "vendas_catalogo_consulta"}
     try:
         termos = extrair_termos_busca(message)
-        if not termos:
-            return None
-        candidatos = await sales_catalog_client.buscar_candidatos(termos)
+        # Termos das mensagens anteriores entram só como complemento: numa
+        # mensagem de acompanhamento ("E se eu levar 3 unidades?") o produto
+        # foi citado antes, e sem isso a busca não achava nada — ou achava o
+        # produto errado por coincidência (o "5" de "5 unidades" casando com
+        # "GD-15"; teste local de 2026-09-25, cenário V8). O LLM da etapa 2 já
+        # recebe o histórico e escolhe entre os candidatos das duas buscas.
+        termos_historico = [
+            termo
+            for termo in extrair_termos_busca(" ".join(recent_messages))
+            if termo not in termos
+        ]
+        diagnostico["termos"] = termos
+        diagnostico["termos_historico"] = termos_historico
+        if not termos and not termos_historico:
+            return _logar_consulta_vendas(diagnostico, "sem_termos")
+        candidatos = await sales_catalog_client.buscar_candidatos(termos) if termos else []
+        if termos_historico and len(candidatos) < SALES_CANDIDATOS_LIMITE:
+            # Candidatos da mensagem atual primeiro; os do histórico
+            # completam a lista até o mesmo teto, sem repetir produto.
+            ids_atuais = {candidato.id for candidato in candidatos}
+            candidatos += [
+                candidato
+                for candidato in await sales_catalog_client.buscar_candidatos(termos_historico)
+                if candidato.id not in ids_atuais
+            ]
+            candidatos = candidatos[:SALES_CANDIDATOS_LIMITE]
+        diagnostico["candidatos"] = [candidato.nome for candidato in candidatos]
         if not candidatos:
-            return None
+            return _logar_consulta_vendas(diagnostico, "sem_candidatos")
         slots = await extract_sales_slots(message, recent_messages, candidatos, local_client)
+        diagnostico["slots"] = slots.model_dump()
         if slots.produto_id is None:
-            return None
-        return await sales_catalog_client.consultar_detalhes(
+            return _logar_consulta_vendas(diagnostico, "llm_sem_produto")
+        dados = await sales_catalog_client.consultar_detalhes(
             slots.produto_id, slots.produto_relacionado_id, slots.quantidade
         )
+        if dados is None:
+            return _logar_consulta_vendas(diagnostico, "produto_inexistente")
+        diagnostico["bloco"] = _formatar_dados_catalogo_vendas(dados)
+        _logar_consulta_vendas(diagnostico, "ok")
+        return dados
     except Exception as exc:
         logger.warning(
             "vendas_catalogo_consulta_falhou",
@@ -148,8 +180,32 @@ async def _consultar_vendas(
         return None
 
 
+def _logar_consulta_vendas(diagnostico: dict, resultado: str) -> None:
+    """Uma linha de log por consulta de vendas, dizendo em qual etapa ela
+    parou (`resultado`) e o que cada etapa viu (termos, candidatos, slots do
+    LLM, bloco injetado no prompt) — o prompt final não sai na resposta
+    SSE, então é por aqui que o teste manual confirma o que o LLM recebeu.
+    Devolve `None` para servir de `return` nas saídas antecipadas."""
+    logger.info(
+        "vendas_catalogo_consulta",
+        extra={"router": {**diagnostico, "resultado": resultado}},
+    )
+
+
 def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
-    linhas = [f"Dados do catálogo interno (produto identificado: {dados.produto_nome}):"]
+    # O cabeçalho diz ao LLM que estes dados valem mais que os trechos do RAG:
+    # sem ele, no teste local de 2026-09-25 (cenário V8, "E se eu levar 5
+    # unidades?" depois de perguntar do GD-15) o modelo respondeu com preço
+    # e nome do GD-60 tirados de um trecho do RAG, ignorando o bloco. O prompt
+    # final não leva o histórico da conversa, então o bloco é a única fonte do
+    # produto de que se está falando.
+    linhas = [
+        "Dados oficiais do catálogo interno, já calculados para esta mensagem. "
+        "O cliente está falando deste produto: use exatamente estes nomes, "
+        "valores e quantidades, e prefira-os a qualquer informação recuperada "
+        "abaixo que seja diferente.",
+        f"Dados do catálogo interno (produto identificado: {dados.produto_nome}):",
+    ]
     linhas.append(f"- Estoque disponível: {dados.estoque_total} unidade(s)")
     if dados.cotacao is not None:
         preco_unitario, percentual, subtotal = dados.cotacao
