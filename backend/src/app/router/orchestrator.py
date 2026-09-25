@@ -17,6 +17,12 @@ from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
 from app.router.rag_client import Document, RAGClient, RAGConnectionError
+from app.router.sales_catalog import (
+    DadosCatalogoVendas,
+    SalesCatalogClient,
+    extract_sales_slots,
+    extrair_termos_busca,
+)
 from app.router.scheduling import (
     DURACAO_VISITA,
     MSG_ERRO_MCP,
@@ -54,9 +60,15 @@ logger = logging.getLogger(__name__)
 #   (risco de PII/volume em produção) a revisitar antes de qualquer uso real.
 
 
-def _build_prompt(message: str, documentos: list[Document], domain: Domain) -> str:
+def _build_prompt(
+    message: str,
+    documentos: list[Document],
+    domain: Domain,
+    dados_catalogo: str | None = None,
+) -> str:
     """Monta o prompt final: prompt de sistema do domínio (playbook) +
-    contexto de RAG (quando houver) + mensagem do cliente.
+    dados do catálogo de Vendas (quando houver, R12 Fase 5) + contexto de
+    RAG (quando houver) + mensagem do cliente.
 
     # MVP: concatenação simples dos `content` dos documentos, sem
     # sumarização/priorização por score além da ordem já devolvida pelo RAG,
@@ -68,6 +80,9 @@ def _build_prompt(message: str, documentos: list[Document], domain: Domain) -> s
     partes: list[str] = []
     if system_prompt is not None:
         partes.append(system_prompt)
+
+    if dados_catalogo is not None:
+        partes.append(dados_catalogo)
 
     if documentos:
         contexto = "\n\n".join(f"- {documento.content}" for documento in documentos)
@@ -81,6 +96,70 @@ def _build_prompt(message: str, documentos: list[Document], domain: Domain) -> s
 
     partes.append(f"Mensagem do cliente: {message}")
     return "\n\n".join(partes)
+
+
+async def _buscar_documentos_rag(
+    message: str, recent_messages: list[str], domain: str, rag_client: RAGClient
+) -> list[Document]:
+    documentos = await rag_client.search(message, domain)
+    if not documentos and recent_messages:
+        # MVP: mensagem de acompanhamento sem match no RAG (ex.: "quais
+        # outras opções?" logo após perguntar sobre câmeras) — tenta de
+        # novo com o histórico recente concatenado à mensagem atual. Só
+        # dispara quando a busca direta veio vazia, para não diluir o
+        # embedding com contexto desnecessário no caso comum de pergunta
+        # autocontida (ver docs/ARCHITECTURE.md §5).
+        texto_busca = "\n".join([*recent_messages, message])
+        documentos = await rag_client.search(texto_busca, domain)
+    return documentos
+
+
+async def _consultar_vendas(
+    message: str,
+    recent_messages: list[str],
+    sales_catalog_client: SalesCatalogClient,
+    local_client: LLMClient,
+) -> DadosCatalogoVendas | None:
+    """Busca de candidatos + desambiguação por LLM + detalhes do catálogo
+    para uma mensagem de Vendas (spec
+    docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md).
+    Nunca levanta exceção — qualquer falha (erro de banco, resposta do LLM
+    não-JSON já tratada dentro de `extract_sales_slots`) loga e devolve
+    `None`, mesmo espírito de `analyze_tone` nunca derrubar o turno."""
+    try:
+        termos = extrair_termos_busca(message)
+        if not termos:
+            return None
+        candidatos = await sales_catalog_client.buscar_candidatos(termos)
+        if not candidatos:
+            return None
+        slots = await extract_sales_slots(message, recent_messages, candidatos, local_client)
+        if slots.produto_id is None:
+            return None
+        return await sales_catalog_client.consultar_detalhes(
+            slots.produto_id, slots.produto_relacionado_id, slots.quantidade
+        )
+    except Exception as exc:
+        logger.warning(
+            "vendas_catalogo_consulta_falhou",
+            extra={"router": {"event": "vendas_catalogo_consulta_falhou", "erro": str(exc)}},
+        )
+        return None
+
+
+def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
+    linhas = [f"Dados do catálogo interno (produto identificado: {dados.produto_nome}):"]
+    linhas.append(f"- Estoque disponível: {dados.estoque_total} unidade(s)")
+    if dados.cotacao is not None:
+        preco_unitario, percentual, subtotal = dados.cotacao
+        linhas.append(
+            f"- Cotação: R$ {subtotal} "
+            f"({percentual}% de desconto aplicado sobre R$ {preco_unitario}/unidade)"
+        )
+    if dados.compativel is not None:
+        compat_texto = "sim" if dados.compativel else "não"
+        linhas.append(f"- Compatível com {dados.produto_relacionado_nome}: {compat_texto}")
+    return "\n".join(linhas)
 
 
 class RouterDecision(BaseModel):
@@ -377,6 +456,7 @@ async def handle_message(
     conversation_id: str = "",
     calendar_client: CalendarClient | None = None,
     scheduling_config: SchedulingConfig | None = None,
+    sales_catalog_client: SalesCatalogClient | None = None,
     intent_router_provider: str = DEFAULT_INTENT_ROUTER_PROVIDER,
     tone_monitor_enabled: bool = True,
     tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
@@ -571,6 +651,7 @@ async def handle_message(
     backend_escolhido = "local"
     motivo = "nenhum"
     documentos: list[Document] = []
+    dados_catalogo_vendas: DadosCatalogoVendas | None = None
     rag_retrieval_ms: float | None = None
     rag_chunks_count: int | None = None
     rag_avg_score: float | None = None
@@ -582,23 +663,41 @@ async def handle_message(
     else:
         t_rag_start = time.perf_counter()
         try:
-            documentos = await rag_client.search(message, classification.domain)
-            if not documentos and recent_messages:
-                # MVP: mensagem de acompanhamento sem match no RAG (ex.:
-                # "quais outras opções?" logo após perguntar sobre câmeras)
-                # — tenta de novo com o histórico recente concatenado à
-                # mensagem atual. Só dispara quando a busca direta veio
-                # vazia, para não diluir o embedding com contexto
-                # desnecessário no caso comum de pergunta autocontida (ver
-                # docs/ARCHITECTURE.md §5).
-                texto_busca = "\n".join([*recent_messages, message])
-                documentos = await rag_client.search(texto_busca, classification.domain)
-        except RAGConnectionError:
+            async with asyncio.TaskGroup() as tg:
+                rag_task = tg.create_task(
+                    _buscar_documentos_rag(
+                        message, recent_messages, classification.domain, rag_client
+                    )
+                )
+                vendas_task: asyncio.Task[DadosCatalogoVendas | None] | None = None
+                if classification.domain == "vendas" and sales_catalog_client is not None:
+                    # Busca RAG e consulta de vendas são independentes — rodam
+                    # em paralelo (mesmo idioma já usado para tone/classify,
+                    # ver docs/ARCHITECTURE.md §5, correção de 2026-09-24).
+                    # `_consultar_vendas` nunca levanta (ver seu docstring),
+                    # então só `rag_task` pode disparar o `except*` abaixo.
+                    vendas_task = tg.create_task(
+                        _consultar_vendas(
+                            message, recent_messages, sales_catalog_client, local_client
+                        )
+                    )
+        except* RAGConnectionError as eg:
             logger.error(
                 "rag_indisponivel",
                 extra={"router": {"event": "rag_indisponivel", "domain": classification.domain}},
             )
-            raise
+            # `raise eg.exceptions[0]` (não um `raise` nu) para propagar a
+            # RAGConnectionError original, não um ExceptionGroup — chamadores
+            # de handle_message ainda esperam `except RAGConnectionError`.
+            # `from None` só suprime o encadeamento implícito do
+            # ExceptionGroup no traceback (B904); não afeta o tipo/identidade
+            # da exceção relançada.
+            raise eg.exceptions[0] from None
+
+        documentos = rag_task.result()
+        if vendas_task is not None:
+            dados_catalogo_vendas = vendas_task.result()
+
         t_rag_end = time.perf_counter()
         rag_retrieval_ms = round((t_rag_end - t_rag_start) * 1000.0, 2)
         rag_chunks_count = len(documentos)
@@ -621,7 +720,16 @@ async def handle_message(
     # _build_prompt é sempre chamado para anexar o playbook do domínio (Fase
     # 3); para `fora_escopo` (sem playbook) e sem documentos, ele reduz a
     # apenas "Mensagem do cliente: ...".
-    prompt = _build_prompt(message, documentos, classification.domain)
+    prompt = _build_prompt(
+        message,
+        documentos,
+        classification.domain,
+        dados_catalogo=(
+            _formatar_dados_catalogo_vendas(dados_catalogo_vendas)
+            if dados_catalogo_vendas is not None
+            else None
+        ),
+    )
 
     client = local_client if backend_escolhido == "local" else external_client
 
