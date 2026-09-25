@@ -245,28 +245,31 @@ em `docs/ARCHITECTURE.md` §6.
 
    O `infra/caddy/caddy.env` fica fora do git.
 
-4. **Windows** (PowerShell como Administrador): regra de firewall e
-   encaminhamento do Windows para o WSL2.
+4. **Windows** (PowerShell como Administrador): regra de firewall, uma vez só.
 
    ```powershell
-   # Regra no Windows Firewall (uma vez só)
    New-NetFirewallRule -DisplayName "TCC WSL2 MCP B2B HTTPS (8443)" -Direction Inbound -LocalPort 8443 -Protocol TCP -Action Allow
-
-   # PortProxy para o IP atual do WSL2
-   $wslIp = (wsl hostname -I).Trim().Split()[0]
-   Write-Host "IP do WSL2 detectado: $wslIp"
-   netsh interface portproxy delete v4tov4 listenport=8443 listenaddress=0.0.0.0 2>$null
-   netsh interface portproxy add v4tov4 listenport=8443 listenaddress=0.0.0.0 connectport=8443 connectaddress=$wslIp
-   netsh interface portproxy show v4tov4
    ```
 
-   - **O IP do WSL2 muda a cada reinício do Windows:** rode de novo o bloco
-     do PortProxy depois de reiniciar. Sem isso, o encaminhamento aponta
-     para o IP antigo e o acesso de fora para de funcionar sem erro visível.
-   - **Só a 8443.** A 8100 (servidor MCP) nunca entra no PortProxy nem no
-     roteador.
-   - Com `networkingMode=mirrored` no `.wslconfig`, o WSL2 usa o IP do
-     Windows e o PortProxy não é necessário, só a regra de firewall.
+   Depois, confira o modo de rede do WSL2 (no terminal do WSL):
+   `wslinfo --networking-mode`.
+
+   - **`mirrored`** (o caso desta máquina: a 3001 funciona sem PortProxy): o
+     WSL2 compartilha o IP do Windows, e a regra de firewall basta. **Não
+     crie PortProxy:** ele ocuparia a 8443 no Windows e o Caddy não
+     conseguiria usá-la dentro do WSL. Se criou por engano, remova com
+     `netsh interface portproxy delete v4tov4 listenport=8443 listenaddress=0.0.0.0`.
+   - **`nat`** (padrão do WSL2): é preciso encaminhar do Windows para o IP
+     do WSL2, e esse IP muda a cada reinício do Windows, então o bloco
+     abaixo precisa ser repetido depois de reiniciar:
+
+     ```powershell
+     $wslIp = (wsl hostname -I).Trim().Split()[0]
+     netsh interface portproxy delete v4tov4 listenport=8443 listenaddress=0.0.0.0 2>$null
+     netsh interface portproxy add v4tov4 listenport=8443 listenaddress=0.0.0.0 connectport=8443 connectaddress=$wslIp
+     ```
+
+   Nos dois modos, só a 8443: a 8100 (servidor MCP) nunca é encaminhada.
 
 5. **Roteador:** encaminhe a porta **TCP 8443** para o IP deste PC na rede
    local (o mesmo destino já usado para a 3001). Só a 8443: a 8100 nunca
