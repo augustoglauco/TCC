@@ -321,8 +321,7 @@ class OpenRouterClient:
                         "cancelamento/processo, ou insatisfação explícita e forte."
                     ),
                     "false": (
-                        "Tom neutro ou normal de atendimento, mesmo com dúvida "
-                        "ou reclamação leve."
+                        "Tom neutro ou normal de atendimento, mesmo com dúvida ou reclamação leve."
                     ),
                 },
             },

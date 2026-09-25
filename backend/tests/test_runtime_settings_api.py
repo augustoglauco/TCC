@@ -230,9 +230,7 @@ def test_put_limiar_de_imagem_fora_do_intervalo_e_422():
     app, *_ = _build_default_app()
     client = TestClient(app)
 
-    response = client.put(
-        "/api/admin/runtime-settings", json={"image_external_confidence": 1.5}
-    )
+    response = client.put("/api/admin/runtime-settings", json={"image_external_confidence": 1.5})
 
     assert response.status_code == 422
 
