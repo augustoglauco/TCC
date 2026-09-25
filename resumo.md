@@ -1,111 +1,92 @@
-# Resumo do que já foi desenvolvido
+# Resumo do Status do Projeto (TCC)
 
-> Projeto: assistente virtual multimodal (texto/imagem/áudio) com roteador
-> inteligente entre modelo local e externo, RAG e MCPs. TCC de especialização
-> em IA generativa. Visão completa: `docs/ARCHITECTURE.md`. Progresso
-> detalhado, item a item: `docs/ROADMAP.md`.
+> **Projeto**: Assistente virtual multimodal (texto, imagem e áudio) baseado em arquitetura agêntica com inferência local de IA em GPU (16GB), RAG híbrido, roteamento inteligente, monitor de tom, memória de sessão e integração bidirecional via Protocolo MCP (*Model Context Protocol*).
+> **Fontes de Verdade**: `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/FRONTEND.md`, `docs/TECHNOLOGY_STACK.md` e `CLAUDE.md`.
 
-## ✅ Pronto
+---
 
-**Fase 0 — Infraestrutura**
-Repositório, ambiente com GPU, `.env`, logging estruturado, lint/testes — tudo configurado.
+## 🟢 O que já está PRONTO e CONCLUÍDO
 
-**Fase 1 — Modelo local e roteador**
-Modelo local via **Ollama** + modelo externo via **OpenRouter**. Classificador de
-intenção (regras + LLM) decide entre os quatro domínios de atendimento,
-considerando as últimas mensagens da conversa, com log das decisões.
+### **Fase 0 — Fundamentos e Infraestrutura**
+* Ambiente provisionado em GPU dedicada (NVIDIA RTX 4080 16GB VRAM, CUDA, Ollama).
+* Monorepo estruturado (`backend/` FastAPI + `frontend/` Next.js 16).
+* Configuração via `pydantic-settings` (`.env`) e logging estruturado com `conversation_id`.
+* Script de validação local automatizado (`./testar.sh` → `backend/scripts/teste_local.py`).
 
-**Fase 2 — Entrada multimodal e RAG textual**
-Chat aceita texto e áudio (STT). RAG funcionando: ingestão de PDFs/textos com
-busca vetorial (Qdrant), **conector de leitura a banco de dados relacional**,
-endpoint de upload de documentos, **crawler de páginas** (navegação BFS de
-verdade a partir de uma URL semente, com profundidade e teto de páginas
-parametrizáveis por execução) e **extração de PDF de qualidade** — detecção de
-layout em 2 colunas (`pdfplumber`), corrige catálogos de produto que antes
-saíam com título/bullets embaralhados entre produtos vizinhos. Fase concluída.
+### **Fase 1 — Modelo Local e Roteador Inteligente**
+* Cliente local **Ollama** (`gemma4:12b-it-q4_K_M` e suporte a 9 candidatos de 7B–14B) + cliente externo **OpenRouter**.
+* Classificador de intenção baseado em LLM + regras considerando histórico curto (1 a 3 mensagens).
+* Roteamento dinâmico entre os 4 domínios (Vendas, Suporte, Atendimento, Agendamento).
 
-**Fase 3 — RAG multimodal, imagem e domínios (em andamento)**
-Entrada de **imagem** no chat, **OCR** para documentos dirigidos (comprovantes),
-**busca visual por CLIP** sobre catálogo de imagens (Qdrant), com **reranking
-básico** dos resultados. **Playbooks/prompts por domínio** (Vendas — com oferta
-proativa de agendamento; Suporte Técnico; Atendimento) antepostos ao prompt do
-LLM. **Identificação de produto por imagem com fallback externo:** imagem
-espontânea → CLIP interno → se baixa confiança, consulta um modelo de visão
-externo (OpenRouter) que responde de forma objetiva (nome + se é do portfólio +
-confiança); se for produto do portfólio e a confiança for alta, busca os
-detalhes no RAG de texto; senão informa que não identificou. O OCR virou a
-exceção (só quando o sistema pede um comprovante); a identificação é o padrão.
-Limiares e modelo de visão são parametrizáveis em runtime (`/admin/modelos`).
-Falta a costura visual no widget (enviar o intent e renderizar o card).
+### **Fase 2 — Entrada Multimodal (Áudio) e RAG Textual**
+* **Speech-to-Text (STT)** via **Whisper local em GPU** (WAV, MP3).
+* Streaming SSE (`text/event-stream`) de respostas token a token no backend e frontend.
+* **RAG Textual Híbrido:** Ingestão de PDFs (com `pdfplumber` e layout 2 colunas), textos e busca vetorial no Qdrant.
+* **Conector a Banco Relacional:** Leitura de BD relacional Postgres (somente leitura) via SQLAlchemy.
+* **Web Crawler BFS:** Disparo manual via streaming SSE, navegação em profundidade com fila de revisão humana.
 
-**Fase 7 e 8 — Frontend (site + widget de chat)**
-Projeto Next.js criado; chat migrou de painel fixo para **modal central**
-(`ChatModal`, acessível pelo botão "Chat / Agente" no cabeçalho e CTAs nas
-páginas) — texto, áudio, indicador de domínio/origem do modelo, persistência
-de conversa, tratamento de erro. Páginas institucionais, produtos, pedidos e
-agendamento ainda **parciais** (marcadas `[~]` no roadmap — esqueleto existe,
-falta refinar).
+### **Fase 3 — RAG Multimodal (Imagem) e Playbooks de Domínio**
+* **Tratamento de Imagem:** Entrada de imagens, OCR para comprovantes dirigidos (`pytesseract`).
+* **Busca Visual CLIP:** Busca vetorial por embeddings de imagem no Qdrant com reranking.
+* **Identificação de Produto por Visão:** CLIP interno → fallback para modelo de visão externo via OpenRouter quando a confiança é baixa.
+* **Playbooks por Domínio:** Prompts estruturados para Vendas (com oferta proativa de agendamento), Suporte Técnico e Atendimento.
 
-## 🎁 Extras construídos fora do escopo original do MVP
+### **Fase 4 — Agendamento via MCP (Google Calendar) e Monitor de Tom**
+* **Fase 4A (MCP Cliente):** Integração com `calendar-mcp-server` para consulta de horários e criação de eventos no Google Calendar + e-mail de confirmação.
+* **Fase 4B (Monitor de Tom):** Classificação de sentimento/urgência em tempo real, geração do evento SSE `escalonamento` e tabela `tom_escalonamentos`.
 
-Pedidos explícitos seus, registrados como "fora do MVP" no roadmap para não
-confundir com o escopo formal do TCC:
+### **Fase 5 — Provedor MCP B2B (Catálogo, Estoque, Preços e Ferramentas Transacionais)**
+* **Servidor MCP B2B:** Servidor próprio em Python (`scripts/run_mcp_b2b_server.py` na porta 8100).
+* **4 Recursos (Leitura):** `catalog://produtos`, `inventory://estoque`, `pricing://tabelas`, `docs://manuais` (RAG B2B).
+* **4 Ferramentas Transacionais:** `validar_compatibilidade`, `consultar_frete`, `cotar`, `reservar_pedido`.
+* **Roteador Integrado:** O orquestrador usa o catálogo interno (`SalesCatalogClient`) para intenções de Vendas.
+* **Exposição Pública com Segurança:** Publicado em `https://augustoglauco.duckdns.org:8443/mcp` via **DuckDNS + Caddy HTTPS**, protegido por chave estática por parceiro (`Authorization: Bearer <chave>`).
+* **Manual de Integração:** Documentação oficial criada em [`docs/MANUAL_INTEGRACAO_MCP_B2B.md`](file:///home/augusto/Projetos/TCC/docs/MANUAL_INTEGRACAO_MCP_B2B.md).
 
-1. **Configuração de ingestão do RAG** (`/admin/ingestao`) — registro/exclusão
-   de documentos, múltiplas "collections" com parâmetros próprios (tamanho de
-   chunk, modelo de embedding, métrica de distância, HNSW, quantização,
-   payload indexing), playground de busca comparativa entre collections,
-   promoção de uma collection para "ativa" no chat real, e **preview do
-   documento original** (PDF/CSV/texto) direto na tabela de ingestão.
-2. **Gerenciador de modelos locais** (`/admin/modelos`) — listar modelos
-   baixados no Ollama, trocar o modelo ativo do chat em runtime, e baixar um
-   modelo novo (biblioteca do Ollama ou GGUF do Hugging Face) sem bloquear o
-   backend.
-3. **Telemetria de inferência no chat** — cada resposta do assistente vem com
-   modelo usado, tokens, latência, TTFT, TPS, custo estimado e métricas de
-   RAG (tempo/qtd./score da busca); o `ChatModal` mostra um painel com essas
-   métricas e exporta a conversa em CSV/JSON — pensado para alimentar a
-   avaliação experimental da Fase 10, não como feature de produto.
+### **Fase 6 — Memória de Sessão e Classificação do Usuário**
+* **Persistência de Histórico:** Tabelas `conversas` e `conversa_mensagens` no Postgres.
+* **Sumarização Automática:** Resumo da conversa gerado a cada 6 mensagens em segundo plano e injetado no prompt.
+* **Retomada de Sessão:** Leitura via `GET /api/chat/conversations/{id}` no widget, reaparecendo histórico e painel de métricas.
+* **Classificação de Usuário:** Perfilamento em *Cliente*, *Lead* ou *Esporádico* via cruzamento com compras fictícias e captação natural de e-mail.
 
-## ⏳ Ainda não iniciado
+### **Fases 7 e 8 — Frontend (Next.js + UI Responsiva)**
+* **Modal de Chat Responsivo (`ChatModal`):** Suporte a mobile (<390px), envio de texto/imagem/áudio, streaming token a token, métricas de inferência exportáveis em CSV/JSON.
+* **Painel Administrativo:**
+  * `/admin/modelos` ("Administração Geral"): Gestão de modelos Ollama, download de modelos/HF GGUF, parâmetros de execução (temperatura, timeouts, roteador Jev) e status do Ollama dinâmico.
+  * `/admin/ingestao`: Gestão de documentos, perfis de collection Qdrant, playground comparativo, preview de arquivos e topo da aba *Configuração* com o card **"Regras de Busca & Isolamento de Domínios RAG"**.
+* **Páginas Institucionais:** Home, Suporte/Central de Ajuda, Contato, Administração.
 
-- **Fase 3 (resta)** — fallback de busca externa de imagem *já feito*; falta a
-  costura no widget de chat (enviar `image_intent`, renderizar card de produto)
-- **Fase 4** — Agendamento via MCP do Google Calendar + monitor de tom
-- **Fase 5** — MCP B2B provido pela empresa (catálogo/estoque/ferramentas)
-- **Fase 6** — Memória de conversa e classificação de usuário (Cliente/Lead)
-- **Fase 9** — Testes de integração ponta a ponta e robustez
-- **Fase 10** — Avaliação experimental (benchmark de modelo, RAG, latência)
-- **Fase 11** — Preparação final da entrega
+---
 
-## 🔧 Correções recentes de qualidade/robustez
+## 🎁 Funcionalidades Extras Desenvolvidas (Além do Escopo Original do MVP)
 
-Nesta rodada, além do avanço da Fase 3 (reranking de imagem, playbooks por
-domínio e identificação de produto por imagem com fallback externo), também
-sincronizamos o contexto entre as três ferramentas agênticas usadas no
-projeto — **Antigravity, Claude Code CLI e Kiro CLI** — via arquivos de regras
-que apontam para o mesmo `docs/` (fonte de verdade única).
+1. **Configuração de Ingestão do RAG (`/admin/ingestao`)**: Perfis de collection customizados (chunk size/overlap, HNSW, quantização, payload indexing), playground de busca comparativa e isolamento de collections exclusivas para o canal MCP B2B (`purpose="mcp_b2b"`).
+2. **Gerenciador de Modelos Locais (`/admin/modelos`)**: Alternância de modelos locais em runtime, downloads em background e painel de parâmetros de inferência.
+3. **Telemetria de Inferência & Fontes RAG**: Exibição por mensagem (tokens, TTFT, TPS, latência, custo, score RAG e fontes utilizadas) e exportação da conversa em CSV/JSON.
+4. **Infraestrutura de Exposição MCP B2B Pública**: Proxy TLS Caddy com renovação automática de certificado DuckDNS, permitindo testes externos (4G/5G) sem expor portas de banco.
+5. **Resiliência a Dispositivos Móveis e Redes**: Correção de contextos seguros (`crypto.randomUUID`), detecção dinâmica de origem da API (`apiBaseUrl.ts`) e `allowedDevOrigins` no dev server.
 
-Rodadas anteriores corrigiram problemas reais encontrados numa auditoria do
-código (parte dele escrito em paralelo por outro agente, o Antigravity, que
-também trabalha neste repositório):
+---
 
-- **Vazamento de domínio no RAG** — uma busca sem resultado no domínio certo
-  chegou a "vazar" pra outros domínios (ex.: pergunta de vendas trazendo
-  conteúdo de suporte), o que também corrompia o sinal que decide se o
-  roteador escala pro modelo externo. Corrigido; o comportamento antigo
-  existe só como flag opt-in (`RAG_SEARCH_DOMAIN_FALLBACK`, desligada por
-  padrão) para quem quiser comparar.
-- **TTFT/TPS calculados errado** na telemetria (usava tempo de carregar o
-  modelo, não tempo de gerar o primeiro token) — corrigido antes de virar
-  dado ruim no dataset da Fase 10.
-- Bug no parser de CSV do preview de documento (cortava em espaço em branco
-  além do delimitador), `ChatPanel.tsx` órfão removido, CORS hardcoded
-  revertido para usar a configuração de `.env`, e lint 100% limpo no
-  frontend (0 erros, 0 avisos).
+## 🟡 O que está EM ANDAMENTO / REFINAMENTO (`[~]`)
 
-## Como continuar
+* **Páginas Adicionais do Site (`app/produtos`, `app/pedidos`, `app/agendamentos`)**: Estão com estruturas e stubs funcionais, aguardando a finalização das páginas públicas correspondentes.
+* **Testes E2E (Playwright)**: Fluxo de texto e áudio cobertos no frontend; faltam os cenários E2E de imagem e pedido completo.
 
-Peça **"próximo passo"** a qualquer momento — eu leio o roadmap, escolho o
-próximo item pendente, confirmo com você, valido o escopo e implemento com
-testes, um item de cada vez.
+---
+
+## ⏳ Próximos Passos (Fases Restantes do Roadmap)
+
+1. **Fase 9 — Integração Ponta a Ponta e Robustez**: Testes de integração backend cobrindo os 4 domínios e refatoração de pequenos achados de code-review.
+2. **Fase 10 — Avaliação Experimental (Benchmark de Produção)**:
+   * Benchmark das 9 configurações de modelos locais candidatas em GPU de 16GB.
+   * Matriz de confusão de acurácia do roteador (4x4).
+   * Qualidade do RAG (Ground Truth + LLM-as-Judge).
+   * Medição empírica de latência (Local vs. Externo OpenRouter).
+3. **Fase 11 — Preparação Final da Entrega**: Checklist final dos requisitos R1–R12 e consolidação do protótipo/demonstração.
+
+---
+
+## 💡 Como Continuar
+
+Peça **"próximo passo"** a qualquer momento — analisaremos o `docs/ROADMAP.md` e avançaremos para a próxima tarefa pendente com testes automatizados e atualização contínua da documentação.
