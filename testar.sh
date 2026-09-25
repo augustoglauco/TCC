@@ -61,15 +61,18 @@ main() {
   fuser -k 8100/tcp 2>/dev/null || lsof -ti:8100 | xargs -r kill 2>/dev/null
   sleep 1
   (cd backend && nohup .venv/bin/python scripts/run_mcp_b2b_server.py \
-    > /tmp/tcc-mcp-b2b.log 2>&1 & disown)
-  for _ in $(seq 1 20); do
+    > /tmp/tcc-mcp-b2b.log 2>&1 & echo $! > /tmp/tcc-mcp-b2b.pid; disown)
+  # Até 90 s: só os imports (bibliotecas de embeddings) levam ~20 s. Se o
+  # processo morrer antes (ex.: sem chave válida), para na hora.
+  for _ in $(seq 1 90); do
     if curl -s -o /dev/null --max-time 2 http://127.0.0.1:8100/mcp; then break; fi
+    kill -0 "$(cat /tmp/tcc-mcp-b2b.pid)" 2>/dev/null || break
     sleep 1
   done
   if curl -s -o /dev/null --max-time 2 http://127.0.0.1:8100/mcp; then
     echo "MCP B2B no ar"
   else
-    tail -5 /tmp/tcc-mcp-b2b.log
+    tail -15 /tmp/tcc-mcp-b2b.log
     echo "⚠️  MCP B2B não subiu (log acima) — a suíte mcp_b2b vai falhar; as outras seguem."
   fi
 
