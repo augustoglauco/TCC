@@ -306,11 +306,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       exposição pública. Substituído pelo item abaixo. Deste item ficou o
       padrão `MCP_B2B_HOST=127.0.0.1`: o acesso externo passa pelo proxy
       HTTPS, nunca direto na porta 8100.
-- [ ] Expor o MCP B2B publicamente com chave por parceiro — DuckDNS +
+- [~] Expor o MCP B2B publicamente com chave por parceiro — DuckDNS +
       Caddy (HTTPS, porta 8443) na frente do servidor em `127.0.0.1:8100`;
       `Authorization: Bearer <chave>` verificado pelo `TokenVerifier` do SDK
       (`MCP_B2B_PARTNER_KEYS`, várias chaves com nome); servidor não sobe
       sem chave; log `mcp_b2b_ferramenta` com o parceiro de cada chamada.
+      Código e testes prontos (`app.mcp_server.auth`,
+      `tests/test_mcp_b2b_auth.py`, `infra/caddy/`, suíte `mcp_b2b`); falta
+      validar na máquina real (Caddy, roteador) e de fora da rede.
       Ver decisão em `docs/ARCHITECTURE.md` §6
 
 ## Fase 6 — Memória e Classificação do Usuário (R9, R10)

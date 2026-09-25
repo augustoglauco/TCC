@@ -77,7 +77,7 @@ class Cenario:
 # QTA-100↔GD-30 e Cabine↔GD-30.
 # Suíte que `./testar.sh` (raiz do repo) roda quando nenhuma é passada — o
 # agente troca este valor a cada entrega que precisa de validação local.
-SUITE_ATUAL = "vendas"
+SUITE_ATUAL = "mcp_b2b"
 
 SUITES: dict[str, list[Cenario]] = {
     "vendas": [
@@ -325,7 +325,7 @@ def _rodar_cenario(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--suite", choices=sorted(SUITES), default=SUITE_ATUAL)
+    parser.add_argument("--suite", choices=sorted([*SUITES, "mcp_b2b"]), default=SUITE_ATUAL)
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--log", default="/tmp/tcc-backend.log", type=Path)
     parser.add_argument("--sem-pytest", action="store_true", help="pula ruff + pytest")
@@ -350,12 +350,22 @@ def main() -> int:
         print("Rodando ruff + pytest...", flush=True)
         relatorio += _checks_automaticos()
 
-    relatorio += ["## 2. Cenários de chat", ""]
     placar: dict[str, int] = {}
-    cenarios = [c for c in SUITES[args.suite] if not args.so or c.nome.startswith(args.so)]
+    if args.suite == "mcp_b2b":
+        # Não é chat: verificações de autenticação/HTTPS do MCP B2B, em
+        # módulo próprio (scripts/teste_local_mcp_b2b.py).
+        from teste_local_mcp_b2b import rodar_verificacoes
+
+        placar, linhas = rodar_verificacoes()
+        relatorio += linhas
+        cenarios = []
+    else:
+        relatorio += ["## 2. Cenários de chat", ""]
+        cenarios = [c for c in SUITES[args.suite] if not args.so or c.nome.startswith(args.so)]
     with httpx.Client(timeout=httpx.Timeout(180.0, connect=5.0)) as cliente:
         try:
-            cliente.get(f"{args.base_url}/docs").raise_for_status()
+            if cenarios:
+                cliente.get(f"{args.base_url}/docs").raise_for_status()
         except httpx.HTTPError as exc:
             relatorio += [f"⚠️ Backend inacessível em {args.base_url}: `{exc}`", ""]
             cenarios = []
@@ -366,7 +376,7 @@ def main() -> int:
             relatorio += linhas
 
     relatorio[6:6] = [
-        "Placar dos cenários: "
+        ("Placar das verificações: " if args.suite == "mcp_b2b" else "Placar dos cenários: ")
         + (", ".join(f"{k}: {v}" for k, v in sorted(placar.items())) or "nenhum rodou"),
         "",
     ]
