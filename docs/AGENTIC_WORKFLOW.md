@@ -97,9 +97,9 @@ a ferramenta, o contexto lido e a documentação atualizada sejam os mesmos.
    - Com o Claude Code CLI ou o Kiro CLI, revise o diff proposto e rode os
      testes relevantes (`pytest`) antes de aceitar.
    - Quando o agente roda na nuvem (sem GPU/Ollama/dados reais), a validação
-     ponta a ponta é feita na máquina do desenvolvedor com
-     `backend/scripts/teste_local.py`, que gera um relatório para devolver ao
-     agente (ver `docs/TESTE_LOCAL.md`).
+     ponta a ponta é feita na máquina do desenvolvedor com `./testar.sh`,
+     que roda o teste e dá push do relatório para o agente ler (ver
+     `docs/TESTE_LOCAL.md`).
 4. Rode a skill/comando `code-review` sobre o diff do item (e também
    `security-review` quando o item tocar algo sensível — MCPs, autenticação,
    segredos/`.env`, endpoints expostos). Achados `high`/`critical` bloqueiam

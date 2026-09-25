@@ -5,9 +5,12 @@ Fluxo (ver docs/TESTE_LOCAL.md):
     1. `git pull` do branch com a mudança;
     2. subir a aplicação normalmente (goup.md) — backend na 8000, logando
        em /tmp/tcc-backend.log;
-    3. `cd backend && .venv/bin/python scripts/teste_local.py --suite <nome>`;
-    4. enviar o arquivo gerado em `testes_locais/` (colar o conteúdo ou
-       commitar/pushar no mesmo branch).
+    3. `cd backend && .venv/bin/python scripts/teste_local.py` (roda a
+       suíte `SUITE_ATUAL`; `--suite <nome>` escolhe outra);
+    4. enviar o arquivo gerado em `testes_locais/`.
+
+Na prática o desenvolvedor não chama este arquivo direto: `./testar.sh`,
+na raiz do repo, faz os quatro passos (inclusive o push do relatório).
 
 Cada suíte tem duas partes:
     - checks automáticos (ruff + pytest) — pulados com `--sem-pytest`;
@@ -68,6 +71,10 @@ class Cenario:
 # 17 unidades em estoque (12 CD-SP + 5 CD-RJ), desconto de 5% a partir de 5
 # unidades e 10% a partir de 10; compatibilidades QTA-100↔GD-15,
 # QTA-100↔GD-30 e Cabine↔GD-30.
+# Suíte que `./testar.sh` (raiz do repo) roda quando nenhuma é passada — o
+# agente troca este valor a cada entrega que precisa de validação local.
+SUITE_ATUAL = "vendas"
+
 SUITES: dict[str, list[Cenario]] = {
     "vendas": [
         Cenario(
@@ -285,7 +292,7 @@ def _rodar_cenario(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("--suite", choices=sorted(SUITES), required=True)
+    parser.add_argument("--suite", choices=sorted(SUITES), default=SUITE_ATUAL)
     parser.add_argument("--base-url", default="http://localhost:8000")
     parser.add_argument("--log", default="/tmp/tcc-backend.log", type=Path)
     parser.add_argument("--sem-pytest", action="store_true", help="pula ruff + pytest")

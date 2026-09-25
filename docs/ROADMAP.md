@@ -24,9 +24,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `backend/pyproject.toml` ([tool.ruff], [tool.pytest.ini_options])
 - [x] Roteiro de teste local para o loop "agente implementa na nuvem,
       desenvolvedor valida na máquina com GPU" —
-      `backend/scripts/teste_local.py --suite <nome>` gera um relatório em
-      `testes_locais/` para devolver ao agente (primeira suíte: `vendas`,
-      R12). Ver `docs/TESTE_LOCAL.md`.
+      `./testar.sh` na raiz atualiza o código, reinicia o backend, roda
+      `backend/scripts/teste_local.py` e dá push do relatório em
+      `testes_locais/` (primeira suíte: `vendas`, R12). Ver
+      `docs/TESTE_LOCAL.md`.
 
 ## Fase 1 — Modelo Local e Roteador Básico (R1, R3)
 
