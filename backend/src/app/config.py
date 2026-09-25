@@ -127,7 +127,13 @@ class Settings(BaseSettings):
     agendamento_expediente_inicio: str = "09:00"
     agendamento_expediente_fim: str = "18:00"
 
-    mcp_b2b_host: str = "0.0.0.0"
+    # MVP: sem autenticação por parceiro, então o MCP B2B só escuta na
+    # própria máquina por padrão — com `0.0.0.0`, qualquer máquina da rede
+    # alcançaria as ferramentas transacionais (ex.: `reservar_pedido`, que
+    # cria pedido e baixa estoque). Exposição a parceiros externos é
+    # evolução futura (docs/ARCHITECTURE.md §6); outro valor aqui só gera um
+    # aviso no log de `scripts/run_mcp_b2b_server.py`.
+    mcp_b2b_host: str = "127.0.0.1"
     mcp_b2b_port: int = 8100
 
     # MVP: origens do frontend em dev, separadas por vírgula em uma única

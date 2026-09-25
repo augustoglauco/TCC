@@ -24,7 +24,7 @@ from app.db.catalog import (
 )
 from app.db.engine import create_db_engine, create_session_factory
 from app.db.models import Base, RagCollection
-from app.mcp_server.b2b import create_b2b_mcp_server
+from app.mcp_server.b2b import create_b2b_mcp_server, host_somente_local
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.embeddings import TextEmbedder
 from app.rag.qdrant_client import QdrantRAGClient
@@ -589,3 +589,13 @@ async def test_reservar_pedido_produto_inexistente_levanta_tool_error(factory, q
             "reservar_pedido",
             {"itens": [{"produto_id": 999, "quantidade": 1, "centro_distribuicao": "CD-SP"}]},
         )
+
+
+@pytest.mark.parametrize("host", ["127.0.0.1", "localhost", "LOCALHOST", "::1", " 127.0.0.1 "])
+def test_host_somente_local_aceita_loopback(host):
+    assert host_somente_local(host) is True
+
+
+@pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.168.0.10", "meutcc.duckdns.org"])
+def test_host_somente_local_recusa_enderecos_expostos_na_rede(host):
+    assert host_somente_local(host) is False
