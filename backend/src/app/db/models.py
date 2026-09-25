@@ -168,10 +168,10 @@ class Produto(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    estoques: Mapped[list["ProdutoEstoque"]] = relationship(
+    estoques: Mapped[list[ProdutoEstoque]] = relationship(
         back_populates="produto", cascade="all, delete-orphan"
     )
-    descontos_volume: Mapped[list["ProdutoDescontoVolume"]] = relationship(
+    descontos_volume: Mapped[list[ProdutoDescontoVolume]] = relationship(
         back_populates="produto", cascade="all, delete-orphan"
     )
 
@@ -198,7 +198,7 @@ class ProdutoEstoque(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    produto: Mapped["Produto"] = relationship(back_populates="estoques")
+    produto: Mapped[Produto] = relationship(back_populates="estoques")
 
 
 class ProdutoCompatibilidade(Base):
@@ -244,7 +244,7 @@ class Pedido(Base):
     status: Mapped[str] = mapped_column(default="reservado")
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    itens: Mapped[list["PedidoItem"]] = relationship(
+    itens: Mapped[list[PedidoItem]] = relationship(
         back_populates="pedido", cascade="all, delete-orphan"
     )
 
@@ -263,7 +263,7 @@ class PedidoItem(Base):
     quantidade: Mapped[int]
     preco_unitario: Mapped[Decimal] = mapped_column(Numeric(10, 2))
 
-    pedido: Mapped["Pedido"] = relationship(back_populates="itens")
+    pedido: Mapped[Pedido] = relationship(back_populates="itens")
 
 
 class ProdutoDescontoVolume(Base):
@@ -283,7 +283,7 @@ class ProdutoDescontoVolume(Base):
     quantidade_minima: Mapped[int]
     percentual_desconto: Mapped[Decimal] = mapped_column(Numeric(5, 2))
 
-    produto: Mapped["Produto"] = relationship(back_populates="descontos_volume")
+    produto: Mapped[Produto] = relationship(back_populates="descontos_volume")
 
 
 class Conversa(Base):
@@ -310,7 +310,7 @@ class Conversa(Base):
     perfil: Mapped[str | None]
     perfil_motivo: Mapped[str | None]
 
-    mensagens: Mapped[list["ConversaMensagem"]] = relationship(
+    mensagens: Mapped[list[ConversaMensagem]] = relationship(
         back_populates="conversa", order_by="ConversaMensagem.id"
     )
 
@@ -334,7 +334,7 @@ class ConversaMensagem(Base):
     metricas: Mapped[dict | None] = mapped_column(_JsonVariant, nullable=True)
     criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    conversa: Mapped["Conversa"] = relationship(back_populates="mensagens")
+    conversa: Mapped[Conversa] = relationship(back_populates="mensagens")
 
 
 class Cliente(Base):
@@ -352,7 +352,7 @@ class Cliente(Base):
     nome: Mapped[str]
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    compras: Mapped[list["ClienteCompra"]] = relationship(back_populates="cliente")
+    compras: Mapped[list[ClienteCompra]] = relationship(back_populates="cliente")
 
 
 class ClienteCompra(Base):
@@ -368,4 +368,4 @@ class ClienteCompra(Base):
     valor_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     comprado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
-    cliente: Mapped["Cliente"] = relationship(back_populates="compras")
+    cliente: Mapped[Cliente] = relationship(back_populates="compras")
