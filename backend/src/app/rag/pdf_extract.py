@@ -39,7 +39,7 @@ class PdfExtractionError(Exception):
     """Levantado quando o PDF não pode ser aberto ou processado."""
 
 
-def _detectar_gap_coluna(page: "pdfplumber.page.Page") -> float | None:
+def _detectar_gap_coluna(page: pdfplumber.page.Page) -> float | None:
     """Procura o maior corredor vertical sem nenhuma palavra dentro da
     faixa central da página. Retorna o x do meio do corredor (ponto de
     corte para dividir a página em coluna esquerda/direita), ou `None` se
@@ -83,7 +83,7 @@ def _detectar_gap_coluna(page: "pdfplumber.page.Page") -> float | None:
     return None
 
 
-def _extrair_texto_pagina(page: "pdfplumber.page.Page") -> str:
+def _extrair_texto_pagina(page: pdfplumber.page.Page) -> str:
     gap_x = _detectar_gap_coluna(page)
     if gap_x is None:
         return page.extract_text() or ""
