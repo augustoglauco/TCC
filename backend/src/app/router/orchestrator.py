@@ -67,10 +67,12 @@ def _build_prompt(
     documentos: list[Document],
     domain: Domain,
     dados_catalogo: str | None = None,
+    resumo_conversa: str | None = None,
 ) -> str:
     """Monta o prompt final: prompt de sistema do domínio (playbook) +
-    dados do catálogo de Vendas (quando houver, R12 Fase 5) + contexto de
-    RAG (quando houver) + mensagem do cliente.
+    resumo da conversa até aqui (quando houver, R9 Fase 6) + dados do
+    catálogo de Vendas (quando houver, R12 Fase 5) + contexto de RAG (quando
+    houver) + mensagem do cliente.
 
     # MVP: concatenação simples dos `content` dos documentos, sem
     # sumarização/priorização por score além da ordem já devolvida pelo RAG,
@@ -82,6 +84,14 @@ def _build_prompt(
     partes: list[str] = []
     if system_prompt is not None:
         partes.append(system_prompt)
+
+    if resumo_conversa:
+        # O prompt não leva as mensagens anteriores; o resumo periódico é o
+        # que dá ao LLM o contexto da conversa (ex.: de que produto se fala).
+        partes.append(
+            "Resumo da conversa até aqui (use como contexto; se a mensagem "
+            f"atual disser algo diferente, ela vale):\n{resumo_conversa}"
+        )
 
     if dados_catalogo is not None:
         partes.append(dados_catalogo)
@@ -519,6 +529,7 @@ async def handle_message(
     intent_router_provider: str = DEFAULT_INTENT_ROUTER_PROVIDER,
     tone_monitor_enabled: bool = True,
     tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
+    resumo_conversa: str | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -808,6 +819,7 @@ async def handle_message(
             if dados_catalogo_vendas is not None
             else None
         ),
+        resumo_conversa=resumo_conversa,
     )
 
     client = local_client if backend_escolhido == "local" else external_client

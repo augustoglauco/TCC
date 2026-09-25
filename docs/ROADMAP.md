@@ -331,8 +331,10 @@ conversa e classificação do usuário").
       do assistente), gravadas antes do evento `done`. Implementado
       (`app.memory.store`, migração `0010`, `app.api.chat`); falta validar
       no Postgres real pelo teste local
-- [ ] Implementar resumo automático periódico da conversa (não só ao final)
-      — a cada 6 mensagens, em segundo plano, com o resumo no prompt
+- [~] Implementar resumo automático periódico da conversa (não só ao final)
+      — a cada 6 mensagens, em segundo plano, com o resumo no prompt.
+      Implementado (`app.memory.resumo`, `_build_prompt`); falta validar
+      com o LLM local pelo teste local
 - [ ] Retomar a conversa no widget — `GET /api/chat/conversations/{id}/messages`
       e carregamento ao abrir o chat
 - [ ] Implementar heurística inicial de classificação Cliente/Lead/Esporádico

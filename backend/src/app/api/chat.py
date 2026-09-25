@@ -12,7 +12,13 @@ from fastapi.responses import StreamingResponse
 from app.background_tasks import spawn_background_task
 from app.logging_config import conversation_id_ctx
 from app.mcp_client.google_calendar import CalendarClient
-from app.memory.store import ContextoConversa, carregar_contexto, registrar_troca
+from app.memory.resumo import atualizar_resumo, precisa_resumir
+from app.memory.store import (
+    ContextoConversa,
+    carregar_contexto,
+    contar_mensagens,
+    registrar_troca,
+)
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
@@ -61,15 +67,29 @@ async def _carregar_contexto_seguro(app_state, conversation_id: str) -> Contexto
 
 
 async def _registrar_troca_segura(
-    app_state, conversation_id: str, mensagem: str, resposta: str, dominio: str | None
+    app_state,
+    conversation_id: str,
+    mensagem: str,
+    resposta: str,
+    dominio: str | None,
+    local_client: LLMClient,
 ) -> None:
     """Grava a troca antes do `done`: a próxima mensagem sempre encontra esta
-    no histórico. Mesma proteção de `_carregar_contexto_seguro`."""
+    no histórico. Mesma proteção de `_carregar_contexto_seguro`. A cada
+    `INTERVALO_RESUMO` mensagens novas, dispara o resumo em segundo plano,
+    sem esperar por ele."""
     try:
         async with app_state.db_sessionmaker() as session:
-            await registrar_troca(session, conversation_id, mensagem, resposta, dominio)
+            conversa = await registrar_troca(session, conversation_id, mensagem, resposta, dominio)
+            total = await contar_mensagens(session, conversation_id)
+            resumir = precisa_resumir(total, conversa.mensagens_resumidas)
     except Exception as exc:
         _logar_memoria_indisponivel("registrar", exc)
+        return
+    if resumir:
+        spawn_background_task(
+            atualizar_resumo(app_state.db_sessionmaker, conversation_id, local_client)
+        )
 
 
 def _logar_memoria_indisponivel(operacao: str, exc: Exception) -> None:
@@ -385,6 +405,7 @@ async def send_message(
                 intent_router_provider=intent_router_provider,
                 tone_monitor_enabled=tone_monitor_enabled,
                 tone_monitor_provider=tone_monitor_provider,
+                resumo_conversa=contexto.resumo,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
@@ -430,6 +451,7 @@ async def send_message(
                         effective_message,
                         "".join(partes_resposta),
                         event.domain,
+                        local_client,
                     )
                     done_data = ChatDoneEventData(
                         domain=event.domain,
