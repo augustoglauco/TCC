@@ -284,3 +284,51 @@ class ProdutoDescontoVolume(Base):
     percentual_desconto: Mapped[Decimal] = mapped_column(Numeric(5, 2))
 
     produto: Mapped["Produto"] = relationship(back_populates="descontos_volume")
+
+
+class Conversa(Base):
+    """Uma conversa do chat (R9, Fase 6) — ver decisão de 2026-09-25 em
+    `docs/ARCHITECTURE.md` §5. `id` é o mesmo `conversation_id` que o widget
+    guarda no `localStorage`.
+
+    # MVP: um visitante = um navegador, sem login. `email`/`perfil` (R10)
+    # ficam aqui mesmo, sem tabela de visitante separada.
+    """
+
+    __tablename__ = "conversas"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    atualizada_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    # Resumo automático periódico (R9) e quantas mensagens ele já cobre.
+    resumo: Mapped[str | None]
+    mensagens_resumidas: Mapped[int] = mapped_column(default=0)
+    # Classificação do usuário (R10).
+    email: Mapped[str | None]
+    perfil: Mapped[str | None]
+    perfil_motivo: Mapped[str | None]
+
+    mensagens: Mapped[list["ConversaMensagem"]] = relationship(
+        back_populates="conversa", order_by="ConversaMensagem.id"
+    )
+
+
+class ConversaMensagem(Base):
+    """Uma mensagem de uma conversa: do cliente ou a resposta do assistente
+    (R9). `id` inteiro autoincremental dá a ordem de gravação — duas
+    mensagens gravadas no mesmo instante teriam o mesmo `criada_em`."""
+
+    __tablename__ = "conversa_mensagens"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    conversa_id: Mapped[str] = mapped_column(ForeignKey("conversas.id"), index=True)
+    papel: Mapped[str]  # "cliente" | "assistente"
+    texto: Mapped[str]
+    # Domínio da resposta (só nas mensagens do assistente) — usado pela
+    # classificação do usuário (R10: intenção de compra).
+    dominio: Mapped[str | None]
+    criada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    conversa: Mapped["Conversa"] = relationship(back_populates="mensagens")
