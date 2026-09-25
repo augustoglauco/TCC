@@ -737,7 +737,8 @@ Google Calendar) — mesmo padrão de pastas já reservado em
 3. **Processo próprio, não embutido no backend FastAPI principal:**
    `scripts/run_mcp_b2b_server.py` sobe o servidor via transporte
    `streamable-http` em `MCP_B2B_HOST:MCP_B2B_PORT` (settings já reservados
-   desde a modelagem do backend único, default `0.0.0.0:8100`) — mesmo
+   desde a modelagem do backend único; default `127.0.0.1:8100` desde
+   2026-09-25, ver "Escopo no protótipo" na Seção 6) — mesmo
    padrão de execução já usado para o `calendar-mcp-server` consumido em
    R11 (processo solto, gerenciado via `goup.md`). Motivo: R12 descreve o
    MCP B2B como um serviço voltado a **consumidores externos** (IAs de
@@ -978,6 +979,33 @@ estoque ou gerem pedido, tratamento de concorrência em reservas/pedidos.
 base pequena e as quatro ferramentas já implementadas, mas **sem
 autenticação por parceiro nem exposição pública**.
 
+**Como o MVP garante isso (decisão registrada em 2026-09-25, último item da
+Fase 5):**
+
+- **Escuta só na própria máquina.** O padrão de `MCP_B2B_HOST` é
+  `127.0.0.1` (`app.config.Settings` e `.env.example`). Até então era
+  `0.0.0.0`, o que contradizia o "sem exposição pública": qualquer máquina
+  da rede local alcançava a porta 8100 sem autenticação, inclusive
+  `reservar_pedido`, que cria pedido e baixa estoque. O risco era concreto,
+  porque o frontend já é acessado por IP da LAN e DuckDNS.
+- **Aviso, não bloqueio.** Com outro endereço configurado,
+  `scripts/run_mcp_b2b_server.py` registra `mcp_b2b_server_exposto_na_rede`
+  (WARNING) no log, via `app.mcp_server.b2b.host_somente_local`. Não
+  bloqueia, porque testar a partir de outra máquina pode ser útil, mas
+  deixa explícito que isso sai do escopo do MVP.
+- **Não passa pelo backend do chat.** O backend FastAPI (porta 8000, que
+  escuta em `0.0.0.0` para o acesso pelo celular) não monta nem repassa o
+  MCP B2B. O próprio orquestrador consulta o catálogo por chamada direta no
+  mesmo processo (decisão de 2026-09-24 na Seção 5).
+- **Fora do MVP, sem implementação:** autenticação por parceiro (API
+  key/OAuth), permissões granulares, rate limiting, auditoria e controle
+  de concorrência em reservas. São a evolução descrita em "Governança e
+  segurança" acima e na Seção 8.
+
+`# MVP: uso interno, sem autenticação por parceiro` aparece em
+`app.mcp_server.b2b`, `app.config`, `.env.example` e
+`scripts/run_mcp_b2b_server.py`.
+
 ## 7. Riscos e limitações conhecidos
 
 - Escopo ambicioso para um único protótipo: conector de BD, crawler, RAG
@@ -1042,7 +1070,9 @@ autenticação por parceiro nem exposição pública**.
   classificador (ver `docs/ROADMAP.md`, Fase 1); um mecanismo de
   abandono/timeout pertence a uma futura fase de memória/gestão de sessão.
 - MCP B2B sem autenticação por parceiro/auditoria: ferramentas transacionais
-  (reserva, pedido) ficam restritas a uso interno no protótipo.
+  (reserva, pedido) ficam restritas a uso interno no protótipo. O servidor
+  escuta só em `127.0.0.1` por padrão (Seção 6); mudar `MCP_B2B_HOST` para
+  `0.0.0.0` expõe as ferramentas a toda a rede, sem autenticação.
 - Escopo do MVP relativamente amplo (4 ferramentas do MCP B2B, playbooks
   iniciais, crawler/catálogo maiores) aumenta a superfície de testes dentro
   do próprio protótipo.

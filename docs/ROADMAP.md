@@ -298,9 +298,13 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (+ `test_chat_api.py`/`test_main_app.py`). Ver decisão registrada em
       `docs/ARCHITECTURE.md` §5 e
       `docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
-- [ ] Garantir e documentar que autenticação por parceiro e exposição
+- [x] Garantir e documentar que autenticação por parceiro e exposição
       pública **não** fazem parte do MVP
-      (`# MVP: uso interno, sem autenticação por parceiro`)
+      (`# MVP: uso interno, sem autenticação por parceiro`) — `MCP_B2B_HOST`
+      passa a ter padrão `127.0.0.1` (antes `0.0.0.0`, que expunha as
+      ferramentas transacionais a toda a rede local); outro valor gera aviso
+      no log do `run_mcp_b2b_server.py`. Ver `docs/ARCHITECTURE.md` §6,
+      "Como o MVP garante isso"
 
 ## Fase 6 — Memória e Classificação do Usuário (R9, R10)
 

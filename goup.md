@@ -111,6 +111,11 @@ cd backend && nohup .venv/bin/python scripts/run_mcp_b2b_server.py > /tmp/tcc-mc
 Sem ele no ar, backend/frontend sobem normal — é um serviço à parte, só
 consultado por integradores/IAs de parceiros externas ao chat.
 
+Escuta só em `127.0.0.1:8100` (sem autenticação por parceiro, então não fica
+aberto para a rede). Se o seu `backend/.env` ainda tiver
+`MCP_B2B_HOST=0.0.0.0`, copiado de um `.env.example` antigo, troque para
+`127.0.0.1`. Com `0.0.0.0` o log mostra o aviso `mcp_b2b_server_exposto_na_rede`.
+
 ## 5. Subir o backend (porta 8000, em background)
 
 ```bash

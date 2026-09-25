@@ -110,6 +110,17 @@ _FRETE_CUSTO_BASE_E_PRAZO_POR_REGIAO: dict[str, tuple[Decimal, int]] = {
 _FRETE_ADICIONAL_POR_KG = Decimal("2.50")
 
 
+# Endereços que só aceitam conexão da própria máquina.
+_HOSTS_SOMENTE_LOCAL = frozenset({"127.0.0.1", "localhost", "::1"})
+
+
+def host_somente_local(host: str) -> bool:
+    """`True` se o servidor, escutando em `host`, só aceita conexões da
+    própria máquina. `scripts/run_mcp_b2b_server.py` avisa no log quando não
+    é o caso, porque o MCP B2B não tem autenticação por parceiro (MVP)."""
+    return host.strip().lower() in _HOSTS_SOMENTE_LOCAL
+
+
 def _parse_produto_id(produto_id: str) -> int:
     try:
         return int(produto_id)
