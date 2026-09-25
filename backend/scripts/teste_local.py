@@ -49,6 +49,10 @@ _EVENTOS_DE_LOG = {
     "vendas_catalogo_consulta_falhou",
     "rag_indisponivel",
     "chat_dependencia_indisponivel",
+    "perfil_classificado",
+    "resumo_atualizado",
+    "resumo_falhou",
+    "memoria_indisponivel",
 }
 
 
@@ -69,6 +73,14 @@ class Cenario:
     # pegar o LLM ignorando o bloco do catálogo (ex.: citar outro produto).
     resposta_contem: list[str] = field(default_factory=list)
     resposta_nao_contem: list[str] = field(default_factory=list)
+    # Pelo menos um destes trechos na resposta (sem diferenciar maiúsculas).
+    resposta_contem_algum: list[str] = field(default_factory=list)
+    # Memória da conversa (R9/R10, Fase 6):
+    perfil_esperado: str | None = None  # `perfil_usuario` do último `done`
+    historico_esperado: int | None = None  # mensagens em GET /conversations/{id}
+    # Espera o resumo em segundo plano antes de mandar a ÚLTIMA mensagem.
+    esperar_resumo: bool = False
+    resumo_contem: list[str] = field(default_factory=list)
 
 
 # Dados semeados pelas migrações 0003/0008/0009: 5 produtos, cada um com
@@ -77,7 +89,7 @@ class Cenario:
 # QTA-100↔GD-30 e Cabine↔GD-30.
 # Suíte que `./testar.sh` (raiz do repo) roda quando nenhuma é passada — o
 # agente troca este valor a cada entrega que precisa de validação local.
-SUITE_ATUAL = "mcp_b2b"
+SUITE_ATUAL = "memoria"
 
 SUITES: dict[str, list[Cenario]] = {
     "vendas": [
@@ -160,6 +172,82 @@ SUITES: dict[str, list[Cenario]] = {
             resposta_nao_contem=["GD-15", "GD-60"],
         ),
     ],
+    # Memória da conversa e classificação do usuário (R9/R10, Fase 6). Os
+    # e-mails são os da base fictícia da migração 0011: Ana (3 compras
+    # recentes), Bruno (1 compra), Carla (2 compras há mais de 12 meses).
+    "memoria": [
+        Cenario(
+            nome="R1 — conversa gravada no Postgres",
+            mensagens=["Quanto custa o gerador GD-30?", "E tem em estoque?"],
+            esperado="4 mensagens gravadas (2 do cliente, 2 do assistente); perfil lead.",
+            historico_esperado=4,
+            perfil_esperado="lead",
+        ),
+        Cenario(
+            nome="R2 — resumo automático usado na resposta",
+            mensagens=[
+                "Quero comprar o gerador GD-30",
+                "Preciso de 3 unidades",
+                "Vocês entregam em Campinas?",
+                "Me lembra qual modelo e quantas unidades eu pedi?",
+            ],
+            esperado=(
+                "Depois de 3 trocas o resumo é gerado em segundo plano (espera até 120 s) "
+                "e cita o GD-30; a 4ª resposta lembra o modelo."
+            ),
+            esperar_resumo=True,
+            resumo_contem=["30"],
+            resposta_contem=["GD-30"],
+        ),
+        Cenario(
+            nome="R3 — pós-venda sem e-mail: o assistente pede o e-mail",
+            mensagens=["Meu gerador parou de funcionar depois da chuva, o que eu faço?"],
+            esperado="Resposta pede o e-mail usado na compra; perfil não classificado.",
+            resposta_contem_algum=["e-mail", "email"],
+            perfil_esperado="nao_classificado",
+        ),
+        Cenario(
+            nome="R4 — e-mail de cliente recorrente",
+            mensagens=["Meu gerador GD-15 parou. Meu e-mail é ana.recorrente@example.com"],
+            esperado="Perfil cliente (3 compras, a última há 30 dias).",
+            perfil_esperado="cliente",
+        ),
+        Cenario(
+            nome="R5 — e-mail de quem comprou uma vez",
+            mensagens=["Preciso da nota fiscal. Meu e-mail é bruno.unico@example.com"],
+            esperado="Perfil esporadico (uma única compra).",
+            perfil_esperado="esporadico",
+        ),
+        Cenario(
+            nome="R6 — e-mail de quem comprou há mais de um ano",
+            mensagens=["Quero trocar uma peça, meu e-mail é carla.antiga@example.com"],
+            esperado="Perfil esporadico (2 compras, a última há 500 dias).",
+            perfil_esperado="esporadico",
+        ),
+        Cenario(
+            nome="R7 — lead com e-mail sem cadastro",
+            mensagens=[
+                "Quero um orçamento de 2 geradores GD-15, meu e-mail é novo.lead@example.com"
+            ],
+            esperado="Perfil lead (intenção de compra, e-mail sem cadastro).",
+            perfil_esperado="lead",
+        ),
+        Cenario(
+            nome="R8 — sem sinais",
+            mensagens=["Oi, bom dia!"],
+            esperado="Perfil nao_classificado.",
+            perfil_esperado="nao_classificado",
+        ),
+        Cenario(
+            nome="R9 — e-mail lembrado nas mensagens seguintes",
+            mensagens=["Sou bruno.unico@example.com", "Quanto custa o gerador GD-60?"],
+            esperado=(
+                "Na 2ª mensagem continua esporadico (o e-mail da 1ª fica na conversa), "
+                "apesar da intenção de compra."
+            ),
+            perfil_esperado="esporadico",
+        ),
+    ],
 }
 
 
@@ -234,9 +322,52 @@ def _novas_linhas_de_log(log_path: Path, offset: int, conversation_id: str) -> l
     return registros
 
 
-def _veredito(cenario: Cenario, logs: list[dict], resposta: str) -> tuple[str, list[str]]:
-    if cenario.resultado_vendas is None:
+def _veredito(
+    cenario: Cenario,
+    logs: list[dict],
+    resposta: str,
+    done: dict | None = None,
+    conversa: dict | None = None,
+) -> tuple[str, list[str]]:
+    verifica_algo = (
+        cenario.resultado_vendas is not None
+        or cenario.resposta_contem
+        or cenario.resposta_nao_contem
+        or cenario.resposta_contem_algum
+        or cenario.perfil_esperado
+        or cenario.historico_esperado is not None
+        or cenario.esperar_resumo
+    )
+    if not verifica_algo:
         return "—", []
+    problemas = _problemas_vendas(cenario, logs) if cenario.resultado_vendas is not None else []
+    problemas += [f"resposta sem {t!r}" for t in cenario.resposta_contem if t not in resposta]
+    problemas += [f"resposta com {t!r}" for t in cenario.resposta_nao_contem if t in resposta]
+    if cenario.resposta_contem_algum and not any(
+        t.lower() in resposta.lower() for t in cenario.resposta_contem_algum
+    ):
+        problemas.append(f"resposta sem nenhum de {cenario.resposta_contem_algum}")
+    if cenario.perfil_esperado:
+        obtido = (done or {}).get("perfil_usuario")
+        if obtido != cenario.perfil_esperado:
+            problemas.append(f"perfil={obtido!r}, esperado {cenario.perfil_esperado!r}")
+    if cenario.historico_esperado is not None or cenario.esperar_resumo:
+        if conversa is None:
+            problemas.append("GET /api/chat/conversations/{id} não devolveu a conversa")
+        else:
+            total = len(conversa.get("mensagens", []))
+            if cenario.historico_esperado is not None and total != cenario.historico_esperado:
+                problemas.append(
+                    f"{total} mensagens gravadas, esperado {cenario.historico_esperado}"
+                )
+            resumo = conversa.get("resumo") or ""
+            if cenario.esperar_resumo and not resumo:
+                problemas.append("resumo não foi gerado")
+            problemas += [f"resumo sem {t!r}" for t in cenario.resumo_contem if t not in resumo]
+    return ("PASSOU" if not problemas else "FALHOU"), problemas
+
+
+def _problemas_vendas(cenario: Cenario, logs: list[dict]) -> list[str]:
     consultas = [r for r in logs if r.get("message") == "vendas_catalogo_consulta"]
     problemas = []
     if cenario.resultado_vendas == "nenhum":
@@ -262,9 +393,29 @@ def _veredito(cenario: Cenario, logs: list[dict], resposta: str) -> tuple[str, l
             bloco = ultimo.get("bloco") or ""
             problemas += [f"bloco sem {t!r}" for t in cenario.bloco_contem if t not in bloco]
             problemas += [f"bloco com {t!r}" for t in cenario.bloco_nao_contem if t in bloco]
-    problemas += [f"resposta sem {t!r}" for t in cenario.resposta_contem if t not in resposta]
-    problemas += [f"resposta com {t!r}" for t in cenario.resposta_nao_contem if t in resposta]
-    return ("PASSOU" if not problemas else "FALHOU"), problemas
+    return problemas
+
+
+def _obter_conversa(cliente: httpx.Client, base_url: str, conversation_id: str) -> dict | None:
+    try:
+        resposta = cliente.get(f"{base_url}/api/chat/conversations/{conversation_id}")
+    except httpx.HTTPError:
+        return None
+    return resposta.json() if resposta.status_code == 200 else None
+
+
+def _esperar_resumo(
+    cliente: httpx.Client, base_url: str, conversation_id: str, limite_s: float = 120.0
+) -> float | None:
+    """O resumo roda em segundo plano depois do `done`; espera ele aparecer.
+    Devolve quanto tempo levou, ou None se não apareceu no prazo."""
+    inicio = time.perf_counter()
+    while time.perf_counter() - inicio < limite_s:
+        conversa = _obter_conversa(cliente, base_url, conversation_id)
+        if conversa and conversa.get("resumo"):
+            return time.perf_counter() - inicio
+        time.sleep(2)
+    return None
 
 
 def _rodar_cenario(
@@ -276,7 +427,16 @@ def _rodar_cenario(
     conversation_id = str(uuid.uuid4())
     logs_ultima: list[dict] = []
     texto_ultima = ""
+    done_ultima: dict | None = None
     for indice, mensagem in enumerate(cenario.mensagens, start=1):
+        if cenario.esperar_resumo and indice == len(cenario.mensagens):
+            espera = _esperar_resumo(cliente, base_url, conversation_id)
+            linhas.append(
+                f"_Resumo em segundo plano: pronto em {espera:.0f}s._"
+                if espera is not None
+                else "_Resumo em segundo plano: não apareceu em 120 s._"
+            )
+            linhas.append("")
         offset = log_path.stat().st_size if log_path.exists() else 0
         inicio = time.perf_counter()
         try:
@@ -294,6 +454,7 @@ def _rodar_cenario(
         logs = _novas_linhas_de_log(log_path, offset, conversation_id)
         logs_ultima = logs
         texto_ultima = texto
+        done_ultima = done
 
         linhas.append(f"**Mensagem {indice}:** {mensagem}")
         linhas.append("")
@@ -306,17 +467,30 @@ def _rodar_cenario(
                 f"classificador `{done.get('router_provider')}` · "
                 f"rag_retrieval_ms `{done.get('rag_retrieval_ms')}` · total {duracao:.1f}s"
             )
+            if done.get("perfil_usuario"):
+                linhas.append(
+                    f"- perfil `{done.get('perfil_usuario')}` ({done.get('perfil_motivo')})"
+                )
         linhas += ["", "Resposta do assistente:", "", "```text", texto.strip() or "(vazia)", "```"]
         consultas = [r for r in logs if r.get("message") != "router_decision"]
         if consultas:
-            linhas += ["", "Logs do backend (vendas/erros):", "", "```json"]
+            linhas += ["", "Logs do backend (vendas/memória/erros):", "", "```json"]
             for registro in consultas:
                 resumo = {k: v for k, v in registro.items() if k not in {"level", "logger"}}
                 linhas.append(json.dumps(resumo, ensure_ascii=False, indent=2))
             linhas.append("```")
         linhas.append("")
 
-    veredito, problemas = _veredito(cenario, logs_ultima, texto_ultima)
+    conversa = None
+    if cenario.historico_esperado is not None or cenario.esperar_resumo:
+        conversa = _obter_conversa(cliente, base_url, conversation_id)
+        if conversa is not None:
+            linhas.append(
+                f"- Conversa gravada: {len(conversa.get('mensagens', []))} mensagens · "
+                f"resumo: {conversa.get('resumo') or '(nenhum)'}"
+            )
+            linhas.append("")
+    veredito, problemas = _veredito(cenario, logs_ultima, texto_ultima, done_ultima, conversa)
     linhas.append(f"**Veredito automático:** {veredito}")
     linhas += [f"- {problema}" for problema in problemas]
     linhas.append("")
@@ -383,7 +557,14 @@ def main() -> int:
     relatorio += [
         "## 3. Observações do testador",
         "",
-        "<!-- Opcional: o que você viu no chat do navegador, algo estranho na resposta, etc. -->",
+        (
+            "<!-- Suíte memoria: teste também no navegador — converse no chat, feche e "
+            "reabra a página: as mensagens anteriores devem reaparecer (R9). No painel de "
+            "métricas (⚙️) de cada resposta aparece o Perfil (R10). -->"
+            if args.suite == "memoria"
+            else "<!-- Opcional: o que você viu no chat do navegador, algo estranho na "
+            "resposta, etc. -->"
+        ),
         "",
     ]
 
