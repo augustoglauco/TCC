@@ -20,6 +20,7 @@ from app.memory.store import (
     contar_mensagens,
     gravar_metricas,
     listar_mensagens,
+    registrar_email,
     registrar_troca,
 )
 from app.models.chat import (
@@ -56,7 +57,13 @@ from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
 from app.router.tone_monitor import criar_escalonamento
 from app.stt.whisper_client import SttClient, SttIndisponivelError
-from app.user_profile.classificacao import Classificacao, atualizar_perfil, extrair_email
+from app.user_profile.classificacao import (
+    RESPOSTA_SO_EMAIL,
+    Classificacao,
+    atualizar_perfil,
+    e_mensagem_so_de_email,
+    extrair_email,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +129,16 @@ async def _registrar_troca_segura(
             },
         )
     return classificacao
+
+
+async def _registrar_email_seguro(app_state, conversation_id: str, email: str) -> None:
+    """Guarda o e-mail na chegada da mensagem (R10). Mesma proteção de
+    `_carregar_contexto_seguro`; o e-mail nunca vai para o log."""
+    try:
+        async with app_state.db_sessionmaker() as session:
+            await registrar_email(session, conversation_id, email)
+    except Exception as exc:
+        _logar_memoria_indisponivel("registrar_email", exc)
 
 
 def _logar_memoria_indisponivel(operacao: str, exc: Exception) -> None:
@@ -400,6 +417,19 @@ async def send_message(
     contexto = await _carregar_contexto_seguro(request.app.state, conversation_id)
     recent_messages = contexto.mensagens_recentes
 
+    # R10: o e-mail é guardado já na chegada, antes do LLM — uma falha na
+    # resposta (ex.: 429 do modelo externo) não o perde.
+    email_na_mensagem = extrair_email(effective_message) if effective_message else None
+    if email_na_mensagem:
+        await _registrar_email_seguro(request.app.state, conversation_id, email_na_mensagem)
+        contexto.email = email_na_mensagem
+    # Mensagem que é só o e-mail: resposta fixa, sem LLM (ver abaixo).
+    so_email = (
+        not is_identificacao_imagem
+        and bool(effective_message)
+        and e_mensagem_so_de_email(effective_message)
+    )
+
     async def event_stream():
         # De novo aqui: o Starlette itera o corpo do `StreamingResponse` numa
         # task própria, e definir dentro do gerador não depende de como esse
@@ -455,6 +485,27 @@ async def send_message(
             yield _sse("done", done_data.model_dump())
             return
 
+        if so_email:
+            # Antes caía em `fora_escopo` e ia para o modelo externo (lento, com
+            # custo e sujeito a 429). A resposta não diz se o e-mail tem
+            # cadastro, para não permitir descobrir quem é cliente testando
+            # e-mails; o perfil sai só no painel de métricas.
+            yield _sse("token", {"text": RESPOSTA_SO_EMAIL})
+            done_data = ChatDoneEventData(
+                domain="atendimento", backend_used="resposta_fixa", escalation_reason="nenhum"
+            )
+            await _registrar_troca_segura(
+                request.app.state,
+                conversation_id,
+                effective_message,
+                RESPOSTA_SO_EMAIL,
+                "atendimento",
+                local_client,
+                done_data,
+            )
+            yield _sse("done", done_data.model_dump())
+            return
+
         # Texto completo da resposta, para gravar na memória da conversa.
         partes_resposta: list[str] = []
         try:
@@ -475,9 +526,7 @@ async def send_message(
                 resumo_conversa=contexto.resumo,
                 # R10: no pós-venda, sem e-mail conhecido (nem nesta
                 # mensagem), o assistente pede o e-mail usado na compra.
-                pedir_email_pos_venda=(
-                    contexto.email is None and extrair_email(effective_message) is None
-                ),
+                pedir_email_pos_venda=contexto.email is None,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})

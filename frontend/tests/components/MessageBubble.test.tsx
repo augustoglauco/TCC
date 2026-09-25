@@ -149,6 +149,25 @@ describe("MessageBubble", () => {
     expect(screen.getByText("(intenção de compra)")).toBeInTheDocument();
   });
 
+  it("resposta fixa (mensagem só com e-mail) aparece como sem LLM no painel", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Obrigado! Anotei o seu e-mail.",
+          domain: "atendimento",
+          backendUsed: "resposta_fixa",
+          metrics: { perfilUsuario: "esporadico" },
+        })}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Mostrar métricas da resposta" }));
+
+    expect(screen.getByText("Resposta fixa (sem LLM)")).toBeInTheDocument();
+  });
+
   it("não mostra a linha de perfil quando o perfil não vem no metrics", async () => {
     const user = userEvent.setup();
     render(

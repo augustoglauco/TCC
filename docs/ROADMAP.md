@@ -356,6 +356,10 @@ conversa e classificação do usuário").
       convite opcional para informar o e-mail junto com a pergunta (R10) —
       bolha só de interface (`WELCOME_MESSAGE` em `ChatModal.tsx`), pedido do
       desenvolvedor em 2026-09-25
+- [x] E-mail guardado na chegada da mensagem (não se perde se o LLM falhar)
+      e mensagem só com o e-mail respondida sem LLM (`resposta_fixa`, sem
+      revelar se há cadastro) — correções do teste local de 2026-09-25 (R6/R9
+      falharam com 429 do OpenRouter)
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 

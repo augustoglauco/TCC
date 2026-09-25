@@ -15,6 +15,7 @@ from app.user_profile.classificacao import (
     PERFIL_NAO_CLASSIFICADO,
     atualizar_perfil,
     classificar,
+    e_mensagem_so_de_email,
     extrair_email,
 )
 
@@ -148,3 +149,19 @@ async def test_email_sem_cadastro_e_sem_intencao_nao_classifica(factory):
     )
 
     assert c.perfil == PERFIL_NAO_CLASSIFICADO
+
+
+@pytest.mark.parametrize(
+    ("texto", "so_email"),
+    [
+        ("Sou bruno.unico@example.com", True),
+        ("meu e-mail é ana@example.com", True),
+        ("Oi, bom dia! Segue meu email: a@example.com.br, obrigado", True),
+        ("ana@example.com", True),
+        ("meu email é ana@example.com, quanto custa o GD-15?", False),
+        ("Quero um orçamento, meu e-mail é a@example.com", False),
+        ("Quanto custa o GD-15?", False),
+    ],
+)
+def test_e_mensagem_so_de_email(texto, so_email):
+    assert e_mensagem_so_de_email(texto) is so_email

@@ -242,9 +242,21 @@ SUITES: dict[str, list[Cenario]] = {
             nome="R9 — e-mail lembrado nas mensagens seguintes",
             mensagens=["Sou bruno.unico@example.com", "Quanto custa o gerador GD-60?"],
             esperado=(
-                "Na 2ª mensagem continua esporadico (o e-mail da 1ª fica na conversa), "
-                "apesar da intenção de compra."
+                "A 1ª mensagem (só o e-mail) recebe resposta fixa, sem LLM; na 2ª "
+                "continua esporadico (o e-mail fica na conversa), apesar da intenção "
+                "de compra."
             ),
+            perfil_esperado="esporadico",
+        ),
+        Cenario(
+            nome="R10 — mensagem só com o e-mail: resposta fixa, sem LLM",
+            mensagens=["Meu e-mail é carla.antiga@example.com"],
+            esperado=(
+                "Resposta fixa agradecendo (sem dizer se há cadastro), backend "
+                "resposta_fixa; perfil esporadico no painel."
+            ),
+            resposta_contem=["Anotei o seu e-mail"],
+            resposta_nao_contem=["cadastro"],
             perfil_esperado="esporadico",
         ),
     ],

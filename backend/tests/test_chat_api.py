@@ -30,6 +30,7 @@ from app.rag.image_search import ImageSearchResult
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
 from app.stt.whisper_client import SttIndisponivelError
+from app.user_profile.classificacao import RESPOSTA_SO_EMAIL
 from tests.conftest import _CommitFailingSession
 
 
@@ -679,6 +680,70 @@ def test_dependencia_indisponivel_gera_evento_de_erro(fakes):
     eventos = _parse_sse(response.text)
     assert eventos[-1][0] == "error"
     assert "temporariamente indisponível" in eventos[-1][1]["detail"]
+
+
+async def test_email_e_guardado_mesmo_quando_o_llm_falha(fakes):
+    # Cenário real do teste local (R9, 2026-09-25): o modelo externo deu 429
+    # e o e-mail da mensagem se perdia junto com a resposta.
+    class _FailingLLMClient:
+        async def generate(self, prompt: str) -> LLMResponse:
+            raise ConnectionError("429 Too Many Requests")
+
+        async def is_model_ready(self) -> bool:
+            return True
+
+        async def generate_stream(self, prompt: str):
+            raise ConnectionError("429 Too Many Requests")
+            yield  # pragma: no cover - necessário para ser um async generator
+
+    fakes["local"] = _FailingLLMClient()
+    fakes["external"] = _FailingLLMClient()
+    app = _build_app(fakes)
+    with TestClient(app) as test_client:
+        resposta = test_client.post(
+            "/api/chat/messages",
+            json={
+                "message": "Quero trocar uma peça, meu e-mail é carla.antiga@example.com",
+                "conversation_id": "conv-email-falha",
+            },
+        )
+
+    assert _parse_sse(resposta.text)[-1][0] == "error"
+    conversa = await fakes["db_session"].get(Conversa, "conv-email-falha")
+    assert conversa.email == "carla.antiga@example.com"
+
+
+def test_mensagem_so_com_email_tem_resposta_fixa_sem_llm(client, fakes):
+    resposta = client.post(
+        "/api/chat/messages",
+        json={"message": "Sou bruno.unico@example.com", "conversation_id": "conv-so-email"},
+    )
+
+    eventos = _parse_sse(resposta.text)
+    texto = "".join(dados["text"] for tipo, dados in eventos if tipo == "token")
+    assert texto == RESPOSTA_SO_EMAIL
+    done = _find(eventos, "done")
+    assert (done["backend_used"], done["domain"]) == ("resposta_fixa", "atendimento")
+    # Nenhum LLM chamado (nem classificador, nem monitor de tom, nem resposta).
+    assert fakes["local"].prompts == []
+    assert fakes["external"].prompts == []
+    # A troca fica no histórico, como qualquer outra.
+    historico = client.get("/api/chat/conversations/conv-so-email").json()["mensagens"]
+    assert [m["texto"] for m in historico] == ["Sou bruno.unico@example.com", RESPOSTA_SO_EMAIL]
+
+
+def test_email_ja_informado_nao_e_pedido_de_novo_no_pos_venda(client, fakes):
+    client.post(
+        "/api/chat/messages",
+        json={"message": "meu e-mail é ana.recorrente@example.com", "conversation_id": "conv-e1"},
+    )
+
+    client.post(
+        "/api/chat/messages",
+        json={"message": "meu gerador não funciona", "conversation_id": "conv-e1"},
+    )
+
+    assert "e-mail usado na compra" not in fakes["local"].prompts[-1]
 
 
 def test_mensagem_com_sinal_forte_emite_evento_escalonamento_antes_do_done(client):

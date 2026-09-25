@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ChatPerfilUsuario, ChatUIMessage } from "@/lib/types/chat";
+import type { ChatBackendUsed, ChatPerfilUsuario, ChatUIMessage } from "@/lib/types/chat";
 
 // MVP: rótulo de domínio é só um mapa fixo de texto — sem i18n nem vindo do
 // backend (ver docs/FRONTEND.md §3, "Indicador de domínio").
@@ -11,6 +11,13 @@ const DOMAIN_LABELS: Record<string, string> = {
   atendimento: "Atendimento ao Usuário",
   agendamento: "Agendamento",
   fora_escopo: "Fora de escopo",
+};
+
+const BACKEND_LABELS: Record<ChatBackendUsed, string> = {
+  local: "Local (Ollama)",
+  externo: "Cloud (OpenRouter)",
+  resposta_fixa: "Resposta fixa (sem LLM)",
+  identificacao_imagem: "Identificação por imagem",
 };
 
 // Classificação do visitante (R10, Fase 6).
@@ -170,7 +177,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 </div>
                 <div>
                   <span className="text-slate-400">Backend:</span>{" "}
-                  {message.backendUsed === "externo" ? "Cloud (OpenRouter)" : "Local (Ollama)"}
+                  {BACKEND_LABELS[message.backendUsed ?? "local"]}
                 </div>
                 {metrics?.routerProvider && (
                   <div>
