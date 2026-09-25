@@ -8,47 +8,38 @@ desenvolvedor**, e o resultado volta para o agente num arquivo só.
 
 ## O loop
 
-1. **Agente:** implementa no branch de trabalho, faz push e diz qual suíte
-   rodar (ex.: `--suite vendas`) e o que precisa ser confirmado.
-2. **Você:** atualiza o código e sobe a aplicação como de costume
-   (`goup.md`). O backend precisa logar em `/tmp/tcc-backend.log`, que já é o
-   padrão do `goup.md`.
+1. **Agente:** implementa no branch de trabalho, deixa o teste certo
+   configurado (`SUITE_ATUAL` em `backend/scripts/teste_local.py`), faz push
+   e pede "roda o teste".
+2. **Você:** na raiz do repositório, roda:
 
    ```bash
-   git fetch origin && git checkout <branch> && git pull
-   cd backend && uv sync --all-extras && uv run alembic upgrade head
-   # reinicie o backend (goup.md §5) para carregar o código novo
+   ./testar.sh
    ```
 
-3. **Você:** roda o roteiro, a partir de `backend/`:
+   Ele faz tudo sozinho:
+   1. `git pull` (para se houver alteração local sem commit);
+   2. `docker compose up -d`, `uv sync` e `alembic upgrade head`;
+   3. confere se o Ollama responde;
+   4. reinicia o backend na porta 8000, logando em `/tmp/tcc-backend.log`;
+   5. roda o roteiro (`ruff` + `pytest` + cenários de chat);
+   6. faz commit e push do relatório em `testes_locais/`.
 
-   ```bash
-   .venv/bin/python scripts/teste_local.py --suite vendas
-   ```
+   Não use o chat no navegador enquanto ele roda. Os logs do backend hoje
+   não carregam `conversation_id`, então o roteiro separa os logs de cada
+   cenário pela posição no arquivo, e mensagens de outra origem entrariam no
+   relatório.
+3. **Você:** avisa o agente: "rodei o teste".
+4. **Agente:** lê o relatório no branch, corrige o que falhou e volta ao
+   passo 1.
 
-   Opções úteis:
-   - `--sem-pytest`: pula ruff + pytest e roda só os cenários de chat.
-   - `--so V3`: roda só os cenários cujo nome começa com `V3`.
-   - `--base-url` / `--log`: se o backend estiver em outra porta ou logando
-     em outro arquivo.
+**Primeira vez:** o `testar.sh` testa o branch em que você está. Antes da
+primeira execução, entre no branch de trabalho do agente
+(`git fetch origin && git checkout <branch>`).
 
-   Não use o chat no navegador enquanto o roteiro roda. Os logs do backend
-   hoje não carregam `conversation_id`, então o roteiro separa os logs de
-   cada cenário pela posição no arquivo, e mensagens de outra origem
-   entrariam no relatório.
-
-4. **Você:** devolve o relatório gerado em
-   `testes_locais/AAAAMMDD-HHMM-<suite>.md` de uma destas formas:
-   - cola o conteúdo no chat com o agente; ou
-   - commita e dá push no mesmo branch
-     (`git add testes_locais && git commit -m "test: resultado local" && git push`),
-     e o agente lê o arquivo de lá.
-
-   A seção "Observações do testador", no fim do arquivo, é para o que você
-   viu e o roteiro não captura: a cara da resposta no navegador, lentidão,
-   algo estranho.
-
-5. **Agente:** lê o relatório, corrige o que falhou e volta ao passo 1.
+Opções, repassadas ao roteiro: `./testar.sh --sem-pytest` pula ruff +
+pytest; `./testar.sh --so V3` roda só um cenário; `./testar.sh --suite <nome>`
+roda outra suíte.
 
 ## O que o relatório contém
 
@@ -78,7 +69,8 @@ local, os vereditos que conferem números podem falhar sem que o código esteja
 errado. Nesse caso, anote nas observações.
 
 Novas suítes entram no dicionário `SUITES` de `backend/scripts/teste_local.py`
-e numa linha desta tabela, na mesma tarefa que implementa a funcionalidade.
+e numa linha desta tabela, na mesma tarefa que implementa a funcionalidade. O
+agente aponta `SUITE_ATUAL` para a suíte que o próximo `./testar.sh` deve rodar.
 
 `# MVP: roteiro de apoio ao teste manual, não avaliação experimental — a
 avaliação do TCC continua em eval/ (docs/EVALUATION.md).`
