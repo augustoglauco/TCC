@@ -50,10 +50,10 @@ class ImageSearchResult(BaseModel):
 
 
 def rerank_image_results(
-    results: list["ImageSearchResult"],
+    results: list[ImageSearchResult],
     query_domain: str | None,
     top_k: int,
-) -> list["ImageSearchResult"]:
+) -> list[ImageSearchResult]:
     """Reordena resultados de busca por imagem e corta para `top_k`.
 
     Reranking básico (Fase 3): mantém a ordem por score do CLIP, mas dá um
@@ -64,7 +64,7 @@ def rerank_image_results(
     reordena por score decrescente (estável) e corta.
     """
 
-    def sort_key(item: "ImageSearchResult") -> float:
+    def sort_key(item: ImageSearchResult) -> float:
         bonus = (
             _RERANK_DOMAIN_BONUS
             if query_domain is not None and item.domain == query_domain
