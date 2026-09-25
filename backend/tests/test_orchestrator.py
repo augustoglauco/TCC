@@ -17,6 +17,7 @@ from app.router.orchestrator import (
     RouterDecision,
     StatusEvent,
     TokenEvent,
+    _formatar_dados_catalogo_vendas,
     handle_message,
 )
 from app.router.rag_client import Document, RAGConnectionError
@@ -1048,6 +1049,29 @@ async def test_rag_indisponivel_propaga_erro_sem_fallback_para_externo():
     assert external_client.calls == 0
 
 
+async def test_rag_indisponivel_loga_tipo_e_mensagem_da_excecao(caplog):
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(exception=RAGConnectionError("qdrant fora do ar"))
+
+    with caplog.at_level(logging.ERROR, logger="app.router.orchestrator"):
+        with pytest.raises(RAGConnectionError):
+            await _coletar_eventos(
+                "Qual o preço desse produto?",
+                recent_messages=[],
+                local_client=local_client,
+                external_client=external_client,
+                rag_client=rag_client,
+                complexity_strategy="heuristic",
+            )
+
+    registros = [r for r in caplog.records if r.getMessage() == "rag_indisponivel"]
+    assert len(registros) == 1
+    router = registros[0].router
+    assert router["tipo"] == "RAGConnectionError"
+    assert router["erro"] == "qdrant fora do ar"
+
+
 async def test_ollama_indisponivel_nao_faz_fallback_para_externo():
     local_client = _FakeLLMClient(exception=ConnectionError("ollama fora do ar"))
     external_client = _FakeLLMClient(response=_resposta_externa())
@@ -1505,6 +1529,36 @@ async def test_vendas_com_produto_identificado_injeta_dados_do_catalogo_no_promp
     # Confirma que os slots extraídos (produto_id/produto_relacionado_id/
     # quantidade) foram de fato repassados a `consultar_detalhes`.
     assert sales_catalog_client.detalhes_consultados == [(1, None, 2)]
+
+
+def test_formatar_dados_catalogo_vendas_sem_desconto_omite_percentual():
+    dados = DadosCatalogoVendas(
+        produto_nome="Gerador Diesel GD-15",
+        estoque_total=8,
+        cotacao=(Decimal("24900.00"), Decimal("0"), Decimal("49800.00")),
+        quantidade=2,
+    )
+
+    texto = _formatar_dados_catalogo_vendas(dados)
+
+    assert "- Cotação para 2 unidade(s): R$ 49800.00" in texto
+    assert "desconto" not in texto
+
+
+def test_formatar_dados_catalogo_vendas_com_desconto_mostra_percentual():
+    dados = DadosCatalogoVendas(
+        produto_nome="Gerador Diesel GD-15",
+        estoque_total=8,
+        cotacao=(Decimal("100.00"), Decimal("10.00"), Decimal("900.00")),
+        quantidade=10,
+    )
+
+    texto = _formatar_dados_catalogo_vendas(dados)
+
+    assert (
+        "- Cotação para 10 unidade(s): R$ 900.00 "
+        "(10.00% de desconto aplicado sobre R$ 100.00/unidade)"
+    ) in texto
 
 
 async def test_vendas_sem_sales_catalog_client_comportamento_identico_ao_atual():

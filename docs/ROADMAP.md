@@ -285,8 +285,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `app.router.sales_catalog` (`SalesCatalogClient`, two-stage resolution:
       candidates por SQL + LLM choice), desambiguação por LLM necessária por
       catálogo ~1000 produtos (spec §2), chamada direta a `app.db.catalog` no mesmo
-      processo (spec §4). Injeção de dependência wired em `main.py` + `chat.py` +
-      `test_chat_api.py`. Ver `docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
+      processo (spec §4). Injeção de dependência em `main.py` + `chat.py`
+      (+ `test_chat_api.py`/`test_main_app.py`). Ver decisão registrada em
+      `docs/ARCHITECTURE.md` §5 e
+      `docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
 - [ ] Garantir e documentar que autenticação por parceiro e exposição
       pública **não** fazem parte do MVP
       (`# MVP: uso interno, sem autenticação por parceiro`)
