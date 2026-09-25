@@ -95,9 +95,10 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 
 - Integração com CRM.
 - Fine-tuning de modelo, otimização de latência em produção.
-- Exposição pública do MCP B2B a parceiros externos reais (autenticação por
-  parceiro, OAuth, rate limiting, auditoria completa) — a versão do MVP é
-  interna, sem autenticação por parceiro.
+- Autorização de produção do MCP B2B (OAuth, permissões por ferramenta,
+  rate limiting, auditoria completa, expiração/rotação de chaves). O MVP
+  expõe o MCP B2B publicamente só com uma chave estática por parceiro, via
+  HTTPS (decisão de 2026-09-25, `docs/ARCHITECTURE.md` §6).
 - Integração real com fila de atendimento humano e sistema de ticketing.
 - Reagendamento/cancelamento de visita, checagem de disponibilidade em
   múltiplas agendas.
