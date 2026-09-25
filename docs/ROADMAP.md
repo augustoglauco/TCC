@@ -322,10 +322,20 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 ## Fase 6 — Memória e Classificação do Usuário (R9, R10)
 
-- [ ] Implementar persistência da conversa por ID único
+Decisões de 2026-09-25 em `docs/ARCHITECTURE.md` §5 ("Fase 6, memória da
+conversa e classificação do usuário").
+
+- [ ] Implementar persistência da conversa por ID único — tabelas
+      `conversas`/`conversa_mensagens` no Postgres (mensagens do cliente e
+      do assistente), gravadas antes do evento `done`
 - [ ] Implementar resumo automático periódico da conversa (não só ao final)
+      — a cada 6 mensagens, em segundo plano, com o resumo no prompt
+- [ ] Retomar a conversa no widget — `GET /api/chat/conversations/{id}/messages`
+      e carregamento ao abrir o chat
 - [ ] Implementar heurística inicial de classificação Cliente/Lead/Esporádico
-      com base em histórico de compras/perguntas
+      com base em histórico de compras/perguntas — base de clientes fictícia,
+      e-mail captado no momento natural (pós-venda, agendamento), perfil no
+      evento `done` e no painel de métricas
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 
