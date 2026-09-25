@@ -452,6 +452,29 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       vírgula (antes só `http://localhost:3001`) — ver
       `docs/FRONTEND.md` §4. Commits `412c053`, `d7f0e4a`, `ab9c468`,
       `7d8426b`.
+- [ ] Achados menores do code-review parqueados na entrega das ferramentas
+      MCP B2B (2026-09-24), não corrigidos ainda:
+      1. `RagSearchConfigSection` (`frontend/app/admin/ingestao/page.tsx`)
+         engole silenciosamente erro no carregamento inicial de
+         `getRuntimeSettings()` — o toggle de isolamento de domínio do RAG
+         (`rag_search_domain_fallback`) renderiza desmarcado sem indicar se
+         é o valor real ou uma falha de rede; não chama `onError` como os
+         demais loaders do mesmo formulário. Sem cobertura de teste (o
+         teste antigo desse controle foi removido junto da reorganização
+         do form, sem substituto na página que passou a hospedá-lo).
+      2. Os 4 handlers de tool novos em `app.mcp_server.b2b`
+         (`validar_compatibilidade`/`consultar_frete`/`cotar`/
+         `reservar_pedido`) duplicam entre si o mesmo bloco "produto não
+         encontrado" + `try/except SQLAlchemyError → ToolError" — mesmo
+         padrão já duplicado 3x nos 4 resources de leitura desta fase, sem
+         um helper compartilhado.
+      3. `FreteItemIn`/`CotacaoItemIn`/`PedidoItemIn`
+         (`app/models/mcp_b2b.py`) redeclaram cada uma o mesmo par
+         `produto_id: int` / `quantidade: int = Field(gt=0)` em vez de um
+         schema base comum.
+      Todos de baixa severidade (estilo/robustez, não correção); avaliar
+      se compensa corrigir junto de um item maior desta fase ou como
+      tarefa isolada.
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
