@@ -100,9 +100,7 @@ def test_pull_dispara_download_e_devolve_202_na_hora():
                 completed=1000,
                 error=None,
             ),
-            PullProgressLine(
-                status="success", digest=None, total=None, completed=None, error=None
-            ),
+            PullProgressLine(status="success", digest=None, total=None, completed=None, error=None),
         ],
     )
     progress_store: dict = {}
@@ -129,9 +127,7 @@ async def test_pull_atualiza_o_progresso_ate_done():
                 completed=500,
                 error=None,
             ),
-            PullProgressLine(
-                status="success", digest=None, total=None, completed=None, error=None
-            ),
+            PullProgressLine(status="success", digest=None, total=None, completed=None, error=None),
         ],
     )
     progress_store: dict = {}
@@ -203,9 +199,7 @@ async def test_pull_concluido_remove_a_tarefa_do_set_de_referencias_fortes():
     ollama.programar_pull(
         "modelo-referencia-forte",
         [
-            PullProgressLine(
-                status="success", digest=None, total=None, completed=None, error=None
-            ),
+            PullProgressLine(status="success", digest=None, total=None, completed=None, error=None),
         ],
     )
     progress_store: dict = {}
