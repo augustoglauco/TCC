@@ -22,9 +22,11 @@ desenvolvedor**, e o resultado volta para o agente num arquivo só.
       arquivo versionado; arquivos soltos não atrapalham);
    2. `docker compose up -d`, `uv sync` e `alembic upgrade head`;
    3. confere se o Ollama responde;
-   4. reinicia o backend (porta 8000, log em `/tmp/tcc-backend.log`) e o
-      MCP B2B (porta 8100, log em `/tmp/tcc-mcp-b2b.log`), e inicia o Caddy
-      (porta 8443) se ele não estiver no ar e estiver configurado;
+   4. reinicia o backend (porta 8000, log em `/tmp/tcc-backend.log`), o
+      MCP B2B (porta 8100, log em `/tmp/tcc-mcp-b2b.log`) e o frontend
+      (porta 3001, log em `/tmp/tcc-frontend.log`, com `npm install` antes),
+      e inicia o Caddy (porta 8443) se ele não estiver no ar e estiver
+      configurado;
    5. roda o roteiro (`ruff` + `pytest` + a suíte `SUITE_ATUAL`);
    6. faz commit e push do relatório em `testes_locais/`, atualizando e
       tentando de novo se o branch remoto mudou durante o teste.
