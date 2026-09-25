@@ -1537,6 +1537,45 @@ async def test_vendas_com_produto_identificado_injeta_dados_do_catalogo_no_promp
     assert sales_catalog_client.detalhes_consultados == [(1, None, 2)]
 
 
+async def test_resumo_da_conversa_vai_para_o_prompt_antes_do_rag():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+
+    await _coletar_eventos(
+        "E se eu levar 3?",
+        recent_messages=["Quero comprar um gerador GD-30"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        resumo_conversa="Cliente quer comprar o gerador GD-30.",
+    )
+
+    prompt = local_client.last_prompt
+    assert "Cliente quer comprar o gerador GD-30." in prompt
+    assert prompt.index("Resumo da conversa até aqui") < prompt.index("Informações recuperadas")
+
+
+async def test_sem_resumo_o_prompt_nao_tem_o_bloco():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+
+    await _coletar_eventos(
+        "Qual o preço do gerador?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+    )
+
+    assert "Resumo da conversa" not in local_client.last_prompt
+
+
 def test_formatar_dados_catalogo_vendas_sem_desconto_omite_percentual():
     dados = DadosCatalogoVendas(
         produto_nome="Gerador Diesel GD-15",

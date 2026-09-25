@@ -21,6 +21,7 @@ from app.api.chat import (
     get_tone_monitor_enabled,
 )
 from app.api.chat import router as chat_router
+from app.db.models import Conversa
 from app.logging_config import ConversationIdFilter
 from app.memory.store import listar_mensagens
 from app.rag.image_search import ImageSearchResult
@@ -369,6 +370,19 @@ async def test_troca_fica_gravada_na_memoria_da_conversa(client, fakes):
         ("cliente", "quero agendar uma visita", None),
         ("assistente", "resposta local", "agendamento"),
     ]
+
+
+async def test_resumo_da_conversa_entra_no_prompt(client, fakes):
+    fakes["db_session"].add(Conversa(id="conv-resumo-1", resumo="Cliente quer 2 geradores GD-15."))
+    await fakes["db_session"].commit()
+
+    client.post(
+        "/api/chat/messages",
+        json={"message": "quero agendar uma visita", "conversation_id": "conv-resumo-1"},
+    )
+
+    assert "Resumo da conversa até aqui" in fakes["local"].prompts[-1]
+    assert "Cliente quer 2 geradores GD-15." in fakes["local"].prompts[-1]
 
 
 def test_banco_fora_do_ar_nao_derruba_a_resposta(fakes, caplog):
