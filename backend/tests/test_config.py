@@ -66,3 +66,9 @@ def test_cors_allowed_origins_faz_split_por_virgula_e_ignora_espacos():
         "http://localhost:3001",
         "http://192.168.1.200:3001",
     ]
+
+
+def test_mcp_b2b_escuta_so_na_propria_maquina_por_padrao():
+    # MVP: sem autenticação por parceiro — 0.0.0.0 exporia as ferramentas
+    # transacionais do MCP B2B para toda a rede (docs/ARCHITECTURE.md §6).
+    assert Settings(_env_file=None).mcp_b2b_host == "127.0.0.1"

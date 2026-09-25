@@ -74,6 +74,8 @@ repo/
 │   ├── tests/
 │   ├── .env.example
 │   └── pyproject.toml
+├── infra/
+│   └── caddy/               # proxy HTTPS público do MCP B2B (Caddyfile + caddy.env.example)
 └── frontend/                # ver estrutura detalhada em docs/FRONTEND.md §5
     ├── app/
     ├── components/

@@ -32,3 +32,6 @@ frontend/build/
 .antigravitycli/
 install.cmd
 %NVM_HOME%PATH.txt
+
+# Segredos do Caddy (token do DuckDNS)
+infra/caddy/caddy.env

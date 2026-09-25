@@ -37,9 +37,7 @@ def upgrade() -> None:
         "produto_compatibilidades",
         sa.Column("id", sa.Uuid(), primary_key=True),
         sa.Column("produto_id", sa.Integer(), sa.ForeignKey("produtos.id"), nullable=False),
-        sa.Column(
-            "compativel_com_id", sa.Integer(), sa.ForeignKey("produtos.id"), nullable=False
-        ),
+        sa.Column("compativel_com_id", sa.Integer(), sa.ForeignKey("produtos.id"), nullable=False),
     )
     op.create_index(
         "ix_produto_compatibilidades_produto_id", "produto_compatibilidades", ["produto_id"]

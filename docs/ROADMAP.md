@@ -175,7 +175,9 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       defesa em profundidade em `ActiveCollectionRagClient.search`). Só a
       **ingestão + isolamento** (metade 1); o **consumo** dessa collection
       pelo servidor MCP B2B fica na Fase 5 (R12). Segue fora do MVP:
-      autenticação por parceiro, isolamento multi-tenant, exposição pública.
+      autenticação por parceiro, isolamento multi-tenant, exposição pública
+      (revisto em 2026-09-25: exposição com chave por parceiro entrou no
+      MVP, ver Fase 5).
       Ver `docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md`.
 
 ## Extra fora do MVP — Gerenciador de Modelos Locais (Ollama)
@@ -298,9 +300,25 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (+ `test_chat_api.py`/`test_main_app.py`). Ver decisão registrada em
       `docs/ARCHITECTURE.md` §5 e
       `docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
-- [ ] Garantir e documentar que autenticação por parceiro e exposição
-      pública **não** fazem parte do MVP
-      (`# MVP: uso interno, sem autenticação por parceiro`)
+- [x] ~~Garantir e documentar que autenticação por parceiro e exposição
+      pública **não** fazem parte do MVP~~ — **revisto em 2026-09-25**: o
+      fornecedor está fora da rede local, então o MCP B2B precisa de
+      exposição pública. Substituído pelo item abaixo. Deste item ficou o
+      padrão `MCP_B2B_HOST=127.0.0.1`: o acesso externo passa pelo proxy
+      HTTPS, nunca direto na porta 8100.
+- [x] Expor o MCP B2B publicamente com chave por parceiro — DuckDNS +
+      Caddy (HTTPS, porta 8443) na frente do servidor em `127.0.0.1:8100`;
+      `Authorization: Bearer <chave>` verificado pelo `TokenVerifier` do SDK
+      (`MCP_B2B_PARTNER_KEYS`, várias chaves com nome); servidor não sobe
+      sem chave; log `mcp_b2b_ferramenta` com o parceiro de cada chamada.
+      Código e testes em `app.mcp_server.auth`, `tests/test_mcp_b2b_auth.py`,
+      `infra/caddy/` e suíte `mcp_b2b`. Validado na máquina real em
+      2026-09-25 (`testes_locais/20260925-1208-mcp_b2b.md`, 6/6): 401 sem
+      chave e com chave errada, sessão MCP completa com a chave, porta 8100
+      fechada para a rede, HTTPS do Caddy e a URL pública DuckDNS
+      respondendo (o roteador tem NAT loopback, então o caminho pelo
+      roteador foi testado de dentro da rede).
+      Ver decisão em `docs/ARCHITECTURE.md` §6
 
 ## Fase 6 — Memória e Classificação do Usuário (R9, R10)
 
@@ -550,8 +568,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 
 - Integração com CRM.
 - Fine-tuning de modelo e otimização de latência em produção.
-- Exposição pública do MCP B2B a parceiros externos reais (autenticação,
-  OAuth, rate limiting, auditoria completa).
+- Autorização de produção do MCP B2B: OAuth, permissões por ferramenta,
+  rate limiting, auditoria completa, expiração/rotação de chaves (a
+  exposição pública com chave estática por parceiro entrou no MVP em
+  2026-09-25, ver `docs/ARCHITECTURE.md` §6).
 - Integração real com fila de atendimento humano e sistema de ticketing.
 - Reagendamento/cancelamento de visita e checagem de disponibilidade em
   múltiplas agendas.

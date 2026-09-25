@@ -62,9 +62,7 @@ async def _consumir_pull(ollama: OllamaClient, name: str, progress_store: dict[s
                     "percent": None,
                     "detail": linha.error,
                 }
-                logger.warning(
-                    "local_model_pull_erro nome=%s erro=%s", name, linha.error
-                )
+                logger.warning("local_model_pull_erro nome=%s erro=%s", name, linha.error)
                 return
             if linha.status == "success":
                 sucesso_confirmado = True
@@ -119,9 +117,7 @@ async def activate_model_endpoint(
 ) -> None:
     modelos = await ollama.list_local_models()
     if body.name not in {modelo.name for modelo in modelos}:
-        raise HTTPException(
-            status_code=404, detail="Modelo não encontrado entre os já baixados."
-        )
+        raise HTTPException(status_code=404, detail="Modelo não encontrado entre os já baixados.")
     ollama.model = body.name
 
 
@@ -147,7 +143,5 @@ async def pull_status_endpoint(
 ) -> PullStatusResponse:
     estado = progress_store.get(name)
     if estado is None:
-        raise HTTPException(
-            status_code=404, detail="Nenhum download iniciado para esse modelo."
-        )
+        raise HTTPException(status_code=404, detail="Nenhum download iniciado para esse modelo.")
     return PullStatusResponse(**estado)
