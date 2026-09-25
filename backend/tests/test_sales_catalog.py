@@ -65,6 +65,11 @@ def test_extrair_termos_busca_mensagem_sem_termos_significativos_devolve_lista_v
     assert extrair_termos_busca("Oi, tudo bem?") == []
 
 
+def test_extrair_termos_busca_preserva_codigos_de_produto_com_digitos():
+    termos = extrair_termos_busca("Preciso do GD-15")
+    assert "15" in termos
+
+
 async def test_buscar_candidatos_encontra_por_nome(factory):
     async with factory() as session:
         await _cria_produto(session, nome="Gerador Diesel GD-15")
@@ -145,6 +150,7 @@ async def test_consultar_detalhes_com_quantidade_calcula_cotacao(factory):
     dados = await client.consultar_detalhes(produto_id, None, 10)
 
     assert dados.cotacao == (Decimal("100.00"), Decimal("10.00"), Decimal("900.00"))
+    assert dados.quantidade == 10
 
 
 async def test_consultar_detalhes_com_produto_relacionado_compativel(factory):

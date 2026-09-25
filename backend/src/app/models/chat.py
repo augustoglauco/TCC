@@ -98,7 +98,12 @@ class ChatDoneEventData(BaseModel):
         default=None, description="Custo estimado da requisição em USD."
     )
     rag_retrieval_ms: float | None = Field(
-        default=None, description="Tempo de busca vetorial no RAG em ms."
+        default=None,
+        description=(
+            "Tempo do bloco de recuperação em ms — busca RAG e, em mensagens "
+            "de Vendas com integração do catálogo, a consulta de vendas "
+            "concorrente (as duas rodam em paralelo)."
+        ),
     )
     rag_chunks_count: int | None = Field(
         default=None, description="Quantidade de chunks recuperados do RAG."

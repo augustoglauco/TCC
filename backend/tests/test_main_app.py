@@ -9,6 +9,7 @@ from app.mcp_client.google_calendar import GoogleCalendarMCPClient
 from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import QdrantRAGClient
+from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
 
 
@@ -76,3 +77,8 @@ def test_create_app_monta_o_cliente_de_calendario_e_config_de_agendamento():
     assert isinstance(app.state.calendar_client, GoogleCalendarMCPClient)
     assert isinstance(app.state.scheduling_config, SchedulingConfig)
     assert app.state.scheduling_config.timezone == "America/Sao_Paulo"
+
+
+def test_create_app_monta_o_sales_catalog_client():
+    app = create_app()
+    assert isinstance(app.state.sales_catalog_client, SalesCatalogClient)

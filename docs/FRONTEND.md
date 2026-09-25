@@ -243,7 +243,9 @@ data: {
   "confidence": 0.92,
   "complexity": "baixa",
   "estimated_cost_usd": 0.0,
-  "rag_retrieval_ms": 38.3,
+  "rag_retrieval_ms": 38.3,        // tempo do bloco de recuperação — busca RAG e, em Vendas com
+                                    // integração do catálogo (R12), a consulta de vendas
+                                    // concorrente (as duas rodam em paralelo, ver docs/ARCHITECTURE.md §5)
   "rag_chunks_count": 3,
   "rag_avg_score": 0.71,
 

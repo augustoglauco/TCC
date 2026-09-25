@@ -3,6 +3,7 @@ import logging
 import time
 from collections.abc import AsyncIterator
 from datetime import datetime
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel
@@ -152,10 +153,12 @@ def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
     linhas.append(f"- Estoque disponível: {dados.estoque_total} unidade(s)")
     if dados.cotacao is not None:
         preco_unitario, percentual, subtotal = dados.cotacao
-        linhas.append(
-            f"- Cotação: R$ {subtotal} "
-            f"({percentual}% de desconto aplicado sobre R$ {preco_unitario}/unidade)"
-        )
+        linha_cotacao = f"- Cotação para {dados.quantidade} unidade(s): R$ {subtotal}"
+        if percentual > Decimal("0"):
+            linha_cotacao += (
+                f" ({percentual}% de desconto aplicado sobre R$ {preco_unitario}/unidade)"
+            )
+        linhas.append(linha_cotacao)
     if dados.compativel is not None:
         compat_texto = "sim" if dados.compativel else "não"
         linhas.append(f"- Compatível com {dados.produto_relacionado_nome}: {compat_texto}")
@@ -682,9 +685,17 @@ async def handle_message(
                         )
                     )
         except* Exception as eg:
+            exc = eg.exceptions[0]
             logger.error(
                 "rag_indisponivel",
-                extra={"router": {"event": "rag_indisponivel", "domain": classification.domain}},
+                extra={
+                    "router": {
+                        "event": "rag_indisponivel",
+                        "domain": classification.domain,
+                        "tipo": type(exc).__name__,
+                        "erro": str(exc),
+                    }
+                },
             )
             # `except* Exception` (não `except* RAGConnectionError`): hoje só
             # `RAGConnectionError` escapa daqui (`_consultar_vendas` nunca
@@ -694,15 +705,17 @@ async def handle_message(
             # sairia como `ExceptionGroup` não-encapsulado em vez do tipo
             # original, quebrando quem espera `except RAGConnectionError` (ou
             # qualquer outro `except` específico) em volta de
-            # `handle_message`.
-            # `raise eg.exceptions[0]` (não um `raise` nu) para propagar a
-            # exceção original, não um ExceptionGroup — chamadores de
-            # handle_message ainda esperam o tipo original (hoje sempre
-            # RAGConnectionError na prática).
+            # `handle_message`. Por isso o log acima precisa registrar
+            # `tipo`/`erro` explicitamente — sem eles, qualquer exceção que não
+            # seja `RAGConnectionError` ficaria muda no log estruturado.
+            # `raise exc` (não um `raise` nu) para propagar a exceção
+            # original, não um ExceptionGroup — chamadores de handle_message
+            # ainda esperam o tipo original (hoje sempre RAGConnectionError na
+            # prática).
             # `from None` só suprime o encadeamento implícito do
             # ExceptionGroup no traceback (B904); não afeta o tipo/identidade
             # da exceção relançada.
-            raise eg.exceptions[0] from None
+            raise exc from None
 
         documentos = rag_task.result()
         if vendas_task is not None:

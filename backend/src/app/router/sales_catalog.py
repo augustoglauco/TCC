@@ -44,16 +44,17 @@ class DadosCatalogoVendas(BaseModel):
     produto_nome: str
     estoque_total: int
     cotacao: tuple[Decimal, Decimal, Decimal] | None = None
+    quantidade: int | None = None
     produto_relacionado_nome: str | None = None
     compativel: bool | None = None
 
 
-# Etapa 1 (spec §2): tokenização simples da mensagem do cliente para reduzir
-# o catálogo (potencialmente ~1000 produtos) a um punhado de candidatos
-# plausíveis, antes de qualquer chamada LLM. Heurística de MVP, não NLP de
-# verdade — reaproveita `app.router.classifier.normalize` (minúsculas, sem
-# acentos) em vez de uma terceira implementação de normalização de texto no
-# projeto.
+# MVP: tokenização simples da mensagem do cliente (etapa 1, spec §2) para
+# reduzir o catálogo (potencialmente ~1000 produtos) a um punhado de
+# candidatos plausíveis, antes de qualquer chamada LLM — heurística de MVP,
+# não NLP de verdade. Reaproveita `app.router.classifier.normalize`
+# (minúsculas, sem acentos) em vez de uma terceira implementação de
+# normalização de texto no projeto.
 _STOPWORDS = frozenset(
     {
         "de", "da", "do", "das", "dos", "em", "no", "na", "nos", "nas",
@@ -61,33 +62,51 @@ _STOPWORDS = frozenset(
         "voces", "voce", "preciso", "queria", "quero", "gostaria", "ola",
         "favor", "obrigado", "obrigada", "bom", "boa", "dia", "tarde",
         "noite", "quanto", "custa", "custam", "sobre", "tenho", "onde",
-        "quando", "como", "tudo", "bem",
+        "quando", "como", "tudo", "bem", "cotacao", "estoque", "preco",
+        "disponivel",
     }
 )
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 
+# Etapa 1 (spec §8): teto de candidatos devolvidos por `buscar_candidatos`
+# antes da desambiguação por LLM (etapa 2) — nome explícito no módulo por
+# ser o mesmo valor citado na spec, não um "10" mágico solto na assinatura.
+_SALES_CANDIDATOS_LIMITE = 10
+
 
 def extrair_termos_busca(message: str) -> list[str]:
     """Extrai palavras significativas da mensagem (minúsculas, sem acentos,
     sem pontuação) para a busca de candidatos — descarta palavras com 2
-    caracteres ou menos e a stopword list acima."""
+    caracteres ou menos e a stopword list acima.
+
+    # MVP: exceção à regra de tamanho — qualquer token com dígito (ex.: "15"
+    # em "GD-15") é mantido mesmo com 2 caracteres ou menos, porque dígito é
+    # justamente o que torna um token parecido com código de produto (SKU) e
+    # vale a pena preservar para a busca, ao contrário de uma palavra curta
+    # qualquer sem dígito.
+    """
     termos_normalizados = _TOKEN_RE.findall(normalize(message))
-    return [termo for termo in termos_normalizados if len(termo) > 2 and termo not in _STOPWORDS]
+    return [
+        termo
+        for termo in termos_normalizados
+        if (len(termo) > 2 or any(c.isdigit() for c in termo)) and termo not in _STOPWORDS
+    ]
 
 
+# MVP: chama `app.db.catalog` diretamente, no mesmo processo — não abre uma
+# conexão MCP real contra o `mcp-b2b-server` separado (spec §4).
 class SalesCatalogClient:
     """Injetado em `handle_message` (mesmo padrão opcional de
     `calendar_client`/`scheduling_config`) — construído uma vez em
     `app.main` a partir do `db_sessionmaker` já existente, igual a
-    `create_b2b_mcp_server(session_factory, ...)`. Chama `app.db.catalog`
-    diretamente, no mesmo processo (spec §4) — não abre conexão MCP real."""
+    `create_b2b_mcp_server(session_factory, ...)`."""
 
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]) -> None:
         self._session_factory = session_factory
 
     async def buscar_candidatos(
-        self, termos: list[str], limite: int = 10
+        self, termos: list[str], limite: int = _SALES_CANDIDATOS_LIMITE
     ) -> list[CandidatoProduto]:
         """`OR` de `ILIKE '%termo%'` contra `Produto.nome`/`Produto.categoria`
         por termo, `LIMIT limite`. Sem ranking por relevância — a
@@ -130,6 +149,10 @@ class SalesCatalogClient:
             estoques = await listar_estoque(session, produto_id)
             estoque_total = sum(estoque.quantidade for estoque in estoques)
             cotacao = None
+            # MVP: quantidade do LLM usada sem faixa de sanidade (valor
+            # não-numérico já é descartado inteiro em extract_sales_slots,
+            # via ValidationError, antes de chegar aqui; valores <=0 ou muito
+            # grandes não são validados).
             if quantidade is not None and quantidade > 0:
                 cotacao = calcular_item_cotacao(produto, quantidade)
             produto_relacionado_nome = None
@@ -143,6 +166,7 @@ class SalesCatalogClient:
                 produto_nome=produto.nome,
                 estoque_total=estoque_total,
                 cotacao=cotacao,
+                quantidade=quantidade,
                 produto_relacionado_nome=produto_relacionado_nome,
                 compativel=compativel,
             )

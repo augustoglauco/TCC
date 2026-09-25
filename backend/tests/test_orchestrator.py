@@ -1482,6 +1482,7 @@ async def test_vendas_com_produto_identificado_injeta_dados_do_catalogo_no_promp
         produto_nome="Gerador Diesel GD-15",
         estoque_total=8,
         cotacao=(Decimal("24900.00"), Decimal("0"), Decimal("49800.00")),
+        quantidade=2,
         produto_relacionado_nome=None,
         compativel=None,
     )
@@ -1501,6 +1502,9 @@ async def test_vendas_com_produto_identificado_injeta_dados_do_catalogo_no_promp
     assert "Dados do catálogo interno" in local_client.last_prompt
     assert "Gerador Diesel GD-15" in local_client.last_prompt
     assert "8 unidade" in local_client.last_prompt
+    # Confirma que os slots extraídos (produto_id/produto_relacionado_id/
+    # quantidade) foram de fato repassados a `consultar_detalhes`.
+    assert sales_catalog_client.detalhes_consultados == [(1, None, 2)]
 
 
 async def test_vendas_sem_sales_catalog_client_comportamento_identico_ao_atual():
