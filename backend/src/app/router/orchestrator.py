@@ -16,7 +16,7 @@ from app.models.runtime_settings import (
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
-from app.router.rag_client import Document, RAGClient, RAGConnectionError
+from app.router.rag_client import Document, RAGClient
 from app.router.sales_catalog import (
     DadosCatalogoVendas,
     SalesCatalogClient,
@@ -681,14 +681,24 @@ async def handle_message(
                             message, recent_messages, sales_catalog_client, local_client
                         )
                     )
-        except* RAGConnectionError as eg:
+        except* Exception as eg:
             logger.error(
                 "rag_indisponivel",
                 extra={"router": {"event": "rag_indisponivel", "domain": classification.domain}},
             )
+            # `except* Exception` (não `except* RAGConnectionError`): hoje só
+            # `RAGConnectionError` escapa daqui (`_consultar_vendas` nunca
+            # levanta, ver seu docstring), mas capturar só esse tipo deixaria
+            # uma armadilha silenciosa — qualquer outra exceção que um dia
+            # passe a escapar de `_buscar_documentos_rag`/`rag_client.search`
+            # sairia como `ExceptionGroup` não-encapsulado em vez do tipo
+            # original, quebrando quem espera `except RAGConnectionError` (ou
+            # qualquer outro `except` específico) em volta de
+            # `handle_message`.
             # `raise eg.exceptions[0]` (não um `raise` nu) para propagar a
-            # RAGConnectionError original, não um ExceptionGroup — chamadores
-            # de handle_message ainda esperam `except RAGConnectionError`.
+            # exceção original, não um ExceptionGroup — chamadores de
+            # handle_message ainda esperam o tipo original (hoje sempre
+            # RAGConnectionError na prática).
             # `from None` só suprime o encadeamento implícito do
             # ExceptionGroup no traceback (B904); não afeta o tipo/identidade
             # da exceção relançada.
