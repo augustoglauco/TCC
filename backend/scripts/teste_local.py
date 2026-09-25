@@ -65,6 +65,10 @@ class Cenario:
     # Trechos que devem aparecer no bloco injetado no prompt (campo `bloco`).
     bloco_contem: list[str] = field(default_factory=list)
     bloco_nao_contem: list[str] = field(default_factory=list)
+    # Trechos que a RESPOSTA da última mensagem deve (ou não) conter — para
+    # pegar o LLM ignorando o bloco do catálogo (ex.: citar outro produto).
+    resposta_contem: list[str] = field(default_factory=list)
+    resposta_nao_contem: list[str] = field(default_factory=list)
 
 
 # Dados semeados pelas migrações 0003/0008/0009: 5 produtos, cada um com
@@ -127,13 +131,18 @@ SUITES: dict[str, list[Cenario]] = {
             resultado_vendas="nenhum",
         ),
         Cenario(
-            nome="V8 — quantidade em mensagem seguinte (exploratório)",
+            nome="V8 — quantidade em mensagem seguinte",
             mensagens=["Quero comprar um gerador GD-15", "E se eu levar 5 unidades?"],
             esperado=(
-                "Exploratório: a busca de candidatos só olha a mensagem atual, "
-                "então a 2ª mensagem provavelmente não acha produto. Registrar o "
-                "que acontece — é insumo para decidir se vale melhorar."
+                "2ª mensagem: bloco com GD-15 e cotação de 5 unidades com 5% de "
+                "desconto (R$ 118275.00), e a resposta fala do GD-15, não de outro "
+                "gerador. No 1º teste (2026-09-25) o bloco estava certo, mas a "
+                "resposta citou o GD-60 tirado do RAG."
             ),
+            resultado_vendas="ok",
+            bloco_contem=["GD-15", "Cotação para 5 unidade(s)", "5.00% de desconto"],
+            resposta_contem=["GD-15"],
+            resposta_nao_contem=["GD-60", "GD-30"],
         ),
     ],
 }
@@ -206,7 +215,7 @@ def _novas_linhas_de_log(log_path: Path, offset: int, conversation_id: str | Non
     return registros
 
 
-def _veredito(cenario: Cenario, logs: list[dict]) -> tuple[str, list[str]]:
+def _veredito(cenario: Cenario, logs: list[dict], resposta: str) -> tuple[str, list[str]]:
     if cenario.resultado_vendas is None:
         return "—", []
     consultas = [r for r in logs if r.get("message") == "vendas_catalogo_consulta"]
@@ -234,6 +243,8 @@ def _veredito(cenario: Cenario, logs: list[dict]) -> tuple[str, list[str]]:
             bloco = ultimo.get("bloco") or ""
             problemas += [f"bloco sem {t!r}" for t in cenario.bloco_contem if t not in bloco]
             problemas += [f"bloco com {t!r}" for t in cenario.bloco_nao_contem if t in bloco]
+    problemas += [f"resposta sem {t!r}" for t in cenario.resposta_contem if t not in resposta]
+    problemas += [f"resposta com {t!r}" for t in cenario.resposta_nao_contem if t in resposta]
     return ("PASSOU" if not problemas else "FALHOU"), problemas
 
 
@@ -245,6 +256,7 @@ def _rodar_cenario(
     # do roteador não vazar de um cenário para o outro.
     conversation_id = str(uuid.uuid4())
     logs_ultima: list[dict] = []
+    texto_ultima = ""
     for indice, mensagem in enumerate(cenario.mensagens, start=1):
         offset = log_path.stat().st_size if log_path.exists() else 0
         inicio = time.perf_counter()
@@ -262,6 +274,7 @@ def _rodar_cenario(
         time.sleep(0.3)  # dá tempo do handler de log gravar as últimas linhas
         logs = _novas_linhas_de_log(log_path, offset, conversation_id)
         logs_ultima = logs
+        texto_ultima = texto
 
         linhas.append(f"**Mensagem {indice}:** {mensagem}")
         linhas.append("")
@@ -271,6 +284,7 @@ def _rodar_cenario(
             linhas.append(
                 f"- domínio `{done.get('domain')}` · backend `{done.get('backend_used')}` · "
                 f"motivo `{done.get('escalation_reason')}` · modelo `{done.get('model_name')}` · "
+                f"classificador `{done.get('router_provider')}` · "
                 f"rag_retrieval_ms `{done.get('rag_retrieval_ms')}` · total {duracao:.1f}s"
             )
         linhas += ["", "Resposta do assistente:", "", "```text", texto.strip() or "(vazia)", "```"]
@@ -283,7 +297,7 @@ def _rodar_cenario(
             linhas.append("```")
         linhas.append("")
 
-    veredito, problemas = _veredito(cenario, logs_ultima)
+    veredito, problemas = _veredito(cenario, logs_ultima, texto_ultima)
     linhas.append(f"**Veredito automático:** {veredito}")
     linhas += [f"- {problema}" for problema in problemas]
     linhas.append("")

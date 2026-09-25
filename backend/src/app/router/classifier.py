@@ -65,14 +65,34 @@ _DOMAIN_KEYWORDS_NORMALIZED: dict[Domain, list[str]] = {
     domain: [normalize(k) for k in keywords] for domain, keywords in _DOMAIN_KEYWORDS.items()
 }
 
+# Descrição de cada domínio, usada pelos dois classificadores LLM (o local,
+# em `_CLASSIFIER_PROMPT_TEMPLATE`, e o TypeSafe Jev, como `criteria` da
+# pergunta `choice` em `OpenRouterClient.classify_intent_jev`) — uma fonte só
+# para os dois não divergirem. Compatibilidade e estoque ficam em vendas
+# porque são intenções de Vendas do R12 (docs/ARCHITECTURE.md §6): sem isso,
+# "o QTA-100 é compatível com o GD-30?" caía em suporte e o catálogo não era
+# consultado (achado do teste local de 2026-09-25, cenário V4).
+DOMAIN_CRITERIA: dict[Domain, str] = {
+    "vendas": (
+        "Interesse em comprar, orçamento, preço, cotação, estoque/disponibilidade, "
+        "catálogo de produtos ou compatibilidade entre produtos antes da compra."
+    ),
+    "suporte": "Produto com defeito, erro ou problema técnico já adquirido.",
+    "atendimento": "Nota fiscal, troca, devolução, cancelamento ou reclamação.",
+    "agendamento": "Quer marcar, remarcar ou confirmar uma visita/horário.",
+    "fora_escopo": "Não se encaixa claramente em nenhuma opção acima.",
+}
+
 _COMPLEXITY_LENGTH_THRESHOLD = 280
 _COMPLEXITY_QUESTION_MARK_THRESHOLD = 2
 
 _CLASSIFIER_PROMPT_TEMPLATE = """\
-Classifique a mensagem do cliente em UM dos domínios: vendas, suporte, \
-atendimento, agendamento, fora_escopo. Também avalie a complexidade da \
-pergunta como "baixa" ou "alta". Considere o contexto recente da conversa \
-ao decidir.
+Classifique a mensagem do cliente em UM dos domínios abaixo. Também avalie a \
+complexidade da pergunta como "baixa" ou "alta". Considere o contexto recente \
+da conversa ao decidir.
+
+Domínios:
+{dominios}
 
 Contexto recente:
 {contexto}
@@ -81,6 +101,11 @@ Mensagem atual: {mensagem}
 
 Responda apenas com JSON no formato: \
 {{"domain": "...", "complexity": "...", "confidence": 0.0}}"""
+
+
+_DOMINIOS_FORMATADOS = "\n".join(
+    f"- {dominio}: {descricao}" for dominio, descricao in DOMAIN_CRITERIA.items()
+)
 
 
 def _match_domain_by_keywords(message: str) -> Domain | None:
@@ -146,7 +171,9 @@ async def _classify_with_llm(
     message: str, recent_messages: list[str], llm_client: LLMClient
 ) -> ClassificationResult:
     contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
-    prompt = _CLASSIFIER_PROMPT_TEMPLATE.format(contexto=contexto, mensagem=message)
+    prompt = _CLASSIFIER_PROMPT_TEMPLATE.format(
+        dominios=_DOMINIOS_FORMATADOS, contexto=contexto, mensagem=message
+    )
 
     # A chamada de rede fica FORA do try/except abaixo de propósito: qualquer
     # exceção dela é falha de infraestrutura do backend local (inclusive o
