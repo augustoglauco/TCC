@@ -99,6 +99,7 @@ class Settings(BaseSettings):
     # protótipo de TCC (ver
     # docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §3).
     rag_uploads_dir: str = "./data/rag_uploads"
+    product_images_dir: str = "./data/product_images"
 
     # MVP: teto default (não rígido — o form do admin pode pedir mais por
     # execução, ver `app.api.crawler`) de páginas por execução do crawler de
