@@ -129,6 +129,10 @@ intencional achando que é um bug ou uma tarefa esquecida.
 - Testes que dependem de GPU/modelo local devem ser marcados
   (`@pytest.mark.gpu` ou equivalente) para poderem ser pulados em ambientes
   sem GPU.
+- Teste manual ponta a ponta contra a aplicação no ar (Ollama, Qdrant,
+  Postgres reais): `backend/scripts/teste_local.py --suite <nome>`, que gera
+  um relatório em `testes_locais/` para devolver ao agente. Ver
+  `docs/TESTE_LOCAL.md`.
 - Os scripts em `eval/` (ver `docs/EVALUATION.md`) não substituem os testes
   automatizados — eles medem qualidade/latência, não corretude funcional.
 - Convenções de teste do frontend (Vitest, Testing Library, Playwright) estão

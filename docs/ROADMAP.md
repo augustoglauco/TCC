@@ -22,6 +22,11 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       — `backend/src/app/logging_config.py` (contextvar + formatter JSON)
 - [x] Configurar lint/format (ruff/black) e pipeline de testes (pytest) —
       `backend/pyproject.toml` ([tool.ruff], [tool.pytest.ini_options])
+- [x] Roteiro de teste local para o loop "agente implementa na nuvem,
+      desenvolvedor valida na máquina com GPU" —
+      `backend/scripts/teste_local.py --suite <nome>` gera um relatório em
+      `testes_locais/` para devolver ao agente (primeira suíte: `vendas`,
+      R12). Ver `docs/TESTE_LOCAL.md`.
 
 ## Fase 1 — Modelo Local e Roteador Básico (R1, R3)
 

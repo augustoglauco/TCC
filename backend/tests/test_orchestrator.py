@@ -1561,6 +1561,64 @@ def test_formatar_dados_catalogo_vendas_com_desconto_mostra_percentual():
     ) in texto
 
 
+async def test_vendas_loga_diagnostico_da_consulta_com_bloco_injetado(caplog):
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"produto_id": 1, "produto_relacionado_id": null, "quantidade": 2}',
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    candidatos = [CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")]
+    dados = DadosCatalogoVendas(produto_nome="Gerador Diesel GD-15", estoque_total=8)
+    sales_catalog_client = _FakeSalesCatalogClient(candidatos=candidatos, dados=dados)
+
+    with caplog.at_level(logging.INFO, logger="app.router.orchestrator"):
+        await _coletar_eventos(
+            "Quero cotação de 2 geradores GD-15",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            tone_monitor_enabled=False,
+            sales_catalog_client=sales_catalog_client,
+        )
+
+    registros = [r for r in caplog.records if r.getMessage() == "vendas_catalogo_consulta"]
+    assert len(registros) == 1
+    router = registros[0].router
+    assert router["resultado"] == "ok"
+    assert router["candidatos"] == ["Gerador Diesel GD-15"]
+    assert router["slots"]["produto_id"] == 1
+    assert "Estoque disponível: 8 unidade(s)" in router["bloco"]
+
+
+async def test_vendas_loga_diagnostico_quando_nao_ha_candidatos(caplog):
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    sales_catalog_client = _FakeSalesCatalogClient(candidatos=[])
+
+    with caplog.at_level(logging.INFO, logger="app.router.orchestrator"):
+        await _coletar_eventos(
+            "Quero cotação de 2 geradores GD-15",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            tone_monitor_enabled=False,
+            sales_catalog_client=sales_catalog_client,
+        )
+
+    registros = [r for r in caplog.records if r.getMessage() == "vendas_catalogo_consulta"]
+    assert len(registros) == 1
+    assert registros[0].router["resultado"] == "sem_candidatos"
+    assert "bloco" not in registros[0].router
+
+
 async def test_vendas_sem_sales_catalog_client_comportamento_identico_ao_atual():
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())
