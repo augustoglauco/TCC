@@ -245,15 +245,28 @@ em `docs/ARCHITECTURE.md` §6.
 
    O `infra/caddy/caddy.env` fica fora do git.
 
-4. **Windows** (PowerShell como Administrador, uma vez), igual ao que já
-   foi feito para a 3001:
+4. **Windows** (PowerShell como Administrador): regra de firewall e
+   encaminhamento do Windows para o WSL2.
 
    ```powershell
+   # Regra no Windows Firewall (uma vez só)
    New-NetFirewallRule -DisplayName "TCC WSL2 MCP B2B HTTPS (8443)" -Direction Inbound -LocalPort 8443 -Protocol TCP -Action Allow
+
+   # PortProxy para o IP atual do WSL2
+   $wslIp = (wsl hostname -I).Trim().Split()[0]
+   Write-Host "IP do WSL2 detectado: $wslIp"
+   netsh interface portproxy delete v4tov4 listenport=8443 listenaddress=0.0.0.0 2>$null
+   netsh interface portproxy add v4tov4 listenport=8443 listenaddress=0.0.0.0 connectport=8443 connectaddress=$wslIp
+   netsh interface portproxy show v4tov4
    ```
 
-   Se o seu WSL2 usa `netsh interface portproxy` para a 3001, crie o mesmo
-   encaminhamento para a 8443.
+   - **O IP do WSL2 muda a cada reinício do Windows:** rode de novo o bloco
+     do PortProxy depois de reiniciar. Sem isso, o encaminhamento aponta
+     para o IP antigo e o acesso de fora para de funcionar sem erro visível.
+   - **Só a 8443.** A 8100 (servidor MCP) nunca entra no PortProxy nem no
+     roteador.
+   - Com `networkingMode=mirrored` no `.wslconfig`, o WSL2 usa o IP do
+     Windows e o PortProxy não é necessário, só a regra de firewall.
 
 5. **Roteador:** encaminhe a porta **TCP 8443** para o IP deste PC na rede
    local (o mesmo destino já usado para a 3001). Só a 8443: a 8100 nunca
