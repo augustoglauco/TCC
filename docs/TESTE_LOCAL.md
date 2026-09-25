@@ -18,12 +18,16 @@ desenvolvedor**, e o resultado volta para o agente num arquivo só.
    ```
 
    Ele faz tudo sozinho:
-   1. `git pull` (para se houver alteração local sem commit);
+   1. `git pull --rebase` (para se houver alteração local sem commit em
+      arquivo versionado; arquivos soltos não atrapalham);
    2. `docker compose up -d`, `uv sync` e `alembic upgrade head`;
    3. confere se o Ollama responde;
-   4. reinicia o backend na porta 8000, logando em `/tmp/tcc-backend.log`;
-   5. roda o roteiro (`ruff` + `pytest` + cenários de chat);
-   6. faz commit e push do relatório em `testes_locais/`.
+   4. reinicia o backend (porta 8000, log em `/tmp/tcc-backend.log`) e o
+      MCP B2B (porta 8100, log em `/tmp/tcc-mcp-b2b.log`), e inicia o Caddy
+      (porta 8443) se ele não estiver no ar e estiver configurado;
+   5. roda o roteiro (`ruff` + `pytest` + a suíte `SUITE_ATUAL`);
+   6. faz commit e push do relatório em `testes_locais/`, atualizando e
+      tentando de novo se o branch remoto mudou durante o teste.
 
    Pode usar o chat no navegador enquanto ele roda: cada linha de log do
    backend carrega o `conversation_id`, e o roteiro só pega as linhas das
@@ -60,6 +64,7 @@ roda outra suíte.
 | Suíte | O que cobre | Logs usados |
 | --- | --- | --- |
 | `vendas` | Integração do Orquestrador com o catálogo (R12, Fase 5): estoque, cotação com e sem desconto por volume, compatibilidade sim/não, produto inexistente, domínio que não é vendas e duas conversas de acompanhamento em que a 2ª mensagem não cita o produto (V8, V9) | `vendas_catalogo_consulta` (campo `resultado`: `sem_termos`, `sem_candidatos`, `llm_sem_produto`, `produto_inexistente` ou `ok`, mais `termos`, `termos_historico`, `candidatos`, `slots` e o `bloco` injetado no prompt), `vendas_catalogo_consulta_falhou`, `rag_indisponivel` |
+| `mcp_b2b` | MCP B2B com chave por parceiro (R12, Fase 5, `docs/ARCHITECTURE.md` §6): M1/M2 `401` sem chave e com chave errada; M3 sessão MCP completa com a chave (`initialize`, as 4 ferramentas, `cotar`) e log com o nome do parceiro; M4 porta 8100 fechada para a rede; M5 Caddy local com o certificado do domínio (`curl --resolve`); M6 URL pública de dentro da rede (`—` se o roteador não tiver NAT loopback). Não chama `reservar_pedido`, que cria pedido de verdade. O teste de fora da rede é manual, com `scripts/cliente_mcp_b2b.py` (ver `goup.md`, "MCP B2B público") | `mcp_b2b_ferramenta` em `/tmp/tcc-mcp-b2b.log` |
 
 Os cenários de `vendas` assumem os dados semeados pelas migrações
 `0003`/`0008`/`0009`: 5 produtos, 17 unidades de cada, desconto de 5% a

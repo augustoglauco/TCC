@@ -127,8 +127,19 @@ class Settings(BaseSettings):
     agendamento_expediente_inicio: str = "09:00"
     agendamento_expediente_fim: str = "18:00"
 
-    mcp_b2b_host: str = "0.0.0.0"
+    # Só a própria máquina: os parceiros chegam pelo Caddy (HTTPS), que
+    # repassa para cá (docs/ARCHITECTURE.md §6). Com `0.0.0.0` o acesso
+    # direto pularia o HTTPS e a chave trafegaria em claro; outro valor gera
+    # um aviso no log de `scripts/run_mcp_b2b_server.py`.
+    mcp_b2b_host: str = "127.0.0.1"
     mcp_b2b_port: int = 8100
+    # MVP: chave estática por parceiro (`nome:chave,nome2:chave2`), enviada
+    # como `Authorization: Bearer <chave>`. Vazio = o servidor não sobe
+    # (falha fechada, `app.mcp_server.auth.preparar_autenticacao`).
+    mcp_b2b_partner_keys: str = ""
+    # Endereço público pelo qual os parceiros chegam (via Caddy/HTTPS, ex.:
+    # https://augustoglauco.duckdns.org:8443/mcp). Vazio = uso só local.
+    mcp_b2b_public_url: str = ""
 
     # MVP: origens do frontend em dev, separadas por vírgula em uma única
     # variável — sem lista por ambiente/parceiro (isso seria necessário para

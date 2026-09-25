@@ -55,6 +55,9 @@ class DadosCatalogoVendas(BaseModel):
 # não NLP de verdade. Reaproveita `app.router.classifier.normalize`
 # (minúsculas, sem acentos) em vez de uma terceira implementação de
 # normalização de texto no projeto.
+# Lista compacta de propósito: sem o `fmt: off`, o formatador poria uma
+# palavra por linha.
+# fmt: off
 _STOPWORDS = frozenset(
     {
         "de", "da", "do", "das", "dos", "em", "no", "na", "nos", "nas",
@@ -66,6 +69,7 @@ _STOPWORDS = frozenset(
         "disponivel",
     }
 )
+# fmt: on
 
 _TOKEN_RE = re.compile(r"[a-z0-9]+")
 

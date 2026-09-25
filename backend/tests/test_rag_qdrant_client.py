@@ -234,9 +234,7 @@ async def test_upsert_e_search_contra_qdrant_real_do_docker_compose(text_embedde
     # concorrentes disputando CPU/IO), o default ocasionalmente estoura por
     # contenção, não por lentidão real do Qdrant (achado ao investigar
     # flakiness intermitente deste teste).
-    client = QdrantRAGClient(
-        host=settings.qdrant_host, port=settings.qdrant_port, timeout_s=30.0
-    )
+    client = QdrantRAGClient(host=settings.qdrant_host, port=settings.qdrant_port, timeout_s=30.0)
     name = f"test_{uuid.uuid4().hex}"
 
     try:

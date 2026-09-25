@@ -16,7 +16,8 @@ tudo de novo, limpo. Rode a partir da raiz do repositório
 | Backend (FastAPI/uvicorn) | 8000 | processo solto (`.venv`) |
 | Frontend (Next.js) | **3001** | processo solto (`npm run dev`) |
 | **calendar-mcp-server (MCP do agendamento)** | **8090** | processo solto (`uvx calendar-mcp-server`) |
-| **mcp-b2b-server (MCP B2B provido — catálogo/estoque/preços/manuais)** | **8100** | processo solto (`.venv`, `scripts/run_mcp_b2b_server.py`) |
+| **mcp-b2b-server (MCP B2B provido — catálogo/estoque/preços/manuais)** | **8100** (só `127.0.0.1`) | processo solto (`.venv`, `scripts/run_mcp_b2b_server.py`) |
+| **Caddy (HTTPS público do MCP B2B)** | **8443** | processo solto (`caddy run`, ver "MCP B2B público" no fim) |
 | Postgres | 5433 | Docker (`backend/docker-compose.yml`) |
 | Qdrant | 6335 / 6336 | Docker (`backend/docker-compose.yml`) |
 | Ollama | 11434 | serviço do sistema (`ollama serve`) |
@@ -35,9 +36,11 @@ tudo de novo, limpo. Rode a partir da raiz do repositório
 > processo próprio na porta 8100 (`scripts/run_mcp_b2b_server.py`), mesmo
 > padrão do `calendar-mcp-server` acima, mas código deste projeto (não um
 > pacote de terceiro). Sem ele no ar, backend/frontend sobem normal — o MCP
-> B2B só é consultado por integradores/IAs de parceiros externas ao chat
-> (uso interno, sem autenticação por parceiro — ver `docs/ARCHITECTURE.md`
-> §5/§6).
+> B2B só é consultado por integradores/IAs de parceiros externas ao chat.
+> **Desde 2026-09-25** exige chave por parceiro (`MCP_B2B_PARTNER_KEYS` no
+> `backend/.env`; sem chave ele não sobe) e é exposto na internet pelo Caddy
+> (HTTPS, porta 8443) — ver "MCP B2B público" no fim e
+> `docs/ARCHITECTURE.md` §6.
 
 > ⚠️ **Não usamos a porta 3000** — nesta máquina ela já é ocupada pelo
 > **Open WebUI**, um serviço separado que não é deste projeto. O frontend
@@ -111,6 +114,15 @@ cd backend && nohup .venv/bin/python scripts/run_mcp_b2b_server.py > /tmp/tcc-mc
 Sem ele no ar, backend/frontend sobem normal — é um serviço à parte, só
 consultado por integradores/IAs de parceiros externas ao chat.
 
+**Não sobe sem chave:** precisa de `MCP_B2B_PARTNER_KEYS` no `backend/.env`
+(ver "MCP B2B público" no fim). Sem chave, o log mostra
+`mcp_b2b_server_sem_autenticacao` e o processo sai.
+
+Escuta só em `127.0.0.1:8100`: de fora, o acesso passa pelo Caddy (HTTPS).
+Se o seu `backend/.env` ainda tiver `MCP_B2B_HOST=0.0.0.0`, copiado de um
+`.env.example` antigo, troque para `127.0.0.1`. Com `0.0.0.0` o log mostra o
+aviso `mcp_b2b_server_exposto_na_rede`, porque o acesso direto pula o HTTPS.
+
 ## 5. Subir o backend (porta 8000, em background)
 
 ```bash
@@ -133,10 +145,9 @@ curl -s -o /dev/null -w "calendar-mcp (8090): %{http_code}\n" --max-time 5 http:
 curl -s -o /dev/null -w "mcp-b2b (8100): %{http_code}\n" --max-time 5 http://localhost:8100/mcp
 ```
 
-`200` no backend/frontend e `400` no calendar-mcp/mcp-b2b (a rota `/mcp`
-exige o protocolo MCP, então um `GET` simples sem handshake retorna 400 — é
-sinal de que o processo está no ar, não de erro) significa que está tudo
-certo. Logs ficam em `/tmp/tcc-backend.log`, `/tmp/tcc-frontend.log`,
+`200` no backend/frontend, `400` no calendar-mcp (a rota `/mcp` exige o
+protocolo MCP, então um `GET` simples sem handshake retorna 400) e `401` no
+mcp-b2b (pede a chave do parceiro) significam que está tudo no ar. Logs ficam em `/tmp/tcc-backend.log`, `/tmp/tcc-frontend.log`,
 `/tmp/tcc-calendar-mcp.log` e `/tmp/tcc-mcp-b2b.log` caso algo não suba.
 
 ## Tudo de uma vez (script único)
@@ -181,3 +192,122 @@ sessões. Se quiser mesmo assim: `cd backend && docker compose down`.
 
 **Nunca inclua a porta 3000 nesses comandos de derrubar** — é o Open WebUI,
 um serviço à parte, não deste projeto.
+
+## 🔐 MCP B2B público (DuckDNS + Caddy + chave por parceiro)
+
+Fornecedores fora da rede local acessam o MCP B2B por
+`https://augustoglauco.duckdns.org:8443/mcp`, com a chave do parceiro no
+cabeçalho `Authorization: Bearer <chave>`. Caminho: roteador (porta 8443) →
+Windows → WSL2 → **Caddy** (HTTPS) → servidor em `127.0.0.1:8100`. Decisão
+em `docs/ARCHITECTURE.md` §6.
+
+### Configuração única
+
+1. **Chave do parceiro.** Gere uma chave (repita para cada parceiro):
+
+   ```bash
+   python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+   ```
+
+   No `backend/.env`:
+
+   ```bash
+   MCP_B2B_HOST=127.0.0.1
+   MCP_B2B_PARTNER_KEYS=fornecedor-demo:<chave-gerada>
+   MCP_B2B_PUBLIC_URL=https://augustoglauco.duckdns.org:8443/mcp
+   ```
+
+   Para vários parceiros: `nome1:chave1,nome2:chave2`. Para revogar um,
+   tire a entrada dele e reinicie o servidor. A chave é o que você entrega
+   ao fornecedor; nunca a coloque em commit.
+
+2. **Caddy com o módulo DuckDNS** (binário pronto, sem compilar):
+
+   ```bash
+   mkdir -p ~/.local/bin
+   curl -fL -o ~/.local/bin/caddy "https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fcaddy-dns%2Fduckdns"
+   chmod +x ~/.local/bin/caddy
+   ~/.local/bin/caddy list-modules | grep duckdns   # deve mostrar dns.providers.duckdns
+   ```
+
+   Os comandos abaixo usam o caminho completo (`~/.local/bin/caddy`), que
+   funciona mesmo se `~/.local/bin` não estiver no `PATH`.
+
+3. **Token do DuckDNS** (o certificado HTTPS sai pelo desafio DNS, sem abrir
+   as portas 80/443):
+
+   ```bash
+   cp infra/caddy/caddy.env.example infra/caddy/caddy.env
+   # edite infra/caddy/caddy.env: DUCKDNS_DOMAIN=augustoglauco.duckdns.org
+   # e DUCKDNS_TOKEN=<token do topo da página em duckdns.org>
+   ~/.local/bin/caddy validate --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env
+   ```
+
+   O `infra/caddy/caddy.env` fica fora do git.
+
+4. **Windows** (PowerShell como Administrador): regra de firewall, uma vez só.
+
+   ```powershell
+   New-NetFirewallRule -DisplayName "TCC WSL2 MCP B2B HTTPS (8443)" -Direction Inbound -LocalPort 8443 -Protocol TCP -Action Allow
+   ```
+
+   Depois, confira o modo de rede do WSL2. No PowerShell:
+   `wsl wslinfo --networking-mode` (ou `wslinfo --networking-mode` direto no
+   terminal do WSL). Em versões antigas do WSL, sem o `wslinfo`, use
+   `Get-Content $env:USERPROFILE\.wslconfig`: a linha
+   `networkingMode=mirrored` indica o modo espelhado; sem ela, é `nat`.
+
+   - **`mirrored`** (o caso desta máquina: a 3001 funciona sem PortProxy): o
+     WSL2 compartilha o IP do Windows, e a regra de firewall basta. **Não
+     crie PortProxy:** ele ocuparia a 8443 no Windows e o Caddy não
+     conseguiria usá-la dentro do WSL. Se criou por engano, remova com
+     `netsh interface portproxy delete v4tov4 listenport=8443 listenaddress=0.0.0.0`.
+   - **`nat`** (padrão do WSL2): é preciso encaminhar do Windows para o IP
+     do WSL2, e esse IP muda a cada reinício do Windows, então o bloco
+     abaixo precisa ser repetido depois de reiniciar:
+
+     ```powershell
+     $wslIp = (wsl hostname -I).Trim().Split()[0]
+     netsh interface portproxy delete v4tov4 listenport=8443 listenaddress=0.0.0.0 2>$null
+     netsh interface portproxy add v4tov4 listenport=8443 listenaddress=0.0.0.0 connectport=8443 connectaddress=$wslIp
+     ```
+
+   Nos dois modos, só a 8443: a 8100 (servidor MCP) nunca é encaminhada.
+
+5. **Roteador:** encaminhe a porta **TCP 8443** para o IP deste PC na rede
+   local (o mesmo destino já usado para a 3001). Só a 8443: a 8100 nunca
+   deve ser encaminhada.
+
+### A cada sessão
+
+O `./testar.sh` já sobe o Caddy sozinho quando ele não está rodando (e o
+`infra/caddy/caddy.env` existe), e espera o certificado. Para subir à mão:
+
+```bash
+nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 & disown
+```
+
+Para desligar: `pkill -f "caddy run"`.
+
+Na primeira vez o Caddy leva de 30 s a 2 min para obter o certificado:
+acompanhe com `tail -f /tmp/tcc-caddy.log` até aparecer
+`certificate obtained successfully`. Se aparecer "address already in use",
+um PortProxy esquecido está ocupando a 8443 (ver passo 4).
+
+### Testar
+
+- **Daqui:** `./testar.sh` (suíte `mcp_b2b`). Confere 401 sem chave e com
+  chave errada, a sessão MCP completa com a chave, a porta 8100 fechada para
+  a rede e o Caddy com o certificado do domínio.
+- **De fora da rede** (o roteador costuma não ter NAT loopback, então de
+  dentro da rede o domínio público pode não responder): num notebook no
+  4G/5G, com Python e `pip install "mcp>=2.0"`, copie
+  `backend/scripts/cliente_mcp_b2b.py` e rode:
+
+  ```bash
+  python cliente_mcp_b2b.py --url https://augustoglauco.duckdns.org:8443/mcp --chave <chave>
+  ```
+
+  Esperado: `Sem chave: HTTP 401 ✅` e as três etapas com chave ✅,
+  terminando com a cotação.
+

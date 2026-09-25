@@ -173,26 +173,32 @@ busca RAG já roda (`orchestrator.py:582-609`):
    `tone_coro`/`classify()`, ver `docs/ARCHITECTURE.md` §5, correção de
    2026-09-24) — as duas são buscas independentes.
 
-   **Nota de implementação:** a busca RAG hoje levanta `RAGConnectionError`
-   direto (`orchestrator.py:596-601`, `except RAGConnectionError: ... raise`)
-   e esse `raise` precisa continuar chegando ao chamador de `handle_message`
-   do jeito que chega hoje. Dentro de um `TaskGroup`, uma exceção de uma
-   task filha vem embrulhada num `ExceptionGroup` (PEP 654) — o bloco em
-   volta do `TaskGroup` precisa de `except* RAGConnectionError` (não
-   `except RAGConnectionError`) pra desembrulhar e re-levantar a exceção
-   original, mesmo padrão já resolvido para `classify()` no bloco de
-   classificação (ver correção do `asyncio.gather` → `TaskGroup` registrada
-   em `docs/ARCHITECTURE.md` §5). A consulta de vendas em si (passo 2
-   abaixo) nunca deveria disparar isso, já que ela mesma captura suas
-   próprias exceções — mas o `except*` precisa existir de qualquer forma
-   pra não mudar o comportamento de erro do RAG que já existe hoje.
+   **Nota de implementação:** a busca RAG levanta `RAGConnectionError`, e
+   essa exceção precisa continuar chegando a quem chama `handle_message`
+   com o mesmo tipo de antes. Dentro de um `TaskGroup`, uma exceção de task
+   filha vem embrulhada num `ExceptionGroup` (PEP 654). Por isso o bloco em
+   volta do `TaskGroup` usa `except* Exception` e relança a exceção
+   original com `raise exc from None`, nunca o `ExceptionGroup`. É o mesmo
+   padrão do `classify()` no bloco de classificação (ver correção do
+   `asyncio.gather` → `TaskGroup` em `docs/ARCHITECTURE.md` §5).
+   Captura `Exception`, e não só `RAGConnectionError`: hoje só essa
+   escapa, porque a consulta de vendas (passo 2) captura as próprias
+   exceções. Mas, se um dia outra exceção escapar da busca RAG, ela ainda
+   sairá com o tipo original, não como `ExceptionGroup`. Como o `except*`
+   pega qualquer exceção, o log `rag_indisponivel` registra `tipo` e `erro`,
+   para que uma falha inesperada não fique muda.
 2. A consulta de vendas em si, dentro de um `try/except Exception` amplo
    (loga e devolve `None`, nunca propaga — mesmo espírito de `analyze_tone`
    nunca derrubar o turno):
-   a. `termos = extrair_termos_busca(message)`; se vazio, para aqui (sem
-      bloco extra).
-   b. `candidatos = await sales_catalog_client.buscar_candidatos(termos)`;
-      se vazio, para aqui.
+   a. `termos = extrair_termos_busca(message)` e `termos_historico` =
+      termos das mensagens anteriores (`recent_messages`) que não estão em
+      `termos`. Se os dois vierem vazios, para aqui (sem bloco extra).
+   b. `candidatos = await sales_catalog_client.buscar_candidatos(termos)`
+      e, se sobrar espaço até `SALES_CANDIDATOS_LIMITE`, completa com
+      `buscar_candidatos(termos_historico)`, sem repetir produto. A
+      mensagem atual tem prioridade, e o histórico cobre mensagens de
+      acompanhamento ("E se eu levar 3 unidades?"). Se não houver
+      candidatos, para aqui.
    c. `slots = await extract_sales_slots(message, recent_messages,
       candidatos, local_client)` — reaproveita `local_client` já recebido
       por `handle_message`, sem cliente novo.
@@ -205,6 +211,7 @@ busca RAG já roda (`orchestrator.py:582-609`):
    = None`:
 
    ```
+   Dados oficiais do catálogo interno, já calculados para esta mensagem. O cliente está falando deste produto: use exatamente estes nomes, valores e quantidades, e prefira-os a qualquer informação recuperada abaixo que seja diferente.
    Dados do catálogo interno (produto identificado: {produto_nome}):
    - Estoque disponível: {estoque_total} unidade(s)
    - Cotação para {quantidade} unidade(s): R$ {subtotal} ({percentual}% de desconto aplicado sobre R$ {unitário}/unidade)  # só se cotacao is not None; parênteses só se percentual > 0
@@ -303,3 +310,11 @@ Ajustes feitos na revisão da entrega. A decisão consolidada está em
   de vendas) em mensagens de Vendas com `sales_catalog_client` injetado.
   Isso está documentado no campo (`app.models.chat.ChatDoneEventData`) e em
   `docs/FRONTEND.md` §4.
+- Testes locais de 2026-09-25 (`testes_locais/`, `docs/TESTE_LOCAL.md`)
+  levaram a três ajustes, já refletidos no §5:
+  - o bloco ganhou a primeira linha de instrução, porque o LLM respondia
+    com outro produto tirado do RAG;
+  - a busca de candidatos passou a usar também o histórico (passos 2a/2b);
+  - o prompt do classificador LLM local passou a descrever os domínios
+    (`DOMAIN_CRITERIA`), porque perguntas de compatibilidade caíam em
+    `suporte`.

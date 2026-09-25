@@ -229,7 +229,8 @@ fato lendo a collection restrita) permanece na **Fase 5 (R12)**, não
 antecipada aqui — por ora o conteúdo fica ingerido e isolado, sem consumidor.
 Segue **fora do MVP** tudo que caracteriza acesso externo real: autenticação
 por parceiro, isolamento multi-tenant, exposição pública, rate limiting e
-auditoria (ver seção "Explicitamente fora do MVP" no roadmap). Como as demais
+auditoria (revisto em 2026-09-25: exposição pública com chave por parceiro
+entrou no MVP, ver Seção 6) (ver seção "Explicitamente fora do MVP" no roadmap). Como as demais
 entregas fora do MVP, fica registrada aqui e no roadmap para não ser
 confundida com item do escopo original nem esquecida na revisão final (Fase
 11). Detalhes de implementação:
@@ -737,7 +738,8 @@ Google Calendar) — mesmo padrão de pastas já reservado em
 3. **Processo próprio, não embutido no backend FastAPI principal:**
    `scripts/run_mcp_b2b_server.py` sobe o servidor via transporte
    `streamable-http` em `MCP_B2B_HOST:MCP_B2B_PORT` (settings já reservados
-   desde a modelagem do backend único, default `0.0.0.0:8100`) — mesmo
+   desde a modelagem do backend único; default `127.0.0.1:8100` desde
+   2026-09-25, ver "Escopo no protótipo" na Seção 6) — mesmo
    padrão de execução já usado para o `calendar-mcp-server` consumido em
    R11 (processo solto, gerenciado via `goup.md`). Motivo: R12 descreve o
    MCP B2B como um serviço voltado a **consumidores externos** (IAs de
@@ -933,7 +935,7 @@ falha isolada, outros domínios não chamam o cliente, log de diagnóstico
 | RAG sobre imagens / tratamento de imagem (obrigatório) | Busca multimodal via embeddings (ex.: CLIP) em catálogo ampliado, com reranking básico + OCR para imagens dirigidas | Catálogo completo, embeddings mais robustos, busca externa refinada |
 | Domínios (Vendas/Suporte/Atendimento) | Separação lógica de fluxo e prompts por domínio, com playbooks iniciais para Suporte Técnico e Atendimento ao Usuário. Playbook de Vendas inclui a oferta proativa de agendamento de visita quando a conversa indica intenção de compra e o portfólio de produtos é compatível (o roteador só reclassifica como `agendamento` na resposta seguinte do cliente, usando o contexto curto de conversa citado na linha "Roteador/Orquestrador") | Playbooks completos por domínio, integração com sistema de ticketing |
 | Agendamento de visita (MCP consumido) | Nova intenção reconhecida pelo roteador; coleta data/hora e dados básicos; valida expediente e conflito de agenda (na mesma agenda configurada) local/via MCP antes de sequer pedir confirmação; exige confirmação explícita do visitante antes de criar o evento; chama o MCP do Google Calendar e envia confirmação automática por e-mail | Reagendamento/cancelamento, checagem de disponibilidade em múltiplas agendas, confirmação também por SMS |
-| MCP de integração B2B (MCP provido) | Servidor MCP de uso interno, reaproveitando a base do catálogo/estoque/preços do RAG; recursos de leitura + as quatro ferramentas já implementadas; Roteador/Orquestrador consome o mesmo backend em Vendas (estoque, cotação, compatibilidade), por chamada direta no mesmo processo; sem autenticação por parceiro nem exposição pública | Exposição a integradores externos reais, autenticação por parceiro (API key/OAuth), auditoria de ações transacionais e limites de uso |
+| MCP de integração B2B (MCP provido) | Servidor MCP reaproveitando a base do catálogo/estoque/preços do RAG; recursos de leitura + as quatro ferramentas já implementadas; exposto publicamente via DuckDNS + HTTPS (Caddy), protegido por chave estática por parceiro (Bearer) e com log de qual parceiro chamou cada ferramenta; Roteador/Orquestrador consome o mesmo backend em Vendas (estoque, cotação, compatibilidade), por chamada direta no mesmo processo | OAuth/servidor de autorização, permissões por ferramenta, auditoria persistida de ações transacionais, rate limiting e expiração/rotação de chaves |
 | Monitor de tom | Classificador de sentimento/urgência (heurística + LLM leve) com alerta, transferência simulada e log dos casos escalonados | Integração real com fila de atendentes humanos, escalonamento por SLA |
 | Memória da conversa | Persistência por ID + resumo automático periódico (não só ao final) | Perfil de cliente enriquecido a partir do histórico de conversas |
 | Classificação do usuário | Heurística inicial (histórico de compras/perguntas) — Cliente/Lead/Esporádico, com revisão dos critérios a partir dos primeiros dados coletados | Modelo preditivo, score de propensão, enriquecimento de dados externos |
@@ -969,14 +971,77 @@ para intenções de Vendas (cotação, compatibilidade, estoque). No MVP isso é
 feito por `app.router.sales_catalog`, que chama o backend único diretamente,
 no mesmo processo (ver decisão de 2026-09-24 na Seção 5).
 
-**Governança e segurança (relevante para a evolução futura, não para o
-MVP):** autenticação por parceiro (API key/OAuth), permissões granulares por
-recurso/ferramenta, rate limiting, trilha de auditoria para ações que alterem
-estoque ou gerem pedido, tratamento de concorrência em reservas/pedidos.
+**Governança e segurança:** autenticação por parceiro, permissões
+granulares por recurso/ferramenta, rate limiting, trilha de auditoria para
+ações que alterem estoque ou gerem pedido, tratamento de concorrência em
+reservas/pedidos. No MVP entra só a primeira, na forma mais simples (chave
+por parceiro, abaixo); as demais continuam como evolução futura (Seção 8).
 
-**Escopo no protótipo (MVP):** versão interna — recursos de leitura sobre uma
-base pequena e as quatro ferramentas já implementadas, mas **sem
-autenticação por parceiro nem exposição pública**.
+**Escopo no protótipo (MVP):** recursos de leitura sobre uma base pequena e
+as quatro ferramentas já implementadas, **expostos publicamente a
+fornecedores fora da rede local e protegidos por uma chave secreta por
+parceiro**.
+
+**Decisão registrada (2026-09-25, exposição pública com chave por
+parceiro, R12):** a primeira versão desta seção deixava o MCP B2B sem
+autenticação e sem exposição pública. Isso não atende o caso real: o
+fornecedor está fora da rede local, então precisa alcançar o servidor pela
+internet, e sem autenticação qualquer um que achasse a porta poderia
+reservar pedidos e baixar estoque. Decisão do desenvolvedor: expor
+publicamente, fechado por uma chave por parceiro que simula o "fornecedor
+habilitado". A autorização completa (OAuth etc.) continua fora do MVP.
+
+1. **Caminho do acesso:** parceiro →
+   `https://augustoglauco.duckdns.org:8443/mcp` → roteador (porta 8443
+   encaminhada) → Windows (regra de firewall; o projeto roda no WSL2) →
+   **Caddy** (proxy reverso com TLS) → servidor MCP em `127.0.0.1:8100`.
+   - O servidor continua escutando só em `127.0.0.1`: o único caminho de
+     fora é pelo Caddy, com HTTPS.
+   - O certificado Let's Encrypt é obtido pelo desafio DNS do DuckDNS
+     (módulo `caddy-dns/duckdns`), então não é preciso abrir as portas 80
+     nem 443, só a 8443.
+   - Sem TLS, a chave trafegaria em texto claro e poderia ser capturada no
+     caminho; por isso HTTPS é obrigatório nesse acesso.
+   - Configuração em `infra/caddy/Caddyfile` e passos em `goup.md` ("MCP
+     B2B público"). `scripts/cliente_mcp_b2b.py` é um cliente MCP de teste
+     que faz o papel do fornecedor, rodando de fora da rede.
+2. **Chave por parceiro:** `MCP_B2B_PARTNER_KEYS` (só no `.env`, nunca no
+   código; formato `nome:chave,nome2:chave2`). O parceiro envia
+   `Authorization: Bearer <chave>` em toda requisição, que é o cabeçalho
+   padrão de autenticação do MCP.
+   - A verificação usa o suporte nativo do SDK (`TokenVerifier`, modo
+     resource server), implementado em `app.mcp_server.auth`, comparando a
+     chave em tempo constante (`hmac.compare_digest`).
+   - Chave ausente ou errada recebe `401`, tanto nas ferramentas quanto nos
+     recursos de leitura.
+   - Revogar um parceiro é remover a entrada dele do `.env` e reiniciar o
+     servidor.
+   - `MCP_B2B_PUBLIC_URL` informa ao SDK o endereço público: ele entra nos
+     metadados de autenticação e na lista de hosts aceitos. Sem isso, a
+     proteção contra DNS rebinding do SDK recusaria o domínio DuckDNS vindo
+     do proxy.
+3. **Falha fechada:** sem nenhuma chave configurada, o servidor **não
+   sobe**, em qualquer `MCP_B2B_HOST`. Mesmo escutando em `127.0.0.1`, ele
+   fica público através do Caddy, então checar só o endereço não basta.
+   Escutar fora de `127.0.0.1` continua gerando o aviso
+   `mcp_b2b_server_exposto_na_rede`, porque isso contorna o HTTPS do Caddy.
+4. **Registro por parceiro:** cada chamada de ferramenta gera uma linha
+   `mcp_b2b_ferramenta` (INFO) com o nome do parceiro, a ferramenta e o
+   resultado. É só log, não a trilha de auditoria persistida em banco, que
+   continua fora do MVP.
+5. **Continua fora do MVP:** OAuth/servidor de autorização, permissões
+   diferentes por ferramenta, rate limiting, auditoria persistida,
+   expiração/rotação automática de chaves e controle de concorrência nas
+   reservas.
+
+`# MVP: autenticação por chave estática por parceiro (Bearer), sem OAuth,
+escopos, expiração nem rate limiting` aparece em `app.mcp_server.auth`,
+`app.config`, `.env.example` e `scripts/run_mcp_b2b_server.py`. Testado em
+`tests/test_mcp_b2b_auth.py`, pelo app HTTP real do SDK: `401` sem chave e
+com chave errada, `200` com a chave certa e log com o parceiro, `421` para
+um `Host` fora da URL pública, leitura das chaves e falha fechada. A suíte
+`mcp_b2b` do teste local (`docs/TESTE_LOCAL.md`) confere o caminho real
+(Caddy, porta, certificado).
 
 ## 7. Riscos e limitações conhecidos
 
@@ -1041,8 +1106,12 @@ autenticação por parceiro nem exposição pública**.
   do MVP — deferida para a Fase 10 junto do ajuste de palavras-chave do
   classificador (ver `docs/ROADMAP.md`, Fase 1); um mecanismo de
   abandono/timeout pertence a uma futura fase de memória/gestão de sessão.
-- MCP B2B sem autenticação por parceiro/auditoria: ferramentas transacionais
-  (reserva, pedido) ficam restritas a uso interno no protótipo.
+- MCP B2B exposto na internet com chave estática por parceiro (Seção 6): a
+  chave não expira e não há rate limiting nem auditoria persistida. Quem
+  obtiver uma chave pode reservar pedidos até ela ser removida do `.env`.
+  A porta 8443 fica aberta na rede doméstica, e o token do DuckDNS usado
+  pelo Caddy também é um segredo. Aceitável para o protótipo; a evolução
+  está na Seção 8.
 - Escopo do MVP relativamente amplo (4 ferramentas do MCP B2B, playbooks
   iniciais, crawler/catálogo maiores) aumenta a superfície de testes dentro
   do próprio protótipo.
@@ -1058,9 +1127,10 @@ autenticação por parceiro nem exposição pública**.
 - Planejar integração real com sistema de ticketing (playbooks de Suporte e
   Atendimento) e com o MCP do Google Calendar em produção (autenticação,
   conflitos de agenda, reagendamento/cancelamento).
-- Evoluir o MCP B2B do uso interno para exposição real a parceiros:
-  autenticação por integrador, permissões granulares, auditoria, limites de
-  uso, testes com parceiros piloto.
+- Evoluir o MCP B2B da chave estática por parceiro (MVP) para autorização
+  de produção: OAuth/servidor de autorização, permissões granulares por
+  ferramenta, auditoria persistida, limites de uso, expiração/rotação de
+  chaves e testes com parceiros piloto.
 
 ## 9. Avaliação experimental
 
