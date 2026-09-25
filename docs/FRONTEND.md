@@ -292,10 +292,9 @@ ao roteador — o áudio é tratado como alternativa ao campo de texto
 fallback quando presente. Limitações que restam: sem robustez a áudio
 ruidoso/silencioso, sem VAD, idioma fixo em português (ver
 `docs/ARCHITECTURE.md` §5/§7). O histórico usado para resolver confirmações
-curtas (R3) é mantido em memória por processo no backend (últimas 1-3
-mensagens por `conversation_id`), sem persistência em Postgres nem resumo
-automático (isso é R9/Fase 6) — só é atualizado quando o evento `done`
-chega com sucesso, não em caso de `error`.
+curtas (R3) vem da memória da conversa no Postgres (R9, Fase 6: as 3
+mensagens mais recentes do cliente naquele `conversation_id`). A troca só é
+gravada quando o evento `done` chega com sucesso, não em caso de `error`.
 
 **Estado atual do frontend (Fase 7/8, ver `docs/ROADMAP.md`):** o scaffold
 Next.js foi criado em `frontend/` (App Router, TypeScript `strict`, Tailwind

@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from app.background_tasks import spawn_background_task
 from app.logging_config import conversation_id_ctx
 from app.mcp_client.google_calendar import CalendarClient
+from app.memory.store import ContextoConversa, carregar_contexto, registrar_troca
 from app.models.chat import ChatDoneEventData, ChatMessageRequest
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
@@ -46,18 +47,43 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
-_MAX_HISTORY_MESSAGES = 3
 
-# MVP: histórico de conversa mantido em memória por processo (dict simples
-# `conversation_id -> últimas mensagens`) — sem persistência em banco nem
-# resumo automático, que ficam para a Fase 6 (R9, ver docs/ROADMAP.md). O
-# histórico também não sobrevive a um restart do processo.
-_conversation_history: dict[str, list[str]] = {}
+async def _carregar_contexto_seguro(app_state, conversation_id: str) -> ContextoConversa:
+    """Histórico recente e resumo da conversa, lidos do Postgres (R9, Fase 6).
+    Falha do banco (ou `app.state` sem `db_sessionmaker`) vira log e um
+    contexto vazio: a resposta sai sem memória, mas sai."""
+    try:
+        async with app_state.db_sessionmaker() as session:
+            return await carregar_contexto(session, conversation_id)
+    except Exception as exc:
+        _logar_memoria_indisponivel("carregar", exc)
+        return ContextoConversa()
 
 
-def reset_conversation_history() -> None:
-    """Limpa o histórico em memória — usado pelos testes para isolar casos."""
-    _conversation_history.clear()
+async def _registrar_troca_segura(
+    app_state, conversation_id: str, mensagem: str, resposta: str, dominio: str | None
+) -> None:
+    """Grava a troca antes do `done`: a próxima mensagem sempre encontra esta
+    no histórico. Mesma proteção de `_carregar_contexto_seguro`."""
+    try:
+        async with app_state.db_sessionmaker() as session:
+            await registrar_troca(session, conversation_id, mensagem, resposta, dominio)
+    except Exception as exc:
+        _logar_memoria_indisponivel("registrar", exc)
+
+
+def _logar_memoria_indisponivel(operacao: str, exc: Exception) -> None:
+    logger.warning(
+        "memoria_indisponivel",
+        extra={
+            "router": {
+                "event": "memoria_indisponivel",
+                "operacao": operacao,
+                "tipo": type(exc).__name__,
+                "erro": str(exc),
+            }
+        },
+    )
 
 
 def get_local_client(request: Request) -> LLMClient:
@@ -284,7 +310,8 @@ async def send_message(
                 detail="Formato de imagem não suportado. Use PNG, JPG ou WEBP.",
             )
 
-    recent_messages = list(_conversation_history.get(conversation_id, []))
+    contexto = await _carregar_contexto_seguro(request.app.state, conversation_id)
+    recent_messages = contexto.mensagens_recentes
 
     async def event_stream():
         # De novo aqui: o Starlette itera o corpo do `StreamingResponse` numa
@@ -299,6 +326,8 @@ async def send_message(
         # docs/ARCHITECTURE.md §4). Não passa pelo orchestrator/LLM de texto —
         # produz a própria resposta (detalhes do produto ou "não
         # identificado") e a emite como token + done.
+        # MVP: esta troca não entra na memória da conversa (R9) — a
+        # mensagem pode ser só a imagem, sem texto do cliente para gravar.
         if is_identificacao_imagem:
             try:
                 resultado = await identify_product_by_image(
@@ -339,6 +368,8 @@ async def send_message(
             yield _sse("done", done_data.model_dump())
             return
 
+        # Texto completo da resposta, para gravar na memória da conversa.
+        partes_resposta: list[str] = []
         try:
             async for event in handle_message(
                 message=effective_message,
@@ -358,6 +389,7 @@ async def send_message(
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
                 elif isinstance(event, TokenEvent):
+                    partes_resposta.append(event.text)
                     yield _sse("token", {"text": event.text})
                 elif isinstance(event, EscalonamentoEvent):
                     yield _sse(
@@ -392,9 +424,13 @@ async def send_message(
                         )
                     )
                 elif isinstance(event, RouterDecision):
-                    history = _conversation_history.setdefault(conversation_id, [])
-                    history.append(effective_message)
-                    del history[:-_MAX_HISTORY_MESSAGES]
+                    await _registrar_troca_segura(
+                        request.app.state,
+                        conversation_id,
+                        effective_message,
+                        "".join(partes_resposta),
+                        event.domain,
+                    )
                     done_data = ChatDoneEventData(
                         domain=event.domain,
                         backend_used=event.backend_escolhido,

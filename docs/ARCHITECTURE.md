@@ -571,9 +571,9 @@ iam no JSON síncrono, exceto o texto da resposta em si, que já chegou via
 Qdrant) **depois** que o stream já abriu — nesse ponto o HTTP já é 200, não
 dá mais para trocar por um status de erro. Erros de validação de entrada
 anteriores à abertura do stream (áudio base64 inválido, nem `message` nem
-`audio`, STT indisponível) continuam HTTP 400/422/503 normal, sem SSE. O
-histórico de conversa em memória só é atualizado quando o `done` chega com
-sucesso, não em caso de `error`. Contrato completo (payload de cada evento)
+`audio`, STT indisponível) continuam HTTP 400/422/503 normal, sem SSE. A
+troca só é gravada na memória da conversa (Postgres, R9) quando o `done`
+chega com sucesso, não em caso de `error`. Contrato completo (payload de cada evento)
 em `docs/FRONTEND.md` §4. `# MVP: sem reconexão automática/`Last-Event-ID`
 se a conexão cair no meio do stream — o cliente perde os tokens já enviados
 e precisa reenviar a mensagem inteira, aceitável para este protótipo`.
