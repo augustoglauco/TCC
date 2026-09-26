@@ -998,6 +998,12 @@ login; base de clientes fictícia; e-mail captado por expressão regular, sem
 confirmação de posse; classificação por regras fixas, sem modelo preditivo;
 e-mail guardado sem política de consentimento/retenção (LGPD), ver Seção 7`.
 
+**Decisão registrada (além do MVP, a pedido explícito, 2026-09-25 — Gestão de Produtos, Catálogo Visual CLIP e Ingestão de Catálogos):**
+O administrador do sistema ganha uma interface dedicada (`/admin/produtos`) para gestão completa do catálogo de produtos, cálculo de margem comercial e ingestão inteligente de catálogos via IA:
+1. **Modelo de dados:** estende `Produto` com `preco_base_fornecedor` (custo) e `imagem_url`, criando a tabela `produto_imagens` com relação 1:N no Postgres (migração `0013`).
+2. **Catálogo visual CLIP integrado:** as fotos cadastradas ou importadas são salvas em `data/product_images/`, servidas estaticamente em `/api/uploads/produtos/{filename}` com proteção a path traversal e checagem de MIME, e automaticamente vetorizadas no Qdrant (`catalogo_imagens`) com payload enriquecido (`produto_id`, `imagem_url`). Ao ser excluída, a imagem é expurgada do Qdrant.
+3. **Extração híbrida Human-in-the-Loop:** o backend expõe `/api/admin/produtos/catalogo/extrair/stream` com Server-Sent Events (SSE). Processa PDFs multipáginas (`pdfplumber` + renderização visual) ou múltiplas imagens. Realiza extração local via Ollama quando há texto disponível e recorre à visão multimodal via OpenRouter em caso de catálogo escaneado ou baixa confiança. Uma tela de conferência prévia permite revisar, ajustar campos e selecionar itens antes da gravação definitiva (`POST /api/admin/produtos/catalogo/confirmar`).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

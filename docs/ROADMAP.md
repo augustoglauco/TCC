@@ -204,6 +204,18 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       fallback gracioso para a heurística em qualquer falha — decisão
       registrada em `docs/ARCHITECTURE.md` §5
 
+## Extra fora do MVP — Gestão de Produtos no Admin, Ingestão de Catálogos (PDF/Imagens) e Catálogo Visual CLIP
+
+> Pedido explícito do usuário, fora do escopo original do MVP (ver
+> `docs/ARCHITECTURE.md` §5 e
+> `docs/superpowers/specs/2026-09-25-admin-produtos-catalogo-design.md`).
+
+- [x] **Modelo de Dados & Migração Alembic `0013`** — campos `preco_base_fornecedor` e `imagem_url` adicionados à tabela `produtos`; nova tabela `produto_imagens` criada no Postgres para suportar múltiplas fotos associadas a cada produto com FK cascade e chave para o vetor no Qdrant.
+- [x] **Armazenamento e Servimento Estático Seguro** — armazenamento físico em `data/product_images/` com área de rascunho temporária `temp/` para conferência, servimento estático seguro com validação de path traversal e detecção MIME em `GET /api/uploads/produtos/{filename}`.
+- [x] **Catálogo Visual CLIP Integrado** — enriquecimento de payload dos vetores no Qdrant (`catalogo_imagens`) com `produto_id` e `imagem_url`, permitindo que fotos cadastradas ou importadas pelo admin sejam imediatamente encontradas pela busca visual no chat.
+- [x] **API Administrativa de Produtos & Extração com SSE** — CRUD completo de produtos (`GET/POST/PUT/DELETE /api/admin/produtos`), upload avulso de imagens com indexação CLIP imediata, e pipeline híbrido de extração página a página de PDFs multipáginas e múltiplas imagens (`POST /api/admin/produtos/catalogo/extrair/stream`) com streaming SSE e gravação do lote aprovado (`POST /api/admin/produtos/catalogo/confirmar`).
+- [x] **Interface Administrativa Human-in-the-Loop** — tela `/admin/produtos` acessível pelo menu ⚙️ com tabela de produtos, cálculo de margem comercial, cadastro/edição modal e assistente de importação de catálogos com conferência prévia página a página.
+
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
 - [x] Implementar entrada de imagem no chat (fluxo básico)

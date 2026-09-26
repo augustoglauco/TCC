@@ -65,6 +65,12 @@
 3. **Telemetria de Inferência & Fontes RAG**: Exibição por mensagem (tokens, TTFT, TPS, latência, custo, score RAG e fontes utilizadas) e exportação da conversa em CSV/JSON.
 4. **Infraestrutura de Exposição MCP B2B Pública**: Proxy TLS Caddy com renovação automática de certificado DuckDNS, permitindo testes externos (4G/5G) sem expor portas de banco.
 5. **Resiliência a Dispositivos Móveis e Redes**: Correção de contextos seguros (`crypto.randomUUID`), detecção dinâmica de origem da API (`apiBaseUrl.ts`) e `allowedDevOrigins` no dev server.
+6. **Gestão de Produtos no Admin & Ingestão Inteligente de Catálogos (`/admin/produtos`)**:
+   * CRUD de produtos com cálculo de markup/margem comercial e gestão de múltiplas fotos por produto.
+   * Ingestão página a página com streaming SSE de PDFs multipáginas ou pastas de imagens.
+   * Pipeline híbrido com extração local (Ollama + `pdfplumber`) e visão multimodal (OpenRouter) com fallback automático.
+   * Tabela Human-in-the-Loop de conferência prévia para edição, descarte e validação dos dados antes da gravação.
+   * Integração direta com o Catálogo Visual CLIP (`catalogo_imagens` no Qdrant), permitindo reconhecimento imediato por foto no chat.
 
 ---
 
