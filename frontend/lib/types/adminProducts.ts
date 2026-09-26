@@ -46,6 +46,7 @@ export interface ExtractedProductItem {
   preco?: number | null;
   especificacoes_tecnicas?: string | null;
   imagem_temp_url?: string | null;
+  fotos_pagina?: string[];
   pagina_origem?: number;
   confianca?: number;
   provider_usado?: string;
@@ -58,6 +59,7 @@ export interface CatalogPageResult {
   produtos: ExtractedProductItem[];
   provider_usado: string;
   imagem_preview_url?: string | null;
+  fotos_pagina?: string[];
 }
 
 export interface CatalogExtractionProgress {

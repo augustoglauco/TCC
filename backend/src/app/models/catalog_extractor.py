@@ -11,6 +11,7 @@ class ExtractedProduct(BaseModel):
     preco: float | None = None
     especificacoes_tecnicas: str | None = None
     imagem_temp_url: str | None = None
+    fotos_pagina: list[str] = Field(default_factory=list)
     pagina_origem: int = 1
     confianca: float = 1.0
     provider_usado: str = "local"
@@ -23,6 +24,7 @@ class CatalogPageResult(BaseModel):
     produtos: list[ExtractedProduct] = Field(default_factory=list)
     provider_usado: str
     imagem_preview_url: str | None = None
+    fotos_pagina: list[str] = Field(default_factory=list)
 
 
 class CatalogConfirmItem(BaseModel):

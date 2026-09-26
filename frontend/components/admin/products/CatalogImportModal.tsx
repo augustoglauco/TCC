@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
-import { extractCatalogStream, confirmCatalogExtraction } from "@/lib/api/adminProducts";
+import { extractCatalogStream, confirmCatalogExtraction, uploadTempImage } from "@/lib/api/adminProducts";
 import type {
   ExtractedProductItem,
   CatalogExtractionProgress,
@@ -38,6 +38,10 @@ export default function CatalogImportModal({
   const [extractedProducts, setExtractedProducts] = useState<ExtractedProductItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Seletor / troca de foto do produto
+  const [pickerProduct, setPickerProduct] = useState<ExtractedProductItem | null>(null);
+  const [uploadingPickerPhoto, setUploadingPickerPhoto] = useState(false);
 
   if (!isOpen) return null;
 
@@ -110,6 +114,42 @@ export default function CatalogImportModal({
     setExtractedProducts((prev) =>
       prev.filter((item) => item.id_temporario !== idTemp)
     );
+  };
+
+  const handleUploadPhotoForProduct = async (file: File) => {
+    if (!pickerProduct) return;
+    setUploadingPickerPhoto(true);
+    try {
+      const url = await uploadTempImage(file);
+      const updatedFotos = pickerProduct.fotos_pagina ? [...pickerProduct.fotos_pagina, url] : [url];
+      handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
+      handleUpdateProduct(pickerProduct.id_temporario, "fotos_pagina", updatedFotos);
+      setPickerProduct((prev) =>
+        prev
+          ? {
+              ...prev,
+              imagem_temp_url: url,
+              fotos_pagina: updatedFotos,
+            }
+          : null
+      );
+    } catch (err: any) {
+      setError(err?.message || "Falha ao enviar foto.");
+    } finally {
+      setUploadingPickerPhoto(false);
+    }
+  };
+
+  const handleSelectPagePhoto = (url: string) => {
+    if (!pickerProduct) return;
+    handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
+    setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: url } : null));
+  };
+
+  const handleRemovePhoto = () => {
+    if (!pickerProduct) return;
+    handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", null);
+    setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: null } : null));
   };
 
   const handleConfirmBatch = async () => {
@@ -381,19 +421,38 @@ export default function CatalogImportModal({
                             />
                           </td>
                           <td className="p-3">
-                            <div className="h-12 w-12 rounded border border-gray-200 bg-gray-100 overflow-hidden flex items-center justify-center">
-                              {item.imagem_temp_url ? (
-                                <img
-                                  src={
-                                    item.imagem_temp_url.startsWith("http")
-                                      ? item.imagem_temp_url
-                                      : `${getApiBaseUrl()}${item.imagem_temp_url}`
-                                  }
-                                  alt="Preview"
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-gray-400">📷</span>
+                            <div className="flex flex-col items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setPickerProduct(item)}
+                                title="Clique para trocar a foto ou escolher outra da página"
+                                className="group relative h-12 w-12 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-blue-500 hover:ring-2 hover:ring-blue-200 transition-all cursor-pointer"
+                              >
+                                {item.imagem_temp_url ? (
+                                  <img
+                                    src={
+                                      item.imagem_temp_url.startsWith("http")
+                                        ? item.imagem_temp_url
+                                        : `${getApiBaseUrl()}${item.imagem_temp_url}`
+                                    }
+                                    alt="Preview"
+                                    className="h-full w-full object-contain p-0.5"
+                                  />
+                                ) : (
+                                  <span className="text-gray-400 group-hover:scale-110 transition-transform">📷</span>
+                                )}
+                                <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
+                                  Trocar
+                                </div>
+                              </button>
+                              {item.fotos_pagina && item.fotos_pagina.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setPickerProduct(item)}
+                                  className="text-[10px] text-blue-600 hover:text-blue-800 font-medium underline"
+                                >
+                                  {item.fotos_pagina.length} fotos
+                                </button>
                               )}
                             </div>
                           </td>
@@ -531,6 +590,140 @@ export default function CatalogImportModal({
             )}
           </div>
         </div>
+
+        {/* Modal de Seleção / Troca de Foto do Produto */}
+        {pickerProduct && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+            <div className="relative w-full max-w-lg rounded-xl bg-white p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between border-b pb-3 border-gray-100">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                    <span>🖼️</span> Selecionar Foto do Produto
+                  </h3>
+                  <p className="text-xs text-gray-500 truncate max-w-sm mt-0.5">
+                    {pickerProduct.nome}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPickerProduct(null)}
+                  className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Foto atual */}
+              <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <div className="h-16 w-16 rounded border bg-white overflow-hidden flex items-center justify-center shrink-0">
+                  {pickerProduct.imagem_temp_url ? (
+                    <img
+                      src={
+                        pickerProduct.imagem_temp_url.startsWith("http")
+                          ? pickerProduct.imagem_temp_url
+                          : `${getApiBaseUrl()}${pickerProduct.imagem_temp_url}`
+                      }
+                      alt="Foto selecionada"
+                      className="h-full w-full object-contain p-1"
+                    />
+                  ) : (
+                    <span className="text-xs text-gray-400 text-center">Sem foto</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-gray-700">Foto Atual</div>
+                  <div className="text-[11px] text-gray-500">
+                    {pickerProduct.imagem_temp_url ? "Figura recortada associada ao produto" : "Nenhuma foto selecionada"}
+                  </div>
+                </div>
+                {pickerProduct.imagem_temp_url && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="text-xs text-red-600 hover:text-red-800 font-semibold px-2 py-1 rounded hover:bg-red-50"
+                  >
+                    Remover Foto
+                  </button>
+                )}
+              </div>
+
+              {/* Galeria de fotos detectadas na página */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Fotos Detectadas no Catálogo (Página {pickerProduct.pagina_origem || 1})
+                </label>
+                {pickerProduct.fotos_pagina && pickerProduct.fotos_pagina.length > 0 ? (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-48 overflow-y-auto p-1 bg-gray-50/50 rounded-lg border border-gray-200">
+                    {pickerProduct.fotos_pagina.map((fotoUrl, fIdx) => {
+                      const isSelected = pickerProduct.imagem_temp_url === fotoUrl;
+                      return (
+                        <button
+                          key={fIdx}
+                          type="button"
+                          onClick={() => handleSelectPagePhoto(fotoUrl)}
+                          className={`relative aspect-square rounded-lg border-2 bg-white overflow-hidden p-1 flex items-center justify-center hover:opacity-90 transition-all ${
+                            isSelected
+                              ? "border-blue-600 ring-2 ring-blue-400"
+                              : "border-gray-200 hover:border-gray-400"
+                          }`}
+                        >
+                          <img
+                            src={
+                              fotoUrl.startsWith("http")
+                                ? fotoUrl
+                                : `${getApiBaseUrl()}${fotoUrl}`
+                            }
+                            alt={`Figura ${fIdx + 1}`}
+                            className="h-full w-full object-contain"
+                          />
+                          {isSelected && (
+                            <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white font-bold">
+                              ✓
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500 italic p-3 bg-gray-50 rounded-lg text-center">
+                    Nenhuma figura individual foi identificada nesta página.
+                  </div>
+                )}
+              </div>
+
+              {/* Upload de foto alternativa do computador */}
+              <div className="pt-2 border-t border-gray-100 flex items-center justify-between">
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="picker-upload-file"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        handleUploadPhotoForProduct(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="picker-upload-file"
+                    className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100"
+                  >
+                    <span>📁</span> {uploadingPickerPhoto ? "Enviando..." : "Enviar Foto do Computador"}
+                  </label>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPickerProduct(null)}
+                  className="rounded-lg bg-gray-900 px-4 py-1.5 text-xs font-semibold text-white hover:bg-gray-800"
+                >
+                  Concluir
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

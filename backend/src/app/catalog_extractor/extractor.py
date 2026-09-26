@@ -109,6 +109,90 @@ async def extract_page_products_vision(
     return _parse_products_json(raw_response)
 
 
+def _extrair_figuras_pagina(page: Any, pil_img: Image.Image, temp_dir: Path) -> list[str]:
+    """Detecta, filtra e recorta figuras individuais da página do catálogo."""
+    page_w = float(getattr(page, "width", 0) or 1)
+    page_h = float(getattr(page, "height", 0) or 1)
+    scale_x = pil_img.width / page_w
+    scale_y = pil_img.height / page_h
+
+    candidates: list[dict[str, float]] = []
+    raw_images = getattr(page, "images", []) or []
+
+    for im in raw_images:
+        w = float(im.get("width", 0) or 0)
+        h = float(im.get("height", 0) or 0)
+        x0 = float(im.get("x0", 0) or 0)
+        top = float(im.get("top", 0) or 0)
+        x1 = float(im.get("x1", x0 + w) or (x0 + w))
+        bottom = float(im.get("bottom", top + h) or (top + h))
+
+        # Ignora elementos minúsculos (ícones de status, marcadores, bullets)
+        if w < 32 or h < 32 or (w * h) < 1600:
+            continue
+
+        # Ignora linhas e divisores horizontais/verticais estreitos
+        if (w / max(h, 1) > 5.5) or (h / max(w, 1) > 5.5):
+            continue
+
+        # Ignora fundo de página inteiro (marca d'água / background da página)
+        if w >= page_w * 0.92 and h >= page_h * 0.92:
+            continue
+
+        # Ignora logos comuns de cabeçalho e rodapé nas margens superior e inferior
+        if (top < 38 or bottom > page_h - 38) and (w < 160 and h < 65):
+            continue
+
+        # Deduplicação de caixas quase idênticas (ex: sombra projetada ou sobreposição idêntica)
+        duplicate = False
+        for cand in candidates:
+            if (
+                abs(cand["x0"] - x0) < 6
+                and abs(cand["top"] - top) < 6
+                and abs(cand["w"] - w) < 6
+                and abs(cand["h"] - h) < 6
+            ):
+                duplicate = True
+                break
+        if duplicate:
+            continue
+
+        candidates.append({"x0": x0, "top": top, "x1": x1, "bottom": bottom, "w": w, "h": h})
+
+    # Ordena espacialmente por linha visual (top agrupado a cada ~35pt) e depois da esquerda para a direita (x0)
+    candidates.sort(key=lambda c: (round(c["top"] / 35.0), c["x0"]))
+
+    figuras_urls: list[str] = []
+    for c in candidates:
+        pad = 2.5
+        px_x0 = max(0, int((c["x0"] - pad) * scale_x))
+        px_y0 = max(0, int((c["top"] - pad) * scale_y))
+        px_x1 = min(pil_img.width, int((c["x1"] + pad) * scale_x))
+        px_y1 = min(pil_img.height, int((c["bottom"] + pad) * scale_y))
+
+        if (px_x1 - px_x0) < 24 or (px_y1 - px_y0) < 24:
+            continue
+
+        crop = pil_img.crop((px_x0, px_y0, px_x1, px_y1))
+
+        if crop.mode in ("RGBA", "LA", "P"):
+            bg = Image.new("RGB", crop.size, (255, 255, 255))
+            if crop.mode == "P":
+                crop = crop.convert("RGBA")
+            mask = crop.split()[-1] if len(crop.split()) > 3 else None
+            bg.paste(crop, mask=mask)
+            crop = bg
+        elif crop.mode != "RGB":
+            crop = crop.convert("RGB")
+
+        crop_name = f"crop_{uuid.uuid4().hex[:12]}.jpg"
+        crop_path = temp_dir / crop_name
+        crop.save(crop_path, format="JPEG", quality=90)
+        figuras_urls.append(f"/api/uploads/produtos/temp/{crop_name}")
+
+    return figuras_urls
+
+
 async def extract_catalog_stream(
     files: list[tuple[str, bytes]],
     provider: str,
@@ -157,6 +241,7 @@ async def extract_catalog_stream(
                     temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
                     temp_img_path = temp_dir / temp_img_name
                     img_bytes: bytes | None = None
+                    pil_img: Image.Image | None = None
                     try:
                         pil_img = page.to_image(resolution=150).original
                         img_buf = io.BytesIO()
@@ -167,6 +252,15 @@ async def extract_catalog_stream(
                     except Exception as e:
                         logger.warning(f"Não foi possível renderizar imagem da página {idx+1} do PDF: {e}")
                         temp_img_url = None
+                        pil_img = None
+
+                    # Extrai figuras/fotos individuais recortadas da página
+                    figuras_pagina: list[str] = []
+                    if pil_img:
+                        try:
+                            figuras_pagina = _extrair_figuras_pagina(page, pil_img, temp_dir)
+                        except Exception as e:
+                            logger.warning(f"Erro ao extrair figuras recortadas da página {idx+1}: {e}")
 
                     provider_usado = provider
                     raw_prods: list[dict[str, Any]] = []
@@ -195,9 +289,16 @@ async def extract_catalog_stream(
                             except Exception as e:
                                 logger.error(f"Erro no fallback de visão externa: {e}")
 
-                    # Formata produtos extraídos
+                    # Formata produtos extraídos associando cada um à sua figura individual recortada
                     produtos: list[ExtractedProduct] = []
-                    for item in raw_prods:
+                    for i, item in enumerate(raw_prods):
+                        foto_produto: str | None = None
+                        if figuras_pagina:
+                            if i < len(figuras_pagina):
+                                foto_produto = figuras_pagina[i]
+                            elif len(figuras_pagina) == 1 and len(raw_prods) == 1:
+                                foto_produto = figuras_pagina[0]
+
                         produtos.append(
                             ExtractedProduct(
                                 nome=str(item.get("nome", "")),
@@ -206,7 +307,8 @@ async def extract_catalog_stream(
                                 preco_base_fornecedor=float(item["preco_base_fornecedor"]) if item.get("preco_base_fornecedor") is not None else None,
                                 preco=float(item["preco"]) if item.get("preco") is not None else None,
                                 especificacoes_tecnicas=str(item.get("especificacoes_tecnicas", "") or ""),
-                                imagem_temp_url=temp_img_url,
+                                imagem_temp_url=foto_produto,
+                                fotos_pagina=figuras_pagina,
                                 pagina_origem=pagina_global,
                                 confianca=0.95 if provider_usado == "external" else 0.85,
                                 provider_usado=provider_usado,
@@ -220,6 +322,7 @@ async def extract_catalog_stream(
                         produtos=produtos,
                         provider_usado=provider_usado,
                         imagem_preview_url=temp_img_url,
+                        fotos_pagina=figuras_pagina,
                     )
                     yield f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n"
 
@@ -242,7 +345,7 @@ async def extract_catalog_stream(
                     logger.error(f"Erro na visão para imagem {filename}: {e}")
 
             produtos = []
-            for item in raw_prods:
+            for i, item in enumerate(raw_prods):
                 produtos.append(
                     ExtractedProduct(
                         nome=str(item.get("nome", "")),
@@ -251,7 +354,8 @@ async def extract_catalog_stream(
                         preco_base_fornecedor=float(item["preco_base_fornecedor"]) if item.get("preco_base_fornecedor") is not None else None,
                         preco=float(item["preco"]) if item.get("preco") is not None else None,
                         especificacoes_tecnicas=str(item.get("especificacoes_tecnicas", "") or ""),
-                        imagem_temp_url=temp_img_url,
+                        imagem_temp_url=temp_img_url if (len(raw_prods) == 1 or i == 0) else None,
+                        fotos_pagina=[temp_img_url],
                         pagina_origem=pagina_global,
                         confianca=0.95,
                         provider_usado=provider_usado,
@@ -265,6 +369,7 @@ async def extract_catalog_stream(
                 produtos=produtos,
                 provider_usado=provider_usado,
                 imagem_preview_url=temp_img_url,
+                fotos_pagina=[temp_img_url],
             )
             yield f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n"
 

@@ -143,7 +143,7 @@ async def post_confirmar_catalogo(
             if temp_path.exists():
                 img_bytes = temp_path.read_bytes()
                 def_name = f"prod_{prod.id}_{uuid4().hex[:8]}.jpg"
-                def_url = salvar_imagem_produto(img_bytes, def_name, is_temp=False)
+                def_url, _ = salvar_imagem_produto(img_bytes, def_name, is_temp=False)
                 prod.imagem_url = def_url
 
                 clip_id = None
@@ -183,6 +183,18 @@ async def post_confirmar_catalogo(
         criados=len(produtos_finais),
         produtos=produtos_finais,
     )
+
+
+@router.post("/upload-temp")
+async def upload_temp_imagem_catalogo(
+    file: UploadFile = File(...),
+):
+    """Permite upload avulso de imagem temporária para a conferência prévia do catálogo."""
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Arquivo vazio.")
+    rel_url, _ = salvar_imagem_produto(content, file.filename or "upload.jpg", is_temp=True)
+    return {"imagem_temp_url": rel_url}
 
 
 @router.get("/{produto_id}", response_model=ProdutoOut)
