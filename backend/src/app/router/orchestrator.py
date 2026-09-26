@@ -20,6 +20,7 @@ from app.router.playbooks import build_system_prompt
 from app.router.rag_client import Document, RAGClient
 from app.router.sales_catalog import (
     SALES_CANDIDATOS_LIMITE,
+    DadosCatalogoCategoria,
     DadosCatalogoVendas,
     SalesCatalogClient,
     extract_sales_slots,
@@ -142,13 +143,17 @@ async def _consultar_vendas(
     recent_messages: list[str],
     sales_catalog_client: SalesCatalogClient,
     local_client: LLMClient,
-) -> DadosCatalogoVendas | None:
+) -> DadosCatalogoVendas | DadosCatalogoCategoria | None:
     """Busca de candidatos + desambiguação por LLM + detalhes do catálogo
     para uma mensagem de Vendas (spec
     docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md).
-    Nunca levanta exceção — qualquer falha (erro de banco, resposta do LLM
-    não-JSON já tratada dentro de `extract_sales_slots`) loga e devolve
-    `None`, mesmo espírito de `analyze_tone` nunca derrubar o turno."""
+    Quando a pergunta é genérica por um tipo de produto ("quais geradores
+    vocês têm em estoque?"), o LLM devolve uma `categoria` em vez de um
+    `produto_id` único, e a resposta lista os produtos daquela categoria com
+    estoque (`DadosCatalogoCategoria`). Nunca levanta exceção — qualquer
+    falha (erro de banco, resposta do LLM não-JSON já tratada dentro de
+    `extract_sales_slots`) loga e devolve `None`, mesmo espírito de
+    `analyze_tone` nunca derrubar o turno."""
     diagnostico: dict = {"event": "vendas_catalogo_consulta"}
     try:
         termos = extrair_termos_busca(message)
@@ -181,9 +186,23 @@ async def _consultar_vendas(
         diagnostico["candidatos"] = [candidato.nome for candidato in candidatos]
         if not candidatos:
             return _logar_consulta_vendas(diagnostico, "sem_candidatos")
-        slots = await extract_sales_slots(message, recent_messages, candidatos, local_client)
+        categorias_disponiveis = await sales_catalog_client.listar_categorias()
+        slots = await extract_sales_slots(
+            message, recent_messages, candidatos, local_client, categorias_disponiveis
+        )
         diagnostico["slots"] = slots.model_dump()
         if slots.produto_id is None:
+            # Sem produto específico, mas com categoria genérica → lista os
+            # produtos daquela categoria com estoque ("quais geradores vocês
+            # têm?"). Corrige o caso em que a busca genérica caía em
+            # `llm_sem_produto` e o chat respondia "não tenho informações".
+            if slots.categoria is not None:
+                dados_categoria = await sales_catalog_client.consultar_categoria(slots.categoria)
+                if dados_categoria is None:
+                    return _logar_consulta_vendas(diagnostico, "categoria_vazia")
+                diagnostico["bloco"] = _formatar_dados_catalogo_categoria(dados_categoria)
+                _logar_consulta_vendas(diagnostico, "ok_categoria")
+                return dados_categoria
             return _logar_consulta_vendas(diagnostico, "llm_sem_produto")
         dados = await sales_catalog_client.consultar_detalhes(
             slots.produto_id, slots.produto_relacionado_id, slots.quantidade
@@ -240,6 +259,40 @@ def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
         compat_texto = "sim" if dados.compativel else "não"
         linhas.append(f"- Compatível com {dados.produto_relacionado_nome}: {compat_texto}")
     return "\n".join(linhas)
+
+
+def _formatar_dados_catalogo_categoria(dados: DadosCatalogoCategoria) -> str:
+    # Consulta genérica por categoria ("quais geradores vocês têm em
+    # estoque?"): lista cada produto da categoria com preço e estoque. Mesmo
+    # cabeçalho de "prefira estes dados ao RAG" do bloco de produto único,
+    # pelo mesmo motivo (evitar que o LLM misture preços/nomes de trechos do
+    # RAG).
+    linhas = [
+        "Dados oficiais do catálogo interno, já calculados para esta mensagem. "
+        "O cliente perguntou por produtos desta categoria: use exatamente estes "
+        "nomes, preços e quantidades de estoque, e prefira-os a qualquer "
+        "informação recuperada abaixo que seja diferente.",
+        f"Produtos da categoria '{dados.categoria}' no catálogo interno:",
+    ]
+    for produto in dados.produtos:
+        linhas.append(
+            f"- {produto.nome}: R$ {produto.preco}/unidade, "
+            f"{produto.estoque_total} unidade(s) em estoque"
+        )
+    return "\n".join(linhas)
+
+
+def _formatar_bloco_catalogo_vendas(
+    dados: DadosCatalogoVendas | DadosCatalogoCategoria | None,
+) -> str | None:
+    """Despacha para o formatador certo conforme o tipo de consulta de
+    Vendas (produto único x listagem por categoria) — os dois blocos entram
+    no prompt pelo mesmo parâmetro `dados_catalogo` de `_build_prompt`."""
+    if dados is None:
+        return None
+    if isinstance(dados, DadosCatalogoCategoria):
+        return _formatar_dados_catalogo_categoria(dados)
+    return _formatar_dados_catalogo_vendas(dados)
 
 
 class RouterDecision(BaseModel):
@@ -733,7 +786,7 @@ async def handle_message(
     backend_escolhido = "local"
     motivo = "nenhum"
     documentos: list[Document] = []
-    dados_catalogo_vendas: DadosCatalogoVendas | None = None
+    dados_catalogo_vendas: DadosCatalogoVendas | DadosCatalogoCategoria | None = None
     rag_retrieval_ms: float | None = None
     rag_chunks_count: int | None = None
     rag_avg_score: float | None = None
@@ -826,11 +879,7 @@ async def handle_message(
         message,
         documentos,
         classification.domain,
-        dados_catalogo=(
-            _formatar_dados_catalogo_vendas(dados_catalogo_vendas)
-            if dados_catalogo_vendas is not None
-            else None
-        ),
+        dados_catalogo=_formatar_bloco_catalogo_vendas(dados_catalogo_vendas),
         resumo_conversa=resumo_conversa,
         pedir_email_pos_venda=pedir_email_pos_venda,
     )

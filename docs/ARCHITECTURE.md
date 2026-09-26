@@ -1004,6 +1004,56 @@ O administrador do sistema ganha uma interface dedicada (`/admin/produtos`) para
 2. **Catálogo visual CLIP integrado:** as fotos cadastradas ou importadas são salvas em `data/product_images/`, servidas estaticamente em `/api/uploads/produtos/{filename}` com proteção a path traversal e checagem de MIME, e automaticamente vetorizadas no Qdrant (`catalogo_imagens`) com payload enriquecido (`produto_id`, `imagem_url`). Ao ser excluída, a imagem é expurgada do Qdrant.
 3. **Extração híbrida Human-in-the-Loop:** o backend expõe `/api/admin/produtos/catalogo/extrair/stream` com Server-Sent Events (SSE). Processa PDFs multipáginas (`pdfplumber` + renderização visual) ou múltiplas imagens. Realiza extração local via Ollama quando há texto disponível e recorre à visão multimodal via OpenRouter em caso de catálogo escaneado ou baixa confiança. Uma tela de conferência prévia permite revisar, ajustar campos e selecionar itens antes da gravação definitiva (`POST /api/admin/produtos/catalogo/confirmar`).
 
+**Decisão registrada (Fase 5, correção de bug em Vendas — consulta genérica
+por categoria, R12, 2026-09-26):** o fluxo do orquestrador em Vendas
+(`app.router.sales_catalog` + `orchestrator._consultar_vendas`, decisão de
+2026-09-24 nesta seção) resolvia **apenas um produto único** por mensagem: a
+etapa 2 (LLM, `extract_sales_slots`) escolhia um `produto_id` entre os
+candidatos. Consultas genéricas por um **tipo** de produto ("tem geradores no
+estoque?", "quais geradores vocês têm?") não citam um modelo específico —
+então a etapa 1 achava os candidatos (via `categoria`), mas a etapa 2
+devolvia `produto_id: null` (`resultado=llm_sem_produto`), nenhum bloco de
+catálogo era injetado e o chat respondia "não tenho informações de estoque"
+(caía só no RAG textual, que não tem estoque estruturado). Busca por modelo
+específico funcionava (o LLM escolhia o ID), a genérica não — exatamente o
+sintoma relatado. Não era uma simplificação registrada (a spec de 2026-09-24
+§9 lista os não-objetivos, e listagem por categoria não estava entre eles),
+mas uma lacuna de cobertura. Duas correções:
+
+1. **Consulta por categoria (`app.router.sales_catalog`):** `VendaSlots`
+   ganha um campo `categoria`; o prompt de `extract_sales_slots` passa a
+   listar as categorias disponíveis (`SalesCatalogClient.listar_categorias`,
+   sobre `app.db.catalog.listar_categorias_distintas`) e instrui o LLM a
+   preencher `categoria` (em vez de `produto_id`) quando o cliente pergunta
+   por um tipo de produto genericamente. A categoria devolvida é validada
+   contra as existentes (comparação sem acento/caixa via `normalize`);
+   produto único tem precedência sobre categoria. `SalesCatalogClient.consultar_categoria`
+   reaproveita `app.db.catalog.listar_produtos(categoria=...)` +
+   `selectinload` do estoque (sem query extra por produto) e devolve
+   `DadosCatalogoCategoria` (lista de produtos da categoria com preço e
+   estoque somado entre CDs). O orquestrador formata esse bloco
+   (`_formatar_dados_catalogo_categoria`) e o antepõe ao contexto RAG, com o
+   mesmo cabeçalho "prefira estes dados ao RAG" do bloco de produto único.
+   Novos resultados de diagnóstico no log `vendas_catalogo_consulta`:
+   `ok_categoria` e `categoria_vazia`.
+2. **Alinhamento das keywords do classificador heurístico
+   (`app.router.classifier`):** `_DOMAIN_KEYWORDS["vendas"]` ganhou
+   `"estoque"` e `"disponível"`. O `DOMAIN_CRITERIA["vendas"]` (usado pelos
+   classificadores LLM local e Jev) **já** listava "estoque/disponibilidade"
+   como intenção de Vendas desde o cenário V4 do teste local de 2026-09-25,
+   mas a heurística de palavras-chave (`ROUTER_COMPLEXITY_STRATEGY=heuristic`,
+   default de produção) divergia: "tem geradores no estoque?" não casava
+   nenhuma keyword de Vendas e caía em `fora_escopo` (roteada ao externo, sem
+   consultar o catálogo). Agora os dois classificadores concordam. `# MVP:
+   busca de candidatos/categorias por ILIKE simples, sem ranking nem busca
+   semântica — mesma limitação já registrada para produto único; consulta por
+   categoria lista todos os produtos da categoria sem paginação (catálogo
+   fictício pequeno)`. Testado em `tests/test_sales_catalog.py`
+   (`listar_categorias`, `consultar_categoria` com/sem estoque, `categoria`
+   no `extract_sales_slots` incluindo validação/precedência) e
+   `tests/test_orchestrator.py` (pergunta genérica lista produtos no prompt,
+   categoria vazia não injeta bloco).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

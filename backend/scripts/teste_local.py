@@ -89,7 +89,7 @@ class Cenario:
 # QTA-100↔GD-30 e Cabine↔GD-30.
 # Suíte que `./testar.sh` (raiz do repo) roda quando nenhuma é passada — o
 # agente troca este valor a cada entrega que precisa de validação local.
-SUITE_ATUAL = "memoria"
+SUITE_ATUAL = "vendas"
 
 SUITES: dict[str, list[Cenario]] = {
     "vendas": [
@@ -170,6 +170,19 @@ SUITES: dict[str, list[Cenario]] = {
             bloco_nao_contem=["desconto aplicado"],
             resposta_contem=["GD-30"],
             resposta_nao_contem=["GD-15", "GD-60"],
+        ),
+        Cenario(
+            nome="V10 — consulta genérica por categoria (bug 2026-09-26)",
+            mensagens=["Tem geradores no estoque?"],
+            esperado=(
+                "Pergunta genérica sem citar modelo. Antes respondia 'não tenho "
+                "informações' (llm_sem_produto); agora lista os 3 geradores "
+                "(GD-15/GD-30/GD-60) com estoque no bloco (resultado ok_categoria). "
+                "Depende do classificador rotular como vendas (heurística ganhou a "
+                "keyword 'estoque')."
+            ),
+            resultado_vendas="ok_categoria",
+            bloco_contem=["GD-15", "GD-30", "GD-60", "em estoque"],
         ),
     ],
     # Memória da conversa e classificação do usuário (R9/R10, Fase 6). Os

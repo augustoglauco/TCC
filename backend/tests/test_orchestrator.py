@@ -21,7 +21,12 @@ from app.router.orchestrator import (
     handle_message,
 )
 from app.router.rag_client import Document, RAGConnectionError
-from app.router.sales_catalog import CandidatoProduto, DadosCatalogoVendas
+from app.router.sales_catalog import (
+    CandidatoProduto,
+    DadosCatalogoCategoria,
+    DadosCatalogoVendas,
+    ProdutoNaCategoria,
+)
 from app.router.scheduling import (
     BookingSlots,
     SchedulingConfig,
@@ -177,6 +182,8 @@ class _FakeSalesCatalogClient:
         dados: DadosCatalogoVendas | None = None,
         buscar_exception: Exception | None = None,
         candidatos_por_chamada: list[list[CandidatoProduto]] | None = None,
+        categorias: list[str] | None = None,
+        dados_categoria: DadosCatalogoCategoria | None = None,
     ) -> None:
         self._candidatos = candidatos if candidatos is not None else []
         # Quando preenchido, cada chamada a `buscar_candidatos` consome a
@@ -184,8 +191,11 @@ class _FakeSalesCatalogClient:
         self._candidatos_por_chamada = list(candidatos_por_chamada or [])
         self._dados = dados
         self._buscar_exception = buscar_exception
+        self._categorias = categorias if categorias is not None else []
+        self._dados_categoria = dados_categoria
         self.termos_buscados: list[list[str]] = []
         self.detalhes_consultados: list[tuple[int, int | None, int | None]] = []
+        self.categorias_consultadas: list[str] = []
 
     async def buscar_candidatos(
         self, termos: list[str], limite: int = 10
@@ -200,6 +210,13 @@ class _FakeSalesCatalogClient:
     async def consultar_detalhes(self, produto_id, produto_relacionado_id, quantidade):
         self.detalhes_consultados.append((produto_id, produto_relacionado_id, quantidade))
         return self._dados
+
+    async def listar_categorias(self) -> list[str]:
+        return self._categorias
+
+    async def consultar_categoria(self, categoria: str) -> DadosCatalogoCategoria | None:
+        self.categorias_consultadas.append(categoria)
+        return self._dados_categoria
 
 
 _SCHEDULING_CONFIG = SchedulingConfig(
@@ -1772,6 +1789,104 @@ async def test_vendas_sem_termos_na_mensagem_busca_so_pelo_historico():
 
     assert sales_catalog_client.termos_buscados == [["comprar", "gerador", "30"]]
     assert "Gerador Diesel GD-30" in local_client.last_prompt
+
+
+async def test_vendas_pergunta_generica_por_categoria_lista_produtos_no_prompt(caplog):
+    # Bug relatado: "tem geradores no estoque?" (genérico, sem modelo) caía em
+    # `llm_sem_produto` e o chat respondia "não tenho informações", enquanto a
+    # busca por modelo específico funcionava. Agora o LLM devolve a categoria e
+    # o orchestrator lista os produtos daquela categoria com estoque no prompt.
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"produto_id": null, "produto_relacionado_id": null, '
+                '"quantidade": null, "categoria": "geradores"}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    gd15 = CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")
+    gd30 = CandidatoProduto(id=2, nome="Gerador Diesel GD-30", categoria="geradores")
+    dados_categoria = DadosCatalogoCategoria(
+        categoria="geradores",
+        produtos=[
+            ProdutoNaCategoria(
+                nome="Gerador Diesel GD-15", preco=Decimal("24900.00"), estoque_total=8
+            ),
+            ProdutoNaCategoria(
+                nome="Gerador Diesel GD-30", preco=Decimal("42500.00"), estoque_total=2
+            ),
+        ],
+    )
+    sales_catalog_client = _FakeSalesCatalogClient(
+        candidatos=[gd15, gd30],
+        categorias=["geradores", "acessórios"],
+        dados_categoria=dados_categoria,
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.router.orchestrator"):
+        await _coletar_eventos(
+            "Tem geradores no estoque?",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            tone_monitor_enabled=False,
+            sales_catalog_client=sales_catalog_client,
+        )
+
+    assert sales_catalog_client.categorias_consultadas == ["geradores"]
+    # Ambos os geradores, com estoque, no prompt do LLM local.
+    assert "Gerador Diesel GD-15" in local_client.last_prompt
+    assert "Gerador Diesel GD-30" in local_client.last_prompt
+    assert "8 unidade(s) em estoque" in local_client.last_prompt
+    registro = next(
+        r for r in caplog.records if r.getMessage() == "vendas_catalogo_consulta"
+    ).router
+    assert registro["resultado"] == "ok_categoria"
+
+
+async def test_vendas_categoria_sem_produtos_nao_injeta_bloco(caplog):
+    # LLM devolve uma categoria, mas consultar_categoria não acha produtos
+    # (categoria vazia) → sem bloco, resultado `categoria_vazia`.
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"produto_id": null, "produto_relacionado_id": null, '
+                '"quantidade": null, "categoria": "geradores"}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    gd15 = CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")
+    sales_catalog_client = _FakeSalesCatalogClient(
+        candidatos=[gd15],
+        categorias=["geradores"],
+        dados_categoria=None,  # consultar_categoria devolve None
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.router.orchestrator"):
+        await _coletar_eventos(
+            "Tem geradores no estoque?",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            tone_monitor_enabled=False,
+            sales_catalog_client=sales_catalog_client,
+        )
+
+    assert "Dados oficiais do catálogo interno" not in local_client.last_prompt
+    registro = next(
+        r for r in caplog.records if r.getMessage() == "vendas_catalogo_consulta"
+    ).router
+    assert registro["resultado"] == "categoria_vazia"
 
 
 async def test_vendas_sem_sales_catalog_client_comportamento_identico_ao_atual():

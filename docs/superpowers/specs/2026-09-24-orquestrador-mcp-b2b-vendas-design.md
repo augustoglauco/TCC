@@ -318,3 +318,27 @@ Ajustes feitos na revisão da entrega. A decisão consolidada está em
   - o prompt do classificador LLM local passou a descrever os domínios
     (`DOMAIN_CRITERIA`), porque perguntas de compatibilidade caíam em
     `suporte`.
+
+## 11. Correção pós-entrega (2026-09-26): consulta genérica por categoria
+
+Bug relatado pelo desenvolvedor: "tem geradores no estoque?" respondia "não
+tenho informações", mas a busca por modelo específico funcionava. Causa: o
+fluxo desta spec resolvia só **um produto único** (`produto_id`) — uma
+pergunta por um tipo de produto sem citar modelo caía em
+`llm_sem_produto` e nenhum bloco de catálogo era injetado. Não era um
+não-objetivo do §9 (listagem por categoria nunca foi excluída), e sim uma
+lacuna de cobertura. Correção (detalhe completo em `docs/ARCHITECTURE.md` §5,
+decisão de 2026-09-26):
+
+- `VendaSlots` ganha `categoria`; `extract_sales_slots` recebe as categorias
+  disponíveis e pode devolver uma delas quando a pergunta é genérica (produto
+  único tem precedência; categoria validada contra as existentes).
+- `SalesCatalogClient.listar_categorias`/`consultar_categoria` (reaproveitam
+  `app.db.catalog.listar_categorias_distintas`/`listar_produtos`);
+  `DadosCatalogoCategoria` lista os produtos da categoria com preço e estoque.
+- `orchestrator._consultar_vendas` trata o ramo de categoria
+  (`_formatar_dados_catalogo_categoria`); novos resultados de diagnóstico
+  `ok_categoria`/`categoria_vazia`.
+- `_DOMAIN_KEYWORDS["vendas"]` ganhou `"estoque"`/`"disponível"` para a
+  heurística concordar com o `DOMAIN_CRITERIA` (que já listava
+  estoque/disponibilidade como Vendas).
