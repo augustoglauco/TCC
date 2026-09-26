@@ -52,22 +52,22 @@ tudo de novo, limpo. Rode a partir da raiz do repositório
 Só backend e frontend costumam precisar ser "derrubados" manualmente — Docker
 e Ollama normalmente já ficam de pé entre sessões.
 
-## 1. Derrubar processos antigos do projeto (portas 8000, 3001, 8090 e 8100)
+## 1. Derrubar processos antigos do projeto (portas 8000, 3001, 8090, 8100 e 8443)
 
 ```bash
-fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; fuser -k 8090/tcp 2>/dev/null; fuser -k 8100/tcp 2>/dev/null; sleep 1; echo "portas 8000/3001/8090/8100 liberadas"
+fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; fuser -k 8090/tcp 2>/dev/null; fuser -k 8100/tcp 2>/dev/null; fuser -k 8443/tcp 2>/dev/null; sleep 1; echo "portas 8000/3001/8090/8100/8443 liberadas"
 ```
 
 Se `fuser` não existir na sua máquina, alternativa com `lsof`:
 
 ```bash
-lsof -ti:8000 | xargs -r kill; lsof -ti:3001 | xargs -r kill; lsof -ti:8090 | xargs -r kill; lsof -ti:8100 | xargs -r kill; sleep 1; echo "portas 8000/3001/8090/8100 liberadas"
+lsof -ti:8000 | xargs -r kill; lsof -ti:3001 | xargs -r kill; lsof -ti:8090 | xargs -r kill; lsof -ti:8100 | xargs -r kill; lsof -ti:8443 | xargs -r kill; sleep 1; echo "portas 8000/3001/8090/8100/8443 liberadas"
 ```
 
 Conferir se ficou algo preso:
 
 ```bash
-ss -ltnp 2>/dev/null | grep -E ':(8000|3001|8090|8100)\s' || echo "nada escutando em 8000/3001/8090/8100"
+ss -ltnp 2>/dev/null | grep -E ':(8000|3001|8090|8100|8443)\s' || echo "nada escutando em 8000/3001/8090/8100/8443"
 ```
 
 ## 2. Garantir a infraestrutura (Docker + Ollama) no ar
@@ -143,23 +143,25 @@ curl -s -o /dev/null -w "backend (8000): %{http_code}\n" --max-time 5 http://loc
 curl -s -o /dev/null -w "frontend (3001): %{http_code}\n" --max-time 5 http://localhost:3001
 curl -s -o /dev/null -w "calendar-mcp (8090): %{http_code}\n" --max-time 5 http://localhost:8090/mcp
 curl -s -o /dev/null -w "mcp-b2b (8100): %{http_code}\n" --max-time 5 http://localhost:8100/mcp
+[ -f infra/caddy/caddy.env ] && curl -k -s -o /dev/null -w "caddy (8443): %{http_code}\n" --max-time 5 https://localhost:8443/mcp
 ```
 
 `200` no backend/frontend, `400` no calendar-mcp (a rota `/mcp` exige o
 protocolo MCP, então um `GET` simples sem handshake retorna 400) e `401` no
-mcp-b2b (pede a chave do parceiro) significam que está tudo no ar. Logs ficam em `/tmp/tcc-backend.log`, `/tmp/tcc-frontend.log`,
-`/tmp/tcc-calendar-mcp.log` e `/tmp/tcc-mcp-b2b.log` caso algo não suba.
+mcp-b2b/caddy (pede a chave do parceiro) significam que está tudo no ar. Logs ficam em `/tmp/tcc-backend.log`, `/tmp/tcc-frontend.log`,
+`/tmp/tcc-calendar-mcp.log`, `/tmp/tcc-mcp-b2b.log` e `/tmp/tcc-caddy.log` caso algo não suba.
 
 ## Tudo de uma vez (script único)
 
 ```bash
-fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; fuser -k 8090/tcp 2>/dev/null; fuser -k 8100/tcp 2>/dev/null; sleep 1
+fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; fuser -k 8090/tcp 2>/dev/null; fuser -k 8100/tcp 2>/dev/null; fuser -k 8443/tcp 2>/dev/null; sleep 1
 cd backend && docker compose up -d postgres qdrant && .venv/bin/alembic upgrade head
 export GOOGLE_CLIENT_ID=$(python3 -c "import json; d=json.load(open('secrets/google_calendar_credentials.json')); b=d.get('installed') or d.get('web'); print(b['client_id'])")
 export GOOGLE_CLIENT_SECRET=$(python3 -c "import json; d=json.load(open('secrets/google_calendar_credentials.json')); b=d.get('installed') or d.get('web'); print(b['client_secret'])")
 export TOKEN_FILE_PATH=./secrets/calendar_mcp_token.json
 nohup uvx calendar-mcp-server serve --transport http --port 8090 > /tmp/tcc-calendar-mcp.log 2>&1 & disown
 nohup .venv/bin/python scripts/run_mcp_b2b_server.py > /tmp/tcc-mcp-b2b.log 2>&1 & disown
+[ -f infra/caddy/caddy.env ] && nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 & disown
 nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 > /tmp/tcc-backend.log 2>&1 & disown
 cd ../frontend && PORT=3001 nohup npm run dev > /tmp/tcc-frontend.log 2>&1 & disown
 cd ..
@@ -168,6 +170,7 @@ curl -s -o /dev/null -w "backend (8000): %{http_code}\n" --max-time 5 http://loc
 curl -s -o /dev/null -w "frontend (3001): %{http_code}\n" --max-time 5 http://localhost:3001
 curl -s -o /dev/null -w "calendar-mcp (8090): %{http_code}\n" --max-time 5 http://localhost:8090/mcp
 curl -s -o /dev/null -w "mcp-b2b (8100): %{http_code}\n" --max-time 5 http://localhost:8100/mcp
+[ -f infra/caddy/caddy.env ] && curl -k -s -o /dev/null -w "caddy (8443): %{http_code}\n" --max-time 5 https://localhost:8443/mcp
 ```
 
 ## 🌐 Acesso Externo via Internet (WSL2 + Windows + DuckDNS)
@@ -184,7 +187,7 @@ New-NetFirewallRule -DisplayName "TCC WSL2 Backend (8000)" -Direction Inbound -L
 ## Derrubar tudo de novo (encerrar a sessão de testes)
 
 ```bash
-fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; fuser -k 8090/tcp 2>/dev/null; fuser -k 8100/tcp 2>/dev/null; echo "backend, frontend, calendar-mcp e mcp-b2b encerrados"
+fuser -k 8000/tcp 2>/dev/null; fuser -k 3001/tcp 2>/dev/null; fuser -k 8090/tcp 2>/dev/null; fuser -k 8100/tcp 2>/dev/null; fuser -k 8443/tcp 2>/dev/null; echo "backend, frontend, calendar-mcp, mcp-b2b e caddy encerrados"
 ```
 
 Docker (postgres/qdrant) fica de pé de propósito — não precisa derrubar entre
