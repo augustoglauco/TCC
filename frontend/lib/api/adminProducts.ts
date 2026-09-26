@@ -149,6 +149,22 @@ export async function confirmCatalogExtraction(
   return res.json();
 }
 
+export async function uploadTempImage(file: File): Promise<string> {
+  const baseUrl = getApiBaseUrl();
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${baseUrl}/api/admin/produtos/upload-temp`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    throw new Error(`Erro ao enviar foto (${res.status})`);
+  }
+  const data = await res.json();
+  return data.imagem_temp_url;
+}
+
 export interface ExtractCatalogStreamOptions {
   provider?: "local" | "external";
   fallbackExternal?: boolean;

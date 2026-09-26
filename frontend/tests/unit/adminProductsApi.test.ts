@@ -73,4 +73,22 @@ describe("adminProducts API client", () => {
     expect(result).toEqual(["CFTV", "Alarmes", "Redes"]);
     vi.unstubAllGlobals();
   });
+
+  it("envia imagem temporaria via uploadTempImage", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ imagem_temp_url: "/api/uploads/produtos/temp/crop_123.jpg" }),
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { uploadTempImage } = await import("@/lib/api/adminProducts");
+    const file = new File(["dummy"], "teste.jpg", { type: "image/jpeg" });
+    const url = await uploadTempImage(file);
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/admin/produtos/upload-temp"),
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(url).toBe("/api/uploads/produtos/temp/crop_123.jpg");
+    vi.unstubAllGlobals();
+  });
 });
