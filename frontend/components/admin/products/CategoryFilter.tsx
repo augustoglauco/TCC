@@ -34,10 +34,12 @@ export default function CategoryFilter({
     };
   }, [isOpen]);
 
-  // Lista combinada de categorias (disponíveis + selecionadas que talvez não estejam na lista)
+  // Lista combinada de categorias em ordem alfabética
   const allKnownCategories = Array.from(
     new Set([...availableCategories, ...selectedCategories])
-  ).filter(Boolean);
+  )
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
 
   const filteredCategories = allKnownCategories.filter((cat) =>
     cat.toLowerCase().includes(searchTerm.toLowerCase().trim())
