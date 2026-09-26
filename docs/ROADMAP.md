@@ -313,6 +313,17 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (+ `test_chat_api.py`/`test_main_app.py`). Ver decisão registrada em
       `docs/ARCHITECTURE.md` §5 e
       `docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
+- [x] Corrigir consulta genérica por categoria em Vendas (bug relatado
+      2026-09-26): "tem geradores no estoque?" respondia "não tenho
+      informações" porque o fluxo só resolvia produto único
+      (`llm_sem_produto`), enquanto a busca por modelo específico funcionava.
+      `VendaSlots.categoria` + `SalesCatalogClient.listar_categorias`/
+      `consultar_categoria` + `DadosCatalogoCategoria` listam os produtos da
+      categoria com estoque; `_DOMAIN_KEYWORDS["vendas"]` ganhou
+      `"estoque"`/`"disponível"` para a heurística concordar com o
+      `DOMAIN_CRITERIA`. Testes em `tests/test_sales_catalog.py` e
+      `tests/test_orchestrator.py`. Ver decisão em `docs/ARCHITECTURE.md` §5
+      (2026-09-26) e a spec §11.
 - [x] ~~Garantir e documentar que autenticação por parceiro e exposição
       pública **não** fazem parte do MVP~~ — **revisto em 2026-09-25**: o
       fornecedor está fora da rede local, então o MCP B2B precisa de

@@ -48,7 +48,14 @@ class ClassificationResult(BaseModel):
 # MVP: heurística simples de palavras-chave, sem NLP mais robusto — refinar
 # contra o conjunto de teste de backend/eval/router_intents/ (docs/EVALUATION.md).
 _DOMAIN_KEYWORDS: dict[Domain, list[str]] = {
-    "vendas": ["orçamento", "comprar", "preço", "cotação", "produto"],
+    # "estoque"/"disponível" incluídos para alinhar a heurística ao
+    # DOMAIN_CRITERIA["vendas"] abaixo (que já lista "estoque/disponibilidade"
+    # como intenção de Vendas, R12/docs/ARCHITECTURE.md §6): sem eles, uma
+    # pergunta genérica como "tem geradores no estoque?" não casava nenhuma
+    # keyword de Vendas na estratégia heurística e caía em fora_escopo
+    # (roteada ao externo, sem consultar o catálogo) — divergindo do
+    # classificador LLM, que já a rotula como vendas.
+    "vendas": ["orçamento", "comprar", "preço", "cotação", "produto", "estoque", "disponível"],
     "suporte": ["não funciona", "quebrado", "erro", "defeito", "problema"],
     "atendimento": ["nota fiscal", "troca", "devolução", "cancelamento", "reclamação"],
     "agendamento": ["agendar", "visita", "marcar", "horário"],

@@ -22,7 +22,14 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.catalog import calcular_item_cotacao, listar_estoque, obter_produto, sao_compativeis
+from app.db.catalog import (
+    calcular_item_cotacao,
+    listar_categorias_distintas,
+    listar_estoque,
+    listar_produtos,
+    obter_produto,
+    sao_compativeis,
+)
 from app.db.models import Produto
 from app.router.classifier import normalize, strip_code_fence
 from app.router.llm_client import LLMClient
@@ -38,6 +45,11 @@ class VendaSlots(BaseModel):
     produto_id: int | None = None
     produto_relacionado_id: int | None = None
     quantidade: int | None = None
+    # Consulta genérica por categoria (ex.: "tem geradores no estoque?"): o
+    # LLM devolve o nome da categoria em vez de um produto_id único quando o
+    # cliente pergunta por um tipo de produto sem escolher um modelo
+    # específico. Preenchido só quando `produto_id` fica `None`.
+    categoria: str | None = None
 
 
 class DadosCatalogoVendas(BaseModel):
@@ -47,6 +59,22 @@ class DadosCatalogoVendas(BaseModel):
     quantidade: int | None = None
     produto_relacionado_nome: str | None = None
     compativel: bool | None = None
+
+
+class ProdutoNaCategoria(BaseModel):
+    nome: str
+    preco: Decimal
+    estoque_total: int
+
+
+class DadosCatalogoCategoria(BaseModel):
+    """Resultado de uma consulta genérica por categoria — lista os produtos
+    da categoria com preço e estoque somado entre centros de distribuição,
+    para o assistente responder perguntas do tipo "quais geradores vocês têm
+    em estoque?" sem precisar que o cliente cite um modelo específico."""
+
+    categoria: str
+    produtos: list[ProdutoNaCategoria]
 
 
 # MVP: tokenização simples da mensagem do cliente (etapa 1, spec §2) para
@@ -175,6 +203,37 @@ class SalesCatalogClient:
                 compativel=compativel,
             )
 
+    async def listar_categorias(self) -> list[str]:
+        """Categorias distintas do catálogo, passadas ao LLM em
+        `extract_sales_slots` para ele classificar uma pergunta genérica
+        ("quais geradores vocês têm?") numa categoria real, em vez de tentar
+        escolher um produto único."""
+        async with self._session_factory() as session:
+            return await listar_categorias_distintas(session)
+
+    async def consultar_categoria(self, categoria: str) -> DadosCatalogoCategoria | None:
+        """Lista os produtos de uma categoria com preço e estoque somado
+        entre centros de distribuição — atende consultas genéricas ("quais
+        geradores vocês têm?") em que o cliente não cita um modelo
+        específico. Devolve `None` se a categoria não tiver nenhum produto
+        (ex.: o LLM devolveu uma categoria que não existe no catálogo)."""
+        async with self._session_factory() as session:
+            produtos = await listar_produtos(session, categoria=categoria)
+            if not produtos:
+                return None
+            itens = [
+                ProdutoNaCategoria(
+                    nome=produto.nome,
+                    preco=produto.preco,
+                    # `produto.estoques` já vem carregado por selectinload em
+                    # `listar_produtos` (_produto_query), sem query extra por
+                    # produto.
+                    estoque_total=sum(estoque.quantidade for estoque in produto.estoques),
+                )
+                for produto in produtos
+            ]
+        return DadosCatalogoCategoria(categoria=categoria, produtos=itens)
+
 
 _EXTRACTION_PROMPT_TEMPLATE = """\
 Você está ajudando um cliente numa conversa de vendas. A partir da lista de \
@@ -186,20 +245,31 @@ Produtos candidatos (escolha o ID de um deles, ou null se nenhum corresponder \
 ao que o cliente pediu):
 {candidatos}
 
+Categorias disponíveis no catálogo (use no campo "categoria" APENAS quando o \
+cliente pergunta genericamente por um TIPO de produto, sem escolher um modelo \
+específico — ex.: "quais geradores vocês têm?"):
+{categorias}
+
 Contexto recente da conversa:
 {contexto}
 
 Mensagem atual do cliente: {mensagem}
 
 Responda APENAS com JSON no formato: {{"produto_id": <id ou null>, \
-"produto_relacionado_id": <id ou null>, "quantidade": <número ou null>}}. \
+"produto_relacionado_id": <id ou null>, "quantidade": <número ou null>, \
+"categoria": <nome exato de uma categoria acima ou null>}}. \
 "produto_id" e "produto_relacionado_id" DEVEM ser um dos IDs listados acima \
 (nunca invente um ID que não está na lista); use null se o cliente não \
 mencionar um segundo produto para checar compatibilidade, ou nenhum produto \
-da lista corresponder ao pedido."""
+da lista corresponder ao pedido. \
+Preencha "categoria" (e deixe "produto_id" null) quando o cliente pergunta \
+por um tipo/categoria de produto em geral em vez de um modelo específico; \
+caso contrário deixe "categoria" null."""
 
 
 def _formatar_candidatos(candidatos: list[CandidatoProduto]) -> str:
+    if not candidatos:
+        return "(nenhum)"
     return "\n".join(
         f"- id={candidato.id}: {candidato.nome} (categoria: {candidato.categoria})"
         for candidato in candidatos
@@ -216,18 +286,25 @@ async def extract_sales_slots(
     recent_messages: list[str],
     candidatos: list[CandidatoProduto],
     llm_client: LLMClient,
+    categorias_disponiveis: list[str] | None = None,
 ) -> VendaSlots:
     """Uma chamada LLM: recebe a mensagem do cliente junto com a lista de
     candidatos já filtrada (etapa 1, `SalesCatalogClient.buscar_candidatos`)
     e escolhe o `produto_id` certo entre eles — copiar um ID de uma lista
     real e pequena é uma tarefa muito mais confiável para o LLM do que
-    inventar um nome livre que depois precisa ser casado (spec §2). Mesmo
-    padrão de `app.router.scheduling.extract_booking_slots`: prompt → JSON →
-    parse com `ValidationError`/`JSONDecodeError` tratado, fallback pra
-    `VendaSlots()` vazio em qualquer falha de parsing (não quebra o turno)."""
+    inventar um nome livre que depois precisa ser casado (spec §2). Quando o
+    cliente pergunta genericamente por um TIPO de produto (ex.: "quais
+    geradores vocês têm?"), em vez de um `produto_id` único, o LLM devolve
+    uma `categoria` da lista `categorias_disponiveis` (validada contra ela
+    no retorno). Mesmo padrão de
+    `app.router.scheduling.extract_booking_slots`: prompt → JSON → parse com
+    `ValidationError`/`JSONDecodeError` tratado, fallback pra `VendaSlots()`
+    vazio em qualquer falha de parsing (não quebra o turno)."""
     contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
+    categorias = categorias_disponiveis or []
     prompt = _EXTRACTION_PROMPT_TEMPLATE.format(
         candidatos=_formatar_candidatos(candidatos),
+        categorias="\n".join(f"- {categoria}" for categoria in categorias) or "(nenhuma)",
         contexto=contexto,
         mensagem=message,
     )
@@ -242,4 +319,12 @@ async def extract_sales_slots(
         slots.produto_id = None
     if slots.produto_relacionado_id is not None and slots.produto_relacionado_id not in ids_validos:
         slots.produto_relacionado_id = None
+    # Categoria só vale se for uma das disponíveis (comparação sem acento/
+    # caixa, mesma normalização do resto do módulo) e se nenhum produto
+    # específico foi identificado — produto único tem precedência sobre a
+    # listagem genérica por categoria.
+    if slots.categoria is not None:
+        categorias_norm = {normalize(categoria): categoria for categoria in categorias}
+        categoria_real = categorias_norm.get(normalize(slots.categoria))
+        slots.categoria = None if slots.produto_id is not None else categoria_real
     return slots

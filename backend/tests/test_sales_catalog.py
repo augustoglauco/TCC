@@ -18,6 +18,7 @@ from app.db.models import Base
 from app.router.llm_client import LLMResponse
 from app.router.sales_catalog import (
     CandidatoProduto,
+    DadosCatalogoCategoria,
     SalesCatalogClient,
     VendaSlots,
     extract_sales_slots,
@@ -257,3 +258,119 @@ async def test_extract_sales_slots_ignora_id_inventado_fora_da_lista_de_candidat
     slots = await extract_sales_slots("Quero o produto X", [], candidatos, llm)
 
     assert slots.produto_id is None
+
+
+# --- Consulta genérica por categoria ("quais geradores vocês têm?") ---------
+
+
+async def test_listar_categorias_devolve_categorias_distintas(factory):
+    async with factory() as session:
+        await _cria_produto(session, nome="GD-15", categoria="geradores")
+        await _cria_produto(session, nome="GD-30", categoria="geradores")
+        await _cria_produto(session, nome="QTA-100", categoria="acessórios")
+    client = SalesCatalogClient(factory)
+
+    categorias = await client.listar_categorias()
+
+    assert categorias == ["acessórios", "geradores"]
+
+
+async def test_consultar_categoria_lista_produtos_com_estoque_somado(factory):
+    async with factory() as session:
+        gd15 = await _cria_produto(session, nome="GD-15", preco=Decimal("24900.00"))
+        gd30 = await _cria_produto(session, nome="GD-30", preco=Decimal("42500.00"))
+        await _cria_produto(session, nome="QTA-100", categoria="acessórios")
+        await atualizar_estoque(session, gd15.id, "CD-SP", 5)
+        await atualizar_estoque(session, gd15.id, "CD-RJ", 3)
+        await atualizar_estoque(session, gd30.id, "CD-SP", 2)
+    client = SalesCatalogClient(factory)
+
+    dados = await client.consultar_categoria("geradores")
+
+    assert isinstance(dados, DadosCatalogoCategoria)
+    assert dados.categoria == "geradores"
+    nomes = {p.nome: p for p in dados.produtos}
+    assert set(nomes) == {"GD-15", "GD-30"}
+    assert nomes["GD-15"].estoque_total == 8
+    assert nomes["GD-30"].estoque_total == 2
+    assert nomes["GD-15"].preco == Decimal("24900.00")
+
+
+async def test_consultar_categoria_sem_produtos_devolve_none(factory):
+    async with factory() as session:
+        await _cria_produto(session, nome="GD-15", categoria="geradores")
+    client = SalesCatalogClient(factory)
+
+    assert await client.consultar_categoria("cabines") is None
+
+
+async def test_consultar_categoria_produto_sem_estoque_conta_zero(factory):
+    async with factory() as session:
+        await _cria_produto(session, nome="GD-15", categoria="geradores")
+    client = SalesCatalogClient(factory)
+
+    dados = await client.consultar_categoria("geradores")
+
+    assert dados.produtos[0].estoque_total == 0
+
+
+async def test_extract_sales_slots_pergunta_generica_devolve_categoria():
+    candidatos = [
+        CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores"),
+        CandidatoProduto(id=2, nome="Gerador Diesel GD-30", categoria="geradores"),
+    ]
+    llm = _FakeLLMClient(
+        '{"produto_id": null, "produto_relacionado_id": null, '
+        '"quantidade": null, "categoria": "geradores"}'
+    )
+
+    slots = await extract_sales_slots(
+        "Quais geradores vocês têm no estoque?", [], candidatos, llm, ["geradores", "acessórios"]
+    )
+
+    assert slots.produto_id is None
+    assert slots.categoria == "geradores"
+
+
+async def test_extract_sales_slots_categoria_inexistente_e_descartada():
+    candidatos = [CandidatoProduto(id=1, nome="GD-15", categoria="geradores")]
+    llm = _FakeLLMClient(
+        '{"produto_id": null, "produto_relacionado_id": null, '
+        '"quantidade": null, "categoria": "bombas"}'
+    )
+
+    slots = await extract_sales_slots("Quais bombas vocês têm?", [], candidatos, llm, ["geradores"])
+
+    assert slots.categoria is None
+
+
+async def test_extract_sales_slots_categoria_normaliza_acento_e_caixa():
+    candidatos = [CandidatoProduto(id=1, nome="QTA-100", categoria="acessórios")]
+    llm = _FakeLLMClient(
+        '{"produto_id": null, "produto_relacionado_id": null, '
+        '"quantidade": null, "categoria": "ACESSORIOS"}'
+    )
+
+    slots = await extract_sales_slots(
+        "Quais acessórios vocês têm?", [], candidatos, llm, ["acessórios"]
+    )
+
+    # A categoria real do catálogo é devolvida (com acento/caixa originais),
+    # não a string crua que o LLM escreveu.
+    assert slots.categoria == "acessórios"
+
+
+async def test_extract_sales_slots_produto_especifico_tem_precedencia_sobre_categoria():
+    # Se o LLM devolver produto_id E categoria, produto único vence — a
+    # listagem por categoria só vale quando nenhum produto específico foi
+    # identificado.
+    candidatos = [CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")]
+    llm = _FakeLLMClient(
+        '{"produto_id": 1, "produto_relacionado_id": null, '
+        '"quantidade": null, "categoria": "geradores"}'
+    )
+
+    slots = await extract_sales_slots("Quero o GD-15", [], candidatos, llm, ["geradores"])
+
+    assert slots.produto_id == 1
+    assert slots.categoria is None
