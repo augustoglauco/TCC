@@ -124,8 +124,12 @@ async def listar_produtos(
     termo: str | None = None,
 ) -> list[Produto]:
     query = _produto_query().order_by(Produto.id)
-    if categoria is not None:
-        query = query.where(Produto.categoria == categoria)
+    if categoria is not None and categoria.strip():
+        cats = [c.strip() for c in categoria.split(",") if c.strip()]
+        if len(cats) == 1:
+            query = query.where(Produto.categoria.ilike(cats[0]))
+        elif len(cats) > 1:
+            query = query.where(or_(*(Produto.categoria.ilike(c) for c in cats)))
     if termo is not None and termo.strip():
         padrao = f"%{termo.strip()}%"
         query = query.where(
@@ -137,6 +141,14 @@ async def listar_produtos(
         )
     result = await session.execute(query)
     return list(result.scalars().unique().all())
+
+
+async def listar_categorias_distintas(session: AsyncSession) -> list[str]:
+    """Retorna lista alfabética das categorias únicas existentes no catálogo."""
+    stmt = select(Produto.categoria).where(Produto.categoria.isnot(None)).distinct()
+    res = await session.execute(stmt)
+    return sorted(list({c.strip() for c in res.scalars().all() if c and c.strip()}))
+
 
 
 async def atualizar_produto(

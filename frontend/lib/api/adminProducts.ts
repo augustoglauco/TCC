@@ -41,6 +41,15 @@ export async function fetchAdminProducts(
   return res.json();
 }
 
+export async function fetchAdminCategories(): Promise<string[]> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/admin/produtos/categorias`);
+  if (!res.ok) {
+    throw new Error(`Erro ao listar categorias (${res.status})`);
+  }
+  return res.json();
+}
+
 export async function fetchAdminProduct(id: number): Promise<AdminProduct> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${id}`);
