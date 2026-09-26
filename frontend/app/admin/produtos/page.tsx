@@ -14,14 +14,14 @@ import CatalogImportModal from "@/components/admin/products/CatalogImportModal";
 import CategoryFilter from "@/components/admin/products/CategoryFilter";
 
 const CATEGORIAS_PADRAO = [
-  "CFTV",
-  "Alarmes",
-  "Redes",
-  "Controle de Acesso",
-  "Automação",
-  "Geral",
-  "geradores",
   "acessórios",
+  "Alarmes",
+  "Automação",
+  "CFTV",
+  "Controle de Acesso",
+  "geradores",
+  "Geral",
+  "Redes",
 ];
 
 export default function AdminProdutosPage() {
@@ -40,7 +40,9 @@ export default function AdminProdutosPage() {
   const carregarCategorias = useCallback(async () => {
     try {
       const catsDoBanco = await fetchAdminCategories();
-      const todas = Array.from(new Set([...CATEGORIAS_PADRAO, ...catsDoBanco])).filter(Boolean);
+      const todas = Array.from(new Set([...CATEGORIAS_PADRAO, ...catsDoBanco]))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
       setAvailableCategories(todas);
     } catch (err) {
       console.warn("Não foi possível carregar categorias remotas:", err);
@@ -67,6 +69,8 @@ export default function AdminProdutosPage() {
 
       setAvailableCategories((prev) =>
         Array.from(new Set([...prev, ...categoriasDosProdutos]))
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }))
       );
     } catch (err) {
       console.error("Erro ao carregar produtos:", err);
