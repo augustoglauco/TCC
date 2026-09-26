@@ -57,4 +57,20 @@ describe("adminProducts API client", () => {
     expect(result.criados).toBe(1);
     vi.unstubAllGlobals();
   });
+
+  it("busca categorias distintas do backend", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ["CFTV", "Alarmes", "Redes"],
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const { fetchAdminCategories } = await import("@/lib/api/adminProducts");
+    const result = await fetchAdminCategories();
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/admin/produtos/categorias")
+    );
+    expect(result).toEqual(["CFTV", "Alarmes", "Redes"]);
+    vi.unstubAllGlobals();
+  });
 });

@@ -28,6 +28,7 @@ from app.db.catalog import (
     atualizar_produto,
     criar_produto,
     deletar_produto,
+    listar_categorias_distintas,
     listar_produtos,
     obter_produto,
 )
@@ -70,6 +71,13 @@ async def get_admin_produtos(
         items=[ProdutoOut.model_validate(p) for p in paginados],
         total=total,
     )
+
+
+@router.get("/categorias", response_model=list[str])
+async def get_admin_categorias(
+    session: AsyncSession = Depends(get_db_session),
+):
+    return await listar_categorias_distintas(session)
 
 
 @router.post("/catalogo/extrair/stream")
