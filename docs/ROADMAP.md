@@ -383,6 +383,14 @@ conversa e classificação do usuário").
       e mensagem só com o e-mail respondida sem LLM (`resposta_fixa`, sem
       revelar se há cadastro) — correções do teste local de 2026-09-25 (R6/R9
       falharam com 429 do OpenRouter)
+- [~] Contexto da mensagem de acompanhamento depois da identificação por
+      imagem (R9, correção de 2026-09-27, `docs/ARCHITECTURE.md` §5 item 4b)
+      — a troca da imagem é gravada na memória, o prompt leva a última troca
+      e, em referências como "o produto acima", a busca e o filtro do RAG
+      usam a última resposta. Implementado (`carregar_contexto.ultima_troca`,
+      `_buscar_documentos_rag`, `_build_prompt`, `app.api.chat`) e testado
+      com fakes; falta conferir no navegador (imagem → "possui detalhes do
+      produto acima?")
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 

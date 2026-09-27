@@ -35,6 +35,9 @@ class ContextoConversa:
     mensagens_recentes: list[str] = field(default_factory=list)
     resumo: str | None = None
     email: str | None = None
+    # (mensagem do cliente, resposta do assistente) da troca anterior — dá
+    # contexto a "o produto acima", "e esse?" (correção de 2026-09-27).
+    ultima_troca: tuple[str, str] | None = None
 
 
 async def carregar_contexto(session: AsyncSession, conversation_id: str) -> ContextoConversa:
@@ -53,8 +56,30 @@ async def carregar_contexto(session: AsyncSession, conversation_id: str) -> Cont
         .limit(MENSAGENS_RECENTES)
     )
     recentes = list(reversed(resultado.scalars().all()))
+    ultimas = (
+        (
+            await session.execute(
+                select(ConversaMensagem)
+                .where(ConversaMensagem.conversa_id == conversation_id)
+                .order_by(ConversaMensagem.id.desc())
+                .limit(2)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    ultima_troca = None
+    if (
+        len(ultimas) == 2
+        and ultimas[0].papel == PAPEL_ASSISTENTE
+        and ultimas[1].papel == PAPEL_CLIENTE
+    ):
+        ultima_troca = (ultimas[1].texto, ultimas[0].texto)
     return ContextoConversa(
-        mensagens_recentes=recentes, resumo=conversa.resumo, email=conversa.email
+        mensagens_recentes=recentes,
+        resumo=conversa.resumo,
+        email=conversa.email,
+        ultima_troca=ultima_troca,
     )
 
 

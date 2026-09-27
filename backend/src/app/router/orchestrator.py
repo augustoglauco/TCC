@@ -73,6 +73,7 @@ def _build_prompt(
     dados_catalogo: str | None = None,
     resumo_conversa: str | None = None,
     pedir_email_pos_venda: bool = False,
+    ultima_troca: tuple[str, str] | None = None,
 ) -> str:
     """Monta o prompt final: prompt de sistema do domínio (playbook) +
     resumo da conversa até aqui (quando houver, R9 Fase 6) + dados do
@@ -96,6 +97,17 @@ def _build_prompt(
         partes.append(
             "Resumo da conversa até aqui (use como contexto; se a mensagem "
             f"atual disser algo diferente, ela vale):\n{resumo_conversa}"
+        )
+
+    if ultima_troca:
+        # O resumo só existe a cada 6 mensagens; a troca anterior é o que
+        # resolve referências como "o produto acima" ou "e esse?".
+        cliente, assistente = ultima_troca
+        partes.append(
+            "Troca anterior da conversa (use para entender referências como "
+            "'o produto acima' ou 'esse'):\n"
+            f"Cliente: {cliente[:_ULTIMA_RESPOSTA_MAX_CHARS]}\n"
+            f"Assistente: {assistente[:_ULTIMA_RESPOSTA_MAX_CHARS]}"
         )
 
     if dados_catalogo is not None:
@@ -124,11 +136,19 @@ def _build_prompt(
     return "\n\n".join(partes)
 
 
+_STOP_WORDS_PRODUTO = frozenset(
+    {"de", "para", "com", "sem", "em", "do", "da", "dos", "das", "um", "uma", "produto"}
+)
+
+
 def _extrair_produtos_do_contexto(message: str, recent_messages: list[str]) -> list[str]:
-    """Extrai nomes/códigos de produtos citados no histórico recente ou na mensagem (ex. 'Identifiquei: RC 4102g2.')."""
+    """Extrai nomes/códigos de produtos citados no histórico recente ou na
+    mensagem (ex. 'Identifiquei: RC 4102g2.')."""
     texto_total = "\n".join([*recent_messages, message])
     produtos = []
-    for m in re.finditer(r"(?:Identifiquei|produto|modelo|item):\s*([^\n\.\,\;]+)", texto_total, re.IGNORECASE):
+    for m in re.finditer(
+        r"(?:Identifiquei|produto|modelo|item):\s*([^\n\.\,\;]+)", texto_total, re.IGNORECASE
+    ):
         prod = m.group(1).strip()
         if prod:
             produtos.append(prod)
@@ -146,17 +166,24 @@ def _filtrar_documentos_relevantes_ao_contexto(
     for doc in documentos:
         content_lower = doc.content.lower()
         content_clean = "".join(
-            c for c in unicodedata.normalize("NFD", content_lower) if unicodedata.category(c) != "Mn"
+            c
+            for c in unicodedata.normalize("NFD", content_lower)
+            if unicodedata.category(c) != "Mn"
         )
         for prod in produtos_contexto:
             prod_clean = "".join(
-                c for c in unicodedata.normalize("NFD", prod.lower()) if unicodedata.category(c) != "Mn"
+                c
+                for c in unicodedata.normalize("NFD", prod.lower())
+                if unicodedata.category(c) != "Mn"
             )
             if prod_clean in content_clean:
                 relevantes.append(doc)
                 break
-            stop_words = {"de", "para", "com", "sem", "em", "do", "da", "dos", "das", "um", "uma", "produto"}
-            tokens = [t for t in re.split(r"[\s\-_,\.]+", prod_clean) if len(t) >= 3 and t not in stop_words]
+            tokens = [
+                t
+                for t in re.split(r"[\s\-_,\.]+", prod_clean)
+                if len(t) >= 3 and t not in _STOP_WORDS_PRODUTO
+            ]
             if tokens and any(t in content_clean for t in tokens):
                 relevantes.append(doc)
                 break
@@ -164,11 +191,37 @@ def _filtrar_documentos_relevantes_ao_contexto(
     return relevantes
 
 
+# Palavras com que o cliente aponta para algo da troca anterior ("o produto
+# acima", "e esse?", "detalhes dele"). Com uma delas, a busca no RAG usa
+# também a última resposta, que traz o nome do produto (correção de
+# 2026-09-27: sem isso, a busca só pela frase trazia o manual de outro
+# produto).
+_REFERENCIA_ANTERIOR_RE = re.compile(
+    r"\b(acima|anterior|esse|essa|este|esta|desse|dessa|deste|desta|nesse|"
+    r"nessa|neste|nesta|dele|dela|isso|disso|mesmo produto)\b",
+    re.IGNORECASE,
+)
+# Quanto da última resposta entra na busca e no prompt.
+_ULTIMA_RESPOSTA_MAX_CHARS = 600
+
+
+def e_referencia_anterior(message: str) -> bool:
+    return _REFERENCIA_ANTERIOR_RE.search(message) is not None
+
+
 async def _buscar_documentos_rag(
-    message: str, recent_messages: list[str], domain: str, rag_client: RAGClient
+    message: str,
+    recent_messages: list[str],
+    domain: str,
+    rag_client: RAGClient,
+    ultima_resposta: str | None = None,
 ) -> list[Document]:
     termos = extrair_termos_busca(message)
-    if not termos and recent_messages:
+    if ultima_resposta and e_referencia_anterior(message):
+        # "possui detalhes do produto acima?": o produto está na resposta
+        # anterior (ex.: "Identifiquei: Rádio … RC 4102g2."), não na frase.
+        texto_busca = f"{ultima_resposta[:_ULTIMA_RESPOSTA_MAX_CHARS]}\n{message}"
+    elif not termos and recent_messages:
         texto_busca = "\n".join([*recent_messages, message])
     else:
         texto_busca = message
@@ -178,7 +231,11 @@ async def _buscar_documentos_rag(
         texto_busca_fallback = "\n".join([*recent_messages, message])
         documentos = await rag_client.search(texto_busca_fallback, domain)
 
-    return _filtrar_documentos_relevantes_ao_contexto(documentos, message, recent_messages)
+    # O filtro por produto citado no contexto precisa enxergar a última
+    # resposta: é nela que está o "Identifiquei: X" da identificação por
+    # imagem (as mensagens recentes são só as do cliente).
+    contexto = [*recent_messages, ultima_resposta] if ultima_resposta else recent_messages
+    return _filtrar_documentos_relevantes_ao_contexto(documentos, message, contexto)
 
 
 async def _consultar_vendas(
@@ -638,6 +695,7 @@ async def handle_message(
     tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
     resumo_conversa: str | None = None,
     pedir_email_pos_venda: bool = False,
+    ultima_troca: tuple[str, str] | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -844,7 +902,11 @@ async def handle_message(
             async with asyncio.TaskGroup() as tg:
                 rag_task = tg.create_task(
                     _buscar_documentos_rag(
-                        message, recent_messages, classification.domain, rag_client
+                        message,
+                        recent_messages,
+                        classification.domain,
+                        rag_client,
+                        ultima_resposta=ultima_troca[1] if ultima_troca else None,
                     )
                 )
                 vendas_task: asyncio.Task[DadosCatalogoVendas | None] | None = None
@@ -925,6 +987,7 @@ async def handle_message(
         dados_catalogo=_formatar_bloco_catalogo_vendas(dados_catalogo_vendas),
         resumo_conversa=resumo_conversa,
         pedir_email_pos_venda=pedir_email_pos_venda,
+        ultima_troca=ultima_troca,
     )
 
     client = local_client if backend_escolhido == "local" else external_client

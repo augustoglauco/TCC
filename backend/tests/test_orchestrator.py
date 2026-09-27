@@ -1731,7 +1731,6 @@ def test_filtrar_documentos_relevantes_ao_contexto_descarta_produto_diferente():
     assert relevantes == []
 
 
-
 async def test_vendas_mensagem_de_acompanhamento_busca_candidatos_tambem_no_historico(caplog):
     # "E se eu levar 3 unidades?" não cita o produto: sem o histórico a busca
     # não achava nada (ou, com "5 unidades", achava o GD-15 por coincidência).
@@ -1986,3 +1985,71 @@ async def test_dominio_suporte_nunca_chama_sales_catalog_client():
     )
 
     assert sales_catalog_client.termos_buscados == []
+
+
+# Correção de 2026-09-27: depois da identificação por imagem, "possui
+# detalhes do produto acima?" trazia o manual de um relógio de ponto.
+_TROCA_IMAGEM = (
+    "[imagem enviada]",
+    "Identifiquei: Rádio Comunicador Analógico RC 4102g2. Preço: R$ 890,00.",
+)
+
+
+async def test_referencia_ao_produto_acima_busca_no_rag_com_a_ultima_resposta():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    radio = Document(content="Manual do rádio RC 4102g2: 16 canais.", source="rc.pdf", score=0.7)
+    relogio = Document(content="Relógio de ponto biométrico REP-10.", source="rep.pdf", score=0.9)
+    rag_client = _FakeRAGClient(documents=[relogio, radio])
+
+    eventos = await _coletar_eventos(
+        "possui detalhes do produto acima?",
+        recent_messages=["[imagem enviada]"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        ultima_troca=_TROCA_IMAGEM,
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+
+    assert rag_client.queries == [f"{_TROCA_IMAGEM[1]}\npossui detalhes do produto acima?"]
+    # O filtro enxerga o "Identifiquei: X" da última resposta e descarta o
+    # manual do outro produto.
+    assert decisao.rag_chunks == [RagChunkMetric(source="rc.pdf", score=0.7)]
+    prompt = local_client.last_prompt
+    assert "Troca anterior da conversa" in prompt
+    assert "RC 4102g2" in prompt
+    assert "Relógio de ponto" not in prompt
+
+
+async def test_mensagem_sem_referencia_anterior_busca_so_pela_mensagem():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="GD-30", source="g.pdf", score=0.9)])
+
+    await _coletar_eventos(
+        "Qual o preço do gerador GD-30?",
+        recent_messages=["[imagem enviada]"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        ultima_troca=("[imagem enviada]", "Não consegui identificar o produto da imagem."),
+    )
+
+    assert rag_client.queries == ["Qual o preço do gerador GD-30?"]
+
+
+def test_e_referencia_anterior():
+    from app.router.orchestrator import e_referencia_anterior
+
+    assert e_referencia_anterior("possui detalhes do produto acima?")
+    assert e_referencia_anterior("E esse, tem em estoque?")
+    assert e_referencia_anterior("me fala mais dele")
+    assert not e_referencia_anterior("Qual o preço do gerador GD-30?")
+    # Palavra inteira: "estado" não é "esta".
+    assert not e_referencia_anterior("qual o estado do meu pedido?")

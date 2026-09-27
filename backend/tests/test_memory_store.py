@@ -101,3 +101,22 @@ async def test_limpar_conversa_deleta_mensagens_e_reseta_resumo(factory):
         assert contexto.resumo is None
         assert contexto.mensagens_recentes == []
 
+
+async def test_contexto_traz_a_ultima_troca_cliente_e_assistente(factory):
+    async with factory() as session:
+        await registrar_troca(session, "conv-t", "p1", "r1", "vendas")
+        await registrar_troca(
+            session, "conv-t", "[imagem enviada]", "Identifiquei: RC 4102g2.", "vendas"
+        )
+
+    async with factory() as session:
+        contexto = await carregar_contexto(session, "conv-t")
+
+    assert contexto.ultima_troca == ("[imagem enviada]", "Identifiquei: RC 4102g2.")
+
+
+async def test_conversa_nova_nao_tem_ultima_troca(factory):
+    async with factory() as session:
+        contexto = await carregar_contexto(session, "conv-vazia")
+
+    assert contexto.ultima_troca is None

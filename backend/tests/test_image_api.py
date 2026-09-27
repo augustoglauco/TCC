@@ -450,3 +450,37 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400(db_session):
     resp = client.post("/api/chat/messages", json={"image": lixo_b64})
 
     assert resp.status_code == 400
+
+
+async def test_chat_identificacao_por_imagem_grava_a_troca_na_memoria(monkeypatch, db_session):
+    """Correção de 2026-09-27: a troca da identificação não era gravada, e a
+    pergunta seguinte ("detalhes do produto acima?") chegava sem saber qual
+    produto — o RAG trazia o manual de outro."""
+    from app.memory.store import carregar_contexto, listar_mensagens
+    from tests.test_chat_api import _SingleSessionMaker
+
+    client = _identificacao_app(
+        monkeypatch,
+        clip_results=[
+            {"image_id": "i1", "filename": "Câmera IP", "domain": "vendas", "score": 0.45}
+        ],
+        vision_answer=None,
+        rag_docs=[{"content": "Câmera IP 4MP com visão noturna.", "source": "cat", "score": 1.0}],
+    )
+    client.app.state.db_sessionmaker = _SingleSessionMaker(db_session)
+
+    resp = client.post(
+        "/api/chat/messages",
+        json={"image": _png_b64(), "message": "que produto é?", "conversation_id": "conv-img"},
+    )
+    assert resp.status_code == 200
+
+    mensagens = await listar_mensagens(db_session, "conv-img")
+    assert [(m.papel, m.dominio) for m in mensagens] == [
+        ("cliente", None),
+        ("assistente", "vendas"),
+    ]
+    assert mensagens[0].texto == "[imagem enviada] que produto é?"
+    assert "Câmera IP" in mensagens[1].texto
+    contexto = await carregar_contexto(db_session, "conv-img")
+    assert contexto.ultima_troca == (mensagens[0].texto, mensagens[1].texto)

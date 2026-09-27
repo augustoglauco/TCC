@@ -459,8 +459,9 @@ async def send_message(
         # docs/ARCHITECTURE.md §4). Não passa pelo orchestrator/LLM de texto —
         # produz a própria resposta (detalhes do produto ou "não
         # identificado") e a emite como token + done.
-        # MVP: esta troca não entra na memória da conversa (R9) — a
-        # mensagem pode ser só a imagem, sem texto do cliente para gravar.
+        # A troca é gravada na memória (correção de 2026-09-27): sem isso,
+        # "detalhes do produto acima?" chegava sem saber qual produto. A
+        # mensagem do cliente vira "[imagem enviada]" (+ o texto, se houver).
         if is_identificacao_imagem:
             try:
                 resultado = await identify_product_by_image(
@@ -497,6 +498,17 @@ async def send_message(
                 domain="vendas",
                 backend_used="identificacao_imagem",
                 escalation_reason="nenhum",
+            )
+            await _registrar_troca_segura(
+                request.app.state,
+                conversation_id,
+                f"[imagem enviada] {effective_message}".strip()
+                if effective_message
+                else "[imagem enviada]",
+                texto,
+                "vendas",
+                local_client,
+                done_data,
             )
             yield _sse("done", done_data.model_dump())
             return
@@ -540,6 +552,7 @@ async def send_message(
                 tone_monitor_enabled=tone_monitor_enabled,
                 tone_monitor_provider=tone_monitor_provider,
                 resumo_conversa=contexto.resumo,
+                ultima_troca=contexto.ultima_troca,
                 # R10: no pós-venda, sem e-mail conhecido (nem nesta
                 # mensagem), o assistente pede o e-mail usado na compra.
                 pedir_email_pos_venda=contexto.email is None,
