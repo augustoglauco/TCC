@@ -37,6 +37,8 @@ interface ChatState {
   setConversationId: (id: string) => void;
   /** Reexibe o histórico gravado — só se ainda não houver mensagem na tela. */
   loadHistory: (messages: ChatUIMessage[]) => void;
+  /** Limpa as mensagens em tela e gera um novo conversationId. */
+  clearChat: () => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
@@ -66,4 +68,12 @@ export const useChatStore = create<ChatState>((set) => ({
   // histórico não é aplicado (não intercala mensagens antigas com a nova).
   loadHistory: (history) =>
     set((state) => (state.messages.length === 0 ? { messages: history } : {})),
+  clearChat: () => {
+    const newId = generateId();
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(CONVERSATION_ID_STORAGE_KEY, newId);
+    }
+    set({ conversationId: newId, messages: [] });
+  },
 }));
+

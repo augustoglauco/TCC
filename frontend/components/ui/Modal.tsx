@@ -12,6 +12,7 @@ export interface ModalProps {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
+  headerActions?: ReactNode;
   size?: ModalSize;
 }
 
@@ -35,6 +36,7 @@ export function Modal({
   description,
   children,
   footer,
+  headerActions,
   size = "md",
 }: ModalProps) {
   const sizeClass = SIZE_CLASSES[size] || SIZE_CLASSES.md;
@@ -55,15 +57,18 @@ export function Modal({
                 </Dialog.Description>
               )}
             </div>
-            <Dialog.Close asChild>
-              <button
-                type="button"
-                aria-label="Fechar"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-              >
-                ✕
-              </button>
-            </Dialog.Close>
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+              {headerActions}
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  aria-label="Fechar"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                >
+                  ✕
+                </button>
+              </Dialog.Close>
+            </div>
           </div>
 
           <div className="mt-3 sm:mt-4 flex-1 min-h-0 flex flex-col">{children}</div>

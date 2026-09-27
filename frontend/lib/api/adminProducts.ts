@@ -129,7 +129,7 @@ export async function deleteAdminProductImage(
       method: "DELETE",
     }
   );
-  if (!res.ok) {
+  if (!res.ok && res.status !== 404) {
     throw new Error(`Erro ao excluir imagem (${res.status})`);
   }
 }
@@ -168,6 +168,7 @@ export async function uploadTempImage(file: File): Promise<string> {
 export interface ExtractCatalogStreamOptions {
   provider?: "local" | "external";
   fallbackExternal?: boolean;
+  pageRange?: string;
 }
 
 export interface ExtractCatalogCallbacks {
@@ -189,6 +190,9 @@ export async function extractCatalogStream(
   }
   formData.append("provider", options.provider ?? "local");
   formData.append("fallback_external", String(options.fallbackExternal ?? true));
+  if (options.pageRange && options.pageRange.trim()) {
+    formData.append("page_range", options.pageRange.trim());
+  }
 
   let res: Response;
   try {

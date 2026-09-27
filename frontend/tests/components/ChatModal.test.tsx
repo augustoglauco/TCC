@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -512,5 +512,87 @@ describe("ChatModal", () => {
     // Fecha o banner
     await user.click(screen.getByRole("button", { name: /Fechar aviso de atendimento humano/i }));
     expect(screen.queryByTestId("escalonamento-banner")).toBeNull();
+  });
+
+  // --- Fluxo de Drag and Drop de Imagem e Áudio ---
+
+  it("exibe overlay de drag ao arrastar arquivo sobre o chat e esconde ao sair", () => {
+    renderModal();
+
+    const container = screen.getByText(/Sou o assistente virtual da empresa/).closest(".relative")!;
+
+    expect(screen.queryByTestId("chat-drag-overlay")).toBeNull();
+
+    fireEvent.dragOver(container, { dataTransfer: { files: [] } });
+
+    expect(screen.getByTestId("chat-drag-overlay")).toBeInTheDocument();
+    expect(screen.getByText(/Solte a imagem ou áudio aqui para enviar/i)).toBeInTheDocument();
+
+    fireEvent.dragLeave(container);
+
+    expect(screen.queryByTestId("chat-drag-overlay")).toBeNull();
+  });
+
+  it("recebe imagem por drag & drop e define como imagem pendente", async () => {
+    renderModal();
+
+    const container = screen.getByText(/Sou o assistente virtual da empresa/).closest(".relative")!;
+    const file = new File(["fake-image"], "foto_produto.png", { type: "image/png" });
+
+    fireEvent.drop(container, {
+      dataTransfer: {
+        files: [file],
+      },
+    });
+
+    expect(await screen.findByText(/foto_produto\.png/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enviar" })).not.toBeDisabled();
+  });
+
+  it("recebe arquivo de áudio por drag & drop e envia automaticamente", async () => {
+    mockedSendChatMessage.mockImplementation(
+      async ({ onConversationId, onTranscription, onToken, onDone }) => {
+        onConversationId("conv-1");
+        onTranscription("Quero saber o preço");
+        onToken("O preço é R$ 100,00.");
+        onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+      },
+    );
+
+    renderModal();
+
+    const container = screen.getByText(/Sou o assistente virtual da empresa/).closest(".relative")!;
+    const audioFile = new File(["fake-audio"], "pergunta.mp3", { type: "audio/mp3" });
+
+    fireEvent.drop(container, {
+      dataTransfer: {
+        files: [audioFile],
+      },
+    });
+
+    expect(await screen.findByText("Quero saber o preço")).toBeInTheDocument();
+    expect(await screen.findByText("O preço é R$ 100,00.")).toBeInTheDocument();
+    expect(mockedSendChatMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audioBase64: expect.any(String),
+      }),
+    );
+  });
+
+  it("exibe aviso de erro quando o arquivo arrastado não é imagem nem áudio", async () => {
+    renderModal();
+
+    const container = screen.getByText(/Sou o assistente virtual da empresa/).closest(".relative")!;
+    const docFile = new File(["fake-doc"], "documento.pdf", { type: "application/pdf" });
+
+    fireEvent.drop(container, {
+      dataTransfer: {
+        files: [docFile],
+      },
+    });
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Formato de arquivo não suportado. Por favor, envie imagens (PNG, JPG, WEBP) ou áudios.",
+    );
   });
 });

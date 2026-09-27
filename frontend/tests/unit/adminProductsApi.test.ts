@@ -5,6 +5,8 @@ import {
   updateAdminProduct,
   deleteAdminProduct,
   confirmCatalogExtraction,
+  deleteAdminProductImage,
+  extractCatalogStream,
 } from "@/lib/api/adminProducts";
 
 describe("adminProducts API client", () => {
@@ -89,6 +91,66 @@ describe("adminProducts API client", () => {
       expect.objectContaining({ method: "POST" })
     );
     expect(url).toBe("/api/uploads/produtos/temp/crop_123.jpg");
+    vi.unstubAllGlobals();
+  });
+
+  it("exclui imagem com sucesso via DELETE", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 204,
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(deleteAdminProductImage(1, 10)).resolves.toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/admin/produtos/1/imagens/10"),
+      expect.objectContaining({ method: "DELETE" })
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it("tolera status 404 de forma idempotente ao excluir imagem já inexistente", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(deleteAdminProductImage(1, 10)).resolves.toBeUndefined();
+    vi.unstubAllGlobals();
+  });
+
+  it("lança erro em falhas reais de servidor (ex: 500) ao excluir imagem", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    await expect(deleteAdminProductImage(1, 10)).rejects.toThrow("Erro ao excluir imagem (500)");
+    vi.unstubAllGlobals();
+  });
+
+  it("anexa page_range no FormData em extractCatalogStream quando fornecido", async () => {
+    let capturedBody: FormData | null = null;
+    const mockFetch = vi.fn().mockImplementation(async (_url, options) => {
+      capturedBody = options?.body as FormData;
+      return {
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: vi.fn().mockResolvedValue({ done: true, value: undefined }),
+          }),
+        },
+      };
+    });
+    vi.stubGlobal("fetch", mockFetch);
+
+    const file = new File(["dummy pdf"], "catalogo.pdf", { type: "application/pdf" });
+    await extractCatalogStream([file], { pageRange: "1-5, 8" }, {});
+
+    expect(capturedBody).not.toBeNull();
+    expect(capturedBody?.get("page_range")).toBe("1-5, 8");
     vi.unstubAllGlobals();
   });
 });

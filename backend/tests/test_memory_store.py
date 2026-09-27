@@ -7,6 +7,7 @@ from app.db.models import Base
 from app.memory.store import (
     carregar_contexto,
     contar_mensagens,
+    limpar_conversa,
     listar_mensagens,
     registrar_troca,
 )
@@ -83,3 +84,20 @@ async def test_listar_mensagens_respeita_o_limite_e_devolve_as_mais_recentes(fac
         mensagens = await listar_mensagens(session, "conv-3", limite=3)
 
     assert [m.texto for m in mensagens] == ["r2", "p3", "r3"]
+
+
+async def test_limpar_conversa_deleta_mensagens_e_reseta_resumo(factory):
+    async with factory() as session:
+        await registrar_troca(session, "conv-del", "olá", "oi", "vendas")
+
+    async with factory() as session:
+        ok = await limpar_conversa(session, "conv-del")
+        assert ok is True
+
+    async with factory() as session:
+        total = await contar_mensagens(session, "conv-del")
+        contexto = await carregar_contexto(session, "conv-del")
+        assert total == 0
+        assert contexto.resumo is None
+        assert contexto.mensagens_recentes == []
+

@@ -92,6 +92,45 @@ def _parse_products_json(raw_text: str) -> list[dict[str, Any]]:
         return []
 
 
+def _parse_page_range(range_str: str | None, max_pages: int) -> set[int] | None:
+    """Interpreta string de intervalo de páginas (1-indexadas).
+    Formatos aceitos:
+      - '1-5' (páginas 1 a 5)
+      - '2, 5, 8' (páginas 2, 5 e 8)
+      - '3-' (da página 3 até o final do documento)
+      - '-4' (da página 1 até a 4)
+      - '1-3, 5, 8-10' (combinações de intervalos e páginas avulsas)
+    Retorna None se range_str for vazio ou apenas espaços (significando todas as páginas).
+    Retorna set[int] com as páginas válidas no intervalo [1, max_pages].
+    """
+    if not range_str or not range_str.strip():
+        return None
+
+    pages: set[int] = set()
+    chunks = [c.strip() for c in range_str.split(",") if c.strip()]
+
+    for chunk in chunks:
+        if "-" in chunk:
+            parts = chunk.split("-", 1)
+            start_str, end_str = parts[0].strip(), parts[1].strip()
+
+            start = int(start_str) if start_str.isdigit() else 1
+            end = int(end_str) if end_str.isdigit() else max_pages
+
+            if start > end:
+                start, end = end, start
+
+            for p in range(start, end + 1):
+                if 1 <= p <= max_pages:
+                    pages.add(p)
+        elif chunk.isdigit():
+            p = int(chunk)
+            if 1 <= p <= max_pages:
+                pages.add(p)
+
+    return pages
+
+
 async def extract_page_products_local(
     texto: str, local_client: Any, model_name: str | None = None
 ) -> list[dict[str, Any]]:
@@ -200,40 +239,47 @@ async def extract_catalog_stream(
     temp_dir: Path,
     local_client: Any,
     vision_client: Any,
+    page_range: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """Itera sobre documentos ou imagens e gera stream de eventos SSE."""
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Pré-calcula total de páginas / imagens
     total_paginas = 0
-    file_pages_plan: list[tuple[str, bytes, str, int]] = []  # (nome, bytes, tipo, total_do_arquivo)
+    file_pages_plan: list[tuple[str, bytes, str, int, set[int] | None]] = []  # (nome, bytes, tipo, total_do_arquivo, paginas_filtradas)
     for filename, content in files:
         lower = filename.lower()
         if lower.endswith(".pdf"):
             try:
                 with pdfplumber.open(io.BytesIO(content)) as pdf:
                     num_pages = len(pdf.pages)
-                    total_paginas += num_pages
-                    file_pages_plan.append((filename, content, "pdf", num_pages))
+                    paginas_alvo = _parse_page_range(page_range, num_pages)
+                    qtd_processar = len(paginas_alvo) if paginas_alvo is not None else num_pages
+                    total_paginas += qtd_processar
+                    file_pages_plan.append((filename, content, "pdf", num_pages, paginas_alvo))
             except Exception as e:
                 logger.error(f"Erro ao abrir PDF {filename}: {e}")
-                file_pages_plan.append((filename, content, "pdf", 0))
+                file_pages_plan.append((filename, content, "pdf", 0, None))
         else:
             total_paginas += 1
-            file_pages_plan.append((filename, content, "image", 1))
+            file_pages_plan.append((filename, content, "image", 1, None))
 
     pagina_global = 0
     total_produtos_extraidos = 0
 
-    for filename, content, file_type, num_pages in file_pages_plan:
+    for filename, content, file_type, num_pages, paginas_alvo in file_pages_plan:
         if file_type == "pdf":
             if num_pages == 0:
                 continue
             with pdfplumber.open(io.BytesIO(content)) as pdf:
                 for idx, page in enumerate(pdf.pages):
+                    num_pagina_pdf = idx + 1
+                    if paginas_alvo is not None and num_pagina_pdf not in paginas_alvo:
+                        continue
+
                     pagina_global += 1
                     # Notifica progresso
-                    yield f"event: progresso\ndata: {json.dumps({'pagina': pagina_global, 'total': total_paginas, 'status': f'Extraindo {filename} (página {idx+1}/{num_pages})'})}\n\n"
+                    yield f"event: progresso\ndata: {json.dumps({'pagina': pagina_global, 'total': total_paginas, 'status': f'Extraindo {filename} (página {num_pagina_pdf}/{num_pages})'})}\n\n"
 
                     texto_pagina = _extrair_texto_pagina(page)
                     
@@ -309,7 +355,7 @@ async def extract_catalog_stream(
                                 especificacoes_tecnicas=str(item.get("especificacoes_tecnicas", "") or ""),
                                 imagem_temp_url=foto_produto,
                                 fotos_pagina=figuras_pagina,
-                                pagina_origem=pagina_global,
+                                pagina_origem=num_pagina_pdf,
                                 confianca=0.95 if provider_usado == "external" else 0.85,
                                 provider_usado=provider_usado,
                             )
@@ -317,7 +363,7 @@ async def extract_catalog_stream(
 
                     total_produtos_extraidos += len(produtos)
                     page_result = CatalogPageResult(
-                        pagina=pagina_global,
+                        pagina=num_pagina_pdf,
                         total_paginas=total_paginas,
                         produtos=produtos,
                         provider_usado=provider_usado,

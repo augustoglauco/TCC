@@ -1,6 +1,8 @@
 import asyncio
 import logging
+import re
 import time
+import unicodedata
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
@@ -122,20 +124,61 @@ def _build_prompt(
     return "\n\n".join(partes)
 
 
+def _extrair_produtos_do_contexto(message: str, recent_messages: list[str]) -> list[str]:
+    """Extrai nomes/códigos de produtos citados no histórico recente ou na mensagem (ex. 'Identifiquei: RC 4102g2.')."""
+    texto_total = "\n".join([*recent_messages, message])
+    produtos = []
+    for m in re.finditer(r"(?:Identifiquei|produto|modelo|item):\s*([^\n\.\,\;]+)", texto_total, re.IGNORECASE):
+        prod = m.group(1).strip()
+        if prod:
+            produtos.append(prod)
+    return produtos
+
+
+def _filtrar_documentos_relevantes_ao_contexto(
+    documentos: list[Document], message: str, recent_messages: list[str]
+) -> list[Document]:
+    produtos_contexto = _extrair_produtos_do_contexto(message, recent_messages)
+    if not produtos_contexto:
+        return documentos
+
+    relevantes = []
+    for doc in documentos:
+        content_lower = doc.content.lower()
+        content_clean = "".join(
+            c for c in unicodedata.normalize("NFD", content_lower) if unicodedata.category(c) != "Mn"
+        )
+        for prod in produtos_contexto:
+            prod_clean = "".join(
+                c for c in unicodedata.normalize("NFD", prod.lower()) if unicodedata.category(c) != "Mn"
+            )
+            if prod_clean in content_clean:
+                relevantes.append(doc)
+                break
+            stop_words = {"de", "para", "com", "sem", "em", "do", "da", "dos", "das", "um", "uma", "produto"}
+            tokens = [t for t in re.split(r"[\s\-_,\.]+", prod_clean) if len(t) >= 3 and t not in stop_words]
+            if tokens and any(t in content_clean for t in tokens):
+                relevantes.append(doc)
+                break
+
+    return relevantes
+
+
 async def _buscar_documentos_rag(
     message: str, recent_messages: list[str], domain: str, rag_client: RAGClient
 ) -> list[Document]:
-    documentos = await rag_client.search(message, domain)
-    if not documentos and recent_messages:
-        # MVP: mensagem de acompanhamento sem match no RAG (ex.: "quais
-        # outras opções?" logo após perguntar sobre câmeras) — tenta de
-        # novo com o histórico recente concatenado à mensagem atual. Só
-        # dispara quando a busca direta veio vazia, para não diluir o
-        # embedding com contexto desnecessário no caso comum de pergunta
-        # autocontida (ver docs/ARCHITECTURE.md §5).
+    termos = extrair_termos_busca(message)
+    if not termos and recent_messages:
         texto_busca = "\n".join([*recent_messages, message])
-        documentos = await rag_client.search(texto_busca, domain)
-    return documentos
+    else:
+        texto_busca = message
+
+    documentos = await rag_client.search(texto_busca, domain)
+    if not documentos and recent_messages and texto_busca == message:
+        texto_busca_fallback = "\n".join([*recent_messages, message])
+        documentos = await rag_client.search(texto_busca_fallback, domain)
+
+    return _filtrar_documentos_relevantes_ao_contexto(documentos, message, recent_messages)
 
 
 async def _consultar_vendas(

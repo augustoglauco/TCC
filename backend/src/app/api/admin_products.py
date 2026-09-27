@@ -86,6 +86,7 @@ async def post_extrair_catalogo_stream(
     files: list[UploadFile] = File(...),
     provider: str = Form("local"),
     fallback_external: bool = Form(True),
+    page_range: str | None = Form(None),
 ):
     settings = get_settings()
     temp_dir = Path(settings.product_images_dir) / "temp"
@@ -106,6 +107,7 @@ async def post_extrair_catalogo_stream(
             temp_dir=temp_dir,
             local_client=local_client,
             vision_client=vision_client,
+            page_range=page_range,
         ),
         media_type="text/event-stream",
     )
@@ -253,13 +255,23 @@ async def delete_admin_produto(
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado.")
 
-    # Remove vetores do CLIP para todas as imagens associadas
+    # Remove vetores do CLIP para todas as imagens associadas por produto_id
+    try:
+        await clip_store.delete_images_by_product_id(produto_id)
+    except Exception as exc:
+        logger.warning("Falha ao expurgar vetores CLIP do produto %s por produto_id: %s", produto_id, exc)
+
     for img in produto.imagens:
         if img.clip_image_id:
             try:
                 await clip_store.delete_image(img.clip_image_id)
             except Exception as exc:
                 logger.warning("Falha ao expurgar vetor CLIP %s: %s", img.clip_image_id, exc)
+        if img.imagem_url:
+            try:
+                await clip_store.delete_images_by_url(img.imagem_url)
+            except Exception as exc:
+                logger.warning("Falha ao expurgar vetor CLIP por URL %s: %s", img.imagem_url, exc)
 
     await deletar_produto(session, produto_id)
     return None
@@ -332,6 +344,12 @@ async def delete_imagem_produto(
             await clip_store.delete_image(imagem.clip_image_id)
         except Exception as exc:
             logger.warning("Falha ao expurgar vetor CLIP %s: %s", imagem.clip_image_id, exc)
+
+    if imagem.imagem_url:
+        try:
+            await clip_store.delete_images_by_url(imagem.imagem_url)
+        except Exception as exc:
+            logger.warning("Falha ao expurgar vetor CLIP por URL %s: %s", imagem.imagem_url, exc)
 
     await session.execute(delete(ProdutoImagem).where(ProdutoImagem.id == img_id))
 

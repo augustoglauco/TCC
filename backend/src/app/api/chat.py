@@ -19,6 +19,7 @@ from app.memory.store import (
     carregar_contexto,
     contar_mensagens,
     gravar_metricas,
+    limpar_conversa,
     listar_mensagens,
     registrar_email,
     registrar_troca,
@@ -294,6 +295,21 @@ async def obter_conversa(conversation_id: str, request: Request) -> ConversaHist
             for m in mensagens
         ],
     )
+
+
+@router.delete("/conversations/{conversation_id}", status_code=204)
+async def deletar_conversa(conversation_id: str, request: Request) -> None:
+    """Deleta todas as mensagens e reseta os campos de memória/resumo no Postgres."""
+    try:
+        async with request.app.state.db_sessionmaker() as session:
+            removido = await limpar_conversa(session, conversation_id)
+            if not removido:
+                raise HTTPException(status_code=404, detail="Conversa não encontrada.")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _logar_memoria_indisponivel("deletar_conversa", exc)
+        raise HTTPException(status_code=503, detail="Não foi possível limpar a conversa.") from exc
 
 
 @router.post("/messages")

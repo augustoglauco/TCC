@@ -7,11 +7,12 @@ import EscalonamentoBanner from "@/components/chat/EscalonamentoBanner";
 import ImageUploader from "@/components/chat/ImageUploader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
-import { sendChatMessage } from "@/lib/api/chat";
+import { deleteConversation, sendChatMessage } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import type { ChatEscalonamentoData } from "@/lib/types/chat";
 import { metricsFromDone } from "@/lib/utils/chatMetrics";
 import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetrics";
+import { fileToBase64 } from "@/lib/utils/fileToBase64";
 import { generateId } from "@/lib/utils/generateId";
 
 /**
@@ -56,6 +57,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const addMessage = useChatStore((state) => state.addMessage);
   const updateMessage = useChatStore((state) => state.updateMessage);
   const setConversationId = useChatStore((state) => state.setConversationId);
+  const clearChat = useChatStore((state) => state.clearChat);
 
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -63,6 +65,17 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const [pendingImage, setPendingImage] = useState<{ base64: string; name: string } | null>(null);
   const [error, setError] = useState<PendingError | null>(null);
   const [escalonamento, setEscalonamento] = useState<ChatEscalonamentoData | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  async function handleClearHistory() {
+    if (typeof window !== "undefined" && !window.confirm("Deseja apagar todo o histórico e a memória desta conversa no servidor?")) {
+      return;
+    }
+    await deleteConversation(conversationId);
+    clearChat();
+    setError(null);
+    setEscalonamento(null);
+  }
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -234,6 +247,55 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     }
   }
 
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingOver) setIsDraggingOver(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDraggingOver(false);
+  }
+
+  async function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    if (controlsDisabled) return;
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    const isImage = file.type.startsWith("image/");
+    const isAudio =
+      file.type.startsWith("audio/") ||
+      /\.(mp3|wav|m4a|ogg|webm|aac|flac)$/i.test(file.name);
+
+    try {
+      if (isImage) {
+        const base64 = await fileToBase64(file);
+        setPendingImage({ base64, name: file.name });
+      } else if (isAudio) {
+        const base64 = await fileToBase64(file);
+        void submitAudio(base64);
+      } else {
+        setError({
+          text: "Formato de arquivo não suportado. Por favor, envie imagens (PNG, JPG, WEBP) ou áudios.",
+          retry: {},
+        });
+      }
+    } catch {
+      setError({
+        text: "Erro ao processar o arquivo arrastado. Tente novamente.",
+        retry: {},
+      });
+    }
+  }
+
   const controlsDisabled = isSending || isRecording;
   const canSend = !controlsDisabled && (!!input.trim() || !!pendingImage);
 
@@ -244,8 +306,41 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       title="Chat com Agente Virtual"
       description="Assistente IA multimodal com métricas de inferência em tempo real"
       size="2xl"
+      headerActions={
+        messages.length > 0 && (
+          <button
+            type="button"
+            onClick={() => void handleClearHistory()}
+            className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 sm:px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
+            title="Apagar mensagens e memória da conversa"
+            aria-label="Limpar histórico da conversa"
+          >
+            <span>🗑️</span>
+            <span className="hidden sm:inline">Limpar conversa</span>
+          </button>
+        )
+      }
     >
-      <div className="flex h-[62vh] sm:h-[68vh] min-h-[380px] max-h-[600px] flex-col rounded-xl border border-slate-200 bg-slate-50/50">
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className="relative flex h-[62vh] sm:h-[68vh] min-h-[380px] max-h-[600px] flex-col rounded-xl border border-slate-200 bg-slate-50/50"
+      >
+        {isDraggingOver && (
+          <div
+            data-testid="chat-drag-overlay"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-blue-500 bg-blue-50/95 p-6 text-center backdrop-blur-xs transition-all"
+          >
+            <div className="rounded-full bg-blue-100 p-4 text-3xl shadow-xs">📥</div>
+            <p className="mt-3 text-sm font-semibold text-blue-900">
+              Solte a imagem ou áudio aqui para enviar
+            </p>
+            <p className="mt-1 text-xs text-blue-600">
+              Suporta imagens (PNG, JPG, WEBP) e arquivos de áudio (MP3, WAV, M4A, etc.)
+            </p>
+          </div>
+        )}
         {hasAssistantMessages && (
           <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100/80 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs shrink-0">
             <span className="text-slate-600 font-medium flex items-center gap-1 text-[11px] sm:text-xs">

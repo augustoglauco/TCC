@@ -237,3 +237,71 @@ async def test_extract_catalog_stream_com_pdf_figuras(tmp_path):
     assert len(prod["fotos_pagina"]) == len(p1_data["fotos_pagina"])
 
 
+def test_parse_page_range():
+    from app.catalog_extractor.extractor import _parse_page_range
+
+    # Casos vazios -> None (todas as páginas)
+    assert _parse_page_range(None, 10) is None
+    assert _parse_page_range("", 10) is None
+    assert _parse_page_range("   ", 10) is None
+
+    # Intervalo simples
+    assert _parse_page_range("1-3", 10) == {1, 2, 3}
+
+    # Páginas avulsas
+    assert _parse_page_range("2, 5, 8", 10) == {2, 5, 8}
+
+    # Intervalo aberto no fim ("3-")
+    assert _parse_page_range("3-", 5) == {3, 4, 5}
+
+    # Intervalo aberto no início ("-3")
+    assert _parse_page_range("-3", 5) == {1, 2, 3}
+
+    # Combinação de intervalos e páginas avulsas
+    assert _parse_page_range("1-2, 5, 7-8", 10) == {1, 2, 5, 7, 8}
+
+    # Invertido ("5-3")
+    assert _parse_page_range("5-3", 10) == {3, 4, 5}
+
+    # Fora dos limites (descarta páginas <= 0 ou > max_pages)
+    assert _parse_page_range("0, 3, 25", 10) == {3}
+
+
+@pytest.mark.asyncio
+async def test_extract_catalog_stream_com_filtro_page_range(tmp_path):
+    from pathlib import Path
+    pdf_path = Path(__file__).resolve().parent.parent.parent / "docs" / "Manuais_fornecedor" / "Datasheet - iNVU 9164 M2 IAX FT.pdf"
+    if not pdf_path.exists():
+        pytest.skip("PDF de teste não encontrado")
+
+    pdf_bytes = pdf_path.read_bytes()
+    vision_client = AsyncMock()
+    vision_client.describe_image = AsyncMock(
+        return_value='[{"nome": "Produto Pagina 2", "descricao": "Desc", "categoria": "CFTV", "preco_base_fornecedor": 100.0, "preco": 150.0}]'
+    )
+    local_client = AsyncMock()
+
+    events = []
+    # Solicita especificamente apenas a página 2 do PDF
+    async for event in extract_catalog_stream(
+        files=[("datasheet.pdf", pdf_bytes)],
+        provider="external",
+        fallback_external=False,
+        temp_dir=tmp_path,
+        local_client=local_client,
+        vision_client=vision_client,
+        page_range="2",
+    ):
+        events.append(event)
+
+    pagina_events = [e for e in events if "event: pagina_concluida" in e]
+    # Deve processar exatamente 1 página
+    assert len(pagina_events) == 1
+    p_data = json.loads(pagina_events[0].split("data: ")[1].strip())
+    # A página de origem deve ser 2
+    assert p_data["pagina"] == 2
+    assert p_data["total_paginas"] == 1
+    assert p_data["produtos"][0]["pagina_origem"] == 2
+
+
+
