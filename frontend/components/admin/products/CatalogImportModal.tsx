@@ -24,6 +24,7 @@ export default function CatalogImportModal({
 }: CatalogImportModalProps) {
   const [step, setStep] = useState<ModalStep>("upload");
   const [files, setFiles] = useState<File[]>([]);
+  const [pageRange, setPageRange] = useState("");
   const [provider, setProvider] = useState<"local" | "external">("local");
   const [fallbackExternal, setFallbackExternal] = useState(true);
 
@@ -64,7 +65,7 @@ export default function CatalogImportModal({
 
     await extractCatalogStream(
       files,
-      { provider, fallbackExternal },
+      { provider, fallbackExternal, pageRange: pageRange.trim() || undefined },
       {
         onProgress: (p) => setProgress(p),
         onPageComplete: (pageRes: CatalogPageResult) => {
@@ -184,6 +185,7 @@ export default function CatalogImportModal({
   };
 
   const selectedCount = extractedProducts.filter((p) => p.selecionado).length;
+  const hasPdf = files.some((f) => f.name.toLowerCase().endsWith(".pdf"));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -248,6 +250,32 @@ export default function CatalogImportModal({
                   </div>
                 )}
               </div>
+
+              {/* Intervalo de Páginas do PDF */}
+              {hasPdf && (
+                <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label
+                      htmlFor="page-range-input"
+                      className="block text-xs font-bold uppercase tracking-wider text-gray-700"
+                    >
+                      Intervalo de Páginas do PDF (opcional)
+                    </label>
+                    <span className="text-[11px] text-gray-400">Deixe em branco para extrair todas as páginas</span>
+                  </div>
+                  <input
+                    id="page-range-input"
+                    type="text"
+                    value={pageRange}
+                    onChange={(e) => setPageRange(e.target.value)}
+                    placeholder="Ex: 1-5, 8, 12-20 (ou 3- para página 3 até o final)"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Indique as páginas que deseja processar. Aceita intervalos (ex: <code>1-5</code>), páginas avulsas (ex: <code>2, 4, 8</code>) ou combinações.
+                  </p>
+                </div>
+              )}
 
               {/* Opções de IA e Processamento */}
               <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">

@@ -13,6 +13,7 @@ backend/secrets/
 
 # RAG uploads (dados de usuário, não versionados)
 backend/data/
+data/
 
 # Node / Next.js
 node_modules/

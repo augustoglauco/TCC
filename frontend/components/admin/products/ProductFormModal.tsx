@@ -7,13 +7,14 @@ import {
   updateAdminProduct,
   uploadAdminProductImage,
   deleteAdminProductImage,
+  fetchAdminProduct,
 } from "@/lib/api/adminProducts";
-import type { AdminProduct } from "@/lib/types/adminProducts";
+import type { AdminProduct, AdminProductImage } from "@/lib/types/adminProducts";
 
 interface ProductFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (produtoAtualizado?: AdminProduct) => void;
   produtoParaEditar?: AdminProduct | null;
 }
 
@@ -31,11 +32,21 @@ export default function ProductFormModal({
   const [especificacoesTecnicas, setEspecificacoesTecnicas] = useState("");
   const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
+  const [imagens, setImagens] = useState<AdminProductImage[]>([]);
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isOpen) {
+      setImagemFile(null);
+      setImagemPreview(null);
+      setImagens([]);
+      setError(null);
+      return;
+    }
+
     if (produtoParaEditar) {
       setNome(produtoParaEditar.nome);
       setCategoria(produtoParaEditar.categoria || "Geral");
@@ -54,6 +65,7 @@ export default function ProductFormModal({
             : `${getApiBaseUrl()}${produtoParaEditar.imagem_url}`
           : null
       );
+      setImagens(produtoParaEditar.imagens || []);
       setImagemFile(null);
     } else {
       setNome("");
@@ -64,9 +76,10 @@ export default function ProductFormModal({
       setEspecificacoesTecnicas("");
       setImagemFile(null);
       setImagemPreview(null);
+      setImagens([]);
     }
     setError(null);
-  }, [produtoParaEditar, isOpen]);
+  }, [produtoParaEditar?.id, isOpen]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -77,12 +90,55 @@ export default function ProductFormModal({
   };
 
   const handleRemoverImagemExistente = async (imgId: number) => {
-    if (!produtoParaEditar) return;
+    if (!produtoParaEditar || deletingImageId !== null) return;
+    setDeletingImageId(imgId);
+    setError(null);
+
+    const imagemRemovida = imagens.find((img) => img.id === imgId);
+    const imagensRestantes = imagens.filter((img) => img.id !== imgId);
+
+    // Atualização otimista imediata na interface
+    setImagens(imagensRestantes);
+
     try {
       await deleteAdminProductImage(produtoParaEditar.id, imgId);
-      onSuccess();
+
+      let produtoAtualizado: AdminProduct | null = null;
+      try {
+        produtoAtualizado = await fetchAdminProduct(produtoParaEditar.id);
+        setImagens(produtoAtualizado.imagens || []);
+        if (!imagemFile) {
+          setImagemPreview(
+            produtoAtualizado.imagem_url
+              ? produtoAtualizado.imagem_url.startsWith("http")
+                ? produtoAtualizado.imagem_url
+                : `${getApiBaseUrl()}${produtoAtualizado.imagem_url}`
+              : null
+          );
+        }
+      } catch {
+        // Se a consulta remota falhar, mantém a lista filtrada e atualiza preview localmente
+        if (!imagemFile && imagemRemovida && imagemPreview?.includes(imagemRemovida.imagem_url)) {
+          const proximaImg = imagensRestantes[0];
+          setImagemPreview(
+            proximaImg
+              ? proximaImg.imagem_url.startsWith("http")
+                ? proximaImg.imagem_url
+                : `${getApiBaseUrl()}${proximaImg.imagem_url}`
+              : null
+          );
+        }
+      }
+
+      onSuccess(produtoAtualizado || undefined);
     } catch (err: any) {
+      // Reverte estado se a exclusão falhar
+      if (imagemRemovida) {
+        setImagens((prev) => [...prev, imagemRemovida]);
+      }
       setError(err?.message || "Erro ao remover imagem");
+    } finally {
+      setDeletingImageId(null);
     }
   };
 
@@ -292,36 +348,42 @@ export default function ProductFormModal({
             </div>
 
             {/* Imagens já associadas se editando */}
-            {produtoParaEditar && produtoParaEditar.imagens && produtoParaEditar.imagens.length > 0 && (
+            {produtoParaEditar && imagens.length > 0 && (
               <div className="mt-3">
                 <span className="text-xs font-semibold text-gray-700">
-                  Imagens associadas ({produtoParaEditar.imagens.length}):
+                  Imagens associadas ({imagens.length}):
                 </span>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {produtoParaEditar.imagens.map((img) => (
-                    <div
-                      key={img.id}
-                      className="group relative h-14 w-14 overflow-hidden rounded border border-gray-200 bg-white"
-                    >
-                      <img
-                        src={
-                          img.imagem_url.startsWith("http")
-                            ? img.imagem_url
-                            : `${getApiBaseUrl()}${img.imagem_url}`
-                        }
-                        alt="Foto cadastrada"
-                        className="h-full w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoverImagemExistente(img.id)}
-                        title="Remover imagem do produto e do CLIP"
-                        className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  {imagens.map((img) => {
+                    const isDeleting = deletingImageId === img.id;
+                    return (
+                      <div
+                        key={img.id}
+                        className={`group relative h-14 w-14 overflow-hidden rounded border border-gray-200 bg-white ${
+                          isDeleting ? "opacity-40" : ""
+                        }`}
                       >
-                        🗑️
-                      </button>
-                    </div>
-                  ))}
+                        <img
+                          src={
+                            img.imagem_url.startsWith("http")
+                              ? img.imagem_url
+                              : `${getApiBaseUrl()}${img.imagem_url}`
+                          }
+                          alt="Foto cadastrada"
+                          className="h-full w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          disabled={deletingImageId !== null}
+                          onClick={() => handleRemoverImagemExistente(img.id)}
+                          title="Remover imagem do produto e do CLIP"
+                          className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed"
+                        >
+                          {isDeleting ? "⏳" : "🗑️"}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

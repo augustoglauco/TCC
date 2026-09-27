@@ -279,7 +279,10 @@ export default function AdminProdutosPage() {
       <ProductFormModal
         isOpen={formModalOpen}
         onClose={() => setFormModalOpen(false)}
-        onSuccess={() => {
+        onSuccess={(produtoAtualizado) => {
+          if (produtoAtualizado) {
+            setEditingProduct(produtoAtualizado);
+          }
           carregarProdutos();
           carregarCategorias();
         }}
