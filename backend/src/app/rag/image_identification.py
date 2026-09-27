@@ -19,6 +19,7 @@ nem chamada externa real.
 import json
 import logging
 import re
+import unicodedata
 
 from pydantic import BaseModel, ValidationError
 
@@ -124,7 +125,9 @@ async def identify_product_by_image(
     internos = await clip_store.search_by_image(clip_embedder, image_bytes, domain=_RAG_DOMAIN)
     if internos and internos[0].score >= internal_confidence:
         melhor = internos[0]
-        detalhes = await _buscar_detalhes(rag_client, melhor.filename, recent_messages)
+        detalhes = await _buscar_detalhes(
+            rag_client, melhor.filename, recent_messages, produto_id=melhor.produto_id
+        )
         return ImageIdentificationResult(
             status="encontrado_interno",
             produto=melhor.filename,
@@ -157,18 +160,69 @@ async def identify_product_by_image(
     )
 
 
+def _remover_acentos(texto: str) -> str:
+    return "".join(
+        c for c in unicodedata.normalize("NFD", texto) if unicodedata.category(c) != "Mn"
+    )
+
+
+def _documento_relevante_para_produto(
+    doc: Document, nome_produto: str, produto_id: int | None = None
+) -> bool:
+    content_lower = doc.content.lower()
+    nome_lower = nome_produto.lower().strip()
+
+    # 1) Bate pelo produto_id no conteúdo (ex.: "id: 2")
+    if produto_id is not None and (
+        f"id: {produto_id}" in content_lower or f"id:{produto_id}" in content_lower
+    ):
+        return True
+
+    # 2) Bate pelo nome completo do produto no texto
+    if nome_lower and nome_lower in content_lower:
+        return True
+
+    # 3) Bate por normalização sem acentos / tokens principais
+    content_clean = _remover_acentos(content_lower)
+    nome_clean = _remover_acentos(nome_lower)
+
+    if nome_clean in content_clean:
+        return True
+
+    stop_words = {"de", "para", "com", "sem", "em", "do", "da", "dos", "das", "um", "uma", "produto"}
+    tokens_nome = [
+        t for t in re.split(r"[\s\-_,\.]+", nome_clean) if len(t) >= 3 and t not in stop_words
+    ]
+    if tokens_nome and any(t in content_clean for t in tokens_nome):
+        return True
+
+    return False
+
+
 async def _buscar_detalhes(
-    rag_client: RAGClient, nome_produto: str, recent_messages: list[str]
+    rag_client: RAGClient,
+    nome_produto: str,
+    recent_messages: list[str],
+    produto_id: int | None = None,
 ) -> str | None:
     """Busca detalhes do produto no RAG de texto pelo nome (+ contexto recente).
 
     Concatena o nome identificado ao contexto de mensagens recentes do
     usuário (ex.: o que ele pediu antes de enviar a imagem), como decidido
-    em docs/ARCHITECTURE.md §4. Devolve os `content` concatenados ou None se
-    a busca não trouxe nada.
+    em docs/ARCHITECTURE.md §4. Filtra apenas os documentos que realmente
+    correspondem ao produto identificado, evitando retornar vizinhos vetoriais
+    não relacionados. Devolve os `content` concatenados ou None se a busca não
+    trouxe nenhum documento relevante.
     """
     query = "\n".join([*recent_messages, nome_produto]) if recent_messages else nome_produto
     documentos: list[Document] = await rag_client.search(query, _RAG_DOMAIN)
     if not documentos:
         return None
-    return "\n\n".join(d.content for d in documentos)
+
+    relevantes = [
+        d for d in documentos if _documento_relevante_para_produto(d, nome_produto, produto_id)
+    ]
+    if not relevantes:
+        return None
+
+    return "\n\n".join(d.content for d in relevantes)

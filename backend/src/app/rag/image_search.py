@@ -11,13 +11,14 @@ busca sobre a collection `catalogo_imagens` no Qdrant.
 import logging
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import (
     Distance,
     FieldCondition,
     Filter,
     MatchValue,
+    PointIdsList,
     PointStruct,
     VectorParams,
 )
@@ -49,6 +50,15 @@ class ImageSearchResult(BaseModel):
     score: float
     produto_id: int | None = None
     imagem_url: str | None = None
+
+    @field_validator("imagem_url", mode="before")
+    @classmethod
+    def _normalize_imagem_url(cls, v: object) -> str | None:
+        if isinstance(v, list):
+            return str(v[0]) if v else None
+        if isinstance(v, str):
+            return v
+        return None
 
 
 def rerank_image_results(
@@ -152,7 +162,37 @@ class ClipImageStore:
                 return False
             await self._client.delete(
                 collection_name=IMAGE_COLLECTION_NAME,
-                points_selector=[image_id],
+                points_selector=PointIdsList(points=[image_id]),
+            )
+            return True
+        except Exception as exc:
+            raise RAGConnectionError(str(exc)) from exc
+
+    async def delete_images_by_product_id(self, produto_id: int) -> bool:
+        """Exclui todos os pontos da collection CLIP pertencentes ao produto_id."""
+        try:
+            if not await self._client.collection_exists(IMAGE_COLLECTION_NAME):
+                return False
+            await self._client.delete(
+                collection_name=IMAGE_COLLECTION_NAME,
+                points_selector=Filter(
+                    must=[FieldCondition(key="produto_id", match=MatchValue(value=produto_id))]
+                ),
+            )
+            return True
+        except Exception as exc:
+            raise RAGConnectionError(str(exc)) from exc
+
+    async def delete_images_by_url(self, imagem_url: str) -> bool:
+        """Exclui pontos da collection CLIP por imagem_url."""
+        try:
+            if not await self._client.collection_exists(IMAGE_COLLECTION_NAME):
+                return False
+            await self._client.delete(
+                collection_name=IMAGE_COLLECTION_NAME,
+                points_selector=Filter(
+                    must=[FieldCondition(key="imagem_url", match=MatchValue(value=imagem_url))]
+                ),
             )
             return True
         except Exception as exc:

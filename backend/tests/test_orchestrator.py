@@ -1717,6 +1717,21 @@ async def test_vendas_loga_diagnostico_quando_nao_ha_candidatos(caplog):
     assert "bloco" not in registros[0].router
 
 
+def test_filtrar_documentos_relevantes_ao_contexto_descarta_produto_diferente():
+    from app.router.orchestrator import _filtrar_documentos_relevantes_ao_contexto
+
+    recent = ["Identifiquei: RC 4102g2."]
+    msg = "possui detalhes?"
+    docs = [
+        Document(content="id: 2\nnome: Gerador Diesel GD-30\n...", source="doc1", score=0.9),
+        Document(content="id: 1\nnome: Gerador Diesel GD-15\n...", source="doc2", score=0.8),
+    ]
+
+    relevantes = _filtrar_documentos_relevantes_ao_contexto(docs, msg, recent)
+    assert relevantes == []
+
+
+
 async def test_vendas_mensagem_de_acompanhamento_busca_candidatos_tambem_no_historico(caplog):
     # "E se eu levar 3 unidades?" não cita o produto: sem o histórico a busca
     # não achava nada (ou, com "5 unidades", achava o GD-15 por coincidência).

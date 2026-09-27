@@ -182,3 +182,15 @@ def test_rerank_nao_altera_o_score_exibido():
 
 def test_rerank_lista_vazia():
     assert rerank_image_results([], query_domain="vendas", top_k=5) == []
+
+
+def test_image_search_result_normaliza_imagem_url_lista():
+    res = ImageSearchResult(
+        image_id="img1",
+        filename="foto.png",
+        domain="vendas",
+        score=0.9,
+        imagem_url=["/api/uploads/produtos/foto.jpg"],
+    )
+    assert res.imagem_url == "/api/uploads/produtos/foto.jpg"
+
