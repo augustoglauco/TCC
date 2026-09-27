@@ -191,3 +191,20 @@ export async function fetchConversationHistory(
     };
   });
 }
+
+/**
+ * Solicita a exclusão do histórico e memória da conversa no Postgres (DELETE /api/chat/conversations/{id}).
+ */
+export async function deleteConversation(conversationId: string): Promise<boolean> {
+  if (!conversationId) return true;
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/chat/conversations/${encodeURIComponent(conversationId)}`,
+      { method: "DELETE" },
+    );
+    return response.ok || response.status === 404;
+  } catch {
+    return false;
+  }
+}
+

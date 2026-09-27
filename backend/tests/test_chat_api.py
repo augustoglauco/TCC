@@ -431,6 +431,23 @@ def test_get_conversa_com_banco_fora_do_ar_da_503(fakes):
         assert client.get("/api/chat/conversations/conv-x").status_code == 503
 
 
+def test_deletar_conversa_limpa_mensagens_e_retorna_204(client):
+    msg_resp = client.post("/api/chat/messages", json={"message": "Olá", "conversation_id": "conv-del-1"})
+    assert msg_resp.status_code == 200
+
+    del_resp = client.delete("/api/chat/conversations/conv-del-1")
+    assert del_resp.status_code == 204
+
+    get_resp = client.get("/api/chat/conversations/conv-del-1")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["mensagens"] == []
+    assert get_resp.json()["resumo"] is None
+
+
+def test_deletar_conversa_inexistente_da_404(client):
+    assert client.delete("/api/chat/conversations/nao-existe").status_code == 404
+
+
 def test_done_traz_o_perfil_lead_por_intencao_de_compra(client):
     resposta = client.post("/api/chat/messages", json={"message": "quero agendar uma visita"})
 

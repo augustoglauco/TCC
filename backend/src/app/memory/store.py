@@ -11,7 +11,7 @@ histórico recente usado pelo roteador passa a vir daqui.
 
 from dataclasses import dataclass, field
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Conversa, ConversaMensagem
@@ -136,3 +136,20 @@ async def listar_mensagens(
         .limit(limite)
     )
     return list(reversed(resultado.scalars().all()))
+
+
+async def limpar_conversa(session: AsyncSession, conversation_id: str) -> bool:
+    """Deleta todas as mensagens da conversa e reseta os campos de memória/resumo no Postgres.
+    Retorna True se a conversa existia, False caso contrário."""
+    conversa = await session.get(Conversa, conversation_id)
+    if conversa is None:
+        return False
+    await session.execute(
+        delete(ConversaMensagem).where(ConversaMensagem.conversa_id == conversation_id)
+    )
+    conversa.resumo = None
+    conversa.perfil = None
+    conversa.perfil_motivo = None
+    conversa.mensagens_resumidas = 0
+    await session.commit()
+    return True

@@ -25,8 +25,8 @@ logger = logging.getLogger(__name__)
 INTERVALO_RESUMO = 6
 
 _PROMPT_RESUMO = """\
-Você mantém o resumo de uma conversa de atendimento de uma empresa que vende \
-geradores e acessórios. Reescreva o resumo incorporando as mensagens novas.
+Você mantém o resumo de uma conversa de atendimento ao cliente de uma empresa. \
+Reescreva o resumo incorporando as mensagens novas.
 
 Regras:
 - No máximo 5 frases curtas, em português.
