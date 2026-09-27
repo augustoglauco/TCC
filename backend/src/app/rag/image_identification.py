@@ -7,9 +7,15 @@ Fluxo (ver docs/ARCHITECTURE.md §4 — "Fluxo de identificação de produto"):
 2. Visão externa (fallback): consulta um modelo multimodal via OpenRouter
    pedindo JSON estruturado {produto, e_do_portfolio, confianca} sobre o
    portfólio da empresa.
-3. Decisão: se for do portfólio E confiança >= `external_confidence`, busca no
-   RAG de texto pelo nome (mais o contexto de mensagens recentes, quando
-   houver) e devolve os detalhes. Caso contrário, "não identificado".
+3. Decisão: se for do portfólio E confiança >= `external_confidence`, devolve
+   os detalhes do produto. Caso contrário, "não identificado".
+
+Os detalhes vêm do cadastro no banco (descrição comercial, especificações
+técnicas, dimensões, peso) quando o produto é achado lá — pelo `produto_id`
+da foto ou pelo nome casando com um único produto. Sem produto no banco, cai
+na busca no RAG de texto pelo nome (mais o contexto de mensagens recentes),
+que fica para manuais e documentação (decisão de 2026-09-27,
+docs/ARCHITECTURE.md §4).
 
 O serviço é uma função pura sobre os colaboradores (store CLIP, embedder,
 cliente de visão, RAG de texto), testável isoladamente com mocks — sem GPU
@@ -27,6 +33,11 @@ from app.rag.clip_embedder import ClipEmbedder
 from app.rag.image_search import ClipImageStore
 from app.router.openrouter_client import VisionModelIndisponivelError
 from app.router.rag_client import Document, RAGClient
+from app.router.sales_catalog import (
+    DadosCatalogoVendas,
+    SalesCatalogClient,
+    extrair_termos_busca,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +105,7 @@ def _parse_vision_answer(raw_text: str) -> _VisionAnswer | None:
         stripped = match.group(1)
     try:
         return _VisionAnswer(**json.loads(stripped))
-    except (json.JSONDecodeError, ValidationError, TypeError):
+    except json.JSONDecodeError, ValidationError, TypeError:
         return None
 
 
@@ -111,6 +122,7 @@ async def identify_product_by_image(
     internal_confidence: float,
     external_confidence: float,
     recent_messages: list[str] | None = None,
+    sales_catalog_client: SalesCatalogClient | None = None,
 ) -> ImageIdentificationResult:
     """Executa o fluxo de identificação de produto por imagem.
 
@@ -125,13 +137,19 @@ async def identify_product_by_image(
     internos = await clip_store.search_by_image(clip_embedder, image_bytes, domain=_RAG_DOMAIN)
     if internos and internos[0].score >= internal_confidence:
         melhor = internos[0]
-        detalhes = await _buscar_detalhes(
-            rag_client, melhor.filename, recent_messages, produto_id=melhor.produto_id
-        )
+        produto_id = melhor.produto_id
+        ficha = await _ficha_do_banco(sales_catalog_client, melhor.filename, produto_id)
+        if ficha is not None:
+            produto_id, nome, detalhes = ficha
+        else:
+            nome = melhor.filename
+            detalhes = await _buscar_detalhes(
+                rag_client, melhor.filename, recent_messages, produto_id=melhor.produto_id
+            )
         return ImageIdentificationResult(
             status="encontrado_interno",
-            produto=melhor.filename,
-            produto_id=melhor.produto_id,
+            produto=nome,
+            produto_id=produto_id,
             imagem_url=melhor.imagem_url,
             fonte="catalogo_imagens",
             detalhes=detalhes,
@@ -150,14 +168,79 @@ async def identify_product_by_image(
     if answer is None or not answer.e_do_portfolio or answer.confianca < external_confidence:
         return ImageIdentificationResult(status="nao_identificado", mensagem=_NAO_IDENTIFICADO_MSG)
 
-    detalhes = await _buscar_detalhes(rag_client, answer.produto, recent_messages)
+    ficha = await _ficha_do_banco(sales_catalog_client, answer.produto, None)
+    if ficha is not None:
+        produto_id, nome, detalhes = ficha
+        fonte = "visao_externa+catalogo"
+    else:
+        produto_id, nome = None, answer.produto
+        detalhes = await _buscar_detalhes(rag_client, answer.produto, recent_messages)
+        fonte = "visao_externa+rag_texto"
     return ImageIdentificationResult(
         status="encontrado_externo",
-        produto=answer.produto,
-        fonte="visao_externa+rag_texto",
+        produto=nome,
+        produto_id=produto_id,
+        fonte=fonte,
         detalhes=detalhes,
         confianca_externa=answer.confianca,
     )
+
+
+async def _ficha_do_banco(
+    sales_catalog_client: SalesCatalogClient | None,
+    nome: str,
+    produto_id: int | None,
+) -> tuple[int, str, str | None] | None:
+    """(id, nome do cadastro, ficha formatada) do produto no banco, ou `None`
+    se não houver cliente, produto ou banco no ar — aí o chamador cai no RAG.
+    Sem `produto_id`, casa pelo nome e só aceita um candidato único."""
+    if sales_catalog_client is None:
+        return None
+    try:
+        if produto_id is None:
+            produto_id = await _produto_id_pelo_nome(sales_catalog_client, nome)
+            if produto_id is None:
+                return None
+        dados = await sales_catalog_client.consultar_detalhes(produto_id, None, None)
+    except Exception as exc:
+        logger.warning("identify_image ficha_do_banco_falhou erro=%s", exc)
+        return None
+    if dados is None:
+        return None
+    return produto_id, dados.produto_nome, formatar_ficha_produto(dados)
+
+
+async def _produto_id_pelo_nome(sales_catalog_client: SalesCatalogClient, nome: str) -> int | None:
+    # MVP: casamento por nome contido um no outro (sem acentos), só com um
+    # candidato único; nome genérico ("Câmera IP") com vários produtos fica
+    # sem ficha do banco e cai no RAG.
+    alvo = _remover_acentos(nome.lower()).strip()
+    if not alvo:
+        return None
+    candidatos = await sales_catalog_client.buscar_candidatos(extrair_termos_busca(nome))
+    casados = [
+        c.id
+        for c in candidatos
+        if alvo in _remover_acentos(c.nome.lower()) or _remover_acentos(c.nome.lower()) in alvo
+    ]
+    return casados[0] if len(casados) == 1 else None
+
+
+def formatar_ficha_produto(dados: DadosCatalogoVendas) -> str | None:
+    """Ficha do produto mostrada ao cliente depois do "Identifiquei: …"."""
+    partes = []
+    if dados.descricao:
+        partes.append(dados.descricao.strip())
+    if dados.especificacoes_tecnicas:
+        partes.append(f"Especificações técnicas: {dados.especificacoes_tecnicas.strip()}")
+    medidas = []
+    if dados.dimensoes_cm:
+        medidas.append(f"Dimensões: {dados.dimensoes_cm} cm")
+    if dados.peso_kg is not None:
+        medidas.append(f"Peso: {dados.peso_kg} kg")
+    if medidas:
+        partes.append(" · ".join(medidas))
+    return "\n\n".join(partes) or None
 
 
 def _remover_acentos(texto: str) -> str:
@@ -189,7 +272,20 @@ def _documento_relevante_para_produto(
     if nome_clean in content_clean:
         return True
 
-    stop_words = {"de", "para", "com", "sem", "em", "do", "da", "dos", "das", "um", "uma", "produto"}
+    stop_words = {
+        "de",
+        "para",
+        "com",
+        "sem",
+        "em",
+        "do",
+        "da",
+        "dos",
+        "das",
+        "um",
+        "uma",
+        "produto",
+    }
     tokens_nome = [
         t for t in re.split(r"[\s\-_,\.]+", nome_clean) if len(t) >= 3 and t not in stop_words
     ]

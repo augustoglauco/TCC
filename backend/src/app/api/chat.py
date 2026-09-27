@@ -473,6 +473,7 @@ async def send_message(
                     internal_confidence=request.app.state.image_internal_confidence,
                     external_confidence=request.app.state.image_external_confidence,
                     recent_messages=recent_messages,
+                    sales_catalog_client=sales_catalog_client,
                 )
             except RAGConnectionError as exc:
                 logger.error(

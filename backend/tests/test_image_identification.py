@@ -1,11 +1,13 @@
 """Testes para app.rag.image_identification (R6, Fase 3)."""
 
 import json
+from decimal import Decimal
 
 from app.rag.image_identification import identify_product_by_image
 from app.rag.image_search import ImageSearchResult
 from app.router.openrouter_client import VisionModelIndisponivelError
 from app.router.rag_client import Document
+from app.router.sales_catalog import CandidatoProduto, DadosCatalogoVendas
 
 _IMG = b"fake-image-bytes"
 
@@ -173,3 +175,123 @@ async def test_recent_messages_entram_na_busca_do_rag():
     # A query do RAG concatena o contexto recente ao nome identificado.
     assert "preciso de uma câmera externa" in rag.queries[0]
     assert "Câmera IP" in rag.queries[0]
+
+
+# Detalhes do produto vêm do banco (decisão de 2026-09-27); o RAG fica para
+# produto que ainda não está no cadastro.
+
+_RADIO = DadosCatalogoVendas(
+    produto_nome="Rádio Comunicador Analógico RC 4102g2",
+    estoque_total=17,
+    descricao="Rádio portátil para comunicação em campo.",
+    especificacoes_tecnicas="16 canais; IP54.",
+    dimensoes_cm="12x6x4",
+    peso_kg=Decimal("0.300"),
+)
+
+
+class _FakeSalesCatalog:
+    def __init__(self, candidatos=None, dados=_RADIO, exc: Exception | None = None) -> None:
+        self._candidatos = candidatos or []
+        self._dados = dados
+        self._exc = exc
+        self.detalhes_consultados: list[int] = []
+
+    async def buscar_candidatos(self, termos, limite=10):
+        if self._exc is not None:
+            raise self._exc
+        return self._candidatos
+
+    async def consultar_detalhes(self, produto_id, produto_relacionado_id, quantidade):
+        if self._exc is not None:
+            raise self._exc
+        self.detalhes_consultados.append(produto_id)
+        return self._dados
+
+
+async def _identificar(store, vision, rag, catalogo):
+    return await identify_product_by_image(
+        _IMG,
+        clip_store=store,
+        clip_embedder=object(),
+        vision_client=vision,
+        rag_client=rag,
+        internal_confidence=0.30,
+        external_confidence=0.80,
+        sales_catalog_client=catalogo,
+    )
+
+
+async def test_acerto_interno_com_produto_id_traz_a_ficha_do_banco_sem_rag():
+    hit = ImageSearchResult(
+        image_id="i1", filename="radio.jpg", domain="vendas", score=0.5, produto_id=7
+    )
+    rag = _FakeRAGClient(documents=[Document(content="Relógio de ponto", source="x", score=1)])
+    catalogo = _FakeSalesCatalog()
+
+    result = await _identificar(_FakeClipStore([hit]), _FakeVisionClient(), rag, catalogo)
+
+    assert result.status == "encontrado_interno"
+    assert result.produto == "Rádio Comunicador Analógico RC 4102g2"
+    assert result.produto_id == 7
+    assert catalogo.detalhes_consultados == [7]
+    assert "Rádio portátil para comunicação em campo." in result.detalhes
+    assert "Especificações técnicas: 16 canais; IP54." in result.detalhes
+    assert "Dimensões: 12x6x4 cm · Peso: 0.300 kg" in result.detalhes
+    assert "Relógio" not in result.detalhes
+    assert rag.queries == []
+
+
+async def test_visao_externa_com_nome_unico_no_banco_traz_a_ficha():
+    vision = _FakeVisionClient(
+        answer={"produto": "Rádio RC 4102g2", "e_do_portfolio": True, "confianca": 0.9}
+    )
+    catalogo = _FakeSalesCatalog(
+        candidatos=[CandidatoProduto(id=7, nome="Rádio RC 4102g2 Analógico", categoria="radios")]
+    )
+    rag = _FakeRAGClient()
+
+    result = await _identificar(_FakeClipStore(), vision, rag, catalogo)
+
+    assert result.status == "encontrado_externo"
+    assert result.produto_id == 7
+    assert result.fonte == "visao_externa+catalogo"
+    assert "16 canais" in result.detalhes
+    assert rag.queries == []
+
+
+async def test_nome_generico_com_varios_produtos_cai_no_rag():
+    vision = _FakeVisionClient(
+        answer={"produto": "Câmera IP", "e_do_portfolio": True, "confianca": 0.9}
+    )
+    catalogo = _FakeSalesCatalog(
+        candidatos=[
+            CandidatoProduto(id=1, nome="Câmera IP 2MP", categoria="cftv"),
+            CandidatoProduto(id=2, nome="Câmera IP 4MP", categoria="cftv"),
+        ]
+    )
+    rag = _FakeRAGClient(documents=[Document(content="Câmera IP manual", source="m", score=1)])
+
+    result = await _identificar(_FakeClipStore(), vision, rag, catalogo)
+
+    assert result.fonte == "visao_externa+rag_texto"
+    assert result.detalhes == "Câmera IP manual"
+    assert catalogo.detalhes_consultados == []
+
+
+async def test_banco_fora_do_ar_cai_no_rag():
+    hit = ImageSearchResult(
+        image_id="i1", filename="Camera XPTO", domain="vendas", score=0.5, produto_id=3
+    )
+    rag = _FakeRAGClient(documents=[Document(content="Camera XPTO manual", source="m", score=1)])
+
+    result = await _identificar(
+        _FakeClipStore([hit]),
+        _FakeVisionClient(),
+        rag,
+        _FakeSalesCatalog(exc=ConnectionError("banco fora")),
+    )
+
+    assert result.status == "encontrado_interno"
+    assert result.produto == "Camera XPTO"
+    assert result.detalhes == "Camera XPTO manual"

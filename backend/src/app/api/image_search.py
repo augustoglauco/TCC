@@ -115,6 +115,7 @@ async def identify_image(
             rag_client=rag_client,
             internal_confidence=request.app.state.image_internal_confidence,
             external_confidence=request.app.state.image_external_confidence,
+            sales_catalog_client=getattr(request.app.state, "sales_catalog_client", None),
         )
     except RAGConnectionError as exc:
         raise HTTPException(status_code=503, detail="Serviço de RAG indisponível.") from exc

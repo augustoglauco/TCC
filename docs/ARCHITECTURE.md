@@ -121,6 +121,16 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 >    (`docs_texto`) e retorna os detalhes do produto. Caso contrário (não é
 >    do portfólio, confiança baixa, ou resposta não-parseável) → responde
 >    objetivamente que **não identificou o produto**.
+> 4. **Detalhes vêm do banco (decisão de 2026-09-27):** produto é dado do
+>    cadastro (`produtos` no Postgres); PDFs no RAG ficam para manuais e
+>    documentação. Achado o produto (passo 1 com `produto_id` no payload da
+>    foto, ou nome casando com um único produto do cadastro — nome da foto
+>    sem `produto_id` ou nome devolvido pela visão externa), os detalhes são
+>    a ficha do banco: descrição comercial, especificações técnicas,
+>    dimensões e peso, com o nome do cadastro no "Identifiquei: …". Sem
+>    produto no banco (ou com o banco fora do ar), cai na busca no RAG de
+>    texto do passo 3, como antes. `# MVP: casamento por nome só aceita um
+>    candidato único (nome contido um no outro, sem acentos); sem ranking.`
 >
 > Os três parâmetros (`EXTERNAL_VISION_MODEL_NAME`, `IMAGE_INTERNAL_CONFIDENCE`,
 > `IMAGE_EXTERNAL_CONFIDENCE`) têm default no `.env` (apenas para popular o

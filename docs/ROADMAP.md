@@ -399,6 +399,13 @@ conversa e classificação do usuário").
       (truncados), manda responder o que foi perguntado, e a busca de
       candidatos usa a última resposta em "o produto acima". Testado com
       fakes; falta o teste local (suíte `vendas`, V11/V12)
+- [~] Identificação por imagem com os detalhes do cadastro (R6/R12, decisão
+      de 2026-09-27, `docs/ARCHITECTURE.md` §4, passo 4) — produto é dado do
+      banco e PDFs ficam para manuais: achado o produto (`produto_id` da foto
+      ou nome casando com um único produto), a resposta traz a ficha do banco
+      (descrição, especificações técnicas, dimensões, peso) com o nome do
+      cadastro; sem produto no banco, cai no RAG como antes. Testado com
+      fakes; falta conferir no navegador
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 

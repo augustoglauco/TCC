@@ -217,9 +217,10 @@ data: {"text": "trecho da resposta"}
 event: identification        // SÓ no fluxo de identificação de produto por imagem (image sem image_intent="documento")
 data: {
   "status": "encontrado_interno",   // encontrado_interno | encontrado_externo | nao_identificado
-  "produto": "Câmera IP 4MP",        // ausente quando nao_identificado
-  "fonte": "catalogo_imagens",        // catalogo_imagens | visao_externa+rag_texto
-  "detalhes": "...texto do RAG...",   // opcional (null se o RAG não trouxe nada)
+  "produto": "Câmera IP 4MP",        // ausente quando nao_identificado; nome do cadastro quando achado no banco
+  "produto_id": 7,                    // opcional: presente quando o produto está no cadastro
+  "fonte": "catalogo_imagens",        // catalogo_imagens | visao_externa+catalogo | visao_externa+rag_texto
+  "detalhes": "...ficha do produto...", // opcional: ficha do banco (descrição, especificações técnicas, dimensões, peso) ou, sem produto no banco, texto do RAG
   "confianca_interna": 0.45,          // presente no caso interno
   "confianca_externa": 0.88,          // presente no caso externo
   "mensagem": "Não consegui identificar..." // presente só no nao_identificado
