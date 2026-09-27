@@ -2053,3 +2053,80 @@ def test_e_referencia_anterior():
     assert not e_referencia_anterior("Qual o preço do gerador GD-30?")
     # Palavra inteira: "estado" não é "esta".
     assert not e_referencia_anterior("qual o estado do meu pedido?")
+
+
+def test_formatar_dados_catalogo_vendas_traz_descricao_e_ficha_tecnica_antes_do_estoque():
+    dados = DadosCatalogoVendas(
+        produto_nome="Rádio Comunicador Analógico RC 4102g2",
+        estoque_total=17,
+        descricao="Rádio portátil para comunicação em campo.",
+        especificacoes_tecnicas="16 canais; bateria de 2000 mAh; IP54.",
+        dimensoes_cm="12x6x4",
+        peso_kg=Decimal("0.300"),
+    )
+
+    texto = _formatar_dados_catalogo_vendas(dados)
+
+    assert "- Descrição comercial: Rádio portátil para comunicação em campo." in texto
+    assert "- Especificações técnicas: 16 canais; bateria de 2000 mAh; IP54." in texto
+    assert "- Dimensões (cm): 12x6x4" in texto
+    assert "- Peso: 0.300 kg" in texto
+    assert texto.index("Especificações técnicas") < texto.index("Estoque disponível")
+    assert "dados técnicos ou características" in texto
+
+
+def test_formatar_dados_catalogo_vendas_trunca_ficha_longa():
+    dados = DadosCatalogoVendas(
+        produto_nome="X", estoque_total=1, especificacoes_tecnicas="a" * 5000
+    )
+
+    linha = next(
+        linha
+        for linha in _formatar_dados_catalogo_vendas(dados).split("\n")
+        if linha.startswith("- Especificações técnicas")
+    )
+
+    assert linha.endswith("…")
+    assert len(linha) < 1600
+
+
+async def test_vendas_referencia_ao_produto_acima_busca_candidatos_na_ultima_resposta():
+    # Depois da identificação por imagem, "possui detalhes do produto acima?"
+    # não cita o produto; ele está na última resposta do assistente.
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"produto_id": 7, "produto_relacionado_id": null, "quantidade": null}',
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    radio = CandidatoProduto(id=7, nome="Rádio Comunicador Analógico RC 4102g2", categoria="radios")
+    sales_catalog_client = _FakeSalesCatalogClient(
+        candidatos=[radio],
+        dados=DadosCatalogoVendas(
+            produto_nome=radio.nome,
+            estoque_total=17,
+            especificacoes_tecnicas="16 canais; IP54.",
+        ),
+    )
+
+    eventos = await _coletar_eventos(
+        "possui detalhes do produto acima?",
+        recent_messages=["[imagem enviada]"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+        ultima_troca=("[imagem enviada]", "Identifiquei: Rádio Comunicador Analógico RC 4102g2."),
+    )
+
+    termos_historico = sales_catalog_client.termos_buscados[-1]
+    assert "4102g2" in termos_historico
+    assert sales_catalog_client.detalhes_consultados == [(7, None, None)]
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+    cliente_resposta = local_client if decisao.backend_escolhido == "local" else external_client
+    assert "- Especificações técnicas: 16 canais; IP54." in cliente_resposta.last_prompt

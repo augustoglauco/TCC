@@ -184,6 +184,29 @@ SUITES: dict[str, list[Cenario]] = {
             resultado_vendas="ok_categoria",
             bloco_contem=["GD-15", "GD-30", "GD-60", "em estoque"],
         ),
+        Cenario(
+            nome="V11 — dados técnicos do produto (correção 2026-09-27)",
+            mensagens=["Quais as especificações técnicas do gerador GD-15?"],
+            esperado=(
+                "O bloco traz a descrição comercial e as especificações técnicas do "
+                "GD-15 (motor monocilíndrico, partida elétrica), e a resposta usa a "
+                "ficha técnica em vez de falar só de preço e estoque."
+            ),
+            resultado_vendas="ok",
+            bloco_contem=["Descrição comercial", "Especificações técnicas", "monocilíndrico"],
+            resposta_contem_algum=["monocilíndrico", "monocilindrico", "partida elétrica"],
+        ),
+        Cenario(
+            nome="V12 — detalhes 'desse produto' na mensagem seguinte",
+            mensagens=["Quanto custa o gerador GD-30?", "Quais os dados técnicos desse produto?"],
+            esperado=(
+                "A 2ª mensagem não cita o produto; o bloco é do GD-30 com a ficha "
+                "técnica (motor 2 cilindros) e a resposta fala dela."
+            ),
+            resultado_vendas="ok",
+            bloco_contem=["GD-30", "Especificações técnicas", "2 cilindros"],
+            resposta_contem_algum=["2 cilindros", "dois cilindros"],
+        ),
     ],
     # Memória da conversa e classificação do usuário (R9/R10, Fase 6). Os
     # e-mails são os da base fictícia da migração 0011: Ana (3 compras

@@ -55,6 +55,13 @@ class VendaSlots(BaseModel):
 class DadosCatalogoVendas(BaseModel):
     produto_nome: str
     estoque_total: int
+    # Ficha do produto (correção de 2026-09-27): sem ela, "quais os dados
+    # técnicos?" só tinha estoque e cotação no bloco, e o LLM respondia
+    # sobre preço e estoque.
+    descricao: str | None = None
+    especificacoes_tecnicas: str | None = None
+    dimensoes_cm: str | None = None
+    peso_kg: Decimal | None = None
     cotacao: tuple[Decimal, Decimal, Decimal] | None = None
     quantidade: int | None = None
     produto_relacionado_nome: str | None = None
@@ -197,6 +204,10 @@ class SalesCatalogClient:
             return DadosCatalogoVendas(
                 produto_nome=produto.nome,
                 estoque_total=estoque_total,
+                descricao=produto.descricao,
+                especificacoes_tecnicas=produto.especificacoes_tecnicas,
+                dimensoes_cm=produto.dimensoes_cm,
+                peso_kg=produto.peso_kg,
                 cotacao=cotacao,
                 quantidade=quantidade,
                 produto_relacionado_nome=produto_relacionado_nome,
@@ -311,7 +322,7 @@ async def extract_sales_slots(
     response = await llm_client.generate(prompt)
     try:
         slots = _parse_extraction(response.text)
-    except (json.JSONDecodeError, ValidationError, TypeError):
+    except json.JSONDecodeError, ValidationError, TypeError:
         return VendaSlots()
 
     ids_validos = {candidato.id for candidato in candidatos}

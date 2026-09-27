@@ -905,7 +905,20 @@ Cinco decisões:
    produto só foi achado por coincidência: o "5" de "5 unidades" casou com
    "GD-15". Com "3 unidades" a busca não acharia nada. Daí a busca
    complementar no histórico (item 1).
-6. **Fora desta entrega (decisão consciente):** `consultar_frete` e
+6. **Descrição e ficha técnica no bloco (correção de 2026-09-27):** o
+   bloco do item 3 passou a levar também a descrição comercial
+   (`descricao`), as especificações técnicas (`especificacoes_tecnicas`),
+   as dimensões e o peso do produto, cada texto truncado em 1.500
+   caracteres. O cabeçalho manda responder o que o cliente perguntou: em
+   pedidos de detalhes, dados técnicos ou características, usar a descrição
+   e a ficha técnica, sem puxar preço e estoque se não foram pedidos.
+   Achado no uso real: o bloco só tinha estoque e cotação, e o LLM
+   respondia sobre preço e estoque quando o cliente pedia detalhes. Na
+   mensagem que aponta para a troca anterior ("detalhes do produto
+   acima?"), a busca de candidatos e a escolha do produto pelo LLM também
+   usam a última resposta do assistente (ex.: "Identifiquei: Rádio … RC
+   4102g2"), como a busca do RAG (§5, item 4b).
+7. **Fora desta entrega (decisão consciente):** `consultar_frete` e
    `reservar_pedido` continuam só como tools MCP para integradores externos.
    Reserva tem efeito colateral real e exigiria um fluxo de confirmação
    explícita como o do agendamento. Também ficam de fora: cards

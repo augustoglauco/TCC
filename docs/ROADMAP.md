@@ -391,6 +391,14 @@ conversa e classificação do usuário").
       `_buscar_documentos_rag`, `_build_prompt`, `app.api.chat`) e testado
       com fakes; falta conferir no navegador (imagem → "possui detalhes do
       produto acima?")
+- [~] Descrição comercial e especificações técnicas no bloco do catálogo
+      (R12, correção de 2026-09-27, `docs/ARCHITECTURE.md`, decisão
+      "Orquestrador como integrador do MCP B2B em Vendas", item 6) — pedindo
+      detalhes, o bloco só tinha estoque e cotação e o LLM respondia sobre
+      preço e estoque. Agora leva descrição, ficha técnica, dimensões e peso
+      (truncados), manda responder o que foi perguntado, e a busca de
+      candidatos usa a última resposta em "o produto acima". Testado com
+      fakes; falta o teste local (suíte `vendas`, V11/V12)
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 

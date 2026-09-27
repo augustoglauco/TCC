@@ -374,3 +374,24 @@ async def test_extract_sales_slots_produto_especifico_tem_precedencia_sobre_cate
 
     assert slots.produto_id == 1
     assert slots.categoria is None
+
+
+async def test_consultar_detalhes_traz_a_ficha_do_produto(factory):
+    # Correção de 2026-09-27: pedindo detalhes, o bloco só tinha estoque e
+    # cotação.
+    async with factory() as session:
+        produto = await _cria_produto(
+            session,
+            especificacoes_tecnicas="Motor 4 cilindros; tanque de 60 L.",
+            dimensoes_cm="150x80x110",
+            peso_kg=Decimal("520.000"),
+        )
+        produto_id = produto.id
+    client = SalesCatalogClient(factory)
+
+    dados = await client.consultar_detalhes(produto_id, None, None)
+
+    assert dados.descricao == "Potência de 15 kVA."
+    assert dados.especificacoes_tecnicas == "Motor 4 cilindros; tanque de 60 L."
+    assert dados.dimensoes_cm == "150x80x110"
+    assert dados.peso_kg == Decimal("520.000")

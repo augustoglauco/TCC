@@ -243,6 +243,7 @@ async def _consultar_vendas(
     recent_messages: list[str],
     sales_catalog_client: SalesCatalogClient,
     local_client: LLMClient,
+    ultima_resposta: str | None = None,
 ) -> DadosCatalogoVendas | DadosCatalogoCategoria | None:
     """Busca de candidatos + desambiguação por LLM + detalhes do catálogo
     para uma mensagem de Vendas (spec
@@ -255,6 +256,11 @@ async def _consultar_vendas(
     `extract_sales_slots`) loga e devolve `None`, mesmo espírito de
     `analyze_tone` nunca derrubar o turno."""
     diagnostico: dict = {"event": "vendas_catalogo_consulta"}
+    # "detalhes do produto acima?": o produto está na última resposta (ex.:
+    # "Identifiquei: Rádio … RC 4102g2."), que entra no histórico da busca e
+    # da escolha pelo LLM, como na busca do RAG (correção de 2026-09-27).
+    if ultima_resposta and e_referencia_anterior(message):
+        recent_messages = [*recent_messages, ultima_resposta[:_ULTIMA_RESPOSTA_MAX_CHARS]]
     try:
         termos = extrair_termos_busca(message)
         # Termos das mensagens anteriores entram só como complemento: numa
@@ -332,6 +338,18 @@ def _logar_consulta_vendas(diagnostico: dict, resultado: str) -> None:
     )
 
 
+# MVP: descrição e ficha técnica truncadas (sem resumo) para o bloco não
+# tomar o prompt do modelo local.
+_FICHA_MAX_CHARS = 1500
+
+
+def _truncar_ficha(texto: str) -> str:
+    texto = texto.strip()
+    if len(texto) <= _FICHA_MAX_CHARS:
+        return texto
+    return texto[:_FICHA_MAX_CHARS].rstrip() + "…"
+
+
 def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
     # O cabeçalho diz ao LLM que estes dados valem mais que os trechos do RAG:
     # sem ele, no teste local de 2026-09-25 (cenário V8, "E se eu levar 5
@@ -339,13 +357,27 @@ def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
     # e nome do GD-60 tirados de um trecho do RAG, ignorando o bloco. O prompt
     # final não leva o histórico da conversa, então o bloco é a única fonte do
     # produto de que se está falando.
+    # Descrição e ficha técnica vêm antes de estoque/cotação, e o cabeçalho
+    # manda responder o que foi perguntado (correção de 2026-09-27: pedindo
+    # detalhes, o LLM respondia sobre preço e estoque).
     linhas = [
         "Dados oficiais do catálogo interno, já calculados para esta mensagem. "
         "O cliente está falando deste produto: use exatamente estes nomes, "
         "valores e quantidades, e prefira-os a qualquer informação recuperada "
-        "abaixo que seja diferente.",
+        "abaixo que seja diferente. Responda o que o cliente perguntou: se ele "
+        "pediu detalhes, dados técnicos ou características, use a descrição "
+        "comercial e as especificações técnicas, e só fale de preço e estoque "
+        "se ele perguntou por eles.",
         f"Dados do catálogo interno (produto identificado: {dados.produto_nome}):",
     ]
+    if dados.descricao:
+        linhas.append(f"- Descrição comercial: {_truncar_ficha(dados.descricao)}")
+    if dados.especificacoes_tecnicas:
+        linhas.append(f"- Especificações técnicas: {_truncar_ficha(dados.especificacoes_tecnicas)}")
+    if dados.dimensoes_cm:
+        linhas.append(f"- Dimensões (cm): {dados.dimensoes_cm}")
+    if dados.peso_kg is not None:
+        linhas.append(f"- Peso: {dados.peso_kg} kg")
     linhas.append(f"- Estoque disponível: {dados.estoque_total} unidade(s)")
     if dados.cotacao is not None:
         preco_unitario, percentual, subtotal = dados.cotacao
@@ -918,7 +950,11 @@ async def handle_message(
                     # então só `rag_task` pode disparar o `except*` abaixo.
                     vendas_task = tg.create_task(
                         _consultar_vendas(
-                            message, recent_messages, sales_catalog_client, local_client
+                            message,
+                            recent_messages,
+                            sales_catalog_client,
+                            local_client,
+                            ultima_resposta=ultima_troca[1] if ultima_troca else None,
                         )
                     )
         except* Exception as eg:
