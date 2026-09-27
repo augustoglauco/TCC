@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { fileToBase64 } from "@/lib/utils/fileToBase64";
 
 export interface ImageUploaderProps {
   disabled?: boolean;
@@ -8,20 +9,6 @@ export interface ImageUploaderProps {
 }
 
 const ACCEPTED = "image/png,image/jpeg,image/webp";
-
-/** Converte um File para base64 (sem o prefixo data:…;base64,). */
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      // Remove o prefixo "data:<mime>;base64,"
-      resolve(result.split(",")[1] ?? "");
-    };
-    reader.onerror = () => reject(new Error("Falha ao ler o arquivo."));
-    reader.readAsDataURL(file);
-  });
-}
 
 export default function ImageUploader({ disabled, onImageSelected }: ImageUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
