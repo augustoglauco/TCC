@@ -958,6 +958,18 @@ implementação.
    (ajuste pedido pelo desenvolvedor após a conferência no navegador). `# MVP: quem tiver o
    conversation_id (UUID aleatório no navegador) lê a conversa, sem login`.
 
+4b. **Contexto de mensagens de acompanhamento (correção de 2026-09-27):**
+   a identificação de produto por imagem passou a ser gravada na memória
+   (mensagem do cliente "[imagem enviada]", resposta com o produto
+   identificado), e o prompt da resposta passou a levar a **última troca**
+   da conversa (cliente + assistente, truncada), além do resumo periódico.
+   Quando a mensagem aponta para algo anterior ("acima", "esse", "desse",
+   "dele", "isso"...), a busca no RAG usa também a última resposta, que traz
+   o nome do produto. Achado no uso real: depois de identificar um rádio pela
+   imagem, "possui detalhes do produto acima?" chegava sem contexto, e o RAG,
+   buscando só a frase, trouxe o manual de um relógio de ponto, que o LLM
+   descreveu como se fosse o rádio.
+
 *R10: classificação do usuário.*
 
 5. **Identidade pelo e-mail, no momento natural:** o chat não tem login, e
