@@ -249,3 +249,54 @@ async def test_classify_com_jev_client_sem_metodo_cai_para_heuristica():
     assert result.domain == "vendas"
     assert result.confidence == 0.3
     assert result.provider_efetivo == "heuristica_llm"
+
+
+async def test_classificador_llm_recebe_a_ultima_resposta_do_assistente():
+    # Teste no navegador de 2026-09-28: "possui detalhes?" depois da
+    # identificação por imagem caía em fora_escopo (o contexto só tinha
+    # "[imagem enviada]").
+    llm_client = _FakeLLMClient('{"domain": "vendas", "complexity": "baixa", "confidence": 0.9}')
+
+    await classify(
+        "possui detalhes?",
+        recent_messages=["[imagem enviada]"],
+        strategy="llm",
+        llm_client=llm_client,
+        ultima_resposta="Identifiquei: Rádio Comunicador Analógico RC 4102g2.",
+    )
+
+    assert (
+        "[imagem enviada]\nAssistente: Identifiquei: Rádio Comunicador Analógico RC 4102g2."
+        in llm_client.last_prompt
+    )
+
+
+async def test_heuristica_nao_usa_a_ultima_resposta():
+    # A oferta de "visita" na resposta de vendas não pode puxar a próxima
+    # mensagem para agendamento.
+    result = await classify(
+        "possui detalhes?",
+        recent_messages=["[imagem enviada]"],
+        strategy="heuristic",
+        ultima_resposta="Posso agendar uma visita para você conhecer o equipamento?",
+    )
+
+    assert result.domain == "fora_escopo"
+
+
+async def test_classificador_jev_recebe_a_ultima_resposta():
+    class _Espiao(_FakeOpenRouterJevClient):
+        async def classify_intent_jev(self, message, recent_messages=None):
+            self.contexto = recent_messages
+            return await super().classify_intent_jev(message, recent_messages)
+
+    cliente = _Espiao()
+    await classify(
+        "possui detalhes?",
+        recent_messages=["[imagem enviada]"],
+        provider="jev_openrouter",
+        external_client=cliente,
+        ultima_resposta="Identifiquei: RC 4102g2.",
+    )
+
+    assert cliente.contexto == ["[imagem enviada]", "Assistente: Identifiquei: RC 4102g2."]

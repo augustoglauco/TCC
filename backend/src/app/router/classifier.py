@@ -91,6 +91,8 @@ DOMAIN_CRITERIA: dict[Domain, str] = {
 }
 
 _COMPLEXITY_LENGTH_THRESHOLD = 280
+# Quanto da última resposta do assistente entra no contexto do classificador.
+_ULTIMA_RESPOSTA_MAX_CHARS = 600
 _COMPLEXITY_QUESTION_MARK_THRESHOLD = 2
 
 _CLASSIFIER_PROMPT_TEMPLATE = """\
@@ -174,10 +176,27 @@ def _parse_llm_classification(raw_text: str) -> ClassificationResult:
     return ClassificationResult(**parsed, provider_efetivo=DEFAULT_INTENT_ROUTER_PROVIDER)
 
 
+def _contexto_com_ultima_resposta(
+    recent_messages: list[str], ultima_resposta: str | None
+) -> list[str]:
+    # A última resposta do assistente diz de que se está falando ("possui
+    # detalhes?" depois de "Identifiquei: Rádio …" é vendas, não fora_escopo;
+    # teste no navegador de 2026-09-28). Só para os classificadores LLM: na
+    # heurística, palavras da resposta (ex.: a oferta de "visita") casariam
+    # com o domínio errado.
+    if not ultima_resposta:
+        return recent_messages
+    return [*recent_messages, f"Assistente: {ultima_resposta[:_ULTIMA_RESPOSTA_MAX_CHARS]}"]
+
+
 async def _classify_with_llm(
-    message: str, recent_messages: list[str], llm_client: LLMClient
+    message: str,
+    recent_messages: list[str],
+    llm_client: LLMClient,
+    ultima_resposta: str | None = None,
 ) -> ClassificationResult:
-    contexto = "\n".join(recent_messages) if recent_messages else "(nenhum)"
+    contexto_llm = _contexto_com_ultima_resposta(recent_messages, ultima_resposta)
+    contexto = "\n".join(contexto_llm) if contexto_llm else "(nenhum)"
     prompt = _CLASSIFIER_PROMPT_TEMPLATE.format(
         dominios=_DOMINIOS_FORMATADOS, contexto=contexto, mensagem=message
     )
@@ -191,7 +210,7 @@ async def _classify_with_llm(
 
     try:
         return _parse_llm_classification(response.text)
-    except (json.JSONDecodeError, ValidationError, TypeError):
+    except json.JSONDecodeError, ValidationError, TypeError:
         # O LLM respondeu, mas o conteúdo não é JSON de classificação válido:
         # aí sim cai para a heurística só nesta requisição (spec §2.2).
         return _classify_heuristic_fallback(message, recent_messages)
@@ -201,11 +220,14 @@ async def _classify_with_jev(
     message: str,
     recent_messages: list[str],
     external_client: IntentClassifierClient | None,
+    ultima_resposta: str | None = None,
 ) -> ClassificationResult:
     try:
         if external_client is None or not hasattr(external_client, "classify_intent_jev"):
             raise ValueError("external_client inválido para Jev")
-        domain, confidence = await external_client.classify_intent_jev(message, recent_messages)
+        domain, confidence = await external_client.classify_intent_jev(
+            message, _contexto_com_ultima_resposta(recent_messages, ultima_resposta)
+        )
         return ClassificationResult(
             domain=domain,
             complexity=_heuristic_complexity(message),
@@ -235,11 +257,12 @@ async def classify(
     llm_client: LLMClient | None = None,
     provider: str = DEFAULT_INTENT_ROUTER_PROVIDER,
     external_client: IntentClassifierClient | None = None,
+    ultima_resposta: str | None = None,
 ) -> ClassificationResult:
     recent_messages = recent_messages or []
 
     if provider == "jev_openrouter":
-        return await _classify_with_jev(message, recent_messages, external_client)
+        return await _classify_with_jev(message, recent_messages, external_client, ultima_resposta)
 
     if provider != DEFAULT_INTENT_ROUTER_PROVIDER:
         # MVP: hoje inalcançável pelo único chamador real (validado por
@@ -270,4 +293,4 @@ async def classify(
     if llm_client is None:
         raise ValueError("llm_client é obrigatório quando strategy='llm'")
 
-    return await _classify_with_llm(message, recent_messages, llm_client)
+    return await _classify_with_llm(message, recent_messages, llm_client, ultima_resposta)

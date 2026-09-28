@@ -2170,3 +2170,40 @@ async def test_rag_vazio_com_produto_no_catalogo_fica_local():
     assert decisao.motivo_escalonamento == "nenhum"
     assert external_client.calls == 0
     assert "- Especificações técnicas: 16 canais." in local_client.last_prompt
+
+
+async def test_vendas_pergunta_curta_sem_referencia_busca_candidatos_na_ultima_resposta():
+    # Teste no navegador de 2026-09-28: "possui detalhes?" (sem "acima"/"esse")
+    # depois da imagem não achava o produto e ia para o externo. Aqui com
+    # "produto" na frase para a heurística classificar como vendas (a
+    # classificação com a última resposta é testada em test_classifier.py).
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"produto_id": 7, "produto_relacionado_id": null, "quantidade": null}',
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    radio = CandidatoProduto(id=7, nome="Rádio Comunicador Analógico RC 4102g2", categoria="radios")
+    sales_catalog_client = _FakeSalesCatalogClient(
+        candidatos=[radio],
+        dados=DadosCatalogoVendas(produto_nome=radio.nome, estoque_total=17),
+    )
+
+    eventos = await _coletar_eventos(
+        "possui detalhes do produto?",
+        recent_messages=["[imagem enviada]"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=_FakeRAGClient(documents=[]),
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+        ultima_troca=("[imagem enviada]", "Identifiquei: Rádio Comunicador Analógico RC 4102g2."),
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+
+    assert "4102g2" in sales_catalog_client.termos_buscados[-1]
+    assert sales_catalog_client.detalhes_consultados == [(7, None, None)]
+    assert decisao.backend_escolhido == "local"

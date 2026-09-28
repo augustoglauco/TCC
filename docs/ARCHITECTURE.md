@@ -925,10 +925,15 @@ Cinco decisões:
    e a ficha técnica, sem puxar preço e estoque se não foram pedidos.
    Achado no uso real: o bloco só tinha estoque e cotação, e o LLM
    respondia sobre preço e estoque quando o cliente pedia detalhes. Na
-   mensagem que aponta para a troca anterior ("detalhes do produto
-   acima?"), a busca de candidatos e a escolha do produto pelo LLM também
-   usam a última resposta do assistente (ex.: "Identifiquei: Rádio … RC
-   4102g2"), como a busca do RAG (§5, item 4b). Com o bloco do catálogo
+   mensagem seguinte ("detalhes do produto acima?", ou só "possui
+   detalhes?"), a busca de candidatos e a escolha do produto pelo LLM
+   sempre usam também a última resposta do assistente (ex.: "Identifiquei:
+   Rádio … RC 4102g2") como complemento do histórico, e os classificadores
+   de domínio LLM (local e Jev) a recebem no contexto; a heurística por
+   palavra-chave não, porque palavras da resposta (ex.: a oferta de
+   "visita") puxariam para o domínio errado. Achado no teste no navegador
+   de 2026-09-28: "possui detalhes?" depois da imagem caía em `fora_escopo`
+   e ia para o externo. Com o bloco do catálogo
    preenchido, RAG vazio **não** escala para o externo (`rag_vazio`): o
    produto está no banco e a resposta sai do bloco. Achado no uso real: a
    pergunta seguinte à identificação por imagem acertou o produto, mas foi

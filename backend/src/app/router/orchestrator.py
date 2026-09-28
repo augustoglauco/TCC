@@ -256,10 +256,12 @@ async def _consultar_vendas(
     `extract_sales_slots`) loga e devolve `None`, mesmo espírito de
     `analyze_tone` nunca derrubar o turno."""
     diagnostico: dict = {"event": "vendas_catalogo_consulta"}
-    # "detalhes do produto acima?": o produto está na última resposta (ex.:
-    # "Identifiquei: Rádio … RC 4102g2."), que entra no histórico da busca e
-    # da escolha pelo LLM, como na busca do RAG (correção de 2026-09-27).
-    if ultima_resposta and e_referencia_anterior(message):
+    # "possui detalhes?" depois da imagem: o produto está na última resposta
+    # (ex.: "Identifiquei: Rádio … RC 4102g2."), que entra no histórico da
+    # busca e da escolha pelo LLM. Sempre, não só com "acima"/"esse": o
+    # histórico já é só complemento (candidatos da mensagem atual vêm
+    # primeiro) e o LLM escolhe (correções de 2026-09-27/28).
+    if ultima_resposta:
         recent_messages = [*recent_messages, ultima_resposta[:_ULTIMA_RESPOSTA_MAX_CHARS]]
     try:
         termos = extrair_termos_busca(message)
@@ -836,6 +838,7 @@ async def handle_message(
                     llm_client=local_client,
                     provider=intent_router_provider,
                     external_client=external_client,
+                    ultima_resposta=ultima_troca[1] if ultima_troca else None,
                 )
             )
     except* Exception as eg:

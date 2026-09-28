@@ -411,6 +411,12 @@ conversa e classificação do usuário").
       pergunta seguinte à imagem acertou o produto, mas foi para o externo
       (`rag_vazio`) porque nenhum PDF falava dele. Testado com fakes; falta
       conferir no navegador
+- [~] Pergunta curta depois da imagem ("possui detalhes?", sem "acima" ou
+      "esse") — a busca no catálogo passa a usar sempre a última resposta
+      como complemento do histórico, e os classificadores LLM a recebem no
+      contexto (correção de 2026-09-28; no navegador caía em `fora_escopo`
+      e ia para o externo, que deu 429). Testado com fakes; falta conferir
+      no navegador
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 
