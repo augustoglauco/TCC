@@ -55,20 +55,20 @@ describe("ModelosPage", () => {
     expect(screen.getByLabelText(/nome do modelo/i)).toBeInTheDocument();
   });
 
-  it("mostra qual é o modelo ativo no chat", async () => {
+  it("mostra qual é o modelo ativo", async () => {
     render(<ModelosPage />);
 
     await screen.findByText("llama3.1:8b");
-    expect(screen.getByText(/modelo ativo no chat/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/modelo local ativo/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText("llama3.1:8b").length).toBeGreaterThan(0);
   });
 
-  it("mostra 'Nenhum' quando não há modelo ativo", async () => {
+  it("mostra 'Nenhum selecionado' quando não há modelo ativo", async () => {
     mockedListLocalModels.mockResolvedValue({ models: [], active_model: "" });
 
     render(<ModelosPage />);
 
-    expect(await screen.findByText(/modelo ativo no chat/i)).toBeInTheDocument();
-    expect(screen.getByText("Nenhum")).toBeInTheDocument();
+    expect(await screen.findByText(/modelo local ativo/i)).toBeInTheDocument();
+    expect(screen.getAllByText("Nenhum selecionado").length).toBeGreaterThan(0);
   });
 });

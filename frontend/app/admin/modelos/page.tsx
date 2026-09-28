@@ -149,14 +149,14 @@ export default function ModelosPage() {
                       Modelos armazenados na biblioteca do Ollama e prontos para uso
                     </p>
                   </div>
-                  {activeModel !== null && (
+                  {/* {activeModel !== null && (
                     <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 text-xs text-slate-700">
                       <span>Modelo ativo no chat:</span>
                       <strong className="font-mono text-slate-900">
                         {activeModel || "Nenhum"}
                       </strong>
                     </div>
-                  )}
+                  )} */}
                 </div>
 
                 <div>

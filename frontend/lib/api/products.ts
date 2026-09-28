@@ -15,6 +15,12 @@ export interface ProdutoImagem {
   criado_em: string;
 }
 
+export interface ProdutoDescontoVolume {
+  id: string;
+  quantidade_minima: number;
+  percentual_desconto: number;
+}
+
 export interface Produto {
   id: number;
   nome: string;
@@ -30,6 +36,7 @@ export interface Produto {
   imagem_url?: string | null;
   estoques: ProdutoEstoque[];
   imagens: ProdutoImagem[];
+  descontos_volume?: ProdutoDescontoVolume[];
 }
 
 export interface PaginatedProdutosResponse {
@@ -77,6 +84,18 @@ export async function fetchProductCategories(): Promise<string[]> {
   const response = await fetch(`${baseUrl}/api/products/categorias`);
   if (!response.ok) {
     throw new Error(`Erro ao buscar categorias: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+export async function fetchProductById(id: number | string): Promise<Produto> {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(`${baseUrl}/api/products/${id}`);
+  if (response.status === 404) {
+    throw new Error("Produto não encontrado.");
+  }
+  if (!response.ok) {
+    throw new Error(`Erro ao buscar produto: ${response.statusText}`);
   }
   return response.json();
 }

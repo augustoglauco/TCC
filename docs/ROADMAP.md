@@ -448,13 +448,15 @@ conversa e classificação do usuário").
       `app/contato/page.tsx` com conteúdo estático real (institucional/dados
       de contato fictícios); sem chamada de API (não há dados dinâmicos
       previstos para essas páginas no MVP)
-- [~] Implementar listagem e detalhe de produtos (`/produtos`), consumindo a
+- [x] Implementar listagem e detalhe de produtos (`/produtos`), consumindo a
       API do backend — listagem pronta (commit `7b53dd1`, 2026-09-27):
       `GET /api/products` paginado (12 por página), filtro por categoria e
       busca, produtos com estoque primeiro e depois por nome, cards com
-      carrossel de imagens e zoom (`ProductCard`, `ImageZoomModal`). Falta
-      o detalhe: `app/produtos/[id]/page.tsx` ainda é stub, sem consumir
-      `GET /api/products/{id}`
+      carrossel de imagens e zoom (`ProductCard`, `ImageZoomModal`). Detalhe
+      implementado em `app/produtos/[id]/page.tsx` consumindo
+      `GET /api/products/{id}`, com galeria de fotos, zoom, ficha técnica,
+      especificações, medidas/peso, tabela de estoque por CD, descontos por
+      volume e botões para comprar e cotar no chat.
 - [~] Implementar autenticação simplificada (login/cadastro) e página de
       perfil — apenas stubs de rota (`app/conta/login/page.tsx`,
       `app/conta/perfil/page.tsx`), sem lógica de autenticação

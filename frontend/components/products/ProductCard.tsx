@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 import { Produto } from "@/lib/api/products";
@@ -207,7 +208,9 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
 
         {/* Nome do Produto (alinhado à esquerda) */}
         <h3 className="mt-3.5 font-bold text-slate-900 text-base line-clamp-2 min-h-12 leading-snug text-left">
-          {product.nome}
+          <Link href={`/produtos/${product.id}`} className="hover:text-blue-600 transition-colors">
+            {product.nome}
+          </Link>
         </h3>
 
         {/* Descrição Curta (alinhada à esquerda) */}

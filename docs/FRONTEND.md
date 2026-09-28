@@ -145,7 +145,7 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `DELETE /api/chat/conversations/{id}` | Botão "limpar conversa" do `ChatModal` (`deleteConversation` em `lib/api/chat.ts`): apaga as mensagens e zera resumo e perfil da conversa (o e-mail é mantido); `204`, `404` se a conversa não existe, `503` se o banco está fora do ar |
 | `GET /api/products` | Catálogo público de produtos (mesma base do RAG/MCP B2B), usado por `/produtos` (`lib/api/products.ts`). Query: `termo` (nome, descrição ou especificações), `categoria`, `limit` (1–100, default 12), `offset`. Resposta `{items: ProdutoOut[], total, limit, offset}`, com os produtos com estoque primeiro e depois por nome |
 | `GET /api/products/categorias` | Lista as categorias distintas do catálogo (filtro da página `/produtos`) |
-| `GET /api/products/{id}` | Um produto (`ProdutoOut`, com imagens); `404` se não existe. A página de detalhe `/produtos/[id]` ainda não o consome (stub) |
+| `GET /api/products/{id}` | Um produto (`ProdutoOut`, com imagens); `404` se não existe. Consumido pela página de detalhe `/produtos/[id]` (`lib/api/products.ts`, `fetchProductById`) |
 | `GET /api/admin/produtos` | Lista para a tela `/admin/produtos` (query `termo`, `categoria`, `limit` 1–200, default 100, `offset`), mesma resposta paginada de `GET /api/products`, sem a ordenação por estoque — fora do MVP original, ver `docs/ARCHITECTURE.md` §5 (Gestão de Produtos) |
 | `GET /api/admin/produtos/categorias` | Categorias distintas (formulário e filtro do admin) |
 | `GET /api/admin/produtos/{id}` , `POST /api/admin/produtos` , `PUT /api/admin/produtos/{id}` , `DELETE /api/admin/produtos/{id}` | CRUD de produto (`PUT` parcial). O `DELETE` também remove as fotos e os vetores do CLIP no Qdrant |
