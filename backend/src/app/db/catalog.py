@@ -150,7 +150,6 @@ async def listar_categorias_distintas(session: AsyncSession) -> list[str]:
     return sorted(list({c.strip() for c in res.scalars().all() if c and c.strip()}))
 
 
-
 async def atualizar_produto(
     session: AsyncSession, produto_id: int, updates: dict[str, object]
 ) -> Produto | None:

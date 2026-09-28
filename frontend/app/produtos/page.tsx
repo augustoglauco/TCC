@@ -42,6 +42,9 @@ export default function ProdutosPage() {
   // Carrega lista de produtos do backend (com filtro, busca e paginação de servidor)
   useEffect(() => {
     let isMounted = true;
+    // Liga o indicador de carregamento antes do fetch — falso positivo conhecido
+    // de `react-hooks/set-state-in-effect`, mesmo caso de `app/admin/ingestao/page.tsx`.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError(null);
 
@@ -120,7 +123,8 @@ export default function ProdutosPage() {
             Produtos Industriais
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            Consulte produtos cadastrados no Banco de Dados, verifique disponibilidade de estoque e solicite cotações em tempo real.
+            Consulte produtos cadastrados no Banco de Dados, verifique disponibilidade de estoque e
+            solicite cotações em tempo real.
           </p>
         </div>
 
@@ -159,7 +163,12 @@ export default function ProdutosPage() {
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
             </svg>
           </div>
         </div>
@@ -225,9 +234,15 @@ export default function ProdutosPage() {
       {!loading && !error && totalItems > 0 && (
         <div className="mt-10 border-t border-slate-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-xs text-slate-600">
-            Exibindo <span className="font-bold text-slate-900">{Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, totalItems)}</span> a{" "}
-            <span className="font-bold text-slate-900">{Math.min(currentPage * ITEMS_PER_PAGE, totalItems)}</span> de{" "}
-            <span className="font-bold text-slate-900">{totalItems}</span> produtos
+            Exibindo{" "}
+            <span className="font-bold text-slate-900">
+              {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, totalItems)}
+            </span>{" "}
+            a{" "}
+            <span className="font-bold text-slate-900">
+              {Math.min(currentPage * ITEMS_PER_PAGE, totalItems)}
+            </span>{" "}
+            de <span className="font-bold text-slate-900">{totalItems}</span> produtos
           </div>
 
           <div className="flex items-center gap-1.5">

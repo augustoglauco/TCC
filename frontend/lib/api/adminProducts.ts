@@ -24,7 +24,7 @@ function parseSseBlock(block: string): { event: string; data: string } | null {
 }
 
 export async function fetchAdminProducts(
-  params?: AdminProductsQueryParams
+  params?: AdminProductsQueryParams,
 ): Promise<AdminProductsListResponse> {
   const baseUrl = getApiBaseUrl();
   const query = new URLSearchParams();
@@ -59,9 +59,7 @@ export async function fetchAdminProduct(id: number): Promise<AdminProduct> {
   return res.json();
 }
 
-export async function createAdminProduct(
-  data: Partial<AdminProduct>
-): Promise<AdminProduct> {
+export async function createAdminProduct(data: Partial<AdminProduct>): Promise<AdminProduct> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos`, {
     method: "POST",
@@ -76,7 +74,7 @@ export async function createAdminProduct(
 
 export async function updateAdminProduct(
   id: number,
-  data: Partial<AdminProduct>
+  data: Partial<AdminProduct>,
 ): Promise<AdminProduct> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${id}`, {
@@ -102,7 +100,7 @@ export async function deleteAdminProduct(id: number): Promise<void> {
 
 export async function uploadAdminProductImage(
   produtoId: number,
-  file: File
+  file: File,
 ): Promise<AdminProductImage> {
   const baseUrl = getApiBaseUrl();
   const formData = new FormData();
@@ -118,24 +116,18 @@ export async function uploadAdminProductImage(
   return res.json();
 }
 
-export async function deleteAdminProductImage(
-  produtoId: number,
-  imgId: number
-): Promise<void> {
+export async function deleteAdminProductImage(produtoId: number, imgId: number): Promise<void> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(
-    `${baseUrl}/api/admin/produtos/${produtoId}/imagens/${imgId}`,
-    {
-      method: "DELETE",
-    }
-  );
+  const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/imagens/${imgId}`, {
+    method: "DELETE",
+  });
   if (!res.ok && res.status !== 404) {
     throw new Error(`Erro ao excluir imagem (${res.status})`);
   }
 }
 
 export async function confirmCatalogExtraction(
-  payload: CatalogConfirmPayload
+  payload: CatalogConfirmPayload,
 ): Promise<CatalogConfirmResponse> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/catalogo/confirmar`, {
@@ -181,7 +173,7 @@ export interface ExtractCatalogCallbacks {
 export async function extractCatalogStream(
   files: File[],
   options: ExtractCatalogStreamOptions,
-  callbacks: ExtractCatalogCallbacks
+  callbacks: ExtractCatalogCallbacks,
 ): Promise<void> {
   const baseUrl = getApiBaseUrl();
   const formData = new FormData();
@@ -200,8 +192,10 @@ export async function extractCatalogStream(
       method: "POST",
       body: formData,
     });
-  } catch (err: any) {
-    callbacks.onError?.(err?.message ?? "Falha de conexão com o servidor");
+  } catch (err) {
+    callbacks.onError?.(
+      (err instanceof Error ? err.message : undefined) ?? "Falha de conexão com o servidor",
+    );
     return;
   }
 

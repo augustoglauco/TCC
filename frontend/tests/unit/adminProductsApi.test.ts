@@ -2,8 +2,6 @@ import { describe, it, expect, vi } from "vitest";
 import {
   fetchAdminProducts,
   createAdminProduct,
-  updateAdminProduct,
-  deleteAdminProduct,
   confirmCatalogExtraction,
   deleteAdminProductImage,
   extractCatalogStream,
@@ -20,7 +18,7 @@ describe("adminProducts API client", () => {
     const result = await fetchAdminProducts({ termo: "Câmera", categoria: "CFTV" });
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos?termo=C%C3%A2mera&categoria=CFTV"),
-      expect.any(Object)
+      expect.any(Object),
     );
     expect(result.items).toHaveLength(1);
     vi.unstubAllGlobals();
@@ -36,7 +34,7 @@ describe("adminProducts API client", () => {
     const result = await createAdminProduct({ nome: "Gravador NVD", preco: 500 });
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos"),
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({ method: "POST" }),
     );
     expect(result.id).toBe(10);
     vi.unstubAllGlobals();
@@ -54,7 +52,7 @@ describe("adminProducts API client", () => {
     });
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos/catalogo/confirmar"),
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({ method: "POST" }),
     );
     expect(result.criados).toBe(1);
     vi.unstubAllGlobals();
@@ -70,7 +68,7 @@ describe("adminProducts API client", () => {
     const { fetchAdminCategories } = await import("@/lib/api/adminProducts");
     const result = await fetchAdminCategories();
     expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/admin/produtos/categorias")
+      expect.stringContaining("/api/admin/produtos/categorias"),
     );
     expect(result).toEqual(["CFTV", "Alarmes", "Redes"]);
     vi.unstubAllGlobals();
@@ -88,7 +86,7 @@ describe("adminProducts API client", () => {
     const url = await uploadTempImage(file);
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos/upload-temp"),
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({ method: "POST" }),
     );
     expect(url).toBe("/api/uploads/produtos/temp/crop_123.jpg");
     vi.unstubAllGlobals();
@@ -104,7 +102,7 @@ describe("adminProducts API client", () => {
     await expect(deleteAdminProductImage(1, 10)).resolves.toBeUndefined();
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos/1/imagens/10"),
-      expect.objectContaining({ method: "DELETE" })
+      expect.objectContaining({ method: "DELETE" }),
     );
     vi.unstubAllGlobals();
   });
@@ -132,7 +130,7 @@ describe("adminProducts API client", () => {
   });
 
   it("anexa page_range no FormData em extractCatalogStream quando fornecido", async () => {
-    let capturedBody: any = null;
+    let capturedBody = null as FormData | null;
     const mockFetch = vi.fn().mockImplementation(async (_url, options) => {
       capturedBody = options?.body as FormData;
       return {

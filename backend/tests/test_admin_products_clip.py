@@ -1,7 +1,10 @@
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 from qdrant_client import AsyncQdrantClient
+
 from app.rag.image_search import ClipImageStore
+
 
 @pytest.mark.asyncio
 async def test_clip_image_store_upsert_e_delete_com_produto_id():

@@ -2,7 +2,11 @@
 
 import React, { useState } from "react";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
-import { extractCatalogStream, confirmCatalogExtraction, uploadTempImage } from "@/lib/api/adminProducts";
+import {
+  extractCatalogStream,
+  confirmCatalogExtraction,
+  uploadTempImage,
+} from "@/lib/api/adminProducts";
 import type {
   ExtractedProductItem,
   CatalogExtractionProgress,
@@ -93,28 +97,26 @@ export default function CatalogImportModal({
           setError(err);
           setStep("upload");
         },
-      }
+      },
     );
   };
 
   const handleToggleSelectAll = (checked: boolean) => {
-    setExtractedProducts((prev) =>
-      prev.map((item) => ({ ...item, selecionado: checked }))
-    );
+    setExtractedProducts((prev) => prev.map((item) => ({ ...item, selecionado: checked })));
   };
 
-  const handleUpdateProduct = (idTemp: string | undefined, field: keyof ExtractedProductItem, value: any) => {
+  const handleUpdateProduct = (
+    idTemp: string | undefined,
+    field: keyof ExtractedProductItem,
+    value: ExtractedProductItem[keyof ExtractedProductItem],
+  ) => {
     setExtractedProducts((prev) =>
-      prev.map((item) =>
-        item.id_temporario === idTemp ? { ...item, [field]: value } : item
-      )
+      prev.map((item) => (item.id_temporario === idTemp ? { ...item, [field]: value } : item)),
     );
   };
 
   const handleRemoveProduct = (idTemp: string | undefined) => {
-    setExtractedProducts((prev) =>
-      prev.filter((item) => item.id_temporario !== idTemp)
-    );
+    setExtractedProducts((prev) => prev.filter((item) => item.id_temporario !== idTemp));
   };
 
   const handleUploadPhotoForProduct = async (file: File) => {
@@ -122,7 +124,9 @@ export default function CatalogImportModal({
     setUploadingPickerPhoto(true);
     try {
       const url = await uploadTempImage(file);
-      const updatedFotos = pickerProduct.fotos_pagina ? [...pickerProduct.fotos_pagina, url] : [url];
+      const updatedFotos = pickerProduct.fotos_pagina
+        ? [...pickerProduct.fotos_pagina, url]
+        : [url];
       handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
       handleUpdateProduct(pickerProduct.id_temporario, "fotos_pagina", updatedFotos);
       setPickerProduct((prev) =>
@@ -132,10 +136,10 @@ export default function CatalogImportModal({
               imagem_temp_url: url,
               fotos_pagina: updatedFotos,
             }
-          : null
+          : null,
       );
-    } catch (err: any) {
-      setError(err?.message || "Falha ao enviar foto.");
+    } catch (err) {
+      setError((err instanceof Error && err.message) || "Falha ao enviar foto.");
     } finally {
       setUploadingPickerPhoto(false);
     }
@@ -177,8 +181,8 @@ export default function CatalogImportModal({
 
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err?.message || "Erro ao gravar lote de produtos");
+    } catch (err) {
+      setError((err instanceof Error && err.message) || "Erro ao gravar lote de produtos");
     } finally {
       setSaving(false);
     }
@@ -197,7 +201,8 @@ export default function CatalogImportModal({
               <span>📥</span> Importação Inteligente de Catálogos
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Leitura página a página de PDF multipáginas ou pastas de imagens com extração via IA e revisão antes de salvar.
+              Leitura página a página de PDF multipáginas ou pastas de imagens com extração via IA e
+              revisão antes de salvar.
             </p>
           </div>
           <button
@@ -210,9 +215,7 @@ export default function CatalogImportModal({
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
+          <div className="mx-6 mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
         )}
 
         {/* Content area */}
@@ -226,7 +229,8 @@ export default function CatalogImportModal({
                   Selecione o catálogo ou as imagens
                 </h3>
                 <p className="mt-1 text-xs text-gray-500 max-w-md mx-auto">
-                  Envie arquivo PDF multipáginas com tabelas de produtos ou selecione múltiplos folders/fotos de folhetos promocionais.
+                  Envie arquivo PDF multipáginas com tabelas de produtos ou selecione múltiplos
+                  folders/fotos de folhetos promocionais.
                 </p>
                 <div className="mt-4">
                   <input
@@ -261,7 +265,9 @@ export default function CatalogImportModal({
                     >
                       Intervalo de Páginas do PDF (opcional)
                     </label>
-                    <span className="text-[11px] text-gray-400">Deixe em branco para extrair todas as páginas</span>
+                    <span className="text-[11px] text-gray-400">
+                      Deixe em branco para extrair todas as páginas
+                    </span>
                   </div>
                   <input
                     id="page-range-input"
@@ -272,7 +278,8 @@ export default function CatalogImportModal({
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                   <p className="text-xs text-gray-500">
-                    Indique as páginas que deseja processar. Aceita intervalos (ex: <code>1-5</code>), páginas avulsas (ex: <code>2, 4, 8</code>) ou combinações.
+                    Indique as páginas que deseja processar. Aceita intervalos (ex: <code>1-5</code>
+                    ), páginas avulsas (ex: <code>2, 4, 8</code>) ou combinações.
                   </p>
                 </div>
               )}
@@ -343,7 +350,8 @@ export default function CatalogImportModal({
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <span className="font-medium">
-                      Ativar fallback automático para visão multimodal caso a página seja imagem/escaneada
+                      Ativar fallback automático para visão multimodal caso a página seja
+                      imagem/escaneada
                     </span>
                   </label>
                 </div>
@@ -367,7 +375,9 @@ export default function CatalogImportModal({
               {progress.total > 0 && (
                 <div className="w-full max-w-md mt-4">
                   <div className="flex justify-between text-xs font-semibold text-gray-600 mb-1">
-                    <span>Página {progress.pagina} de {progress.total}</span>
+                    <span>
+                      Página {progress.pagina} de {progress.total}
+                    </span>
                     <span>{Math.round((progress.pagina / progress.total) * 100)}%</span>
                   </div>
                   <div className="h-2 w-full rounded-full bg-gray-200 overflow-hidden">
@@ -392,7 +402,8 @@ export default function CatalogImportModal({
             <div className="space-y-4">
               <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-100">
                 <div className="text-xs text-blue-900">
-                  <strong>Conferência Prévia:</strong> Revise os dados extraídos, ajuste nomes e preços ou desmarque produtos que não deseja incluir.
+                  <strong>Conferência Prévia:</strong> Revise os dados extraídos, ajuste nomes e
+                  preços ou desmarque produtos que não deseja incluir.
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -436,14 +447,20 @@ export default function CatalogImportModal({
                       {extractedProducts.map((item) => (
                         <tr
                           key={item.id_temporario}
-                          className={item.selecionado ? "hover:bg-blue-50/20" : "opacity-50 bg-gray-50"}
+                          className={
+                            item.selecionado ? "hover:bg-blue-50/20" : "opacity-50 bg-gray-50"
+                          }
                         >
                           <td className="p-3">
                             <input
                               type="checkbox"
                               checked={Boolean(item.selecionado)}
                               onChange={(e) =>
-                                handleUpdateProduct(item.id_temporario, "selecionado", e.target.checked)
+                                handleUpdateProduct(
+                                  item.id_temporario,
+                                  "selecionado",
+                                  e.target.checked,
+                                )
                               }
                               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             />
@@ -467,7 +484,9 @@ export default function CatalogImportModal({
                                     className="h-full w-full object-contain p-0.5"
                                   />
                                 ) : (
-                                  <span className="text-gray-400 group-hover:scale-110 transition-transform">📷</span>
+                                  <span className="text-gray-400 group-hover:scale-110 transition-transform">
+                                    📷
+                                  </span>
                                 )}
                                 <div className="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-bold transition-opacity">
                                   Trocar
@@ -513,7 +532,7 @@ export default function CatalogImportModal({
                                 handleUpdateProduct(
                                   item.id_temporario,
                                   "preco_base_fornecedor",
-                                  e.target.value ? parseFloat(e.target.value) : null
+                                  e.target.value ? parseFloat(e.target.value) : null,
                                 )
                               }
                               className="w-full rounded border border-gray-300 px-2 py-1 text-gray-700 focus:border-blue-500 focus:outline-none"
@@ -528,7 +547,7 @@ export default function CatalogImportModal({
                                 handleUpdateProduct(
                                   item.id_temporario,
                                   "preco",
-                                  e.target.value ? parseFloat(e.target.value) : null
+                                  e.target.value ? parseFloat(e.target.value) : null,
                                 )
                               }
                               className="w-full rounded border border-gray-300 px-2 py-1 font-bold text-gray-900 focus:border-blue-500 focus:outline-none"
@@ -661,7 +680,9 @@ export default function CatalogImportModal({
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-semibold text-gray-700">Foto Atual</div>
                   <div className="text-[11px] text-gray-500">
-                    {pickerProduct.imagem_temp_url ? "Figura recortada associada ao produto" : "Nenhuma foto selecionada"}
+                    {pickerProduct.imagem_temp_url
+                      ? "Figura recortada associada ao produto"
+                      : "Nenhuma foto selecionada"}
                   </div>
                 </div>
                 {pickerProduct.imagem_temp_url && (
@@ -697,9 +718,7 @@ export default function CatalogImportModal({
                         >
                           <img
                             src={
-                              fotoUrl.startsWith("http")
-                                ? fotoUrl
-                                : `${getApiBaseUrl()}${fotoUrl}`
+                              fotoUrl.startsWith("http") ? fotoUrl : `${getApiBaseUrl()}${fotoUrl}`
                             }
                             alt={`Figura ${fIdx + 1}`}
                             className="h-full w-full object-contain"
@@ -738,7 +757,8 @@ export default function CatalogImportModal({
                     htmlFor="picker-upload-file"
                     className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 hover:bg-blue-100"
                   >
-                    <span>📁</span> {uploadingPickerPhoto ? "Enviando..." : "Enviar Foto do Computador"}
+                    <span>📁</span>{" "}
+                    {uploadingPickerPhoto ? "Enviando..." : "Enviar Foto do Computador"}
                   </label>
                 </div>
                 <button

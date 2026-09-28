@@ -176,7 +176,7 @@ class Produto(Base):
     descontos_volume: Mapped[list[ProdutoDescontoVolume]] = relationship(
         back_populates="produto", cascade="all, delete-orphan"
     )
-    imagens: Mapped[list["ProdutoImagem"]] = relationship(
+    imagens: Mapped[list[ProdutoImagem]] = relationship(
         back_populates="produto",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -201,8 +201,7 @@ class ProdutoImagem(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
-    produto: Mapped["Produto"] = relationship(back_populates="imagens")
-
+    produto: Mapped[Produto] = relationship(back_populates="imagens")
 
 
 class ProdutoEstoque(Base):

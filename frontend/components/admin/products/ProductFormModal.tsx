@@ -40,6 +40,9 @@ export default function ProductFormModal({
 
   useEffect(() => {
     if (!isOpen) {
+      // Zera o formulário ao fechar o modal (sincronização com a prop `isOpen`)
+      // — padrão aceito no projeto para `react-hooks/set-state-in-effect`.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setImagemFile(null);
       setImagemPreview(null);
       setImagens([]);
@@ -54,7 +57,7 @@ export default function ProductFormModal({
       setPrecoBaseFornecedor(
         produtoParaEditar.preco_base_fornecedor
           ? String(produtoParaEditar.preco_base_fornecedor)
-          : ""
+          : "",
       );
       setDescricao(produtoParaEditar.descricao || "");
       setEspecificacoesTecnicas(produtoParaEditar.especificacoes_tecnicas || "");
@@ -63,7 +66,7 @@ export default function ProductFormModal({
           ? produtoParaEditar.imagem_url.startsWith("http")
             ? produtoParaEditar.imagem_url
             : `${getApiBaseUrl()}${produtoParaEditar.imagem_url}`
-          : null
+          : null,
       );
       setImagens(produtoParaEditar.imagens || []);
       setImagemFile(null);
@@ -113,7 +116,7 @@ export default function ProductFormModal({
               ? produtoAtualizado.imagem_url.startsWith("http")
                 ? produtoAtualizado.imagem_url
                 : `${getApiBaseUrl()}${produtoAtualizado.imagem_url}`
-              : null
+              : null,
           );
         }
       } catch {
@@ -125,18 +128,18 @@ export default function ProductFormModal({
               ? proximaImg.imagem_url.startsWith("http")
                 ? proximaImg.imagem_url
                 : `${getApiBaseUrl()}${proximaImg.imagem_url}`
-              : null
+              : null,
           );
         }
       }
 
       onSuccess(produtoAtualizado || undefined);
-    } catch (err: any) {
+    } catch (err) {
       // Reverte estado se a exclusão falhar
       if (imagemRemovida) {
         setImagens((prev) => [...prev, imagemRemovida]);
       }
-      setError(err?.message || "Erro ao remover imagem");
+      setError((err instanceof Error && err.message) || "Erro ao remover imagem");
     } finally {
       setDeletingImageId(null);
     }
@@ -162,9 +165,7 @@ export default function ProductFormModal({
         nome: nome.trim(),
         categoria: categoria.trim() || "Geral",
         preco: precoNum,
-        preco_base_fornecedor: precoBaseFornecedor
-          ? parseFloat(precoBaseFornecedor)
-          : null,
+        preco_base_fornecedor: precoBaseFornecedor ? parseFloat(precoBaseFornecedor) : null,
         descricao: descricao.trim(),
         especificacoes_tecnicas: especificacoesTecnicas.trim() || null,
       };
@@ -183,8 +184,8 @@ export default function ProductFormModal({
 
       onSuccess();
       onClose();
-    } catch (err: any) {
-      setError(err?.message || "Erro ao salvar produto");
+    } catch (err) {
+      setError((err instanceof Error && err.message) || "Erro ao salvar produto");
     } finally {
       setSaving(false);
     }
@@ -213,11 +214,7 @@ export default function ProductFormModal({
           </button>
         </div>
 
-        {error && (
-          <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -324,16 +321,13 @@ export default function ProductFormModal({
                   Foto do Produto & Catálogo Visual CLIP
                 </h4>
                 <p className="text-xs text-blue-700">
-                  A imagem é vetorizada automaticamente no Qdrant para reconhecimento por foto no chat.
+                  A imagem é vetorizada automaticamente no Qdrant para reconhecimento por foto no
+                  chat.
                 </p>
               </div>
               {imagemPreview && (
                 <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200 bg-white">
-                  <img
-                    src={imagemPreview}
-                    alt="Preview"
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={imagemPreview} alt="Preview" className="h-full w-full object-cover" />
                 </div>
               )}
             </div>

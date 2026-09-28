@@ -1,16 +1,12 @@
-import io
 import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+
 from app.catalog_extractor.extractor import (
+    extract_catalog_stream,
     extract_page_products_local,
     extract_page_products_vision,
-    extract_catalog_stream,
-)
-from app.models.catalog_extractor import (
-    ExtractedProduct,
-    CatalogConfirmRequest,
-    CatalogConfirmItem,
 )
 
 
@@ -19,7 +15,7 @@ async def test_extract_page_products_local_retorna_produtos():
     local_client = AsyncMock()
     # Support both .response and .text
     mock_resp = MagicMock()
-    mock_resp.response = '[{"nome": "Gravador NVD 1016", "descricao": "Gravador IP 16 canais", "categoria": "CFTV", "preco_base_fornecedor": 550.0, "preco": 799.0, "especificacoes_tecnicas": "16 canais PoE"}]'
+    mock_resp.response = '[{"nome": "Gravador NVD 1016", "descricao": "Gravador IP 16 canais", "categoria": "CFTV", "preco_base_fornecedor": 550.0, "preco": 799.0, "especificacoes_tecnicas": "16 canais PoE"}]'  # noqa: E501
     mock_resp.text = mock_resp.response
     local_client.generate = AsyncMock(return_value=mock_resp)
 
@@ -34,7 +30,7 @@ async def test_extract_page_products_local_retorna_produtos():
 async def test_extract_page_products_vision_retorna_produtos():
     vision_client = AsyncMock()
     vision_client.describe_image = AsyncMock(
-        return_value='```json\n[{"nome": "Câmera Bullet VIP 1230", "descricao": "Câmera Bullet IP", "categoria": "CFTV", "preco_base_fornecedor": 210.0, "preco": 320.0, "especificacoes_tecnicas": "Full HD, IR 30m"}]\n```'
+        return_value='```json\n[{"nome": "Câmera Bullet VIP 1230", "descricao": "Câmera Bullet IP", "categoria": "CFTV", "preco_base_fornecedor": 210.0, "preco": 320.0, "especificacoes_tecnicas": "Full HD, IR 30m"}]\n```'  # noqa: E501
     )
 
     produtos = await extract_page_products_vision(b"fake-image-bytes", vision_client)
@@ -47,7 +43,7 @@ async def test_extract_page_products_vision_retorna_produtos():
 async def test_extract_catalog_stream_com_imagem(tmp_path):
     vision_client = AsyncMock()
     vision_client.describe_image = AsyncMock(
-        return_value='[{"nome": "Sensor IVP 3000", "descricao": "Sensor infravermelho", "categoria": "Alarmes", "preco_base_fornecedor": 45.0, "preco": 75.0, "especificacoes_tecnicas": "Sem fio"}]'
+        return_value='[{"nome": "Sensor IVP 3000", "descricao": "Sensor infravermelho", "categoria": "Alarmes", "preco_base_fornecedor": 45.0, "preco": 75.0, "especificacoes_tecnicas": "Sem fio"}]'  # noqa: E501
     )
     local_client = AsyncMock()
 
@@ -103,6 +99,7 @@ async def test_confirmar_catalogo_endpoint(app_sqlite):
 
 def test_extrair_figuras_pagina_filtra_ruido_e_recorta(tmp_path):
     from PIL import Image
+
     from app.catalog_extractor.extractor import _extrair_figuras_pagina
 
     # Cria imagem de página simulada 600x800
@@ -138,7 +135,7 @@ async def test_upload_temp_endpoint(app_sqlite):
 
     app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+        fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"  # noqa: E501
         files = {"file": ("manual_upload.png", fake_png, "image/png")}
         resp = await client.post("/api/admin/produtos/upload-temp", files=files)
         assert resp.status_code == 200
@@ -155,7 +152,9 @@ async def test_confirmar_catalogo_com_imagem_temp(app_sqlite, tmp_path):
     temp_dir = tmp_path / "temp"
     temp_dir.mkdir(parents=True, exist_ok=True)
     temp_img_file = temp_dir / "crop_teste123.jpg"
-    temp_img_file.write_bytes(b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.' \",#\x1c\x1c(7),01444\x1f'9=82<.342\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xc4\x00\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xbf\x00\xff\xd9")
+    temp_img_file.write_bytes(
+        b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x01\x00`\x00`\x00\x00\xff\xdb\x00C\x00\x08\x06\x06\x07\x06\x05\x08\x07\x07\x07\t\t\x08\n\x0c\x14\r\x0c\x0b\x0b\x0c\x19\x12\x13\x0f\x14\x1d\x1a\x1f\x1e\x1d\x1a\x1c\x1c $.' \",#\x1c\x1c(7),01444\x1f'9=82<.342\xff\xc0\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xc4\x00\x1f\x00\x00\x01\x05\x01\x01\x01\x01\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0b\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xbf\x00\xff\xd9"  # noqa: E501
+    )
 
     with patch("app.api.admin_products.get_settings") as mock_settings:
         mock_s = MagicMock()
@@ -194,14 +193,20 @@ async def test_confirmar_catalogo_com_imagem_temp(app_sqlite, tmp_path):
 @pytest.mark.asyncio
 async def test_extract_catalog_stream_com_pdf_figuras(tmp_path):
     from pathlib import Path
-    pdf_path = Path(__file__).resolve().parent.parent.parent / "docs" / "Manuais_fornecedor" / "Datasheet - iNVU 9164 M2 IAX FT.pdf"
+
+    pdf_path = (
+        Path(__file__).resolve().parent.parent.parent
+        / "docs"
+        / "Manuais_fornecedor"
+        / "Datasheet - iNVU 9164 M2 IAX FT.pdf"
+    )
     if not pdf_path.exists():
         pytest.skip("PDF de teste não encontrado")
 
     pdf_bytes = pdf_path.read_bytes()
     vision_client = AsyncMock()
     vision_client.describe_image = AsyncMock(
-        return_value='[{"nome": "Gravador iNVU 9164", "descricao": "Gravador de alta capacidade", "categoria": "CFTV", "preco_base_fornecedor": 1500.0, "preco": 2200.0, "especificacoes_tecnicas": "64 canais"}]'
+        return_value='[{"nome": "Gravador iNVU 9164", "descricao": "Gravador de alta capacidade", "categoria": "CFTV", "preco_base_fornecedor": 1500.0, "preco": 2200.0, "especificacoes_tecnicas": "64 canais"}]'  # noqa: E501
     )
     local_client = AsyncMock()
 
@@ -265,14 +270,20 @@ def test_parse_page_range():
 @pytest.mark.asyncio
 async def test_extract_catalog_stream_com_filtro_page_range(tmp_path):
     from pathlib import Path
-    pdf_path = Path(__file__).resolve().parent.parent.parent / "docs" / "Manuais_fornecedor" / "Datasheet - iNVU 9164 M2 IAX FT.pdf"
+
+    pdf_path = (
+        Path(__file__).resolve().parent.parent.parent
+        / "docs"
+        / "Manuais_fornecedor"
+        / "Datasheet - iNVU 9164 M2 IAX FT.pdf"
+    )
     if not pdf_path.exists():
         pytest.skip("PDF de teste não encontrado")
 
     pdf_bytes = pdf_path.read_bytes()
     vision_client = AsyncMock()
     vision_client.describe_image = AsyncMock(
-        return_value='[{"nome": "Produto Pagina 2", "descricao": "Desc", "categoria": "CFTV", "preco_base_fornecedor": 100.0, "preco": 150.0}]'
+        return_value='[{"nome": "Produto Pagina 2", "descricao": "Desc", "categoria": "CFTV", "preco_base_fornecedor": 100.0, "preco": 150.0}]'  # noqa: E501
     )
     local_client = AsyncMock()
 
@@ -297,6 +308,3 @@ async def test_extract_catalog_stream_com_filtro_page_range(tmp_path):
     assert p_data["pagina"] == 2
     assert p_data["total_paginas"] == 1
     assert p_data["produtos"][0]["pagina_origem"] == 2
-
-
-

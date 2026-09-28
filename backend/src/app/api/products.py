@@ -1,6 +1,7 @@
 """Endpoints públicos para navegação do catálogo de produtos pelo site.
 
-GET /api/products            — Lista paginada de produtos com busca, filtro por categoria e ordenação por estoque + nome alfabético
+GET /api/products            — Lista paginada de produtos com busca, filtro por categoria e
+                               ordenação por estoque + nome alfabético
 GET /api/products/categorias — Lista alfabética de categorias distintas
 GET /api/products/{id}       — Detalhe de produto por ID
 """
@@ -28,7 +29,9 @@ def _ordenar_estoque_nome_key(produto: ProdutoOut):
 
 @router.get("", response_model=PaginatedProdutosOut)
 async def get_public_produtos(
-    termo: Annotated[str | None, Query(description="Busca por nome, descrição ou especificações")] = None,
+    termo: Annotated[
+        str | None, Query(description="Busca por nome, descrição ou especificações")
+    ] = None,
     categoria: Annotated[str | None, Query(description="Filtro por categoria")] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 12,
     offset: Annotated[int, Query(ge=0)] = 0,
@@ -37,10 +40,10 @@ async def get_public_produtos(
     todos = await listar_produtos(session, categoria=categoria, termo=termo)
     pydantic_items = [ProdutoOut.model_validate(p) for p in todos]
     pydantic_items.sort(key=_ordenar_estoque_nome_key)
-    
+
     total = len(pydantic_items)
     paginados = pydantic_items[offset : offset + limit]
-    
+
     return PaginatedProdutosOut(
         items=paginados,
         total=total,

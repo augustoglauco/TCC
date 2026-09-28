@@ -1,8 +1,11 @@
-import pytest
 from decimal import Decimal
+
+import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.catalog import criar_produto, obter_produto, deletar_produto
+
+from app.db.catalog import criar_produto, deletar_produto, obter_produto
 from app.db.models import ProdutoImagem
+
 
 @pytest.mark.asyncio
 async def test_criar_produto_com_preco_fornecedor_e_imagem(db_session: AsyncSession):

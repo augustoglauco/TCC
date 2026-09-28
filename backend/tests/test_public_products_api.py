@@ -48,7 +48,7 @@ async def test_public_products_api_flow(app_sqlite):
 
         # Adiciona estoque para Produto A e Produto B
         await client.post(
-            f"/api/admin/produtos",
+            "/api/admin/produtos",
             json={
                 "nome": "Produto Temporário",
                 "descricao": "temp",

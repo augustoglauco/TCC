@@ -1,6 +1,7 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
+
 @pytest.mark.asyncio
 async def test_crud_admin_produtos(app_sqlite):
     app = app_sqlite
@@ -39,6 +40,7 @@ async def test_crud_admin_produtos(app_sqlite):
         # 5. Confirma 404
         get_resp = await client.get(f"/api/admin/produtos/{prod_id}")
         assert get_resp.status_code == 404
+
 
 @pytest.mark.asyncio
 async def test_admin_produto_upload_e_delete_imagem(app_sqlite):

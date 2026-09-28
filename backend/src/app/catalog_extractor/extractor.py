@@ -37,7 +37,7 @@ Regras:
 
 Texto da página:
 {texto}
-"""
+"""  # noqa: E501 — prompt: quebrar as linhas mudaria o texto enviado ao LLM
 
 VISION_EXTRACTION_PROMPT = """Você é um assistente especialista em extrair dados de catálogos e folhetos comerciais.
 Analise visualmente a imagem desta página de catálogo e extraia todos os produtos que constam nela.
@@ -56,7 +56,7 @@ Regras:
 1. 'preco_base_fornecedor' e 'preco' devem ser float (ex: 150.0) ou null se ausentes.
 2. Se nenhum produto for encontrado, responda com [].
 3. Não inclua texto fora do array JSON.
-"""
+"""  # noqa: E501 — prompt: quebrar as linhas mudaria o texto enviado ao LLM
 
 
 def _parse_products_json(raw_text: str) -> list[dict[str, Any]]:
@@ -198,7 +198,8 @@ def _extrair_figuras_pagina(page: Any, pil_img: Image.Image, temp_dir: Path) -> 
 
         candidates.append({"x0": x0, "top": top, "x1": x1, "bottom": bottom, "w": w, "h": h})
 
-    # Ordena espacialmente por linha visual (top agrupado a cada ~35pt) e depois da esquerda para a direita (x0)
+    # Ordena espacialmente por linha visual (top agrupado a cada ~35pt) e
+    # depois da esquerda para a direita (x0)
     candidates.sort(key=lambda c: (round(c["top"] / 35.0), c["x0"]))
 
     figuras_urls: list[str] = []
@@ -240,13 +241,15 @@ async def extract_catalog_stream(
     local_client: Any,
     vision_client: Any,
     page_range: str | None = None,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[str]:
     """Itera sobre documentos ou imagens e gera stream de eventos SSE."""
     temp_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Pré-calcula total de páginas / imagens
     total_paginas = 0
-    file_pages_plan: list[tuple[str, bytes, str, int, set[int] | None]] = []  # (nome, bytes, tipo, total_do_arquivo, paginas_filtradas)
+    file_pages_plan: list[
+        tuple[str, bytes, str, int, set[int] | None]
+    ] = []  # (nome, bytes, tipo, total_do_arquivo, paginas_filtradas)
     for filename, content in files:
         lower = filename.lower()
         if lower.endswith(".pdf"):
@@ -279,10 +282,15 @@ async def extract_catalog_stream(
 
                     pagina_global += 1
                     # Notifica progresso
-                    yield f"event: progresso\ndata: {json.dumps({'pagina': pagina_global, 'total': total_paginas, 'status': f'Extraindo {filename} (página {num_pagina_pdf}/{num_pages})'})}\n\n"
+                    progresso = {
+                        "pagina": pagina_global,
+                        "total": total_paginas,
+                        "status": f"Extraindo {filename} (página {num_pagina_pdf}/{num_pages})",
+                    }
+                    yield f"event: progresso\ndata: {json.dumps(progresso)}\n\n"
 
                     texto_pagina = _extrair_texto_pagina(page)
-                    
+
                     # Renderiza imagem da página para preview e/ou visão
                     temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
                     temp_img_path = temp_dir / temp_img_name
@@ -296,7 +304,9 @@ async def extract_catalog_stream(
                         temp_img_path.write_bytes(img_bytes)
                         temp_img_url = f"/api/uploads/produtos/temp/{temp_img_name}"
                     except Exception as e:
-                        logger.warning(f"Não foi possível renderizar imagem da página {idx+1} do PDF: {e}")
+                        logger.warning(
+                            f"Não foi possível renderizar imagem da página {idx + 1} do PDF: {e}"
+                        )
                         temp_img_url = None
                         pil_img = None
 
@@ -306,7 +316,9 @@ async def extract_catalog_stream(
                         try:
                             figuras_pagina = _extrair_figuras_pagina(page, pil_img, temp_dir)
                         except Exception as e:
-                            logger.warning(f"Erro ao extrair figuras recortadas da página {idx+1}: {e}")
+                            logger.warning(
+                                f"Erro ao extrair figuras recortadas da página {idx + 1}: {e}"
+                            )
 
                     provider_usado = provider
                     raw_prods: list[dict[str, Any]] = []
@@ -314,7 +326,9 @@ async def extract_catalog_stream(
                     if provider == "external":
                         if img_bytes and vision_client:
                             try:
-                                raw_prods = await extract_page_products_vision(img_bytes, vision_client)
+                                raw_prods = await extract_page_products_vision(
+                                    img_bytes, vision_client
+                                )
                                 provider_usado = "external"
                             except Exception as e:
                                 logger.error(f"Erro na visão externa: {e}")
@@ -322,7 +336,9 @@ async def extract_catalog_stream(
                         # Tenta local se houver texto
                         if len(texto_pagina.strip()) >= 30 and local_client:
                             try:
-                                raw_prods = await extract_page_products_local(texto_pagina, local_client)
+                                raw_prods = await extract_page_products_local(
+                                    texto_pagina, local_client
+                                )
                                 provider_usado = "local"
                             except Exception as e:
                                 logger.warning(f"Erro na extração local: {e}")
@@ -330,12 +346,15 @@ async def extract_catalog_stream(
                         # Fallback se local não retornou nada
                         if not raw_prods and fallback_external and img_bytes and vision_client:
                             try:
-                                raw_prods = await extract_page_products_vision(img_bytes, vision_client)
+                                raw_prods = await extract_page_products_vision(
+                                    img_bytes, vision_client
+                                )
                                 provider_usado = "external"
                             except Exception as e:
                                 logger.error(f"Erro no fallback de visão externa: {e}")
 
-                    # Formata produtos extraídos associando cada um à sua figura individual recortada
+                    # Formata produtos extraídos associando cada um à sua figura
+                    # individual recortada
                     produtos: list[ExtractedProduct] = []
                     for i, item in enumerate(raw_prods):
                         foto_produto: str | None = None
@@ -350,9 +369,15 @@ async def extract_catalog_stream(
                                 nome=str(item.get("nome", "")),
                                 descricao=str(item.get("descricao", "") or ""),
                                 categoria=str(item.get("categoria", "") or "Geral"),
-                                preco_base_fornecedor=float(item["preco_base_fornecedor"]) if item.get("preco_base_fornecedor") is not None else None,
-                                preco=float(item["preco"]) if item.get("preco") is not None else None,
-                                especificacoes_tecnicas=str(item.get("especificacoes_tecnicas", "") or ""),
+                                preco_base_fornecedor=float(item["preco_base_fornecedor"])
+                                if item.get("preco_base_fornecedor") is not None
+                                else None,
+                                preco=float(item["preco"])
+                                if item.get("preco") is not None
+                                else None,
+                                especificacoes_tecnicas=str(
+                                    item.get("especificacoes_tecnicas", "") or ""
+                                ),
                                 imagem_temp_url=foto_produto,
                                 fotos_pagina=figuras_pagina,
                                 pagina_origem=num_pagina_pdf,
@@ -375,7 +400,12 @@ async def extract_catalog_stream(
         else:
             # Imagem única
             pagina_global += 1
-            yield f"event: progresso\ndata: {json.dumps({'pagina': pagina_global, 'total': total_paginas, 'status': f'Extraindo imagem {filename}'})}\n\n"
+            progresso = {
+                "pagina": pagina_global,
+                "total": total_paginas,
+                "status": f"Extraindo imagem {filename}",
+            }
+            yield f"event: progresso\ndata: {json.dumps(progresso)}\n\n"
 
             temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
             temp_img_path = temp_dir / temp_img_name
@@ -397,7 +427,9 @@ async def extract_catalog_stream(
                         nome=str(item.get("nome", "")),
                         descricao=str(item.get("descricao", "") or ""),
                         categoria=str(item.get("categoria", "") or "Geral"),
-                        preco_base_fornecedor=float(item["preco_base_fornecedor"]) if item.get("preco_base_fornecedor") is not None else None,
+                        preco_base_fornecedor=float(item["preco_base_fornecedor"])
+                        if item.get("preco_base_fornecedor") is not None
+                        else None,
                         preco=float(item["preco"]) if item.get("preco") is not None else None,
                         especificacoes_tecnicas=str(item.get("especificacoes_tecnicas", "") or ""),
                         imagem_temp_url=temp_img_url if (len(raw_prods) == 1 or i == 0) else None,
@@ -420,4 +452,5 @@ async def extract_catalog_stream(
             yield f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n"
 
     # Evento final
-    yield f"event: done\ndata: {json.dumps({'total_produtos': total_produtos_extraidos, 'total_paginas': total_paginas})}\n\n"
+    final = {"total_produtos": total_produtos_extraidos, "total_paginas": total_paginas}
+    yield f"event: done\ndata: {json.dumps(final)}\n\n"

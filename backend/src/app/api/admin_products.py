@@ -14,16 +14,25 @@ from pathlib import Path
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.rag_dependencies import get_db_session
 from app.api.uploads import salvar_imagem_produto
-from app.config import get_settings
 from app.catalog_extractor.extractor import extract_catalog_stream
+from app.config import get_settings
 from app.db.catalog import (
     atualizar_produto,
     criar_produto,
@@ -33,7 +42,13 @@ from app.db.catalog import (
     obter_produto,
 )
 from app.db.models import ProdutoImagem
-from app.models.catalog import PaginatedProdutosOut, ProdutoCreate, ProdutoImagemOut, ProdutoOut, ProdutoUpdate
+from app.models.catalog import (
+    PaginatedProdutosOut,
+    ProdutoCreate,
+    ProdutoImagemOut,
+    ProdutoOut,
+    ProdutoUpdate,
+)
 from app.models.catalog_extractor import CatalogConfirmRequest, CatalogConfirmResponse
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.image_search import ClipImageStore
@@ -254,7 +269,9 @@ async def delete_admin_produto(
     try:
         await clip_store.delete_images_by_product_id(produto_id)
     except Exception as exc:
-        logger.warning("Falha ao expurgar vetores CLIP do produto %s por produto_id: %s", produto_id, exc)
+        logger.warning(
+            "Falha ao expurgar vetores CLIP do produto %s por produto_id: %s", produto_id, exc
+        )
 
     for img in produto.imagens:
         if img.clip_image_id:
@@ -272,7 +289,9 @@ async def delete_admin_produto(
     return None
 
 
-@router.post("/{produto_id}/imagens", response_model=ProdutoImagemOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{produto_id}/imagens", response_model=ProdutoImagemOut, status_code=status.HTTP_201_CREATED
+)
 async def upload_imagem_produto(
     produto_id: int,
     file: UploadFile = File(...),

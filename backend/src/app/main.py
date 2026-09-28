@@ -6,17 +6,17 @@ import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.admin_products import router as admin_products_router
 from app.api.chat import router as chat_router
 from app.api.crawler import router as crawler_router
 from app.api.image_search import router as image_search_router
 from app.api.local_models import router as local_models_router
+from app.api.products import router as products_router
 from app.api.rag import router as rag_router
 from app.api.rag_collections import router as rag_collections_router
 from app.api.rag_playground import router as rag_playground_router
 from app.api.runtime_settings import router as runtime_settings_router
 from app.api.tom_escalonamentos import router as tom_escalonamentos_router
-from app.api.products import router as products_router
-from app.api.admin_products import router as admin_products_router
 from app.api.uploads import router as uploads_router
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory

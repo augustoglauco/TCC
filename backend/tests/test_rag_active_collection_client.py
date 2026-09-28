@@ -211,7 +211,7 @@ class _FailingSessionFactory:
     ser aberta — simula um Postgres indisponível no caminho do chat (ver
     finding #4 da revisão final)."""
 
-    def __call__(self) -> "_FailingSessionFactory":
+    def __call__(self) -> _FailingSessionFactory:
         return self
 
     async def __aenter__(self):

@@ -432,7 +432,9 @@ def test_get_conversa_com_banco_fora_do_ar_da_503(fakes):
 
 
 def test_deletar_conversa_limpa_mensagens_e_retorna_204(client):
-    msg_resp = client.post("/api/chat/messages", json={"message": "Olá", "conversation_id": "conv-del-1"})
+    msg_resp = client.post(
+        "/api/chat/messages", json={"message": "Olá", "conversation_id": "conv-del-1"}
+    )
     assert msg_resp.status_code == 200
 
     del_resp = client.delete("/api/chat/conversations/conv-del-1")

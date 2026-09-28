@@ -50,6 +50,9 @@ export default function AdminProdutosPage() {
   }, []);
 
   useEffect(() => {
+    // Carga inicial dos dados (fetch assíncrono) — falso positivo conhecido de
+    // `react-hooks/set-state-in-effect`, mesmo caso de `app/admin/ingestao/page.tsx`.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarCategorias();
   }, [carregarCategorias]);
 
@@ -70,7 +73,7 @@ export default function AdminProdutosPage() {
       setAvailableCategories((prev) =>
         Array.from(new Set([...prev, ...categoriasDosProdutos]))
           .filter(Boolean)
-          .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }))
+          .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" })),
       );
     } catch (err) {
       console.error("Erro ao carregar produtos:", err);
@@ -150,11 +153,10 @@ export default function AdminProdutosPage() {
             <span>/</span>
             <span className="text-blue-600">Catálogo de Produtos</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            Catálogo de Produtos
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Catálogo de Produtos</h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Cadastre produtos, custos e fotos vetorizadas no catálogo visual CLIP para atendimento inteligente no chat.
+            Cadastre produtos, custos e fotos vetorizadas no catálogo visual CLIP para atendimento
+            inteligente no chat.
           </p>
         </div>
 

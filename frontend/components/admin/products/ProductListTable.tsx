@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 import type { AdminProduct } from "@/lib/types/adminProducts";
 
@@ -55,11 +54,10 @@ export default function ProductListTable({
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
           📦
         </div>
-        <h3 className="mt-3 text-base font-semibold text-gray-900">
-          Nenhum produto cadastrado
-        </h3>
+        <h3 className="mt-3 text-base font-semibold text-gray-900">Nenhum produto cadastrado</h3>
         <p className="mt-1 text-sm text-gray-500 max-w-sm">
-          Cadastre seu primeiro produto manualmente ou importe produtos em lote através de catálogos em PDF ou imagens.
+          Cadastre seu primeiro produto manualmente ou importe produtos em lote através de catálogos
+          em PDF ou imagens.
         </p>
       </div>
     );
@@ -84,18 +82,16 @@ export default function ProductListTable({
             {produtos.map((p) => {
               const fullImg = getFullImageUrl(p.imagem_url);
               const margin = calculateMargin(p.preco, p.preco_base_fornecedor);
-              const temClip = (p.imagens && p.imagens.length > 0 && p.imagens.some(img => img.clip_image_id)) || Boolean(p.imagem_url);
+              const temClip =
+                (p.imagens && p.imagens.length > 0 && p.imagens.some((img) => img.clip_image_id)) ||
+                Boolean(p.imagem_url);
 
               return (
                 <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
                   <td className="py-3.5 pl-4 pr-3 whitespace-nowrap">
                     <div className="relative h-14 w-14 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 flex items-center justify-center">
                       {fullImg ? (
-                        <img
-                          src={fullImg}
-                          alt={p.nome}
-                          className="h-full w-full object-cover"
-                        />
+                        <img src={fullImg} alt={p.nome} className="h-full w-full object-cover" />
                       ) : (
                         <span className="text-2xl text-gray-400">📷</span>
                       )}
@@ -143,8 +139,8 @@ export default function ProductListTable({
                           Number(margin) >= 30
                             ? "bg-green-100 text-green-800"
                             : Number(margin) > 0
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-red-100 text-red-800"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-red-100 text-red-800"
                         }`}
                       >
                         +{margin}%
@@ -167,7 +163,11 @@ export default function ProductListTable({
                       <button
                         type="button"
                         onClick={() => {
-                          if (confirm(`Deseja realmente excluir "${p.nome}"? A exclusão removerá o produto e suas fotos do catálogo visual.`)) {
+                          if (
+                            confirm(
+                              `Deseja realmente excluir "${p.nome}"? A exclusão removerá o produto e suas fotos do catálogo visual.`,
+                            )
+                          ) {
                             onDelete(p.id);
                           }
                         }}

@@ -16,7 +16,9 @@ class _FakeLocalClient:
 
 
 class _FakeExternalClient:
-    def __init__(self, timeout_s: float, vision_model: str = "", model: str = "openai/gpt-4o-mini") -> None:
+    def __init__(
+        self, timeout_s: float, vision_model: str = "", model: str = "openai/gpt-4o-mini"
+    ) -> None:
         self.timeout_s = timeout_s
         self.vision_model = vision_model
         self.model = model
@@ -315,4 +317,3 @@ def test_put_atualiza_external_model_name():
     body = response.json()
     assert body["external_model_name"] == "anthropic/claude-3.5-sonnet"
     assert ext_client.model == "anthropic/claude-3.5-sonnet"
-

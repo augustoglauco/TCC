@@ -193,4 +193,3 @@ def test_image_search_result_normaliza_imagem_url_lista():
         imagem_url=["/api/uploads/produtos/foto.jpg"],
     )
     assert res.imagem_url == "/api/uploads/produtos/foto.jpg"
-
