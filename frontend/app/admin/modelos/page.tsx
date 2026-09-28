@@ -1,10 +1,11 @@
 "use client";
 
 // MVP: página administrativa (fora da navegação pública, sem autenticação)
-// para gerenciar os modelos locais do Ollama e parâmetros de execução em runtime.
+// para gerenciar os modelos locais do Ollama, modelos externos (OpenRouter) e parâmetros em runtime.
 import { useCallback, useEffect, useState } from "react";
 
 import { LocalModelsTable } from "@/components/admin/LocalModelsTable";
+import { OpenRouterModelCard } from "@/components/admin/OpenRouterModelCard";
 import { PullModelForm } from "@/components/admin/PullModelForm";
 import { RuntimeSettingsForm } from "@/components/admin/RuntimeSettingsForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
@@ -15,12 +16,6 @@ import type { LocalModel } from "@/lib/types/localModels";
 export default function ModelosPage() {
   const [modelos, setModelos] = useState<LocalModel[] | null>(null);
   const [activeModel, setActiveModel] = useState<string | null>(null);
-  // Achado no code-review (2026-09-24): o card "Status Runtime" mostrava
-  // sempre "Operacional (Ollama)" com um ponto verde fixo, sem nenhuma
-  // ligação com o estado real — se o Ollama estivesse fora do ar (e
-  // listLocalModels() já falhasse por causa disso), o card continuava
-  // mostrando operacional, exatamente no momento em que o admin mais
-  // precisa de uma informação correta.
   const [runtimeStatus, setRuntimeStatus] = useState<"checking" | "ok" | "error">("checking");
   const { toasts, showToast, dismissToast } = useToast();
 
@@ -49,7 +44,7 @@ export default function ModelosPage() {
   const totalGb = (totalBytes / 1024 ** 3).toFixed(1);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
+    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
       {/* Header com badge de contexto */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
         <div>
@@ -57,10 +52,10 @@ export default function ModelosPage() {
             <span>⚙️ Painel de Controle Admin</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            Administração Geral
+            Administração de Modelos LLM
           </h1>
           <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-2xl">
-            Gerenciamento de modelos LLM locais (Ollama), downloads do Hugging Face e parâmetros de inferência em tempo de execução.
+            Gerenciamento de modelos LLM locais (Ollama), provedores externos (OpenRouter) e parâmetros de inferência em tempo de execução.
           </p>
         </div>
       </div>
@@ -73,7 +68,7 @@ export default function ModelosPage() {
           </div>
           <div className="min-w-0">
             <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              Modelo Ativo
+              Modelo Local Ativo
             </span>
             <span className="block text-sm font-bold text-slate-900 truncate" title={activeModel || "Nenhum"}>
               {activeModel ? activeModel : "Nenhum selecionado"}
@@ -128,11 +123,13 @@ export default function ModelosPage() {
       {/* Conteúdo com Abas */}
       <div className="mt-8">
         <Tabs defaultValue="modelos">
-          <TabsList className="p-1 bg-slate-100 rounded-xl border border-slate-200/80 inline-flex">
-            <TabsTrigger value="modelos">🤖 Modelos Locais</TabsTrigger>
+          <TabsList className="p-1 bg-slate-100 rounded-xl border border-slate-200/80 inline-flex flex-wrap">
+            <TabsTrigger value="modelos">🤖 Modelos Locais (Ollama)</TabsTrigger>
+            <TabsTrigger value="openrouter">🌐 Provedor Externo (OpenRouter)</TabsTrigger>
             <TabsTrigger value="parametros">⚙️ Parâmetros de Execução</TabsTrigger>
           </TabsList>
 
+          {/* Aba 1: Modelos Locais */}
           <TabsContent value="modelos">
             <div className="space-y-6">
               {/* Card 1: Modelos Baixados */}
@@ -179,6 +176,24 @@ export default function ModelosPage() {
             </div>
           </TabsContent>
 
+          {/* Aba 2: Modelo Externo (OpenRouter) */}
+          <TabsContent value="openrouter">
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-6">
+              <div className="border-b border-slate-100 pb-4">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900">Gerenciamento de Modelo Externo (OpenRouter)</h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Selecione entre modelos comerciais populares, modelos 100% gratuitos (Free Tier) ou consulte o histórico de modelos ativados anteriormente.
+                </p>
+              </div>
+
+              <OpenRouterModelCard
+                onError={(message) => showToast(message, "error")}
+                onSuccess={(message) => showToast(message, "success")}
+              />
+            </div>
+          </TabsContent>
+
+          {/* Aba 3: Parâmetros de Execução */}
           <TabsContent value="parametros">
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
               <div className="border-b border-slate-100 pb-4">

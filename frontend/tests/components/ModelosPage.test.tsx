@@ -29,7 +29,7 @@ describe("ModelosPage", () => {
   it("carrega e exibe o título 'Administração Geral' e a lista de modelos", async () => {
     render(<ModelosPage />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Administração Geral" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Administração de Modelos LLM" })).toBeInTheDocument();
     expect(await screen.findByText("llama3.1:8b")).toBeInTheDocument();
   });
 

@@ -47,6 +47,10 @@ class RuntimeSettingsResponse(BaseModel):
             "abaixo vai pra fila de revisão."
         ),
     )
+    external_model_name: str = Field(
+        ...,
+        description="Modelo LLM de texto via OpenRouter ativo para inferência externa.",
+    )
     external_vision_model_name: str = Field(
         ...,
         description=(
@@ -90,6 +94,7 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     rag_search_domain_fallback: bool | None = None
     crawler_max_pages_default: int | None = Field(default=None, ge=1)
     crawler_confidence_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
+    external_model_name: str | None = None
     external_vision_model_name: str | None = None
     image_internal_confidence: float | None = Field(default=None, ge=0.0, le=1.0)
     image_external_confidence: float | None = Field(default=None, ge=0.0, le=1.0)

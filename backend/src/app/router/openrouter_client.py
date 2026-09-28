@@ -72,6 +72,14 @@ class OpenRouterClient:
         self._jev_timeout_s = jev_timeout_s
 
     @property
+    def model(self) -> str:
+        return self._model
+
+    @model.setter
+    def model(self, value: str) -> None:
+        self._model = value
+
+    @property
     def timeout_s(self) -> float:
         return self._timeout_s
 

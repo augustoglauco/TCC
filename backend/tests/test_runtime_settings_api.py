@@ -16,9 +16,10 @@ class _FakeLocalClient:
 
 
 class _FakeExternalClient:
-    def __init__(self, timeout_s: float, vision_model: str = "") -> None:
+    def __init__(self, timeout_s: float, vision_model: str = "", model: str = "openai/gpt-4o-mini") -> None:
         self.timeout_s = timeout_s
         self.vision_model = vision_model
+        self.model = model
 
 
 class _FakeQdrantClient:
@@ -81,6 +82,7 @@ def test_get_devolve_valores_atuais_dos_clientes():
         "rag_search_domain_fallback": False,
         "crawler_max_pages_default": 20,
         "crawler_confidence_threshold": 0.7,
+        "external_model_name": "openai/gpt-4o-mini",
         "external_vision_model_name": "",
         "image_internal_confidence": 0.30,
         "image_external_confidence": 0.80,
@@ -298,3 +300,19 @@ def test_put_runtime_settings_atualiza_monitor_de_tom():
     body = response.json()
     assert body["tone_monitor_enabled"] is False
     assert body["tone_monitor_provider"] == "jev_openrouter"
+
+
+def test_put_atualiza_external_model_name():
+    app, _, ext_client, _ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"external_model_name": "anthropic/claude-3.5-sonnet"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["external_model_name"] == "anthropic/claude-3.5-sonnet"
+    assert ext_client.model == "anthropic/claude-3.5-sonnet"
+

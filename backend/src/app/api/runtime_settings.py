@@ -48,6 +48,7 @@ def _build_response(request: Request) -> RuntimeSettingsResponse:
         rag_search_domain_fallback=qdrant_client.search_domain_fallback,
         crawler_max_pages_default=request.app.state.crawler_max_pages_default,
         crawler_confidence_threshold=request.app.state.crawler_confidence_threshold,
+        external_model_name=external_client.model,
         external_vision_model_name=external_client.vision_model,
         image_internal_confidence=request.app.state.image_internal_confidence,
         image_external_confidence=request.app.state.image_external_confidence,
@@ -87,6 +88,8 @@ async def update_runtime_settings(
         request.app.state.crawler_max_pages_default = campos["crawler_max_pages_default"]
     if "crawler_confidence_threshold" in campos:
         request.app.state.crawler_confidence_threshold = campos["crawler_confidence_threshold"]
+    if "external_model_name" in campos:
+        external_client.model = campos["external_model_name"]
     if "external_vision_model_name" in campos:
         external_client.vision_model = campos["external_vision_model_name"]
     if "image_internal_confidence" in campos:
