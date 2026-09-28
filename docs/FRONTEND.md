@@ -156,8 +156,8 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `POST /api/admin/produtos/catalogo/extrair/stream` | Extração de produtos de catálogos PDF/imagens em SSE (`multipart`: `files`, `provider` `local`\|`external`, `fallback_external`, `page_range` opcional: `1-5`, `2, 5, 8`, `3-`, `-4`), usada pelo `CatalogImportModal` |
 | `POST /api/admin/produtos/upload-temp` , `POST /api/admin/produtos/catalogo/confirmar` | Foto de rascunho da conferência (`temp/`) e gravação em lote dos produtos conferidos (com as fotos movidas para a pasta definitiva e indexadas no CLIP) |
 | `GET /api/uploads/produtos/{arquivo}` , `GET /api/uploads/produtos/temp/{arquivo}` | Serve as fotos de produto (definitivas e de rascunho), com proteção contra path traversal |
-| `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` | Criação e histórico de pedidos |
-| `POST /api/auth/login` , `POST /api/auth/signup` | Autenticação simplificada |
+| `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` , `POST /api/orders/quote` , `POST /api/orders/freight` | Criação, consulta, cotação por volume e simulação de frete de pedidos (Fase 7) |
+| `POST /api/auth/login` , `GET /api/auth/me` | Autenticação mock (senha 12345) e consulta de perfil do cliente autenticado (Fase 7, R10) |
 | `GET /api/appointments` | Lista agendamentos criados via chat (leitura) |
 | `POST /api/rag/documents` | Upload de um PDF/texto (`multipart/form-data`: `file` + `domain` + `collection_id` opcional, default a collection ativa) para ingestão no RAG — usado pela página `/admin/ingestao` (ver `backend/src/app/api/rag.py`) |
 | `GET /api/rag/documents` | Lista o registro de documentos ingeridos (mais recente primeiro), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |

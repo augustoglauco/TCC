@@ -434,11 +434,13 @@ async def send_message(
     recent_messages = contexto.mensagens_recentes
 
     # R10: o e-mail é guardado já na chegada, antes do LLM — uma falha na
-    # resposta (ex.: 429 do modelo externo) não o perde.
+    # resposta (ex.: 429 do modelo externo) não o perde. Suporta e-mail do
+    # usuário autenticado no frontend ou extraído do texto da mensagem.
     email_na_mensagem = extrair_email(effective_message) if effective_message else None
-    if email_na_mensagem:
-        await _registrar_email_seguro(request.app.state, conversation_id, email_na_mensagem)
-        contexto.email = email_na_mensagem
+    email_efetivo = payload.user_email.strip().lower() if payload.user_email else email_na_mensagem
+    if email_efetivo and contexto.email != email_efetivo:
+        await _registrar_email_seguro(request.app.state, conversation_id, email_efetivo)
+        contexto.email = email_efetivo
     # Mensagem que é só o e-mail: resposta fixa, sem LLM (ver abaixo).
     so_email = (
         not is_identificacao_imagem

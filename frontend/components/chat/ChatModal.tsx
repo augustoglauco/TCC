@@ -8,6 +8,7 @@ import ImageUploader from "@/components/chat/ImageUploader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
 import { deleteConversation, sendChatMessage } from "@/lib/api/chat";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import type { ChatEscalonamentoData } from "@/lib/types/chat";
 import { metricsFromDone } from "@/lib/utils/chatMetrics";
@@ -131,6 +132,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     await sendChatMessage({
       message: trimmed || undefined,
       imageBase64: imageToSend?.base64,
+      userEmail: useAuthStore.getState().user?.email,
       conversationId: conversationId || undefined,
       onConversationId: (id) => setConversationId(id),
       onTranscription: () => {},
@@ -194,6 +196,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
 
     await sendChatMessage({
       audioBase64,
+      userEmail: useAuthStore.getState().user?.email,
       conversationId: conversationId || undefined,
       onConversationId: (id) => setConversationId(id),
       onTranscription: (text) => {

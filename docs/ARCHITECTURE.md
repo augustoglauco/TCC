@@ -921,6 +921,9 @@ Migração `0009` cria as tabelas novas (`produto_compatibilidades`,
 `pedidos`, `pedido_itens`) e semeia 2-3 pares de compatibilidade fictícios
 entre os 5 produtos já existentes.
 
+**Decisão registrada (Fase 7, API REST de Pedidos, Cotação e Frete B2C/B2B, 2026-09-28):**
+A API pública de pedidos (`app.api.orders`) expõe endpoints `POST /api/orders`, `GET /api/orders`, `GET /api/orders/{id}`, `POST /api/orders/quote` e `POST /api/orders/freight` sobre o backend de dados único (`app.db.catalog`). Migração `0014` adiciona colunas `user_email` e `conversation_id` à tabela `pedidos` para vincular os pedidos à sessão do cliente. No frontend, a store Zustand `useCartStore` gerencia o carrinho localmente e a página `/pedidos` permite checkout B2C, cálculo de frete por CEP e simulação de descontos B2B por volume, enquanto `/pedidos/historico` consome o histórico de pedidos.
+
 **Decisão registrada (Fase 5, Orquestrador como integrador do MCP B2B em
 Vendas, R12, 2026-09-24):** o quarto item da Fase 5 fecha a frase final da
 Seção 6 ("o próprio Roteador/Orquestrador deve ser tratado como 'mais um

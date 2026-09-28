@@ -7,10 +7,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.admin_products import router as admin_products_router
+from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
 from app.api.crawler import router as crawler_router
 from app.api.image_search import router as image_search_router
 from app.api.local_models import router as local_models_router
+from app.api.orders import router as orders_router
 from app.api.products import router as products_router
 from app.api.rag import router as rag_router
 from app.api.rag_collections import router as rag_collections_router
@@ -176,7 +178,9 @@ def create_app() -> FastAPI:
     app.include_router(tom_escalonamentos_router)
     app.include_router(uploads_router)
     app.include_router(admin_products_router)
+    app.include_router(auth_router)
     app.include_router(products_router)
+    app.include_router(orders_router)
 
     return app
 

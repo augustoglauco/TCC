@@ -18,6 +18,8 @@ export interface SendChatMessageParams {
   audioBase64?: string;
   /** Imagem (base64 PNG/JPG/WEBP) — OCR extrai o texto no backend (R6). */
   imageBase64?: string;
+  /** E-mail do usuário autenticado no frontend (R10, Fase 7). */
+  userEmail?: string;
   conversationId?: string;
   onConversationId: (id: string) => void;
   onTranscription: (text: string) => void;
@@ -52,6 +54,7 @@ export async function sendChatMessage({
   message,
   audioBase64,
   imageBase64,
+  userEmail,
   conversationId,
   onConversationId,
   onTranscription,
@@ -66,6 +69,7 @@ export async function sendChatMessage({
     conversation_id: conversationId,
     audio: audioBase64 ?? null,
     image: imageBase64 ?? null,
+    user_email: userEmail ?? null,
   };
 
   let response: Response;

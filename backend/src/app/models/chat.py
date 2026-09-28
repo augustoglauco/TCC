@@ -57,6 +57,10 @@ class ChatMessageRequest(BaseModel):
             "produto (padrão)."
         ),
     )
+    user_email: str | None = Field(
+        default=None,
+        description="E-mail do usuário autenticado no frontend (R10, Fase 7).",
+    )
 
     @model_validator(mode="after")
     def _message_ou_audio_obrigatorio(self) -> ChatMessageRequest:

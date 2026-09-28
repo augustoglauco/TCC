@@ -89,7 +89,7 @@ describe("ProdutoDetalhePage", () => {
 
     const buyButton = await screen.findByRole("button", { name: /Comprar Agora/i });
     fireEvent.click(buyButton);
-    expect(mockPush).toHaveBeenCalledWith("/pedidos?produto=42");
+    expect(mockPush).toHaveBeenCalledWith("/pedidos");
 
     const quoteButton = screen.getByRole("button", { name: /Cotar com Assistente/i });
     fireEvent.click(quoteButton);

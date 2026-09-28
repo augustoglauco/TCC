@@ -23,6 +23,8 @@ export interface ChatMessageRequest {
   audio: string | null;
   // Base64 da imagem (PNG/JPG/WEBP) — OCR extrai o texto no backend (R6).
   image?: string | null;
+  // E-mail do usuário autenticado no frontend (R10, Fase 7).
+  user_email?: string | null;
 }
 
 /** Fonte (arquivo de origem) e score de um chunk usado no contexto do RAG. */

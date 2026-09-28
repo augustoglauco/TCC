@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 import { Produto } from "@/lib/api/products";
+import { useCartStore } from "@/lib/hooks/useCartStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
 interface ProductCardProps {
@@ -78,7 +79,24 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
   };
 
   const handleBuy = () => {
-    router.push(`/pedidos?produto=${product.id}`);
+    const cd =
+      product.estoques && product.estoques.length > 0
+        ? product.estoques.find((e) => e.quantidade > 0)?.centro_distribuicao ||
+          product.estoques[0].centro_distribuicao
+        : "CD-SP";
+
+    const precoEfetivo = product.preco_promocional || product.preco;
+
+    useCartStore.getState().addItem({
+      produtoId: product.id,
+      nome: product.nome,
+      preco: Number(precoEfetivo),
+      imagemUrl: product.imagem_url,
+      quantidade: 1,
+      centroDistribuicao: cd,
+    });
+
+    router.push("/pedidos");
   };
 
   const handleQuote = () => {

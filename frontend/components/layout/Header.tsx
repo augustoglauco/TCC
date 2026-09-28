@@ -2,21 +2,28 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import AdminGearMenu from "./AdminGearMenu";
 
-const NAV_LINKS = [
+const STATIC_LINKS = [
   { href: "/", label: "Início", icon: "🏠" },
   { href: "/produtos", label: "Produtos", icon: "📦" },
   { href: "/pedidos", label: "Pedidos", icon: "🛒" },
   { href: "/agendamentos", label: "Agendamentos", icon: "📅" },
   { href: "/suporte", label: "Suporte", icon: "🔧" },
   { href: "/contato", label: "Contato", icon: "📞" },
-  { href: "/conta/login", label: "Entrar", icon: "👤" },
 ];
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
+
+  const accountLink = user
+    ? { href: "/conta/perfil", label: `Olá, ${user.nome.split(" ")[0]}`, icon: "👤" }
+    : { href: "/conta/login", label: "Entrar", icon: "👤" };
+
+  const navLinks = [...STATIC_LINKS, accountLink];
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md transition-all shadow-xs">
@@ -40,7 +47,7 @@ export default function Header() {
         <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <nav aria-label="Navegação principal" className="hidden md:block">
             <ul className="flex items-center gap-1 text-sm font-medium text-slate-700">
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
@@ -111,7 +118,7 @@ export default function Header() {
                   <span>Abrir Chat / Assistente IA</span>
                 </button>
               </li>
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}

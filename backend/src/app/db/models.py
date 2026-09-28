@@ -270,6 +270,8 @@ class Pedido(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     status: Mapped[str] = mapped_column(default="reservado")
+    user_email: Mapped[str | None] = mapped_column(index=True, nullable=True)
+    conversation_id: Mapped[str | None] = mapped_column(index=True, nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     itens: Mapped[list[PedidoItem]] = relationship(

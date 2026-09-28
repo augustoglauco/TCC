@@ -28,7 +28,7 @@ docstring — não entre chamadas concorrentes).
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -341,9 +341,7 @@ async def sao_compativeis(session: AsyncSession, produto_id: int, outro_produto_
     return result.scalars().first() is not None
 
 
-async def listar_compatividades_do_produto(
-    session: AsyncSession, produto_id: int
-) -> list[dict]:
+async def listar_compatividades_do_produto(session: AsyncSession, produto_id: int) -> list[dict]:
     """Retorna lista de pares de compatibilidade envolvendo o produto,
     resolvendo o id e o nome do produto compatível."""
     stmt = select(ProdutoCompatibilidade).where(
@@ -358,13 +356,15 @@ async def listar_compatividades_do_produto(
     for r in rows:
         outro_id = r.compativel_com_id if r.produto_id == produto_id else r.produto_id
         outro_prod = await obter_produto(session, outro_id)
-        out.append({
-            "id": str(r.id),
-            "produto_id": produto_id,
-            "compativel_com_id": outro_id,
-            "compativel_nome": outro_prod.nome if outro_prod else f"Produto #{outro_id}",
-            "categoria": outro_prod.categoria if outro_prod else "",
-        })
+        out.append(
+            {
+                "id": str(r.id),
+                "produto_id": produto_id,
+                "compativel_com_id": outro_id,
+                "compativel_nome": outro_prod.nome if outro_prod else f"Produto #{outro_id}",
+                "categoria": outro_prod.categoria if outro_prod else "",
+            }
+        )
     return out
 
 
@@ -453,7 +453,13 @@ def calcular_item_cotacao(
 # --- Ferramenta 4: reserva/pedido --------------------------------------------
 
 
-async def criar_pedido(session: AsyncSession, itens: list[tuple[int, int, str]]) -> Pedido:
+async def criar_pedido(
+    session: AsyncSession,
+    itens: list[tuple[int, int, str]],
+    *,
+    user_email: str | None = None,
+    conversation_id: str | None = None,
+) -> Pedido:
     """Cria um pedido/reserva com os itens informados
     (`[(produto_id, quantidade, centro_distribuicao), ...]`) e decrementa o
     estoque de cada um.
@@ -471,33 +477,11 @@ async def criar_pedido(session: AsyncSession, itens: list[tuple[int, int, str]])
     `EstoqueInsuficienteError` se a soma das quantidades pedidas para o
     mesmo par (produto, centro de distribuição) — mesmo em itens separados
     da lista — exceder o disponível.
-
-    Achado no security-review (2026-09-24): a checagem original validava
-    cada item da lista contra `disponivel`, mas repetia a mesma leitura
-    "crua" do estoque para cada ocorrência de um par (produto_id,
-    centro_distribuicao) repetido — dois itens de 6 unidades cada contra um
-    estoque de 10 passavam individualmente (6 < 10) e o estoque final ficava
-    negativo (10 - 6 - 6 = -2), apesar do docstring já prometer validar
-    "TODOS os itens antes de gravar". `reservado_no_pedido` abaixo acumula a
-    quantidade pedida por chave DENTRO desta mesma chamada antes de comparar
-    com o disponível — resolve isso sem mexer na limitação de concorrência
-    ENTRE chamadas (essa continua aceita como MVP).
     """
     produtos: dict[int, Produto] = {}
     estoques: dict[tuple[int, str], ProdutoEstoque | None] = {}
     reservado_no_pedido: dict[tuple[int, str], int] = {}
     for produto_id, quantidade, centro_distribuicao in itens:
-        # Achado no code-review (2026-09-24): a validação de `quantidade > 0`
-        # já existe no schema Pydantic da ferramenta MCP (`Field(gt=0)`), mas
-        # esta função é reaproveitável por qualquer chamador (ver docstring
-        # do módulo) — sem essa guarda aqui, uma `quantidade` negativa
-        # nunca fazia `reservado_no_pedido[chave] > disponivel` ficar
-        # verdadeiro (negativo nunca é maior), e a escrita
-        # `estoque.quantidade -= quantidade` AUMENTAVA o estoque em vez de
-        # falhar; `quantidade == 0` para um produto sem linha de estoque
-        # (`estoque is None`) passava a checagem (0 > 0 é falso) e só
-        # quebrava depois, com um `AssertionError` cru, em vez do erro
-        # documentado.
         if quantidade <= 0:
             raise ValueError(
                 f"Quantidade inválida para o produto {produto_id}: {quantidade} (deve ser > 0)."
@@ -526,7 +510,7 @@ async def criar_pedido(session: AsyncSession, itens: list[tuple[int, int, str]])
                 f"pedido {reservado_no_pedido[chave]}."
             )
 
-    pedido = Pedido()
+    pedido = Pedido(user_email=user_email, conversation_id=conversation_id)
     session.add(pedido)
     for produto_id, quantidade, centro_distribuicao in itens:
         produto = produtos[produto_id]
@@ -547,3 +531,36 @@ async def criar_pedido(session: AsyncSession, itens: list[tuple[int, int, str]])
     await session.commit()
     await session.refresh(pedido, attribute_names=["itens"])
     return pedido
+
+
+async def obter_pedido(session: AsyncSession, pedido_id: object) -> Pedido | None:
+    """Busca um pedido por ID com seus itens pré-carregados."""
+    result = await session.execute(
+        select(Pedido).options(selectinload(Pedido.itens)).where(Pedido.id == pedido_id)
+    )
+    return result.scalars().first()
+
+
+async def listar_pedidos(
+    session: AsyncSession,
+    *,
+    user_email: str | None = None,
+    conversation_id: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> tuple[list[Pedido], int]:
+    """Lista pedidos filtrados por user_email e/ou conversation_id, ordenados por data."""
+    query = select(Pedido).options(selectinload(Pedido.itens))
+    if user_email:
+        query = query.where(Pedido.user_email == user_email)
+    if conversation_id:
+        query = query.where(Pedido.conversation_id == conversation_id)
+
+    # Conta total
+    count_stmt = select(func.count()).select_from(query.subquery())
+    total = (await session.execute(count_stmt)).scalar() or 0
+
+    query = query.order_by(Pedido.criado_em.desc()).offset(offset).limit(limit)
+    result = await session.execute(query)
+    pedidos = list(result.scalars().all())
+    return pedidos, total

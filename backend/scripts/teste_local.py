@@ -89,7 +89,7 @@ class Cenario:
 # QTA-100↔GD-30 e Cabine↔GD-30.
 # Suíte que `./testar.sh` (raiz do repo) roda quando nenhuma é passada — o
 # agente troca este valor a cada entrega que precisa de validação local.
-SUITE_ATUAL = "vendas"
+SUITE_ATUAL = "pedidos"
 
 SUITES: dict[str, list[Cenario]] = {
     "vendas": [
@@ -294,6 +294,29 @@ SUITES: dict[str, list[Cenario]] = {
             resposta_contem=["Anotei o seu e-mail"],
             resposta_nao_contem=["cadastro"],
             perfil_esperado="esporadico",
+        ),
+    ],
+    "pedidos": [
+        Cenario(
+            nome="P1 — cotação de produto com estoque para pedido",
+            mensagens=["Quero cotar 2 unidades do gerador GD-15 para comprar"],
+            esperado="Bloco com GD-15, estoque e cotação sem desconto por volume.",
+            resultado_vendas="ok",
+            bloco_contem=["GD-15", "Cotação para 2 unidade(s)"],
+        ),
+        Cenario(
+            nome="P2 — cotação em lote com desconto de volume",
+            mensagens=["Quero comprar 10 unidades do gerador GD-30"],
+            esperado="Bloco com GD-30 e cotação com 10.00% de desconto por volume.",
+            resultado_vendas="ok",
+            bloco_contem=["GD-30", "10.00% de desconto"],
+        ),
+        Cenario(
+            nome="P3 — validação de compatibilidade no fluxo de pedido",
+            mensagens=["O quadro QTA-100 é compatível com o GD-15 para meu pedido?"],
+            esperado="Bloco com indicação de compatibilidade 'sim'.",
+            resultado_vendas="ok",
+            bloco_contem=[": sim"],
         ),
     ],
 }

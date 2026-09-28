@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import Header from "@/components/layout/Header";
 import { useChatStore } from "@/lib/hooks/useChatStore";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
 describe("Header Component", () => {
   it("renderiza a marca/logo da empresa", () => {
@@ -38,5 +39,24 @@ describe("Header Component", () => {
     fireEvent.click(chatHeaderBtn);
 
     expect(useChatStore.getState().isOpen).toBe(true);
+  });
+
+  it("exibe link para login quando não autenticado", () => {
+    useAuthStore.setState({ user: null });
+    render(<Header />);
+    expect(screen.getByRole("link", { name: "Entrar" })).toBeInTheDocument();
+  });
+
+  it("exibe saudação e link para perfil quando autenticado", () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Ana Recorrente",
+        email: "ana.recorrente@example.com",
+        perfil: "Cliente",
+      },
+    });
+    render(<Header />);
+    expect(screen.getByRole("link", { name: "Olá, Ana" })).toBeInTheDocument();
   });
 });

@@ -457,12 +457,18 @@ conversa e classificação do usuário").
       `GET /api/products/{id}`, com galeria de fotos, zoom, ficha técnica,
       especificações, medidas/peso, tabela de estoque por CD, descontos por
       volume e botões para comprar e cotar no chat.
-- [~] Implementar autenticação simplificada (login/cadastro) e página de
-      perfil — apenas stubs de rota (`app/conta/login/page.tsx`,
-      `app/conta/perfil/page.tsx`), sem lógica de autenticação
-- [~] Implementar fluxo de pedidos (carrinho/checkout) e histórico de pedidos
-      — apenas stubs de rota (`app/pedidos/page.tsx`,
-      `app/pedidos/historico/page.tsx`), sem carrinho/checkout real
+- [x] Implementar autenticação simplificada (login/cadastro) e página de
+      perfil — endpoints `POST /api/auth/login` e `GET /api/auth/me`, persistência
+      Zustand `useAuthStore`, página `/conta/login` com contas simuladas
+      (Ana Recorrente, Bruno Único, Carla Antiga) e senha mock 12345, página
+      `/conta/perfil` com detalhes de relacionamento e pedidos, integração de
+      e-mail ao Chat e aos fluxos de pedidos.
+- [x] Implementar fluxo de pedidos (carrinho/checkout), cotação B2B e histórico de pedidos
+      — API REST no backend (`POST/GET /api/orders`, `POST /api/orders/quote`,
+      `POST /api/orders/freight`, migração `0014`), store Zustand `useCartStore`,
+      página `/pedidos` com carrinho interativo, cálculo de frete por CEP,
+      simulador de descontos por volume B2B e página `/pedidos/historico`
+      consumindo a API.
 - [x] Implementar página de Suporte/Central de Ajuda (esse conteúdo também é
       alvo do crawler do RAG, R4) — `app/suporte/page.tsx` com FAQ estático
       real (sem API; conteúdo fica pronto para o crawler indexar na Fase 2/3)
