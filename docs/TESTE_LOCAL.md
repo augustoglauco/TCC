@@ -59,7 +59,9 @@ roda outra suíte.
 - **Veredito automático:** só onde dá para decidir pelo log (ex.: em qual
   etapa a consulta de vendas parou e o que entrou no bloco do prompt).
   Cenários marcados como exploratórios têm veredito `—` e servem para
-  observar o comportamento.
+  observar o comportamento. Se alguma mensagem do cenário terminou em erro
+  (ex.: 429 do OpenRouter no plano gratuito), o veredito vira
+  `INCONCLUSIVO`: os logs podem estar certos, mas a resposta não chegou.
 
 ## Suítes disponíveis
 

@@ -475,6 +475,7 @@ def _rodar_cenario(
     conversation_id = str(uuid.uuid4())
     logs_ultima: list[dict] = []
     texto_ultima = ""
+    erros_cenario: list[str] = []
     done_ultima: dict | None = None
     for indice, mensagem in enumerate(cenario.mensagens, start=1):
         if cenario.esperar_resumo and indice == len(cenario.mensagens):
@@ -508,6 +509,7 @@ def _rodar_cenario(
         linhas.append("")
         if erro:
             linhas.append(f"- ⚠️ erro: `{erro}`")
+            erros_cenario.append(f"mensagem {indice} terminou com erro: {erro}")
         if done:
             linhas.append(
                 f"- domínio `{done.get('domain')}` · backend `{done.get('backend_used')}` · "
@@ -539,6 +541,13 @@ def _rodar_cenario(
             )
             linhas.append("")
     veredito, problemas = _veredito(cenario, logs_ultima, texto_ultima, done_ultima, conversa)
+    if erros_cenario:
+        # Resposta que terminou em erro (ex.: 429 do OpenRouter) não conta
+        # como PASSOU só porque os logs do catálogo estavam certos (V1/V6 do
+        # teste de 2026-09-27).
+        if veredito in ("PASSOU", "—"):
+            veredito = "INCONCLUSIVO"
+        problemas += erros_cenario
     linhas.append(f"**Veredito automático:** {veredito}")
     linhas += [f"- {problema}" for problema in problemas]
     linhas.append("")
