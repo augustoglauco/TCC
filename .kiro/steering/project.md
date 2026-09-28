@@ -57,6 +57,8 @@ raiz do workspace) antes de propor ou implementar qualquer mudança:
    de pastas, contrato de API, fluxo ou convenção de teste, atualize o `.md`
    correspondente (`ARCHITECTURE.md`, `FRONTEND.md`, `CONVENTIONS.md`,
    `EVALUATION.md`) na mesma tarefa.
+10. **Antes de cada commit, siga o checklist** de `docs/CONVENTIONS.md`
+    ("Checklist antes de cada commit").
 
 ## Regra de ouro (comum às três ferramentas)
 

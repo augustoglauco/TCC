@@ -91,6 +91,8 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
    depois — isso vale além do `ROADMAP.md` (regra 5) e de decisões de
    arquitetura novas (regra 6). Documentação desatualizada é tratada como um
    bug a corrigir antes de considerar a tarefa concluída.
+10. **Antes de cada commit, siga o checklist** de `docs/CONVENTIONS.md`
+    ("Checklist antes de cada commit").
 
 ## Fora de escopo (não implementar sem pedido explícito)
 

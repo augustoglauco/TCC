@@ -158,6 +158,26 @@ intencional achando que é um bug ou uma tarefa esquecida.
   `feat(mcp-b2b): implementa ferramenta de cotação automática (R12, Fase 5)`.
 - Um commit deve corresponder, quando possível, a um item concluído do
   `docs/ROADMAP.md` — facilita revisar o histórico por fase/requisito.
+
+### Checklist antes de cada commit (qualquer ferramenta)
+
+Criado na revisão de 2026-09-28: das 34 entregas de 25 a 27/09, só 4
+atualizaram o roadmap, nenhuma marcou `# MVP:` e o lint ficou com 61 erros
+no backend e 10 no frontend. Antes de commitar, confira:
+
+1. Mensagem diz o que mudou e cita requisito/fase (`(R12, Fase 5)`);
+   "últimas mudanças" ou "ajustes" não servem.
+2. Item do `docs/ROADMAP.md` marcado (ou criado, se não existia).
+3. Contrato de API novo ou alterado está no `docs/FRONTEND.md`; decisão
+   nova ou fora do MVP está no `docs/ARCHITECTURE.md`.
+4. Simplificações marcadas com `# MVP:` (`// MVP:` em TypeScript).
+5. Testes novos rodam sem Postgres/Qdrant reais (seção "Testes" acima) e
+   passam.
+6. Lint limpo nos arquivos alterados: `uv run ruff check` e
+   `uv run ruff format` (backend); `npx eslint` e `npx prettier --write`
+   só nos arquivos alterados (frontend).
+7. Nenhum caminho absoluto da máquina (`file:///home/...`) nem credencial
+   nos `.md` e no código.
 - Não commitar arquivos de ambiente com segredos reais (`.env` — apenas
   `.env.example` vai para o repositório).
 
