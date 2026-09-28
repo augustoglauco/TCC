@@ -2130,3 +2130,43 @@ async def test_vendas_referencia_ao_produto_acima_busca_candidatos_na_ultima_res
     assert isinstance(decisao, RouterDecision)
     cliente_resposta = local_client if decisao.backend_escolhido == "local" else external_client
     assert "- Especificações técnicas: 16 canais; IP54." in cliente_resposta.last_prompt
+
+
+async def test_rag_vazio_com_produto_no_catalogo_fica_local():
+    # Correção de 2026-09-28: depois da identificação por imagem, "detalhes do
+    # produto acima?" achou o produto no banco, mas nenhum PDF falava dele e
+    # a resposta escalou para o externo (rag_vazio).
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"produto_id": 7, "produto_relacionado_id": null, "quantidade": null}',
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[])
+    radio = CandidatoProduto(id=7, nome="Rádio Comunicador Analógico RC 4102g2", categoria="radios")
+    sales_catalog_client = _FakeSalesCatalogClient(
+        candidatos=[radio],
+        dados=DadosCatalogoVendas(
+            produto_nome=radio.nome, estoque_total=17, especificacoes_tecnicas="16 canais."
+        ),
+    )
+
+    eventos = await _coletar_eventos(
+        "possui detalhes do produto acima?",
+        recent_messages=["[imagem enviada]"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+        ultima_troca=("[imagem enviada]", "Identifiquei: Rádio Comunicador Analógico RC 4102g2."),
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+
+    assert decisao.backend_escolhido == "local"
+    assert decisao.motivo_escalonamento == "nenhum"
+    assert external_client.calls == 0
+    assert "- Especificações técnicas: 16 canais." in local_client.last_prompt

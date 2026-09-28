@@ -1003,16 +1003,20 @@ async def handle_message(
                 RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in documentos
             ]
 
-        if not documentos:
+        # Produto achado no banco (bloco do catálogo) já é contexto: sem
+        # PDF que fale dele, a resposta sai do bloco, no local (correção de
+        # 2026-09-28 — produto é dado do banco, PDFs só complementam).
+        if not documentos and dados_catalogo_vendas is None:
             backend_escolhido = "externo"
             motivo = "rag_vazio"
         elif classification.complexity == "alta":
             backend_escolhido = "externo"
             motivo = "complexidade_alta"
 
-    # A decisão de roteamento (backend_escolhido/motivo) usa só o sinal
-    # vazio x não-vazio acima, sem mudar aqui; o conteúdo dos documentos
-    # (quando houver) só entra a partir deste ponto, no prompt em si.
+    # A decisão de roteamento (backend_escolhido/motivo) usa o sinal vazio x
+    # não-vazio acima (o bloco do catálogo conta como contexto), sem mudar
+    # aqui; o conteúdo dos documentos (quando houver) só entra a partir deste
+    # ponto, no prompt em si.
     # _build_prompt é sempre chamado para anexar o playbook do domínio (Fase
     # 3); para `fora_escopo` (sem playbook) e sem documentos, ele reduz a
     # apenas "Mensagem do cliente: ...".

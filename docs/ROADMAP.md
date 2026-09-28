@@ -383,22 +383,22 @@ conversa e classificação do usuário").
       e mensagem só com o e-mail respondida sem LLM (`resposta_fixa`, sem
       revelar se há cadastro) — correções do teste local de 2026-09-25 (R6/R9
       falharam com 429 do OpenRouter)
-- [~] Contexto da mensagem de acompanhamento depois da identificação por
+- [x] Contexto da mensagem de acompanhamento depois da identificação por
       imagem (R9, correção de 2026-09-27, `docs/ARCHITECTURE.md` §5 item 4b)
       — a troca da imagem é gravada na memória, o prompt leva a última troca
       e, em referências como "o produto acima", a busca e o filtro do RAG
       usam a última resposta. Implementado (`carregar_contexto.ultima_troca`,
       `_buscar_documentos_rag`, `_build_prompt`, `app.api.chat`) e testado
-      com fakes; falta conferir no navegador (imagem → "possui detalhes do
-      produto acima?")
-- [~] Descrição comercial e especificações técnicas no bloco do catálogo
+      com fakes e conferido no navegador em 2026-09-28 (imagem → "possui
+      detalhes do produto acima?" continuou no mesmo produto)
+- [x] Descrição comercial e especificações técnicas no bloco do catálogo
       (R12, correção de 2026-09-27, `docs/ARCHITECTURE.md`, decisão
       "Orquestrador como integrador do MCP B2B em Vendas", item 6) — pedindo
       detalhes, o bloco só tinha estoque e cotação e o LLM respondia sobre
       preço e estoque. Agora leva descrição, ficha técnica, dimensões e peso
       (truncados), manda responder o que foi perguntado, e a busca de
-      candidatos usa a última resposta em "o produto acima". Testado com
-      fakes; falta o teste local (suíte `vendas`, V11/V12)
+      candidatos usa a última resposta em "o produto acima". Validado no
+      teste local (`testes_locais/20260927-2100-vendas.md`, V11/V12)
 - [~] Identificação por imagem com os detalhes do cadastro (R6/R12, decisão
       de 2026-09-27, `docs/ARCHITECTURE.md` §4, passo 4) — produto é dado do
       banco e PDFs ficam para manuais: achado o produto (`produto_id` da foto
@@ -406,6 +406,11 @@ conversa e classificação do usuário").
       (descrição, especificações técnicas, dimensões, peso) com o nome do
       cadastro; sem produto no banco, cai no RAG como antes. Testado com
       fakes; falta conferir no navegador
+- [~] Produto achado no banco não escala para o externo por RAG vazio
+      (correção de 2026-09-28, mesmo item 6 da decisão do orquestrador) — a
+      pergunta seguinte à imagem acertou o produto, mas foi para o externo
+      (`rag_vazio`) porque nenhum PDF falava dele. Testado com fakes; falta
+      conferir no navegador
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 

@@ -885,8 +885,9 @@ Cinco decisões:
    ("E se eu levar 5 unidades?") o bloco é a única fonte do produto em
    questão.
    Manuais, garantia e texto não estruturado continuam vindo do RAG. A
-   decisão local x externo continua usando só o sinal RAG vazio x não
-   vazio. Efeito colateral aceito: `rag_retrieval_ms` passa a medir o
+   decisão local x externo continua usando o sinal RAG vazio x não
+   vazio, com uma exceção (item 6): o bloco do catálogo conta como
+   contexto. Efeito colateral aceito: `rag_retrieval_ms` passa a medir o
    bloco paralelo inteiro (RAG + consulta de vendas) em mensagens de
    Vendas com o cliente injetado (ver `docs/FRONTEND.md` §4).
 4. **Falha isolada:** `_consultar_vendas` nunca levanta. Qualquer erro
@@ -927,7 +928,12 @@ Cinco decisões:
    mensagem que aponta para a troca anterior ("detalhes do produto
    acima?"), a busca de candidatos e a escolha do produto pelo LLM também
    usam a última resposta do assistente (ex.: "Identifiquei: Rádio … RC
-   4102g2"), como a busca do RAG (§5, item 4b).
+   4102g2"), como a busca do RAG (§5, item 4b). Com o bloco do catálogo
+   preenchido, RAG vazio **não** escala para o externo (`rag_vazio`): o
+   produto está no banco e a resposta sai do bloco. Achado no uso real: a
+   pergunta seguinte à identificação por imagem acertou o produto, mas foi
+   para o externo porque nenhum PDF falava dele. O produto é dado do banco;
+   os PDFs só complementam.
 7. **Fora desta entrega (decisão consciente):** `consultar_frete` e
    `reservar_pedido` continuam só como tools MCP para integradores externos.
    Reserva tem efeito colateral real e exigiria um fluxo de confirmação
