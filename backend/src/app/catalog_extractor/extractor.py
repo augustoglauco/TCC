@@ -1,3 +1,12 @@
+"""Extração de produtos de catálogos PDF/imagens para a tela /admin/produtos
+(além do MVP, decisão de 2026-09-25 em docs/ARCHITECTURE.md §5).
+
+# MVP: processa tudo dentro da própria requisição SSE, sem fila nem
+# retomada; o texto de cada página vai ao modelo local e, sem texto ou com
+# baixa confiança, a imagem vai ao modelo de visão externo (pago); o
+# resultado sempre passa pela conferência humana antes de gravar.
+"""
+
 import io
 import json
 import logging

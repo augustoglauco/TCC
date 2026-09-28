@@ -1020,6 +1020,12 @@ implementação.
    imagem, "possui detalhes do produto acima?" chegava sem contexto, e o RAG,
    buscando só a frase, trouxe o manual de um relógio de ponto, que o LLM
    descreveu como se fosse o rádio.
+4c. **Limpar conversa (2026-09-27, registrado na revisão de 2026-09-28):**
+   o botão "limpar conversa" do chat (`DELETE
+   /api/chat/conversations/{id}`) apaga as mensagens e zera resumo e
+   perfil. `# MVP: o e-mail da conversa é mantido`: é a identidade do
+   visitante, não memória da conversa, e o perfil é recalculado na próxima
+   mensagem.
 
 *R10: classificação do usuário.*
 
@@ -1066,6 +1072,11 @@ O administrador do sistema ganha uma interface dedicada (`/admin/produtos`) para
 1. **Modelo de dados:** estende `Produto` com `preco_base_fornecedor` (custo) e `imagem_url`, criando a tabela `produto_imagens` com relação 1:N no Postgres (migração `0013`).
 2. **Catálogo visual CLIP integrado:** as fotos cadastradas ou importadas são salvas em `data/product_images/`, servidas estaticamente em `/api/uploads/produtos/{filename}` com proteção a path traversal e checagem de MIME, e automaticamente vetorizadas no Qdrant (`catalogo_imagens`) com payload enriquecido (`produto_id`, `imagem_url`). Ao ser excluída, a imagem é expurgada do Qdrant.
 3. **Extração híbrida Human-in-the-Loop:** o backend expõe `/api/admin/produtos/catalogo/extrair/stream` com Server-Sent Events (SSE). Processa PDFs multipáginas (`pdfplumber` + renderização visual) ou múltiplas imagens. Realiza extração local via Ollama quando há texto disponível e recorre à visão multimodal via OpenRouter em caso de catálogo escaneado ou baixa confiança. Uma tela de conferência prévia permite revisar, ajustar campos e selecionar itens antes da gravação definitiva (`POST /api/admin/produtos/catalogo/confirmar`).
+4. **Simplificações (registradas na revisão de 2026-09-28):** `# MVP: a
+   extração roda dentro da própria requisição SSE, sem fila nem retomada;
+   listagens de produtos (admin e pública, `GET /api/products`, que ordena
+   os com estoque primeiro) paginam em memória, carregando todos os
+   produtos do filtro`.
 
 **Decisão registrada (Fase 5, correção de bug em Vendas — consulta genérica
 por categoria, R12, 2026-09-26):** o fluxo do orquestrador em Vendas

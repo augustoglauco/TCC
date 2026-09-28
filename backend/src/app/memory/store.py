@@ -165,7 +165,11 @@ async def listar_mensagens(
 
 async def limpar_conversa(session: AsyncSession, conversation_id: str) -> bool:
     """Deleta todas as mensagens da conversa e reseta os campos de memória/resumo no Postgres.
-    Retorna True se a conversa existia, False caso contrário."""
+    Retorna True se a conversa existia, False caso contrário.
+
+    # MVP: o e-mail da conversa é mantido (a identidade do visitante não é
+    # "memória da conversa"); o perfil é recalculado na próxima mensagem.
+    """
     conversa = await session.get(Conversa, conversation_id)
     if conversa is None:
         return False

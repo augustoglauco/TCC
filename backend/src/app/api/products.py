@@ -37,6 +37,8 @@ async def get_public_produtos(
     offset: Annotated[int, Query(ge=0)] = 0,
     session: AsyncSession = Depends(get_db_session),
 ):
+    # MVP: paginação em memória — carrega todos os produtos do filtro e fatia
+    # aqui, porque a ordenação (estoque primeiro) soma o estoque em Python.
     todos = await listar_produtos(session, categoria=categoria, termo=termo)
     pydantic_items = [ProdutoOut.model_validate(p) for p in todos]
     pydantic_items.sort(key=_ordenar_estoque_nome_key)

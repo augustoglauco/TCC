@@ -74,6 +74,7 @@ async def get_admin_produtos(
     offset: Annotated[int, Query(ge=0)] = 0,
     session: AsyncSession = Depends(get_db_session),
 ):
+    # MVP: paginação em memória (carrega todos os produtos do filtro e fatia).
     todos = await listar_produtos(session, categoria=categoria, termo=termo)
     total = len(todos)
     paginados = todos[offset : offset + limit]

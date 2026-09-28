@@ -11,6 +11,9 @@ interface PresetModel {
   isFree?: boolean;
 }
 
+// MVP: sugestões fixas no código (sem consultar o catálogo do OpenRouter) e
+// histórico só no localStorage do navegador; o modelo escolhido vale até o
+// restart do backend (ver docs/ARCHITECTURE.md §5, card "Modelo externo").
 const POPULAR_MODELS: PresetModel[] = [
   {
     tag: "openai/gpt-4o-mini",
@@ -182,7 +185,9 @@ export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardP
     return (
       <div className="flex items-center justify-center py-12 text-slate-500">
         <div className="h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-        <span className="ml-2.5 text-xs font-medium">Carregando configurações do OpenRouter...</span>
+        <span className="ml-2.5 text-xs font-medium">
+          Carregando configurações do OpenRouter...
+        </span>
       </div>
     );
   }
@@ -247,8 +252,12 @@ export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardP
                   </div>
 
                   <h4 className="mt-2 font-bold text-slate-900 text-sm">{model.name}</h4>
-                  <p className="mt-1 text-[11px] text-slate-500 leading-relaxed">{model.description}</p>
-                  <code className="mt-2 block text-[10px] font-mono text-slate-400 truncate">{model.tag}</code>
+                  <p className="mt-1 text-[11px] text-slate-500 leading-relaxed">
+                    {model.description}
+                  </p>
+                  <code className="mt-2 block text-[10px] font-mono text-slate-400 truncate">
+                    {model.tag}
+                  </code>
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100">
@@ -309,8 +318,12 @@ export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardP
                   </div>
 
                   <h4 className="mt-2 font-bold text-slate-900 text-sm">{model.name}</h4>
-                  <p className="mt-1 text-[11px] text-slate-500 leading-relaxed">{model.description}</p>
-                  <code className="mt-2 block text-[10px] font-mono text-slate-400 truncate">{model.tag}</code>
+                  <p className="mt-1 text-[11px] text-slate-500 leading-relaxed">
+                    {model.description}
+                  </p>
+                  <code className="mt-2 block text-[10px] font-mono text-slate-400 truncate">
+                    {model.tag}
+                  </code>
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100">
@@ -340,7 +353,9 @@ export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardP
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <span>🕒</span> Histórico de Selecionados / Salvos
             </h3>
-            <span className="text-xs text-slate-500">Modelos ativados recentemente e salvos localmente</span>
+            <span className="text-xs text-slate-500">
+              Modelos ativados recentemente e salvos localmente
+            </span>
           </div>
 
           <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
@@ -354,8 +369,13 @@ export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardP
                   className="flex items-center justify-between gap-3 p-3 sm:px-4 hover:bg-slate-50 transition-colors"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className={`h-2 w-2 rounded-full shrink-0 ${isSelected ? "bg-emerald-500" : "bg-slate-300"}`} />
-                    <span className="font-mono text-xs font-semibold text-slate-900 truncate" title={tag}>
+                    <span
+                      className={`h-2 w-2 rounded-full shrink-0 ${isSelected ? "bg-emerald-500" : "bg-slate-300"}`}
+                    />
+                    <span
+                      className="font-mono text-xs font-semibold text-slate-900 truncate"
+                      title={tag}
+                    >
                       {tag}
                     </span>
                   </div>
@@ -384,8 +404,18 @@ export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardP
                         title="Remover do histórico"
                         aria-label="Remover do histórico"
                       >
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        <svg
+                          className="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
                         </svg>
                       </button>
                     )}
@@ -403,7 +433,11 @@ export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardP
           <span>➕</span> Adicionar / Ativar Outro Modelo do OpenRouter
         </h3>
         <p className="text-xs text-slate-500">
-          Insira a tag identificadora de qualquer modelo suportado pelo OpenRouter (ex.: <code className="rounded bg-slate-200 px-1 py-0.5 font-mono text-slate-800">deepseek/deepseek-chat</code>).
+          Insira a tag identificadora de qualquer modelo suportado pelo OpenRouter (ex.:{" "}
+          <code className="rounded bg-slate-200 px-1 py-0.5 font-mono text-slate-800">
+            deepseek/deepseek-chat
+          </code>
+          ).
         </p>
 
         <form
