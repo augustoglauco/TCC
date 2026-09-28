@@ -265,7 +265,8 @@ mcp-b2b/caddy (pede a chave do parceiro) significam que está tudo no ar. Logs f
 ## Tudo de uma vez (script único)
 
 `./g.sh`, na raiz do repositório, faz os passos 1 a 7 em sequência: derruba
-as portas, sobe Docker e migrações, o `calendar-mcp-server` (se houver
+as portas, sobe Docker e migrações, confere o Ollama (sobe um `ollama
+serve` só se nada responder na 11434), o `calendar-mcp-server` (se houver
 credenciais em `backend/secrets/`), o MCP B2B, o Caddy (se
 `infra/caddy/caddy.env` existir), o backend e o frontend, e confere cada
 serviço. Para subir e já rodar os testes, use o `./testar.sh`

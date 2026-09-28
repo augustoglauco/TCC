@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+# Sobe o ambiente completo (Docker, migrações, calendar-mcp-server, MCP B2B,
+# Caddy, backend e frontend) e confere cada serviço — os passos 1 a 7 do
+# goup.md de uma vez. Para subir e já rodar os testes, use ./testar.sh.
 set -uo pipefail
 cd "$(dirname "$0")"
 
@@ -38,8 +42,9 @@ checar_servico() {
 main() {
 
     passo "Desligando Serviços"
-    # Mata todos os processos nas portas de uma só vez (inclui 8089 do Ollama)
-    fuser -k 8000/tcp 3001/tcp 8089/tcp 8090/tcp 8100/tcp 8443/tcp 2>/dev/null || true
+    # Mata os processos do projeto nas portas de uma só vez. O Ollama (11434)
+    # fica de fora: é um serviço do sistema, reaproveitado entre sessões.
+    fuser -k 8000/tcp 3001/tcp 8090/tcp 8100/tcp 8443/tcp 2>/dev/null || true
     sleep 1
 
     passo "Subindo o Docker e Migrações"
@@ -74,8 +79,18 @@ main() {
         nohup .venv/bin/python scripts/run_mcp_b2b_server.py > /tmp/tcc-mcp-b2b.log 2>&1 & disown
     )
 
-    passo "Subindo o MCP Ollama"
-    nohup ollama serve --transport http --port 8089 > /tmp/tcc-ollama.log 2>&1 &
+    passo "Conferindo o Ollama (11434)"
+    # O backend usa o Ollama na porta padrão (LOCAL_MODEL_BASE_URL). Só sobe
+    # um `ollama serve` se ninguém responder lá — se ele já roda como serviço
+    # do sistema, um segundo processo falharia com a porta ocupada.
+    if curl -s -o /dev/null --max-time 3 http://localhost:11434/api/tags; then
+        echo "Ollama já está no ar."
+    elif command -v ollama >/dev/null 2>&1; then
+        nohup ollama serve > /tmp/tcc-ollama.log 2>&1 & disown
+        echo "Ollama iniciado (log em /tmp/tcc-ollama.log)."
+    else
+        echo "⚠️  Ollama não encontrado — o chat não vai responder sem ele (ver goup.md, passo 0.3)."
+    fi
 
     passo "Subindo o Caddy"
     [ -f infra/caddy/caddy.env ] && nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 & disown
@@ -97,6 +112,7 @@ main() {
     passo "Checando o status dos serviços"
     sleep 3
 
+    checar_servico "Ollama (11434)"      "http://localhost:11434/api/tags"
     checar_servico "Backend (8000)"      "http://localhost:8000/docs"
     checar_servico "Frontend (3001)"     "http://localhost:3001"
     checar_servico "Calendar MCP (8090)" "http://localhost:8090/mcp"
