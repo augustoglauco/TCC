@@ -57,7 +57,19 @@ _DOMAIN_KEYWORDS: dict[Domain, list[str]] = {
     # classificador LLM, que já a rotula como vendas.
     "vendas": ["orçamento", "comprar", "preço", "cotação", "produto", "estoque", "disponível"],
     "suporte": ["não funciona", "quebrado", "erro", "defeito", "problema"],
-    "atendimento": ["nota fiscal", "troca", "devolução", "cancelamento", "reclamação"],
+    "atendimento": [
+        "nota fiscal",
+        "troca",
+        "devolução",
+        "cancelamento",
+        "reclamação",
+        "compras",
+        "comprei",
+        "meus pedidos",
+        "meu pedido",
+        "pedidos",
+        "histórico",
+    ],
     "agendamento": ["agendar", "visita", "marcar", "horário"],
 }
 
@@ -85,7 +97,10 @@ DOMAIN_CRITERIA: dict[Domain, str] = {
         "catálogo de produtos ou compatibilidade entre produtos antes da compra."
     ),
     "suporte": "Produto com defeito, erro ou problema técnico já adquirido.",
-    "atendimento": "Nota fiscal, troca, devolução, cancelamento ou reclamação.",
+    "atendimento": (
+        "Nota fiscal, troca, devolução, cancelamento, reclamação, "
+        "compras já realizadas ou histórico de pedidos."
+    ),
     "agendamento": "Quer marcar, remarcar ou confirmar uma visita/horário.",
     "fora_escopo": "Não se encaixa claramente em nenhuma opção acima.",
 }

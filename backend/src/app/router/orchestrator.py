@@ -74,8 +74,10 @@ def _build_prompt(
     resumo_conversa: str | None = None,
     pedir_email_pos_venda: bool = False,
     ultima_troca: tuple[str, str] | None = None,
+    dados_cliente: str | None = None,
 ) -> str:
     """Monta o prompt final: prompt de sistema do domínio (playbook) +
+    dados do cliente/compras (quando houver, R10 Fase 6/7) +
     resumo da conversa até aqui (quando houver, R9 Fase 6) + dados do
     catálogo de Vendas (quando houver, R12 Fase 5) + contexto de RAG (quando
     houver) + mensagem do cliente.
@@ -90,6 +92,9 @@ def _build_prompt(
     partes: list[str] = []
     if system_prompt is not None:
         partes.append(system_prompt)
+
+    if dados_cliente is not None:
+        partes.append(dados_cliente)
 
     if resumo_conversa:
         # O prompt não leva as mensagens anteriores; o resumo periódico é o
@@ -730,6 +735,7 @@ async def handle_message(
     resumo_conversa: str | None = None,
     pedir_email_pos_venda: bool = False,
     ultima_troca: tuple[str, str] | None = None,
+    dados_cliente: str | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -1006,10 +1012,10 @@ async def handle_message(
                 RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in documentos
             ]
 
-        # Produto achado no banco (bloco do catálogo) já é contexto: sem
-        # PDF que fale dele, a resposta sai do bloco, no local (correção de
-        # 2026-09-28 — produto é dado do banco, PDFs só complementam).
-        if not documentos and dados_catalogo_vendas is None:
+        # Produto achado no banco (bloco do catálogo) ou dados do cliente
+        # já contam como contexto: sem PDF que fale dele, a resposta sai
+        # baseada no banco, no local.
+        if not documentos and dados_catalogo_vendas is None and dados_cliente is None:
             backend_escolhido = "externo"
             motivo = "rag_vazio"
         elif classification.complexity == "alta":
@@ -1031,6 +1037,7 @@ async def handle_message(
         resumo_conversa=resumo_conversa,
         pedir_email_pos_venda=pedir_email_pos_venda,
         ultima_troca=ultima_troca,
+        dados_cliente=dados_cliente,
     )
 
     client = local_client if backend_escolhido == "local" else external_client

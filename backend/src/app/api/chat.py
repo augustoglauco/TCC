@@ -62,6 +62,7 @@ from app.user_profile.classificacao import (
     RESPOSTA_SO_EMAIL,
     Classificacao,
     atualizar_perfil,
+    carregar_contexto_cliente,
     e_mensagem_so_de_email,
     extrair_email,
 )
@@ -140,6 +141,28 @@ async def _registrar_email_seguro(app_state, conversation_id: str, email: str) -
             await registrar_email(session, conversation_id, email)
     except Exception as exc:
         _logar_memoria_indisponivel("registrar_email", exc)
+
+
+async def _carregar_dados_cliente_seguro(app_state, email: str | None) -> str | None:
+    """Carrega dados cadastrais e histórico de compras/pedidos do cliente se
+    houver e-mail associado. Falha vira log e segue sem quebrar a resposta."""
+    if not email:
+        return None
+    try:
+        async with app_state.db_sessionmaker() as session:
+            return await carregar_contexto_cliente(session, email)
+    except Exception as exc:
+        logger.warning(
+            "contexto_cliente_indisponivel",
+            extra={
+                "router": {
+                    "event": "contexto_cliente_indisponivel",
+                    "tipo": type(exc).__name__,
+                    "erro": str(exc),
+                }
+            },
+        )
+        return None
 
 
 def _logar_memoria_indisponivel(operacao: str, exc: Exception) -> None:
@@ -441,6 +464,10 @@ async def send_message(
     if email_efetivo and contexto.email != email_efetivo:
         await _registrar_email_seguro(request.app.state, conversation_id, email_efetivo)
         contexto.email = email_efetivo
+
+    email_cliente = contexto.email or email_efetivo
+    dados_cliente = await _carregar_dados_cliente_seguro(request.app.state, email_cliente)
+
     # Mensagem que é só o e-mail: resposta fixa, sem LLM (ver abaixo).
     so_email = (
         not is_identificacao_imagem
@@ -559,6 +586,7 @@ async def send_message(
                 # R10: no pós-venda, sem e-mail conhecido (nem nesta
                 # mensagem), o assistente pede o e-mail usado na compra.
                 pedir_email_pos_venda=contexto.email is None,
+                dados_cliente=dados_cliente,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})

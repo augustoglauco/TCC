@@ -2202,8 +2202,47 @@ async def test_vendas_pergunta_curta_sem_referencia_busca_candidatos_na_ultima_r
         ultima_troca=("[imagem enviada]", "Identifiquei: Rádio Comunicador Analógico RC 4102g2."),
     )
     decisao = eventos[-1]
-    assert isinstance(decisao, RouterDecision)
-
     assert "4102g2" in sales_catalog_client.termos_buscados[-1]
     assert sales_catalog_client.detalhes_consultados == [(7, None, None)]
     assert decisao.backend_escolhido == "local"
+
+
+async def test_atendimento_com_dados_cliente_fica_local_e_injeta_historico_no_prompt():
+    # Com dados do cliente (histórico de compras/pedidos), consultas em atendimento
+    # não escalam para externo por rag_vazio e injetam os dados no prompt do LLM.
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text="Você comprou um Gerador Diesel GD-15.",
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[])
+
+    dados_cliente = (
+        "[Dados do Cliente e Histórico de Compras]:\n"
+        "- Nome do cliente: Ana\n"
+        "- E-mail do cliente: ana.recorrente@example.com\n"
+        "- Histórico de Compras e Pedidos Realizados:\n"
+        "  * 1x Gerador Diesel GD-15 (R$ 15.000,00) comprado em 10/08/2026"
+    )
+
+    eventos = await _coletar_eventos(
+        "Que compras fiz?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        dados_cliente=dados_cliente,
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+    assert decisao.domain == "atendimento"
+    assert decisao.backend_escolhido == "local"
+    assert decisao.motivo_escalonamento == "nenhum"
+    assert external_client.calls == 0
+    assert local_client.calls == 1
+    assert "[Dados do Cliente e Histórico de Compras]:" in local_client.last_prompt
+    assert "Gerador Diesel GD-15" in local_client.last_prompt

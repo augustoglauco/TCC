@@ -6,7 +6,7 @@ from decimal import Decimal
 import pytest
 
 from app.db.engine import create_db_engine, create_session_factory
-from app.db.models import Base, Cliente, ClienteCompra, Conversa
+from app.db.models import Base, Cliente, ClienteCompra, Conversa, Pedido, PedidoItem, Produto
 from app.memory.store import registrar_troca
 from app.user_profile.classificacao import (
     PERFIL_CLIENTE,
@@ -14,6 +14,7 @@ from app.user_profile.classificacao import (
     PERFIL_LEAD,
     PERFIL_NAO_CLASSIFICADO,
     atualizar_perfil,
+    carregar_contexto_cliente,
     classificar,
     e_mensagem_so_de_email,
     extrair_email,
@@ -165,3 +166,72 @@ async def test_email_sem_cadastro_e_sem_intencao_nao_classifica(factory):
 )
 def test_e_mensagem_so_de_email(texto, so_email):
     assert e_mensagem_so_de_email(texto) is so_email
+
+
+# --- Carregamento de contexto do cliente (R10, Fase 6/7) -----------------------
+
+
+async def test_carregar_contexto_cliente_com_compras_historicas(factory):
+    async with factory() as session:
+        # Ana tem 3 compras cadastradas na fixture factory
+        contexto = await carregar_contexto_cliente(session, "Ana.Recorrente@Example.com")
+
+    assert contexto is not None
+    assert "[Dados do Cliente e Histórico de Compras]:" in contexto
+    assert "- Nome do cliente: Ana" in contexto
+    assert "- E-mail do cliente: ana.recorrente@example.com" in contexto
+    assert "- Perfil de relacionamento: cliente" in contexto
+    assert "- Histórico de Compras e Pedidos Realizados:" in contexto
+    assert "comprado em" in contexto
+
+
+async def test_carregar_contexto_cliente_com_pedidos_e_produtos(factory):
+    async with factory() as session:
+        prod = Produto(
+            id=101,
+            nome="Gerador Diesel GD-15",
+            descricao="Gerador potente",
+            preco=Decimal("15000.00"),
+            categoria="geradores",
+        )
+        session.add(prod)
+        await session.flush()
+
+        pedido = Pedido(
+            user_email="carlos.comprador@example.com",
+            status="pago",
+        )
+        session.add(pedido)
+        await session.flush()
+
+        item = PedidoItem(
+            pedido_id=pedido.id,
+            produto_id=prod.id,
+            centro_distribuicao="CD-SP",
+            quantidade=2,
+            preco_unitario=Decimal("15000.00"),
+        )
+        session.add(item)
+        await session.commit()
+
+    async with factory() as session:
+        contexto = await carregar_contexto_cliente(session, "carlos.comprador@example.com")
+
+    assert contexto is not None
+    assert "- Nome do cliente: Carlos.Comprador" in contexto
+    assert "- E-mail do cliente: carlos.comprador@example.com" in contexto
+    assert "Gerador Diesel GD-15" in contexto
+    assert "Status: pago" in contexto
+    assert "R$ 30.000,00" in contexto
+
+
+async def test_carregar_contexto_cliente_sem_cadastro_nem_pedidos_retorna_none(factory):
+    async with factory() as session:
+        contexto = await carregar_contexto_cliente(session, "desconhecido@example.com")
+    assert contexto is None
+
+
+async def test_carregar_contexto_cliente_email_invalido_ou_vazio_retorna_none(factory):
+    async with factory() as session:
+        assert await carregar_contexto_cliente(session, "") is None
+        assert await carregar_contexto_cliente(session, None) is None  # type: ignore[arg-type]

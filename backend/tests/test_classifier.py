@@ -300,3 +300,18 @@ async def test_classificador_jev_recebe_a_ultima_resposta():
     )
 
     assert cliente.contexto == ["[imagem enviada]", "Assistente: Identifiquei: RC 4102g2."]
+
+
+async def test_classify_perguntas_de_compras_e_pedidos_como_atendimento():
+    # "Que compras fiz?" e consultas de pedidos anteriores são do domínio atendimento
+    res1 = await classify("Que compras fiz?", strategy="heuristic")
+    assert res1.domain == "atendimento"
+
+    res2 = await classify("O que eu já comprei?", strategy="heuristic")
+    assert res2.domain == "atendimento"
+
+    res3 = await classify("Quais são meus pedidos?", strategy="heuristic")
+    assert res3.domain == "atendimento"
+
+    res4 = await classify("Qual o status do meu pedido?", strategy="heuristic")
+    assert res4.domain == "atendimento"
