@@ -235,3 +235,19 @@ async def test_carregar_contexto_cliente_email_invalido_ou_vazio_retorna_none(fa
     async with factory() as session:
         assert await carregar_contexto_cliente(session, "") is None
         assert await carregar_contexto_cliente(session, None) is None  # type: ignore[arg-type]
+
+
+async def test_carregar_contexto_cliente_apenas_tipo_cliente_nao_expoe_compras_nem_pedidos(factory):
+    async with factory() as session:
+        contexto = await carregar_contexto_cliente(
+            session, "Ana.Recorrente@Example.com", apenas_tipo_cliente=True
+        )
+
+    assert contexto is not None
+    assert "[Perfil do Visitante no Chat (Não Autenticado)]:" in contexto
+    assert "- Tipo de cliente: cliente" in contexto
+    assert "NÃO AUTENTICADO" in contexto
+    assert "Histórico de Compras" not in contexto
+    assert "comprado em" not in contexto
+    assert "R$ 100,00" not in contexto
+

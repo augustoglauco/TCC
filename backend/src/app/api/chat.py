@@ -143,14 +143,20 @@ async def _registrar_email_seguro(app_state, conversation_id: str, email: str) -
         _logar_memoria_indisponivel("registrar_email", exc)
 
 
-async def _carregar_dados_cliente_seguro(app_state, email: str | None) -> str | None:
+async def _carregar_dados_cliente_seguro(
+    app_state, email: str | None, apenas_tipo_cliente: bool = False
+) -> str | None:
     """Carrega dados cadastrais e histórico de compras/pedidos do cliente se
-    houver e-mail associado. Falha vira log e segue sem quebrar a resposta."""
+    houver e-mail associado. Falha vira log e segue sem quebrar a resposta.
+    Se apenas_tipo_cliente=True, carrega somente a classificação de relacionamento
+    sem expor compras nem dados pessoais sensíveis."""
     if not email:
         return None
     try:
         async with app_state.db_sessionmaker() as session:
-            return await carregar_contexto_cliente(session, email)
+            return await carregar_contexto_cliente(
+                session, email, apenas_tipo_cliente=apenas_tipo_cliente
+            )
     except Exception as exc:
         logger.warning(
             "contexto_cliente_indisponivel",
@@ -456,17 +462,33 @@ async def send_message(
     contexto = await _carregar_contexto_seguro(request.app.state, conversation_id)
     recent_messages = contexto.mensagens_recentes
 
-    # R10: o e-mail é guardado já na chegada, antes do LLM — uma falha na
-    # resposta (ex.: 429 do modelo externo) não o perde. Suporta e-mail do
-    # usuário autenticado no frontend ou extraído do texto da mensagem.
+    # R10: Usuário autenticado vs. Visitante não logado.
+    # O histórico de compras e pedidos detalhado SÓ pode ser carregado se o usuário
+    # estiver formalmente autenticado no frontend (payload.user_email preenchido).
+    # Quando não logado, o sistema no máximo utiliza a informação para saber que
+    # tipo de cliente ele é no chat (classificação de perfil), sem expor compras.
+    usuario_autenticado = bool(payload.user_email and payload.user_email.strip())
+    email_autenticado = payload.user_email.strip().lower() if usuario_autenticado else None
     email_na_mensagem = extrair_email(effective_message) if effective_message else None
-    email_efetivo = payload.user_email.strip().lower() if payload.user_email else email_na_mensagem
-    if email_efetivo and contexto.email != email_efetivo:
-        await _registrar_email_seguro(request.app.state, conversation_id, email_efetivo)
-        contexto.email = email_efetivo
 
-    email_cliente = contexto.email or email_efetivo
-    dados_cliente = await _carregar_dados_cliente_seguro(request.app.state, email_cliente)
+    if usuario_autenticado and email_autenticado:
+        email_cliente = email_autenticado
+        if contexto.email != email_autenticado:
+            await _registrar_email_seguro(request.app.state, conversation_id, email_autenticado)
+            contexto.email = email_autenticado
+    else:
+        # Quando deslogado, e-mail extraído da mensagem atual ou prévio na conversa
+        # é usado unicamente para classificar o tipo de cliente no chat
+        email_cliente = email_na_mensagem or contexto.email
+        if email_na_mensagem and contexto.email != email_na_mensagem:
+            await _registrar_email_seguro(request.app.state, conversation_id, email_na_mensagem)
+            contexto.email = email_na_mensagem
+
+    dados_cliente = await _carregar_dados_cliente_seguro(
+        request.app.state,
+        email_cliente,
+        apenas_tipo_cliente=not usuario_autenticado,
+    )
 
     # Mensagem que é só o e-mail: resposta fixa, sem LLM (ver abaixo).
     so_email = (

@@ -898,3 +898,105 @@ def test_app_state_sem_db_sessionmaker_nao_derruba_o_stream(fakes):
     assert "escalonamento" in tipos
     assert "token" in tipos
     assert tipos[-1] == "done"
+
+
+async def test_usuario_autenticado_recebe_historico_compras_no_prompt(client, fakes):
+    sessao = fakes["db_session"]
+    ana = Cliente(email="ana.recorrente@example.com", nome="Ana")
+    sessao.add(ana)
+    await sessao.flush()
+    sessao.add(
+        ClienteCompra(
+            cliente_id=ana.id,
+            quantidade=1,
+            valor_total=Decimal("18500.00"),
+            comprado_em=datetime.now(UTC) - timedelta(days=20),
+        )
+    )
+    await sessao.commit()
+
+    resposta = client.post(
+        "/api/chat/messages",
+        json={
+            "message": "que compras fiz?",
+            "conversation_id": "conv-auth-test-1",
+            "user_email": "ana.recorrente@example.com",
+        },
+    )
+    assert resposta.status_code == 200
+    ultimo_prompt = fakes["local"].prompts[-1]
+    assert "[Dados do Cliente e Histórico de Compras]:" in ultimo_prompt
+    assert "Histórico de Compras e Pedidos Realizados:" in ultimo_prompt
+    assert "- Nome do cliente: Ana" in ultimo_prompt
+
+
+async def test_usuario_deslogado_recebe_apenas_tipo_cliente_sem_compras(client, fakes):
+    sessao = fakes["db_session"]
+    ana = Cliente(email="ana.recorrente@example.com", nome="Ana")
+    sessao.add(ana)
+    await sessao.flush()
+    sessao.add(
+        ClienteCompra(
+            cliente_id=ana.id,
+            quantidade=1,
+            valor_total=Decimal("18500.00"),
+            comprado_em=datetime.now(UTC) - timedelta(days=20),
+        )
+    )
+    await sessao.commit()
+
+    # Usuário cita o e-mail no texto mas NÃO está autenticado (user_email ausente)
+    resposta = client.post(
+        "/api/chat/messages",
+        json={
+            "message": "sou ana.recorrente@example.com, que compras fiz?",
+            "conversation_id": "conv-unauth-test-1",
+        },
+    )
+    assert resposta.status_code == 200
+    ultimo_prompt = fakes["local"].prompts[-1]
+    assert "[Perfil do Visitante no Chat (Não Autenticado)]:" in ultimo_prompt
+    assert "Tipo de cliente:" in ultimo_prompt
+    assert "NÃO AUTENTICADO" in ultimo_prompt
+    assert "Histórico de Compras e Pedidos Realizados:" not in ultimo_prompt
+    assert "18500" not in ultimo_prompt
+
+
+async def test_logout_em_conversa_existente_remove_compras_do_prompt(client, fakes):
+    sessao = fakes["db_session"]
+    ana = Cliente(email="ana.recorrente@example.com", nome="Ana")
+    sessao.add(ana)
+    await sessao.flush()
+    sessao.add(
+        ClienteCompra(
+            cliente_id=ana.id,
+            quantidade=1,
+            valor_total=Decimal("18500.00"),
+            comprado_em=datetime.now(UTC) - timedelta(days=20),
+        )
+    )
+    await sessao.commit()
+
+    # 1. Usuário logado manda mensagem
+    client.post(
+        "/api/chat/messages",
+        json={
+            "message": "quais são minhas compras?",
+            "conversation_id": "conv-logout-fluxo",
+            "user_email": "ana.recorrente@example.com",
+        },
+    )
+    assert "[Dados do Cliente e Histórico de Compras]:" in fakes["local"].prompts[-1]
+
+    # 2. Usuário desloga e manda nova mensagem na mesma conversa sem user_email
+    client.post(
+        "/api/chat/messages",
+        json={
+            "message": "que compras fiz?",
+            "conversation_id": "conv-logout-fluxo",
+        },
+    )
+    ultimo_prompt = fakes["local"].prompts[-1]
+    assert "Histórico de Compras e Pedidos Realizados:" not in ultimo_prompt
+    assert "[Perfil do Visitante no Chat (Não Autenticado)]:" in ultimo_prompt
+

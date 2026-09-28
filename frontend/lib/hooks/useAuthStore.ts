@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { login as apiLogin } from "@/lib/api/auth";
 import { User } from "@/lib/types/auth";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 
 interface AuthState {
   user: User | null;
@@ -19,9 +20,11 @@ export const useAuthStore = create<AuthState>()(
       login: async (email: string, password = "12345") => {
         const response = await apiLogin(email, password);
         set({ user: response.user, token: response.token });
+        useChatStore.getState().clearChat();
       },
       logout: () => {
         set({ user: null, token: null });
+        useChatStore.getState().clearChat();
       },
       setUser: (user: User | null) => {
         set({ user });

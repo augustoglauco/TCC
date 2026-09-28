@@ -193,7 +193,8 @@ streaming SSE do response adicionado depois, ver decisão em
   "conversation_id": "uuid-opcional, omitir para iniciar conversa nova",
   "audio": null, // opcional, base64 (wav ou mp3) — processado via STT (R5) quando presente
   "image": null, // opcional, base64 (PNG/JPG/WEBP) — ver `image_intent` (R6)
-  "image_intent": null // opcional: "documento" = OCR (só quando o sistema pede comprovante); ausente/"produto" = identificação de produto (PADRÃO, ver docs/ARCHITECTURE.md §4)
+  "image_intent": null, // opcional: "documento" = OCR (só quando o sistema pede comprovante); ausente/"produto" = identificação de produto (PADRÃO, ver docs/ARCHITECTURE.md §4)
+  "user_email": null // opcional: e-mail do usuário autenticado no frontend. Histórico detalhado de compras e pedidos no prompt SOMENTE é carregado quando o usuário está autenticado; quando não logado, usa apenas para classificação de tipo de cliente (R10)
 }
 ```
 

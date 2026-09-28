@@ -156,9 +156,16 @@ def _com_fuso(data: datetime) -> datetime:
     return data if data.tzinfo else data.replace(tzinfo=UTC)
 
 
-async def carregar_contexto_cliente(session: AsyncSession, email: str) -> str | None:
+async def carregar_contexto_cliente(
+    session: AsyncSession,
+    email: str,
+    apenas_tipo_cliente: bool = False,
+) -> str | None:
     """Carrega dados cadastrais, perfil e histórico de compras/pedidos do cliente
-    para enriquecer o prompt do assistente (R10, Fase 6/7)."""
+    para enriquecer o prompt do assistente (R10, Fase 6/7).
+    Quando apenas_tipo_cliente=True (usuário não autenticado no chat), expõe apenas a
+    classificação de tipo de cliente no chat sem compras, pedidos ou dados pessoais.
+    """
     if not email:
         return None
 
@@ -201,6 +208,19 @@ async def carregar_contexto_cliente(session: AsyncSession, email: str) -> str | 
         teve_intencao_compra=False,
         agora=agora,
     )
+
+    if apenas_tipo_cliente:
+        return "\n".join(
+            [
+                "[Perfil do Visitante no Chat (Não Autenticado)]:",
+                f"- Tipo de cliente: {classificacao.perfil} ({classificacao.motivo})",
+                "- Status de autenticação: NÃO AUTENTICADO (visitante anônimo no chat).",
+                "- Regra de segurança e privacidade: O visitante NÃO está autenticado na conta. "
+                "Por proteção de dados, NUNCA revele compras anteriores, pedidos, valores ou dados pessoais. "
+                "Se o visitante perguntar sobre compras feitas, histórico de pedidos ou dados da conta, "
+                "instrua-o educadamente a entrar na conta (fazer login) para acessar suas informações.",
+            ]
+        )
 
     nome_cliente = cliente.nome if cliente else email_clean.split("@")[0].title()
 
