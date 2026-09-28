@@ -70,9 +70,8 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
 
   return (
     <div
-      className={`group flex flex-col justify-between rounded-xl border bg-white p-5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${
-        emEstoque ? "border-slate-200 hover:border-blue-300" : "border-slate-200 bg-slate-50/50 opacity-90"
-      }`}
+      className={`group flex flex-col justify-between rounded-xl border bg-white p-5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${emEstoque ? "border-slate-200 hover:border-blue-300" : "border-slate-200 bg-slate-50/50 opacity-90"
+        }`}
     >
       <div className="text-left">
         {/* Cabeçalho do Card: Categoria e Badge de Estoque */}
@@ -82,11 +81,10 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
           </span>
 
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              emEstoque
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${emEstoque
                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                 : "bg-amber-50 text-amber-700 border border-amber-200"
-            }`}
+              }`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${emEstoque ? "bg-emerald-500" : "bg-amber-500"}`} />
             {emEstoque ? `Em estoque (${totalEstoque} un)` : "Sem estoque"}
@@ -178,7 +176,7 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
         )}
 
         {/* Preço de Venda em R$ (alinhado à esquerda) */}
-        <div className="mt-4 flex items-baseline justify-start gap-2 text-left">
+        <div className="mt-4 flex items-baseline justify-start gap-2 text-right">
           {product.preco_promocional ? (
             <>
               <span className="text-lg font-extrabold text-blue-700">
@@ -202,11 +200,10 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
           type="button"
           onClick={handleBuy}
           disabled={!emEstoque}
-          className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 px-3 text-xs font-bold transition-all cursor-pointer ${
-            emEstoque
+          className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 px-3 text-xs font-bold transition-all cursor-pointer ${emEstoque
               ? "bg-blue-600 text-white hover:bg-blue-700 shadow-xs hover:shadow"
               : "bg-slate-200 text-slate-400 cursor-not-allowed"
-          }`}
+            }`}
         >
           <span>🛒</span>
           <span>Comprar</span>
