@@ -203,6 +203,11 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `POST https://openrouter.ai/api/v1/systemone` do OpenRouter, com
       fallback gracioso para a heurística em qualquer falha — decisão
       registrada em `docs/ARCHITECTURE.md` §5
+- [x] **Modelo externo (OpenRouter) trocável em runtime** — card na tela
+      `/admin/modelos` com sugestões de modelos populares e gratuitos e
+      histórico local; campo `external_model_name` em
+      `/api/admin/runtime-settings` (commit `d1c567a`, 2026-09-27; decisão
+      registrada em `docs/ARCHITECTURE.md` §5 na revisão de 2026-09-28)
 
 ## Extra fora do MVP — Gestão de Produtos no Admin, Ingestão de Catálogos (PDF/Imagens) e Catálogo Visual CLIP
 
@@ -215,6 +220,10 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] **Catálogo Visual CLIP Integrado** — enriquecimento de payload dos vetores no Qdrant (`catalogo_imagens`) com `produto_id` e `imagem_url`, permitindo que fotos cadastradas ou importadas pelo admin sejam imediatamente encontradas pela busca visual no chat.
 - [x] **API Administrativa de Produtos & Extração com SSE** — CRUD completo de produtos (`GET/POST/PUT/DELETE /api/admin/produtos`), upload avulso de imagens com indexação CLIP imediata, e pipeline híbrido de extração página a página de PDFs multipáginas e múltiplas imagens (`POST /api/admin/produtos/catalogo/extrair/stream`) com streaming SSE e gravação do lote aprovado (`POST /api/admin/produtos/catalogo/confirmar`).
 - [x] **Interface Administrativa Human-in-the-Loop** — tela `/admin/produtos` acessível pelo menu ⚙️ com tabela de produtos, cálculo de margem comercial, cadastro/edição modal e assistente de importação de catálogos com conferência prévia página a página.
+
+- [x] **Intervalo de páginas na extração de catálogos PDF** — campo
+      `page_range` (`1-5`, `2, 5, 8`, `3-`, `-4`) no upload do extrator
+      (commit `bae66bd`, 2026-09-27; registrado na revisão de 2026-09-28)
 
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
@@ -383,6 +392,11 @@ conversa e classificação do usuário").
       e mensagem só com o e-mail respondida sem LLM (`resposta_fixa`, sem
       revelar se há cadastro) — correções do teste local de 2026-09-25 (R6/R9
       falharam com 429 do OpenRouter)
+- [x] Botão "limpar conversa" no chat — apaga as mensagens e zera resumo e
+      perfil da conversa (`DELETE /api/chat/conversations/{id}`,
+      `limpar_conversa`); o prompt do resumo deixou de citar "geradores"
+      (commit `4ec4888`, 2026-09-27; registrado na revisão de 2026-09-28).
+      `# MVP: o e-mail da conversa é mantido`
 - [x] Contexto da mensagem de acompanhamento depois da identificação por
       imagem (R9, correção de 2026-09-27, `docs/ARCHITECTURE.md` §5 item 4b)
       — a troca da imagem é gravada na memória, o prompt leva a última troca
@@ -429,9 +443,12 @@ conversa e classificação do usuário").
       de contato fictícios); sem chamada de API (não há dados dinâmicos
       previstos para essas páginas no MVP)
 - [~] Implementar listagem e detalhe de produtos (`/produtos`), consumindo a
-      API do backend — apenas os stubs de rota (`app/produtos/page.tsx`,
-      `app/produtos/[id]/page.tsx`) foram criados nesta etapa, sem consumir a
-      API (que ainda não existe no backend); falta a integração real
+      API do backend — listagem pronta (commit `7b53dd1`, 2026-09-27):
+      `GET /api/products` paginado (12 por página), filtro por categoria e
+      busca, produtos com estoque primeiro e depois por nome, cards com
+      carrossel de imagens e zoom (`ProductCard`, `ImageZoomModal`). Falta
+      o detalhe: `app/produtos/[id]/page.tsx` ainda é stub, sem consumir
+      `GET /api/products/{id}`
 - [~] Implementar autenticação simplificada (login/cadastro) e página de
       perfil — apenas stubs de rota (`app/conta/login/page.tsx`,
       `app/conta/perfil/page.tsx`), sem lógica de autenticação
@@ -475,14 +492,17 @@ conversa e classificação do usuário").
       sem o check ali, o evento `status` nunca era emitido, mesmo a espera
       real tendo ocorrido (`backend/src/app/router/orchestrator.py`, ver
       `docs/FRONTEND.md` §4)
-- [~] Implementar upload de imagem (`ImageUploader`) e gravação de áudio
-      (`AudioRecorder`) — gravação de áudio concluída:
+- [x] Implementar upload de imagem (`ImageUploader`) e gravação de áudio
+      (`AudioRecorder`) — gravação de áudio:
       `components/chat/AudioRecorder.tsx` (toggle, indicador visual de
       gravação, tratamento de permissão negada e de navegador sem suporte),
       integrado ao `ChatModal` (envio automático ao parar, bolha do usuário
-      populada com `transcribed_message`, retry reenvia o mesmo áudio); falta
-      só o `ImageUploader`, que continua dependendo de R6 no backend (ainda
-      não implementado)
+      populada com `transcribed_message`, retry reenvia o mesmo áudio).
+      Imagem: `components/chat/ImageUploader.tsx` no `ChatModal` (commit
+      `40c7fbc`, R6), e desde 2026-09-27 também arrastar e soltar imagem ou
+      áudio sobre o chat (commit `a435ccd`; registrado na revisão de
+      2026-09-28). Identificação por imagem conferida no navegador em
+      2026-09-28
 - [x] Implementar persistência do ID de conversa (retomar conversa entre
       sessões/páginas, R9) — `lib/hooks/useChatStore.ts`
       (`getOrCreateConversationId`), persistido em `localStorage`

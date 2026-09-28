@@ -284,6 +284,21 @@ chamada de classificação separada com `temperature` fixo. `# MVP: sem
 persistência entre restarts, mesmo padrão do modelo ativo acima — não
 substitui a escolha formal de hiperparâmetros da Fase 10`.
 
+**Decisão registrada (além do MVP, a pedido do desenvolvedor, 2026-09-27;
+registrada na revisão de 2026-09-28):** a tela `/admin/modelos` ganhou o
+card "Modelo externo (OpenRouter)" (`OpenRouterModelCard.tsx`), que troca em
+runtime o modelo de texto do OpenRouter pelo campo `external_model_name` de
+`GET`/`PUT /api/admin/runtime-settings` (`OpenRouterClient.model`), com uma
+lista de sugestões ("populares" e "gratuitos", sufixo `:free`) e um
+histórico dos modelos já usados. O mesmo cliente atende as respostas
+escaladas para o externo, o classificador Jev e o Monitor de Tom, então a
+troca vale para os três. `# MVP: sem persistência entre restarts (mesmo
+padrão dos parâmetros acima); lista de sugestões fixa no frontend, sem
+consultar o catálogo do OpenRouter; histórico só no localStorage do
+navegador`. Risco conhecido: modelos `:free` têm limite de requisições
+baixo, e o 429 do OpenRouter aparece para o cliente como "Serviço
+temporariamente indisponível" (visto no teste local de 2026-09-27).
+
 **Decisão registrada (Fase 2, conector de BD relacional exigido por R4,
 2026-09-16):** o conector de leitura a BD relacional reaproveita o mesmo
 Postgres já provisionado em `docker-compose.yml` (o mesmo usado por
