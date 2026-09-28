@@ -16,8 +16,16 @@ describe("extrairMensagemDeDetail", () => {
 
   it("junta as mensagens quando detail é um array de erros de validação do Pydantic", () => {
     const detail = [
-      { loc: ["body", "chunk_size"], msg: "chunk_size deve ser maior que chunk_overlap", type: "value_error" },
-      { loc: ["body", "collection_ids"], msg: "collection_ids deve ter ao menos 1 item", type: "value_error" },
+      {
+        loc: ["body", "chunk_size"],
+        msg: "chunk_size deve ser maior que chunk_overlap",
+        type: "value_error",
+      },
+      {
+        loc: ["body", "collection_ids"],
+        msg: "collection_ids deve ter ao menos 1 item",
+        type: "value_error",
+      },
     ];
 
     expect(extrairMensagemDeDetail(detail)).toBe(
@@ -69,7 +77,9 @@ describe("extrairDetalheDeErro", () => {
       ],
     });
 
-    await expect(extrairDetalheDeErro(response)).resolves.toBe("name deve ter ao menos 1 caractere");
+    await expect(extrairDetalheDeErro(response)).resolves.toBe(
+      "name deve ter ao menos 1 caractere",
+    );
   });
 
   it("retorna undefined (sem lançar) quando o corpo não é JSON válido", async () => {

@@ -17,7 +17,8 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
   // Helper para resolver URL completa da imagem (ex: /api/uploads/... -> http://localhost:8000/api/uploads/...)
   const resolveImageUrl = (url: string | null | undefined): string | null => {
     if (!url) return null;
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:"))
+      return url;
     const baseUrl = getApiBaseUrl();
     const cleanPath = url.startsWith("/") ? url : `/${url}`;
     return `${baseUrl}${cleanPath}`;
@@ -46,7 +47,10 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
   // Calcula estoque total
   const totalEstoque = useMemo(() => {
     if (!product.estoques || product.estoques.length === 0) return 0;
-    return product.estoques.reduce((acc, est) => acc + (est.quantidade > 0 ? est.quantidade : 0), 0);
+    return product.estoques.reduce(
+      (acc, est) => acc + (est.quantidade > 0 ? est.quantidade : 0),
+      0,
+    );
   }, [product.estoques]);
 
   const emEstoque = totalEstoque > 0;
@@ -83,7 +87,9 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
   return (
     <div
       className={`group flex flex-col justify-between rounded-xl border bg-white p-5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${
-        emEstoque ? "border-slate-200 hover:border-blue-300" : "border-slate-200 bg-slate-50/50 opacity-90"
+        emEstoque
+          ? "border-slate-200 hover:border-blue-300"
+          : "border-slate-200 bg-slate-50/50 opacity-90"
       }`}
     >
       <div className="text-left">
@@ -100,7 +106,9 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
                 : "bg-amber-50 text-amber-700 border border-amber-200"
             }`}
           >
-            <span className={`h-1.5 w-1.5 rounded-full ${emEstoque ? "bg-emerald-500" : "bg-amber-500"}`} />
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${emEstoque ? "bg-emerald-500" : "bg-amber-500"}`}
+            />
             {emEstoque ? `Em estoque (${totalEstoque} un)` : "Sem estoque"}
           </span>
         </div>
@@ -117,7 +125,12 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
             />
           ) : (
             <div className="flex flex-col items-center justify-center text-slate-400 p-4 text-center">
-              <svg className="h-10 w-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg
+                className="h-10 w-10 text-slate-300"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -139,7 +152,12 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
               aria-label="Ampliar imagem"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"
+                />
               </svg>
             </button>
           )}
@@ -154,7 +172,12 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
                 aria-label="Imagem anterior"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M15 19l-7-7 7-7"
+                  />
                 </svg>
               </button>
 
@@ -165,7 +188,12 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
                 aria-label="Próxima imagem"
               >
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2.5}
+                    d="M9 5l7 7-7 7"
+                  />
                 </svg>
               </button>
 

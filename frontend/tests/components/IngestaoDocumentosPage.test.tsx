@@ -78,7 +78,11 @@ describe("IngestaoDocumentosPage", () => {
 
   it("envia o arquivo selecionado (com a collection ativa) e exibe o resultado da ingestão", async () => {
     const user = userEvent.setup();
-    mockedUploadDocument.mockResolvedValueOnce({ filename: "catalogo.txt", domain: "vendas", chunks: 3 });
+    mockedUploadDocument.mockResolvedValueOnce({
+      filename: "catalogo.txt",
+      domain: "vendas",
+      chunks: 3,
+    });
 
     render(<IngestaoDocumentosPage />);
 
@@ -87,7 +91,11 @@ describe("IngestaoDocumentosPage", () => {
     await user.click(screen.getByRole("button", { name: "Enviar para ingestão" }));
 
     expect(await screen.findByText(/3 chunk\(s\) gravado\(s\)/)).toBeInTheDocument();
-    expect(mockedUploadDocument).toHaveBeenCalledWith({ file, domain: "vendas", collectionId: "col-1" });
+    expect(mockedUploadDocument).toHaveBeenCalledWith({
+      file,
+      domain: "vendas",
+      collectionId: "col-1",
+    });
   });
 
   it("exibe mensagem de erro quando o upload falha", async () => {
@@ -145,7 +153,11 @@ describe("IngestaoDocumentosPage", () => {
       .mockResolvedValueOnce([COLLECTION_ATIVA, COLLECTION_TEMPORARIA])
       .mockResolvedValueOnce([COLLECTION_ATIVA]);
     mockedDeleteCollection.mockResolvedValueOnce(undefined);
-    mockedUploadDocument.mockResolvedValueOnce({ filename: "catalogo.txt", domain: "vendas", chunks: 1 });
+    mockedUploadDocument.mockResolvedValueOnce({
+      filename: "catalogo.txt",
+      domain: "vendas",
+      chunks: 1,
+    });
 
     render(<IngestaoDocumentosPage />);
 
@@ -170,6 +182,10 @@ describe("IngestaoDocumentosPage", () => {
     await user.upload(screen.getByLabelText("Arquivo"), file);
     await user.click(screen.getByRole("button", { name: "Enviar para ingestão" }));
 
-    expect(mockedUploadDocument).toHaveBeenCalledWith({ file, domain: "vendas", collectionId: "col-1" });
+    expect(mockedUploadDocument).toHaveBeenCalledWith({
+      file,
+      domain: "vendas",
+      collectionId: "col-1",
+    });
   });
 });

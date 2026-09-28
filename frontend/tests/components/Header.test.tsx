@@ -16,13 +16,17 @@ describe("Header Component", () => {
     expect(hamburgerBtn).toBeInTheDocument();
 
     // A gaveta inicia fechada
-    expect(screen.queryByRole("navigation", { name: /navegação principal móvel/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("navigation", { name: /navegação principal móvel/i }),
+    ).not.toBeInTheDocument();
 
     // Clica para abrir
     fireEvent.click(hamburgerBtn);
 
     // Gaveta abre e exibe botão de chat e links de navegação
-    expect(screen.getByRole("navigation", { name: /navegação principal móvel/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: /navegação principal móvel/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Abrir Chat / Assistente IA")).toBeInTheDocument();
   });
 

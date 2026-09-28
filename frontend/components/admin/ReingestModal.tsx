@@ -14,7 +14,13 @@ export interface ReingestModalProps {
   onError: (message: string) => void;
 }
 
-export function ReingestModal({ documento, collections, onOpenChange, onReingested, onError }: ReingestModalProps) {
+export function ReingestModal({
+  documento,
+  collections,
+  onOpenChange,
+  onReingested,
+  onError,
+}: ReingestModalProps) {
   const destinos = collections.filter((collection) => collection.id !== documento?.collection_id);
   // Este componente fica permanentemente montado dentro de DocumentsTable (visibilidade
   // controlada pela prop `documento`/`open`, não por mount/unmount) — o inicializador do
@@ -24,7 +30,9 @@ export function ReingestModal({ documento, collections, onOpenChange, onReingest
   // caindo em destinos[0] sempre que o `targetId` guardado não é (mais) um destino válido —
   // ver finding #2 da revisão final.
   const [targetId, setTargetId] = useState(destinos[0]?.id ?? "");
-  const targetIdEfetivo = destinos.some((c) => c.id === targetId) ? targetId : (destinos[0]?.id ?? "");
+  const targetIdEfetivo = destinos.some((c) => c.id === targetId)
+    ? targetId
+    : (destinos[0]?.id ?? "");
   const [enviando, setEnviando] = useState(false);
 
   async function confirmar() {
@@ -34,7 +42,9 @@ export function ReingestModal({ documento, collections, onOpenChange, onReingest
       await reingestDocument(documento.id, targetIdEfetivo);
       onReingested();
     } catch (err) {
-      onError(err instanceof RagApiError ? err.message : "Erro inesperado ao reingerir o documento.");
+      onError(
+        err instanceof RagApiError ? err.message : "Erro inesperado ao reingerir o documento.",
+      );
     } finally {
       setEnviando(false);
     }
@@ -66,7 +76,9 @@ export function ReingestModal({ documento, collections, onOpenChange, onReingest
       }
     >
       {destinos.length === 0 ? (
-        <p className="text-sm text-gray-600">Não há outra collection para reingerir este documento.</p>
+        <p className="text-sm text-gray-600">
+          Não há outra collection para reingerir este documento.
+        </p>
       ) : (
         <label className="block text-sm text-gray-700">
           Collection destino

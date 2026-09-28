@@ -140,7 +140,11 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
         pararPolling();
         setEnviando(false);
         limparNomeEmAndamento();
-        setError(err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao consultar o progresso.");
+        setError(
+          err instanceof LocalModelsApiError
+            ? err.message
+            : "Erro inesperado ao consultar o progresso.",
+        );
       }
     }, POLL_INTERVAL_MS);
   }
@@ -160,7 +164,9 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
       iniciarPolling(nome);
     } catch (err) {
       setEnviando(false);
-      setError(err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao iniciar o download.");
+      setError(
+        err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao iniciar o download.",
+      );
     }
   }
 
@@ -192,7 +198,9 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
 
         {/* Sugestões rápidas em pílulas */}
         <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-          <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Sugestões rápidas:</span>
+          <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">
+            Sugestões rápidas:
+          </span>
           {SUGGESTIONS.map((tag) => (
             <button
               key={tag}
@@ -211,7 +219,9 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
         <div className="rounded-xl border border-blue-200/80 bg-blue-50/50 p-4 text-xs text-blue-900 space-y-2">
           <div className="flex justify-between font-semibold">
             <span>Baixando camadas do modelo...</span>
-            <span>{progresso.percent !== null ? `${progresso.percent.toFixed(0)}%` : "Em progresso"}</span>
+            <span>
+              {progresso.percent !== null ? `${progresso.percent.toFixed(0)}%` : "Em progresso"}
+            </span>
           </div>
           {progresso.percent !== null && (
             <div className="h-2.5 w-full overflow-hidden rounded-full bg-blue-200/60">

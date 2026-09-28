@@ -22,7 +22,9 @@ export function PlaygroundForm({ collections, onSubmit, isSubmitting }: Playgrou
   const [selecionadas, setSelecionadas] = useState<string[]>([]);
 
   function alternarCollection(id: string) {
-    setSelecionadas((atual) => (atual.includes(id) ? atual.filter((item) => item !== id) : [...atual, id]));
+    setSelecionadas((atual) =>
+      atual.includes(id) ? atual.filter((item) => item !== id) : [...atual, id],
+    );
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {

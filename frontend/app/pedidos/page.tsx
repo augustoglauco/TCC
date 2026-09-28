@@ -15,7 +15,7 @@ const SAMPLE_ORDERS = [
   {
     id: "PED-9540",
     date: "02/09/2026",
-    items: "5x Válvula Esférica Inox 2\"",
+    items: '5x Válvula Esférica Inox 2"',
     total: "R$ 1.900,00",
     status: "Entregue",
     statusColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -47,7 +47,6 @@ export default function PedidosPage() {
           <span>Consultar via Chat</span> 💬
         </button>
       </div>
-
 
       {/* Tabela / Cards de Pedidos */}
       <div className="space-y-4">

@@ -7,7 +7,12 @@ import type { PendingPage } from "@/lib/types/crawler";
 
 vi.mock("@/lib/api/crawler", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/crawler")>("@/lib/api/crawler");
-  return { ...actual, listPendingPages: vi.fn(), approvePendingPage: vi.fn(), rejectPendingPage: vi.fn() };
+  return {
+    ...actual,
+    listPendingPages: vi.fn(),
+    approvePendingPage: vi.fn(),
+    rejectPendingPage: vi.fn(),
+  };
 });
 
 import { approvePendingPage, listPendingPages, rejectPendingPage } from "@/lib/api/crawler";

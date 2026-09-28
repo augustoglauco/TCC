@@ -46,7 +46,9 @@ export interface FetchProductsParams {
   offset?: number;
 }
 
-export async function fetchProducts(params: FetchProductsParams = {}): Promise<PaginatedProdutosResponse> {
+export async function fetchProducts(
+  params: FetchProductsParams = {},
+): Promise<PaginatedProdutosResponse> {
   const baseUrl = getApiBaseUrl();
   const urlParams = new URLSearchParams();
 

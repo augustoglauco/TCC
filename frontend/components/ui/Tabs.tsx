@@ -5,7 +5,13 @@ import type { ReactNode } from "react";
 
 export const Tabs = RadixTabs.Root;
 
-export function TabsList({ children, className = "" }: { children: ReactNode; className?: string }) {
+export function TabsList({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <RadixTabs.List className={`flex flex-wrap gap-1 border-b border-slate-200 ${className}`}>
       {children}
@@ -34,5 +40,9 @@ export function TabsTrigger({
 }
 
 export function TabsContent({ value, children }: { value: string; children: ReactNode }) {
-  return <RadixTabs.Content value={value} className="pt-6">{children}</RadixTabs.Content>;
+  return (
+    <RadixTabs.Content value={value} className="pt-6">
+      {children}
+    </RadixTabs.Content>
+  );
 }

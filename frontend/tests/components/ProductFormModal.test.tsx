@@ -19,10 +19,7 @@ vi.mock("@/lib/api/adminProducts", () => ({
   deleteAdminProductCompatibility: vi.fn().mockResolvedValue([]),
 }));
 
-import {
-  deleteAdminProductImage,
-  fetchAdminProduct,
-} from "@/lib/api/adminProducts";
+import { deleteAdminProductImage, fetchAdminProduct } from "@/lib/api/adminProducts";
 
 const mockedDeleteImage = vi.mocked(deleteAdminProductImage);
 const mockedFetchProduct = vi.mocked(fetchAdminProduct);
@@ -68,7 +65,7 @@ describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
         onClose={vi.fn()}
         onSuccess={vi.fn()}
         produtoParaEditar={PRODUTO_MOCK}
-      />
+      />,
     );
 
     expect(screen.getByText("Imagens associadas (2):")).toBeInTheDocument();
@@ -95,7 +92,7 @@ describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
         onClose={vi.fn()}
         onSuccess={onSuccess}
         produtoParaEditar={PRODUTO_MOCK}
-      />
+      />,
     );
 
     const deleteButtons = screen.getAllByTitle("Remover imagem do produto e do CLIP");
@@ -135,7 +132,7 @@ describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
         onClose={vi.fn()}
         onSuccess={onSuccess}
         produtoParaEditar={produtoComUmaImagem}
-      />
+      />,
     );
 
     expect(screen.getByText("Imagens associadas (1):")).toBeInTheDocument();
@@ -164,7 +161,7 @@ describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
         onClose={vi.fn()}
         onSuccess={vi.fn()}
         produtoParaEditar={PRODUTO_MOCK}
-      />
+      />,
     );
 
     const nomeInput = screen.getByPlaceholderText("Ex: Gravador IP NVD 1016");
@@ -192,7 +189,7 @@ describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
         onClose={vi.fn()}
         onSuccess={vi.fn()}
         produtoParaEditar={PRODUTO_MOCK}
-      />
+      />,
     );
 
     const deleteButtons = screen.getAllByTitle("Remover imagem do produto e do CLIP");

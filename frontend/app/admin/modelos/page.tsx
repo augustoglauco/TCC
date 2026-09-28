@@ -27,7 +27,9 @@ export default function ModelosPage() {
       setRuntimeStatus("ok");
     } catch (err) {
       showToast(
-        err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao carregar os modelos.",
+        err instanceof LocalModelsApiError
+          ? err.message
+          : "Erro inesperado ao carregar os modelos.",
         "error",
       );
       setModelos([]);
@@ -55,7 +57,8 @@ export default function ModelosPage() {
             Administração de Modelos LLM
           </h1>
           <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-2xl">
-            Gerenciamento de modelos LLM locais (Ollama), provedores externos (OpenRouter) e parâmetros de inferência em tempo de execução.
+            Gerenciamento de modelos LLM locais (Ollama), provedores externos (OpenRouter) e
+            parâmetros de inferência em tempo de execução.
           </p>
         </div>
       </div>
@@ -70,7 +73,10 @@ export default function ModelosPage() {
             <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
               Modelo Local Ativo
             </span>
-            <span className="block text-sm font-bold text-slate-900 truncate" title={activeModel || "Nenhum"}>
+            <span
+              className="block text-sm font-bold text-slate-900 truncate"
+              title={activeModel || "Nenhum"}
+            >
               {activeModel ? activeModel : "Nenhum selecionado"}
             </span>
           </div>
@@ -136,13 +142,19 @@ export default function ModelosPage() {
               <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
                   <div>
-                    <h2 className="text-base sm:text-lg font-bold text-slate-900">Modelos Locais Instalados</h2>
-                    <p className="text-xs text-slate-500">Modelos armazenados na biblioteca do Ollama e prontos para uso</p>
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                      Modelos Locais Instalados
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Modelos armazenados na biblioteca do Ollama e prontos para uso
+                    </p>
                   </div>
                   {activeModel !== null && (
                     <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 text-xs text-slate-700">
                       <span>Modelo ativo no chat:</span>
-                      <strong className="font-mono text-slate-900">{activeModel || "Nenhum"}</strong>
+                      <strong className="font-mono text-slate-900">
+                        {activeModel || "Nenhum"}
+                      </strong>
                     </div>
                   )}
                 </div>
@@ -166,9 +178,15 @@ export default function ModelosPage() {
               {/* Card 2: Baixar Novo Modelo */}
               <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
                 <div className="border-b border-slate-100 pb-4">
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900">Baixar Novo Modelo LLM</h2>
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                    Baixar Novo Modelo LLM
+                  </h2>
                   <p className="mt-1 text-xs text-slate-500">
-                    Insira a tag da biblioteca do Ollama (ex.: <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-slate-800">llama3.1:8b</code>) ou URL GGUF do Hugging Face.
+                    Insira a tag da biblioteca do Ollama (ex.:{" "}
+                    <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-slate-800">
+                      llama3.1:8b
+                    </code>
+                    ) ou URL GGUF do Hugging Face.
                   </p>
                 </div>
                 <PullModelForm onPulled={carregarModelos} />
@@ -180,9 +198,12 @@ export default function ModelosPage() {
           <TabsContent value="openrouter">
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-6">
               <div className="border-b border-slate-100 pb-4">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">Gerenciamento de Modelo Externo (OpenRouter)</h2>
+                <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                  Gerenciamento de Modelo Externo (OpenRouter)
+                </h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Selecione entre modelos comerciais populares, modelos 100% gratuitos (Free Tier) ou consulte o histórico de modelos ativados anteriormente.
+                  Selecione entre modelos comerciais populares, modelos 100% gratuitos (Free Tier)
+                  ou consulte o histórico de modelos ativados anteriormente.
                 </p>
               </div>
 
@@ -197,9 +218,12 @@ export default function ModelosPage() {
           <TabsContent value="parametros">
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
               <div className="border-b border-slate-100 pb-4">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">Parâmetros de Execução em Runtime</h2>
+                <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                  Parâmetros de Execução em Runtime
+                </h2>
                 <p className="mt-1 text-xs text-slate-500">
-                  Configurações de inferência, timeouts e mecanismo de roteamento mantidos em memória no backend.
+                  Configurações de inferência, timeouts e mecanismo de roteamento mantidos em
+                  memória no backend.
                 </p>
               </div>
               <RuntimeSettingsForm

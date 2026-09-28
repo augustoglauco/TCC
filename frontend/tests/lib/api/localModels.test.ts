@@ -16,7 +16,15 @@ describe("activateModel", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         jsonResponse(
-          { detail: [{ loc: ["body", "name"], msg: "name deve ter ao menos 1 caractere", type: "value_error" }] },
+          {
+            detail: [
+              {
+                loc: ["body", "name"],
+                msg: "name deve ter ao menos 1 caractere",
+                type: "value_error",
+              },
+            ],
+          },
           422,
         ),
       ),
@@ -29,7 +37,10 @@ describe("activateModel", () => {
   });
 
   it("preserva a mensagem de erro específica em string vinda do backend", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ detail: "Modelo não encontrado." }, 404)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse({ detail: "Modelo não encontrado." }, 404)),
+    );
 
     await expect(activateModel("modelo-x")).rejects.toMatchObject({
       message: "Modelo não encontrado.",

@@ -35,21 +35,17 @@ export default function CategoryFilter({
   }, [isOpen]);
 
   // Lista combinada de categorias em ordem alfabética
-  const allKnownCategories = Array.from(
-    new Set([...availableCategories, ...selectedCategories])
-  )
+  const allKnownCategories = Array.from(new Set([...availableCategories, ...selectedCategories]))
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
 
   const filteredCategories = allKnownCategories.filter((cat) =>
-    cat.toLowerCase().includes(searchTerm.toLowerCase().trim())
+    cat.toLowerCase().includes(searchTerm.toLowerCase().trim()),
   );
 
   const isCustomCandidate =
     searchTerm.trim() &&
-    !allKnownCategories.some(
-      (c) => c.toLowerCase() === searchTerm.toLowerCase().trim()
-    );
+    !allKnownCategories.some((c) => c.toLowerCase() === searchTerm.toLowerCase().trim());
 
   const handleToggleCategory = (cat: string) => {
     if (selectedCategories.includes(cat)) {
@@ -96,8 +92,8 @@ export default function CategoryFilter({
           {selectedCategories.length === 0
             ? "Todas as Categorias"
             : selectedCategories.length === 1
-            ? selectedCategories[0]
-            : `${selectedCategories.length} categorias selecionadas`}
+              ? selectedCategories[0]
+              : `${selectedCategories.length} categorias selecionadas`}
         </span>
         {selectedCategories.length > 0 && (
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[11px] font-bold text-white">
@@ -204,9 +200,7 @@ export default function CategoryFilter({
                     {count !== undefined && (
                       <span
                         className={`rounded-full px-1.5 py-0.2 text-[10px] font-medium ${
-                          isChecked
-                            ? "bg-blue-200 text-blue-800"
-                            : "bg-gray-100 text-gray-500"
+                          isChecked ? "bg-blue-200 text-blue-800" : "bg-gray-100 text-gray-500"
                         }`}
                       >
                         {count}

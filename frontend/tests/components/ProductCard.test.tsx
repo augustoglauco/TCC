@@ -18,10 +18,22 @@ const MOCK_PRODUCT: Produto = {
   categoria: "CFTV",
   imagem_url: "/api/uploads/produtos/foto1.jpg",
   imagens: [
-    { id: 10, imagem_url: "/api/uploads/produtos/foto1.jpg", is_principal: true, criado_em: "2026-09-27" },
-    { id: 11, imagem_url: "/api/uploads/produtos/foto2.jpg", is_principal: false, criado_em: "2026-09-27" },
+    {
+      id: 10,
+      imagem_url: "/api/uploads/produtos/foto1.jpg",
+      is_principal: true,
+      criado_em: "2026-09-27",
+    },
+    {
+      id: 11,
+      imagem_url: "/api/uploads/produtos/foto2.jpg",
+      is_principal: false,
+      criado_em: "2026-09-27",
+    },
   ],
-  estoques: [{ id: "est-1", centro_distribuicao: "CD-Matriz", quantidade: 15, atualizado_em: "2026-09-27" }],
+  estoques: [
+    { id: "est-1", centro_distribuicao: "CD-Matriz", quantidade: 15, atualizado_em: "2026-09-27" },
+  ],
 };
 
 describe("ProductCard", () => {

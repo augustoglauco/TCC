@@ -50,7 +50,9 @@ export function Modal({
         >
           <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5 sm:pb-3 shrink-0">
             <div>
-              <Dialog.Title className="text-base sm:text-lg font-bold text-slate-900">{title}</Dialog.Title>
+              <Dialog.Title className="text-base sm:text-lg font-bold text-slate-900">
+                {title}
+              </Dialog.Title>
               {description && (
                 <Dialog.Description className="mt-0.5 text-xs text-slate-500">
                   {description}

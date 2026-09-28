@@ -38,9 +38,22 @@ const COLLECTION_ATIVA: RagCollection = {
   created_at: new Date().toISOString(),
 };
 
-const COLLECTION_INATIVA: RagCollection = { ...COLLECTION_ATIVA, id: "222", name: "teste", is_active: false, document_count: 1 };
+const COLLECTION_INATIVA: RagCollection = {
+  ...COLLECTION_ATIVA,
+  id: "222",
+  name: "teste",
+  is_active: false,
+  document_count: 1,
+};
 
-const COLLECTION_MCP: RagCollection = { ...COLLECTION_ATIVA, id: "333", name: "mcp_docs", is_active: false, purpose: "mcp_b2b", document_count: 2 };
+const COLLECTION_MCP: RagCollection = {
+  ...COLLECTION_ATIVA,
+  id: "333",
+  name: "mcp_docs",
+  is_active: false,
+  purpose: "mcp_b2b",
+  document_count: 2,
+};
 
 describe("CollectionsTable", () => {
   beforeEach(() => {
@@ -49,14 +62,28 @@ describe("CollectionsTable", () => {
   });
 
   it("renderiza uma linha por collection, com badge 'Ativa'", () => {
-    render(<CollectionsTable collections={[COLLECTION_ATIVA]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <CollectionsTable
+        collections={[COLLECTION_ATIVA]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText("docs_texto")).toBeInTheDocument();
     expect(screen.getByText("Ativa")).toBeInTheDocument();
   });
 
   it("collection mcp_b2b mostra badge 'MCP B2B' e botão Ativar desabilitado", () => {
-    render(<CollectionsTable collections={[COLLECTION_MCP]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <CollectionsTable
+        collections={[COLLECTION_MCP]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText("MCP B2B")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ativar" })).toBeDisabled();
@@ -64,7 +91,14 @@ describe("CollectionsTable", () => {
 
   it("não chama a API ao clicar em Ativar de uma collection mcp_b2b (botão desabilitado)", async () => {
     const user = userEvent.setup();
-    render(<CollectionsTable collections={[COLLECTION_MCP]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <CollectionsTable
+        collections={[COLLECTION_MCP]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Ativar" }));
 
@@ -72,7 +106,14 @@ describe("CollectionsTable", () => {
   });
 
   it("botão excluir da collection ativa fica desabilitado", () => {
-    render(<CollectionsTable collections={[COLLECTION_ATIVA]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <CollectionsTable
+        collections={[COLLECTION_ATIVA]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     expect(screen.getByRole("button", { name: "Excluir" })).toBeDisabled();
   });
@@ -82,7 +123,14 @@ describe("CollectionsTable", () => {
     mockedActivate.mockResolvedValueOnce(undefined);
     const onChanged = vi.fn();
     const onSuccess = vi.fn();
-    render(<CollectionsTable collections={[COLLECTION_INATIVA]} onChanged={onChanged} onError={vi.fn()} onSuccess={onSuccess} />);
+    render(
+      <CollectionsTable
+        collections={[COLLECTION_INATIVA]}
+        onChanged={onChanged}
+        onError={vi.fn()}
+        onSuccess={onSuccess}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Ativar" }));
 
@@ -93,7 +141,14 @@ describe("CollectionsTable", () => {
 
   it("excluir uma collection inativa abre modal de confirmação com a contagem de documentos", async () => {
     const user = userEvent.setup();
-    render(<CollectionsTable collections={[COLLECTION_INATIVA]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <CollectionsTable
+        collections={[COLLECTION_INATIVA]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Excluir" }));
 
@@ -104,7 +159,14 @@ describe("CollectionsTable", () => {
     const user = userEvent.setup();
     mockedDelete.mockResolvedValueOnce(undefined);
     const onChanged = vi.fn();
-    render(<CollectionsTable collections={[COLLECTION_INATIVA]} onChanged={onChanged} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <CollectionsTable
+        collections={[COLLECTION_INATIVA]}
+        onChanged={onChanged}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Excluir" }));
     await user.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
@@ -115,9 +177,18 @@ describe("CollectionsTable", () => {
 
   it("erro na exclusão chama onError com a mensagem da API", async () => {
     const user = userEvent.setup();
-    mockedDelete.mockRejectedValueOnce(new RagApiError("Não é possível excluir a collection ativa."));
+    mockedDelete.mockRejectedValueOnce(
+      new RagApiError("Não é possível excluir a collection ativa."),
+    );
     const onError = vi.fn();
-    render(<CollectionsTable collections={[COLLECTION_INATIVA]} onChanged={vi.fn()} onError={onError} onSuccess={vi.fn()} />);
+    render(
+      <CollectionsTable
+        collections={[COLLECTION_INATIVA]}
+        onChanged={vi.fn()}
+        onError={onError}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Excluir" }));
     await user.click(screen.getByRole("button", { name: "Confirmar exclusão" }));

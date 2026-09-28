@@ -56,7 +56,12 @@ describe("DocumentsTable", () => {
 
   it("renderiza uma linha por documento, com a collection", () => {
     render(
-      <DocumentsTable documents={[DOCUMENTO]} collections={[COLLECTION]} onDeleted={vi.fn()} onReingested={vi.fn()} />,
+      <DocumentsTable
+        documents={[DOCUMENTO]}
+        collections={[COLLECTION]}
+        onDeleted={vi.fn()}
+        onReingested={vi.fn()}
+      />,
     );
 
     expect(screen.getByText("catalogo.txt")).toBeInTheDocument();
@@ -68,7 +73,12 @@ describe("DocumentsTable", () => {
   it("clicar em excluir abre o modal, e cancelar não chama a API", async () => {
     const user = userEvent.setup();
     render(
-      <DocumentsTable documents={[DOCUMENTO]} collections={[COLLECTION]} onDeleted={vi.fn()} onReingested={vi.fn()} />,
+      <DocumentsTable
+        documents={[DOCUMENTO]}
+        collections={[COLLECTION]}
+        onDeleted={vi.fn()}
+        onReingested={vi.fn()}
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Excluir" }));
@@ -84,7 +94,12 @@ describe("DocumentsTable", () => {
     mockedDeleteDocument.mockResolvedValueOnce(undefined);
     const onDeleted = vi.fn();
     render(
-      <DocumentsTable documents={[DOCUMENTO]} collections={[COLLECTION]} onDeleted={onDeleted} onReingested={vi.fn()} />,
+      <DocumentsTable
+        documents={[DOCUMENTO]}
+        collections={[COLLECTION]}
+        onDeleted={onDeleted}
+        onReingested={vi.fn()}
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Excluir" }));
@@ -99,7 +114,12 @@ describe("DocumentsTable", () => {
     const user = userEvent.setup();
     mockedDeleteDocument.mockRejectedValueOnce(new RagApiError("Não foi possível excluir."));
     render(
-      <DocumentsTable documents={[DOCUMENTO]} collections={[COLLECTION]} onDeleted={vi.fn()} onReingested={vi.fn()} />,
+      <DocumentsTable
+        documents={[DOCUMENTO]}
+        collections={[COLLECTION]}
+        onDeleted={vi.fn()}
+        onReingested={vi.fn()}
+      />,
     );
 
     await user.click(screen.getByRole("button", { name: "Excluir" }));

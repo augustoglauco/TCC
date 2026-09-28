@@ -34,12 +34,7 @@ export interface TooltipProps {
  * o tooltip NUNCA seja cortado por contêineres com scroll (`overflow-y-auto`)
  * ou bordas de modais, ajustando seu alinhamento à esquerda/direita.
  */
-export function Tooltip({
-  content,
-  ariaLabel,
-  position = "auto",
-  align = "auto",
-}: TooltipProps) {
+export function Tooltip({ content, ariaLabel, position = "auto", align = "auto" }: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const mounted = useEstaNoCliente();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -87,7 +82,10 @@ export function Tooltip({
     left = Math.max(16, Math.min(left, viewportWidth - tooltipWidth - 16));
 
     let top = rect.bottom + 6;
-    if (position === "top" || (position === "auto" && rect.bottom + tooltipEstimatedHeight > viewportHeight)) {
+    if (
+      position === "top" ||
+      (position === "auto" && rect.bottom + tooltipEstimatedHeight > viewportHeight)
+    ) {
       top = Math.max(12, rect.top - tooltipEstimatedHeight - 6);
     }
 
@@ -148,4 +146,3 @@ export function Tooltip({
     </span>
   );
 }
-

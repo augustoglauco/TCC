@@ -30,19 +30,16 @@ describe("EscalonamentoBanner", () => {
     render(<EscalonamentoBanner escalonamento={{ motivo: null }} />);
 
     expect(screen.getByTestId("escalonamento-banner")).toBeInTheDocument();
-    expect(screen.getByText(/Sua conversa foi sinalizada para a nossa equipe humana/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Sua conversa foi sinalizada para a nossa equipe humana/i),
+    ).toBeInTheDocument();
   });
 
   it("chama onDismiss ao clicar no botão de fechar", async () => {
     const user = userEvent.setup();
     const onDismiss = vi.fn();
 
-    render(
-      <EscalonamentoBanner
-        escalonamento={{ motivo: "urgencia" }}
-        onDismiss={onDismiss}
-      />,
-    );
+    render(<EscalonamentoBanner escalonamento={{ motivo: "urgencia" }} onDismiss={onDismiss} />);
 
     const closeButton = screen.getByRole("button", { name: /Fechar aviso de atendimento humano/i });
     await user.click(closeButton);

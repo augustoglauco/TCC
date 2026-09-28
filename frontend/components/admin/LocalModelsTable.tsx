@@ -91,7 +91,9 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
       onSuccess(`"${modelo.name}" agora é o modelo ativo no chat.`);
       onChanged();
     } catch (err) {
-      onError(err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao ativar o modelo.");
+      onError(
+        err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao ativar o modelo.",
+      );
     } finally {
       setProcessandoTag(null);
     }
@@ -105,7 +107,9 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
       onSuccess(`Modelo "${tag}" baixado com sucesso!`);
       onChanged();
     } catch (err) {
-      onError(err instanceof LocalModelsApiError ? err.message : "Erro ao baixar modelo recomendado.");
+      onError(
+        err instanceof LocalModelsApiError ? err.message : "Erro ao baixar modelo recomendado.",
+      );
     } finally {
       setBaixandoPreset(null);
     }
@@ -153,9 +157,12 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-2xl">
               📦
             </div>
-            <h4 className="mt-3 text-sm font-bold text-slate-800">Nenhum modelo local baixado ainda</h4>
+            <h4 className="mt-3 text-sm font-bold text-slate-800">
+              Nenhum modelo local baixado ainda
+            </h4>
             <p className="mt-1 text-xs text-slate-500 max-w-md mx-auto">
-              Escolha um dos modelos recomendados abaixo ou informe a tag de um modelo para realizar o download no servidor.
+              Escolha um dos modelos recomendados abaixo ou informe a tag de um modelo para realizar
+              o download no servidor.
             </p>
           </div>
         ) : (
@@ -186,7 +193,10 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
                       )}
                     </div>
 
-                    <h4 className="mt-2 font-bold text-slate-900 text-sm font-mono truncate" title={modelo.name}>
+                    <h4
+                      className="mt-2 font-bold text-slate-900 text-sm font-mono truncate"
+                      title={modelo.name}
+                    >
                       {modelo.name}
                     </h4>
 
@@ -270,8 +280,10 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
                   </div>
 
                   <h4 className="mt-2 font-bold text-slate-900 text-sm">{preset.name}</h4>
-                  <p className="mt-1 text-[11px] text-slate-500 leading-relaxed">{preset.description}</p>
-                  
+                  <p className="mt-1 text-[11px] text-slate-500 leading-relaxed">
+                    {preset.description}
+                  </p>
+
                   <div className="mt-2 flex items-center justify-between text-[10px]">
                     <code className="font-mono text-slate-400">ollama pull {preset.tag}</code>
                     <span className="font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">

@@ -266,8 +266,12 @@ function RagSearchConfigSection({
       <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
         <span className="text-xl">🔍</span>
         <div>
-          <h2 className="text-base font-bold text-slate-900">Regras de Busca & Isolamento de Domínios RAG</h2>
-          <p className="text-xs text-slate-500">Configuração do comportamento de busca vetorial no Qdrant</p>
+          <h2 className="text-base font-bold text-slate-900">
+            Regras de Busca & Isolamento de Domínios RAG
+          </h2>
+          <p className="text-xs text-slate-500">
+            Configuração do comportamento de busca vetorial no Qdrant
+          </p>
         </div>
       </div>
 
@@ -281,11 +285,15 @@ function RagSearchConfigSection({
           className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500 cursor-pointer disabled:opacity-50"
         />
         <div className="space-y-0.5">
-          <label htmlFor="rt-rag-fallback" className="text-xs font-semibold text-amber-900 cursor-pointer">
+          <label
+            htmlFor="rt-rag-fallback"
+            className="text-xs font-semibold text-amber-900 cursor-pointer"
+          >
             RAG: buscar sem filtro de domínio quando a busca filtrada vem vazia
           </label>
           <p className="text-[11px] text-amber-700 leading-relaxed">
-            Desligado por padrão (recomendado) para preservar o isolamento estrito entre domínios (vendas, suporte, atendimento) e manter a precisão do roteador de escalonamento.
+            Desligado por padrão (recomendado) para preservar o isolamento estrito entre domínios
+            (vendas, suporte, atendimento) e manter a precisão do roteador de escalonamento.
           </p>
         </div>
       </div>
@@ -396,7 +404,8 @@ export default function IngestaoDocumentosPage() {
           Ingestão de Documentos & Coleções
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Gestão de documentos indexados, perfis de coleção no Qdrant e playground comparativo de busca semântica.
+          Gestão de documentos indexados, perfis de coleção no Qdrant e playground comparativo de
+          busca semântica.
         </p>
       </div>
 
@@ -410,7 +419,10 @@ export default function IngestaoDocumentosPage() {
         </TabsList>
         <div className="max-h-[calc(78vh-140px)] min-h-[420px] overflow-y-auto pr-1">
           <TabsContent value="enviar">
-            <AbaEnviarDocumento collections={collections} onIngerido={() => setReloadKey((key) => key + 1)} />
+            <AbaEnviarDocumento
+              collections={collections}
+              onIngerido={() => setReloadKey((key) => key + 1)}
+            />
           </TabsContent>
           <TabsContent value="documentos">
             <AbaDocumentosIngeridos key={reloadKey} collections={collections} />

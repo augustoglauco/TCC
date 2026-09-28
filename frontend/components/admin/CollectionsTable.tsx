@@ -13,7 +13,12 @@ export interface CollectionsTableProps {
   onSuccess: (message: string) => void;
 }
 
-export function CollectionsTable({ collections, onChanged, onError, onSuccess }: CollectionsTableProps) {
+export function CollectionsTable({
+  collections,
+  onChanged,
+  onError,
+  onSuccess,
+}: CollectionsTableProps) {
   const [collectionParaExcluir, setCollectionParaExcluir] = useState<RagCollection | null>(null);
   const [processando, setProcessando] = useState(false);
 
@@ -39,7 +44,9 @@ export function CollectionsTable({ collections, onChanged, onError, onSuccess }:
       setCollectionParaExcluir(null);
       onChanged();
     } catch (err) {
-      onError(err instanceof RagApiError ? err.message : "Erro inesperado ao excluir a collection.");
+      onError(
+        err instanceof RagApiError ? err.message : "Erro inesperado ao excluir a collection.",
+      );
     } finally {
       setProcessando(false);
     }
@@ -91,13 +98,19 @@ export function CollectionsTable({ collections, onChanged, onError, onSuccess }:
                     </span>
                   )}
                 </td>
-                <td className="py-3.5 px-4 text-slate-700 font-mono text-xs">{collection.embedding_model}</td>
+                <td className="py-3.5 px-4 text-slate-700 font-mono text-xs">
+                  {collection.embedding_model}
+                </td>
                 <td className="py-3.5 px-4 text-slate-700">{collection.vector_dimension}</td>
-                <td className="py-3.5 px-4 text-slate-700 capitalize">{collection.distance_metric}</td>
+                <td className="py-3.5 px-4 text-slate-700 capitalize">
+                  {collection.distance_metric}
+                </td>
                 <td className="py-3.5 px-4 text-slate-600 font-mono text-xs">
                   m={collection.hnsw_m} / ef={collection.hnsw_ef_construct}
                 </td>
-                <td className="py-3.5 px-4 text-slate-700 capitalize">{collection.quantization_type}</td>
+                <td className="py-3.5 px-4 text-slate-700 capitalize">
+                  {collection.quantization_type}
+                </td>
                 <td className="py-3.5 px-4 text-slate-700">{collection.document_count}</td>
                 <td className="py-3.5 px-4 text-right whitespace-nowrap">
                   {!collection.is_active &&
@@ -124,7 +137,11 @@ export function CollectionsTable({ collections, onChanged, onError, onSuccess }:
                     type="button"
                     onClick={() => setCollectionParaExcluir(collection)}
                     disabled={processando || collection.is_active}
-                    title={collection.is_active ? "Ative outra collection antes de excluir esta." : undefined}
+                    title={
+                      collection.is_active
+                        ? "Ative outra collection antes de excluir esta."
+                        : undefined
+                    }
                     className="inline-flex items-center gap-1 rounded-lg border border-red-200/80 bg-red-50/50 px-2.5 py-1 text-xs font-semibold text-red-600 shadow-2xs transition-colors hover:bg-red-100/80 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Excluir
@@ -160,9 +177,9 @@ export function CollectionsTable({ collections, onChanged, onError, onSuccess }:
           </>
         }
       >
-        Tem certeza que deseja excluir &ldquo;{collectionParaExcluir?.name}&rdquo;? Isso vai apagar em
-        cascata os {collectionParaExcluir?.document_count} documento(s) ingerido(s) nela e não pode ser
-        desfeito.
+        Tem certeza que deseja excluir &ldquo;{collectionParaExcluir?.name}&rdquo;? Isso vai apagar
+        em cascata os {collectionParaExcluir?.document_count} documento(s) ingerido(s) nela e não
+        pode ser desfeito.
       </Modal>
     </>
   );

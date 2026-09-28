@@ -115,7 +115,10 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
             <h2 className="text-lg font-bold text-slate-900 mt-0.5">
-              Roteador: <span className="font-mono text-indigo-900">{routerProvider === "jev_openrouter" ? "Jev OpenRouter" : "Heurística LLM Local"}</span>
+              Roteador:{" "}
+              <span className="font-mono text-indigo-900">
+                {routerProvider === "jev_openrouter" ? "Jev OpenRouter" : "Heurística LLM Local"}
+              </span>
             </h2>
           </div>
         </div>
@@ -258,7 +261,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                     Heurística + LLM Local (Ollama)
                   </h4>
                   <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                    Classificação baseada em regras com palavras-chave locais e fallback para o modelo Ollama.
+                    Classificação baseada em regras com palavras-chave locais e fallback para o
+                    modelo Ollama.
                   </p>
                 </div>
               </div>
@@ -296,11 +300,10 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                   className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
                 <div>
-                  <h4 className="font-bold text-slate-900 text-sm">
-                    TypeSafe Jev (OpenRouter)
-                  </h4>
+                  <h4 className="font-bold text-slate-900 text-sm">TypeSafe Jev (OpenRouter)</h4>
                   <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                    Classificação estritamente estruturada em JSON via endpoint /systemone de alta precisão.
+                    Classificação estritamente estruturada em JSON via endpoint /systemone de alta
+                    precisão.
                   </p>
                 </div>
               </div>
@@ -315,7 +318,9 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <span>🛡️</span> Monitor de Tom & Sentimento (R8)
           </h3>
-          <span className="text-xs text-slate-500">Detecção de urgência e frustração do cliente</span>
+          <span className="text-xs text-slate-500">
+            Detecção de urgência e frustração do cliente
+          </span>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-4">
@@ -328,11 +333,15 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
               className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
             />
             <div>
-              <label htmlFor="rt-tone-monitor-enabled" className="text-sm font-bold text-slate-900 cursor-pointer">
+              <label
+                htmlFor="rt-tone-monitor-enabled"
+                className="text-sm font-bold text-slate-900 cursor-pointer"
+              >
                 Monitor de Tom ativo (R8)
               </label>
               <p className="mt-0.5 text-xs text-slate-500 leading-relaxed">
-                Analisa a carga emocional e tom do usuário a cada mensagem para permitir escalonamento inteligente para atendimento humano.
+                Analisa a carga emocional e tom do usuário a cada mensagem para permitir
+                escalonamento inteligente para atendimento humano.
               </p>
             </div>
           </div>

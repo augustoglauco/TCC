@@ -26,7 +26,9 @@ export async function getRuntimeSettings(): Promise<RuntimeSettings> {
   try {
     response = await fetch(`${API_BASE_URL}/api/admin/runtime-settings`);
   } catch {
-    throw new RuntimeSettingsApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
+    throw new RuntimeSettingsApiError(
+      "Não foi possível conectar ao servidor. Verifique sua conexão.",
+    );
   }
 
   if (!response.ok) {
@@ -37,7 +39,9 @@ export async function getRuntimeSettings(): Promise<RuntimeSettings> {
 }
 
 /** Atualiza (parcialmente) os parâmetros de execução via `PUT /api/admin/runtime-settings`. */
-export async function updateRuntimeSettings(update: RuntimeSettingsUpdate): Promise<RuntimeSettings> {
+export async function updateRuntimeSettings(
+  update: RuntimeSettingsUpdate,
+): Promise<RuntimeSettings> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/admin/runtime-settings`, {
@@ -46,11 +50,16 @@ export async function updateRuntimeSettings(update: RuntimeSettingsUpdate): Prom
       body: JSON.stringify(update),
     });
   } catch {
-    throw new RuntimeSettingsApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
+    throw new RuntimeSettingsApiError(
+      "Não foi possível conectar ao servidor. Verifique sua conexão.",
+    );
   }
 
   if (!response.ok) {
-    await _lancarErroComDetalhe(response, "Não foi possível aplicar os parâmetros. Tente novamente.");
+    await _lancarErroComDetalhe(
+      response,
+      "Não foi possível aplicar os parâmetros. Tente novamente.",
+    );
   }
 
   return (await response.json()) as RuntimeSettings;

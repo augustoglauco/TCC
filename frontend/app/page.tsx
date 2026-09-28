@@ -26,8 +26,8 @@ export default function HomePage() {
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
             Distribuidora de equipamentos e peças industriais. Protótipo de TCC integrado com
-            inferência local em GPU (16GB), RAG vetorial híbrido, entrada multimodal (texto, áudio e imagem)
-            e suporte a protocolo MCP (Google Calendar & Provedor B2B).
+            inferência local em GPU (16GB), RAG vetorial híbrido, entrada multimodal (texto, áudio e
+            imagem) e suporte a protocolo MCP (Google Calendar & Provedor B2B).
           </p>
 
           <div className="pt-2 flex flex-wrap gap-3">
@@ -51,8 +51,14 @@ export default function HomePage() {
         </div>
 
         {/* Efeito decorativo sutil de fundo */}
-        <div aria-hidden="true" className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-blue-600/20 blur-3xl" />
-        <div aria-hidden="true" className="absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-indigo-600/20 blur-3xl" />
+        <div
+          aria-hidden="true"
+          className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-blue-600/20 blur-3xl"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-indigo-600/20 blur-3xl"
+        />
       </section>
 
       {/* 🎯 Os 4 Domínios de Atendimento */}
@@ -63,7 +69,8 @@ export default function HomePage() {
               Domínios de Atendimento Especiais
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              O Roteador inteligente classifica a intenção da mensagem e aciona a camada especialista adequada.
+              O Roteador inteligente classifica a intenção da mensagem e aciona a camada
+              especialista adequada.
             </p>
           </div>
         </div>
@@ -76,7 +83,8 @@ export default function HomePage() {
             </div>
             <h3 className="mt-4 font-bold text-slate-900">Vendas & Cotações</h3>
             <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-              Consulta de estoque em tempo real, especificações técnicas, cotações e reservas via MCP B2B.
+              Consulta de estoque em tempo real, especificações técnicas, cotações e reservas via
+              MCP B2B.
             </p>
           </div>
 
@@ -98,7 +106,8 @@ export default function HomePage() {
             </div>
             <h3 className="mt-4 font-bold text-slate-900">Atendimento Geral</h3>
             <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-              Informações institucionais, horários de funcionamento, garantia e políticas da empresa.
+              Informações institucionais, horários de funcionamento, garantia e políticas da
+              empresa.
             </p>
           </div>
 
@@ -109,7 +118,8 @@ export default function HomePage() {
             </div>
             <h3 className="mt-4 font-bold text-slate-900">Agendamento de Visita</h3>
             <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-              Marcação e confirmação automatizada de reuniões integradas diretamente ao Google Calendar.
+              Marcação e confirmação automatizada de reuniões integradas diretamente ao Google
+              Calendar.
             </p>
           </div>
         </div>
@@ -125,21 +135,24 @@ export default function HomePage() {
           <div className="rounded-lg bg-white p-4 border border-slate-200/80">
             <div className="text-xl">🎙️ Áudio (Whisper)</div>
             <p className="mt-1.5 text-xs text-slate-600">
-              Gravação de voz com transcrição automática (Speech-to-Text) enviada diretamente para contextualização do assistente.
+              Gravação de voz com transcrição automática (Speech-to-Text) enviada diretamente para
+              contextualização do assistente.
             </p>
           </div>
 
           <div className="rounded-lg bg-white p-4 border border-slate-200/80">
             <div className="text-xl">🖼️ Visão & OCR (CLIP)</div>
             <p className="mt-1.5 text-xs text-slate-600">
-              Reconhecimento de texto em fotos de placas/comprovantes e busca vetorial por similaridade de imagem.
+              Reconhecimento de texto em fotos de placas/comprovantes e busca vetorial por
+              similaridade de imagem.
             </p>
           </div>
 
           <div className="rounded-lg bg-white p-4 border border-slate-200/80">
             <div className="text-xl">⚡ Roteamento Híbrido</div>
             <p className="mt-1.5 text-xs text-slate-600">
-              Decisão automática entre inferência em GPU local (16GB), RAG vetorial ou transbordo para modelo externo.
+              Decisão automática entre inferência em GPU local (16GB), RAG vetorial ou transbordo
+              para modelo externo.
             </p>
           </div>
         </div>

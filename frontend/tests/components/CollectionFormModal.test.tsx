@@ -53,7 +53,10 @@ describe("CollectionFormModal", () => {
     await user.click(screen.getByRole("button", { name: "Criar collection" }));
 
     expect(mockedCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "nova", embedding_model: "paraphrase-multilingual-MiniLM-L12-v2" }),
+      expect.objectContaining({
+        name: "nova",
+        embedding_model: "paraphrase-multilingual-MiniLM-L12-v2",
+      }),
     );
     expect(onCreated).toHaveBeenCalledWith(COLLECTION_CRIADA);
   });

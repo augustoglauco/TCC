@@ -160,7 +160,7 @@ export async function uploadTempImage(file: File): Promise<string> {
 export async function updateAdminProductStock(
   produtoId: number,
   centroDistribuicao: string,
-  quantidade: number
+  quantidade: number,
 ): Promise<AdminProduct> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/estoque`, {
@@ -180,20 +180,17 @@ export async function updateAdminProductStock(
 export async function addAdminProductVolumeDiscount(
   produtoId: number,
   quantidadeMinima: number,
-  percentualDesconto: number
+  percentualDesconto: number,
 ): Promise<AdminProduct> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(
-    `${baseUrl}/api/admin/produtos/${produtoId}/descontos-volume`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        quantidade_minima: quantidadeMinima,
-        percentual_desconto: percentualDesconto,
-      }),
-    }
-  );
+  const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/descontos-volume`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      quantidade_minima: quantidadeMinima,
+      percentual_desconto: percentualDesconto,
+    }),
+  });
   if (!res.ok) {
     throw new Error(`Erro ao adicionar desconto por volume (${res.status})`);
   }
@@ -202,14 +199,14 @@ export async function addAdminProductVolumeDiscount(
 
 export async function deleteAdminProductVolumeDiscount(
   produtoId: number,
-  descontoId: string
+  descontoId: string,
 ): Promise<AdminProduct> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(
     `${baseUrl}/api/admin/produtos/${produtoId}/descontos-volume/${descontoId}`,
     {
       method: "DELETE",
-    }
+    },
   );
   if (!res.ok) {
     throw new Error(`Erro ao excluir desconto (${res.status})`);
@@ -218,12 +215,10 @@ export async function deleteAdminProductVolumeDiscount(
 }
 
 export async function fetchAdminProductCompatibilities(
-  produtoId: number
+  produtoId: number,
 ): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(
-    `${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`
-  );
+  const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`);
   if (!res.ok) {
     throw new Error(`Erro ao buscar compatibilidades (${res.status})`);
   }
@@ -232,17 +227,14 @@ export async function fetchAdminProductCompatibilities(
 
 export async function addAdminProductCompatibility(
   produtoId: number,
-  compativelComId: number
+  compativelComId: number,
 ): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(
-    `${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ compativel_com_id: compativelComId }),
-    }
-  );
+  const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ compativel_com_id: compativelComId }),
+  });
   if (!res.ok) {
     throw new Error(`Erro ao adicionar compatibilidade (${res.status})`);
   }
@@ -251,14 +243,14 @@ export async function addAdminProductCompatibility(
 
 export async function deleteAdminProductCompatibility(
   produtoId: number,
-  compativelComId: number
+  compativelComId: number,
 ): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(
     `${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades/${compativelComId}`,
     {
       method: "DELETE",
-    }
+    },
   );
   if (!res.ok) {
     throw new Error(`Erro ao remover compatibilidade (${res.status})`);

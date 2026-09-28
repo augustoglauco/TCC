@@ -153,9 +153,7 @@ export default function AdminProdutosPage() {
             <span>/</span>
             <span className="text-blue-600">Catálogo de Produtos</span>
           </div> */}
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            Catálogo de Produtos
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Catálogo de Produtos</h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             Cadastre produtos, custos e fotos vetorizadas no catálogo visual CLIP para atendimento
             inteligente no chat.

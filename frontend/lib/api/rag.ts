@@ -88,7 +88,10 @@ export async function listDocuments(): Promise<DocumentRegistryEntry[]> {
   }
 
   if (!response.ok) {
-    throw new RagApiError("Não foi possível carregar os documentos. Tente novamente.", response.status);
+    throw new RagApiError(
+      "Não foi possível carregar os documentos. Tente novamente.",
+      response.status,
+    );
   }
 
   return (await response.json()) as DocumentRegistryEntry[];
@@ -136,7 +139,10 @@ export async function reingestDocument(
   }
 
   if (!response.ok) {
-    await _lancarErroComDetalhe(response, "Não foi possível reingerir o documento. Tente novamente.");
+    await _lancarErroComDetalhe(
+      response,
+      "Não foi possível reingerir o documento. Tente novamente.",
+    );
   }
 
   return (await response.json()) as DocumentRegistryEntry;
@@ -152,7 +158,10 @@ export async function listCollections(): Promise<RagCollection[]> {
   }
 
   if (!response.ok) {
-    throw new RagApiError("Não foi possível carregar as collections. Tente novamente.", response.status);
+    throw new RagApiError(
+      "Não foi possível carregar as collections. Tente novamente.",
+      response.status,
+    );
   }
 
   return (await response.json()) as RagCollection[];
@@ -182,7 +191,9 @@ export async function createCollection(payload: CollectionCreatePayload): Promis
 export async function activateCollection(id: string): Promise<void> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/rag/collections/${id}/activate`, { method: "POST" });
+    response = await fetch(`${API_BASE_URL}/api/rag/collections/${id}/activate`, {
+      method: "POST",
+    });
   } catch {
     throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }
@@ -267,4 +278,3 @@ export async function fetchDocumentContent(
 
   return { blob, contentType, text };
 }
-

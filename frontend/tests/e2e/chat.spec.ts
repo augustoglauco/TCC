@@ -11,9 +11,9 @@ import { expect, test } from "@playwright/test";
 // `docs/FRONTEND.md` §4.
 
 function sseBody(events: Array<{ event: string; data: unknown }>): string {
-  return (
-    events.map(({ event, data }) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`).join("")
-  );
+  return events
+    .map(({ event, data }) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
+    .join("");
 }
 
 test("envia mensagem de texto e exibe a resposta do assistente", async ({ page }) => {

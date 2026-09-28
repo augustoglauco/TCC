@@ -46,9 +46,7 @@ export default function EscalonamentoBanner({
                 Alerta de Tom
               </span>
             </div>
-            <p className="text-amber-800 text-[11px] sm:text-xs leading-relaxed">
-              {mensagem}
-            </p>
+            <p className="text-amber-800 text-[11px] sm:text-xs leading-relaxed">{mensagem}</p>
           </div>
         </div>
         {onDismiss && (

@@ -17,10 +17,19 @@ export interface DocumentsTableProps {
   onReingested: () => void;
 }
 
-export function DocumentsTable({ documents, collections, onDeleted, onReingested }: DocumentsTableProps) {
-  const [documentoParaExcluir, setDocumentoParaExcluir] = useState<DocumentRegistryEntry | null>(null);
-  const [documentoParaReingerir, setDocumentoParaReingerir] = useState<DocumentRegistryEntry | null>(null);
-  const [documentoParaVisualizar, setDocumentoParaVisualizar] = useState<DocumentRegistryEntry | null>(null);
+export function DocumentsTable({
+  documents,
+  collections,
+  onDeleted,
+  onReingested,
+}: DocumentsTableProps) {
+  const [documentoParaExcluir, setDocumentoParaExcluir] = useState<DocumentRegistryEntry | null>(
+    null,
+  );
+  const [documentoParaReingerir, setDocumentoParaReingerir] =
+    useState<DocumentRegistryEntry | null>(null);
+  const [documentoParaVisualizar, setDocumentoParaVisualizar] =
+    useState<DocumentRegistryEntry | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const { toasts, showToast, dismissToast } = useToast();
 
@@ -80,7 +89,9 @@ export function DocumentsTable({ documents, collections, onDeleted, onReingested
                 <td className="py-3.5 px-4">
                   <DomainBadge domain={documento.domain} />
                 </td>
-                <td className="py-3.5 px-4 text-slate-700 font-mono text-xs">{documento.chunk_count}</td>
+                <td className="py-3.5 px-4 text-slate-700 font-mono text-xs">
+                  {documento.chunk_count}
+                </td>
                 <td className="py-3.5 px-4 text-slate-700">{documento.collection_name || "-"}</td>
                 <td className="py-3.5 px-4 text-slate-500 text-xs whitespace-nowrap">
                   {new Date(documento.created_at).toLocaleDateString("pt-BR")}
@@ -136,8 +147,8 @@ export function DocumentsTable({ documents, collections, onDeleted, onReingested
           </>
         }
       >
-        Tem certeza que deseja excluir &ldquo;{documentoParaExcluir?.filename}&rdquo;? Os chunks
-        já indexados serão removidos do RAG e essa ação não pode ser desfeita.
+        Tem certeza que deseja excluir &ldquo;{documentoParaExcluir?.filename}&rdquo;? Os chunks já
+        indexados serão removidos do RAG e essa ação não pode ser desfeita.
       </Modal>
 
       <ReingestModal
@@ -156,4 +167,3 @@ export function DocumentsTable({ documents, collections, onDeleted, onReingested
     </>
   );
 }
-

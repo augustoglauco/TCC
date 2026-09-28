@@ -5,7 +5,8 @@ import ModelosPage from "@/app/admin/modelos/page";
 import type { LocalModelsListResponse } from "@/lib/types/localModels";
 
 vi.mock("@/lib/api/localModels", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/api/localModels")>("@/lib/api/localModels");
+  const actual =
+    await vi.importActual<typeof import("@/lib/api/localModels")>("@/lib/api/localModels");
   return { ...actual, listLocalModels: vi.fn() };
 });
 
@@ -15,7 +16,12 @@ const mockedListLocalModels = vi.mocked(listLocalModels);
 
 const RESPOSTA: LocalModelsListResponse = {
   models: [
-    { name: "llama3.1:8b", size_bytes: 4_920_000_000, modified_at: "2026-09-01T10:00:00Z", is_active: true },
+    {
+      name: "llama3.1:8b",
+      size_bytes: 4_920_000_000,
+      modified_at: "2026-09-01T10:00:00Z",
+      is_active: true,
+    },
   ],
   active_model: "llama3.1:8b",
 };
@@ -29,7 +35,9 @@ describe("ModelosPage", () => {
   it("carrega e exibe o título 'Administração Geral' e a lista de modelos", async () => {
     render(<ModelosPage />);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Administração de Modelos LLM" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Administração de Modelos LLM" }),
+    ).toBeInTheDocument();
     expect(await screen.findByText("llama3.1:8b")).toBeInTheDocument();
   });
 

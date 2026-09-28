@@ -20,13 +20,7 @@ describe("CatalogImportModal - Intervalo de Páginas", () => {
   });
 
   it("não exibe campo de intervalo de páginas se nenhum arquivo ou apenas imagem estiver selecionado", () => {
-    render(
-      <CatalogImportModal
-        isOpen={true}
-        onClose={vi.fn()}
-        onSuccess={vi.fn()}
-      />
-    );
+    render(<CatalogImportModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
 
     expect(screen.queryByLabelText(/Intervalo de Páginas do PDF/i)).not.toBeInTheDocument();
 
@@ -39,13 +33,7 @@ describe("CatalogImportModal - Intervalo de Páginas", () => {
 
   it("exibe o campo de intervalo de páginas quando um arquivo PDF é selecionado e repassa o range na extração", async () => {
     const user = userEvent.setup();
-    render(
-      <CatalogImportModal
-        isOpen={true}
-        onClose={vi.fn()}
-        onSuccess={vi.fn()}
-      />
-    );
+    render(<CatalogImportModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
 
     const pdfFile = new File(["dummy pdf content"], "tabela_precos.pdf", {
       type: "application/pdf",
@@ -69,19 +57,13 @@ describe("CatalogImportModal - Intervalo de Páginas", () => {
         pageRange: "1-5, 8",
         provider: "local",
       }),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 
   it("permite iniciar extração sem informar intervalo (deixando em branco para todas as páginas)", async () => {
     const user = userEvent.setup();
-    render(
-      <CatalogImportModal
-        isOpen={true}
-        onClose={vi.fn()}
-        onSuccess={vi.fn()}
-      />
-    );
+    render(<CatalogImportModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
 
     const pdfFile = new File(["dummy pdf content"], "catalogo_completo.pdf", {
       type: "application/pdf",
@@ -101,7 +83,7 @@ describe("CatalogImportModal - Intervalo de Páginas", () => {
       expect.objectContaining({
         pageRange: undefined,
       }),
-      expect.any(Object)
+      expect.any(Object),
     );
   });
 });

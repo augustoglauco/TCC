@@ -9,7 +9,9 @@ vi.mock("@/lib/api/rag", async () => {
   return {
     ...actual,
     fetchDocumentContent: vi.fn(),
-    getDocumentContentUrl: vi.fn((id: string) => `http://localhost:8000/api/rag/documents/${id}/content`),
+    getDocumentContentUrl: vi.fn(
+      (id: string) => `http://localhost:8000/api/rag/documents/${id}/content`,
+    ),
   };
 });
 
@@ -53,7 +55,12 @@ describe("DocumentViewModal", () => {
       () => new Promise(() => {}), // nunca resolve — fica em loading
     );
 
-    render(<DocumentViewModal documento={documento({ filename: "manual.pdf" })} onOpenChange={vi.fn()} />);
+    render(
+      <DocumentViewModal
+        documento={documento({ filename: "manual.pdf" })}
+        onOpenChange={vi.fn()}
+      />,
+    );
 
     expect(screen.getByText("Carregando documento...")).toBeInTheDocument();
   });
@@ -62,7 +69,12 @@ describe("DocumentViewModal", () => {
     const blob = new Blob(["%PDF-1.4 conteudo fake"], { type: "application/pdf" });
     mockedFetchContent.mockResolvedValueOnce({ blob, contentType: "application/pdf" });
 
-    render(<DocumentViewModal documento={documento({ filename: "manual.pdf" })} onOpenChange={vi.fn()} />);
+    render(
+      <DocumentViewModal
+        documento={documento({ filename: "manual.pdf" })}
+        onOpenChange={vi.fn()}
+      />,
+    );
 
     const iframe = await screen.findByTitle("manual.pdf");
     expect(iframe).toHaveAttribute("src", "blob:fake-url");
@@ -74,7 +86,10 @@ describe("DocumentViewModal", () => {
     mockedFetchContent.mockResolvedValueOnce({ blob, contentType: "text/csv", text: texto });
 
     render(
-      <DocumentViewModal documento={documento({ filename: "produtos.csv" })} onOpenChange={vi.fn()} />,
+      <DocumentViewModal
+        documento={documento({ filename: "produtos.csv" })}
+        onOpenChange={vi.fn()}
+      />,
     );
 
     expect(await screen.findByText("nome")).toBeInTheDocument();
@@ -93,7 +108,10 @@ describe("DocumentViewModal", () => {
     mockedFetchContent.mockResolvedValueOnce({ blob, contentType: "text/csv", text: texto });
 
     render(
-      <DocumentViewModal documento={documento({ filename: "produtos.csv" })} onOpenChange={vi.fn()} />,
+      <DocumentViewModal
+        documento={documento({ filename: "produtos.csv" })}
+        onOpenChange={vi.fn()}
+      />,
     );
 
     expect(await screen.findByText("Gerador; a diesel")).toBeInTheDocument();
@@ -105,7 +123,12 @@ describe("DocumentViewModal", () => {
     const blob = new Blob([texto], { type: "text/plain" });
     mockedFetchContent.mockResolvedValueOnce({ blob, contentType: "text/plain", text: texto });
 
-    render(<DocumentViewModal documento={documento({ filename: "manual.txt" })} onOpenChange={vi.fn()} />);
+    render(
+      <DocumentViewModal
+        documento={documento({ filename: "manual.txt" })}
+        onOpenChange={vi.fn()}
+      />,
+    );
 
     expect(await screen.findByText(texto)).toBeInTheDocument();
   });
@@ -136,7 +159,10 @@ describe("DocumentViewModal", () => {
     mockedFetchContent.mockResolvedValueOnce({ blob, contentType: "application/pdf" });
 
     const { rerender } = render(
-      <DocumentViewModal documento={documento({ filename: "manual.pdf" })} onOpenChange={vi.fn()} />,
+      <DocumentViewModal
+        documento={documento({ filename: "manual.pdf" })}
+        onOpenChange={vi.fn()}
+      />,
     );
     await screen.findByTitle("manual.pdf");
 

@@ -18,7 +18,7 @@ describe("SearchableSelect Component", () => {
         value=""
         onChange={vi.fn()}
         placeholder="-- Pesquise um produto --"
-      />
+      />,
     );
 
     expect(screen.getByText("-- Pesquise um produto --")).toBeInTheDocument();
@@ -26,13 +26,7 @@ describe("SearchableSelect Component", () => {
 
   it("abre o menu de busca ao clicar no botão", async () => {
     const user = userEvent.setup();
-    render(
-      <SearchableSelect
-        options={MOCK_OPTIONS}
-        value=""
-        onChange={vi.fn()}
-      />
-    );
+    render(<SearchableSelect options={MOCK_OPTIONS} value="" onChange={vi.fn()} />);
 
     await user.click(screen.getByRole("button"));
 
@@ -43,13 +37,7 @@ describe("SearchableSelect Component", () => {
 
   it("filtra as opções conforme o usuário digita", async () => {
     const user = userEvent.setup();
-    render(
-      <SearchableSelect
-        options={MOCK_OPTIONS}
-        value=""
-        onChange={vi.fn()}
-      />
-    );
+    render(<SearchableSelect options={MOCK_OPTIONS} value="" onChange={vi.fn()} />);
 
     await user.click(screen.getByRole("button"));
     const input = screen.getByPlaceholderText("Digite para filtrar produtos...");
@@ -63,13 +51,7 @@ describe("SearchableSelect Component", () => {
   it("chama onChange com a chave selecionada ao clicar numa opção", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    render(
-      <SearchableSelect
-        options={MOCK_OPTIONS}
-        value=""
-        onChange={onChange}
-      />
-    );
+    render(<SearchableSelect options={MOCK_OPTIONS} value="" onChange={onChange} />);
 
     await user.click(screen.getByRole("button"));
     await user.click(screen.getByText("#2 - Câmera IP"));
@@ -80,13 +62,7 @@ describe("SearchableSelect Component", () => {
   it("permite limpar a seleção ao clicar no botão de fechar", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
-    render(
-      <SearchableSelect
-        options={MOCK_OPTIONS}
-        value="2"
-        onChange={onChange}
-      />
-    );
+    render(<SearchableSelect options={MOCK_OPTIONS} value="2" onChange={onChange} />);
 
     const clearButton = screen.getByTitle("Limpar seleção");
     await user.click(clearButton);

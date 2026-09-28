@@ -68,7 +68,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   async function handleClearHistory() {
-    if (typeof window !== "undefined" && !window.confirm("Deseja apagar todo o histórico e a memória desta conversa no servidor?")) {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Deseja apagar todo o histórico e a memória desta conversa no servidor?")
+    ) {
       return;
     }
     await deleteConversation(conversationId);
@@ -272,8 +275,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
 
     const isImage = file.type.startsWith("image/");
     const isAudio =
-      file.type.startsWith("audio/") ||
-      /\.(mp3|wav|m4a|ogg|webm|aac|flac)$/i.test(file.name);
+      file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|webm|aac|flac)$/i.test(file.name);
 
     try {
       if (isImage) {

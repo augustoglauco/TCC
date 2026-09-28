@@ -29,7 +29,11 @@ export function extrairMensagemDeDetail(detail: unknown): string | undefined {
 
   if (Array.isArray(detail)) {
     const mensagens = detail
-      .map((item) => (item && typeof item === "object" && "msg" in item ? (item as PydanticValidationErrorItem).msg : undefined))
+      .map((item) =>
+        item && typeof item === "object" && "msg" in item
+          ? (item as PydanticValidationErrorItem).msg
+          : undefined,
+      )
       .filter((msg): msg is string => typeof msg === "string" && msg.length > 0);
 
     if (mensagens.length > 0) {

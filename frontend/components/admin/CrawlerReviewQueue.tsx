@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { ToastStack, useToast } from "@/components/ui/Toast";
-import { CrawlerApiError, approvePendingPage, listPendingPages, rejectPendingPage } from "@/lib/api/crawler";
+import {
+  CrawlerApiError,
+  approvePendingPage,
+  listPendingPages,
+  rejectPendingPage,
+} from "@/lib/api/crawler";
 import type { PendingPage } from "@/lib/types/crawler";
 import type { RagDomain } from "@/lib/types/rag";
 
@@ -32,7 +37,9 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
       });
     } catch (err) {
       showToast(
-        err instanceof CrawlerApiError ? err.message : "Erro inesperado ao carregar a fila de revisão.",
+        err instanceof CrawlerApiError
+          ? err.message
+          : "Erro inesperado ao carregar a fila de revisão.",
         "error",
       );
       setPages([]);
@@ -50,11 +57,16 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
   async function handleApprove(page: PendingPage) {
     setProcessingId(page.id);
     try {
-      await approvePendingPage(page.id, { domain: selectedDomain[page.id] ?? page.domain_proposed });
+      await approvePendingPage(page.id, {
+        domain: selectedDomain[page.id] ?? page.domain_proposed,
+      });
       showToast(`"${page.url}" aprovada e ingerida.`, "success");
       setPages((atual) => atual?.filter((p) => p.id !== page.id) ?? null);
     } catch (err) {
-      showToast(err instanceof CrawlerApiError ? err.message : "Erro inesperado ao aprovar.", "error");
+      showToast(
+        err instanceof CrawlerApiError ? err.message : "Erro inesperado ao aprovar.",
+        "error",
+      );
     } finally {
       setProcessingId(null);
     }
@@ -67,7 +79,10 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
       showToast(`"${page.url}" rejeitada.`, "success");
       setPages((atual) => atual?.filter((p) => p.id !== page.id) ?? null);
     } catch (err) {
-      showToast(err instanceof CrawlerApiError ? err.message : "Erro inesperado ao rejeitar.", "error");
+      showToast(
+        err instanceof CrawlerApiError ? err.message : "Erro inesperado ao rejeitar.",
+        "error",
+      );
     } finally {
       setProcessingId(null);
     }

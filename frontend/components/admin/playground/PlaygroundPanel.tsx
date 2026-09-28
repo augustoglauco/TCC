@@ -12,7 +12,11 @@ export function PlaygroundPanel({ collections }: { collections: RagCollection[] 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(params: { query: string; domain: RagDomain; collectionIds: string[] }) {
+  async function handleSubmit(params: {
+    query: string;
+    domain: RagDomain;
+    collectionIds: string[];
+  }) {
     setIsSubmitting(true);
     setError(null);
     try {
@@ -36,7 +40,11 @@ export function PlaygroundPanel({ collections }: { collections: RagCollection[] 
       </p>
 
       <div className="mt-6">
-        <PlaygroundForm collections={collections} onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+        <PlaygroundForm
+          collections={collections}
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
       </div>
 
       {error && <p className="mt-6 rounded-md bg-red-50 px-4 py-3 text-red-800">{error}</p>}

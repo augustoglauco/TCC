@@ -110,10 +110,7 @@ describe("sendChatMessage", () => {
   });
 
   it("chama onError quando o fetch falha (rede)", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
-    );
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
     const onError = vi.fn();
     await sendChatMessage({
@@ -126,7 +123,9 @@ describe("sendChatMessage", () => {
       onError,
     });
 
-    expect(onError).toHaveBeenCalledWith("Não foi possível conectar ao servidor. Verifique sua conexão.");
+    expect(onError).toHaveBeenCalledWith(
+      "Não foi possível conectar ao servidor. Verifique sua conexão.",
+    );
   });
 
   it("chama onError quando a resposta HTTP não é 2xx", async () => {

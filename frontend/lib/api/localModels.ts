@@ -30,7 +30,10 @@ export async function listLocalModels(): Promise<LocalModelsListResponse> {
   }
 
   if (!response.ok) {
-    throw new LocalModelsApiError("Não foi possível carregar os modelos locais. Tente novamente.", response.status);
+    throw new LocalModelsApiError(
+      "Não foi possível carregar os modelos locais. Tente novamente.",
+      response.status,
+    );
   }
 
   return (await response.json()) as LocalModelsListResponse;
@@ -88,7 +91,10 @@ export async function getPullStatus(name: string): Promise<PullStatusResponse> {
   }
 
   if (!response.ok) {
-    throw new LocalModelsApiError("Não foi possível consultar o progresso do download.", response.status);
+    throw new LocalModelsApiError(
+      "Não foi possível consultar o progresso do download.",
+      response.status,
+    );
   }
 
   return (await response.json()) as PullStatusResponse;

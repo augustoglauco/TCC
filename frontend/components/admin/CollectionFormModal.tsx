@@ -57,7 +57,8 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
   const [purpose, setPurpose] = useState<CollectionPurpose>("chat");
   const [modelSelecionado, setModelSelecionado] = useState<string>(CURATED_MODELS[0].value);
   const [modeloCustom, setModeloCustom] = useState("");
-  const [distanceMetric, setDistanceMetric] = useState<CollectionCreatePayload["distance_metric"]>("cosine");
+  const [distanceMetric, setDistanceMetric] =
+    useState<CollectionCreatePayload["distance_metric"]>("cosine");
   const [chunkSize, setChunkSize] = useState(800);
   const [chunkOverlap, setChunkOverlap] = useState(100);
   const [hnswM, setHnswM] = useState(16);
@@ -69,7 +70,9 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
   const [quantizationType, setQuantizationType] = useState<QuantizationType>("none");
   const [scalarQuantile, setScalarQuantile] = useState(0.99);
   const [scalarAlwaysRam, setScalarAlwaysRam] = useState(false);
-  const [productCompression, setProductCompression] = useState<"x4" | "x8" | "x16" | "x32" | "x64">("x16");
+  const [productCompression, setProductCompression] = useState<"x4" | "x8" | "x16" | "x32" | "x64">(
+    "x16",
+  );
   const [productAlwaysRam, setProductAlwaysRam] = useState(false);
   const [binaryAlwaysRam, setBinaryAlwaysRam] = useState(false);
   const [payloadIndexes, setPayloadIndexes] = useState<PayloadIndex[]>(PAYLOAD_INDEXES_PADRAO);
@@ -104,7 +107,9 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
   }
 
   function atualizarPayloadIndex(indice: number, campo: Partial<PayloadIndex>) {
-    setPayloadIndexes((atual) => atual.map((item, i) => (i === indice ? { ...item, ...campo } : item)));
+    setPayloadIndexes((atual) =>
+      atual.map((item, i) => (i === indice ? { ...item, ...campo } : item)),
+    );
   }
 
   function removerPayloadIndex(indice: number) {
@@ -138,7 +143,10 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
       },
       quantization: {
         type: quantizationType,
-        scalar: quantizationType === "scalar" ? { quantile: scalarQuantile, always_ram: scalarAlwaysRam } : null,
+        scalar:
+          quantizationType === "scalar"
+            ? { quantile: scalarQuantile, always_ram: scalarAlwaysRam }
+            : null,
         product:
           quantizationType === "product"
             ? { compression: productCompression, always_ram: productAlwaysRam }
@@ -149,7 +157,11 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
         .filter((item) => item.field.trim() !== "")
         .map((item) =>
           item.schema_type === "text"
-            ? { field: item.field, schema_type: item.schema_type, text_params: item.text_params ?? TEXT_PARAMS_PADRAO }
+            ? {
+                field: item.field,
+                schema_type: item.schema_type,
+                text_params: item.text_params ?? TEXT_PARAMS_PADRAO,
+              }
             : { field: item.field, schema_type: item.schema_type },
         ),
       purpose,
@@ -257,7 +269,9 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           <select
             id="distance-metric"
             value={distanceMetric}
-            onChange={(e) => setDistanceMetric(e.target.value as CollectionCreatePayload["distance_metric"])}
+            onChange={(e) =>
+              setDistanceMetric(e.target.value as CollectionCreatePayload["distance_metric"])
+            }
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
           >
             <option value="cosine">Cosine</option>
@@ -303,7 +317,9 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
             />
           </div>
           {chunkingInvalido && (
-            <p className="col-span-2 text-sm text-red-600">Chunk size deve ser maior que o overlap.</p>
+            <p className="col-span-2 text-sm text-red-600">
+              Chunk size deve ser maior que o overlap.
+            </p>
           )}
         </fieldset>
 
@@ -388,7 +404,12 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
             />
           </div>
           <div className="flex items-center gap-2">
-            <input id="hnsw-on-disk" type="checkbox" checked={hnswOnDisk} onChange={(e) => setHnswOnDisk(e.target.checked)} />
+            <input
+              id="hnsw-on-disk"
+              type="checkbox"
+              checked={hnswOnDisk}
+              onChange={(e) => setHnswOnDisk(e.target.checked)}
+            />
             <label htmlFor="hnsw-on-disk" className="flex items-center text-sm text-gray-700">
               on_disk
             </label>
@@ -430,7 +451,12 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
                 />
               </div>
               <div className="flex items-center gap-2">
-                <input id="scalar-ram" type="checkbox" checked={scalarAlwaysRam} onChange={(e) => setScalarAlwaysRam(e.target.checked)} />
+                <input
+                  id="scalar-ram"
+                  type="checkbox"
+                  checked={scalarAlwaysRam}
+                  onChange={(e) => setScalarAlwaysRam(e.target.checked)}
+                />
                 <label htmlFor="scalar-ram" className="flex items-center text-sm text-gray-700">
                   always_ram
                 </label>
@@ -450,7 +476,9 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
                 <select
                   id="product-compression"
                   value={productCompression}
-                  onChange={(e) => setProductCompression(e.target.value as typeof productCompression)}
+                  onChange={(e) =>
+                    setProductCompression(e.target.value as typeof productCompression)
+                  }
                   className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
                 >
                   {(["x4", "x8", "x16", "x32", "x64"] as const).map((valor) => (
@@ -461,7 +489,12 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <input id="product-ram" type="checkbox" checked={productAlwaysRam} onChange={(e) => setProductAlwaysRam(e.target.checked)} />
+                <input
+                  id="product-ram"
+                  type="checkbox"
+                  checked={productAlwaysRam}
+                  onChange={(e) => setProductAlwaysRam(e.target.checked)}
+                />
                 <label htmlFor="product-ram" className="flex items-center text-sm text-gray-700">
                   always_ram
                 </label>
@@ -471,7 +504,12 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           )}
           {quantizationType === "binary" && (
             <div className="flex items-center gap-2">
-              <input id="binary-ram" type="checkbox" checked={binaryAlwaysRam} onChange={(e) => setBinaryAlwaysRam(e.target.checked)} />
+              <input
+                id="binary-ram"
+                type="checkbox"
+                checked={binaryAlwaysRam}
+                onChange={(e) => setBinaryAlwaysRam(e.target.checked)}
+              />
               <label htmlFor="binary-ram" className="flex items-center text-sm text-gray-700">
                 always_ram
               </label>
@@ -502,7 +540,10 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
                     const schema_type = e.target.value as PayloadSchemaType;
                     atualizarPayloadIndex(indice, {
                       schema_type,
-                      text_params: schema_type === "text" ? (item.text_params ?? TEXT_PARAMS_PADRAO) : undefined,
+                      text_params:
+                        schema_type === "text"
+                          ? (item.text_params ?? TEXT_PARAMS_PADRAO)
+                          : undefined,
                     });
                   }}
                   className="w-1/3 rounded-md border border-gray-300 px-3 py-2 text-gray-900"

@@ -6,7 +6,8 @@ import { LocalModelsTable } from "@/components/admin/LocalModelsTable";
 import type { LocalModel } from "@/lib/types/localModels";
 
 vi.mock("@/lib/api/localModels", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/api/localModels")>("@/lib/api/localModels");
+  const actual =
+    await vi.importActual<typeof import("@/lib/api/localModels")>("@/lib/api/localModels");
   return { ...actual, activateModel: vi.fn() };
 });
 
@@ -34,7 +35,14 @@ describe("LocalModelsTable", () => {
   });
 
   it("renderiza uma linha por modelo, com badge 'Ativo'", () => {
-    render(<LocalModelsTable models={[MODELO_ATIVO, MODELO_INATIVO]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <LocalModelsTable
+        models={[MODELO_ATIVO, MODELO_INATIVO]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     expect(screen.getAllByText("llama3.1:8b").length).toBeGreaterThan(0);
     expect(screen.getAllByText("qwen2.5:7b").length).toBeGreaterThan(0);
@@ -42,7 +50,14 @@ describe("LocalModelsTable", () => {
   });
 
   it("não mostra botão Ativar na linha já ativa", () => {
-    render(<LocalModelsTable models={[MODELO_ATIVO]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <LocalModelsTable
+        models={[MODELO_ATIVO]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     expect(screen.queryByRole("button", { name: "Ativar" })).not.toBeInTheDocument();
   });
@@ -52,7 +67,14 @@ describe("LocalModelsTable", () => {
     mockedActivate.mockResolvedValueOnce(undefined);
     const onChanged = vi.fn();
     const onSuccess = vi.fn();
-    render(<LocalModelsTable models={[MODELO_INATIVO]} onChanged={onChanged} onError={vi.fn()} onSuccess={onSuccess} />);
+    render(
+      <LocalModelsTable
+        models={[MODELO_INATIVO]}
+        onChanged={onChanged}
+        onError={vi.fn()}
+        onSuccess={onSuccess}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Ativar" }));
 
@@ -63,9 +85,18 @@ describe("LocalModelsTable", () => {
 
   it("erro ao ativar chama onError com a mensagem da API", async () => {
     const user = userEvent.setup();
-    mockedActivate.mockRejectedValueOnce(new LocalModelsApiError("Modelo não encontrado entre os já baixados."));
+    mockedActivate.mockRejectedValueOnce(
+      new LocalModelsApiError("Modelo não encontrado entre os já baixados."),
+    );
     const onError = vi.fn();
-    render(<LocalModelsTable models={[MODELO_INATIVO]} onChanged={vi.fn()} onError={onError} onSuccess={vi.fn()} />);
+    render(
+      <LocalModelsTable
+        models={[MODELO_INATIVO]}
+        onChanged={vi.fn()}
+        onError={onError}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     await user.click(screen.getByRole("button", { name: "Ativar" }));
 
@@ -73,7 +104,14 @@ describe("LocalModelsTable", () => {
   });
 
   it("mostra a data de download com o timestamp completo no title", () => {
-    render(<LocalModelsTable models={[MODELO_ATIVO]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <LocalModelsTable
+        models={[MODELO_ATIVO]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     // Não asserta o texto relativo exato (ex.: "há N dias") pois depende da
     // data em que o teste roda e ficaria flaky/errado com o tempo — o
@@ -84,7 +122,9 @@ describe("LocalModelsTable", () => {
   });
 
   it("sem modelos, mostra mensagem vazia", () => {
-    render(<LocalModelsTable models={[]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <LocalModelsTable models={[]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />,
+    );
 
     expect(screen.getByText(/nenhum modelo/i)).toBeInTheDocument();
   });

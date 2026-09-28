@@ -71,8 +71,12 @@ export default function SuportePage() {
               <span className="inline-block rounded-md bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
                 {item.category}
               </span>
-              <dt className="mt-3 text-base font-bold text-slate-900 leading-snug">{item.question}</dt>
-              <dd className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">{item.answer}</dd>
+              <dt className="mt-3 text-base font-bold text-slate-900 leading-snug">
+                {item.question}
+              </dt>
+              <dd className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                {item.answer}
+              </dd>
             </div>
           </div>
         ))}
@@ -83,7 +87,8 @@ export default function SuportePage() {
         <div>
           <h2 className="text-base font-bold text-blue-950">Não encontrou o que procurava?</h2>
           <p className="text-xs sm:text-sm text-blue-800 mt-1">
-            Nosso assistente virtual inteligente está disponível 24 horas por dia no canto inferior direito.
+            Nosso assistente virtual inteligente está disponível 24 horas por dia no canto inferior
+            direito.
           </p>
         </div>
         <button
@@ -97,4 +102,3 @@ export default function SuportePage() {
     </div>
   );
 }
-

@@ -222,11 +222,12 @@ export function DocumentViewModal({ documento, onOpenChange }: DocumentViewModal
             </div>
           )}
 
-          {(fileType === "md" || fileType === "txt" || fileType === "other") && content !== null && (
-            <div className="max-h-[62vh] overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-4 font-mono text-xs leading-relaxed text-slate-200 whitespace-pre-wrap shadow-inner selection:bg-blue-600 selection:text-white">
-              {content}
-            </div>
-          )}
+          {(fileType === "md" || fileType === "txt" || fileType === "other") &&
+            content !== null && (
+              <div className="max-h-[62vh] overflow-y-auto rounded-xl border border-slate-800 bg-slate-950 p-4 font-mono text-xs leading-relaxed text-slate-200 whitespace-pre-wrap shadow-inner selection:bg-blue-600 selection:text-white">
+                {content}
+              </div>
+            )}
         </div>
       )}
     </Modal>

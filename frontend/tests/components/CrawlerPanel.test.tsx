@@ -10,8 +10,9 @@ vi.mock("@/lib/api/crawler", async () => {
   return { ...actual, runCrawlerStream: vi.fn() };
 });
 vi.mock("@/lib/api/runtimeSettings", async () => {
-  const actual =
-    await vi.importActual<typeof import("@/lib/api/runtimeSettings")>("@/lib/api/runtimeSettings");
+  const actual = await vi.importActual<typeof import("@/lib/api/runtimeSettings")>(
+    "@/lib/api/runtimeSettings",
+  );
   return { ...actual, getRuntimeSettings: vi.fn() };
 });
 

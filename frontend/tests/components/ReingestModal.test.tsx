@@ -37,7 +37,12 @@ const COLLECTION_ORIGEM: RagCollection = {
   created_at: new Date().toISOString(),
 };
 
-const COLLECTION_DESTINO: RagCollection = { ...COLLECTION_ORIGEM, id: "destino", name: "destino", is_active: false };
+const COLLECTION_DESTINO: RagCollection = {
+  ...COLLECTION_ORIGEM,
+  id: "destino",
+  name: "destino",
+  is_active: false,
+};
 
 const DOCUMENTO: DocumentRegistryEntry = {
   id: "doc-1",

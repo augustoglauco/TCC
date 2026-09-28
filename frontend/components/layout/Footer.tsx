@@ -10,17 +10,30 @@ export default function Footer() {
               <span>⚡ Empresa Fictícia TCC</span>
             </div>
             <p className="text-xs text-slate-400 max-w-md leading-relaxed">
-              Trabalho de Conclusão de Curso — Assistente Virtual Multimodal com Roteador Inteligente e Protocolo MCP.
+              Trabalho de Conclusão de Curso — Assistente Virtual Multimodal com Roteador
+              Inteligente e Protocolo MCP.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-4 text-xs font-medium text-slate-300">
-            <Link href="/" className="hover:text-white transition-colors">Início</Link>
-            <Link href="/produtos" className="hover:text-white transition-colors">Produtos</Link>
-            <Link href="/pedidos" className="hover:text-white transition-colors">Pedidos</Link>
-            <Link href="/agendamentos" className="hover:text-white transition-colors">Agendamentos</Link>
-            <Link href="/suporte" className="hover:text-white transition-colors">Suporte</Link>
-            <Link href="/contato" className="hover:text-white transition-colors">Contato</Link>
+            <Link href="/" className="hover:text-white transition-colors">
+              Início
+            </Link>
+            <Link href="/produtos" className="hover:text-white transition-colors">
+              Produtos
+            </Link>
+            <Link href="/pedidos" className="hover:text-white transition-colors">
+              Pedidos
+            </Link>
+            <Link href="/agendamentos" className="hover:text-white transition-colors">
+              Agendamentos
+            </Link>
+            <Link href="/suporte" className="hover:text-white transition-colors">
+              Suporte
+            </Link>
+            <Link href="/contato" className="hover:text-white transition-colors">
+              Contato
+            </Link>
           </div>
         </div>
 

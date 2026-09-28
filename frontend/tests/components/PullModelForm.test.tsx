@@ -6,7 +6,8 @@ import { PullModelForm } from "@/components/admin/PullModelForm";
 import type { PullStatusResponse } from "@/lib/types/localModels";
 
 vi.mock("@/lib/api/localModels", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/api/localModels")>("@/lib/api/localModels");
+  const actual =
+    await vi.importActual<typeof import("@/lib/api/localModels")>("@/lib/api/localModels");
   return { ...actual, pullModel: vi.fn(), getPullStatus: vi.fn() };
 });
 
@@ -78,7 +79,9 @@ describe("PullModelForm", () => {
 
   it("erro ao disparar o pull mostra a mensagem da API", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    mockedPullModel.mockRejectedValueOnce(new LocalModelsApiError("Não foi possível iniciar o download."));
+    mockedPullModel.mockRejectedValueOnce(
+      new LocalModelsApiError("Não foi possível iniciar o download."),
+    );
 
     render(<PullModelForm onPulled={vi.fn()} />);
 
@@ -91,7 +94,11 @@ describe("PullModelForm", () => {
 
   it("retoma um download em andamento salvo no localStorage após remount", async () => {
     window.localStorage.setItem(STORAGE_KEY, "llama3.1:8b");
-    mockedGetPullStatus.mockResolvedValueOnce({ status: "pulling", percent: 40, detail: "baixando..." });
+    mockedGetPullStatus.mockResolvedValueOnce({
+      status: "pulling",
+      percent: 40,
+      detail: "baixando...",
+    });
 
     render(<PullModelForm onPulled={vi.fn()} />);
 
@@ -102,7 +109,11 @@ describe("PullModelForm", () => {
 
   it("não retoma e limpa o localStorage quando o download salvo já terminou", async () => {
     window.localStorage.setItem(STORAGE_KEY, "llama3.1:8b");
-    mockedGetPullStatus.mockResolvedValueOnce({ status: "done", percent: 100, detail: "concluído" });
+    mockedGetPullStatus.mockResolvedValueOnce({
+      status: "done",
+      percent: 100,
+      detail: "concluído",
+    });
 
     render(<PullModelForm onPulled={vi.fn()} />);
 
@@ -176,8 +187,12 @@ describe("PullModelForm", () => {
     // o fix, só o interval de "modelo-a" (o único vivo) deve ter dado tick.
     await vi.advanceTimersByTimeAsync(1500);
 
-    const chamadasParaModeloA = mockedGetPullStatus.mock.calls.filter(([nome]) => nome === "modelo-a");
-    const chamadasParaModeloB = mockedGetPullStatus.mock.calls.filter(([nome]) => nome === "modelo-b");
+    const chamadasParaModeloA = mockedGetPullStatus.mock.calls.filter(
+      ([nome]) => nome === "modelo-a",
+    );
+    const chamadasParaModeloB = mockedGetPullStatus.mock.calls.filter(
+      ([nome]) => nome === "modelo-b",
+    );
     expect(chamadasParaModeloA.length).toBeGreaterThan(0);
     // Única chamada para "modelo-b" = a checagem de retomada; nenhum tick de
     // polling seguinte deve ter sido disparado para ele.

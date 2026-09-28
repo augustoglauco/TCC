@@ -219,9 +219,7 @@ export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
             </div>
           </dl>
 
-          <p className="mt-3 text-xs text-blue-700">
-            Última atividade há {secondsSinceActivity}s
-          </p>
+          <p className="mt-3 text-xs text-blue-700">Última atividade há {secondsSinceActivity}s</p>
 
           {stalled && (
             <p
