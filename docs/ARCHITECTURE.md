@@ -58,6 +58,77 @@ Este diagrama cobre a arquitetura de IA/backend. A interface que o usuário
 efetivamente usa (site institucional, produtos, pedidos e o widget de chat
 que expõe esse fluxo) é documentada separadamente em `docs/FRONTEND.md`.
 
+### Fluxo de uma mensagem no chat (`POST /api/chat/messages`)
+
+Trazido do antigo `docs/Manuais/DIAGRAMA_FLUXO_CHAT.md` e corrigido contra o
+código em 2026-09-28 (o diagrama antigo tinha um domínio `pos_venda`
+inexistente, Vendas passando pelo MCP B2B e o Monitor de Tom depois da
+resposta). Contrato dos eventos SSE: `docs/FRONTEND.md` §4.
+
+```mermaid
+flowchart TD
+    IN["Mensagem do widget<br/>(texto, áudio, imagem)"] --> PRE{"Tipo"}
+    PRE -- "áudio" --> STT["Whisper local (STT)<br/>evento transcription"] --> MSG
+    PRE -- "imagem + image_intent=documento" --> OCR["OCR (Tesseract)<br/>texto anexado à mensagem"] --> MSG
+    PRE -- "imagem de produto" --> ID["Identificação: CLIP em catalogo_imagens<br/>→ visão externa se a confiança for baixa"]
+    ID --> FICHA["Ficha do produto no Postgres<br/>(RAG só se não estiver no banco)"] --> OUTID["tokens + evento identification + done<br/>(troca gravada na memória)"]
+    PRE -- "texto" --> MSG["Mensagem efetiva"]
+    MSG --> EMAIL{"Só um e-mail?"}
+    EMAIL -- "sim" --> FIXA["Grava o e-mail, resposta fixa sem LLM"]
+    EMAIL -- "não" --> MEM["Memória: últimas mensagens, última troca,<br/>resumo e e-mail (Postgres)"]
+    MEM --> PAR["Em paralelo: classificador de domínio<br/>e Monitor de Tom"]
+    PAR -- "tom crítico" --> ESC["evento escalonamento<br/>+ registro em tom_escalonamentos"]
+    PAR --> DOM{"Domínio"}
+    DOM -- "agendamento" --> AG["Máquina de estados<br/>+ calendar-mcp-server (8090)"]
+    DOM -- "vendas" --> VEN["RAG + catálogo do Postgres em paralelo<br/>(SalesCatalogClient, sem MCP)"]
+    DOM -- "suporte / atendimento" --> RAG["RAG de texto"]
+    DOM -- "fora_escopo" --> EXT
+    VEN --> ROT{"Contexto vazio<br/>ou complexidade alta?"}
+    RAG --> ROT
+    ROT -- "não" --> LOC["Modelo local (Ollama)"]
+    ROT -- "sim" --> EXT["Modelo externo (OpenRouter)"]
+    LOC --> OUT["tokens em streaming + done<br/>(métricas e perfil)"]
+    EXT --> OUT
+    AG --> OUT
+    OUT --> POS["Grava a troca e as métricas;<br/>a cada 6 mensagens, resumo em segundo plano"]
+```
+
+| Entrada | Pré-processamento | Caminho | Eventos SSE |
+| --- | --- | --- | --- |
+| Texto | — | Memória → classificador e Monitor de Tom → domínio → local ou externo | `conversation`, `status` (se o modelo local estiver carregando), `token`, `escalonamento` (opcional), `done` |
+| Áudio | Whisper (`SttClient`) | Transcrição → mesmo caminho do texto | `conversation`, `transcription`, `token`, `done` |
+| Imagem de produto | Validação do formato | Identificação (CLIP → visão externa) → ficha do banco ou RAG | `conversation`, `token`, `identification`, `done` |
+| Imagem de documento (`image_intent=documento`) | OCR | Texto extraído anexado → mesmo caminho do texto | `conversation`, `token`, `done` |
+| Só um e-mail | Regex | Grava o e-mail, resposta fixa | `conversation`, `token`, `done` |
+
+Falha de dependência (Ollama, OpenRouter, RAG) vira o evento `error` com
+"Serviço temporariamente indisponível".
+
+### Escolhas de tecnologia e alternativas consideradas
+
+Versões e bibliotecas em uso: `docs/CONVENTIONS.md`, seção "Stack". Aqui fica
+só o porquê de cada escolha central (conteúdo trazido do antigo
+`docs/TECHNOLOGY_STACK.md` na consolidação de 2026-09-28).
+
+- **PostgreSQL, não MongoDB:** os dados são relacionais (produto ↔ estoque
+  ↔ pedido ↔ compatibilidade), reserva de pedido precisa de transação ACID,
+  e o conector de BD do RAG (R4) lê SQL. É o backend único de catálogo,
+  estoque, preços, conversas e perfil.
+- **Qdrant, não Pinecone/Weaviate:** open-source, roda num container ao lado
+  do resto (sem custo de nuvem), com filtro nativo por payload (domínio,
+  categoria), suficiente para o volume do protótipo.
+- **Ollama, não vLLM, como runtime local:** API HTTP simples, troca de
+  modelo trivial (`ollama pull`) e devolve tokens e tempos (carga x
+  geração) em cada resposta, o que reduz o código de instrumentação da
+  avaliação (`docs/EVALUATION.md`). O vLLM daria mais vazão sob
+  concorrência, desnecessária num protótipo sem carga real.
+- **OpenRouter como modelo externo:** uma chave para vários provedores e
+  modelos, API no formato OpenAI; o externo só entra quando o roteador
+  escala.
+- **Next.js separado do FastAPI:** o chat precisa de um frontend dedicado
+  (streaming SSE, gravação de áudio, upload de imagem); o backend fica só
+  como API.
+
 ## 3. Requisitos funcionais
 
 | # | Requisito |
@@ -1137,7 +1208,7 @@ mas uma lacuna de cobertura. Duas correções:
 
 | Requisito | MVP (protótipo) | Evolução futura |
 | --- | --- | --- |
-| Modelo local (RTX40780 GPU 16GB) | Servido via **Ollama** (decisão fechada — simplicidade de setup/gestão de modelos e instrumentação de latência pronta via `eval_count`/`eval_duration`, ver `docs/TECHNOLOGY_STACK.md`). Avaliação comparativa ampliada entre **9 configurações**: Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M e Q5_K_M); Qwen3 8B (Q5_K_M e Q8_0); Phi-4-mini/Phi-4 (3.8B–7B); Gemma-4-12B (4-bit e 8-bit) — ver riscos de VRAM na Seção 7 | Fine-tuning de domínio, otimização de latência em produção |
+| Modelo local (RTX 4080 GPU 16GB) | Servido via **Ollama** (decisão fechada — simplicidade de setup/gestão de modelos e instrumentação de latência pronta via `eval_count`/`eval_duration`, ver §2, "Escolhas de tecnologia"). Avaliação comparativa ampliada entre **9 configurações**: Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M e Q5_K_M); Qwen3 8B (Q5_K_M e Q8_0); Phi-4-mini/Phi-4 (3.8B–7B); Gemma-4-12B (4-bit e 8-bit) — ver riscos de VRAM na Seção 7 | Fine-tuning de domínio, otimização de latência em produção |
 | Entrada multimodal | Texto e áudio (STT) funcionando, com suporte a mais de um formato de áudio (ex.: wav e mp3); imagem com fluxo básico. STT via **faster-whisper rodando na mesma GPU local** (decisão fechada — consistente com a estratégia "local-first" do resto do projeto, sem custo por chamada; ver risco de contenção de VRAM na Seção 7), modelo `small` ou `medium` conforme resultado da Seção 7 | Robustez para áudio ruidoso, formatos adicionais, streaming |
 | Roteador/Orquestrador | Classificador de intenção simples (regras + LLM) para local x externo x RAG, com log básico de decisões (custo/latência). Modelo externo acessado via **OpenRouter** (uma chave cobrindo múltiplos provedores). Domínios Vendas/Suporte/Atendimento tentam local+RAG primeiro e só escalam para externo se: fora de escopo, RAG sem resultado relevante, ou complexidade alta; Agendamento é sempre local. Classificador considera as últimas 1–3 mensagens da conversa (não só a mensagem isolada), necessário para resolver confirmações curtas a ofertas feitas pelo próprio assistente (ex.: aceite de agendamento proposto) | Roteador adaptativo com aprendizado contínuo e métricas de custo/qualidade em produção |
 | RAG — textos, PDFs, BD e sites (obrigatório) | Ingestão de PDFs/textos + busca vetorial; conector básico de leitura a um BD relacional; crawler disparado manualmente a partir de uma URL semente, com profundidade e teto de páginas parametrizáveis por execução, classificação de domínio por LLM com fila de revisão humana abaixo de um limiar de confiança | Conector com escrita/sincronização incremental, crawler agendado, múltiplas fontes web |

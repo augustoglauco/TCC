@@ -2,7 +2,7 @@
 
 ## Stack
 
-- **Python 3.14+** (otimizado com PEP 695 e PEP 649; baseline Python 3.11/3.13 e procedimento de rollback detalhados em `docs/Manuais/ROLLBACK_PYTHON314.md`), framework **FastAPI** (async-first) para as APIs do chat
+- **Python 3.14+** (otimizado com PEP 695 e PEP 649; baseline Python 3.11/3.13 e procedimento de rollback na seção "Rollback de Versões" abaixo), framework **FastAPI** (async-first) para as APIs do chat
   e do servidor MCP B2B.
 - **Pydantic** para todos os schemas de entrada/saída (requisições HTTP,
   respostas de ferramentas MCP, eventos internos).
@@ -33,6 +33,30 @@ Esta stack foi definida como ponto de partida; se uma tarefa específica
 exigir revisão (ex.: trocar o banco vetorial ou o banco relacional),
 registre o motivo em `docs/ARCHITECTURE.md` antes de trocar, não apenas no
 código.
+
+### Bibliotecas e versões em uso
+
+Conferido em 2026-09-28 contra `backend/pyproject.toml`,
+`frontend/package.json` e `backend/docker-compose.yml` (conteúdo trazido do
+antigo `docs/TECHNOLOGY_STACK.md`, que citava bibliotecas que o projeto
+nunca usou). O porquê das escolhas centrais está em `docs/ARCHITECTURE.md`
+§2. Ao trocar uma dependência, atualize esta tabela.
+
+| Área | Em uso |
+| --- | --- |
+| Linguagem e API | Python 3.14, FastAPI, Uvicorn, Pydantic v2, `pydantic-settings` (`.env`) |
+| Banco relacional | PostgreSQL 15 (`postgres:15-alpine`), SQLAlchemy 2 async + `asyncpg`, migrações Alembic em `backend/migrations/` |
+| Banco vetorial | Qdrant (`qdrant/qdrant`), `qdrant-client`; collections por perfil (`rag_collections`) e `catalogo_imagens` |
+| Embeddings | `sentence-transformers`: texto `paraphrase-multilingual-MiniLM-L12-v2` (384 dims, configurável por collection), imagem `clip-ViT-B-32` (512 dims) |
+| Modelo local | Ollama (cliente HTTP próprio); em uso `gemma4:12b-it-q4_K_M`, candidatos da avaliação em `docs/EVALUATION.md` |
+| Modelo externo | OpenRouter via `httpx` (texto, visão e classificador Jev); modelo trocável em `/admin/modelos` |
+| Documentos e imagem | `pdfplumber` (PDF), `beautifulsoup4` (crawler), Pillow, `pytesseract` (OCR) |
+| Áudio | `faster-whisper` local (`STT_MODEL_SIZE`, default `small`) |
+| MCP | SDK oficial `mcp` (cliente do `calendar-mcp-server` e servidor B2B); Caddy + DuckDNS para o HTTPS público do B2B |
+| Testes e lint (backend) | `pytest`, `pytest-asyncio`, `aiosqlite` (SQLite dos testes), `ruff` (lint e format) |
+| Frontend | Next.js 16 (App Router), React 19, TypeScript 5, Tailwind CSS 4, Zustand 5, Radix UI (dialog, tabs); SSE lido com `fetch` + `ReadableStream` |
+| Testes e lint (frontend) | Vitest 4 + Testing Library, Playwright, ESLint 9 (`eslint-config-next`), Prettier 3 |
+| Versões mínimas do ambiente | Python 3.14, Node.js 20, Docker com Compose v2, GPU NVIDIA com 16 GB de VRAM e driver com CUDA para o Ollama |
 
 ## Estrutura de pastas proposta (monorepo)
 
@@ -178,13 +202,57 @@ no backend e 10 no frontend. Antes de commitar, confira:
    só nos arquivos alterados (frontend).
 7. Nenhum caminho absoluto da máquina (`file:///home/...`) nem credencial
    nos `.md` e no código.
+8. Nenhum documento novo fora da lista do `CLAUDE.md` (resumos, cópias de
+   spec, guias paralelos): atualize o documento que já cobre o assunto.
 - Não commitar arquivos de ambiente com segredos reais (`.env` — apenas
   `.env.example` vai para o repositório).
 
 ## Rollback de Versões
 
-- Caso seja necessário reverter a migração do Python 3.14 (ou retornar a um estado anterior), consulte o passo a passo completo em `docs/Manuais/ROLLBACK_PYTHON314.md`.
-- A baseline pré-migração está preservada na tag git `pre-python314-baseline`.
+### Reverter a migração para o Python 3.14
+
+Referências no git:
+
+- tag `pre-python314-baseline` → commit `00bdaed` (estado antes da
+  migração);
+- `2ee1dd2`: alterações de código (PEP 695 em `b2b.py`, PEP 649 em
+  `models/` e `rag/`, `pyproject.toml`); `f4a4eff`: `backend/uv.lock`;
+- `5885d05`: merge da migração no `master`.
+
+Commits posteriores podem depender do Python 3.14; depois de reverter,
+rode os testes antes de subir os serviços.
+
+**Opção A — `git revert` (recomendada, mantém o histórico):**
+
+```bash
+git checkout master && git pull origin master
+git revert -m 1 5885d05 -m "revert: rollback da migracao para Python 3.14"
+git push origin master
+```
+
+**Opção B — voltar à tag.** Só para inspecionar:
+`git checkout pre-python314-baseline`. Para forçar o `master` de volta
+(reescreve o histórico e descarta tudo o que veio depois; só com decisão
+explícita do desenvolvedor):
+
+```bash
+git checkout master
+git reset --hard pre-python314-baseline
+git push origin master --force
+```
+
+**Ambiente virtual:** recrie o `.venv` com o Python anterior e reinstale:
+
+```bash
+cd backend
+uv venv --python 3.13 .venv --clear
+uv sync --all-extras
+.venv/bin/python --version                   # Python 3.13.x
+.venv/bin/pytest -m "not gpu and not qdrant"
+```
+
+Depois, reinicie backend e MCP B2B (`./testar.sh` já faz isso, ver
+`docs/TESTE_LOCAL.md`, ou os passos do `goup.md`).
 
 ## Ao usar Claude Code CLI ou Antigravity para gerar código
 

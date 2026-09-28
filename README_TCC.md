@@ -111,7 +111,7 @@ A aplicação é implantada e executada em ambiente de servidor local GPU e disp
 
 > **Por que o site não usa HTTPS:** o frontend e o backend (porta 8000) rodam em HTTP puro. Abrir o site por `https://` não funciona, porque a página passaria a chamar o backend em `https://…:8000`, que não fala HTTPS. Só o MCP B2B tem HTTPS, porque é o único serviço que trafega uma credencial (a chave do parceiro) pela internet.
 
-*Para o guia completo de provisionamento de infraestrutura, consulte o manual:* [HOWTO_IMPLANTACAO_INFRA.md](docs/Manuais/HOWTO_IMPLANTACAO_INFRA.md).
+*Para o guia completo de provisionamento de infraestrutura, consulte o manual:* [goup.md](goup.md) (instalação inicial e subida do ambiente).
 
 ---
 

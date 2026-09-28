@@ -26,6 +26,9 @@ implementar qualquer mudança:
   (acerto do roteador, qualidade do RAG, latência local x externo).
 - `docs/AGENTIC_WORKFLOW.md` — divisão de trabalho entre Antigravity e
   Claude Code CLI, loop de trabalho e boas práticas de revisão.
+- `docs/TESTE_LOCAL.md`, `goup.md` (instalação e subida do ambiente) e
+  `docs/Manuais/` (manuais do usuário e do administrador) — lista completa
+  e regra de "não criar documentos paralelos" na tabela do `CLAUDE.md`.
 - `CLAUDE.md` — o mesmo contexto, na versão consumida pelo Claude Code CLI.
 - `.kiro/steering/project.md` — o mesmo contexto, na versão consumida pelo
   Kiro CLI (+ agentes customizados em `.kiro/agents/*.json`).

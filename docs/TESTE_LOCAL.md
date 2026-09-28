@@ -81,5 +81,33 @@ Novas suítes entram no dicionário `SUITES` de `backend/scripts/teste_local.py`
 e numa linha desta tabela, na mesma tarefa que implementa a funcionalidade. O
 agente aponta `SUITE_ATUAL` para a suíte que o próximo `./testar.sh` deve rodar.
 
+## Roteiro manual: agendamento (R11)
+
+Sem suíte automática: cria eventos de verdade na agenda. Trazido do antigo
+`docs/Manuais/GUIA_TESTE_AGENDAMENTO.md` (consolidação de 2026-09-28).
+Pré-requisitos: configuração única do passo 0.7 do `goup.md` e o
+`calendar-mcp-server` no ar (passo 4). O chat fica em
+`http://localhost:3001`.
+
+O assistente coleta data e hora, nome, e-mail e telefone; valida contra o
+expediente (seg–sex, 09:00–18:00, `America/Sao_Paulo`) e contra a agenda
+(`list_events`); só cria o evento depois de um "sim" explícito; o convite
+sai pelo próprio Google Calendar (`sendUpdates: "all"`).
+
+| Caso | Mensagens | Esperado |
+| --- | --- | --- |
+| CT-01 tudo de uma vez | "Gostaria de agendar uma visita para terça que vem às 14h. Meu nome é Carlos Silva, e-mail carlos.silva@email.com, telefone (11) 98888-7777." → "Sim, pode confirmar!" | Resumo com pedido de confirmação; depois, evento criado e aviso do convite por e-mail |
+| CT-02 em vários turnos | "Quero agendar uma visita à empresa." → "Meu nome é Maria Oliveira e meu e-mail é maria@empresa.com" → "Pode ser quinta às 10h? Meu telefone é 11977776666" → "Isso mesmo, pode marcar." | A cada turno pede só o que falta, sem perder o que já foi dito; confirma e cria |
+| CT-03 fora do expediente | "…em nome de João, joao@email.com, 11999990000 para ontem às 14h" / "neste domingo às 10h" / "quarta às 20:00" → "então quarta às 15:00" | Recusa passado, fim de semana e fora do horário antes de pedir confirmação; na correção, reaproveita nome, e-mail e telefone |
+| CT-04 conflito | Crie à mão um evento na próxima sexta das 11:00 às 11:30 e peça uma visita às 11:00 | Informa que o horário está ocupado e pede outro |
+| CT-05 correção na confirmação | "Agendar visita para sexta às 15h. Nome Pedro, pedro@email.com, 11922223333." → "Não, altera o e-mail para pedro.novo@email.com" → "Agora sim, pode agendar!" | Nova confirmação com o e-mail corrigido; evento com o e-mail novo |
+| CT-06 MCP fora do ar | Derrube o `calendar-mcp-server` (`fuser -k 8090/tcp`) e confirme um agendamento; depois suba de novo e confirme outra vez | Mensagem de contingência ("No momento não consegui confirmar o agendamento automaticamente…") e log `google_calendar_indisponivel`; com o servidor de volta, o agendamento conclui |
+
+Conferir no Google Calendar: evento "Visita — <nome>", 30 minutos, com o
+telefone na descrição, e o convite no e-mail informado. No log do backend,
+nenhum dado confirmado diferente do que o cliente escreveu. Problemas
+comuns (servidor fora do ar, token expirado, fuso, dados perdidos após
+reiniciar o backend): `goup.md`, "Solução de problemas e logs".
+
 `# MVP: roteiro de apoio ao teste manual, não avaliação experimental — a
 avaliação do TCC continua em eval/ (docs/EVALUATION.md).`

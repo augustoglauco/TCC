@@ -127,7 +127,8 @@ O projeto adota a estrutura de monorepo, mantendo backend, frontend, testes e do
 │   ├── FRONTEND.md             # Especificação da UI, rotas Next.js e contratos de API
 │   ├── CONVENTIONS.md          # Padrões de código, estrutura e regras do Git
 │   ├── EVALUATION.md           # Detalhamento operacional das avaliações experimentais
-│   ├── TECHNOLOGY_STACK.md     # Especificação das tecnologias, bibliotecas e justificativas
+│   ├── TESTE_LOCAL.md          # Teste na máquina do desenvolvedor (./testar.sh) e roteiros manuais
+│   ├── Manuais/                # Manuais do usuário e do administrador
 │   ├── AGENTIC_WORKFLOW.md     # Guia de colaboração com agentes de IA (Antigravity/Claude)
 │   └── ROADMAP.md              # Checklist de desenvolvimento por fases (Fase 0 a 11)
 ├── backend/                    # Código-fonte da aplicação Backend (FastAPI)
@@ -279,15 +280,15 @@ ruff check . && ruff format --check .
 Para detalhes aprofundados sobre cada componente da solução, consulte a documentação técnica na pasta [`docs/`](docs/):
 
 ### 📖 Manuais Operacionais (How-To)
-- 🛠️ [HOWTO_IMPLANTACAO_INFRA.md](docs/Manuais/HOWTO_IMPLANTACAO_INFRA.md) — Manual de Implantação e Infraestrutura (GPU, Docker, Ollama, Backend, Frontend e Troubleshooting).
+- 🛠️ [goup.md](goup.md) — Instalação inicial, subida do ambiente a cada sessão, acesso externo, MCP B2B público (com o manual do parceiro) e solução de problemas.
 - ⚙️ [HOWTO_ADMINISTRADOR.md](docs/Manuais/HOWTO_ADMINISTRADOR.md) — Manual do Administrador do Sistema (Gestão RAG/PDFs, Web Crawler, Parametrização da IA em runtime, Catálogo e Tom).
 - 👤 [HOWTO_USUARIO.md](docs/Manuais/HOWTO_USUARIO.md) — Manual do Usuário e Cliente (Recursos do Website + Guia do Chat Multimodal com Texto, Áudio, Imagem e Cards).
 
 ### 📐 Especificações Técnicas e Arquitetura
 - 📘 [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Visão geral da arquitetura, requisitos funcionais (R1–R12), fluxos de decisão e limitações.
 - 💻 [FRONTEND.md](docs/FRONTEND.md) — Especificação da interface Next.js, componentes do widget, rotas e contratos da API REST.
-- 🛠️ [TECHNOLOGY_STACK.md](docs/TECHNOLOGY_STACK.md) — Justificativa técnica, versões de bibliotecas e matriz de requisitos.
-- 📏 [CONVENTIONS.md](docs/CONVENTIONS.md) — Estrutura do monorepo, convenções de código Python/TypeScript, Git e testes.
+- 🧪 [TESTE_LOCAL.md](docs/TESTE_LOCAL.md) — Teste na máquina do desenvolvedor (`./testar.sh`) e roteiro manual do agendamento.
+- 📏 [CONVENTIONS.md](docs/CONVENTIONS.md) — Stack (bibliotecas e versões), estrutura do monorepo, convenções de código Python/TypeScript, Git, testes e rollback do Python 3.14.
 - 📊 [EVALUATION.md](docs/EVALUATION.md) — Procedimentos operacionais para as 3 avaliações experimentais (Acurácia, RAG, Latência).
 - 🔄 [AGENTIC_WORKFLOW.md](docs/AGENTIC_WORKFLOW.md) — Guia do fluxo de trabalho com agentes de IA (Antigravity IDE e Claude Code CLI).
 - 🗺️ [ROADMAP.md](docs/ROADMAP.md) — Lista detalhada de tarefas dividida por 12 fases do MVP.

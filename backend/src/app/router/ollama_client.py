@@ -31,7 +31,7 @@ class PullProgressLine:
 
 
 class OllamaClient:
-    """Cliente para o backend local via Ollama (docs/TECHNOLOGY_STACK.md).
+    """Cliente para o backend local via Ollama (docs/ARCHITECTURE.md §2).
 
     Além de `generate` (geração de chat), expõe `list_local_models`/
     `pull_model_streaming` para o gerenciador administrativo de modelos

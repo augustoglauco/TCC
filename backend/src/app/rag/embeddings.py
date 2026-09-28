@@ -11,7 +11,7 @@ import threading
 from sentence_transformers import SentenceTransformer
 
 # Modelo multilíngue leve (~384 dims) — cobre português sem exigir um modelo
-# maior, conforme docs/TECHNOLOGY_STACK.md ("Embeddings (texto)").
+# maior (ver docs/CONVENTIONS.md, "Bibliotecas e versões em uso").
 DEFAULT_EMBEDDING_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
 
 

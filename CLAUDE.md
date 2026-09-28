@@ -39,11 +39,18 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 | `docs/ARCHITECTURE.md` | Antes de implementar qualquer requisito — arquitetura, os 12 requisitos funcionais, escopo do MVP x evolução futura, riscos conhecidos. |
 | `docs/FRONTEND.md` | Antes de trabalhar no site/widget de chat — seções da interface, stack (Next.js), contrato de API com o backend. |
 | `docs/ROADMAP.md` | Para saber a próxima tarefa a implementar e marcar o progresso. |
-| `docs/CONVENTIONS.md` | Antes de escrever código — stack, estrutura de pastas, estilo, testes, git. |
+| `docs/CONVENTIONS.md` | Antes de escrever código — stack (versões e bibliotecas), estrutura de pastas, estilo, testes, git e rollback do Python 3.14. |
 | `docs/EVALUATION.md` | Ao implementar ou rodar a avaliação experimental (roteador, RAG, latência). |
 | `docs/AGENTIC_WORKFLOW.md` | Para entender a divisão de trabalho entre Antigravity e Claude Code CLI. |
 | `docs/TESTE_LOCAL.md` | Quando o código precisa ser validado na máquina do desenvolvedor (GPU/Ollama/dados reais) — `./testar.sh` roda o teste (`backend/scripts/teste_local.py`, suíte `SUITE_ATUAL`) e dá push do relatório em `testes_locais/`. |
-| `docs/Manuais/ROLLBACK_PYTHON314.md` | Caso seja necessário reverter a migração do Python 3.14 e restaurar o ambiente para Python 3.13 / 3.11+. |
+| `goup.md` (raiz) | Para instalar numa máquina nova (passo 0) ou subir o ambiente à mão; acesso externo, MCP B2B público com o manual do parceiro, solução de problemas. `./g.sh` sobe tudo de uma vez. |
+| `docs/Manuais/` | Manuais para quem usa o sistema: `HOWTO_USUARIO.md` (site e chat) e `HOWTO_ADMINISTRADOR.md` (telas `/admin`). Atualize quando mudar o que o usuário ou o administrador vê. |
+| `README.md` e `README_TCC.md` | Apresentação do projeto; o `README_TCC.md` é a entrega acadêmica no formato do curso. |
+
+Não crie documentos novos fora desta lista (resumos, cópias de spec, guias
+paralelos): o conteúdo vai para o documento acima que já cobre o assunto.
+Consolidação de 2026-09-28: `resumo.md`, `docs/TECHNOLOGY_STACK.md` e cinco
+manuais foram incorporados aos documentos acima e apagados.
 
 ## Stack técnica
 

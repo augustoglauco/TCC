@@ -19,7 +19,7 @@ _VALID_DOMAINS = {"vendas", "suporte", "atendimento", "agendamento", "fora_escop
 
 
 class OpenRouterClient:
-    """Cliente para o backend externo via OpenRouter (docs/TECHNOLOGY_STACK.md).
+    """Cliente para o backend externo via OpenRouter (docs/ARCHITECTURE.md §2).
 
     Diferente do Ollama, a API do OpenRouter não devolve breakdown de
     load/eval duration — total_duration_ms é medido no lado do cliente,

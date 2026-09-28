@@ -47,8 +47,7 @@ from app.router.rag_client import Document, RAGConnectionError
 logger = logging.getLogger(__name__)
 
 # MVP: top-k e limiar de score fixos por config, sem reranking (BM25 +
-# similaridade combinada é evolução futura, ver docs/TECHNOLOGY_STACK.md,
-# linha "Reranking") nem configuráveis por perfil de collection (ver
+# similaridade combinada é evolução futura) nem configuráveis por perfil de collection (ver
 # docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §10).
 DEFAULT_TOP_K = 3
 DEFAULT_SCORE_THRESHOLD = 0.35

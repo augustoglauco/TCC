@@ -26,6 +26,9 @@ raiz do workspace) antes de propor ou implementar qualquer mudança:
   qualidade do RAG, latência local x externo).
 - `docs/AGENTIC_WORKFLOW.md` — divisão de trabalho entre as ferramentas
   agênticas e loop de trabalho recomendado.
+- `docs/TESTE_LOCAL.md`, `goup.md` (instalação e subida do ambiente) e
+  `docs/Manuais/` (manuais do usuário e do administrador) — lista completa
+  e regra de "não criar documentos paralelos" na tabela do `CLAUDE.md`.
 
 ## Antes de iniciar qualquer trabalho
 
