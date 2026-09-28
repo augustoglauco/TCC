@@ -399,24 +399,24 @@ conversa e classificação do usuário").
       (truncados), manda responder o que foi perguntado, e a busca de
       candidatos usa a última resposta em "o produto acima". Validado no
       teste local (`testes_locais/20260927-2100-vendas.md`, V11/V12)
-- [~] Identificação por imagem com os detalhes do cadastro (R6/R12, decisão
+- [x] Identificação por imagem com os detalhes do cadastro (R6/R12, decisão
       de 2026-09-27, `docs/ARCHITECTURE.md` §4, passo 4) — produto é dado do
       banco e PDFs ficam para manuais: achado o produto (`produto_id` da foto
       ou nome casando com um único produto), a resposta traz a ficha do banco
       (descrição, especificações técnicas, dimensões, peso) com o nome do
       cadastro; sem produto no banco, cai no RAG como antes. Testado com
-      fakes; falta conferir no navegador
-- [~] Produto achado no banco não escala para o externo por RAG vazio
+      fakes e conferido no navegador em 2026-09-28
+- [x] Produto achado no banco não escala para o externo por RAG vazio
       (correção de 2026-09-28, mesmo item 6 da decisão do orquestrador) — a
       pergunta seguinte à imagem acertou o produto, mas foi para o externo
-      (`rag_vazio`) porque nenhum PDF falava dele. Testado com fakes; falta
-      conferir no navegador
-- [~] Pergunta curta depois da imagem ("possui detalhes?", sem "acima" ou
+      (`rag_vazio`) porque nenhum PDF falava dele. Testado com fakes e
+      conferido no navegador em 2026-09-28 (resposta no local)
+- [x] Pergunta curta depois da imagem ("possui detalhes?", sem "acima" ou
       "esse") — a busca no catálogo passa a usar sempre a última resposta
       como complemento do histórico, e os classificadores LLM a recebem no
       contexto (correção de 2026-09-28; no navegador caía em `fora_escopo`
-      e ia para o externo, que deu 429). Testado com fakes; falta conferir
-      no navegador
+      e ia para o externo, que deu 429). Testado com fakes e conferido no
+      navegador em 2026-09-28
 
 ## Fase 7 — Frontend: Site Institucional, Produtos e Pedidos (ver `docs/FRONTEND.md`)
 
