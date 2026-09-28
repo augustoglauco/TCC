@@ -22,6 +22,7 @@ import type {
   AdminProductVolumeDiscount,
   AdminProductCompatibility,
 } from "@/lib/types/adminProducts";
+import SearchableSelect from "@/components/ui/SearchableSelect";
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -756,20 +757,19 @@ export default function ProductFormModal({
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Selecione o produto compatível do catálogo
                   </label>
-                  <select
-                    value={compativelSelectedId}
-                    onChange={(e) => setCompativelSelectedId(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-900 focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">-- Escolha um produto --</option>
-                    {allProducts
+                  <SearchableSelect
+                    options={allProducts
                       .filter((p) => p.id !== produtoParaEditar.id)
-                      .map((p) => (
-                        <option key={p.id} value={p.id}>
-                          #{p.id} - {p.nome} ({p.categoria})
-                        </option>
-                      ))}
-                  </select>
+                      .map((p) => ({
+                        value: String(p.id),
+                        label: `#${p.id} - ${p.nome}`,
+                        sublabel: p.categoria || "Sem categoria",
+                      }))}
+                    value={compativelSelectedId}
+                    onChange={(val) => setCompativelSelectedId(val)}
+                    placeholder="-- Pesquise e selecione um produto --"
+                    disabled={updatingCompatibility}
+                  />
                 </div>
 
                 <div className="flex items-end">
