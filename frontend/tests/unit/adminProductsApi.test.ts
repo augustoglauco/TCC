@@ -132,7 +132,7 @@ describe("adminProducts API client", () => {
   });
 
   it("anexa page_range no FormData em extractCatalogStream quando fornecido", async () => {
-    let capturedBody: FormData | null = null;
+    let capturedBody: any = null;
     const mockFetch = vi.fn().mockImplementation(async (_url, options) => {
       capturedBody = options?.body as FormData;
       return {

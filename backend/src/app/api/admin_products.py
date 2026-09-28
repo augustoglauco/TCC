@@ -33,7 +33,7 @@ from app.db.catalog import (
     obter_produto,
 )
 from app.db.models import ProdutoImagem
-from app.models.catalog import ProdutoCreate, ProdutoImagemOut, ProdutoOut, ProdutoUpdate
+from app.models.catalog import PaginatedProdutosOut, ProdutoCreate, ProdutoImagemOut, ProdutoOut, ProdutoUpdate
 from app.models.catalog_extractor import CatalogConfirmRequest, CatalogConfirmResponse
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.image_search import ClipImageStore
@@ -49,11 +49,6 @@ def _get_clip_store(request: Request) -> ClipImageStore:
 
 def _get_clip_embedder(request: Request) -> ClipEmbedder:
     return request.app.state.clip_embedder
-
-
-class PaginatedProdutosOut(BaseModel):
-    items: list[ProdutoOut]
-    total: int
 
 
 @router.get("", response_model=PaginatedProdutosOut)

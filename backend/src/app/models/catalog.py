@@ -61,6 +61,13 @@ class ProdutoOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PaginatedProdutosOut(BaseModel):
+    items: list[ProdutoOut]
+    total: int
+    limit: int = 100
+    offset: int = 0
+
+
 class ProdutoCreate(BaseModel):
     nome: str
     descricao: str

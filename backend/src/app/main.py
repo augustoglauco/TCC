@@ -15,6 +15,7 @@ from app.api.rag_collections import router as rag_collections_router
 from app.api.rag_playground import router as rag_playground_router
 from app.api.runtime_settings import router as runtime_settings_router
 from app.api.tom_escalonamentos import router as tom_escalonamentos_router
+from app.api.products import router as products_router
 from app.api.admin_products import router as admin_products_router
 from app.api.uploads import router as uploads_router
 from app.config import get_settings
@@ -175,6 +176,7 @@ def create_app() -> FastAPI:
     app.include_router(tom_escalonamentos_router)
     app.include_router(uploads_router)
     app.include_router(admin_products_router)
+    app.include_router(products_router)
 
     return app
 

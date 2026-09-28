@@ -3,6 +3,7 @@ export interface AdminProductImage {
   produto_id: number;
   imagem_url: string;
   clip_image_id: string | null;
+  is_principal?: boolean;
   criado_em: string;
 }
 
@@ -12,15 +13,15 @@ export interface AdminProduct {
   descricao: string;
   preco: number;
   categoria: string;
-  especificacoes_tecnicas: string | null;
-  dimensoes_cm: string | null;
-  peso_kg: number | null;
-  preco_promocional: number | null;
-  promocao_valida_ate: string | null;
+  especificacoes_tecnicas?: string | null;
+  dimensoes_cm?: string | null;
+  peso_kg?: number | null;
+  preco_promocional?: number | null;
+  promocao_valida_ate?: string | null;
   preco_base_fornecedor: number | null;
   imagem_url: string | null;
   imagens: AdminProductImage[];
-  ativo: boolean;
+  ativo?: boolean;
   criado_em?: string;
   atualizado_em?: string;
 }
