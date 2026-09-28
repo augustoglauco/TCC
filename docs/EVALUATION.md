@@ -32,11 +32,12 @@ Usuário, Agendamento de Visita).
 - Construir uma matriz de confusão 4x4 (domínio esperado x domínio previsto)
   para identificar padrões de erro — ex.: confusão sistemática entre Suporte
   e Atendimento.
-- Com o provedor alternativo TypeSafe Jev (`intent_router_provider`, ver
-  `docs/ARCHITECTURE.md` §5), rodar o mesmo conjunto de teste uma vez por
-  provedor (`heuristica_llm` e `jev_openrouter`) e comparar acurácia,
-  latência e custo entre os dois — essa comparação é o motivo direto da
-  existência do provedor alternativo. Usar `ClassificationResult.provider_efetivo`
+- Com os provedores disponíveis (`intent_router_provider`, ver
+  `docs/ARCHITECTURE.md` §5), rodar o mesmo conjunto de teste para cada
+  provedor (`heuristica`, `heuristica_llm` e `jev_openrouter`) e comparar acurácia,
+  latência e custo entre eles — essa comparação (baseline de heurística pura vs.
+  híbrido com LLM local vs. decisão estruturada Jev) enriquece a análise empírica
+  deste TCC. Usar `ClassificationResult.provider_efetivo`
   (não o `intent_router_provider` selecionado) para confirmar que nenhuma
   execução da rodada `jev_openrouter` degradou silenciosamente para a
   heurística por falha da API — isso contaminaria a comparação.

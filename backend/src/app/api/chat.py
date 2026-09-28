@@ -564,6 +564,17 @@ async def send_message(
             yield _sse("done", done_data.model_dump())
             return
 
+        # Alinha a estratégia de classificação ao provedor ativo de intenção:
+        # Se for "heuristica_llm", aciona a estratégia "llm" (regras + fallback Ollama);
+        # se for "heuristica", fixa em "heuristic" (regras puras sem LLM local na triagem).
+        efetiva_complexity_strategy = (
+            "llm"
+            if intent_router_provider == "heuristica_llm"
+            else "heuristic"
+            if intent_router_provider == "heuristica"
+            else complexity_strategy
+        )
+
         # Texto completo da resposta, para gravar na memória da conversa.
         partes_resposta: list[str] = []
         try:
@@ -573,7 +584,7 @@ async def send_message(
                 local_client=local_client,
                 external_client=external_client,
                 rag_client=rag_client,
-                complexity_strategy=complexity_strategy,
+                complexity_strategy=efetiva_complexity_strategy,
                 conversation_id=conversation_id,
                 calendar_client=calendar_client,
                 scheduling_config=scheduling_config,

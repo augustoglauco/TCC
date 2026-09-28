@@ -8,7 +8,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-IntentRouterProvider = Literal["heuristica_llm", "jev_openrouter"]
+IntentRouterProvider = Literal["heuristica", "heuristica_llm", "jev_openrouter"]
 # Único ponto de definição do default — reaproveitado em app/router/,
 # app/api/ e app/main.py em vez de repetir a string-mágica "heuristica_llm"
 # em ~10 lugares (achado da revisão final do branch do Jev).

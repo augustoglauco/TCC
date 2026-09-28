@@ -163,4 +163,25 @@ describe("RuntimeSettingsForm", () => {
       expect.objectContaining({ local_llm_temperature: null }),
     );
   });
+
+  it("seleciona o provedor heurística do roteador e envia no payload", async () => {
+    mockedGet.mockResolvedValueOnce(SETTINGS_PADRAO);
+    mockedUpdate.mockResolvedValueOnce({
+      ...SETTINGS_PADRAO,
+      intent_router_provider: "heuristica",
+    });
+    const onSuccess = vi.fn();
+    const user = userEvent.setup();
+
+    render(<RuntimeSettingsForm onError={vi.fn()} onSuccess={onSuccess} />);
+
+    const radioHeuristica = await screen.findByLabelText(/heurística \(palavras-chave\)/i);
+    await user.click(radioHeuristica);
+    await user.click(screen.getByRole("button", { name: "Aplicar" }));
+
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ intent_router_provider: "heuristica" }),
+    );
+    await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
+  });
 });

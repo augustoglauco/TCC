@@ -184,6 +184,8 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                     <span className="text-slate-400">Provedor:</span>{" "}
                     {metrics.routerProvider === "jev_openrouter"
                       ? "TypeSafe Jev (OpenRouter)"
+                      : metrics.routerProvider === "heuristica"
+                      ? "Heurística (Palavras-chave)"
                       : "Heurística + LLM Local"}
                   </div>
                 )}

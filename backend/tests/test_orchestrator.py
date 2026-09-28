@@ -2246,3 +2246,32 @@ async def test_atendimento_com_dados_cliente_fica_local_e_injeta_historico_no_pr
     assert local_client.calls == 1
     assert "[Dados do Cliente e Histórico de Compras]:" in local_client.last_prompt
     assert "Gerador Diesel GD-15" in local_client.last_prompt
+
+
+async def test_intent_router_heuristica_llm_chama_llm_quando_inconclusivo():
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"domain": "suporte", "complexity": "baixa", "confidence": 0.9}',
+            total_duration_ms=10.0,
+        ),
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="Manual de suporte", source="m.pdf", score=0.9)]
+    )
+
+    eventos = await _coletar_eventos(
+        "A tela começou a piscar do nada",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="llm",
+        intent_router_provider="heuristica_llm",
+        tone_monitor_enabled=False,
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+    assert decisao.domain == "suporte"
+    assert decisao.router_provider == "heuristica_llm"
+    assert local_client.calls >= 1

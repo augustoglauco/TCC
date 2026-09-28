@@ -20,9 +20,9 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
   const [temperatura, setTemperatura] = useState("");
   const [localTimeout, setLocalTimeout] = useState("");
   const [externalTimeout, setExternalTimeout] = useState("");
-  const [routerProvider, setRouterProvider] = useState<"heuristica_llm" | "jev_openrouter">(
-    "heuristica_llm",
-  );
+  const [routerProvider, setRouterProvider] = useState<
+    "heuristica" | "heuristica_llm" | "jev_openrouter"
+  >("heuristica_llm");
   const [toneMonitorEnabled, setToneMonitorEnabled] = useState(true);
   const [toneMonitorProvider, setToneMonitorProvider] = useState<
     "heuristica_llm" | "jev_openrouter"
@@ -117,7 +117,11 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
             <h2 className="text-lg font-bold text-slate-900 mt-0.5">
               Roteador:{" "}
               <span className="font-mono text-indigo-900">
-                {routerProvider === "jev_openrouter" ? "Jev OpenRouter" : "Heurística LLM Local"}
+                {routerProvider === "jev_openrouter"
+                  ? "Jev OpenRouter"
+                  : routerProvider === "heuristica"
+                  ? "Heurística (Palavras-chave)"
+                  : "Heurística + LLM Local"}
               </span>
             </h2>
           </div>
@@ -225,9 +229,53 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
           <span className="text-xs text-slate-500">Mecanismo de triagem e direcionamento</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {/* Opção 1: Heurística Pura */}
           <label
             htmlFor="rt-router-provider-heuristica"
+            className={`flex flex-col justify-between rounded-xl border p-4 transition-all cursor-pointer ${
+              routerProvider === "heuristica"
+                ? "border-blue-500 bg-blue-50/40 ring-1 ring-blue-500 shadow-xs"
+                : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-2xs"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                  LOCAL REGRAS
+                </span>
+                {routerProvider === "heuristica" && (
+                  <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    Selecionado
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3 flex items-start gap-3">
+                <input
+                  id="rt-router-provider-heuristica"
+                  type="radio"
+                  name="rt-router-provider"
+                  value="heuristica"
+                  checked={routerProvider === "heuristica"}
+                  onChange={() => setRouterProvider("heuristica")}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                />
+                <div>
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    Heurística (Palavras-chave)
+                  </h4>
+                  <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                    Classificação determinística ultrarrápida (0 ms) baseada em palavras-chave. Se inconclusivo, escala direto para fora de escopo.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </label>
+
+          {/* Opção 2: Heurística + LLM Local */}
+          <label
+            htmlFor="rt-router-provider-heuristica-llm"
             className={`flex flex-col justify-between rounded-xl border p-4 transition-all cursor-pointer ${
               routerProvider === "heuristica_llm"
                 ? "border-blue-500 bg-blue-50/40 ring-1 ring-blue-500 shadow-xs"
@@ -236,8 +284,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
           >
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
-                  LOCAL OLLAMA
+                <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                  LOCAL HÍBRIDO
                 </span>
                 {routerProvider === "heuristica_llm" && (
                   <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
@@ -248,7 +296,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
 
               <div className="mt-3 flex items-start gap-3">
                 <input
-                  id="rt-router-provider-heuristica"
+                  id="rt-router-provider-heuristica-llm"
                   type="radio"
                   name="rt-router-provider"
                   value="heuristica_llm"
@@ -261,14 +309,14 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                     Heurística + LLM Local (Ollama)
                   </h4>
                   <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                    Classificação baseada em regras com palavras-chave locais e fallback para o
-                    modelo Ollama.
+                    Tenta palavras-chave primeiro; se for inconclusivo, consulta o modelo Ollama para classificar o domínio antes de desistir.
                   </p>
                 </div>
               </div>
             </div>
           </label>
 
+          {/* Opção 3: Jev OpenRouter */}
           <label
             htmlFor="rt-router-provider-jev"
             className={`flex flex-col justify-between rounded-xl border p-4 transition-all cursor-pointer ${
@@ -302,8 +350,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                 <div>
                   <h4 className="font-bold text-slate-900 text-sm">TypeSafe Jev (OpenRouter)</h4>
                   <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                    Classificação estritamente estruturada em JSON via endpoint /systemone de alta
-                    precisão.
+                    Classificação estritamente estruturada em JSON via endpoint /systemone de alta precisão e baixo custo.
                   </p>
                 </div>
               </div>

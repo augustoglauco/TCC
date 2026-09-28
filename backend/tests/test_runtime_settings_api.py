@@ -266,6 +266,38 @@ def test_put_atualiza_intent_router_provider():
     assert get_resp.json()["intent_router_provider"] == "jev_openrouter"
 
 
+def test_put_atualiza_intent_router_provider_para_heuristica_llm():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"intent_router_provider": "heuristica_llm"},
+    )
+    assert response.status_code == 200
+    assert response.json()["intent_router_provider"] == "heuristica_llm"
+    assert app.state.intent_router_provider == "heuristica_llm"
+
+    get_resp = client.get("/api/admin/runtime-settings")
+    assert get_resp.json()["intent_router_provider"] == "heuristica_llm"
+
+
+def test_put_atualiza_intent_router_provider_para_heuristica():
+    app, *_ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"intent_router_provider": "heuristica"},
+    )
+    assert response.status_code == 200
+    assert response.json()["intent_router_provider"] == "heuristica"
+    assert app.state.intent_router_provider == "heuristica"
+
+    get_resp = client.get("/api/admin/runtime-settings")
+    assert get_resp.json()["intent_router_provider"] == "heuristica"
+
+
 def test_put_rejeita_intent_router_provider_invalido():
     app, *_ = _build_default_app()
     client = TestClient(app)

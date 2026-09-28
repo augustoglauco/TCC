@@ -9,8 +9,10 @@ class _FakeLLMClient:
     def __init__(self, text: str) -> None:
         self._text = text
         self.last_prompt: str | None = None
+        self.calls: int = 0
 
     async def generate(self, prompt: str) -> LLMResponse:
+        self.calls += 1
         self.last_prompt = prompt
         return LLMResponse(text=self._text, total_duration_ms=10.0)
 
@@ -315,3 +317,55 @@ async def test_classify_perguntas_de_compras_e_pedidos_como_atendimento():
 
     res4 = await classify("Qual o status do meu pedido?", strategy="heuristic")
     assert res4.domain == "atendimento"
+
+
+async def test_classify_com_provider_heuristica_pura_nao_chama_llm_e_cai_em_fora_escopo():
+    llm_client = _FakeLLMClient('{"domain": "vendas", "complexity": "baixa", "confidence": 0.9}')
+    # Pergunta sem palavra-chave conhecida
+    result = await classify(
+        "Quem é o presidente do Brasil?",
+        provider="heuristica",
+        llm_client=llm_client,
+    )
+    assert result.domain == "fora_escopo"
+    assert result.provider_efetivo == "heuristica"
+    # LLM não deve ter sido chamado no modo heurística pura
+    assert llm_client.calls == 0
+
+
+async def test_classify_com_provider_heuristica_pura_match_direto():
+    result = await classify("qual o preço?", provider="heuristica")
+    assert result.domain == "vendas"
+    assert result.provider_efetivo == "heuristica"
+
+
+async def test_classify_com_provider_heuristica_llm_chama_llm_quando_inconclusivo():
+    llm_client = _FakeLLMClient(
+        '{"domain": "suporte", "complexity": "alta", "confidence": 0.85}'
+    )
+    # Pergunta sem palavra-chave que dê match direto
+    result = await classify(
+        "A tela começou a piscar em azul de repente",
+        provider="heuristica_llm",
+        strategy="llm",
+        llm_client=llm_client,
+    )
+    assert result.domain == "suporte"
+    assert result.complexity == "alta"
+    assert result.confidence == 0.85
+    assert result.provider_efetivo == "heuristica_llm"
+    assert llm_client.calls == 1
+
+
+async def test_classify_com_provider_heuristica_llm_usa_atalho_quando_tem_keyword():
+    llm_client = _FakeLLMClient('{"domain": "suporte", "complexity": "baixa", "confidence": 0.9}')
+    # Pergunta com palavra-chave de vendas
+    result = await classify(
+        "quero comprar um produto",
+        provider="heuristica_llm",
+        llm_client=llm_client,
+    )
+    assert result.domain == "vendas"
+    assert result.provider_efetivo == "heuristica_llm"
+    # Usou atalho rápido, não gastou chamada ao LLM
+    assert llm_client.calls == 0

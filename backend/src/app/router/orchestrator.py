@@ -776,7 +776,7 @@ async def handle_message(
     # graciosa já embutida em `analyze_tone()`. Por isso uma falha aqui vira
     # só um log de aviso, não uma exceção.
     deve_checar_modelo_local = (
-        intent_router_provider == DEFAULT_INTENT_ROUTER_PROVIDER and complexity_strategy == "llm"
+        intent_router_provider == "heuristica_llm"
     ) or (tone_monitor_enabled and tone_monitor_provider == DEFAULT_TONE_MONITOR_PROVIDER)
     if deve_checar_modelo_local:
         try:
