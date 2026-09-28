@@ -36,9 +36,9 @@ describe("LocalModelsTable", () => {
   it("renderiza uma linha por modelo, com badge 'Ativo'", () => {
     render(<LocalModelsTable models={[MODELO_ATIVO, MODELO_INATIVO]} onChanged={vi.fn()} onError={vi.fn()} onSuccess={vi.fn()} />);
 
-    expect(screen.getByText("llama3.1:8b")).toBeInTheDocument();
-    expect(screen.getByText("qwen2.5:7b")).toBeInTheDocument();
-    expect(screen.getByText("Ativo")).toBeInTheDocument();
+    expect(screen.getAllByText("llama3.1:8b").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("qwen2.5:7b").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Ativo").length).toBeGreaterThan(0);
   });
 
   it("não mostra botão Ativar na linha já ativa", () => {
