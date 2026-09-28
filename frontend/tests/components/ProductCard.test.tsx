@@ -56,6 +56,6 @@ describe("ProductCard", () => {
     const img = screen.getByAltText("Câmera Bullet IP 4MP");
     fireEvent.click(img);
 
-    expect(handleZoom).toHaveBeenCalledWith("/api/uploads/produtos/foto1.jpg");
+    expect(handleZoom).toHaveBeenCalledWith("http://localhost:8000/api/uploads/produtos/foto1.jpg");
   });
 });

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 import { Produto } from "@/lib/api/products";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
@@ -13,18 +14,29 @@ interface ProductCardProps {
 export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
   const router = useRouter();
 
-  // Lista consolidada de URLs de imagem
+  // Helper para resolver URL completa da imagem (ex: /api/uploads/... -> http://localhost:8000/api/uploads/...)
+  const resolveImageUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) return url;
+    const baseUrl = getApiBaseUrl();
+    const cleanPath = url.startsWith("/") ? url : `/${url}`;
+    return `${baseUrl}${cleanPath}`;
+  };
+
+  // Lista consolidada de URLs de imagem completas
   const imageList = useMemo(() => {
     const urls: string[] = [];
     if (product.imagens && product.imagens.length > 0) {
       product.imagens.forEach((img) => {
-        if (img.imagem_url && !urls.includes(img.imagem_url)) {
-          urls.push(img.imagem_url);
+        const full = resolveImageUrl(img.imagem_url);
+        if (full && !urls.includes(full)) {
+          urls.push(full);
         }
       });
     }
-    if (product.imagem_url && !urls.includes(product.imagem_url)) {
-      urls.unshift(product.imagem_url); // Coloca imagem principal como primeira
+    const mainFull = resolveImageUrl(product.imagem_url);
+    if (mainFull && !urls.includes(mainFull)) {
+      urls.unshift(mainFull); // Coloca imagem principal como primeira
     }
     return urls;
   }, [product]);
@@ -70,8 +82,9 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
 
   return (
     <div
-      className={`group flex flex-col justify-between rounded-xl border bg-white p-5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${emEstoque ? "border-slate-200 hover:border-blue-300" : "border-slate-200 bg-slate-50/50 opacity-90"
-        }`}
+      className={`group flex flex-col justify-between rounded-xl border bg-white p-5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${
+        emEstoque ? "border-slate-200 hover:border-blue-300" : "border-slate-200 bg-slate-50/50 opacity-90"
+      }`}
     >
       <div className="text-left">
         {/* Cabeçalho do Card: Categoria e Badge de Estoque */}
@@ -81,10 +94,11 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
           </span>
 
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${emEstoque
+            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              emEstoque
                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                 : "bg-amber-50 text-amber-700 border border-amber-200"
-              }`}
+            }`}
           >
             <span className={`h-1.5 w-1.5 rounded-full ${emEstoque ? "bg-emerald-500" : "bg-amber-500"}`} />
             {emEstoque ? `Em estoque (${totalEstoque} un)` : "Sem estoque"}
@@ -176,7 +190,7 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
         )}
 
         {/* Preço de Venda em R$ (alinhado à esquerda) */}
-        <div className="mt-4 flex items-baseline justify-start gap-2 text-right">
+        <div className="mt-4 flex items-baseline justify-start gap-2 text-left">
           {product.preco_promocional ? (
             <>
               <span className="text-lg font-extrabold text-blue-700">
@@ -200,10 +214,11 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
           type="button"
           onClick={handleBuy}
           disabled={!emEstoque}
-          className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 px-3 text-xs font-bold transition-all cursor-pointer ${emEstoque
+          className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 px-3 text-xs font-bold transition-all cursor-pointer ${
+            emEstoque
               ? "bg-blue-600 text-white hover:bg-blue-700 shadow-xs hover:shadow"
               : "bg-slate-200 text-slate-400 cursor-not-allowed"
-            }`}
+          }`}
         >
           <span>🛒</span>
           <span>Comprar</span>
