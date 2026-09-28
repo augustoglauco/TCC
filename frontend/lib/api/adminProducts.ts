@@ -165,6 +165,115 @@ export async function uploadTempImage(file: File): Promise<string> {
   return data.imagem_temp_url;
 }
 
+export async function updateAdminProductStock(
+  produtoId: number,
+  centroDistribuicao: string,
+  quantidade: number
+): Promise<AdminProduct> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/estoque`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      centro_distribuicao: centroDistribuicao,
+      quantidade,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Erro ao atualizar estoque (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function addAdminProductVolumeDiscount(
+  produtoId: number,
+  quantidadeMinima: number,
+  percentualDesconto: number
+): Promise<AdminProduct> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(
+    `${baseUrl}/api/admin/produtos/${produtoId}/descontos-volume`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        quantidade_minima: quantidadeMinima,
+        percentual_desconto: percentualDesconto,
+      }),
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`Erro ao adicionar desconto por volume (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deleteAdminProductVolumeDiscount(
+  produtoId: number,
+  descontoId: string
+): Promise<AdminProduct> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(
+    `${baseUrl}/api/admin/produtos/${produtoId}/descontos-volume/${descontoId}`,
+    {
+      method: "DELETE",
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`Erro ao excluir desconto (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function fetchAdminProductCompatibilities(
+  produtoId: number
+): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(
+    `${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`
+  );
+  if (!res.ok) {
+    throw new Error(`Erro ao buscar compatibilidades (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function addAdminProductCompatibility(
+  produtoId: number,
+  compativelComId: number
+): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(
+    `${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ compativel_com_id: compativelComId }),
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`Erro ao adicionar compatibilidade (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function deleteAdminProductCompatibility(
+  produtoId: number,
+  compativelComId: number
+): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(
+    `${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades/${compativelComId}`,
+    {
+      method: "DELETE",
+    }
+  );
+  if (!res.ok) {
+    throw new Error(`Erro ao remover compatibilidade (${res.status})`);
+  }
+  return res.json();
+}
+
 export interface ExtractCatalogStreamOptions {
   provider?: "local" | "external";
   fallbackExternal?: boolean;

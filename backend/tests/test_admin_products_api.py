@@ -1,10 +1,12 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 from app.main import create_app
+from app.api.rag_dependencies import get_db_session
 
 @pytest.mark.asyncio
-async def test_crud_admin_produtos():
+async def test_crud_admin_produtos(db_session):
     app = create_app()
+    app.dependency_overrides[get_db_session] = lambda: db_session
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # 1. Cria produto manual
         resp = await client.post(
@@ -42,12 +44,13 @@ async def test_crud_admin_produtos():
         assert get_resp.status_code == 404
 
 @pytest.mark.asyncio
-async def test_admin_produto_upload_e_delete_imagem(tmp_path, monkeypatch):
+async def test_admin_produto_upload_e_delete_imagem(tmp_path, monkeypatch, db_session):
     from app.config import get_settings
     settings = get_settings()
     monkeypatch.setattr(settings, "product_images_dir", str(tmp_path))
 
     app = create_app()
+    app.dependency_overrides[get_db_session] = lambda: db_session
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Cria produto
         resp = await client.post(
@@ -80,3 +83,65 @@ async def test_admin_produto_upload_e_delete_imagem(tmp_path, monkeypatch):
 
         # Limpeza
         await client.delete(f"/api/admin/produtos/{prod_id}")
+
+
+@pytest.mark.asyncio
+async def test_admin_produto_estoque_desconto_compatibilidade(db_session):
+    app = create_app()
+    app.dependency_overrides[get_db_session] = lambda: db_session
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # 1. Cria 2 produtos
+        p1 = (
+            await client.post(
+                "/api/admin/produtos",
+                json={"nome": "NVR 16 Canais", "descricao": "Gravador IP", "preco": "1200.00", "categoria": "CFTV"},
+            )
+        ).json()
+        p2 = (
+            await client.post(
+                "/api/admin/produtos",
+                json={"nome": "HD 4TB Surveillance", "descricao": "Disco Rígido", "preco": "600.00", "categoria": "CFTV"},
+            )
+        ).json()
+
+        try:
+            # 2. Atualiza estoque de P1
+            est_resp = await client.post(
+                f"/api/admin/produtos/{p1['id']}/estoque",
+                json={"centro_distribuicao": "CD-Matriz", "quantidade": 50},
+            )
+            assert est_resp.status_code == 200
+            assert any(e["quantidade"] == 50 for e in est_resp.json()["estoques"])
+
+            # 3. Adiciona desconto por volume em P1
+            desc_resp = await client.post(
+                f"/api/admin/produtos/{p1['id']}/descontos-volume",
+                json={"quantidade_minima": 5, "percentual_desconto": 10.0},
+            )
+            assert desc_resp.status_code == 200
+            desc_data = desc_resp.json()["descontos_volume"]
+            assert len(desc_data) == 1
+            desc_id = desc_data[0]["id"]
+
+            # Remove desconto por volume
+            del_desc_resp = await client.delete(f"/api/admin/produtos/{p1['id']}/descontos-volume/{desc_id}")
+            assert del_desc_resp.status_code == 200
+            assert len(del_desc_resp.json()["descontos_volume"]) == 0
+
+            # 4. Cadastra compatibilidade entre P1 e P2
+            comp_resp = await client.post(
+                f"/api/admin/produtos/{p1['id']}/compatibilidades",
+                json={"compativel_com_id": p2["id"]},
+            )
+            assert comp_resp.status_code == 200
+            comp_list = comp_resp.json()
+            assert len(comp_list) >= 1
+            assert any(c["compativel_com_id"] == p2["id"] for c in comp_list)
+
+            # Deleta compatibilidade
+            del_comp = await client.delete(f"/api/admin/produtos/{p1['id']}/compatibilidades/{p2['id']}")
+            assert del_comp.status_code == 200
+
+        finally:
+            await client.delete(f"/api/admin/produtos/{p1['id']}")
+            await client.delete(f"/api/admin/produtos/{p2['id']}")

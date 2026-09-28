@@ -25,12 +25,18 @@ from app.api.uploads import salvar_imagem_produto
 from app.config import get_settings
 from app.catalog_extractor.extractor import extract_catalog_stream
 from app.db.catalog import (
+    adicionar_desconto_volume,
+    atualizar_estoque,
     atualizar_produto,
+    criar_compatibilidade,
     criar_produto,
     deletar_produto,
     listar_categorias_distintas,
+    listar_compatividades_do_produto,
     listar_produtos,
     obter_produto,
+    remover_compatibilidade,
+    remover_desconto_volume,
 )
 from app.db.models import ProdutoImagem
 from app.models.catalog import PaginatedProdutosOut, ProdutoCreate, ProdutoImagemOut, ProdutoOut, ProdutoUpdate
@@ -363,3 +369,111 @@ async def delete_imagem_produto(
 
     await session.commit()
     return None
+
+
+class EstoqueUpdatePayload(BaseModel):
+    centro_distribuicao: str
+    quantidade: int
+
+
+class DescontoVolumePayload(BaseModel):
+    quantidade_minima: int
+    percentual_desconto: float
+
+
+class CompatibilidadePayload(BaseModel):
+    compativel_com_id: int
+
+
+@router.post("/{produto_id}/estoque", response_model=ProdutoOut)
+async def post_atualizar_estoque(
+    produto_id: int,
+    payload: EstoqueUpdatePayload,
+    session: AsyncSession = Depends(get_db_session),
+):
+    prod = await obter_produto(session, produto_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+    await atualizar_estoque(session, produto_id, payload.centro_distribuicao, payload.quantidade)
+    session.expire_all()
+    prod_atualizado = await obter_produto(session, produto_id)
+    return ProdutoOut.model_validate(prod_atualizado)
+
+
+@router.post("/{produto_id}/descontos-volume", response_model=ProdutoOut)
+async def post_adicionar_desconto_volume(
+    produto_id: int,
+    payload: DescontoVolumePayload,
+    session: AsyncSession = Depends(get_db_session),
+):
+    prod = await obter_produto(session, produto_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+    from decimal import Decimal
+    await adicionar_desconto_volume(
+        session, produto_id, payload.quantidade_minima, Decimal(str(payload.percentual_desconto))
+    )
+    session.expire_all()
+    prod_atualizado = await obter_produto(session, produto_id)
+    return ProdutoOut.model_validate(prod_atualizado)
+
+
+@router.delete("/{produto_id}/descontos-volume/{desconto_id}", response_model=ProdutoOut)
+async def delete_desconto_volume(
+    produto_id: int,
+    desconto_id: str,
+    session: AsyncSession = Depends(get_db_session),
+):
+    from uuid import UUID
+    try:
+        uid = UUID(desconto_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="ID de desconto inválido.")
+    prod = await obter_produto(session, produto_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+    await remover_desconto_volume(session, produto_id, uid)
+    session.expire_all()
+    prod_atualizado = await obter_produto(session, produto_id)
+    return ProdutoOut.model_validate(prod_atualizado)
+
+
+@router.get("/{produto_id}/compatibilidades")
+async def get_compatividades_produto(
+    produto_id: int,
+    session: AsyncSession = Depends(get_db_session),
+):
+    prod = await obter_produto(session, produto_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+    return await listar_compatividades_do_produto(session, produto_id)
+
+
+@router.post("/{produto_id}/compatibilidades")
+async def post_criar_compatividade(
+    produto_id: int,
+    payload: CompatibilidadePayload,
+    session: AsyncSession = Depends(get_db_session),
+):
+    prod = await obter_produto(session, produto_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+    outro = await obter_produto(session, payload.compativel_com_id)
+    if not outro:
+        raise HTTPException(status_code=404, detail="Produto compatível não encontrado.")
+    await criar_compatibilidade(session, produto_id, payload.compativel_com_id)
+    return await listar_compatividades_do_produto(session, produto_id)
+
+
+@router.delete("/{produto_id}/compatibilidades/{compativel_com_id}")
+async def delete_compatividade(
+    produto_id: int,
+    compativel_com_id: int,
+    session: AsyncSession = Depends(get_db_session),
+):
+    prod = await obter_produto(session, produto_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Produto não encontrado.")
+    await remover_compatibilidade(session, produto_id, compativel_com_id)
+    return await listar_compatividades_do_produto(session, produto_id)
+

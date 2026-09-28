@@ -287,6 +287,7 @@ export default function AdminProdutosPage() {
           carregarCategorias();
         }}
         produtoParaEditar={editingProduct}
+        allProducts={produtos}
       />
 
       <CatalogImportModal

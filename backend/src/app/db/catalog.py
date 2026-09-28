@@ -291,6 +291,18 @@ async def listar_descontos_volume(
     return list(result.scalars().all())
 
 
+async def remover_desconto_volume(
+    session: AsyncSession, produto_id: int, desconto_id: object
+) -> bool:
+    stmt = delete(ProdutoDescontoVolume).where(
+        ProdutoDescontoVolume.id == desconto_id,
+        ProdutoDescontoVolume.produto_id == produto_id,
+    )
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount > 0
+
+
 # --- Ferramenta 1: validação de compatibilidade ------------------------------
 
 
@@ -328,6 +340,53 @@ async def sao_compativeis(session: AsyncSession, produto_id: int, outro_produto_
         )
     )
     return result.scalars().first() is not None
+
+
+async def listar_compatividades_do_produto(
+    session: AsyncSession, produto_id: int
+) -> list[dict]:
+    """Retorna lista de pares de compatibilidade envolvendo o produto,
+    resolvendo o id e o nome do produto compatível."""
+    stmt = select(ProdutoCompatibilidade).where(
+        or_(
+            ProdutoCompatibilidade.produto_id == produto_id,
+            ProdutoCompatibilidade.compativel_com_id == produto_id,
+        )
+    )
+    result = await session.execute(stmt)
+    rows = result.scalars().all()
+    out = []
+    for r in rows:
+        outro_id = r.compativel_com_id if r.produto_id == produto_id else r.produto_id
+        outro_prod = await obter_produto(session, outro_id)
+        out.append({
+            "id": str(r.id),
+            "produto_id": produto_id,
+            "compativel_com_id": outro_id,
+            "compativel_nome": outro_prod.nome if outro_prod else f"Produto #{outro_id}",
+            "categoria": outro_prod.categoria if outro_prod else "",
+        })
+    return out
+
+
+async def remover_compatibilidade(
+    session: AsyncSession, produto_id: int, compativel_com_id: int
+) -> bool:
+    stmt = delete(ProdutoCompatibilidade).where(
+        or_(
+            and_(
+                ProdutoCompatibilidade.produto_id == produto_id,
+                ProdutoCompatibilidade.compativel_com_id == compativel_com_id,
+            ),
+            and_(
+                ProdutoCompatibilidade.produto_id == compativel_com_id,
+                ProdutoCompatibilidade.compativel_com_id == produto_id,
+            ),
+        )
+    )
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount > 0
 
 
 # --- Ferramenta 3: cotação automática (reaproveitada pela ferramenta 4) -----
