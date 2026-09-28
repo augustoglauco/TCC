@@ -198,8 +198,8 @@ graph LR
 
 ## 4. Referências no Código Fonte
 
-- **Endpoint Principal do Chat:** [`src/app/api/chat.py`](file:///home/augusto/Projetos/TCC/backend/src/app/api/chat.py#L300)
-- **Identificação por Imagem (CLIP + Visão + RAG):** [`src/app/rag/image_identification.py`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/image_identification.py#L101)
-- **Orquestrador de Atendimento e Intenções:** [`src/app/router/orchestrator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/orchestrator.py)
-- **Motor de OCR:** [`src/app/ocr/image_processor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/ocr/image_processor.py)
-- **Gerenciador de Memória e Sessão:** [`src/app/memory/store.py`](file:///home/augusto/Projetos/TCC/backend/src/app/memory/store.py)
+- **Endpoint Principal do Chat:** [`src/app/api/chat.py`](../../backend/src/app/api/chat.py#L300)
+- **Identificação por Imagem (CLIP + Visão + RAG):** [`src/app/rag/image_identification.py`](../../backend/src/app/rag/image_identification.py#L101)
+- **Orquestrador de Atendimento e Intenções:** [`src/app/router/orchestrator.py`](../../backend/src/app/router/orchestrator.py)
+- **Motor de OCR:** [`src/app/ocr/image_processor.py`](../../backend/src/app/ocr/image_processor.py)
+- **Gerenciador de Memória e Sessão:** [`src/app/memory/store.py`](../../backend/src/app/memory/store.py)

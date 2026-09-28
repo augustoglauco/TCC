@@ -111,7 +111,7 @@ A aplicação é implantada e executada em ambiente de servidor local GPU e disp
 
 > **Por que o site não usa HTTPS:** o frontend e o backend (porta 8000) rodam em HTTP puro. Abrir o site por `https://` não funciona, porque a página passaria a chamar o backend em `https://…:8000`, que não fala HTTPS. Só o MCP B2B tem HTTPS, porque é o único serviço que trafega uma credencial (a chave do parceiro) pela internet.
 
-*Para o guia completo de provisionamento de infraestrutura, consulte o manual:* [HOWTO_IMPLANTACAO_INFRA.md](docs/HOWTO_IMPLANTACAO_INFRA.md).
+*Para o guia completo de provisionamento de infraestrutura, consulte o manual:* [HOWTO_IMPLANTACAO_INFRA.md](docs/Manuais/HOWTO_IMPLANTACAO_INFRA.md).
 
 ---
 
@@ -131,8 +131,8 @@ Para interagir com o sistema e explorar todas as suas funcionalidades:
    - **Fotos e Imagens**: Anexe fotos de comprovantes (OCR) ou imagens de produtos para busca por similaridade visual no catálogo (CLIP).
    - **Cards Interativos**: Interaja diretamente com os cards ricos de produtos, cotações B2B e confirmações de agendamento no Google Calendar.
 
-*Para o manual de instrução do usuário final, consulte:* [HOWTO_USUARIO.md](docs/HOWTO_USUARIO.md).  
-*Para o manual do administrador (ingestão RAG, crawler e parametrização da IA), consulte:* [HOWTO_ADMINISTRADOR.md](docs/HOWTO_ADMINISTRADOR.md).
+*Para o manual de instrução do usuário final, consulte:* [HOWTO_USUARIO.md](docs/Manuais/HOWTO_USUARIO.md).  
+*Para o manual do administrador (ingestão RAG, crawler e parametrização da IA), consulte:* [HOWTO_ADMINISTRADOR.md](docs/Manuais/HOWTO_ADMINISTRADOR.md).
 
 ---
 

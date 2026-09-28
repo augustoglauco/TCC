@@ -41,7 +41,7 @@
 * **4 Ferramentas Transacionais:** `validar_compatibilidade`, `consultar_frete`, `cotar`, `reservar_pedido`.
 * **Roteador Integrado:** O orquestrador usa o catálogo interno (`SalesCatalogClient`) para intenções de Vendas.
 * **Exposição Pública com Segurança:** Publicado em `https://augustoglauco.duckdns.org:8443/mcp` via **DuckDNS + Caddy HTTPS**, protegido por chave estática por parceiro (`Authorization: Bearer <chave>`).
-* **Manual de Integração:** Documentação oficial criada em [`docs/MANUAL_INTEGRACAO_MCP_B2B.md`](file:///home/augusto/Projetos/TCC/docs/MANUAL_INTEGRACAO_MCP_B2B.md).
+* **Manual de Integração:** Documentação oficial criada em [`docs/Manuais/MANUAL_INTEGRACAO_MCP_B2B.md`](docs/Manuais/MANUAL_INTEGRACAO_MCP_B2B.md).
 
 ### **Fase 6 — Memória de Sessão e Classificação do Usuário**
 * **Persistência de Histórico:** Tabelas `conversas` e `conversa_mensagens` no Postgres.

@@ -2,7 +2,7 @@
 
 ## Stack
 
-- **Python 3.14+** (otimizado com PEP 695 e PEP 649; baseline Python 3.11/3.13 e procedimento de rollback detalhados em `docs/ROLLBACK_PYTHON314.md`), framework **FastAPI** (async-first) para as APIs do chat
+- **Python 3.14+** (otimizado com PEP 695 e PEP 649; baseline Python 3.11/3.13 e procedimento de rollback detalhados em `docs/Manuais/ROLLBACK_PYTHON314.md`), framework **FastAPI** (async-first) para as APIs do chat
   e do servidor MCP B2B.
 - **Pydantic** para todos os schemas de entrada/saída (requisições HTTP,
   respostas de ferramentas MCP, eventos internos).
@@ -163,7 +163,7 @@ intencional achando que é um bug ou uma tarefa esquecida.
 
 ## Rollback de Versões
 
-- Caso seja necessário reverter a migração do Python 3.14 (ou retornar a um estado anterior), consulte o passo a passo completo em `docs/ROLLBACK_PYTHON314.md`.
+- Caso seja necessário reverter a migração do Python 3.14 (ou retornar a um estado anterior), consulte o passo a passo completo em `docs/Manuais/ROLLBACK_PYTHON314.md`.
 - A baseline pré-migração está preservada na tag git `pre-python314-baseline`.
 
 ## Ao usar Claude Code CLI ou Antigravity para gerar código

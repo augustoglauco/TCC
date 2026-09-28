@@ -8,7 +8,7 @@
 
 **Tech Stack:** FastAPI, SQLAlchemy 2.0 (async), Alembic, Pydantic v2, Qdrant (CLIP ViT-B/32), pdfplumber, Pillow, Ollama (`gemma4:12b-it-q4_K_M`), OpenRouter Vision (`google/gemini-2.5-flash`), Next.js 16 (App Router), TypeScript, Tailwind CSS, Vitest / Pytest.
 
-**Spec:** [`docs/superpowers/specs/2026-09-25-admin-produtos-catalogo-design.md`](file:///home/augusto/Projetos/TCC/docs/superpowers/specs/2026-09-25-admin-produtos-catalogo-design.md)
+**Spec:** [`docs/superpowers/specs/2026-09-25-admin-produtos-catalogo-design.md`](../docs/superpowers/specs/2026-09-25-admin-produtos-catalogo-design.md)
 
 ## Global Constraints
 

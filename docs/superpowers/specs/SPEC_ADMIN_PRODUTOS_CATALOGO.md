@@ -114,7 +114,7 @@ Se uma imagem for removida ou o produto excluído:
 - O backend consulta o `clip_image_id` e chama `clip_store.delete_image(clip_image_id)` (ou `qdrant_client.delete(...)`), mantendo o banco vetorial sempre limpo e sincronizado.
 
 ### 4.3 Integração com o Chat Multimodal
-Em [`app.rag.image_identification.identify_product_by_image`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/image_identification.py):
+Em [`app.rag.image_identification.identify_product_by_image`](../../../backend/src/app/rag/image_identification.py):
 - Quando a busca no CLIP retornar um ponto com score >= `image_internal_confidence`, o payload fornece diretamente o `produto_id`. O orquestrador carrega o produto do banco via `SalesCatalogClient` e responde com estoque e preço exatos, sem ambiguidade.
 
 ---
@@ -191,7 +191,7 @@ Em [`app.rag.image_identification.identify_product_by_image`](file:///home/augus
 ## 7. Interface Frontend (`frontend/app/admin/produtos`)
 
 ### 7.1 Navegação
-- Item adicionado no menu de engrenagem ([`AdminGearMenu.tsx`](file:///home/augusto/Projetos/TCC/frontend/components/layout/AdminGearMenu.tsx)):
+- Item adicionado no menu de engrenagem ([`AdminGearMenu.tsx`](../../../frontend/components/layout/AdminGearMenu.tsx)):
   - **📦 Catálogo de Produtos** (`/admin/produtos`).
 
 ### 7.2 Tela Principal

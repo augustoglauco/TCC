@@ -27,7 +27,7 @@ tudo de novo, limpo. Rode a partir da raiz do repositório
 > (`calendar-mcp-server`) rodando localmente na porta 8090. Sem ele no ar,
 > o backend sobe normal (conexão é lazy), mas qualquer mensagem de
 > agendamento falha com "MCP do Google Calendar indisponível". Ver
-> `docs/ARCHITECTURE.md` §5 e `docs/GUIA_TESTE_AGENDAMENTO.md` §2.2 para
+> `docs/ARCHITECTURE.md` §5 e `docs/Manuais/GUIA_TESTE_AGENDAMENTO.md` §2.2 para
 > detalhes de autenticação (só precisa rodar `calendar-mcp-server auth`
 > uma vez; depois disso só `calendar-mcp-server serve` a cada sessão).
 
@@ -91,7 +91,7 @@ cd backend && .venv/bin/alembic upgrade head && cd ..
 Precisa do `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (mesmas credenciais
 "Desktop app" já usadas) e de já ter rodado `calendar-mcp-server auth` uma
 vez (gera `backend/secrets/calendar_mcp_token.json` — ver
-`docs/GUIA_TESTE_AGENDAMENTO.md` §2.2 se ainda não fez isso):
+`docs/Manuais/GUIA_TESTE_AGENDAMENTO.md` §2.2 se ainda não fez isso):
 
 ```bash
 cd backend
