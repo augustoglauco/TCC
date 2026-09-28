@@ -139,7 +139,7 @@ export default function AdminProdutosPage() {
       {/* Header com breadcrumb / links */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+          {/* <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
             <Link href="/" className="hover:text-blue-600 transition-colors">
               Chat
             </Link>
@@ -149,7 +149,7 @@ export default function AdminProdutosPage() {
             </Link>
             <span>/</span>
             <span className="text-blue-600">Catálogo de Produtos</span>
-          </div>
+          </div> */}
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">
             Catálogo de Produtos
           </h1>

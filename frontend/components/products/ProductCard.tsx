@@ -189,8 +189,8 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
           </p>
         )}
 
-        {/* Preço de Venda em R$ (alinhado à esquerda) */}
-        <div className="mt-4 flex items-baseline justify-start gap-2 text-left">
+        {/* Preço de Venda em R$ (alinhado à direita) */}
+        <div className="mt-4 flex items-baseline justify-end gap-2 text-right">
           {product.preco_promocional ? (
             <>
               <span className="text-lg font-extrabold text-blue-700">
