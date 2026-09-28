@@ -128,6 +128,15 @@ intencional achando que é um bug ou uma tarefa esquecida.
     cotação, reserva/pedido) — incluindo o caso de concorrência simples em
     reserva/pedido.
   - Parsing e validação de schemas Pydantic de entrada/saída.
+- Testes automatizados **nunca** usam o Postgres, o Qdrant nem a pasta de
+  fotos reais do desenvolvedor: banco via SQLite em memória (fixture
+  `db_session` em `backend/tests/conftest.py`) e, para testes de API com o
+  app inteiro, a fixture `app_sqlite` (`create_app()` com o banco no
+  SQLite, o CLIP/Qdrant por um dublê e as fotos em `tmp_path`). Chamar
+  `create_app()` direto num teste que grava ou lê o banco é bug: até
+  2026-09-28, os testes das APIs de produtos criavam e apagavam produtos no
+  catálogo real e deixavam lixo quando falhavam (limpeza:
+  `backend/scripts/limpar_produtos_de_teste.py`).
 - Testes que dependem de GPU/modelo local devem ser marcados
   (`@pytest.mark.gpu` ou equivalente) para poderem ser pulados em ambientes
   sem GPU.

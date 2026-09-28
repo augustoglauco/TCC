@@ -1,11 +1,10 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
-from app.main import create_app
 
 
 @pytest.mark.asyncio
-async def test_public_products_api_flow():
-    app = create_app()
+async def test_public_products_api_flow(app_sqlite):
+    app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # 1. Cadastra 3 produtos (2 com estoque via admin, 1 sem estoque)
         # Produto A (Com estoque, CFTV)

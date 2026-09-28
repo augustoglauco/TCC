@@ -327,7 +327,28 @@ def _identificacao_app(monkeypatch, *, clip_results, vision_answer, rag_docs):
 
     app.state.image_internal_confidence = 0.30
     app.state.image_external_confidence = 0.80
+    # Sem banco nem catálogo reais: antes estes testes gravavam a conversa e
+    # consultavam o catálogo no Postgres do desenvolvedor. A memória falha
+    # em silêncio (só log) e a identificação cai no RAG, como com o banco
+    # fora do ar; o teste que confere a gravação troca o sessionmaker.
+    from app.api.chat import get_sales_catalog_client
+    from app.api.rag_dependencies import get_db_session
+
+    app.state.db_sessionmaker = _SemBanco()
+    app.dependency_overrides[get_db_session] = lambda: None
+    app.dependency_overrides[get_sales_catalog_client] = lambda: None
     return TestClient(app)
+
+
+class _SemBanco:
+    def __call__(self):
+        return self
+
+    async def __aenter__(self):
+        raise ConnectionError("sem banco nos testes")
+
+    async def __aexit__(self, *exc_info) -> bool:
+        return False
 
 
 def test_chat_identifica_produto_no_catalogo_interno(monkeypatch):

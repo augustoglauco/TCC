@@ -203,3 +203,44 @@ async def db_session():
     async with factory() as session:
         yield session
     await engine.dispose()
+
+
+class _FakeClipImageStore:
+    """Dublê do `ClipImageStore` para os testes das APIs de produtos: não
+    embeda nem grava vetor nenhum no Qdrant."""
+
+    async def upsert_image(self, **kwargs) -> str:
+        return f"clip-fake-{uuid.uuid4().hex[:8]}"
+
+    async def delete_image(self, image_id: str) -> None:
+        return None
+
+    async def delete_images_by_product_id(self, produto_id: int) -> None:
+        return None
+
+    async def delete_images_by_url(self, imagem_url: str) -> None:
+        return None
+
+
+@pytest.fixture
+def app_sqlite(db_session, tmp_path, monkeypatch):
+    """App real (`create_app`) com o banco trocado pelo SQLite em memória da
+    fixture `db_session`, o CLIP/Qdrant por um dublê e as fotos de produto
+    gravadas em `tmp_path`.
+
+    Antes, os testes das APIs de produtos e do extrator de catálogo usavam o
+    Postgres, o Qdrant e a pasta de fotos reais do desenvolvedor: criavam e
+    apagavam produtos de verdade e, quando falhavam no meio, deixavam lixo no
+    catálogo (o "Produto Teste Lote" apareceu como candidato no teste local
+    de 2026-09-27, cenário V12).
+    """
+    from app.api.admin_products import _get_clip_embedder, _get_clip_store
+    from app.api.rag_dependencies import get_db_session
+    from app.main import create_app
+
+    monkeypatch.setattr(get_settings(), "product_images_dir", str(tmp_path))
+    app = create_app()
+    app.dependency_overrides[get_db_session] = lambda: db_session
+    app.dependency_overrides[_get_clip_store] = lambda: _FakeClipImageStore()
+    app.dependency_overrides[_get_clip_embedder] = lambda: object()
+    return app

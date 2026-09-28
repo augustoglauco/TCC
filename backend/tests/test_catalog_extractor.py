@@ -69,11 +69,10 @@ async def test_extract_catalog_stream_com_imagem(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_confirmar_catalogo_endpoint():
+async def test_confirmar_catalogo_endpoint(app_sqlite):
     from httpx import ASGITransport, AsyncClient
-    from app.main import create_app
 
-    app = create_app()
+    app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         resp = await client.post(
             "/api/admin/produtos/catalogo/confirmar",
@@ -134,11 +133,10 @@ def test_extrair_figuras_pagina_filtra_ruido_e_recorta(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_upload_temp_endpoint():
+async def test_upload_temp_endpoint(app_sqlite):
     from httpx import ASGITransport, AsyncClient
-    from app.main import create_app
 
-    app = create_app()
+    app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
         files = {"file": ("manual_upload.png", fake_png, "image/png")}
@@ -150,13 +148,10 @@ async def test_upload_temp_endpoint():
 
 
 @pytest.mark.asyncio
-async def test_confirmar_catalogo_com_imagem_temp(tmp_path):
+async def test_confirmar_catalogo_com_imagem_temp(app_sqlite, tmp_path):
     from httpx import ASGITransport, AsyncClient
-    from app.main import create_app
-    from app.config import get_settings
 
     # Cria arquivo temporário real no diretório de temp
-    settings = get_settings()
     temp_dir = tmp_path / "temp"
     temp_dir.mkdir(parents=True, exist_ok=True)
     temp_img_file = temp_dir / "crop_teste123.jpg"
@@ -167,7 +162,7 @@ async def test_confirmar_catalogo_com_imagem_temp(tmp_path):
         mock_s.product_images_dir = str(tmp_path)
         mock_settings.return_value = mock_s
 
-        app = create_app()
+        app = app_sqlite
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
                 "/api/admin/produtos/catalogo/confirmar",

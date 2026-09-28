@@ -1,10 +1,9 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
-from app.main import create_app
 
 @pytest.mark.asyncio
-async def test_crud_admin_produtos():
-    app = create_app()
+async def test_crud_admin_produtos(app_sqlite):
+    app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # 1. Cria produto manual
         resp = await client.post(
@@ -42,12 +41,8 @@ async def test_crud_admin_produtos():
         assert get_resp.status_code == 404
 
 @pytest.mark.asyncio
-async def test_admin_produto_upload_e_delete_imagem(tmp_path, monkeypatch):
-    from app.config import get_settings
-    settings = get_settings()
-    monkeypatch.setattr(settings, "product_images_dir", str(tmp_path))
-
-    app = create_app()
+async def test_admin_produto_upload_e_delete_imagem(app_sqlite):
+    app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # Cria produto
         resp = await client.post(
