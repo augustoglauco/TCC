@@ -39,9 +39,14 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
 
   const emEstoque = totalEstoque > 0;
 
-  // Preço promocional x Preço venda
-  const valorFormatado = (val: number) =>
-    val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  // Formata o preço usando o prefixo R$ e alinhamento correto
+  const valorFormatado = (val: number) => {
+    const numStr = val.toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+    return `R$ ${numStr}`;
+  };
 
   const activeImageUrl = imageList[currentImgIndex] || null;
 
@@ -65,13 +70,13 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
 
   return (
     <div
-      className={`group flex flex-col justify-between rounded-xl border bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${
+      className={`group flex flex-col justify-between rounded-xl border bg-white p-5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${
         emEstoque ? "border-slate-200 hover:border-blue-300" : "border-slate-200 bg-slate-50/50 opacity-90"
       }`}
     >
-      <div>
+      <div className="text-left">
         {/* Cabeçalho do Card: Categoria e Badge de Estoque */}
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2 text-left">
           <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
             {product.categoria}
           </span>
@@ -160,20 +165,20 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
           )}
         </div>
 
-        {/* Nome do Produto */}
-        <h3 className="mt-3.5 font-bold text-slate-900 text-base line-clamp-2 min-h-12 leading-snug">
+        {/* Nome do Produto (alinhado à esquerda) */}
+        <h3 className="mt-3.5 font-bold text-slate-900 text-base line-clamp-2 min-h-12 leading-snug text-left">
           {product.nome}
         </h3>
 
-        {/* Descrição Curta */}
+        {/* Descrição Curta (alinhada à esquerda) */}
         {product.descricao && (
-          <p className="mt-1 text-xs text-slate-500 line-clamp-2 min-h-8">
+          <p className="mt-1 text-xs text-slate-500 line-clamp-2 min-h-8 text-left">
             {product.descricao}
           </p>
         )}
 
-        {/* Preço de Venda */}
-        <div className="mt-4 flex items-baseline gap-2">
+        {/* Preço de Venda em R$ (alinhado à esquerda) */}
+        <div className="mt-4 flex items-baseline justify-start gap-2 text-left">
           {product.preco_promocional ? (
             <>
               <span className="text-lg font-extrabold text-blue-700">
