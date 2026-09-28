@@ -77,3 +77,78 @@ async def test_admin_produto_upload_e_delete_imagem(app_sqlite):
 
         # Limpeza
         await client.delete(f"/api/admin/produtos/{prod_id}")
+
+
+@pytest.mark.asyncio
+async def test_admin_produto_estoque_desconto_compatibilidade(app_sqlite):
+    app = app_sqlite
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # 1. Cria 2 produtos
+        p1 = (
+            await client.post(
+                "/api/admin/produtos",
+                json={
+                    "nome": "NVR 16 Canais",
+                    "descricao": "Gravador IP",
+                    "preco": "1200.00",
+                    "categoria": "CFTV",
+                },
+            )
+        ).json()
+        p2 = (
+            await client.post(
+                "/api/admin/produtos",
+                json={
+                    "nome": "HD 4TB Surveillance",
+                    "descricao": "Disco Rígido",
+                    "preco": "600.00",
+                    "categoria": "CFTV",
+                },
+            )
+        ).json()
+
+        try:
+            # 2. Atualiza estoque de P1
+            est_resp = await client.post(
+                f"/api/admin/produtos/{p1['id']}/estoque",
+                json={"centro_distribuicao": "CD-Matriz", "quantidade": 50},
+            )
+            assert est_resp.status_code == 200
+            assert any(e["quantidade"] == 50 for e in est_resp.json()["estoques"])
+
+            # 3. Adiciona desconto por volume em P1
+            desc_resp = await client.post(
+                f"/api/admin/produtos/{p1['id']}/descontos-volume",
+                json={"quantidade_minima": 5, "percentual_desconto": 10.0},
+            )
+            assert desc_resp.status_code == 200
+            desc_data = desc_resp.json()["descontos_volume"]
+            assert len(desc_data) == 1
+            desc_id = desc_data[0]["id"]
+
+            # Remove desconto por volume
+            del_desc_resp = await client.delete(
+                f"/api/admin/produtos/{p1['id']}/descontos-volume/{desc_id}"
+            )
+            assert del_desc_resp.status_code == 200
+            assert len(del_desc_resp.json()["descontos_volume"]) == 0
+
+            # 4. Cadastra compatibilidade entre P1 e P2
+            comp_resp = await client.post(
+                f"/api/admin/produtos/{p1['id']}/compatibilidades",
+                json={"compativel_com_id": p2["id"]},
+            )
+            assert comp_resp.status_code == 200
+            comp_list = comp_resp.json()
+            assert len(comp_list) >= 1
+            assert any(c["compativel_com_id"] == p2["id"] for c in comp_list)
+
+            # Deleta compatibilidade
+            del_comp = await client.delete(
+                f"/api/admin/produtos/{p1['id']}/compatibilidades/{p2['id']}"
+            )
+            assert del_comp.status_code == 200
+
+        finally:
+            await client.delete(f"/api/admin/produtos/{p1['id']}")
+            await client.delete(f"/api/admin/produtos/{p2['id']}")

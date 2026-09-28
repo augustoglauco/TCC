@@ -149,6 +149,9 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `GET /api/admin/produtos` | Lista para a tela `/admin/produtos` (query `termo`, `categoria`, `limit` 1–200, default 100, `offset`), mesma resposta paginada de `GET /api/products`, sem a ordenação por estoque — fora do MVP original, ver `docs/ARCHITECTURE.md` §5 (Gestão de Produtos) |
 | `GET /api/admin/produtos/categorias` | Categorias distintas (formulário e filtro do admin) |
 | `GET /api/admin/produtos/{id}` , `POST /api/admin/produtos` , `PUT /api/admin/produtos/{id}` , `DELETE /api/admin/produtos/{id}` | CRUD de produto (`PUT` parcial). O `DELETE` também remove as fotos e os vetores do CLIP no Qdrant |
+| `POST /api/admin/produtos/{id}/estoque` | Grava a quantidade de um centro de distribuição (`{centro_distribuicao, quantidade}`), aba "Estoque por CD" do `ProductFormModal`; devolve o `ProdutoOut` atualizado |
+| `POST /api/admin/produtos/{id}/descontos-volume` , `DELETE /api/admin/produtos/{id}/descontos-volume/{desconto_id}` | Faixas de desconto por volume (`{quantidade_minima, percentual_desconto}`); `desconto_id` é UUID (`400` se inválido); devolvem o `ProdutoOut` atualizado |
+| `POST /api/admin/produtos/{id}/compatibilidades` , `DELETE /api/admin/produtos/{id}/compatibilidades/{compativel_com_id}` | Vínculo de compatibilidade entre dois produtos (`{compativel_com_id}`), escolhido pelo `SearchableSelect` com busca; `404` se algum dos produtos não existe |
 | `POST /api/admin/produtos/{id}/imagens` , `DELETE /api/admin/produtos/{id}/imagens/{img_id}` | Foto avulsa do produto (`multipart`: `file`, `is_principal`), indexada na hora no CLIP; o `DELETE` remove o arquivo e o vetor |
 | `POST /api/admin/produtos/catalogo/extrair/stream` | Extração de produtos de catálogos PDF/imagens em SSE (`multipart`: `files`, `provider` `local`\|`external`, `fallback_external`, `page_range` opcional: `1-5`, `2, 5, 8`, `3-`, `-4`), usada pelo `CatalogImportModal` |
 | `POST /api/admin/produtos/upload-temp` , `POST /api/admin/produtos/catalogo/confirmar` | Foto de rascunho da conferência (`temp/`) e gravação em lote dos produtos conferidos (com as fotos movidas para a pasta definitiva e indexadas no CLIP) |
@@ -510,8 +513,12 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
 - Reagendamento/cancelamento de visita pela UI (o backend também não suporta
   isso no MVP — ver `docs/ARCHITECTURE.md` §5).
 - Notificações push, aplicativo mobile nativo, múltiplos idiomas.
-- Painel administrativo para gestão de catálogo/estoque/preços — no MVP essa
-  base é populada diretamente no banco (ver `docs/CONVENTIONS.md`), sem UI.
+- ~~Painel administrativo para gestão de catálogo/estoque/preços~~ —
+  **revogado** pela decisão de 2026-09-25 (pedido explícito do
+  desenvolvedor, `docs/ARCHITECTURE.md` §5, Gestão de Produtos): a tela
+  `/admin/produtos` cadastra produtos, preços e fotos e, desde 2026-09-27
+  (commit `a6c530d`), também estoque por CD, desconto por volume e
+  compatibilidade.
 
 **Decisão revista (Fase 2):** a exclusão acima era, na prática, uma regra
 geral contra qualquer UI administrativa no MVP. Ela fica mantida para

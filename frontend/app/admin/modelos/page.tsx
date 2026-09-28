@@ -48,9 +48,9 @@ export default function ModelosPage() {
       {/* Header com badge de contexto */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 shadow-2xs mb-2">
+          {/* <div className="inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 shadow-2xs mb-2">
             <span>⚙️ Painel de Controle Admin</span>
-          </div>
+          </div> */}
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
             Administração de Modelos LLM
           </h1>

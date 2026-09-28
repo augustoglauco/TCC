@@ -7,6 +7,27 @@ export interface AdminProductImage {
   criado_em: string;
 }
 
+export interface AdminProductStock {
+  id: string;
+  centro_distribuicao: string;
+  quantidade: number;
+  atualizado_em: string;
+}
+
+export interface AdminProductVolumeDiscount {
+  id: string;
+  quantidade_minima: number;
+  percentual_desconto: number;
+}
+
+export interface AdminProductCompatibility {
+  id: string;
+  produto_id: number;
+  compativel_com_id: number;
+  compativel_nome: string;
+  categoria?: string;
+}
+
 export interface AdminProduct {
   id: number;
   nome: string;
@@ -21,6 +42,8 @@ export interface AdminProduct {
   preco_base_fornecedor: number | null;
   imagem_url: string | null;
   imagens: AdminProductImage[];
+  estoques?: AdminProductStock[];
+  descontos_volume?: AdminProductVolumeDiscount[];
   ativo?: boolean;
   criado_em?: string;
   atualizado_em?: string;

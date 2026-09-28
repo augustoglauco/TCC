@@ -221,6 +221,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] **API Administrativa de Produtos & Extração com SSE** — CRUD completo de produtos (`GET/POST/PUT/DELETE /api/admin/produtos`), upload avulso de imagens com indexação CLIP imediata, e pipeline híbrido de extração página a página de PDFs multipáginas e múltiplas imagens (`POST /api/admin/produtos/catalogo/extrair/stream`) com streaming SSE e gravação do lote aprovado (`POST /api/admin/produtos/catalogo/confirmar`).
 - [x] **Interface Administrativa Human-in-the-Loop** — tela `/admin/produtos` acessível pelo menu ⚙️ com tabela de produtos, cálculo de margem comercial, cadastro/edição modal e assistente de importação de catálogos com conferência prévia página a página.
 
+- [x] **Estoque por CD, desconto por volume e compatibilidade no admin** —
+      abas no formulário de produto, rotas
+      `/api/admin/produtos/{id}/estoque|descontos-volume|compatibilidades` e
+      combobox com busca para escolher o produto compatível (commits
+      `a6c530d`, `9f3db9a`, `d596282`, 2026-09-27; registrado na revisão de
+      2026-09-28)
 - [x] **Intervalo de páginas na extração de catálogos PDF** — campo
       `page_range` (`1-5`, `2, 5, 8`, `3-`, `-4`) no upload do extrator
       (commit `bae66bd`, 2026-09-27; registrado na revisão de 2026-09-28)

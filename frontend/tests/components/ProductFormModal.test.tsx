@@ -11,6 +11,12 @@ vi.mock("@/lib/api/adminProducts", () => ({
   uploadAdminProductImage: vi.fn(),
   deleteAdminProductImage: vi.fn(),
   fetchAdminProduct: vi.fn(),
+  updateAdminProductStock: vi.fn(),
+  addAdminProductVolumeDiscount: vi.fn(),
+  deleteAdminProductVolumeDiscount: vi.fn(),
+  fetchAdminProductCompatibilities: vi.fn().mockResolvedValue([]),
+  addAdminProductCompatibility: vi.fn().mockResolvedValue([]),
+  deleteAdminProductCompatibility: vi.fn().mockResolvedValue([]),
 }));
 
 import {
