@@ -75,10 +75,12 @@ def _build_prompt(
     pedir_email_pos_venda: bool = False,
     ultima_troca: tuple[str, str] | None = None,
     dados_cliente: str | None = None,
+    contexto_conversa_anterior: str | None = None,
 ) -> str:
     """Monta o prompt final: prompt de sistema do domínio (playbook) +
     dados do cliente/compras (quando houver, R10 Fase 6/7) +
-    resumo da conversa até aqui (quando houver, R9 Fase 6) + dados do
+    contexto da conversa anterior (quando houver) +
+    resumo da conversa atual até aqui (quando houver, R9 Fase 6) + dados do
     catálogo de Vendas (quando houver, R12 Fase 5) + contexto de RAG (quando
     houver) + mensagem do cliente.
 
@@ -95,6 +97,12 @@ def _build_prompt(
 
     if dados_cliente is not None:
         partes.append(dados_cliente)
+
+    if contexto_conversa_anterior:
+        partes.append(
+            "Contexto da conversa anterior do cliente (use como histórico prévio do cliente; "
+            f"se a conversa atual tratar de algo novo, priorize o contexto atual):\n{contexto_conversa_anterior}"
+        )
 
     if resumo_conversa:
         # O prompt não leva as mensagens anteriores; o resumo periódico é o
@@ -736,6 +744,7 @@ async def handle_message(
     pedir_email_pos_venda: bool = False,
     ultima_troca: tuple[str, str] | None = None,
     dados_cliente: str | None = None,
+    contexto_conversa_anterior: str | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -1038,6 +1047,7 @@ async def handle_message(
         pedir_email_pos_venda=pedir_email_pos_venda,
         ultima_troca=ultima_troca,
         dados_cliente=dados_cliente,
+        contexto_conversa_anterior=contexto_conversa_anterior,
     )
 
     client = local_client if backend_escolhido == "local" else external_client

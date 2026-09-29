@@ -4,6 +4,7 @@ import { useEffect } from "react";
 
 import { ChatModal } from "@/components/chat/ChatModal";
 import { fetchConversationHistory } from "@/lib/api/chat";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { getOrCreateConversationId, useChatStore } from "@/lib/hooks/useChatStore";
 
 export default function ChatWidget() {
@@ -13,12 +14,13 @@ export default function ChatWidget() {
   const conversationId = useChatStore((state) => state.conversationId);
   const setConversationId = useChatStore((state) => state.setConversationId);
   const loadHistory = useChatStore((state) => state.loadHistory);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     if (!conversationId) {
-      setConversationId(getOrCreateConversationId());
+      setConversationId(getOrCreateConversationId(user?.email), user?.email);
     }
-  }, [conversationId, setConversationId]);
+  }, [conversationId, setConversationId, user?.email]);
 
   // Retomada (R9): ao ter o id, busca uma vez as mensagens gravadas no
   // backend. Falha ou conversa nova: o chat abre vazio, como antes.

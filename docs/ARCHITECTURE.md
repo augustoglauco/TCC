@@ -1143,10 +1143,15 @@ implementação.
 7. **Exibição:** `perfil_usuario` e `perfil_motivo` no evento `done` do SSE,
    mostrados no painel de métricas da resposta (⚙️). O perfil não entra no
    prompt.
-8. **Privacidade e Autenticação no Chat (Decisão registrada em 2026-09-28):**
+8. **Privacidade, Autenticação e Persistência de Conversas (Decisão registrada em 2026-09-29):**
    - Dados detalhados de histórico de compras e pedidos (`dados_cliente` no prompt com lista de produtos, valores, datas e pedidos) **SOMENTE** são carregados e disponibilizados se o usuário estiver formalmente autenticado no frontend (`payload.user_email` preenchido).
    - Quando o visitante NÃO estiver autenticado (mesmo que cite um e-mail na conversa ou retome uma conversa prévia), o sistema no máximo utiliza a informação para classificar o tipo de cliente no chat (R10: cliente, esporádico ou lead), injetando aviso de segurança explícito no prompt (`[Perfil do Visitante no Chat (Não Autenticado)]`) orientando o modelo a não expor compras e a instruir o visitante a fazer login na conta para acessar seus dados.
-   - No frontend, o **logout** aciona `useChatStore.getState().clearChat()`, resetando a conversa (`conversationId` e histórico em tela/localStorage), impedindo que outro visitante herde o histórico da conta anterior. Ao fazer **login**, a conversa em andamento é **preservada** para manter o contexto das perguntas já feitas; a partir do login, os envios subsequentes passam a carregar `user_email`, liberando o histórico de compras e pedidos na mesma conversa.
+   - **Persistência de conversas no navegador:**
+     - Visitantes anônimos/não autenticados utilizam `sessionStorage` (`tcc_chat_session_conversation_id`), mantendo a conversa durante a navegação entre abas e páginas na mesma visita, mas esquecendo-a completamente ao fechar o navegador/aba (não persistida no `localStorage`).
+     - Usuários autenticados têm seu identificador de conversa mantido no `localStorage` vinculado à conta (`tcc_chat_user_conversation_id_{email}`). Ao fazer login durante uma conversa ativa, a sessão corrente é vinculada ao usuário sem perda de contexto.
+     - No **logout**, `useAuthStore.getState().logout()` limpa a sessão ativa do chat e os armazenamentos locais associados (`clearChat()`), impedindo que outro visitante herde mensagens.
+   - **Injeção de contexto da conversa anterior:**
+     - Quando um usuário autenticado inicia ou dá sequência a um atendimento, o backend busca a última conversa prévia do cliente (`obter_contexto_conversa_anterior`), recupera seu resumo ou mensagens condensadas e injeta no prompt (`Contexto da conversa anterior do cliente`), permitindo ao LLM manter continuidade sobre tópicos discutidos em atendimentos passados.
 
 `# MVP: um visitante = um navegador (conversation_id no localStorage), sem
 login; base de clientes fictícia; e-mail captado por expressão regular, sem

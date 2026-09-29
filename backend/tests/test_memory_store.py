@@ -9,6 +9,8 @@ from app.memory.store import (
     contar_mensagens,
     limpar_conversa,
     listar_mensagens,
+    obter_contexto_conversa_anterior,
+    registrar_email,
     registrar_troca,
 )
 
@@ -120,3 +122,60 @@ async def test_conversa_nova_nao_tem_ultima_troca(factory):
         contexto = await carregar_contexto(session, "conv-vazia")
 
     assert contexto.ultima_troca is None
+
+
+async def test_obter_contexto_conversa_anterior_com_resumo(factory):
+    async with factory() as session:
+        await registrar_email(session, "conv-passada", "cliente@empresa.com")
+        await registrar_troca(session, "conv-passada", "Quero 10 rádios", "Orçamento enviado", "vendas")
+        # Define um resumo na conversa passada
+        from app.db.models import Conversa
+
+        conversa = await session.get(Conversa, "conv-passada")
+        conversa.resumo = "Cliente pediu cotação de 10 rádios e recebeu o orçamento."
+        await session.commit()
+
+        # Cria uma nova conversa do mesmo cliente
+        await registrar_email(session, "conv-atual", "cliente@empresa.com")
+        await registrar_troca(session, "conv-atual", "Olá", "Olá! Em que posso ajudar?", "vendas")
+
+    async with factory() as session:
+        contexto = await obter_contexto_conversa_anterior(
+            session, email="cliente@empresa.com", conversa_atual_id="conv-atual"
+        )
+
+    assert contexto == "Cliente pediu cotação de 10 rádios e recebeu o orçamento."
+
+
+async def test_obter_contexto_conversa_anterior_sem_resumo_formata_mensagens(factory):
+    async with factory() as session:
+        await registrar_email(session, "conv-sem-resumo", "ana@empresa.com")
+        await registrar_troca(session, "conv-sem-resumo", "Preciso de suporte no GD-15", "Qual o erro apresentado?", "suporte")
+
+        await registrar_email(session, "conv-nova", "ana@empresa.com")
+
+    async with factory() as session:
+        contexto = await obter_contexto_conversa_anterior(
+            session, email="ana@empresa.com", conversa_atual_id="conv-nova"
+        )
+
+    assert "Cliente: Preciso de suporte no GD-15" in contexto
+    assert "Assistente: Qual o erro apresentado?" in contexto
+
+
+async def test_obter_contexto_conversa_anterior_retorna_none_se_nao_houver_conversa_previa(factory):
+    async with factory() as session:
+        await registrar_email(session, "conv-unica", "novo@empresa.com")
+
+    async with factory() as session:
+        # Se só existe a conversa atual
+        ctx1 = await obter_contexto_conversa_anterior(
+            session, email="novo@empresa.com", conversa_atual_id="conv-unica"
+        )
+        # Se o e-mail nem existe no banco
+        ctx2 = await obter_contexto_conversa_anterior(
+            session, email="desconhecido@empresa.com", conversa_atual_id="qualquer"
+        )
+
+    assert ctx1 is None
+    assert ctx2 is None

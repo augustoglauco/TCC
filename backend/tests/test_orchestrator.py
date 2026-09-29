@@ -2275,3 +2275,34 @@ async def test_intent_router_heuristica_llm_chama_llm_quando_inconclusivo():
     assert decisao.domain == "suporte"
     assert decisao.router_provider == "heuristica_llm"
     assert local_client.calls >= 1
+
+
+async def test_handle_message_injeta_contexto_conversa_anterior_no_prompt():
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text="Com certeza, posso dar continuidade ao seu pedido de rádios.",
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(
+        documents=[Document(content="Tabela de orçamentos de rádio", source="orc.txt", score=0.9)]
+    )
+
+    contexto_anterior = "Cliente solicitou cotação de 5 rádios RC 4102g2 ontem e aguardava desconto."
+
+    eventos = await _coletar_eventos(
+        "Como ficou o orçamento que conversamos ontem?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        contexto_conversa_anterior=contexto_anterior,
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+    assert local_client.calls == 1
+    assert "Contexto da conversa anterior do cliente" in local_client.last_prompt
+    assert contexto_anterior in local_client.last_prompt

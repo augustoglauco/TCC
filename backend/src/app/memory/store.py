@@ -182,3 +182,34 @@ async def limpar_conversa(session: AsyncSession, conversation_id: str) -> bool:
     conversa.mensagens_resumidas = 0
     await session.commit()
     return True
+
+
+async def obter_contexto_conversa_anterior(
+    session: AsyncSession, email: str, conversa_atual_id: str | None = None
+) -> str | None:
+    """Recupera o resumo ou histórico condensado da conversa anterior mais recente
+    associada ao e-mail do cliente (R9/R10). Ignora a conversa atual.
+    Retorna o resumo se houver; caso contrário, formata as mensagens recentes
+    daquela conversa; se não houver conversa anterior, retorna None."""
+    stmt = select(Conversa).where(Conversa.email == email)
+    if conversa_atual_id:
+        stmt = stmt.where(Conversa.id != conversa_atual_id)
+    stmt = stmt.order_by(Conversa.atualizada_em.desc(), Conversa.criada_em.desc()).limit(1)
+
+    resultado = await session.execute(stmt)
+    conversa_anterior = resultado.scalars().first()
+    if conversa_anterior is None:
+        return None
+
+    if conversa_anterior.resumo:
+        return conversa_anterior.resumo.strip()
+
+    mensagens = await listar_mensagens(session, conversa_anterior.id, limite=6)
+    if not mensagens:
+        return None
+
+    linhas = [
+        f"{'Cliente' if m.papel == PAPEL_CLIENTE else 'Assistente'}: {m.texto}"
+        for m in mensagens
+    ]
+    return "\n".join(linhas)

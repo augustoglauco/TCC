@@ -1047,3 +1047,35 @@ async def test_login_no_meio_da_conversa_mantem_contexto_e_habilita_compras(clie
     assert "agora estou logado, pode listar minhas compras?" in mensagens_textos
 
 
+async def test_usuario_autenticado_com_conversa_anterior_injeta_contexto_anterior_no_prompt(
+    client, fakes
+):
+    sessao = fakes["db_session"]
+    # Cria uma conversa passada para Ana com resumo
+    conversa_passada = Conversa(
+        id="conv-passada-1",
+        email="ana.recorrente@example.com",
+        resumo="Cliente comprou um gerador GD-15 e tirou dúvidas de garantia.",
+        mensagens_resumidas=6,
+    )
+    sessao.add(conversa_passada)
+    await sessao.commit()
+
+    # Ana inicia uma conversa nova autenticada
+    client.post(
+        "/api/chat/messages",
+        json={
+            "message": "Olá, queria saber se há novidades sobre garantia.",
+            "conversation_id": "conv-nova-2",
+            "user_email": "ana.recorrente@example.com",
+        },
+    )
+
+    todos_os_prompts = fakes["local"].prompts + fakes["external"].prompts
+    prompt_com_contexto = next(
+        (p for p in todos_os_prompts if "Contexto da conversa anterior do cliente" in p), None
+    )
+    assert prompt_com_contexto is not None
+    assert "Cliente comprou um gerador GD-15 e tirou dúvidas de garantia." in prompt_com_contexto
+
+

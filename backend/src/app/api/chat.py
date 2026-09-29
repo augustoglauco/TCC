@@ -21,6 +21,7 @@ from app.memory.store import (
     gravar_metricas,
     limpar_conversa,
     listar_mensagens,
+    obter_contexto_conversa_anterior,
     registrar_email,
     registrar_troca,
 )
@@ -168,6 +169,21 @@ async def _carregar_dados_cliente_seguro(
                 }
             },
         )
+        return None
+
+
+async def _carregar_contexto_anterior_seguro(
+    app_state, email: str, conversation_id: str
+) -> str | None:
+    """Carrega o resumo ou histórico condensado da conversa anterior mais recente
+    do usuário autenticado (R9/R10). Falha vira log e segue sem quebrar a resposta."""
+    try:
+        async with app_state.db_sessionmaker() as session:
+            return await obter_contexto_conversa_anterior(
+                session, email=email, conversa_atual_id=conversation_id
+            )
+    except Exception as exc:
+        _logar_memoria_indisponivel("carregar_contexto_anterior", exc)
         return None
 
 
@@ -490,6 +506,12 @@ async def send_message(
         apenas_tipo_cliente=not usuario_autenticado,
     )
 
+    contexto_anterior: str | None = None
+    if usuario_autenticado and email_autenticado:
+        contexto_anterior = await _carregar_contexto_anterior_seguro(
+            request.app.state, email_autenticado, conversation_id
+        )
+
     # Mensagem que é só o e-mail: resposta fixa, sem LLM (ver abaixo).
     so_email = (
         not is_identificacao_imagem
@@ -620,6 +642,7 @@ async def send_message(
                 # mensagem), o assistente pede o e-mail usado na compra.
                 pedir_email_pos_venda=contexto.email is None,
                 dados_cliente=dados_cliente,
+                contexto_conversa_anterior=contexto_anterior,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
