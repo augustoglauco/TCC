@@ -216,7 +216,7 @@ export default function AdminUsuariosPage() {
                     </td>
                     <td className="px-4 py-3.5 text-right">
                       <Link
-                        href={`/pedidos/historico`}
+                        href={`/pedidos/historico?email=${encodeURIComponent(u.email)}`}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 underline"
                       >
                         <span>Ver Pedidos</span>

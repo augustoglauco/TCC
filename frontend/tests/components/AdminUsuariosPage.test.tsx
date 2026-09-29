@@ -68,6 +68,12 @@ describe("AdminUsuariosPage", () => {
       expect(screen.getByText("Ana Recorrente")).toBeInTheDocument();
       expect(screen.getByText("ana.recorrente@example.com")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: /\+ Novo Usuário \/ Admin/i })).toBeInTheDocument();
+
+      const verPedidosLinks = screen.getAllByRole("link", { name: /Ver Pedidos/i });
+      expect(verPedidosLinks[1]).toHaveAttribute(
+        "href",
+        "/pedidos/historico?email=ana.recorrente%40example.com",
+      );
     });
   });
 });
