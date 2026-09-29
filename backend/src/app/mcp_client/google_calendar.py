@@ -45,7 +45,11 @@ class CalendarClient(Protocol):
         attendee_email: str,
         attendee_name: str,
         description: str = "",
-    ) -> str: ...
+    ) -> tuple[str, str]: ...
+
+    async def delete_event(self, event_id: str) -> bool: ...
+
+    async def list_events(self, time_min: datetime, time_max: datetime) -> list[dict]: ...
 
 
 class GoogleCalendarMCPClient:
@@ -117,7 +121,7 @@ class GoogleCalendarMCPClient:
         attendee_email: str,
         attendee_name: str,
         description: str = "",
-    ) -> str:
+    ) -> tuple[str, str]:
         # A tool `create_event` deste servidor só aceita e-mails em
         # `attendee_emails` (sem nome de exibição por convidado) — o nome do
         # visitante vai para a descrição do evento para não se perder.
@@ -135,4 +139,31 @@ class GoogleCalendarMCPClient:
             },
         )
         evento = resultado.get("event") or {}
-        return evento.get("html_link", "")
+        return evento.get("id", ""), evento.get("html_link", "")
+
+    async def delete_event(self, event_id: str) -> bool:
+        try:
+            await self._call_tool(
+                "delete_event",
+                {
+                    "calendar_id": self._calendar_id,
+                    "event_id": event_id,
+                },
+            )
+            return True
+        except GoogleCalendarConnectionError as exc:
+            msg = str(exc).lower()
+            if "not found" in msg or "404" in msg:
+                return False
+            raise
+
+    async def list_events(self, time_min: datetime, time_max: datetime) -> list[dict]:
+        resultado = await self._call_tool(
+            "find_events",
+            {
+                "calendar_id": self._calendar_id,
+                "time_min": time_min.isoformat(),
+                "time_max": time_max.isoformat(),
+            },
+        )
+        return resultado.get("events", [])

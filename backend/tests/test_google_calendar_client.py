@@ -91,7 +91,7 @@ async def test_is_time_available_structured_content_none_falha_fechado():
         await client.is_time_available(datetime(2026, 9, 24, 10, 0), datetime(2026, 9, 24, 10, 30))
 
 
-async def test_create_event_retorna_link_do_evento():
+async def test_create_event_retorna_id_e_link_do_evento():
     session = _FakeMCPSession(
         result=_FakeCallToolResult(
             structured_content={
@@ -103,7 +103,7 @@ async def test_create_event_retorna_link_do_evento():
     )
     client = _client(session)
 
-    link = await client.create_event(
+    event_id, link = await client.create_event(
         summary="Visita — Maria",
         start=datetime(2026, 9, 24, 10, 0),
         end=datetime(2026, 9, 24, 10, 30),
@@ -111,6 +111,7 @@ async def test_create_event_retorna_link_do_evento():
         attendee_name="Maria",
     )
 
+    assert event_id == "evt1"
     assert link == "https://calendar.google.com/evt1"
     nome_tool, argumentos = session.calls[0]
     assert nome_tool == "create_event"
@@ -122,13 +123,13 @@ async def test_create_event_retorna_link_do_evento():
     assert "Maria" in argumentos["description"]
 
 
-async def test_create_event_sem_chave_event_retorna_link_vazio():
+async def test_create_event_sem_chave_event_retorna_id_e_link_vazios():
     session = _FakeMCPSession(
         result=_FakeCallToolResult(structured_content={"calendar_id": "primary", "message": "ok"})
     )
     client = _client(session)
 
-    link = await client.create_event(
+    event_id, link = await client.create_event(
         summary="Visita",
         start=datetime(2026, 9, 24, 10, 0),
         end=datetime(2026, 9, 24, 10, 30),
@@ -136,7 +137,58 @@ async def test_create_event_sem_chave_event_retorna_link_vazio():
         attendee_name="A",
     )
 
+    assert event_id == ""
     assert link == ""
+
+
+async def test_delete_event_chama_tool_delete_event_com_sucesso():
+    session = _FakeMCPSession(
+        result=_FakeCallToolResult(structured_content={"calendar_id": "primary", "message": "deleted"})
+    )
+    client = _client(session)
+
+    sucesso = await client.delete_event("evt1")
+
+    assert sucesso is True
+    assert len(session.calls) == 1
+    nome_tool, argumentos = session.calls[0]
+    assert nome_tool == "delete_event"
+    assert argumentos["calendar_id"] == "primary"
+    assert argumentos["event_id"] == "evt1"
+
+
+async def test_delete_event_quando_tool_falha_com_not_found_retorna_false():
+    session = _FakeMCPSession(
+        result=_FakeCallToolResult(is_error=True, content=["Event not found: evt404"])
+    )
+    client = _client(session)
+
+    sucesso = await client.delete_event("evt404")
+
+    assert sucesso is False
+
+
+async def test_list_events_retorna_lista_de_eventos():
+    mock_events = [
+        {"id": "evt1", "summary": "Visita — Maria", "start": "2026-09-24T10:00:00Z"},
+        {"id": "evt2", "summary": "Visita — João", "start": "2026-09-24T14:00:00Z"},
+    ]
+    session = _FakeMCPSession(
+        result=_FakeCallToolResult(structured_content={"count": 2, "events": mock_events})
+    )
+    client = _client(session)
+
+    eventos = await client.list_events(
+        time_min=datetime(2026, 9, 24, 8, 0),
+        time_max=datetime(2026, 9, 24, 18, 0),
+    )
+
+    assert eventos == mock_events
+    nome_tool, argumentos = session.calls[0]
+    assert nome_tool == "find_events"
+    assert argumentos["calendar_id"] == "primary"
+    assert argumentos["time_min"] == "2026-09-24T08:00:00"
+    assert argumentos["time_max"] == "2026-09-24T18:00:00"
 
 
 async def test_call_tool_com_is_error_vira_connection_error():
