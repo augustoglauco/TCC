@@ -21,7 +21,7 @@ function formatarDataHora(dataIso: string): string {
 
 export default function AgendamentosPage() {
   const user = useAuthStore((state) => state.user);
-  const openChat = useChatStore((state) => state.open);
+  const openVisitChat = useChatStore((state) => state.openVisitChat);
 
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,7 +99,7 @@ export default function AgendamentosPage() {
             </Link>
             <button
               type="button"
-              onClick={openChat}
+              onClick={() => openVisitChat(null)}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
             >
               Agendar Visita pelo Chat 💬
@@ -128,7 +128,7 @@ export default function AgendamentosPage() {
 
         <button
           type="button"
-          onClick={openChat}
+          onClick={() => openVisitChat(user)}
           className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-emerald-500 transition-colors cursor-pointer self-start sm:self-auto"
         >
           <span>💬</span> Agendar Nova Visita pelo Chat
@@ -176,7 +176,7 @@ export default function AgendamentosPage() {
           </p>
           <button
             type="button"
-            onClick={openChat}
+            onClick={() => openVisitChat(user)}
             className="mt-2 inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 cursor-pointer"
           >
             Solicitar Agendamento no Chat

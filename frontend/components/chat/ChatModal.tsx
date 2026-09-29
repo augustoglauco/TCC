@@ -82,12 +82,17 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   }
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const pendingInput = useChatStore((state) => state.pendingInput);
 
   useEffect(() => {
     if (open) {
       messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
+      if (pendingInput) {
+        setInput(pendingInput);
+        useChatStore.setState({ pendingInput: null });
+      }
     }
-  }, [messages, error, open]);
+  }, [messages, error, open, pendingInput]);
 
   const hasAssistantMessages = messages.some((m) => m.role === "assistant");
 

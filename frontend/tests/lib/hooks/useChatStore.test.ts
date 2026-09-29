@@ -64,4 +64,34 @@ describe("useChatStore — persistência condicional", () => {
       useChatStore.getState().conversationId,
     );
   });
+
+  describe("openVisitChat / getVisitPrompt", () => {
+    it("1. Usuario Logado: preenche o prompt com dados do banco/autenticação", () => {
+      const user = { nome: "Ana Recorrente", email: "ana.recorrente@example.com" };
+      useChatStore.getState().openVisitChat(user);
+
+      expect(useChatStore.getState().isOpen).toBe(true);
+      expect(useChatStore.getState().pendingInput).toBe(
+        "Quero agendar uma visita técnica. Meus dados cadastrados: Nome: Ana Recorrente, E-mail: ana.recorrente@example.com.",
+      );
+    });
+
+    it("2. E-mail ja identificado: inclui e-mail informado e pede dados adicionais", () => {
+      useChatStore.getState().openVisitChat(null, "visitante@identificado.com");
+
+      expect(useChatStore.getState().isOpen).toBe(true);
+      expect(useChatStore.getState().pendingInput).toBe(
+        "Quero agendar uma visita técnica. Meu e-mail é visitante@identificado.com. Por favor, solicite a data, horário e dados adicionais necessários.",
+      );
+    });
+
+    it("3. Sem e-mail (Visitante Anônimo): pede e-mail e dados necessários", () => {
+      useChatStore.getState().openVisitChat(null, null);
+
+      expect(useChatStore.getState().isOpen).toBe(true);
+      expect(useChatStore.getState().pendingInput).toBe(
+        "Quero agendar uma visita técnica. Por favor, solicite meu e-mail, nome e os dados necessários para o agendamento.",
+      );
+    });
+  });
 });

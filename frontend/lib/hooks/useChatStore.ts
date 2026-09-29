@@ -62,12 +62,32 @@ export function getOrCreateConversationId(userEmail?: string | null): string {
   }
 }
 
+export function getVisitPrompt(
+  user?: { nome?: string; email?: string } | null,
+  identifiedEmail?: string | null,
+): string {
+  if (user?.email && user.email.trim()) {
+    const nomeStr = user.nome && user.nome.trim() ? `Nome: ${user.nome.trim()}, ` : "";
+    return `Quero agendar uma visita técnica. Meus dados cadastrados: ${nomeStr}E-mail: ${user.email.trim()}.`;
+  }
+  if (identifiedEmail && identifiedEmail.trim()) {
+    return `Quero agendar uma visita técnica. Meu e-mail é ${identifiedEmail.trim()}. Por favor, solicite a data, horário e dados adicionais necessários.`;
+  }
+  return `Quero agendar uma visita técnica. Por favor, solicite meu e-mail, nome e os dados necessários para o agendamento.`;
+}
+
 interface ChatState {
   isOpen: boolean;
   conversationId: string;
   messages: ChatUIMessage[];
+  pendingInput: string | null;
   toggleOpen: () => void;
   open: () => void;
+  openWithPrompt: (promptText: string) => void;
+  openVisitChat: (
+    user?: { nome?: string; email?: string } | null,
+    identifiedEmail?: string | null,
+  ) => void;
   close: () => void;
   addMessage: (message: ChatUIMessage) => void;
   updateMessage: (id: string, patch: Partial<Omit<ChatUIMessage, "id">>) => void;
@@ -83,8 +103,14 @@ export const useChatStore = create<ChatState>((set) => ({
   // Inicia vazio para evitar hidratação inconsistente entre SSR e cliente
   conversationId: "",
   messages: [],
+  pendingInput: null,
   toggleOpen: () => set((state) => ({ isOpen: !state.isOpen })),
   open: () => set({ isOpen: true }),
+  openWithPrompt: (promptText) => set({ isOpen: true, pendingInput: promptText }),
+  openVisitChat: (user, identifiedEmail) => {
+    const prompt = getVisitPrompt(user, identifiedEmail);
+    set({ isOpen: true, pendingInput: prompt });
+  },
   close: () => set({ isOpen: false }),
   addMessage: (message) => set((state) => ({ messages: [...state.messages, message] })),
   updateMessage: (id, patch) =>
