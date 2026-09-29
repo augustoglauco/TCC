@@ -162,6 +162,46 @@ export default function PerfilPage() {
             {user.perfil_motivo}
           </div>
         )}
+
+        {/* Ações Exclusivas do Administrador */}
+        {user.perfil?.toLowerCase() === "admin" && (
+          <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">⚙️</span>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-purple-900">
+                  Painel de Recursos Administrativos
+                </h4>
+              </div>
+              <span className="rounded-full bg-purple-200 text-purple-900 text-[10px] font-bold px-2 py-0.5">
+                Privilégio Admin
+              </span>
+            </div>
+            <p className="text-xs text-purple-800">
+              Como administrador, você tem permissão para gerenciar contas cadastradas e registrar novos administradores ou clientes.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Link
+                href="/admin/usuarios"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-purple-700 transition-colors"
+              >
+                <span>👥 Gerenciar Usuários</span>
+              </Link>
+              <Link
+                href="/conta/cadastro"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3.5 py-2 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-colors"
+              >
+                <span>➕ Criar Nova Conta</span>
+              </Link>
+              <Link
+                href="/admin/produtos"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-purple-300 bg-white px-3.5 py-2 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition-colors"
+              >
+                <span>📦 Catálogo CLIP</span>
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Cartão de Integração com o Chat */}

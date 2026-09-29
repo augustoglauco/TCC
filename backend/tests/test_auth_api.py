@@ -46,3 +46,42 @@ async def test_auth_me_usuario_inexistente(app_sqlite):
         resp = await client.get("/api/auth/me?email=naoexiste@teste.com")
         assert resp.status_code == 404
         assert "não encontrado" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_auth_register_usuario_simples_e_admin(app_sqlite):
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
+        # 1. Registro de usuário simples (Cliente)
+        resp_cliente = await client.post(
+            "/api/auth/register",
+            json={
+                "nome": "João Simples",
+                "email": "joao.simples@example.com",
+                "password": "12345",
+                "perfil": "Cliente",
+            },
+        )
+        assert resp_cliente.status_code == 201
+        data_c = resp_cliente.json()
+        assert data_c["user"]["nome"] == "João Simples"
+        assert data_c["user"]["email"] == "joao.simples@example.com"
+        assert data_c["user"]["perfil"] == "Cliente"
+
+        # 2. Registro de usuário Admin
+        resp_admin = await client.post(
+            "/api/auth/register",
+            json={
+                "nome": "Carlos Admin",
+                "email": "admin@example.com",
+                "password": "12345",
+                "perfil": "Admin",
+            },
+        )
+        assert resp_admin.status_code == 201
+        data_a = resp_admin.json()
+        assert data_a["user"]["nome"] == "Carlos Admin"
+        assert data_a["user"]["email"] == "admin@example.com"
+        assert data_a["user"]["perfil"] == "Admin"
+

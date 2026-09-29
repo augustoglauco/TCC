@@ -14,6 +14,18 @@ class LoginRequest(BaseModel):
     password: str = Field(..., description="Senha do usuário (senha mock: 12345).")
 
 
+class RegisterRequest(BaseModel):
+    """Requisição de novo cadastro de usuário."""
+
+    nome: str = Field(..., description="Nome completo do usuário.")
+    email: str = Field(..., description="E-mail do usuário.")
+    password: str = Field(default="12345", description="Senha do usuário (senha mock: 12345).")
+    perfil: str = Field(default="Cliente", description="Perfil do usuário: Cliente ou Admin.")
+    requester_email: str | None = Field(
+        default=None, description="E-mail do usuário autenticado que está realizando o cadastro."
+    )
+
+
 class UserOut(BaseModel):
     """Dados públicos do usuário autenticado."""
 

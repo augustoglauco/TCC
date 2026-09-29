@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
 /**
  * Menu dropdown acionado pelo ícone de engrenagem (configurações/administração).
- * Exibe os links de administração (Ingestão de documentos RAG e Gerenciador de Modelos locais).
+ * Exibe os links de administração (Ingestão de documentos RAG, Catálogo e Modelos).
  */
 export default function AdminGearMenu() {
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.perfil?.toLowerCase() === "admin";
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -31,6 +34,10 @@ export default function AdminGearMenu() {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen]);
+
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <div className="relative inline-block text-left" ref={menuRef}>
@@ -68,10 +75,36 @@ export default function AdminGearMenu() {
           aria-labelledby="admin-menu-button"
           className="absolute right-0 mt-2 w-64 origin-top-right rounded-lg border border-gray-200 bg-white p-2 shadow-lg ring-1 ring-black/5 focus:outline-none z-50"
         >
-          <div className="border-b border-gray-100 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
-            Administração
+          <div className="border-b border-gray-100 px-3 py-2 flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Administração
+            </span>
+            {user?.perfil?.toLowerCase() === "admin" && (
+              <span className="rounded bg-purple-100 text-purple-800 text-[10px] font-bold px-1.5 py-0.5">
+                Admin
+              </span>
+            )}
           </div>
           <div className="py-1">
+            <Link
+              href="/admin/usuarios"
+              role="menuitem"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-semibold text-purple-700 bg-purple-50/50 hover:bg-purple-100"
+            >
+              <span className="text-base">👥</span>
+              <span>Gerenciar Usuários</span>
+            </Link>
+            <Link
+              href="/conta/cadastro"
+              role="menuitem"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <span className="text-base">➕</span>
+              <span>Criar Nova Conta</span>
+            </Link>
+            <div className="my-1 border-t border-gray-100" />
             <Link
               href="/admin/produtos"
               role="menuitem"

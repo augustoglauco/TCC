@@ -28,6 +28,13 @@ const DEMO_ACCOUNTS = [
     descricao: "2 compras há mais de 12 meses",
     badgeColor: "bg-amber-50 text-amber-700 border-amber-200",
   },
+  {
+    nome: "Administrador Sistema",
+    email: "admin@example.com",
+    perfil: "Admin",
+    descricao: "Acesso ao Menu e Painel de Administração",
+    badgeColor: "bg-purple-50 text-purple-700 border-purple-200",
+  },
 ];
 
 export default function LoginPage() {
@@ -217,6 +224,15 @@ export default function LoginPage() {
               </span>
             </button>
           ))}
+        </div>
+
+        <div className="text-center pt-2 border-t border-slate-100">
+          <p className="text-xs text-slate-600">
+            Ainda não tem uma conta?{" "}
+            <Link href="/conta/cadastro" className="font-bold text-blue-600 hover:underline">
+              Criar novo cadastro &rarr;
+            </Link>
+          </p>
         </div>
       </div>
     </div>

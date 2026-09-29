@@ -33,9 +33,6 @@ function PedidosPageContent() {
   const totalCartValue = useCartStore((state) => state.totalValue());
 
   // Form states checkout
-  const [rawUserEmail, setRawUserEmail] = useState<string | null>(null);
-  const userEmail = rawUserEmail !== null ? rawUserEmail : (currentUser?.email ?? "");
-  const setUserEmail = (val: string) => setRawUserEmail(val);
   const [cep, setCep] = useState("");
   const [freightResult, setFreightResult] = useState<FreightQuoteResult | null>(null);
   const [isCalculatingFreight, setIsCalculatingFreight] = useState(false);
@@ -117,13 +114,17 @@ function PedidosPageContent() {
 
   // Handler Finalização de Pedido
   const handleCheckout = async () => {
+    if (!currentUser || !currentUser.email) {
+      setCheckoutError("É necessário estar logado para finalizar o pedido.");
+      return;
+    }
     if (cartItems.length === 0) return;
     setIsSubmittingOrder(true);
     setCheckoutError(null);
 
     try {
       const order = await createOrder({
-        user_email: userEmail.trim() || undefined,
+        user_email: currentUser.email,
         conversation_id: useChatStore.getState().conversationId || undefined,
         itens: cartItems.map((item) => ({
           produto_id: item.produtoId,
@@ -179,6 +180,37 @@ function PedidosPageContent() {
 
     setActiveTab("carrinho");
   };
+
+  if (!currentUser) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center space-y-6">
+        <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 text-3xl font-bold shadow-xs border border-amber-200">
+          🔐
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Autenticação Necessária</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Para entrar em pedidos, acessar seu carrinho e finalizar compras, é necessário estar logado na sua conta.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 pt-2">
+          <Link
+            href="/conta/login?redirect=/pedidos"
+            className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-xs hover:bg-blue-700 transition-colors"
+          >
+            Entrar na Conta &rarr;
+          </Link>
+          <Link
+            href="/produtos"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            Voltar para o Catálogo de Produtos
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12 space-y-8">
@@ -484,28 +516,20 @@ function PedidosPageContent() {
                     </div>
                   </div>
 
-                  {/* Informar E-mail (Opcional) */}
-                  <div className="space-y-1.5 pt-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-700 block">
-                        E-mail do Cliente / Empresa (opcional):
-                      </label>
-                      {currentUser && (
-                        <span className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-medium">
-                          Identificado ({currentUser.nome})
-                        </span>
-                      )}
+                  {/* Informações do Cliente Autenticado */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                    <label className="text-xs font-semibold text-slate-700 block">
+                      Cliente Autenticado:
+                    </label>
+                    <div className="rounded-lg bg-blue-50/70 border border-blue-100 p-2.5 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-bold text-slate-900 block">{currentUser.nome}</span>
+                        <span className="text-slate-500 font-mono text-[11px]">{currentUser.email}</span>
+                      </div>
+                      <span className="rounded bg-blue-100 text-blue-700 px-2 py-0.5 text-[10px] font-bold">
+                        {currentUser.perfil || "Cliente"}
+                      </span>
                     </div>
-                    <input
-                      type="email"
-                      placeholder="seu-email@empresa.com"
-                      value={userEmail}
-                      onChange={(e) => setUserEmail(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-                    />
-                    <p className="text-[11px] text-slate-500">
-                      Vincula o pedido ao seu histórico de cliente ou lead.
-                    </p>
                   </div>
 
                   {checkoutError && (

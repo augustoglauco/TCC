@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { login as apiLogin } from "@/lib/api/auth";
+import { login as apiLogin, register as apiRegister } from "@/lib/api/auth";
 import { User } from "@/lib/types/auth";
 import {
   getUserConversationStorageKey,
@@ -12,6 +12,13 @@ interface AuthState {
   user: User | null;
   token: string | null;
   login: (email: string, password?: string) => Promise<void>;
+  register: (payload: {
+    nome: string;
+    email: string;
+    password?: string;
+    perfil?: string;
+    requesterEmail?: string;
+  }) => Promise<void>;
   logout: () => void;
   setUser: (user: User | null) => void;
 }
@@ -23,6 +30,22 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       login: async (email: string, password = "12345") => {
         const response = await apiLogin(email, password);
+        set({ user: response.user, token: response.token });
+        const currentConvId = useChatStore.getState().conversationId;
+        if (currentConvId && typeof window !== "undefined") {
+          try {
+            window.localStorage.setItem(
+              getUserConversationStorageKey(response.user.email),
+              currentConvId,
+            );
+            window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+          } catch {
+            // ignora restrição de storage
+          }
+        }
+      },
+      register: async (payload) => {
+        const response = await apiRegister(payload);
         set({ user: response.user, token: response.token });
         const currentConvId = useChatStore.getState().conversationId;
         if (currentConvId && typeof window !== "undefined") {

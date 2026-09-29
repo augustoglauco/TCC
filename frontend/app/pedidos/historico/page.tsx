@@ -1,26 +1,30 @@
-"use client";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { fetchOrders, Order } from "@/lib/api/orders";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
-export default function HistoricoPedidosPage() {
-  const currentUser = useAuthStore((state) => state.user);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [filterEmail, setFilterEmail] = useState<string | null>(null);
-  const userEmail = filterEmail !== null ? filterEmail : (currentUser?.email ?? "");
-  const setUserEmail = (val: string) => setFilterEmail(val);
+function HistoricoPedidosContent() {
+  const searchParams = useSearchParams();
+  const targetEmailParam = searchParams.get("email");
 
+  const currentUser = useAuthStore((state) => state.user);
+  const isAdmin = currentUser?.perfil?.toLowerCase() === "admin";
+
+  const targetEmail =
+    isAdmin && targetEmailParam ? targetEmailParam.trim() : (currentUser?.email ?? "");
+  const isAdminInspectingCustomer = isAdmin && Boolean(targetEmailParam) && targetEmailParam !== currentUser?.email;
+
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadOrders = async (emailToFilter?: string) => {
+  const loadOrders = async (userEmail: string) => {
     setIsLoading(true);
     setError(null);
     try {
       const res = await fetchOrders({
-        userEmail: emailToFilter?.trim() || undefined,
+        userEmail: userEmail.trim(),
         limit: 50,
       });
       setOrders(res.items);
@@ -32,14 +36,43 @@ export default function HistoricoPedidosPage() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadOrders(currentUser?.email || undefined);
-  }, [currentUser?.email]);
+    if (targetEmail) {
+      loadOrders(targetEmail);
+    } else {
+      setIsLoading(false);
+    }
+  }, [targetEmail]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    loadOrders(userEmail);
-  };
+  if (!currentUser) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center space-y-6">
+        <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 text-3xl font-bold shadow-xs border border-amber-200">
+          📜
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Histórico Restrito ao Usuário</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Para consultar seu histórico de pedidos e cotações, faça login na sua conta.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 pt-2">
+          <Link
+            href="/conta/login?redirect=/pedidos/historico"
+            className="rounded-xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-xs hover:bg-blue-700 transition-colors"
+          >
+            Entrar na Conta &rarr;
+          </Link>
+          <Link
+            href="/produtos"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            Voltar ao Catálogo
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12 space-y-8">
@@ -68,41 +101,45 @@ export default function HistoricoPedidosPage() {
         </div>
       </div>
 
-      {/* Filtro por E-mail */}
-      <div className="space-y-2">
-        <form onSubmit={handleSearch} className="flex gap-2 max-w-md">
-          <input
-            type="email"
-            placeholder="Filtrar por e-mail do cliente..."
-            value={userEmail}
-            onChange={(e) => setUserEmail(e.target.value)}
-            className="flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            type="submit"
-            className="rounded-lg bg-slate-800 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-900 transition-colors cursor-pointer"
+      {/* Banner de Inspeção Administrativa ou Identificação de Usuário */}
+      {isAdminInspectingCustomer ? (
+        <div className="rounded-xl bg-purple-50 border border-purple-200 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⚙️</span>
+            <div>
+              <h4 className="text-xs font-bold text-purple-900 uppercase tracking-wider">
+                Modo de Consulta Administrativa
+              </h4>
+              <p className="text-xs text-purple-700 mt-0.5">
+                Exibindo histórico de pedidos do cliente: <strong className="font-mono text-purple-900">{targetEmail}</strong>
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/usuarios"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-purple-700 transition-colors shrink-0"
           >
-            Filtrar
-          </button>
-          {userEmail && (
-            <button
-              type="button"
-              onClick={() => {
-                setUserEmail("");
-                loadOrders("");
-              }}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-            >
-              Limpar
-            </button>
-          )}
-        </form>
-        {currentUser && userEmail === currentUser.email && (
-          <p className="text-[11px] text-blue-600">
-            ✓ Exibindo pedidos vinculados à sua conta (<strong>{currentUser.email}</strong>).
-          </p>
-        )}
-      </div>
+            <span>&larr; Voltar para Gestão de Usuários</span>
+          </Link>
+        </div>
+      ) : (
+        <div className="rounded-xl bg-blue-50/70 border border-blue-100 p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">👤</span>
+            <div>
+              <h4 className="text-xs font-bold text-slate-900">
+                Histórico de Pedidos de {currentUser.nome}
+              </h4>
+              <p className="text-[11px] text-blue-700 font-mono mt-0.5">
+                Exibindo apenas pedidos vinculados a <strong>{currentUser.email}</strong>
+              </p>
+            </div>
+          </div>
+          <span className="rounded-full bg-blue-100 text-blue-800 px-3 py-1 text-xs font-semibold">
+            {currentUser.perfil || "Cliente"}
+          </span>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
@@ -120,9 +157,7 @@ export default function HistoricoPedidosPage() {
           <div className="text-3xl">📦</div>
           <h3 className="text-base font-bold text-slate-800">Nenhum pedido encontrado</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            {userEmail
-              ? `Nenhum pedido cadastrado para o e-mail "${userEmail}".`
-              : "Ainda não existem pedidos cadastrados no sistema."}
+            Nenhum pedido cadastrado para o e-mail &quot;{targetEmail}&quot;.
           </p>
         </div>
       ) : (
@@ -216,3 +251,18 @@ export default function HistoricoPedidosPage() {
     </div>
   );
 }
+
+export default function HistoricoPedidosPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-5xl px-4 py-12 text-center text-xs text-slate-500">
+          Carregando histórico...
+        </div>
+      }
+    >
+      <HistoricoPedidosContent />
+    </Suspense>
+  );
+}
+
