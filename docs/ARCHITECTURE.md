@@ -1146,7 +1146,7 @@ implementação.
 8. **Privacidade e Autenticação no Chat (Decisão registrada em 2026-09-28):**
    - Dados detalhados de histórico de compras e pedidos (`dados_cliente` no prompt com lista de produtos, valores, datas e pedidos) **SOMENTE** são carregados e disponibilizados se o usuário estiver formalmente autenticado no frontend (`payload.user_email` preenchido).
    - Quando o visitante NÃO estiver autenticado (mesmo que cite um e-mail na conversa ou retome uma conversa prévia), o sistema no máximo utiliza a informação para classificar o tipo de cliente no chat (R10: cliente, esporádico ou lead), injetando aviso de segurança explícito no prompt (`[Perfil do Visitante no Chat (Não Autenticado)]`) orientando o modelo a não expor compras e a instruir o visitante a fazer login na conta para acessar seus dados.
-   - No frontend, tanto o login quanto o logout acionam `useChatStore.getState().clearChat()`, resetando a conversa (`conversationId` e histórico em tela/localStorage), impedindo que um visitante deslogado herde o histórico ou a sessão da conta anterior.
+   - No frontend, o **logout** aciona `useChatStore.getState().clearChat()`, resetando a conversa (`conversationId` e histórico em tela/localStorage), impedindo que outro visitante herde o histórico da conta anterior. Ao fazer **login**, a conversa em andamento é **preservada** para manter o contexto das perguntas já feitas; a partir do login, os envios subsequentes passam a carregar `user_email`, liberando o histórico de compras e pedidos na mesma conversa.
 
 `# MVP: um visitante = um navegador (conversation_id no localStorage), sem
 login; base de clientes fictícia; e-mail captado por expressão regular, sem

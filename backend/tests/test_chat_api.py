@@ -1000,3 +1000,50 @@ async def test_logout_em_conversa_existente_remove_compras_do_prompt(client, fak
     assert "Histórico de Compras e Pedidos Realizados:" not in ultimo_prompt
     assert "[Perfil do Visitante no Chat (Não Autenticado)]:" in ultimo_prompt
 
+
+async def test_login_no_meio_da_conversa_mantem_contexto_e_habilita_compras(client, fakes):
+    sessao = fakes["db_session"]
+    ana = Cliente(email="ana.recorrente@example.com", nome="Ana")
+    sessao.add(ana)
+    await sessao.flush()
+    sessao.add(
+        ClienteCompra(
+            cliente_id=ana.id,
+            quantidade=1,
+            valor_total=Decimal("18500.00"),
+            comprado_em=datetime.now(UTC) - timedelta(days=20),
+        )
+    )
+    await sessao.commit()
+
+    # 1. Usuário pergunta sem login prévio (anônimo)
+    client.post(
+        "/api/chat/messages",
+        json={
+            "message": "quais foram as minhas compras?",
+            "conversation_id": "conv-login-mid",
+        },
+    )
+    primeiro_prompt = fakes["local"].prompts[-1]
+    assert "Histórico de Compras e Pedidos Realizados:" not in primeiro_prompt
+
+    # 2. Usuário efetua login e envia nova mensagem na MESMA conversa com user_email
+    client.post(
+        "/api/chat/messages",
+        json={
+            "message": "agora estou logado, pode listar minhas compras?",
+            "conversation_id": "conv-login-mid",
+            "user_email": "ana.recorrente@example.com",
+        },
+    )
+    segundo_prompt = fakes["local"].prompts[-1]
+    assert "[Dados do Cliente e Histórico de Compras]:" in segundo_prompt
+    assert "Histórico de Compras e Pedidos Realizados:" in segundo_prompt
+    assert "- Nome do cliente: Ana" in segundo_prompt
+    # Conversa preservou o histórico recente anterior
+    conversa_history = client.get("/api/chat/conversations/conv-login-mid").json()["mensagens"]
+    mensagens_textos = [m["texto"] for m in conversa_history]
+    assert "quais foram as minhas compras?" in mensagens_textos
+    assert "agora estou logado, pode listar minhas compras?" in mensagens_textos
+
+

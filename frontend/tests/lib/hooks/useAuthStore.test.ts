@@ -16,7 +16,7 @@ describe("useAuthStore", () => {
     });
   });
 
-  it("ao fazer login, armazena usuário e limpa o chat", async () => {
+  it("ao fazer login, armazena usuário e preserva a conversa e mensagens existentes do chat", async () => {
     const mockResult = {
       token: "mock-token-xyz",
       user: {
@@ -31,8 +31,10 @@ describe("useAuthStore", () => {
     await useAuthStore.getState().login("ana.recorrente@example.com", "12345");
 
     expect(useAuthStore.getState().user?.email).toBe("ana.recorrente@example.com");
-    expect(useChatStore.getState().messages).toEqual([]);
-    expect(useChatStore.getState().conversationId).not.toBe("conv-anterior");
+    expect(useChatStore.getState().messages).toEqual([
+      { id: "m1", role: "user", text: "mensagem antiga" },
+    ]);
+    expect(useChatStore.getState().conversationId).toBe("conv-anterior");
   });
 
   it("ao fazer logout, remove usuário e limpa o chat para não herdar dados", () => {
