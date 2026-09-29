@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Numeric, String, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -395,7 +395,28 @@ class ClienteCompra(Base):
     cliente_id: Mapped[int] = mapped_column(ForeignKey("clientes.id"), index=True)
     produto_id: Mapped[int | None] = mapped_column(ForeignKey("produtos.id"))
     quantidade: Mapped[int]
-    valor_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
-    comprado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-
     cliente: Mapped[Cliente] = relationship(back_populates="compras")
+
+
+class Agendamento(Base):
+    """Registro de agendamento de visita técnica ou comercial (R11, Fase 7).
+    Sincronizado com o Google Calendar via MCP."""
+
+    __tablename__ = "agendamentos"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_email: Mapped[str] = mapped_column(String, index=True)
+    nome_cliente: Mapped[str] = mapped_column(String)
+    telefone: Mapped[str | None] = mapped_column(String, nullable=True)
+    data_hora_inicio: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    data_hora_fim: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String, default="confirmado", index=True)
+    origem: Mapped[str] = mapped_column(String, default="chat")
+    google_event_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    google_event_link: Mapped[str | None] = mapped_column(String, nullable=True)
+    conversation_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
