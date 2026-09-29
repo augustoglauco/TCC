@@ -189,6 +189,7 @@ class _FakeSalesCatalogClient:
         candidatos_por_chamada: list[list[CandidatoProduto]] | None = None,
         categorias: list[str] | None = None,
         dados_categoria: DadosCatalogoCategoria | None = None,
+        dados_todos_produtos: DadosCatalogoCategoria | None = None,
     ) -> None:
         self._candidatos = candidatos if candidatos is not None else []
         # Quando preenchido, cada chamada a `buscar_candidatos` consome a
@@ -198,9 +199,11 @@ class _FakeSalesCatalogClient:
         self._buscar_exception = buscar_exception
         self._categorias = categorias if categorias is not None else []
         self._dados_categoria = dados_categoria
+        self._dados_todos_produtos = dados_todos_produtos
         self.termos_buscados: list[list[str]] = []
         self.detalhes_consultados: list[tuple[int, int | None, int | None]] = []
         self.categorias_consultadas: list[str] = []
+        self.listar_todos_chamado = False
 
     async def buscar_candidatos(
         self, termos: list[str], limite: int = 10
@@ -222,6 +225,10 @@ class _FakeSalesCatalogClient:
     async def consultar_categoria(self, categoria: str) -> DadosCatalogoCategoria | None:
         self.categorias_consultadas.append(categoria)
         return self._dados_categoria
+
+    async def listar_todos_produtos(self) -> DadosCatalogoCategoria | None:
+        self.listar_todos_chamado = True
+        return self._dados_todos_produtos
 
 
 _SCHEDULING_CONFIG = SchedulingConfig(
@@ -1699,6 +1706,12 @@ async def test_vendas_loga_diagnostico_da_consulta_com_bloco_injetado(caplog):
 
 
 async def test_vendas_loga_diagnostico_quando_nao_ha_candidatos(caplog):
+    # Correção de 2026-09-29 (docs/ARCHITECTURE.md §5): candidatos vazio não
+    # interrompe mais a consulta antes do LLM (isso impedia detectar
+    # "listar_tudo" numa pergunta totalmente genérica) — agora sempre chama
+    # `extract_sales_slots`; aqui o LLM fake devolve texto não-JSON
+    # (`_resposta_local()`), então o parsing falha e cai em
+    # `llm_sem_produto` (slots vazios), não mais em `sem_candidatos`.
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
@@ -1718,7 +1731,7 @@ async def test_vendas_loga_diagnostico_quando_nao_ha_candidatos(caplog):
 
     registros = [r for r in caplog.records if r.getMessage() == "vendas_catalogo_consulta"]
     assert len(registros) == 1
-    assert registros[0].router["resultado"] == "sem_candidatos"
+    assert registros[0].router["resultado"] == "llm_sem_produto"
     assert "bloco" not in registros[0].router
 
 
@@ -1868,6 +1881,65 @@ async def test_vendas_pergunta_generica_por_categoria_lista_produtos_no_prompt(c
     assert registro["resultado"] == "ok_categoria"
 
 
+async def test_vendas_pergunta_totalmente_generica_lista_catalogo_completo(caplog):
+    # Bug relatado 2026-09-29: "voce poderia me fornecer os produtos em
+    # estoque disponíveis?" (sem produto nem categoria) caía em
+    # `llm_sem_produto` — pior, o few-shot do prompt de extração citava
+    # "geradores" como único exemplo, enviesando o LLM a sempre inferir essa
+    # categoria mesmo aqui. Agora o LLM pode devolver "listar_tudo": true e o
+    # orchestrator lista todo o catálogo (categoria=None) no prompt.
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"produto_id": null, "produto_relacionado_id": null, '
+                '"quantidade": null, "categoria": null, "listar_tudo": true}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    dados_todos = DadosCatalogoCategoria(
+        categoria=None,
+        produtos=[
+            ProdutoNaCategoria(
+                nome="Gerador Diesel GD-15", preco=Decimal("24900.00"), estoque_total=8
+            ),
+            ProdutoNaCategoria(
+                nome="Cabine de Insonorização", preco=Decimal("5900.00"), estoque_total=3
+            ),
+        ],
+    )
+    sales_catalog_client = _FakeSalesCatalogClient(
+        candidatos=[],
+        categorias=["geradores", "acessórios"],
+        dados_todos_produtos=dados_todos,
+    )
+
+    with caplog.at_level(logging.INFO, logger="app.router.orchestrator"):
+        await _coletar_eventos(
+            "Você poderia me fornecer os produtos em estoque disponíveis?",
+            recent_messages=[],
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            complexity_strategy="heuristic",
+            tone_monitor_enabled=False,
+            sales_catalog_client=sales_catalog_client,
+        )
+
+    assert sales_catalog_client.listar_todos_chamado is True
+    # Nenhuma categoria específica consultada — é o catálogo inteiro.
+    assert sales_catalog_client.categorias_consultadas == []
+    assert "Todos os produtos do catálogo interno" in local_client.last_prompt
+    assert "Gerador Diesel GD-15" in local_client.last_prompt
+    assert "Cabine de Insonorização" in local_client.last_prompt
+    registro = next(
+        r for r in caplog.records if r.getMessage() == "vendas_catalogo_consulta"
+    ).router
+    assert registro["resultado"] == "ok_listar_tudo"
+
+
 async def test_vendas_categoria_sem_produtos_nao_injeta_bloco(caplog):
     # LLM devolve uma categoria, mas consultar_categoria não acha produtos
     # (categoria vazia) → sem bloco, resultado `categoria_vazia`.
@@ -1926,7 +1998,14 @@ async def test_vendas_sem_sales_catalog_client_comportamento_identico_ao_atual()
     assert "Dados do catálogo interno" not in local_client.last_prompt
 
 
-async def test_vendas_sem_produto_reconhecivel_nao_chama_llm_de_extracao():
+async def test_vendas_sem_produto_reconhecivel_ainda_chama_llm_de_extracao():
+    # Correção de 2026-09-29 (docs/ARCHITECTURE.md §5): zero candidatos não
+    # corta mais antes da chamada LLM de desambiguação — precisa chegar lá
+    # para o LLM ter a chance de responder "listar_tudo": true numa pergunta
+    # totalmente genérica. Aqui o LLM fake devolve texto não-JSON
+    # (`_resposta_local()`), então a extração falha e cai em
+    # `llm_sem_produto` (nenhum bloco de catálogo é injetado) — mas a
+    # chamada de extração acontece (2 chamadas: extração + resposta final).
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
@@ -1943,9 +2022,7 @@ async def test_vendas_sem_produto_reconhecivel_nao_chama_llm_de_extracao():
         sales_catalog_client=sales_catalog_client,
     )
 
-    # Só a chamada final de generate_stream — zero candidatos corta antes de
-    # qualquer chamada LLM de desambiguação.
-    assert local_client.calls == 1
+    assert local_client.calls == 2
     assert "Dados do catálogo interno" not in local_client.last_prompt
 
 

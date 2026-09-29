@@ -339,6 +339,33 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `DOMAIN_CRITERIA`. Testes em `tests/test_sales_catalog.py` e
       `tests/test_orchestrator.py`. Ver decisão em `docs/ARCHITECTURE.md` §5
       (2026-09-26) e a spec §11.
+- [x] Corrigir viés de categoria e adicionar listagem completa do catálogo em
+      Vendas (bug relatado 2026-09-29): "você poderia me fornecer os
+      produtos em estoque disponíveis?" (sem produto nem categoria)
+      respondia só sobre "geradores" — o few-shot do prompt de extração
+      citava essa categoria como único exemplo, e mesmo sem o viés a
+      pergunta genérica não tinha para onde ir (`_consultar_vendas` cortava
+      antes do LLM quando a busca por palavra-chave não achava candidato).
+      Few-shot trocado por um placeholder genérico; `VendaSlots.listar_tudo`
+      + `SalesCatalogClient.listar_todos_produtos()` (reaproveitando
+      `DadosCatalogoCategoria` com `categoria=None`) listam o catálogo
+      inteiro quando nem produto nem categoria são citados; orquestrador
+      sempre chama a extração por LLM mesmo com `candidatos` vazio. Testes
+      em `tests/test_sales_catalog.py` e `tests/test_orchestrator.py`. Ver
+      decisão em `docs/ARCHITECTURE.md` §5 (2026-09-29).
+- [x] Substituir o script manual de ingestão do catálogo no RAG por
+      sincronização automática (correção de 2026-09-29): o conector BD→RAG
+      (R4, Fase 2) só alimentava o Qdrant via
+      `backend/scripts/ingest_db_table.py`, rodado uma única vez sobre o
+      catálogo fixture original e nunca mais desde então — o RAG textual de
+      Vendas ficava desatualizado em relação ao catálogo real. Novo módulo
+      `app.rag.product_sync` (`sync_produto_no_rag`/`remover_produto_do_rag`)
+      chamado pelas rotas de CRUD de produtos (`app.api.admin_products`:
+      criar, editar, excluir, estoque, desconto por volume, confirmação de
+      lote do extrator) — cada produto vira um documento próprio
+      (`produto_{id}.txt`) na collection ativa, reingerido (delete+ingest)
+      a cada mudança. Testes em `tests/test_product_sync.py`. Ver decisão em
+      `docs/ARCHITECTURE.md` §5 (2026-09-29).
 - [x] ~~Garantir e documentar que autenticação por parceiro e exposição
       pública **não** fazem parte do MVP~~ — **revisto em 2026-09-25**: o
       fornecedor está fora da rede local, então o MCP B2B precisa de

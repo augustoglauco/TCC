@@ -50,6 +50,12 @@ class VendaSlots(BaseModel):
     # cliente pergunta por um tipo de produto sem escolher um modelo
     # específico. Preenchido só quando `produto_id` fica `None`.
     categoria: str | None = None
+    # Consulta totalmente genérica, sem produto nem categoria citados (ex.:
+    # "quais produtos vocês têm em estoque?", correção de 2026-09-29—
+    # antes esse caso não injetava nenhum dado do catálogo, ver
+    # docs/ARCHITECTURE.md §5). Precedência: `produto_id` > `categoria` >
+    # `listar_tudo` (aplicada em `extract_sales_slots`).
+    listar_tudo: bool = False
 
 
 class DadosCatalogoVendas(BaseModel):
@@ -78,9 +84,15 @@ class DadosCatalogoCategoria(BaseModel):
     """Resultado de uma consulta genérica por categoria — lista os produtos
     da categoria com preço e estoque somado entre centros de distribuição,
     para o assistente responder perguntas do tipo "quais geradores vocês têm
-    em estoque?" sem precisar que o cliente cite um modelo específico."""
+    em estoque?" sem precisar que o cliente cite um modelo específico.
 
-    categoria: str
+    `categoria=None` representa o catálogo completo (correção de
+    2026-09-29): quando o cliente pergunta de forma totalmente genérica por
+    "produtos"/"itens em estoque" sem citar nenhuma categoria, o mesmo
+    formato de resposta é reaproveitado listando todos os produtos em vez de
+    filtrar por uma categoria."""
+
+    categoria: str | None
     produtos: list[ProdutoNaCategoria]
 
 
@@ -245,6 +257,27 @@ class SalesCatalogClient:
             ]
         return DadosCatalogoCategoria(categoria=categoria, produtos=itens)
 
+    async def listar_todos_produtos(self) -> DadosCatalogoCategoria | None:
+        """Lista todo o catálogo com preço e estoque somado entre centros de
+        distribuição — atende consultas totalmente genéricas ("quais
+        produtos vocês têm em estoque?") em que o cliente não cita produto
+        nem categoria (correção de 2026-09-29, ver docs/ARCHITECTURE.md §5).
+        Mesmo formato de `consultar_categoria`, com `categoria=None`.
+        Devolve `None` se o catálogo estiver vazio."""
+        async with self._session_factory() as session:
+            produtos = await listar_produtos(session)
+            if not produtos:
+                return None
+            itens = [
+                ProdutoNaCategoria(
+                    nome=produto.nome,
+                    preco=produto.preco,
+                    estoque_total=sum(estoque.quantidade for estoque in produto.estoques),
+                )
+                for produto in produtos
+            ]
+        return DadosCatalogoCategoria(categoria=None, produtos=itens)
+
 
 _EXTRACTION_PROMPT_TEMPLATE = """\
 Você está ajudando um cliente numa conversa de vendas. A partir da lista de \
@@ -257,9 +290,19 @@ ao que o cliente pediu):
 {candidatos}
 
 Categorias disponíveis no catálogo (use no campo "categoria" APENAS quando o \
-cliente pergunta genericamente por um TIPO de produto, sem escolher um modelo \
-específico — ex.: "quais geradores vocês têm?"):
+cliente pergunta genericamente por um TIPO de produto listado acima, sem \
+escolher um modelo específico — ex.: "quais produtos da categoria X vocês \
+têm?", substituindo X por uma das categorias acima. Se o cliente perguntar \
+de forma totalmente genérica por "produtos"/"itens em estoque" sem citar \
+nenhuma categoria da lista, deixe "categoria" null — não infira uma \
+categoria específica):
 {categorias}
+
+Se o cliente pedir para ver o catálogo/estoque disponível de forma ampla, \
+sem mencionar nenhum produto nem categoria específica da lista acima (ex.: \
+"quais produtos vocês têm em estoque?", "pode me mostrar tudo que vocês têm \
+disponível?", "quero ver o catálogo de vocês"), preencha "listar_tudo": true \
+e deixe "produto_id" e "categoria" null.
 
 Contexto recente da conversa:
 {contexto}
@@ -268,14 +311,17 @@ Mensagem atual do cliente: {mensagem}
 
 Responda APENAS com JSON no formato: {{"produto_id": <id ou null>, \
 "produto_relacionado_id": <id ou null>, "quantidade": <número ou null>, \
-"categoria": <nome exato de uma categoria acima ou null>}}. \
+"categoria": <nome exato de uma categoria acima ou null>, \
+"listar_tudo": <true ou false>}}. \
 "produto_id" e "produto_relacionado_id" DEVEM ser um dos IDs listados acima \
 (nunca invente um ID que não está na lista); use null se o cliente não \
 mencionar um segundo produto para checar compatibilidade, ou nenhum produto \
 da lista corresponder ao pedido. \
 Preencha "categoria" (e deixe "produto_id" null) quando o cliente pergunta \
 por um tipo/categoria de produto em geral em vez de um modelo específico; \
-caso contrário deixe "categoria" null."""
+caso contrário deixe "categoria" null. \
+"listar_tudo" só é true quando nem um produto específico nem uma categoria \
+da lista acima foram mencionados; caso contrário deixe "listar_tudo": false."""
 
 
 def _formatar_candidatos(candidatos: list[CandidatoProduto]) -> str:
@@ -304,10 +350,15 @@ async def extract_sales_slots(
     e escolhe o `produto_id` certo entre eles — copiar um ID de uma lista
     real e pequena é uma tarefa muito mais confiável para o LLM do que
     inventar um nome livre que depois precisa ser casado (spec §2). Quando o
-    cliente pergunta genericamente por um TIPO de produto (ex.: "quais
-    geradores vocês têm?"), em vez de um `produto_id` único, o LLM devolve
-    uma `categoria` da lista `categorias_disponiveis` (validada contra ela
-    no retorno). Mesmo padrão de
+    cliente pergunta genericamente por um TIPO de produto listado em
+    `categorias_disponiveis` (ex.: "quais produtos da categoria X vocês
+    têm?"), em vez de um `produto_id` único, o LLM devolve essa `categoria`
+    (validada contra a lista no retorno). Correção de 2026-09-29: o exemplo
+    do prompt citava uma categoria fixa ("geradores"), enviesando o LLM a
+    inferir essa categoria mesmo em perguntas totalmente genéricas
+    ("quais produtos vocês têm em estoque?"); o exemplo agora usa um
+    placeholder genérico e instrui a deixar "categoria" null quando nenhuma
+    categoria específica é citada. Mesmo padrão de
     `app.router.scheduling.extract_booking_slots`: prompt → JSON → parse com
     `ValidationError`/`JSONDecodeError` tratado, fallback pra `VendaSlots()`
     vazio em qualquer falha de parsing (não quebra o turno)."""
@@ -338,4 +389,9 @@ async def extract_sales_slots(
         categorias_norm = {normalize(categoria): categoria for categoria in categorias}
         categoria_real = categorias_norm.get(normalize(slots.categoria))
         slots.categoria = None if slots.produto_id is not None else categoria_real
+    # "listar_tudo" só vale quando nem produto nem categoria foram
+    # resolvidos — produto único e categoria específica têm precedência
+    # (mesmo espírito da precedência categoria > produto_id acima).
+    if slots.produto_id is not None or slots.categoria is not None:
+        slots.listar_tudo = False
     return slots

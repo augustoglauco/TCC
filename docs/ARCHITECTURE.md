@@ -1230,6 +1230,73 @@ mas uma lacuna de cobertura. Duas correções:
    `tests/test_orchestrator.py` (pergunta genérica lista produtos no prompt,
    categoria vazia não injeta bloco).
 
+**Decisão registrada (Fase 5, correção de bug em Vendas — viés no few-shot e
+listagem completa do catálogo, R4/R12, 2026-09-29):** um cliente relatou que
+"você poderia me fornecer os produtos em estoque disponíveis?" (pergunta
+totalmente genérica, sem produto nem categoria) respondia só sobre
+"geradores". Duas causas, corrigidas juntas:
+
+1. **Few-shot enviesado no prompt de extração
+   (`app.router.sales_catalog._EXTRACTION_PROMPT_TEMPLATE`):** o único
+   exemplo de pergunta genérica citava uma categoria fixa do catálogo
+   fictício ("quais geradores vocês têm?"), ancorando o LLM a inferir essa
+   categoria mesmo quando o cliente não citou nenhuma. Trocado por um
+   placeholder genérico ("categoria X") e instrução explícita para deixar
+   `categoria` null quando nenhuma categoria da lista foi mencionada.
+2. **Sem caminho para "listar tudo":** mesmo corrigido o viés, uma pergunta
+   totalmente genérica (sem produto nem categoria) não injetava nenhum dado
+   do catálogo — pior, `_consultar_vendas` cortava **antes** de chamar o LLM
+   quando a busca por palavra-chave (`buscar_candidatos`) não achava nenhum
+   candidato (`resultado=sem_candidatos`), que é sempre o caso para uma
+   pergunta genérica (termos como "produtos"/"fornecer" não casam nome nem
+   categoria nenhuma por ILIKE). `VendaSlots` ganha `listar_tudo: bool`
+   (precedência: `produto_id` > `categoria` > `listar_tudo`, mesmo espírito
+   da precedência já existente); o prompt instrui o LLM a preenchê-lo em
+   pedidos amplos de catálogo/estoque. O orquestrador não corta mais em
+   `sem_candidatos` — sempre chama `extract_sales_slots` (mesmo com
+   `candidatos` vazio), que agora pode decidir por `listar_tudo`.
+   `SalesCatalogClient.listar_todos_produtos()` reaproveita
+   `app.db.catalog.listar_produtos()` sem filtro de categoria, devolvendo o
+   mesmo formato de `DadosCatalogoCategoria` com `categoria=None` (que passa
+   a aceitar `None` para representar "catálogo completo"); o orquestrador
+   formata o mesmo bloco "prefira estes dados ao RAG", com cabeçalho "Todos
+   os produtos do catálogo interno" em vez de "Produtos da categoria X".
+   `# MVP: sem essa otimização, toda mensagem de Vendas sem candidato
+   casado por palavra-chave agora custa uma chamada extra ao LLM local de
+   extração — aceito pela simplicidade e correção do comportamento;
+   catálogo fictício pequeno, sem paginação na listagem completa`. Testado
+   em `tests/test_sales_catalog.py` (`listar_todos_produtos`,
+   `listar_tudo` na extração e sua precedência) e `tests/test_orchestrator.py`
+   (pergunta totalmente genérica lista o catálogo completo no prompt).
+
+**Decisão registrada (Fase 2/5, sincronização automática do catálogo no RAG,
+R4, 2026-09-29):** o conector de leitura a BD relacional
+(`app.rag.db_connector`, R4) só alimentava o RAG semântico (Qdrant) via
+`backend/scripts/ingest_db_table.py`, um script manual rodado uma única vez
+na Fase 2 sobre o catálogo fixture original (5 produtos) — nunca reexecutado
+depois que o catálogo cresceu (estoque, descontos, imagens, Fase 7), então
+o RAG textual de Vendas ficava cada vez mais desatualizado em relação ao
+catálogo real (o único documento de exemplo do domínio, além disso, é só
+sobre geradores — `backend/scripts/sample_docs/vendas/catalogo_geradores.txt`).
+Novo módulo `app.rag.product_sync` (`sync_produto_no_rag`/
+`remover_produto_do_rag`) substitui o script manual por um hook automático
+chamado pelas rotas de CRUD de produtos (`app.api.admin_products`: criar,
+editar, excluir, atualizar estoque, adicionar/remover desconto por volume,
+confirmar lote do extrator de catálogo). Cada produto vira um documento de
+texto próprio (`produto_{id}.txt`, nome determinístico) na collection ativa
+do RAG (mesma buscada pelo chat público), domínio "vendas"; reingerir apaga
+a versão anterior antes (Qdrant + registro em `rag_documents`) para não
+duplicar. `# MVP: sem deduplicação incremental sofisticada — cada sync é um
+delete+ingest completo, mesma limitação já aceita em app.rag.ingest; falha
+de sincronização (Qdrant indisponível etc.) é só logada, nunca bloqueia o
+CRUD de produtos (fonte de verdade real é o SQL, via SalesCatalogClient);
+compatibilidade entre produtos não sincronizada no RAG (baixo valor textual
+para busca semântica)`. O script `ingest_db_table.py` continua existindo
+para outras tabelas/casos avulsos, mas deixa de ser o único caminho para o
+catálogo de produtos. Testado em `tests/test_product_sync.py` (ingestão,
+reingestão sem duplicar, sem collection ativa, falha do Qdrant tolerada,
+remoção ao excluir produto).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

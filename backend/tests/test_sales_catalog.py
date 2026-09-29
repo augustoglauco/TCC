@@ -376,6 +376,78 @@ async def test_extract_sales_slots_produto_especifico_tem_precedencia_sobre_cate
     assert slots.categoria is None
 
 
+# --- Consulta totalmente genérica ("quais produtos vocês têm em estoque?"),
+# correção de 2026-09-29 — antes o few-shot do prompt citava "geradores"
+# como único exemplo, enviesando o LLM a sempre inferir essa categoria. ----
+
+
+async def test_listar_todos_produtos_soma_estoque_de_todas_categorias(factory):
+    async with factory() as session:
+        gd15 = await _cria_produto(session, nome="GD-15", categoria="geradores")
+        qta = await _cria_produto(session, nome="QTA-100", categoria="acessórios")
+        await atualizar_estoque(session, gd15.id, "CD-SP", 5)
+        await atualizar_estoque(session, qta.id, "CD-SP", 12)
+    client = SalesCatalogClient(factory)
+
+    dados = await client.listar_todos_produtos()
+
+    assert isinstance(dados, DadosCatalogoCategoria)
+    assert dados.categoria is None
+    nomes = {p.nome: p for p in dados.produtos}
+    assert set(nomes) == {"GD-15", "QTA-100"}
+    assert nomes["GD-15"].estoque_total == 5
+    assert nomes["QTA-100"].estoque_total == 12
+
+
+async def test_listar_todos_produtos_catalogo_vazio_devolve_none(factory):
+    client = SalesCatalogClient(factory)
+
+    assert await client.listar_todos_produtos() is None
+
+
+async def test_extract_sales_slots_pergunta_totalmente_generica_devolve_listar_tudo():
+    llm = _FakeLLMClient(
+        '{"produto_id": null, "produto_relacionado_id": null, "quantidade": null, '
+        '"categoria": null, "listar_tudo": true}'
+    )
+
+    slots = await extract_sales_slots(
+        "Quais produtos vocês têm em estoque?", [], [], llm, ["geradores", "acessórios"]
+    )
+
+    assert slots.produto_id is None
+    assert slots.categoria is None
+    assert slots.listar_tudo is True
+
+
+async def test_extract_sales_slots_categoria_tem_precedencia_sobre_listar_tudo():
+    # Se o LLM devolver categoria E listar_tudo (resposta inconsistente),
+    # categoria específica vence — mesma precedência de produto > categoria.
+    llm = _FakeLLMClient(
+        '{"produto_id": null, "produto_relacionado_id": null, "quantidade": null, '
+        '"categoria": "geradores", "listar_tudo": true}'
+    )
+
+    slots = await extract_sales_slots(
+        "Quais geradores vocês têm?", [], [], llm, ["geradores", "acessórios"]
+    )
+
+    assert slots.categoria == "geradores"
+    assert slots.listar_tudo is False
+
+
+async def test_extract_sales_slots_sem_campo_listar_tudo_no_json_usa_default_false():
+    # Resposta antiga do LLM (sem o campo novo) não deve quebrar o parsing.
+    llm = _FakeLLMClient(
+        '{"produto_id": null, "produto_relacionado_id": null, "quantidade": null, '
+        '"categoria": null}'
+    )
+
+    slots = await extract_sales_slots("Oi, tudo bem?", [], [], llm, [])
+
+    assert slots.listar_tudo is False
+
+
 async def test_consultar_detalhes_traz_a_ficha_do_produto(factory):
     # Correção de 2026-09-27: pedindo detalhes, o bloco só tinha estoque e
     # cotação.

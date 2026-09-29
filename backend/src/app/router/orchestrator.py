@@ -307,8 +307,14 @@ async def _consultar_vendas(
             ]
             candidatos = candidatos[:SALES_CANDIDATOS_LIMITE]
         diagnostico["candidatos"] = [candidato.nome for candidato in candidatos]
-        if not candidatos:
-            return _logar_consulta_vendas(diagnostico, "sem_candidatos")
+        # Correção de 2026-09-29 (docs/ARCHITECTURE.md §5): antes, nenhum
+        # candidato encontrado por palavra-chave (`buscar_candidatos`)
+        # interrompia a consulta aqui (`sem_candidatos`) sem nunca chamar o
+        # LLM — uma pergunta totalmente genérica ("quais produtos vocês têm
+        # em estoque?") não casa nome/categoria nenhum por ILIKE, então nunca
+        # tinha chance de virar `listar_tudo`. Agora sempre segue para a
+        # etapa 2 (LLM), mesmo com `candidatos` vazio — ele decide entre
+        # produto/categoria/listar_tudo mesmo sem candidatos prontos.
         categorias_disponiveis = await sales_catalog_client.listar_categorias()
         slots = await extract_sales_slots(
             message, recent_messages, candidatos, local_client, categorias_disponiveis
@@ -326,6 +332,15 @@ async def _consultar_vendas(
                 diagnostico["bloco"] = _formatar_dados_catalogo_categoria(dados_categoria)
                 _logar_consulta_vendas(diagnostico, "ok_categoria")
                 return dados_categoria
+            # Sem produto nem categoria, mas pedido genérico de "ver tudo"
+            # (correção de 2026-09-29) → lista o catálogo completo.
+            if slots.listar_tudo:
+                dados_todos = await sales_catalog_client.listar_todos_produtos()
+                if dados_todos is None:
+                    return _logar_consulta_vendas(diagnostico, "catalogo_vazio")
+                diagnostico["bloco"] = _formatar_dados_catalogo_categoria(dados_todos)
+                _logar_consulta_vendas(diagnostico, "ok_listar_tudo")
+                return dados_todos
             return _logar_consulta_vendas(diagnostico, "llm_sem_produto")
         dados = await sales_catalog_client.consultar_detalhes(
             slots.produto_id, slots.produto_relacionado_id, slots.quantidade
@@ -412,16 +427,23 @@ def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
 
 def _formatar_dados_catalogo_categoria(dados: DadosCatalogoCategoria) -> str:
     # Consulta genérica por categoria ("quais geradores vocês têm em
-    # estoque?"): lista cada produto da categoria com preço e estoque. Mesmo
-    # cabeçalho de "prefira estes dados ao RAG" do bloco de produto único,
-    # pelo mesmo motivo (evitar que o LLM misture preços/nomes de trechos do
-    # RAG).
+    # estoque?") ou por todo o catálogo ("quais produtos vocês têm em
+    # estoque?", correção de 2026-09-29, `categoria=None`): lista cada
+    # produto (da categoria, ou de todo o catálogo) com preço e estoque.
+    # Mesmo cabeçalho de "prefira estes dados ao RAG" do bloco de produto
+    # único, pelo mesmo motivo (evitar que o LLM misture preços/nomes de
+    # trechos do RAG).
+    cabecalho_produtos = (
+        "Todos os produtos do catálogo interno:"
+        if dados.categoria is None
+        else f"Produtos da categoria '{dados.categoria}' no catálogo interno:"
+    )
     linhas = [
         "Dados oficiais do catálogo interno, já calculados para esta mensagem. "
-        "O cliente perguntou por produtos desta categoria: use exatamente estes "
+        "O cliente perguntou pelos produtos disponíveis: use exatamente estes "
         "nomes, preços e quantidades de estoque, e prefira-os a qualquer "
         "informação recuperada abaixo que seja diferente.",
-        f"Produtos da categoria '{dados.categoria}' no catálogo interno:",
+        cabecalho_produtos,
     ]
     for produto in dados.produtos:
         linhas.append(
