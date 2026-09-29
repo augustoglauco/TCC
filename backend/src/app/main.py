@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.admin_products import router as admin_products_router
+from app.api.agendamentos import router as agendamentos_router
 from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
 from app.api.crawler import router as crawler_router
@@ -181,6 +182,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(products_router)
     app.include_router(orders_router)
+    app.include_router(agendamentos_router)
 
     return app
 
