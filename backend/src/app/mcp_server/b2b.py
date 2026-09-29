@@ -42,6 +42,7 @@ import functools
 import json
 import logging
 from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -52,6 +53,7 @@ from mcp.server.mcpserver.exceptions import ResourceError, ResourceNotFoundError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.db.models import Produto
 from app.db.catalog import (
     EstoqueInsuficienteError,
     ProdutoInexistenteError,
@@ -75,6 +77,7 @@ from app.models.mcp_b2b import (
     EstoqueProdutoOut,
     FreteItemIn,
     FreteOut,
+    ItemQuantidadeIn,
     ManualBuscaOut,
     ManualResultadoOut,
     PedidoItemIn,
@@ -353,6 +356,28 @@ def create_b2b_mcp_server(
         saida = ManualBuscaOut(resultados=resultados[:DEFAULT_MANUAIS_TOP_K])
         return saida.model_dump_json()
 
+    @asynccontextmanager
+    async def _abrir_sessao_bd(mensagem_erro: str):
+        """Context manager utilitário para abrir sessão no BD e traduzir exceções
+        incomuns de SQLAlchemy em ToolError com mensagem contextual."""
+        try:
+            async with session_factory() as session:
+                yield session
+        except SQLAlchemyError as exc:
+            raise ToolError(f"{mensagem_erro}: {exc}") from exc
+
+    async def _obter_e_validar_produtos(
+        session: AsyncSession, itens: list[ItemQuantidadeIn]
+    ) -> dict[int, Produto]:
+        """Helper para carregar em lote e validar a existência de todos os produtos
+        solicitados numa lista de itens."""
+        produto_ids = [item.produto_id for item in itens]
+        produtos = await obter_produtos_por_ids(session, produto_ids)
+        for item in itens:
+            if item.produto_id not in produtos:
+                raise ToolError(f"Produto {item.produto_id} não encontrado no catálogo.")
+        return produtos
+
     # --- Ferramenta 1: validação de compatibilidade --------------------------
 
     @server.tool(
@@ -367,16 +392,16 @@ def create_b2b_mcp_server(
     async def validar_compatibilidade(
         produto_id: int, produto_relacionado_id: int
     ) -> CompatibilidadeOut:
-        try:
+        async with _abrir_sessao_bd("Falha ao consultar a compatibilidade"):
             async with session_factory() as session:
-                produto = await obter_produto(session, produto_id)
-                relacionado = await obter_produto(session, produto_relacionado_id)
-                if produto is None or relacionado is None:
-                    ausente = produto_id if produto is None else produto_relacionado_id
-                    raise ToolError(f"Produto {ausente} não encontrado no catálogo.")
+                produtos = await _obter_e_validar_produtos(
+                    session,
+                    [
+                        ItemQuantidadeIn(produto_id=produto_id, quantidade=1),
+                        ItemQuantidadeIn(produto_id=produto_relacionado_id, quantidade=1),
+                    ],
+                )
                 compativel = await sao_compativeis(session, produto_id, produto_relacionado_id)
-        except SQLAlchemyError as exc:
-            raise ToolError(f"Falha ao consultar a compatibilidade: {exc}") from exc
         return CompatibilidadeOut(
             produto_id=produto_id,
             produto_relacionado_id=produto_relacionado_id,
@@ -401,23 +426,17 @@ def create_b2b_mcp_server(
         regiao = cep_digitos[0]
         custo_base, prazo_dias = _FRETE_CUSTO_BASE_E_PRAZO_POR_REGIAO[regiao]
 
-        try:
+        async with _abrir_sessao_bd("Falha ao consultar o catálogo para o frete"):
             async with session_factory() as session:
-                produto_ids = [item.produto_id for item in itens]
-                produtos = await obter_produtos_por_ids(session, produto_ids)
-
+                produtos = await _obter_e_validar_produtos(session, itens)
                 peso_total = Decimal("0")
                 for item in itens:
-                    produto = produtos.get(item.produto_id)
-                    if produto is None:
-                        raise ToolError(f"Produto {item.produto_id} não encontrado no catálogo.")
+                    produto = produtos[item.produto_id]
                     # MVP: produto sem peso_kg cadastrado entra como peso zero
                     # na estimativa (não bloqueia a cotação de frete) — ver
                     # docs/ARCHITECTURE.md §5, decisão de 2026-09-24.
                     peso_unitario = produto.peso_kg or Decimal("0")
                     peso_total += peso_unitario * item.quantidade
-        except SQLAlchemyError as exc:
-            raise ToolError(f"Falha ao consultar o catálogo para o frete: {exc}") from exc
 
         # Arredondado a centavos (2 casas) — mesmo motivo do arredondamento
         # em `calcular_item_cotacao` (ver docstring lá): a multiplicação por
@@ -446,16 +465,12 @@ def create_b2b_mcp_server(
     @_registrar_chamada
     async def cotar(itens: list[CotacaoItemIn]) -> CotacaoOut:
         agora = datetime.now(UTC)
-        try:
+        async with _abrir_sessao_bd("Falha ao consultar o catálogo para a cotação"):
             async with session_factory() as session:
-                produto_ids = [item.produto_id for item in itens]
-                produtos = await obter_produtos_por_ids(session, produto_ids)
-
+                produtos = await _obter_e_validar_produtos(session, itens)
                 itens_saida: list[CotacaoItemOut] = []
                 for item in itens:
-                    produto = produtos.get(item.produto_id)
-                    if produto is None:
-                        raise ToolError(f"Produto {item.produto_id} não encontrado no catálogo.")
+                    produto = produtos[item.produto_id]
                     preco_unitario, percentual, subtotal = calcular_item_cotacao(
                         produto, item.quantidade, agora
                     )
@@ -468,8 +483,6 @@ def create_b2b_mcp_server(
                             subtotal=subtotal,
                         )
                     )
-        except SQLAlchemyError as exc:
-            raise ToolError(f"Falha ao consultar o catálogo para a cotação: {exc}") from exc
 
         total = sum((item.subtotal for item in itens_saida), Decimal("0"))
         return CotacaoOut(itens=itens_saida, total=total)
@@ -491,14 +504,13 @@ def create_b2b_mcp_server(
             (item.produto_id, item.quantidade, item.centro_distribuicao) for item in itens
         ]
         try:
-            async with session_factory() as session:
-                pedido = await criar_pedido(session, itens_tuplas)
+            async with _abrir_sessao_bd("Falha ao gravar a reserva/pedido"):
+                async with session_factory() as session:
+                    pedido = await criar_pedido(session, itens_tuplas)
         except ProdutoInexistenteError as exc:
             raise ToolError(str(exc)) from exc
         except EstoqueInsuficienteError as exc:
             raise ToolError(str(exc)) from exc
-        except SQLAlchemyError as exc:
-            raise ToolError(f"Falha ao gravar a reserva/pedido: {exc}") from exc
         return PedidoOut.model_validate(pedido)
 
     return server

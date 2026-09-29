@@ -17,12 +17,19 @@ vi.mock("@/lib/api/rag", async () => {
   };
 });
 
+vi.mock("@/lib/api/runtimeSettings", () => ({
+  getRuntimeSettings: vi.fn(),
+  updateRuntimeSettings: vi.fn(),
+}));
+
 import { deleteCollection, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
+import { getRuntimeSettings } from "@/lib/api/runtimeSettings";
 
 const mockedUploadDocument = vi.mocked(uploadDocument);
 const mockedListDocuments = vi.mocked(listDocuments);
 const mockedListCollections = vi.mocked(listCollections);
 const mockedDeleteCollection = vi.mocked(deleteCollection);
+const mockedGetRuntimeSettings = vi.mocked(getRuntimeSettings);
 
 const COLLECTION_ATIVA: RagCollection = {
   id: "col-1",
@@ -72,8 +79,27 @@ describe("IngestaoDocumentosPage", () => {
     mockedListDocuments.mockReset();
     mockedListCollections.mockReset();
     mockedDeleteCollection.mockReset();
+    mockedGetRuntimeSettings.mockReset();
     mockedListDocuments.mockResolvedValue([]);
     mockedListCollections.mockResolvedValue([COLLECTION_ATIVA]);
+    mockedGetRuntimeSettings.mockResolvedValue({
+      rag_search_domain_fallback: false,
+    } as any);
+  });
+
+  it("exibe notificação de erro quando getRuntimeSettings falha ao carregar a seção RagSearchConfigSection", async () => {
+    const user = userEvent.setup();
+    mockedGetRuntimeSettings.mockRejectedValueOnce(
+      new Error("Falha ao carregar configurações de busca RAG"),
+    );
+
+    render(<IngestaoDocumentosPage />);
+    const abaConfiguracao = await screen.findByRole("tab", { name: "Configuração" });
+    await user.click(abaConfiguracao);
+
+    expect(
+      await screen.findByText("Falha ao carregar configurações de busca RAG"),
+    ).toBeInTheDocument();
   });
 
   it("envia o arquivo selecionado (com a collection ativa) e exibe o resultado da ingestão", async () => {

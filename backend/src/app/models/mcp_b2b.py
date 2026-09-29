@@ -140,9 +140,7 @@ class CotacaoOut(BaseModel):
 # --- Ferramenta 4: reserva/pedido ---------------------------------------------
 
 
-class PedidoItemIn(BaseModel):
-    produto_id: int
-    quantidade: int = Field(gt=0)
+class PedidoItemIn(ItemQuantidadeIn):
     centro_distribuicao: str
 
 

@@ -619,45 +619,36 @@ conversa e classificação do usuário").
       vírgula (antes só `http://localhost:3001`) — ver
       `docs/FRONTEND.md` §4. Commits `412c053`, `d7f0e4a`, `ab9c468`,
       `7d8426b`.
-- [ ] Achados menores do code-review parqueados na entrega das ferramentas
-      MCP B2B (2026-09-24), não corrigidos ainda:
-      1. `RagSearchConfigSection` (`frontend/app/admin/ingestao/page.tsx`)
-         engole silenciosamente erro no carregamento inicial de
-         `getRuntimeSettings()` — o toggle de isolamento de domínio do RAG
-         (`rag_search_domain_fallback`) renderiza desmarcado sem indicar se
-         é o valor real ou uma falha de rede; não chama `onError` como os
-         demais loaders do mesmo formulário. Sem cobertura de teste (o
-         teste antigo desse controle foi removido junto da reorganização
-         do form, sem substituto na página que passou a hospedá-lo).
-      2. Os 4 handlers de tool novos em `app.mcp_server.b2b`
+- [~] Achados menores do code-review parqueados na entrega das ferramentas
+      MCP B2B (2026-09-24) — revisitados em 2026-09-29, 2 de 5 corrigidos:
+      1. ~~`RagSearchConfigSection` engole silenciosamente erro no
+         carregamento inicial~~ — **corrigido**: agora chama `onError`
+         (`frontend/app/admin/ingestao/page.tsx:232`), propagado para
+         `showToast`. Ainda falta cobertura de teste do caminho de erro
+         (nenhum teste em `IngestaoDocumentosPage.test.tsx` cobre esse caso).
+      2. Os 4 handlers de tool em `app.mcp_server.b2b`
          (`validar_compatibilidade`/`consultar_frete`/`cotar`/
-         `reservar_pedido`) duplicam entre si o mesmo bloco "produto não
-         encontrado" + `try/except SQLAlchemyError → ToolError" — mesmo
-         padrão já duplicado 3x nos 4 resources de leitura desta fase, sem
-         um helper compartilhado.
-      3. `FreteItemIn`/`CotacaoItemIn`/`PedidoItemIn`
-         (`app/models/mcp_b2b.py`) redeclaram cada uma o mesmo par
-         `produto_id: int` / `quantidade: int = Field(gt=0)` em vez de um
-         schema base comum.
-      4. `cotar`/`consultar_frete` (`app.mcp_server.b2b`) e `criar_pedido`
-         (`app.db.catalog`) buscam produto por produto num loop
-         (`obter_produto` por item) em vez de uma única query em lote
-         (`select(...).where(Produto.id.in_(ids))`) — irrelevante no
-         tamanho atual do catálogo fictício (5 produtos), mas descrito
-         pelo code-review como um padrão N+1 que escalaria mal com um
-         catálogo maior; para `criar_pedido` também estende o tempo de
-         retenção da transação de escrita.
-      5. `allowedDevOrigins` (`frontend/next.config.ts`) tem o IP da LAN e
-         o domínio DuckDNS de uma máquina/rede específica hardcoded no
-         repositório — funciona só para quem desenvolve nessa mesma
-         rede; qualquer outra pessoa (ou a mesma rede com IP diferente via
-         DHCP) reproduziria o bug de acesso mobile já corrigido. Aceito
-         como limitação de projeto de um único desenvolvedor (TCC), não
-         um descuido — registrado aqui só para rastreabilidade, não
-         necessariamente para corrigir.
-      Todos de baixa severidade (estilo/robustez, não correção); avaliar
-      se compensa corrigir junto de um item maior desta fase ou como
-      tarefa isolada.
+         `reservar_pedido`) **continuam** duplicando entre si o mesmo bloco
+         "produto não encontrado" + `try/except SQLAlchemyError → ToolError`,
+         sem helper compartilhado — não corrigido.
+      3. `FreteItemIn`/`CotacaoItemIn` (`app/models/mcp_b2b.py`) **parcial**:
+         passaram a herdar de um schema base novo, `ItemQuantidadeIn`
+         (`produto_id`/`quantidade`). `PedidoItemIn` segue redeclarando os
+         mesmos dois campos do zero em vez de herdar de `ItemQuantidadeIn`
+         (só precisaria acrescentar `centro_distribuicao`).
+      4. ~~`cotar`/`consultar_frete`/`criar_pedido` buscavam produto por
+         produto num loop~~ — **corrigido**: os três agora usam
+         `obter_produtos_por_ids` (`select(...).where(Produto.id.in_(ids))`)
+         em vez de `obter_produto` item a item
+         (`mcp_server/b2b.py:407,452`, `db/catalog.py:503`).
+      5. `allowedDevOrigins` (`frontend/next.config.ts`) **parcial**: os
+         defaults hardcoded (IP da LAN, domínio DuckDNS) continuam no
+         repositório, mas agora aceitam `ALLOWED_DEV_ORIGINS` (env,
+         lista separada por vírgula) para outra máquina/rede sem editar o
+         código. Aceito como limitação de projeto de um único desenvolvedor
+         (TCC) — não necessariamente corrigir o resto.
+      Restam: item 2 (helper compartilhado nos 4 handlers de tool) e o
+      `PedidoItemIn` do item 3; ambos baixa severidade (estilo/robustez).
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
