@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
 
+const defaultDevOrigins = ["192.168.1.200", "augustoglauco.duckdns.org"];
+const envDevOrigins = process.env.ALLOWED_DEV_ORIGINS
+  ? process.env.ALLOWED_DEV_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+  : [];
+
 const nextConfig: NextConfig = {
   // Next.js 16 bloqueia por padrão requisições de dev cross-origin
   // (inclusive o WebSocket de HMR) vindas de qualquer origem que não seja
@@ -10,7 +15,7 @@ const nextConfig: NextConfig = {
   // responde a toque (menu hambúrguer, modal do chat). Só o hostname é
   // comparado (sem porta/esquema) — ver
   // node_modules/next/dist/docs/.../allowedDevOrigins.md.
-  allowedDevOrigins: ["192.168.1.200", "augustoglauco.duckdns.org"],
+  allowedDevOrigins: Array.from(new Set([...defaultDevOrigins, ...envDevOrigins])),
 };
 
 export default nextConfig;

@@ -28,6 +28,8 @@ docstring — não entre chamadas concorrentes).
 from datetime import UTC, datetime
 from decimal import Decimal
 
+from collections.abc import Sequence
+
 from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -116,6 +118,19 @@ async def criar_produto(
 async def obter_produto(session: AsyncSession, produto_id: int) -> Produto | None:
     result = await session.execute(_produto_query().where(Produto.id == produto_id))
     return result.scalars().first()
+
+
+async def obter_produtos_por_ids(
+    session: AsyncSession, produto_ids: Sequence[int]
+) -> dict[int, Produto]:
+    """Busca múltiplos produtos do catálogo por IDs em uma única consulta SQL,
+    evitando padrões N+1 em cotações, cálculo de frete e criação de pedidos."""
+    if not produto_ids:
+        return {}
+    ids_unicos = list(set(produto_ids))
+    result = await session.execute(_produto_query().where(Produto.id.in_(ids_unicos)))
+    produtos = result.scalars().all()
+    return {p.id: p for p in produtos}
 
 
 async def listar_produtos(
@@ -478,29 +493,33 @@ async def criar_pedido(
     mesmo par (produto, centro de distribuição) — mesmo em itens separados
     da lista — exceder o disponível.
     """
-    produtos: dict[int, Produto] = {}
-    estoques: dict[tuple[int, str], ProdutoEstoque | None] = {}
-    reservado_no_pedido: dict[tuple[int, str], int] = {}
-    for produto_id, quantidade, centro_distribuicao in itens:
+    for produto_id, quantidade, _ in itens:
         if quantidade <= 0:
             raise ValueError(
                 f"Quantidade inválida para o produto {produto_id}: {quantidade} (deve ser > 0)."
             )
-        if produto_id not in produtos:
-            produto = await obter_produto(session, produto_id)
-            if produto is None:
-                raise ProdutoInexistenteError(f"Produto {produto_id} não encontrado no catálogo.")
-            produtos[produto_id] = produto
+
+    produto_ids = [item[0] for item in itens]
+    produtos = await obter_produtos_por_ids(session, produto_ids)
+
+    # Validar que todos os produtos existem no catálogo
+    for p_id in produto_ids:
+        if p_id not in produtos:
+            raise ProdutoInexistenteError(f"Produto {p_id} não encontrado no catálogo.")
+
+    # Buscar estoques dos centros de distribuição em batch
+    stock_results = await session.execute(
+        select(ProdutoEstoque).where(ProdutoEstoque.produto_id.in_(list(set(produto_ids))))
+    )
+    estoques_db = stock_results.scalars().all()
+    estoques: dict[tuple[int, str], ProdutoEstoque] = {
+        (e.produto_id, e.centro_distribuicao): e for e in estoques_db
+    }
+
+    reservado_no_pedido: dict[tuple[int, str], int] = {}
+    for produto_id, quantidade, centro_distribuicao in itens:
         chave = (produto_id, centro_distribuicao)
-        if chave not in estoques:
-            result = await session.execute(
-                select(ProdutoEstoque).where(
-                    ProdutoEstoque.produto_id == produto_id,
-                    ProdutoEstoque.centro_distribuicao == centro_distribuicao,
-                )
-            )
-            estoques[chave] = result.scalars().first()
-        estoque = estoques[chave]
+        estoque = estoques.get(chave)
         disponivel = estoque.quantidade if estoque is not None else 0
         reservado_no_pedido[chave] = reservado_no_pedido.get(chave, 0) + quantidade
         if reservado_no_pedido[chave] > disponivel:

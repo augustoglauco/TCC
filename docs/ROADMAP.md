@@ -444,10 +444,11 @@ conversa e classificação do usuário").
       `docs/FRONTEND.md` §5 — scaffold com App Router, Tailwind CSS, ESLint +
       Prettier, Vitest + Testing Library; pastas `app/`, `components/`,
       `lib/`, `public/`, `tests/` populadas (não recriadas)
-- [~] Implementar Home institucional e Contato — `app/page.tsx` e
+- [x] Implementar Home institucional e Contato — `app/page.tsx` e
       `app/contato/page.tsx` com conteúdo estático real (institucional/dados
       de contato fictícios); sem chamada de API (não há dados dinâmicos
-      previstos para essas páginas no MVP)
+      previstos para essas páginas no MVP). Revisado em 2026-09-29: conteúdo
+      já completo, sem placeholders — apenas o status estava desatualizado
 - [x] Implementar listagem e detalhe de produtos (`/produtos`), consumindo a
       API do backend — listagem pronta (commit `7b53dd1`, 2026-09-27):
       `GET /api/products` paginado (12 por página), filtro por categoria e

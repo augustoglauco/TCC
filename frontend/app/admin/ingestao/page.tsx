@@ -227,8 +227,10 @@ function RagSearchConfigSection({
       try {
         const atual = await getRuntimeSettings();
         if (!cancelado) setRagFallback(atual.rag_search_domain_fallback);
-      } catch {
-        // Ignora erro inicial em testes/mocks
+      } catch (err) {
+        if (!cancelado) {
+          onError(err instanceof Error ? err.message : "Erro ao carregar configurações de busca.");
+        }
       } finally {
         if (!cancelado) setCarregando(false);
       }

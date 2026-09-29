@@ -94,12 +94,16 @@ class CompatibilidadeOut(BaseModel):
     compativel: bool
 
 
-# --- Ferramenta 2: consulta de frete e prazos --------------------------------
+# --- Ferramenta 2 & 3: schemas de entrada compartilhados -----------------------
 
 
-class FreteItemIn(BaseModel):
+class ItemQuantidadeIn(BaseModel):
     produto_id: int
     quantidade: int = Field(gt=0)
+
+
+class FreteItemIn(ItemQuantidadeIn):
+    pass
 
 
 class FreteOut(BaseModel):
@@ -116,9 +120,8 @@ class FreteOut(BaseModel):
 # --- Ferramenta 3: cotação automática ----------------------------------------
 
 
-class CotacaoItemIn(BaseModel):
-    produto_id: int
-    quantidade: int = Field(gt=0)
+class CotacaoItemIn(ItemQuantidadeIn):
+    pass
 
 
 class CotacaoItemOut(BaseModel):

@@ -60,6 +60,7 @@ from app.db.catalog import (
     listar_estoque,
     listar_produtos,
     obter_produto,
+    obter_produtos_por_ids,
     sao_compativeis,
 )
 from app.mcp_server.auth import parceiro_atual
@@ -402,9 +403,12 @@ def create_b2b_mcp_server(
 
         try:
             async with session_factory() as session:
+                produto_ids = [item.produto_id for item in itens]
+                produtos = await obter_produtos_por_ids(session, produto_ids)
+
                 peso_total = Decimal("0")
                 for item in itens:
-                    produto = await obter_produto(session, item.produto_id)
+                    produto = produtos.get(item.produto_id)
                     if produto is None:
                         raise ToolError(f"Produto {item.produto_id} não encontrado no catálogo.")
                     # MVP: produto sem peso_kg cadastrado entra como peso zero
@@ -444,9 +448,12 @@ def create_b2b_mcp_server(
         agora = datetime.now(UTC)
         try:
             async with session_factory() as session:
+                produto_ids = [item.produto_id for item in itens]
+                produtos = await obter_produtos_por_ids(session, produto_ids)
+
                 itens_saida: list[CotacaoItemOut] = []
                 for item in itens:
-                    produto = await obter_produto(session, item.produto_id)
+                    produto = produtos.get(item.produto_id)
                     if produto is None:
                         raise ToolError(f"Produto {item.produto_id} não encontrado no catálogo.")
                     preco_unitario, percentual, subtotal = calcular_item_cotacao(
