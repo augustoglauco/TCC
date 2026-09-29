@@ -619,36 +619,29 @@ conversa e classificação do usuário").
       vírgula (antes só `http://localhost:3001`) — ver
       `docs/FRONTEND.md` §4. Commits `412c053`, `d7f0e4a`, `ab9c468`,
       `7d8426b`.
-- [~] Achados menores do code-review parqueados na entrega das ferramentas
-      MCP B2B (2026-09-24) — revisitados em 2026-09-29, 2 de 5 corrigidos:
-      1. ~~`RagSearchConfigSection` engole silenciosamente erro no
-         carregamento inicial~~ — **corrigido**: agora chama `onError`
-         (`frontend/app/admin/ingestao/page.tsx:232`), propagado para
-         `showToast`. Ainda falta cobertura de teste do caminho de erro
-         (nenhum teste em `IngestaoDocumentosPage.test.tsx` cobre esse caso).
+- [x] Achados menores do code-review parqueados na entrega das ferramentas
+      MCP B2B (2026-09-24) — todos corrigidos (commits `d5300cb`, `451f2dc`,
+      2026-09-29):
+      1. `RagSearchConfigSection` não engole mais o erro de
+         `getRuntimeSettings()` — chama `onError`
+         (`frontend/app/admin/ingestao/page.tsx:232`) e ganhou teste
+         dedicado (`IngestaoDocumentosPage.test.tsx:90`).
       2. Os 4 handlers de tool em `app.mcp_server.b2b`
          (`validar_compatibilidade`/`consultar_frete`/`cotar`/
-         `reservar_pedido`) **continuam** duplicando entre si o mesmo bloco
-         "produto não encontrado" + `try/except SQLAlchemyError → ToolError`,
-         sem helper compartilhado — não corrigido.
-      3. `FreteItemIn`/`CotacaoItemIn` (`app/models/mcp_b2b.py`) **parcial**:
-         passaram a herdar de um schema base novo, `ItemQuantidadeIn`
-         (`produto_id`/`quantidade`). `PedidoItemIn` segue redeclarando os
-         mesmos dois campos do zero em vez de herdar de `ItemQuantidadeIn`
-         (só precisaria acrescentar `centro_distribuicao`).
-      4. ~~`cotar`/`consultar_frete`/`criar_pedido` buscavam produto por
-         produto num loop~~ — **corrigido**: os três agora usam
+         `reservar_pedido`) agora reaproveitam dois helpers compartilhados:
+         `_abrir_sessao_bd` (traduz `SQLAlchemyError → ToolError`) e
+         `_obter_e_validar_produtos` (busca em lote + validação "não
+         encontrado") — `mcp_server/b2b.py:359-379`.
+      3. `FreteItemIn`/`CotacaoItemIn`/`PedidoItemIn`
+         (`app/models/mcp_b2b.py`) agora herdam todas de `ItemQuantidadeIn`.
+      4. `cotar`/`consultar_frete`/`criar_pedido` buscam produtos em lote via
          `obter_produtos_por_ids` (`select(...).where(Produto.id.in_(ids))`)
-         em vez de `obter_produto` item a item
-         (`mcp_server/b2b.py:407,452`, `db/catalog.py:503`).
-      5. `allowedDevOrigins` (`frontend/next.config.ts`) **parcial**: os
-         defaults hardcoded (IP da LAN, domínio DuckDNS) continuam no
-         repositório, mas agora aceitam `ALLOWED_DEV_ORIGINS` (env,
-         lista separada por vírgula) para outra máquina/rede sem editar o
-         código. Aceito como limitação de projeto de um único desenvolvedor
-         (TCC) — não necessariamente corrigir o resto.
-      Restam: item 2 (helper compartilhado nos 4 handlers de tool) e o
-      `PedidoItemIn` do item 3; ambos baixa severidade (estilo/robustez).
+         em vez de `obter_produto` item a item.
+      5. `allowedDevOrigins` (`frontend/next.config.ts`) aceita
+         `ALLOWED_DEV_ORIGINS` (env, lista separada por vírgula); os
+         defaults hardcoded (IP da LAN, domínio DuckDNS) continuam como
+         fallback — aceito como limitação de projeto de um único
+         desenvolvedor (TCC), não pendência.
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
