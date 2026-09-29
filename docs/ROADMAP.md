@@ -473,9 +473,7 @@ conversa e classificação do usuário").
 - [x] Implementar página de Suporte/Central de Ajuda (esse conteúdo também é
       alvo do crawler do RAG, R4) — `app/suporte/page.tsx` com FAQ estático
       real (sem API; conteúdo fica pronto para o crawler indexar na Fase 2/3)
-- [~] Implementar página de Agendamentos (leitura dos agendamentos criados
-      via chat, R11) — apenas stub de rota (`app/agendamentos/page.tsx`), sem
-      consumir a API (que ainda não existe no backend)
+- [x] Implementar gestão e página de Agendamentos (R11, Fase 7) — modelo de dados e migração Alembic `0015` (`agendamentos` com status, origem, datas e vínculos com Google Calendar e chat); extensão do cliente MCP do Google Calendar (`delete_event`, `list_events`, retorno de `google_event_id`); persistência automática no Postgres ao confirmar visita no Chat; endpoints REST da API em `/api/agendamentos` (`/meus`, `/{id}/cancelar`, `/admin`, `/admin/manual`, `/admin/google-events`); página do cliente `/agendamentos` com listagem própria, cancelamento sincronizado com o Google e CTA para o chat; painel administrativo em `/admin/agendamentos` com abas (sistema por usuário com filtros e consulta à agenda corporativa do Google Calendar em tempo real via MCP), modal de agendamento manual com checagem de conflitos e atalho no menu de engrenagem (`AdminGearMenu`).
 - [x] Implementar página administrativa de ingestão de documentos
       (`/admin/ingestao`, fora do menu principal; link discreto no rodapé,
       `components/layout/Footer.tsx`) consumindo `POST /api/rag/documents` —

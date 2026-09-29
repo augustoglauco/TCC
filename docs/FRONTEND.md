@@ -35,8 +35,8 @@ registrada aqui com o motivo.
 | Produto (detalhe) | `/produtos/[id]` | Especificações, preço, disponibilidade; ponto de entrada para "perguntar ao chat sobre este produto" | Não |
 | Pedidos (carrinho/checkout) | `/pedidos` | Fluxo de compra — pode ser iniciado pelo site ou por uma cotação/reserva feita via chat (Vendas + MCP B2B) | Sim |
 | Histórico de pedidos | `/pedidos/historico` | Status e histórico — usa o mesmo ID de cliente que alimenta a classificação Cliente/Lead/Esporádico (R10) | Sim |
-| Conta do usuário | `/conta/login`, `/conta/perfil` | Login/cadastro simplificado; liga a identidade do site à conversa do chat (R9, R10) | Parcial |
-| Agendamentos | `/agendamentos` | Visualizar/consultar visitas agendadas via chat (R11) — leitura apenas no MVP, sem reagendar/cancelar pela UI (essa ação também não existe no backend do MVP) | Sim |
+| Agendamentos | `/agendamentos` | Visualizar visitas agendadas do cliente autenticado, desmarcar visitas confirmadas com confirmação (sincronizado com Google Calendar) e CTA para novo agendamento via chat (R11) | Sim |
+| Admin — Agendamentos | `/admin/agendamentos` | Painel administrativo com abas (sistema por usuário com busca e filtros vs consulta à agenda corporativa do Google Calendar em tempo real via MCP) e modal para agendamento manual com validação de conflitos | Sim (`admin`) |
 | Suporte / Central de Ajuda | `/suporte` | FAQ e documentação de produto — é justamente o conteúdo que o crawler (R4) e o RAG de Suporte/Atendimento (R7) devem indexar | Não |
 | Contato | `/contato` | Dados institucionais, formas de contato alternativas ao chat | Não |
 | **Chat** | widget global (todas as rotas) | Ponto de entrada único para os quatro domínios de atendimento — ver Seção 3 | Não (funciona anônimo; melhora com login) |
@@ -158,8 +158,7 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `POST /api/admin/produtos/upload-temp` , `POST /api/admin/produtos/catalogo/confirmar` | Foto de rascunho da conferência (`temp/`) e gravação em lote dos produtos conferidos (com as fotos movidas para a pasta definitiva e indexadas no CLIP) |
 | `GET /api/uploads/produtos/{arquivo}` , `GET /api/uploads/produtos/temp/{arquivo}` | Serve as fotos de produto (definitivas e de rascunho), com proteção contra path traversal |
 | `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` , `POST /api/orders/quote` , `POST /api/orders/freight` | Criação, consulta, cotação por volume e simulação de frete de pedidos (Fase 7) |
-| `POST /api/auth/login` , `GET /api/auth/me` | Autenticação mock (senha 12345) e consulta de perfil do cliente autenticado (Fase 7, R10) |
-| `GET /api/appointments` | Lista agendamentos criados via chat (leitura) |
+| `GET /api/agendamentos/meus` , `POST /api/agendamentos/{id}/cancelar` , `GET /api/agendamentos/admin` , `POST /api/agendamentos/admin/manual` , `GET /api/agendamentos/admin/google-events` | Gestão completa de agendamentos, cancelamento sincronizado com o Google Calendar e consulta em tempo real da agenda corporativa via MCP (Fase 7, R11) |
 | `POST /api/rag/documents` | Upload de um PDF/texto (`multipart/form-data`: `file` + `domain` + `collection_id` opcional, default a collection ativa) para ingestão no RAG — usado pela página `/admin/ingestao` (ver `backend/src/app/api/rag.py`) |
 | `GET /api/rag/documents` | Lista o registro de documentos ingeridos (mais recente primeiro), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `DELETE /api/rag/documents/{document_id}` | Exclui um documento (registro + pontos no Qdrant), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
@@ -505,15 +504,14 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
 | R8 (monitor de tom) | Banner de transferência para atendente humano |
 | R9 (memória da conversa) | ID de conversa persistido; retomada ao reabrir o widget |
 | R10 (classificação do usuário) | Estado de login/anônimo repassado ao backend; sem UI própria |
-| R11 (agendamento) | Card de confirmação no chat; página `/agendamentos` (leitura) |
+| R11 (agendamento) | Card de confirmação no chat; página `/agendamentos` (listagem, cancelamento e CTA chat); painel `/admin/agendamentos` (gestão por usuário, Google Calendar via MCP e agendamento manual) |
 | R12 (MCP B2B) | Card de cotação/reserva no chat quando o roteador aciona o MCP B2B para Vendas |
 
 ## 8. Fora de escopo do frontend no MVP
 
 - Gateway de pagamento real — checkout do MVP pode simular o pagamento (ver
   também "fora de escopo" geral em `docs/ARCHITECTURE.md`/`docs/ROADMAP.md`).
-- Reagendamento/cancelamento de visita pela UI (o backend também não suporta
-  isso no MVP — ver `docs/ARCHITECTURE.md` §5).
+- Reagendamento automático de visita com escolha interativa de novos horários pela UI (cancelamento e novo agendamento via chat suportados).
 - Notificações push, aplicativo mobile nativo, múltiplos idiomas.
 - ~~Painel administrativo para gestão de catálogo/estoque/preços~~ —
   **revogado** pela decisão de 2026-09-25 (pedido explícito do

@@ -525,7 +525,13 @@ permanece inalterado. `# MVP: endpoint MCP local sem autenticação própria
 — mesma confiança de rede local que Qdrant/Postgres neste protótipo, não
 exposto publicamente`.
 
-**Decisão registrada (correção de qualidade, achado ao validar o
+**Decisão registrada (Fase 7, Gestão e Cancelamento de Agendamentos, R11, 2026-09-29):**
+Para viabilizar a gestão por usuário, consulta administrativa e cancelamento de visitas (ver `docs/superpowers/specs/2026-09-29-gestao-agendamentos-design.md`), foi adotada a **Abordagem Híbrida Sincronizada (Abordagem 1)**:
+(a) **Tabela `agendamentos` (Postgres, migração `0015`):** armazena o histórico auditável da aplicação (UUID, `user_email`, `nome_cliente`, `telefone`, `data_hora_inicio`, `data_hora_fim`, `descricao`, `status` [confirmado/cancelado], `origem` [chat/manual_admin], `google_event_id`, `google_event_link`, `conversation_id`).
+(b) **Integração com o Chat (`orchestrator._handle_agendamento`):** ao confirmar o agendamento no chat, além de acionar o MCP do Google Calendar (`create_event`), persiste imediatamente o registro com `origem="chat"` e `status="confirmado"`.
+(c) **Cancelamento Bidirecional:** quando o usuário (ou admin) cancela uma visita (`POST /api/agendamentos/{id}/cancelar`), a linha no banco tem seu status alterado para `"cancelado"` (mantendo histórico) e o cliente MCP dispara a remoção do evento na agenda corporativa via tool `delete_event`.
+(d) **Painel Admin Dual (`/admin/agendamentos`):** divide a visão em duas abas: (1) Agendamentos do Sistema (filtráveis por e-mail e status) e (2) Consulta em Tempo Real da agenda corporativa do Google Calendar via `calendar_client.list_events` (`find_events` do MCP), permitindo também agendamento manual direto pelo admin (`POST /api/agendamentos/admin/manual`) com checagem de conflitos.
+
 agendamento com API real, 2026-09-23):** `OllamaClient.generate()` (chamada
 não-streaming, usada só pelos três classificadores/extratores de JSON curto
 do backend — `classifier._classify_with_llm`,
