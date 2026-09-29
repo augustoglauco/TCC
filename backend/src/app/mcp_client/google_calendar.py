@@ -34,6 +34,27 @@ class GoogleCalendarConnectionError(Exception):
     `calendar-mcp-server auth` resolve)."""
 
 
+SYSTEM_TAG = "[origem:sistema]"
+SYSTEM_SUMMARY_PREFIX = "[Sistema]"
+
+
+def is_system_event(evento: dict[str, Any]) -> bool:
+    """Verifica se o evento do Google Calendar pertence ao sistema.
+
+    Identifica pela presença de '[Sistema]' no summary/título
+    ou do marcador '[origem:sistema]' na descrição ou summary.
+    """
+    summary = str(evento.get("summary") or "")
+    description = str(evento.get("description") or "")
+
+    if SYSTEM_SUMMARY_PREFIX.lower() in summary.lower():
+        return True
+    if SYSTEM_TAG.lower() in summary.lower() or SYSTEM_TAG.lower() in description.lower():
+        return True
+    return False
+
+
+
 class CalendarClient(Protocol):
     async def is_time_available(self, start: datetime, end: datetime) -> bool: ...
 
@@ -111,7 +132,13 @@ class GoogleCalendarMCPClient:
                 "Resposta inesperada da tool 'find_events' do MCP do Google "
                 f"Calendar: não contém a chave 'count' (recebido: {resultado!r})."
             )
-        return resultado["count"] == 0
+
+        events = resultado.get("events")
+        if events is None and resultado["count"] > 0:
+            return False
+
+        system_events = [e for e in (events or []) if is_system_event(e)]
+        return len(system_events) == 0
 
     async def create_event(
         self,
@@ -122,15 +149,27 @@ class GoogleCalendarMCPClient:
         attendee_name: str,
         description: str = "",
     ) -> tuple[str, str]:
+        # Formata o summary com prefixo do sistema caso ainda não possua
+        clean_summary = summary.strip()
+        if not clean_summary.lower().startswith(SYSTEM_SUMMARY_PREFIX.lower()):
+            clean_summary = f"{SYSTEM_SUMMARY_PREFIX} {clean_summary}"
+
         # A tool `create_event` deste servidor só aceita e-mails em
         # `attendee_emails` (sem nome de exibição por convidado) — o nome do
         # visitante vai para a descrição do evento para não se perder.
-        descricao_completa = f"Visitante: {attendee_name}\n{description}".strip()
+        partes_descricao = [
+            f"Visitante: {attendee_name}",
+        ]
+        if description.strip():
+            partes_descricao.append(description.strip())
+        partes_descricao.append(f"Origem: Agendamento Sistema\n{SYSTEM_TAG}")
+        descricao_completa = "\n\n".join(partes_descricao).strip()
+
         resultado = await self._call_tool(
             "create_event",
             {
                 "calendar_id": self._calendar_id,
-                "summary": summary,
+                "summary": clean_summary,
                 "description": descricao_completa,
                 "start_time": start.isoformat(),
                 "end_time": end.isoformat(),
@@ -166,4 +205,6 @@ class GoogleCalendarMCPClient:
                 "time_max": time_max.isoformat(),
             },
         )
-        return resultado.get("events", [])
+        all_events = resultado.get("events", [])
+        return [e for e in all_events if is_system_event(e)]
+

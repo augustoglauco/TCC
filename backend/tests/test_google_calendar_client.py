@@ -43,7 +43,7 @@ def _client(session: _FakeMCPSession) -> GoogleCalendarMCPClient:
 
 
 async def test_is_time_available_true_quando_nao_ha_eventos():
-    session = _FakeMCPSession(result=_FakeCallToolResult(structured_content={"count": 0}))
+    session = _FakeMCPSession(result=_FakeCallToolResult(structured_content={"count": 0, "events": []}))
     client = _client(session)
 
     disponivel = await client.is_time_available(
@@ -58,9 +58,45 @@ async def test_is_time_available_true_quando_nao_ha_eventos():
     assert argumentos["time_max"] == "2026-09-24T10:30:00"
 
 
-async def test_is_time_available_false_quando_ha_evento_na_janela():
+async def test_is_time_available_true_quando_ha_apenas_eventos_de_outros_assuntos():
+    # Eventos que não são do sistema (sem tag nem prefixo [Sistema]) não devem bloquear
     session = _FakeMCPSession(
-        result=_FakeCallToolResult(structured_content={"count": 1, "events": [{"id": "evt1"}]})
+        result=_FakeCallToolResult(
+            structured_content={
+                "count": 1,
+                "events": [
+                    {
+                        "id": "evt_externo",
+                        "summary": "Reunião de Planejamento Financeiro",
+                        "description": "Alinhamento com diretoria",
+                    }
+                ],
+            }
+        )
+    )
+    client = _client(session)
+
+    disponivel = await client.is_time_available(
+        datetime(2026, 9, 24, 10, 0), datetime(2026, 9, 24, 10, 30)
+    )
+
+    assert disponivel is True
+
+
+async def test_is_time_available_false_quando_ha_evento_do_sistema_na_janela():
+    session = _FakeMCPSession(
+        result=_FakeCallToolResult(
+            structured_content={
+                "count": 1,
+                "events": [
+                    {
+                        "id": "evt1",
+                        "summary": "[Sistema] Visita — Maria",
+                        "description": "Origem: Agendamento Sistema\n[origem:sistema]",
+                    }
+                ],
+            }
+        )
     )
     client = _client(session)
 
@@ -69,6 +105,7 @@ async def test_is_time_available_false_quando_ha_evento_na_janela():
     )
 
     assert disponivel is False
+
 
 
 async def test_is_time_available_sem_chave_count_falha_fechado():
@@ -119,8 +156,33 @@ async def test_create_event_retorna_id_e_link_do_evento():
     assert argumentos["start_time"] == "2026-09-24T10:00:00"
     assert argumentos["end_time"] == "2026-09-24T10:30:00"
     assert argumentos["attendee_emails"] == ["maria@example.com"]
-    # A tool não aceita nome de exibição por convidado — vai na descrição.
+    # Garante inclusão do prefixo [Sistema] no summary e marcador na descrição
+    assert argumentos["summary"] == "[Sistema] Visita — Maria"
     assert "Maria" in argumentos["description"]
+    assert "[origem:sistema]" in argumentos["description"]
+
+
+async def test_create_event_nao_duplica_prefixo_se_ja_existir():
+    session = _FakeMCPSession(
+        result=_FakeCallToolResult(
+            structured_content={
+                "calendar_id": "primary",
+                "event": {"id": "evt1", "html_link": "https://calendar.google.com/evt1"},
+            }
+        )
+    )
+    client = _client(session)
+
+    await client.create_event(
+        summary="[Sistema] Visita — Maria",
+        start=datetime(2026, 9, 24, 10, 0),
+        end=datetime(2026, 9, 24, 10, 30),
+        attendee_email="maria@example.com",
+        attendee_name="Maria",
+    )
+
+    _, argumentos = session.calls[0]
+    assert argumentos["summary"] == "[Sistema] Visita — Maria"
 
 
 async def test_create_event_sem_chave_event_retorna_id_e_link_vazios():
@@ -168,13 +230,29 @@ async def test_delete_event_quando_tool_falha_com_not_found_retorna_false():
     assert sucesso is False
 
 
-async def test_list_events_retorna_lista_de_eventos():
+async def test_list_events_retorna_apenas_eventos_do_sistema():
     mock_events = [
-        {"id": "evt1", "summary": "Visita — Maria", "start": "2026-09-24T10:00:00Z"},
-        {"id": "evt2", "summary": "Visita — João", "start": "2026-09-24T14:00:00Z"},
+        {
+            "id": "evt1",
+            "summary": "[Sistema] Visita — Maria",
+            "description": "[origem:sistema]",
+            "start": "2026-09-24T10:00:00Z",
+        },
+        {
+            "id": "evt2",
+            "summary": "Reunião de Diretoria",
+            "description": "Orçamento anual",
+            "start": "2026-09-24T11:00:00Z",
+        },
+        {
+            "id": "evt3",
+            "summary": "Visita — João",
+            "description": "Visitante: João\nOrigem: Agendamento Sistema\n[origem:sistema]",
+            "start": "2026-09-24T14:00:00Z",
+        },
     ]
     session = _FakeMCPSession(
-        result=_FakeCallToolResult(structured_content={"count": 2, "events": mock_events})
+        result=_FakeCallToolResult(structured_content={"count": 3, "events": mock_events})
     )
     client = _client(session)
 
@@ -183,12 +261,15 @@ async def test_list_events_retorna_lista_de_eventos():
         time_max=datetime(2026, 9, 24, 18, 0),
     )
 
-    assert eventos == mock_events
+    # Apenas evt1 e evt3 devem ser retornados (evt2 é de outro assunto)
+    assert len(eventos) == 2
+    assert [e["id"] for e in eventos] == ["evt1", "evt3"]
     nome_tool, argumentos = session.calls[0]
     assert nome_tool == "find_events"
     assert argumentos["calendar_id"] == "primary"
     assert argumentos["time_min"] == "2026-09-24T08:00:00"
     assert argumentos["time_max"] == "2026-09-24T18:00:00"
+
 
 
 async def test_call_tool_com_is_error_vira_connection_error():
