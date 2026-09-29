@@ -184,8 +184,9 @@ def _data_futura_util(dia_semana_alvo: int) -> datetime:
     return referencia.replace(hour=10, minute=0, second=0, microsecond=0)
 
 
-def test_duracao_visita_e_30_minutos():
-    assert DURACAO_VISITA == timedelta(minutes=30)
+def test_duracao_visita_e_60_minutos():
+    assert DURACAO_VISITA == timedelta(minutes=60)
+
 
 
 def test_validar_expediente_aceita_horario_valido():

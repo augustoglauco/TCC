@@ -22,7 +22,8 @@ from pydantic import BaseModel, ValidationError
 
 from app.router.llm_client import LLMClient
 
-DURACAO_VISITA = timedelta(minutes=30)
+DURACAO_VISITA = timedelta(minutes=60)
+
 
 _DIAS_SEMANA = {"seg": 0, "ter": 1, "qua": 2, "qui": 3, "sex": 4, "sab": 5, "dom": 6}
 

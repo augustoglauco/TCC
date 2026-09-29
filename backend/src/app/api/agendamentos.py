@@ -47,8 +47,10 @@ class AgendamentoManualCreate(BaseModel):
     telefone: str | None = None
     data_hora_inicio: datetime
     data_hora_fim: datetime | None = None
+    duracao_minutos: int | None = 60
     descricao: str | None = None
     forcar_sem_validacao: bool = False
+
 
 
 @router.get("/meus", response_model=list[AgendamentoOut])
@@ -150,7 +152,9 @@ async def admin_criar_agendamento_manual(
     calendar_client: CalendarClient = Depends(get_calendar_client),
 ) -> AgendamentoOut:
     """Cria um agendamento manualmente pelo painel admin, sincronizando com o Google Calendar."""
-    data_hora_fim = payload.data_hora_fim or (payload.data_hora_inicio + timedelta(minutes=30))
+    duracao = payload.duracao_minutos if payload.duracao_minutos and payload.duracao_minutos > 0 else 60
+    data_hora_fim = payload.data_hora_fim or (payload.data_hora_inicio + timedelta(minutes=duracao))
+
 
     if not payload.forcar_sem_validacao:
         try:

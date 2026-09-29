@@ -119,7 +119,7 @@ describe("AdminAgendamentosPage", () => {
       user_email: "novo@cliente.com",
       nome_cliente: "Novo Cliente",
       data_hora_inicio: "2026-10-25T10:00",
-      data_hora_fim: "2026-10-25T10:30",
+      data_hora_fim: "2026-10-25T11:30",
       status: "confirmado",
       origem: "manual_admin",
       criado_em: "2026-09-29T12:00:00Z",
@@ -136,6 +136,9 @@ describe("AdminAgendamentosPage", () => {
 
     expect(screen.getByText("Novo Agendamento Manual")).toBeInTheDocument();
 
+    const duracaoInput = screen.getByLabelText(/Duração \(minutos\)/i);
+    expect(duracaoInput).toHaveValue(60);
+
     fireEvent.change(screen.getByLabelText(/E-mail do Cliente/i), {
       target: { value: "novo@cliente.com" },
     });
@@ -145,6 +148,9 @@ describe("AdminAgendamentosPage", () => {
     fireEvent.change(screen.getByLabelText(/Data e Hora de Início/i), {
       target: { value: "2026-10-25T10:00" },
     });
+    fireEvent.change(duracaoInput, {
+      target: { value: "90" },
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /Confirmar Agendamento/i }));
 
@@ -153,8 +159,10 @@ describe("AdminAgendamentosPage", () => {
         expect.objectContaining({
           user_email: "novo@cliente.com",
           nome_cliente: "Novo Cliente",
+          duracao_minutos: 90,
         })
       );
     });
   });
 });
+

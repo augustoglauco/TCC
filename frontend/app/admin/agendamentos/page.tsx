@@ -50,8 +50,10 @@ export default function AdminAgendamentosPage() {
     nome_cliente: "",
     telefone: "",
     data_hora_inicio: "",
+    duracao_minutos: 60,
     descricao: "",
   });
+
 
   const carregarSistema = async () => {
     setLoading(true);
@@ -115,6 +117,7 @@ export default function AdminAgendamentosPage() {
       await criarAgendamentoManual({
         ...manualForm,
         data_hora_inicio: new Date(manualForm.data_hora_inicio).toISOString(),
+        duracao_minutos: manualForm.duracao_minutos ? Number(manualForm.duracao_minutos) : 60,
       });
       setModalAberto(false);
       setManualForm({
@@ -122,8 +125,10 @@ export default function AdminAgendamentosPage() {
         nome_cliente: "",
         telefone: "",
         data_hora_inicio: "",
+        duracao_minutos: 60,
         descricao: "",
       });
+
       carregarSistema();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao criar agendamento manual.";
@@ -464,19 +469,43 @@ export default function AdminAgendamentosPage() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="data_hora_inicio" className="block text-xs font-semibold text-slate-700">
-                  Data e Hora de Início
-                </label>
-                <input
-                  id="data_hora_inicio"
-                  type="datetime-local"
-                  required
-                  value={manualForm.data_hora_inicio}
-                  onChange={(e) => setManualForm({ ...manualForm, data_hora_inicio: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="data_hora_inicio" className="block text-xs font-semibold text-slate-700">
+                    Data e Hora de Início
+                  </label>
+                  <input
+                    id="data_hora_inicio"
+                    type="datetime-local"
+                    required
+                    value={manualForm.data_hora_inicio}
+                    onChange={(e) => setManualForm({ ...manualForm, data_hora_inicio: e.target.value })}
+                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="duracao_minutos" className="block text-xs font-semibold text-slate-700">
+                    Duração (minutos)
+                  </label>
+                  <input
+                    id="duracao_minutos"
+                    type="number"
+                    min={15}
+                    step={15}
+                    required
+                    value={manualForm.duracao_minutos ?? 60}
+                    onChange={(e) =>
+                      setManualForm({
+                        ...manualForm,
+                        duracao_minutos: e.target.value === "" ? null : Number(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+                  />
+                </div>
               </div>
+
 
               <div>
                 <label htmlFor="descricao" className="block text-xs font-semibold text-slate-700">

@@ -21,9 +21,11 @@ export interface AgendamentoManualInput {
   telefone?: string | null;
   data_hora_inicio: string;
   data_hora_fim?: string | null;
+  duracao_minutos?: number | null;
   descricao?: string | null;
   forcar_sem_validacao?: boolean;
 }
+
 
 export interface AgendamentoAdminFilters {
   filtroEmail?: string;

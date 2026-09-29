@@ -229,6 +229,33 @@ async def test_admin_criar_agendamento_manual(app_sqlite, db_session, fake_calen
         assert dados["status"] == "confirmado"
         assert dados["google_event_id"] == "evt_fake_mcp"
         assert len(fake_calendar.created_events) == 1
+        # Valida que o padrão agora é 60 minutos (1 hora)
+        inicio = datetime.fromisoformat(dados["data_hora_inicio"])
+        fim = datetime.fromisoformat(dados["data_hora_fim"])
+        assert fim - inicio == timedelta(minutes=60)
+        assert fake_calendar.created_events[0]["end"] - fake_calendar.created_events[0]["start"] == timedelta(minutes=60)
+
+
+@pytest.mark.asyncio
+async def test_admin_criar_agendamento_manual_com_duracao_customizada(app_sqlite, db_session, fake_calendar):
+    agora = datetime.now(timezone.utc)
+    data_inicio = agora + timedelta(days=6)
+
+    payload = {
+        "user_email": "custom@cliente.com",
+        "nome_cliente": "Ana Custom",
+        "data_hora_inicio": data_inicio.isoformat(),
+        "duracao_minutos": 45,
+    }
+
+    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
+        resp = await client.post("/api/agendamentos/admin/manual", json=payload)
+        assert resp.status_code == 201
+        dados = resp.json()
+        inicio = datetime.fromisoformat(dados["data_hora_inicio"])
+        fim = datetime.fromisoformat(dados["data_hora_fim"])
+        assert fim - inicio == timedelta(minutes=45)
+
 
 
 @pytest.mark.asyncio
