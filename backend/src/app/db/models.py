@@ -395,6 +395,8 @@ class ClienteCompra(Base):
     cliente_id: Mapped[int] = mapped_column(ForeignKey("clientes.id"), index=True)
     produto_id: Mapped[int | None] = mapped_column(ForeignKey("produtos.id"))
     quantidade: Mapped[int]
+    valor_total: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    comprado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     cliente: Mapped[Cliente] = relationship(back_populates="compras")
 
 

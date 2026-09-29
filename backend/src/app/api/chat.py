@@ -643,6 +643,7 @@ async def send_message(
                 pedir_email_pos_venda=contexto.email is None,
                 dados_cliente=dados_cliente,
                 contexto_conversa_anterior=contexto_anterior,
+                db_sessionmaker=getattr(request.app.state, "db_sessionmaker", None),
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})

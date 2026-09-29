@@ -9,7 +9,9 @@ from decimal import Decimal
 from typing import Literal
 
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.db.models import Agendamento
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
 from app.models.chat import RagChunkMetric
 from app.models.runtime_settings import (
@@ -580,6 +582,7 @@ async def _handle_agendamento(
     calendar_client: CalendarClient,
     scheduling_config: SchedulingConfig,
     intent_router_provider: str,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None = None,
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     slots = get_booking_slots(conversation_id)
     try:
@@ -640,7 +643,7 @@ async def _handle_agendamento(
 
             try:
                 fim = slots.data_hora + DURACAO_VISITA
-                await calendar_client.create_event(
+                google_event_id, google_event_link = await calendar_client.create_event(
                     summary=f"Visita — {slots.nome}",
                     start=slots.data_hora,
                     end=fim,
@@ -668,6 +671,36 @@ async def _handle_agendamento(
                 ):
                     yield evento
                 return
+
+            if db_sessionmaker is not None:
+                try:
+                    async with db_sessionmaker() as session:
+                        agendamento = Agendamento(
+                            user_email=slots.email,
+                            nome_cliente=slots.nome,
+                            telefone=slots.telefone,
+                            data_hora_inicio=slots.data_hora,
+                            data_hora_fim=fim,
+                            descricao=f"Telefone: {slots.telefone}",
+                            status="confirmado",
+                            origem="chat",
+                            google_event_id=google_event_id or None,
+                            google_event_link=google_event_link or None,
+                            conversation_id=conversation_id,
+                        )
+                        session.add(agendamento)
+                        await session.commit()
+                except Exception as exc:
+                    logger.error(
+                        "erro_ao_persistir_agendamento",
+                        extra={
+                            "router": {
+                                "event": "erro_ao_persistir_agendamento",
+                                "erro": str(exc),
+                                "conversation_id": conversation_id,
+                            }
+                        },
+                    )
 
             texto = mensagem_sucesso(slots, scheduling_config.timezone)
             clear_booking_slots(conversation_id)
@@ -745,6 +778,7 @@ async def handle_message(
     ultima_troca: tuple[str, str] | None = None,
     dados_cliente: str | None = None,
     contexto_conversa_anterior: str | None = None,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -930,6 +964,7 @@ async def handle_message(
             calendar_client=calendar_client,
             scheduling_config=scheduling_config,
             intent_router_provider=intent_router_provider,
+            db_sessionmaker=db_sessionmaker,
         ):
             yield evento
         return

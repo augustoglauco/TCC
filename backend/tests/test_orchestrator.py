@@ -5,7 +5,10 @@ from decimal import Decimal
 from zoneinfo import ZoneInfo
 
 import pytest
+from sqlalchemy import select
 
+from app.db.engine import create_db_engine, create_session_factory
+from app.db.models import Base, Agendamento
 from app.logging_config import JsonFormatter
 from app.mcp_client.google_calendar import GoogleCalendarConnectionError
 from app.models.chat import RagChunkMetric
@@ -153,11 +156,13 @@ class _FakeCalendarClient:
     def __init__(
         self,
         available: bool = True,
+        create_event_id: str = "evt1",
         create_event_link: str = "https://calendar.google.com/evt1",
         availability_exception: Exception | None = None,
         create_exception: Exception | None = None,
     ) -> None:
         self._available = available
+        self._create_event_id = create_event_id
         self._create_event_link = create_event_link
         self._availability_exception = availability_exception
         self._create_exception = create_exception
@@ -168,11 +173,11 @@ class _FakeCalendarClient:
             raise self._availability_exception
         return self._available
 
-    async def create_event(self, **kwargs) -> str:
+    async def create_event(self, **kwargs) -> tuple[str, str]:
         if self._create_exception is not None:
             raise self._create_exception
         self.create_event_calls.append(kwargs)
-        return self._create_event_link
+        return self._create_event_id, self._create_event_link
 
 
 class _FakeSalesCatalogClient:
@@ -2306,3 +2311,63 @@ async def test_handle_message_injeta_contexto_conversa_anterior_no_prompt():
     assert local_client.calls == 1
     assert "Contexto da conversa anterior do cliente" in local_client.last_prompt
     assert contexto_anterior in local_client.last_prompt
+
+
+async def test_handle_agendamento_persiste_registro_no_banco_ao_confirmar():
+    engine = create_db_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = create_session_factory(engine)
+
+    futuro = _data_futura_valida()
+    set_booking_slots(
+        "conv-db-1",
+        BookingSlots(
+            data_hora=futuro,
+            nome="Maria DB",
+            email="maria@example.com",
+            telefone="11999999999",
+            awaiting_confirmation=True,
+        ),
+    )
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=json.dumps({"confirmacao": True}),
+            total_duration_ms=10.0,
+        )
+    )
+    calendar_client = _FakeCalendarClient(
+        create_event_id="evt-db-123",
+        create_event_link="https://calendar.google.com/evt-db-123",
+    )
+
+    eventos = await _coletar_eventos(
+        "sim, confirmo",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-db-1",
+        calendar_client=calendar_client,
+        scheduling_config=_SCHEDULING_CONFIG,
+        db_sessionmaker=session_factory,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.motivo_escalonamento == "confirmado"
+
+    async with session_factory() as session:
+        result = await session.execute(select(Agendamento).where(Agendamento.conversation_id == "conv-db-1"))
+        agendamento = result.scalars().first()
+        assert agendamento is not None
+        assert agendamento.user_email == "maria@example.com"
+        assert agendamento.nome_cliente == "Maria DB"
+        assert agendamento.telefone == "11999999999"
+        assert agendamento.google_event_id == "evt-db-123"
+        assert agendamento.google_event_link == "https://calendar.google.com/evt-db-123"
+        assert agendamento.origem == "chat"
+        assert agendamento.status == "confirmado"
+
+    await engine.dispose()
+
