@@ -27,6 +27,9 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
   const [toneMonitorProvider, setToneMonitorProvider] = useState<
     "heuristica_llm" | "jev_openrouter"
   >("heuristica_llm");
+  const [externalVisionModel, setExternalVisionModel] = useState("");
+  const [imageInternalConfidence, setImageInternalConfidence] = useState("0.30");
+  const [imageExternalConfidence, setImageExternalConfidence] = useState("0.70");
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
@@ -45,6 +48,17 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         setRouterProvider(atual.intent_router_provider ?? "heuristica_llm");
         setToneMonitorEnabled(atual.tone_monitor_enabled ?? true);
         setToneMonitorProvider(atual.tone_monitor_provider ?? "heuristica_llm");
+        setExternalVisionModel(atual.external_vision_model_name ?? "");
+        setImageInternalConfidence(
+          atual.image_internal_confidence !== undefined && atual.image_internal_confidence !== null
+            ? String(atual.image_internal_confidence)
+            : "0.30",
+        );
+        setImageExternalConfidence(
+          atual.image_external_confidence !== undefined && atual.image_external_confidence !== null
+            ? String(atual.image_external_confidence)
+            : "0.70",
+        );
       } catch (err) {
         if (!cancelado) {
           onError(
@@ -76,6 +90,11 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         intent_router_provider: routerProvider,
         tone_monitor_enabled: toneMonitorEnabled,
         tone_monitor_provider: toneMonitorProvider,
+        external_vision_model_name: externalVisionModel.trim() || undefined,
+        image_internal_confidence:
+          imageInternalConfidence.trim() === "" ? undefined : Number(imageInternalConfidence),
+        image_external_confidence:
+          imageExternalConfidence.trim() === "" ? undefined : Number(imageExternalConfidence),
       });
       setSettings(atualizado);
       onSuccess("Parâmetros de execução aplicados.");
@@ -447,6 +466,95 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Seção 4: Visão Computacional & Identificação por Imagem (R6) */}
+      <div className="space-y-3 pt-4 border-t border-slate-200/80">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+            <span>👁️</span> Visão Computacional & Identificação por Foto (R6)
+          </h3>
+          <span className="text-xs text-slate-500">
+            Limiares de confiança e modelo de visão para imagens
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {/* Modelo de Visão Externo */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-2 hover:border-slate-300 transition-all">
+            <div className="flex items-center justify-between">
+              <label htmlFor="rt-external-vision-model" className="text-xs font-bold text-slate-800">
+                Modelo de Visão (OpenRouter)
+              </label>
+              <span className="text-[10px] font-mono bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded font-bold">
+                visão
+              </span>
+            </div>
+            <input
+              id="rt-external-vision-model"
+              type="text"
+              value={externalVisionModel}
+              onChange={(e) => setExternalVisionModel(e.target.value)}
+              placeholder="ex: google/gemini-flash-1.5"
+              className="block w-full rounded-lg border border-slate-300 bg-slate-50/50 px-3 py-2 text-sm font-mono text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+            <p className="text-[11px] text-slate-500 leading-tight">
+              Modelo multimodal para identificação externa por imagem. Vazio = desliga visão externa.
+            </p>
+          </div>
+
+          {/* Confiança Catálogo Interno (CLIP) */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-2 hover:border-slate-300 transition-all">
+            <div className="flex items-center justify-between">
+              <label htmlFor="rt-image-internal-confidence" className="text-xs font-bold text-slate-800">
+                Limiar Catálogo Interno (CLIP)
+              </label>
+              <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                0.0 – 1.0
+              </span>
+            </div>
+            <input
+              id="rt-image-internal-confidence"
+              type="number"
+              min={0}
+              max={1}
+              step={0.05}
+              value={imageInternalConfidence}
+              onChange={(e) => setImageInternalConfidence(e.target.value)}
+              placeholder="0.30"
+              className="block w-full rounded-lg border border-slate-300 bg-slate-50/50 px-3 py-2 text-sm font-mono text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+            <p className="text-[11px] text-slate-500 leading-tight">
+              Score mínimo no CLIP vetorial do banco interno para aceitar diretamente a foto.
+            </p>
+          </div>
+
+          {/* Confiança Visão Externa */}
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-2 hover:border-slate-300 transition-all">
+            <div className="flex items-center justify-between">
+              <label htmlFor="rt-image-external-confidence" className="text-xs font-bold text-slate-800">
+                Limiar Visão Externa
+              </label>
+              <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
+                0.0 – 1.0
+              </span>
+            </div>
+            <input
+              id="rt-image-external-confidence"
+              type="number"
+              min={0}
+              max={1}
+              step={0.05}
+              value={imageExternalConfidence}
+              onChange={(e) => setImageExternalConfidence(e.target.value)}
+              placeholder="0.70"
+              className="block w-full rounded-lg border border-slate-300 bg-slate-50/50 px-3 py-2 text-sm font-mono text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            />
+            <p className="text-[11px] text-slate-500 leading-tight">
+              Confiança mínima reportada pelo modelo multimodal para aceitar a identificação.
+            </p>
+          </div>
         </div>
       </div>
 

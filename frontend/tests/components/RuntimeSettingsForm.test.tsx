@@ -28,6 +28,9 @@ const SETTINGS_PADRAO: RuntimeSettings = {
   rag_search_domain_fallback: false,
   crawler_max_pages_default: 50,
   crawler_confidence_threshold: 0.8,
+  external_vision_model_name: "google/gemini-flash-1.5",
+  image_internal_confidence: 0.3,
+  image_external_confidence: 0.7,
   intent_router_provider: "heuristica_llm",
   tone_monitor_enabled: true,
   tone_monitor_provider: "heuristica_llm",
@@ -52,6 +55,11 @@ describe("RuntimeSettingsForm", () => {
     expect(screen.getByLabelText(/monitor de tom ativo/i)).toBeChecked();
     expect(screen.getAllByLabelText(/heurística \+ llm local \(ollama\)/i)[1]).toBeChecked();
     expect(screen.getAllByLabelText(/typesafe jev \(openrouter\)/i)[1]).not.toBeChecked();
+    expect(screen.getByLabelText(/modelo de visão \(openrouter\)/i)).toHaveValue(
+      "google/gemini-flash-1.5",
+    );
+    expect(screen.getByLabelText(/limiar catálogo interno \(clip\)/i)).toHaveValue(0.3);
+    expect(screen.getByLabelText(/limiar visão externa/i)).toHaveValue(0.7);
   });
 
   it("mostra erro via onError quando o carregamento falha", async () => {
@@ -83,6 +91,9 @@ describe("RuntimeSettingsForm", () => {
       intent_router_provider: "heuristica_llm",
       tone_monitor_enabled: true,
       tone_monitor_provider: "heuristica_llm",
+      external_vision_model_name: "google/gemini-flash-1.5",
+      image_internal_confidence: 0.3,
+      image_external_confidence: 0.7,
     });
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
   });

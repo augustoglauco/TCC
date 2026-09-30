@@ -15,6 +15,8 @@ export interface RuntimeSettings {
   crawler_confidence_threshold: number;
   external_model_name?: string;
   external_vision_model_name?: string;
+  image_internal_confidence?: number;
+  image_external_confidence?: number;
   intent_router_provider?: "heuristica" | "heuristica_llm" | "jev_openrouter";
   tone_monitor_enabled?: boolean;
   tone_monitor_provider?: "heuristica_llm" | "jev_openrouter";
