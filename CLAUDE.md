@@ -45,6 +45,7 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 | `docs/TESTE_LOCAL.md` | Quando o código precisa ser validado na máquina do desenvolvedor (GPU/Ollama/dados reais) — `./testar.sh` roda o teste (`backend/scripts/teste_local.py`, suíte `SUITE_ATUAL`) e dá push do relatório em `testes_locais/`. |
 | `goup.md` (raiz) | Para instalar numa máquina nova (passo 0) ou subir o ambiente à mão; acesso externo, MCP B2B público com o manual do parceiro, solução de problemas. `./g.sh` sobe tudo de uma vez. |
 | `docs/Manuais/` | Manuais para quem usa o sistema: `HOWTO_USUARIO.md` (site e chat) e `HOWTO_ADMINISTRADOR.md` (telas `/admin`). Atualize quando mudar o que o usuário ou o administrador vê. |
+| `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` | Mapeamento de todos os prompts/instruções de sistema/playbooks/extratores estruturados enviados a um LLM no código. Consulte antes de alterar qualquer prompt existente (para achar todos os pontos relacionados) e atualize sempre que um prompt for alterado ou um novo for criado — ver regra 11. |
 | `README.md` e `README_TCC.md` | Apresentação do projeto; o `README_TCC.md` é a entrega acadêmica no formato do curso. |
 
 Não crie documentos novos fora desta lista (resumos, cópias de spec, guias
@@ -100,6 +101,14 @@ manuais foram incorporados aos documentos acima e apagados.
    bug a corrigir antes de considerar a tarefa concluída.
 10. **Antes de cada commit, siga o checklist** de `docs/CONVENTIONS.md`
     ("Checklist antes de cada commit").
+11. **Prompt/instrução de LLM alterado ou novo → revise
+    `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.** Vale para qualquer texto
+    enviado a um LLM (local ou externo): prompts de sistema, playbooks por
+    domínio, templates de extração estruturada (JSON), prompts de visão
+    computacional, critérios de classificação, etc. Ao alterar um prompt já
+    mapeado, atualize a entrada correspondente; ao criar um prompt novo,
+    adicione uma entrada nova. Trate esse documento como desatualizado (bug a
+    corrigir) se um prompt existir no código e não constar nele.
 
 ## Fora de escopo (não implementar sem pedido explícito)
 
