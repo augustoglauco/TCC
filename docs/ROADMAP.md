@@ -366,6 +366,17 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (`produto_{id}.txt`) na collection ativa, reingerido (delete+ingest)
       a cada mudança. Testes em `tests/test_product_sync.py`. Ver decisão em
       `docs/ARCHITECTURE.md` §5 (2026-09-29).
+- [x] Corrigir estoque por centro de distribuição respondido errado em
+      Vendas (bug relatado 2026-09-29): perguntar pelo estoque de um CD
+      específico ou "por centro de distribuição" respondia com o total
+      somado entre todos os CDs — o bloco do chat (`DadosCatalogoVendas`) só
+      levava `estoque_total`, nunca o detalhamento por CD (que já era
+      buscado internamente só para somar). `DadosCatalogoVendas.estoque_por_cd`
+      (schema novo `EstoqueCentroDistribuicao`) leva o detalhamento para o
+      bloco do prompt, com instrução explícita para o LLM preferi-lo quando
+      perguntado por CD. Testes em `tests/test_sales_catalog.py` e
+      `tests/test_orchestrator.py`. Ver decisão em `docs/ARCHITECTURE.md` §5
+      (2026-09-29).
 - [x] ~~Garantir e documentar que autenticação por parceiro e exposição
       pública **não** fazem parte do MVP~~ — **revisto em 2026-09-25**: o
       fornecedor está fora da rede local, então o MCP B2B precisa de

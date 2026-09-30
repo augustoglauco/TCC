@@ -139,6 +139,11 @@ async def test_consultar_detalhes_soma_estoque_entre_centros(factory):
     assert dados.estoque_total == 8
     assert dados.cotacao is None
     assert dados.compativel is None
+    # Correção de 2026-09-29: o detalhamento por CD também vai no resultado,
+    # não só o total somado (sem isso, "quanto tem no CD-SP?" não tinha como
+    # ser respondido corretamente pelo chat).
+    por_cd = {item.centro_distribuicao: item.quantidade for item in dados.estoque_por_cd}
+    assert por_cd == {"CD-SP": 5, "CD-RJ": 3}
 
 
 async def test_consultar_detalhes_com_quantidade_calcula_cotacao(factory):

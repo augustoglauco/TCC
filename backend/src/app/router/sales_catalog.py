@@ -58,9 +58,21 @@ class VendaSlots(BaseModel):
     listar_tudo: bool = False
 
 
+class EstoqueCentroDistribuicao(BaseModel):
+    centro_distribuicao: str
+    quantidade: int
+
+
 class DadosCatalogoVendas(BaseModel):
     produto_nome: str
     estoque_total: int
+    # Detalhe por centro de distribuição (correção de 2026-09-29): o resumo
+    # do chat só levava o total somado, então "quanto tem no CD-SP?"/"estoque
+    # por centro de distribuição?" não tinha como ser respondido de forma
+    # precisa — o LLM repetia o total como se fosse o valor de um único CD.
+    # O detalhamento (`app.db.catalog.listar_estoque`) já era buscado aqui
+    # para calcular `estoque_total`; só não chegava ao bloco do prompt.
+    estoque_por_cd: list[EstoqueCentroDistribuicao] = []
     # Ficha do produto (correção de 2026-09-27): sem ela, "quais os dados
     # técnicos?" só tinha estoque e cotação no bloco, e o LLM respondia
     # sobre preço e estoque.
@@ -188,10 +200,11 @@ class SalesCatalogClient:
     async def consultar_detalhes(
         self, produto_id: int, produto_relacionado_id: int | None, quantidade: int | None
     ) -> DadosCatalogoVendas | None:
-        """Agrega estoque (soma entre centros de distribuição — o resumo do
-        chat não precisa do detalhe por CD, já disponível via o resource MCP
-        `estoque://` para quem precisar), cotação (só se `quantidade` veio)
-        e compatibilidade (só se `produto_relacionado_id` veio e existir).
+        """Traz o estoque total (soma entre centros de distribuição) e o
+        detalhamento por CD (correção de 2026-09-29 — antes só a soma ia
+        para o bloco do chat, e "quanto tem no CD-SP?" não tinha como ser
+        respondido corretamente), cotação (só se `quantidade` veio) e
+        compatibilidade (só se `produto_relacionado_id` veio e existir).
         Devolve `None` se `produto_id` não existir."""
         async with self._session_factory() as session:
             produto = await obter_produto(session, produto_id)
@@ -199,6 +212,13 @@ class SalesCatalogClient:
                 return None
             estoques = await listar_estoque(session, produto_id)
             estoque_total = sum(estoque.quantidade for estoque in estoques)
+            estoque_por_cd = [
+                EstoqueCentroDistribuicao(
+                    centro_distribuicao=estoque.centro_distribuicao,
+                    quantidade=estoque.quantidade,
+                )
+                for estoque in estoques
+            ]
             cotacao = None
             # MVP: quantidade do LLM usada sem faixa de sanidade (valor
             # não-numérico já é descartado inteiro em extract_sales_slots,
@@ -216,6 +236,7 @@ class SalesCatalogClient:
             return DadosCatalogoVendas(
                 produto_nome=produto.nome,
                 estoque_total=estoque_total,
+                estoque_por_cd=estoque_por_cd,
                 descricao=produto.descricao,
                 especificacoes_tecnicas=produto.especificacoes_tecnicas,
                 dimensoes_cm=produto.dimensoes_cm,

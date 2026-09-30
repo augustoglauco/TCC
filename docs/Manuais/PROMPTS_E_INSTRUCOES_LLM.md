@@ -10,7 +10,7 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 | :--- | :--- | :--- |
 | [`playbooks.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/playbooks.py) | Backend (`app.router`) | Prompts de Sistema base e Playbooks por Domínio (Vendas, Suporte, Atendimento) |
 | [`classifier.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/classifier.py) | Backend (`app.router`) | Critérios de domínio (`DOMAIN_CRITERIA`) e Prompt de classificação de intenção/complexidade |
-| [`orchestrator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/orchestrator.py) | Backend (`app.router`) | Construtor dinâmico do prompt final enviado ao LLM (`_build_prompt`) |
+| [`orchestrator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/orchestrator.py) | Backend (`app.router`) | Construtor dinâmico do prompt final enviado ao LLM (`_build_prompt`); instruções injetadas junto aos dados do catálogo de Vendas (`_formatar_dados_catalogo_vendas`/`_formatar_dados_catalogo_categoria`) |
 | [`scheduling.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/scheduling.py) | Backend (`app.router`) | Prompt de extração estruturada de slots de agendamento de visita técnica |
 | [`sales_catalog.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/sales_catalog.py) | Backend (`app.router`) | Prompt de extração estruturada de intenções do catálogo de vendas e produtos candidatos |
 | [`tone_monitor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/tone_monitor.py) | Backend (`app.router`) | Prompt do Monitor de Tom para detecção de urgência/insatisfação e transbordo humano |
@@ -318,6 +318,22 @@ def _build_prompt(
 
     partes.append(f"Mensagem do cliente: {message}")
     return "\n\n".join(partes)
+```
+
+`dados_catalogo` (acima) é montado por `_formatar_dados_catalogo_vendas`/`_formatar_dados_catalogo_categoria`, que também carregam instruções para o LLM (não são só dados formatados) — ex.: mandar o modelo preferir esses dados a qualquer trecho do RAG, e escolher entre estoque total x por centro de distribuição conforme a pergunta (correção de 2026-09-29):
+
+```python
+# _formatar_dados_catalogo_vendas — cabeçalho de instrução
+"Dados oficiais do catálogo interno, já calculados para esta mensagem. "
+"O cliente está falando deste produto: use exatamente estes nomes, "
+"valores e quantidades, e prefira-os a qualquer informação recuperada "
+"abaixo que seja diferente. Responda o que o cliente perguntou: se ele "
+"pediu detalhes, dados técnicos ou características, use a descrição "
+"comercial e as especificações técnicas, e só fale de preço e estoque "
+"se ele perguntou por eles. Se ele perguntar pelo estoque de um "
+"centro de distribuição específico, ou pedir o estoque 'por CD'/'por "
+"centro de distribuição', responda com o detalhamento por CD abaixo, "
+"não com o total somado."
 ```
 
 ---

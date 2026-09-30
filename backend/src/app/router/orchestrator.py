@@ -399,7 +399,10 @@ def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
         "abaixo que seja diferente. Responda o que o cliente perguntou: se ele "
         "pediu detalhes, dados técnicos ou características, use a descrição "
         "comercial e as especificações técnicas, e só fale de preço e estoque "
-        "se ele perguntou por eles.",
+        "se ele perguntou por eles. Se ele perguntar pelo estoque de um "
+        "centro de distribuição específico, ou pedir o estoque 'por CD'/'por "
+        "centro de distribuição', responda com o detalhamento por CD abaixo, "
+        "não com o total somado.",
         f"Dados do catálogo interno (produto identificado: {dados.produto_nome}):",
     ]
     if dados.descricao:
@@ -411,6 +414,16 @@ def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
     if dados.peso_kg is not None:
         linhas.append(f"- Peso: {dados.peso_kg} kg")
     linhas.append(f"- Estoque disponível: {dados.estoque_total} unidade(s)")
+    if dados.estoque_por_cd:
+        # Correção de 2026-09-29: sem o detalhe por CD aqui, "quanto tem no
+        # CD-SP?"/"estoque por centro de distribuição?" não tinha como ser
+        # respondido — o LLM só via o total e o repetia como se fosse de um
+        # único centro.
+        detalhamento = ", ".join(
+            f"{item.centro_distribuicao}: {item.quantidade} unidade(s)"
+            for item in dados.estoque_por_cd
+        )
+        linhas.append(f"- Estoque por centro de distribuição: {detalhamento}")
     if dados.cotacao is not None:
         preco_unitario, percentual, subtotal = dados.cotacao
         linha_cotacao = f"- Cotação para {dados.quantidade} unidade(s): R$ {subtotal}"

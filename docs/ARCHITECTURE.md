@@ -1362,6 +1362,30 @@ catálogo de produtos. Testado em `tests/test_product_sync.py` (ingestão,
 reingestão sem duplicar, sem collection ativa, falha do Qdrant tolerada,
 remoção ao excluir produto).
 
+**Decisão registrada (Fase 5, correção de bug em Vendas — estoque por
+centro de distribuição no chat, R12, 2026-09-29):** um cliente relatou que
+perguntar pelo estoque de um CD específico ("quanto tem no CD-SP?") ou "por
+centro de distribuição" fazia o LLM responder com o **total somado** entre
+todos os CDs, não o valor do centro pedido. Causa: `SalesCatalogClient.
+consultar_detalhes` já buscava o detalhamento por CD (`app.db.catalog.
+listar_estoque`) só para somar em `estoque_total` — o detalhe em si nunca
+chegava ao bloco do prompt (`DadosCatalogoVendas` só carregava o total; a
+docstring dizia explicitamente que o resumo do chat "não precisa do detalhe
+por CD, já disponível via o resource MCP `estoque://`" — mas esse resource é
+só do canal B2B, não do chat público). `DadosCatalogoVendas` ganha
+`estoque_por_cd: list[EstoqueCentroDistribuicao]` (schema novo,
+`centro_distribuicao`/`quantidade`), populado a partir do mesmo `listar_estoque`
+já chamado; `_formatar_dados_catalogo_vendas` acrescenta uma linha "Estoque
+por centro de distribuição: CD-X: N, CD-Y: M" sempre que houver mais de um
+CD ou o campo vier preenchido, e o cabeçalho do bloco ganha uma instrução
+explícita: perguntas por um CD específico ou "por centro de distribuição"
+devem usar esse detalhamento, não o total. Mesmo padrão da correção do
+few-shot enviesado (dar ao LLM todo o dado relevante e deixar a pergunta do
+cliente decidir o que usar, em vez de tentar prever a intenção antes).
+Testado em `tests/test_sales_catalog.py`
+(`consultar_detalhes` com múltiplos CDs) e `tests/test_orchestrator.py`
+(formatação do bloco com e sem detalhamento por CD).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

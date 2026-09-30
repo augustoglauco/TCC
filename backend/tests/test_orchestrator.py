@@ -28,6 +28,7 @@ from app.router.sales_catalog import (
     CandidatoProduto,
     DadosCatalogoCategoria,
     DadosCatalogoVendas,
+    EstoqueCentroDistribuicao,
     ProdutoNaCategoria,
 )
 from app.router.scheduling import (
@@ -1644,6 +1645,33 @@ def test_formatar_dados_catalogo_vendas_sem_desconto_omite_percentual():
 
     assert "- Cotação para 2 unidade(s): R$ 49800.00" in texto
     assert "desconto" not in texto.split("\n", 2)[2]
+
+
+def test_formatar_dados_catalogo_vendas_lista_estoque_por_cd():
+    # Correção de 2026-09-29: "quanto tem no CD-SP?"/"estoque por centro de
+    # distribuição?" respondia com o total somado, porque o bloco do prompt
+    # só levava `estoque_total`. Agora leva o detalhamento por CD também.
+    dados = DadosCatalogoVendas(
+        produto_nome="Gerador Diesel GD-15",
+        estoque_total=8,
+        estoque_por_cd=[
+            EstoqueCentroDistribuicao(centro_distribuicao="CD-SP", quantidade=5),
+            EstoqueCentroDistribuicao(centro_distribuicao="CD-RJ", quantidade=3),
+        ],
+    )
+
+    texto = _formatar_dados_catalogo_vendas(dados)
+
+    assert "- Estoque disponível: 8 unidade(s)" in texto
+    assert "- Estoque por centro de distribuição: CD-SP: 5 unidade(s), CD-RJ: 3 unidade(s)" in texto
+
+
+def test_formatar_dados_catalogo_vendas_sem_estoque_por_cd_omite_linha():
+    dados = DadosCatalogoVendas(produto_nome="Gerador Diesel GD-15", estoque_total=8)
+
+    texto = _formatar_dados_catalogo_vendas(dados)
+
+    assert "- Estoque por centro de distribuição:" not in texto
 
 
 def test_formatar_dados_catalogo_vendas_manda_preferir_o_catalogo_ao_rag():
