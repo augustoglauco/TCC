@@ -188,7 +188,6 @@ def test_duracao_visita_e_60_minutos():
     assert DURACAO_VISITA == timedelta(minutes=60)
 
 
-
 def test_validar_expediente_aceita_horario_valido():
     # Quinta-feira, 10h — dentro do expediente seg-sex 9-18h.
     validar_expediente(_data_futura_util(3), _CONFIG)  # não levanta

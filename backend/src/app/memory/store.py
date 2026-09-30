@@ -209,7 +209,6 @@ async def obter_contexto_conversa_anterior(
         return None
 
     linhas = [
-        f"{'Cliente' if m.papel == PAPEL_CLIENTE else 'Assistente'}: {m.texto}"
-        for m in mensagens
+        f"{'Cliente' if m.papel == PAPEL_CLIENTE else 'Assistente'}: {m.texto}" for m in mensagens
     ]
     return "\n".join(linhas)

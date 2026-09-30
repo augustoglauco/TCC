@@ -340,9 +340,7 @@ async def test_classify_com_provider_heuristica_pura_match_direto():
 
 
 async def test_classify_com_provider_heuristica_llm_chama_llm_quando_inconclusivo():
-    llm_client = _FakeLLMClient(
-        '{"domain": "suporte", "complexity": "alta", "confidence": 0.85}'
-    )
+    llm_client = _FakeLLMClient('{"domain": "suporte", "complexity": "alta", "confidence": 0.85}')
     # Pergunta sem palavra-chave que dê match direto
     result = await classify(
         "A tela começou a piscar em azul de repente",

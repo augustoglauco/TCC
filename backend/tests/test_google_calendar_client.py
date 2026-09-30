@@ -43,7 +43,9 @@ def _client(session: _FakeMCPSession) -> GoogleCalendarMCPClient:
 
 
 async def test_is_time_available_true_quando_nao_ha_eventos():
-    session = _FakeMCPSession(result=_FakeCallToolResult(structured_content={"count": 0, "events": []}))
+    session = _FakeMCPSession(
+        result=_FakeCallToolResult(structured_content={"count": 0, "events": []})
+    )
     client = _client(session)
 
     disponivel = await client.is_time_available(
@@ -105,7 +107,6 @@ async def test_is_time_available_false_quando_ha_evento_do_sistema_na_janela():
     )
 
     assert disponivel is False
-
 
 
 async def test_is_time_available_sem_chave_count_falha_fechado():
@@ -205,7 +206,9 @@ async def test_create_event_sem_chave_event_retorna_id_e_link_vazios():
 
 async def test_delete_event_chama_tool_delete_event_com_sucesso():
     session = _FakeMCPSession(
-        result=_FakeCallToolResult(structured_content={"calendar_id": "primary", "message": "deleted"})
+        result=_FakeCallToolResult(
+            structured_content={"calendar_id": "primary", "message": "deleted"}
+        )
     )
     client = _client(session)
 
@@ -269,7 +272,6 @@ async def test_list_events_retorna_apenas_eventos_do_sistema():
     assert argumentos["calendar_id"] == "primary"
     assert argumentos["time_min"] == "2026-09-24T08:00:00"
     assert argumentos["time_max"] == "2026-09-24T18:00:00"
-
 
 
 async def test_call_tool_com_is_error_vira_connection_error():

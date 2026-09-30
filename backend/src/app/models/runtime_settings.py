@@ -129,4 +129,3 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     intent_router_provider: IntentRouterProvider | None = None
     tone_monitor_enabled: bool | None = None
     tone_monitor_provider: ToneMonitorProvider | None = None
-

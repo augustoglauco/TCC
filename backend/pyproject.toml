@@ -49,6 +49,8 @@ extend-immutable-calls = [
     "fastapi.params.Form",
     "fastapi.File",
     "fastapi.params.File",
+    "fastapi.Query",
+    "fastapi.params.Query",
 ]
 
 [tool.pytest.ini_options]

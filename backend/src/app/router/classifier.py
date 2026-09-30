@@ -232,7 +232,7 @@ async def _classify_with_llm(
 
     try:
         return _parse_llm_classification(response.text, provider_efetivo=provider_efetivo)
-    except (json.JSONDecodeError, ValidationError, TypeError):
+    except (json.JSONDecodeError, ValidationError, TypeError):  # fmt: skip
         # O LLM respondeu, mas o conteúdo não é JSON de classificação válido:
         # aí sim cai para a heurística só nesta requisição (spec §2.2).
         return _classify_heuristic_fallback(
@@ -300,9 +300,7 @@ async def classify(
                 confidence=0.6,
                 provider_efetivo="heuristica",
             )
-        return _classify_heuristic_fallback(
-            message, recent_messages, provider_efetivo="heuristica"
-        )
+        return _classify_heuristic_fallback(message, recent_messages, provider_efetivo="heuristica")
 
     # 2. Modo Heurística + LLM Local (provider="heuristica_llm" ou legado com strategy)
     if provider != "heuristica_llm" and strategy != "llm":

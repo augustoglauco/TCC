@@ -250,4 +250,3 @@ async def test_carregar_contexto_cliente_apenas_tipo_cliente_nao_expoe_compras_n
     assert "Histórico de Compras" not in contexto
     assert "comprado em" not in contexto
     assert "R$ 100,00" not in contexto
-

@@ -127,7 +127,9 @@ async def test_conversa_nova_nao_tem_ultima_troca(factory):
 async def test_obter_contexto_conversa_anterior_com_resumo(factory):
     async with factory() as session:
         await registrar_email(session, "conv-passada", "cliente@empresa.com")
-        await registrar_troca(session, "conv-passada", "Quero 10 rádios", "Orçamento enviado", "vendas")
+        await registrar_troca(
+            session, "conv-passada", "Quero 10 rádios", "Orçamento enviado", "vendas"
+        )
         # Define um resumo na conversa passada
         from app.db.models import Conversa
 
@@ -150,7 +152,13 @@ async def test_obter_contexto_conversa_anterior_com_resumo(factory):
 async def test_obter_contexto_conversa_anterior_sem_resumo_formata_mensagens(factory):
     async with factory() as session:
         await registrar_email(session, "conv-sem-resumo", "ana@empresa.com")
-        await registrar_troca(session, "conv-sem-resumo", "Preciso de suporte no GD-15", "Qual o erro apresentado?", "suporte")
+        await registrar_troca(
+            session,
+            "conv-sem-resumo",
+            "Preciso de suporte no GD-15",
+            "Qual o erro apresentado?",
+            "suporte",
+        )
 
         await registrar_email(session, "conv-nova", "ana@empresa.com")
 

@@ -61,7 +61,6 @@ def is_system_event(evento: dict[str, Any]) -> bool:
     return False
 
 
-
 class CalendarClient(Protocol):
     async def is_time_available(self, start: datetime, end: datetime) -> bool: ...
 
@@ -214,4 +213,3 @@ class GoogleCalendarMCPClient:
         )
         all_events = resultado.get("events", [])
         return [e for e in all_events if is_system_event(e)]
-

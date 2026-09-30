@@ -216,9 +216,10 @@ async def carregar_contexto_cliente(
                 f"- Tipo de cliente: {classificacao.perfil} ({classificacao.motivo})",
                 "- Status de autenticação: NÃO AUTENTICADO (visitante anônimo no chat).",
                 "- Regra de segurança e privacidade: O visitante NÃO está autenticado na conta. "
-                "Por proteção de dados, NUNCA revele compras anteriores, pedidos, valores ou dados pessoais. "
-                "Se o visitante perguntar sobre compras feitas, histórico de pedidos ou dados da conta, "
-                "instrua-o educadamente a entrar na conta (fazer login) para acessar suas informações.",
+                "Por proteção de dados, NUNCA revele compras anteriores, pedidos, valores ou "
+                "dados pessoais. Se o visitante perguntar sobre compras feitas, histórico de "
+                "pedidos ou dados da conta, instrua-o educadamente a entrar na conta (fazer "
+                "login) para acessar suas informações.",
             ]
         )
 

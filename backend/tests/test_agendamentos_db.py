@@ -1,9 +1,12 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 from sqlalchemy import select
+
 from app.db.engine import create_db_engine, create_session_factory
-from app.db.models import Base, Agendamento
+from app.db.models import Agendamento, Base
+
 
 @pytest.fixture
 async def factory():
@@ -13,8 +16,9 @@ async def factory():
     yield create_session_factory(engine)
     await engine.dispose()
 
+
 async def test_criar_e_consultar_agendamento(factory):
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
     agendamento_id = uuid.uuid4()
     async with factory() as session:
         ag = Agendamento(

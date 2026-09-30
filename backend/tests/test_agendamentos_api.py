@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.db.models import Agendamento
-from app.mcp_client.google_calendar import GoogleCalendarMCPClient
 
 
 class _FakeCalendarClient:
@@ -28,14 +28,16 @@ class _FakeCalendarClient:
         attendee_name: str,
         description: str = "",
     ) -> tuple[str, str]:
-        self.created_events.append({
-            "summary": summary,
-            "start": start,
-            "end": end,
-            "attendee_email": attendee_email,
-            "attendee_name": attendee_name,
-            "description": description,
-        })
+        self.created_events.append(
+            {
+                "summary": summary,
+                "start": start,
+                "end": end,
+                "attendee_email": attendee_email,
+                "attendee_name": attendee_name,
+                "description": description,
+            }
+        )
         return "evt_fake_mcp", "https://calendar.google.com/evt_fake_mcp"
 
     async def delete_event(self, event_id: str) -> bool:
@@ -55,7 +57,7 @@ def fake_calendar(app_sqlite):
 
 @pytest.mark.asyncio
 async def test_listar_meus_agendamentos_filtra_por_usuario(app_sqlite, db_session, fake_calendar):
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
     ag1 = Agendamento(
         id=uuid.uuid4(),
         user_email="user1@example.com",
@@ -86,7 +88,9 @@ async def test_listar_meus_agendamentos_filtra_por_usuario(app_sqlite, db_sessio
     db_session.add_all([ag1, ag2, ag3])
     await db_session.commit()
 
-    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
         resp = await client.get("/api/agendamentos/meus?user_email=user1@example.com")
         assert resp.status_code == 200
         dados = resp.json()
@@ -99,7 +103,7 @@ async def test_listar_meus_agendamentos_filtra_por_usuario(app_sqlite, db_sessio
 
 @pytest.mark.asyncio
 async def test_cancelar_agendamento_proprio_com_sucesso(app_sqlite, db_session, fake_calendar):
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
     ag = Agendamento(
         id=uuid.uuid4(),
         user_email="user1@example.com",
@@ -113,7 +117,9 @@ async def test_cancelar_agendamento_proprio_com_sucesso(app_sqlite, db_session, 
     db_session.add(ag)
     await db_session.commit()
 
-    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
         resp = await client.post(f"/api/agendamentos/{ag.id}/cancelar?user_email=user1@example.com")
         assert resp.status_code == 200
         dados = resp.json()
@@ -122,8 +128,10 @@ async def test_cancelar_agendamento_proprio_com_sucesso(app_sqlite, db_session, 
 
 
 @pytest.mark.asyncio
-async def test_cancelar_agendamento_de_outro_usuario_retorna_403(app_sqlite, db_session, fake_calendar):
-    agora = datetime.now(timezone.utc)
+async def test_cancelar_agendamento_de_outro_usuario_retorna_403(
+    app_sqlite, db_session, fake_calendar
+):
+    agora = datetime.now(UTC)
     ag = Agendamento(
         id=uuid.uuid4(),
         user_email="dono@example.com",
@@ -135,15 +143,22 @@ async def test_cancelar_agendamento_de_outro_usuario_retorna_403(app_sqlite, db_
     db_session.add(ag)
     await db_session.commit()
 
-    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
-        resp = await client.post(f"/api/agendamentos/{ag.id}/cancelar?user_email=invasor@example.com")
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
+        resp = await client.post(
+            f"/api/agendamentos/{ag.id}/cancelar?user_email=invasor@example.com"
+        )
         assert resp.status_code == 403
-        assert "permissão" in resp.json()["detail"].lower() or "forbidden" in resp.json()["detail"].lower()
+        assert (
+            "permissão" in resp.json()["detail"].lower()
+            or "forbidden" in resp.json()["detail"].lower()
+        )
 
 
 @pytest.mark.asyncio
 async def test_cancelar_agendamento_ja_cancelado_retorna_400(app_sqlite, db_session, fake_calendar):
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
     ag = Agendamento(
         id=uuid.uuid4(),
         user_email="user1@example.com",
@@ -155,7 +170,9 @@ async def test_cancelar_agendamento_ja_cancelado_retorna_400(app_sqlite, db_sess
     db_session.add(ag)
     await db_session.commit()
 
-    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
         resp = await client.post(f"/api/agendamentos/{ag.id}/cancelar?user_email=user1@example.com")
         assert resp.status_code == 400
         assert "cancelado" in resp.json()["detail"].lower()
@@ -163,7 +180,7 @@ async def test_cancelar_agendamento_ja_cancelado_retorna_400(app_sqlite, db_sess
 
 @pytest.mark.asyncio
 async def test_admin_listar_todos_agendamentos(app_sqlite, db_session, fake_calendar):
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
     ag1 = Agendamento(
         id=uuid.uuid4(),
         user_email="clienteA@teste.com",
@@ -185,7 +202,9 @@ async def test_admin_listar_todos_agendamentos(app_sqlite, db_session, fake_cale
     db_session.add_all([ag1, ag2])
     await db_session.commit()
 
-    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
         resp = await client.get("/api/agendamentos/admin")
         assert resp.status_code == 200
         dados = resp.json()
@@ -208,7 +227,7 @@ async def test_admin_listar_todos_agendamentos(app_sqlite, db_session, fake_cale
 
 @pytest.mark.asyncio
 async def test_admin_criar_agendamento_manual(app_sqlite, db_session, fake_calendar):
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
     data_inicio = agora + timedelta(days=5)
 
     payload = {
@@ -219,7 +238,9 @@ async def test_admin_criar_agendamento_manual(app_sqlite, db_session, fake_calen
         "descricao": "Visita comercial técnica",
     }
 
-    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
         resp = await client.post("/api/agendamentos/admin/manual", json=payload)
         assert resp.status_code == 201
         dados = resp.json()
@@ -233,12 +254,16 @@ async def test_admin_criar_agendamento_manual(app_sqlite, db_session, fake_calen
         inicio = datetime.fromisoformat(dados["data_hora_inicio"])
         fim = datetime.fromisoformat(dados["data_hora_fim"])
         assert fim - inicio == timedelta(minutes=60)
-        assert fake_calendar.created_events[0]["end"] - fake_calendar.created_events[0]["start"] == timedelta(minutes=60)
+        assert fake_calendar.created_events[0]["end"] - fake_calendar.created_events[0][
+            "start"
+        ] == timedelta(minutes=60)
 
 
 @pytest.mark.asyncio
-async def test_admin_criar_agendamento_manual_com_duracao_customizada(app_sqlite, db_session, fake_calendar):
-    agora = datetime.now(timezone.utc)
+async def test_admin_criar_agendamento_manual_com_duracao_customizada(
+    app_sqlite, db_session, fake_calendar
+):
+    agora = datetime.now(UTC)
     data_inicio = agora + timedelta(days=6)
 
     payload = {
@@ -248,7 +273,9 @@ async def test_admin_criar_agendamento_manual_com_duracao_customizada(app_sqlite
         "duracao_minutos": 45,
     }
 
-    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
         resp = await client.post("/api/agendamentos/admin/manual", json=payload)
         assert resp.status_code == 201
         dados = resp.json()
@@ -257,11 +284,12 @@ async def test_admin_criar_agendamento_manual_com_duracao_customizada(app_sqlite
         assert fim - inicio == timedelta(minutes=45)
 
 
-
 @pytest.mark.asyncio
-async def test_admin_criar_agendamento_manual_conflito_retorna_409(app_sqlite, db_session, fake_calendar):
+async def test_admin_criar_agendamento_manual_conflito_retorna_409(
+    app_sqlite, db_session, fake_calendar
+):
     fake_calendar.available = False
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
 
     payload = {
         "user_email": "conflito@cliente.com",
@@ -269,7 +297,9 @@ async def test_admin_criar_agendamento_manual_conflito_retorna_409(app_sqlite, d
         "data_hora_inicio": (agora + timedelta(days=2)).isoformat(),
     }
 
-    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
         resp = await client.post("/api/agendamentos/admin/manual", json=payload)
         assert resp.status_code == 409
         assert "indisponível" in resp.json()["detail"].lower()
@@ -277,7 +307,9 @@ async def test_admin_criar_agendamento_manual_conflito_retorna_409(app_sqlite, d
 
 @pytest.mark.asyncio
 async def test_admin_consultar_eventos_google(app_sqlite, fake_calendar):
-    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
         resp = await client.get("/api/agendamentos/admin/google-events")
         assert resp.status_code == 200
         dados = resp.json()

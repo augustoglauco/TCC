@@ -25,10 +25,9 @@ inconsistência *dentro* de uma única chamada com vários itens, ver seu
 docstring — não entre chamadas concorrentes).
 """
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
-
-from collections.abc import Sequence
 
 from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession

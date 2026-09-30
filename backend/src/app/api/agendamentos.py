@@ -1,7 +1,7 @@
 """Endpoints REST para gestão de Agendamentos (R11, Fase 7)."""
 
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -50,7 +50,6 @@ class AgendamentoManualCreate(BaseModel):
     duracao_minutos: int | None = 60
     descricao: str | None = None
     forcar_sem_validacao: bool = False
-
 
 
 @router.get("/meus", response_model=list[AgendamentoOut])
@@ -152,9 +151,10 @@ async def admin_criar_agendamento_manual(
     calendar_client: CalendarClient = Depends(get_calendar_client),
 ) -> AgendamentoOut:
     """Cria um agendamento manualmente pelo painel admin, sincronizando com o Google Calendar."""
-    duracao = payload.duracao_minutos if payload.duracao_minutos and payload.duracao_minutos > 0 else 60
+    duracao = (
+        payload.duracao_minutos if payload.duracao_minutos and payload.duracao_minutos > 0 else 60
+    )
     data_hora_fim = payload.data_hora_fim or (payload.data_hora_inicio + timedelta(minutes=duracao))
-
 
     if not payload.forcar_sem_validacao:
         try:
@@ -172,7 +172,7 @@ async def admin_criar_agendamento_manual(
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail=f"Serviço Google Calendar indisponível: {exc}",
-            )
+            ) from exc
 
     google_event_id: str | None = None
     google_event_link: str | None = None
@@ -218,7 +218,7 @@ async def admin_consultar_eventos_google(
     calendar_client: CalendarClient = Depends(get_calendar_client),
 ) -> list[dict]:
     """Consulta diretamente a agenda corporativa no Google Calendar via MCP."""
-    agora = datetime.now(timezone.utc)
+    agora = datetime.now(UTC)
     inicio = time_min or agora
     fim = time_max or (agora + timedelta(days=30))
 
@@ -230,4 +230,4 @@ async def admin_consultar_eventos_google(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=f"Não foi possível consultar os eventos no Google Calendar: {exc}",
-        )
+        ) from exc

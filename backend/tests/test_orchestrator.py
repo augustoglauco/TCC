@@ -8,7 +8,7 @@ import pytest
 from sqlalchemy import select
 
 from app.db.engine import create_db_engine, create_session_factory
-from app.db.models import Base, Agendamento
+from app.db.models import Agendamento, Base
 from app.logging_config import JsonFormatter
 from app.mcp_client.google_calendar import GoogleCalendarConnectionError
 from app.models.chat import RagChunkMetric
@@ -2532,7 +2532,9 @@ async def test_handle_message_injeta_contexto_conversa_anterior_no_prompt():
         documents=[Document(content="Tabela de orçamentos de rádio", source="orc.txt", score=0.9)]
     )
 
-    contexto_anterior = "Cliente solicitou cotação de 5 rádios RC 4102g2 ontem e aguardava desconto."
+    contexto_anterior = (
+        "Cliente solicitou cotação de 5 rádios RC 4102g2 ontem e aguardava desconto."
+    )
 
     eventos = await _coletar_eventos(
         "Como ficou o orçamento que conversamos ontem?",
@@ -2602,7 +2604,9 @@ async def test_handle_agendamento_persiste_registro_no_banco_ao_confirmar():
     assert decisao.card.google_event_link == "https://calendar.google.com/evt-db-123"
 
     async with session_factory() as session:
-        result = await session.execute(select(Agendamento).where(Agendamento.conversation_id == "conv-db-1"))
+        result = await session.execute(
+            select(Agendamento).where(Agendamento.conversation_id == "conv-db-1")
+        )
         agendamento = result.scalars().first()
         assert agendamento is not None
         assert agendamento.user_email == "maria@example.com"
@@ -2614,4 +2618,3 @@ async def test_handle_agendamento_persiste_registro_no_banco_ao_confirmar():
         assert agendamento.status == "confirmado"
 
     await engine.dispose()
-

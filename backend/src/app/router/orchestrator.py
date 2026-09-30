@@ -103,7 +103,8 @@ def _build_prompt(
     if contexto_conversa_anterior:
         partes.append(
             "Contexto da conversa anterior do cliente (use como histórico prévio do cliente; "
-            f"se a conversa atual tratar de algo novo, priorize o contexto atual):\n{contexto_conversa_anterior}"
+            "se a conversa atual tratar de algo novo, priorize o contexto atual):\n"
+            f"{contexto_conversa_anterior}"
         )
 
     if resumo_conversa:
@@ -910,9 +911,9 @@ async def handle_message(
     # SÓ dispara quando o backend local é de fato chamado) e a degradação
     # graciosa já embutida em `analyze_tone()`. Por isso uma falha aqui vira
     # só um log de aviso, não uma exceção.
-    deve_checar_modelo_local = (
-        intent_router_provider == "heuristica_llm"
-    ) or (tone_monitor_enabled and tone_monitor_provider == DEFAULT_TONE_MONITOR_PROVIDER)
+    deve_checar_modelo_local = (intent_router_provider == "heuristica_llm") or (
+        tone_monitor_enabled and tone_monitor_provider == DEFAULT_TONE_MONITOR_PROVIDER
+    )
     if deve_checar_modelo_local:
         try:
             modelo_pronto = await local_client.is_model_ready()

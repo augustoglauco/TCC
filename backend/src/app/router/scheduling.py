@@ -182,7 +182,7 @@ async def extract_booking_slots(
     response = await llm_client.generate(prompt)
     try:
         return _parse_extraction(response.text)
-    except (json.JSONDecodeError, ValidationError, TypeError):
+    except (json.JSONDecodeError, ValidationError, TypeError):  # fmt: skip
         # MVP: resposta do LLM não é JSON de extração válido — não quebra o
         # turno, trata como "nada extraído nesta mensagem" (mesmo espírito de
         # `app.router.classifier._classify_with_llm`, que cai para a

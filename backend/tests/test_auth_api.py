@@ -84,4 +84,3 @@ async def test_auth_register_usuario_simples_e_admin(app_sqlite):
         assert data_a["user"]["nome"] == "Carlos Admin"
         assert data_a["user"]["email"] == "admin@example.com"
         assert data_a["user"]["perfil"] == "Admin"
-

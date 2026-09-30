@@ -56,5 +56,5 @@ async def classify_page(llm_client: LLMClient, text: str) -> PageClassification:
     try:
         parsed = json.loads(_strip_code_fence(response.text))
         return PageClassification(**parsed)
-    except (json.JSONDecodeError, ValidationError, TypeError):
+    except (json.JSONDecodeError, ValidationError, TypeError):  # fmt: skip
         return PageClassification(domain=_FALLBACK_DOMAIN, confidence=0.0)
