@@ -1,0 +1,283 @@
+{
+  "dominios": [
+    "vendas",
+    "suporte",
+    "atendimento",
+    "agendamento"
+  ],
+  "providers": {
+    "heuristica": {
+      "provider": "heuristica",
+      "acuracia": 0.525,
+      "acertos": 21,
+      "total": 40,
+      "latencia_media_s": 0.0,
+      "degradacoes_de_provider": [],
+      "matriz_confusao": {
+        "vendas": {
+          "vendas": 7,
+          "fora_escopo": 3
+        },
+        "suporte": {
+          "fora_escopo": 7,
+          "suporte": 3
+        },
+        "atendimento": {
+          "atendimento": 6,
+          "fora_escopo": 4
+        },
+        "agendamento": {
+          "agendamento": 5,
+          "fora_escopo": 4,
+          "vendas": 1
+        }
+      },
+      "erros": [
+        {
+          "id": 5,
+          "mensagem": "Tem desconto para compra de 10 geradores GD-15?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 6,
+          "mensagem": "Vocês vendem relógio de ponto biométrico?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 9,
+          "mensagem": "O Quadro de Transferência Automática QTA-100 é compatível com o Gerador GD-60?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 11,
+          "mensagem": "Meu gerador GD-30 não liga, o que pode ser?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 13,
+          "mensagem": "O motor do GD-15 está fazendo um barulho estranho, isso é normal?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 14,
+          "mensagem": "Como faço a manutenção preventiva do gerador diesel?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 15,
+          "mensagem": "O relógio de ponto não está reconhecendo a biometria dos funcionários, o que fazer?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 18,
+          "mensagem": "Como resetar as configurações de fábrica do controlador do gerador?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 19,
+          "mensagem": "Comprei o gerador GD-30 e ele já chegou com defeito, o motor não pega",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 20,
+          "mensagem": "Preciso de ajuda para configurar o Quadro de Transferência Automática que acabei de receber",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 26,
+          "mensagem": "Quero reclamar do atraso na entrega do meu gerador",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 28,
+          "mensagem": "Qual o prazo de garantia do Gerador Diesel GD-60?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 29,
+          "mensagem": "Meu pedido chegou com defeito, quero fazer a devolução",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 30,
+          "mensagem": "O problema é que não recebi minha nota fiscal depois da compra, pode reenviar?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 33,
+          "mensagem": "Vocês têm horário disponível na quinta-feira à tarde para uma visita?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 34,
+          "mensagem": "Gostaria de marcar uma visita para conhecer os geradores antes de comprar",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 36,
+          "mensagem": "Preciso de um técnico na minha empresa para avaliar qual gerador comprar",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 39,
+          "mensagem": "Preciso agendar uma manutenção presencial para o meu gerador que está com problema",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 40,
+          "mensagem": "Quero marcar um horário para comprar o gerador pessoalmente na loja",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "provider_efetivo": "heuristica"
+        }
+      ]
+    },
+    "heuristica_llm": {
+      "provider": "heuristica_llm",
+      "acuracia": 0.95,
+      "acertos": 38,
+      "total": 40,
+      "latencia_media_s": 0.67,
+      "degradacoes_de_provider": [],
+      "matriz_confusao": {
+        "vendas": {
+          "vendas": 10
+        },
+        "suporte": {
+          "suporte": 10
+        },
+        "atendimento": {
+          "atendimento": 9,
+          "vendas": 1
+        },
+        "agendamento": {
+          "agendamento": 9,
+          "vendas": 1
+        }
+      },
+      "erros": [
+        {
+          "id": 28,
+          "mensagem": "Qual o prazo de garantia do Gerador Diesel GD-60?",
+          "esperado": "atendimento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 36,
+          "mensagem": "Preciso de um técnico na minha empresa para avaliar qual gerador comprar",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "provider_efetivo": "heuristica_llm"
+        }
+      ]
+    },
+    "jev_openrouter": {
+      "provider": "jev_openrouter",
+      "acuracia": 0.925,
+      "acertos": 37,
+      "total": 40,
+      "latencia_media_s": 0.302,
+      "degradacoes_de_provider": [],
+      "matriz_confusao": {
+        "vendas": {
+          "vendas": 10
+        },
+        "suporte": {
+          "suporte": 10
+        },
+        "atendimento": {
+          "atendimento": 9,
+          "vendas": 1
+        },
+        "agendamento": {
+          "agendamento": 8,
+          "vendas": 2
+        }
+      },
+      "erros": [
+        {
+          "id": 28,
+          "mensagem": "Qual o prazo de garantia do Gerador Diesel GD-60?",
+          "esperado": "atendimento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 36,
+          "mensagem": "Preciso de um técnico na minha empresa para avaliar qual gerador comprar",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 38,
+          "mensagem": "Vocês fazem visita técnica gratuita antes da compra do gerador?",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "provider_efetivo": "jev_openrouter"
+        }
+      ]
+    }
+  }
+}

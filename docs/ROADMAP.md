@@ -57,7 +57,11 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       — colapsa para `fora_escopo`, que escala ao modelo externo) assim que o
       conjunto de teste rotulado de `eval/router_intents/` existir (Fase 10),
       para decidir se outra ordem de prioridade ou outra estratégia de
-      desempate melhora a acurácia de roteamento
+      desempate melhora a acurácia de roteamento — dataset já existe
+      (`backend/eval/router_intents/`, ver Fase 10); resultado ao vivo
+      (2026-09-30) mostra que é o caso de "0 domínios casados" que domina (18
+      dos 19 erros da heurística pura), não "2+" — item ainda não resolvido
+      aqui de propósito, esta nota só desbloqueia a decisão
 - [x] Garantir que o classificador considera as últimas 1–3 mensagens da
       conversa (não só a mensagem isolada), para resolver confirmações
       curtas a ofertas feitas pelo próprio assistente (ex.: aceite de
@@ -875,10 +879,35 @@ conversa e classificação do usuário").
       imediata com modelo já quente); o script de benchmark deve descartar
       uma chamada de "aquecimento" por configuração antes de medir latência,
       com timeout maior que o LOCAL_LLM_TIMEOUT_S (30s) de produção`
-- [ ] Montar conjunto de teste rotulado para acurácia do roteador + matriz de
-      confusão entre os quatro domínios
+- [x] Montar conjunto de teste rotulado para acurácia do roteador + matriz de
+      confusão entre os quatro domínios — `backend/eval/router_intents/`
+      (`dataset.json`: 40 mensagens, 10 por domínio, 8 deliberadamente
+      ambíguas, ancoradas no catálogo/RAG reais já no sistema;
+      `run_eval.py`: roda `app.router.classifier.classify` de verdade contra
+      os três provedores). Rodado ao vivo (2026-09-30, Ollama +
+      `gemma4:12b-it-q4_K_M` + OpenRouter reais): `heuristica` 52,5%,
+      `heuristica_llm` **95,0%**, `jev_openrouter` 92,5% — nenhuma
+      degradação silenciosa de provedor. Achado principal: 18 dos 19 erros
+      da heurística pura são `fora_escopo` por sinônimo fora da lista fixa
+      de `_DOMAIN_KEYWORDS` (não confusão entre domínios) — dado concreto
+      para decidir o item pendente da Fase 1 ("revisitar a resolução de
+      ambiguidade entre domínios no classificador"), ainda não resolvido
+      aqui de propósito (é uma mudança de código separada, este item só
+      constrói o instrumento de medição). Achado secundário ao escrever o
+      script: `classify(provider="heuristica_llm")` só chama o LLM local de
+      fato se `strategy="llm"` também for passado — sem isso (default
+      `strategy="heuristic"`), cai direto no fallback heurístico sem
+      nunca tentar o LLM, silenciosamente idêntico a `provider="heuristica"`
+      (script corrigido para espelhar `efetiva_complexity_strategy` de
+      `app.api.chat`; produção já fazia isso certo, só o script do eval
+      errou primeiro). Resultado e tabela em
+      `backend/eval/router_intents/README.md`.
 - [ ] Montar conjunto de perguntas de referência para qualidade do RAG
-      (avaliação manual em escala 1–5 + LLM-as-judge)
+      (avaliação manual em escala 1–5 + LLM-as-judge) — conjunto de 20
+      perguntas com gabarito já existe em
+      `backend/eval/rag_quality/bateria_perguntas_rag.md` (commit
+      `9603557`); falta rodar a avaliação (nota manual + LLM-as-judge) e
+      produzir o `results.json`.
 - [ ] Medir latência (média e p95) do modelo local (configuração vencedora
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto

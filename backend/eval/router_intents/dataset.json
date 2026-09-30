@@ -1,0 +1,97 @@
+{
+  "descricao": "Conjunto de teste rotulado para acurácia do roteador (R3, Fase 1) — ver docs/EVALUATION.md, Seção 1. 40 mensagens, 10 por domínio, cobrindo os quatro domínios (Vendas, Suporte Técnico, Atendimento ao Usuário, Agendamento de Visita) de forma equilibrada.",
+  "observacoes": [
+    "Todas as mensagens são sintéticas (não há corpus de conversas reais disponível neste protótipo), mas ancoradas em dados reais do sistema: os 5 produtos do catálogo (geradores diesel GD-15/GD-30/GD-60, Cabine de Insonorização, Quadro de Transferência Automática QTA-100) e o conteúdo real já ingerido no RAG (manuais/datasheets enviados por upload e páginas técnicas de controle de acesso/relógio de ponto/CFTV trazidas pelo crawler em testes anteriores do R4).",
+    "8 mensagens (2 por domínio) são marcadas 'ambiguo: true' de propósito — usam palavras-chave de mais de um domínio ao mesmo tempo (ver docs/EVALUATION.md: 'incluir deliberadamente casos ambíguos... para expor limites do classificador'). 'intencao_esperada' nelas é a intenção correta do ponto de vista de negócio, não necessariamente o que a heurística por palavra-chave vai acertar."
+  ],
+  "casos": [
+    {"id": 1, "mensagem": "Quero um orçamento para 5 unidades do Gerador Diesel GD-15", "intencao_esperada": "vendas", "ambiguo": false},
+    {"id": 2, "mensagem": "Qual o preço do Gerador Diesel GD-30?", "intencao_esperada": "vendas", "ambiguo": false},
+    {"id": 3, "mensagem": "Vocês têm o gerador de 60 kVA em estoque?", "intencao_esperada": "vendas", "ambiguo": false},
+    {"id": 4, "mensagem": "Quais produtos vocês têm disponíveis no catálogo?", "intencao_esperada": "vendas", "ambiguo": false},
+    {"id": 5, "mensagem": "Tem desconto para compra de 10 geradores GD-15?", "intencao_esperada": "vendas", "ambiguo": false},
+    {"id": 6, "mensagem": "Vocês vendem relógio de ponto biométrico?", "intencao_esperada": "vendas", "ambiguo": false},
+    {"id": 7, "mensagem": "Qual a diferença de preço entre o GD-15 e o GD-30?", "intencao_esperada": "vendas", "ambiguo": false},
+    {"id": 8, "mensagem": "Estou pensando em comprar um gerador para minha obra, qual modelo é mais indicado?", "intencao_esperada": "vendas", "ambiguo": false},
+    {
+      "id": 9,
+      "mensagem": "O Quadro de Transferência Automática QTA-100 é compatível com o Gerador GD-60?",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "observacao": "Pergunta de compatibilidade técnica soa Suporte, mas é dúvida pré-venda sobre qual produto comprar junto — a intenção correta é Vendas."
+    },
+    {
+      "id": 10,
+      "mensagem": "Quero saber o preço e também se o gerador tem garantia de fábrica",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "observacao": "Mistura pergunta comercial (preço, palavra-chave de Vendas) com garantia (palavra-chave de Atendimento) na mesma mensagem."
+    },
+    {"id": 11, "mensagem": "Meu gerador GD-30 não liga, o que pode ser?", "intencao_esperada": "suporte", "ambiguo": false},
+    {"id": 12, "mensagem": "Está aparecendo um código de erro no painel do gerador, como resolvo?", "intencao_esperada": "suporte", "ambiguo": false},
+    {"id": 13, "mensagem": "O motor do GD-15 está fazendo um barulho estranho, isso é normal?", "intencao_esperada": "suporte", "ambiguo": false},
+    {"id": 14, "mensagem": "Como faço a manutenção preventiva do gerador diesel?", "intencao_esperada": "suporte", "ambiguo": false},
+    {"id": 15, "mensagem": "O relógio de ponto não está reconhecendo a biometria dos funcionários, o que fazer?", "intencao_esperada": "suporte", "ambiguo": false},
+    {"id": 16, "mensagem": "A câmera de segurança parou de gravar, o gravador está com defeito?", "intencao_esperada": "suporte", "ambiguo": false},
+    {"id": 17, "mensagem": "O gerador está vazando óleo, isso é um problema sério?", "intencao_esperada": "suporte", "ambiguo": false},
+    {"id": 18, "mensagem": "Como resetar as configurações de fábrica do controlador do gerador?", "intencao_esperada": "suporte", "ambiguo": false},
+    {
+      "id": 19,
+      "mensagem": "Comprei o gerador GD-30 e ele já chegou com defeito, o motor não pega",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "observacao": "Menciona 'comprei' (palavra-chave de Atendimento), mas o pedido de fundo é diagnóstico técnico de um defeito — a intenção correta é Suporte, antes de qualquer troca/devolução."
+    },
+    {
+      "id": 20,
+      "mensagem": "Preciso de ajuda para configurar o Quadro de Transferência Automática que acabei de receber",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "observacao": "'Acabei de receber' lembra pós-venda/Atendimento, mas o pedido é de suporte técnico de configuração, não de nota fiscal/troca."
+    },
+    {"id": 21, "mensagem": "Quero a nota fiscal da minha última compra", "intencao_esperada": "atendimento", "ambiguo": false},
+    {"id": 22, "mensagem": "Comprei um gerador semana passada, quero saber se meus pedidos já foram enviados", "intencao_esperada": "atendimento", "ambiguo": false},
+    {"id": 23, "mensagem": "Qual a política de troca e garantia dos geradores?", "intencao_esperada": "atendimento", "ambiguo": false},
+    {"id": 24, "mensagem": "Quero cancelar meu pedido do Quadro de Transferência Automática", "intencao_esperada": "atendimento", "ambiguo": false},
+    {"id": 25, "mensagem": "Preciso do histórico dos meus pedidos, meu e-mail é joao@empresa.com", "intencao_esperada": "atendimento", "ambiguo": false},
+    {"id": 26, "mensagem": "Quero reclamar do atraso na entrega do meu gerador", "intencao_esperada": "atendimento", "ambiguo": false},
+    {"id": 27, "mensagem": "Posso trocar o gerador GD-15 por um GD-30, já que comprei o modelo errado?", "intencao_esperada": "atendimento", "ambiguo": false},
+    {"id": 28, "mensagem": "Qual o prazo de garantia do Gerador Diesel GD-60?", "intencao_esperada": "atendimento", "ambiguo": false},
+    {
+      "id": 29,
+      "mensagem": "Meu pedido chegou com defeito, quero fazer a devolução",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "observacao": "'Defeito' é palavra-chave de Suporte, mas o pedido central é de devolução (política comercial pós-venda) — a intenção correta é Atendimento."
+    },
+    {
+      "id": 30,
+      "mensagem": "O problema é que não recebi minha nota fiscal depois da compra, pode reenviar?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "observacao": "'Problema' lembra Suporte técnico, mas o pedido é puramente administrativo (nota fiscal) — a intenção correta é Atendimento."
+    },
+    {"id": 31, "mensagem": "Quero agendar uma visita técnica para avaliar a instalação do gerador", "intencao_esperada": "agendamento", "ambiguo": false},
+    {"id": 32, "mensagem": "Posso marcar um horário para vocês virem instalar o Quadro de Transferência?", "intencao_esperada": "agendamento", "ambiguo": false},
+    {"id": 33, "mensagem": "Vocês têm horário disponível na quinta-feira à tarde para uma visita?", "intencao_esperada": "agendamento", "ambiguo": false},
+    {"id": 34, "mensagem": "Gostaria de marcar uma visita para conhecer os geradores antes de comprar", "intencao_esperada": "agendamento", "ambiguo": false},
+    {"id": 35, "mensagem": "Qual o horário de funcionamento para agendar uma visita técnica?", "intencao_esperada": "agendamento", "ambiguo": false},
+    {"id": 36, "mensagem": "Preciso de um técnico na minha empresa para avaliar qual gerador comprar", "intencao_esperada": "agendamento", "ambiguo": false},
+    {"id": 37, "mensagem": "Marquei uma visita técnica ontem, preciso confirmar o horário", "intencao_esperada": "agendamento", "ambiguo": false},
+    {"id": 38, "mensagem": "Vocês fazem visita técnica gratuita antes da compra do gerador?", "intencao_esperada": "agendamento", "ambiguo": false},
+    {
+      "id": 39,
+      "mensagem": "Preciso agendar uma manutenção presencial para o meu gerador que está com problema",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "observacao": "Menciona um 'problema' técnico (palavra-chave de Suporte), mas o pedido explícito é 'agendar' uma visita presencial — a intenção correta é Agendamento."
+    },
+    {
+      "id": 40,
+      "mensagem": "Quero marcar um horário para comprar o gerador pessoalmente na loja",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "observacao": "'Comprar' é palavra-chave de Vendas, mas o pedido central é 'marcar um horário' — a intenção correta é Agendamento."
+    }
+  ]
+}
