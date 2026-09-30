@@ -573,15 +573,28 @@ conversa e classificação do usuário").
 - [x] Implementar persistência do ID de conversa (retomar conversa entre
       sessões/páginas, R9) — `lib/hooks/useChatStore.ts`
       (`getOrCreateConversationId`), persistido em `localStorage`
-- [ ] Implementar cards ricos: produto, confirmação de agendamento,
-      cotação/reserva. Nota desatualizada corrigida em 2026-09-29: o texto
-      original dizia depender de R6/R11/R12 no backend "ainda não
-      implementados" — as três dependências já foram entregues (busca por
-      imagem CLIP na Fase 3, agendamento via MCP Calendar na Fase 4A/7,
-      integração MCP B2B em Vendas na Fase 5). Sem bloqueio de backend
-      restante; falta só o contrato de dados estruturados para o frontend
-      (ver `docs/ARCHITECTURE.md` §5) e os componentes
-      `components/chat/cards/*`.
+- [x] Implementar cards ricos: produto, confirmação de agendamento,
+      cotação/reserva (2026-09-29). Nota desatualizada corrigida antes de
+      implementar: o texto original dizia depender de R6/R11/R12 no backend
+      "ainda não implementados" — as três dependências já tinham sido
+      entregues (busca por imagem CLIP na Fase 3, agendamento via MCP
+      Calendar na Fase 4A/7, integração MCP B2B em Vendas na Fase 5).
+      Backend: `app.models.chat.ChatCard` (união discriminada por `tipo` —
+      `CardProduto`/`CardCotacao`/`CardAgendamento`), construído em
+      `orchestrator._construir_card_vendas` (a partir do mesmo resultado de
+      `_consultar_vendas` já usado no bloco de texto) e em
+      `_handle_agendamento` (ao confirmar a visita), viajando no campo
+      opcional `card` do evento SSE `done`. Frontend:
+      `components/chat/cards/{ProductCard,QuoteCard,AppointmentCard,ChatCard}.tsx`
+      (dispatcher por `card.tipo`), renderizado em `MessageBubble` logo
+      abaixo do texto da resposta. `# MVP: só produto único vira card —
+      DadosCatalogoCategoria (listagem por categoria/catálogo completo,
+      correção de 2026-09-29) ainda não tem card próprio`. Testes em
+      `tests/test_orchestrator.py`, `tests/test_sales_catalog.py`,
+      `tests/test_chat_api.py` (backend) e
+      `tests/components/Chat{ProductCard,QuoteCard,AppointmentCard}.test.tsx`
+      + `MessageBubble.test.tsx` (frontend). Ver decisão em
+      `docs/ARCHITECTURE.md` §5.
 - [x] Implementar indicador de domínio identificado pelo roteador
       (opcional, útil para a demonstração ao orientador) — rótulo discreto em
       `components/chat/MessageBubble.tsx`

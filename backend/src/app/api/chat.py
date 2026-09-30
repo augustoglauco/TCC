@@ -568,6 +568,11 @@ async def send_message(
                 "identification",
                 resultado.model_dump(exclude_none=True),
             )
+            # MVP: sem card rico (Fase 8) neste caminho — o produto
+            # identificado por imagem só tem `resultado` (evento SSE
+            # `identification`, acima) e a ficha em texto; a construção do
+            # card (`orchestrator._construir_card_vendas`) só existe no
+            # caminho de resolução por texto em Vendas.
             done_data = ChatDoneEventData(
                 domain="vendas",
                 backend_used="identificacao_imagem",

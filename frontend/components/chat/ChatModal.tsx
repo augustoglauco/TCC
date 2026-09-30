@@ -160,6 +160,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           domain: data.domain,
           backendUsed: data.backend_used,
           metrics: metricsFromDone(data),
+          card: data.card ?? undefined,
         });
       },
       onError: (msg) => {
@@ -227,6 +228,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           domain: data.domain,
           backendUsed: data.backend_used,
           metrics: metricsFromDone(data),
+          card: data.card ?? undefined,
         });
       },
       onError: (msg) => {

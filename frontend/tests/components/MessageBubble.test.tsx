@@ -204,6 +204,54 @@ describe("MessageBubble", () => {
     expect(screen.queryByText(/^Provedor:/)).not.toBeInTheDocument();
   });
 
+  it("renderiza o card rico quando a mensagem do assistente tem um (Fase 8)", () => {
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Aqui estão os detalhes do GD-15.",
+          domain: "vendas",
+          card: {
+            tipo: "produto",
+            produto_id: 1,
+            nome: "Gerador Diesel GD-15",
+            preco: "24900.00",
+            estoque_total: 8,
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Gerador Diesel GD-15")).toBeInTheDocument();
+    expect(screen.getByText("R$ 24.900,00")).toBeInTheDocument();
+  });
+
+  it("não renderiza card nenhum quando a mensagem não tem um", () => {
+    render(<MessageBubble message={makeMessage({ role: "assistant", text: "Oi" })} />);
+
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+  });
+
+  it("não renderiza card em mensagens do usuário mesmo se tiver um (nunca acontece na prática)", () => {
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "user",
+          text: "Quero o GD-15",
+          card: {
+            tipo: "produto",
+            produto_id: 1,
+            nome: "Gerador Diesel GD-15",
+            preco: "24900.00",
+            estoque_total: 8,
+          },
+        })}
+      />,
+    );
+
+    expect(screen.queryByText("R$ 24.900,00")).not.toBeInTheDocument();
+  });
+
   it("destaca em azul a resposta do assistente quando vem de LLM externo", () => {
     render(
       <MessageBubble

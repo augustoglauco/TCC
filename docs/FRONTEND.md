@@ -85,15 +85,23 @@ com o histórico recarregado.
   assim que o primeiro evento `token` chega; a partir daí a bolha é
   preenchida incrementalmente (token a token) conforme os eventos chegam,
   produzindo o efeito de "digitando" — ver `ChatModal.tsx`.
-- **Cards ricos** para respostas estruturadas, em vez de só texto — cobrem os
-  casos onde o roteador aciona uma ferramenta ou o RAG retorna algo
-  estruturado:
-  - Card de produto (imagem, nome, preço, link para `/produtos/[id]`) —
-    resultado de RAG de Vendas ou busca de imagem (R6).
-  - Card de confirmação de agendamento (data/hora, link para `/agendamentos`)
-    — resultado do MCP do Google Calendar (R11).
-  - Card de cotação/reserva (itens, valor, prazo) — resultado das ferramentas
-    do MCP B2B (R12) quando o roteador atua como integrador desse MCP.
+- **Cards ricos** para respostas estruturadas, em vez de só texto (Fase 8,
+  implementado em 2026-09-29 — decisão em `docs/ARCHITECTURE.md` §5) —
+  vêm no campo opcional `card` do evento `done` (ver §4), renderizados por
+  `components/chat/cards/ChatCard.tsx` (dispatcher por `card.tipo`) logo
+  abaixo do texto da resposta em `MessageBubble.tsx`:
+  - `ProductCard` (`card.tipo === "produto"`): imagem, nome, preço, badge de
+    estoque, link para `/produtos/[id]` — produto único resolvido em Vendas
+    sem quantidade informada.
+  - `AppointmentCard` (`card.tipo === "agendamento"`): data/hora formatada,
+    link para `/agendamentos` e para o evento no Google Calendar (quando
+    houver) — só aparece quando a visita é confirmada de verdade (R11).
+  - `QuoteCard` (`card.tipo === "cotacao"`): produto, quantidade, preço
+    unitário, percentual de desconto e subtotal — mesmo produto do
+    `ProductCard`, mas com quantidade informada pelo cliente (R12).
+  `# MVP`: consulta genérica por categoria ou catálogo completo (que lista
+  vários produtos, não um item único) ainda não tem card próprio — continua
+  só em texto.
 - **Indicador de domínio** (opcional, mas recomendado para a demonstração do
   TCC): um rótulo discreto mostrando qual domínio o roteador identificou
   (Vendas / Suporte Técnico / Atendimento ao Usuário / Agendamento) — ajuda a
@@ -303,7 +311,19 @@ data: {
   // "lead" | "nao_classificado", com o motivo. `null` quando a memória da
   // conversa está indisponível ou no fluxo de identificação de imagem.
   "perfil_usuario": "lead",
-  "perfil_motivo": "intenção de compra"
+  "perfil_motivo": "intenção de compra",
+
+  // Card rico opcional (Fase 8, decisão em docs/ARCHITECTURE.md §5,
+  // 2026-09-29) — união discriminada por "tipo"; `null`/ausente na maioria
+  // dos turnos. Ver §3, "Cards ricos".
+  "card": {
+    "tipo": "produto",           // | "cotacao" | "agendamento"
+    "produto_id": 1,
+    "nome": "Gerador Diesel GD-15",
+    "preco": "24900.00",         // Decimal serializado como string
+    "imagem_url": "/api/uploads/produtos/gd15.jpg",
+    "estoque_total": 8
+  }
 }
 ```
 
@@ -443,7 +463,7 @@ frontend/
 │   │   ├── MessageBubble.tsx
 │   │   ├── AudioRecorder.tsx
 │   │   ├── ImageUploader.tsx
-│   │   └── cards/                  # ProductCard, AppointmentCard, QuoteCard
+│   │   └── cards/                  # ChatCard (dispatcher), ProductCard, AppointmentCard, QuoteCard
 │   ├── layout/                     # Header, Footer, Nav
 │   └── ui/                         # botões, inputs, componentes genéricos
 ├── lib/
@@ -456,8 +476,9 @@ frontend/
 └── package.json
 ```
 
-Estado atual (Fase 7/8): `AudioRecorder.tsx` e `ImageUploader.tsx` já existem (ver acima); `components/chat/cards/` ainda não existe (depende de R11/R12 no
-backend). `lib/hooks/useChatStore.ts` contém o estado do widget via Zustand
+Estado atual (Fase 7/8): `AudioRecorder.tsx`, `ImageUploader.tsx` e
+`components/chat/cards/` já existem (cards ricos implementados em
+2026-09-29, ver §3). `lib/hooks/useChatStore.ts` contém o estado do widget via Zustand
 (aberto/fechado, mensagens, `conversation_id`) — ainda não há `useConversation`
 nem `useProducts` (sem dados de servidor além do chat nesta etapa). Os testes
 de componente vivem em `tests/components/` (Vitest + Testing Library).
@@ -506,7 +527,7 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
 | R3 (roteador) | Indicador de domínio no widget (opcional/demonstração) |
 | R4 (RAG) | Card de produto no chat; conteúdo de `/produtos` e `/suporte` alimenta o RAG |
 | R5 (STT) | `AudioRecorder` + exibição do texto transcrito |
-| R6 (tratamento de imagem) | `ImageUploader`; card de produto como resultado de busca por imagem |
+| R6 (tratamento de imagem) | `ImageUploader`. `# MVP`: o card de produto (Fase 8) só é gerado pela resolução por texto em Vendas (`_consultar_vendas`); a identificação por imagem responde com ficha do produto em texto, sem card, ainda |
 | R7 (domínios) | Indicador de domínio; páginas `/suporte`, `/produtos`, `/agendamentos` refletem os quatro domínios |
 | R8 (monitor de tom) | Banner de transferência para atendente humano |
 | R9 (memória da conversa) | ID de conversa persistido; retomada ao reabrir o widget |

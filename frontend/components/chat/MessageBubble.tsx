@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ChatCard from "@/components/chat/cards/ChatCard";
 import type { ChatBackendUsed, ChatPerfilUsuario, ChatUIMessage } from "@/lib/types/chat";
 
 // MVP: rótulo de domínio é só um mapa fixo de texto — sem i18n nem vindo do
@@ -109,6 +110,8 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         <p className="leading-relaxed whitespace-pre-wrap">{message.text}</p>
       </div>
 
+      {!isUser && message.card && <ChatCard card={message.card} />}
+
       {!isUser && showDetails && (
         <div
           className="flex flex-col max-w-full items-start space-y-1"
@@ -185,8 +188,8 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                     {metrics.routerProvider === "jev_openrouter"
                       ? "TypeSafe Jev (OpenRouter)"
                       : metrics.routerProvider === "heuristica"
-                      ? "Heurística (Palavras-chave)"
-                      : "Heurística + LLM Local"}
+                        ? "Heurística (Palavras-chave)"
+                        : "Heurística + LLM Local"}
                   </div>
                 )}
                 <div>

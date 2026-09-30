@@ -1386,6 +1386,66 @@ Testado em `tests/test_sales_catalog.py`
 (`consultar_detalhes` com múltiplos CDs) e `tests/test_orchestrator.py`
 (formatação do bloco com e sem detalhamento por CD).
 
+**Decisão registrada (Fase 8, cards ricos no chat, R6/R11/R12, 2026-09-29):**
+item do roadmap que já estava pronto para ser implementado — a nota original
+("depende de R6/R11/R12 no backend, ainda não implementados") estava
+desatualizada, as três dependências já tinham sido entregues em fases
+anteriores (busca por imagem CLIP, agendamento via MCP Calendar, integração
+MCP B2B em Vendas). Contrato de dados novo, sem endpoint/evento SSE
+adicional — reaproveita o `done` já existente:
+
+1. **`app.models.chat.ChatCard`:** união discriminada por `tipo`
+   (`Literal["produto"|"cotacao"|"agendamento"]`, `Field(discriminator="tipo")`)
+   com três schemas — `CardProduto` (produto_id, nome, preço, imagem_url,
+   estoque_total), `CardCotacao` (idem + quantidade, preço unitário,
+   percentual de desconto, subtotal) e `CardAgendamento` (data/hora de
+   início e fim, link do evento no Google Calendar). Campo opcional
+   `card: ChatCard | None` acrescentado a `RouterDecision` (orquestrador) e
+   `ChatDoneEventData` (contrato público) — vai dentro do `done` já emitido
+   ao final de cada turno, sem novo tipo de evento SSE.
+2. **Construção em Vendas (`orchestrator._construir_card_vendas`):**
+   reaproveita o mesmo resultado de `_consultar_vendas`
+   (`DadosCatalogoVendas`) já usado para montar o bloco de texto do prompt —
+   sem chamada extra ao banco. Produto com `cotacao` preenchida (cliente
+   informou quantidade) vira `CardCotacao`; sem quantidade, `CardProduto`.
+   `DadosCatalogoVendas` ganha `produto_id`/`preco`/`imagem_url` (opcionais,
+   populados por `consultar_detalhes` a partir do `Produto` já carregado) só
+   para isso. `DadosCatalogoCategoria` (consulta por categoria ou catálogo
+   completo, decisão anterior desta mesma seção) **não vira card** — é uma
+   lista, não um item único; `# MVP: fica para uma iteração futura`.
+3. **Construção em Agendamento (`orchestrator._handle_agendamento`):**
+   `CardAgendamento` montado só no branch de confirmação bem-sucedida (depois
+   de `calendar_client.create_event` retornar), com os mesmos dados já
+   gravados na tabela `agendamentos`. `_emitir_resposta_agendamento` ganha um
+   parâmetro `card` opcional, repassado ao `RouterDecision`.
+4. **Achado durante a implementação — serialização SSE:** `Decimal`
+   (preços) e `datetime` (data/hora do agendamento) não são serializáveis
+   por `json.dumps` no modo "python" do Pydantic (`model_dump()` puro) — só
+   no modo `model_dump(mode="json")`, que os converte para string. Os três
+   pontos em `app.api.chat` que montavam o evento `done`
+   (`done_data.model_dump()`) foram corrigidos para `model_dump(mode="json")`
+   — bug que só existiria a partir do primeiro card com `Decimal`/`datetime`
+   (nenhum campo anterior de `ChatDoneEventData` usava esses tipos), pego e
+   coberto por teste antes de chegar a produção
+   (`tests/test_chat_api.py::test_done_event_com_card_serializa_decimal_e_datetime_como_json`).
+5. **Frontend:** `components/chat/cards/{ProductCard,QuoteCard,AppointmentCard}.tsx`
+   (um componente por tipo) + `ChatCard.tsx` (dispatcher por `card.tipo`),
+   renderizados em `MessageBubble.tsx` logo abaixo do texto da resposta do
+   assistente (sempre visível, não atrás do toggle ⚙️ de métricas). O card
+   também reaparece ao recarregar o histórico da conversa (R9,
+   `fetchConversationHistory`), mesmo padrão já usado para as métricas.
+   `resolveImageUrl`/`formatarPrecoBRL` extraídos como utils pequenos
+   (`lib/utils/`), reaproveitando a mesma lógica já usada em
+   `components/products/ProductCard.tsx`.
+
+Testado em `tests/test_orchestrator.py` (card de produto, cotação,
+agendamento confirmado e ausência de card para categoria/catálogo completo),
+`tests/test_sales_catalog.py` (`produto_id`/`preco`/`imagem_url` em
+`consultar_detalhes`), `tests/test_chat_api.py` (serialização JSON dos três
+cards) e os testes de componente do frontend
+(`tests/components/Chat{ProductCard,QuoteCard,AppointmentCard}.test.tsx`,
+`MessageBubble.test.tsx`).
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

@@ -191,6 +191,7 @@ export async function fetchConversationHistory(
       ...(mensagem.metricas && {
         backendUsed: mensagem.metricas.backend_used,
         metrics: metricsFromDone(mensagem.metricas),
+        card: mensagem.metricas.card ?? undefined,
       }),
     };
   });

@@ -115,6 +115,7 @@ export interface ChatDoneEventData {
   router_provider?: string | null;
   perfil_usuario?: ChatPerfilUsuario | null;
   perfil_motivo?: string | null;
+  card?: ChatCard | null;
 }
 
 /** Mensagem exibida no painel do chat (estado de UI, não o payload da API). */
@@ -128,6 +129,8 @@ export interface ChatUIMessage {
   // externo (ver MessageBubble).
   backendUsed?: ChatBackendUsed;
   metrics?: ChatMetrics;
+  // Card rico (Fase 8) — produto, cotação ou confirmação de agendamento.
+  card?: ChatCard;
 }
 
 /** Uma mensagem gravada da conversa — `GET /api/chat/conversations/{id}` (R9). */
