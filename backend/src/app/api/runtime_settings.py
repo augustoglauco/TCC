@@ -41,10 +41,19 @@ def _build_response(request: Request) -> RuntimeSettingsResponse:
     tone_monitor_provider = getattr(
         request.app.state, "tone_monitor_provider", DEFAULT_TONE_MONITOR_PROVIDER
     )
+    rag_top_k = getattr(request.app.state, "rag_top_k", 3)
+    rag_score_threshold = getattr(request.app.state, "rag_score_threshold", 0.35)
     return RuntimeSettingsResponse(
         local_llm_temperature=local_client.temperature,
+        local_llm_num_ctx=local_client.num_ctx,
+        local_llm_top_p=local_client.top_p,
+        local_llm_top_k=local_client.top_k,
+        local_llm_repeat_penalty=local_client.repeat_penalty,
+        local_llm_seed=local_client.seed,
         local_llm_timeout_s=local_client.timeout_s,
         external_llm_timeout_s=external_client.timeout_s,
+        rag_top_k=rag_top_k,
+        rag_score_threshold=rag_score_threshold,
         rag_search_domain_fallback=qdrant_client.search_domain_fallback,
         crawler_max_pages_default=request.app.state.crawler_max_pages_default,
         crawler_confidence_threshold=request.app.state.crawler_confidence_threshold,
@@ -69,19 +78,28 @@ async def update_runtime_settings(
 ) -> RuntimeSettingsResponse:
     local_client, external_client, qdrant_client = _get_clients(request)
 
-    # `exclude_unset` distingue "campo não enviado" (não mexe) de "campo
-    # enviado com valor, inclusive null" (aplica) — permite ao cliente
-    # voltar `local_llm_temperature` para `null` (usa o default do próprio
-    # modelo) mandando o campo explicitamente, sem afetar os demais campos
-    # não enviados nesta chamada.
     campos = body.model_dump(exclude_unset=True)
 
     if "local_llm_temperature" in campos:
         local_client.temperature = campos["local_llm_temperature"]
+    if "local_llm_num_ctx" in campos:
+        local_client.num_ctx = campos["local_llm_num_ctx"]
+    if "local_llm_top_p" in campos:
+        local_client.top_p = campos["local_llm_top_p"]
+    if "local_llm_top_k" in campos:
+        local_client.top_k = campos["local_llm_top_k"]
+    if "local_llm_repeat_penalty" in campos:
+        local_client.repeat_penalty = campos["local_llm_repeat_penalty"]
+    if "local_llm_seed" in campos:
+        local_client.seed = campos["local_llm_seed"]
     if "local_llm_timeout_s" in campos:
         local_client.timeout_s = campos["local_llm_timeout_s"]
     if "external_llm_timeout_s" in campos:
         external_client.timeout_s = campos["external_llm_timeout_s"]
+    if "rag_top_k" in campos:
+        request.app.state.rag_top_k = campos["rag_top_k"]
+    if "rag_score_threshold" in campos:
+        request.app.state.rag_score_threshold = campos["rag_score_threshold"]
     if "rag_search_domain_fallback" in campos:
         qdrant_client.search_domain_fallback = campos["rag_search_domain_fallback"]
     if "crawler_max_pages_default" in campos:

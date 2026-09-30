@@ -71,6 +71,11 @@ class Settings(BaseSettings):
     # `options.temperature`). Ajustável em runtime via
     # `PUT /api/admin/runtime-settings` (ver `app/api/runtime_settings.py`).
     local_llm_temperature: float | None = None
+    local_llm_num_ctx: int | None = None
+    local_llm_top_p: float | None = None
+    local_llm_top_k: int | None = None
+    local_llm_repeat_penalty: float | None = None
+    local_llm_seed: int | None = None
 
     # MVP: tamanho fixo por config, sem troca automática por VRAM disponível
     # em runtime (ver docs/ARCHITECTURE.md §7).
@@ -81,6 +86,8 @@ class Settings(BaseSettings):
     # Default da lib qdrant-client é 5s; em dev (WSL2), resolver "localhost"
     # às vezes demora mais que isso (ver `app/rag/qdrant_client.py`).
     qdrant_timeout_s: float = 10.0
+    rag_top_k: int = 3
+    rag_score_threshold: float = 0.35
     # MVP: desligado por padrão — o comportamento documentado em
     # docs/ARCHITECTURE.md (RAG vazio para o domínio → escala pro modelo
     # externo) depende da busca filtrada por domínio poder retornar vazio de

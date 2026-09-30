@@ -28,7 +28,13 @@ class ActiveCollectionRagClient:
         self._session_factory = session_factory
         self._embedders = embedders
 
-    async def search(self, query: str, domain: str) -> list[Document]:
+    async def search(
+        self,
+        query: str,
+        domain: str,
+        top_k: int = 3,
+        score_threshold: float = 0.35,
+    ) -> list[Document]:
         try:
             async with self._session_factory() as session:
                 collection = await get_active_collection(session)
@@ -36,13 +42,9 @@ class ActiveCollectionRagClient:
             raise RAGConnectionError(str(exc)) from exc
         if collection is None:
             return []
-        # Defesa em profundidade: a collection ativa nunca deveria ser
-        # `mcp_b2b` (a ativação dessas é bloqueada em
-        # `activate_collection`), mas falhamos fechado se a invariante for
-        # quebrada no futuro — conteúdo restrito ao MCP B2B jamais é servido
-        # ao chat público (ver
-        # docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §4).
         if collection.purpose == "mcp_b2b":
             return []
         embedder = self._embedders.get(collection.embedding_model)
-        return await self._qdrant.search(collection.name, embedder, query, domain)
+        return await self._qdrant.search(
+            collection.name, embedder, query, domain, top_k=top_k, score_threshold=score_threshold
+        )

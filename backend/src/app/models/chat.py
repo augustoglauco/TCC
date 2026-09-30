@@ -4,7 +4,8 @@ Contrato espelhado em `docs/FRONTEND.md` §4 (`POST /api/chat/messages`).
 """
 
 from datetime import datetime
-from typing import Literal
+from decimal import Decimal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -14,6 +15,50 @@ class RagChunkMetric(BaseModel):
 
     source: str = Field(..., description="Nome do arquivo de origem do chunk.")
     score: float = Field(..., description="Score de similaridade do chunk na busca vetorial.")
+
+
+class CardProduto(BaseModel):
+    """Card rico de produto (Fase 8) — um único produto resolvido em Vendas
+    (`app.router.sales_catalog.SalesCatalogClient.consultar_detalhes`) sem
+    cotação por quantidade. Ver docs/ARCHITECTURE.md §5 (2026-09-29)."""
+
+    tipo: Literal["produto"] = "produto"
+    produto_id: int
+    nome: str
+    preco: Decimal
+    imagem_url: str | None = None
+    estoque_total: int
+
+
+class CardCotacao(BaseModel):
+    """Card rico de cotação (Fase 8, R12) — mesmo produto único de
+    `CardProduto`, mas com quantidade e desconto por volume já calculados
+    (cliente informou uma quantidade na mensagem)."""
+
+    tipo: Literal["cotacao"] = "cotacao"
+    produto_id: int
+    nome: str
+    quantidade: int
+    preco_unitario: Decimal
+    percentual_desconto: Decimal
+    subtotal: Decimal
+
+
+class CardAgendamento(BaseModel):
+    """Card rico de confirmação de agendamento (Fase 8, R11) — emitido só
+    quando o evento é criado de verdade no Google Calendar."""
+
+    tipo: Literal["agendamento"] = "agendamento"
+    data_hora_inicio: datetime
+    data_hora_fim: datetime
+    google_event_link: str | None = None
+
+
+# MVP: união discriminada por "tipo" — cobre só os 3 cards do roadmap
+# (produto/cotação/agendamento); consulta genérica por categoria/catálogo
+# completo (`DadosCatalogoCategoria`) ainda não vira card (lista, não item
+# único), fica para uma iteração futura.
+ChatCard = Annotated[CardProduto | CardCotacao | CardAgendamento, Field(discriminator="tipo")]
 
 
 class ChatMessageRequest(BaseModel):
@@ -135,6 +180,11 @@ class ChatDoneEventData(BaseModel):
     )
     perfil_motivo: str | None = Field(
         default=None, description="Por que o visitante recebeu esse perfil (R10)."
+    )
+    card: ChatCard | None = Field(
+        default=None,
+        description="Card rico opcional (Fase 8) — produto, cotação ou confirmação de "
+        "agendamento, para o frontend renderizar em vez de/além do texto.",
     )
 
 

@@ -10,9 +10,23 @@ from app.models.runtime_settings import (
 
 
 class _FakeLocalClient:
-    def __init__(self, temperature: float | None, timeout_s: float) -> None:
+    def __init__(
+        self,
+        temperature: float | None = None,
+        timeout_s: float = 30.0,
+        num_ctx: int | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
+        repeat_penalty: float | None = None,
+        seed: int | None = None,
+    ) -> None:
         self.temperature = temperature
         self.timeout_s = timeout_s
+        self.num_ctx = num_ctx
+        self.top_p = top_p
+        self.top_k = top_k
+        self.repeat_penalty = repeat_penalty
+        self.seed = seed
 
 
 class _FakeExternalClient:
@@ -40,6 +54,8 @@ def _build_app(
     intent_router_provider: IntentRouterProvider = DEFAULT_INTENT_ROUTER_PROVIDER,
     tone_monitor_enabled: bool = True,
     tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
+    rag_top_k: int = 3,
+    rag_score_threshold: float = 0.35,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(runtime_settings_router)
@@ -53,6 +69,8 @@ def _build_app(
     app.state.intent_router_provider = intent_router_provider
     app.state.tone_monitor_enabled = tone_monitor_enabled
     app.state.tone_monitor_provider = tone_monitor_provider
+    app.state.rag_top_k = rag_top_k
+    app.state.rag_score_threshold = rag_score_threshold
     return app
 
 
@@ -79,8 +97,15 @@ def test_get_devolve_valores_atuais_dos_clientes():
     assert response.status_code == 200
     assert response.json() == {
         "local_llm_temperature": None,
+        "local_llm_num_ctx": None,
+        "local_llm_top_p": None,
+        "local_llm_top_k": None,
+        "local_llm_repeat_penalty": None,
+        "local_llm_seed": None,
         "local_llm_timeout_s": 30.0,
         "external_llm_timeout_s": 30.0,
+        "rag_top_k": 3,
+        "rag_score_threshold": 0.35,
         "rag_search_domain_fallback": False,
         "crawler_max_pages_default": 20,
         "crawler_confidence_threshold": 0.7,

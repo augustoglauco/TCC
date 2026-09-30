@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.models import Agendamento
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
-from app.models.chat import RagChunkMetric
+from app.models.chat import CardAgendamento, CardCotacao, CardProduto, ChatCard, RagChunkMetric
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
@@ -230,6 +230,8 @@ async def _buscar_documentos_rag(
     domain: str,
     rag_client: RAGClient,
     ultima_resposta: str | None = None,
+    top_k: int = 3,
+    score_threshold: float = 0.35,
 ) -> list[Document]:
     termos = extrair_termos_busca(message)
     if ultima_resposta and e_referencia_anterior(message):
@@ -241,10 +243,14 @@ async def _buscar_documentos_rag(
     else:
         texto_busca = message
 
-    documentos = await rag_client.search(texto_busca, domain)
+    documentos = await rag_client.search(
+        texto_busca, domain, top_k=top_k, score_threshold=score_threshold
+    )
     if not documentos and recent_messages and texto_busca == message:
         texto_busca_fallback = "\n".join([*recent_messages, message])
-        documentos = await rag_client.search(texto_busca_fallback, domain)
+        documentos = await rag_client.search(
+            texto_busca_fallback, domain, top_k=top_k, score_threshold=score_threshold
+        )
 
     # O filtro por produto citado no contexto precisa enxergar a última
     # resposta: é nela que está o "Identifiquei: X" da identificação por
@@ -479,6 +485,41 @@ def _formatar_bloco_catalogo_vendas(
     return _formatar_dados_catalogo_vendas(dados)
 
 
+def _construir_card_vendas(
+    dados: DadosCatalogoVendas | DadosCatalogoCategoria | None,
+) -> ChatCard | None:
+    """Card rico (Fase 8, correção de 2026-09-29) a partir do mesmo
+    resultado de `_consultar_vendas` já usado no bloco de texto do prompt —
+    sem chamada extra ao banco. `DadosCatalogoCategoria` (listagem por
+    categoria ou catálogo completo) ainda não vira card, só produto único
+    (`# MVP`, ver docs/ARCHITECTURE.md §5); `produto_id`/`preco` ausentes
+    (não deveria acontecer fora de teste, ver `DadosCatalogoVendas`) também
+    não viram card."""
+    if not isinstance(dados, DadosCatalogoVendas):
+        return None
+    if dados.produto_id is None:
+        return None
+    if dados.cotacao is not None:
+        preco_unitario, percentual, subtotal = dados.cotacao
+        return CardCotacao(
+            produto_id=dados.produto_id,
+            nome=dados.produto_nome,
+            quantidade=dados.quantidade or 0,
+            preco_unitario=preco_unitario,
+            percentual_desconto=percentual,
+            subtotal=subtotal,
+        )
+    if dados.preco is None:
+        return None
+    return CardProduto(
+        produto_id=dados.produto_id,
+        nome=dados.produto_nome,
+        preco=dados.preco,
+        imagem_url=dados.imagem_url,
+        estoque_total=dados.estoque_total,
+    )
+
+
 class RouterDecision(BaseModel):
     domain: str
     complexity: str
@@ -501,6 +542,9 @@ class RouterDecision(BaseModel):
     rag_avg_score: float | None = None
     rag_chunks: list[RagChunkMetric] | None = None
     router_provider: str = DEFAULT_INTENT_ROUTER_PROVIDER
+    # Card rico (Fase 8, correção de 2026-09-29) — produto/cotação (Vendas)
+    # ou confirmação de agendamento; None na maioria dos turnos.
+    card: ChatCard | None = None
 
 
 class StatusEvent(BaseModel):
@@ -590,7 +634,11 @@ async def _validar_horario_para_agendamento(
 
 
 async def _emitir_resposta_agendamento(
-    texto: str, motivo: str, *, intent_router_provider: str
+    texto: str,
+    motivo: str,
+    *,
+    intent_router_provider: str,
+    card: CardAgendamento | None = None,
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     yield TokenEvent(text=texto)
     yield RouterDecision(
@@ -606,6 +654,7 @@ async def _emitir_resposta_agendamento(
         tokens_saida=None,
         custo_estimado_usd=0.0,
         router_provider=intent_router_provider,
+        card=card,
     )
 
 
@@ -739,10 +788,16 @@ async def _handle_agendamento(
 
             texto = mensagem_sucesso(slots, scheduling_config.timezone)
             clear_booking_slots(conversation_id)
+            card = CardAgendamento(
+                data_hora_inicio=slots.data_hora,
+                data_hora_fim=fim,
+                google_event_link=google_event_link or None,
+            )
             async for evento in _emitir_resposta_agendamento(
                 texto,
                 "confirmado",
                 intent_router_provider=intent_router_provider,
+                card=card,
             ):
                 yield evento
             return
@@ -814,6 +869,8 @@ async def handle_message(
     dados_cliente: str | None = None,
     contexto_conversa_anterior: str | None = None,
     db_sessionmaker: async_sessionmaker[AsyncSession] | None = None,
+    rag_top_k: int = 3,
+    rag_score_threshold: float = 0.35,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -1027,6 +1084,8 @@ async def handle_message(
                         classification.domain,
                         rag_client,
                         ultima_resposta=ultima_troca[1] if ultima_troca else None,
+                        top_k=rag_top_k,
+                        score_threshold=rag_score_threshold,
                     )
                 )
                 vendas_task: asyncio.Task[DadosCatalogoVendas | None] | None = None
@@ -1209,6 +1268,7 @@ async def handle_message(
         # parâmetro bruto — não há `ClassificationResult` de onde tirar um
         # valor efetivo ali.
         router_provider=classification.provider_efetivo,
+        card=_construir_card_vendas(dados_catalogo_vendas),
     )
     logger.info(
         "router_decision",

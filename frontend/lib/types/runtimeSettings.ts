@@ -8,8 +8,15 @@
 
 export interface RuntimeSettings {
   local_llm_temperature: number | null;
+  local_llm_num_ctx?: number | null;
+  local_llm_top_p?: number | null;
+  local_llm_top_k?: number | null;
+  local_llm_repeat_penalty?: number | null;
+  local_llm_seed?: number | null;
   local_llm_timeout_s: number;
   external_llm_timeout_s: number;
+  rag_top_k?: number;
+  rag_score_threshold?: number;
   rag_search_domain_fallback: boolean;
   crawler_max_pages_default: number;
   crawler_confidence_threshold: number;

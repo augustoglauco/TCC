@@ -64,6 +64,11 @@ def create_app() -> FastAPI:
         model=settings.local_model_name,
         timeout_s=settings.local_llm_timeout_s,
         temperature=settings.local_llm_temperature,
+        num_ctx=settings.local_llm_num_ctx,
+        top_p=settings.local_llm_top_p,
+        top_k=settings.local_llm_top_k,
+        repeat_penalty=settings.local_llm_repeat_penalty,
+        seed=settings.local_llm_seed,
     )
     app.state.external_client = OpenRouterClient(
         base_url=settings.external_model_base_url,
@@ -139,6 +144,8 @@ def create_app() -> FastAPI:
     # `external_vision_model_name` vive no OpenRouterClient (`vision_model`).
     app.state.image_internal_confidence = settings.image_internal_confidence
     app.state.image_external_confidence = settings.image_external_confidence
+    app.state.rag_top_k = settings.rag_top_k
+    app.state.rag_score_threshold = settings.rag_score_threshold
     app.state.intent_router_provider = DEFAULT_INTENT_ROUTER_PROVIDER
     # Monitor de Tom (R8, Fase 4B) — diferente de intent_router_provider
     # acima, aqui o valor inicial vem de settings/env (TONE_MONITOR_ENABLED/

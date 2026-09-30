@@ -574,8 +574,14 @@ conversa e classificação do usuário").
       sessões/páginas, R9) — `lib/hooks/useChatStore.ts`
       (`getOrCreateConversationId`), persistido em `localStorage`
 - [ ] Implementar cards ricos: produto, confirmação de agendamento,
-      cotação/reserva — depende de R6/R11/R12 no backend, ainda não
-      implementados
+      cotação/reserva. Nota desatualizada corrigida em 2026-09-29: o texto
+      original dizia depender de R6/R11/R12 no backend "ainda não
+      implementados" — as três dependências já foram entregues (busca por
+      imagem CLIP na Fase 3, agendamento via MCP Calendar na Fase 4A/7,
+      integração MCP B2B em Vendas na Fase 5). Sem bloqueio de backend
+      restante; falta só o contrato de dados estruturados para o frontend
+      (ver `docs/ARCHITECTURE.md` §5) e os componentes
+      `components/chat/cards/*`.
 - [x] Implementar indicador de domínio identificado pelo roteador
       (opcional, útil para a demonstração ao orientador) — rótulo discreto em
       `components/chat/MessageBubble.tsx`

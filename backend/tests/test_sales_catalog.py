@@ -146,6 +146,23 @@ async def test_consultar_detalhes_soma_estoque_entre_centros(factory):
     assert por_cd == {"CD-SP": 5, "CD-RJ": 3}
 
 
+async def test_consultar_detalhes_traz_id_preco_e_imagem_para_o_card(factory):
+    # Correção de 2026-09-29 (Fase 8): esses três campos alimentam o card
+    # rico de produto/cotação no chat (`orchestrator._construir_card_vendas`).
+    async with factory() as session:
+        produto = await _cria_produto(
+            session, preco=Decimal("24900.00"), imagem_url="/api/uploads/produtos/gd15.jpg"
+        )
+        produto_id = produto.id
+    client = SalesCatalogClient(factory)
+
+    dados = await client.consultar_detalhes(produto_id, None, None)
+
+    assert dados.produto_id == produto_id
+    assert dados.preco == Decimal("24900.00")
+    assert dados.imagem_url == "/api/uploads/produtos/gd15.jpg"
+
+
 async def test_consultar_detalhes_com_quantidade_calcula_cotacao(factory):
     async with factory() as session:
         produto = await _cria_produto(session, preco=Decimal("100.00"))

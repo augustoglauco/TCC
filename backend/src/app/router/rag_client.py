@@ -20,7 +20,13 @@ class RAGConnectionError(Exception):
 
 
 class RAGClient(Protocol):
-    async def search(self, query: str, domain: str) -> list[Document]: ...
+    async def search(
+        self,
+        query: str,
+        domain: str,
+        top_k: int = 3,
+        score_threshold: float = 0.35,
+    ) -> list[Document]: ...
 
 
 class NullRAGClient:
@@ -32,5 +38,11 @@ class NullRAGClient:
     testes e para cenários em que não se quer depender do Qdrant.
     """
 
-    async def search(self, query: str, domain: str) -> list[Document]:
+    async def search(
+        self,
+        query: str,
+        domain: str,
+        top_k: int = 3,
+        score_threshold: float = 0.35,
+    ) -> list[Document]:
         return []

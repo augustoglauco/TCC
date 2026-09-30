@@ -49,12 +49,22 @@ class OllamaClient:
         model: str,
         timeout_s: float,
         temperature: float | None = None,
+        num_ctx: int | None = None,
+        top_p: float | None = None,
+        top_k: int | None = None,
+        repeat_penalty: float | None = None,
+        seed: int | None = None,
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._model = model
         self._timeout_s = timeout_s
         self._temperature = temperature
+        self._num_ctx = num_ctx
+        self._top_p = top_p
+        self._top_k = top_k
+        self._repeat_penalty = repeat_penalty
+        self._seed = seed
         self._client = client or httpx.AsyncClient()
 
     @property
@@ -81,10 +91,63 @@ class OllamaClient:
     def temperature(self, value: float | None) -> None:
         self._temperature = value
 
+    @property
+    def num_ctx(self) -> int | None:
+        return self._num_ctx
+
+    @num_ctx.setter
+    def num_ctx(self, value: int | None) -> None:
+        self._num_ctx = value
+
+    @property
+    def top_p(self) -> float | None:
+        return self._top_p
+
+    @top_p.setter
+    def top_p(self, value: float | None) -> None:
+        self._top_p = value
+
+    @property
+    def top_k(self) -> int | None:
+        return self._top_k
+
+    @top_k.setter
+    def top_k(self, value: int | None) -> None:
+        self._top_k = value
+
+    @property
+    def repeat_penalty(self) -> float | None:
+        return self._repeat_penalty
+
+    @repeat_penalty.setter
+    def repeat_penalty(self, value: float | None) -> None:
+        self._repeat_penalty = value
+
+    @property
+    def seed(self) -> int | None:
+        return self._seed
+
+    @seed.setter
+    def seed(self, value: int | None) -> None:
+        self._seed = value
+
     def _build_payload(self, prompt: str, stream: bool, think: bool | None = None) -> dict:
         payload: dict = {"model": self._model, "prompt": prompt, "stream": stream}
+        options: dict = {}
         if self._temperature is not None:
-            payload["options"] = {"temperature": self._temperature}
+            options["temperature"] = self._temperature
+        if self._num_ctx is not None:
+            options["num_ctx"] = self._num_ctx
+        if self._top_p is not None:
+            options["top_p"] = self._top_p
+        if self._top_k is not None:
+            options["top_k"] = self._top_k
+        if self._repeat_penalty is not None:
+            options["repeat_penalty"] = self._repeat_penalty
+        if self._seed is not None:
+            options["seed"] = self._seed
+        if options:
+            payload["options"] = options
         if think is not None:
             payload["think"] = think
         return payload

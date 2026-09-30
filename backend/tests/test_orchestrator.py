@@ -55,6 +55,13 @@ class _FakeLLMClient:
         self._model_ready_exception = model_ready_exception
         self.calls = 0
         self.last_prompt: str | None = None
+        self.temperature = None
+        self.num_ctx = None
+        self.top_p = None
+        self.top_k = None
+        self.repeat_penalty = None
+        self.seed = None
+        self.timeout_s = 30.0
 
     async def generate(self, prompt: str) -> LLMResponse:
         self.calls += 1
@@ -129,7 +136,7 @@ class _FakeRAGClient:
         self._exception = exception
         self.queries: list[str] = []
 
-    async def search(self, query: str, domain: str) -> list[Document]:
+    async def search(self, query: str, domain: str, **kwargs) -> list[Document]:
         self.queries.append(query)
         if self._exception is not None:
             raise self._exception
@@ -1567,6 +1574,132 @@ async def test_vendas_com_produto_identificado_injeta_dados_do_catalogo_no_promp
     assert sales_catalog_client.detalhes_consultados == [(1, None, 2)]
 
 
+async def test_vendas_com_cotacao_gera_card_de_cotacao():
+    # Card rico (Fase 8, correção de 2026-09-29): produto + quantidade
+    # resolvidos vira card "cotacao", não "produto".
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"produto_id": 1, "produto_relacionado_id": null, "quantidade": 2}',
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    candidatos = [CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")]
+    dados = DadosCatalogoVendas(
+        produto_id=1,
+        produto_nome="Gerador Diesel GD-15",
+        preco=Decimal("24900.00"),
+        imagem_url="/api/uploads/produtos/gd15.jpg",
+        estoque_total=8,
+        cotacao=(Decimal("24900.00"), Decimal("10"), Decimal("44820.00")),
+        quantidade=2,
+    )
+    sales_catalog_client = _FakeSalesCatalogClient(candidatos=candidatos, dados=dados)
+
+    eventos = await _coletar_eventos(
+        "Quero cotação de 2 geradores GD-15",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.card is not None
+    assert decisao.card.tipo == "cotacao"
+    assert decisao.card.produto_id == 1
+    assert decisao.card.nome == "Gerador Diesel GD-15"
+    assert decisao.card.quantidade == 2
+    assert decisao.card.subtotal == Decimal("44820.00")
+    assert decisao.card.percentual_desconto == Decimal("10")
+
+
+async def test_vendas_sem_quantidade_gera_card_de_produto():
+    # Sem quantidade informada (sem cotação) → card "produto", não "cotacao".
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"produto_id": 1, "produto_relacionado_id": null, "quantidade": null}',
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    candidatos = [CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")]
+    dados = DadosCatalogoVendas(
+        produto_id=1,
+        produto_nome="Gerador Diesel GD-15",
+        preco=Decimal("24900.00"),
+        imagem_url=None,
+        estoque_total=8,
+    )
+    sales_catalog_client = _FakeSalesCatalogClient(candidatos=candidatos, dados=dados)
+
+    eventos = await _coletar_eventos(
+        "Qual o preço do GD-15?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.card is not None
+    assert decisao.card.tipo == "produto"
+    assert decisao.card.produto_id == 1
+    assert decisao.card.preco == Decimal("24900.00")
+    assert decisao.card.estoque_total == 8
+
+
+async def test_vendas_pergunta_generica_por_categoria_nao_gera_card():
+    # DadosCatalogoCategoria (listagem, não item único) ainda não vira card.
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"produto_id": null, "produto_relacionado_id": null, '
+                '"quantidade": null, "categoria": "geradores"}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(documents=[Document(content="manual", source="m.pdf", score=0.9)])
+    gd15 = CandidatoProduto(id=1, nome="Gerador Diesel GD-15", categoria="geradores")
+    dados_categoria = DadosCatalogoCategoria(
+        categoria="geradores",
+        produtos=[
+            ProdutoNaCategoria(
+                nome="Gerador Diesel GD-15", preco=Decimal("24900.00"), estoque_total=8
+            ),
+        ],
+    )
+    sales_catalog_client = _FakeSalesCatalogClient(
+        candidatos=[gd15],
+        categorias=["geradores"],
+        dados_categoria=dados_categoria,
+    )
+
+    eventos = await _coletar_eventos(
+        "Tem geradores no estoque?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        sales_catalog_client=sales_catalog_client,
+    )
+
+    decisao = eventos[-1]
+    assert decisao.card is None
+
+
 async def test_resumo_da_conversa_vai_para_o_prompt_antes_do_rag():
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())
@@ -2461,6 +2594,12 @@ async def test_handle_agendamento_persiste_registro_no_banco_ao_confirmar():
 
     decisao = eventos[-1]
     assert decisao.motivo_escalonamento == "confirmado"
+    # Card rico de confirmação de agendamento (Fase 8, correção de
+    # 2026-09-29) — mesmos dados já gravados no registro do banco abaixo.
+    assert decisao.card is not None
+    assert decisao.card.tipo == "agendamento"
+    assert decisao.card.data_hora_inicio == futuro
+    assert decisao.card.google_event_link == "https://calendar.google.com/evt-db-123"
 
     async with session_factory() as session:
         result = await session.execute(select(Agendamento).where(Agendamento.conversation_id == "conv-db-1"))

@@ -40,7 +40,7 @@ class _FakeRAGClient:
         self._documents = documents or []
         self.queries: list[str] = []
 
-    async def search(self, query: str, domain: str) -> list[Document]:
+    async def search(self, query: str, domain: str, **kwargs) -> list[Document]:
         self.queries.append(query)
         return self._documents
 

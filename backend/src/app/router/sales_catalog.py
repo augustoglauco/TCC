@@ -64,7 +64,17 @@ class EstoqueCentroDistribuicao(BaseModel):
 
 
 class DadosCatalogoVendas(BaseModel):
+    # `produto_id`/`preco`/`imagem_url` (correção de 2026-09-29, Fase 8):
+    # usados para montar o card rico de produto/cotação no chat
+    # (`orchestrator._construir_card_vendas`) — link para `/produtos/[id]`,
+    # preço de tabela e foto. Opcionais (`None` = sem card) para não quebrar
+    # os testes de formatação de texto que já construíam este modelo sem
+    # eles; `consultar_detalhes` (único caminho de produção) sempre preenche
+    # os três a partir do `Produto` já carregado.
+    produto_id: int | None = None
     produto_nome: str
+    preco: Decimal | None = None
+    imagem_url: str | None = None
     estoque_total: int
     # Detalhe por centro de distribuição (correção de 2026-09-29): o resumo
     # do chat só levava o total somado, então "quanto tem no CD-SP?"/"estoque
@@ -234,7 +244,10 @@ class SalesCatalogClient:
                     produto_relacionado_nome = relacionado.nome
                     compativel = await sao_compativeis(session, produto_id, produto_relacionado_id)
             return DadosCatalogoVendas(
+                produto_id=produto.id,
                 produto_nome=produto.nome,
+                preco=produto.preco,
+                imagem_url=produto.imagem_url,
                 estoque_total=estoque_total,
                 estoque_por_cd=estoque_por_cd,
                 descricao=produto.descricao,

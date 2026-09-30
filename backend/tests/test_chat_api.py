@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.chat import (
+    _sse,
     get_calendar_client,
     get_clip_embedder,
     get_clip_store,
@@ -26,6 +27,7 @@ from app.api.chat import router as chat_router
 from app.db.models import Cliente, ClienteCompra, Conversa
 from app.logging_config import ConversationIdFilter
 from app.memory.store import listar_mensagens
+from app.models.chat import CardAgendamento, CardCotacao, CardProduto, ChatDoneEventData
 from app.rag.image_search import ImageSearchResult
 from app.router.llm_client import LLMResponse, LLMStreamChunk
 from app.router.rag_client import Document
@@ -61,6 +63,13 @@ class _FakeLLMClient:
         self.prompts: list[str] = []
         self._vision_answer = vision_answer
         self.vision_calls = 0
+        self.temperature = None
+        self.num_ctx = None
+        self.top_p = None
+        self.top_k = None
+        self.repeat_penalty = None
+        self.seed = None
+        self.timeout_s = 30.0
 
     async def generate(self, prompt: str) -> LLMResponse:
         self.prompts.append(prompt)
@@ -128,7 +137,7 @@ class _FakeRAGClient:
     def __init__(self, documents: list[Document] | None = None) -> None:
         self._documents = documents if documents is not None else []
 
-    async def search(self, query: str, domain: str) -> list[Document]:
+    async def search(self, query: str, domain: str, **kwargs) -> list[Document]:
         return self._documents
 
 
@@ -1077,5 +1086,47 @@ async def test_usuario_autenticado_com_conversa_anterior_injeta_contexto_anterio
     )
     assert prompt_com_contexto is not None
     assert "Cliente comprou um gerador GD-15 e tirou dúvidas de garantia." in prompt_com_contexto
+
+
+@pytest.mark.parametrize(
+    "card",
+    [
+        CardProduto(
+            produto_id=1, nome="Gerador Diesel GD-15", preco=Decimal("24900.00"), estoque_total=8
+        ),
+        CardCotacao(
+            produto_id=1,
+            nome="Gerador Diesel GD-15",
+            quantidade=2,
+            preco_unitario=Decimal("24900.00"),
+            percentual_desconto=Decimal("10"),
+            subtotal=Decimal("44820.00"),
+        ),
+        CardAgendamento(
+            data_hora_inicio=datetime(2026, 10, 1, 14, 30, tzinfo=UTC),
+            data_hora_fim=datetime(2026, 10, 1, 15, 30, tzinfo=UTC),
+            google_event_link="https://calendar.google.com/evt1",
+        ),
+    ],
+)
+def test_done_event_com_card_serializa_decimal_e_datetime_como_json(card):
+    # Regressão: `Decimal`/`datetime` (campos dos 3 cards) não são
+    # serializáveis por `json.dumps` no modo "python" do Pydantic
+    # (`model_dump()` puro) — precisa de `model_dump(mode="json")`, que
+    # converte ambos para string. Sem isso, o evento SSE `done` quebraria a
+    # cada card (bug pego só neste teste, não nos de `test_orchestrator.py`,
+    # que verificam o objeto Python, nunca o `json.dumps` de verdade).
+    done_data = ChatDoneEventData(
+        domain="vendas",
+        backend_used="local",
+        escalation_reason="nenhum",
+        card=card,
+    )
+
+    bloco_sse = _sse("done", done_data.model_dump(mode="json"))
+
+    tipo, dados = _parse_sse(bloco_sse)[0]
+    assert tipo == "done"
+    assert dados["card"]["tipo"] == card.tipo
 
 

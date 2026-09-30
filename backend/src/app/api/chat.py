@@ -584,7 +584,7 @@ async def send_message(
                 local_client,
                 done_data,
             )
-            yield _sse("done", done_data.model_dump())
+            yield _sse("done", done_data.model_dump(mode="json"))
             return
 
         if so_email:
@@ -605,7 +605,7 @@ async def send_message(
                 local_client,
                 done_data,
             )
-            yield _sse("done", done_data.model_dump())
+            yield _sse("done", done_data.model_dump(mode="json"))
             return
 
         # Alinha a estratégia de classificação ao provedor ativo de intenção:
@@ -644,6 +644,8 @@ async def send_message(
                 dados_cliente=dados_cliente,
                 contexto_conversa_anterior=contexto_anterior,
                 db_sessionmaker=getattr(request.app.state, "db_sessionmaker", None),
+                rag_top_k=getattr(request.app.state, "rag_top_k", 3),
+                rag_score_threshold=getattr(request.app.state, "rag_score_threshold", 0.35),
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
@@ -701,6 +703,7 @@ async def send_message(
                         rag_avg_score=event.rag_avg_score,
                         rag_chunks=event.rag_chunks,
                         router_provider=event.router_provider,
+                        card=event.card,
                     )
                     # Preenche perfil_usuario/perfil_motivo em done_data.
                     await _registrar_troca_segura(
@@ -712,7 +715,7 @@ async def send_message(
                         local_client,
                         done_data,
                     )
-                    yield _sse("done", done_data.model_dump())
+                    yield _sse("done", done_data.model_dump(mode="json"))
         except (
             LocalBackendIndisponivelError,
             ExternalBackendIndisponivelError,

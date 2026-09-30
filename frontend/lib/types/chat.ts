@@ -42,6 +42,39 @@ export interface ChatEscalonamentoData {
   confianca?: number | null;
 }
 
+/**
+ * Cards ricos (Fase 8, correção de 2026-09-29) — dados estruturados vindos
+ * junto do evento `done`, para renderizar em vez de/além do texto puro.
+ * Discriminados por `tipo`, mesmo padrão do backend (`app.models.chat.ChatCard`).
+ */
+export interface ChatCardProduto {
+  tipo: "produto";
+  produto_id: number;
+  nome: string;
+  preco: string;
+  imagem_url?: string | null;
+  estoque_total: number;
+}
+
+export interface ChatCardCotacao {
+  tipo: "cotacao";
+  produto_id: number;
+  nome: string;
+  quantidade: number;
+  preco_unitario: string;
+  percentual_desconto: string;
+  subtotal: string;
+}
+
+export interface ChatCardAgendamento {
+  tipo: "agendamento";
+  data_hora_inicio: string;
+  data_hora_fim: string;
+  google_event_link?: string | null;
+}
+
+export type ChatCard = ChatCardProduto | ChatCardCotacao | ChatCardAgendamento;
+
 export interface ChatMetrics {
   modelName?: string;
   promptTokens?: number;

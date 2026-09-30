@@ -24,11 +24,32 @@ class RuntimeSettingsResponse(BaseModel):
     local_llm_temperature: float | None = Field(
         default=None, description="Temperatura do Ollama; null usa o default do próprio modelo."
     )
+    local_llm_num_ctx: int | None = Field(
+        default=None, description="Tamanho da janela de contexto em tokens do Ollama (num_ctx)."
+    )
+    local_llm_top_p: float | None = Field(
+        default=None, description="Nucleus sampling do Ollama (top_p, 0.0 a 1.0)."
+    )
+    local_llm_top_k: int | None = Field(
+        default=None, description="Top-k sampling do Ollama (top_k, 1 a 500)."
+    )
+    local_llm_repeat_penalty: float | None = Field(
+        default=None, description="Penalidade de repetição do Ollama (repeat_penalty, 0.0 a 3.0)."
+    )
+    local_llm_seed: int | None = Field(
+        default=None, description="Semente aleatória do Ollama para geracao reproduzivel (seed)."
+    )
     local_llm_timeout_s: float = Field(
         ..., description="Timeout da chamada não-streaming ao Ollama (classificação)."
     )
     external_llm_timeout_s: float = Field(
         ..., description="Timeout da chamada não-streaming ao OpenRouter, quando escalada."
+    )
+    rag_top_k: int = Field(
+        default=3, description="Quantidade de trechos de documentos buscados no Qdrant (top-k)."
+    )
+    rag_score_threshold: float = Field(
+        default=0.35, description="Limiar mínimo de similaridade vetorial no Qdrant (0.0 a 1.0)."
     )
     rag_search_domain_fallback: bool = Field(
         ...,
@@ -89,8 +110,15 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     """Atualização parcial — só os campos enviados são alterados."""
 
     local_llm_temperature: float | None = Field(default=None, ge=0.0, le=2.0)
+    local_llm_num_ctx: int | None = Field(default=None, ge=512, le=131072)
+    local_llm_top_p: float | None = Field(default=None, ge=0.0, le=1.0)
+    local_llm_top_k: int | None = Field(default=None, ge=1, le=500)
+    local_llm_repeat_penalty: float | None = Field(default=None, ge=0.0, le=3.0)
+    local_llm_seed: int | None = Field(default=None)
     local_llm_timeout_s: float | None = Field(default=None, gt=0.0, le=300.0)
     external_llm_timeout_s: float | None = Field(default=None, gt=0.0, le=300.0)
+    rag_top_k: int | None = Field(default=None, ge=1, le=20)
+    rag_score_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
     rag_search_domain_fallback: bool | None = None
     crawler_max_pages_default: int | None = Field(default=None, ge=1)
     crawler_confidence_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
@@ -101,3 +129,4 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     intent_router_provider: IntentRouterProvider | None = None
     tone_monitor_enabled: bool | None = None
     tone_monitor_provider: ToneMonitorProvider | None = None
+
