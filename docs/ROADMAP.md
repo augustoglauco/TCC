@@ -490,7 +490,14 @@ conversa e classificação do usuário").
       Zustand `useAuthStore`, página `/conta/login` com contas simuladas
       (Ana Recorrente, Bruno Único, Carla Antiga) e senha mock 12345, página
       `/conta/perfil` com detalhes de relacionamento e pedidos, integração de
-      e-mail ao Chat e aos fluxos de pedidos.
+      e-mail ao Chat e aos fluxos de pedidos. Ampliado em 2026-09-29 (R10):
+      cadastro próprio (`POST /api/auth/register`, página `/conta/cadastro`)
+      e perfil Administrador (e-mail `admin@example.com`/`admin@*`,
+      `GET /api/auth/users` lista todos os usuários) — menu ⚙️ passa a
+      aparecer só para Admins, com atalhos "Gerenciar Usuários"
+      (`/admin/usuarios`, com link "Ver Pedidos" por usuário) e "Criar Nova
+      Conta"; `/pedidos/historico?email=...` ganha modo de inspeção
+      administrativa. Ver decisão em `docs/ARCHITECTURE.md` §5 (2026-09-29).
 - [x] Implementar fluxo de pedidos (carrinho/checkout), cotação B2B e histórico de pedidos
       — API REST no backend (`POST/GET /api/orders`, `POST /api/orders/quote`,
       `POST /api/orders/freight`, migração `0014`), store Zustand `useCartStore`,
@@ -501,6 +508,15 @@ conversa e classificação do usuário").
       alvo do crawler do RAG, R4) — `app/suporte/page.tsx` com FAQ estático
       real (sem API; conteúdo fica pronto para o crawler indexar na Fase 2/3)
 - [x] Implementar gestão e página de Agendamentos (R11, Fase 7) — modelo de dados e migração Alembic `0015` (`agendamentos` com status, origem, datas e vínculos com Google Calendar e chat); extensão do cliente MCP do Google Calendar (`delete_event`, `list_events`, retorno de `google_event_id`); persistência automática no Postgres ao confirmar visita no Chat; endpoints REST da API em `/api/agendamentos` (`/meus`, `/{id}/cancelar`, `/admin`, `/admin/manual`, `/admin/google-events`); página do cliente `/agendamentos` com listagem própria, cancelamento sincronizado com o Google e CTA para o chat; painel administrativo em `/admin/agendamentos` com abas (sistema por usuário com filtros e consulta à agenda corporativa do Google Calendar em tempo real via MCP), modal de agendamento manual com checagem de conflitos e atalho no menu de engrenagem (`AdminGearMenu`).
+      Ampliado em 2026-09-29 (R11): eventos criados pelo sistema passam a ser
+      marcados (`[Sistema]`/`[origem:sistema]`) e a checagem de disponibilidade
+      e a aba "Consulta em Tempo Real" passam a considerar só esses eventos,
+      não qualquer compromisso da agenda; duração padrão da visita sobe de 30
+      para 60 minutos (`DURACAO_VISITA`), com campo `duracao_minutos`
+      configurável no agendamento manual do admin; botões "Agendar Visita
+      pelo Chat" passam a pré-preencher a mensagem com os dados do usuário
+      logado (`useChatStore.openVisitChat`). Ver decisão em
+      `docs/ARCHITECTURE.md` §5 (2026-09-29).
 - [x] Implementar página administrativa de ingestão de documentos
       (`/admin/ingestao`, fora do menu principal; link discreto no rodapé,
       `components/layout/Footer.tsx`) consumindo `POST /api/rag/documents` —

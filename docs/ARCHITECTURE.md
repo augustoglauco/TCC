@@ -532,6 +532,71 @@ Para viabilizar a gestão por usuário, consulta administrativa e cancelamento d
 (c) **Cancelamento Bidirecional:** quando o usuário (ou admin) cancela uma visita (`POST /api/agendamentos/{id}/cancelar`), a linha no banco tem seu status alterado para `"cancelado"` (mantendo histórico) e o cliente MCP dispara a remoção do evento na agenda corporativa via tool `delete_event`.
 (d) **Painel Admin Dual (`/admin/agendamentos`):** divide a visão em duas abas: (1) Agendamentos do Sistema (filtráveis por e-mail e status) e (2) Consulta em Tempo Real da agenda corporativa do Google Calendar via `calendar_client.list_events` (`find_events` do MCP), permitindo também agendamento manual direto pelo admin (`POST /api/agendamentos/admin/manual`) com checagem de conflitos.
 
+**Decisão registrada (Fase 4/7, individualização de eventos do sistema e
+disponibilidade no Google Calendar, R11, 2026-09-29):** a agenda corporativa
+configurada (`CALENDAR_ID`) pode ter compromissos que nada têm a ver com
+visitas agendadas pelo assistente (reuniões internas, eventos pessoais no
+ambiente de demonstração de um único desenvolvedor). Antes,
+`is_time_available` considerava **qualquer** evento no horário pedido como
+"ocupado", então um compromisso alheio ao sistema bloqueava um novo
+agendamento sem relação nenhuma com ele. `GoogleCalendarMCPClient.create_event`
+passa a marcar todo evento que cria com um prefixo `[Sistema]` no `summary` e
+um marcador `[origem:sistema]` na descrição (`is_system_event`);
+`is_time_available` e `list_events` passam a considerar/retornar **somente**
+eventos com essa marcação — um evento "estranho" ao sistema deixa de contar
+como conflito de disponibilidade e não aparece mais na aba "Consulta em
+Tempo Real" do painel admin. `# MVP: risco assumido — um evento criado
+manualmente direto no Google Calendar (fora do sistema) não bloqueia mais um
+novo agendamento pelo chat/admin, podendo colidir na mesma agenda; aceitável
+porque a agenda de demonstração deste TCC é de uso exclusivo do fluxo de
+agendamento — produção precisaria de um calendário dedicado só a visitas, ou
+checar todos os eventos, não só os marcados`. Testado em
+`tests/test_google_calendar_client.py`.
+
+**Decisão registrada (Fase 7/8, duração configurável da visita e
+pré-preenchimento do chat ao agendar, R11, 2026-09-29):** `DURACAO_VISITA`
+(`app.router.scheduling`, usada pelo fluxo de agendamento via chat) passa de
+30 para 60 minutos por padrão. O agendamento manual pelo admin
+(`POST /api/agendamentos/admin/manual`) ganha o campo opcional
+`duracao_minutos` (padrão 60, incrementos de 15 no formulário) — quando
+informado, `data_hora_fim` é calculado a partir dele em vez do fixo de 30
+minutos anterior. No frontend, os botões "Agendar Visita pelo Chat"
+(`/agendamentos`) não abrem mais o chat vazio: `useChatStore.openVisitChat`
+pré-preenche o campo de mensagem com um texto que já leva nome/e-mail do
+usuário logado (ou pede e-mail/nome explicitamente para um visitante
+anônimo), reduzindo a fricção de o assistente ter que perguntar dados que o
+site já conhece.
+
+**Decisão registrada (Fase 7, gestão de usuários e perfil Administrador,
+R10, 2026-09-29):** `POST /api/auth/register` cadastra um novo usuário
+(perfil `Cliente` por padrão, mesma senha mock `12345` do login, que passa a
+aceitar também `admin123`); um e-mail `admin@example.com` ou iniciado em
+`admin@` vira automaticamente perfil `Admin`. Cadastrar um perfil `Admin`
+por qualquer outro e-mail exige que o `requester_email` informado já
+pertença a um usuário `Admin` (ou seja a própria conta demo
+`admin@example.com`), senão a API devolve 403.
+`GET /api/auth/users` lista todos os clientes cadastrados com o perfil já
+calculado, sempre incluindo `admin@example.com` mesmo que ele ainda não
+tenha linha própria no banco (fallback fixo). No frontend, o menu ⚙️
+(`AdminGearMenu`) deixa de aparecer por completo para quem não é `Admin`
+(antes, qualquer usuário via os links de administração); dois itens novos
+para quem é `Admin`: "Gerenciar Usuários" (`/admin/usuarios`, lista/filtra
+usuários por nome/e-mail/perfil com contagem de clientes x admins e um link
+"Ver Pedidos" por usuário) e "Criar Nova Conta" (`/conta/cadastro`).
+`/pedidos/historico` ganha um modo de "inspeção administrativa": com
+`?email=` na URL e o usuário logado sendo `Admin`, mostra o histórico
+daquele e-mail em vez do próprio (banner roxo distinto avisando o modo);
+sem login, a página passa a pedir explicitamente para entrar em vez de
+listar pedidos de ninguém. `# MVP: perfil Admin é heurística por prefixo de
+e-mail (admin@...), sem tabela de permissões/RBAC de verdade;
+POST /api/auth/register confia no requester_email informado pelo próprio
+cliente, sem verificação de sessão real — mesmo modelo de autenticação mock
+usado no resto do projeto (ver decisão de login/cadastro na Fase 7)`.
+Testado em `tests/test_auth_api.py`,
+`frontend/tests/components/AdminUsuariosPage.test.tsx` e
+`frontend/tests/components/AdminGearMenu.test.tsx`.
+
+**Decisão registrada (correção de qualidade, achado ao validar o
 agendamento com API real, 2026-09-23):** `OllamaClient.generate()` (chamada
 não-streaming, usada só pelos três classificadores/extratores de JSON curto
 do backend — `classifier._classify_with_llm`,

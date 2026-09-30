@@ -33,10 +33,14 @@ registrada aqui com o motivo.
 | Home / Institucional | `/` | Apresentação da empresa, chamada para o chat, destaques de produtos/serviços | Não |
 | Produtos (listagem) | `/produtos` | Catálogo com busca e filtro — mesma base de dados usada pelo RAG e pelo MCP B2B (`docs/ARCHITECTURE.md` §6) | Não |
 | Produto (detalhe) | `/produtos/[id]` | Especificações, preço, disponibilidade; ponto de entrada para "perguntar ao chat sobre este produto" | Não |
+| Login | `/conta/login` | Autenticação simplificada mock (contas simuladas ou e-mail próprio, senha mock `12345`/`admin123`) — decisão em `docs/ARCHITECTURE.md` §5 | Não |
+| Cadastro | `/conta/cadastro` | Autoatendimento de novo cadastro (`POST /api/auth/register`); perfil Admin só é aceito com `requester_email` de outro Admin (ou a conta demo `admin@example.com`) — decisão em `docs/ARCHITECTURE.md` §5 (2026-09-29) | Não |
+| Perfil | `/conta/perfil` | Detalhes de relacionamento (perfil Cliente/Lead/Esporádico/Admin) e atalho para o histórico de pedidos | Sim |
 | Pedidos (carrinho/checkout) | `/pedidos` | Fluxo de compra — pode ser iniciado pelo site ou por uma cotação/reserva feita via chat (Vendas + MCP B2B) | Sim |
-| Histórico de pedidos | `/pedidos/historico` | Status e histórico — usa o mesmo ID de cliente que alimenta a classificação Cliente/Lead/Esporádico (R10) | Sim |
+| Histórico de pedidos | `/pedidos/historico` | Status e histórico — usa o mesmo ID de cliente que alimenta a classificação Cliente/Lead/Esporádico (R10). Com `?email=` na URL e o usuário logado sendo Admin, mostra o histórico daquele e-mail em vez do próprio ("inspeção administrativa", decisão de 2026-09-29) | Sim |
 | Agendamentos | `/agendamentos` | Visualizar visitas agendadas do cliente autenticado, desmarcar visitas confirmadas com confirmação (sincronizado com Google Calendar) e CTA para novo agendamento via chat (R11) | Sim |
-| Admin — Agendamentos | `/admin/agendamentos` | Painel administrativo com abas (sistema por usuário com busca e filtros vs consulta à agenda corporativa do Google Calendar em tempo real via MCP) e modal para agendamento manual com validação de conflitos | Sim (`admin`) |
+| Admin — Agendamentos | `/admin/agendamentos` | Painel administrativo com abas (sistema por usuário com busca e filtros vs consulta à agenda corporativa do Google Calendar em tempo real via MCP) e modal para agendamento manual com validação de conflitos — duração da visita configurável (`duracao_minutos`, decisão de 2026-09-29) | Sim (`admin`) |
+| Admin — Usuários | `/admin/usuarios` | Lista/filtra os usuários cadastrados (nome/e-mail/perfil), com contagem de clientes x admins e link "Ver Pedidos" por usuário (`/pedidos/historico?email=...`) — decisão em `docs/ARCHITECTURE.md` §5 (2026-09-29) | Sim (`admin`) |
 | Suporte / Central de Ajuda | `/suporte` | FAQ e documentação de produto — é justamente o conteúdo que o crawler (R4) e o RAG de Suporte/Atendimento (R7) devem indexar | Não |
 | Contato | `/contato` | Dados institucionais, formas de contato alternativas ao chat | Não |
 | **Chat** | widget global (todas as rotas) | Ponto de entrada único para os quatro domínios de atendimento — ver Seção 3 | Não (funciona anônimo; melhora com login) |
@@ -157,6 +161,9 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `POST /api/admin/produtos/catalogo/extrair/stream` | Extração de produtos de catálogos PDF/imagens em SSE (`multipart`: `files`, `provider` `local`\|`external`, `fallback_external`, `page_range` opcional: `1-5`, `2, 5, 8`, `3-`, `-4`), usada pelo `CatalogImportModal` |
 | `POST /api/admin/produtos/upload-temp` , `POST /api/admin/produtos/catalogo/confirmar` | Foto de rascunho da conferência (`temp/`) e gravação em lote dos produtos conferidos (com as fotos movidas para a pasta definitiva e indexadas no CLIP) |
 | `GET /api/uploads/produtos/{arquivo}` , `GET /api/uploads/produtos/temp/{arquivo}` | Serve as fotos de produto (definitivas e de rascunho), com proteção contra path traversal |
+| `POST /api/auth/login` , `GET /api/auth/me` | Autenticação simplificada mock (senha `12345`/`admin123`) e dados do usuário autenticado (perfil calculado a partir do histórico de compras, ou `Admin` fixo por e-mail) |
+| `POST /api/auth/register` | Autocadastro (`{nome, email, password?, perfil?, requester_email?}`); cadastrar perfil `Admin` exige `requester_email` de um Admin já existente (senão `403`) — decisão em `docs/ARCHITECTURE.md` §5 (2026-09-29) |
+| `GET /api/auth/users` | Lista todos os usuários cadastrados com o perfil já calculado, para a página `/admin/usuarios` — decisão em `docs/ARCHITECTURE.md` §5 (2026-09-29) |
 | `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` , `POST /api/orders/quote` , `POST /api/orders/freight` | Criação, consulta, cotação por volume e simulação de frete de pedidos (Fase 7) |
 | `GET /api/agendamentos/meus` , `POST /api/agendamentos/{id}/cancelar` , `GET /api/agendamentos/admin` , `POST /api/agendamentos/admin/manual` , `GET /api/agendamentos/admin/google-events` | Gestão completa de agendamentos, cancelamento sincronizado com o Google Calendar e consulta em tempo real da agenda corporativa via MCP (Fase 7, R11) |
 | `POST /api/rag/documents` | Upload de um PDF/texto (`multipart/form-data`: `file` + `domain` + `collection_id` opcional, default a collection ativa) para ingestão no RAG — usado pela página `/admin/ingestao` (ver `backend/src/app/api/rag.py`) |
@@ -503,7 +510,7 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
 | R7 (domínios) | Indicador de domínio; páginas `/suporte`, `/produtos`, `/agendamentos` refletem os quatro domínios |
 | R8 (monitor de tom) | Banner de transferência para atendente humano |
 | R9 (memória da conversa) | ID de conversa persistido; retomada ao reabrir o widget |
-| R10 (classificação do usuário) | Estado de login/anônimo repassado ao backend; sem UI própria |
+| R10 (classificação do usuário) | Estado de login/anônimo repassado ao backend; páginas `/conta/login`, `/conta/cadastro`, `/conta/perfil`; perfil Admin com menu ⚙️ restrito e página `/admin/usuarios` (gestão de usuários e consulta de pedidos por usuário) |
 | R11 (agendamento) | Card de confirmação no chat; página `/agendamentos` (listagem, cancelamento e CTA chat); painel `/admin/agendamentos` (gestão por usuário, Google Calendar via MCP e agendamento manual) |
 | R12 (MCP B2B) | Card de cotação/reserva no chat quando o roteador aciona o MCP B2B para Vendas |
 

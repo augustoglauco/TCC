@@ -17,6 +17,13 @@ local com ele, sem nenhum token management do lado do backend.
 reautenticação automática por visitante. Endpoint local sem autenticação
 própria (mesmo padrão de Qdrant/Postgres neste protótipo — confiança de rede
 local/docker, não exposto publicamente).
+
+# MVP: disponibilidade (`is_time_available`) e listagem (`list_events`)
+consideram só eventos marcados como criados pelo próprio sistema
+(`is_system_event`, decisão de 2026-09-29, ver docs/ARCHITECTURE.md §5) — um
+evento lançado manualmente direto no Google Calendar não bloqueia mais um
+novo agendamento nem aparece no painel admin, podendo colidir na mesma
+agenda com um evento do sistema.
 """
 
 from contextlib import asynccontextmanager

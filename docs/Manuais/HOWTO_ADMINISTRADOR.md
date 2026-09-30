@@ -8,22 +8,54 @@
 ## 📋 Sumário
 
 1. [📌 Acesso e Visão Geral do Painel Admin](#-acesso-e-visão-geral-do-painel-admin)
-2. [📄 Gestão da Base de Conhecimento e Ingestão (`/admin/ingestao`)](#-gestão-da-base-de-conhecimento-e-ingestão-adminingestao)
-3. [🕸️ Parametrização e Disparo do Web Crawler](#️-parametrização-e-disparo-do-web-crawler)
-4. [🤖 Gerenciamento e Parametrização da IA (`/admin/modelos`)](#-gerenciamento-e-parametrização-da-ia-adminmodelos)
-5. [🛍️ Gestão do Catálogo B2B e Ferramentas MCP](#️-gestão-do-catálogo-b2b-e-ferramentas-mcp)
-6. [📊 Monitor de Tom, Sessões e Atendimento Humano](#-monitor-de-tom-sessões-e-atendimento-humano)
+2. [👥 Gestão de Usuários (`/admin/usuarios`)](#-gestão-de-usuários-adminusuarios)
+3. [📄 Gestão da Base de Conhecimento e Ingestão (`/admin/ingestao`)](#-gestão-da-base-de-conhecimento-e-ingestão-adminingestao)
+4. [🕸️ Parametrização e Disparo do Web Crawler](#️-parametrização-e-disparo-do-web-crawler)
+5. [🤖 Gerenciamento e Parametrização da IA (`/admin/modelos`)](#-gerenciamento-e-parametrização-da-ia-adminmodelos)
+6. [🛍️ Gestão do Catálogo B2B e Ferramentas MCP](#️-gestão-do-catálogo-b2b-e-ferramentas-mcp)
+7. [📊 Monitor de Tom, Sessões e Atendimento Humano](#-monitor-de-tom-sessões-e-atendimento-humano)
 
 ---
 
 ## 📌 Acesso e Visão Geral do Painel Admin
 
-O painel de administração é acessível diretamente pelo menu do site (ícone de engrenagem ⚙️ no cabeçalho ou links no rodapé).
+O painel de administração é acessível pelo menu do site (ícone de engrenagem
+⚙️ no cabeçalho). **Desde 2026-09-29, esse menu só aparece para quem está
+logado com um usuário de perfil `Admin`** (antes, qualquer visitante via os
+links de administração) — faça login em `/conta/login` com um e-mail
+`admin@example.com`/`admin@*` (senha mock `12345` ou `admin123`) para ver a
+engrenagem. Isso restringe a **entrada** pelo menu; as páginas internas
+(`/admin/ingestao`, `/admin/produtos`, `/admin/modelos`) continuam sem
+checagem própria de sessão se acessadas pela URL direta (`# MVP`, ver
+`docs/ARCHITECTURE.md` §5) — só `/admin/usuarios` e `/admin/agendamentos`
+bloqueiam o acesso direto de quem não é Admin.
 
 ### Módulos Principais
-1. **Ingestão de Documentos (`/admin/ingestao`)**: Upload de PDFs, textos de suporte e indexação automatizada de sites via crawler.
-2. **Modelos e Parâmetros (`/admin/modelos`)**: Escolha do modelo de linguagem (LLM) local, ajuste de velocidade/criatividade e regras de transbordo.
-3. **Gestão Operacional**: Monitoramento de conversas, perfilamento de clientes e filas de atendimento.
+1. **Gestão de Usuários (`/admin/usuarios`)**: cadastro e listagem de usuários, promoção a Administrador e consulta de pedidos por usuário.
+2. **Ingestão de Documentos (`/admin/ingestao`)**: Upload de PDFs, textos de suporte e indexação automatizada de sites via crawler.
+3. **Modelos e Parâmetros (`/admin/modelos`)**: Escolha do modelo de linguagem (LLM) local, ajuste de velocidade/criatividade e regras de transbordo.
+4. **Gestão Operacional**: Monitoramento de conversas, perfilamento de clientes e filas de atendimento.
+
+---
+
+## 👥 Gestão de Usuários (`/admin/usuarios`)
+
+Acessível pelo menu ⚙️ → "Gerenciar Usuários" (só visível para quem está logado como Admin).
+
+* **Listagem e filtros**: todos os usuários cadastrados, com busca por nome/e-mail e filtro por perfil (Cliente/Lead/Esporádico/Admin); contadores de total de usuários, admins e clientes no topo.
+* **Ver Pedidos de um usuário**: cada linha da tabela tem um link que abre `/pedidos/historico?email=...` já filtrado para aquele usuário, com um aviso visual roxo de "Modo de Consulta Administrativa" (você está vendo o histórico de outra pessoa, não o seu).
+* **Criar Nova Conta** (menu ⚙️ → "Criar Nova Conta", `/conta/cadastro`): cadastra um novo usuário; só é possível marcar o novo usuário como Admin se quem está cadastrando já for Admin (ou for a conta demo `admin@example.com`) — caso contrário a API recusa (403).
+* **Como virar Admin**: cadastre-se (ou peça para cadastrarem você) com um e-mail iniciado em `admin@` — por exemplo `admin@suaempresa.com` — ou use a conta demo `admin@example.com`. `# MVP`: é uma regra fixa por prefixo de e-mail, não uma tabela de permissões de verdade.
+
+---
+
+## 📅 Gestão de Agendamentos (`/admin/agendamentos`)
+
+Acessível pelo menu ⚙️ (também restrito a Admin). Duas abas:
+
+* **Agendamentos do Sistema**: lista os agendamentos feitos pelo chat ou manualmente pelo admin, com filtro por e-mail e status (confirmado/cancelado); cada um pode ser cancelado (some do Google Calendar também).
+* **Agenda do Google (tempo real)**: consulta ao vivo da agenda corporativa via MCP — mas só mostra os eventos que o **próprio sistema** criou (marcados internamente como `[Sistema]`); um compromisso lançado manualmente direto no Google Calendar não aparece aqui e não conta como conflito de horário para um novo agendamento (`# MVP`, ver `docs/ARCHITECTURE.md` §5, decisão de 2026-09-29).
+* **Agendamento manual**: modal com checagem de conflitos, data/hora de início e **duração em minutos** (padrão 60, incrementos de 15) — antes a duração era sempre fixa em 30 minutos.
 
 ---
 

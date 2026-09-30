@@ -26,14 +26,19 @@ A nossa plataforma foi projetada para oferecer uma experiência completa de comp
 * **Detalhes do Produto (`/produtos/[id]`)**: Veja especificações técnicas, preço, fotos em alta resolução e disponibilidade em estoque.
 * **"Perguntar ao Assistente sobre este Produto"**: Em qualquer página de produto, clique no botão dedicado para abrir o chat tirando dúvidas específicas sobre aquele item de forma instantânea.
 
-### 🛒 2. Pedidos e Carrinho de Compras (`/pedidos`)
+### 👤 2. Conta (`/conta/login`, `/conta/cadastro`, `/conta/perfil`)
+* **Criar conta**: cadastre-se em `/conta/cadastro` com nome, e-mail e senha (senha de demonstração fixa: `12345`).
+* **Login**: entre em `/conta/login` — sem conta, o sistema ainda funciona como visitante anônimo, mas fazendo login o assistente lembra seu histórico de compras e pedidos.
+
+### 🛒 3. Pedidos e Carrinho de Compras (`/pedidos`)
 * **Carrinho de Compras**: Adicione produtos, ajuste quantidades e veja o resumo do seu pedido.
 * **Histórico de Pedidos (`/pedidos/historico`)**: Acompanhe o status dos seus pedidos anteriores (em processamento, enviado, entregue).
 
-### 📅 3. Agendamentos de Visita (`/agendamentos`)
+### 📅 4. Agendamentos de Visita (`/agendamentos`)
 * Visualize a lista de todas as reuniões ou visitas presenciais agendadas entre você e a nossa equipe (marcadas via site ou através do chat assistente).
+* Os botões "Agendar Visita pelo Chat" já abrem o assistente com a mensagem preenchida com seu nome e e-mail (se você estiver logado), para não precisar digitar tudo de novo.
 
-### 📖 4. Central de Suporte e FAQ (`/suporte`)
+### 📖 5. Central de Suporte e FAQ (`/suporte`)
 * Acesse perguntas frequentes, manuais de instrução, políticas de garantia e termos de devolução.
 
 ---
