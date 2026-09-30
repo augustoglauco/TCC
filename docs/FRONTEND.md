@@ -93,9 +93,12 @@ com o histórico recarregado.
   - `ProductCard` (`card.tipo === "produto"`): imagem, nome, preço, badge de
     estoque, link para `/produtos/[id]` — produto único resolvido em Vendas
     sem quantidade informada.
-  - `AppointmentCard` (`card.tipo === "agendamento"`): data/hora formatada,
-    link para `/agendamentos` e para o evento no Google Calendar (quando
-    houver) — só aparece quando a visita é confirmada de verdade (R11).
+  - `AppointmentCard` (`card.tipo === "agendamento"`): data/hora formatada e
+    link para `/agendamentos` — só aparece quando a visita é confirmada de
+    verdade (R11). `# MVP`: o card não expõe o link do evento no Google
+    Calendar ao cliente (pedido explícito, 2026-09-29) — `google_event_link`
+    continua no contrato de dados (`card.google_event_link`), usado só pelo
+    painel `/admin/agendamentos`.
   - `QuoteCard` (`card.tipo === "cotacao"`): produto, quantidade, preço
     unitário, percentual de desconto e subtotal — mesmo produto do
     `ProductCard`, mas com quantidade informada pelo cliente (R12).

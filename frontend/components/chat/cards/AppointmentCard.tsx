@@ -26,16 +26,6 @@ export default function AppointmentCard({ card }: { card: ChatCardAgendamento })
         <Link href="/agendamentos" className="text-blue-700 hover:underline">
           Ver meus agendamentos →
         </Link>
-        {card.google_event_link && (
-          <a
-            href={card.google_event_link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-700 hover:underline"
-          >
-            Ver no Google Calendar ↗
-          </a>
-        )}
       </div>
     </div>
   );

@@ -25,17 +25,13 @@ describe("AppointmentCard", () => {
     );
   });
 
-  it("mostra o link do Google Calendar quando presente", () => {
+  it("nunca mostra link para o Google Calendar, mesmo com google_event_link presente", () => {
+    // Pedido explícito: o card não deve expor o link do Google ao cliente
+    // (correção de 2026-09-29) — o campo continua no contrato de dados
+    // (usado em `/admin/agendamentos`), só não aparece neste card.
     render(<AppointmentCard card={makeCard()} />);
 
-    const link = screen.getByRole("link", { name: "Ver no Google Calendar ↗" });
-    expect(link).toHaveAttribute("href", "https://calendar.google.com/evt1");
-    expect(link).toHaveAttribute("target", "_blank");
-  });
-
-  it("não mostra o link do Google Calendar quando ausente", () => {
-    render(<AppointmentCard card={makeCard({ google_event_link: null })} />);
-
-    expect(screen.queryByText("Ver no Google Calendar ↗")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Google Calendar/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Google/ })).not.toBeInTheDocument();
   });
 });

@@ -1436,7 +1436,11 @@ adicional — reaproveita o `done` já existente:
    `fetchConversationHistory`), mesmo padrão já usado para as métricas.
    `resolveImageUrl`/`formatarPrecoBRL` extraídos como utils pequenos
    (`lib/utils/`), reaproveitando a mesma lógica já usada em
-   `components/products/ProductCard.tsx`.
+   `components/products/ProductCard.tsx`. Correção de 2026-09-29 (pedido
+   explícito): `AppointmentCard` **não** exibe o link do evento no Google
+   Calendar ao cliente — `card.google_event_link` continua no contrato de
+   dados (é consumido pelo painel `/admin/agendamentos`), só não é
+   renderizado neste card do chat.
 
 Testado em `tests/test_orchestrator.py` (card de produto, cotação,
 agendamento confirmado e ausência de card para categoria/catálogo completo),
