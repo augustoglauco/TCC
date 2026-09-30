@@ -396,6 +396,35 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       respondendo (o roteador tem NAT loopback, então o caminho pelo
       roteador foi testado de dentro da rede).
       Ver decisão em `docs/ARCHITECTURE.md` §6
+- [x] Cliente independente de demonstração do MCP B2B (`cliente-b2b/`),
+      projeto Python + Streamlit desacoplado do `backend/` — `src/client.py`
+      (`B2BMCPClient`, sessão assíncrona via SDK `mcp`) consome os recursos
+      (`catalogo://produtos[/{id}]`, `estoque://produtos/{id}`,
+      `precos://produtos/{id}`, `manuais://busca/{domain}?query=`) e as 4
+      ferramentas do servidor real; `src/app.py` é o Portal do Parceiro com
+      abas de catálogo/recursos, cotação, frete, compatibilidade e emissão
+      de pedido, com Modo Desenvolvedor para inspecionar o JSON-RPC bruto.
+      `# MVP: reservar_pedido aplica um único centro de distribuição a todo
+      o carrinho (a ferramenta exige um por item; o cliente não modela
+      split de pedido entre centros)`. Testes em `tests/test_client.py`
+      (mocks da `ClientSession`) e `tests/test_app_helpers.py`. Spec em
+      `docs/superpowers/specs/2026-09-29-cliente-mcp-b2b-design.md` — nota:
+      a primeira implementação (client.py) assumiu URIs/parâmetros
+      genéricos divergentes do servidor real (`app.mcp_server.b2b`); corrigido
+      nesta entrega para usar os nomes/formatos efetivos (ver
+      `docs/ARCHITECTURE.md` §6). Validado ao vivo contra o servidor real
+      (2026-09-30, infra local: Postgres/Qdrant no ar, `scripts/run_mcp_b2b_server.py`
+      em `127.0.0.1:8100`): todos os 4 recursos e as 4 ferramentas
+      responderam corretamente. O teste ao vivo revelou que o SDK `mcp`
+      embrulha um 401 num `MCPError` JSON-RPC genérico sem o código HTTP
+      (mesma limitação documentada em `scripts/cliente_mcp_b2b.py`), então a
+      detecção de chave recusada por *string matching* na mensagem da
+      exceção (que passava nos testes com mocks) nunca disparava contra o
+      servidor real — corrigido com um preflight HTTP cru antes de abrir a
+      sessão MCP (`B2BMCPClient._verificar_autenticacao`), mesma técnica do
+      script de referência. `reservar_pedido` também validado ao vivo (baixa
+      real de estoque conferida antes/depois: CD-SP 12 → 11 após reservar 1
+      unidade do produto 1).
 
 ## Fase 6 — Memória e Classificação do Usuário (R9, R10)
 

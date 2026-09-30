@@ -1531,6 +1531,11 @@ habilitado". A autorização completa (OAuth etc.) continua fora do MVP.
    - Configuração em `infra/caddy/Caddyfile` e passos em `goup.md` ("MCP
      B2B público"). `scripts/cliente_mcp_b2b.py` é um cliente MCP de teste
      que faz o papel do fornecedor, rodando de fora da rede.
+   - `cliente-b2b/` é um segundo cliente de demonstração, independente do
+     backend (projeto Python + Streamlit próprio, sem importar código de
+     `backend/`), usado para apresentar/auditar visualmente os recursos e
+     ferramentas do MCP B2B no TCC — ver
+     `docs/superpowers/specs/2026-09-29-cliente-mcp-b2b-design.md`.
 2. **Chave por parceiro:** `MCP_B2B_PARTNER_KEYS` (só no `.env`, nunca no
    código; formato `nome:chave,nome2:chave2`). O parceiro envia
    `Authorization: Bearer <chave>` em toda requisição, que é o cabeçalho
