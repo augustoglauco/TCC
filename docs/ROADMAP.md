@@ -737,16 +737,26 @@ conversa e classificação do usuário").
       (`_DomainAwareLLMClient`) inspeciona um marcador exclusivo de cada
       prompt de extração para devolver o JSON certo, em vez de uma única
       resposta fixa.
-- [~] Testes E2E do frontend cobrindo os fluxos críticos: chat (texto,
-      imagem, áudio), pedido, login (ver `docs/FRONTEND.md` §6) — fluxo de
-      chat texto e áudio feitos adiantado, junto do widget (Fase 8):
+- [x] Testes E2E do frontend cobrindo os fluxos críticos: chat (texto,
+      imagem, áudio), pedido, login (ver `docs/FRONTEND.md` §6). Chat
+      texto/áudio feitos adiantado, junto do widget (Fase 8):
       `frontend/tests/e2e/chat.spec.ts` (Playwright), cobrindo envio de
       mensagem, erro/retry e gravação de áudio via dispositivo de mídia fake
       do Chromium (`--use-fake-device-for-media-stream` /
       `--use-fake-ui-for-media-stream`, `playwright.config.ts`); `# MVP: mocka
       POST /api/chat/messages via page.route em vez de rodar contra o
-      backend/Ollama/STT reais`. Faltam imagem, pedido e login — dependem de
-      R6/R12 e do fluxo de pedidos (Fase 7) ainda não implementados
+      backend/Ollama/STT reais`. Imagem/pedido/login concluídos agora que
+      R6/R12 e o fluxo de pedidos (Fase 7) já estão implementados:
+      `imagem.spec.ts` (identificação de produto e caso não-identificado, `#
+      MVP: mocka o SSE — não decodifica a imagem de verdade nem chama
+      CLIP/visão externa`), `pedido.spec.ts` (login → carrinho pré-preenchido
+      por `?produto=` → checkout → confirmação; e o gate de login exigido),
+      `login.spec.ts` (login manual, login rápido por conta de demonstração,
+      erro de senha incorreta). Achado ao escrever `imagem.spec.ts`: 2 dos 3
+      testes de `chat.spec.ts` já estavam quebrados
+      (`getByRole("button", {name: "Enviar"})` virou ambíguo — casa também o
+      botão "Enviar imagem" do `ImageUploader`, adicionado depois que esses
+      testes foram escritos) — corrigido com `exact: true` nos 4 specs.
 - [ ] Ajustes de robustez nas frentes mais custosas: RAG multimodal e monitor
       de tom
 - [ ] Revisão de tratamento de erro para dependências externas

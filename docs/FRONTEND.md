@@ -514,6 +514,14 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
   componente do `AudioRecorder` (Vitest) mockam `navigator.mediaDevices.
   getUserMedia` e a classe `MediaRecorder`, que o jsdom não implementa — ver
   `frontend/tests/components/AudioRecorder.test.tsx`.
+  Os outros três fluxos críticos estão em specs próprios, mesmo padrão de
+  mock via `page.route`: `frontend/tests/e2e/imagem.spec.ts` (upload de
+  imagem no chat, identificação de produto e caso não identificado — `# MVP:
+  mocka o SSE, não decodifica a imagem nem chama CLIP/visão externa`),
+  `frontend/tests/e2e/pedido.spec.ts` (login → carrinho pré-preenchido via
+  `?produto=` → checkout → confirmação de pedido; e o gate de login exigido
+  para acessar `/pedidos`) e `frontend/tests/e2e/login.spec.ts` (login
+  manual, login rápido por conta de demonstração, erro de senha incorreta).
   Existe também um **smoke test manual** (`frontend/tests/smoke/chat.smoke.spec.ts`,
   `npm run test:e2e:smoke`, config separada `playwright.smoke.config.ts`) que
   bate no backend e no Ollama reais, sem mock — exige os dois rodando

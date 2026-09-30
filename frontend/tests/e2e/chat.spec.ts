@@ -36,7 +36,7 @@ test("envia mensagem de texto e exibe a resposta do assistente", async ({ page }
   await page.getByRole("button", { name: "Abrir chat" }).click();
 
   await page.getByLabel("Mensagem").fill("Quero agendar uma visita");
-  await page.getByRole("button", { name: "Enviar" }).click();
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
 
   await expect(page.getByText("Posso ajudar a agendar sua visita.")).toBeVisible();
   await expect(page.getByTestId("message-domain-label")).toHaveText("Agendamento");
@@ -68,7 +68,7 @@ test("mostra erro com opção de tentar novamente quando a API falha", async ({ 
   await page.getByRole("button", { name: "Abrir chat" }).click();
 
   await page.getByLabel("Mensagem").fill("Quero agendar uma visita");
-  await page.getByRole("button", { name: "Enviar" }).click();
+  await page.getByRole("button", { name: "Enviar", exact: true }).click();
 
   await expect(page.getByTestId("chat-error")).toContainText("temporariamente indisponível");
 
