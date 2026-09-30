@@ -30,9 +30,17 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Protocol
 
+import httpx
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from mcp.shared._httpx_utils import create_mcp_http_client
+
+# Timeout padrão do SDK `mcp` para leitura (`create_mcp_http_client` sem
+# `timeout`) é 300s — alto demais para um dependência de turno de chat.
+# `GoogleCalendarMCPClient` sempre recebe um valor explícito
+# (`Settings.calendar_mcp_timeout_s`); esta constante só cobre quem
+# instancia a classe direto sem passar `timeout_s` (ex.: testes antigos).
+DEFAULT_TIMEOUT_S = 15.0
 
 
 class GoogleCalendarConnectionError(Exception):
@@ -84,16 +92,19 @@ class GoogleCalendarMCPClient:
         self,
         mcp_server_url: str,
         calendar_id: str,
+        timeout_s: float = DEFAULT_TIMEOUT_S,
         session_factory=None,
     ) -> None:
         self._mcp_server_url = mcp_server_url
         self._calendar_id = calendar_id
+        self._timeout_s = timeout_s
         self._session_factory = session_factory or self._default_session_factory
 
     def _default_session_factory(self):
         @asynccontextmanager
         async def factory():
-            async with create_mcp_http_client() as http_client:
+            timeout = httpx.Timeout(self._timeout_s)
+            async with create_mcp_http_client(timeout=timeout) as http_client:
                 async with streamable_http_client(
                     self._mcp_server_url, http_client=http_client
                 ) as (read_stream, write_stream):

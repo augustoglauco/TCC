@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
-from app.ocr.image_processor import OcrIndisponivelError
+from app.ocr.image_processor import MAX_IMAGE_BYTES, OcrIndisponivelError
 from app.rag.clip_embedder import CLIP_VECTOR_DIMENSION
 
 # ---------------------------------------------------------------------------
@@ -93,6 +93,22 @@ def test_ingest_image_formato_invalido(client_with_fake_clip):
         files={"file": ("doc.txt", b"texto puro", "text/plain")},
     )
     assert resp.status_code == 400
+
+
+def test_ingest_image_excede_tamanho_maximo_retorna_413(client_with_fake_clip):
+    """Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): antes,
+    nenhum endpoint de imagem tinha limite de tamanho — o corpo inteiro ia
+    para a memória sem teto. PNG válido (magic bytes corretos) só grande
+    demais, para confirmar que o tamanho é checado antes/independente do
+    formato."""
+    client, _ = client_with_fake_clip
+    imagem_grande = b"\x89PNG\r\n\x1a\n" + b"0" * MAX_IMAGE_BYTES
+    resp = client.post(
+        "/api/rag/images",
+        data={"domain": "vendas"},
+        files={"file": ("produto.png", imagem_grande, "image/png")},
+    )
+    assert resp.status_code == 413
 
 
 # ---------------------------------------------------------------------------
@@ -473,6 +489,70 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400(db_session):
     resp = client.post("/api/chat/messages", json={"image": lixo_b64})
 
     assert resp.status_code == 400
+
+
+def test_chat_imagem_excede_tamanho_maximo_no_fluxo_de_identificacao_retorna_413(db_session):
+    """Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): mesmo teto
+    de tamanho do upload de catálogo (`test_ingest_image_excede_tamanho_maximo_retorna_413`),
+    agora no fluxo de identificação de imagem do chat — magic bytes de PNG
+    válidos, só grande demais."""
+    from unittest.mock import AsyncMock, MagicMock
+
+    from fastapi import FastAPI
+    from qdrant_client import AsyncQdrantClient
+
+    from app.api.chat import (
+        get_calendar_client,
+        get_clip_embedder,
+        get_clip_store,
+        get_complexity_strategy,
+        get_external_client,
+        get_local_client,
+        get_rag_client,
+        get_rag_client_admin,
+        get_sales_catalog_client,
+        get_scheduling_config,
+        get_stt_client,
+    )
+    from app.api.chat import router as chat_router
+    from app.api.rag_dependencies import get_db_session
+    from app.ocr.image_processor import MAX_IMAGE_BYTES
+    from app.rag.clip_embedder import ClipEmbedder
+    from app.rag.image_search import ClipImageStore
+
+    app = FastAPI()
+    app.include_router(chat_router)
+
+    real_store = ClipImageStore(AsyncQdrantClient(location=":memory:"))
+    real_embedder = ClipEmbedder()
+
+    dummy_llm = MagicMock()
+    dummy_llm.is_model_ready = AsyncMock(return_value=True)
+    dummy_rag = MagicMock()
+    dummy_rag.search = AsyncMock(return_value=[])
+    dummy_stt = MagicMock()
+    dummy_stt.transcribe = AsyncMock(return_value="")
+
+    app.dependency_overrides[get_local_client] = lambda: dummy_llm
+    app.dependency_overrides[get_external_client] = lambda: dummy_llm
+    app.dependency_overrides[get_rag_client] = lambda: dummy_rag
+    app.dependency_overrides[get_rag_client_admin] = lambda: dummy_rag
+    app.dependency_overrides[get_stt_client] = lambda: dummy_stt
+    app.dependency_overrides[get_clip_store] = lambda: real_store
+    app.dependency_overrides[get_clip_embedder] = lambda: real_embedder
+    app.dependency_overrides[get_complexity_strategy] = lambda: "heuristic"
+    app.dependency_overrides[get_calendar_client] = lambda: None
+    app.dependency_overrides[get_scheduling_config] = lambda: None
+    app.dependency_overrides[get_sales_catalog_client] = lambda: None
+    app.dependency_overrides[get_db_session] = lambda: db_session
+    app.state.image_internal_confidence = 0.30
+    app.state.image_external_confidence = 0.80
+    client = TestClient(app)
+
+    imagem_grande = base64.b64encode(b"\x89PNG\r\n\x1a\n" + b"0" * MAX_IMAGE_BYTES).decode()
+    resp = client.post("/api/chat/messages", json={"image": imagem_grande})
+
+    assert resp.status_code == 413
 
 
 async def test_chat_identificacao_por_imagem_grava_a_troca_na_memoria(monkeypatch, db_session):

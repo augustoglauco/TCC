@@ -37,10 +37,12 @@ from app.models.runtime_settings import (
     DEFAULT_TONE_MONITOR_PROVIDER,
 )
 from app.ocr.image_processor import (
+    MAX_IMAGE_BYTES,
     ImageFormatError,
     OcrIndisponivelError,
     detect_image_format,
     extract_text_from_base64,
+    imagem_excede_tamanho_maximo,
 )
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.image_identification import identify_product_by_image
@@ -497,6 +499,17 @@ async def send_message(
             raise HTTPException(
                 status_code=400,
                 detail="Formato de imagem não suportado. Use PNG, JPG ou WEBP.",
+            )
+        # Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): mesmo
+        # teto de tamanho de `_validate_image` (app.api.image_search) —
+        # sem isso, uma imagem grande ia inteira para a memória sem limite.
+        if imagem_excede_tamanho_maximo(identificacao_image_bytes):
+            raise HTTPException(
+                status_code=413,
+                detail=(
+                    "Imagem excede o tamanho máximo permitido "
+                    f"({MAX_IMAGE_BYTES // (1024 * 1024)}MB)."
+                ),
             )
 
     contexto = await _carregar_contexto_seguro(request.app.state, conversation_id)

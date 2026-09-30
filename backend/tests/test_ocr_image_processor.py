@@ -6,11 +6,13 @@ import io
 import pytest
 
 from app.ocr.image_processor import (
+    MAX_IMAGE_BYTES,
     ImageFormatError,
     OcrIndisponivelError,
     detect_image_format,
     extract_text_from_base64,
     extract_text_from_bytes,
+    imagem_excede_tamanho_maximo,
 )
 
 # --- detect_image_format ---
@@ -38,6 +40,21 @@ def test_detect_unknown_returns_none():
 def test_formato_invalido_levanta_image_format_error():
     with pytest.raises(ImageFormatError):
         extract_text_from_bytes(b"\x00\x01\x02\x03")
+
+
+def test_imagem_excede_tamanho_maximo():
+    assert imagem_excede_tamanho_maximo(b"0" * (MAX_IMAGE_BYTES + 1)) is True
+    assert imagem_excede_tamanho_maximo(b"0" * MAX_IMAGE_BYTES) is False
+
+
+def test_imagem_grande_demais_levanta_image_format_error_antes_de_checar_formato():
+    """Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): sem este
+    teto, o corpo inteiro (magic bytes válidos ou não) ia para a memória sem
+    limite. PNG válido, só grande demais, para confirmar que o tamanho é
+    checado independente do formato."""
+    imagem_grande = b"\x89PNG\r\n\x1a\n" + b"0" * MAX_IMAGE_BYTES
+    with pytest.raises(ImageFormatError, match="tamanho máximo"):
+        extract_text_from_bytes(imagem_grande)
 
 
 def test_ocr_extrai_texto_de_imagem_png(tmp_path):

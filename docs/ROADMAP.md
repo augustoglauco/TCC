@@ -757,9 +757,50 @@ conversa e classificação do usuário").
       (`getByRole("button", {name: "Enviar"})` virou ambíguo — casa também o
       botão "Enviar imagem" do `ImageUploader`, adicionado depois que esses
       testes foram escritos) — corrigido com `exact: true` nos 4 specs.
-- [ ] Ajustes de robustez nas frentes mais custosas: RAG multimodal e monitor
-      de tom
-- [ ] Revisão de tratamento de erro para dependências externas
+- [x] Ajustes de robustez nas frentes mais custosas: RAG multimodal e monitor
+      de tom — e revisão de tratamento de erro para dependências externas
+      (os dois itens abaixo, escopados e resolvidos juntos: a investigação
+      cobriu as duas frentes de uma vez). Levantamento prévio (subagente de
+      pesquisa) achou a maior parte já bem tratada — timeouts configurados,
+      exceções tipadas por dependência (`RAGConnectionError`,
+      `VisionModelIndisponivelError`, `GoogleCalendarConnectionError`,
+      `LocalBackendIndisponivelError`/`ExternalBackendIndisponivelError`),
+      Monitor de Tom já roda em paralelo com a classificação
+      (`asyncio.TaskGroup`) e já degrada com segurança em qualquer exceção,
+      não só JSON malformado — não mexido, para não relitigar o que já
+      funciona. 4 gaps genuínos encontrados e corrigidos:
+      1. **MCP do Google Calendar sem timeout explícito** — herdava o
+         timeout de leitura padrão do SDK `mcp` (300s); um
+         `calendar-mcp-server` travado (não caído, só sem responder) podia
+         prender um turno de agendamento por minutos. Novo
+         `Settings.calendar_mcp_timeout_s` (15s), passado a
+         `GoogleCalendarMCPClient` → `create_mcp_http_client`. Teste em
+         `tests/test_google_calendar_client.py`.
+      2. **Carga/inferência do CLIP sem timeout** — única dependência
+         externa do projeto sem teto de tempo nenhum; um primeiro uso sem o
+         modelo em cache (download) ou uma inferência patológica travava a
+         requisição indefinidamente. Novo `Settings.clip_timeout_s` (30s) em
+         `ClipEmbedder`, via `asyncio.wait_for` sobre o `asyncio.to_thread`
+         (não mata a thread — Python não permite —, só para de esperar por
+         ela) — timeout vira `RAGConnectionError`, já tratado nos endpoints
+         existentes. Teste em `tests/test_rag_clip.py`.
+      3. **Sem limite de tamanho em upload de imagem** — nenhum dos
+         endpoints de imagem (ingestão de catálogo, busca, identificação no
+         chat, OCR) checava tamanho: o corpo inteiro ia pra memória sem
+         teto, risco real de OOM/DoS. Novo `imagem_excede_tamanho_maximo`
+         (`app.ocr.image_processor`, `MAX_IMAGE_BYTES=10MB`), checado em
+         `_validate_image` (`app.api.image_search`), no fluxo de
+         identificação de `app.api.chat` e dentro de
+         `extract_text_from_bytes` (cobre OCR). Testes em
+         `tests/test_image_api.py`/`test_ocr_image_processor.py`.
+      4. Monitor de Tom: os dois `except Exception` (LLM local e Jev) só
+         logavam `str(exc)`, sem o tipo — uma falha de infraestrutura de
+         verdade (Ollama fora do ar) e um bug de programação inesperado
+         ficavam indistinguíveis no log. Adicionado `tipo: type(exc).__name__`
+         em ambos.
+      Nenhuma simplificação de MVP já documentada em `docs/ARCHITECTURE.md`
+      §7 foi contestada — só gaps de implementação não discutidos antes,
+      por isso sem decisão nova ali.
 - [x] Investigar resposta vazia de `OllamaClient.generate_stream()` com
       modelos com capability `thinking` — achado durante a verificação E2E
       do Monitor de Tom (2026-09-24, não é bug do Monitor de Tom em si).

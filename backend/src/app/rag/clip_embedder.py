@@ -14,8 +14,20 @@ import threading
 
 from sentence_transformers import SentenceTransformer
 
+from app.router.rag_client import RAGConnectionError
+
 CLIP_MODEL_NAME = "clip-ViT-B-32"
 CLIP_VECTOR_DIMENSION = 512
+
+# Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): ao contrário de
+# toda outra dependência externa deste projeto (Qdrant, LLM local/externo,
+# MCP do calendário), a carga/inferência do CLIP rodava sem nenhum teto de
+# tempo — um primeiro uso sem o modelo em cache local (download) ou uma
+# imagem patológica travaria a requisição indefinidamente. `asyncio.wait_for`
+# não mata a thread do `asyncio.to_thread` (Python não permite cancelar uma
+# thread), só para de esperar por ela — a thread termina sozinha em segundo
+# plano; suficiente para não travar o turno do chat.
+DEFAULT_TIMEOUT_S = 30.0
 
 
 class InvalidImageError(Exception):
@@ -35,8 +47,11 @@ class ClipEmbedder:
     separada para não bloquear o event loop.
     """
 
-    def __init__(self, model_name: str = CLIP_MODEL_NAME) -> None:
+    def __init__(
+        self, model_name: str = CLIP_MODEL_NAME, timeout_s: float = DEFAULT_TIMEOUT_S
+    ) -> None:
         self._model_name = model_name
+        self._timeout_s = timeout_s
         self._model: SentenceTransformer | None = None
         self._load_lock = threading.Lock()
 
@@ -68,14 +83,22 @@ class ClipEmbedder:
         vectors = model.encode(texts, convert_to_numpy=True)
         return [v.tolist() for v in vectors]
 
+    async def _run_com_timeout(self, func, *args):
+        try:
+            return await asyncio.wait_for(asyncio.to_thread(func, *args), timeout=self._timeout_s)
+        except TimeoutError as exc:
+            raise RAGConnectionError(
+                f"CLIP não respondeu em {self._timeout_s}s (carga do modelo ou inferência)."
+            ) from exc
+
     async def embed_images(self, images_bytes: list[bytes]) -> list[list[float]]:
         """Gera um embedding CLIP por imagem (bytes PNG/JPG/WEBP)."""
         if not images_bytes:
             return []
-        return await asyncio.to_thread(self._embed_images_sync, images_bytes)
+        return await self._run_com_timeout(self._embed_images_sync, images_bytes)
 
     async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Gera um embedding CLIP por texto (mesmo espaço vetorial das imagens)."""
         if not texts:
             return []
-        return await asyncio.to_thread(self._embed_texts_sync, texts)
+        return await self._run_com_timeout(self._embed_texts_sync, texts)

@@ -86,6 +86,10 @@ class Settings(BaseSettings):
     # Default da lib qdrant-client é 5s; em dev (WSL2), resolver "localhost"
     # às vezes demora mais que isso (ver `app/rag/qdrant_client.py`).
     qdrant_timeout_s: float = 10.0
+    # Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): ao contrário
+    # das outras dependências externas, a carga/inferência do CLIP não tinha
+    # teto de tempo nenhum (ver `app/rag/clip_embedder.py`).
+    clip_timeout_s: float = 30.0
     rag_top_k: int = 3
     rag_score_threshold: float = 0.35
     # MVP: desligado por padrão — o comportamento documentado em
@@ -128,6 +132,14 @@ class Settings(BaseSettings):
     # por este backend.
     calendar_mcp_url: str = "http://127.0.0.1:8090/mcp"
     google_calendar_calendar_id: str = "primary"
+    # Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): sem isso, o
+    # cliente MCP herda o timeout de leitura padrão do SDK `mcp` (300s) — um
+    # `calendar-mcp-server` travado (não caído, só sem responder) poderia
+    # prender um turno de agendamento por até 5 minutos antes de cair em
+    # `GoogleCalendarConnectionError`. Mesma ordem de grandeza dos outros
+    # timeouts de dependência externa deste projeto (qdrant_timeout_s,
+    # local/external_llm_timeout_s), não o padrão do SDK.
+    calendar_mcp_timeout_s: float = 15.0
 
     # --- Validação de horário do agendamento (R11, Fase 4A) ---
     agendamento_timezone: str = "America/Sao_Paulo"

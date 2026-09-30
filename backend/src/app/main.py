@@ -144,7 +144,7 @@ def create_app() -> FastAPI:
 
     # CLIP para busca multimodal por imagem (R6, Fase 3) — singleton lazy,
     # mesmo padrão dos outros clientes de infraestrutura.
-    app.state.clip_embedder = ClipEmbedder()
+    app.state.clip_embedder = ClipEmbedder(timeout_s=settings.clip_timeout_s)
     app.state.clip_image_store = ClipImageStore(app.state.qdrant_client.async_client)
 
     app.state.complexity_strategy = settings.router_complexity_strategy
@@ -176,6 +176,7 @@ def create_app() -> FastAPI:
     app.state.calendar_client = GoogleCalendarMCPClient(
         mcp_server_url=settings.calendar_mcp_url,
         calendar_id=settings.google_calendar_calendar_id,
+        timeout_s=settings.calendar_mcp_timeout_s,
     )
     app.state.scheduling_config = SchedulingConfig(
         timezone=settings.agendamento_timezone,

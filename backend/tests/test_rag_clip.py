@@ -68,6 +68,24 @@ async def test_clip_embed_images_bytes_invalidos_levanta_erro_tipado():
         await embedder.embed_images([b"isto-nao-e-uma-imagem"])
 
 
+async def test_clip_embed_com_timeout_levanta_rag_connection_error(monkeypatch):
+    """Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): ao
+    contrário das outras dependências externas, a carga/inferência do CLIP
+    não tinha nenhum teto de tempo — uma inferência lenta (ou um primeiro uso
+    baixando o modelo) travaria a requisição indefinidamente. Não precisa de
+    GPU: substitui o método síncrono por um que demora mais que o timeout
+    configurado, sem tocar no modelo real."""
+    import time
+
+    from app.router.rag_client import RAGConnectionError
+
+    embedder = ClipEmbedder(timeout_s=0.05)
+    monkeypatch.setattr(embedder, "_embed_texts_sync", lambda texts: (time.sleep(0.5), [[0.0]])[1])
+
+    with pytest.raises(RAGConnectionError):
+        await embedder.embed_texts(["gerador a diesel"])
+
+
 # ---------------------------------------------------------------------------
 # ClipImageStore (com Qdrant em memória)
 # ---------------------------------------------------------------------------

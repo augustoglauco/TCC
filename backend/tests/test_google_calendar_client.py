@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
 
+import httpx
 import pytest
 
+import app.mcp_client.google_calendar as google_calendar_module
 from app.mcp_client.google_calendar import GoogleCalendarConnectionError, GoogleCalendarMCPClient
 
 
@@ -40,6 +42,52 @@ def _client(session: _FakeMCPSession) -> GoogleCalendarMCPClient:
         calendar_id="primary",
         session_factory=_fake_session_factory(session),
     )
+
+
+async def test_default_session_factory_aplica_timeout_configurado(monkeypatch):
+    """Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): sem passar
+    `timeout` explícito, `create_mcp_http_client` usa o timeout de leitura
+    padrão do SDK `mcp` (300s) — um `calendar-mcp-server` travado poderia
+    prender um turno de agendamento por minutos. `timeout_s` do construtor
+    precisa chegar de fato ao `httpx.AsyncClient` usado pela sessão MCP."""
+    capturado: dict = {}
+
+    @asynccontextmanager
+    async def fake_create_mcp_http_client(timeout=None, **kwargs):
+        capturado["timeout"] = timeout
+        yield object()
+
+    @asynccontextmanager
+    async def fake_streamable_http_client(url, http_client=None):
+        yield (object(), object())
+
+    class _FakeSession:
+        async def initialize(self):
+            return None
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc_info):
+            return False
+
+    monkeypatch.setattr(
+        google_calendar_module, "create_mcp_http_client", fake_create_mcp_http_client
+    )
+    monkeypatch.setattr(
+        google_calendar_module, "streamable_http_client", fake_streamable_http_client
+    )
+    monkeypatch.setattr(
+        google_calendar_module, "ClientSession", lambda *args, **kwargs: _FakeSession()
+    )
+
+    client = GoogleCalendarMCPClient(
+        mcp_server_url="http://127.0.0.1:8090/mcp", calendar_id="primary", timeout_s=7.5
+    )
+    async with client._session_factory():
+        pass
+
+    assert capturado["timeout"] == httpx.Timeout(7.5)
 
 
 async def test_is_time_available_true_quando_nao_ha_eventos():

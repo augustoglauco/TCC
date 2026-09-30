@@ -128,9 +128,20 @@ async def _analyze_with_llm(
         # aplicada por _analyze_with_jev acima). Achado na integração da
         # Task 7: antes deste fix, uma falha de conexão aqui propagava crua
         # em vez de degradar como um erro de parsing já degradava.
+        # `tipo` ao lado de `erro` (achado na revisão de robustez da Fase 9,
+        # docs/ROADMAP.md): sem ele, uma falha de infraestrutura de verdade
+        # (ex.: `ConnectionError` do Ollama fora do ar) e um bug de programação
+        # inesperado (ex.: `AttributeError` num `llm_client` malformado) ficam
+        # indistinguíveis no log, ambos só como uma string de erro.
         logger.warning(
             "llm_tom_falhou_fallback_degradado",
-            extra={"router": {"event": "llm_tom_falha_fallback", "erro": str(exc)}},
+            extra={
+                "router": {
+                    "event": "llm_tom_falha_fallback",
+                    "tipo": type(exc).__name__,
+                    "erro": str(exc),
+                }
+            },
         )
         return ToneResult(
             escalate=False,
@@ -159,7 +170,13 @@ async def _analyze_with_jev(
     except Exception as exc:
         logger.warning(
             "jev_tom_falhou_fallback_heuristica",
-            extra={"router": {"event": "jev_tom_falha_fallback", "erro": str(exc)}},
+            extra={
+                "router": {
+                    "event": "jev_tom_falha_fallback",
+                    "tipo": type(exc).__name__,
+                    "erro": str(exc),
+                }
+            },
         )
         return ToneResult(
             escalate=False,

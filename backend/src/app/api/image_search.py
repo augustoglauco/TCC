@@ -9,7 +9,11 @@ import logging
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
 from app.models.rag import RagDomain
-from app.ocr.image_processor import detect_image_format
+from app.ocr.image_processor import (
+    MAX_IMAGE_BYTES,
+    detect_image_format,
+    imagem_excede_tamanho_maximo,
+)
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.image_identification import ImageIdentificationResult, identify_product_by_image
 from app.rag.image_search import ClipImageStore, ImageSearchResult
@@ -39,6 +43,14 @@ def _get_rag_client(request: Request) -> RAGClient:
 
 
 def _validate_image(content: bytes, filename: str) -> None:
+    if imagem_excede_tamanho_maximo(content):
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"Imagem '{filename}' excede o tamanho máximo permitido "
+                f"({MAX_IMAGE_BYTES // (1024 * 1024)}MB)."
+            ),
+        )
     fmt = detect_image_format(content)
     if fmt not in _ACCEPTED_FORMATS:
         raise HTTPException(

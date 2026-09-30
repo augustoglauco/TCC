@@ -20,6 +20,17 @@ _MAGIC: dict[bytes, str] = {
     b"RIFF": "WEBP",  # RIFF????WEBP
 }
 
+# Achado na revisão de robustez da Fase 9 (docs/ROADMAP.md): nenhum endpoint
+# de imagem (upload de catálogo, OCR, identificação de produto no chat) tinha
+# limite de tamanho — o corpo inteiro ia para a memória sem nenhum teto,
+# risco real de OOM/DoS. 10MB cobre com folga qualquer foto de catálogo ou
+# comprovante realista.
+MAX_IMAGE_BYTES = 10 * 1024 * 1024
+
+
+def imagem_excede_tamanho_maximo(data: bytes) -> bool:
+    return len(data) > MAX_IMAGE_BYTES
+
 
 def detect_image_format(data: bytes) -> str | None:
     """Detecta o formato da imagem pelos magic bytes. Retorna 'JPEG', 'PNG',
@@ -51,6 +62,10 @@ def extract_text_from_bytes(image_bytes: bytes) -> str:
     Levanta `ImageFormatError` para formato inválido/corrompido e
     `OcrIndisponivelError` se o Tesseract não estiver disponível.
     """
+    if imagem_excede_tamanho_maximo(image_bytes):
+        raise ImageFormatError(
+            f"Imagem excede o tamanho máximo permitido ({MAX_IMAGE_BYTES // (1024 * 1024)}MB)."
+        )
     fmt = _detect_format(image_bytes)
     if fmt is None:
         raise ImageFormatError("Formato de imagem não suportado. Use PNG, JPG ou WEBP.")
