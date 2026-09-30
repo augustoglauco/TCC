@@ -52,11 +52,12 @@ describe("AdminGearMenu", () => {
 
     const gerenciarUsuariosLink = screen.getByRole("menuitem", { name: /gerenciar usuários/i });
     const ingestaoLink = screen.getByRole("menuitem", { name: /ingestão de documentos/i });
-    const modelosLink = screen.getByRole("menuitem", { name: /administração geral/i });
+    const modelosLink = screen.getByRole("menuitem", { name: /administração ai/i });
 
     expect(gerenciarUsuariosLink).toHaveAttribute("href", "/admin/usuarios");
     expect(ingestaoLink).toHaveAttribute("href", "/admin/ingestao");
     expect(modelosLink).toHaveAttribute("href", "/admin/modelos");
+    expect(screen.queryByRole("menuitem", { name: /criar nova conta/i })).not.toBeInTheDocument();
   });
 
   it("fecha o menu ao clicar em um link", async () => {

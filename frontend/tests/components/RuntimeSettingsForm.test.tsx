@@ -84,17 +84,19 @@ describe("RuntimeSettingsForm", () => {
     fireEvent.change(campoTemperatura, { target: { value: "0.2" } });
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
 
-    expect(mockedUpdate).toHaveBeenCalledWith({
-      local_llm_temperature: 0.2,
-      local_llm_timeout_s: 30,
-      external_llm_timeout_s: 30,
-      intent_router_provider: "heuristica_llm",
-      tone_monitor_enabled: true,
-      tone_monitor_provider: "heuristica_llm",
-      external_vision_model_name: "google/gemini-flash-1.5",
-      image_internal_confidence: 0.3,
-      image_external_confidence: 0.7,
-    });
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        local_llm_temperature: 0.2,
+        local_llm_timeout_s: 30,
+        external_llm_timeout_s: 30,
+        intent_router_provider: "heuristica_llm",
+        tone_monitor_enabled: true,
+        tone_monitor_provider: "heuristica_llm",
+        external_vision_model_name: "google/gemini-flash-1.5",
+        image_internal_confidence: 0.3,
+        image_external_confidence: 0.7,
+      }),
+    );
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
   });
 

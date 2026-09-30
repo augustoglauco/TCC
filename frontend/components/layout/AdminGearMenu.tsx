@@ -87,33 +87,14 @@ export default function AdminGearMenu() {
           </div>
           <div className="py-1">
             <Link
-              href="/admin/usuarios"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-semibold text-purple-700 bg-purple-50/50 hover:bg-purple-100"
-            >
-              <span className="text-base">👥</span>
-              <span>Gerenciar Usuários</span>
-            </Link>
-            <Link
-              href="/conta/cadastro"
+              href="/admin/modelos"
               role="menuitem"
               onClick={() => setIsOpen(false)}
               className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
             >
-              <span className="text-base">➕</span>
-              <span>Criar Nova Conta</span>
+              <span className="text-base">⚙️</span>
+              <span>Administração AI</span>
             </Link>
-            <Link
-              href="/admin/agendamentos"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">📅</span>
-              <span>Gestão de Agendamentos</span>
-            </Link>
-            <div className="my-1 border-t border-gray-100" />
             <Link
               href="/admin/produtos"
               role="menuitem"
@@ -124,6 +105,24 @@ export default function AdminGearMenu() {
               <span>Catálogo de Produtos</span>
             </Link>
             <Link
+              href="/admin/usuarios"
+              role="menuitem"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <span className="text-base">👥</span>
+              <span>Gerenciar Usuários</span>
+            </Link>
+            <Link
+              href="/admin/agendamentos"
+              role="menuitem"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <span className="text-base">📅</span>
+              <span>Gestão de Agendamentos</span>
+            </Link>
+            <Link
               href="/admin/ingestao"
               role="menuitem"
               onClick={() => setIsOpen(false)}
@@ -131,15 +130,6 @@ export default function AdminGearMenu() {
             >
               <span className="text-base">📄</span>
               <span>Ingestão de documentos (RAG)</span>
-            </Link>
-            <Link
-              href="/admin/modelos"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">⚙️</span>
-              <span>Administração Geral</span>
             </Link>
           </div>
         </div>
