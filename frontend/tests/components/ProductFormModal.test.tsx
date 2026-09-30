@@ -58,6 +58,34 @@ describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
     vi.clearAllMocks();
   });
 
+  it("exibe o nome do produto no título da modal ao editar e 'Novo Produto' na criação", () => {
+    const { rerender } = render(
+      <ProductFormModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+        produtoParaEditar={PRODUTO_MOCK}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: PRODUTO_MOCK.nome }),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ProductFormModal
+        isOpen={true}
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+        produtoParaEditar={null}
+      />,
+    );
+
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Novo Produto" }),
+    ).toBeInTheDocument();
+  });
+
   it("exibe lista de imagens associadas ao produto", () => {
     render(
       <ProductFormModal

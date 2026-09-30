@@ -343,7 +343,7 @@ export default function ProductFormModal({
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
           <div>
             <h2 className="text-lg font-bold text-gray-900">
-              {produtoParaEditar ? `Editar Produto #${produtoParaEditar.id}` : "Novo Produto"}
+              {produtoParaEditar ? produtoParaEditar.nome : "Novo Produto"}
             </h2>
             <p className="text-xs text-gray-500">
               Cadastre dados comerciais, estoque por CD, faixas de desconto por volume e
