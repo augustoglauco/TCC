@@ -31,9 +31,12 @@ export interface DocumentRegistryEntry {
 export type DistanceMetric = "cosine" | "euclid" | "dot" | "manhattan";
 export type QuantizationType = "none" | "scalar" | "product" | "binary";
 // Finalidade da collection: "chat" (pública, buscada pelo chat) vs "mcp_b2b"
-// (restrita ao canal MCP B2B, nunca ativada nem buscada pelo chat) — ver
-// docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §2.
-export type CollectionPurpose = "chat" | "mcp_b2b";
+// (canal MCP B2B — parceiros veem isto + o "chat" ativo) vs "admin"
+// (exclusivo do Admin — só ele vê, via modo admin do chat). Nenhuma das
+// duas últimas pode ser ativada nem é buscada pelo visitante comum do chat
+// — ver docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §2 e a
+// decisão de 2026-09-30 em docs/ARCHITECTURE.md §6.
+export type CollectionPurpose = "chat" | "mcp_b2b" | "admin";
 export type PayloadSchemaType =
   "keyword" | "integer" | "float" | "bool" | "geo" | "datetime" | "uuid" | "text";
 

@@ -88,6 +88,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     if (open) {
       messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
       if (pendingInput) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setInput(pendingInput);
         useChatStore.setState({ pendingInput: null });
       }
@@ -138,6 +139,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       message: trimmed || undefined,
       imageBase64: imageToSend?.base64,
       userEmail: useAuthStore.getState().user?.email,
+      authToken: useAuthStore.getState().token,
       conversationId: conversationId || undefined,
       onConversationId: (id) => setConversationId(id),
       onTranscription: () => {},
@@ -203,6 +205,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     await sendChatMessage({
       audioBase64,
       userEmail: useAuthStore.getState().user?.email,
+      authToken: useAuthStore.getState().token,
       conversationId: conversationId || undefined,
       onConversationId: (id) => setConversationId(id),
       onTranscription: (text) => {

@@ -8,10 +8,11 @@ Reaproveita o "backend único de dados" já modelado no item anterior desta
 fase (`app.db.catalog`, sobre `Produto`/`ProdutoEstoque`/
 `ProdutoDescontoVolume`/`ProdutoCompatibilidade`/`Pedido`/`PedidoItem`) para
 os recursos/ferramentas estruturados, e a infraestrutura RAG já existente
-(`app.rag.qdrant_client`) para o recurso de manuais — buscando
-especificamente nas collections com `purpose="mcp_b2b"` (nunca a collection
-ativa do chat público, ver decisão de 2026-09-21 em `docs/ARCHITECTURE.md`
-§5).
+(`app.rag.qdrant_client`) para o recurso de manuais — o parceiro B2B busca
+tanto nas collections `purpose="mcp_b2b"` quanto na collection ativa
+`purpose="chat"` (mesmo conteúdo que o chat público usa); só o caminho
+inverso é bloqueado (o chat público nunca busca `purpose="mcp_b2b"`, ver
+decisão de 2026-09-30 em `docs/ARCHITECTURE.md` §6).
 
 # MVP: exposto publicamente (via Caddy/HTTPS) só com chave estática por
 parceiro (`app.mcp_server.auth`), sem OAuth, escopos nem rate limiting — ver
@@ -37,7 +38,6 @@ para `MCPServer` (ver `pyproject.toml`, `mcp>=2.0`).
 
 from __future__ import annotations
 
-import asyncio
 import functools
 import json
 import logging
@@ -53,7 +53,6 @@ from mcp.server.mcpserver.exceptions import ResourceError, ResourceNotFoundError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.models import Produto
 from app.db.catalog import (
     EstoqueInsuficienteError,
     ProdutoInexistenteError,
@@ -65,6 +64,7 @@ from app.db.catalog import (
     obter_produtos_por_ids,
     sao_compativeis,
 )
+from app.db.models import Produto
 from app.mcp_server.auth import parceiro_atual
 from app.models.mcp_b2b import (
     CatalogoProdutoOut,
@@ -86,8 +86,8 @@ from app.models.mcp_b2b import (
 )
 from app.rag.collections_registry import list_collections
 from app.rag.embedders_registry import EmbedderRegistry
+from app.rag.multi_collection_search import buscar_em_varias_collections
 from app.rag.qdrant_client import QdrantRAGClient
-from app.router.rag_client import RAGConnectionError
 
 logger = logging.getLogger(__name__)
 
@@ -309,51 +309,39 @@ def create_b2b_mcp_server(
         except SQLAlchemyError as exc:
             raise ResourceError(f"Falha ao consultar as collections do RAG: {exc}") from exc
 
-        # Só collections restritas ao canal MCP B2B (purpose="mcp_b2b") —
-        # nunca as de purpose="chat", que são as elegíveis ao chat público
-        # (ver decisão de 2026-09-21 em docs/ARCHITECTURE.md §5). Filtrado
-        # aqui em vez de uma função dedicada em `collections_registry`: é o
-        # único consumidor desse recorte até agora (regra 8, CLAUDE.md).
-        mcp_b2b_collections = [c for c in collections if c.purpose == "mcp_b2b"]
+        # O parceiro B2B enxerga o RAG principal (a collection `chat` ativa
+        # — mesmo conteúdo do chat público) MAIS o conteúdo exclusivo do
+        # canal B2B (`purpose="mcp_b2b"`); só o caminho inverso é vedado (o
+        # chat público nunca busca `purpose="mcp_b2b"`, garantido em
+        # `ActiveCollectionRagClient.search`) — ver decisão de 2026-09-30 em
+        # docs/ARCHITECTURE.md §6. Filtrado aqui em vez de uma função
+        # dedicada em `collections_registry`: é o único consumidor desse
+        # recorte até agora (regra 8, CLAUDE.md).
+        b2b_collections = [
+            c
+            for c in collections
+            if c.purpose == "mcp_b2b" or (c.purpose == "chat" and c.is_active)
+        ]
 
-        # Achado no code-review (2026-09-24): buscar uma collection de cada
-        # vez fazia o tempo total crescer O(N) round-trips ao Qdrant, com N
-        # = nº de collections mcp_b2b — as buscas são independentes, então
-        # rodam em paralelo (asyncio.gather), custando só o round-trip mais
-        # lento em vez da soma de todos.
-        async def _buscar(collection):
-            embedder = embedders.get(collection.embedding_model)
-            return await qdrant.search(collection.name, embedder, query, domain)
-
-        buscas = await asyncio.gather(
-            *(_buscar(collection) for collection in mcp_b2b_collections),
-            return_exceptions=True,
+        # Busca em paralelo (achado no code-review de 2026-09-24: um
+        # round-trip por collection, não N sequenciais) e agrega por score —
+        # lógica compartilhada com o modo admin do chat (decisão de
+        # 2026-09-30, docs/ARCHITECTURE.md §6), extraída para
+        # `app.rag.multi_collection_search`.
+        pares = await buscar_em_varias_collections(
+            b2b_collections, qdrant, embedders, query, domain, top_k=DEFAULT_MANUAIS_TOP_K
         )
-
-        resultados: list[ManualResultadoOut] = []
-        for collection, busca in zip(mcp_b2b_collections, buscas, strict=True):
-            if isinstance(busca, RAGConnectionError):
-                logger.warning(
-                    "mcp_b2b_manuais_busca_falhou collection=%s domain=%s erro=%s",
-                    collection.name,
-                    domain,
-                    busca,
-                )
-                continue
-            if isinstance(busca, BaseException):
-                raise busca
-            resultados.extend(
-                ManualResultadoOut(
-                    content=documento.content,
-                    source=documento.source,
-                    score=documento.score,
-                    collection=collection.name,
-                )
-                for documento in busca
+        resultados = [
+            ManualResultadoOut(
+                content=documento.content,
+                source=documento.source,
+                score=documento.score,
+                collection=collection.name,
             )
+            for collection, documento in pares
+        ]
 
-        resultados.sort(key=lambda r: r.score, reverse=True)
-        saida = ManualBuscaOut(resultados=resultados[:DEFAULT_MANUAIS_TOP_K])
+        saida = ManualBuscaOut(resultados=resultados)
         return saida.model_dump_json()
 
     @asynccontextmanager
@@ -394,7 +382,7 @@ def create_b2b_mcp_server(
     ) -> CompatibilidadeOut:
         async with _abrir_sessao_bd("Falha ao consultar a compatibilidade"):
             async with session_factory() as session:
-                produtos = await _obter_e_validar_produtos(
+                await _obter_e_validar_produtos(
                     session,
                     [
                         ItemQuantidadeIn(produto_id=produto_id, quantidade=1),

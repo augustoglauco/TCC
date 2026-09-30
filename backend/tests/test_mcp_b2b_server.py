@@ -268,12 +268,14 @@ async def test_manuais_busca_encontra_conteudo_da_collection_mcp_b2b(
     assert item["resultados"][0]["source"] == "manual_gd15.pdf"
 
 
-async def test_manuais_busca_nao_encontra_conteudo_de_collection_chat(
+async def test_manuais_busca_encontra_conteudo_da_collection_chat_ativa(
     factory, qdrant, embedders, text_embedder: TextEmbedder
 ):
-    """Isolamento simétrico ao já testado para o chat
-    (`test_rag_active_collection_client.py`): o MCP B2B também não deveria
-    misturar conteúdo `purpose="chat"` na busca de manuais."""
+    """Decisão de 2026-09-30 (`docs/ARCHITECTURE.md` §6, a pedido explícito
+    do desenvolvedor): o parceiro B2B acessa todo o conteúdo do RAG
+    principal (collection `chat` ativa) além do exclusivo do canal B2B — só
+    o caminho inverso continua vedado (chat público nunca busca
+    `purpose="mcp_b2b"`, ver `test_rag_active_collection_client.py`)."""
     await _cria_collection_com_conteudo(
         factory,
         qdrant,
@@ -284,6 +286,34 @@ async def test_manuais_busca_nao_encontra_conteudo_de_collection_chat(
         conteudo="conteúdo público sobre instalação de gerador",
         source="publico.txt",
         document_id="doc-chat",
+    )
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    resultado = await server.read_resource(
+        "manuais://busca/vendas?query=instala%C3%A7%C3%A3o%20gerador"
+    )
+
+    item = json.loads(_conteudo_texto(resultado))
+    assert len(item["resultados"]) == 1
+    assert item["resultados"][0]["source"] == "publico.txt"
+
+
+async def test_manuais_busca_ignora_collection_chat_nao_ativa(
+    factory, qdrant, embedders, text_embedder: TextEmbedder
+):
+    """Só a collection `chat` **ativa** entra na busca do parceiro B2B —
+    collections `purpose="chat"` não ativas são artefatos de comparação do
+    admin (`/admin/ingestao`), não conteúdo real do RAG principal."""
+    await _cria_collection_com_conteudo(
+        factory,
+        qdrant,
+        text_embedder,
+        name=f"chat_inativa_{uuid.uuid4().hex}",
+        purpose="chat",
+        is_active=False,
+        conteudo="conteúdo público sobre instalação de gerador",
+        source="publico_inativo.txt",
+        document_id="doc-chat-inativo",
     )
     server = create_b2b_mcp_server(factory, qdrant, embedders)
 

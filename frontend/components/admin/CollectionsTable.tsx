@@ -92,6 +92,10 @@ export function CollectionsTable({
                     <span className="inline-flex items-center gap-1 rounded-full border border-purple-200/80 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700 shadow-2xs">
                       MCP B2B
                     </span>
+                  ) : collection.purpose === "admin" ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-rose-200/80 bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-700 shadow-2xs">
+                      Admin
+                    </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded-full border border-slate-200/80 bg-slate-50 px-2.5 py-0.5 text-xs font-semibold text-slate-600 shadow-2xs">
                       Chat
@@ -114,11 +118,11 @@ export function CollectionsTable({
                 <td className="py-3.5 px-4 text-slate-700">{collection.document_count}</td>
                 <td className="py-3.5 px-4 text-right whitespace-nowrap">
                   {!collection.is_active &&
-                    (collection.purpose === "mcp_b2b" ? (
+                    (collection.purpose !== "chat" ? (
                       <button
                         type="button"
                         disabled
-                        title="Collections do MCP B2B não podem ser ativadas para o chat."
+                        title="Collections restritas (MCP B2B/Admin) não podem ser ativadas para o chat."
                         className="mr-2 inline-flex cursor-not-allowed items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-50/50 px-2.5 py-1 text-xs font-semibold text-slate-400 shadow-2xs"
                       >
                         Ativar

@@ -20,6 +20,8 @@ export interface SendChatMessageParams {
   imageBase64?: string;
   /** E-mail do usuário autenticado no frontend (R10, Fase 7). */
   userEmail?: string;
+  /** Token de login — libera o modo admin de busca no RAG (ver `ChatMessageRequest.auth_token`). */
+  authToken?: string | null;
   conversationId?: string;
   onConversationId: (id: string) => void;
   onTranscription: (text: string) => void;
@@ -55,6 +57,7 @@ export async function sendChatMessage({
   audioBase64,
   imageBase64,
   userEmail,
+  authToken,
   conversationId,
   onConversationId,
   onTranscription,
@@ -70,6 +73,7 @@ export async function sendChatMessage({
     audio: audioBase64 ?? null,
     image: imageBase64 ?? null,
     user_email: userEmail ?? null,
+    auth_token: authToken ?? null,
   };
 
   let response: Response;

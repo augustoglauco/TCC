@@ -9,6 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.api.auth import MOCK_TOKEN_PREFIX
 from app.api.chat import (
     _sse,
     get_calendar_client,
@@ -18,6 +19,7 @@ from app.api.chat import (
     get_external_client,
     get_local_client,
     get_rag_client,
+    get_rag_client_admin,
     get_sales_catalog_client,
     get_scheduling_config,
     get_stt_client,
@@ -188,6 +190,9 @@ def fakes(db_session):
         "local": _FakeLLMClient(LLMResponse(text="resposta local", total_duration_ms=10.0)),
         "external": _FakeLLMClient(LLMResponse(text="resposta externa", total_duration_ms=20.0)),
         "rag": _FakeRAGClient(documents=[Document(content="...", source="catalogo", score=0.9)]),
+        "rag_admin": _FakeRAGClient(
+            documents=[Document(content="...", source="admin_catalogo", score=0.9)]
+        ),
         # MVP: STT não é exercitado por padrão nos testes que não enviam
         # `audio` — texto vazio nunca chega a ser usado nesses casos.
         "stt": _FakeSttClient(text=""),
@@ -204,6 +209,7 @@ def _build_app(fakes: dict, complexity_strategy: str = "heuristic") -> FastAPI:
     app.dependency_overrides[get_local_client] = lambda: fakes["local"]
     app.dependency_overrides[get_external_client] = lambda: fakes["external"]
     app.dependency_overrides[get_rag_client] = lambda: fakes["rag"]
+    app.dependency_overrides[get_rag_client_admin] = lambda: fakes["rag_admin"]
     app.dependency_overrides[get_stt_client] = lambda: fakes["stt"]
     app.dependency_overrides[get_clip_store] = lambda: fakes["clip_store"]
     app.dependency_overrides[get_clip_embedder] = lambda: fakes["clip_embedder"]
@@ -270,6 +276,55 @@ def test_done_traz_fonte_e_score_de_cada_chunk_do_rag(fakes):
         {"source": "catalogo_cameras.txt", "score": 0.91},
         {"source": "politica_garantia.pdf", "score": 0.72},
     ]
+
+
+async def test_auth_token_admin_valido_usa_rag_client_admin(client, fakes):
+    """Decisão de 2026-09-30 (docs/ARCHITECTURE.md §6): com um `auth_token`
+    que o servidor confirma pertencer a uma sessão Admin, o chat busca no
+    RAG completo (`rag_client_admin`), não na collection ativa comum."""
+    sessao = fakes["db_session"]
+    admin = Cliente(email="admin@example.com", nome="Admin")
+    sessao.add(admin)
+    await sessao.commit()
+    await sessao.refresh(admin)
+
+    resposta = client.post(
+        "/api/chat/messages",
+        json={"message": "qual o preço?", "auth_token": f"{MOCK_TOKEN_PREFIX}{admin.id}"},
+    )
+
+    dados_done = _find(_parse_sse(resposta.text), "done")
+    assert dados_done["rag_chunks"] == [{"source": "admin_catalogo", "score": 0.9}]
+
+
+async def test_auth_token_de_cliente_comum_nao_usa_rag_client_admin(client, fakes):
+    """Um `auth_token` válido, mas de um cliente sem perfil Admin, não liga
+    o modo admin — mesma proteção que `user_email` sozinho nunca teve."""
+    sessao = fakes["db_session"]
+    cliente = Cliente(email="visitante@example.com", nome="Visitante")
+    sessao.add(cliente)
+    await sessao.commit()
+    await sessao.refresh(cliente)
+
+    resposta = client.post(
+        "/api/chat/messages",
+        json={"message": "qual o preço?", "auth_token": f"{MOCK_TOKEN_PREFIX}{cliente.id}"},
+    )
+
+    dados_done = _find(_parse_sse(resposta.text), "done")
+    assert dados_done["rag_chunks"] == [{"source": "catalogo", "score": 0.9}]
+
+
+def test_user_email_admin_sozinho_nao_liga_modo_admin(client):
+    """Nunca confiar em `user_email` (livre, nunca validado) para liberar o
+    RAG completo — só `auth_token` verificado pode fazer isso."""
+    resposta = client.post(
+        "/api/chat/messages",
+        json={"message": "qual o preço?", "user_email": "admin@example.com"},
+    )
+
+    dados_done = _find(_parse_sse(resposta.text), "done")
+    assert dados_done["rag_chunks"] == [{"source": "catalogo", "score": 0.9}]
 
 
 def test_chat_stream_router_provider_reflete_fallback_do_jev(fakes):
@@ -1128,5 +1183,3 @@ def test_done_event_com_card_serializa_decimal_e_datetime_como_json(card):
     tipo, dados = _parse_sse(bloco_sse)[0]
     assert tipo == "done"
     assert dados["card"]["tipo"] == card.tipo
-
-

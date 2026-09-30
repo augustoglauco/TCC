@@ -55,6 +55,15 @@ const COLLECTION_MCP: RagCollection = {
   document_count: 2,
 };
 
+const COLLECTION_ADMIN: RagCollection = {
+  ...COLLECTION_ATIVA,
+  id: "444",
+  name: "admin_docs",
+  is_active: false,
+  purpose: "admin",
+  document_count: 1,
+};
+
 describe("CollectionsTable", () => {
   beforeEach(() => {
     mockedActivate.mockReset();
@@ -103,6 +112,20 @@ describe("CollectionsTable", () => {
     await user.click(screen.getByRole("button", { name: "Ativar" }));
 
     expect(mockedActivate).not.toHaveBeenCalled();
+  });
+
+  it("collection admin mostra badge 'Admin' e botão Ativar desabilitado", () => {
+    render(
+      <CollectionsTable
+        collections={[COLLECTION_ADMIN]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Admin")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ativar" })).toBeDisabled();
   });
 
   it("botão excluir da collection ativa fica desabilitado", () => {

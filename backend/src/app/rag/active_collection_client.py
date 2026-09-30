@@ -42,7 +42,12 @@ class ActiveCollectionRagClient:
             raise RAGConnectionError(str(exc)) from exc
         if collection is None:
             return []
-        if collection.purpose == "mcp_b2b":
+        if collection.purpose != "chat":
+            # Defesa em profundidade: a ativa nunca deveria ser algo além de
+            # `purpose="chat"` (bloqueado em `activate_collection`), mas
+            # falha fechado mesmo assim — inclui `purpose="admin"`
+            # (decisão de 2026-09-30, docs/ARCHITECTURE.md §6), não só
+            # `mcp_b2b`.
             return []
         embedder = self._embedders.get(collection.embedding_model)
         return await self._qdrant.search(

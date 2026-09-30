@@ -106,6 +106,17 @@ class ChatMessageRequest(BaseModel):
         default=None,
         description="E-mail do usuário autenticado no frontend (R10, Fase 7).",
     )
+    auth_token: str | None = Field(
+        default=None,
+        description=(
+            "Token retornado por POST /api/auth/login quando o visitante está "
+            "logado no frontend. Verificado no servidor (nunca confiado só pelo "
+            "valor) para liberar o modo admin de busca no RAG — ver "
+            "verificar_admin_por_token, decisão de 2026-09-30 em "
+            "docs/ARCHITECTURE.md §6. Não usar user_email sozinho para isso: é "
+            "um campo livre, nunca validado contra sessão nenhuma."
+        ),
+    )
 
     @model_validator(mode="after")
     def _message_ou_audio_obrigatorio(self) -> ChatMessageRequest:

@@ -18,9 +18,10 @@ from app.user_profile.classificacao import _com_fuso, classificar
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 MOCK_DEFAULT_PASSWORD = "12345"
+MOCK_TOKEN_PREFIX = "mock-token-"
 
 
-async def _obter_perfil_cliente(session: AsyncSession, cliente: Cliente) -> tuple[str, str]:
+async def obter_perfil_cliente(session: AsyncSession, cliente: Cliente) -> tuple[str, str]:
     """Calcula o perfil atual do cliente a partir do seu histórico de compras."""
     if cliente.email == "admin@example.com" or cliente.email.startswith("admin@"):
         return "Admin", "Administrador do Sistema"
@@ -36,6 +37,34 @@ async def _obter_perfil_cliente(session: AsyncSession, cliente: Cliente) -> tupl
         agora=datetime.now(UTC),
     )
     return classificacao.perfil, classificacao.motivo
+
+
+async def verificar_admin_por_token(session: AsyncSession, token: str) -> bool:
+    """Confirma que `token` é uma sessão mock de fato emitida por `/login`
+    (ou `/register`) para um cliente cujo perfil — calculado aqui no
+    servidor, nunca aceito do requisitante — é Admin.
+
+    Decisão de 2026-09-30 (`docs/ARCHITECTURE.md` §6, a pedido explícito do
+    desenvolvedor): o modo admin do chat (acesso a todo o RAG, inclusive
+    collections `purpose="admin"`/`"mcp_b2b"`) não pode se basear só em
+    `ChatMessageRequest.user_email` — é um e-mail livre, nunca validado
+    contra sessão nenhuma (usado hoje só para classificação R10/histórico de
+    compras, onde o pior caso de um e-mail forjado é informação errada
+    sobre o próprio visitante, não vazamento de documento confidencial).
+    Ainda é uma verificação mock (o token é previsível a partir do id), mas
+    exige ter de fato passado por `/login` com a senha de demonstração —
+    não apenas digitar uma string no payload do chat."""
+    if not token.startswith(MOCK_TOKEN_PREFIX):
+        return False
+    try:
+        cliente_id = int(token.removeprefix(MOCK_TOKEN_PREFIX))
+    except ValueError:
+        return False
+    cliente = await session.get(Cliente, cliente_id)
+    if cliente is None:
+        return False
+    perfil, _ = await obter_perfil_cliente(session, cliente)
+    return perfil == "Admin"
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -76,7 +105,7 @@ async def login_endpoint(
             perfil = "lead"
             perfil_motivo = "novo cadastro simulado"
     else:
-        perfil, perfil_motivo = await _obter_perfil_cliente(session, cliente)
+        perfil, perfil_motivo = await obter_perfil_cliente(session, cliente)
 
     user_out = UserOut(
         id=cliente.id,
@@ -87,7 +116,7 @@ async def login_endpoint(
     )
 
     return LoginResponse(
-        token=f"mock-token-{cliente.id}",
+        token=f"{MOCK_TOKEN_PREFIX}{cliente.id}",
         user=user_out,
     )
 
@@ -110,7 +139,11 @@ async def register_endpoint(
         )
 
     perfil_solicitado = (payload.perfil or "Cliente").strip()
-    is_solicitando_admin = perfil_solicitado.lower() == "admin" or email == "admin@example.com" or email.startswith("admin@")
+    is_solicitando_admin = (
+        perfil_solicitado.lower() == "admin"
+        or email == "admin@example.com"
+        or email.startswith("admin@")
+    )
 
     if is_solicitando_admin and email != "admin@example.com":
         requester_email = (payload.requester_email or "").strip().lower()
@@ -120,14 +153,17 @@ async def register_endpoint(
                 select(Cliente).where(Cliente.email == requester_email)
             )
             if requester_cliente:
-                req_perfil, _ = await _obter_perfil_cliente(session, requester_cliente)
+                req_perfil, _ = await obter_perfil_cliente(session, requester_cliente)
                 if req_perfil.lower() == "admin":
                     e_admin_autorizado = True
 
         if not e_admin_autorizado:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas administradores autenticados podem criar contas com perfil Administrador.",
+                detail=(
+                    "Apenas administradores autenticados podem criar contas com "
+                    "perfil Administrador."
+                ),
             )
 
     nome = payload.nome.strip() or email.split("@")[0].title()
@@ -159,7 +195,7 @@ async def register_endpoint(
     )
 
     return LoginResponse(
-        token=f"mock-token-{cliente.id}",
+        token=f"{MOCK_TOKEN_PREFIX}{cliente.id}",
         user=user_out,
     )
 
@@ -178,7 +214,7 @@ async def get_current_user_endpoint(
             detail="Usuário não encontrado.",
         )
 
-    perfil, perfil_motivo = await _obter_perfil_cliente(session, cliente)
+    perfil, perfil_motivo = await obter_perfil_cliente(session, cliente)
     return UserOut(
         id=cliente.id,
         email=cliente.email,
@@ -198,7 +234,7 @@ async def list_users_endpoint(
 
     user_list = []
     for c in clientes:
-        perfil, perfil_motivo = await _obter_perfil_cliente(session, c)
+        perfil, perfil_motivo = await obter_perfil_cliente(session, c)
         user_list.append(
             UserOut(
                 id=c.id,

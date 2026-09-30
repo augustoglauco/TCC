@@ -106,6 +106,20 @@ async def test_activate_collection_mcp_b2b_e_bloqueada(db_session):
     assert await get_active_collection(db_session) is None
 
 
+async def test_activate_collection_admin_e_bloqueada(db_session):
+    """Decisão de 2026-09-30 (docs/ARCHITECTURE.md §6): purpose="admin" é
+    tão restrito quanto mcp_b2b — nunca vira a collection ativa do chat
+    público."""
+    admin = await _cria_collection(db_session, name="admin_docs", purpose="admin", is_active=False)
+
+    with pytest.raises(CollectionNotActivatableError):
+        await activate_collection(db_session, admin.id)
+
+    await db_session.refresh(admin)
+    assert admin.is_active is False
+    assert await get_active_collection(db_session) is None
+
+
 async def test_delete_collection_inexistente_retorna_false(db_session):
     assert await delete_collection(db_session, uuid.uuid4()) is False
 

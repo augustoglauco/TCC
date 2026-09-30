@@ -425,6 +425,50 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       script de referência. `reservar_pedido` também validado ao vivo (baixa
       real de estoque conferida antes/depois: CD-SP 12 → 11 após reservar 1
       unidade do produto 1).
+- [x] Ampliar o acesso do parceiro B2B à busca de manuais (correção de
+      2026-09-30, a pedido explícito do desenvolvedor): o parceiro deve
+      acessar todo o conteúdo do RAG principal e do específico do canal
+      B2B — só o cliente final (chat público) não deve ver documentos
+      exclusivos do B2B. Antes, `manuais_busca` buscava só em collections
+      `purpose="mcp_b2b"` (isolamento nos dois sentidos, decisão de
+      2026-09-21/24). Agora `b2b_collections` em `app.mcp_server.b2b`
+      inclui `purpose="mcp_b2b"` **e** a collection `purpose="chat"` ativa;
+      o caminho inverso (chat público nunca busca `purpose="mcp_b2b"`)
+      continua vedado, inalterado. Testes atualizados em
+      `tests/test_mcp_b2b_server.py`; validado ao vivo contra `docs_texto`
+      (collection ativa de produção) com resultados reais do RAG principal
+      aparecendo na busca do parceiro. Ver decisão em
+      `docs/ARCHITECTURE.md` §5 (2026-09-30).
+- [x] Modo admin do chat sobre o RAG completo (2026-09-30, a pedido
+      explícito do desenvolvedor): o Admin quer usar o próprio widget de
+      chat (não só o playground de `/admin/ingestao`) para pesquisar seus
+      documentos exclusivos, que ninguém mais deve acessar. Nova finalidade
+      de collection `purpose="admin"` (ao lado de `chat`/`mcp_b2b`);
+      `activate_collection`/`ActiveCollectionRagClient.search` generalizados
+      de `purpose == "mcp_b2b"` para `purpose != "chat"`. Detecção do Admin
+      no chat exige mais que `ChatMessageRequest.user_email` (livre, nunca
+      validado) — novo `ChatMessageRequest.auth_token`, verificado no
+      servidor por `app.api.auth.verificar_admin_por_token` (token de
+      `/login` de fato emitido, perfil recalculado no servidor, nunca aceito
+      do requisitante). Novo `AdminAllCollectionsRagClient`
+      (`app.rag.admin_all_collections_client`) busca a collection `chat`
+      ativa + toda `mcp_b2b` + toda `admin`; `app.api.chat.send_message`
+      troca para ele quando `_verificar_modo_admin_seguro` confirma o token
+      (falha *fechada* para "sem modo admin" em qualquer erro, ao contrário
+      das demais funções `_..._seguro`). Lógica de busca paralela em N
+      collections extraída para `app.rag.multi_collection_search`,
+      reaproveitada por `manuais_busca` (MCP B2B) e pelo novo cliente admin.
+      Seletor "Finalidade" do `/admin/ingestao` ganhou a opção "Exclusiva do
+      Admin"; badges/bloqueio de ativação em `CollectionsTable`
+      generalizados. Testes: `tests/test_auth_admin_token.py`,
+      `tests/test_rag_admin_all_collections_client.py`, casos novos em
+      `test_rag_active_collection_client.py`/`test_rag_collections_registry.py`
+      (purpose=admin) e em `test_chat_api.py` (confirma a troca de cliente
+      RAG com `auth_token` de admin e que `user_email` sozinho, mesmo
+      `admin@...`, não troca); frontend com testes em
+      `CollectionFormModal.test.tsx`/`CollectionsTable.test.tsx`. Ver decisão
+      em `docs/ARCHITECTURE.md` §6 (2026-09-30) e
+      `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 
 ## Fase 6 — Memória e Classificação do Usuário (R9, R10)
 

@@ -421,6 +421,7 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400(db_session):
         get_external_client,
         get_local_client,
         get_rag_client,
+        get_rag_client_admin,
         get_sales_catalog_client,
         get_scheduling_config,
         get_stt_client,
@@ -448,6 +449,7 @@ def test_chat_imagem_invalida_no_fluxo_de_identificacao_retorna_400(db_session):
     app.dependency_overrides[get_local_client] = lambda: dummy_llm
     app.dependency_overrides[get_external_client] = lambda: dummy_llm
     app.dependency_overrides[get_rag_client] = lambda: dummy_rag
+    app.dependency_overrides[get_rag_client_admin] = lambda: dummy_rag
     app.dependency_overrides[get_stt_client] = lambda: dummy_stt
     app.dependency_overrides[get_clip_store] = lambda: real_store
     app.dependency_overrides[get_clip_embedder] = lambda: real_embedder

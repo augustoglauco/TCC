@@ -125,6 +125,7 @@ function AbaEnviarDocumento({
               <option key={collection.id} value={collection.id}>
                 {collection.name}
                 {collection.purpose === "mcp_b2b" ? " [MCP B2B]" : ""}
+                {collection.purpose === "admin" ? " [Admin]" : ""}
                 {collection.is_active ? " (ativa)" : ""}
               </option>
             ))}
@@ -239,6 +240,9 @@ function RagSearchConfigSection({
     return () => {
       cancelado = true;
     };
+    // Roda só uma vez ao montar — incluir `onError` (recriada a cada render
+    // do pai) reexecutaria a busca a cada render, não só no mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleToggle(checked: boolean) {

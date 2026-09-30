@@ -25,6 +25,11 @@ export interface ChatMessageRequest {
   image?: string | null;
   // E-mail do usuário autenticado no frontend (R10, Fase 7).
   user_email?: string | null;
+  // Token de POST /api/auth/login quando o usuário está logado — verificado
+  // no servidor para liberar o modo admin de busca no RAG (decisão de
+  // 2026-09-30, docs/ARCHITECTURE.md §6). Nunca usar user_email sozinho
+  // para isso.
+  auth_token?: string | null;
 }
 
 /** Fonte (arquivo de origem) e score de um chunk usado no contexto do RAG. */

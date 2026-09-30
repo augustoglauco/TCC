@@ -211,7 +211,7 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
             <label htmlFor="collection-purpose" className="text-sm font-medium text-gray-900">
               Finalidade
             </label>
-            <Tooltip content="Chat (pública): conteúdo usado pelo chat. Restrita ao MCP B2B: conteúdo não aparece no chat; será consultado pelo canal MCP B2B (Fase 5)." />
+            <Tooltip content="Chat (pública): conteúdo usado pelo chat. Restrita ao MCP B2B: parceiros a veem (junto com o chat ativo). Exclusiva do Admin: só o Admin a vê, no modo admin do chat." />
           </div>
           <select
             id="collection-purpose"
@@ -221,11 +221,18 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           >
             <option value="chat">Chat (pública)</option>
             <option value="mcp_b2b">Restrita ao MCP B2B</option>
+            <option value="admin">Exclusiva do Admin</option>
           </select>
           {purpose === "mcp_b2b" && (
             <p className="mt-1 text-xs text-amber-700">
-              Conteúdo não aparece no chat; será consultado pelo canal MCP B2B (Fase 5). Esta
-              collection não pode ser ativada para o chat.
+              Conteúdo não aparece no chat público; será consultado pelo canal MCP B2B (Fase 5) e
+              pelo Admin no modo admin do chat. Esta collection não pode ser ativada para o chat.
+            </p>
+          )}
+          {purpose === "admin" && (
+            <p className="mt-1 text-xs text-amber-700">
+              Conteúdo não aparece no chat público nem para parceiros do MCP B2B — só o Admin o vê,
+              quando o chat confirma sua sessão. Esta collection não pode ser ativada para o chat.
             </p>
           )}
         </div>

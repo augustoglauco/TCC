@@ -19,9 +19,12 @@ class CollectionActiveError(Exception):
 
 
 class CollectionNotActivatableError(Exception):
-    """Levantada ao tentar ativar uma collection restrita ao MCP B2B
-    (`purpose="mcp_b2b"`) — ver
-    docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §4."""
+    """Levantada ao tentar ativar uma collection de conteúdo restrito
+    (`purpose != "chat"`: `"mcp_b2b"` ou `"admin"`) — só uma collection
+    `purpose="chat"` pode virar a ativa do chat público. Ver
+    docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §4 e a
+    decisão de 2026-09-30 em docs/ARCHITECTURE.md §6 (introdução de
+    `purpose="admin"`)."""
 
 
 async def create_collection(
@@ -94,9 +97,9 @@ async def activate_collection(session: AsyncSession, collection_id: uuid.UUID) -
     collection = await session.get(RagCollection, collection_id)
     if collection is None:
         return False
-    if collection.purpose == "mcp_b2b":
-        # Garantia central do isolamento: uma collection restrita ao MCP B2B
-        # nunca vira a ativa, logo nunca é buscada pelo chat público (ver
+    if collection.purpose != "chat":
+        # Garantia central do isolamento: só `purpose="chat"` pode virar a
+        # ativa do chat público — `mcp_b2b`/`admin` nunca (ver
         # docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §4).
         raise CollectionNotActivatableError(str(collection_id))
     await session.execute(update(RagCollection).values(is_active=False))

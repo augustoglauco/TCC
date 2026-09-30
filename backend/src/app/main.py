@@ -27,6 +27,7 @@ from app.logging_config import configure_logging
 from app.mcp_client.google_calendar import GoogleCalendarMCPClient
 from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
 from app.rag.active_collection_client import ActiveCollectionRagClient
+from app.rag.admin_all_collections_client import AdminAllCollectionsRagClient
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.image_search import ClipImageStore
@@ -122,6 +123,14 @@ def create_app() -> FastAPI:
     app.state.db_sessionmaker = create_session_factory(db_engine)
 
     app.state.rag_client = ActiveCollectionRagClient(
+        qdrant=app.state.qdrant_client,
+        session_factory=app.state.db_sessionmaker,
+        embedders=app.state.embedder_registry,
+    )
+    # Modo admin do chat (decisão de 2026-09-30, docs/ARCHITECTURE.md §6): o
+    # Admin, confirmado por `auth_token` (ver `app.api.auth.verificar_admin_por_token`
+    # em `app.api.chat`), busca em todo o RAG em vez de só a collection ativa.
+    app.state.rag_client_admin = AdminAllCollectionsRagClient(
         qdrant=app.state.qdrant_client,
         session_factory=app.state.db_sessionmaker,
         embedders=app.state.embedder_registry,

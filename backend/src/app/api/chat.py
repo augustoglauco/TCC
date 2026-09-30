@@ -9,6 +9,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from app.api.auth import verificar_admin_por_token
 from app.background_tasks import spawn_background_task
 from app.db.models import Conversa
 from app.logging_config import conversation_id_ctx
@@ -172,6 +173,24 @@ async def _carregar_dados_cliente_seguro(
         return None
 
 
+async def _verificar_modo_admin_seguro(app_state, auth_token: str | None) -> bool:
+    """Confirma, via `verificar_admin_por_token`, se `auth_token` pertence a
+    uma sessão admin de verdade — liga o modo admin do RAG (decisão de
+    2026-09-30, docs/ARCHITECTURE.md §6). Ao contrário das outras funções
+    `_..._seguro` desta lista (que falham *abertas* para "sem memória" —
+    conveniência, não segurança), esta falha *fechada*: qualquer erro (banco
+    fora do ar, token ausente) resulta em `False`, nunca em liberar RAG
+    completo por acidente."""
+    if not auth_token:
+        return False
+    try:
+        async with app_state.db_sessionmaker() as session:
+            return await verificar_admin_por_token(session, auth_token)
+    except Exception as exc:
+        _logar_memoria_indisponivel("verificar_admin", exc)
+        return False
+
+
 async def _carregar_contexto_anterior_seguro(
     app_state, email: str, conversation_id: str
 ) -> str | None:
@@ -211,6 +230,10 @@ def get_external_client(request: Request) -> LLMClient:
 
 def get_rag_client(request: Request) -> RAGClient:
     return request.app.state.rag_client
+
+
+def get_rag_client_admin(request: Request) -> RAGClient:
+    return request.app.state.rag_client_admin
 
 
 def get_complexity_strategy(request: Request) -> str:
@@ -364,6 +387,7 @@ async def send_message(
     local_client: LLMClient = Depends(get_local_client),
     external_client: LLMClient = Depends(get_external_client),
     rag_client: RAGClient = Depends(get_rag_client),
+    rag_client_admin: RAGClient = Depends(get_rag_client_admin),
     complexity_strategy: str = Depends(get_complexity_strategy),
     stt_client: SttClient = Depends(get_stt_client),
     clip_store: ClipImageStore = Depends(get_clip_store),
@@ -477,6 +501,14 @@ async def send_message(
 
     contexto = await _carregar_contexto_seguro(request.app.state, conversation_id)
     recent_messages = contexto.mensagens_recentes
+
+    # Modo admin do RAG (decisão de 2026-09-30, docs/ARCHITECTURE.md §6):
+    # troca o cliente RAG usado no resto desta mensagem por
+    # `rag_client_admin` (busca a collection chat ativa + mcp_b2b + admin)
+    # só quando `payload.auth_token` prova, no servidor, uma sessão admin de
+    # verdade — nunca a partir de `payload.user_email` (livre).
+    if await _verificar_modo_admin_seguro(request.app.state, payload.auth_token):
+        rag_client = rag_client_admin
 
     # R10: Usuário autenticado vs. Visitante não logado.
     # O histórico de compras e pedidos detalhado SÓ pode ser carregado se o usuário

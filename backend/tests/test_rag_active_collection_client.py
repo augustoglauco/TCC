@@ -168,6 +168,70 @@ async def test_chat_nao_recupera_conteudo_de_collection_mcp_b2b(text_embedder: T
     await engine.dispose()
 
 
+async def test_chat_nao_recupera_conteudo_de_collection_admin(text_embedder: TextEmbedder):
+    """Mesmo isolamento de `mcp_b2b`, agora para `purpose="admin"` (decisão
+    de 2026-09-30, docs/ARCHITECTURE.md §6): documentos exclusivos do Admin
+    nunca aparecem para o visitante comum do chat."""
+    engine, factory = await _engine_e_sessionmaker_vazios()
+    qdrant = QdrantRAGClient(host="unused", port=0, client=AsyncQdrantClient(location=":memory:"))
+
+    await _cria_collection_com_conteudo(
+        factory,
+        qdrant,
+        text_embedder,
+        name=f"chat_{uuid.uuid4().hex}",
+        purpose="chat",
+        is_active=True,
+        conteudo="conteúdo público sobre o produto X",
+        source="publico.txt",
+        document_id="doc-chat",
+    )
+    await _cria_collection_com_conteudo(
+        factory,
+        qdrant,
+        text_embedder,
+        name=f"admin_{uuid.uuid4().hex}",
+        purpose="admin",
+        is_active=False,
+        conteudo="conteúdo confidencial do produto X para o admin",
+        source="admin_only.txt",
+        document_id="doc-admin",
+    )
+
+    client = ActiveCollectionRagClient(qdrant, factory, EmbedderRegistry())
+    resultado = await client.search("produto X", domain="vendas")
+
+    fontes = {doc.source for doc in resultado}
+    assert "publico.txt" in fontes
+    assert "admin_only.txt" not in fontes
+    await engine.dispose()
+
+
+async def test_search_falha_fechado_se_collection_ativa_for_admin(text_embedder: TextEmbedder):
+    """Mesma defesa em profundidade de `test_search_falha_fechado_se_collection_ativa_for_mcp_b2b`,
+    agora para `purpose="admin"`."""
+    engine, factory = await _engine_e_sessionmaker_vazios()
+    qdrant = QdrantRAGClient(host="unused", port=0, client=AsyncQdrantClient(location=":memory:"))
+
+    await _cria_collection_com_conteudo(
+        factory,
+        qdrant,
+        text_embedder,
+        name=f"admin_{uuid.uuid4().hex}",
+        purpose="admin",
+        is_active=True,  # estado impossível pela API, forçado aqui de propósito
+        conteudo="conteúdo confidencial do produto X",
+        source="admin_only.txt",
+        document_id="doc-admin",
+    )
+
+    client = ActiveCollectionRagClient(qdrant, factory, EmbedderRegistry())
+    resultado = await client.search("produto X", domain="vendas")
+
+    assert resultado == []
+    await engine.dispose()
+
+
 async def test_search_falha_fechado_se_collection_ativa_for_mcp_b2b(text_embedder: TextEmbedder):
     """Defesa em profundidade: mesmo que a invariante seja quebrada e uma
     collection `mcp_b2b` acabe marcada como ativa, a busca do chat devolve

@@ -77,6 +77,22 @@ describe("CollectionFormModal", () => {
     expect(mockedCreate).toHaveBeenCalledWith(expect.objectContaining({ purpose: "mcp_b2b" }));
   });
 
+  it("selecionar finalidade 'Exclusiva do Admin' envia purpose=admin e mostra aviso", async () => {
+    const user = userEvent.setup();
+    mockedCreate.mockResolvedValueOnce({ ...COLLECTION_CRIADA, purpose: "admin" });
+
+    render(<CollectionFormModal open onOpenChange={vi.fn()} onCreated={vi.fn()} />);
+
+    await user.type(screen.getByLabelText("Nome"), "admin_docs");
+    await user.selectOptions(screen.getByLabelText("Finalidade"), "admin");
+
+    expect(screen.getByText(/só o Admin o vê/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Criar collection" }));
+
+    expect(mockedCreate).toHaveBeenCalledWith(expect.objectContaining({ purpose: "admin" }));
+  });
+
   it("por padrão envia purpose=chat", async () => {
     const user = userEvent.setup();
     mockedCreate.mockResolvedValueOnce(COLLECTION_CRIADA);

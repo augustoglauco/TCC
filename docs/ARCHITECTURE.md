@@ -952,6 +952,75 @@ Testado chamando o servidor pela mesma superfície que um cliente MCP usaria
 dependências de teste — SQLite em memória + Qdrant `:memory:`), não só a
 camada de dados por baixo (já coberta por `test_catalog.py`).
 
+**Decisão registrada (2026-09-30, escopo de acesso do parceiro B2B ao RAG,
+a pedido explícito do desenvolvedor) — substitui o item 4 acima:** o
+parceiro B2B pode acessar **todo o conteúdo do RAG principal e do
+específico do canal B2B**; só o cliente final (chat público) não deve ter
+acesso a documentos exclusivos do B2B. Antes, `manuais_busca` buscava só em
+collections `purpose="mcp_b2b"`, nunca na collection `chat` ativa — o
+isolamento era nos dois sentidos. Agora é assimétrico: `b2b_collections`
+(`app.mcp_server.b2b.manuais_busca`) inclui `purpose="mcp_b2b"` **e** a
+collection `purpose="chat"` que estiver ativa (o mesmo conteúdo que o chat
+público usa) — mas não collections `chat` não ativas, que são artefatos de
+comparação do admin (`/admin/ingestao`), não conteúdo publicado. O caminho
+inverso continua vedado como antes: o chat público nunca busca
+`purpose="mcp_b2b"` (guarda de defesa em profundidade em
+`ActiveCollectionRagClient.search`, decisão de 2026-09-21, inalterada).
+Testes em `tests/test_mcp_b2b_server.py`
+(`test_manuais_busca_encontra_conteudo_da_collection_chat_ativa`,
+`test_manuais_busca_ignora_collection_chat_nao_ativa`), validado ao vivo
+contra o servidor real e o `docs_texto` (collection ativa de produção).
+
+**Decisão registrada (2026-09-30, modo admin do chat sobre o RAG completo,
+a pedido explícito do desenvolvedor):** o Admin também quer usar o chat
+público (não só o playground de `/admin/ingestao`) para pesquisar seus
+próprios documentos — que só ele pode acessar. Três peças, todas novas:
+
+1. **Terceira finalidade de collection, `purpose="admin"`:** ao lado de
+   `"chat"` (pública) e `"mcp_b2b"` (parceiros + chat ativo, decisão acima),
+   uma collection `purpose="admin"` é exclusiva do Admin — nem o chat
+   público nem o parceiro B2B a enxergam. `activate_collection`
+   (`app.rag.collections_registry`) e a guarda de defesa em profundidade de
+   `ActiveCollectionRagClient.search` generalizaram de
+   `purpose == "mcp_b2b"` para `purpose != "chat"`, cobrindo a nova
+   finalidade sem precisar enumerar cada uma.
+2. **Detecção do Admin no chat exige mais que `user_email`:** o campo
+   `ChatMessageRequest.user_email` já existia (R10, classificação/histórico
+   de compras), mas é livre e nunca validado contra sessão nenhuma — usá-lo
+   para liberar documentos confidenciais deixaria qualquer visitante digitar
+   `admin@...` e ver tudo. Novo campo `ChatMessageRequest.auth_token`
+   (enviado pelo frontend só quando o usuário passou por `/api/auth/login`
+   nesta sessão) é verificado no servidor por
+   `app.api.auth.verificar_admin_por_token`: confere que o token tem o
+   formato `mock-token-{id}` de fato emitido pelo login, resolve o
+   `Cliente` correspondente e recalcula o perfil ali (nunca aceita um
+   perfil declarado pelo requisitante). Ainda uma verificação mock (o token
+   é previsível a partir do id, mesma limitação de todo o resto da
+   autenticação do projeto — `docs/Manuais/HOWTO_ADMINISTRADOR.md`), mas
+   fecha o buraco específico de um e-mail solto no payload do chat. `app.api.chat`
+   importa a função de `app.api.auth` (mesmo pacote, sem ciclo); a função
+   antes privada `_obter_perfil_cliente` virou pública
+   (`obter_perfil_cliente`) para ser reaproveitada.
+3. **Cliente RAG dedicado ao modo admin:** `AdminAllCollectionsRagClient`
+   (`app.rag.admin_all_collections_client`), implementando o mesmo Protocol
+   `RAGClient` de `ActiveCollectionRagClient`, busca a collection `chat`
+   ativa **+** toda `purpose="mcp_b2b"` **+** toda `purpose="admin"` — o
+   Admin vê tudo, nunca o contrário. `app.main` sobe as duas instâncias
+   (`app.state.rag_client`/`rag_client_admin`) desde o startup;
+   `app.api.chat.send_message` troca qual delas usa pelo resto da mensagem
+   assim que `_verificar_modo_admin_seguro` confirma o token — ao contrário
+   das outras funções `_..._seguro` (que falham *abertas* para "sem
+   memória"), esta falha *fechada* para "sem modo admin" em qualquer erro.
+   A lógica de busca paralela em N collections (antes só em
+   `manuais_busca`) foi extraída para `app.rag.multi_collection_search`,
+   reaproveitada pelos dois lados.
+
+Testes: `tests/test_auth_admin_token.py`, `tests/test_rag_admin_all_collections_client.py`,
+casos novos em `tests/test_rag_active_collection_client.py`/
+`test_rag_collections_registry.py` (purpose=admin) e em `tests/test_chat_api.py`
+(confirma que `auth_token` de admin troca o cliente RAG e que `user_email`
+sozinho, mesmo com valor `admin@...`, não troca).
+
 **Decisão registrada (Fase 5, ferramentas transacionais do MCP B2B, R12,
 2026-09-24):** o terceiro item da Fase 5 ("implementar as 4 ferramentas do
 MCP B2B") entra como `@server.tool(...)` em `app.mcp_server.b2b`, ao lado

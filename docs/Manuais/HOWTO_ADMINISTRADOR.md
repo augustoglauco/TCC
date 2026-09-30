@@ -69,6 +69,28 @@ O sistema utiliza a técnica de **RAG (Busca Aumentada por Recuperação)**. Iss
 3. Clique em **Enviar e Indexar**.
 4. O sistema irá extrair os textos, quebrá-los em blocos lógicos e armazená-los na base vetorial. A partir desse momento, o assistente já saberá responder dúvidas baseadas nesse novo arquivo.
 
+### Quem pode ver cada documento (campo "Finalidade")
+
+Ao criar uma collection (base de documentos), você escolhe sua **Finalidade**:
+
+* **Chat (pública)**: é o que o site/widget de chat usa para responder qualquer visitante. Só uma collection `Chat` pode ficar "ativa" por vez.
+* **Restrita ao MCP B2B**: não aparece no chat público; é consultada pelos parceiros comerciais conectados via MCP B2B (ver Seção 6) **e também** pelo Admin, quando ele mesmo usa o chat logado (ver abaixo).
+* **Exclusiva do Admin**: só o Admin vê esse conteúdo — nem o chat público, nem os parceiros do MCP B2B. Use para documentos internos/confidenciais (ex.: notas de custo, contratos, rascunhos).
+
+Nenhuma collection `Restrita ao MCP B2B` ou `Exclusiva do Admin` pode ser marcada como "ativa" do chat público — o botão **Ativar** fica desabilitado para elas.
+
+### Pesquisando seus próprios documentos pelo chat (modo Admin)
+
+Desde 2026-09-30, ao fazer login no site com um usuário Admin (`/conta/login`,
+e-mail `admin@*`) e usar o **widget de chat normal** (não o playground de
+`/admin/ingestao`), o assistente automaticamente passa a pesquisar em **todo**
+o RAG — a collection `Chat` ativa, tudo que é `Restrita ao MCP B2B` e tudo
+que é `Exclusiva do Admin` — em vez de só a collection pública. Não há botão
+nem configuração extra: basta estar logado como Admin na mesma aba/sessão do
+navegador. `# MVP`: a verificação usa o mesmo token mock de login do resto do
+sistema (não é uma sessão criptográfica robusta) — ver `docs/ARCHITECTURE.md`
+§6, decisão de 2026-09-30.
+
 ---
 
 ## 🕸️ Parametrização e Disparo do Web Crawler
