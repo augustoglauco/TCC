@@ -1,0 +1,145 @@
+{
+  "descricao": "Conjunto de referência para qualidade do RAG (R4, Fase 2/10) — ver docs/EVALUATION.md Seção 2. Extraído de eval/rag_quality/bateria_perguntas_rag.md (fonte narrativa original, mantida para leitura humana) para consumo pelo script de avaliação.",
+  "casos": [
+    {
+      "id": 1,
+      "pergunta": "Quantas contas SIP o telefone IP Intelbras V3001 permite registrar?",
+      "dificuldade": "facil",
+      "documento_origem": "Manual_V3001_01-26_site.pdf",
+      "resposta_esperada": "O telefone IP V3001 permite registrar até 2 contas SIP independentes."
+    },
+    {
+      "id": 2,
+      "pergunta": "Qual é a capacidade máxima de canais de vídeo do servidor iNVU 9164 M2 IAX FT?",
+      "dificuldade": "facil",
+      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
+      "resposta_esperada": "Suporta até 64 canais de vídeo."
+    },
+    {
+      "id": 3,
+      "pergunta": "Qual é a distância máxima do iluminador infravermelho (IR Inteligente) da câmera VIP 7550 BD Z IA?",
+      "dificuldade": "facil",
+      "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
+      "resposta_esperada": "O alcance máximo do IR Inteligente é de 50 metros."
+    },
+    {
+      "id": 4,
+      "pergunta": "O que é o software IP Utility e para que ele serve?",
+      "dificuldade": "facil",
+      "documento_origem": "Manual_IP_Utility_01-26_site_4.pdf",
+      "resposta_esperada": "O IP Utility é um software utilitário secundário da Intelbras desenvolvido para localizar dispositivos de segurança eletrônica na rede local e auxiliar na configuração de padrões de imagem e rede."
+    },
+    {
+      "id": 5,
+      "pergunta": "Quantos canais de gravação InSearch simultâneos o iNVU 9164 M2 IAX suporta via servidor?",
+      "dificuldade": "facil",
+      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
+      "resposta_esperada": "Suporta busca utilizando InSearch em até 16 canais."
+    },
+    {
+      "id": 6,
+      "pergunta": "Qual é a resolução máxima de gravação suportada pelo iNVU 9164 M2 IAX FT?",
+      "dificuldade": "facil",
+      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
+      "resposta_esperada": "A resolução máxima é de 32 Megapixels (32 MP)."
+    },
+    {
+      "id": 7,
+      "pergunta": "Quantas áreas de Detecção de Movimento Inteligente (DMI 3.0) é possível configurar na VIP 7550 BD Z IA?",
+      "dificuldade": "facil",
+      "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
+      "resposta_esperada": "Podem ser configuradas até 4 áreas com agendamento."
+    },
+    {
+      "id": 8,
+      "pergunta": "Qual é a diferença entre as versões Intelbras Defense IA Lite e Intelbras Defense IA referente à implantação e redundância?",
+      "dificuldade": "media",
+      "documento_origem": "Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf",
+      "resposta_esperada": "O Defense IA Lite (versão gratuita) suporta apenas implantação em Servidor Único e não possui recurso de Hot Standby nem suporte a servidores em cascata/distribuído. Já o Defense IA (versão licenciada) suporta implantação Distribuída/Cascata e possui suporte a Hot Standby (redundância)."
+    },
+    {
+      "id": 9,
+      "pergunta": "Quais são as distâncias da tabela DORI da câmera VIP 7550 BD Z IA nas posições de lente Wide (W) e Telephoto (T)?",
+      "dificuldade": "media",
+      "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
+      "resposta_esperada": "Wide (W): Detectar 64m | Observar 26m | Reconhecer 13m | Identificar 6,4m. Telephoto (T): Detectar 212m | Observar 85m | Reconhecer 42m | Identificar 21m."
+    },
+    {
+      "id": 10,
+      "pergunta": "Como funciona a função SIP Hotspot no telefone IP V3001 e qual a vantagem do seu uso?",
+      "dificuldade": "media",
+      "documento_origem": "Manual_V3001_01-26_site.pdf",
+      "resposta_esperada": "A função SIP Hotspot permite criar um grupo de toque (ring group) entre diferentes telefones compatíveis utilizando apenas 1 conta SIP registrada no ramal principal (modo Hotspot). Os demais telefones funcionam como clientes Hotspot sem necessidade de conta SIP individual registrada no PABX, expandindo a capacidade de ramais."
+    },
+    {
+      "id": 11,
+      "pergunta": "Qual a diferença de canais e tecnologia entre os gravadores MHDX 1104-C, MHDX 1108-C e MHDX 1116-C?",
+      "dificuldade": "media",
+      "documento_origem": "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
+      "resposta_esperada": "Todos pertencem à série de DVRs analógicos/HDCVI da Intelbras, porém variam na quantidade de canais físicos de vídeo: o MHDX 1104-C possui 4 canais, o MHDX 1108-C possui 8 canais e o MHDX 1116-C possui 16 canais."
+    },
+    {
+      "id": 12,
+      "pergunta": "Quais protocolos de transporte e de voz o telefone V3001 suporta para envio de DTMF nas chamadas SIP?",
+      "dificuldade": "media",
+      "documento_origem": "Manual_V3001_01-26_site.pdf",
+      "resposta_esperada": "Suporta 3 tipos de envio de DTMF: In-band, Out-of-band (RFC 2833) e SIP INFO (com envio de caracteres # e *)."
+    },
+    {
+      "id": 13,
+      "pergunta": "O que acontece se a conexão do servidor SIP primário falhar no V3001 quando o \"Ativar failback\" estiver habilitado?",
+      "dificuldade": "media",
+      "documento_origem": "Manual_V3001_01-26_site.pdf",
+      "resposta_esperada": "Caso o telefone não obtenha resposta do Servidor SIP 1 (primário), ele tentará enviar automaticamente o pedido de registro ao Servidor SIP 2 (secundário/backup) configurado."
+    },
+    {
+      "id": 14,
+      "pergunta": "Quais são as resoluções de vídeo e codecs de áudio/vídeo suportados no gravador iNVU 9164 M2 IAX FT?",
+      "dificuldade": "media",
+      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
+      "resposta_esperada": "Compressão de Vídeo: H.265+, H.265, H.264+, H.264. Resoluções de Gravação: 32 MP, 24 MP, 16 MP, 12 MP, 8 MP, 6 MP, 5 MP, 4 MP, 3 MP, 1080p, 960p, 720p, D1, CIF, QCIF."
+    },
+    {
+      "id": 15,
+      "pergunta": "Uma empresa precisa implantar monitoramento com busca por linguagem natural (Ex: \"encontrar pessoa com camisa vermelha\") para 30 câmeras. O servidor iNVU 9164 M2 IAX FT sozinho atende essa demanda totalmente com InSearch local?",
+      "dificuldade": "dificil",
+      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
+      "resposta_esperada": "Não atende totalmente sozinho. Embora o iNVU 9164 suporte 64 canais de vídeo e a função InSearch (busca por texto em linguagem natural), a capacidade máxima de processamento InSearch no próprio servidor é de até 16 canais. Para atender as 30 câmeras com InSearch, é necessário utilizar câmeras IP que já possuam a inteligência InSearch embarcada ou adicionar servidores adicionais."
+    },
+    {
+      "id": 16,
+      "pergunta": "O software IP Utility pode ser utilizado como o software principal para gravação contínua de vídeo das câmeras IP da Intelbras?",
+      "dificuldade": "dificil",
+      "documento_origem": "Manual_IP_Utility_01-26_site_4.pdf",
+      "resposta_esperada": "Não. O IP Utility é um software secundário voltado exclusivamente para auxiliar na localização e configuração de rede/imagem dos dispositivos. O manual ressalta que ele não é um VMS/NVR para gerenciamento de gravação contínua. Para gravação, devem ser utilizados VMS como Defense IA ou gravadores NVR/DVR."
+    },
+    {
+      "id": 17,
+      "pergunta": "Como deve ser configurado o telefone V3001 caso o provedor SIP exija o protocolo TCP apenas para mensagens que ultrapassem 1500 bytes?",
+      "dificuldade": "dificil",
+      "documento_origem": "Manual_V3001_01-26_site.pdf",
+      "resposta_esperada": "Deve-se habilitar a opção \"TCP automático\" nas configurações avançadas do SIP. Essa função faz com que o telefone utilize automaticamente o protocolo TCP para mensagens SIP cujo tamanho seja superior a 1500 bytes, mantendo o padrão para pacotes menores."
+    },
+    {
+      "id": 18,
+      "pergunta": "O manual da câmera VIP 7550 BD Z IA especifica suporte nativo a reconhecimento facial com armazenamento de banco de dados de 100.000 faces na própria câmera?",
+      "dificuldade": "dificil",
+      "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
+      "resposta_esperada": "Não. A VIP 7550 realiza detecção de face, contagem de pessoas e inteligência perimetral (DMI 3.0), mas não possui banco de dados embarcado para 100.000 faces na câmera. Bancos de dados de faces desse porte dependem de servidores dedicados ou softwares VMS como o Intelbras Defense IA. O sistema não deve inventar que a câmera guarda esse banco localmente."
+    },
+    {
+      "id": 19,
+      "pergunta": "Em uma solução com o Defense IA Lite (gratuito), é possível configurar um servidor secundário em Hot Standby para assumir automaticamente se o servidor principal cair?",
+      "dificuldade": "dificil",
+      "documento_origem": "Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf",
+      "resposta_esperada": "Não. A função de Hot Standby e arquitetura distribuída/cascata é exclusiva da versão licenciada Intelbras Defense IA. A versão Lite (gratuita) opera estritamente em Servidor Único sem suporte a alta disponibilidade Hot Standby."
+    },
+    {
+      "id": 20,
+      "pergunta": "Qual a diferença entre a função InSearch e a busca por IA tradicional nos gravadores/servidores Intelbras conforme os manuais?",
+      "dificuldade": "dificil",
+      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
+      "resposta_esperada": "A busca IA tradicional baseia-se em metadados pré-categorizados (ex: selecionar \"veículo\" ou \"pessoa\" em filtros fixos). Já a função InSearch utiliza Inteligência Artificial por Linguagem Natural, permitindo realizar pesquisas descritivas via texto (ex: pesquisar características específicas de vestuário ou objetos) e criar eventos inteligentes baseados em texto livre."
+    }
+  ]
+}

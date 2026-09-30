@@ -20,6 +20,7 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 | [`extractor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/catalog_extractor/extractor.py) | Backend (`app.catalog_extractor`) | Prompts de extração estruturada de produtos a partir de PDFs/Imagens de catálogos |
 | [`classificacao.py`](file:///home/augusto/Projetos/TCC/backend/src/app/user_profile/classificacao.py) | Backend (`app.user_profile`) | Injeção de perfil do cliente, histórico de compras e regras de privacidade/LGPD |
 | [`useChatStore.ts`](file:///home/augusto/Projetos/TCC/frontend/lib/hooks/useChatStore.ts) | Frontend (`lib/hooks`) | Gerador do prompt inicial da interface do usuário para agendamento de visita |
+| [`eval/rag_quality/run_eval.py`](file:///home/augusto/Projetos/TCC/backend/eval/rag_quality/run_eval.py) | Backend (`eval`, Fase 10) | Prompt de avaliação LLM-as-judge (qualidade das respostas do RAG) |
 
 ---
 
@@ -509,6 +510,42 @@ export function getVisitPrompt(
 
 ---
 
+### 13. `backend/eval/rag_quality/run_eval.py`
+**Caminho:** [`backend/eval/rag_quality/run_eval.py`](file:///home/augusto/Projetos/TCC/backend/eval/rag_quality/run_eval.py#L52-L75)
+
+Prompt de avaliação LLM-as-judge (Fase 10, R4) — compara a resposta gerada pelo modelo local com o gabarito de cada pergunta de `eval/rag_quality/dataset.json`, usando um modelo EXTERNO (diferente do gerador, para reduzir viés de autoavaliação) e critérios documentados em `docs/EVALUATION.md` Seção 2 (relevância, correção factual, uso da fonte recuperada).
+
+```python
+# Line 52: Prompt de avaliação (LLM-as-judge) da qualidade das respostas do RAG
+_JUDGE_PROMPT_TEMPLATE = """\
+Você é um avaliador técnico imparcial. Compare a resposta gerada por um \
+assistente de IA com a resposta esperada (gabarito) para a mesma pergunta \
+técnica sobre equipamentos, e dê notas de 1 (péssima) a 5 (excelente).
+
+Critérios:
+- "relevancia": a resposta gerada realmente responde ao que foi perguntado?
+- "correcao_factual": as informações batem com o gabarito (números, nomes, \
+limites técnicos)? Penalize alucinações (dados inventados que não estão no \
+gabarito nem nas fontes recuperadas).
+- "uso_fonte": a resposta se apoia no conteúdo das fontes recuperadas \
+abaixo, em vez de conhecimento genérico não verificável?
+- "nota": nota geral de qualidade, considerando os três critérios acima.
+
+Pergunta: {pergunta}
+
+Resposta esperada (gabarito): {resposta_esperada}
+
+Fontes recuperadas pelo RAG (o que o assistente tinha disponível para responder):
+{fontes}
+
+Resposta gerada pelo assistente: {resposta_gerada}
+
+Responda APENAS com JSON no formato: {{"nota": <1 a 5>, "relevancia": <1 a 5>, \
+"correcao_factual": <1 a 5>, "uso_fonte": <1 a 5>, "justificativa": "<1-2 frases>"}}."""
+```
+
+---
+
 ## Conclusão
 
-Todos os **12 arquivos de código** que contêm instruções diretas, prompts de sistema, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
+Todos os **13 arquivos de código** que contêm instruções diretas, prompts de sistema, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.

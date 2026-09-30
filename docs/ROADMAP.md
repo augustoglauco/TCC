@@ -902,12 +902,31 @@ conversa e classificação do usuário").
       `app.api.chat`; produção já fazia isso certo, só o script do eval
       errou primeiro). Resultado e tabela em
       `backend/eval/router_intents/README.md`.
-- [ ] Montar conjunto de perguntas de referência para qualidade do RAG
+- [x] Montar conjunto de perguntas de referência para qualidade do RAG
       (avaliação manual em escala 1–5 + LLM-as-judge) — conjunto de 20
-      perguntas com gabarito já existe em
+      perguntas com gabarito já existia em
       `backend/eval/rag_quality/bateria_perguntas_rag.md` (commit
-      `9603557`); falta rodar a avaliação (nota manual + LLM-as-judge) e
-      produzir o `results.json`.
+      `9603557`); extraído para `dataset.json` e rodada a avaliação em
+      `run_eval.py`, reproduzindo o caminho real de produção do domínio
+      Suporte (busca RAG + prompt + geração pelo modelo local, sem passar
+      pelo classificador de intenção — já avaliado à parte) e julgando com
+      um LLM-as-judge externo (prompt novo, documentado em
+      `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`). Rodado ao vivo
+      (2026-09-30, Ollama + `gemma4:12b-it-q4_K_M` + OpenRouter reais): nota
+      média geral **2,5/5**, fonte correta recuperada em **70%** das
+      perguntas. Achado principal: nota média cai de 3,0 (fonte certa
+      recuperada) para 1,3 (fonte errada) — a maior parte da perda de
+      qualidade é erro de recuperação, não de geração; perguntas difíceis
+      (raciocínio/RAG negativo) recuperam pior (50% x 71-86% das
+      fáceis/médias). Achado secundário sobre a própria ferramenta de
+      medição: um PDF real tem espaço duplo no nome do arquivo, diferente do
+      gabarito — a checagem de "fonte correta" precisou normalizar espaços
+      antes de comparar. **Nota manual (1–5) fica pendente de propósito**
+      (`results.json`, campo `nota_manual: null`) — preenchê-la com outra
+      chamada de LLM seria um segundo LLM-as-judge disfarçado, não a
+      segunda fonte de sinal independente que `docs/EVALUATION.md` pede;
+      exige o desenvolvedor/orientador olhar as 20 respostas geradas.
+      Resultado e tabela completos em `backend/eval/rag_quality/README.md`.
 - [ ] Medir latência (média e p95) do modelo local (configuração vencedora
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto
