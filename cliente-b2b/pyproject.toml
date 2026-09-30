@@ -1,0 +1,18 @@
+[project]
+name = "cliente-mcp-b2b"
+version = "0.1.0"
+description = "Cliente independente com interface Streamlit para consumo do servidor MCP B2B"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp>=2.0.0",
+    "httpx>=0.28.0",
+    "streamlit>=1.40.0",
+    "pydantic>=2.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
