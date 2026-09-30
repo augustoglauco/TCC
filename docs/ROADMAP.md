@@ -718,8 +718,25 @@ conversa e classificação do usuário").
 
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 
-- [ ] Testes de integração cobrindo os quatro domínios de atendimento
-      (backend)
+- [x] Testes de integração cobrindo os quatro domínios de atendimento
+      (backend) — `tests/test_integration_domains.py`, através do endpoint
+      HTTP real (`chat_router` via `TestClient`, parseando o SSE), não
+      chamando `handle_message` direto como `test_orchestrator.py`.
+      Diferença para `test_chat_api.py`: lá `calendar_client`/
+      `scheduling_config`/`sales_catalog_client` ficam sempre `None` de
+      propósito; aqui as quatro dependências externas (LLM local/externo,
+      RAG, calendário, catálogo de vendas) são dublês, mas todas ficam
+      ligadas, para exercitar o mecanismo que de fato distingue cada
+      domínio: Vendas consulta o catálogo e gera card de cotação; Suporte só
+      usa RAG (nunca o catálogo); Atendimento injeta o histórico de compras
+      do cliente autenticado no prompt; Agendamento roda a máquina de
+      estados real (slots → confirmação → criação de evento) em duas
+      requisições HTTP sequenciais com o mesmo `conversation_id`. Como
+      Vendas e Agendamento fazem uma chamada de extração estruturada (JSON)
+      via `generate()` antes da resposta final, a fake de LLM
+      (`_DomainAwareLLMClient`) inspeciona um marcador exclusivo de cada
+      prompt de extração para devolver o JSON certo, em vez de uma única
+      resposta fixa.
 - [~] Testes E2E do frontend cobrindo os fluxos críticos: chat (texto,
       imagem, áudio), pedido, login (ver `docs/FRONTEND.md` §6) — fluxo de
       chat texto e áudio feitos adiantado, junto do widget (Fase 8):
