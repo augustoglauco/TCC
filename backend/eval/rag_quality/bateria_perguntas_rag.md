@@ -2,15 +2,22 @@
 
 Este documento contém uma bateria de **20 perguntas de teste** classificadas por nível de dificuldade (**Fácil, Média e Difícil**), elaboradas a partir do processamento e extração de texto via `pdfplumber` dos manuais e datasheets contidos em `/home/augusto/Projetos/TCC/docs/Manuais_fornecedor`.
 
+> ⚠️ **Nota de 2026-10-01**: das 20 perguntas originais, **Q8 e Q19** citam
+> `Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf` como fonte —
+> um documento que existe na pasta acima mas **nunca foi ingerido no RAG**.
+> Elas continuam documentadas abaixo (marcadas) por completude histórica, mas
+> foram **removidas** de `dataset.json`/`run_eval.py` (18 perguntas avaliadas
+> de fato) — ver `README.md` desta pasta.
+
 ---
 
 ## 📊 Visão Geral do Benchmark
 
-| Categoria | Qtd | Foco Principal | Capacidade Avaliada no RAG |
-| :--- | :---: | :--- | :--- |
-| **🟢 Fácil** | 7 | Fatos Diretos e Parâmetros Numéricos | Recuperação precisa de 1 chunk isolado |
-| **🟡 Média** | 7 | Comparativos, Tabelas e Regras de Negócio | Múltiplos chunks, síntese de dados e tabelas |
-| **🔴 Difícil** | 6 | Arquitetura, Raciocínio Técnico e RAG Negativo | Resolução de projetos e recusa a alucinações |
+| Categoria | Qtd original | Qtd avaliada (`dataset.json`) | Foco Principal | Capacidade Avaliada no RAG |
+| :--- | :---: | :---: | :--- | :--- |
+| **🟢 Fácil** | 7 | 7 | Fatos Diretos e Parâmetros Numéricos | Recuperação precisa de 1 chunk isolado |
+| **🟡 Média** | 7 | 6 (Q8 excluída) | Comparativos, Tabelas e Regras de Negócio | Múltiplos chunks, síntese de dados e tabelas |
+| **🔴 Difícil** | 6 | 5 (Q19 excluída) | Arquitetura, Raciocínio Técnico e RAG Negativo | Resolução de projetos e recusa a alucinações |
 
 ---
 
@@ -82,6 +89,12 @@ Este documento contém uma bateria de **20 perguntas de teste** classificadas po
 ## 🟡 Nível 2: Perguntas Médias (7 Perguntas)
 
 ### Q8. Comparativo Intelbras Defense IA vs Defense IA Lite (Redundância)
+> ⚠️ **Excluída de `dataset.json`/`run_eval.py` em 2026-10-01**: o documento de
+> origem abaixo nunca foi ingerido no RAG (só existe em
+> `docs/Manuais_fornecedor/`) — sem a fonte no corpus, nenhuma configuração de
+> chunking/retrieval acertaria esta pergunta, contaminando a comparação de
+> parâmetros com um problema que não é de chunking. Reintroduzir no conjunto
+> avaliado se o documento for ingerido.
 * **Pergunta**: Qual é a diferença entre as versões Intelbras Defense IA Lite e Intelbras Defense IA referente à implantação e redundância?
 * **Dificuldade**: Média
 * **Documento de Origem**: `Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf` (Pág. 3)
@@ -187,6 +200,8 @@ Este documento contém uma bateria de **20 perguntas de teste** classificadas po
 ---
 
 ### Q19. Licenciamento e Alta Disponibilidade no Defense IA Lite
+> ⚠️ **Excluída de `dataset.json`/`run_eval.py` em 2026-10-01** — mesmo motivo
+> da Q8: documento de origem nunca ingerido no RAG.
 * **Pergunta**: Em uma solução com o Defense IA Lite (gratuito), é possível configurar um servidor secundário em *Hot Standby* para assumir automaticamente se o servidor principal cair?
 * **Dificuldade**: Difícil (RAG Negativo & Licenciamento)
 * **Documento de Origem**: `Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf` (Pág. 3)
@@ -215,7 +230,7 @@ Este documento contém uma bateria de **20 perguntas de teste** classificadas po
 | **Q5** | Canais InSearch no iNVU 9164 | 🟢 Fácil | `Datasheet - iNVU 9164.pdf` | Numerical Limit |
 | **Q6** | Resolução máxima iNVU 9164 | 🟢 Fácil | `Datasheet - iNVU 9164.pdf` | Numerical Value |
 | **Q7** | Áreas DMI 3.0 na VIP 7550 | 🟢 Fácil | `Datasheet 7550.pdf` | Feature Limit |
-| **Q8** | Defense IA vs Lite (Redundância) | 🟡 Média | `Comparativo Defense IA.pdf` | Table Comparative |
+| **Q8** ⚠️ excluída | Defense IA vs Lite (Redundância) | 🟡 Média | `Comparativo Defense IA.pdf` (não ingerido) | Table Comparative |
 | **Q9** | Tabela DORI VIP 7550 (Wide vs Tele) | 🟡 Média | `Datasheet 7550.pdf` | Multiline Table Format |
 | **Q10** | Funcionamento SIP Hotspot no V3001 | 🟡 Média | `Manual_V3001.pdf` | Multi-paragraph Synthesis |
 | **Q11** | Diferença de canais linha MHDX | 🟡 Média | `Manual_MHDX.pdf` | Aggregation across models |
@@ -226,5 +241,5 @@ Este documento contém uma bateria de **20 perguntas de teste** classificadas po
 | **Q16** | IP Utility como VMS de gravação | 🔴 Difícil | `Manual_IP_Utility.pdf` | Negative Boundary |
 | **Q17** | Mensagens SIP > 1500 bytes (TCP) | 🔴 Difícil | `Manual_V3001.pdf` | Advanced Tech Rule |
 | **Q18** | Banco de 100k faces na VIP 7550 | 🔴 Difícil | `Datasheet 7550.pdf` | Hallucination Rejection |
-| **Q19** | Hot Standby no Defense IA Lite | 🔴 Difícil | `Comparativo Defense IA.pdf` | License Boundary |
+| **Q19** ⚠️ excluída | Hot Standby no Defense IA Lite | 🔴 Difícil | `Comparativo Defense IA.pdf` (não ingerido) | License Boundary |
 | **Q20** | InSearch vs IA Tradicional | 🔴 Difícil | `Datasheet - iNVU 9164.pdf` | Deep Tech Conceptualization |

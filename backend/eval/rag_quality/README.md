@@ -4,65 +4,75 @@ Ver `docs/EVALUATION.md` Seção 2 para o desenho completo desta avaliação.
 
 - `bateria_perguntas_rag.md` — fonte narrativa original das 20 perguntas
   (com o "porquê" de cada uma), construída a partir dos manuais/datasheets
-  reais já enviados por upload no RAG (domínio Suporte).
-- `dataset.json` — as mesmas 20 perguntas + gabarito, extraídas para
-  consumo pelo script de avaliação.
+  reais já enviados por upload no RAG (domínio Suporte). **20 perguntas
+  originais**, 2 marcadas como excluídas (ver abaixo).
+- `dataset.json` — **18 perguntas avaliadas de fato** (Q8 e Q19 removidas) +
+  gabarito, extraídas para consumo pelo script de avaliação.
 - `run_eval.py` — reproduz o caminho real de produção para o domínio
   "suporte" (busca RAG + prompt + geração pelo modelo local), sem passar
   pelo classificador de intenção (avaliado separadamente em
   `eval/router_intents/`), e usa um LLM-as-judge (modelo externo, diferente
   do gerador) para notar cada resposta — prompt documentado em
   `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.
-- `results.json` — saída da última execução (2026-09-30, ambiente local
+- `results.json` — saída da última execução (2026-10-01, ambiente local
   completo no ar: Ollama com `gemma4:12b-it-q4_K_M` gerando, OpenRouter real
   julgando).
 
-## Resultado (2026-09-30)
+## Por que só 18 perguntas (não 20)
+
+Q8 e Q19 citam `Comparativo de funções - Intelbras Defense IA & Lite -
+V1.pdf` como fonte — um PDF que existe em `docs/Manuais_fornecedor/` mas
+**nunca foi ingerido no RAG**. Sem o documento no corpus, nenhuma
+configuração de chunking/retrieval algum dia acertaria essas duas; mantê-las
+contaminava qualquer avaliação com um problema que não é de chunking nem de
+geração, é de ingestão ausente. Removidas de `dataset.json` em 2026-10-01
+(continuam documentadas, marcadas, em `bateria_perguntas_rag.md`, por
+completude histórica). Se o PDF for ingerido futuramente, reintroduzir as
+duas no conjunto avaliado.
+
+## Resultado (2026-10-01, 18 perguntas)
 
 | Métrica | Valor |
 | --- | --- |
-| Nota média geral (LLM-as-judge, 1–5) | **2,5** |
-| Taxa de recuperação da fonte correta | **70%** (14/20) |
+| Nota média geral (LLM-as-judge, 1–5) | **2,78** |
+| Taxa de recuperação da fonte correta | **78%** (14/18) |
 | Nota média quando a fonte correta foi recuperada | **3,0** (n=14) |
-| Nota média quando a fonte correta NÃO foi recuperada | **1,3** (n=6) |
+| Nota média quando a fonte correta NÃO foi recuperada | **2,0** (n=4) |
 
 | Dificuldade | n | Nota média | Fonte correta |
 | --- | --- | --- | --- |
-| Fácil | 7 | 2,43 | 86% |
-| Média | 7 | 3,14 | 71% |
-| Difícil | 6 | 1,83 | 50% |
+| Fácil | 7 | 2,71 | 86% |
+| Média | 6 | 2,67 | 83% |
+| Difícil | 5 | 3,00 | 60% |
 
 **Nota manual (1–5):** coluna `nota_manual` em `results.json` fica `null` de
 propósito — pendente de preenchimento humano (ver decisão abaixo).
 
 ## Achados
 
-1. **A qualidade da resposta está fortemente ligada a recuperar a fonte
-   certa** — não é só a geração que falha: nota média cai de 3,0 para 1,3
-   quando o documento certo não está entre os `top_k=3` chunks recuperados.
-   Isso separa, como o `docs/EVALUATION.md` pede, erro de recuperação de
-   erro de geração — aqui os dois pesam, mas a recuperação pesa mais.
-2. **Perguntas difíceis (raciocínio, RAG negativo) recuperam pior** (50% x
-   71-86% das fáceis/médias) — plausível: perguntas como "isso é
-   verdade?" (checagem de alucinação) ou comparativos entre duas versões de
-   produto casam pior por similaridade de embedding do que uma pergunta
-   direta sobre uma especificação.
-3. **Mesmo com a fonte certa recuperada, o modelo local
-   (`gemma4:12b-it-q4_K_M`, quantizado) erra números específicos com
-   frequência** — ex.: pergunta 6 (resolução máxima do iNVU 9164, gabarito
-   32 MP) recebeu a fonte certa mas respondeu "6 MP/1080p"; pergunta 12
-   (tipos de DTMF do V3001) recebeu a fonte certa mas inventou um quarto
-   tipo ("AUTO") além dos 3 do gabarito. Ainda assim, quando a fonte é
-   recuperada, a nota média (3,0) é bem melhor que quando não é (1,3) — o
-   modelo às vezes também responde "não encontrei" mesmo com a informação
-   certa na base recuperada (subutilização da fonte, não alucinação).
+1. **A correlação entre fonte certa e nota caiu bastante** depois de
+   remover Q8/Q19 (3,0 x 2,0, antes 3,0 x 1,3) — a amostra de "fonte
+   errada" ficou pequena (n=4), então essa diferença é menos conclusiva
+   agora; ainda assim a direção se mantém (fonte certa → nota melhor).
+2. **Um caso notável de resposta certa com fonte errada** (Q16, nota 5): o
+   RAG recuperou os manuais errados, mas o modelo respondeu corretamente
+   sobre o papel do software IP Utility mesmo assim — conhecimento
+   paramétrico do modelo, não grounding pelo RAG. Vale como lembrete de que
+   `fonte_correta` mede recuperação, não garante (nem é garantido por) a
+   qualidade da resposta.
+3. **Difícil já não é a categoria pior** (3,00, a melhor das três) — o
+   resultado anterior (1,83) vinha majoritariamente de Q19, que era
+   impossível de acertar. Com só 5 perguntas difíceis restantes, a amostra
+   é pequena demais para tirar conclusão forte sobre dificuldade x nota.
 4. **Achado sobre a ferramenta de medição, não sobre o sistema:** o nome
    real de um dos PDFs enviados por upload tem espaço duplo
-   ("...IA  FT..."), diferente do nome usado no gabarito — a checagem
-   ingênua de `fonte_correta` (substring) marcava falso negativo em 2 das
-   20 perguntas mesmo com o documento certo recuperado. Corrigido
+   ("...IA  FT..."), diferente do nome usado no gabarito — corrigido
    normalizando espaços antes de comparar (`_normalizar_nome_arquivo` em
-   `run_eval.py`) — números acima já refletem a correção.
+   `run_eval.py`).
+5. **Achado operacional:** 18 chamadas sequenciais ao LLM-as-judge (OpenRouter)
+   esbarram em rate limit (429) ocasionalmente — `run_eval.py` agora tenta
+   de novo com backoff exponencial (até 4 tentativas) em vez de derrubar a
+   rodada inteira.
 
 ## Decisão registrada: por que a nota manual fica em branco
 
@@ -73,7 +83,7 @@ terceiro modelo) não cumpriria esse propósito: seria um segundo
 LLM-as-judge disfarçado, não o julgamento humano que a avaliação pede. A
 pontuação automatizada (LLM-as-judge, retrieval, geração) está completa;
 falta só o desenvolvedor/orientador preencher `nota_manual` em
-`results.json` olhando as 20 respostas geradas — o comparativo entre as
+`results.json` olhando as 18 respostas geradas — o comparativo entre as
 duas notas (concordância/divergência) é, em si, um dado interessante para o
 relatório final.
 

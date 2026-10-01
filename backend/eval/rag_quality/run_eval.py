@@ -33,6 +33,8 @@ import json
 import re
 from pathlib import Path
 
+import httpx
+
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.rag.active_collection_client import ActiveCollectionRagClient
@@ -96,6 +98,9 @@ def _fonte_e_correta(fontes: list[str], documento_origem: str) -> bool:
     return any(origem in _normalizar_nome_arquivo(fonte) for fonte in fontes)
 
 
+_MAX_TENTATIVAS_JUIZ = 4
+
+
 async def _julgar_resposta(
     judge_client, pergunta: str, resposta_esperada: str, resposta_gerada: str, fontes: list[str]
 ) -> dict:
@@ -106,7 +111,21 @@ async def _julgar_resposta(
         fontes=fontes_texto,
         resposta_gerada=resposta_gerada,
     )
-    resposta = await judge_client.generate(prompt)
+    # Achado ao rodar esta avaliação: 18 perguntas em sequência batem em
+    # rate limit (429) do OpenRouter de vez em quando — retry com backoff
+    # exponencial em vez de derrubar a rodada inteira por causa de um limite
+    # transitório.
+    for tentativa in range(_MAX_TENTATIVAS_JUIZ):
+        try:
+            resposta = await judge_client.generate(prompt)
+            break
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 429 or tentativa == _MAX_TENTATIVAS_JUIZ - 1:
+                raise
+            espera_s = 2**tentativa
+            numero = f"{tentativa + 1}/{_MAX_TENTATIVAS_JUIZ}"
+            print(f"    429 do juiz ({numero}), aguardando {espera_s}s...")
+            await asyncio.sleep(espera_s)
     try:
         return json.loads(strip_code_fence(resposta.text))
     except (json.JSONDecodeError, ValueError):  # fmt: skip

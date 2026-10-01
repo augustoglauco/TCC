@@ -1,5 +1,6 @@
 {
   "descricao": "Conjunto de referência para qualidade do RAG (R4, Fase 2/10) — ver docs/EVALUATION.md Seção 2. Extraído de eval/rag_quality/bateria_perguntas_rag.md (fonte narrativa original, mantida para leitura humana) para consumo pelo script de avaliação.",
+  "observacao": "18 das 20 perguntas originais de bateria_perguntas_rag.md — Q8 e Q19 foram removidas de propósito (2026-10-01): ambas citam 'Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf' como fonte, documento que existe em docs/Manuais_fornecedor/ mas nunca foi ingerido no RAG. Sem a fonte no corpus, nenhum chunking/retrieval jamais acertaria essas duas — mantê-las contaminaria qualquer comparação de parâmetros com um problema que não é de chunking. Os ids originais (1-20, pulando 8 e 19) foram preservados para rastreabilidade com o documento narrativo.",
   "casos": [
     {
       "id": 1,
@@ -49,13 +50,6 @@
       "dificuldade": "facil",
       "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
       "resposta_esperada": "Podem ser configuradas até 4 áreas com agendamento."
-    },
-    {
-      "id": 8,
-      "pergunta": "Qual é a diferença entre as versões Intelbras Defense IA Lite e Intelbras Defense IA referente à implantação e redundância?",
-      "dificuldade": "media",
-      "documento_origem": "Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf",
-      "resposta_esperada": "O Defense IA Lite (versão gratuita) suporta apenas implantação em Servidor Único e não possui recurso de Hot Standby nem suporte a servidores em cascata/distribuído. Já o Defense IA (versão licenciada) suporta implantação Distribuída/Cascata e possui suporte a Hot Standby (redundância)."
     },
     {
       "id": 9,
@@ -126,13 +120,6 @@
       "dificuldade": "dificil",
       "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
       "resposta_esperada": "Não. A VIP 7550 realiza detecção de face, contagem de pessoas e inteligência perimetral (DMI 3.0), mas não possui banco de dados embarcado para 100.000 faces na câmera. Bancos de dados de faces desse porte dependem de servidores dedicados ou softwares VMS como o Intelbras Defense IA. O sistema não deve inventar que a câmera guarda esse banco localmente."
-    },
-    {
-      "id": 19,
-      "pergunta": "Em uma solução com o Defense IA Lite (gratuito), é possível configurar um servidor secundário em Hot Standby para assumir automaticamente se o servidor principal cair?",
-      "dificuldade": "dificil",
-      "documento_origem": "Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf",
-      "resposta_esperada": "Não. A função de Hot Standby e arquitetura distribuída/cascata é exclusiva da versão licenciada Intelbras Defense IA. A versão Lite (gratuita) opera estritamente em Servidor Único sem suporte a alta disponibilidade Hot Standby."
     },
     {
       "id": 20,

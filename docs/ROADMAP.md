@@ -911,22 +911,30 @@ conversa e classificação do usuário").
       Suporte (busca RAG + prompt + geração pelo modelo local, sem passar
       pelo classificador de intenção — já avaliado à parte) e julgando com
       um LLM-as-judge externo (prompt novo, documentado em
-      `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`). Rodado ao vivo
-      (2026-09-30, Ollama + `gemma4:12b-it-q4_K_M` + OpenRouter reais): nota
-      média geral **2,5/5**, fonte correta recuperada em **70%** das
-      perguntas. Achado principal: nota média cai de 3,0 (fonte certa
-      recuperada) para 1,3 (fonte errada) — a maior parte da perda de
-      qualidade é erro de recuperação, não de geração; perguntas difíceis
-      (raciocínio/RAG negativo) recuperam pior (50% x 71-86% das
-      fáceis/médias). Achado secundário sobre a própria ferramenta de
-      medição: um PDF real tem espaço duplo no nome do arquivo, diferente do
-      gabarito — a checagem de "fonte correta" precisou normalizar espaços
-      antes de comparar. **Nota manual (1–5) fica pendente de propósito**
-      (`results.json`, campo `nota_manual: null`) — preenchê-la com outra
-      chamada de LLM seria um segundo LLM-as-judge disfarçado, não a
-      segunda fonte de sinal independente que `docs/EVALUATION.md` pede;
-      exige o desenvolvedor/orientador olhar as 20 respostas geradas.
-      Resultado e tabela completos em `backend/eval/rag_quality/README.md`.
+      `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`). **Correção de
+      2026-10-01:** ao checar "quais documentos são pertinentes" antes de
+      planejar o experimento seguinte de chunking, 2 das 20 perguntas (Q8 e
+      Q19) citavam `Comparativo de funções - Intelbras Defense IA & Lite -
+      V1.pdf` como fonte — um PDF que existe em `docs/Manuais_fornecedor/`
+      mas **nunca foi ingerido no RAG**; nenhum chunking algum dia acertaria
+      essas duas. Removidas de `dataset.json` (18 perguntas avaliadas de
+      fato; continuam documentadas, marcadas, em
+      `bateria_perguntas_rag.md`). Rodado ao vivo com o conjunto corrigido
+      (2026-10-01, Ollama + `gemma4:12b-it-q4_K_M` + OpenRouter reais): nota
+      média geral **2,78/5**, fonte correta recuperada em **78%** (14/18)
+      das perguntas; nota média 3,0 com fonte certa x 2,0 sem (amostra
+      pequena, n=4, nesse segundo grupo). Achado secundário sobre a própria
+      ferramenta de medição: um PDF real tem espaço duplo no nome do
+      arquivo, diferente do gabarito — a checagem de "fonte correta"
+      precisou normalizar espaços antes de comparar; e chamadas sequenciais
+      ao LLM-as-judge esbarram em rate limit (429) do OpenRouter às vezes —
+      `run_eval.py` ganhou retry com backoff exponencial. **Nota manual
+      (1–5) fica pendente de propósito** (`results.json`, campo
+      `nota_manual: null`) — preenchê-la com outra chamada de LLM seria um
+      segundo LLM-as-judge disfarçado, não a segunda fonte de sinal
+      independente que `docs/EVALUATION.md` pede; exige o
+      desenvolvedor/orientador olhar as 18 respostas geradas. Resultado e
+      tabela completos em `backend/eval/rag_quality/README.md`.
 - [ ] Medir latência (média e p95) do modelo local (configuração vencedora
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto

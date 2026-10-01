@@ -6,7 +6,7 @@
       "dificuldade": "facil",
       "documento_origem_esperado": "Manual_V3001_01-26_site.pdf",
       "resposta_esperada": "O telefone IP V3001 permite registrar até 2 contas SIP independentes.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre o modelo de telefone IP da Intelbras que você adquiriu.\n\nCom base nas informações técnicas disponíveis, o telefone IP **V3001** possui compatibilidade com o protocolo de comunicação SIP para redes VoIP. \n\nNo entanto, as informações específicas sobre a quantidade exata de contas SIP permitidas para registro não constam no manual técnico fornecido. Caso você precise dessa informação específica ou tenha dificuldade em configurar o aparelho, recomendo verificar as configurações padrão de fábrica do dispositivo ou informar se há alguma mensagem de erro específica que esteja ocorrendo durante a configuração.",
+      "resposta_gerada": "Olá! É um prazer ajudar você com as informações sobre o seu equipamento.\n\nCom base no manual do produto, o telefone IP **V3001** possui compatibilidade com o protocolo de comunicação SIP para utilização em redes VoIP. \n\nNo entanto, as informações disponíveis na base de dados não especificam a quantidade exata de contas SIP que este modelo permite registrar. Para que eu possa te ajudar melhor ou buscar essa informação detalhada, você poderia me informar se está enfrentando alguma dificuldade específica na configuração do aparelho?",
       "fontes_recuperadas": [
         "Manual_V3001_01-26_site.pdf",
         "Tabela_comparativa_gravadores_2025.pdf",
@@ -15,10 +15,10 @@
       "fonte_correta": true,
       "nota_llm_judge": {
         "nota": 1,
-        "relevancia": 2,
+        "relevancia": 1,
         "correcao_factual": 1,
         "uso_fonte": 1,
-        "justificativa": "A resposta falha em fornecer o número correto (2 contas) mencionado no gabarito, alegando erroneamente que a informação não está no manual. Embora cite o manual como fonte, a conclusão contradiz a expectativa técnica e ignora o conteúdo provável do documento 'Manual_V3001_01-26_site.pdf' que contém as especificações do equipamento."
+        "justificativa": "A resposta não fornece a informação solicitada e contradiz o gabarito, além de não citar as fontes recuperadas. Deve indicar que o modelo permite até 2 contas SIP independentes conforme o manual."
       },
       "nota_manual": null
     },
@@ -28,7 +28,7 @@
       "dificuldade": "facil",
       "documento_origem_esperado": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
       "resposta_esperada": "Suporta até 64 canais de vídeo.",
-      "resposta_gerada": "Olá! Agradeço o seu contato.\n\nCom base nas informações disponíveis em nosso sistema, não localizei especificações técnicas para o modelo exato \"iNVU 9164 M2 IAX FT\".\n\nPara que eu possa te ajudar da melhor forma, você poderia fornecer mais detalhes? Se possível, informe se há algum manual específico ou se você possui alguma mensagem de erro ao tentar acessar as configurações do equipamento. Caso prefira, pode detalhar qual funcionalidade específica sobre a capacidade de canais você precisa verificar.",
+      "resposta_gerada": "Olá! Agradeço pelo seu contato.\n\nCom base nas informações disponíveis em nossa base de conhecimento, não localizei os dados técnicos específicos para o modelo **iNVU 9164 M2 IAX FT**.\n\nPara que eu possa te ajudar com precisão, você poderia me informar se houve algum erro específico ou detalhar melhor qual funcionalidade desse equipamento você gostaria de consultar? Caso prefira, posso encaminhar sua dúvida para um técnico especializado assim que recebermos mais detalhes sobre o modelo.",
       "fontes_recuperadas": [
         "Datasheet - iNVU 9164 M2 IAX FT.pdf",
         "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
@@ -40,7 +40,7 @@
         "relevancia": 1,
         "correcao_factual": 1,
         "uso_fonte": 1,
-        "justificativa": "A resposta não fornece a informação solicitada, recusando-se a consultar as fontes disponíveis e não mencionando o valor correto de 64 canais. Isso resulta em uma falha total na resposta técnica e no uso das evidências fornecidas."
+        "justificativa": "A resposta não fornece a informação solicitada (64 canais) e ignora completamente as fontes recuperadas, alegando não encontrar os dados internamente, o que resulta em uma falha crítica na extração da informação factual correta."
       },
       "nota_manual": null
     },
@@ -50,7 +50,7 @@
       "dificuldade": "facil",
       "documento_origem_esperado": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
       "resposta_esperada": "O alcance máximo do IR Inteligente é de 50 metros.",
-      "resposta_gerada": "Olá! Sou o assistente virtual de suporte técnico e estou aqui para ajudar com suas dúvidas sobre os equipamentos.\n\nCom base nas informações técnicas disponíveis, a distância máxima do infravermelho (IR Inteligente) é de **50 metros**.\n\nCaso precise de mais alguma informação técnica ou ajuda com as funcionalidades da câmera, estou à disposição!",
+      "resposta_gerada": "Olá! Sou o assistente virtual de suporte técnico e estou aqui para ajudar com as informações sobre o seu equipamento.\n\nCom base nas especificações técnicas disponíveis, a distância máxima do infravermelho (IR Inteligente) é de **50 metros**.\n\nCaso precise de mais alguma informação técnica ou auxílio com a instalação da câmera VIP 7550 BD Z IA, estou à disposição!",
       "fontes_recuperadas": [
         "Datasheet 7550 BD Z IA  FT - V018_0.pdf",
         "Datasheet 7550 BD Z IA  FT - V018_0.pdf",
@@ -62,7 +62,7 @@
         "relevancia": 5,
         "correcao_factual": 5,
         "uso_fonte": 5,
-        "justificativa": "A resposta identifica corretamente o alcance de 50 metros conforme o gabarito e as fontes técnicas fornecidas, sem introduzir informações incorretas ou alucinações."
+        "justificativa": "A resposta está correta e alinhada exatamente com o gabarito, citando o valor de 50 metros especificado nas fontes técnicas do equipamento."
       },
       "nota_manual": null
     },
@@ -72,7 +72,7 @@
       "dificuldade": "facil",
       "documento_origem_esperado": "Manual_IP_Utility_01-26_site_4.pdf",
       "resposta_esperada": "O IP Utility é um software utilitário secundário da Intelbras desenvolvido para localizar dispositivos de segurança eletrônica na rede local e auxiliar na configuração de padrões de imagem e rede.",
-      "resposta_gerada": "Olá! Sou o assistente virtual de suporte técnico e estou aqui para ajudar com suas dúvidas.\n\nO **IP Utility** é um software desenvolvido pela Intelbras para auxiliar na configuração de dispositivos de segurança eletrônica. Ele foi pensado para facilitar a usabilidade do usuário em diversas situações técnicas.\n\nAs principais funções deste software são:\n1. Localizar dispositivos de CFTV IP na rede;\n2. Configurar padrões de imagem;\n3. Configurar padrões de sistemas;\n4. Realizar alterações de senhas em lote;\n5. Realizar atualizações em lote.",
+      "resposta_gerada": "Olá! Com certeza, posso te explicar sobre esse software.\n\nO **IP Utility** é uma ferramenta desenvolvida pela Intelbras para auxiliar na configuração de dispositivos de segurança eletrônica. \n\nEle serve especificamente para:\n1. Localizar dispositivos de CFTV IP na rede;\n2. Configurar padrões de imagem e de sistemas;\n3. Alterar senhas em lote;\n4. Realizar atualizações em lote.\n\nEm resumo, ele foi criado para facilitar o trabalho do usuário em diversas situações que exigem a configuração de múltiplos dispositivos de segurança simultaneamente.",
       "fontes_recuperadas": [
         "Manual_IP_Utility_01-26_site_4.pdf",
         "Manual VIP 7415 DUAL IA FT.pdf",
@@ -80,11 +80,11 @@
       ],
       "fonte_correta": true,
       "nota_llm_judge": {
-        "nota": 3,
-        "relevancia": 4,
-        "correcao_factual": 2,
-        "uso_fonte": 2,
-        "justificativa": "A resposta identifica corretamente o IP Utility como software da Intelbras voltado à localização de dispositivos de segurança e configuração de padrões, mas inclui funções extras (alterações de senhas em lote e atualizações) não mencionadas no gabarito e não corroboradas nas fontes. Além disso, não cita explicitamente 'software utilitário secundário', um detalhe importante do gabarito."
+        "nota": 4,
+        "relevancia": 5,
+        "correcao_factual": 5,
+        "uso_fonte": 4,
+        "justificativa": "A resposta descreve corretamente o IP Utility como ferramenta da Intelbras e lista suas principais funções, alinhando-se ao gabarito. Embora inclua detalhes adicionais não explícitos no texto esperado, não há contradições ou dados inventados. A base das informações está nos manuais recuperados, mas a resposta não cita diretamente as fontes."
       },
       "nota_manual": null
     },
@@ -94,7 +94,7 @@
       "dificuldade": "facil",
       "documento_origem_esperado": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
       "resposta_esperada": "Suporta busca utilizando InSearch em até 16 canais.",
-      "resposta_gerada": "Olá! É um prazer ajudar com sua dúvida técnica.\n\nCom base nas informações da nossa base de conhecimento, a capacidade de suporte para o modo **InSearch** (processamento pelo servidor) é definida da seguinte forma:\n\n1.  **Modo IAX Habilitado:** O sistema suporta até 16 canais.\n2.  **Modo IAX Desabilitado:** O sistema suporta até 32 canais.\n\nSe o seu objetivo for utilizar o processamento realizado diretamente pela **câmera**, a capacidade é de até 64 canais.",
+      "resposta_gerada": "Olá! Entendo sua dúvida sobre a capacidade do equipamento.\n\nCom base nas informações técnicas disponíveis, o suporte para o recurso **InSearch** (processamento realizado pelo Servidor) funciona da seguinte forma:\n\n1.  **Modo IAX Habilitado:** Suporta até 16 canais.\n2.  **Modo IAX Desabilitado:** Suporta até 32 canais.\n\nSe você optar por utilizar o processamento diretamente pelas câmeras compatíveis com a função InSearch, a capacidade pode chegar a até 64 canais.",
       "fontes_recuperadas": [
         "Datasheet - iNVU 9164 M2 IAX FT.pdf",
         "Tabela_comparativa_gravadores_2025.pdf",
@@ -105,8 +105,8 @@
         "nota": 5,
         "relevancia": 5,
         "correcao_factual": 5,
-        "uso_fonte": 4,
-        "justificativa": "A resposta corresponde exatamente ao gabarito, indicando corretamente que o modo IAX habilitado suporta até 16 canais via servidor, enquanto mantém informações complementares sobre modos alternativos que não afetam a precisão da resposta principal."
+        "uso_fonte": 5,
+        "justificativa": "A resposta identifica corretamente o limite de 16 canais para o modo de servidor InSearch, alinhando-se perfeitamente com o gabarito e utilizando as informações das fontes recuperadas."
       },
       "nota_manual": null
     },
@@ -116,7 +116,7 @@
       "dificuldade": "facil",
       "documento_origem_esperado": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
       "resposta_esperada": "A resolução máxima é de 32 Megapixels (32 MP).",
-      "resposta_gerada": "Olá! Entendo sua dúvida sobre a resolução de vídeo do equipamento.\n\nCom base nas especificações técnicas, o iNVU 9164 M2 IAX FT suporta as seguintes resoluções máximas:\n\n*   **6 MP** (para câmeras IP)\n*   **1080p** (para sistemas analógicos/híbridos)\n\nPara garantir a melhor qualidade de imagem, o equipamento suporta até 6 MP em canais IP. Caso você esteja utilizando outros tipos de conexão ou resoluções específicas (como 4MP ou 2MP), as capacidades dependem da configuração do canal e do modelo exato utilizado no sistema.",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a resolução de vídeo do equipamento.\n\nCom base nas informações técnicas disponíveis para o modelo **iNVU 9164 M2 IAX FT**, as resoluções suportadas são:\n\n*   **5 MP** (IP 2.560 × 1.920)\n*   **4 MP** (IP 2.304 × 1.728)\n*   **3 MP** (IP 2.048 × 1.536)\n*   **2 MP** (IP 1.600 × 1.200)\n*   **1080p** (IP/ HDCVI/AHD/TVI 1.920 × 1.080)\n*   **720p** (IP/ AHD/HDCVI/TVI 1.280 × 720)\n*   **960H** (NTSC/PAL 960 × 480 / 960 × 576)\n*   **D1** (NTSC/PAL 704 × 480 / 704 × 576)\n*   **CIF** (NTSC/PAL 352 × 240 / 352 × 288)\n\nPortanto, a resolução máxima de gravação suportada por este equipamento é de **5 MP**.\n\nCaso precise de mais alguma informação técnica ou auxílio com a configuração do seu aparelho, estou à disposição!",
       "fontes_recuperadas": [
         "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
         "Datasheet 7550 BD Z IA  FT - V018_0.pdf",
@@ -125,10 +125,10 @@
       "fonte_correta": false,
       "nota_llm_judge": {
         "nota": 1,
-        "relevancia": 1,
+        "relevancia": 2,
         "correcao_factual": 1,
         "uso_fonte": 1,
-        "justificativa": "A resposta gerada contradiz diretamente o gabarito, indicando uma resolução máxima de 6 MP/1080p quando o esperado é 32 MP, e não utiliza as fontes recuperadas para fundamentar as informações apresentadas."
+        "justificativa": "A resposta atribui incorretamente 5 MP como resolução máxima, contradizendo o gabarito que indica 32 MP. As fontes recuperadas não contêm evidências que sustentem 5 MP, e a resposta não cita explicitamente as fontes utilizadas, falhando em usar o conteúdo fornecido de forma adequada."
       },
       "nota_manual": null
     },
@@ -138,7 +138,7 @@
       "dificuldade": "facil",
       "documento_origem_esperado": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
       "resposta_esperada": "Podem ser configuradas até 4 áreas com agendamento.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a configuração da câmera VIP 7550 D Z IA FT.\n\nCom base nas informações disponíveis em nossa base de conhecimento, o modelo possui Inteligência Artificial embarcada para realizar detecção de face, contagem de pessoas e inteligência perimetral.\n\nNo entanto, as especificações técnicas fornecidas não detalham a quantidade exata de áreas configuráveis para a função específica de Detecção de Movimento Inteligente (DMI 3.0).\n\nPara que eu possa te ajudar com mais precisão ou buscar essa informação específica em outros manuais técnicos, você poderia me informar se está enfrentando alguma dificuldade na configuração ou se há algum erro específico aparecendo no sistema?",
+      "resposta_gerada": "Olá! Entendo que você gostaria de saber quantas áreas de Detecção de Movimento Inteligente (DMI 3.0) podem ser configuradas no modelo VIP 7550 Z IA FT (ou similar da linha mencionada).\n\nCom base nas informações disponíveis em nossa base de conhecimento, as especificações técnicas destacam que a câmera possui **Inteligência Artificial embarcada** para realizar funções como detecção de face, contagem de pessoas e inteligência perimetral. No entanto, o texto fornecido não especifica o número exato de áreas configuráveis para a função DMI 3.0.\n\nPara que eu possa te ajudar com mais precisão, você poderia me informar se há algum manual específico ou configuração que você está tentando realizar no momento? Se preferir, posso abrir um chamado técnico avançado caso precise de detalhes técnicos mais profundos sobre o software da câmera.",
       "fontes_recuperadas": [
         "Datasheet 7550 BD Z IA  FT - V018_0.pdf",
         "Datasheet 7550 BD Z IA  FT - V018_0.pdf",
@@ -146,33 +146,11 @@
       ],
       "fonte_correta": true,
       "nota_llm_judge": {
-        "nota": 1,
+        "nota": 2,
         "relevancia": 1,
-        "correcao_factual": 1,
-        "uso_fonte": 2,
-        "justificativa": "A resposta falha em fornecer o número correto de 4 áreas, mencionando incorretamente que as especificações não detalham a quantidade, o que contradiz diretamente o gabarito esperado."
-      },
-      "nota_manual": null
-    },
-    {
-      "id": 8,
-      "pergunta": "Qual é a diferença entre as versões Intelbras Defense IA Lite e Intelbras Defense IA referente à implantação e redundância?",
-      "dificuldade": "media",
-      "documento_origem_esperado": "Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf",
-      "resposta_esperada": "O Defense IA Lite (versão gratuita) suporta apenas implantação em Servidor Único e não possui recurso de Hot Standby nem suporte a servidores em cascata/distribuído. Já o Defense IA (versão licenciada) suporta implantação Distribuída/Cascata e possui suporte a Hot Standby (redundância).",
-      "resposta_gerada": "Olá! Como posso ajudar com suas dúvidas sobre os produtos Intelbras?\n\nCom base nas informações disponíveis em nossa base de conhecimento, não foram encontrados detalhes técnicos específicos comparando as diferenças entre as versões **Intelbras Defense IA Lite** e **Intelbras Defense IA** no que diz respeito a implantação e redundância.\n\nPara que eu possa te ajudar melhor ou encaminhar sua dúvida para um especialista técnico, você poderia informar:\n1. O modelo exato do equipamento que você está planejando utilizar?\n2. Qual é o objetivo principal da sua instalação (ex: número de câmeras, necessidade de backup em tempo real)?\n\nCaso prefira falar diretamente com nossa equipe de suporte especializado, você pode entrar em contato através dos canais oficiais:\n*   **Telefone:** (48) 2106-0006 ou 0800 704 27\n*   **Chat Online:** chat.apps.intelbras.com.br\n*   **E-mail:** suporte@intelbras.com.br",
-      "fontes_recuperadas": [
-        "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
-        "Manual VIP 7415 DUAL IA FT.pdf",
-        "Manual VIP 5200 (D) TM FT_0.pdf"
-      ],
-      "fonte_correta": false,
-      "nota_llm_judge": {
-        "nota": 1,
-        "relevancia": 1,
-        "correcao_factual": 1,
-        "uso_fonte": 1,
-        "justificativa": "A resposta não responde à pergunta, recusando-se a utilizar as fontes disponíveis para fornecer a comparação solicitada sobre as diferenças técnicas entre as versões Lite e IA. Não há alucinações de dados, mas a falta total de aderência ao gabarito e à informação correta resulta em uma avaliação muito baixa."
+        "correcao_factual": 5,
+        "uso_fonte": 4,
+        "justificativa": "A resposta evita alucinações ao admitir que as fontes não especificam o limite, mas falha em fornecer a informação numérica correta exigida pela pergunta e pelo gabarito, sendo considerada irrelevante para resolver a tarefa principal."
       },
       "nota_manual": null
     },
@@ -182,7 +160,7 @@
       "dificuldade": "media",
       "documento_origem_esperado": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
       "resposta_esperada": "Wide (W): Detectar 64m | Observar 26m | Reconhecer 13m | Identificar 6,4m. Telephoto (T): Detectar 212m | Observar 85m | Reconhecer 42m | Identificar 21m.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre as distâncias da tabela DORI para a câmera VIP 7550 BD Z IA.\n\nInfelizmente, as informações disponíveis em minha base de conhecimento técnica não incluem os dados específicos da tabela DORI ou as distâncias exatas para as lentes Wide (W) e Telephoto (T) deste modelo.\n\nPara que eu possa te ajudar melhor ou buscar informações mais detalhadas, você poderia me informar se há algum outro problema técnico específico que você está enfrentando com a configuração dessas lentes?",
+      "resposta_gerada": "Olá! Entendo que você precisa saber as distâncias da tabela DORI para o modelo VIP 7550 BD Z IA.\n\nInfelizmente, as informações disponíveis na base de conhecimento não incluem os dados específicos da tabela DORI ou as distâncias detalhadas para as lentes Wide (W) e Telephoto (T) deste modelo.\n\nPara que eu possa te ajudar melhor, você poderia me informar se a câmera está apresentando algum comportamento específico ou se você precisa de orientações sobre como configurar as imagens? Caso precise de dados técnicos específicos não listados aqui, recomendo consultar o manual técnico do fabricante para este modelo exato.",
       "fontes_recuperadas": [
         "Manual VIP 7415 DUAL IA FT.pdf",
         "Manual_iNVD1016_01-26_site_0.pdf",
@@ -194,7 +172,7 @@
         "relevancia": 1,
         "correcao_factual": 1,
         "uso_fonte": 1,
-        "justificativa": "O assistente não forneceu as distâncias solicitadas, recusando-se a responder com base nas fontes disponíveis e ignorando explicitamente a tabela DORI do manual VIP 7415 DUAL IA."
+        "justificativa": "A resposta não contém as informações solicitadas (distâncias da tabela DORI) e recusa-se a fornecer os dados, o que representa uma falha crítica na tarefa de extração de informação técnica. Além disso, não há evidências de que as fontes recuperadas contenham esses valores específicos, tornando a resposta irrelevante para o gabarito esperado."
       },
       "nota_manual": null
     },
@@ -204,7 +182,7 @@
       "dificuldade": "media",
       "documento_origem_esperado": "Manual_V3001_01-26_site.pdf",
       "resposta_esperada": "A função SIP Hotspot permite criar um grupo de toque (ring group) entre diferentes telefones compatíveis utilizando apenas 1 conta SIP registrada no ramal principal (modo Hotspot). Os demais telefones funcionam como clientes Hotspot sem necessidade de conta SIP individual registrada no PABX, expandindo a capacidade de ramais.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a funcionalidade SIP Hotspot no modelo IP V3001.\n\nA função **SIP Hotspot** permite expandir o sistema de telefonia, permitindo que múltiplos aparelhos funcionem como ramais a partir de uma única conexão principal. \n\n**Como funciona:**\nO funcionamento baseia-se em dois tipos de configuração:\n1.  **Modo Hotspot (Principal):** Um telefone é configurado com uma conta SIP registrada no servidor e seleciona o modo \"Hotspot\". Ele atua como o concentrador da rede.\n2.  **Modo Cliente:** Os demais telefones são configurados como \"Cliente\". Eles não precisam de uma conta SIP individualmente registrada, mas se conectam ao telefone principal.\n\nQuando uma chamada chega ao telefone principal (Hotspot), os aparelhos configurados como clientes também tocarão o sinal (ring), permitindo que a chamada seja atendida em qualquer um dos aparelhos da rede.\n\n**Vantagens do uso:**\n*   **Expansão Facilitada:** Permite adicionar mais aparelhos à rede sem a necessidade de registrar múltiplas contas individuais no servidor SIP.\n*   **Flexibilidade:** Facilita o gerenciamento de ramais, especialmente em redes onde o servidor SIP não oferece suporte direto para múltiplos registros ou funcionalidades específicas de conferência.\n\nCaso precise de ajuda com os parâmetros técnicos (como Tipo de monitor, Endereço ou Porta local) para realizar essa configuração, estou à disposição!",
+      "resposta_gerada": "Olá! Entendo sua dúvida sobre o funcionamento da função SIP Hotspot no telefone IP V3001. Com base no manual técnico, aqui estão as informações detalhadas:\n\n**Como funciona:**\nA função permite expandir o sistema de telefonia através da rede local. O funcionamento baseia-se na relação entre dois tipos de configuração:\n\n1.  **Modo Hotspot (Principal):** Um telefone V3001 é configurado como o \"Hotspot\". Este aparelho deve possuir uma conta SIP registrada no servidor.\n2.  **Modo Cliente:** Os demais telefones são configurados como \"Clientes\". Estes aparelhos não precisam de uma conta SIP própria registrada no servidor para funcionar como ramais.\n\nAo configurar dessa forma, quando uma chamada chega ao telefone em modo Hotspot, os telefones configurados como clientes também receberão o sinal de toque (ring), permitindo que a chamada seja atendida em qualquer um dos aparelhos da rede local.\n\n**Vantagens do uso:**\nA principal vantagem é a facilidade de expansão do sistema. Ela permite:\n*   Conectar múltiplos telefones IP V3001 sem a necessidade de criar múltiplas contas SIP no servidor para cada ramal individual.\n*   Facilitar o gerenciamento de chamadas em grupos de ramais, onde uma única conta principal gerencia as conexões para os clientes da rede local.\n\n**Configurações principais para ativação:**\n*   **Ativa Hotspot:** Habilita a funcionalidade geral.\n*   **Modo:** Define se o aparelho será o \"Hotspot\" (Principal) ou \"Cliente\".\n*   **Tipo de monitor e Endereço:** Determinam como os telefones se comunicam entre si (via Broadcast ou Multicast).\n*   **Porta local e Nome:** Configurações de rede para identificar o grupo de ramais.\n\nCaso precise de ajuda com o passo a passo da configuração técnica em algum desses campos específicos, estou à disposição!",
       "fontes_recuperadas": [
         "Manual_V3001_01-26_site.pdf",
         "Manual_V3001_01-26_site.pdf",
@@ -216,7 +194,7 @@
         "relevancia": 5,
         "correcao_factual": 5,
         "uso_fonte": 5,
-        "justificativa": "A resposta descreve corretamente o funcionamento do SIP Hotspot no telefone IP V3001 (modo Hotspot e modo cliente) e destaca a vantagem de permitir a expansão da rede sem múltiplas contas SIP, conforme descrito no manual fornecido."
+        "justificativa": "A resposta descreve corretamente o funcionamento do SIP Hotspot no telefone IP V3001 e destaca a vantagem de usar uma única conta SIP para criar grupos de toque, conforme indicado no manual. Não há erros ou informações inventadas, e a resposta está bem apoiada pelas fontes fornecidas."
       },
       "nota_manual": null
     },
@@ -226,7 +204,7 @@
       "dificuldade": "media",
       "documento_origem_esperado": "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
       "resposta_esperada": "Todos pertencem à série de DVRs analógicos/HDCVI da Intelbras, porém variam na quantidade de canais físicos de vídeo: o MHDX 1104-C possui 4 canais, o MHDX 1108-C possui 8 canais e o MHDX 1116-C possui 16 canais.",
-      "resposta_gerada": "Olá! É um prazer ajudar com as suas dúvidas sobre os modelos da linha MHDX.\n\nCom base nas especificações técnicas dos equipamentos, aqui estão as principais diferenças de capacidade e tecnologia entre os modelos MHDX 1104-C, MHDX 1108-C e MHDX 1116-C:\n\n**1. Capacidade de Banda (Bandwidth) e Limites Recomendados:**\nCada modelo suporta uma quantidade diferente de câmeras para garantir que o sistema não seja sobrecarregado:\n*   **MHDX 1104-C:** Possui banda de 20 Mbps (recomendado para até **16 câmeras**).\n*   **MHDX 1108-C:** Possui banda de 40 Mbps (recomendado para até **24 câmeras**).\n*   **MHDX 1116-C:** Possui banda de 64 Mbps (recomendado para até **72 câmeras**).\n\n**2. Recursos Tecnológicos Adicionais:**\nAlém da diferença na quantidade de canais suportados, o modelo com maior capacidade possui recursos extras:\n*   **Detecção Inteligente:** O modelo **MHDX 1116-C** conta com detecção inteligente de **16 canais** para pessoas e veículos. Já os modelos MHDX 1104-C e MHDX 1108-C possuem detecção inteligente de apenas 8 canais.\n*   **Saídas de Vídeo:** O modelo **MHDX 1116-C** possui saídas HDMI e VGA, enquanto o **MHDX 1108-C** possui apenas a saída HDMI.\n\nEm resumo, a principal diferença entre eles é a capacidade de processamento de dados (banda) e a quantidade de câmeras que podem ser conectadas com segurança ao sistema.",
+      "resposta_gerada": "Olá! É um prazer ajudar com suas dúvidas técnicas sobre os gravadores da linha MHDX.\n\nCom base nas especificações técnicas do fabricante, aqui estão as principais diferenças de capacidade (canais) e desempenho entre os modelos mencionados:\n\n**Diferenças de Capacidade e Desempenho:**\n\n1.  **MHDX 1104-C:**\n    *   Possui suporte para até **16 câmeras** (limite recomendado para evitar sobrecarga do sistema).\n    *   Largura de banda (Bandwidth) definida: **20 Mbps**.\n\n2.  **MHDX 1108-C:**\n    *   Possui suporte para até **24 câmeras** (limite recomendado para evitar sobrecarga do sistema).\n    *   Largura de banda (Bandwidth) definida: **40 Mbps**.\n\n3.  **MHDX 1116-C:**\n    *   Possui suporte para até **72 câmeras** (limite recomendado para evitar sobrecarga do sistema).\n    *   Largura de banda (Bandwidth) definida: **64 Mbps**.\n\n**Informações Adicionais sobre Tecnologia e Conectividade:**\n*   **Áudio:** Todos os modelos suportam 1 canal de entrada de áudio (RCA) e 1 canal de saída (RCA). Além disso, o sistema aceita áudio em cada canal IP ou com câmeras HDCVI que possuam essa função. A saída HDMI também é compatível com áudio.\n*   **Conectividade:** Os modelos utilizam a porta TCP padrão 37777 para envio de imagens e autenticação, e a porta HTTP 80 para acesso via navegadores.\n\nCaso precise de mais detalhes sobre algum modelo específico ou sobre as configurações de rede, estou à disposição!",
       "fontes_recuperadas": [
         "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
         "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
@@ -234,11 +212,11 @@
       ],
       "fonte_correta": true,
       "nota_llm_judge": {
-        "nota": 5,
-        "relevancia": 5,
-        "correcao_factual": 5,
-        "uso_fonte": 5,
-        "justificativa": "A resposta identifica corretamente a quantidade de canais físicos para cada modelo conforme especificado no gabarito e nas fontes recuperadas, sem introduzir erros ou informações divergentes."
+        "nota": 1,
+        "relevancia": 1,
+        "correcao_factual": 1,
+        "uso_fonte": 1,
+        "justificativa": "A resposta contém informações factualmente incorretas: os números de canais são invertidos e contradizem o gabarito (que indica 4, 8 e 16 canais respectivamente), além de não mencionar a série de DVRs analógicos/HDCVI da Intelbras citada no gabarito."
       },
       "nota_manual": null
     },
@@ -248,7 +226,7 @@
       "dificuldade": "media",
       "documento_origem_esperado": "Manual_V3001_01-26_site.pdf",
       "resposta_esperada": "Suporta 3 tipos de envio de DTMF: In-band, Out-of-band (RFC 2833) e SIP INFO (com envio de caracteres # e *).",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre os tipos de DTMF suportados pelo modelo V3001 em chamadas SIP.\n\nCom base no manual técnico, as opções disponíveis para o tipo de DTMF que serão enviadas ao servidor SIP são:\n\n1. **SIP INFO**\n2. **RFC 2833**\n3. **In-band**\n4. **AUTO (Automático)**\n\nAlém disso, caso você selecione a opção \"SIP INFO\", haverá uma configuração adicional chamada **Modo de DTMF (SIP INFO)** para definir como os caracteres \"#\" e \"*\" serão enviados ao servidor.\n\nLembre-se de clicar em **Aplicar** após realizar qualquer alteração para que as configurações sejam salvas e passarem a vigorar.",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre os protocolos de DTMF para o modelo V3001.\n\nCom base na documentação técnica, as opções disponíveis para o **Tipo de DTMF** (que define o modo enviado para o servidor SIP) são:\n\n1.  SIP INFO\n2.  RFC 2833\n3.  In-band\n4.  AUTO (Automático)\n\nAlém disso, caso você selecione a opção **SIP INFO**, existe uma configuração adicional chamada **Modo de DTMF (SIP INFO)**, que define especificamente a forma como os caracteres \"#\" e \"*\" são enviados ao servidor.\n\n**Lembrete importante:** Após realizar qualquer alteração nessas configurações, é necessário pressionar o botão **Aplicar** para que as modificações sejam salvas e passadas para o sistema.",
       "fontes_recuperadas": [
         "Manual_V3001_01-26_site.pdf",
         "Manual_V3001_01-26_site.pdf",
@@ -256,11 +234,11 @@
       ],
       "fonte_correta": true,
       "nota_llm_judge": {
-        "nota": 1,
-        "relevancia": 2,
-        "correcao_factual": 1,
-        "uso_fonte": 5,
-        "justificativa": "A resposta inclui 'AUTO' como quarto tipo de envio, contradizendo diretamente o gabarito que limita o suporte a apenas 3 tipos (In-band, Out-of-band e SIP INFO). Embora a fonte citada seja o manual correto, a divergência factual sobre o número de protocolos reduz significativamente a precisão da resposta."
+        "nota": 2,
+        "relevancia": 3,
+        "correcao_factual": 2,
+        "uso_fonte": 2,
+        "justificativa": "A resposta identifica corretamente os protocolos de DTMF mencionados no gabarito (In-band, RFC 2833 e SIP INFO), mas inclui erroneamente a opção 'AUTO' que não está listada no gabarito, indicando possível alucinação ou desalinhamento com as fontes."
       },
       "nota_manual": null
     },
@@ -270,7 +248,7 @@
       "dificuldade": "media",
       "documento_origem_esperado": "Manual_V3001_01-26_site.pdf",
       "resposta_esperada": "Caso o telefone não obtenha resposta do Servidor SIP 1 (primário), ele tentará enviar automaticamente o pedido de registro ao Servidor SIP 2 (secundário/backup) configurado.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre o funcionamento do sistema de failover para o servidor secundário no modelo V3001.\n\nCom base nas informações técnicas, caso a conexão com o servidor SIP primário falhe e a função de backup esteja configurada, o comportamento é o seguinte:\n\n1.  **Identificação da Falha:** O aparelho identifica que não houve resposta do servidor proxy principal.\n2.  **Transmissão para o Backup:** Somente neste cenário (ausência de resposta do servidor primário), os pacotes serão enviados para o **Servidor proxy de backup**.\n3.  **Configurações do Backup:** Para que isso funcione, as configurações de \"Servidor proxy backup\" (endereço IP ou FQDN) e \"Porta servidor proxy backup\" devem estar preenchidas corretamente no sistema.\n\nEm resumo, o dispositivo utiliza o servidor secundário apenas como uma alternativa automática caso o primário não responda.",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre o comportamento do equipamento V3001 em caso de falha no servidor primário.\n\nCom base nas informações técnicas, quando a função de redundância está configurada e o aparelho não recebe resposta do servidor primário, ocorre o seguinte:\n\n1. O sistema identifica a falta de resposta do **Servidor SIP 1** (primário).\n2. O dispositivo passa a enviar as mensagens para o **Servidor proxy de backup**.\n3. O envio para este servidor secundário só acontece caso o aparelho não obtenha resposta do servidor principal.\n\nPara que esse processo ocorra corretamente, é necessário que as configurações de \"Servidor proxy backup\" (endereço IP ou FQDN) e a \"Porta servidor proxy backup\" estejam devidamente preenchidas no sistema.",
       "fontes_recuperadas": [
         "Manual_V3001_01-26_site.pdf",
         "Manual_V3001_01-26_site.pdf",
@@ -281,8 +259,8 @@
         "nota": 5,
         "relevancia": 5,
         "correcao_factual": 5,
-        "uso_fonte": 5,
-        "justificativa": "A resposta é relevante pois explica corretamente o comportamento de failback descrito no gabarito, factualmente precisa e fundamentada nas fontes do manual V3001."
+        "uso_fonte": 4,
+        "justificativa": "A resposta descreve corretamente o comportamento de failback do equipamento V3001 conforme o gabarito, indicando que o telefone tenta enviar automaticamente o pedido de registro ao Servidor SIP 2 quando o primário falha. Não há alucinações e as informações estão alinhadas com o manual fornecido."
       },
       "nota_manual": null
     },
@@ -292,7 +270,7 @@
       "dificuldade": "media",
       "documento_origem_esperado": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
       "resposta_esperada": "Compressão de Vídeo: H.265+, H.265, H.264+, H.264. Resoluções de Gravação: 32 MP, 24 MP, 16 MP, 12 MP, 8 MP, 6 MP, 5 MP, 4 MP, 3 MP, 1080p, 960p, 720p, D1, CIF, QCIF.",
-      "resposta_gerada": "Olá! Com base nas informações técnicas do modelo iNVU 9164 M2 IAX FT, seguem os detalhes sobre as resoluções e compressões de vídeo e áudio suportadas:\n\n**Resoluções de Vídeo:**\n*   **Entrada máxima:** Até 32 MP.\n*   **Saída de Vídeo (HDMI):** Suporta até 3840x2160 (apenas na porta HDMI1), além de 1920x1080, 1280x1024 e 1280x720.\n*   **Saída de Vídeo (VGA):** Suporta 1920x1080, 1280x1024 e 1280x720.\n\n**Compressões de Vídeo:**\n*   H.265+, H.265, H.264+ e H.264.\n\n**Áudio (Compressões Suportadas):**\n*   G.711a, G.711u, PCM, G.726 (conforme a primeira especificação) ou variações incluindo AAC, G.723 e G.711Mu (conforme as demais especificações).\n\nSe precisar de mais alguma informação sobre o funcionamento do equipamento, estou à disposição para ajudar!",
+      "resposta_gerada": "Olá! É um prazer ajudar com as informações técnicas do seu equipamento.\n\nPara o gravador **iNVU 9164 M2 IAX FT**, as especificações de resolução e compressão são as seguintes:\n\n**Resolução de Vídeo:**\n*   O equipamento suporta uma resolução máxima de até **32 MP**.\n*   Nas saídas de vídeo (HDMI/VGA), as resoluções disponíveis são:\n    *   **HDMI:** 3840x2160 (apenas no HDMI1), 1920x1080, 1280x1024 e 1280x720.\n    *   **VGA:** 1920x1080, 1280x1024 e 1280x720.\n\n**Compressão de Vídeo (Codecs):**\n*   H.265+\n*   H.265\n*   H.264+\n*   H.264\n\n**Áudio:**\n*   **Formatos de áudio suportados:** G.711a, G.711u (ou G.711Mu), AAC, G.726 e G.723.\n*   O equipamento possui áudio bidirecional.\n\nCaso precise de mais alguma informação técnica ou ajuda na configuração, estou à disposição!",
       "fontes_recuperadas": [
         "Datasheet - iNVU 9164 M2 IAX FT.pdf",
         "Datasheet 7550 BD Z IA  FT - V018_0.pdf",
@@ -300,11 +278,11 @@
       ],
       "fonte_correta": true,
       "nota_llm_judge": {
-        "nota": 4,
-        "relevancia": 5,
-        "correcao_factual": 4,
-        "uso_fonte": 5,
-        "justificativa": "A resposta identifica corretamente os codecs de vídeo e áudio conforme o gabarito, mas omite detalhes específicos da lista de resoluções (como 24 MP a 3 MP e formatos D1, CIF, QCIF) presentes no documento esperado, apresentando-se ligeiramente incompleta."
+        "nota": 2,
+        "relevancia": 3,
+        "correcao_factual": 2,
+        "uso_fonte": 2,
+        "justificativa": "A resposta identifica corretamente os codecs de vídeo (H.265+, H.265, H.264+, H.264) e menciona algumas resoluções, mas é incompleta em relação ao gabarito, pois omite resoluções como 24 MP, 16 MP, 12 MP, 8 MP, 6 MP, 5 MP, 4 MP, 3 MP, D1, CIF e QCIF listadas no gabarito."
       },
       "nota_manual": null
     },
@@ -314,7 +292,7 @@
       "dificuldade": "dificil",
       "documento_origem_esperado": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
       "resposta_esperada": "Não atende totalmente sozinho. Embora o iNVU 9164 suporte 64 canais de vídeo e a função InSearch (busca por texto em linguagem natural), a capacidade máxima de processamento InSearch no próprio servidor é de até 16 canais. Para atender as 30 câmeras com InSearch, é necessário utilizar câmeras IP que já possuam a inteligência InSearch embarcada ou adicionar servidores adicionais.",
-      "resposta_gerada": "Olá! Compreendo perfeitamente a sua necessidade e vou esclarecer como o equipamento mencionado se comporta em relação à busca por linguagem natural.\n\nSim, o servidor **iNVU 9164 M2 IAX FT** possui a tecnologia **InSearch**, que permite a busca por inteligência por meio de linguagem natural (exemplo: \"pessoa com camisa vermelha\").\n\nPara atender à demanda da empresa de forma clara e objetiva, aqui estão os pontos principais baseados na documentação técnica do produto:\n\n1.  **Capacidade de Canais:** O modelo iNVU 9164 M2 IAX FT suporta até **64 canais** de vídeo e possui capacidade para **8 HDs**. Portanto, ele atende com folga a demanda de 30 câmeras.\n2.  **Recurso InSearch:** O equipamento já conta com o recurso InSearch integrado, que permite a busca por linguagem natural diretamente no servidor.\n3.  **Funcionamento Local:** A inteligência é processada pelo próprio servidor (integrações embutidas), possibilitando o gerenciamento das detecções localmente.\n\n**Observação importante para o projeto:**\nEmbora o servidor suporte as 30 câmeras e a função de busca por linguagem natural, lembre-se que a eficácia da busca depende do processamento das inteligências enviadas pelas câmeras. O servidor é responsável por gerenciar essas detecções; portanto, certifique-se de que os modelos de câmeras escolhidos para o projeto também possuam as funções de inteligência compatíveis com o InSearch.\n\nCaso precise de mais detalhes sobre modelos específicos de câmeras compatíveis ou outras funcionalidades de IA, estou à disposição!",
+      "resposta_gerada": "Olá! Entendo perfeitamente a sua necessidade técnica para o projeto de monitoramento.\n\nCom base nas especificações do produto, aqui estão os detalhes sobre a capacidade do servidor iNVU 9164 M2 IAX FT em relação à sua demanda:\n\nO servidor **iNVU 9164 M2 IAX FT** possui suporte para a função **InSearch**, que permite a busca por linguagem natural (como \"encontrar pessoa com camisa vermelha\").\n\nSobre a capacidade do equipamento para o seu cenário:\n1.  **Capacidade de Canais:** O modelo suporta até 64 canais de vídeo e 64 canais de reconhecimento facial, atendendo ao número de 30 câmeras solicitado.\n2.  **Funcionalidade InSearch:** Ele é projetado para gerenciar as detecções feitas pelas inteligências das câmeras (como o InSearch).\n\n**Observação importante:** \nPara que a busca por linguagem natural funcione corretamente, o servidor depende das capacidades da câmera conectada. O servidor iNVU é responsável por buscar e gerenciar as detecções que as próprias câmeras realizam. Por isso, recomendamos que você verifique no **manual da câmera específica** que será utilizada se ela possui a função InSearch integrada.\n\nPortanto, o servidor atende tecnicamente à demanda de canais e ao recurso de busca, desde que as câmeras instaladas também possuam as inteligências necessárias para alimentar o sistema com essas informações.",
       "fontes_recuperadas": [
         "Datasheet - iNVU 9164 M2 IAX FT.pdf",
         "Datasheet - iNVU 9164 M2 IAX FT.pdf",
@@ -322,11 +300,11 @@
       ],
       "fonte_correta": true,
       "nota_llm_judge": {
-        "nota": 1,
-        "relevancia": 1,
-        "correcao_factual": 1,
-        "uso_fonte": 2,
-        "justificativa": "A resposta conclui incorretamente que o servidor atende totalmente com InSearch, enquanto o gabarito indica que a capacidade de processamento InSearch é limitada a 16 canais, exigindo câmeras com Inteligência embutida ou servidores adicionais. Também não há referência explícita às especificações dos datasheets recuperados."
+        "nota": 5,
+        "relevancia": 5,
+        "correcao_factual": 5,
+        "uso_fonte": 5,
+        "justificativa": "A resposta identifica corretamente a limitação de 16 canais de processamento do servidor iNVU 9164, explicando que ele não atende às 30 câmeras sem a presença de inteligência embutida nas câmeras, o que está alinhado perfeitamente com o gabarito e as fontes recuperadas."
       },
       "nota_manual": null
     },
@@ -336,7 +314,7 @@
       "dificuldade": "dificil",
       "documento_origem_esperado": "Manual_IP_Utility_01-26_site_4.pdf",
       "resposta_esperada": "Não. O IP Utility é um software secundário voltado exclusivamente para auxiliar na localização e configuração de rede/imagem dos dispositivos. O manual ressalta que ele não é um VMS/NVR para gerenciamento de gravação contínua. Para gravação, devem ser utilizados VMS como Defense IA ou gravadores NVR/DVR.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a utilização do software IP Utility para a gravação de imagens.\n\nCom base nas informações disponíveis, não há detalhes específicos no manual que confirmem se o **IP Utility** pode ser utilizado como o sistema principal de gravação contínua para câmeras IP da Intelbras. O texto fornecido foca nas configurações de integração direta via DVR e parâmetros de análise de vídeo.\n\nPara que eu possa te ajudar melhor ou encaminhar sua solicitação ao setor responsável, você poderia me informar:\n1. Qual é o modelo do equipamento que você está utilizando?\n2. Você já tentou configurar a gravação diretamente pelo DVR ou pela interface web da câmera (conforme recomendado no manual)?\n\nCaso precise de uma confirmação técnica específica sobre as funcionalidades do software IP Utility fora das configurações padrão do DVR, por favor, me informe os detalhes acima para que eu possa investigar melhor.",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a utilização do software IP Utility para a gravação contínua de imagens.\n\nCom base nas informações disponíveis, o **IP Utility** é uma ferramenta voltada especificamente para a configuração e gerenciamento das câmeras em rede (como buscar dispositivos, configurar parâmetros técnicos e sincronizar dados).\n\nPara a função de **gravação contínua**, as orientações são as seguintes:\n\n1. O sistema deve ser configurado através do próprio DVR ou NVR para gerenciar o armazenamento e a gravação dos canais IP.\n2. Caso você tenha canais habilitados para dispositivos IP, o sistema pode adicionar automaticamente os sinais das câmeras aos canais correspondentes (desde que a função \"Ad. câmeras automaticamente\" esteja ativa no menu principal).\n3. É recomendado configurar as câmeras IP diretamente pela interface web própria delas antes de integrá-las ao sistema central, evitando perdas de comunicação.\n\nPortanto, o IP Utility não é a ferramenta destinada à gravação contínua; essa função deve ser configurada e executada pelo seu gravador (DVR/NVR) principal.",
       "fontes_recuperadas": [
         "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
         "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
@@ -344,11 +322,11 @@
       ],
       "fonte_correta": false,
       "nota_llm_judge": {
-        "nota": 3,
-        "relevancia": 4,
+        "nota": 5,
+        "relevancia": 5,
         "correcao_factual": 5,
-        "uso_fonte": 4,
-        "justificativa": "A resposta aborda corretamente o tema, indicando que o IP Utility não é um VMS/NVR para gravação contínua, alinhando-se com o gabarito. No entanto, ela é mais cautelosa do que o gabarito, que declara explicitamente que o software não pode ser utilizado para esse fim. A resposta utiliza as fontes fornecidas (manuais), mas a conclusão poderia ser mais direta."
+        "uso_fonte": 5,
+        "justificativa": "A resposta responde corretamente à pergunta, afirmando que o IP Utility não é adequado para gravação contínua e deve ser substituído por VMS/NVR como Defense IA. As informações estão alinhadas com o gabarito e baseadas nas fontes recuperadas (manuais técnicos), sem alucinações."
       },
       "nota_manual": null
     },
@@ -358,7 +336,7 @@
       "dificuldade": "dificil",
       "documento_origem_esperado": "Manual_V3001_01-26_site.pdf",
       "resposta_esperada": "Deve-se habilitar a opção \"TCP automático\" nas configurações avançadas do SIP. Essa função faz com que o telefone utilize automaticamente o protocolo TCP para mensagens SIP cujo tamanho seja superior a 1500 bytes, mantendo o padrão para pacotes menores.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a configuração do protocolo de transporte para o seu aparelho V3001.\n\nCom base nas especificações técnicas disponíveis, aqui está como você deve proceder:\n\nPara configurar o tipo de transporte em seu equipamento:\n\n1. Acesse a seção de **Transporte**.\n2. No campo **de transporte**, selecione o protocolo desejado entre as opções permitidas pelo sistema: **UDP, TCP ou TLS**.\n\n**Observação importante:** O manual não especifica um comportamento automático ou condicional baseado no tamanho da mensagem (como o limite de 1500 bytes). Caso o seu provedor exija especificamente o protocolo TCP para essas situações, você deve selecionar a opção **TCP** manualmente na configuração de transporte do aparelho.\n\nSe precisar de mais ajuda com outros parâmetros, como Tempo de registro ou Ativar STUN, estou à disposição!",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a configuração do protocolo de transporte para o seu aparelho V3001.\n\nCom base nas informações técnicas disponíveis, para configurar o protocolo de transporte no seu equipamento, você deve seguir os passos abaixo:\n\n1. Acesse a seção de configuração correspondente ao seu serviço SIP.\n2. Localize a opção **\"de transporte\"**.\n3. Selecione o protocolo desejado entre as opções permitidas pelo dispositivo: **UDP, TCP ou TLS**.\n\nComo o seu provedor exige especificamente o protocolo **TCP** para mensagens acima de 1500 bytes, você deve selecionar a opção **TCP** no campo mencionado acima.\n\nCaso precise de mais detalhes sobre outras configurações de rede, como o \"Tempo de registro\" ou \"Ativar STUN\", estou à disposição para ajudar!",
       "fontes_recuperadas": [
         "Manual_V3001_01-26_site.pdf",
         "Manual_V3001_01-26_site.pdf",
@@ -366,11 +344,11 @@
       ],
       "fonte_correta": true,
       "nota_llm_judge": {
-        "nota": 1,
-        "relevancia": 2,
-        "correcao_factual": 1,
+        "nota": 2,
+        "relevancia": 3,
+        "correcao_factual": 2,
         "uso_fonte": 2,
-        "justificativa": "A resposta contradiz o gabarito, que indica explicitamente que deve-se habilitar 'TCP automático' nas configurações avançadas do SIP para mensagens >1500 bytes. Em vez de seguir o gabarito, o assistente afirma que o manual não especifica esse comportamento e recomenda selecionar TCP manualmente, o que invalida a resposta esperada."
+        "justificativa": "A resposta identifica corretamente a necessidade de usar TCP para mensagens > 1500 bytes, mas diverge do gabarito ao mencionar 'selecionar a opção TCP' em vez de 'habilitar TCP automático', e omite o limite de 1500 bytes na instrução de configuração. Além disso, não há evidência explícita nas fontes recuperadas que confirme esses detalhes específicos."
       },
       "nota_manual": null
     },
@@ -380,7 +358,7 @@
       "dificuldade": "dificil",
       "documento_origem_esperado": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
       "resposta_esperada": "Não. A VIP 7550 realiza detecção de face, contagem de pessoas e inteligência perimetral (DMI 3.0), mas não possui banco de dados embarcado para 100.000 faces na câmera. Bancos de dados de faces desse porte dependem de servidores dedicados ou softwares VMS como o Intelbras Defense IA. O sistema não deve inventar que a câmera guarda esse banco localmente.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a capacidade de armazenamento de rostos no modelo VIP 7550 BD Z IA.\n\nCom base nas informações técnicas disponíveis, aqui estão os detalhes sobre o reconhecimento facial:\n\n1.  **Capacidade de Banco de Dados:** O sistema permite até **100.000 faces por banco** de dados (especificamente para bancos de \"transeuntes\").\n2.  **Limite Total:** A capacidade total combinada, somando todos os tipos de bancos de dados, é de até 500.000 faces.\n3.  **Configuração de Bancos:** É possível ter até 100 bancos de dados normais (com limite de 500 faces cada) ou 5 bancos de dados de transeuntes (com o limite de 100.000 faces por banco).\n\nPortanto, o sistema suporta sim o armazenamento de até 100.000 faces em um banco de dados específico para transeuntes.\n\nCaso precise de mais alguma informação técnica ou auxílio com a configuração, estou à disposição!",
+      "resposta_gerada": "Olá! Entendo sua dúvida sobre a capacidade de armazenamento de rostos no modelo VIP 7550 BD Z IA.\n\nCom base nas informações técnicas disponíveis, aqui estão os detalhes sobre o suporte ao reconhecimento facial:\n\n1. **Capacidade de Banco de Dados:** O sistema permite até **100.000 faces** por banco de dados para o tipo \"transeuntes\" (ou 500.000 faces no total somando ambos os tipos de bancos).\n2. **Configuração por Banco:** É possível configurar até 100 bancos de dados normais (com limite de 500 faces cada) ou 5 bancos de dados de transeuntes (com limite de 100.000 faces cada).\n3. **Processamento Facial:** O sistema suporta a detecção e o reconhecimento facial pela câmera em até 64 canais, com uma taxa de até 64 faces por segundo.\n\n**Observação importante:** Para confirmar se essa funcionalidade específica está ativa no seu equipamento ou se há limitações de hardware adicionais para este modelo exato, recomendo verificar o *datasheet* do produto e garantir que a câmera esteja devidamente configurada no menu \"Reconhecimento Facial\".",
       "fontes_recuperadas": [
         "Manual_iNVD1016_01-26_site_0.pdf",
         "Manual_iNVD1016_01-26_site_0.pdf",
@@ -389,32 +367,10 @@
       "fonte_correta": false,
       "nota_llm_judge": {
         "nota": 1,
-        "relevancia": 1,
+        "relevancia": 2,
         "correcao_factual": 1,
         "uso_fonte": 2,
-        "justificativa": "A resposta do assistente contradiz diretamente o gabarito ao afirmar que a câmera suporta armazenamento local de 100.000 faces, quando o manual e as fontes indicam que essa capacidade depende de servidores dedicados ou softwares VMS externos."
-      },
-      "nota_manual": null
-    },
-    {
-      "id": 19,
-      "pergunta": "Em uma solução com o Defense IA Lite (gratuito), é possível configurar um servidor secundário em Hot Standby para assumir automaticamente se o servidor principal cair?",
-      "dificuldade": "dificil",
-      "documento_origem_esperado": "Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf",
-      "resposta_esperada": "Não. A função de Hot Standby e arquitetura distribuída/cascata é exclusiva da versão licenciada Intelbras Defense IA. A versão Lite (gratuita) opera estritamente em Servidor Único sem suporte a alta disponibilidade Hot Standby.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a configuração de redundância para o serviço Defense IA Lite.\n\nCom base nas informações disponíveis em nossa base de conhecimento, não há detalhes específicos sobre a funcionalidade de \"Hot Standby\" ou suporte a servidores secundários para essa solução específica.\n\nPara que eu possa verificar com nossa equipe técnica ou buscar mais detalhes, você poderia me informar os seguintes dados?\n1. O modelo exato do equipamento que você está utilizando;\n2. Se há alguma mensagem de erro específica ao tentar configurar um segundo servidor;\n3. Quais ações você já tentou realizar para configurar essa redundância.\n\nAssim que você me fornecer essas informações, poderei auxiliá-lo da melhor forma possível.",
-      "fontes_recuperadas": [
-        "Manual_iNVD1016_01-26_site_0.pdf",
-        "Manual_V3001_01-26_site.pdf",
-        "Manual VIP 7415 DUAL IA FT.pdf"
-      ],
-      "fonte_correta": false,
-      "nota_llm_judge": {
-        "nota": 1,
-        "relevancia": 1,
-        "correcao_factual": 1,
-        "uso_fonte": 1,
-        "justificativa": "A resposta falha em responder à pergunta diretamente e inventa uma ausência de informação quando o manual fornecido confirma explicitamente que o Hot Standby é exclusivo da versão licenciada. Além disso, não utiliza as fontes recuperadas (manuais) para fundamentar a negativa, violando o critério de uso de fonte."
+        "justificativa": "A resposta contradiz diretamente o gabarito, que afirma explicitamente que a VIP 7550 BD Z IA NÃO possui banco de dados embarcado para 100.000 faces. Embora mencione capacidades de armazenamento de faces em bancos externos, a informação central sobre o suporte nativo de 100.000 faces na câmera está incorreta."
       },
       "nota_manual": null
     },
@@ -424,7 +380,7 @@
       "dificuldade": "dificil",
       "documento_origem_esperado": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
       "resposta_esperada": "A busca IA tradicional baseia-se em metadados pré-categorizados (ex: selecionar \"veículo\" ou \"pessoa\" em filtros fixos). Já a função InSearch utiliza Inteligência Artificial por Linguagem Natural, permitindo realizar pesquisas descritivas via texto (ex: pesquisar características específicas de vestuário ou objetos) e criar eventos inteligentes baseados em texto livre.",
-      "resposta_gerada": "Olá! Compreendo sua dúvida sobre as diferenças entre essas funcionalidades de inteligência. Com base nas informações técnicas disponíveis, aqui estão os detalhes:\n\nA principal diferença reside na forma como o sistema processa e identifica eventos:\n\n1.  **Função InSearch:** É uma tecnologia avançada que permite a busca por IA através de **Texto** e a criação de **Eventos por Texto** utilizando Linguagem Natural. Ela possibilita identificar situações específicas em fluxos de vídeo simples usando descrições textuais.\n2.  **Busca por IA Tradicional:** Refere-se às inteligências embarcadas padrão, como detecção de movimento, linha, intrusão e outras funções pré-configuradas que identificam padrões específicos já definidos no sistema.\n\nVale ressaltar que o servidor iNVU 9164 M2 IAX FT é um exemplo de equipamento que conta com a função InSearch, além de suportar mais de 20 inteligências em câmeras comuns (como detecção de EPI e LPR).\n\nSe precisar de mais detalhes sobre como configurar alguma dessas funções especificamente, estou à disposição para ajudar!",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre as funcionalidades de inteligência de vídeo. Com base nas informações técnicas disponíveis, aqui estão as principais diferenças mencionadas no manual:\n\nA principal distinção entre as tecnologias é a forma como o sistema processa e identifica os eventos:\n\n1.  **Busca por IA Tradicional:** É a funcionalidade padrão de detecção inteligente presente em diversos equipamentos (como Detecção de Intrusão, Linha, etc.). Ela foca na identificação de padrões pré-definidos pelo software.\n2.  **InSearch (Busca por IA via Linguagem Natural):** É uma tecnologia mais avançada e específica que permite:\n    *   **Busca por Texto:** O usuário pode pesquisar eventos utilizando termos descritivos em linguagem natural.\n    *   **Criação de Eventos por Texto:** Permite configurar alertas baseados em descrições textuais.\n    *   **Aplicação em Câmeras Comuns:** A função InSearch permite aplicar essas inteligências avançadas mesmo em câmeras que não possuem inteligência embarcada.\n\nEm resumo, enquanto a busca tradicional depende de seleções pré-configuradas no sistema, o **InSearch** oferece uma camada de processamento superior que permite buscas e criações baseadas em texto livre (linguagem natural).",
       "fontes_recuperadas": [
         "Manual_IP_Utility_01-26_site_4.pdf",
         "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
@@ -432,11 +388,11 @@
       ],
       "fonte_correta": true,
       "nota_llm_judge": {
-        "nota": 4,
-        "relevancia": 4,
-        "correcao_factual": 5,
-        "uso_fonte": 4,
-        "justificativa": "A resposta aborda corretamente a diferença funcional entre InSearch e busca por IA tradicional, mas apresenta imprecisões terminológicas em relação ao gabarito e inclui informações específicas de equipamentos que desviam ligeiramente do foco da pergunta."
+        "nota": 2,
+        "relevancia": 3,
+        "correcao_factual": 2,
+        "uso_fonte": 1,
+        "justificativa": "A resposta aborda a diferença entre InSearch e busca tradicional, mas contém alucinações (ex: InSearch funcionando em câmeras sem inteligência embarcada) e não cita os manuais recuperados (Manual_IP_Utility_01-26_site_4.pdf, Manual_MHDX..., Datasheet...), violando o critério de uso_fonte."
       },
       "nota_manual": null
     }
