@@ -935,6 +935,33 @@ conversa e classificação do usuário").
       independente que `docs/EVALUATION.md` pede; exige o
       desenvolvedor/orientador olhar as 18 respostas geradas. Resultado e
       tabela completos em `backend/eval/rag_quality/README.md`.
+- [x] Experimento complementar (a pedido explícito do desenvolvedor, fora
+      da lista original de avaliações): busca por bisseção do `chunk_size`
+      ideal — `backend/eval/rag_quality/chunk_size_search.py` cria
+      collections temporárias (só os 11 PDFs reais do domínio Suporte,
+      `chunk_overlap` sempre 12,5% do `chunk_size`), mede contra as mesmas
+      18 perguntas e **sempre apaga a collection ao final** — nunca toca na
+      collection de produção. Bisseção em vez de grade completa (custo:
+      cada ponto reingere os 11 PDFs + roda as 18 perguntas) — começa nos
+      extremos de uma sequência comum de duplicação (200/1600) e segue
+      dividindo a metade que melhorou, comparando contra o baseline de 800
+      já medido (não remedido). Rodado ao vivo (2026-10-01, 7 pontos em 5
+      rodadas): melhor ponto encontrado **`chunk_size=375`** (nota 3,61 x
+      2,78 dos 800 atuais, ~30% de melhora relativa) — mas com taxa de
+      fonte correta PIOR (72%) que a de 800 (78%), 550 (83%) e 1600 (83%):
+      o ganho não vem de recuperar melhor, vem de o modelo gerar melhor a
+      partir de um contexto mais enxuto. Trajetória não monótona
+      (800→900 cai, 900→550 sobe) — com 18 perguntas e uma rodada por
+      ponto, isso indica uma região razoável (~300-550), não um ótimo
+      provado; repetir cada ponto reduziria o ruído a um custo
+      proporcional, fora de escopo aqui. Achado operacional: o modelo
+      externo configurado (`EXTERNAL_MODEL_NAME`) é um tier `:free` do
+      OpenRouter, com rate limit apertado — `run_eval.py` ganhou pausa
+      proativa entre chamadas do juiz (3s) além do retry/backoff (base 8s).
+      Nenhuma mudança aplicada à collection de produção — decisão de trocar
+      o `chunk_size` real (requer recriar `docs_texto` e reingerir tudo)
+      fica para quando o desenvolvedor decidir, não automática aqui.
+      Detalhes em `backend/eval/rag_quality/README.md`.
 - [ ] Medir latência (média e p95) do modelo local (configuração vencedora
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto

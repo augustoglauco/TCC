@@ -1,0 +1,600 @@
+{
+  "pontos_medidos": {
+    "200": {
+      "chunk_size": 200,
+      "chunk_overlap": 25,
+      "nota_media": 2.944,
+      "fonte_correta_taxa": 0.722,
+      "casos": [
+        {
+          "id": 1,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 2,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 3,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 4,
+          "fonte_correta": true,
+          "nota": 3
+        },
+        {
+          "id": 5,
+          "fonte_correta": true,
+          "nota": 4
+        },
+        {
+          "id": 6,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 7,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 9,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 10,
+          "fonte_correta": true,
+          "nota": 4
+        },
+        {
+          "id": 11,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 12,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 13,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 14,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 15,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 16,
+          "fonte_correta": false,
+          "nota": 4
+        },
+        {
+          "id": 17,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 18,
+          "fonte_correta": false,
+          "nota": 5
+        },
+        {
+          "id": 20,
+          "fonte_correta": true,
+          "nota": 2
+        }
+      ]
+    },
+    "287": {
+      "chunk_size": 287,
+      "chunk_overlap": 36,
+      "nota_media": 3.278,
+      "fonte_correta_taxa": 0.778,
+      "casos": [
+        {
+          "id": 1,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 2,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 3,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 4,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 5,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 6,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 7,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 9,
+          "fonte_correta": false,
+          "nota": 3
+        },
+        {
+          "id": 10,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 11,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 12,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 13,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 14,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 15,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 16,
+          "fonte_correta": false,
+          "nota": 5
+        },
+        {
+          "id": 17,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 18,
+          "fonte_correta": false,
+          "nota": 4
+        },
+        {
+          "id": 20,
+          "fonte_correta": true,
+          "nota": 2
+        }
+      ]
+    },
+    "375": {
+      "chunk_size": 375,
+      "chunk_overlap": 47,
+      "nota_media": 3.611,
+      "fonte_correta_taxa": 0.722,
+      "casos": [
+        {
+          "id": 1,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 2,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 3,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 4,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 5,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 6,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 7,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 9,
+          "fonte_correta": false,
+          "nota": 4
+        },
+        {
+          "id": 10,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 11,
+          "fonte_correta": true,
+          "nota": 4
+        },
+        {
+          "id": 12,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 13,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 14,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 15,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 16,
+          "fonte_correta": false,
+          "nota": 4
+        },
+        {
+          "id": 17,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 18,
+          "fonte_correta": false,
+          "nota": 5
+        },
+        {
+          "id": 20,
+          "fonte_correta": true,
+          "nota": 2
+        }
+      ]
+    },
+    "550": {
+      "chunk_size": 550,
+      "chunk_overlap": 69,
+      "nota_media": 2.944,
+      "fonte_correta_taxa": 0.833,
+      "casos": [
+        {
+          "id": 1,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 2,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 3,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 4,
+          "fonte_correta": true,
+          "nota": 4
+        },
+        {
+          "id": 5,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 6,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 7,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 9,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 10,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 11,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 12,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 13,
+          "fonte_correta": true,
+          "nota": 4
+        },
+        {
+          "id": 14,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 15,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 16,
+          "fonte_correta": false,
+          "nota": 3
+        },
+        {
+          "id": 17,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 18,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 20,
+          "fonte_correta": true,
+          "nota": 1
+        }
+      ]
+    },
+    "800": {
+      "chunk_size": 800,
+      "chunk_overlap": 100,
+      "nota_media": 2.778,
+      "fonte_correta_taxa": 0.778,
+      "origem": "baseline de produção (results.json), não remedido"
+    },
+    "900": {
+      "chunk_size": 900,
+      "chunk_overlap": 112,
+      "nota_media": 2.556,
+      "fonte_correta_taxa": 0.611,
+      "casos": [
+        {
+          "id": 1,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 2,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 3,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 4,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 5,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 6,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 7,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 9,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 10,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 11,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 12,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 13,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 14,
+          "fonte_correta": true,
+          "nota": 3
+        },
+        {
+          "id": 15,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 16,
+          "fonte_correta": false,
+          "nota": 3
+        },
+        {
+          "id": 17,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 18,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 20,
+          "fonte_correta": true,
+          "nota": 4
+        }
+      ]
+    },
+    "1600": {
+      "chunk_size": 1600,
+      "chunk_overlap": 200,
+      "nota_media": 2.722,
+      "fonte_correta_taxa": 0.833,
+      "casos": [
+        {
+          "id": 1,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 2,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 3,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 4,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 5,
+          "fonte_correta": true,
+          "nota": 3
+        },
+        {
+          "id": 6,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 7,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 9,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 10,
+          "fonte_correta": true,
+          "nota": 4
+        },
+        {
+          "id": 11,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 12,
+          "fonte_correta": true,
+          "nota": 3
+        },
+        {
+          "id": 13,
+          "fonte_correta": true,
+          "nota": 5
+        },
+        {
+          "id": 14,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 15,
+          "fonte_correta": true,
+          "nota": 2
+        },
+        {
+          "id": 16,
+          "fonte_correta": false,
+          "nota": 2
+        },
+        {
+          "id": 17,
+          "fonte_correta": true,
+          "nota": 1
+        },
+        {
+          "id": 18,
+          "fonte_correta": false,
+          "nota": 1
+        },
+        {
+          "id": 20,
+          "fonte_correta": true,
+          "nota": 5
+        }
+      ]
+    }
+  },
+  "melhor_chunk_size": 375
+}

@@ -98,7 +98,16 @@ def _fonte_e_correta(fontes: list[str], documento_origem: str) -> bool:
     return any(origem in _normalizar_nome_arquivo(fonte) for fonte in fontes)
 
 
-_MAX_TENTATIVAS_JUIZ = 4
+_MAX_TENTATIVAS_JUIZ = 6
+# `EXTERNAL_MODEL_NAME` aponta pro tier `:free` do OpenRouter (ver .env),
+# com limite de requisições por minuto bem mais apertado que um modelo
+# pago — um backoff curto (1,2,4s) não dava tempo de o limite liberar de
+# novo. Começa em 8s, dobra a cada tentativa (8,16,32,64,128s).
+_ESPERA_BASE_S = 8.0
+# Pausa proativa entre chamadas do juiz, não só reativa a 429 — reduz
+# quantas vezes o limite é batido, importante em `chunk_size_search.py`
+# (várias rodadas de 18 perguntas em sequência).
+PAUSA_ENTRE_CHAMADAS_S = 3.0
 
 
 async def _julgar_resposta(
@@ -111,10 +120,10 @@ async def _julgar_resposta(
         fontes=fontes_texto,
         resposta_gerada=resposta_gerada,
     )
-    # Achado ao rodar esta avaliação: 18 perguntas em sequência batem em
-    # rate limit (429) do OpenRouter de vez em quando — retry com backoff
-    # exponencial em vez de derrubar a rodada inteira por causa de um limite
-    # transitório.
+    # Achado ao rodar esta avaliação: perguntas em sequência batem em rate
+    # limit (429) do OpenRouter com frequência (modelo `:free`, ver
+    # `_ESPERA_BASE_S` acima) — retry com backoff exponencial mais paciente
+    # em vez de derrubar a rodada inteira por causa de um limite transitório.
     for tentativa in range(_MAX_TENTATIVAS_JUIZ):
         try:
             resposta = await judge_client.generate(prompt)
@@ -122,10 +131,11 @@ async def _julgar_resposta(
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code != 429 or tentativa == _MAX_TENTATIVAS_JUIZ - 1:
                 raise
-            espera_s = 2**tentativa
+            espera_s = _ESPERA_BASE_S * (2**tentativa)
             numero = f"{tentativa + 1}/{_MAX_TENTATIVAS_JUIZ}"
-            print(f"    429 do juiz ({numero}), aguardando {espera_s}s...")
+            print(f"    429 do juiz ({numero}), aguardando {espera_s:.0f}s...")
             await asyncio.sleep(espera_s)
+    await asyncio.sleep(PAUSA_ENTRE_CHAMADAS_S)
     try:
         return json.loads(strip_code_fence(resposta.text))
     except (json.JSONDecodeError, ValueError):  # fmt: skip

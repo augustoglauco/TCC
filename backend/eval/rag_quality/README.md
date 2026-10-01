@@ -74,6 +74,61 @@ propósito — pendente de preenchimento humano (ver decisão abaixo).
    de novo com backoff exponencial (até 4 tentativas) em vez de derrubar a
    rodada inteira.
 
+## Experimento complementar: busca por bisseção do `chunk_size`
+
+A pedido explícito do desenvolvedor, depois de ver a nota baixa acima:
+`chunk_size_search.py` testa outros valores de `chunk_size` (mantendo
+`chunk_overlap` em 12,5% dele, mesma proporção do baseline) por bisseção —
+começa nos extremos de uma sequência comum de duplicação (200/1600
+caracteres), compara contra o baseline de produção (800, já medido acima,
+não remedido) e segue dividindo o range pela metade que melhorou. Cada
+candidato cria uma collection **temporária** (só com os 11 PDFs reais do
+domínio Suporte, já que a busca filtra por `domain="suporte"`), mede, e
+**sempre apaga a collection ao final** — nunca toca na collection de
+produção. Ver docstring de `chunk_size_search.py` para o porquê de bisseção
+em vez de grade completa (custo).
+
+### Resultado (2026-10-01, 7 pontos medidos em 5 rodadas)
+
+| `chunk_size` | `chunk_overlap` | Nota média | Fonte correta |
+| --- | --- | --- | --- |
+| 200 | 25 | 2,94 | 72% |
+| 287 | 36 | 3,28 | 78% |
+| **375** | **47** | **3,61** | 72% |
+| 550 | 69 | 2,94 | 83% |
+| **800 (produção)** | **100** | **2,78** | 78% |
+| 900 | 112 | 2,56 | 61% |
+| 1600 | 200 | 2,72 | 83% |
+
+**Melhor ponto encontrado: `chunk_size=375`** (nota 3,61, +0,83 sobre os
+800 atuais — ~30% de melhora relativa).
+
+### Ressalva importante: o "vencedor" não tem a melhor recuperação
+
+O ponto 375 tem a MELHOR nota, mas sua taxa de fonte correta (72%) é PIOR
+que a de 800 (78%), 550 (83%) e 1600 (83%). Ou seja, o ganho de qualidade
+em 375 não vem de recuperar melhor — vem de o modelo gerar uma resposta
+melhor a partir de um contexto mais enxuto, mesmo quando a fonte
+"oficialmente esperada" não é a recuperada (nota do LLM-judge mede
+qualidade da resposta, não fidelidade estrita à fonte do gabarito). A
+trajetória também não é monótona (800→900 cai, 900→550 sobe de novo) — com
+18 perguntas e uma única rodada por ponto (nota de LLM-judge com ruído),
+isso é esperado; o resultado aponta uma **região razoável** (algo entre 300
+e 550), não um ótimo matematicamente provado. Repetir cada ponto algumas
+vezes e tirar a média reduziria esse ruído, a um custo de tempo/API
+proporcional — não feito aqui por escopo (ver `docs/EVALUATION.md`, que
+pede "relatório curto", não uma busca de hiperparâmetros exaustiva).
+
+### Reproduzir
+
+```bash
+cd backend
+.venv/bin/python eval/rag_quality/chunk_size_search.py
+```
+
+Mesmos pré-requisitos do `run_eval.py` acima. Demora mais (ingestão real de
+11 PDFs + 18 perguntas por candidato, várias rodadas).
+
 ## Decisão registrada: por que a nota manual fica em branco
 
 `docs/EVALUATION.md` pede duas notas independentes por pergunta — manual
