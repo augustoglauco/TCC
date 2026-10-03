@@ -50,6 +50,10 @@ export function ReingestModal({
     }
   }
 
+  const chatDestinos = destinos.filter((c) => (c.purpose || "chat") === "chat");
+  const b2bDestinos = destinos.filter((c) => c.purpose === "mcp_b2b");
+  const adminDestinos = destinos.filter((c) => c.purpose === "admin");
+
   return (
     <Modal
       open={documento !== null}
@@ -87,11 +91,33 @@ export function ReingestModal({
             onChange={(e) => setTargetId(e.target.value)}
             className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
           >
-            {destinos.map((collection) => (
-              <option key={collection.id} value={collection.id}>
-                {collection.name}
-              </option>
-            ))}
+            {chatDestinos.length > 0 && (
+              <optgroup label="💬 Chat Público (purpose: chat)">
+                {chatDestinos.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name} {collection.is_active ? " (ativa)" : ""}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {b2bDestinos.length > 0 && (
+              <optgroup label="🏢 MCP B2B Restrito (purpose: mcp_b2b)">
+                {b2bDestinos.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name} [MCP B2B]
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {adminDestinos.length > 0 && (
+              <optgroup label="🛡️ Admin Exclusivo (purpose: admin)">
+                {adminDestinos.map((collection) => (
+                  <option key={collection.id} value={collection.id}>
+                    {collection.name} [Admin]
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </label>
       )}

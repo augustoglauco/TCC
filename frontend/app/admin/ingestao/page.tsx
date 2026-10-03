@@ -17,9 +17,10 @@ import { DocumentsTable } from "@/components/admin/DocumentsTable";
 import { PlaygroundPanel } from "@/components/admin/playground/PlaygroundPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ToastStack, useToast } from "@/components/ui/Toast";
-import { RagApiError, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
+import { RagApiError, createCollection, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
 import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
 import type {
+  CollectionPurpose,
   DocumentIngestResponse,
   DocumentRegistryEntry,
   RagCollection,
@@ -36,9 +37,11 @@ const ACCEPTED_EXTENSIONS = ".txt,.md,.pdf";
 
 function AbaEnviarDocumento({
   collections,
+  onColecoesMudaram,
   onIngerido,
 }: {
   collections: RagCollection[];
+  onColecoesMudaram: () => Promise<RagCollection[]>;
   onIngerido: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -48,15 +51,78 @@ function AbaEnviarDocumento({
   const [result, setResult] = useState<DocumentIngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [criandoCollection, setCriandoCollection] = useState(false);
+  const [modalCriarAberto, setModalCriarAberto] = useState(false);
+
   const collectionAtiva = collections.find((collection) => collection.is_active);
-  // `collectionId` pode ficar "preso" no id de uma collection que foi apagada em outra aba
-  // (ex.: via "Configuração") sem que este formulário seja remontado — por isso o valor
-  // efetivamente usado é derivado a cada render, caindo no mesmo fallback do valor padrão
-  // (collection ativa, senão a primeira da lista) sempre que `collectionId` não é (mais) uma
-  // collection válida. Mesmo padrão usado em `ReingestModal.tsx` para `targetIdEfetivo`.
+  const collectionSelecionadaObj =
+    collections.find((c) => c.id === collectionId) || collectionAtiva || collections[0];
   const collectionSelecionada = collections.some((collection) => collection.id === collectionId)
     ? collectionId
     : collectionAtiva?.id || collections[0]?.id || "";
+
+  async function handleCriarCollectionRapida(purpose: CollectionPurpose) {
+    setCriandoCollection(true);
+    setError(null);
+    const nomePadrao =
+      purpose === "mcp_b2b"
+        ? "docs_mcp_b2b"
+        : purpose === "admin"
+          ? "docs_admin"
+          : "docs_chat";
+
+    try {
+      const novaCol = await createCollection({
+        name: nomePadrao,
+        purpose,
+        embedding_model: "paraphrase-multilingual-MiniLM-L12-v2",
+        distance_metric: "cosine",
+        chunk_size: 800,
+        chunk_overlap: 100,
+        hnsw: {
+          m: 16,
+          ef_construct: 100,
+          full_scan_threshold: 10000,
+          max_indexing_threads: 0,
+          on_disk: false,
+          payload_m: null,
+        },
+        quantization: { type: "none" },
+        payload_indexes: [
+          { field: "domain", schema_type: "keyword" },
+          { field: "document_id", schema_type: "keyword" },
+        ],
+      });
+      await onColecoesMudaram();
+      setCollectionId(novaCol.id);
+    } catch (err) {
+      // Se a coleção já foi criada anteriormente, recarrega do banco e seleciona automaticamente!
+      const novalista = await onColecoesMudaram();
+      const colExistente = novalista?.find((c) => c.name === nomePadrao || c.purpose === purpose);
+      if (colExistente) {
+        setCollectionId(colExistente.id);
+        setError(null);
+      } else {
+        setError(err instanceof RagApiError ? err.message : "Erro ao criar a collection.");
+      }
+    } finally {
+      setCriandoCollection(false);
+    }
+  }
+
+  function handleSelectCollectionChange(val: string) {
+    if (val === "__create_mcp_b2b__") {
+      handleCriarCollectionRapida("mcp_b2b");
+    } else if (val === "__create_admin__") {
+      handleCriarCollectionRapida("admin");
+    } else if (val === "__create_chat__") {
+      handleCriarCollectionRapida("chat");
+    } else if (val === "__open_modal__") {
+      setModalCriarAberto(true);
+    } else {
+      setCollectionId(val);
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -86,81 +152,259 @@ function AbaEnviarDocumento({
     }
   }
 
+  const chatCollections = collections.filter((c) => (c.purpose || "chat") === "chat");
+  const b2bCollections = collections.filter((c) => c.purpose === "mcp_b2b");
+  const adminCollections = collections.filter((c) => c.purpose === "admin");
+
+  const selectedPurpose = collectionSelecionadaObj?.purpose || "chat";
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-      <p className="text-gray-600">
-        Envie um PDF ou texto (.txt/.md) para indexação no domínio escolhido.
-      </p>
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs space-y-6">
+      <div>
+        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <span>📥</span> Upload & Indexação de Documento
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Envie um arquivo PDF ou texto (.txt / .md) para fragmentação (chunking), vetorização e indexação vetorial.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-        <div>
-          <label htmlFor="domain" className="block text-sm font-medium text-gray-900">
-            Domínio
-          </label>
-          <select
-            id="domain"
-            value={domain}
-            onChange={(event) => setDomain(event.target.value as RagDomain)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-          >
-            {DOMAIN_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Seletor de Domínio */}
+          <div className="space-y-2">
+            <label htmlFor="domain" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Domínio da Informação
+            </label>
+            <select
+              id="domain"
+              value={domain}
+              onChange={(event) => setDomain(event.target.value as RagDomain)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              {DOMAIN_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Seletor de Collection Destino */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label htmlFor="collection" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Collection destino
+              </label>
+              <button
+                type="button"
+                onClick={() => setModalCriarAberto(true)}
+                className="text-xs text-blue-600 font-semibold hover:underline cursor-pointer"
+              >
+                + Nova customizada
+              </button>
+            </div>
+            <select
+              id="collection"
+              value={collectionSelecionada}
+              disabled={criandoCollection}
+              onChange={(event) => handleSelectCollectionChange(event.target.value)}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
+            >
+              <optgroup label="💬 Chat Público (purpose: chat)">
+                {chatCollections.length > 0 ? (
+                  chatCollections.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.is_active ? "★ (ativa no chat)" : ""}
+                    </option>
+                  ))
+                ) : (
+                  <option value="__create_chat__">
+                    ⚡ Criar coleção inicial para Chat Público (docs_chat)
+                  </option>
+                )}
+              </optgroup>
+
+              <optgroup label="🏢 MCP B2B Restrito (purpose: mcp_b2b)">
+                {b2bCollections.length > 0 ? (
+                  b2bCollections.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} [MCP B2B]
+                    </option>
+                  ))
+                ) : (
+                  <option value="__create_mcp_b2b__">
+                    ⚡ Criar coleção inicial para MCP B2B (docs_mcp_b2b)
+                  </option>
+                )}
+              </optgroup>
+
+              <optgroup label="🛡️ Admin Exclusivo (purpose: admin)">
+                {adminCollections.length > 0 ? (
+                  adminCollections.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} [Admin]
+                    </option>
+                  ))
+                ) : (
+                  <option value="__create_admin__">
+                    ⚡ Criar coleção inicial para Admin (docs_admin)
+                  </option>
+                )}
+              </optgroup>
+            </select>
+          </div>
         </div>
 
-        <div>
-          <label htmlFor="collection" className="block text-sm font-medium text-gray-900">
-            Collection destino
-          </label>
-          <select
-            id="collection"
-            value={collectionSelecionada}
-            onChange={(event) => setCollectionId(event.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-          >
-            {collections.map((collection) => (
-              <option key={collection.id} value={collection.id}>
-                {collection.name}
-                {collection.purpose === "mcp_b2b" ? " [MCP B2B]" : ""}
-                {collection.purpose === "admin" ? " [Admin]" : ""}
-                {collection.is_active ? " (ativa)" : ""}
-              </option>
-            ))}
-          </select>
+        {/* Card Explicativo sobre a Finalidade Escolhida */}
+        <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-slate-700">Finalidades Previstas no Projeto:</span>
+            {selectedPurpose === "chat" && (
+              <span className="rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold px-2.5 py-0.5">
+                💬 Chat Público
+              </span>
+            )}
+            {selectedPurpose === "mcp_b2b" && (
+              <span className="rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold px-2.5 py-0.5">
+                🏢 MCP B2B Restrito
+              </span>
+            )}
+            {selectedPurpose === "admin" && (
+              <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5">
+                🛡️ Admin Exclusivo
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed pt-1">
+            {selectedPurpose === "chat" &&
+              "Os documentos desta collection estarão disponíveis para consulta e resposta no assistente virtual do chat público."}
+            {selectedPurpose === "mcp_b2b" &&
+              "Conteúdo restrito ao canal MCP B2B para parceiros comerciais homologados. Não é pesquisado no chat público."}
+            {selectedPurpose === "admin" &&
+              "Documentação restrita de uso exclusivo da administração. Acessível somente em pesquisas no modo admin seguro."}
+          </p>
+
+          {/* Botões de Ação Rápida caso a Finalidade não possua Collections */}
+          {selectedPurpose === "mcp_b2b" && b2bCollections.length === 0 && (
+            <div className="mt-3 pt-2 border-t border-purple-200/80 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-purple-900 font-medium">Nenhuma coleção MCP B2B existente.</span>
+              <button
+                type="button"
+                disabled={criandoCollection}
+                onClick={() => handleCriarCollectionRapida("mcp_b2b")}
+                className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-50 cursor-pointer shadow-2xs transition-all"
+              >
+                {criandoCollection ? "Criando..." : "⚡ Criar coleção docs_mcp_b2b agora"}
+              </button>
+            </div>
+          )}
+
+          {selectedPurpose === "admin" && adminCollections.length === 0 && (
+            <div className="mt-3 pt-2 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs text-amber-900 font-medium">Nenhuma coleção Admin existente.</span>
+              <button
+                type="button"
+                disabled={criandoCollection}
+                onClick={() => handleCriarCollectionRapida("admin")}
+                className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50 cursor-pointer shadow-2xs transition-all"
+              >
+                {criandoCollection ? "Criando..." : "⚡ Criar coleção docs_admin agora"}
+              </button>
+            </div>
+          )}
         </div>
 
-        <div>
-          <label htmlFor="file" className="block text-sm font-medium text-gray-900">
+        {/* Modal de Criação Customizada */}
+        <CollectionFormModal
+          open={modalCriarAberto}
+          onOpenChange={setModalCriarAberto}
+          onCreated={async (novaCol) => {
+            setModalCriarAberto(false);
+            await onColecoesMudaram();
+            setCollectionId(novaCol.id);
+          }}
+        />
+
+        {/* Área de Seleção de Arquivo (File Dropzone Box) */}
+        <div className="space-y-2">
+          <label htmlFor="file" className="block text-sm font-semibold text-slate-900">
             Arquivo
           </label>
-          <input
-            id="file"
-            type="file"
-            accept={ACCEPTED_EXTENSIONS}
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            className="mt-1 block w-full text-gray-900"
-          />
+          <div className="relative border-2 border-dashed border-slate-300 hover:border-blue-500 transition-colors rounded-2xl p-6 bg-slate-50/50 hover:bg-blue-50/30 text-center space-y-2 group cursor-pointer">
+            <input
+              id="file"
+              type="file"
+              accept={ACCEPTED_EXTENSIONS}
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            />
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 text-2xl group-hover:scale-110 transition-transform">
+              📄
+            </div>
+            {file ? (
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-slate-900">{file.name}</p>
+                <p className="text-xs text-slate-500">
+                  {(file.size / 1024).toFixed(1)} KB — Pronto para envio
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm font-semibold text-slate-700">
+                  Clique ou arraste um arquivo para selecionar
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Formatos aceitos: <span className="font-mono text-slate-700">.pdf</span>,{" "}
+                  <span className="font-mono text-slate-700">.txt</span>,{" "}
+                  <span className="font-mono text-slate-700">.md</span>
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={!file || isSubmitting}
-          className="rounded-md bg-gray-900 px-4 py-2 text-white disabled:opacity-50"
-        >
-          {isSubmitting ? "Enviando..." : "Enviar para ingestão"}
-        </button>
+        {/* Botão de Envio */}
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={!file || isSubmitting}
+            className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-blue-700 transition-all disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {isSubmitting ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <span>Indexando documento...</span>
+              </>
+            ) : (
+              <>
+                <span>Enviar para ingestão</span>
+              </>
+            )}
+          </button>
+        </div>
       </form>
 
+      {/* Alertas de Resultado / Erro */}
       {result && (
-        <p className="mt-6 rounded-md bg-green-50 px-4 py-3 text-green-800">
-          &ldquo;{result.filename}&rdquo; ingerido no domínio &ldquo;{result.domain}&rdquo; —{" "}
-          {result.chunks} chunk(s) gravado(s).
-        </p>
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 space-y-1">
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <span>✅ Ingestão concluída com sucesso!</span>
+          </div>
+          <p>
+            Arquivo <strong>&ldquo;{result.filename}&rdquo;</strong> ingerido no domínio{" "}
+            <strong>&ldquo;{result.domain}&rdquo;</strong> — <strong>{result.chunks} chunk(s) gravado(s).</strong>
+          </p>
+        </div>
       )}
-      {error && <p className="mt-6 rounded-md bg-red-50 px-4 py-3 text-red-800">{error}</p>}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 space-y-1">
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <span>❌ Falha no Envio</span>
+          </div>
+          <p>{error}</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -195,9 +439,9 @@ function AbaDocumentosIngeridos({ collections }: { collections: RagCollection[] 
   }
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs space-y-4">
       {documentos === null ? (
-        <p className="text-sm text-gray-600">Carregando...</p>
+        <p className="text-sm text-slate-600">Carregando...</p>
       ) : (
         <DocumentsTable
           documents={documentos}
@@ -249,14 +493,6 @@ function RagSearchConfigSection({
     setSalvando(true);
     setRagFallback(checked);
     try {
-      // Achado no code-review (2026-09-24): buscar o estado atual e
-      // reenviar o objeto inteiro (spread) criava uma race de leitura-e-
-      // escrita — se outro admin salvasse um campo diferente (ex.:
-      // tone_monitor_provider em /admin/modelos) entre o GET e o PUT
-      // daqui, esse PUT reenviava o valor antigo e revertia a mudança
-      // alheia em silêncio. O PUT já é uma atualização parcial no backend
-      // (RuntimeSettingsUpdateRequest, exclude_unset=True) — mandar só o
-      // campo que mudou evita a race sem precisar do GET antes.
       await updateRuntimeSettings({ rag_search_domain_fallback: checked });
       onSuccess("Regra de busca do RAG atualizada.");
     } catch (err) {
@@ -324,22 +560,22 @@ function AbaConfiguracao({
         onSuccess={(msg) => showToast(msg, "success")}
       />
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-slate-900">Perfis de Coleções Qdrant</h2>
-            <p className="text-xs text-gray-600">Perfis de collection do Qdrant usados pelo RAG.</p>
+            <p className="text-xs text-slate-600">Perfis de collection do Qdrant usados pelo RAG.</p>
           </div>
           <button
             type="button"
             onClick={() => setModalAberto(true)}
-            className="rounded-md bg-gray-900 px-4 py-2 text-sm text-white"
+            className="rounded-xl bg-slate-900 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            Nova collection
+            + Nova Collection
           </button>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-4">
           <CollectionsTable
             collections={collections}
             onChanged={onChanged}
@@ -353,7 +589,7 @@ function AbaConfiguracao({
           onOpenChange={setModalAberto}
           onCreated={() => {
             setModalAberto(false);
-            showToast("Collection criada.", "success");
+            showToast("Collection criada com sucesso.", "success");
             onChanged();
           }}
         />
@@ -379,51 +615,80 @@ export default function IngestaoDocumentosPage() {
   const [collections, setCollections] = useState<RagCollection[]>([]);
   const { toasts, showToast, dismissToast } = useToast();
 
-  const carregarColecoes = useCallback(async () => {
+  const carregarColecoes = useCallback(async (): Promise<RagCollection[]> => {
     try {
-      setCollections(await listCollections());
+      const novalista = await listCollections();
+      setCollections(novalista);
+      return novalista;
     } catch (err) {
       showToast(
         err instanceof RagApiError ? err.message : "Erro inesperado ao carregar as collections.",
         "error",
       );
+      return [];
     }
   }, [showToast]);
 
   useEffect(() => {
-    // `carregarColecoes` só chama `setCollections`/`showToast` depois do
-    // `await` (assíncrono, não durante a execução síncrona do efeito) —
-    // falso positivo conhecido de `react-hooks/set-state-in-effect` para o
-    // padrão usual de "buscar dados ao montar".
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarColecoes();
   }, [carregarColecoes]);
 
+  const collectionAtiva = collections.find((c) => c.is_active);
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12 space-y-6">
-      {/* Cabeçalho */}
-      <div className="border-b border-slate-200 pb-4">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          Ingestão de Documentos & Coleções
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
-          Gestão de documentos indexados, perfis de coleção no Qdrant e playground comparativo de
-          busca semântica.
-        </p>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12 space-y-8">
+      {/* Cabeçalho Visual da Página */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl">📄</span>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Ingestão de Documentos & Coleções RAG
+              </h1>
+            </div>
+            <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-2xl">
+              Gestão de documentos indexados, perfis de coleção no Qdrant, varredura web com crawler e playground comparativo de busca semântica.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 border border-blue-100">
+              <span>🗂️</span> {collections.length} {collections.length === 1 ? "Collection" : "Collections"}
+            </span>
+            {collectionAtiva && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 border border-emerald-100">
+                ★ Ativa: {collectionAtiva.name}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      <Tabs defaultValue="enviar" className="mt-6 space-y-4">
-        <TabsList className="flex-wrap gap-1">
-          <TabsTrigger value="enviar">Enviar documento</TabsTrigger>
-          <TabsTrigger value="documentos">Documentos ingeridos</TabsTrigger>
-          <TabsTrigger value="configuracao">Configuração</TabsTrigger>
-          <TabsTrigger value="playground">Playground</TabsTrigger>
-          <TabsTrigger value="crawler">Crawler</TabsTrigger>
+      {/* Barra de Navegação em Tabs Estilizada */}
+      <Tabs defaultValue="enviar" className="space-y-6">
+        <TabsList className="p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 flex flex-wrap gap-1.5">
+          <TabsTrigger value="enviar" aria-label="Enviar documento">
+            <span aria-hidden="true">📥</span> Enviar documento
+          </TabsTrigger>
+          <TabsTrigger value="documentos" aria-label="Documentos ingeridos">
+            <span aria-hidden="true">📚</span> Documentos ingeridos
+          </TabsTrigger>
+          <TabsTrigger value="configuracao" aria-label="Configuração">
+            <span aria-hidden="true">⚙️</span> Configuração
+          </TabsTrigger>
+          <TabsTrigger value="playground" aria-label="Playground">
+            <span aria-hidden="true">🧪</span> Playground
+          </TabsTrigger>
+          <TabsTrigger value="crawler" aria-label="Crawler">
+            <span aria-hidden="true">🌐</span> Crawler
+          </TabsTrigger>
         </TabsList>
-        <div className="max-h-[calc(78vh-140px)] min-h-[420px] overflow-y-auto pr-1">
+
+        <div className="max-h-[calc(82vh-140px)] min-h-[440px] overflow-y-auto pr-1">
           <TabsContent value="enviar">
             <AbaEnviarDocumento
               collections={collections}
+              onColecoesMudaram={carregarColecoes}
               onIngerido={() => setReloadKey((key) => key + 1)}
             />
           </TabsContent>

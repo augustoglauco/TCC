@@ -23,16 +23,18 @@ export function TabsTrigger({
   value,
   disabled,
   children,
+  className = "",
 }: {
   value: string;
   disabled?: boolean;
   children: ReactNode;
+  className?: string;
 }) {
   return (
     <RadixTabs.Trigger
       value={value}
       disabled={disabled}
-      className="rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-600 transition-all hover:bg-slate-100 hover:text-slate-900 data-[state=active]:bg-slate-900 data-[state=active]:text-white data-[state=active]:shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-600 transition-all hover:bg-slate-200/70 hover:text-slate-900 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-md disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer ${className}`}
     >
       {children}
     </RadixTabs.Trigger>
