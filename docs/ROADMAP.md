@@ -235,6 +235,25 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] **Intervalo de páginas na extração de catálogos PDF** — campo
       `page_range` (`1-5`, `2, 5, 8`, `3-`, `-4`) no upload do extrator
       (commit `bae66bd`, 2026-09-27; registrado na revisão de 2026-09-28)
+- [x] **Robustez da visão externa na importação de catálogo** — achado em
+      teste manual (2026-10-03): upload de imagem avulsa dependia só da
+      visão externa (sem fallback local, que não tem chamada multimodal) e
+      uma falha transitória (`429` de modelo `:free` do OpenRouter) virava
+      silenciosamente "nenhum produto detectado". `OpenRouterClient.describe_image`
+      ganhou retry com backoff curto para status transitório (`429`/`5xx`);
+      `CatalogPageResult` ganhou campo `erro` que o `CatalogImportModal`
+      exibe distinto de "nenhum produto encontrado". `.env`/`.env.example`:
+      `EXTERNAL_VISION_MODEL_NAME` passou a ter um default (`google/gemma-4-31b-it:free`).
+      Testes em `test_openrouter_client.py` e `test_catalog_extractor.py`
+      (backend) e `CatalogImportModal.test.tsx` (frontend).
+- [ ] **Investigar visão multimodal no modelo local** — avaliar se vale a
+      pena dar suporte a imagem no `OllamaClient` (hoje só texto) para que a
+      extração de catálogo e a identificação de produto por imagem (R6)
+      possam usar o modelo local como alternativa à visão externa paga/com
+      rate limit. É uma decisão de arquitetura nova (não é bug) — atualizar
+      `docs/ARCHITECTURE.md` antes de implementar, ver nota em §
+      "Extra fora do MVP" acima sobre a decisão consciente de visão só
+      externa.
 
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
@@ -474,6 +493,13 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `CollectionFormModal.test.tsx`/`CollectionsTable.test.tsx`. Ver decisão
       em `docs/ARCHITECTURE.md` §6 (2026-09-30) e
       `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
+      **Correção (2026-10-03):** criar collection com "Exclusiva do Admin"
+      pelo `/admin/ingestao` falhava com `422 Input should be 'chat' or
+      'mcp_b2b'` — `CollectionPurpose` (`app.models.rag`) não tinha sido
+      atualizado para incluir `"admin"` junto com o resto da entrega (gap
+      entre sessões concorrentes no mesmo repositório). Regressão coberta em
+      `test_criar_collection_admin_expoe_purpose_na_resposta`
+      (`test_rag_collections_api.py`).
 
 ## Fase 6 — Memória e Classificação do Usuário (R9, R10)
 

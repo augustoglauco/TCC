@@ -25,10 +25,13 @@ RagDocumentOrigin = Literal["upload", "batch_script", "reingest", "crawler"]
 
 DistanceMetric = Literal["cosine", "euclid", "dot", "manhattan"]
 QuantizationType = Literal["none", "scalar", "product", "binary"]
-# Finalidade da collection: "chat" (pública, elegível a ativa/busca do chat)
-# vs "mcp_b2b" (restrita ao canal MCP B2B, nunca ativada nem buscada pelo
-# chat) — ver docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §2.
-CollectionPurpose = Literal["chat", "mcp_b2b"]
+# Finalidade da collection: "chat" (pública, elegível a ativa/busca do chat),
+# "mcp_b2b" (restrita ao canal MCP B2B + modo admin do chat, nunca ativada
+# nem buscada pelo chat público — ver
+# docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §2) ou "admin"
+# (exclusiva do Admin no modo admin do chat, nem o chat público nem o
+# parceiro B2B a enxergam — decisão de 2026-09-30 em docs/ARCHITECTURE.md §6).
+CollectionPurpose = Literal["chat", "mcp_b2b", "admin"]
 PayloadSchemaTypeLiteral = Literal[
     "keyword", "integer", "float", "bool", "geo", "datetime", "uuid", "text"
 ]

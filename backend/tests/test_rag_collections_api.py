@@ -258,6 +258,23 @@ def test_criar_collection_mcp_b2b_expoe_purpose_na_resposta(db_session):
     assert body["is_active"] is False
 
 
+def test_criar_collection_admin_expoe_purpose_na_resposta(db_session):
+    """Regressão: `purpose="admin"` (exclusiva do Admin no modo admin do
+    chat, decisão de 2026-09-30 em docs/ARCHITECTURE.md §6) era aceito pelo
+    frontend (`CollectionFormModal`) e pelo registro, mas rejeitado aqui com
+    "Input should be 'chat' or 'mcp_b2b'" porque `CollectionPurpose`
+    (`app.models.rag`) não tinha sido atualizado junto."""
+    client = TestClient(_build_app(_qdrant(), db_session))
+    payload = {**_PAYLOAD_MINIMO, "name": "admin_docs", "purpose": "admin"}
+
+    response = client.post("/api/rag/collections", json=payload)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["purpose"] == "admin"
+    assert body["is_active"] is False
+
+
 def test_criar_collection_sem_purpose_default_chat(db_session):
     client = TestClient(_build_app(_qdrant(), db_session))
 
