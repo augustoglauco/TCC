@@ -636,18 +636,18 @@ export default function IngestaoDocumentosPage() {
   const collectionAtiva = collections.find((c) => c.is_active);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12 space-y-8">
+    <div className="mx-auto max-w-6xl px-4 py-4 sm:py-6 space-y-4">
       {/* Cabeçalho Visual da Página */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-3xl">📄</span>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              <span className="text-2xl sm:text-3xl">📄</span>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                 Ingestão de Documentos & Coleções RAG
               </h1>
             </div>
-            <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-2xl">
+            <p className="mt-1 text-xs sm:text-sm text-slate-600 max-w-2xl">
               Gestão de documentos indexados, perfis de coleção no Qdrant, varredura web com crawler e playground comparativo de busca semântica.
             </p>
           </div>
@@ -665,8 +665,8 @@ export default function IngestaoDocumentosPage() {
       </div>
 
       {/* Barra de Navegação em Tabs Estilizada */}
-      <Tabs defaultValue="enviar" className="space-y-6">
-        <TabsList className="p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 flex flex-wrap gap-1.5">
+      <Tabs defaultValue="enviar" className="space-y-1.5">
+        <TabsList className="p-1 bg-slate-100/90 rounded-2xl border border-slate-200/80 flex flex-wrap gap-1">
           <TabsTrigger value="enviar" aria-label="Enviar documento">
             <span aria-hidden="true">📥</span> Enviar documento
           </TabsTrigger>
@@ -684,24 +684,24 @@ export default function IngestaoDocumentosPage() {
           </TabsTrigger>
         </TabsList>
 
-        <div className="max-h-[calc(82vh-140px)] min-h-[440px] overflow-y-auto pr-1">
-          <TabsContent value="enviar">
+        <div className="max-h-[calc(85vh-120px)] min-h-[440px] overflow-y-auto pr-1">
+          <TabsContent value="enviar" className="pt-0">
             <AbaEnviarDocumento
               collections={collections}
               onColecoesMudaram={carregarColecoes}
               onIngerido={() => setReloadKey((key) => key + 1)}
             />
           </TabsContent>
-          <TabsContent value="documentos">
+          <TabsContent value="documentos" className="pt-0">
             <AbaDocumentosIngeridos key={reloadKey} collections={collections} />
           </TabsContent>
-          <TabsContent value="configuracao">
+          <TabsContent value="configuracao" className="pt-0">
             <AbaConfiguracao collections={collections} onChanged={carregarColecoes} />
           </TabsContent>
-          <TabsContent value="playground">
+          <TabsContent value="playground" className="pt-0">
             <PlaygroundPanel collections={collections} />
           </TabsContent>
-          <TabsContent value="crawler">
+          <TabsContent value="crawler" className="pt-0">
             <AbaCrawler />
           </TabsContent>
         </div>

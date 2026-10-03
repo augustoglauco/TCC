@@ -41,9 +41,17 @@ export function TabsTrigger({
   );
 }
 
-export function TabsContent({ value, children }: { value: string; children: ReactNode }) {
+export function TabsContent({
+  value,
+  children,
+  className = "",
+}: {
+  value: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <RadixTabs.Content value={value} className="pt-6">
+    <RadixTabs.Content value={value} className={`pt-3 ${className}`}>
       {children}
     </RadixTabs.Content>
   );

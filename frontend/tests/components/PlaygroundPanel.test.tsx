@@ -100,4 +100,91 @@ describe("PlaygroundPanel", () => {
 
     expect(await screen.findByText("Não foi possível rodar a busca.")).toBeInTheDocument();
   });
+
+  it("permite selecionar e desmarcar todas as collections com os botões rápidos", async () => {
+    const user = userEvent.setup();
+    render(<PlaygroundPanel collections={[COLLECTION_A, COLLECTION_B]} />);
+
+    const checkboxA = screen.getByLabelText("collection-a") as HTMLInputElement;
+    const checkboxB = screen.getByLabelText("collection-b") as HTMLInputElement;
+
+    expect(checkboxA.checked).toBe(false);
+    expect(checkboxB.checked).toBe(false);
+
+    // Clica em 'Selecionar todas'
+    await user.click(screen.getByRole("button", { name: "Selecionar todas" }));
+    expect(checkboxA.checked).toBe(true);
+    expect(checkboxB.checked).toBe(true);
+
+    // Clica em 'Limpar seleção'
+    await user.click(screen.getByRole("button", { name: "Limpar seleção" }));
+    expect(checkboxA.checked).toBe(false);
+    expect(checkboxB.checked).toBe(false);
+  });
+
+  it("permite limpar os resultados após uma busca", async () => {
+    const user = userEvent.setup();
+    mockedRunSearch.mockResolvedValueOnce({
+      items: [
+        {
+          collection_id: "a",
+          collection_name: "collection-a",
+          latency_ms: 25,
+          results: [{ content: "resultado teste limpeza", source: "doc.txt", score: 0.9 }],
+        },
+      ],
+    });
+
+    render(<PlaygroundPanel collections={[COLLECTION_A]} />);
+
+    await user.type(screen.getByLabelText("Pergunta de teste"), "teste limpeza");
+    await user.click(screen.getByLabelText("collection-a"));
+    await user.click(screen.getByRole("button", { name: "Comparar" }));
+
+    expect(await screen.findByText("resultado teste limpeza")).toBeInTheDocument();
+
+    // Clica em Limpar resultados
+    await user.click(screen.getByRole("button", { name: "Limpar resultados" }));
+    expect(screen.queryByText("resultado teste limpeza")).not.toBeInTheDocument();
+    expect(screen.getByText("Pronto para comparar o comportamento do RAG")).toBeInTheDocument();
+  });
+
+  it("abre e fecha o manual de uso do Playground", async () => {
+    const user = userEvent.setup();
+    render(<PlaygroundPanel collections={[COLLECTION_A]} />);
+
+    const btnManual = screen.getByRole("button", { name: /Como usar o Playground/i });
+    expect(btnManual).toBeInTheDocument();
+
+    // Clica para abrir o modal do manual
+    await user.click(btnManual);
+
+    expect(screen.getByText("📖 Manual de Uso do Playground RAG")).toBeInTheDocument();
+    expect(screen.getByText(/O que é o Playground\?/i)).toBeInTheDocument();
+    expect(screen.getByText(/Score de Similaridade/i)).toBeInTheDocument();
+
+    // Fecha o modal
+    const btnFechar = screen.getByRole("button", { name: /Entendi, fechar manual/i });
+    await user.click(btnFechar);
+
+    expect(screen.queryByText("📖 Manual de Uso do Playground RAG")).not.toBeInTheDocument();
+  });
+
+  it("filtra collections por purpose garantindo comparação apenas entre mesmo canal", async () => {
+    const user = userEvent.setup();
+    const colChat = collection({ id: "c1", name: "col-chat", purpose: "chat" });
+    const colB2b = collection({ id: "c2", name: "col-b2b", purpose: "mcp_b2b" });
+
+    render(<PlaygroundPanel collections={[colChat, colB2b]} />);
+
+    // Por padrão exibe 'Chat (Público)'
+    expect(screen.getByLabelText("col-chat")).toBeInTheDocument();
+    expect(screen.queryByLabelText("col-b2b")).not.toBeInTheDocument();
+
+    // Alterna para 'MCP B2B (Parceiros)'
+    await user.click(screen.getByRole("button", { name: /MCP B2B/i }));
+
+    expect(screen.queryByLabelText("col-chat")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("col-b2b")).toBeInTheDocument();
+  });
 });
