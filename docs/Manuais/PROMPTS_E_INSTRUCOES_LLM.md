@@ -175,12 +175,12 @@ null."""
 ---
 
 ### 4. `backend/src/app/router/sales_catalog.py`
-**Caminho:** [`backend/src/app/router/sales_catalog.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/sales_catalog.py#L282-L324)
+**Caminho:** [`backend/src/app/router/sales_catalog.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/sales_catalog.py#L316-L358)
 
 Prompt para identificação estruturada de intenções de catálogo de produtos e compatibilidade em conversas de vendas.
 
 ```python
-# Line 282: Prompt de extração de produto/catálogo
+# Line 316: Prompt de extração de produto/catálogo
 _EXTRACTION_PROMPT_TEMPLATE = """\
 Você está ajudando um cliente numa conversa de vendas. A partir da lista de \
 produtos candidatos abaixo (já filtrada do catálogo da empresa), identifique \
@@ -251,7 +251,7 @@ Responda apenas com JSON no formato: \
 ---
 
 ### 6. `backend/src/app/router/orchestrator.py`
-**Caminho:** [`backend/src/app/router/orchestrator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/orchestrator.py#L71-L151)
+**Caminho:** [`backend/src/app/router/orchestrator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/orchestrator.py#L71-L152)
 
 Constrói e une todos os blocos de contexto (playbook, dados do cliente, resumo, RAG e mensagem atual) no prompt final enviado ao modelo de linguagem.
 
@@ -324,7 +324,7 @@ def _build_prompt(
 `dados_catalogo` (acima) é montado por `_formatar_dados_catalogo_vendas`/`_formatar_dados_catalogo_categoria`, que também carregam instruções para o LLM (não são só dados formatados) — ex.: mandar o modelo preferir esses dados a qualquer trecho do RAG, e escolher entre estoque total x por centro de distribuição conforme a pergunta (correção de 2026-09-29):
 
 ```python
-# _formatar_dados_catalogo_vendas — cabeçalho de instrução
+# Line 403-412: _formatar_dados_catalogo_vendas — cabeçalho de instrução (produto único)
 "Dados oficiais do catálogo interno, já calculados para esta mensagem. "
 "O cliente está falando deste produto: use exatamente estes nomes, "
 "valores e quantidades, e prefira-os a qualquer informação recuperada "
@@ -335,6 +335,12 @@ def _build_prompt(
 "centro de distribuição específico, ou pedir o estoque 'por CD'/'por "
 "centro de distribuição', responda com o detalhamento por CD abaixo, "
 "não com o total somado."
+
+# Line 462-465: _formatar_dados_catalogo_categoria — cabeçalho de instrução (categoria/catálogo total)
+"Dados oficiais do catálogo interno, já calculados para esta mensagem. "
+"O cliente perguntou pelos produtos disponíveis: use exatamente estes "
+"nomes, preços e quantidades de estoque, e prefira-os a qualquer "
+"informação recuperada abaixo que seja diferente."
 ```
 
 ---
@@ -410,13 +416,13 @@ Responda apenas com JSON no formato: {{"domain": "...", "confidence": 0.0}}"""
 ---
 
 ### 10. `backend/src/app/catalog_extractor/extractor.py`
-**Caminho:** [`backend/src/app/catalog_extractor/extractor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/catalog_extractor/extractor.py#L29-L68)
+**Caminho:** [`backend/src/app/catalog_extractor/extractor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/catalog_extractor/extractor.py#L34-L73)
 
 Prompts de extração de dados de produtos a partir de documentos (PDF/texto) e folhetos visuais.
-Desde 2026-10-02, arquivos de texto enviados à importação (`.txt`/`.md`/`.csv`, ou texto colado) reutilizam `LOCAL_EXTRACTION_PROMPT` sem alteração: cada trecho de até 6000 caracteres entra no lugar de "Texto da página".
+Desde 2026-10-02, arquivos de texto enviados à importação (`.txt`/`.md`/`.csv`, ou texto colado) reutilizam `LOCAL_EXTRACTION_PROMPT` sem alteração: o arquivo é decodificado e dividido em blocos de até 6.000 caracteres (`TAMANHO_BLOCO_TEXTO`), quebrando em linhas e fatiando textos longos, e cada bloco entra no lugar de "Texto da página".
 
 ```python
-# Line 29: Prompt de extração textual de catálogo
+# Line 34: Prompt de extração textual de catálogo
 LOCAL_EXTRACTION_PROMPT = """Você é um assistente especialista em extração de produtos de catálogos e tabelas de fornecedores.
 Analise o texto a seguir extraído de uma página de catálogo comercial e extraia todos os produtos identificados.
 Responda APENAS com um array JSON no seguinte formato:
@@ -439,7 +445,7 @@ Texto da página:
 {texto}
 """
 
-# Line 51: Prompt de extração por visão de catálogo
+# Line 56: Prompt de extração por visão de catálogo
 VISION_EXTRACTION_PROMPT = """Você é um assistente especialista em extrair dados de catálogos e folhetos comerciais.
 Analise visualmente a imagem desta página de catálogo e extraia todos os produtos que constam nela.
 Responda APENAS com um array JSON no seguinte formato:
@@ -463,7 +469,7 @@ Regras:
 ---
 
 ### 11. `backend/src/app/user_profile/classificacao.py`
-**Caminho:** [`backend/src/app/user_profile/classificacao.py`](file:///home/augusto/Projetos/TCC/backend/src/app/user_profile/classificacao.py#L212-L247)
+**Caminho:** [`backend/src/app/user_profile/classificacao.py`](file:///home/augusto/Projetos/TCC/backend/src/app/user_profile/classificacao.py#L212-L249)
 
 Formatação dos dados do cliente e regras de segurança de privacidade (LGPD) injetadas no prompt.
 
@@ -477,7 +483,7 @@ Formatação dos dados do cliente e regras de segurança de privacidade (LGPD) i
 "Se o visitante perguntar sobre compras feitas, histórico de pedidos ou dados da conta, "
 "instrua-o educadamente a entrar na conta (fazer login) para acessar suas informações."
 
-# Line 227: Bloco injetado para cliente autenticado com histórico
+# Line 228: Bloco injetado para cliente autenticado com histórico
 "[Dados do Cliente e Histórico de Compras]:",
 "- Nome do cliente: {nome_cliente}",
 "- E-mail do cliente: {email_clean}",
@@ -512,12 +518,14 @@ export function getVisitPrompt(
 ---
 
 ### 13. `backend/eval/rag_quality/run_eval.py`
-**Caminho:** [`backend/eval/rag_quality/run_eval.py`](file:///home/augusto/Projetos/TCC/backend/eval/rag_quality/run_eval.py#L52-L75)
+**Caminho:** [`backend/eval/rag_quality/run_eval.py`](file:///home/augusto/Projetos/TCC/backend/eval/rag_quality/run_eval.py#L55-L79)
 
 Prompt de avaliação LLM-as-judge (Fase 10, R4) — compara a resposta gerada pelo modelo local com o gabarito de cada pergunta de `eval/rag_quality/dataset.json`, usando um modelo EXTERNO (diferente do gerador, para reduzir viés de autoavaliação) e critérios documentados em `docs/EVALUATION.md` Seção 2 (relevância, correção factual, uso da fonte recuperada).
 
+Além do `run_eval.py`, o script de busca por bisseção do tamanho de chunk (`backend/eval/rag_quality/chunk_size_search.py`) importa e reutiliza diretamente a função `_julgar_resposta` deste módulo, avaliando as respostas produzidas sobre as coleções temporárias sob os mesmos critérios deste prompt.
+
 ```python
-# Line 52: Prompt de avaliação (LLM-as-judge) da qualidade das respostas do RAG
+# Line 55: Prompt de avaliação (LLM-as-judge) da qualidade das respostas do RAG
 _JUDGE_PROMPT_TEMPLATE = """\
 Você é um avaliador técnico imparcial. Compare a resposta gerada por um \
 assistente de IA com a resposta esperada (gabarito) para a mesma pergunta \
