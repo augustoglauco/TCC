@@ -72,6 +72,10 @@ export default function CatalogImportModal({
   const [extractedProducts, setExtractedProducts] = useState<ExtractedProductItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Erros de extração por página/imagem (ex.: vision externo indisponível) —
+  // distintos de "nenhum produto encontrado" (página processada com sucesso,
+  // mas sem produto nela).
+  const [pageErrors, setPageErrors] = useState<string[]>([]);
 
   // Seletor / troca de foto do produto
   const [pickerProduct, setPickerProduct] = useState<ExtractedProductItem | null>(null);
@@ -170,6 +174,7 @@ export default function CatalogImportModal({
     setStep("extracting");
     setError(null);
     setExtractedProducts([]);
+    setPageErrors([]);
     setProgress({ pagina: 0, total: 0, status: "Iniciando processamento..." });
 
     await extractCatalogStream(
@@ -178,6 +183,9 @@ export default function CatalogImportModal({
       {
         onProgress: (p) => setProgress(p),
         onPageComplete: (pageRes: CatalogPageResult) => {
+          if (pageRes.erro) {
+            setPageErrors((prev) => [...prev, `Página ${pageRes.pagina}: ${pageRes.erro}`]);
+          }
           if (pageRes.produtos && pageRes.produtos.length > 0) {
             setExtractedProducts((prev) => [
               ...prev,
@@ -559,9 +567,26 @@ export default function CatalogImportModal({
                 </div>
               </div>
 
+              {pageErrors.length > 0 && (
+                <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+                  <p className="font-semibold mb-1">
+                    {extractedProducts.length === 0
+                      ? "Não foi possível extrair produtos — houve falha ao processar:"
+                      : "Algumas páginas falharam durante a extração:"}
+                  </p>
+                  <ul className="list-disc list-inside space-y-0.5">
+                    {pageErrors.map((msg, idx) => (
+                      <li key={idx}>{msg}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {extractedProducts.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 text-sm">
-                  Nenhum produto foi detectado nos arquivos fornecidos.
+                  {pageErrors.length === 0
+                    ? "Nenhum produto foi detectado nos arquivos fornecidos."
+                    : "Nenhum produto foi extraído — corrija o problema acima e tente novamente."}
                 </div>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-gray-200">

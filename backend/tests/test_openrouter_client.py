@@ -196,11 +196,58 @@ async def test_describe_image_erro_http_vira_indisponivel():
         api_key="chave-fake",
         model="anthropic/claude-3.5-haiku",
         timeout_s=30.0,
-        client=httpx.AsyncClient(transport=_mock_transport({"error": "x"}, status_code=500)),
+        client=httpx.AsyncClient(transport=_mock_transport({"error": "x"}, status_code=400)),
         vision_model="openai/gpt-4o-mini",
     )
     with pytest.raises(VisionModelIndisponivelError):
         await client.describe_image(_png_bytes(), "identifique")
+
+
+async def test_describe_image_retry_em_429_ate_sucesso():
+    """Status transitório (429/5xx) ganha novas tentativas com backoff curto —
+    modelos `:free` do OpenRouter picam de limite de taxa com frequência."""
+    chamadas = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        chamadas["n"] += 1
+        if chamadas["n"] < 3:
+            return httpx.Response(429, json={"error": "rate limited"})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}}]})
+
+    client = OpenRouterClient(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="chave-fake",
+        model="anthropic/claude-3.5-haiku",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        vision_model="openai/gpt-4o-mini",
+    )
+    texto = await client.describe_image(_png_bytes(), "identifique")
+    assert texto == "ok"
+    assert chamadas["n"] == 3
+
+
+async def test_describe_image_erro_nao_transiente_nao_tenta_de_novo():
+    """Erro de cliente (ex.: 400) não é retentado — falha na primeira tentativa."""
+    from app.router.openrouter_client import VisionModelIndisponivelError
+
+    chamadas = {"n": 0}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        chamadas["n"] += 1
+        return httpx.Response(400, json={"error": "bad request"})
+
+    client = OpenRouterClient(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="chave-fake",
+        model="anthropic/claude-3.5-haiku",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        vision_model="openai/gpt-4o-mini",
+    )
+    with pytest.raises(VisionModelIndisponivelError):
+        await client.describe_image(_png_bytes(), "identifique")
+    assert chamadas["n"] == 1
 
 
 async def test_vision_model_property_e_setter():

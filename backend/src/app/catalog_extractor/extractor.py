@@ -410,6 +410,7 @@ async def extract_catalog_stream(
 
                     provider_usado = provider
                     raw_prods: list[dict[str, Any]] = []
+                    erro_pagina: str | None = None
 
                     if provider == "external":
                         if img_bytes and vision_client:
@@ -420,6 +421,7 @@ async def extract_catalog_stream(
                                 provider_usado = "external"
                             except Exception as e:
                                 logger.error(f"Erro na visão externa: {e}")
+                                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
                     else:
                         # Tenta local se houver texto
                         if len(texto_pagina.strip()) >= 30 and local_client:
@@ -440,6 +442,7 @@ async def extract_catalog_stream(
                                 provider_usado = "external"
                             except Exception as e:
                                 logger.error(f"Erro no fallback de visão externa: {e}")
+                                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
 
                     # Formata produtos extraídos associando cada um à sua figura
                     # individual recortada
@@ -482,6 +485,7 @@ async def extract_catalog_stream(
                         provider_usado=provider_usado,
                         imagem_preview_url=temp_img_url,
                         fotos_pagina=figuras_pagina,
+                        erro=erro_pagina if not produtos else None,
                     )
                     yield f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n"
 
@@ -502,11 +506,15 @@ async def extract_catalog_stream(
 
             provider_usado = "external"
             raw_prods: list[dict[str, Any]] = []
+            erro_pagina: str | None = None
             if vision_client:
                 try:
                     raw_prods = await extract_page_products_vision(content, vision_client)
                 except Exception as e:
                     logger.error(f"Erro na visão para imagem {filename}: {e}")
+                    erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
+            else:
+                erro_pagina = "Modelo de visão externo não configurado."
 
             produtos = []
             for i, item in enumerate(raw_prods):
@@ -536,6 +544,7 @@ async def extract_catalog_stream(
                 provider_usado=provider_usado,
                 imagem_preview_url=temp_img_url,
                 fotos_pagina=[temp_img_url],
+                erro=erro_pagina if not produtos else None,
             )
             yield f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n"
 

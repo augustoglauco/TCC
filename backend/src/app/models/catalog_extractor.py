@@ -28,6 +28,7 @@ class CatalogPageResult(BaseModel):
     provider_usado: str
     imagem_preview_url: str | None = None
     fotos_pagina: list[str] = Field(default_factory=list)
+    erro: str | None = None
 
 
 class CatalogConfirmItem(BaseModel):

@@ -198,3 +198,62 @@ describe("CatalogImportModal - arrastar, colar e tipos de arquivo", () => {
     expect(screen.getByText("b.txt")).toBeInTheDocument();
   });
 });
+
+describe("CatalogImportModal - erro de extração por página", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("mostra o erro da página (ex.: visão externa indisponível) em vez de 'nenhum produto encontrado'", async () => {
+    const user = userEvent.setup();
+    mockedExtractStream.mockImplementation(async (_files, _opts, handlers) => {
+      handlers.onPageComplete?.({
+        pagina: 1,
+        total_paginas: 1,
+        produtos: [],
+        provider_usado: "external",
+        erro: "Falha ao consultar modelo de visão externo: 429 Too Many Requests",
+      });
+      handlers.onDone?.({ total_produtos: 0, total_paginas: 1 });
+    });
+
+    render(<CatalogImportModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
+    const foto = new File(["x"], "folheto.png", { type: "image/png" });
+    fireEvent.drop(screen.getByTestId("catalog-dropzone"), { dataTransfer: { files: [foto] } });
+
+    await user.click(screen.getByRole("button", { name: /Iniciar Extração Inteligente/i }));
+
+    expect(
+      await screen.findByText(/Página 1: Falha ao consultar modelo de visão externo/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Nenhum produto foi extraído — corrija o problema acima/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/^Nenhum produto foi detectado nos arquivos/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("não mostra aviso de erro quando a extração simplesmente não encontra produtos", async () => {
+    const user = userEvent.setup();
+    mockedExtractStream.mockImplementation(async (_files, _opts, handlers) => {
+      handlers.onPageComplete?.({
+        pagina: 1,
+        total_paginas: 1,
+        produtos: [],
+        provider_usado: "local",
+      });
+      handlers.onDone?.({ total_produtos: 0, total_paginas: 1 });
+    });
+
+    render(<CatalogImportModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
+    const texto = new File(["x"], "lista.csv", { type: "text/csv" });
+    fireEvent.drop(screen.getByTestId("catalog-dropzone"), { dataTransfer: { files: [texto] } });
+
+    await user.click(screen.getByRole("button", { name: /Iniciar Extração Inteligente/i }));
+
+    expect(
+      await screen.findByText(/^Nenhum produto foi detectado nos arquivos fornecidos\.$/i),
+    ).toBeInTheDocument();
+  });
+});

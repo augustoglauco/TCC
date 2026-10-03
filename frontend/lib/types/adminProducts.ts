@@ -84,6 +84,7 @@ export interface CatalogPageResult {
   provider_usado: string;
   imagem_preview_url?: string | null;
   fotos_pagina?: string[];
+  erro?: string | null;
 }
 
 export interface CatalogExtractionProgress {

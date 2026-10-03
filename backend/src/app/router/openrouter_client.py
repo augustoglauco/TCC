@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import time
@@ -16,6 +17,13 @@ class VisionModelIndisponivelError(Exception):
 
 
 _VALID_DOMAINS = {"vendas", "suporte", "atendimento", "agendamento", "fora_escopo"}
+
+# MVP: status transitórios (limite de taxa / instabilidade do provedor) do
+# modelo de visão ganham algumas tentativas com backoff curto antes de
+# desistir — modelos `:free` do OpenRouter compartilham um pool com rate
+# limit apertado e picos de 429 são comuns mesmo com a chamada correta.
+_VISION_RETRY_STATUS = {429, 500, 502, 503, 504}
+_VISION_RETRY_DELAYS_S = (0.5, 1.5)
 
 
 class OpenRouterClient:
@@ -159,29 +167,42 @@ class OpenRouterClient:
         b64 = base64.b64encode(image_bytes).decode("ascii")
         data_uri = f"data:{mime};base64,{b64}"
 
-        try:
-            response = await self._client.post(
-                f"{self._base_url}/chat/completions",
-                headers={"Authorization": f"Bearer {self._api_key}"},
-                json={
-                    "model": self._vision_model,
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": prompt},
-                                {"type": "image_url", "image_url": {"url": data_uri}},
-                            ],
-                        }
+        payload = {
+            "model": self._vision_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": data_uri}},
                     ],
-                },
-                timeout=self._timeout_s,
-            )
-            response.raise_for_status()
-            data = response.json()
-            return data["choices"][0]["message"]["content"]
-        except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
-            raise VisionModelIndisponivelError(str(exc)) from exc
+                }
+            ],
+        }
+
+        last_exc: Exception = VisionModelIndisponivelError("Falha desconhecida na visão externa.")
+        for delay in (0.0, *_VISION_RETRY_DELAYS_S):
+            if delay:
+                await asyncio.sleep(delay)
+            try:
+                response = await self._client.post(
+                    f"{self._base_url}/chat/completions",
+                    headers={"Authorization": f"Bearer {self._api_key}"},
+                    json=payload,
+                    timeout=self._timeout_s,
+                )
+                response.raise_for_status()
+                data = response.json()
+                return data["choices"][0]["message"]["content"]
+            except httpx.HTTPStatusError as exc:
+                last_exc = exc
+                if exc.response.status_code not in _VISION_RETRY_STATUS:
+                    raise VisionModelIndisponivelError(str(exc)) from exc
+                continue
+            except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
+                raise VisionModelIndisponivelError(str(exc)) from exc
+
+        raise VisionModelIndisponivelError(str(last_exc)) from last_exc
 
     async def generate_stream(self, prompt: str) -> AsyncIterator[LLMStreamChunk]:
         """`stream: true` no formato OpenAI-compatible — a resposta já vem

@@ -65,6 +65,51 @@ async def test_extract_catalog_stream_com_imagem(tmp_path):
     assert any("event: done" in e for e in events)
 
 
+async def test_extract_catalog_stream_imagem_com_falha_de_visao_reporta_erro(tmp_path):
+    """Falha na visão externa (ex.: 429 esgotado) vira `erro` no resultado da
+    página — distinto de "nenhum produto encontrado" para o frontend não
+    confundir um erro de extração com uma página genuinamente vazia."""
+    vision_client = AsyncMock()
+    vision_client.describe_image = AsyncMock(side_effect=RuntimeError("429 Too Many Requests"))
+
+    files = [("foto_produto.jpg", b"fake-jpg-content")]
+    events = []
+    async for event in extract_catalog_stream(
+        files=files,
+        provider="external",
+        fallback_external=True,
+        temp_dir=tmp_path,
+        local_client=None,
+        vision_client=vision_client,
+    ):
+        events.append(event)
+
+    pagina_evento = next(e for e in events if "event: pagina_concluida" in e)
+    payload = json.loads(pagina_evento.split("data: ", 1)[1])
+    assert payload["produtos"] == []
+    assert payload["erro"] is not None
+    assert "429" in payload["erro"]
+
+
+async def test_extract_catalog_stream_imagem_sem_vision_client_reporta_erro(tmp_path):
+    files = [("foto_produto.jpg", b"fake-jpg-content")]
+    events = []
+    async for event in extract_catalog_stream(
+        files=files,
+        provider="external",
+        fallback_external=True,
+        temp_dir=tmp_path,
+        local_client=None,
+        vision_client=None,
+    ):
+        events.append(event)
+
+    pagina_evento = next(e for e in events if "event: pagina_concluida" in e)
+    payload = json.loads(pagina_evento.split("data: ", 1)[1])
+    assert payload["produtos"] == []
+    assert payload["erro"] == "Modelo de visão externo não configurado."
+
+
 @pytest.mark.asyncio
 async def test_confirmar_catalogo_endpoint(app_sqlite):
     from httpx import ASGITransport, AsyncClient
