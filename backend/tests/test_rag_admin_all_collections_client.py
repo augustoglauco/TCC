@@ -96,7 +96,7 @@ async def test_admin_client_agrega_chat_ativa_mcp_b2b_e_admin(text_embedder: Tex
             text_embedder,
             name=f"{name}_{uuid.uuid4().hex}",
             purpose=purpose,
-            is_active=(purpose == "chat"),
+            is_active=True,
             conteudo="conteúdo sobre o produto X",
             source=source,
             document_id=f"doc-{name}",
@@ -110,21 +110,26 @@ async def test_admin_client_agrega_chat_ativa_mcp_b2b_e_admin(text_embedder: Tex
     await engine.dispose()
 
 
-async def test_admin_client_ignora_collection_chat_nao_ativa(text_embedder: TextEmbedder):
+async def test_admin_client_ignora_collections_inativas(text_embedder: TextEmbedder):
     engine, factory = await _engine_e_sessionmaker_vazios()
     qdrant = QdrantRAGClient(host="unused", port=0, client=AsyncQdrantClient(location=":memory:"))
 
-    await _cria_collection_com_conteudo(
-        factory,
-        qdrant,
-        text_embedder,
-        name=f"chat_inativa_{uuid.uuid4().hex}",
-        purpose="chat",
-        is_active=False,
-        conteudo="conteúdo de comparação do admin sobre o produto X",
-        source="playground.txt",
-        document_id="doc-playground",
-    )
+    for name, purpose in [
+        ("chat", "chat"),
+        ("mcp_b2b", "mcp_b2b"),
+        ("admin", "admin"),
+    ]:
+        await _cria_collection_com_conteudo(
+            factory,
+            qdrant,
+            text_embedder,
+            name=f"{name}_inativa_{uuid.uuid4().hex}",
+            purpose=purpose,
+            is_active=False,
+            conteudo="conteúdo de comparação sobre o produto X",
+            source=f"{name}.txt",
+            document_id=f"doc-{name}",
+        )
 
     client = AdminAllCollectionsRagClient(qdrant, factory, EmbedderRegistry())
     resultado = await client.search("produto X", domain="vendas")

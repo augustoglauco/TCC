@@ -284,7 +284,7 @@ def test_criar_collection_sem_purpose_default_chat(db_session):
     assert response.json()["purpose"] == "chat"
 
 
-async def test_ativar_collection_mcp_b2b_retorna_409(db_session):
+async def test_ativar_collection_mcp_b2b_ativa_com_sucesso(db_session):
     from app.rag.collections_registry import create_collection
 
     mcp = await create_collection(
@@ -305,10 +305,9 @@ async def test_ativar_collection_mcp_b2b_retorna_409(db_session):
 
     response = client.post(f"/api/rag/collections/{mcp.id}/activate")
 
-    assert response.status_code == 409
-    # continua inativa
+    assert response.status_code == 204
     await db_session.refresh(mcp)
-    assert mcp.is_active is False
+    assert mcp.is_active is True
 
 
 async def test_excluir_collection_ativa_retorna_409_sem_tocar_qdrant(db_session, active_collection):

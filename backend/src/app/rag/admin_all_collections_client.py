@@ -46,7 +46,7 @@ class AdminAllCollectionsRagClient:
         alvo = [
             c
             for c in collections
-            if c.purpose in ("mcp_b2b", "admin") or (c.purpose == "chat" and c.is_active)
+            if c.is_active and c.purpose in ("chat", "mcp_b2b", "admin")
         ]
         pares = await buscar_em_varias_collections(
             alvo,

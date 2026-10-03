@@ -320,7 +320,7 @@ def create_b2b_mcp_server(
         b2b_collections = [
             c
             for c in collections
-            if c.purpose == "mcp_b2b" or (c.purpose == "chat" and c.is_active)
+            if (c.purpose == "mcp_b2b" and c.is_active) or (c.purpose == "chat" and c.is_active)
         ]
 
         # Busca em paralelo (achado no code-review de 2026-09-24: um

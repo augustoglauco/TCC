@@ -88,8 +88,15 @@ async def get_collection_by_name(session: AsyncSession, name: str) -> RagCollect
     return result.scalars().first()
 
 
-async def get_active_collection(session: AsyncSession) -> RagCollection | None:
-    result = await session.execute(select(RagCollection).where(RagCollection.is_active.is_(True)))
+async def get_active_collection(
+    session: AsyncSession, purpose: str = "chat"
+) -> RagCollection | None:
+    result = await session.execute(
+        select(RagCollection).where(
+            RagCollection.is_active.is_(True),
+            RagCollection.purpose == purpose,
+        )
+    )
     return result.scalars().first()
 
 
@@ -97,12 +104,14 @@ async def activate_collection(session: AsyncSession, collection_id: uuid.UUID) -
     collection = await session.get(RagCollection, collection_id)
     if collection is None:
         return False
-    if collection.purpose != "chat":
-        # Garantia central do isolamento: só `purpose="chat"` pode virar a
-        # ativa do chat público — `mcp_b2b`/`admin` nunca (ver
-        # docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §4).
-        raise CollectionNotActivatableError(str(collection_id))
-    await session.execute(update(RagCollection).values(is_active=False))
+    # Ativação segmentada por propósito: cada canal/purpose ("chat", "mcp_b2b", "admin")
+    # possui uma única collection ativa por vez. Desativa apenas as collections
+    # do mesmo propósito da que está sendo ativada.
+    await session.execute(
+        update(RagCollection)
+        .where(RagCollection.purpose == collection.purpose)
+        .values(is_active=False)
+    )
     collection.is_active = True
     await session.commit()
     return True

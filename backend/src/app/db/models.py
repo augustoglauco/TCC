@@ -23,9 +23,9 @@ class RagCollection(Base):
     docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §3.
 
     Não há edição depois de criada: mudar qualquer parâmetro significa criar
-    uma nova collection. Só uma linha pode ter `is_active=True` por vez,
-    garantido na aplicação (`app.rag.collections_registry.activate_collection`),
-    não por constraint de banco.
+    uma nova collection. Cada purpose ("chat", "mcp_b2b", "admin") pode ter
+    uma linha com `is_active=True` por vez, garantido na aplicação
+    (`app.rag.collections_registry.activate_collection`), não por constraint de banco.
     """
 
     __tablename__ = "rag_collections"
@@ -47,10 +47,8 @@ class RagCollection(Base):
     quantization_config: Mapped[dict] = mapped_column(_JsonVariant, default=dict)
     payload_indexes: Mapped[list] = mapped_column(_JsonVariant, default=list)
     is_active: Mapped[bool] = mapped_column(default=False)
-    # "chat" (default): collection elegível a ser ativada e buscada pelo chat
-    # público. "mcp_b2b": collection de conteúdo restrito ao canal MCP B2B —
-    # nunca pode ser ativada nem buscada pelo chat (ver
-    # docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §2/§4).
+    # Finalidade da collection: "chat" (pública do visitante), "mcp_b2b" (parceiros B2B),
+    # ou "admin" (uso interno da administração). Cada propósito possui sua collection ativa.
     purpose: Mapped[str] = mapped_column(default="chat")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

@@ -84,7 +84,7 @@ describe("CollectionsTable", () => {
     expect(screen.getByText("Ativa")).toBeInTheDocument();
   });
 
-  it("collection mcp_b2b mostra badge 'MCP B2B' e botão Ativar desabilitado", () => {
+  it("collection mcp_b2b mostra badge 'MCP B2B' e botão Ativar habilitado", () => {
     render(
       <CollectionsTable
         collections={[COLLECTION_MCP]}
@@ -95,26 +95,31 @@ describe("CollectionsTable", () => {
     );
 
     expect(screen.getByText("MCP B2B")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ativar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ativar" })).toBeEnabled();
   });
 
-  it("não chama a API ao clicar em Ativar de uma collection mcp_b2b (botão desabilitado)", async () => {
+  it("chama a API ao clicar em Ativar de uma collection mcp_b2b", async () => {
     const user = userEvent.setup();
+    mockedActivate.mockResolvedValueOnce(undefined);
+    const onChanged = vi.fn();
+    const onSuccess = vi.fn();
     render(
       <CollectionsTable
         collections={[COLLECTION_MCP]}
-        onChanged={vi.fn()}
+        onChanged={onChanged}
         onError={vi.fn()}
-        onSuccess={vi.fn()}
+        onSuccess={onSuccess}
       />,
     );
 
     await user.click(screen.getByRole("button", { name: "Ativar" }));
 
-    expect(mockedActivate).not.toHaveBeenCalled();
+    expect(mockedActivate).toHaveBeenCalledWith("333");
+    expect(onChanged).toHaveBeenCalled();
+    expect(onSuccess).toHaveBeenCalled();
   });
 
-  it("collection admin mostra badge 'Admin' e botão Ativar desabilitado", () => {
+  it("collection admin mostra badge 'Admin' e botão Ativar habilitado", () => {
     render(
       <CollectionsTable
         collections={[COLLECTION_ADMIN]}
@@ -125,7 +130,7 @@ describe("CollectionsTable", () => {
     );
 
     expect(screen.getByText("Admin")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ativar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ativar" })).toBeEnabled();
   });
 
   it("botão excluir da collection ativa fica desabilitado", () => {

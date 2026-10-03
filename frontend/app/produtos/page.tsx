@@ -197,8 +197,8 @@ export default function ProdutosPage() {
           </p>
         </div>
       ) : (
-        /* Renderização dos Grupos por Categoria */
-        <div className="space-y-10">
+        /* Renderização dos Grupos por Categoria com Scroll Interno */
+        <div className="max-h-[62vh] sm:max-h-[70vh] overflow-y-auto pr-1.5 sm:pr-3 space-y-8 rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-xs">
           {Object.entries(groupedProducts).map(([categoria, prodsDaCategoria]) => (
             <section key={categoria} className="space-y-4">
               {/* Título da Categoria */}

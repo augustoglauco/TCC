@@ -278,10 +278,10 @@ export function DocumentsTable({
           </button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <div className="overflow-x-auto max-h-[50vh] sm:max-h-[60vh] overflow-y-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
           <table className="w-full min-w-[700px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
+            <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200/80 shadow-2xs">
+              <tr className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">
                 <th className="py-3 px-4">Arquivo</th>
                 <th className="py-3 px-4">Domínio</th>
                 <th className="py-3 px-4">Chunks</th>

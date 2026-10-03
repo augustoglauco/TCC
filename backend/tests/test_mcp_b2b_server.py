@@ -252,7 +252,7 @@ async def test_manuais_busca_encontra_conteudo_da_collection_mcp_b2b(
         text_embedder,
         name=f"manual_{uuid.uuid4().hex}",
         purpose="mcp_b2b",
-        is_active=False,
+        is_active=True,
         conteudo="Manual de instalação do gerador diesel GD-15",
         source="manual_gd15.pdf",
         document_id="doc-manual",
@@ -325,6 +325,30 @@ async def test_manuais_busca_ignora_collection_chat_nao_ativa(
     assert item["resultados"] == []
 
 
+async def test_manuais_busca_ignora_collection_mcp_b2b_inativa(
+    factory, qdrant, embedders, text_embedder: TextEmbedder
+):
+    await _cria_collection_com_conteudo(
+        factory,
+        qdrant,
+        text_embedder,
+        name=f"manual_inativo_{uuid.uuid4().hex}",
+        purpose="mcp_b2b",
+        is_active=False,
+        conteudo="Manual de instalação do gerador diesel GD-15 inativo",
+        source="manual_inativo.pdf",
+        document_id="doc-inativo",
+    )
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    resultado = await server.read_resource(
+        "manuais://busca/vendas?query=instala%C3%A7%C3%A3o%20gerador"
+    )
+
+    item = json.loads(_conteudo_texto(resultado))
+    assert item["resultados"] == []
+
+
 async def test_manuais_busca_sem_query_levanta_resource_error(factory, qdrant, embedders):
     server = create_b2b_mcp_server(factory, qdrant, embedders)
 
@@ -341,7 +365,7 @@ async def test_manuais_busca_agrega_varias_collections_mcp_b2b(
         text_embedder,
         name=f"manual_a_{uuid.uuid4().hex}",
         purpose="mcp_b2b",
-        is_active=False,
+        is_active=True,
         conteudo="Manual de instalação do gerador diesel GD-15",
         source="manual_a.pdf",
         document_id="doc-a",
@@ -352,7 +376,7 @@ async def test_manuais_busca_agrega_varias_collections_mcp_b2b(
         text_embedder,
         name=f"manual_b_{uuid.uuid4().hex}",
         purpose="mcp_b2b",
-        is_active=False,
+        is_active=True,
         conteudo="Esquema elétrico do gerador diesel GD-15",
         source="manual_b.pdf",
         document_id="doc-b",
@@ -381,7 +405,7 @@ async def test_manuais_busca_ignora_collection_com_falha_e_devolve_as_demais(
         text_embedder,
         name=f"manual_ok_{uuid.uuid4().hex}",
         purpose="mcp_b2b",
-        is_active=False,
+        is_active=True,
         conteudo="Manual de instalação do gerador diesel GD-15",
         source="manual_ok.pdf",
         document_id="doc-ok",
@@ -393,7 +417,7 @@ async def test_manuais_busca_ignora_collection_com_falha_e_devolve_as_demais(
         text_embedder,
         name=nome_collection_falha,
         purpose="mcp_b2b",
-        is_active=False,
+        is_active=True,
         conteudo="Esquema elétrico do gerador diesel GD-15",
         source="manual_falha.pdf",
         document_id="doc-falha",

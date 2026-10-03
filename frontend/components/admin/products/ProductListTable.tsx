@@ -196,9 +196,9 @@ export default function ProductListTable({
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto max-h-[55vh] sm:max-h-[65vh] overflow-y-auto">
         <table className="w-full text-left border-collapse text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-slate-50 border-b border-gray-200 shadow-2xs">
             <tr className="border-b border-gray-200 bg-gray-50/75 text-xs font-semibold uppercase tracking-wider text-gray-500">
               <th className="py-3.5 pl-4 pr-3">Foto / CLIP</th>
               <th className="px-3 py-3.5">Nome e Descrição</th>

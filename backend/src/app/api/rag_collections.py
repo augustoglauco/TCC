@@ -202,7 +202,7 @@ async def activate_collection_endpoint(
     except CollectionNotActivatableError as exc:
         raise HTTPException(
             status_code=409,
-            detail="Collections restritas ao MCP B2B não podem ser ativadas para o chat.",
+            detail=str(exc) or "Collection não pode ser ativada.",
         ) from exc
     except SQLAlchemyError as exc:
         logger.error(

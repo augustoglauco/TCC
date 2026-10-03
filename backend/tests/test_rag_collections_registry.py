@@ -95,29 +95,40 @@ async def test_create_collection_aceita_purpose_mcp_b2b(db_session):
     assert collection.purpose == "mcp_b2b"
 
 
-async def test_activate_collection_mcp_b2b_e_bloqueada(db_session):
-    mcp = await _cria_collection(db_session, name="mcp", purpose="mcp_b2b", is_active=False)
+async def test_activate_collection_mcp_b2b_ativa_com_sucesso(db_session):
+    chat = await _cria_collection(db_session, name="chat", purpose="chat", is_active=True)
+    mcp1 = await _cria_collection(db_session, name="mcp1", purpose="mcp_b2b", is_active=False)
+    mcp2 = await _cria_collection(db_session, name="mcp2", purpose="mcp_b2b", is_active=False)
 
-    with pytest.raises(CollectionNotActivatableError):
-        await activate_collection(db_session, mcp.id)
+    ativado = await activate_collection(db_session, mcp1.id)
+    assert ativado is True
 
-    await db_session.refresh(mcp)
-    assert mcp.is_active is False
-    assert await get_active_collection(db_session) is None
+    await db_session.refresh(mcp1)
+    await db_session.refresh(chat)
+    assert mcp1.is_active is True
+    assert chat.is_active is True  # Não desativa collections de outros propósitos!
+    assert (await get_active_collection(db_session, purpose="mcp_b2b")).id == mcp1.id
+    assert (await get_active_collection(db_session, purpose="chat")).id == chat.id
+
+    # Ativar mcp2 desativa mcp1, mantendo chat ativa
+    await activate_collection(db_session, mcp2.id)
+    await db_session.refresh(mcp1)
+    await db_session.refresh(mcp2)
+    await db_session.refresh(chat)
+    assert mcp1.is_active is False
+    assert mcp2.is_active is True
+    assert chat.is_active is True
 
 
-async def test_activate_collection_admin_e_bloqueada(db_session):
-    """Decisão de 2026-09-30 (docs/ARCHITECTURE.md §6): purpose="admin" é
-    tão restrito quanto mcp_b2b — nunca vira a collection ativa do chat
-    público."""
+async def test_activate_collection_admin_ativa_com_sucesso(db_session):
     admin = await _cria_collection(db_session, name="admin_docs", purpose="admin", is_active=False)
 
-    with pytest.raises(CollectionNotActivatableError):
-        await activate_collection(db_session, admin.id)
+    ativado = await activate_collection(db_session, admin.id)
+    assert ativado is True
 
     await db_session.refresh(admin)
-    assert admin.is_active is False
-    assert await get_active_collection(db_session) is None
+    assert admin.is_active is True
+    assert (await get_active_collection(db_session, purpose="admin")).id == admin.id
 
 
 async def test_delete_collection_inexistente_retorna_false(db_session):

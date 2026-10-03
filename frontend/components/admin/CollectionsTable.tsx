@@ -117,26 +117,16 @@ export function CollectionsTable({
                 </td>
                 <td className="py-3.5 px-4 text-slate-700">{collection.document_count}</td>
                 <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                  {!collection.is_active &&
-                    (collection.purpose !== "chat" ? (
-                      <button
-                        type="button"
-                        disabled
-                        title="Collections restritas (MCP B2B/Admin) não podem ser ativadas para o chat."
-                        className="mr-2 inline-flex cursor-not-allowed items-center gap-1 rounded-lg border border-slate-200/80 bg-slate-50/50 px-2.5 py-1 text-xs font-semibold text-slate-400 shadow-2xs"
-                      >
-                        Ativar
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleAtivar(collection)}
-                        disabled={processando}
-                        className="mr-2 inline-flex items-center gap-1 rounded-lg border border-indigo-200/80 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 shadow-2xs transition-colors hover:bg-indigo-100/80 hover:text-indigo-800 disabled:opacity-50"
-                      >
-                        Ativar
-                      </button>
-                    ))}
+                  {!collection.is_active && (
+                    <button
+                      type="button"
+                      onClick={() => handleAtivar(collection)}
+                      disabled={processando}
+                      className="mr-2 inline-flex items-center gap-1 rounded-lg border border-indigo-200/80 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 shadow-2xs transition-colors hover:bg-indigo-100/80 hover:text-indigo-800 disabled:opacity-50"
+                    >
+                      Ativar
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setCollectionParaExcluir(collection)}
