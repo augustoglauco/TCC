@@ -1,8 +1,139 @@
 "use client";
 
-import React from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
-import type { AdminProduct } from "@/lib/types/adminProducts";
+import type { AdminProduct, AdminProductStock } from "@/lib/types/adminProducts";
+
+interface StockDetailBadgeProps {
+  totalEstoque: number;
+  estoques?: AdminProductStock[];
+}
+
+function StockDetailBadge({ totalEstoque, estoques }: StockDetailBadgeProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const badgeRef = useRef<HTMLSpanElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; placeBelow: boolean } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updatePosition = useCallback(() => {
+    if (!badgeRef.current) return;
+    const rect = badgeRef.current.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0) {
+      setCoords(null);
+      return;
+    }
+    const spaceAbove = rect.top;
+    const bubbleEstimatedHeight = 130;
+    const placeBelow = spaceAbove < bubbleEstimatedHeight;
+
+    setCoords({
+      top: placeBelow ? rect.bottom + 8 : rect.top - 8,
+      left: rect.left + rect.width / 2,
+      placeBelow,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen, updatePosition]);
+
+  const handleMouseEnter = () => {
+    updatePosition();
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsOpen(false);
+  };
+
+  const bubbleElement = isOpen ? (
+    <div
+      role="tooltip"
+      style={
+        coords
+          ? {
+              position: "fixed",
+              top: coords.placeBelow ? `${coords.top}px` : undefined,
+              bottom: !coords.placeBelow ? `${window.innerHeight - coords.top}px` : undefined,
+              left: `${coords.left}px`,
+              transform: "translateX(-50%)",
+            }
+          : undefined
+      }
+      className={`${
+        coords ? "z-[9999]" : "absolute top-full left-0 z-[100]"
+      } pointer-events-none w-56 rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs text-slate-100 shadow-2xl animate-in fade-in-50 duration-150`}
+    >
+      <div className="flex items-center gap-1.5 border-b border-slate-800 pb-2 mb-2 font-semibold text-slate-200">
+        <span>📦</span>
+        <span>Detalhamento por CD</span>
+      </div>
+
+      {estoques && estoques.length > 0 ? (
+        <div className="space-y-1.5">
+          {estoques.map((est, idx) => (
+            <div
+              key={est.id || `${est.centro_distribuicao}-${idx}`}
+              className="flex items-center justify-between"
+            >
+              <span
+                className="text-slate-300 font-medium truncate max-w-[130px]"
+                title={est.centro_distribuicao}
+              >
+                {est.centro_distribuicao}
+              </span>
+              <span className="font-semibold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
+                {est.quantidade} un
+              </span>
+            </div>
+          ))}
+          <div className="border-t border-slate-800 pt-1.5 mt-2 flex items-center justify-between font-semibold text-slate-200">
+            <span>Total no estoque:</span>
+            <span className="text-emerald-300">{totalEstoque} un</span>
+          </div>
+        </div>
+      ) : (
+        <p className="text-slate-400 italic">Nenhum CD com estoque registrado.</p>
+      )}
+    </div>
+  ) : null;
+
+  return (
+    <>
+      <span
+        ref={badgeRef}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-help transition-all ${
+          totalEstoque > 0
+            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+            : "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200"
+        }`}
+      >
+        <span>📦</span>
+        <span>{totalEstoque} un</span>
+      </span>
+      {mounted && typeof document !== "undefined" && bubbleElement
+        ? createPortal(bubbleElement, document.body)
+        : bubbleElement}
+    </>
+  );
+}
 
 interface ProductListTableProps {
   produtos: AdminProduct[];
@@ -72,8 +203,10 @@ export default function ProductListTable({
               <th className="py-3.5 pl-4 pr-3">Foto / CLIP</th>
               <th className="px-3 py-3.5">Nome e Descrição</th>
               <th className="px-3 py-3.5">Categoria</th>
-              <th className="px-3 py-3.5">Preço Fornecedor</th>
-              <th className="px-3 py-3.5">Preço Venda</th>
+              <th className="px-3 py-3.5">
+                <span className="inline-flex items-center gap-1">📦 Estoque</span>
+              </th>
+              <th className="px-3 py-3.5">Preço (Rev. / Venda)</th>
               <th className="px-3 py-3.5">Margem</th>
               <th className="py-3.5 pl-3 pr-4 text-right">Ações</th>
             </tr>
@@ -85,6 +218,10 @@ export default function ProductListTable({
               const temClip =
                 (p.imagens && p.imagens.length > 0 && p.imagens.some((img) => img.clip_image_id)) ||
                 Boolean(p.imagem_url);
+              const totalEstoque = (p.estoques || []).reduce(
+                (acc, est) => acc + (est.quantidade || 0),
+                0,
+              );
 
               return (
                 <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
@@ -124,12 +261,25 @@ export default function ProductListTable({
                     </span>
                   </td>
 
-                  <td className="px-3 py-3.5 whitespace-nowrap font-medium text-gray-600">
-                    {formatCurrency(p.preco_base_fornecedor)}
+                  <td className="px-3 py-3.5 whitespace-nowrap">
+                    <StockDetailBadge totalEstoque={totalEstoque} estoques={p.estoques} />
                   </td>
 
-                  <td className="px-3 py-3.5 whitespace-nowrap font-semibold text-gray-900">
-                    {formatCurrency(p.preco)}
+                  <td className="px-3 py-3.5 whitespace-nowrap">
+                    <div className="flex flex-col gap-0.5">
+                      <div className="text-xs text-gray-600 font-medium flex items-center gap-1">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                          Rev.:
+                        </span>
+                        <span>{formatCurrency(p.preco_base_fornecedor)}</span>
+                      </div>
+                      <div className="text-sm font-semibold text-gray-900 flex items-center gap-1">
+                        <span className="text-[11px] font-normal uppercase tracking-wider text-gray-400">
+                          Venda:
+                        </span>
+                        <span>{formatCurrency(p.preco)}</span>
+                      </div>
+                    </div>
                   </td>
 
                   <td className="px-3 py-3.5 whitespace-nowrap">

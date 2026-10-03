@@ -1,4 +1,4 @@
-"""Cliente de teste do MCP B2B (R12, Fase 5): faz o que a IA de um fornecedor
+"""Cliente de teste do MCP B2B (R12, Fase 5): faz o que a IA de um revendedor
 faria — conecta com a chave do parceiro, lista as ferramentas e pede uma
 cotação. Serve para testar de fora da rede local (ex.: notebook no 4G) se o
 caminho DuckDNS → Caddy (HTTPS) → servidor está de pé e a chave é aceita.

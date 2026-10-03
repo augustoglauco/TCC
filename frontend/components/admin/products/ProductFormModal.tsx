@@ -458,7 +458,7 @@ export default function ProductFormModal({
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Preço Base (Custo)
+                    Preço Revendedor
                   </label>
                   <input
                     type="number"

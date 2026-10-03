@@ -572,7 +572,7 @@ export default function CatalogImportModal({
                         <th className="p-3 w-16">Foto</th>
                         <th className="p-3">Nome do Produto</th>
                         <th className="p-3 w-32">Categoria</th>
-                        <th className="p-3 w-28">Preço Fornec.</th>
+                        <th className="p-3 w-28">Preço Revend.</th>
                         <th className="p-3 w-28">Preço Venda</th>
                         <th className="p-3">Descrição / Specs</th>
                         <th className="p-3 w-10 text-right"></th>

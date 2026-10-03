@@ -1,7 +1,7 @@
 """Autenticação do MCP B2B por chave estática por parceiro (R12, Fase 5) — ver
 decisão de 2026-09-25 em `docs/ARCHITECTURE.md` §6.
 
-Cada fornecedor habilitado recebe uma chave secreta e a envia em toda
+Cada revendedor habilitado recebe uma chave secreta e a envia em toda
 requisição como `Authorization: Bearer <chave>` (cabeçalho padrão de
 autenticação do MCP). A verificação usa o suporte nativo do SDK: o
 `TokenVerifier` abaixo é plugado no `MCPServer` em modo *resource server*,

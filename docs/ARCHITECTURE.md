@@ -1574,16 +1574,16 @@ por parceiro, abaixo); as demais continuam como evolução futura (Seção 8).
 
 **Escopo no protótipo (MVP):** recursos de leitura sobre uma base pequena e
 as quatro ferramentas já implementadas, **expostos publicamente a
-fornecedores fora da rede local e protegidos por uma chave secreta por
+revendedores fora da rede local e protegidos por uma chave secreta por
 parceiro**.
 
 **Decisão registrada (2026-09-25, exposição pública com chave por
 parceiro, R12):** a primeira versão desta seção deixava o MCP B2B sem
 autenticação e sem exposição pública. Isso não atende o caso real: o
-fornecedor está fora da rede local, então precisa alcançar o servidor pela
+revendedor está fora da rede local, então precisa alcançar o servidor pela
 internet, e sem autenticação qualquer um que achasse a porta poderia
 reservar pedidos e baixar estoque. Decisão do desenvolvedor: expor
-publicamente, fechado por uma chave por parceiro que simula o "fornecedor
+publicamente, fechado por uma chave por parceiro que simula o "revendedor
 habilitado". A autorização completa (OAuth etc.) continua fora do MVP.
 
 1. **Caminho do acesso:** parceiro →
@@ -1599,7 +1599,7 @@ habilitado". A autorização completa (OAuth etc.) continua fora do MVP.
      caminho; por isso HTTPS é obrigatório nesse acesso.
    - Configuração em `infra/caddy/Caddyfile` e passos em `goup.md` ("MCP
      B2B público"). `scripts/cliente_mcp_b2b.py` é um cliente MCP de teste
-     que faz o papel do fornecedor, rodando de fora da rede.
+     que faz o papel do revendedor, rodando de fora da rede.
    - `cliente-b2b/` é um segundo cliente de demonstração, independente do
      backend (projeto Python + Streamlit próprio, sem importar código de
      `backend/`), usado para apresentar/auditar visualmente os recursos e

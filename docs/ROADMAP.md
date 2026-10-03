@@ -384,7 +384,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (2026-09-29).
 - [x] ~~Garantir e documentar que autenticação por parceiro e exposição
       pública **não** fazem parte do MVP~~ — **revisto em 2026-09-25**: o
-      fornecedor está fora da rede local, então o MCP B2B precisa de
+      revendedor está fora da rede local, então o MCP B2B precisa de
       exposição pública. Substituído pelo item abaixo. Deste item ficou o
       padrão `MCP_B2B_HOST=127.0.0.1`: o acesso externo passa pelo proxy
       HTTPS, nunca direto na porta 8100.

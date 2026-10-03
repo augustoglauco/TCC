@@ -297,7 +297,7 @@ um serviço à parte, não deste projeto.
 
 ## 🔐 MCP B2B público (DuckDNS + Caddy + chave por parceiro)
 
-Fornecedores fora da rede local acessam o MCP B2B por
+Revendedores fora da rede local acessam o MCP B2B por
 `https://augustoglauco.duckdns.org:8443/mcp`, com a chave do parceiro no
 cabeçalho `Authorization: Bearer <chave>`. Caminho: roteador (porta 8443) →
 Windows → WSL2 → **Caddy** (HTTPS) → servidor em `127.0.0.1:8100`. Decisão
@@ -315,13 +315,13 @@ em `docs/ARCHITECTURE.md` §6.
 
    ```bash
    MCP_B2B_HOST=127.0.0.1
-   MCP_B2B_PARTNER_KEYS=fornecedor-demo:<chave-gerada>
+   MCP_B2B_PARTNER_KEYS=revendedor-demo:<chave-gerada>
    MCP_B2B_PUBLIC_URL=https://augustoglauco.duckdns.org:8443/mcp
    ```
 
    Para vários parceiros: `nome1:chave1,nome2:chave2`. Para revogar um,
    tire a entrada dele e reinicie o servidor. A chave é o que você entrega
-   ao fornecedor; nunca a coloque em commit.
+   ao revendedor; nunca a coloque em commit.
 
 2. **Caddy com o módulo DuckDNS** (binário pronto, sem compilar):
 
@@ -415,7 +415,7 @@ um PortProxy esquecido está ocupando a 8443 (ver passo 4).
 
 ### Para o parceiro (manual de integração)
 
-O que entregar ao fornecedor junto com a chave dele. Conteúdo trazido do
+O que entregar ao revendedor junto com a chave dele. Conteúdo trazido do
 antigo `docs/Manuais/MANUAL_INTEGRACAO_MCP_B2B.md` e conferido contra
 `backend/src/app/mcp_server/b2b.py` em 2026-09-28 (o manual antigo tinha
 nomes de recursos e argumentos errados).

@@ -189,7 +189,7 @@ def create_b2b_mcp_server(
         title="MCP B2B — Catálogo, Estoque, Preços, Manuais e Ferramentas Transacionais",
         instructions=(
             "Servidor MCP B2B da empresa (protótipo de TCC) para "
-            "fornecedores/parceiros habilitados, autenticados por chave "
+            "revendedores/parceiros habilitados, autenticados por chave "
             "(Authorization: Bearer <chave>). Expõe catálogo de produtos, "
             "estoque por centro de distribuição, tabela de preços "
             "(promoção + descontos por volume) e busca semântica em "
