@@ -16,9 +16,11 @@ export default function PerfilPage() {
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
 
+  const isAdmin = user?.perfil?.toLowerCase() === "admin";
+
   useEffect(() => {
     let isMounted = true;
-    if (user?.email) {
+    if (user?.email && !isAdmin) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoadingOrders(true);
       setOrdersError(null);
@@ -44,7 +46,7 @@ export default function PerfilPage() {
     return () => {
       isMounted = false;
     };
-  }, [user?.email]);
+  }, [user?.email, isAdmin]);
 
   const handleLogout = () => {
     logout();
@@ -161,7 +163,7 @@ export default function PerfilPage() {
         )}
 
         {/* Ações Exclusivas do Administrador */}
-        {user.perfil?.toLowerCase() === "admin" && (
+        {isAdmin && (
           <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -223,100 +225,102 @@ export default function PerfilPage() {
         </p>
       </div>
 
-      {/* Seção de Pedidos Recentes */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Meus Pedidos & Reservas Recentes</h3>
-          <Link
-            href="/pedidos/historico"
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
-          >
-            Ver Histórico Completo &rarr;
-          </Link>
-        </div>
+      {/* Seção de Pedidos Recentes (Apenas para Clientes) */}
+      {!isAdmin && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-bold text-slate-900">Meus Pedidos & Reservas Recentes</h3>
+            <Link
+              href="/pedidos/historico"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+            >
+              Ver Histórico Completo &rarr;
+            </Link>
+          </div>
 
-        {isLoadingOrders ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-500">
-            Carregando pedidos...
-          </div>
-        ) : ordersError ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
-            {ordersError}
-          </div>
-        ) : orders.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center space-y-3">
-            <span className="text-3xl block">📦</span>
-            <p className="text-sm font-semibold text-slate-700">
-              Nenhum pedido encontrado para seu e-mail.
-            </p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Seus pedidos realizados pelo site, simulações B2B ou conversas no chat aparecerão
-              aqui.
-            </p>
-            <div className="pt-2">
-              <Link
-                href="/pedidos"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors"
-              >
-                <span>Criar Novo Pedido / Cotação</span> &rarr;
-              </Link>
+          {isLoadingOrders ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-500">
+              Carregando pedidos...
             </div>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {orders.map((order) => {
-              const formattedDate = new Date(order.criado_em).toLocaleDateString("pt-BR", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-
-              return (
-                <div
-                  key={order.id}
-                  className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          ) : ordersError ? (
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">
+              {ordersError}
+            </div>
+          ) : orders.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center space-y-3">
+              <span className="text-3xl block">📦</span>
+              <p className="text-sm font-semibold text-slate-700">
+                Nenhum pedido encontrado para seu e-mail.
+              </p>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                Seus pedidos realizados pelo site, simulações B2B ou conversas no chat aparecerão
+                aqui.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/pedidos"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition-colors"
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-slate-800">
-                        Pedido #{order.id.slice(0, 8)}...
-                      </span>
-                      <span className="rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-                        {order.status}
+                  <span>Criar Novo Pedido / Cotação</span> &rarr;
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {orders.map((order) => {
+                const formattedDate = new Date(order.criado_em).toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                });
+
+                return (
+                  <div
+                    key={order.id}
+                    className="rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-2xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-slate-800">
+                          Pedido #{order.id.slice(0, 8)}...
+                        </span>
+                        <span className="rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                          {order.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">Realizado em {formattedDate}</p>
+                      <p className="text-xs text-slate-600">
+                        {order.itens.length} {order.itens.length === 1 ? "item" : "itens"}
+                        {order.itens.length > 0 && order.itens[0].nome_produto && (
+                          <span>
+                            :{" "}
+                            {order.itens
+                              .map((i) => i.nome_produto)
+                              .filter(Boolean)
+                              .join(", ")}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
+                      <span className="text-xs text-slate-500">Total</span>
+                      <span className="text-base font-bold text-slate-900">
+                        R${" "}
+                        {Number(order.valor_total).toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                        })}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-500">Realizado em {formattedDate}</p>
-                    <p className="text-xs text-slate-600">
-                      {order.itens.length} {order.itens.length === 1 ? "item" : "itens"}
-                      {order.itens.length > 0 && order.itens[0].nome_produto && (
-                        <span>
-                          :{" "}
-                          {order.itens
-                            .map((i) => i.nome_produto)
-                            .filter(Boolean)
-                            .join(", ")}
-                        </span>
-                      )}
-                    </p>
                   </div>
-
-                  <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
-                    <span className="text-xs text-slate-500">Total</span>
-                    <span className="text-base font-bold text-slate-900">
-                      R${" "}
-                      {Number(order.valor_total).toLocaleString("pt-BR", {
-                        minimumFractionDigits: 2,
-                      })}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
