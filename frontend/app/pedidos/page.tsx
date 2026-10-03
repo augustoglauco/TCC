@@ -217,10 +217,7 @@ function PedidosPageContent() {
       {/* Cabeçalho */}
       <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-            <span>🛒</span> Workflow de Compras & Cotações
-          </div>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Pedidos, Frete & Preços Diferenciados B2B
           </h1>
           <p className="mt-2 text-sm text-slate-600">

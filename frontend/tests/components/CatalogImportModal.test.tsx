@@ -87,3 +87,114 @@ describe("CatalogImportModal - Intervalo de Páginas", () => {
     );
   });
 });
+
+describe("CatalogImportModal - arrastar, colar e tipos de arquivo", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  function renderModal() {
+    return render(<CatalogImportModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
+  }
+
+  it("aceita PDF, imagem e texto soltos sobre o modal e acumula com os já selecionados", async () => {
+    renderModal();
+    const pdf = new File(["x"], "tabela.pdf", { type: "application/pdf" });
+    const foto = new File(["x"], "folheto.png", { type: "image/png" });
+    const texto = new File(["x"], "lista.csv", { type: "text/csv" });
+
+    fireEvent.drop(screen.getByTestId("catalog-dropzone"), { dataTransfer: { files: [pdf] } });
+    fireEvent.drop(screen.getByTestId("catalog-dropzone"), {
+      dataTransfer: { files: [foto, texto] },
+    });
+
+    expect(await screen.findByText("tabela.pdf")).toBeInTheDocument();
+    expect(screen.getByText("folheto.png")).toBeInTheDocument();
+    expect(screen.getByText("lista.csv")).toBeInTheDocument();
+    expect(screen.getByLabelText(/Intervalo de Páginas do PDF/i)).toBeInTheDocument();
+  });
+
+  it("destaca a área enquanto arrasta e remove o destaque ao soltar", () => {
+    renderModal();
+    const zona = screen.getByTestId("catalog-dropzone");
+
+    fireEvent.dragOver(zona, { dataTransfer: { files: [] } });
+    expect(screen.getByText(/Solte os arquivos aqui/i)).toBeInTheDocument();
+
+    fireEvent.drop(zona, { dataTransfer: { files: [] } });
+    expect(screen.queryByText(/Solte os arquivos aqui/i)).not.toBeInTheDocument();
+  });
+
+  it("rejeita tipos não suportados com aviso e não os adiciona", () => {
+    renderModal();
+    const zip = new File(["x"], "catalogo.zip", { type: "application/zip" });
+
+    fireEvent.drop(screen.getByTestId("catalog-dropzone"), { dataTransfer: { files: [zip] } });
+
+    expect(screen.getByText(/Tipo não suportado: catalogo\.zip/i)).toBeInTheDocument();
+    expect(screen.queryByText("catalogo.zip", { selector: "span" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Iniciar Extração Inteligente/i })).toBeDisabled();
+  });
+
+  it("cola uma imagem da área de transferência com nome único", async () => {
+    renderModal();
+    const imagem = new File(["x"], "image.png", { type: "image/png" });
+
+    fireEvent.paste(document, {
+      clipboardData: { files: [imagem], items: [], getData: () => "" },
+    });
+
+    expect(await screen.findByText(/^imagem-colada-\d+-0\.png$/)).toBeInTheDocument();
+  });
+
+  it("cola texto copiado como arquivo .txt e o envia na extração", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    fireEvent.paste(document, {
+      clipboardData: { files: [], items: [], getData: () => "Câmera Bullet R$ 320,00" },
+    });
+
+    expect(await screen.findByText(/^texto-colado-\d+\.txt$/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Iniciar Extração Inteligente/i }));
+
+    const enviados = mockedExtractStream.mock.calls[0][0];
+    expect(enviados).toHaveLength(1);
+    expect(enviados[0].name).toMatch(/^texto-colado-\d+\.txt$/);
+    const conteudo = await new Promise<string>((resolve) => {
+      const leitor = new FileReader();
+      leitor.onload = () => resolve(String(leitor.result));
+      leitor.readAsText(enviados[0]);
+    });
+    expect(conteudo).toBe("Câmera Bullet R$ 320,00");
+  });
+
+  it("não intercepta a colagem dentro de um campo de texto", async () => {
+    const user = userEvent.setup();
+    renderModal();
+    fireEvent.change(document.getElementById("catalog-file-upload") as HTMLInputElement, {
+      target: { files: [new File(["x"], "t.pdf", { type: "application/pdf" })] },
+    });
+
+    const campo = await screen.findByLabelText(/Intervalo de Páginas do PDF/i);
+    await user.click(campo);
+    fireEvent.paste(campo, {
+      clipboardData: { files: [], items: [], getData: () => "1-3" },
+    });
+
+    expect(screen.queryByText(/^texto-colado-/)).not.toBeInTheDocument();
+  });
+
+  it("permite remover um arquivo da lista", async () => {
+    const user = userEvent.setup();
+    renderModal();
+    const a = new File(["x"], "a.txt", { type: "text/plain" });
+    const b = new File(["y"], "b.txt", { type: "text/plain" });
+    fireEvent.drop(screen.getByTestId("catalog-dropzone"), { dataTransfer: { files: [a, b] } });
+
+    await user.click(await screen.findByRole("button", { name: "Remover a.txt" }));
+
+    expect(screen.queryByText("a.txt")).not.toBeInTheDocument();
+    expect(screen.getByText("b.txt")).toBeInTheDocument();
+  });
+});

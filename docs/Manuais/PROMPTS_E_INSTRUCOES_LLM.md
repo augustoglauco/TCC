@@ -17,7 +17,7 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 | [`resumo.py`](file:///home/augusto/Projetos/TCC/backend/src/app/memory/resumo.py) | Backend (`app.memory`) | Prompt para reescrita e consolidação do resumo periódico da conversa |
 | [`image_identification.py`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/image_identification.py) | Backend (`app.rag`) | Prompt de Visão Computacional para identificação de produtos em fotos enviadas |
 | [`crawler_classifier.py`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/crawler_classifier.py) | Backend (`app.rag`) | Prompt de classificação de domínio de páginas raspadas pelo crawler |
-| [`extractor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/catalog_extractor/extractor.py) | Backend (`app.catalog_extractor`) | Prompts de extração estruturada de produtos a partir de PDFs/Imagens de catálogos |
+| [`extractor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/catalog_extractor/extractor.py) | Backend (`app.catalog_extractor`) | Prompts de extração estruturada de produtos a partir de PDFs/Imagens/Textos de catálogos |
 | [`classificacao.py`](file:///home/augusto/Projetos/TCC/backend/src/app/user_profile/classificacao.py) | Backend (`app.user_profile`) | Injeção de perfil do cliente, histórico de compras e regras de privacidade/LGPD |
 | [`useChatStore.ts`](file:///home/augusto/Projetos/TCC/frontend/lib/hooks/useChatStore.ts) | Frontend (`lib/hooks`) | Gerador do prompt inicial da interface do usuário para agendamento de visita |
 | [`eval/rag_quality/run_eval.py`](file:///home/augusto/Projetos/TCC/backend/eval/rag_quality/run_eval.py) | Backend (`eval`, Fase 10) | Prompt de avaliação LLM-as-judge (qualidade das respostas do RAG) |
@@ -413,6 +413,7 @@ Responda apenas com JSON no formato: {{"domain": "...", "confidence": 0.0}}"""
 **Caminho:** [`backend/src/app/catalog_extractor/extractor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/catalog_extractor/extractor.py#L29-L68)
 
 Prompts de extração de dados de produtos a partir de documentos (PDF/texto) e folhetos visuais.
+Desde 2026-10-02, arquivos de texto enviados à importação (`.txt`/`.md`/`.csv`, ou texto colado) reutilizam `LOCAL_EXTRACTION_PROMPT` sem alteração: cada trecho de até 6000 caracteres entra no lugar de "Texto da página".
 
 ```python
 # Line 29: Prompt de extração textual de catálogo

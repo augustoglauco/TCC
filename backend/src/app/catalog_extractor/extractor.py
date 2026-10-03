@@ -5,6 +5,8 @@
 # retomada; o texto de cada página vai ao modelo local e, sem texto ou com
 # baixa confiança, a imagem vai ao modelo de visão externo (pago); o
 # resultado sempre passa pela conferência humana antes de gravar.
+# MVP: arquivos de texto (.txt/.md/.csv) são divididos em blocos de tamanho
+# fixo e vão só ao modelo local — não há imagem para o fallback de visão.
 """
 
 import io
@@ -23,6 +25,9 @@ from app.models.catalog_extractor import CatalogPageResult, ExtractedProduct
 from app.rag.pdf_extract import _extrair_texto_pagina
 
 logger = logging.getLogger(__name__)
+
+EXTENSOES_TEXTO = (".txt", ".md", ".csv")
+TAMANHO_BLOCO_TEXTO = 6000
 
 _CODE_FENCE_RE = re.compile(r"^```(?:\w+)?\s*\n?(.*?)\n?```$", re.DOTALL)
 
@@ -138,6 +143,34 @@ def _parse_page_range(range_str: str | None, max_pages: int) -> set[int] | None:
                 pages.add(p)
 
     return pages
+
+
+def _blocos_de_texto(content: bytes, max_chars: int = TAMANHO_BLOCO_TEXTO) -> list[str]:
+    """Decodifica o arquivo e o divide em blocos de até `max_chars`, quebrando em linhas."""
+    try:
+        texto = content.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        texto = content.decode("latin-1")
+
+    blocos: list[str] = []
+    atual: list[str] = []
+    tamanho = 0
+    for linha in texto.splitlines():
+        # Linha maior que o bloco (texto sem quebras): fatia no limite.
+        while len(linha) > max_chars:
+            if atual:
+                blocos.append("\n".join(atual))
+                atual, tamanho = [], 0
+            blocos.append(linha[:max_chars])
+            linha = linha[max_chars:]
+        if tamanho + len(linha) + 1 > max_chars and atual:
+            blocos.append("\n".join(atual))
+            atual, tamanho = [], 0
+        atual.append(linha)
+        tamanho += len(linha) + 1
+    if atual:
+        blocos.append("\n".join(atual))
+    return [b for b in blocos if b.strip()]
 
 
 async def extract_page_products_local(
@@ -261,7 +294,11 @@ async def extract_catalog_stream(
     ] = []  # (nome, bytes, tipo, total_do_arquivo, paginas_filtradas)
     for filename, content in files:
         lower = filename.lower()
-        if lower.endswith(".pdf"):
+        if lower.endswith(EXTENSOES_TEXTO):
+            blocos = _blocos_de_texto(content)
+            total_paginas += len(blocos)
+            file_pages_plan.append((filename, content, "text", len(blocos), None))
+        elif lower.endswith(".pdf"):
             try:
                 with pdfplumber.open(io.BytesIO(content)) as pdf:
                     num_pages = len(pdf.pages)
@@ -280,7 +317,49 @@ async def extract_catalog_stream(
     total_produtos_extraidos = 0
 
     for filename, content, file_type, num_pages, paginas_alvo in file_pages_plan:
-        if file_type == "pdf":
+        if file_type == "text":
+            for num_bloco, bloco in enumerate(_blocos_de_texto(content), start=1):
+                pagina_global += 1
+                progresso = {
+                    "pagina": pagina_global,
+                    "total": total_paginas,
+                    "status": f"Extraindo {filename} (trecho {num_bloco}/{num_pages})",
+                }
+                yield f"event: progresso\ndata: {json.dumps(progresso)}\n\n"
+
+                raw_prods: list[dict[str, Any]] = []
+                if local_client:
+                    try:
+                        raw_prods = await extract_page_products_local(bloco, local_client)
+                    except Exception as e:
+                        logger.warning(f"Erro na extração local do texto {filename}: {e}")
+
+                produtos = [
+                    ExtractedProduct(
+                        nome=str(item.get("nome", "")),
+                        descricao=str(item.get("descricao", "") or ""),
+                        categoria=str(item.get("categoria", "") or "Geral"),
+                        preco_base_fornecedor=float(item["preco_base_fornecedor"])
+                        if item.get("preco_base_fornecedor") is not None
+                        else None,
+                        preco=float(item["preco"]) if item.get("preco") is not None else None,
+                        especificacoes_tecnicas=str(item.get("especificacoes_tecnicas", "") or ""),
+                        pagina_origem=num_bloco,
+                        confianca=0.85,
+                        provider_usado="local",
+                    )
+                    for item in raw_prods
+                ]
+                total_produtos_extraidos += len(produtos)
+                page_result = CatalogPageResult(
+                    pagina=num_bloco,
+                    total_paginas=total_paginas,
+                    produtos=produtos,
+                    provider_usado="local",
+                )
+                yield f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n"
+
+        elif file_type == "pdf":
             if num_pages == 0:
                 continue
             with pdfplumber.open(io.BytesIO(content)) as pdf:

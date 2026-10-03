@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.catalog_extractor.extractor import (
+    _blocos_de_texto,
     extract_catalog_stream,
     extract_page_products_local,
     extract_page_products_vision,
@@ -308,3 +309,46 @@ async def test_extract_catalog_stream_com_filtro_page_range(tmp_path):
     assert p_data["pagina"] == 2
     assert p_data["total_paginas"] == 1
     assert p_data["produtos"][0]["pagina_origem"] == 2
+
+
+def test_blocos_de_texto_divide_por_linhas_e_aceita_latin1():
+    linhas = [f"Produto {i} - R$ {i},00" for i in range(200)]
+    blocos = _blocos_de_texto("\n".join(linhas).encode("utf-8"), max_chars=500)
+    assert len(blocos) > 1
+    assert all(len(b) <= 500 for b in blocos)
+    assert "\n".join(blocos).split("\n") == linhas
+
+    assert _blocos_de_texto("Câmera Ação".encode("latin-1")) == ["Câmera Ação"]
+    assert _blocos_de_texto(b"   \n  ") == []
+    assert _blocos_de_texto(b"x" * 25, max_chars=10) == ["x" * 10, "x" * 10, "x" * 5]
+
+
+@pytest.mark.asyncio
+async def test_extract_catalog_stream_com_arquivo_de_texto(tmp_path):
+    local_client = AsyncMock()
+    resp = MagicMock()
+    resp.response = resp.text = (
+        '[{"nome": "Central de Alarme AMT 4010", "categoria": "Alarmes", "preco_base_fornecedor": 480.0}]'  # noqa: E501
+    )
+    local_client.generate = AsyncMock(return_value=resp)
+    vision_client = AsyncMock()
+
+    events = [
+        e
+        async for e in extract_catalog_stream(
+            files=[("lista.txt", b"Central de Alarme AMT 4010 - R$ 480,00")],
+            provider="local",
+            fallback_external=True,
+            temp_dir=tmp_path,
+            local_client=local_client,
+            vision_client=vision_client,
+        )
+    ]
+
+    pagina = next(e for e in events if "event: pagina_concluida" in e)
+    dados = json.loads(pagina.split("data: ", 1)[1])
+    assert dados["produtos"][0]["nome"] == "Central de Alarme AMT 4010"
+    assert dados["produtos"][0]["preco_base_fornecedor"] == 480.0
+    assert dados["produtos"][0]["imagem_temp_url"] is None
+    assert any("event: done" in e for e in events)
+    vision_client.describe_image.assert_not_called()

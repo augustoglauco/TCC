@@ -116,10 +116,7 @@ export default function ProdutosPage() {
       {/* Cabeçalho da página */}
       <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 border border-blue-100">
-            <span>📦</span> Catálogo de Produtos & Peças
-          </div>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Produtos Industriais
           </h1>
           <p className="mt-2 text-sm text-slate-600">

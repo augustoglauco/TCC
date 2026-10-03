@@ -85,9 +85,6 @@ export default function AdminUsuariosPage() {
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-semibold text-purple-800 mb-2">
-            <span>👥</span> Gestão Administrativa de Contas
-          </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Gerenciamento de Usuários
           </h1>

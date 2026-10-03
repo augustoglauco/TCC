@@ -224,6 +224,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 - [x] **Catálogo Visual CLIP Integrado** — enriquecimento de payload dos vetores no Qdrant (`catalogo_imagens`) com `produto_id` e `imagem_url`, permitindo que fotos cadastradas ou importadas pelo admin sejam imediatamente encontradas pela busca visual no chat.
 - [x] **API Administrativa de Produtos & Extração com SSE** — CRUD completo de produtos (`GET/POST/PUT/DELETE /api/admin/produtos`), upload avulso de imagens com indexação CLIP imediata, e pipeline híbrido de extração página a página de PDFs multipáginas e múltiplas imagens (`POST /api/admin/produtos/catalogo/extrair/stream`) com streaming SSE e gravação do lote aprovado (`POST /api/admin/produtos/catalogo/confirmar`).
 - [x] **Interface Administrativa Human-in-the-Loop** — tela `/admin/produtos` acessível pelo menu ⚙️ com tabela de produtos, cálculo de margem comercial, cadastro/edição modal e assistente de importação de catálogos com conferência prévia página a página.
+- [x] **Importação de catálogo por arrastar/colar e arquivos de texto** — `CatalogImportModal` aceita soltar arquivos sobre o modal, colar (Ctrl+V: imagem, arquivo ou texto, que vira `.txt`), acumula arquivos com remoção individual e recusa tipos não suportados; backend passou a aceitar `.txt`/`.md`/`.csv` (blocos de 6000 caracteres, modelo local). Testes em `test_catalog_extractor.py` e `CatalogImportModal.test.tsx`.
 
 - [x] **Estoque por CD, desconto por volume e compatibilidade no admin** —
       abas no formulário de produto, rotas

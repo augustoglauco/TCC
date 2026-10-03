@@ -49,10 +49,7 @@ export default function SuportePage() {
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12 space-y-8">
       {/* Cabeçalho da página */}
       <div className="border-b border-slate-200 pb-6">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
-          <span>🔧</span> Central de Ajuda & FAQ
-        </div>
-        <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           Como podemos ajudar você hoje?
         </h1>
         <p className="mt-2 text-sm text-slate-600 sm:text-base">

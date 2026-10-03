@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 import {
   extractCatalogStream,
@@ -21,6 +21,34 @@ interface CatalogImportModalProps {
 
 type ModalStep = "upload" | "extracting" | "review";
 
+const EXTENSOES_ACEITAS = /\.(pdf|png|jpe?g|webp|txt|md|csv)$/i;
+const TIPOS_IMAGEM_ACEITOS = ["image/png", "image/jpeg", "image/webp"];
+const TIPOS_TEXTO_ACEITOS = ["text/plain", "text/markdown", "text/csv"];
+
+function arquivoAceito(file: File): boolean {
+  return (
+    file.type === "application/pdf" ||
+    TIPOS_IMAGEM_ACEITOS.includes(file.type) ||
+    TIPOS_TEXTO_ACEITOS.includes(file.type) ||
+    EXTENSOES_ACEITAS.test(file.name)
+  );
+}
+
+function chaveArquivo(file: File): string {
+  return `${file.name}|${file.size}|${file.lastModified}`;
+}
+
+// Imagens coladas chegam todas com o nome "image.png"; nomes únicos evitam
+// que uma sobrescreva/duplique a outra na lista e no log do backend.
+function nomearArquivoColado(file: File, indice: number): File {
+  if (!/^image\.\w+$/i.test(file.name)) return file;
+  const extensao = file.name.split(".").pop();
+  return new File([file], `imagem-colada-${Date.now()}-${indice}.${extensao}`, {
+    type: file.type,
+    lastModified: file.lastModified,
+  });
+}
+
 export default function CatalogImportModal({
   isOpen,
   onClose,
@@ -31,6 +59,7 @@ export default function CatalogImportModal({
   const [pageRange, setPageRange] = useState("");
   const [provider, setProvider] = useState<"local" | "external">("local");
   const [fallbackExternal, setFallbackExternal] = useState(true);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   // Progresso SSE
   const [progress, setProgress] = useState<CatalogExtractionProgress>({
@@ -48,17 +77,93 @@ export default function CatalogImportModal({
   const [pickerProduct, setPickerProduct] = useState<ExtractedProductItem | null>(null);
   const [uploadingPickerPhoto, setUploadingPickerPhoto] = useState(false);
 
+  const adicionarArquivos = useCallback((novos: File[]) => {
+    if (novos.length === 0) return;
+    const aceitos = novos.filter(arquivoAceito);
+    const rejeitados = novos.filter((f) => !arquivoAceito(f));
+    setError(
+      rejeitados.length > 0
+        ? `Tipo não suportado: ${rejeitados.map((f) => f.name).join(", ")}. Use PDF, imagem (PNG, JPG, WEBP) ou texto (TXT, MD, CSV).`
+        : null,
+    );
+    if (aceitos.length === 0) return;
+    setFiles((prev) => {
+      const existentes = new Set(prev.map(chaveArquivo));
+      return [...prev, ...aceitos.filter((f) => !existentes.has(chaveArquivo(f)))];
+    });
+  }, []);
+
+  const uploadAtivo = isOpen && step === "upload";
+
+  // Colar (Ctrl+V): arquivos/imagens da área de transferência e, se nada
+  // estiver focado num campo de texto, texto puro vira um arquivo .txt.
+  useEffect(() => {
+    if (!uploadAtivo) return;
+    const onPaste = (e: ClipboardEvent) => {
+      const alvo = e.target as HTMLElement | null;
+      if (alvo && (alvo.tagName === "INPUT" || alvo.tagName === "TEXTAREA")) return;
+      const data = e.clipboardData;
+      if (!data) return;
+
+      let colados = Array.from(data.files);
+      if (colados.length === 0) {
+        colados = Array.from(data.items)
+          .filter((item) => item.kind === "file")
+          .map((item) => item.getAsFile())
+          .filter((f): f is File => f !== null);
+      }
+      if (colados.length > 0) {
+        e.preventDefault();
+        adicionarArquivos(colados.map(nomearArquivoColado));
+        return;
+      }
+
+      const texto = data.getData("text/plain");
+      if (texto.trim()) {
+        e.preventDefault();
+        adicionarArquivos([
+          new File([texto], `texto-colado-${Date.now()}.txt`, { type: "text/plain" }),
+        ]);
+      }
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+  }, [uploadAtivo, adicionarArquivos]);
+
   if (!isOpen) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setFiles(Array.from(e.target.files));
-    }
+    adicionarArquivos(Array.from(e.target.files ?? []));
+    e.target.value = "";
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    // Sempre cancela o comportamento padrão, senão soltar fora da área
+    // faria o navegador abrir o arquivo na própria aba.
+    e.preventDefault();
+    if (step === "upload" && !isDraggingOver) setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDraggingOver(false);
+    if (step !== "upload") return;
+    adicionarArquivos(Array.from(e.dataTransfer.files));
+  };
+
+  const handleRemoveFile = (chave: string) => {
+    setFiles((prev) => prev.filter((f) => chaveArquivo(f) !== chave));
   };
 
   const handleStartExtraction = async () => {
     if (files.length === 0) {
-      setError("Selecione pelo menos um arquivo de catálogo (PDF ou imagens).");
+      setError("Selecione pelo menos um arquivo de catálogo (PDF, imagens ou texto).");
       return;
     }
 
@@ -193,7 +298,12 @@ export default function CatalogImportModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div
+        className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 p-6 pb-4">
           <div>
@@ -201,8 +311,8 @@ export default function CatalogImportModal({
               <span>📥</span> Importação Inteligente de Catálogos
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              Leitura página a página de PDF multipáginas ou pastas de imagens com extração via IA e
-              revisão antes de salvar.
+              Leitura página a página de PDF multipáginas, imagens ou arquivos de texto com extração
+              via IA e revisão antes de salvar.
             </p>
           </div>
           <button
@@ -223,20 +333,29 @@ export default function CatalogImportModal({
           {/* STEP 1: UPLOAD */}
           {step === "upload" && (
             <div className="space-y-6 pt-2">
-              <div className="rounded-xl border-2 border-dashed border-gray-300 p-8 text-center hover:border-blue-400 transition-colors bg-gray-50/50">
-                <div className="text-4xl">📄 / 🖼️</div>
+              <div
+                data-testid="catalog-dropzone"
+                className={`rounded-xl border-2 border-dashed p-8 text-center transition-colors ${
+                  isDraggingOver
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-300 bg-gray-50/50 hover:border-blue-400"
+                }`}
+              >
+                <div className="text-4xl">📄 / 🖼️ / 📝</div>
                 <h3 className="mt-2 text-base font-semibold text-gray-900">
-                  Selecione o catálogo ou as imagens
+                  {isDraggingOver
+                    ? "Solte os arquivos aqui"
+                    : "Arraste, cole (Ctrl+V) ou selecione o catálogo"}
                 </h3>
                 <p className="mt-1 text-xs text-gray-500 max-w-md mx-auto">
-                  Envie arquivo PDF multipáginas com tabelas de produtos ou selecione múltiplos
-                  folders/fotos de folhetos promocionais.
+                  Aceita PDF multipáginas, imagens (PNG, JPG, WEBP) e arquivos de texto (TXT, MD,
+                  CSV). Você também pode colar uma imagem ou um texto copiado.
                 </p>
                 <div className="mt-4">
                   <input
                     type="file"
                     multiple
-                    accept=".pdf,image/png,image/jpeg,image/webp"
+                    accept=".pdf,.txt,.md,.csv,image/png,image/jpeg,image/webp"
                     onChange={handleFileChange}
                     id="catalog-file-upload"
                     className="hidden"
@@ -249,9 +368,25 @@ export default function CatalogImportModal({
                   </label>
                 </div>
                 {files.length > 0 && (
-                  <div className="mt-3 text-xs font-semibold text-blue-700">
-                    {files.length} arquivo(s) selecionado(s) ({files.map((f) => f.name).join(", ")})
-                  </div>
+                  <ul className="mt-4 mx-auto max-w-md space-y-1 text-left">
+                    {files.map((f) => (
+                      <li
+                        key={chaveArquivo(f)}
+                        className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700"
+                      >
+                        <span className="truncate">{f.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(chaveArquivo(f))}
+                          title="Remover arquivo"
+                          aria-label={`Remover ${f.name}`}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </div>
 

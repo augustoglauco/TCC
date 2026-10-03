@@ -177,6 +177,12 @@ O sistema expõe um servidor MCP próprio que alimenta o chat com 4 ferramentas 
 3. **Ferramenta de Cotação B2B**: Aplica descontos por volume e gera orçamentos prévios.
 4. **Ferramenta de Reserva/Pedido**: Bloqueia itens em estoque temporariamente durante o checkout.
 
+### Importação Inteligente de Catálogos (`/admin/produtos`)
+* No botão de importação, **arraste** os arquivos para dentro da janela, **cole** com `Ctrl+V` (imagem copiada, arquivo copiado ou um texto copiado, que vira um `.txt`) ou use "Procurar Arquivos".
+* Formatos aceitos: **PDF**, **imagens** (PNG, JPG, WEBP) e **texto** (TXT, MD, CSV). Pode misturar tipos e ir adicionando aos poucos; cada arquivo da lista tem um ✕ para remover. Outros formatos são recusados com aviso.
+* Arquivos de texto são lidos em trechos pelo modelo local (sem fallback de visão, pois não há imagem); o intervalo de páginas só vale para PDFs.
+* Os produtos extraídos sempre passam pela tela de conferência antes de serem gravados.
+
 ### Atualizando Dados de Produtos
 * Os preços, fotos e quantidades em estoque são sincronizados com o banco de dados PostgreSQL.
 * Ao alterar a foto de um produto no catálogo, o assistente atualiza automaticamente os vetores visuais (CLIP), permitindo que clientes encontrem esse produto enviando fotos no chat.
