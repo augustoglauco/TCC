@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { DocumentViewModal } from "@/components/admin/DocumentViewModal";
 import { DomainBadge } from "@/components/admin/DomainBadge";
@@ -8,7 +8,13 @@ import { ReingestModal } from "@/components/admin/ReingestModal";
 import { Modal } from "@/components/ui/Modal";
 import { ToastStack, useToast } from "@/components/ui/Toast";
 import { RagApiError, deleteDocument } from "@/lib/api/rag";
-import type { DocumentRegistryEntry, RagCollection } from "@/lib/types/rag";
+import type { DocumentRegistryEntry, RagCollection, RagDomain } from "@/lib/types/rag";
+
+const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
+  { value: "vendas", label: "Vendas" },
+  { value: "suporte", label: "Suporte Técnico" },
+  { value: "atendimento", label: "Atendimento ao Usuário" },
+];
 
 export interface DocumentsTableProps {
   documents: DocumentRegistryEntry[];
@@ -32,6 +38,73 @@ export function DocumentsTable({
     useState<DocumentRegistryEntry | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const { toasts, showToast, dismissToast } = useToast();
+
+  // Estados dos filtros
+  const [filtroNome, setFiltroNome] = useState("");
+  const [dominiosSelecionados, setDominiosSelecionados] = useState<RagDomain[]>([]);
+  const [collectionIdSelecionada, setCollectionIdSelecionada] = useState("");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+
+  const handleToggleDomain = (domain: RagDomain) => {
+    setDominiosSelecionados((prev) =>
+      prev.includes(domain) ? prev.filter((d) => d !== domain) : [...prev, domain],
+    );
+  };
+
+  const temFiltroAtivo = Boolean(
+    filtroNome.trim() ||
+      dominiosSelecionados.length > 0 ||
+      collectionIdSelecionada ||
+      dataInicio ||
+      dataFim,
+  );
+
+  const limparFiltros = () => {
+    setFiltroNome("");
+    setDominiosSelecionados([]);
+    setCollectionIdSelecionada("");
+    setDataInicio("");
+    setDataFim("");
+  };
+
+  const documentosFiltrados = useMemo(() => {
+    return documents.filter((doc) => {
+      // 1. Nome do arquivo
+      if (filtroNome.trim()) {
+        if (!doc.filename.toLowerCase().includes(filtroNome.trim().toLowerCase())) {
+          return false;
+        }
+      }
+
+      // 2. Domínio(s)
+      if (dominiosSelecionados.length > 0) {
+        if (!dominiosSelecionados.includes(doc.domain)) {
+          return false;
+        }
+      }
+
+      // 3. Collection
+      if (collectionIdSelecionada) {
+        if (doc.collection_id !== collectionIdSelecionada) {
+          return false;
+        }
+      }
+
+      // 4. Range de data
+      if (dataInicio || dataFim) {
+        const docDateStr = doc.created_at.slice(0, 10);
+        if (dataInicio && docDateStr < dataInicio) {
+          return false;
+        }
+        if (dataFim && docDateStr > dataFim) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [documents, filtroNome, dominiosSelecionados, collectionIdSelecionada, dataInicio, dataFim]);
 
   async function confirmarExclusao() {
     if (!documentoParaExcluir) return;
@@ -57,20 +130,168 @@ export function DocumentsTable({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
-        <table className="w-full min-w-[700px] text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
-              <th className="py-3 px-4">Arquivo</th>
-              <th className="py-3 px-4">Domínio</th>
-              <th className="py-3 px-4">Chunks</th>
-              <th className="py-3 px-4">Collection</th>
-              <th className="py-3 px-4">Data</th>
-              <th className="py-3 px-4 text-right">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {documents.map((documento) => (
+      {/* Área de Filtros */}
+      <div className="mb-5 rounded-2xl border border-slate-200/80 bg-slate-50/60 p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          {/* 1. Nome do arquivo */}
+          <div className="md:col-span-4 space-y-1">
+            <label
+              htmlFor="filtro-nome"
+              className="block text-xs font-semibold text-slate-700 uppercase tracking-wider"
+            >
+              Nome do arquivo
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">
+                🔍
+              </span>
+              <input
+                id="filtro-nome"
+                type="text"
+                value={filtroNome}
+                onChange={(e) => setFiltroNome(e.target.value)}
+                placeholder="Buscar por nome do arquivo..."
+                className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* 2. Collection */}
+          <div className="md:col-span-3 space-y-1">
+            <label
+              htmlFor="filtro-collection"
+              className="block text-xs font-semibold text-slate-700 uppercase tracking-wider"
+            >
+              Collection
+            </label>
+            <select
+              id="filtro-collection"
+              aria-label="Collection"
+              value={collectionIdSelecionada}
+              onChange={(e) => setCollectionIdSelecionada(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">Todas as collections</option>
+              {collections.map((col) => (
+                <option key={col.id} value={col.id}>
+                  {col.name} {col.is_active ? "(Ativa)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Range de data */}
+          <div className="md:col-span-5 space-y-1">
+            <span className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+              Range de data
+            </span>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-1.5">
+                <label
+                  htmlFor="filtro-data-inicio"
+                  className="text-xs text-slate-500 font-medium shrink-0"
+                >
+                  De:
+                </label>
+                <input
+                  id="filtro-data-inicio"
+                  aria-label="De:"
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => setDataInicio(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-1.5 px-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex-1 flex items-center gap-1.5">
+                <label
+                  htmlFor="filtro-data-fim"
+                  className="text-xs text-slate-500 font-medium shrink-0"
+                >
+                  Até:
+                </label>
+                <input
+                  id="filtro-data-fim"
+                  aria-label="Até:"
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => setDataFim(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-white py-1.5 px-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Linha inferior: Domínios (pills múltiplos) e Contagem / Limpar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200/60">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold text-slate-600 mr-1">Domínios:</span>
+            {DOMAIN_OPTIONS.map((opt) => {
+              const isSelected = dominiosSelecionados.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleToggleDomain(opt.value)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                    isSelected
+                      ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/30"
+                      : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3 ml-auto">
+            <span className="text-xs text-slate-500">
+              Exibindo{" "}
+              <span className="font-semibold text-slate-800">{documentosFiltrados.length}</span> de{" "}
+              <span className="font-semibold text-slate-800">{documents.length}</span> documentos
+            </span>
+            {temFiltroAtivo && (
+              <button
+                type="button"
+                onClick={limparFiltros}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline transition-colors"
+              >
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {documentosFiltrados.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-8 text-center space-y-2">
+          <p className="text-sm font-medium text-slate-700">
+            Nenhum documento encontrado com os filtros selecionados.
+          </p>
+          <button
+            type="button"
+            onClick={limparFiltros}
+            className="text-xs font-semibold text-blue-600 hover:underline"
+          >
+            Limpar filtros
+          </button>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+          <table className="w-full min-w-[700px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
+                <th className="py-3 px-4">Arquivo</th>
+                <th className="py-3 px-4">Domínio</th>
+                <th className="py-3 px-4">Chunks</th>
+                <th className="py-3 px-4">Collection</th>
+                <th className="py-3 px-4">Data</th>
+                <th className="py-3 px-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {documentosFiltrados.map((documento) => (
               <tr key={documento.id} className="transition-colors hover:bg-slate-50/60">
                 <td className="py-3.5 px-4 font-semibold text-slate-900">
                   <button
@@ -117,6 +338,7 @@ export function DocumentsTable({
           </tbody>
         </table>
       </div>
+      )}
 
       <DocumentViewModal
         documento={documentoParaVisualizar}
