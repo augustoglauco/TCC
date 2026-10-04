@@ -1023,9 +1023,10 @@ async def handle_message(
         )
 
     # Dashboards e Gráficos Dinâmicos Gerados via Chat (Admin)
-    from app.services.chart_generator import detect_chart_request, generate_and_persist_chart
+    from app.services.analytics_agent import extract_prompt_inline_data, process_dynamic_chart_request
+    from app.services.chart_generator import detect_chart_request
 
-    chart_request = detect_chart_request(message)
+    chart_request = detect_chart_request(message) or extract_prompt_inline_data(message)
     if chart_request:
         if not is_admin:
             msg_negada = (
@@ -1053,22 +1054,30 @@ async def handle_message(
 
         if db_sessionmaker:
             chart = None
+            explicacao = ""
             try:
+                analytics_llm = local_client if local_client is not None else external_client
                 session_ctx = db_sessionmaker()
                 if hasattr(session_ctx, "__aenter__"):
                     async with session_ctx as session:
-                        chart = await generate_and_persist_chart(
-                            session, message, user_email or "admin"
+                        chart, explicacao = await process_dynamic_chart_request(
+                            session=session,
+                            prompt=message,
+                            user_email=user_email or "admin",
+                            llm_client=analytics_llm,
                         )
                 else:
-                    chart = await generate_and_persist_chart(
-                        session_ctx, message, user_email or "admin"
+                    chart, explicacao = await process_dynamic_chart_request(
+                        session=session_ctx,
+                        prompt=message,
+                        user_email=user_email or "admin",
+                        llm_client=analytics_llm,
                     )
             except Exception as exc:
                 logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})
 
             if chart:
-                texto_resp = (
+                texto_resp = explicacao or (
                     f"Gerei o gráfico '{chart.titulo}' para você com base nos dados mais recentes. "
                     "Ele já está salvo no seu painel de Dashboards."
                 )
