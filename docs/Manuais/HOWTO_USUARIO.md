@@ -21,7 +21,7 @@
 A nossa plataforma foi projetada para oferecer uma experiência completa de compras, suporte e atendimento. Veja abaixo todos os recursos que você pode explorar diretamente pelo menu de navegação do site:
 
 ### 🛍️ 1. Catálogo e Busca de Produtos (`/produtos`)
-* **Navegar pelo Catálogo**: Visualize todos os produtos disponíveis, organizados por categorias e marcas.
+* **Navegar pelo Catálogo**: Visualize todos os produtos disponíveis em uma grade responsiva com **rolagem interna** (sem estourar a tela do seu celular ou computador).
 * **Filtros e Busca**: Utilize a barra de pesquisa para buscar produtos por nome, código ou palavra-chave.
 * **Detalhes do Produto (`/produtos/[id]`)**: Veja especificações técnicas, preço, fotos em alta resolução e disponibilidade em estoque.
 * **"Perguntar ao Assistente sobre este Produto"**: Em qualquer página de produto, clique no botão dedicado para abrir o chat tirando dúvidas específicas sobre aquele item de forma instantânea.
@@ -49,6 +49,7 @@ O **Assistente Virtual** é um robô inteligente disponível **em todas as pági
 
 * **Como abrir**: Basta clicar no **ícone flutuante de balão de conversa** localizado no canto inferior direito da tela.
 * **Funcionamento**: Você pode usá-lo tanto como visitante anônimo quanto logado na sua conta. Se estiver logado, ele lembrará das suas conversas anteriores e pedidos recentes!
+* **Indicadores de Modelo**: Respostas do modelo local (GPU) são exibidas no balão cinza padrão. Quando o assistente consulta o modelo especialista em nuvem para perguntas externas ou mais complexas, o balão de resposta recebe um **destaque em vermelho clarinho**.
 
 ---
 
@@ -59,7 +60,7 @@ Você não precisa apenas digitar! O nosso assistente entende **Texto**, **Voz (
 ---
 
 ### 1. 💬 Mensagens de Texto
-* Digite qualquer pergunta no campo de mensagem e pressione **Enter** ou clique na seta de enviar.
+* Digite qualquer pergunta ou saudação (ex: *"boa noite"*, *"olá"*) no campo de mensagem e pressione **Enter** ou clique na seta de enviar. Saudações genéricas são respondidas de forma imediata e acolhedora, sem poluir sua tela com listas desnecessárias.
 * O assistente responde em tempo real. Você verá as respostas sendo "digitadas" na tela.
 
 ---

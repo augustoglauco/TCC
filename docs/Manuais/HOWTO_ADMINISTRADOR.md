@@ -74,10 +74,16 @@ O sistema utiliza a técnica de **RAG (Busca Aumentada por Recuperação)**. Iss
 Ao criar uma collection (base de documentos), você escolhe sua **Finalidade**:
 
 * **Chat (pública)**: é o que o site/widget de chat usa para responder qualquer visitante. Só uma collection `Chat` pode ficar "ativa" por vez.
-* **Restrita ao MCP B2B**: não aparece no chat público; é consultada pelos parceiros comerciais conectados via MCP B2B (ver Seção 6) **e também** pelo Admin, quando ele mesmo usa o chat logado (ver abaixo).
-* **Exclusiva do Admin**: só o Admin vê esse conteúdo — nem o chat público, nem os parceiros do MCP B2B. Use para documentos internos/confidenciais (ex.: notas de custo, contratos, rascunhos).
+* **Restrita ao MCP B2B**: não aparece no chat público; é consultada pelos parceiros comerciais conectados via MCP B2B (ver Seção 6) **e também** pelo Admin, quando ele mesmo usa o chat logado.
+* **Exclusiva do Admin (`admin`)**: só o Admin vê esse conteúdo — nem o chat público, nem os parceiros do MCP B2B. Use para documentos internos/confidenciais (ex.: notas de custo, contratos, manuais internos).
 
 Nenhuma collection `Restrita ao MCP B2B` ou `Exclusiva do Admin` pode ser marcada como "ativa" do chat público — o botão **Ativar** fica desabilitado para elas.
+
+### Organização e Navegação do Painel (`/admin/ingestao`)
+
+- **Master Card de Configurações**: Todas as configurações de busca, isolamento de domínios, cards de finalidades ativas e tabela de perfis de coleção ficam unificadas em um único painel mestre.
+- **Filtros de Documentos Indexados**: A tabela de documentos indexados possui filtros avançados por **Nome do arquivo**, **Domínio**, **Collection** e **Intervalo de datas (Período)**.
+- **Scroll Interno Responsivo**: As tabelas possuem rolagem interna independente (`overflow-y-auto`) com cabeçalhos fixos no topo (**sticky headers**), otimizando a navegação em telas de desktop e celulares (mobile).
 
 ### Pesquisando seus próprios documentos pelo chat (modo Admin)
 
