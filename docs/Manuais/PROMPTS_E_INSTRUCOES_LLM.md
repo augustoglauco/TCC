@@ -92,6 +92,14 @@ _ATENDIMENTO_PLAYBOOK = (
     "- Se o pedido do cliente fugir do que a base cobre, oriente-o sobre o "
     "canal correto em vez de inventar uma política."
 )
+
+# Line 82: Playbook do domínio FORA DE ESCOPO / SAUDAÇÕES
+_FORA_ESCOPO_PLAYBOOK = (
+    "Domínio: CONVERSA GERAL E FORA DE ESCOPO.\n"
+    "- Se a mensagem do cliente for uma saudação (ex.: 'olá', 'boa noite', 'bom dia') ou cortesia social, "
+    "responda de forma cordial, breve e acolhedora, perguntando em que pode ajudar hoje.\n"
+    "- Não apresente listas de produtos, catálogos nem recomendações proativas a menos que o cliente solicite explicitamente."
+)
 ```
 
 ---

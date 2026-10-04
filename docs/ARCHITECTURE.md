@@ -212,12 +212,10 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 > externo, o "externo" é um modelo de visão que só nomeia/classifica o
 > produto`.
 
-**(b) Monitoramento de tom:** nova mensagem no chat → classificador de
+**(b) Monitoramento de tom e transbordo humano:** nova mensagem no chat → classificador de
 sentimento/urgência → ultrapassou o limiar de urgência/insatisfação? →
 **não:** fluxo normal continua. → **sim:** alerta e registro para
-acompanhamento humano — a resposta normal do domínio continua sendo gerada e
-streamada normalmente, o monitoramento roda em paralelo e nunca substitui/
-interrompe o fluxo (ver decisão na Seção 5 sobre o Monitor de Tom).
+acompanhamento humano (`tom_escalonamentos`). A especificação de arquitetura para a central de atendimento ao vivo e fila de suporte com transbordo humano (*Live Agent Takeover* com locks atômicos) está detalhada em `docs/superpowers/specs/2026-10-03-atendimento-humano-transbordo-design.md`.
 
 ## 5. Escopo do MVP e evolução futura
 
