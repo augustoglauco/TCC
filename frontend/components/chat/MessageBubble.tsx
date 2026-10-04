@@ -81,7 +81,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           isUser
             ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-tr-xs"
             : isExternalLlm
-              ? "bg-blue-50 text-blue-950 border border-blue-200/80 rounded-tl-xs"
+              ? "bg-red-50 text-red-950 border border-red-200/80 rounded-tl-xs"
               : "bg-slate-100 text-slate-900 border border-slate-200/60 rounded-tl-xs"
         }`}
       >
@@ -89,7 +89,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           <div className="mb-1 flex items-center gap-1">
             <span
               data-testid="message-domain-label"
-              className="text-[10px] font-bold uppercase tracking-wider text-blue-600"
+              className={`text-[10px] font-bold uppercase tracking-wider ${
+                isExternalLlm ? "text-red-700" : "text-blue-600"
+              }`}
             >
               {domainLabel}
             </span>
@@ -101,7 +103,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               }
               aria-pressed={showDetails}
               title={showDetails ? "Ocultar métricas" : "Mostrar métricas"}
-              className="text-[10px] leading-none text-blue-600/70 hover:text-blue-600 cursor-pointer"
+              className={`text-[10px] leading-none cursor-pointer ${
+                isExternalLlm ? "text-red-700/70 hover:text-red-700" : "text-blue-600/70 hover:text-blue-600"
+              }`}
             >
               ⚙️
             </button>
