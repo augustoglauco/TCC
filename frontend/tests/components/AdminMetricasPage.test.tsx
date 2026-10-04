@@ -119,4 +119,97 @@ describe("AdminMetricasPage", () => {
       expect(spy).toHaveBeenCalledWith({ period: "today" });
     });
   });
+
+  it("atualiza métricas ao clicar no botão Atualizar e exibe feedback de sucesso e timestamp", async () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    const mockResponse: metricsApi.TokenCostMetricsResponse = {
+      period: "7d",
+      summary: {
+        total_closed_chats: 5,
+        total_internal_prompt_tokens: 100,
+        total_internal_completion_tokens: 50,
+        total_external_prompt_tokens: 0,
+        total_external_completion_tokens: 0,
+        total_cost_prompt_usd: 0,
+        total_cost_completion_usd: 0,
+        total_cost_usd: 0,
+      },
+      daily_breakdown: [],
+    };
+
+    const spy = vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
+    });
+
+    expect(spy).toHaveBeenCalledTimes(1);
+
+    const atualizarButtons = screen.getAllByRole("button", { name: /atualizar métricas/i });
+    expect(atualizarButtons.length).toBeGreaterThan(0);
+
+    fireEvent.click(atualizarButtons[0]);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledTimes(2);
+      expect(screen.getByText("Métricas atualizadas com sucesso!")).toBeInTheDocument();
+      expect(screen.getByText(/Última atualização:/i)).toBeInTheDocument();
+    });
+  });
+
+  it("exibe feedback de erro ao falhar na atualização manual", async () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    const mockResponse: metricsApi.TokenCostMetricsResponse = {
+      period: "7d",
+      summary: {
+        total_closed_chats: 1,
+        total_internal_prompt_tokens: 10,
+        total_internal_completion_tokens: 10,
+        total_external_prompt_tokens: 0,
+        total_external_completion_tokens: 0,
+        total_cost_prompt_usd: 0,
+        total_cost_completion_usd: 0,
+        total_cost_usd: 0,
+      },
+      daily_breakdown: [],
+    };
+
+    const spy = vi
+      .spyOn(metricsApi, "fetchTokenCostMetrics")
+      .mockResolvedValueOnce(mockResponse)
+      .mockRejectedValueOnce(new Error("Falha de conexão com a API"));
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
+    });
+
+    const atualizarBtn = screen.getByRole("button", { name: "Atualizar métricas" });
+    fireEvent.click(atualizarBtn);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("Falha de conexão com a API").length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

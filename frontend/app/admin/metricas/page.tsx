@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
+import { ToastStack, useToast } from "@/components/ui/Toast";
 import {
   fetchTokenCostMetrics,
   TokenCostMetricsResponse,
@@ -17,19 +18,37 @@ export default function AdminMetricasPage() {
   const [data, setData] = useState<TokenCostMetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const { toasts, showToast, dismissToast } = useToast();
 
-  const carregarMetricas = useCallback(async (p: "today" | "7d" | "30d" | "all") => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetchTokenCostMetrics({ period: p });
-      setData(res);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar métricas.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const carregarMetricas = useCallback(
+    async (p: "today" | "7d" | "30d" | "all", isManual = false) => {
+      setLoading(true);
+      setError(null);
+      const startTime = Date.now();
+      try {
+        const res = await fetchTokenCostMetrics({ period: p });
+        setData(res);
+        setLastUpdated(new Date());
+        if (isManual) {
+          const elapsed = Date.now() - startTime;
+          if (elapsed < 400) {
+            await new Promise((resolve) => setTimeout(resolve, 400 - elapsed));
+          }
+          showToast("Métricas atualizadas com sucesso!", "success");
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Erro ao carregar métricas.";
+        setError(msg);
+        if (isManual) {
+          showToast(msg, "error");
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [showToast]
+  );
 
   useEffect(() => {
     if (isCurrentAdmin) {
@@ -82,52 +101,73 @@ export default function AdminMetricasPage() {
           </p>
         </div>
 
-        {/* Filtros de Período */}
-        <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs self-start sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setPeriod("today")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-              period === "today"
-                ? "bg-blue-600 text-white shadow-2xs"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            }`}
-          >
-            Hoje
-          </button>
-          <button
-            type="button"
-            onClick={() => setPeriod("7d")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-              period === "7d"
-                ? "bg-blue-600 text-white shadow-2xs"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            }`}
-          >
-            7 Dias
-          </button>
-          <button
-            type="button"
-            onClick={() => setPeriod("30d")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-              period === "30d"
-                ? "bg-blue-600 text-white shadow-2xs"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            }`}
-          >
-            30 Dias
-          </button>
-          <button
-            type="button"
-            onClick={() => setPeriod("all")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-              period === "all"
-                ? "bg-blue-600 text-white shadow-2xs"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            }`}
-          >
-            Tudo
-          </button>
+        {/* Filtros de Período e Atualização */}
+        <div className="flex flex-col sm:items-end gap-2 self-start sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setPeriod("today")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  period === "today"
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                Hoje
+              </button>
+              <button
+                type="button"
+                onClick={() => setPeriod("7d")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  period === "7d"
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                7 Dias
+              </button>
+              <button
+                type="button"
+                onClick={() => setPeriod("30d")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  period === "30d"
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                30 Dias
+              </button>
+              <button
+                type="button"
+                onClick={() => setPeriod("all")}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  period === "all"
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+              >
+                Tudo
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => void carregarMetricas(period, true)}
+              disabled={loading}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+              aria-label="Atualizar métricas"
+            >
+              <span className={`inline-block ${loading ? "animate-spin" : ""}`}>🔄</span>
+              <span>{loading ? "Atualizando..." : "Atualizar"}</span>
+            </button>
+          </div>
+
+          {lastUpdated && (
+            <span className="text-[11px] text-slate-500 font-medium">
+              Última atualização: {lastUpdated.toLocaleTimeString("pt-BR")}
+            </span>
+          )}
         </div>
       </div>
 
@@ -288,12 +328,13 @@ export default function AdminMetricasPage() {
           </div>
           <button
             type="button"
-            onClick={() => void carregarMetricas(period)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+            onClick={() => void carregarMetricas(period, true)}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             disabled={loading}
+            aria-label="Atualizar tabela de métricas"
           >
-            <span className={loading ? "animate-spin" : ""}>🔄</span>
-            <span>Atualizar</span>
+            <span className={`inline-block ${loading ? "animate-spin" : ""}`}>🔄</span>
+            <span>{loading ? "Atualizando..." : "Atualizar"}</span>
           </button>
         </div>
 
@@ -376,6 +417,7 @@ export default function AdminMetricasPage() {
           </table>
         </div>
       </div>
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

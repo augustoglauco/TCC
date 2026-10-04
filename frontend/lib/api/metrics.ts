@@ -1,7 +1,5 @@
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 
-const API_BASE_URL = getApiBaseUrl();
-
 export interface MetricSummary {
   total_closed_chats: number;
   total_internal_prompt_tokens: number;
@@ -40,17 +38,24 @@ export interface GetMetricsParams {
 export async function fetchTokenCostMetrics(
   params: GetMetricsParams = {}
 ): Promise<TokenCostMetricsResponse> {
+  const baseUrl = getApiBaseUrl();
   const query = new URLSearchParams();
   if (params.period) query.set("period", params.period);
   if (params.startDate) query.set("start_date", params.startDate);
   if (params.endDate) query.set("end_date", params.endDate);
+  query.set("_t", Date.now().toString());
 
   const qs = query.toString();
-  const url = `${API_BASE_URL}/api/admin/metrics/tokens-and-costs${qs ? `?${qs}` : ""}`;
+  const url = `${baseUrl}/api/admin/metrics/tokens-and-costs${qs ? `?${qs}` : ""}`;
 
   const response = await fetch(url, {
     method: "GET",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    },
+    cache: "no-store",
   });
 
   if (!response.ok) {
