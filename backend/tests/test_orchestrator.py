@@ -832,31 +832,56 @@ async def test_ttft_usa_prompt_eval_duration_nao_load_duration():
     assert decisao.tps == pytest.approx(55.56, abs=0.01)
 
 
-async def test_fora_escopo_sempre_externo_sem_tentar_rag():
+async def test_fora_escopo_alta_complexidade_escala_para_externo():
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient(exception=RAGConnectionError("não deveria ser chamado"))
 
+    # Mensagem longa com múltiplos questionamentos (alta complexidade)
+    mensagem_alta_complexidade = "Qual a capital da França? " * 15 + " Podem me explicar a história detalhada?"
     eventos = await _coletar_eventos(
-        "Qual a capital da França?",
+        mensagem_alta_complexidade,
         recent_messages=[],
         local_client=local_client,
         external_client=external_client,
         rag_client=rag_client,
         complexity_strategy="heuristic",
-        # Monitor de Tom (R8) também chamaria local_client.generate() (sem
-        # sinal heurístico na mensagem) e quebraria a contagem de chamadas
-        # que este teste valida especificamente — desligado aqui.
         tone_monitor_enabled=False,
     )
     decisao = eventos[-1]
     assert isinstance(decisao, RouterDecision)
 
     assert decisao.domain == "fora_escopo"
+    assert decisao.complexity == "alta"
     assert decisao.backend_escolhido == "externo"
     assert decisao.motivo_escalonamento == "fora_escopo"
     assert local_client.calls == 0
     assert external_client.calls == 1
+
+
+async def test_fora_escopo_baixa_complexidade_usa_modelo_local():
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(exception=RAGConnectionError("não deveria ser chamado"))
+
+    eventos = await _coletar_eventos(
+        "Olá, boa noite",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+    )
+    decisao = eventos[-1]
+    assert isinstance(decisao, RouterDecision)
+
+    assert decisao.domain == "fora_escopo"
+    assert decisao.complexity == "baixa"
+    assert decisao.backend_escolhido == "local"
+    assert decisao.motivo_escalonamento == "nenhum"
+    assert local_client.calls == 1
+    assert external_client.calls == 0
 
 
 async def test_rag_vazio_escala_para_externo():
@@ -1033,8 +1058,8 @@ async def test_rag_vazio_nao_injeta_contexto_prompt_e_a_mensagem_original():
     assert "Domínio: VENDAS" in external_client.last_prompt
 
 
-async def test_fora_escopo_sem_playbook_envia_apenas_a_mensagem():
-    # Mensagem sem palavra-chave de domínio → fora_escopo → sem playbook.
+async def test_fora_escopo_com_playbook_para_saudacoes():
+    # Mensagem sem palavra-chave de domínio → fora_escopo → com playbook de conversa geral.
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())
     rag_client = _FakeRAGClient(documents=[])
@@ -1048,8 +1073,9 @@ async def test_fora_escopo_sem_playbook_envia_apenas_a_mensagem():
         complexity_strategy="heuristic",
     )
 
-    # fora_escopo não tem playbook e não houve RAG: o prompt reduz à mensagem.
-    assert external_client.last_prompt == "Mensagem do cliente: Bom dia, tudo bem com você?"
+    # fora_escopo possui playbook para orientar saudações de forma amigável
+    assert "Domínio: CONVERSA GERAL E FORA DE ESCOPO" in local_client.last_prompt
+    assert "Mensagem do cliente: Bom dia, tudo bem com você?" in local_client.last_prompt
 
 
 async def test_rag_com_resultado_e_complexidade_alta_escala_para_externo():
@@ -1164,13 +1190,11 @@ async def test_falha_em_is_model_ready_nao_derruba_a_requisicao():
     )
 
     eventos = await _coletar_eventos(
-        # Sem palavra-chave de nenhum domínio: classify() resolve
-        # "fora_escopo" só pela heurística (sem chamar o LLM local), e a
-        # geração da resposta em si roteia pro backend EXTERNO — o backend
-        # local nunca é de fato necessário nesta mensagem, além da própria
-        # checagem (que falha) e do fallback do Monitor de Tom (que
-        # degrada sozinho).
-        "Qual a capital da França?",
+        # Sem palavra-chave de nenhum domínio e com alta complexidade:
+        # classify() resolve "fora_escopo" e a geração da resposta em si
+        # roteia pro backend EXTERNO — o backend local nunca é de fato
+        # necessário nesta mensagem.
+        "Qual a capital da França? " * 15 + " História detalhada?",
         recent_messages=[],
         local_client=local_client,
         external_client=external_client,
@@ -1312,7 +1336,7 @@ async def test_openrouter_indisponivel_propaga_erro():
 
     with pytest.raises(ExternalBackendIndisponivelError):
         await _coletar_eventos(
-            "Qual a capital da França?",
+            "Qual a capital da França? " * 15 + " História detalhada?",
             recent_messages=[],
             local_client=local_client,
             external_client=external_client,

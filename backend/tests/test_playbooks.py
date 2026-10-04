@@ -16,9 +16,11 @@ def test_agendamento_nao_tem_mais_playbook():
     assert get_playbook("agendamento") is None
 
 
-def test_fora_escopo_nao_tem_playbook():
-    assert get_playbook("fora_escopo") is None
-    assert build_system_prompt("fora_escopo") is None
+def test_fora_escopo_tem_playbook():
+    assert get_playbook("fora_escopo") is not None
+    prompt = build_system_prompt("fora_escopo")
+    assert prompt is not None
+    assert "CONVERSA GERAL E FORA DE ESCOPO" in prompt
 
 
 def test_vendas_oferece_agendamento_proativo():

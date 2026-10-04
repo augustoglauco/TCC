@@ -82,14 +82,20 @@ _PLAYBOOKS: dict[Domain, str] = {
     "vendas": _VENDAS_PLAYBOOK,
     "suporte": _SUPORTE_PLAYBOOK,
     "atendimento": _ATENDIMENTO_PLAYBOOK,
+    "fora_escopo": (
+        "Domínio: CONVERSA GERAL E FORA DE ESCOPO.\n"
+        "- Se a mensagem do cliente for uma saudação (ex.: 'olá', 'boa noite', 'bom dia') ou cortesia social, "
+        "responda de forma cordial, breve e acolhedora, perguntando em que pode ajudar hoje.\n"
+        "- Não apresente listas de produtos, catálogos nem recomendações proativas a menos que o cliente solicite explicitamente."
+    ),
 }
 
 
 def get_playbook(domain: Domain) -> str | None:
     """Retorna o bloco de instruções de sistema do domínio, ou None.
 
-    Retorna None para `fora_escopo` (sem playbook — a mensagem vai ao modelo
-    externo sem instrução de domínio específica).
+    Retorna o playbook de cada domínio, inclusive `fora_escopo` (para orientar
+    saudações de forma breve sem despejar catálogos).
     """
     return _PLAYBOOKS.get(domain)
 
@@ -97,8 +103,7 @@ def get_playbook(domain: Domain) -> str | None:
 def build_system_prompt(domain: Domain) -> str | None:
     """Monta o prompt de sistema completo (base + playbook) para o domínio.
 
-    Retorna None quando não há playbook para o domínio (`fora_escopo`), para
-    o chamador poder decidir não anexar cabeçalho de sistema algum.
+    Retorna o prompt completo (base + playbook) do domínio.
     """
     playbook = get_playbook(domain)
     if playbook is None:

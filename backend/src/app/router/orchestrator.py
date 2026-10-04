@@ -1072,8 +1072,12 @@ async def handle_message(
     rag_chunks: list[RagChunkMetric] | None = None
 
     if classification.domain == "fora_escopo":
-        backend_escolhido = "externo"
-        motivo = "fora_escopo"
+        if classification.complexity == "baixa":
+            backend_escolhido = "local"
+            motivo = "nenhum"
+        else:
+            backend_escolhido = "externo"
+            motivo = "fora_escopo"
     else:
         t_rag_start = time.perf_counter()
         try:
