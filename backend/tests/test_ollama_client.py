@@ -456,3 +456,48 @@ async def test_generate_stream_com_resposta_de_uma_linha_so():
     assert len(chunks) == 2
     assert chunks[0] == LLMStreamChunk(text="ok")
     assert chunks[1].done is True
+
+
+async def test_get_model_details_retorna_dict_quando_modelo_existe():
+    mock_response = {
+        "capabilities": ["completion", "vision"],
+        "details": {"family": "qwen2", "parameter_size": "7.6B", "quantization_level": "Q4_K_M"},
+        "model_info": {"qwen2.context_length": 32768},
+    }
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="qwen2.5:7b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=_mock_transport(mock_response)),
+    )
+
+    detalhes = await client.get_model_details("qwen2.5:7b")
+
+    assert detalhes == mock_response
+
+
+async def test_get_model_details_retorna_none_quando_modelo_nao_baixado():
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="qwen2.5:7b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(
+            transport=_mock_transport({"error": "model not found"}, status_code=404)
+        ),
+    )
+
+    assert await client.get_model_details("modelo-inexistente") is None
+
+
+async def test_get_model_details_retorna_none_em_erro_de_conexao():
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("conexão recusada", request=request)
+
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="qwen2.5:7b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    assert await client.get_model_details("qwen2.5:7b") is None

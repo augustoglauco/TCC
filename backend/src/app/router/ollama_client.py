@@ -311,3 +311,22 @@ class OllamaClient:
                     completed=data.get("completed"),
                     error=data.get("error"),
                 )
+
+    async def get_model_details(self, name: str) -> dict | None:
+        """Detalhes completos de um modelo já baixado (`POST /api/show`) —
+        usado pelo cache de características de modelo (além do MVP, ver
+        docs/superpowers/specs/2026-10-03-caracteristicas-modelo-hover-
+        design.md). `None` em qualquer falha (modelo não baixado, rede
+        indisponível, etc.) — característica de modelo é best-effort, nunca
+        deve quebrar a tela administrativa.
+        """
+        try:
+            response = await self._client.post(
+                f"{self._base_url}/api/show",
+                json={"name": name},
+                timeout=self._timeout_s,
+            )
+            response.raise_for_status()
+            return response.json()
+        except httpx.HTTPError:
+            return None
