@@ -13,6 +13,28 @@ vi.mock("@/lib/api/localModels", async () => {
 
 import { activateModel, LocalModelsApiError } from "@/lib/api/localModels";
 
+vi.mock("@/lib/hooks/useModelCharacteristics", () => ({
+  useModelCharacteristics: vi.fn(() => ({
+    data: {
+      source: "ollama",
+      tag: "qwen2.5:7b",
+      is_multimodal: true,
+      input_modalities: ["text", "image"],
+      output_modalities: ["text"],
+      context_length: 32768,
+      parameter_size: "7B",
+      quantization: "Q4_0",
+      pricing_prompt_per_1k: null,
+      pricing_completion_per_1k: null,
+      knowledge_cutoff: null,
+      fetched_at: new Date().toISOString(),
+    },
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  })),
+}));
+
 const mockedActivate = vi.mocked(activateModel);
 
 const MODELO_ATIVO: LocalModel = {
@@ -127,5 +149,33 @@ describe("LocalModelsTable", () => {
     );
 
     expect(screen.getByText(/nenhum modelo/i)).toBeInTheDocument();
+  });
+
+  it("mostra as características ao passar o mouse sobre um modelo instalado", async () => {
+    const user = userEvent.setup();
+    render(
+      <LocalModelsTable
+        models={[
+          {
+            name: "qwen2.5:7b",
+            size_bytes: 4_700_000_000,
+            modified_at: new Date().toISOString(),
+            // is_active: false (desvio deliberado do brief) para evitar que o
+            // mesmo texto apareça duplicado no banner "Modelo Local Ativo" —
+            // getByText falharia com "multiple elements" por um motivo não
+            // relacionado à feature testada aqui (hover/tooltip).
+            is_active: false,
+          },
+        ]}
+        onChanged={vi.fn()}
+        onError={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
+
+    const card = screen.getByText("qwen2.5:7b").closest("div")!;
+    await user.hover(card);
+
+    expect(await screen.findByText("Imagem")).toBeInTheDocument();
   });
 });
