@@ -348,6 +348,11 @@ class Conversa(Base):
     perfil: Mapped[str | None]
     perfil_motivo: Mapped[str | None]
 
+    # Status e encerramento (Contabilizador de Tokens e Ciclo de Vida do Chat)
+    status: Mapped[str] = mapped_column(String(20), default="aberta", server_default="aberta", index=True)
+    encerrada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    motivo_encerramento: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
     mensagens: Mapped[list[ConversaMensagem]] = relationship(
         back_populates="conversa", order_by="ConversaMensagem.id"
     )
