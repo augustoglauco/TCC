@@ -290,6 +290,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       do PostgreSQL (migration `0019`). Exibição de cards ricos inline (`CardGrafico`) e galeria permanente
       no frontend em `/admin/dashboards` utilizando Recharts, imune a reinicializações do servidor.
       Design Spec em [`docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md`](docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md).
+- [ ] **Download de Documentos RAG de Origem Direta no Chat via Cards Ricos** —
+      Identificar automaticamente documentos fonte no RAG com alto grau de relevância (`score >= 0.65`)
+      na busca vetorial do Qdrant e emitir o card rico `CardDocumentoDownload` na resposta do chat.
+      Servimento seguro de PDFs/textos via endpoint `GET /api/rag/documents/{id}/download`, com controle
+      de permissão por finalidade (`purpose="admin"` exige token) e botão de download direto no widget.
+      Design Spec em [`docs/superpowers/specs/2026-10-04-download-documentos-rag-chat-design.md`](docs/superpowers/specs/2026-10-04-download-documentos-rag-chat-design.md).
 
 ## Extra fora do MVP — Gestão de Produtos no Admin, Ingestão de Catálogos (PDF/Imagens) e Catálogo Visual CLIP
 
