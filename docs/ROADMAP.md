@@ -227,6 +227,18 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       locais e externos em `/admin/modelos`, apresentando janelas de contexto, capacidades de entrada
       e saída (texto, imagem, áudio), provedores e preços por milhão de tokens. Cache persistido no
       PostgreSQL (`model_characteristics`) com expiração de 7 dias e botão de atualização forçada manual.
+      Três fontes de dados (OpenRouter API, Ollama `/api/show`, Hugging Face Hub API) e `Tooltip`
+      estendido com gatilho customizado — decisão registrada em `docs/ARCHITECTURE.md` §5. Verificação
+      manual end-to-end feita via curl contra os três endpoints de características (OpenRouter, Ollama
+      instalado e preview Hugging Face), com ambos os modelos de texto e multimodais confirmados.
+      Testes novos: `backend/tests/test_model_catalog_characteristics.py`, `backend/tests/test_model_catalog_api.py`,
+      `backend/tests/test_model_catalog_schemas.py`, `backend/tests/test_db_models.py`,
+      `frontend/tests/components/ModelCharacteristicsPanel.test.tsx`,
+      `frontend/tests/lib/hooks/useModelCharacteristics.test.ts`,
+      `frontend/tests/lib/api/modelCatalog.test.ts`, `frontend/tests/components/Tooltip.test.tsx`,
+      `frontend/tests/components/OpenRouterModelCard.test.tsx`,
+      `frontend/tests/components/LocalModelsTable.test.tsx` e
+      `frontend/tests/components/PullModelForm.test.tsx`.
 - [x] **Residência na VRAM, Warmup de Boot e Persistência de Configurações (2026-10-03)** —
       Configuração do parâmetro `keep_alive` (`"-1"`) no `OllamaClient` para manter o modelo local
       permanentemente carregado na VRAM da GPU, eliminando o cold start de 10-30s após 5 minutos de
