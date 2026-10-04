@@ -50,12 +50,22 @@ export default function AdminDashboardsPage() {
   }, [token]);
 
   useEffect(() => {
+    // Antes do hydrate do zustand persist, `user`/`token` ainda são os
+    // valores iniciais (null) independente de haver sessão salva — decidir
+    // aqui destravaria a tela cedo demais para um admin de verdade. Mas uma
+    // vez hidratado, se o visitante não é admin (ou não está logado),
+    // `isAdmin`/`token` nunca mais mudam sozinhos — sem `hasHydrated` na
+    // lista de dependências, este efeito nunca rodava de novo pra aplicar
+    // esse caso, e a página ficava presa no esqueleto de carregamento pra
+    // sempre (achado ao vivo: "fica rendering" pra qualquer visitante
+    // não-admin).
+    if (!hasHydrated) return;
     if (isAdmin && token) {
       loadData();
-    } else if (hasHydrated && !isAdmin) {
+    } else {
       setLoading(false);
     }
-  }, [isAdmin, token, loadData]);
+  }, [hasHydrated, isAdmin, token, loadData]);
 
   useEffect(() => {
     const handleRefresh = () => {
@@ -166,8 +176,7 @@ export default function AdminDashboardsPage() {
     );
   }
 
-  const displayedCharts =
-    filterTab === "fixados" ? charts.filter((c) => c.fixado) : charts;
+  const displayedCharts = filterTab === "fixados" ? charts.filter((c) => c.fixado) : charts;
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -280,9 +289,7 @@ export default function AdminDashboardsPage() {
         /* Empty State */
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center shadow-2xs">
           <span className="text-4xl">📊</span>
-          <h2 className="mt-3 text-lg font-bold text-slate-800">
-            Nenhum gráfico disponível
-          </h2>
+          <h2 className="mt-3 text-lg font-bold text-slate-800">Nenhum gráfico disponível</h2>
           <p className="mt-1 max-w-md text-sm text-slate-500">
             Você ainda não possui gráficos salvos neste filtro. Peça um gráfico ao assistente
             diretamente no chat para que ele apareça aqui permanentemente.

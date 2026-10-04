@@ -7,7 +7,9 @@ vi.mock("recharts", async () => {
   const original = await vi.importActual<any>("recharts");
   return {
     ...original,
-    ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
+    ResponsiveContainer: ({ children }: any) => (
+      <div data-testid="responsive-container">{children}</div>
+    ),
   };
 });
 
@@ -42,12 +44,14 @@ const mockCharts = [
 
 vi.mock("@/lib/api/charts", () => ({
   fetchAdminCharts: vi.fn().mockImplementation(() => Promise.resolve([...mockCharts])),
-  refreshAdminChart: vi.fn().mockImplementation((id) =>
-    Promise.resolve({ ...mockCharts[0], id, atualizado_em: new Date().toISOString() })
-  ),
-  updateAdminChart: vi.fn().mockImplementation((id, data) =>
-    Promise.resolve({ ...mockCharts[0], id, ...data })
-  ),
+  refreshAdminChart: vi
+    .fn()
+    .mockImplementation((id) =>
+      Promise.resolve({ ...mockCharts[0], id, atualizado_em: new Date().toISOString() }),
+    ),
+  updateAdminChart: vi
+    .fn()
+    .mockImplementation((id, data) => Promise.resolve({ ...mockCharts[0], id, ...data })),
   deleteAdminChart: vi.fn().mockResolvedValue({ ok: true }),
   createAdminChart: vi.fn().mockImplementation((payload) =>
     Promise.resolve({
@@ -55,7 +59,7 @@ vi.mock("@/lib/api/charts", () => ({
       ...payload,
       criado_em: new Date().toISOString(),
       atualizado_em: new Date().toISOString(),
-    })
+    }),
   ),
 }));
 
@@ -133,6 +137,21 @@ describe("AdminDashboardsPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Novo Gráfico Manual")).toBeInTheDocument();
+    });
+  });
+
+  it("não fica preso no esqueleto de carregamento para visitante não-admin", async () => {
+    // Achado ao vivo (2026-10-04): sem `hasHydrated` na lista de
+    // dependências do efeito de carregamento, um visitante que não é admin
+    // (isAdmin/token nunca mudam sozinhos depois do hydrate) nunca via o
+    // efeito rodar de novo — a página ficava presa no esqueleto de
+    // `animate-pulse` para sempre ("fica rendering").
+    useAuthStore.setState({ user: null, token: null });
+
+    render(<AdminDashboardsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Acesso Restrito/i)).toBeInTheDocument();
     });
   });
 });
