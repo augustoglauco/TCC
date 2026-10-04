@@ -1,0 +1,122 @@
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import AdminMetricasPage from "@/app/admin/metricas/page";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
+import * as metricsApi from "@/lib/api/metrics";
+
+describe("AdminMetricasPage", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthStore.setState({ user: null, token: null });
+  });
+
+  it("renderiza aviso de acesso restrito se o usuário não for Administrador", () => {
+    useAuthStore.setState({
+      user: {
+        id: 2,
+        nome: "João Cliente",
+        email: "joao@example.com",
+        perfil: "Cliente",
+      },
+      token: "mock-token",
+    });
+
+    render(<AdminMetricasPage />);
+    expect(screen.getByText("Acesso Restrito ao Administrador")).toBeInTheDocument();
+  });
+
+  it("renderiza cards de resumo e tabela diária quando logado como admin", async () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    const mockResponse: metricsApi.TokenCostMetricsResponse = {
+      period: "7d",
+      summary: {
+        total_closed_chats: 12,
+        total_internal_prompt_tokens: 5000,
+        total_internal_completion_tokens: 2000,
+        total_external_prompt_tokens: 1500,
+        total_external_completion_tokens: 800,
+        total_cost_prompt_usd: 0.0045,
+        total_cost_completion_usd: 0.0032,
+        total_cost_usd: 0.0077,
+      },
+      daily_breakdown: [
+        {
+          date: "2026-10-03",
+          closed_chats_count: 5,
+          internal_prompt_tokens: 2000,
+          internal_completion_tokens: 800,
+          external_prompt_tokens: 600,
+          external_completion_tokens: 300,
+          cost_prompt_usd: 0.0018,
+          cost_completion_usd: 0.0012,
+          total_cost_usd: 0.0030,
+        },
+      ],
+    };
+
+    const spy = vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
+      expect(screen.getByText("Tokens Internos (GPU Local)")).toBeInTheDocument();
+      expect(screen.getByText("Tokens Externos (OpenRouter)")).toBeInTheDocument();
+      expect(screen.getByText("$0.0077")).toBeInTheDocument();
+      expect(screen.getByText("2026-10-03")).toBeInTheDocument();
+    });
+
+    expect(spy).toHaveBeenCalledWith({ period: "7d" });
+  });
+
+  it("permite alternar período de filtro", async () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    const mockResponse: metricsApi.TokenCostMetricsResponse = {
+      period: "today",
+      summary: {
+        total_closed_chats: 2,
+        total_internal_prompt_tokens: 1000,
+        total_internal_completion_tokens: 400,
+        total_external_prompt_tokens: 200,
+        total_external_completion_tokens: 100,
+        total_cost_prompt_usd: 0.0006,
+        total_cost_completion_usd: 0.0004,
+        total_cost_usd: 0.0010,
+      },
+      daily_breakdown: [],
+    };
+
+    const spy = vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
+    });
+
+    const hojeButton = screen.getByRole("button", { name: "Hoje" });
+    fireEvent.click(hojeButton);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith({ period: "today" });
+    });
+  });
+});

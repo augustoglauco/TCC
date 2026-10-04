@@ -15,6 +15,8 @@ export function metricsFromDone(data: ChatDoneEventData): ChatMetrics {
     tps: data.tps ?? undefined,
     confidence: data.confidence ?? undefined,
     complexity: data.complexity ?? undefined,
+    costPromptUsd: data.cost_prompt_usd ?? undefined,
+    costCompletionUsd: data.cost_completion_usd ?? undefined,
     estimatedCostUsd: data.estimated_cost_usd ?? undefined,
     ragRetrievalMs: data.rag_retrieval_ms ?? undefined,
     ragChunksCount: data.rag_chunks_count ?? undefined,

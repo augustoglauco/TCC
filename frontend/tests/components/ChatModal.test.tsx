@@ -597,4 +597,26 @@ describe("ChatModal", () => {
       "Formato de arquivo não suportado. Por favor, envie imagens (PNG, JPG, WEBP) ou áudios.",
     );
   });
+
+  it("encerra conversa ao clicar no botão Encerrar atendimento", async () => {
+    const chatApi = await import("@/lib/api/chat");
+    const closeSpy = vi.spyOn(chatApi, "closeConversation").mockResolvedValue(true);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    useChatStore.setState({
+      conversationId: "conv-123",
+      messages: [{ id: "m1", role: "assistant", text: "Olá cliente" }],
+    });
+
+    renderModal();
+
+    const closeBtn = screen.getByRole("button", { name: "Encerrar atendimento" });
+    expect(closeBtn).toBeInTheDocument();
+
+    fireEvent.click(closeBtn);
+
+    expect(closeSpy).toHaveBeenCalledWith("conv-123", "manual_usuario");
+    expect(await screen.findByText(/Atendimento encerrado/)).toBeInTheDocument();
+  });
 });
+

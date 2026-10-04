@@ -7,7 +7,7 @@ import EscalonamentoBanner from "@/components/chat/EscalonamentoBanner";
 import ImageUploader from "@/components/chat/ImageUploader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
-import { deleteConversation, sendChatMessage } from "@/lib/api/chat";
+import { closeConversation, deleteConversation, sendChatMessage } from "@/lib/api/chat";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import type { ChatEscalonamentoData } from "@/lib/types/chat";
@@ -79,6 +79,22 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     clearChat();
     setError(null);
     setEscalonamento(null);
+  }
+
+  async function handleCloseConversation() {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Deseja finalizar este atendimento? A sessão será registrada como encerrada.")
+    ) {
+      return;
+    }
+    await closeConversation(conversationId, "manual_usuario");
+    addMessage({
+      id: generateId(),
+      role: "assistant",
+      text: "🏁 Atendimento encerrado. Obrigado pelo contato!",
+    });
+    setConversationId(generateId());
   }
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -323,16 +339,28 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       size="2xl"
       headerActions={
         messages.length > 0 && (
-          <button
-            type="button"
-            onClick={() => void handleClearHistory()}
-            className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 sm:px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
-            title="Apagar mensagens e memória da conversa"
-            aria-label="Limpar histórico da conversa"
-          >
-            <span>🗑️</span>
-            <span className="hidden sm:inline">Limpar conversa</span>
-          </button>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => void handleCloseConversation()}
+              className="flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2 sm:px-2.5 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+              title="Encerrar atendimento atual e contabilizar métricas"
+              aria-label="Encerrar atendimento"
+            >
+              <span>🏁</span>
+              <span className="hidden sm:inline">Encerrar atendimento</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleClearHistory()}
+              className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 sm:px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
+              title="Apagar mensagens e memória da conversa"
+              aria-label="Limpar histórico da conversa"
+            >
+              <span>🗑️</span>
+              <span className="hidden sm:inline">Limpar conversa</span>
+            </button>
+          </div>
         )
       }
     >

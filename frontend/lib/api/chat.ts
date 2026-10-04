@@ -216,3 +216,26 @@ export async function deleteConversation(conversationId: string): Promise<boolea
     return false;
   }
 }
+
+/**
+ * Solicita o encerramento da conversa (POST /api/chat/conversations/{id}/close).
+ */
+export async function closeConversation(
+  conversationId: string,
+  motivo: string = "manual_usuario"
+): Promise<boolean> {
+  if (!conversationId) return true;
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/chat/conversations/${encodeURIComponent(conversationId)}/close`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ motivo }),
+      },
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}

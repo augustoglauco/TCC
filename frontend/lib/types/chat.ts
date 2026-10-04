@@ -89,6 +89,8 @@ export interface ChatMetrics {
   tps?: number;
   confidence?: number;
   complexity?: string;
+  costPromptUsd?: number;
+  costCompletionUsd?: number;
   estimatedCostUsd?: number;
   ragRetrievalMs?: number;
   ragChunksCount?: number;
@@ -112,6 +114,8 @@ export interface ChatDoneEventData {
   tps?: number | null;
   confidence?: number | null;
   complexity?: string | null;
+  cost_prompt_usd?: number | null;
+  cost_completion_usd?: number | null;
   estimated_cost_usd?: number | null;
   rag_retrieval_ms?: number | null;
   rag_chunks_count?: number | null;
