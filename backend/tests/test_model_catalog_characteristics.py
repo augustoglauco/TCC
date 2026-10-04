@@ -1,10 +1,18 @@
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 import httpx
 import pytest
+from sqlalchemy import select
 
 import app.model_catalog.characteristics as model_catalog_characteristics
-from app.model_catalog.characteristics import _fetch_huggingface, _fetch_ollama, _fetch_openrouter
+from app.db.models import ModelCharacteristics
+from app.model_catalog.characteristics import (
+    _fetch_huggingface,
+    _fetch_ollama,
+    _fetch_openrouter,
+    get_or_fetch,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -191,3 +199,169 @@ async def test_fetch_huggingface_repo_inexistente_retorna_none():
     http_client = httpx.AsyncClient(transport=_mock_hf_transport({}, status_code=404))
 
     assert await _fetch_huggingface("hf.co/usuario/nao-existe", http_client) is None
+
+
+@pytest.fixture
+def http_client_openrouter_ok():
+    payload = [{"id": "openai/gpt-4o-mini", "context_length": 128000, "architecture": {}}]
+
+    def handler(request):
+        return httpx.Response(200, json={"data": payload})
+
+    return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+
+async def test_get_or_fetch_busca_e_salva_quando_nao_existe(db_session, http_client_openrouter_ok):
+    import app.model_catalog.characteristics as mod
+
+    mod._openrouter_cache["models"] = None
+    mod._openrouter_cache["fetched_at"] = None
+
+    resultado = await get_or_fetch(
+        db_session, "openrouter", "openai/gpt-4o-mini", http_client=http_client_openrouter_ok
+    )
+
+    assert resultado is not None
+    assert resultado.source == "openrouter"
+    assert resultado.tag == "openai/gpt-4o-mini"
+    assert resultado.context_length == 128000
+
+    linhas = (await db_session.execute(select(ModelCharacteristics))).scalars().all()
+    assert len(linhas) == 1
+
+
+async def test_get_or_fetch_cache_fresco_nao_rechama_a_fonte(db_session):
+    existente = ModelCharacteristics(
+        source="openrouter",
+        tag="openai/gpt-4o-mini",
+        is_multimodal=True,
+        input_modalities=["text", "image"],
+        output_modalities=["text"],
+        context_length=128000,
+        raw_payload={},
+        fetched_at=datetime.now(UTC),
+    )
+    db_session.add(existente)
+    await db_session.commit()
+
+    http_client_nao_deve_ser_chamado = AsyncMock()
+
+    resultado = await get_or_fetch(
+        db_session,
+        "openrouter",
+        "openai/gpt-4o-mini",
+        http_client=http_client_nao_deve_ser_chamado,
+    )
+
+    assert resultado.id == existente.id
+    http_client_nao_deve_ser_chamado.get.assert_not_called()
+
+
+async def test_get_or_fetch_cache_stale_rechama_e_atualiza(db_session, http_client_openrouter_ok):
+    import app.model_catalog.characteristics as mod
+
+    mod._openrouter_cache["models"] = None
+    mod._openrouter_cache["fetched_at"] = None
+
+    antigo = ModelCharacteristics(
+        source="openrouter",
+        tag="openai/gpt-4o-mini",
+        is_multimodal=False,
+        input_modalities=["text"],
+        output_modalities=["text"],
+        context_length=1,
+        raw_payload={},
+        fetched_at=datetime.now(UTC) - timedelta(days=8),
+    )
+    db_session.add(antigo)
+    await db_session.commit()
+    id_antigo = antigo.id
+
+    resultado = await get_or_fetch(
+        db_session, "openrouter", "openai/gpt-4o-mini", http_client=http_client_openrouter_ok
+    )
+
+    assert resultado.id == id_antigo  # upsert na mesma linha, não duplica
+    assert resultado.context_length == 128000
+
+
+async def test_get_or_fetch_force_refresh_ignora_cache_fresco(
+    db_session, http_client_openrouter_ok
+):
+    import app.model_catalog.characteristics as mod
+
+    mod._openrouter_cache["models"] = None
+    mod._openrouter_cache["fetched_at"] = None
+
+    fresco = ModelCharacteristics(
+        source="openrouter",
+        tag="openai/gpt-4o-mini",
+        is_multimodal=False,
+        input_modalities=["text"],
+        output_modalities=["text"],
+        context_length=1,
+        raw_payload={},
+        fetched_at=datetime.now(UTC),
+    )
+    db_session.add(fresco)
+    await db_session.commit()
+
+    resultado = await get_or_fetch(
+        db_session,
+        "openrouter",
+        "openai/gpt-4o-mini",
+        force_refresh=True,
+        http_client=http_client_openrouter_ok,
+    )
+
+    assert resultado.context_length == 128000
+
+
+async def test_get_or_fetch_falha_com_cache_stale_serve_o_stale(db_session):
+    def handler(request):
+        raise httpx.ConnectError("sem rede", request=request)
+
+    http_client_falho = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+    import app.model_catalog.characteristics as mod
+
+    mod._openrouter_cache["models"] = None
+    mod._openrouter_cache["fetched_at"] = None
+
+    antigo = ModelCharacteristics(
+        source="openrouter",
+        tag="openai/gpt-4o-mini",
+        is_multimodal=False,
+        input_modalities=["text"],
+        output_modalities=["text"],
+        context_length=42,
+        raw_payload={},
+        fetched_at=datetime.now(UTC) - timedelta(days=8),
+    )
+    db_session.add(antigo)
+    await db_session.commit()
+
+    resultado = await get_or_fetch(
+        db_session, "openrouter", "openai/gpt-4o-mini", http_client=http_client_falho
+    )
+
+    assert resultado is not None
+    assert resultado.context_length == 42  # continua servindo o stale
+
+
+async def test_get_or_fetch_falha_sem_cache_nenhum_retorna_none(db_session):
+    def handler(request):
+        raise httpx.ConnectError("sem rede", request=request)
+
+    http_client_falho = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+    import app.model_catalog.characteristics as mod
+
+    mod._openrouter_cache["models"] = None
+    mod._openrouter_cache["fetched_at"] = None
+
+    resultado = await get_or_fetch(
+        db_session, "openrouter", "tag/nunca-visto", http_client=http_client_falho
+    )
+
+    assert resultado is None

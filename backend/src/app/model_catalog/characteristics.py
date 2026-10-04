@@ -3,16 +3,19 @@ specs) em três fontes externas — ver docs/superpowers/specs/2026-10-03-
 caracteristicas-modelo-hover-design.md.
 
 # MVP: cada fonte tem seu próprio fetcher best-effort (nunca lança exceção
-# até o chamador — falha vira `None`); a persistência/staleness fica em
-# `get_or_fetch`, adicionada nas próximas tasks deste plano.
+# até o chamador — falha vira `None`); a persistência/staleness/upsert fica
+# em `get_or_fetch`, que orquestra os três fetchers via Postgres.
 """
 
 import time
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models import ModelCharacteristics
 from app.models.model_catalog import (
     ModelSource,  # noqa: F401 — re-exportado (ver interface da task)
 )
@@ -170,3 +173,70 @@ async def _fetch_huggingface(tag: str, http_client: httpx.AsyncClient) -> dict[s
         "knowledge_cutoff": None,
         "raw_payload": dados,
     }
+
+
+_FETCHERS = {
+    "openrouter": lambda tag, ollama_client, http_client: _fetch_openrouter(tag, http_client),
+    "ollama": lambda tag, ollama_client, http_client: _fetch_ollama(tag, ollama_client),
+    "huggingface": lambda tag, ollama_client, http_client: _fetch_huggingface(tag, http_client),
+}
+
+
+async def _buscar_linha(
+    session: AsyncSession, source: str, tag: str
+) -> ModelCharacteristics | None:
+    result = await session.execute(
+        select(ModelCharacteristics).where(
+            ModelCharacteristics.source == source, ModelCharacteristics.tag == tag
+        )
+    )
+    return result.scalars().first()
+
+
+def _esta_fresco(linha: ModelCharacteristics) -> bool:
+    fetched_at = linha.fetched_at
+    if fetched_at.tzinfo is None:
+        fetched_at = fetched_at.replace(tzinfo=UTC)
+    return (datetime.now(UTC) - fetched_at) < STALENESS
+
+
+async def get_or_fetch(
+    session: AsyncSession,
+    source: ModelSource,
+    tag: str,
+    *,
+    force_refresh: bool = False,
+    ollama_client: Any = None,
+    http_client: httpx.AsyncClient | None = None,
+) -> ModelCharacteristics | None:
+    """Cache-first: devolve a linha do Postgres se fresca (< 7 dias); senão
+    busca na fonte (`_FETCHERS[source]`) e faz upsert. `force_refresh=True`
+    ignora a frescura e sempre busca de novo. Falha na busca com uma linha
+    stale existente → serve a stale (nunca quebra a tela); falha sem
+    nenhuma linha → `None`. Ver spec §2."""
+    linha_existente = await _buscar_linha(session, source, tag)
+
+    if linha_existente is not None and not force_refresh and _esta_fresco(linha_existente):
+        return linha_existente
+
+    dados = await _FETCHERS[source](tag, ollama_client, http_client)
+
+    if dados is None:
+        return linha_existente  # stale-se-houver, senão None
+
+    is_multimodal = len(set(dados["input_modalities"]) - {"text"}) > 0
+
+    if linha_existente is not None:
+        for campo, valor in dados.items():
+            setattr(linha_existente, campo, valor)
+        linha_existente.is_multimodal = is_multimodal
+        linha_existente.fetched_at = datetime.now(UTC)
+        await session.commit()
+        await session.refresh(linha_existente)
+        return linha_existente
+
+    nova_linha = ModelCharacteristics(source=source, tag=tag, is_multimodal=is_multimodal, **dados)
+    session.add(nova_linha)
+    await session.commit()
+    await session.refresh(nova_linha)
+    return nova_linha
