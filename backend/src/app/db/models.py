@@ -482,3 +482,29 @@ class AppSetting(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class AdminChart(Base):
+    """Gráficos dinâmicos gerados via chat pelo Administrador e persistidos
+    para exibição no painel permanente /admin/dashboards.
+    """
+
+    __tablename__ = "admin_charts"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    titulo: Mapped[str] = mapped_column(String(255), nullable=False)
+    descricao: Mapped[str | None] = mapped_column(Text, nullable=True)
+    tipo_grafico: Mapped[str] = mapped_column(String(50), nullable=False)
+    config_json: Mapped[dict] = mapped_column(_JsonVariant, nullable=False, default=dict)
+    dados_json: Mapped[list] = mapped_column(_JsonVariant, nullable=False, default=list)
+    sql_query: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fixado: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    ordem: Mapped[int] = mapped_column(default=0, index=True)
+    criado_por: Mapped[str] = mapped_column(String(255), nullable=False)
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
