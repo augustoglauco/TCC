@@ -1,6 +1,16 @@
 from decimal import Decimal
 import pytest
-from app.db.models import AdminChart, Conversa, ConversaMensagem, Pedido, Produto, ProdutoEstoque
+from app.db.models import (
+    AdminChart,
+    Cliente,
+    ClienteCompra,
+    Conversa,
+    ConversaMensagem,
+    Pedido,
+    PedidoItem,
+    Produto,
+    ProdutoEstoque,
+)
 from app.services.chart_generator import (
     SUPPORTED_QUERIES,
     detect_chart_request,
@@ -15,6 +25,24 @@ def test_detect_chart_request():
     assert res is not None
     assert res["tipo_grafico"] == "pie"
     assert res["query_key"] == "estoque_por_cd"
+
+    # Intenção solicitada pelo usuário: "gere grafico de venda de produtos x quantidade"
+    res_qtd = detect_chart_request("gere grafico de venda de produtos x quantidade")
+    assert res_qtd is not None
+    assert res_qtd["query_key"] == "vendas_produtos_quantidade"
+    assert res_qtd["titulo"] == "Vendas por Produto (Quantidade)"
+    assert res_qtd["tipo_grafico"] == "bar"
+
+    # Intenção por faturamento/valor
+    res_val = detect_chart_request("gráfico de venda de produtos por faturamento")
+    assert res_val is not None
+    assert res_val["query_key"] == "vendas_produtos_valor"
+    assert res_val["titulo"] == "Vendas por Produto (Faturamento)"
+
+    # Categoria por quantidade
+    res_cat_qtd = detect_chart_request("gráfico de quantidade por categoria")
+    assert res_cat_qtd is not None
+    assert res_cat_qtd["query_key"] == "vendas_categoria_quantidade"
 
     # Não deve disparar para perguntas comuns
     assert detect_chart_request("como trocar meu produto?") is None
@@ -107,3 +135,69 @@ async def test_generate_and_persist_chart(db_session):
     assert chart.criado_por == "admin@empresa.com"
     assert chart.sql_query == "estoque_por_cd"
     assert "x_key" in chart.config_json
+
+
+@pytest.mark.asyncio
+async def test_execute_chart_aggregation_produtos_quantidade(db_session):
+    from datetime import UTC, datetime
+    p1 = Produto(nome="Gerador X", descricao="Gerador", preco=Decimal("1000.00"), categoria="Geradores")
+    p2 = Produto(nome="Gerador Y", descricao="Gerador", preco=Decimal("2000.00"), categoria="Geradores")
+    db_session.add_all([p1, p2])
+    await db_session.commit()
+    await db_session.refresh(p1)
+    await db_session.refresh(p2)
+
+    cliente = Cliente(nome="Comprador", email="comprador@teste.com")
+    db_session.add(cliente)
+    await db_session.commit()
+    await db_session.refresh(cliente)
+
+    compra = ClienteCompra(
+        cliente_id=cliente.id,
+        produto_id=p1.id,
+        quantidade=5,
+        valor_total=Decimal("5000.00"),
+        comprado_em=datetime.now(UTC),
+    )
+    db_session.add(compra)
+
+    pedido = Pedido(status="reservado")
+    db_session.add(pedido)
+    await db_session.commit()
+    await db_session.refresh(pedido)
+
+    item = PedidoItem(
+        pedido_id=pedido.id,
+        produto_id=p2.id,
+        centro_distribuicao="CD SP",
+        quantidade=3,
+        preco_unitario=Decimal("2000.00"),
+    )
+    db_session.add(item)
+    await db_session.commit()
+
+    config, dados = await execute_chart_aggregation(db_session, "vendas_produtos_quantidade")
+    assert config["x_key"] == "produto"
+    assert config["y_keys"] == ["quantidade"]
+    assert config["format"] == "number"
+    assert len(dados) == 2
+    # Gerador X deve ter 5 unidades vendidas
+    prod_x = next(d for d in dados if d["produto"] == "Gerador X")
+    assert prod_x["quantidade"] == 5
+    # Gerador Y deve ter 3 unidades
+    prod_y = next(d for d in dados if d["produto"] == "Gerador Y")
+    assert prod_y["quantidade"] == 3
+
+
+@pytest.mark.asyncio
+async def test_generate_and_persist_chart_produtos_quantidade(db_session):
+    chart = await generate_and_persist_chart(
+        db_session,
+        prompt="gere grafico de venda de produtos x quantidade",
+        user_email="admin@empresa.com",
+    )
+    assert chart is not None
+    assert chart.sql_query == "vendas_produtos_quantidade"
+    assert chart.config_json["format"] == "number"
+    assert chart.config_json["y_keys"] == ["quantidade"]
+

@@ -253,6 +253,9 @@ export default function ChartRenderer({
             tickLine={false}
             axisLine={{ stroke: "#cbd5e1" }}
             tick={{ fill: "#64748b", fontSize: 11 }}
+            tickFormatter={(v) =>
+              typeof v === "string" && v.length > 20 ? `${v.slice(0, 18)}...` : v
+            }
           />
           <YAxis
             tickLine={false}

@@ -9,15 +9,26 @@ import re
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, union_all
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import AdminChart, ConversaMensagem, Pedido, Produto, ProdutoEstoque
+from app.db.models import (
+    AdminChart,
+    ClienteCompra,
+    ConversaMensagem,
+    Pedido,
+    PedidoItem,
+    Produto,
+    ProdutoEstoque,
+)
 
 logger = logging.getLogger("assistente.chart_generator")
 
 SUPPORTED_QUERIES = {
+    "vendas_produtos_quantidade": "Quantidade de unidades vendidas por produto",
+    "vendas_produtos_valor": "Faturamento e valor vendido por produto",
     "vendas_por_categoria": "Distribuição de produtos e valor por categoria",
+    "vendas_categoria_quantidade": "Quantidade de itens por categoria",
     "estoque_por_cd": "Quantidade de estoque por centro de distribuição",
     "pedidos_por_status": "Volume de pedidos agrupados por status",
     "metricas_tokens_por_dia": "Consumo de tokens e custos ao longo dos dias",
@@ -60,7 +71,43 @@ def detect_chart_request(prompt: str) -> dict[str, str] | None:
     elif "área" in texto or "area" in texto:
         tipo_grafico = "area"
 
-    # Detecta agregação / query alvo
+    # Detecta dimensões e métricas solicitadas
+    tem_quantidade = any(
+        q in texto
+        for q in [
+            "quantidade",
+            "quantidades",
+            "qtd",
+            "unidade",
+            "unidades",
+            "volume",
+            "itens vendidos",
+            "unidades vendidas",
+            "mais vendido",
+            "mais vendidos",
+        ]
+    )
+    tem_valor = any(
+        v in texto
+        for v in ["valor", "valores", "faturamento", "receita", "reais", "r$", "dinheiro", "preço", "preco"]
+    )
+    tem_produto = any(
+        p in texto
+        for p in [
+            "produto",
+            "produtos",
+            "item",
+            "itens",
+            "mercadoria",
+            "mercadorias",
+            "mais vendido",
+            "mais vendidos",
+        ]
+    )
+    tem_categoria = any(
+        c in texto for c in ["categoria", "categorias", "departamento", "departamentos"]
+    )
+
     if any(k in texto for k in ["estoque", "cd", "centro de distribuição", "centros de distribuicao"]):
         query_key = "estoque_por_cd"
         titulo = "Estoque por Centro de Distribuição"
@@ -73,10 +120,33 @@ def detect_chart_request(prompt: str) -> dict[str, str] | None:
         query_key = "metricas_tokens_por_dia"
         titulo = "Consumo de Tokens e Custos por Dia"
         descricao = "Histórico diário de consumo de tokens prompt/completion e custos"
+    elif tem_produto and not tem_categoria:
+        if tem_valor and not tem_quantidade:
+            query_key = "vendas_produtos_valor"
+            titulo = "Vendas por Produto (Faturamento)"
+            descricao = "Faturamento total gerado por produto vendido"
+        else:
+            query_key = "vendas_produtos_quantidade"
+            titulo = "Vendas por Produto (Quantidade)"
+            descricao = "Quantidade total de unidades vendidas por produto"
+    elif tem_categoria:
+        if tem_quantidade and not tem_valor:
+            query_key = "vendas_categoria_quantidade"
+            titulo = "Quantidade de Itens por Categoria"
+            descricao = "Total de unidades e itens cadastrados por categoria"
+        else:
+            query_key = "vendas_por_categoria"
+            titulo = "Produtos e Vendas por Categoria"
+            descricao = "Total estimado e quantidade de itens cadastrados por categoria"
     else:
-        query_key = "vendas_por_categoria"
-        titulo = "Produtos e Vendas por Categoria"
-        descricao = "Total estimado e quantidade de itens cadastrados por categoria"
+        if tem_quantidade:
+            query_key = "vendas_produtos_quantidade"
+            titulo = "Vendas por Produto (Quantidade)"
+            descricao = "Quantidade total de unidades vendidas por produto"
+        else:
+            query_key = "vendas_por_categoria"
+            titulo = "Produtos e Vendas por Categoria"
+            descricao = "Total estimado e faturamento por categoria"
 
     return {
         "tipo_grafico": tipo_grafico,
@@ -92,7 +162,116 @@ async def execute_chart_aggregation(
     """Executa a agregação analítica correspondente a `query_key` de forma sanitizada
     e retorna `(config_json, dados_json)` prontos para o Recharts.
     """
-    if query_key == "vendas_por_categoria":
+    if query_key in ("vendas_produtos_quantidade", "vendas_produtos_valor"):
+        q1 = select(
+            ClienteCompra.produto_id.label("produto_id"),
+            ClienteCompra.quantidade.label("quantidade"),
+            ClienteCompra.valor_total.label("valor_total"),
+        ).where(ClienteCompra.produto_id.is_not(None))
+
+        q2 = select(
+            PedidoItem.produto_id.label("produto_id"),
+            PedidoItem.quantidade.label("quantidade"),
+            (PedidoItem.quantidade * PedidoItem.preco_unitario).label("valor_total"),
+        ).where(PedidoItem.produto_id.is_not(None))
+
+        u = union_all(q1, q2).subquery("vendas_unificadas")
+
+        order_col = (
+            func.sum(u.c.quantidade).desc()
+            if query_key == "vendas_produtos_quantidade"
+            else func.sum(u.c.valor_total).desc()
+        )
+
+        stmt = (
+            select(
+                Produto.nome.label("produto"),
+                func.sum(u.c.quantidade).label("quantidade"),
+                func.sum(u.c.valor_total).label("total"),
+            )
+            .join(Produto, u.c.produto_id == Produto.id)
+            .group_by(Produto.nome)
+            .order_by(order_col)
+            .limit(15)
+        )
+        res = await session.execute(stmt)
+        dados = []
+        for p_nome, qtd, total in res:
+            dados.append(
+                {
+                    "produto": p_nome or "Produto",
+                    "quantidade": int(qtd or 0),
+                    "total": float(total or 0.0),
+                }
+            )
+
+        # Se não houver vendas, lista produtos do catálogo com quantidade 0
+        if not dados:
+            stmt_cat = select(Produto.nome).order_by(Produto.nome.asc()).limit(10)
+            res_cat = await session.execute(stmt_cat)
+            for (p_nome,) in res_cat:
+                dados.append(
+                    {
+                        "produto": p_nome,
+                        "quantidade": 0,
+                        "total": 0.0,
+                    }
+                )
+
+        if query_key == "vendas_produtos_quantidade":
+            config = {
+                "x_key": "produto",
+                "y_keys": ["quantidade"],
+                "labels": {
+                    "quantidade": "Quantidade Vendida (Unid.)",
+                    "total": "Faturamento (R$)",
+                },
+                "format": "number",
+                "palette": ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4"],
+            }
+        else:
+            config = {
+                "x_key": "produto",
+                "y_keys": ["total"],
+                "labels": {
+                    "total": "Faturamento Total (R$)",
+                    "quantidade": "Quantidade Vendida (Unid.)",
+                },
+                "format": "currency",
+                "palette": ["#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4"],
+            }
+        return config, dados
+
+    elif query_key == "vendas_categoria_quantidade":
+        stmt = (
+            select(
+                Produto.categoria,
+                func.count(Produto.id).label("total_itens"),
+                func.sum(Produto.preco).label("total"),
+            )
+            .group_by(Produto.categoria)
+            .order_by(func.count(Produto.id).desc())
+        )
+        res = await session.execute(stmt)
+        dados = []
+        for cat, itens, total in res:
+            dados.append(
+                {
+                    "categoria": cat or "Sem Categoria",
+                    "total_itens": int(itens or 0),
+                    "total": float(total or 0.0),
+                }
+            )
+        config = {
+            "x_key": "categoria",
+            "y_keys": ["total_itens"],
+            "labels": {"total_itens": "Quantidade de Itens", "total": "Valor Total (R$)"},
+            "format": "number",
+            "palette": ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4"],
+        }
+        return config, dados
+
+    elif query_key == "vendas_por_categoria":
         stmt = (
             select(
                 Produto.categoria,
