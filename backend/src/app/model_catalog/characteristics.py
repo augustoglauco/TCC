@@ -115,3 +115,58 @@ async def _fetch_ollama(tag: str, ollama_client: Any) -> dict[str, Any] | None:
         "knowledge_cutoff": None,
         "raw_payload": detalhes,
     }
+
+
+HUGGINGFACE_MODELS_URL = "https://huggingface.co/api/models"
+
+PIPELINE_TAG_MODALIDADES: dict[str, tuple[list[str], list[str]]] = {
+    "text-generation": (["text"], ["text"]),
+    "text2text-generation": (["text"], ["text"]),
+    "image-text-to-text": (["text", "image"], ["text"]),
+    "visual-question-answering": (["text", "image"], ["text"]),
+    "image-to-text": (["image"], ["text"]),
+    "automatic-speech-recognition": (["audio"], ["text"]),
+    "audio-text-to-text": (["text", "audio"], ["text"]),
+    "any-to-any": (["text", "image", "audio"], ["text", "image", "audio"]),
+}
+
+
+def _repo_do_tag_huggingface(tag: str) -> str | None:
+    if not tag.lower().startswith("hf.co/"):
+        return None
+    sem_prefixo = tag[len("hf.co/") :]
+    return sem_prefixo.split(":", 1)[0]
+
+
+async def _fetch_huggingface(tag: str, http_client: httpx.AsyncClient) -> dict[str, Any] | None:
+    """`source="huggingface"` — só para tags `hf.co/<usuario>/<repo>[:quant]`
+    ainda não baixadas (único caso em que nem OpenRouter nem Ollama têm
+    informação). Ver spec §2 (fonte 3)."""
+    repo = _repo_do_tag_huggingface(tag)
+    if repo is None:
+        return None
+
+    try:
+        response = await http_client.get(f"{HUGGINGFACE_MODELS_URL}/{repo}", timeout=10.0)
+        response.raise_for_status()
+        dados = response.json()
+    except (httpx.HTTPError, ValueError):
+        # ValueError cobre json.JSONDecodeError (corpo malformado).
+        return None
+
+    pipeline_tag = dados.get("pipeline_tag")
+    input_modalities, output_modalities = PIPELINE_TAG_MODALIDADES.get(
+        pipeline_tag, (["desconhecido"], ["desconhecido"])
+    )
+
+    return {
+        "input_modalities": input_modalities,
+        "output_modalities": output_modalities,
+        "context_length": None,
+        "parameter_size": None,
+        "quantization": None,
+        "pricing_prompt_per_1k": None,
+        "pricing_completion_per_1k": None,
+        "knowledge_cutoff": None,
+        "raw_payload": dados,
+    }
