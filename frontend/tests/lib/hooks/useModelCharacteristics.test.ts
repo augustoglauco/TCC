@@ -67,6 +67,38 @@ describe("useModelCharacteristics", () => {
     expect(mockGet).toHaveBeenCalledTimes(1);
   });
 
+  it("duas montagens simultâneas da mesma tag compartilham uma única requisição em voo", async () => {
+    // Achado #1 da revisão final: `openai/gpt-4o-mini` aparece em dois cards
+    // ao mesmo tempo (POPULAR_MODELS e histórico) — ambos montam o hook para
+    // a mesma tag no mesmo ciclo de render, antes de qualquer fetch
+    // resolver. Sem deduplicação, cada um dispara seu próprio GET, e no
+    // backend os dois `get_or_fetch` tentam inserir a mesma linha.
+    let resolverFetch: (valor: typeof CARACTERISTICAS) => void = () => {};
+    const fetchPendente = new Promise<typeof CARACTERISTICAS>((resolve) => {
+      resolverFetch = resolve;
+    });
+    mockGet.mockReturnValue(fetchPendente);
+
+    const { result: resultA } = renderHook(() =>
+      useModelCharacteristics("openrouter", "tag-compartilhada-simultanea"),
+    );
+    const { result: resultB } = renderHook(() =>
+      useModelCharacteristics("openrouter", "tag-compartilhada-simultanea"),
+    );
+
+    expect(resultA.current.loading).toBe(true);
+    expect(resultB.current.loading).toBe(true);
+    expect(mockGet).toHaveBeenCalledTimes(1);
+
+    resolverFetch(CARACTERISTICAS);
+    await waitFor(() => expect(resultA.current.loading).toBe(false));
+    await waitFor(() => expect(resultB.current.loading).toBe(false));
+
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(resultA.current.data).toEqual(CARACTERISTICAS);
+    expect(resultB.current.data).toEqual(CARACTERISTICAS);
+  });
+
   it("refresh() chama o endpoint de refresh e atualiza o estado", async () => {
     mockGet.mockResolvedValue(null);
     mockRefresh.mockResolvedValue(CARACTERISTICAS);

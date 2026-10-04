@@ -12,6 +12,14 @@ import type { ModelCharacteristics, ModelSource } from "@/lib/types/modelCatalog
 // docs/superpowers/specs/2026-10-03-caracteristicas-modelo-hover-design.md §4.3.
 const _cache = new Map<string, ModelCharacteristics | null>();
 
+// Deduplica requisições em voo: dois cards com a mesma tag podem montar no
+// mesmo ciclo de render (ex.: `openai/gpt-4o-mini` aparece tanto nos
+// POPULAR_MODELS quanto no histórico) — sem isso, ambos acham o cache vazio
+// e disparam um GET cada, e no backend os dois `get_or_fetch` tentam INSERT
+// a mesma linha (achado #1 da revisão final do hover). Compartilhar a
+// Promise em voo garante uma única requisição HTTP por chave.
+const _inFlight = new Map<string, Promise<ModelCharacteristics | null>>();
+
 function chaveCache(source: ModelSource, tag: string): string {
   return `${source}:${tag}`;
 }
@@ -57,7 +65,21 @@ export function useModelCharacteristics(
     setLoading(true);
     setError(null);
 
-    getModelCharacteristics(source, tag)
+    let promessa = _inFlight.get(chave);
+    if (!promessa) {
+      promessa = getModelCharacteristics(source, tag);
+      _inFlight.set(chave, promessa);
+      // Remove do mapa de em-voo assim que resolver/rejeitar, sem engolir o
+      // erro (quem consome `promessa` abaixo trata a rejeição normalmente)
+      // nem deixar uma promise derivada sem handler (evita o aviso de
+      // "unhandled rejection" do Node/navegador numa rejeição já tratada).
+      promessa.then(
+        () => _inFlight.delete(chave),
+        () => _inFlight.delete(chave),
+      );
+    }
+
+    promessa
       .then((resultado) => {
         if (cancelado) return;
         _cache.set(chave, resultado);
