@@ -509,7 +509,7 @@ function RagSearchConfigSection({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
         <span className="text-xl">🔍</span>
         <div>
@@ -564,142 +564,147 @@ function AbaConfiguracao({
 
   return (
     <div className="space-y-6">
-      <RagSearchConfigSection
-        onError={(msg) => showToast(msg, "error")}
-        onSuccess={(msg) => showToast(msg, "success")}
-      />
+      {/* Master Card Unificando as Configurações de Busca e Coleções RAG */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-6">
+        {/* 1. Regras de Busca */}
+        <RagSearchConfigSection
+          onError={(msg) => showToast(msg, "error")}
+          onSuccess={(msg) => showToast(msg, "success")}
+        />
 
-      {/* Painel de Collections Ativas por Finalidade */}
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-4">
-        <div>
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <span>⭐</span> Collections Ativas por Finalidade (Purpose)
-          </h2>
-          <p className="text-xs text-slate-600">
-            Cada canal do sistema possui exatamente uma collection ativa independente para buscas vetoriais.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card Chat */}
-          <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
-                <span>💬</span> Chat Público
-              </span>
-              {ativaChat ? (
-                <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
-                  Ativa
-                </span>
-              ) : (
-                <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
-                  Sem ativa
-                </span>
-              )}
-            </div>
-            <div className="text-sm font-bold text-slate-900 truncate">
-              {ativaChat ? (
-                <span>Coleção ativa: {ativaChat.name}</span>
-              ) : (
-                <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-600 leading-tight">
-              Consultada pelo assistente nas conversas do chat público com clientes.
-            </p>
-          </div>
-
-          {/* Card MCP B2B */}
-          <div className="rounded-xl border border-purple-200/80 bg-purple-50/40 p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
-                <span>🏢</span> MCP B2B Restrito
-              </span>
-              {ativaB2B ? (
-                <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
-                  Ativa
-                </span>
-              ) : (
-                <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
-                  Sem ativa
-                </span>
-              )}
-            </div>
-            <div className="text-sm font-bold text-slate-900 truncate">
-              {ativaB2B ? (
-                <span>Coleção ativa: {ativaB2B.name}</span>
-              ) : (
-                <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-600 leading-tight">
-              Consultada pelos revendedores parceiros no canal de integração MCP B2B.
-            </p>
-          </div>
-
-          {/* Card Admin */}
-          <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
-                <span>🛡️</span> Admin Exclusivo
-              </span>
-              {ativaAdmin ? (
-                <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
-                  Ativa
-                </span>
-              ) : (
-                <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
-                  Sem ativa
-                </span>
-              )}
-            </div>
-            <div className="text-sm font-bold text-slate-900 truncate">
-              {ativaAdmin ? (
-                <span>Coleção ativa: {ativaAdmin.name}</span>
-              ) : (
-                <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
-              )}
-            </div>
-            <p className="text-[11px] text-slate-600 leading-tight">
-              Consultada pelo administrador no modo seguro do chat do painel.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="flex items-center justify-between">
+        {/* 2. Collections Ativas por Finalidade */}
+        <div className="border-t border-slate-100 pt-6 space-y-4">
           <div>
-            <h2 className="text-base font-bold text-slate-900">Perfis de Coleções Qdrant</h2>
-            <p className="text-xs text-slate-600">Perfis de collection do Qdrant usados pelo RAG.</p>
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span>⭐</span> Collections Ativas por Finalidade (Purpose)
+            </h2>
+            <p className="text-xs text-slate-600">
+              Cada canal do sistema possui exatamente uma collection ativa independente para buscas vetoriais.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={() => setModalAberto(true)}
-            className="rounded-xl bg-slate-900 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            + Nova Collection
-          </button>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Card Chat */}
+            <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
+                  <span>💬</span> Chat Público
+                </span>
+                {ativaChat ? (
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
+                    Ativa
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
+                    Sem ativa
+                  </span>
+                )}
+              </div>
+              <div className="text-sm font-bold text-slate-900 truncate">
+                {ativaChat ? (
+                  <span>Coleção ativa: {ativaChat.name}</span>
+                ) : (
+                  <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-600 leading-tight">
+                Consultada pelo assistente nas conversas do chat público com clientes.
+              </p>
+            </div>
+
+            {/* Card MCP B2B */}
+            <div className="rounded-xl border border-purple-200/80 bg-purple-50/40 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
+                  <span>🏢</span> MCP B2B Restrito
+                </span>
+                {ativaB2B ? (
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
+                    Ativa
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
+                    Sem ativa
+                  </span>
+                )}
+              </div>
+              <div className="text-sm font-bold text-slate-900 truncate">
+                {ativaB2B ? (
+                  <span>Coleção ativa: {ativaB2B.name}</span>
+                ) : (
+                  <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-600 leading-tight">
+                Consultada pelos revendedores parceiros no canal de integração MCP B2B.
+              </p>
+            </div>
+
+            {/* Card Admin */}
+            <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
+                  <span>🛡️</span> Admin Exclusivo
+                </span>
+                {ativaAdmin ? (
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
+                    Ativa
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
+                    Sem ativa
+                  </span>
+                )}
+              </div>
+              <div className="text-sm font-bold text-slate-900 truncate">
+                {ativaAdmin ? (
+                  <span>Coleção ativa: {ativaAdmin.name}</span>
+                ) : (
+                  <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-600 leading-tight">
+                Consultada pelo administrador no modo seguro do chat do painel.
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-4">
-          <CollectionsTable
-            collections={collections}
-            onChanged={onChanged}
-            onError={(message) => showToast(message, "error")}
-            onSuccess={(message) => showToast(message, "success")}
+        {/* 3. Perfis de Coleções Qdrant */}
+        <div className="border-t border-slate-100 pt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-bold text-slate-900">Perfis de Coleções Qdrant</h2>
+              <p className="text-xs text-slate-600">Perfis de collection do Qdrant usados pelo RAG.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModalAberto(true)}
+              className="rounded-xl bg-slate-900 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              + Nova Collection
+            </button>
+          </div>
+
+          <div className="mt-4">
+            <CollectionsTable
+              collections={collections}
+              onChanged={onChanged}
+              onError={(message) => showToast(message, "error")}
+              onSuccess={(message) => showToast(message, "success")}
+            />
+          </div>
+
+          <CollectionFormModal
+            open={modalAberto}
+            onOpenChange={setModalAberto}
+            onCreated={() => {
+              setModalAberto(false);
+              showToast("Collection criada com sucesso.", "success");
+              onChanged();
+            }}
           />
         </div>
-
-        <CollectionFormModal
-          open={modalAberto}
-          onOpenChange={setModalAberto}
-          onCreated={() => {
-            setModalAberto(false);
-            showToast("Collection criada com sucesso.", "success");
-            onChanged();
-          }}
-        />
       </div>
 
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
