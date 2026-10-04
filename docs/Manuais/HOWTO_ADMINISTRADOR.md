@@ -73,15 +73,19 @@ O sistema utiliza a técnica de **RAG (Busca Aumentada por Recuperação)**. Iss
 
 Ao criar uma collection (base de documentos), você escolhe sua **Finalidade**:
 
-* **Chat (pública)**: é o que o site/widget de chat usa para responder qualquer visitante. Só uma collection `Chat` pode ficar "ativa" por vez.
-* **Restrita ao MCP B2B**: não aparece no chat público; é consultada pelos parceiros comerciais conectados via MCP B2B (ver Seção 6) **e também** pelo Admin, quando ele mesmo usa o chat logado.
-* **Exclusiva do Admin (`admin`)**: só o Admin vê esse conteúdo — nem o chat público, nem os parceiros do MCP B2B. Use para documentos internos/confidenciais (ex.: notas de custo, contratos, manuais internos).
+* **Chat (pública)**: base que o site e o widget de chat público utilizam para responder aos visitantes.
+* **Restrita ao MCP B2B (`mcp_b2b`)**: não aparece no chat público; é consultada exclusivamente pelos parceiros comerciais conectados via MCP B2B (ver Seção 6) **e também** pelo Admin logado.
+* **Exclusiva do Admin (`admin`)**: visualizada estritamente pelo Administrador logado — nem o chat público, nem os parceiros do MCP B2B têm acesso a ela. Ideal para notas de custo, acordos contratuais e manuais confidenciais.
 
-Nenhuma collection `Restrita ao MCP B2B` ou `Exclusiva do Admin` pode ser marcada como "ativa" do chat público — o botão **Ativar** fica desabilitado para elas.
+> **Ativação Independente por Finalidade**: O sistema mantém **uma collection ativa para cada finalidade**. Isso significa que você pode ter uma base ativa para o Chat, outra ativa para o MCP B2B e outra ativa para o Admin simultaneamente. Ao clicar em **Ativar** em uma collection, o sistema desativa apenas a collection anterior daquela mesma finalidade.
 
 ### Organização e Navegação do Painel (`/admin/ingestao`)
 
-- **Master Card de Configurações**: Todas as configurações de busca, isolamento de domínios, cards de finalidades ativas e tabela de perfis de coleção ficam unificadas em um único painel mestre.
+- **Cards de Collections Ativas por Finalidade**: No topo da aba Configuração, três cards em destaque exibem instantaneamente qual collection está ativa para `Chat`, `MCP B2B` e `Admin`, com sua respectiva contagem de documentos.
+- **Filtros Rápidos por Finalidade na Tabela**: A tabela de collections conta com abas para filtrar por `Todas`, `Chat`, `MCP B2B` ou `Admin`.
+- **Ações Compactas com Ícones**: Os botões de ação foram modernizados com ícones compactos (Checkmark para ativar e Lixeira para excluir), evitando barras de rolagem horizontal.
+- **Bubble Flutuante de Parâmetros Técnicos (Hover)**: Ao repousar o cursor sobre o card ou nome de qualquer collection, um portal inteligente exibe a quantidade exata de arquivos indexados e todos os parâmetros técnicos (modelo de embedding, dimensões, métrica, tamanho de chunk, overlap, HNSW, quantização e payload indexes).
+- **Playground Comparativo Inteligente**: A ferramenta de teste e comparação de buscas do RAG restringe a comparação apenas entre collections de **mesma finalidade**, garantindo testes fidedignos ao cenário real de produção.
 - **Filtros de Documentos Indexados**: A tabela de documentos indexados possui filtros avançados por **Nome do arquivo**, **Domínio**, **Collection** e **Intervalo de datas (Período)**.
 - **Scroll Interno Responsivo**: As tabelas possuem rolagem interna independente (`overflow-y-auto`) com cabeçalhos fixos no topo (**sticky headers**), otimizando a navegação em telas de desktop e celulares (mobile).
 
@@ -126,16 +130,39 @@ Nesta tela, o administrador controla como o "cérebro" do assistente se comporta
 
 ---
 
-### 1. Seleção do Modelo Local (Ollama)
+### 1. Seleção do Modelo Local (Ollama) & Características no Hover
 O sistema roda em uma GPU própria de 16GB. Você pode escolher qual modelo atende seus clientes no momento:
+* **Gemma 4 12B** (`gemma4:12b-it-q4_K_M`): Padrão de alta capacidade para conversação fluida, raciocínio de vendas e atendimento.
 * **Llama 3.1 8B**: Recomendado para conversas formais, respostas diretas e rápida capacidade de síntese.
 * **Qwen 2.5 7B**: Excelente para compreensão estruturada de tabelas, códigos de produtos e raciocínio lógico.
+
+> **Painel de Características Técnicas no Hover**: Ao passar o cursor sobre qualquer card de modelo (local ou remoto do OpenRouter), um painel inteligente exibe instantaneamente a janela de contexto máxima (ex.: 128k tokens), modalidades suportadas (texto, imagem, áudio), provedores e precificação por milhão de tokens.
 
 > **Como alterar**: Selecione o modelo desejado no menu suspenso e clique em **Ativar Modelo em Runtime**. A troca ocorre imediatamente sem derrubar o site.
 
 ---
 
-### 2. Parametrização de Execução (Controles do Assistente)
+### 2. Residência na VRAM & Otimização de Latência (Zero Cold Start)
+
+Por padrão de fábrica, o Ollama descarrega modelos da memória de vídeo (VRAM) após **5 minutos** sem uso. Isso causava uma espera incômoda de 10 a 30 segundos para o visitante que enviasse uma mensagem após esse período de inatividade. O painel administrativo agora possui controle total de residência na GPU:
+
+* **Tempo de Retenção na VRAM (`keep_alive`)**:
+  * **Permanente / Indefinido (`-1`) — Padrão e Recomendado**: O modelo permanece fixo na GPU indefinidamente. Zero latência para qualquer mensagem, a qualquer momento.
+  * **24 Horas (`24h`) / 1 Hora (`1h`) / 30 Minutos (`30m`) / 15 Minutos (`15m`)**: Mantém o modelo na memória durante o expediente e libera após o período ocioso.
+  * **5 Minutos (`5m`)**: Padrão original do Ollama.
+  * **Descarregar Imediatamente (`0`)**: Libera a VRAM logo após cada resposta (ideal apenas se precisar rodar outras cargas pesadas na GPU).
+* **Pré-aquecimento Automático (*Warmup*)**:
+  * Chave liga/desliga para carregar o modelo local na VRAM automaticamente durante a inicialização do backend em segundo plano, sem travar a subida do servidor.
+* **Status da VRAM em Tempo Real & Ações Imediatas**:
+  * **Badge de Status**: Exibe em tempo real se o modelo está carregado e o volume exato de memória de vídeo ocupado (ex.: `Modelo Carregado na VRAM (7.51 GB)`).
+  * **Botão `⚡ Carregar na GPU`**: Força o carregamento imediato do modelo na memória de vídeo sem precisar esperar a primeira mensagem.
+  * **Botão `🧹 Liberar VRAM`**: Força o descarregamento imediato do modelo da GPU, liberando a memória de vídeo para outras tarefas locais.
+* **Persistência Permanente no Banco de Dados**:
+  * Todas as alterações de temperatura, timeouts, limiares, provedores, `keep_alive` e `warmup` são gravadas permanentemente na tabela `app_settings` do PostgreSQL e restauradas automaticamente ao reiniciar o servidor.
+
+---
+
+### 3. Parametrização de Execução (Controles do Assistente)
 
 Na seção **Parâmetros de Execução**, você pode ajustar o comportamento do assistente. Veja a explicação de cada parâmetro em termos práticos:
 
@@ -182,6 +209,11 @@ O sistema expõe um servidor MCP próprio que alimenta o chat com 4 ferramentas 
 2. **Ferramenta de Cálculo de Frete**: Calcula prazos e valores com base no CEP e peso do produto.
 3. **Ferramenta de Cotação B2B**: Aplica descontos por volume e gera orçamentos prévios.
 4. **Ferramenta de Reserva/Pedido**: Bloqueia itens em estoque temporariamente durante o checkout.
+
+### Tabela de Produtos e Estoque por Centro de Distribuição (`/admin/produtos`)
+* **Visualização de Estoque por CD**: A coluna de estoque exibe a quantidade total consolidada. Ao repousar o mouse sobre o valor, um tooltip detalhado apresenta a divisão física dos itens por filial ou centro de distribuição (ex.: CD-SP, CD-MG, CD-PR).
+* **Agrupamento de Preços**: A tabela destaca visualmente o preço base do revendedor e o preço sugerido de venda ao consumidor final.
+* **Fonte Única Autorizada no PostgreSQL**: Todos os dados do catálogo são mantidos e consultados diretamente no banco de dados relacional (`SalesCatalogClient`), sem duplicar ou poluir o RAG textual com arquivos sintéticos.
 
 ### Importação Inteligente de Catálogos (`/admin/produtos`)
 * No botão de importação, **arraste** os arquivos para dentro da janela, **cole** com `Ctrl+V` (imagem copiada, arquivo copiado ou um texto copiado, que vira um `.txt`) ou use "Procurar Arquivos".

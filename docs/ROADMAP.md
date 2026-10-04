@@ -203,6 +203,39 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (`bg-red-50`). Mensagens `fora_escopo` de baixa complexidade (como saudações "boa noite", "olá")
       passam a ser atendidas diretamente pelo LLM local (Ollama) com o novo `_FORA_ESCOPO_PLAYBOOK`,
       evitando chamadas desnecessárias à nuvem.
+- [x] **Uma Collection Ativa Independente por Finalidade e UX da Tabela (2026-10-03)** —
+      Evolução do sistema RAG para suportar uma collection ativa independente por `purpose` (`chat`,
+      `mcp_b2b` e `admin`). A ativação de uma collection para um purpose desativa apenas a collection
+      anterior do mesmo purpose. Adicionado painel visual com cards de collections ativas por finalidade
+      na aba Configuração de `/admin/ingestao`, abas de filtro rápido por finalidade na tabela, ativação
+      imediata no modal de criação e criação rápida com ativação automática. Substituição dos botões
+      de texto "Ativar" e "Excluir" por ícones SVG compactos para eliminar a rolagem horizontal da tabela.
+      Portal flutuante adaptativo (`CollectionOptionCard.tsx`) com contagem de arquivos e todos os
+      parâmetros técnicos no hover. Playground restrito a comparar collections da mesma finalidade.
+- [x] **Desacoplamento do CRUD de Produtos do RAG e Autoridade Única no SQL (2026-10-03)** —
+      Remoção do hook de sincronização automática de produtos no RAG (`product_sync.py`), eliminando a
+      geração de arquivos sintéticos de texto (`produto_*.txt`) no Qdrant. Catálogo, preços, compatibilidades
+      e estoque por CD unificados 100% no PostgreSQL (`SalesCatalogClient` e `app.db.catalog`). Expurgo
+      completo dos 14 documentos sintéticos legados do PostgreSQL, do Qdrant e do disco.
+- [x] **Catálogo B2B: Estoque Detalhado por CD e Agrupamento de Preços (2026-10-03)** —
+      Na tabela de produtos (`/admin/produtos`), exibição do estoque total com tooltip detalhado
+      revelando a quantidade por Centro de Distribuição (CD-SP, CD-MG, CD-PR). Agrupamento dos preços
+      de revendedor e de venda com destaque visual. Padronização terminológica formal de "fornecedor"
+      para "revendedor" em toda a base de código, schemas e migrations.
+- [x] **Características Multimodais do Modelo no Hover (2026-10-03)** —
+      Componente `ModelCharacteristicsPanel` exibido ao passar o mouse sobre os cards de modelos
+      locais e externos em `/admin/modelos`, apresentando janelas de contexto, capacidades de entrada
+      e saída (texto, imagem, áudio), provedores e preços por milhão de tokens. Cache persistido no
+      PostgreSQL (`model_characteristics`) com expiração de 7 dias e botão de atualização forçada manual.
+- [x] **Residência na VRAM, Warmup de Boot e Persistência de Configurações (2026-10-03)** —
+      Configuração do parâmetro `keep_alive` (`"-1"`) no `OllamaClient` para manter o modelo local
+      permanentemente carregado na VRAM da GPU, eliminando o cold start de 10-30s após 5 minutos de
+      inatividade. Warmup assíncrono não bloqueante via `lifespan` do FastAPI (`preload()`) disparado
+      no boot do servidor. Persistência permanente de todos os parâmetros de execução (`RuntimeSettings`)
+      na tabela `app_settings` do PostgreSQL (migration Alembic `0017_app_settings.py`), restaurados
+      automaticamente no startup. Endpoints operacionais `POST /preload` e `POST /unload` e interface
+      completa em `/admin/modelos` com monitor de VRAM em tempo real (GB), seletor de tempo de retenção
+      e botões de ação imediata.
 
 ## Extra fora do MVP — Gerenciador de Modelos Locais (Ollama)
 
