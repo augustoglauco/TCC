@@ -259,3 +259,57 @@ describe("PullModelForm", () => {
     expect(screen.getByRole("button", { name: "Baixar" })).not.toBeDisabled();
   });
 });
+
+vi.mock("@/lib/api/modelCatalog", () => ({
+  getModelCharacteristics: vi.fn(),
+  refreshModelCharacteristics: vi.fn(),
+  ModelCatalogApiError: class extends Error {},
+}));
+
+import { getModelCharacteristics } from "@/lib/api/modelCatalog";
+
+describe("preview de características para tags do Hugging Face", () => {
+  beforeEach(() => {
+    vi.mocked(getModelCharacteristics).mockReset();
+  });
+
+  it("mostra o preview 500ms depois de digitar uma tag hf.co/...", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(getModelCharacteristics).mockResolvedValue({
+      source: "huggingface",
+      tag: "hf.co/Qwen/Qwen2.5-VL-7B-Instruct",
+      is_multimodal: true,
+      input_modalities: ["text", "image"],
+      output_modalities: ["text"],
+      context_length: null,
+      parameter_size: null,
+      quantization: null,
+      pricing_prompt_per_1k: null,
+      pricing_completion_per_1k: null,
+      knowledge_cutoff: null,
+      fetched_at: new Date().toISOString(),
+    });
+
+    render(<PullModelForm onPulled={vi.fn()} />);
+    await user.type(screen.getByLabelText(/Nome do modelo/i), "hf.co/Qwen/Qwen2.5-VL-7B-Instruct");
+
+    vi.advanceTimersByTime(500);
+    expect(await screen.findByText("Imagem")).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
+  it("não mostra preview para tags que não são hf.co/...", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    render(<PullModelForm onPulled={vi.fn()} />);
+    await user.type(screen.getByLabelText(/Nome do modelo/i), "llama3.1:8b");
+
+    vi.advanceTimersByTime(500);
+    expect(getModelCharacteristics).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+});

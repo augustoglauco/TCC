@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { LocalModelsApiError, getPullStatus, pullModel } from "@/lib/api/localModels";
+import { getModelCharacteristics } from "@/lib/api/modelCatalog";
+import { ModelCharacteristicsPanel } from "@/components/admin/ModelCharacteristicsPanel";
 import type { PullStatusResponse } from "@/lib/types/localModels";
+import type { ModelCharacteristics } from "@/lib/types/modelCatalog";
 
 const POLL_INTERVAL_MS = 1000;
 
@@ -54,11 +57,56 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
   // efeito de retomada (abaixo) não pisar num submit manual concorrente.
   const submissaoManualIniciadaRef = useRef(false);
 
+  const [previewHf, setPreviewHf] = useState<ModelCharacteristics | null>(null);
+  const [previewHfLoading, setPreviewHfLoading] = useState(false);
+  const [previewHfError, setPreviewHfError] = useState<string | null>(null);
+
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
+
+  // Preview ao vivo das características de uma tag `hf.co/...` ainda não
+  // baixada — debounce de 500ms após o usuário parar de digitar, pra não
+  // disparar uma requisição a cada tecla.
+  useEffect(() => {
+    if (!/^hf\.co\//i.test(nome.trim())) {
+      // Limpa o preview ao sair de uma tag hf.co/... (sincronização com `nome`)
+      // — padrão aceito no projeto para `react-hooks/set-state-in-effect`.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPreviewHf(null);
+      setPreviewHfError(null);
+      return;
+    }
+
+    const tagAtual = nome.trim();
+    setPreviewHfLoading(true);
+    const timeoutId = setTimeout(() => {
+      getModelCharacteristics("huggingface", tagAtual)
+        .then((resultado) => {
+          setPreviewHf(resultado);
+          setPreviewHfError(null);
+        })
+        .catch(() => {
+          setPreviewHfError("Não foi possível obter características deste repositório.");
+        })
+        .finally(() => setPreviewHfLoading(false));
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [nome]);
+
+  const handleRefreshPreview = () => {
+    // refresh manual do preview antes de baixar — reaproveita o mesmo
+    // endpoint usado pelo painel pós-download (ver ModelCharacteristicsPanel)
+    setPreviewHfLoading(true);
+    import("@/lib/api/modelCatalog").then(({ refreshModelCharacteristics }) =>
+      refreshModelCharacteristics("huggingface", nome.trim())
+        .then((resultado) => setPreviewHf(resultado))
+        .finally(() => setPreviewHfLoading(false)),
+    );
+  };
 
   // Retoma um download em andamento após remount/reload — o backend não
   // tem noção de "quem está observando", ele só mantém
@@ -214,6 +262,17 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
           ))}
         </div>
       </div>
+
+      {/^hf\.co\//i.test(nome.trim()) && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+          <ModelCharacteristicsPanel
+            data={previewHf}
+            loading={previewHfLoading}
+            error={previewHfError}
+            onRefresh={handleRefreshPreview}
+          />
+        </div>
+      )}
 
       {progresso && progresso.status === "pulling" && (
         <div className="rounded-xl border border-blue-200/80 bg-blue-50/50 p-4 text-xs text-blue-900 space-y-2">
