@@ -30,12 +30,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.rag_dependencies import (
-    get_db_session,
-    get_embedder_registry,
-    get_qdrant_client,
-    get_uploads_dir,
-)
+from app.api.rag_dependencies import get_db_session
 from app.api.uploads import salvar_imagem_produto
 from app.catalog_extractor.extractor import extract_catalog_stream
 from app.config import get_settings
@@ -63,10 +58,7 @@ from app.models.catalog import (
 )
 from app.models.catalog_extractor import CatalogConfirmRequest, CatalogConfirmResponse
 from app.rag.clip_embedder import ClipEmbedder
-from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.image_search import ClipImageStore
-from app.rag.product_sync import remover_produto_do_rag, sync_produto_no_rag
-from app.rag.qdrant_client import QdrantRAGClient
 
 logger = logging.getLogger(__name__)
 
@@ -149,9 +141,6 @@ async def post_confirmar_catalogo(
     session: AsyncSession = Depends(get_db_session),
     clip_store: ClipImageStore = Depends(_get_clip_store),
     clip_embedder: ClipEmbedder = Depends(_get_clip_embedder),
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    embedders: EmbedderRegistry = Depends(get_embedder_registry),
-    uploads_dir: Path = Depends(get_uploads_dir),
 ):
     settings = get_settings()
     temp_dir = Path(settings.product_images_dir) / "temp"
@@ -209,7 +198,6 @@ async def post_confirmar_catalogo(
         prod_completo = await obter_produto(session, p.id)
         if prod_completo:
             produtos_finais.append(ProdutoOut.model_validate(prod_completo))
-            await sync_produto_no_rag(session, qdrant, embedders, uploads_dir, prod_completo)
 
     return CatalogConfirmResponse(
         criados=len(produtos_finais),
@@ -244,9 +232,6 @@ async def get_admin_produto(
 async def post_admin_produto(
     payload: ProdutoCreate,
     session: AsyncSession = Depends(get_db_session),
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    embedders: EmbedderRegistry = Depends(get_embedder_registry),
-    uploads_dir: Path = Depends(get_uploads_dir),
 ):
     produto = await criar_produto(
         session,
@@ -262,7 +247,6 @@ async def post_admin_produto(
         preco_base_fornecedor=payload.preco_base_fornecedor,
         imagem_url=payload.imagem_url,
     )
-    await sync_produto_no_rag(session, qdrant, embedders, uploads_dir, produto)
     return ProdutoOut.model_validate(produto)
 
 
@@ -271,15 +255,11 @@ async def put_admin_produto(
     produto_id: int,
     payload: ProdutoUpdate,
     session: AsyncSession = Depends(get_db_session),
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    embedders: EmbedderRegistry = Depends(get_embedder_registry),
-    uploads_dir: Path = Depends(get_uploads_dir),
 ):
     updates = payload.model_dump(exclude_unset=True)
     produto = await atualizar_produto(session, produto_id, updates)
     if not produto:
         raise HTTPException(status_code=404, detail="Produto não encontrado.")
-    await sync_produto_no_rag(session, qdrant, embedders, uploads_dir, produto)
     return ProdutoOut.model_validate(produto)
 
 
@@ -288,7 +268,6 @@ async def delete_admin_produto(
     produto_id: int,
     session: AsyncSession = Depends(get_db_session),
     clip_store: ClipImageStore = Depends(_get_clip_store),
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
 ):
     produto = await obter_produto(session, produto_id)
     if not produto:
@@ -314,7 +293,6 @@ async def delete_admin_produto(
             except Exception as exc:
                 logger.warning("Falha ao expurgar vetor CLIP por URL %s: %s", img.imagem_url, exc)
 
-    await remover_produto_do_rag(session, qdrant, produto_id)
     await deletar_produto(session, produto_id)
     return None
 
@@ -433,9 +411,6 @@ async def post_atualizar_estoque(
     produto_id: int,
     payload: EstoqueUpdatePayload,
     session: AsyncSession = Depends(get_db_session),
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    embedders: EmbedderRegistry = Depends(get_embedder_registry),
-    uploads_dir: Path = Depends(get_uploads_dir),
 ):
     prod = await obter_produto(session, produto_id)
     if not prod:
@@ -443,7 +418,6 @@ async def post_atualizar_estoque(
     await atualizar_estoque(session, produto_id, payload.centro_distribuicao, payload.quantidade)
     session.expire_all()
     prod_atualizado = await obter_produto(session, produto_id)
-    await sync_produto_no_rag(session, qdrant, embedders, uploads_dir, prod_atualizado)
     return ProdutoOut.model_validate(prod_atualizado)
 
 
@@ -452,9 +426,6 @@ async def post_adicionar_desconto_volume(
     produto_id: int,
     payload: DescontoVolumePayload,
     session: AsyncSession = Depends(get_db_session),
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    embedders: EmbedderRegistry = Depends(get_embedder_registry),
-    uploads_dir: Path = Depends(get_uploads_dir),
 ):
     prod = await obter_produto(session, produto_id)
     if not prod:
@@ -466,7 +437,6 @@ async def post_adicionar_desconto_volume(
     )
     session.expire_all()
     prod_atualizado = await obter_produto(session, produto_id)
-    await sync_produto_no_rag(session, qdrant, embedders, uploads_dir, prod_atualizado)
     return ProdutoOut.model_validate(prod_atualizado)
 
 
@@ -475,9 +445,6 @@ async def delete_desconto_volume(
     produto_id: int,
     desconto_id: str,
     session: AsyncSession = Depends(get_db_session),
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    embedders: EmbedderRegistry = Depends(get_embedder_registry),
-    uploads_dir: Path = Depends(get_uploads_dir),
 ):
     from uuid import UUID
 
@@ -491,7 +458,6 @@ async def delete_desconto_volume(
     await remover_desconto_volume(session, produto_id, uid)
     session.expire_all()
     prod_atualizado = await obter_produto(session, produto_id)
-    await sync_produto_no_rag(session, qdrant, embedders, uploads_dir, prod_atualizado)
     return ProdutoOut.model_validate(prod_atualizado)
 
 
