@@ -81,11 +81,15 @@ async def test_classify_uses_llm_when_keywords_inconclusive_and_strategy_llm():
 
 async def test_prompt_do_classificador_llm_descreve_os_dominios():
     # Sem a descrição, o LLM local mandava "o QTA-100 é compatível com o
-    # GD-30?" para suporte e o catálogo de Vendas não era consultado.
+    # GD-30?" para suporte e o catálogo de Vendas não era consultado. Esta
+    # mensagem evita a palavra "compatível" de propósito: ela virou keyword
+    # de vendas (achado do eval de `router_intents`, ver docs/ROADMAP.md
+    # Fase 1) e resolveria pelo atalho rápido antes de chegar ao LLM,
+    # nunca exercitando o prompt que este teste verifica.
     llm_client = _FakeLLMClient('{"domain": "vendas", "complexity": "baixa", "confidence": 0.9}')
 
     await classify(
-        "O quadro QTA-100 é compatível com o gerador GD-30?",
+        "O quadro QTA-100 pode ser usado junto com o gerador GD-30?",
         strategy="llm",
         llm_client=llm_client,
     )
@@ -367,3 +371,54 @@ async def test_classify_com_provider_heuristica_llm_usa_atalho_quando_tem_keywor
     assert result.provider_efetivo == "heuristica_llm"
     # Usou atalho rápido, não gastou chamada ao LLM
     assert llm_client.calls == 0
+
+
+# Fase 1 (docs/ROADMAP.md): keywords adicionadas a partir dos 19 erros reais
+# de `backend/eval/router_intents/results.json` (rodada 2026-09-30) — cada
+# mensagem abaixo é um dos casos que a heurística pura classificava
+# incorretamente como "fora_escopo" antes desta mudança (achado documentado
+# em `backend/eval/router_intents/README.md`).
+@pytest.mark.parametrize(
+    ("mensagem", "dominio_esperado"),
+    [
+        ("Tem desconto para compra de 10 geradores GD-15?", "vendas"),
+        ("Vocês vendem relógio de ponto biométrico?", "vendas"),
+        ("O Quadro QTA-100 é compatível com o Gerador GD-60?", "vendas"),
+        ("Meu gerador GD-30 não liga, o que pode ser?", "suporte"),
+        ("O motor do GD-15 está fazendo um barulho estranho, isso é normal?", "suporte"),
+        ("Como faço a manutenção preventiva do gerador diesel?", "suporte"),
+        (
+            "O relógio de ponto não está reconhecendo a biometria dos funcionários",
+            "suporte",
+        ),
+        ("Como resetar as configurações de fábrica do controlador?", "suporte"),
+        ("Preciso de ajuda para configurar o Quadro de Transferência Automática", "suporte"),
+        ("Quero reclamar do atraso na entrega do meu gerador", "atendimento"),
+    ],
+)
+async def test_classify_heuristica_resolve_casos_do_eval_router_intents(
+    mensagem: str, dominio_esperado: str
+) -> None:
+    result = await classify(mensagem, provider="heuristica")
+    assert result.domain == dominio_esperado
+
+
+async def test_classify_heuristica_llm_nao_usa_atalho_quando_keyword_ficaria_ambigua():
+    """Caso 36 do eval: só "comprar" casava (vendas), um match único e
+    confiante só por coincidência — "técnico" virou keyword de agendamento
+    para que essa combinação vire ambígua e caia no LLM (que resolve
+    corretamente em produção) em vez de decidir sozinha, errada, sem nunca
+    consultar o modelo."""
+    llm_client = _FakeLLMClient(
+        '{"domain": "agendamento", "complexity": "baixa", "confidence": 0.8}'
+    )
+
+    result = await classify(
+        "Preciso de um técnico na minha empresa para avaliar qual gerador comprar",
+        provider="heuristica_llm",
+        strategy="llm",
+        llm_client=llm_client,
+    )
+
+    assert result.domain == "agendamento"
+    assert llm_client.calls == 1

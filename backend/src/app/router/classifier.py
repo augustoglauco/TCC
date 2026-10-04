@@ -55,23 +55,64 @@ _DOMAIN_KEYWORDS: dict[Domain, list[str]] = {
     # keyword de Vendas na estratégia heurística e caía em fora_escopo
     # (roteada ao externo, sem consultar o catálogo) — divergindo do
     # classificador LLM, que já a rotula como vendas.
-    "vendas": ["orçamento", "comprar", "preço", "cotação", "produto", "estoque", "disponível"],
-    "suporte": ["não funciona", "quebrado", "erro", "defeito", "problema"],
+    "vendas": [
+        "orçamento",
+        "comprar",
+        "preço",
+        "cotação",
+        "produto",
+        "estoque",
+        "disponível",
+        "desconto",
+        "vende",
+        "compatível",
+    ],
+    "suporte": [
+        "não funciona",
+        "quebrado",
+        "erro",
+        "defeito",
+        "problema",
+        "não liga",
+        "manutenção",
+        "barulho",
+        "resetar",
+        "configurar",
+        "biometria",
+    ],
     "atendimento": [
         "nota fiscal",
         "troca",
         "devolução",
         "cancelamento",
         "reclamação",
+        "reclamar",
         "compras",
         "comprei",
         "meus pedidos",
         "meu pedido",
         "pedidos",
         "histórico",
+        "atraso",
     ],
-    "agendamento": ["agendar", "visita", "marcar", "horário"],
+    "agendamento": ["agendar", "visita", "marcar", "horário", "técnico"],
 }
+
+# MVP (Fase 1, revisitado conforme pendência registrada em docs/ROADMAP.md):
+# os 12 termos acima ("desconto", "vende", "compatível", "não liga",
+# "manutenção", "barulho", "resetar", "configurar", "biometria", "reclamar",
+# "atraso", "técnico") foram adicionados a partir dos 19 erros reais de
+# `backend/eval/router_intents/results.json` (rodada 2026-09-30) — cada um
+# resolve um caso concreto de "0 domínios casados" (sinônimo fora da lista),
+# nunca um caso de "2+ domínios casados" (esses continuam colapsando para
+# `fora_escopo`/LLM de propósito: a mesma dupla de keywords tem o gabarito
+# esperado em direções opostas em casos diferentes do dataset — ex. "defeito"
+# + "comprei" é suporte no caso 19 mas "defeito" + "meu pedido" é atendimento
+# no caso 29 — uma ordem de prioridade fixa acertaria um e erraria o outro, e
+# pior: destravaria o atalho rápido da heurística e pularia a consulta ao LLM
+# que hoje resolve esses casos corretamente em produção). Validado sem
+# regressão contra as 40 mensagens rotuladas do dataset antes de aplicar (ver
+# `backend/eval/router_intents/README.md`).
 
 
 def normalize(text: str) -> str:

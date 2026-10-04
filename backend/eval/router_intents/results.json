@@ -8,117 +8,35 @@
   "providers": {
     "heuristica": {
       "provider": "heuristica",
-      "acuracia": 0.525,
-      "acertos": 21,
+      "acuracia": 0.775,
+      "acertos": 31,
       "total": 40,
       "latencia_media_s": 0.0,
       "degradacoes_de_provider": [],
       "matriz_confusao": {
         "vendas": {
-          "vendas": 7,
-          "fora_escopo": 3
+          "vendas": 10
         },
         "suporte": {
-          "fora_escopo": 7,
-          "suporte": 3
+          "suporte": 9,
+          "fora_escopo": 1
         },
         "atendimento": {
-          "atendimento": 6,
-          "fora_escopo": 4
+          "atendimento": 7,
+          "fora_escopo": 3
         },
         "agendamento": {
           "agendamento": 5,
-          "fora_escopo": 4,
-          "vendas": 1
+          "fora_escopo": 5
         }
       },
       "erros": [
-        {
-          "id": 5,
-          "mensagem": "Tem desconto para compra de 10 geradores GD-15?",
-          "esperado": "vendas",
-          "previsto": "fora_escopo",
-          "ambiguo": false,
-          "provider_efetivo": "heuristica"
-        },
-        {
-          "id": 6,
-          "mensagem": "Vocês vendem relógio de ponto biométrico?",
-          "esperado": "vendas",
-          "previsto": "fora_escopo",
-          "ambiguo": false,
-          "provider_efetivo": "heuristica"
-        },
-        {
-          "id": 9,
-          "mensagem": "O Quadro de Transferência Automática QTA-100 é compatível com o Gerador GD-60?",
-          "esperado": "vendas",
-          "previsto": "fora_escopo",
-          "ambiguo": true,
-          "provider_efetivo": "heuristica"
-        },
-        {
-          "id": 11,
-          "mensagem": "Meu gerador GD-30 não liga, o que pode ser?",
-          "esperado": "suporte",
-          "previsto": "fora_escopo",
-          "ambiguo": false,
-          "provider_efetivo": "heuristica"
-        },
-        {
-          "id": 13,
-          "mensagem": "O motor do GD-15 está fazendo um barulho estranho, isso é normal?",
-          "esperado": "suporte",
-          "previsto": "fora_escopo",
-          "ambiguo": false,
-          "provider_efetivo": "heuristica"
-        },
-        {
-          "id": 14,
-          "mensagem": "Como faço a manutenção preventiva do gerador diesel?",
-          "esperado": "suporte",
-          "previsto": "fora_escopo",
-          "ambiguo": false,
-          "provider_efetivo": "heuristica"
-        },
-        {
-          "id": 15,
-          "mensagem": "O relógio de ponto não está reconhecendo a biometria dos funcionários, o que fazer?",
-          "esperado": "suporte",
-          "previsto": "fora_escopo",
-          "ambiguo": false,
-          "provider_efetivo": "heuristica"
-        },
-        {
-          "id": 18,
-          "mensagem": "Como resetar as configurações de fábrica do controlador do gerador?",
-          "esperado": "suporte",
-          "previsto": "fora_escopo",
-          "ambiguo": false,
-          "provider_efetivo": "heuristica"
-        },
         {
           "id": 19,
           "mensagem": "Comprei o gerador GD-30 e ele já chegou com defeito, o motor não pega",
           "esperado": "suporte",
           "previsto": "fora_escopo",
           "ambiguo": true,
-          "provider_efetivo": "heuristica"
-        },
-        {
-          "id": 20,
-          "mensagem": "Preciso de ajuda para configurar o Quadro de Transferência Automática que acabei de receber",
-          "esperado": "suporte",
-          "previsto": "fora_escopo",
-          "ambiguo": true,
-          "provider_efetivo": "heuristica"
-        },
-        {
-          "id": 26,
-          "mensagem": "Quero reclamar do atraso na entrega do meu gerador",
-          "esperado": "atendimento",
-          "previsto": "fora_escopo",
-          "ambiguo": false,
           "provider_efetivo": "heuristica"
         },
         {
@@ -165,7 +83,7 @@
           "id": 36,
           "mensagem": "Preciso de um técnico na minha empresa para avaliar qual gerador comprar",
           "esperado": "agendamento",
-          "previsto": "vendas",
+          "previsto": "fora_escopo",
           "ambiguo": false,
           "provider_efetivo": "heuristica"
         },
@@ -192,7 +110,7 @@
       "acuracia": 0.95,
       "acertos": 38,
       "total": 40,
-      "latencia_media_s": 0.67,
+      "latencia_media_s": 1.246,
       "degradacoes_de_provider": [],
       "matriz_confusao": {
         "vendas": {
@@ -234,7 +152,7 @@
       "acuracia": 0.925,
       "acertos": 37,
       "total": 40,
-      "latencia_media_s": 0.302,
+      "latencia_media_s": 0.397,
       "degradacoes_de_provider": [],
       "matriz_confusao": {
         "vendas": {

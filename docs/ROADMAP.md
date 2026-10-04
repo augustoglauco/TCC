@@ -52,16 +52,31 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       Agendamento sempre local. Estratégia de sinal de complexidade
       (heurística ou LLM) selecionável por config
       (`ROUTER_COMPLEXITY_STRATEGY`)
-- [ ] Revisitar a resolução de ambiguidade entre domínios no classificador
-      (hoje: qualquer ambiguidade — 0 ou 2+ domínios casados por palavra-chave
-      — colapsa para `fora_escopo`, que escala ao modelo externo) assim que o
-      conjunto de teste rotulado de `eval/router_intents/` existir (Fase 10),
-      para decidir se outra ordem de prioridade ou outra estratégia de
-      desempate melhora a acurácia de roteamento — dataset já existe
-      (`backend/eval/router_intents/`, ver Fase 10); resultado ao vivo
-      (2026-09-30) mostra que é o caso de "0 domínios casados" que domina (18
-      dos 19 erros da heurística pura), não "2+" — item ainda não resolvido
-      aqui de propósito, esta nota só desbloqueia a decisão
+- [x] **Revisitar a resolução de ambiguidade entre domínios no
+      classificador (2026-10-04).** Medindo o matcher de verdade mensagem a
+      mensagem contra o dataset de `eval/router_intents/` (não só a nota de
+      prosa da rodada de 2026-09-30, que estava imprecisa): dos 19 erros da
+      heurística pura, só 11 eram "0 domínios casados" (sinônimo fora da
+      lista de `_DOMAIN_KEYWORDS`), 7 já casavam 2 domínios ao mesmo tempo
+      (conflito real, não lacuna de vocabulário) e 1 era um match único
+      errado. Ampliadas 12 keywords (`vendas`: desconto/vende/compatível;
+      `suporte`: não liga/manutenção/barulho/resetar/configurar/biometria;
+      `atendimento`: reclamar/atraso; `agendamento`: técnico), cada uma
+      validada contra as 40 mensagens rotuladas antes de aplicar (zero
+      regressão). **Decisão consciente de não resolver os 7 casos de
+      conflito por ordem de prioridade fixa**: a mesma dupla de keywords tem
+      o gabarito esperado em direções opostas em casos diferentes do
+      dataset — uma prioridade fixa acertaria um e erraria o outro, e
+      destravaria o atalho rápido da heurística, pulando a consulta ao LLM
+      que hoje resolve esses 7 casos corretamente em produção
+      (`heuristica_llm`). Resultado: heurística pura sobe de 52,5% para
+      77,5% (31/40); `heuristica_llm` continua em 95,0% (não dependia da
+      heurística para os 7 casos de conflito) — o caso de match-único-errado
+      corrigido (agora cai no LLM em vez de decidir sozinho) passou a errar
+      por julgamento genuíno do LLM, mesma categoria de caso discutível já
+      documentada. Detalhes completos e tabela comparativa em
+      `backend/eval/router_intents/README.md`; testes novos em
+      `backend/tests/test_classifier.py`.
 - [x] Garantir que o classificador considera as últimas 1–3 mensagens da
       conversa (não só a mensagem isolada), para resolver confirmações
       curtas a ofertas feitas pelo próprio assistente (ex.: aceite de
