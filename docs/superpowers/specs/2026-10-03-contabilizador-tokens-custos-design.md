@@ -89,8 +89,14 @@ O schema `LLMResponse`, `LLMStreamChunk` e `ChatDoneEventData` ganham as proprie
 - `cost_prompt_usd: float | None = 0.0`
 - `cost_completion_usd: float | None = 0.0`
 
-### 3.2. Fonte dos Preços de Modelos Externos
-1. **Cache Automático**: `OpenRouterClient` lê a precificação atualizada a partir do modelo ativo em `model_characteristics` (`pricing_prompt_per_1k` e `pricing_completion_per_1k`).
+### 3.2. Contabilização do Modelo de Visão Computacional Externo (`describe_image`)
+Quando uma mensagem do usuário contém uma imagem enviada para o fluxo de identificação de produto ou visão externa (R6), a chamada multimodal realizada por `OpenRouterClient.describe_image` também gera consumo de tokens e custos no OpenRouter:
+- **Extração de `usage`**: O método `describe_image` extrai `prompt_tokens` e `completion_tokens` da chave `usage` contida na resposta da API do OpenRouter.
+- **Cálculo de Custos do Modelo de Visão**: O custo de entrada e saída da chamada de visão é calculado utilizando a precificação por 1k tokens do `external_vision_model_name` (lido do cache de `model_characteristics` ou `app_settings`).
+- **Agregação na Mensagem**: O Orquestrador acumula os tokens e custos da chamada de visão com os tokens/custos do LLM de texto, registrando o total combinado no evento SSE `done` e no JSON `conversa_mensagens.metricas` da resposta.
+
+### 3.3. Fonte dos Preços de Modelos Externos
+1. **Cache Automático**: `OpenRouterClient` lê a precificação atualizada a partir do modelo ativo em `model_characteristics` (`pricing_prompt_per_1k` e `pricing_completion_per_1k`), tanto para o modelo de texto quanto para o modelo de visão.
 2. **Override Administrativo**: Caso haja ajuste manual no painel `/admin/modelos`, os valores sobrepostos salvos em `app_settings` têm precedência.
 
 ---

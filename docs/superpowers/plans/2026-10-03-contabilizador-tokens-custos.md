@@ -169,7 +169,7 @@ In `backend/src/app/router/openrouter_client.py`:
         cost_completion = (completion_tokens / 1000.0 * self._price_out) if completion_tokens else 0.0
         return cost_prompt, cost_completion, cost_prompt + cost_completion
 ```
-Update `generate` and `generate_stream` to populate `cost_prompt_usd` and `cost_completion_usd`.
+Update `generate`, `generate_stream`, and `describe_image` to extract tokens from `usage` and populate `cost_prompt_usd` and `cost_completion_usd` (including multimodal vision calls).
 
 - [ ] **Step 4: Run test to verify it passes**
 
