@@ -14,6 +14,7 @@ from app.api.auth import verificar_admin_por_token
 from app.api.rag_dependencies import get_db_session
 from app.db.models import AdminChart
 from app.services.chart_generator import SUPPORTED_QUERIES, execute_chart_aggregation
+from app.services.safe_sql import execute_readonly_sql
 
 logger = logging.getLogger("assistente.admin_charts")
 
@@ -156,20 +157,35 @@ async def refresh_admin_chart(
     if not chart:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Gráfico não encontrado.")
 
-    if chart.sql_query and chart.sql_query in SUPPORTED_QUERIES:
-        try:
-            config_json, dados_json = await execute_chart_aggregation(session, chart.sql_query)
-            chart.config_json = config_json
-            chart.dados_json = dados_json
+    if chart.sql_query:
+        if chart.sql_query.startswith("dynamic_sql:"):
+            sql = chart.sql_query.removeprefix("dynamic_sql:").strip()
+            try:
+                dados_json = await execute_readonly_sql(session, sql)
+                chart.dados_json = dados_json
+                chart.atualizado_em = datetime.now(UTC)
+                await session.commit()
+                await session.refresh(chart)
+            except Exception as exc:
+                logger.error("falha_ao_recalcular_dynamic_sql", extra={"chart_id": chart_id, "erro": str(exc)})
+        elif chart.sql_query == "dynamic_user_data":
             chart.atualizado_em = datetime.now(UTC)
             await session.commit()
             await session.refresh(chart)
-        except Exception as exc:
-            logger.error("falha_ao_recalcular_grafico", extra={"chart_id": chart_id, "erro": str(exc)})
-            # Atualiza para lista vazia em caso de falha controlada em vez de 500
-            chart.dados_json = []
-            await session.commit()
-            await session.refresh(chart)
+        elif chart.sql_query in SUPPORTED_QUERIES:
+            try:
+                config_json, dados_json = await execute_chart_aggregation(session, chart.sql_query)
+                chart.config_json = config_json
+                chart.dados_json = dados_json
+                chart.atualizado_em = datetime.now(UTC)
+                await session.commit()
+                await session.refresh(chart)
+            except Exception as exc:
+                logger.error("falha_ao_recalcular_grafico", extra={"chart_id": chart_id, "erro": str(exc)})
+                # Atualiza para lista vazia em caso de falha controlada em vez de 500
+                chart.dados_json = []
+                await session.commit()
+                await session.refresh(chart)
 
     return AdminChartOut.from_model(chart)
 

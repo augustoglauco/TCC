@@ -82,3 +82,56 @@ async def test_admin_charts_crud_flow(test_app, db_session):
         # Verify deletion
         res_list_after = await client.get("/api/admin/charts", headers=headers)
         assert not any(c["id"] == chart_id for c in res_list_after.json())
+
+
+@pytest.mark.asyncio
+async def test_admin_charts_refresh_dynamic_sql_and_user_data(test_app, db_session):
+    admin = Cliente(nome="Admin Dynamic", email="admin@empresa.com")
+    db_session.add(admin)
+    p = Produto(nome="Item Dynamic", descricao="Desc", preco=Decimal("250.00"), categoria="Ferramentas")
+    db_session.add(p)
+    await db_session.commit()
+    await db_session.refresh(admin)
+
+    admin_token = f"mock-token-{admin.id}"
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    transport = ASGITransport(app=test_app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Dynamic SQL chart
+        payload_sql = {
+            "titulo": "Gráfico SQL Dinâmico",
+            "tipo_grafico": "bar",
+            "config_json": {"x_key": "nome", "y_keys": ["preco"]},
+            "dados_json": [],
+            "sql_query": "dynamic_sql: SELECT nome, preco FROM produtos WHERE nome = 'Item Dynamic'",
+        }
+        res1 = await client.post("/api/admin/charts", json=payload_sql, headers=headers)
+        assert res1.status_code == 201
+        chart_id1 = res1.json()["id"]
+
+        res_ref1 = await client.post(f"/api/admin/charts/{chart_id1}/refresh", headers=headers)
+        assert res_ref1.status_code == 200
+        dados1 = res_ref1.json()["dados_json"]
+        assert len(dados1) == 1
+        assert dados1[0]["nome"] == "Item Dynamic"
+        assert dados1[0]["preco"] == 250.0
+
+        # Dynamic user data chart
+        payload_user = {
+            "titulo": "Gráfico Usuário",
+            "tipo_grafico": "pie",
+            "config_json": {"x_key": "cat", "y_keys": ["val"]},
+            "dados_json": [{"cat": "A", "val": 10}, {"cat": "B", "val": 20}],
+            "sql_query": "dynamic_user_data",
+        }
+        res2 = await client.post("/api/admin/charts", json=payload_user, headers=headers)
+        assert res2.status_code == 201
+        chart_id2 = res2.json()["id"]
+
+        res_ref2 = await client.post(f"/api/admin/charts/{chart_id2}/refresh", headers=headers)
+        assert res_ref2.status_code == 200
+        dados2 = res_ref2.json()["dados_json"]
+        assert len(dados2) == 2
+        assert dados2[0]["cat"] == "A"
+
