@@ -346,6 +346,13 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       dos casos escalonados (evento SSE `escalonamento` + tabela
       `tom_escalonamentos` — banner visual no frontend implementado na Fase 8,
       ver `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md` §9)
+- [ ] **Central de Atendimento Humano ao Vivo (Live Agent Takeover / Transbordo)** —
+      Implementar o módulo completo de atendimento humano simultâneo conforme especificação
+      `docs/superpowers/specs/2026-10-03-atendimento-humano-transbordo-design.md`:
+      - Alterações de banco de dados (`conversas.status`, `atendente_id`, `motivo_escalonamento`, `escalado_em`).
+      - Endpoints de claim atômico e transmissão de mensagens operador ↔ cliente (`/api/admin/atendimento/*`).
+      - Pausa automática do gerador de respostas da IA durante o atendimento humano ativo.
+      - Interface do operador no frontend (`/admin/atendimento`) com fila de espera, abas de atendimento e resumo de contexto do cliente.
 
 ## Fase 5 — MCP B2B Provido pela Empresa (R12)
 
