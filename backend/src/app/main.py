@@ -11,6 +11,7 @@ import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.admin_metrics import router as admin_metrics_router
 from app.api.admin_products import router as admin_products_router
 from app.api.agendamentos import router as agendamentos_router
 from app.api.auth import router as auth_router
@@ -310,6 +311,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(chat_router)
+    app.include_router(admin_metrics_router)
     app.include_router(crawler_router)
     app.include_router(image_search_router)
     app.include_router(local_models_router)

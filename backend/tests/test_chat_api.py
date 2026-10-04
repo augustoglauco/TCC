@@ -455,7 +455,15 @@ def test_get_conversa_devolve_o_historico_gravado(client):
         ("assistente", "resposta local", "agendamento"),
     ]
     # E-mail e perfil do visitante (R10) não saem por este endpoint.
-    assert set(corpo) == {"conversation_id", "resumo", "mensagens"}
+    assert set(corpo) == {
+        "conversation_id",
+        "resumo",
+        "mensagens",
+        "status",
+        "encerrada_em",
+        "motivo_encerramento",
+    }
+    assert corpo["status"] == "aberta"
 
 
 def test_get_conversa_devolve_as_metricas_de_cada_resposta(client):
