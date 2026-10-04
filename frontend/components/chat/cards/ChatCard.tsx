@@ -1,5 +1,6 @@
 import type { ChatCard as ChatCardData } from "@/lib/types/chat";
 import AppointmentCard from "@/components/chat/cards/AppointmentCard";
+import ChatChartCard from "@/components/chat/cards/ChatChartCard";
 import ProductCard from "@/components/chat/cards/ProductCard";
 import QuoteCard from "@/components/chat/cards/QuoteCard";
 
@@ -13,6 +14,8 @@ export default function ChatCard({ card }: { card: ChatCardData }) {
       return <QuoteCard card={card} />;
     case "agendamento":
       return <AppointmentCard card={card} />;
+    case "grafico":
+      return <ChatChartCard card={card} />;
     default:
       return null;
   }
