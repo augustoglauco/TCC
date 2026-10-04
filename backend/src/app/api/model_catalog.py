@@ -3,10 +3,12 @@ specs) — ver docs/superpowers/specs/2026-10-03-caracteristicas-modelo-
 hover-design.md.
 """
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.rag_dependencies import get_db_session
+from app.db.models import ModelCharacteristics
 from app.model_catalog.characteristics import get_or_fetch
 from app.models.model_catalog import (
     CharacteristicsRefreshRequest,
@@ -22,11 +24,11 @@ def get_ollama_client(request: Request) -> OllamaClient:
     return request.app.state.local_client
 
 
-def get_model_catalog_http_client(request: Request):
+def get_model_catalog_http_client(request: Request) -> httpx.AsyncClient:
     return request.app.state.model_catalog_http_client
 
 
-def _to_response(linha) -> ModelCharacteristicsResponse:
+def _to_response(linha: ModelCharacteristics) -> ModelCharacteristicsResponse:
     return ModelCharacteristicsResponse(
         source=linha.source,
         tag=linha.tag,

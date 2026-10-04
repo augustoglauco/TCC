@@ -75,6 +75,23 @@ class _FakeQdrantRAGClient:
         self.dropped_collections.append(collection_name)
 
 
+@pytest.fixture(autouse=True)
+def _reset_openrouter_cache():
+    """Isola o cache em memória do processo da lista do OpenRouter
+    (`app.model_catalog.characteristics._openrouter_cache`, TTL de 1h) entre
+    testes — sem isso, o cache populado por um teste vazaria para o
+    próximo e mascararia, por exemplo, uma falha de rede simulada.
+    Compartilhada por `test_model_catalog_characteristics.py` e
+    `test_model_catalog_api.py` (achado "Minor B" da revisão final — antes
+    só o primeiro tinha essa fixture; o segundo fazia o reset manualmente
+    em cada teste)."""
+    import app.model_catalog.characteristics as mod
+
+    mod._openrouter_cache["models"] = None
+    mod._openrouter_cache["fetched_at"] = None
+    yield
+
+
 class _CommitFailingSession:
     """Encapsula uma `AsyncSession` real, repassando toda leitura/escrita
     normalmente, exceto `commit()`, que levanta `SQLAlchemyError` — simula

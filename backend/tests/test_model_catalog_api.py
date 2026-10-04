@@ -27,11 +27,6 @@ def _http_client_openrouter_ok() -> httpx.AsyncClient:
 
 
 def test_get_characteristics_200_quando_encontrado(db_session):
-    import app.model_catalog.characteristics as mod
-
-    mod._openrouter_cache["models"] = None
-    mod._openrouter_cache["fetched_at"] = None
-
     app = _build_app(db_session, http_client=_http_client_openrouter_ok())
     client = TestClient(app)
 
@@ -50,12 +45,8 @@ def test_get_characteristics_404_quando_nao_encontrado(db_session):
     def handler(request):
         return httpx.Response(200, json={"data": []})
 
-    import app.model_catalog.characteristics as mod
-
-    mod._openrouter_cache["models"] = None
-    mod._openrouter_cache["fetched_at"] = None
-
-    app = _build_app(db_session, http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    http_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    app = _build_app(db_session, http_client=http_client)
     client = TestClient(app)
 
     response = client.get(
@@ -79,11 +70,6 @@ def test_get_characteristics_source_invalido_422(db_session):
 
 
 def test_refresh_characteristics_forca_nova_busca(db_session):
-    import app.model_catalog.characteristics as mod
-
-    mod._openrouter_cache["models"] = None
-    mod._openrouter_cache["fetched_at"] = None
-
     app = _build_app(db_session, http_client=_http_client_openrouter_ok())
     client = TestClient(app)
 
