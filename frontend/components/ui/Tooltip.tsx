@@ -1,6 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  cloneElement,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 
 // Detecta "estamos no cliente" sem `useState`+`useEffect` — useSyncExternalStore
@@ -26,20 +36,40 @@ export interface TooltipProps {
   ariaLabel?: string;
   position?: TooltipPosition;
   align?: TooltipAlign;
+  /** Elemento customizado que dispara o tooltip no hover/foco, no lugar do
+   * botão "?" padrão — usado quando o gatilho precisa ser um elemento que
+   * já tem seus próprios filhos interativos (ex.: um card inteiro com
+   * botões dentro, que não podem ficar aninhados num <button>). Os
+   * handlers de hover/foco já existentes no elemento passado continuam
+   * sendo chamados (não são sobrescritos). */
+  trigger?: ReactElement;
+  /** Conteúdo rico (JSX) do corpo do tooltip, no lugar do texto simples de
+   * `content`. `content` continua sendo usado para o `aria-label` padrão
+   * do botão "?" quando `trigger` não é usado. */
+  renderContent?: () => ReactNode;
 }
 
 /**
- * Componente de Tooltip acessível e inteligente para formulários e modais.
- * Utiliza Portal do React e posicionamento fixo dinâmico para garantir que
- * o tooltip NUNCA seja cortado por contêineres com scroll (`overflow-y-auto`)
- * ou bordas de modais, ajustando seu alinhamento à esquerda/direita.
+ * Componente de Tooltip acessível e inteligente para formulários, modais e
+ * cards administrativos. Utiliza Portal do React e posicionamento fixo
+ * dinâmico para garantir que o tooltip NUNCA seja cortado por contêineres
+ * com scroll (`overflow-y-auto`) ou bordas de modais, ajustando seu
+ * alinhamento à esquerda/direita.
  */
-export function Tooltip({ content, ariaLabel, position = "auto", align = "auto" }: TooltipProps) {
+export function Tooltip({
+  content,
+  ariaLabel,
+  position = "auto",
+  align = "auto",
+  trigger,
+  renderContent,
+}: TooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const mounted = useEstaNoCliente();
-  const triggerRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const tooltipWidth = renderContent ? 288 : 240; // w-72 vs w-60
 
   const updateCoords = useCallback(() => {
     if (!triggerRef.current) return;
@@ -51,7 +81,6 @@ export function Tooltip({ content, ariaLabel, position = "auto", align = "auto" 
       return;
     }
 
-    const tooltipWidth = 240; // w-60 = 240px
     const tooltipEstimatedHeight = 110;
     const viewportWidth = window.innerWidth || 1024;
     const viewportHeight = window.innerHeight || 768;
@@ -69,7 +98,7 @@ export function Tooltip({ content, ariaLabel, position = "auto", align = "auto" 
       // Se o gatilho estiver próximo da borda esquerda, alinha à esquerda do gatilho
       if (rect.left < 200) {
         left = Math.max(16, rect.left - 4);
-      } else if (rect.left > viewportWidth - 260) {
+      } else if (rect.left > viewportWidth - tooltipWidth - 20) {
         // Se estiver próximo da borda direita, alinha à direita
         left = rect.right - tooltipWidth;
       } else {
@@ -90,7 +119,7 @@ export function Tooltip({ content, ariaLabel, position = "auto", align = "auto" 
     }
 
     setCoords({ top, left });
-  }, [align, position]);
+  }, [align, position, tooltipWidth]);
 
   useEffect(() => {
     if (isVisible) {
@@ -103,6 +132,11 @@ export function Tooltip({ content, ariaLabel, position = "auto", align = "auto" 
       };
     }
   }, [isVisible, updateCoords]);
+
+  const tooltipBody = renderContent ? renderContent() : content;
+  const classeCorpo = renderContent
+    ? "w-72 rounded-xl border border-slate-200 bg-white p-3 text-xs font-normal leading-relaxed text-slate-900 shadow-2xl pointer-events-auto text-left animate-in fade-in-50 duration-150"
+    : "w-60 rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs font-normal leading-relaxed text-slate-100 shadow-2xl pointer-events-none text-left animate-in fade-in-50 duration-150";
 
   const tooltipElement = isVisible ? (
     <span
@@ -117,18 +151,58 @@ export function Tooltip({ content, ariaLabel, position = "auto", align = "auto" 
             }
           : undefined
       }
-      className={`${
-        coords ? "z-[9999]" : "absolute top-full left-0 mt-1.5 z-[100]"
-      } w-60 rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs font-normal leading-relaxed text-slate-100 shadow-2xl pointer-events-none text-left animate-in fade-in-50 duration-150`}
+      className={
+        coords
+          ? `z-[9999] ${classeCorpo}`
+          : `absolute top-full left-0 mt-1.5 z-[100] ${classeCorpo}`
+      }
     >
-      {content}
+      {tooltipBody}
     </span>
   ) : null;
+
+  const tooltipPortal =
+    mounted && typeof document !== "undefined"
+      ? createPortal(tooltipElement, document.body)
+      : tooltipElement;
+
+  if (trigger) {
+    const mostrar = () => setIsVisible(true);
+    const esconder = () => setIsVisible(false);
+    const triggerClonado = isValidElement(trigger)
+      ? cloneElement(trigger, {
+          ref: triggerRef,
+          onMouseEnter: (e: React.MouseEvent) => {
+            (trigger.props as { onMouseEnter?: (e: React.MouseEvent) => void }).onMouseEnter?.(e);
+            mostrar();
+          },
+          onMouseLeave: (e: React.MouseEvent) => {
+            (trigger.props as { onMouseLeave?: (e: React.MouseEvent) => void }).onMouseLeave?.(e);
+            esconder();
+          },
+          onFocus: (e: React.FocusEvent) => {
+            (trigger.props as { onFocus?: (e: React.FocusEvent) => void }).onFocus?.(e);
+            mostrar();
+          },
+          onBlur: (e: React.FocusEvent) => {
+            (trigger.props as { onBlur?: (e: React.FocusEvent) => void }).onBlur?.(e);
+            esconder();
+          },
+        } as Partial<unknown>)
+      : trigger;
+
+    return (
+      <>
+        {triggerClonado}
+        {tooltipPortal}
+      </>
+    );
+  }
 
   return (
     <span className="relative inline-flex items-center">
       <button
-        ref={triggerRef}
+        ref={triggerRef as React.RefObject<HTMLButtonElement>}
         type="button"
         onClick={() => setIsVisible((prev) => !prev)}
         onMouseEnter={() => setIsVisible(true)}
@@ -140,9 +214,7 @@ export function Tooltip({ content, ariaLabel, position = "auto", align = "auto" 
       >
         ?
       </button>
-      {mounted && typeof document !== "undefined"
-        ? createPortal(tooltipElement, document.body)
-        : tooltipElement}
+      {tooltipPortal}
     </span>
   );
 }
