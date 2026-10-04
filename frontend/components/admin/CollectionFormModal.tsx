@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { RagApiError, createCollection } from "@/lib/api/rag";
+import { RagApiError, activateCollection, createCollection } from "@/lib/api/rag";
 import type {
   CollectionCreatePayload,
   CollectionPurpose,
@@ -76,6 +76,7 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
   const [productAlwaysRam, setProductAlwaysRam] = useState(false);
   const [binaryAlwaysRam, setBinaryAlwaysRam] = useState(false);
   const [payloadIndexes, setPayloadIndexes] = useState<PayloadIndex[]>(PAYLOAD_INDEXES_PADRAO);
+  const [ativarAposCriar, setAtivarAposCriar] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -85,6 +86,7 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
   function resetar() {
     setName("");
     setPurpose("chat");
+    setAtivarAposCriar(false);
     setModelSelecionado(CURATED_MODELS[0].value);
     setModeloCustom("");
     setDistanceMetric("cosine");
@@ -169,6 +171,14 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
 
     try {
       const collection = await createCollection(payload);
+      if (ativarAposCriar) {
+        try {
+          await activateCollection(collection.id);
+          collection.is_active = true;
+        } catch {
+          // Ativação não crítica pós-criação
+        }
+      }
       onCreated(collection);
       resetar();
       onOpenChange(false);
@@ -211,7 +221,7 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
             <label htmlFor="collection-purpose" className="text-sm font-medium text-gray-900">
               Finalidade
             </label>
-            <Tooltip content="Chat (pública): conteúdo usado pelo chat. Restrita ao MCP B2B: parceiros a veem (junto com o chat ativo). Exclusiva do Admin: só o Admin a vê, no modo admin do chat." />
+            <Tooltip content="Cada canal possui sua própria collection ativa independente. Chat (pública) para o assistente aberto; MCP B2B para integração com revendedores; Admin para o painel seguro." />
           </div>
           <select
             id="collection-purpose"
@@ -225,16 +235,35 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           </select>
           {purpose === "mcp_b2b" && (
             <p className="mt-1 text-xs text-amber-700">
-              Conteúdo não aparece no chat público; será consultado pelo canal MCP B2B (Fase 5) e
-              pelo Admin no modo admin do chat. Esta collection não pode ser ativada para o chat.
+              Conteúdo restrito aos revendedores parceiros; consultado pelo canal MCP B2B e pelo Admin no modo admin.
+              Pode ser definida como a collection ativa para MCP B2B.
             </p>
           )}
           {purpose === "admin" && (
             <p className="mt-1 text-xs text-amber-700">
-              Conteúdo não aparece no chat público nem para parceiros do MCP B2B — só o Admin o vê,
-              quando o chat confirma sua sessão. Esta collection não pode ser ativada para o chat.
+              Conteúdo exclusivo do painel de administração — só o Admin o vê quando autenticado.
+              Pode ser definida como a collection ativa para Admin.
             </p>
           )}
+          {purpose === "chat" && (
+            <p className="mt-1 text-xs text-blue-700">
+              Conteúdo público consultado pelo assistente do chat aberto aos clientes.
+              Pode ser definida como a collection ativa para o Chat.
+            </p>
+          )}
+
+          <div className="mt-2.5 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5">
+            <input
+              id="ativar-apos-criar"
+              type="checkbox"
+              checked={ativarAposCriar}
+              onChange={(e) => setAtivarAposCriar(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+            />
+            <label htmlFor="ativar-apos-criar" className="text-xs font-semibold text-slate-800 cursor-pointer">
+              Tornar esta collection a ativa imediata para {purpose === "mcp_b2b" ? "MCP B2B" : purpose === "admin" ? "Admin" : "Chat"}
+            </label>
+          </div>
         </div>
 
         <fieldset className="space-y-2">

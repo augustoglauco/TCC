@@ -7,12 +7,13 @@ import type { RagCollection } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/rag", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/rag")>("@/lib/api/rag");
-  return { ...actual, createCollection: vi.fn() };
+  return { ...actual, createCollection: vi.fn(), activateCollection: vi.fn() };
 });
 
-import { createCollection, RagApiError } from "@/lib/api/rag";
+import { activateCollection, createCollection, RagApiError } from "@/lib/api/rag";
 
 const mockedCreate = vi.mocked(createCollection);
+const mockedActivate = vi.mocked(activateCollection);
 
 const COLLECTION_CRIADA: RagCollection = {
   id: "1",
@@ -40,6 +41,7 @@ const COLLECTION_CRIADA: RagCollection = {
 describe("CollectionFormModal", () => {
   beforeEach(() => {
     mockedCreate.mockReset();
+    mockedActivate.mockReset();
   });
 
   it("preenche nome e envia — chama createCollection com o payload esperado", async () => {
@@ -146,5 +148,22 @@ describe("CollectionFormModal", () => {
     await user.click(screen.getByRole("button", { name: "Criar collection" }));
 
     expect(await screen.findByText("Já existe uma collection chamada 'nova'.")).toBeInTheDocument();
+  });
+
+  it("quando marcar para ativar após criação, chama activateCollection com o id da collection criada", async () => {
+    const user = userEvent.setup();
+    mockedCreate.mockResolvedValueOnce(COLLECTION_CRIADA);
+    mockedActivate.mockResolvedValueOnce(undefined);
+    const onCreated = vi.fn();
+
+    render(<CollectionFormModal open onOpenChange={vi.fn()} onCreated={onCreated} />);
+
+    await user.type(screen.getByLabelText("Nome"), "nova");
+    await user.click(screen.getByRole("checkbox", { name: /Tornar esta collection a ativa imediata/ }));
+    await user.click(screen.getByRole("button", { name: "Criar collection" }));
+
+    expect(mockedCreate).toHaveBeenCalled();
+    expect(mockedActivate).toHaveBeenCalledWith("1");
+    expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ is_active: true }));
   });
 });

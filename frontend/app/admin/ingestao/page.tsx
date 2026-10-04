@@ -17,7 +17,7 @@ import { DocumentsTable } from "@/components/admin/DocumentsTable";
 import { PlaygroundPanel } from "@/components/admin/playground/PlaygroundPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ToastStack, useToast } from "@/components/ui/Toast";
-import { RagApiError, createCollection, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
+import { RagApiError, activateCollection, createCollection, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
 import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
 import type {
   CollectionPurpose,
@@ -93,6 +93,11 @@ function AbaEnviarDocumento({
           { field: "document_id", schema_type: "keyword" },
         ],
       });
+      try {
+        await activateCollection(novaCol.id);
+      } catch {
+        // Ativação não impeditiva
+      }
       await onColecoesMudaram();
       setCollectionId(novaCol.id);
     } catch (err) {
@@ -215,7 +220,7 @@ function AbaEnviarDocumento({
                 {chatCollections.length > 0 ? (
                   chatCollections.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} {c.is_active ? "★ (ativa no chat)" : ""}
+                      {c.name} {c.is_active ? "★ (ativa no Chat)" : ""}
                     </option>
                   ))
                 ) : (
@@ -229,7 +234,7 @@ function AbaEnviarDocumento({
                 {b2bCollections.length > 0 ? (
                   b2bCollections.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} [MCP B2B]
+                      {c.name} {c.is_active ? "★ (ativa no MCP B2B)" : "[MCP B2B]"}
                     </option>
                   ))
                 ) : (
@@ -243,7 +248,7 @@ function AbaEnviarDocumento({
                 {adminCollections.length > 0 ? (
                   adminCollections.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} [Admin]
+                      {c.name} {c.is_active ? "★ (ativa no Admin)" : "[Admin]"}
                     </option>
                   ))
                 ) : (
@@ -553,12 +558,114 @@ function AbaConfiguracao({
   const [modalAberto, setModalAberto] = useState(false);
   const { toasts, showToast, dismissToast } = useToast();
 
+  const ativaChat = collections.find((c) => c.is_active && (c.purpose || "chat") === "chat");
+  const ativaB2B = collections.find((c) => c.is_active && c.purpose === "mcp_b2b");
+  const ativaAdmin = collections.find((c) => c.is_active && c.purpose === "admin");
+
   return (
     <div className="space-y-6">
       <RagSearchConfigSection
         onError={(msg) => showToast(msg, "error")}
         onSuccess={(msg) => showToast(msg, "success")}
       />
+
+      {/* Painel de Collections Ativas por Finalidade */}
+      <div className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-4">
+        <div>
+          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <span>⭐</span> Collections Ativas por Finalidade (Purpose)
+          </h2>
+          <p className="text-xs text-slate-600">
+            Cada canal do sistema possui exatamente uma collection ativa independente para buscas vetoriais.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card Chat */}
+          <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
+                <span>💬</span> Chat Público
+              </span>
+              {ativaChat ? (
+                <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
+                  Ativa
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
+                  Sem ativa
+                </span>
+              )}
+            </div>
+            <div className="text-sm font-bold text-slate-900 truncate">
+              {ativaChat ? (
+                <span>Coleção ativa: {ativaChat.name}</span>
+              ) : (
+                <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-600 leading-tight">
+              Consultada pelo assistente nas conversas do chat público com clientes.
+            </p>
+          </div>
+
+          {/* Card MCP B2B */}
+          <div className="rounded-xl border border-purple-200/80 bg-purple-50/40 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
+                <span>🏢</span> MCP B2B Restrito
+              </span>
+              {ativaB2B ? (
+                <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
+                  Ativa
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
+                  Sem ativa
+                </span>
+              )}
+            </div>
+            <div className="text-sm font-bold text-slate-900 truncate">
+              {ativaB2B ? (
+                <span>Coleção ativa: {ativaB2B.name}</span>
+              ) : (
+                <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-600 leading-tight">
+              Consultada pelos revendedores parceiros no canal de integração MCP B2B.
+            </p>
+          </div>
+
+          {/* Card Admin */}
+          <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
+                <span>🛡️</span> Admin Exclusivo
+              </span>
+              {ativaAdmin ? (
+                <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
+                  Ativa
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
+                  Sem ativa
+                </span>
+              )}
+            </div>
+            <div className="text-sm font-bold text-slate-900 truncate">
+              {ativaAdmin ? (
+                <span>Coleção ativa: {ativaAdmin.name}</span>
+              ) : (
+                <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-600 leading-tight">
+              Consultada pelo administrador no modo seguro do chat do painel.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs space-y-6">
         <div className="flex items-center justify-between">
@@ -633,7 +740,9 @@ export default function IngestaoDocumentosPage() {
     carregarColecoes();
   }, [carregarColecoes]);
 
-  const collectionAtiva = collections.find((c) => c.is_active);
+  const ativaChat = collections.find((c) => c.is_active && (c.purpose || "chat") === "chat");
+  const ativaB2B = collections.find((c) => c.is_active && c.purpose === "mcp_b2b");
+  const ativaAdmin = collections.find((c) => c.is_active && c.purpose === "admin");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-4 sm:py-6 space-y-4">
@@ -655,9 +764,19 @@ export default function IngestaoDocumentosPage() {
             <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 border border-blue-100">
               <span>🗂️</span> {collections.length} {collections.length === 1 ? "Collection" : "Collections"}
             </span>
-            {collectionAtiva && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 border border-emerald-100">
-                ★ Ativa: {collectionAtiva.name}
+            {ativaChat && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 border border-emerald-100" title="Collection ativa para Chat Público">
+                ★ Chat: {ativaChat.name}
+              </span>
+            )}
+            {ativaB2B && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 border border-purple-100" title="Collection ativa para MCP B2B">
+                ★ MCP B2B: {ativaB2B.name}
+              </span>
+            )}
+            {ativaAdmin && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 border border-rose-100" title="Collection ativa para Admin">
+                ★ Admin: {ativaAdmin.name}
               </span>
             )}
           </div>

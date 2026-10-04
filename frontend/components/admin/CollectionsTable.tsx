@@ -4,13 +4,19 @@ import { useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { RagApiError, activateCollection, deleteCollection } from "@/lib/api/rag";
-import type { RagCollection } from "@/lib/types/rag";
+import type { CollectionPurpose, RagCollection } from "@/lib/types/rag";
 
 export interface CollectionsTableProps {
   collections: RagCollection[];
   onChanged: () => void;
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
+}
+
+function getPurposeLabel(purpose?: string): string {
+  if (purpose === "mcp_b2b") return "MCP B2B";
+  if (purpose === "admin") return "Admin";
+  return "Chat";
 }
 
 export function CollectionsTable({
@@ -21,12 +27,22 @@ export function CollectionsTable({
 }: CollectionsTableProps) {
   const [collectionParaExcluir, setCollectionParaExcluir] = useState<RagCollection | null>(null);
   const [processando, setProcessando] = useState(false);
+  const [filtroPurpose, setFiltroPurpose] = useState<"todas" | CollectionPurpose>("todas");
+
+  const chatCount = collections.filter((c) => (c.purpose || "chat") === "chat").length;
+  const b2bCount = collections.filter((c) => c.purpose === "mcp_b2b").length;
+  const adminCount = collections.filter((c) => c.purpose === "admin").length;
+
+  const collectionsFiltradas =
+    filtroPurpose === "todas"
+      ? collections
+      : collections.filter((c) => (c.purpose || "chat") === filtroPurpose);
 
   async function handleAtivar(collection: RagCollection) {
     setProcessando(true);
     try {
       await activateCollection(collection.id);
-      onSuccess(`"${collection.name}" agora é a collection ativa.`);
+      onSuccess(`"${collection.name}" agora é a collection ativa (${getPurposeLabel(collection.purpose)}).`);
       onChanged();
     } catch (err) {
       onError(err instanceof RagApiError ? err.message : "Erro inesperado ao ativar a collection.");
@@ -58,6 +74,57 @@ export function CollectionsTable({
 
   return (
     <>
+      {/* Filtro por Finalidade */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1">
+          Finalidade:
+        </span>
+        <button
+          type="button"
+          onClick={() => setFiltroPurpose("todas")}
+          className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+            filtroPurpose === "todas"
+              ? "bg-slate-900 text-white shadow-2xs"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200/80"
+          }`}
+        >
+          Todas ({collections.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFiltroPurpose("chat")}
+          className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+            filtroPurpose === "chat"
+              ? "bg-blue-600 text-white shadow-2xs"
+              : "bg-blue-50 text-blue-700 hover:bg-blue-100/80"
+          }`}
+        >
+          💬 Chat ({chatCount})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFiltroPurpose("mcp_b2b")}
+          className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+            filtroPurpose === "mcp_b2b"
+              ? "bg-purple-600 text-white shadow-2xs"
+              : "bg-purple-50 text-purple-700 hover:bg-purple-100/80"
+          }`}
+        >
+          🏢 MCP B2B ({b2bCount})
+        </button>
+        <button
+          type="button"
+          onClick={() => setFiltroPurpose("admin")}
+          className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
+            filtroPurpose === "admin"
+              ? "bg-rose-600 text-white shadow-2xs"
+              : "bg-rose-50 text-rose-700 hover:bg-rose-100/80"
+          }`}
+        >
+          🛡️ Admin ({adminCount})
+        </button>
+      </div>
+
       <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         <table className="w-full min-w-[700px] text-left text-sm">
           <thead>
@@ -74,7 +141,7 @@ export function CollectionsTable({
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {collections.map((collection) => (
+            {collectionsFiltradas.map((collection) => (
               <tr key={collection.id} className="transition-colors hover:bg-slate-50/60">
                 <td className="py-3.5 px-4 font-semibold text-slate-900">
                   <div className="inline-flex items-center gap-2">
@@ -82,7 +149,10 @@ export function CollectionsTable({
                     {collection.is_active && (
                       <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200/80 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 shadow-2xs">
                         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        Ativa
+                        <span>Ativa</span>
+                        <span className="text-[10px] text-emerald-800/80 font-medium">
+                          ({getPurposeLabel(collection.purpose)})
+                        </span>
                       </span>
                     )}
                   </div>
@@ -122,6 +192,7 @@ export function CollectionsTable({
                       type="button"
                       onClick={() => handleAtivar(collection)}
                       disabled={processando}
+                      title={`Definir como collection ativa para ${getPurposeLabel(collection.purpose)}`}
                       className="mr-2 inline-flex items-center gap-1 rounded-lg border border-indigo-200/80 bg-indigo-50/50 px-2.5 py-1 text-xs font-semibold text-indigo-700 shadow-2xs transition-colors hover:bg-indigo-100/80 hover:text-indigo-800 disabled:opacity-50"
                     >
                       Ativar
@@ -133,7 +204,7 @@ export function CollectionsTable({
                     disabled={processando || collection.is_active}
                     title={
                       collection.is_active
-                        ? "Ative outra collection antes de excluir esta."
+                        ? `Ative outra collection de ${getPurposeLabel(collection.purpose)} antes de excluir esta.`
                         : undefined
                     }
                     className="inline-flex items-center gap-1 rounded-lg border border-red-200/80 bg-red-50/50 px-2.5 py-1 text-xs font-semibold text-red-600 shadow-2xs transition-colors hover:bg-red-100/80 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-40"
