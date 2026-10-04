@@ -70,6 +70,12 @@ export function Tooltip({
   const tooltipRef = useRef<HTMLSpanElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const tooltipWidth = renderContent ? 288 : 240; // w-72 vs w-60
+  // Timeout de ocultar com um pequeno atraso (ver `agendarEsconder` abaixo)
+  // — permite o cursor atravessar o gap de 6px entre o gatilho e o corpo do
+  // tooltip (posicionado `rect.bottom + 6`) sem fechar o painel no meio do
+  // caminho (achado #2 da revisão final: o botão de refresh dentro do
+  // painel ficava inalcançável nos cards com `trigger`/hover).
+  const esconderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateCoords = useCallback(() => {
     if (!triggerRef.current) return;
@@ -133,6 +139,29 @@ export function Tooltip({
     }
   }, [isVisible, updateCoords]);
 
+  const mostrar = useCallback(() => {
+    if (esconderTimeoutRef.current) {
+      clearTimeout(esconderTimeoutRef.current);
+      esconderTimeoutRef.current = null;
+    }
+    setIsVisible(true);
+  }, []);
+  // Esconde imediatamente (sem atraso) — usado no `onBlur`, que não tem o
+  // problema do gap de mouse a atravessar.
+  const esconder = useCallback(() => setIsVisible(false), []);
+  // Atraso curto antes de esconder (em vez de síncrono) — dá tempo do
+  // cursor atravessar o gap de 6px entre o gatilho e o corpo do tooltip
+  // (posicionado `rect.bottom + 6`) sem que o `onMouseLeave` do gatilho já
+  // tenha desmontado o painel no caminho (achado #2 da revisão final: o
+  // botão de refresh dentro do painel ficava inalcançável nos cards com
+  // `trigger`/hover).
+  const agendarEsconder = useCallback(() => {
+    esconderTimeoutRef.current = setTimeout(() => {
+      setIsVisible(false);
+      esconderTimeoutRef.current = null;
+    }, 150);
+  }, []);
+
   const tooltipBody = renderContent ? renderContent() : content;
   const classeCorpo = renderContent
     ? "w-72 rounded-xl border border-slate-200 bg-white p-3 text-xs font-normal leading-relaxed text-slate-900 shadow-2xl pointer-events-auto text-left animate-in fade-in-50 duration-150"
@@ -142,6 +171,14 @@ export function Tooltip({
     <span
       ref={tooltipRef}
       role="tooltip"
+      // Também dispara mostrar/agendar-esconder ao entrar/sair do próprio
+      // corpo do tooltip — sem isso, mover o cursor do gatilho até o painel
+      // (trigger) dispara `mouseleave` no gatilho e desmonta o painel antes
+      // do cursor chegar nele (achado #2 da revisão final). Inofensivo no
+      // tooltip simples (`pointer-events-none`): o mouse não interage com
+      // ele de qualquer forma.
+      onMouseEnter={mostrar}
+      onMouseLeave={agendarEsconder}
       style={
         coords
           ? {
@@ -167,10 +204,12 @@ export function Tooltip({
       : tooltipElement;
 
   if (trigger) {
-    const mostrar = () => setIsVisible(true);
-    const esconder = () => setIsVisible(false);
     const triggerClonado = isValidElement(trigger)
-      ? cloneElement(trigger, {
+      ? // cloneElement repassando `ref` pro elemento host é o padrão
+        // intencional de forwarding aqui, não um acesso a ref durante o
+        // render que a regra deveria pegar (falso positivo).
+        // eslint-disable-next-line react-hooks/refs
+        cloneElement(trigger, {
           ref: triggerRef,
           onMouseEnter: (e: React.MouseEvent) => {
             (trigger.props as { onMouseEnter?: (e: React.MouseEvent) => void }).onMouseEnter?.(e);
@@ -178,7 +217,7 @@ export function Tooltip({
           },
           onMouseLeave: (e: React.MouseEvent) => {
             (trigger.props as { onMouseLeave?: (e: React.MouseEvent) => void }).onMouseLeave?.(e);
-            esconder();
+            agendarEsconder();
           },
           onFocus: (e: React.FocusEvent) => {
             (trigger.props as { onFocus?: (e: React.FocusEvent) => void }).onFocus?.(e);
