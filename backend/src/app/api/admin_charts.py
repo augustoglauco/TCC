@@ -14,7 +14,7 @@ from app.api.auth import verificar_admin_por_token
 from app.api.rag_dependencies import get_db_session
 from app.db.models import AdminChart
 from app.services.chart_generator import SUPPORTED_QUERIES, execute_chart_aggregation
-from app.services.safe_sql import execute_readonly_sql
+from app.services.safe_sql import SQLSecurityError, execute_readonly_sql
 
 logger = logging.getLogger("assistente.admin_charts")
 
@@ -166,8 +166,30 @@ async def refresh_admin_chart(
                 chart.atualizado_em = datetime.now(UTC)
                 await session.commit()
                 await session.refresh(chart)
+            except SQLSecurityError as exc:
+                await session.rollback()
+                logger.error(
+                    "sql_inseguro_ao_recalcular", extra={"chart_id": chart_id, "erro": str(exc)}
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"A consulta salva deste gráfico não é mais permitida: {exc}",
+                ) from exc
             except Exception as exc:
-                logger.error("falha_ao_recalcular_dynamic_sql", extra={"chart_id": chart_id, "erro": str(exc)})
+                # Achado da revisão de 2026-10-04: sem o rollback aqui, o
+                # commit anterior falho deixava a sessão em estado inválido
+                # e esse `except` só devolvia dados obsoletos com 200 (nunca
+                # avisando o chamador que o recálculo falhou).
+                await session.rollback()
+                logger.error(
+                    "falha_ao_recalcular_dynamic_sql",
+                    extra={"chart_id": chart_id, "erro": str(exc)},
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Não foi possível atualizar os dados deste gráfico agora. "
+                    "Tente novamente.",
+                ) from exc
         elif chart.sql_query == "dynamic_user_data":
             chart.atualizado_em = datetime.now(UTC)
             await session.commit()
@@ -182,6 +204,13 @@ async def refresh_admin_chart(
                 await session.refresh(chart)
             except Exception as exc:
                 logger.error("falha_ao_recalcular_grafico", extra={"chart_id": chart_id, "erro": str(exc)})
+                # Achado da revisão de 2026-10-04: o commit acima pode ter
+                # falhado a meio caminho, deixando a sessão em estado de
+                # rollback pendente — sem este rollback, o commit de
+                # fallback abaixo (lista vazia em vez de 500) também falha,
+                # com uma `PendingRollbackError` não tratada escapando do
+                # `except`.
+                await session.rollback()
                 # Atualiza para lista vazia em caso de falha controlada em vez de 500
                 chart.dados_json = []
                 await session.commit()

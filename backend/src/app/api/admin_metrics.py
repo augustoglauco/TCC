@@ -1,16 +1,18 @@
 """Endpoints administrativos de métricas de tokens, custos e chats encerrados."""
 
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Any
+from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import verificar_admin_por_token
 from app.api.rag_dependencies import get_db_session
+from app.config import get_settings
 from app.db.models import Conversa, ConversaMensagem
 
 logger = logging.getLogger("assistente.admin_metrics")
@@ -85,31 +87,55 @@ async def get_token_and_cost_metrics(
     if not session_factory:
         raise HTTPException(status_code=503, detail="Banco de dados não configurado.")
 
-    now = datetime.now(UTC)
+    # Achado da revisão de 2026-10-04: "hoje"/`start_date`/`end_date` são
+    # conceitos de calendário LOCAL do administrador, não UTC — bucketar em
+    # UTC fazia o filtro "Hoje" e o agrupamento diário cortarem o dia às
+    # 21h (horário de Brasília) em vez da meia-noite local. Reaproveita o
+    # mesmo fuso já configurado para o Agendamento (`agendamento_timezone`)
+    # em vez de introduzir uma config nova só para isto.
+    local_tz = ZoneInfo(get_settings().agendamento_timezone)
+    now_local = datetime.now(local_tz)
     cutoff_start: datetime | None = None
     cutoff_end: datetime | None = None
 
     if start_date:
         try:
-            dt = datetime.fromisoformat(start_date)
-            cutoff_start = datetime(dt.year, dt.month, dt.day, 0, 0, 0, tzinfo=UTC)
-        except ValueError:
-            pass
+            d = date.fromisoformat(start_date)
+            cutoff_start = datetime(
+                d.year, d.month, d.day, 0, 0, 0, tzinfo=local_tz
+            ).astimezone(UTC)
+        except ValueError as exc:
+            # Achado da revisão de 2026-10-04: antes, uma data mal formada
+            # era silenciosamente ignorada e a resposta caía no período
+            # default (ex.: 7d) sem avisar o administrador — parecendo um
+            # filtro aplicado quando na verdade foi outro, bem diferente.
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"start_date inválida ({start_date!r}); use o formato YYYY-MM-DD.",
+            ) from exc
 
     if end_date:
         try:
-            dt = datetime.fromisoformat(end_date)
-            cutoff_end = datetime(dt.year, dt.month, dt.day, 23, 59, 59, 999999, tzinfo=UTC)
-        except ValueError:
-            pass
+            d = date.fromisoformat(end_date)
+            cutoff_end = datetime(
+                d.year, d.month, d.day, 23, 59, 59, 999999, tzinfo=local_tz
+            ).astimezone(UTC)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"end_date inválida ({end_date!r}); use o formato YYYY-MM-DD.",
+            ) from exc
 
     if cutoff_start is None and cutoff_end is None:
         if period == "today":
-            cutoff_start = datetime(now.year, now.month, now.day, 0, 0, 0, tzinfo=UTC)
+            local_midnight = datetime(
+                now_local.year, now_local.month, now_local.day, 0, 0, 0, tzinfo=local_tz
+            )
+            cutoff_start = local_midnight.astimezone(UTC)
         elif period == "7d":
-            cutoff_start = now - timedelta(days=7)
+            cutoff_start = now_local.astimezone(UTC) - timedelta(days=7)
         elif period == "30d":
-            cutoff_start = now - timedelta(days=30)
+            cutoff_start = now_local.astimezone(UTC) - timedelta(days=30)
         elif period == "all":
             cutoff_start = None
 
@@ -156,7 +182,7 @@ async def get_token_and_cost_metrics(
         if encerrada_em is None:
             continue
         dt = encerrada_em if encerrada_em.tzinfo else encerrada_em.replace(tzinfo=UTC)
-        date_key = dt.strftime("%Y-%m-%d")
+        date_key = dt.astimezone(local_tz).strftime("%Y-%m-%d")
 
         if date_key not in daily_map:
             daily_map[date_key] = {

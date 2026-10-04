@@ -618,5 +618,56 @@ describe("ChatModal", () => {
     expect(closeSpy).toHaveBeenCalledWith("conv-123", "manual_usuario");
     expect(await screen.findByText(/Atendimento encerrado/)).toBeInTheDocument();
   });
+
+  it("avisa o usuário e NÃO troca de conversa quando o encerramento falha no servidor", async () => {
+    // Achado da revisão de 2026-10-04: antes, o retorno de closeConversation
+    // era ignorado — a UI sempre mostrava "encerrado" e trocava o
+    // conversationId local mesmo quando o POST falhava, deixando a conversa
+    // antiga órfã no servidor (nunca marcada como encerrada).
+    const chatApi = await import("@/lib/api/chat");
+    const closeSpy = vi.spyOn(chatApi, "closeConversation").mockResolvedValue(false);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    useChatStore.setState({
+      conversationId: "conv-123",
+      messages: [{ id: "m1", role: "assistant", text: "Olá cliente" }],
+    });
+
+    renderModal();
+
+    const closeBtn = screen.getByRole("button", { name: "Encerrar atendimento" });
+    fireEvent.click(closeBtn);
+
+    await waitFor(() => {
+      expect(closeSpy).toHaveBeenCalledWith("conv-123", "manual_usuario");
+      expect(alertSpy).toHaveBeenCalled();
+    });
+    expect(screen.queryByText(/Atendimento encerrado/)).not.toBeInTheDocument();
+    expect(useChatStore.getState().conversationId).toBe("conv-123");
+  });
+
+  it("avisa o usuário quando apagar o histórico falha no servidor", async () => {
+    const chatApi = await import("@/lib/api/chat");
+    const deleteSpy = vi.spyOn(chatApi, "deleteConversation").mockResolvedValue(false);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    const alertSpy = vi.spyOn(window, "alert").mockImplementation(() => {});
+
+    useChatStore.setState({
+      conversationId: "conv-123",
+      messages: [{ id: "m1", role: "assistant", text: "Olá cliente" }],
+    });
+
+    renderModal();
+
+    const clearBtn = screen.getByRole("button", { name: /limpar histórico/i });
+    fireEvent.click(clearBtn);
+
+    await waitFor(() => {
+      expect(deleteSpy).toHaveBeenCalledWith("conv-123");
+      expect(alertSpy).toHaveBeenCalled();
+    });
+    expect(useChatStore.getState().messages).toHaveLength(1);
+  });
 });
 

@@ -75,8 +75,13 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     ) {
       return;
     }
-    await deleteConversation(conversationId);
-    clearChat();
+    const ok = await deleteConversation(conversationId);
+    if (!ok) {
+      window.alert("Não foi possível apagar o histórico agora. Tente novamente em instantes.");
+      return;
+    }
+    const userEmail = useAuthStore.getState().user?.email;
+    clearChat(userEmail);
     setError(null);
     setEscalonamento(null);
   }
@@ -88,13 +93,24 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     ) {
       return;
     }
-    await closeConversation(conversationId, "manual_usuario");
+    const ok = await closeConversation(conversationId, "manual_usuario");
+    if (!ok) {
+      // Achado da revisão de 2026-10-04: sem checar o retorno, a UI
+      // sempre mostrava "atendimento encerrado" e trocava o conversationId
+      // local mesmo quando o POST de encerramento falhava no servidor — a
+      // conversa antiga ficava órfã (nunca marcada como encerrada) e o
+      // reload resgatava o id antigo do localStorage como se nada tivesse
+      // acontecido.
+      window.alert("Não foi possível encerrar o atendimento agora. Tente novamente em instantes.");
+      return;
+    }
     addMessage({
       id: generateId(),
       role: "assistant",
       text: "🏁 Atendimento encerrado. Obrigado pelo contato!",
     });
-    setConversationId(generateId());
+    const userEmail = useAuthStore.getState().user?.email;
+    setConversationId(generateId(), userEmail);
   }
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);

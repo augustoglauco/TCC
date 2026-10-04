@@ -55,6 +55,12 @@ export default function AdminMetricasPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const dateInputRef = useRef<HTMLInputElement | null>(null);
   const { toasts, showToast, dismissToast } = useToast();
+  // Achado da revisão de 2026-10-04: sem isto, uma requisição mais antiga
+  // (ex.: "Hoje") que demora mais que uma mais nova (ex.: "7 Dias") podia
+  // resolver depois e sobrescrever a tela com dados de um período que não
+  // é mais o selecionado. Só a resposta da requisição MAIS RECENTE aplica
+  // seu resultado.
+  const requestIdRef = useRef(0);
 
   const carregarMetricas = useCallback(
     async (
@@ -63,6 +69,7 @@ export default function AdminMetricasPage() {
       dateParam?: string
     ) => {
       if (!token) return;
+      const requestId = ++requestIdRef.current;
       setLoading(true);
       setError(null);
       const startTime = Date.now();
@@ -75,6 +82,7 @@ export default function AdminMetricasPage() {
             : {}),
         };
         const res = await fetchTokenCostMetrics(token, params);
+        if (requestId !== requestIdRef.current) return;
         setData(res);
         setLastUpdated(new Date());
         if (isManual) {
@@ -85,13 +93,16 @@ export default function AdminMetricasPage() {
           showToast("Métricas atualizadas com sucesso!", "success");
         }
       } catch (err: unknown) {
+        if (requestId !== requestIdRef.current) return;
         const msg = err instanceof Error ? err.message : "Erro ao carregar métricas.";
         setError(msg);
         if (isManual) {
           showToast(msg, "error");
         }
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     },
     [selectedDate, showToast, token]

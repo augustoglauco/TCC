@@ -1,12 +1,17 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.chat import router as chat_router
 from app.db.models import Conversa
-from app.services.chat_closure_service import fechar_conversa, fechar_conversas_inativas
+from app.services.chat_closure_service import (
+    fechar_conversa,
+    fechar_conversas_inativas,
+    inactivity_closure_worker,
+)
 
 
 class _SingleSessionMaker:
@@ -71,6 +76,42 @@ async def test_inactivity_worker_closes_old_chats(db_session):
     assert recent_chat.status == "aberta"
     assert already_closed.status == "encerrada"
     assert already_closed.motivo_encerramento == "manual_usuario"
+
+
+@pytest.mark.asyncio
+async def test_inactivity_closure_worker_fecha_na_primeira_varredura_sem_esperar_o_intervalo(
+    db_session,
+):
+    # Achado da revisão de 2026-10-04: a varredura só rodava DEPOIS do
+    # primeiro `asyncio.sleep(interval_seconds)` — uma conversa já inativa
+    # há mais de `timeout_minutes` no momento de um restart do backend
+    # ficava aberta por até `interval_seconds` extras antes de ser
+    # encerrada pela primeira vez.
+    old_chat = Conversa(
+        id="old-chat-worker-1",
+        status="aberta",
+        atualizada_em=datetime.now(UTC) - timedelta(minutes=35),
+    )
+    db_session.add(old_chat)
+    await db_session.commit()
+
+    session_factory = _SingleSessionMaker(db_session)
+    # Intervalo bem maior que o tempo de espera do teste: se a varredura só
+    # rodasse depois do `sleep`, a conversa continuaria aberta.
+    task = asyncio.create_task(
+        inactivity_closure_worker(session_factory, interval_seconds=9999, timeout_minutes=30)
+    )
+    try:
+        await asyncio.sleep(0.05)
+    finally:
+        task.cancel()
+        # O worker captura `asyncio.CancelledError` internamente (loga e
+        # retorna), então `await task` não a relança aqui.
+        await task
+
+    await db_session.refresh(old_chat)
+    assert old_chat.status == "encerrada"
+    assert old_chat.motivo_encerramento == "inatividade"
 
 
 @pytest.mark.asyncio

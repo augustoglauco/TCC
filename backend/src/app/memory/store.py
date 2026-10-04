@@ -97,6 +97,18 @@ async def registrar_troca(
     if conversa is None:
         conversa = Conversa(id=conversation_id, mensagens_resumidas=0)
         session.add(conversa)
+    elif conversa.status == "encerrada":
+        # Achado da revisão de 2026-10-04: sem isto, uma mensagem que chega
+        # depois do encerramento (reabertura pelo encerramento manual ter
+        # falhado no cliente antes do fix em ChatModal.tsx, ou uma corrida
+        # com o worker de inatividade) ficava gravada numa conversa que
+        # continua "encerrada" para sempre — corrompendo as métricas por
+        # dia em `admin_metrics.py`, que bucketam pelo `encerrada_em`
+        # congelado em vez do dia real da nova troca. Nova atividade real
+        # reabre a conversa.
+        conversa.status = "aberta"
+        conversa.encerrada_em = None
+        conversa.motivo_encerramento = None
     assistente = ConversaMensagem(
         conversa_id=conversation_id,
         papel=PAPEL_ASSISTENTE,

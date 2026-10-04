@@ -1,3 +1,4 @@
+import json
 import pytest
 from decimal import Decimal
 from app.db.models import AdminChart, Cliente, ClienteCompra, Produto
@@ -5,6 +6,29 @@ from app.services.analytics_agent import (
     extract_prompt_inline_data,
     process_dynamic_chart_request,
 )
+
+
+class _FakeChunk:
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+
+class _FakeLLMClientSql:
+    """Simula um LLM cuja SQL gerada será rejeitada por `safe_sql` —
+    usado para confirmar que o `SQLSecurityError` não derruba a sessão
+    (achado da revisão de 2026-10-04: faltava `session.rollback()`)."""
+
+    def __init__(self, sql: str) -> None:
+        self._sql = sql
+
+    async def generate_stream(self, prompt: str):
+        payload = {
+            "sql": self._sql,
+            "titulo": "Gráfico Bloqueado",
+            "x_key": "a",
+            "y_keys": ["b"],
+        }
+        yield _FakeChunk(json.dumps(payload))
 
 
 def test_extract_prompt_inline_data_key_value():
@@ -70,3 +94,61 @@ async def test_process_dynamic_chart_request_sql_data(db_session):
     assert chart is not None
     assert len(chart.dados_json) >= 2
     assert "produto" in chart.dados_json[0] or "nome" in chart.dados_json[0] or "categoria" in chart.dados_json[0]
+
+
+@pytest.mark.asyncio
+async def test_process_dynamic_chart_request_sql_inseguro_cai_no_fallback_sem_quebrar_sessao(
+    db_session,
+):
+    p1 = Produto(
+        nome="Gerador Turbo 1",
+        descricao="Gerador potente",
+        preco=Decimal("5000.00"),
+        categoria="Geradores",
+    )
+    db_session.add(p1)
+    await db_session.commit()
+
+    llm_client = _FakeLLMClientSql(sql="SELECT * FROM app_settings")
+
+    chart, explicacao = await process_dynamic_chart_request(
+        session=db_session,
+        prompt="gere gráfico de produtos por faturamento",
+        user_email="admin@teste.com",
+        llm_client=llm_client,
+    )
+
+    assert chart is not None
+    assert chart.sql_query != "dynamic_sql: SELECT * FROM app_settings"
+
+
+@pytest.mark.asyncio
+async def test_erro_de_execucao_sql_cai_no_fallback_sem_quebrar_sessao(db_session):
+    # Cobre o caminho feliz do fallback quando a SQL gerada pelo LLM passa a
+    # validação léxica mas falha na execução real (coluna inexistente).
+    # # MVP: roda contra SQLite em memória (ver docstring de `db_session` em
+    # conftest.py) — não reproduz o `PendingRollbackError` específico do
+    # dialeto Postgres (produção) que motivou o `session.rollback()`
+    # adicionado no `except` genérico de `_generate_sql_with_llm`'s chamador
+    # (achado da revisão de 2026-10-04); mantém a correção mesmo sem um
+    # teste que a prove neste ambiente.
+    p1 = Produto(
+        nome="Gerador Turbo 1",
+        descricao="Gerador potente",
+        preco=Decimal("5000.00"),
+        categoria="Geradores",
+    )
+    db_session.add(p1)
+    await db_session.commit()
+
+    llm_client = _FakeLLMClientSql(sql="SELECT coluna_que_nao_existe FROM produtos")
+
+    chart, explicacao = await process_dynamic_chart_request(
+        session=db_session,
+        prompt="gere gráfico de produtos por faturamento",
+        user_email="admin@teste.com",
+        llm_client=llm_client,
+    )
+
+    assert chart is not None
+    assert chart.sql_query != "dynamic_sql: SELECT coluna_que_nao_existe FROM produtos"

@@ -183,9 +183,18 @@ def _match_domain_by_keywords(message: str) -> Domain | None:
     if len(matched) == 1:
         return matched[0]
     # MVP: qualquer ambiguidade (0 ou 2+ domínios) colapsa para o fallback
-    # `fora_escopo`, que escala ao modelo externo (lado seguro). Revisitar a
-    # ordem de prioridade entre domínios quando o conjunto rotulado de
-    # `eval/router_intents/` existir (ver docs/ROADMAP.md, Fase 1).
+    # `fora_escopo`. Revisitar a ordem de prioridade entre domínios quando
+    # o conjunto rotulado de `eval/router_intents/` existir (ver
+    # docs/ROADMAP.md, Fase 1).
+    #
+    # Achado da revisão de 2026-10-04: a frase "escala ao modelo externo
+    # (lado seguro)" descrevia o comportamento até 2026-10-03 — desde
+    # `app.router.orchestrator.handle_message`, `fora_escopo` só escala ao
+    # externo quando `complexity == "alta"`; mensagens curtas (a maioria)
+    # vão ao modelo LOCAL com o playbook de cortesia (ver
+    # `app.router.playbooks`), não só saudações como o nome do commit
+    # sugere — `_heuristic_complexity` olha só tamanho/pontuação, não se a
+    # mensagem é uma saudação de fato.
     return None
 
 

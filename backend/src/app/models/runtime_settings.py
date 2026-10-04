@@ -1,7 +1,10 @@
 """Schemas Pydantic dos parâmetros de execução ajustáveis em runtime (além do
-MVP) — mesmo padrão de `app.api.local_models` (só em memória, não persiste
-entre restarts do processo). Ver decisão registrada em
-docs/ARCHITECTURE.md §5.
+MVP). Alterações via `PUT /api/admin/runtime-settings` ficam em memória
+(`app.state`) E são persistidas na tabela `app_settings` do Postgres
+(`app.db.settings`), restauradas automaticamente no boot do backend — ver
+decisão de 2026-10-03 registrada em docs/ARCHITECTURE.md §5 (achado da
+revisão de 2026-10-04: este docstring ainda descrevia o comportamento
+anterior à persistência, só em memória).
 """
 
 from typing import Literal

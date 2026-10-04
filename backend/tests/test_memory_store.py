@@ -187,3 +187,31 @@ async def test_obter_contexto_conversa_anterior_retorna_none_se_nao_houver_conve
 
     assert ctx1 is None
     assert ctx2 is None
+
+
+async def test_registrar_troca_reabre_conversa_encerrada(factory):
+    # Achado da revisão de 2026-10-04: uma mensagem chegando numa conversa
+    # já `status="encerrada"` ficava gravada sem reabri-la, corrompendo as
+    # métricas por dia que bucketam pelo `encerrada_em` congelado.
+    from datetime import UTC, datetime
+
+    from app.db.models import Conversa
+
+    async with factory() as session:
+        conversa = Conversa(
+            id="conv-encerrada",
+            status="encerrada",
+            encerrada_em=datetime(2026, 10, 1, 12, 0, tzinfo=UTC),
+            motivo_encerramento="inatividade",
+        )
+        session.add(conversa)
+        await session.commit()
+
+    async with factory() as session:
+        conversa_atualizada, _ = await registrar_troca(
+            session, "conv-encerrada", "Ainda está aí?", "Sim, como posso ajudar?", "atendimento"
+        )
+
+    assert conversa_atualizada.status == "aberta"
+    assert conversa_atualizada.encerrada_em is None
+    assert conversa_atualizada.motivo_encerramento is None

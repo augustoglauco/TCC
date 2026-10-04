@@ -333,8 +333,11 @@ esquecida na revisão final (Fase 11). Detalhes de implementação:
 
 **Decisão registrada (além do MVP, a pedido explícito, 2026-09-17):** a
 mesma tela (`/admin/modelos`) ganhou uma seção "Parâmetros de execução"
-para ajustar em runtime, também só em memória (reseta a cada restart): a
-temperatura do modelo local (`OllamaClient.temperature`, `null` = usa o
+para ajustar em runtime (**atualização de 2026-10-03: estes parâmetros
+passaram a ser também persistidos em Postgres e restaurados no boot — ver
+a decisão "Residência do modelo local na VRAM..." mais abaixo nesta
+seção; o restante deste parágrafo descreve só o estado em 2026-09-17**):
+a temperatura do modelo local (`OllamaClient.temperature`, `null` = usa o
 default do próprio modelo — nenhuma chamada manda `options.temperature`
 até alguém setar um valor explícito, sem mudar o comportamento anterior),
 o timeout das chamadas não-streaming ao backend local e ao externo
@@ -349,9 +352,10 @@ OpenRouter, Qdrant) e não fazem sentido debaixo do prefixo
 usada pela chamada de classificação de intenção do roteador (mesmo
 client/model) — baixá-la reduz a instabilidade de classificação
 observada em mensagens de acompanhamento ambíguas, sem precisar de uma
-chamada de classificação separada com `temperature` fixo. `# MVP: sem
-persistência entre restarts, mesmo padrão do modelo ativo acima — não
-substitui a escolha formal de hiperparâmetros da Fase 10`.
+chamada de classificação separada com `temperature` fixo. `# MVP: não
+substitui a escolha formal de hiperparâmetros da Fase 10` (a persistência
+entre restarts, ausente quando este parágrafo foi escrito, foi adicionada
+na decisão de 2026-10-03 citada acima).
 
 **Decisão registrada (além do MVP, a pedido do desenvolvedor, 2026-09-27;
 registrada na revisão de 2026-09-28):** a tela `/admin/modelos` ganhou o
@@ -361,10 +365,11 @@ runtime o modelo de texto do OpenRouter pelo campo `external_model_name` de
 lista de sugestões ("populares" e "gratuitos", sufixo `:free`) e um
 histórico dos modelos já usados. O mesmo cliente atende as respostas
 escaladas para o externo, o classificador Jev e o Monitor de Tom, então a
-troca vale para os três. `# MVP: sem persistência entre restarts (mesmo
-padrão dos parâmetros acima); lista de sugestões fixa no frontend, sem
+troca vale para os três. `# MVP: lista de sugestões fixa no frontend, sem
 consultar o catálogo do OpenRouter; histórico só no localStorage do
-navegador`. Risco conhecido: modelos `:free` têm limite de requisições
+navegador` (a persistência entre restarts, ausente quando este parágrafo
+foi escrito, foi adicionada na decisão de 2026-10-03 citada acima). Risco
+conhecido: modelos `:free` têm limite de requisições
 baixo, e o 429 do OpenRouter aparece para o cliente como "Serviço
 temporariamente indisponível" (visto no teste local de 2026-09-27).
 
@@ -1648,7 +1653,7 @@ um `Host` fora da URL pública, leitura das chaves e falha fechada. A suíte
 (Caddy, porta, certificado).
 
 **Decisão registrada (Desacoplamento do CRUD de produtos do RAG e autoridade única no SQL, 2026-10-03):**
-A sincronização automática anterior que gerava documentos sintéticos `produto_*.txt` na base vetorial Qdrant a cada alteração de produto (`app.rag.product_sync`) foi removida e descontinuada. Motivo: os produtos, preços de revendedor e venda, estoque por CD, compatibilidades e regras de desconto já residem estruturados no banco relacional PostgreSQL (`app.db.catalog` e `app.router.sales_catalog`), sendo consultados de forma determinística pelo `SalesCatalogClient` e pelas ferramentas MCP B2B. A geração de arquivos `.txt` no RAG gerava redundância de dados, risco de respostas desatualizadas por dessincronização vetorial e poluição da base de conhecimento com textos sintéticos. O módulo `product_sync.py` foi removido, a dependência de Qdrant/Embedders no CRUD de produtos (`app.api.admin_products`) foi eliminada, e todos os 14 documentos sintéticos `produto_*.txt` foram permanentemente expurgados do PostgreSQL (`rag_documents`), do Qdrant (`docs_texto`) e dos arquivos em disco. O PostgreSQL é a única fonte de verdade autoritativa para o catálogo de produtos.
+A sincronização automática anterior que gerava documentos sintéticos `produto_*.txt` na base vetorial Qdrant a cada alteração de produto (`app.rag.product_sync`) foi descontinuada: a dependência de Qdrant/Embedders no CRUD de produtos (`app.api.admin_products`) foi eliminada, e todos os 14 documentos sintéticos `produto_*.txt` foram permanentemente expurgados do PostgreSQL (`rag_documents`), do Qdrant (`docs_texto`) e dos arquivos em disco. Motivo: os produtos, preços de revendedor e venda, estoque por CD, compatibilidades e regras de desconto já residem estruturados no banco relacional PostgreSQL (`app.db.catalog` e `app.router.sales_catalog`), sendo consultados de forma determinística pelo `SalesCatalogClient` e pelas ferramentas MCP B2B. A geração de arquivos `.txt` no RAG gerava redundância de dados, risco de respostas desatualizadas por dessincronização vetorial e poluição da base de conhecimento com textos sintéticos. O PostgreSQL é a única fonte de verdade autoritativa para o catálogo de produtos. **Achado da revisão de 2026-10-04:** `backend/src/app/rag/product_sync.py` e `backend/tests/test_product_sync.py` continuam no repositório, órfãos (nenhum código de produção os importa mais) — a remoção física dos arquivos ainda está pendente, só a integração foi removida.
 
 **Decisão registrada (Ativação e isolamento de collections por Purpose, 2026-10-03):**
 Evolução do modelo de collections configuráveis: o sistema passa a manter **uma collection ativa por finalidade (`purpose`)** de forma independente. As finalidades suportadas são `chat` (pública, atendendo ao widget do site), `mcp_b2b` (restrita a parceiros B2B e IA externa de parceiros) e `admin` (exclusiva para administradores). A função `activate_collection` passa a desativar apenas a collection ativa anterior daquele mesmo `purpose`. O endpoint `POST /api/rag/collections/{id}/activate` passa a permitir a ativação para qualquer finalidade. O servidor MCP B2B pesquisa nas collections ativas de `mcp_b2b` e `chat`; o chat público busca na collection ativa de `chat`; e o chat em modo Admin pesquisa nas collections ativas de `chat`, `mcp_b2b` e `admin`. A interface em `/admin/ingestao` reflete essa separação com cards de status dedicados por finalidade, filtros rápidos na tabela e validação que restringe a comparação no Playground a collections de mesmo `purpose`.

@@ -135,3 +135,38 @@ async def test_admin_charts_refresh_dynamic_sql_and_user_data(test_app, db_sessi
         assert len(dados2) == 2
         assert dados2[0]["cat"] == "A"
 
+
+@pytest.mark.asyncio
+async def test_admin_charts_refresh_dynamic_sql_rejeita_tabela_fora_do_allowlist(
+    test_app, db_session
+):
+    # Achado da revisão de 2026-10-04: sem rollback, uma falha aqui deixava
+    # a sessão presa e o erro era engolido com 200 devolvendo dados obsoletos.
+    admin = Cliente(nome="Admin Dynamic", email="admin@empresa.com")
+    db_session.add(admin)
+    await db_session.commit()
+    await db_session.refresh(admin)
+
+    headers = {"Authorization": f"Bearer mock-token-{admin.id}"}
+    transport = ASGITransport(app=test_app)
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        payload_sql = {
+            "titulo": "Gráfico SQL Inseguro",
+            "tipo_grafico": "bar",
+            "config_json": {"x_key": "key", "y_keys": ["val"]},
+            "dados_json": [{"key": "antigo", "val": 1}],
+            "sql_query": "dynamic_sql: SELECT * FROM app_settings",
+        }
+        res_create = await client.post("/api/admin/charts", json=payload_sql, headers=headers)
+        assert res_create.status_code == 201
+        chart_id = res_create.json()["id"]
+
+        res_refresh = await client.post(f"/api/admin/charts/{chart_id}/refresh", headers=headers)
+        assert res_refresh.status_code == 400
+
+        # A sessão não ficou presa em estado de rollback pendente — uma
+        # requisição seguinte continua funcionando normalmente.
+        res_list = await client.get("/api/admin/charts", headers=headers)
+        assert res_list.status_code == 200
+

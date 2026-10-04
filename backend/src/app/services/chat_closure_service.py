@@ -78,11 +78,16 @@ async def inactivity_closure_worker(
     )
     try:
         while True:
-            await asyncio.sleep(interval_seconds)
+            # Achado da revisão de 2026-10-04: a varredura rodava só DEPOIS
+            # do primeiro `sleep` — conversas já inativas há mais de
+            # `timeout_minutes` no momento de um restart do backend
+            # ficavam sem encerrar por até `interval_seconds` extras antes
+            # da primeira varredura real.
             try:
                 async with db_sessionmaker() as session:
                     await fechar_conversas_inativas(session, timeout_minutes=timeout_minutes)
             except Exception as exc:
                 logger.warning("Erro no worker de encerramento de conversas inativas: %s", exc)
+            await asyncio.sleep(interval_seconds)
     except asyncio.CancelledError:
         logger.info("Inactivity closure worker cancelado.")

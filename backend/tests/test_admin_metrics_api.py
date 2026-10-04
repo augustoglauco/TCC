@@ -1,5 +1,6 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi import FastAPI
@@ -70,7 +71,10 @@ async def test_metrics_api_aggregates_closed_chats_and_costs(
     metrics_client, db_session, admin_headers
 ):
     now = datetime.now(UTC)
-    date_str = now.strftime("%Y-%m-%d")
+    # O agrupamento diário bucketa no fuso local (America/Sao_Paulo, achado
+    # da revisão de 2026-10-04), não em UTC — calcula a data esperada do
+    # mesmo jeito para não ficar instável entre 00h-03h UTC.
+    date_str = now.astimezone(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d")
 
     # Conversa 1: Fechada hoje, mensagens locais e externas
     c1 = Conversa(
@@ -180,3 +184,49 @@ async def test_metrics_api_aggregates_closed_chats_and_costs(
     assert data_30d["summary"]["total_external_completion_tokens"] == 350
     assert pytest.approx(data_30d["summary"]["total_cost_usd"], 0.00001) == 0.0035
     assert len(data_30d["daily_breakdown"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_metrics_api_start_date_invalida_e_400(metrics_client, admin_headers):
+    # Achado da revisão de 2026-10-04: antes, uma data mal formada era
+    # silenciosamente ignorada e a resposta caía no período default (7d)
+    # sem avisar o administrador.
+    response = metrics_client.get(
+        "/api/admin/metrics/tokens-and-costs?start_date=not-a-date", headers=admin_headers
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_metrics_api_end_date_invalida_e_400(metrics_client, admin_headers):
+    response = metrics_client.get(
+        "/api/admin/metrics/tokens-and-costs?end_date=31-12-2026", headers=admin_headers
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_metrics_api_agrupa_por_dia_no_fuso_local_nao_utc(
+    metrics_client, db_session, admin_headers
+):
+    # Achado da revisão de 2026-10-04: bucketar em UTC cortava o dia às 21h
+    # em horário de Brasília (America/Sao_Paulo, UTC-3) em vez da meia-noite
+    # local. 01:30 UTC de um dia é 22:30 do dia ANTERIOR em São Paulo.
+    encerrada_em_utc = datetime(2026, 10, 5, 1, 30, tzinfo=UTC)
+    c1 = Conversa(
+        id="conv-metrics-tz-1",
+        status="encerrada",
+        encerrada_em=encerrada_em_utc,
+        motivo_encerramento="manual_usuario",
+    )
+    db_session.add(c1)
+    await db_session.commit()
+
+    response = metrics_client.get(
+        "/api/admin/metrics/tokens-and-costs?period=all", headers=admin_headers
+    )
+    assert response.status_code == 200
+    data = response.json()
+    dias = [d["date"] for d in data["daily_breakdown"]]
+    assert "2026-10-04" in dias
+    assert "2026-10-05" not in dias

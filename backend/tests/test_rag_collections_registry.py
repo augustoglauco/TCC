@@ -4,7 +4,6 @@ import pytest
 
 from app.rag.collections_registry import (
     CollectionActiveError,
-    CollectionNotActivatableError,
     activate_collection,
     create_collection,
     delete_collection,

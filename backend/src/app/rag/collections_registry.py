@@ -18,15 +18,6 @@ class CollectionActiveError(Exception):
     """Levantada ao tentar excluir a collection atualmente ativa."""
 
 
-class CollectionNotActivatableError(Exception):
-    """Levantada ao tentar ativar uma collection de conteúdo restrito
-    (`purpose != "chat"`: `"mcp_b2b"` ou `"admin"`) — só uma collection
-    `purpose="chat"` pode virar a ativa do chat público. Ver
-    docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md §4 e a
-    decisão de 2026-09-30 em docs/ARCHITECTURE.md §6 (introdução de
-    `purpose="admin"`)."""
-
-
 async def create_collection(
     session: AsyncSession,
     *,

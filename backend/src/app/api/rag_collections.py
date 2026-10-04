@@ -16,7 +16,6 @@ from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_
 from app.models.rag import CollectionCreateRequest, CollectionResponse
 from app.rag.collections_registry import (
     CollectionActiveError,
-    CollectionNotActivatableError,
     activate_collection,
     create_collection,
     delete_collection,
@@ -199,11 +198,6 @@ async def activate_collection_endpoint(
 ) -> None:
     try:
         ativado = await activate_collection(session, collection_id)
-    except CollectionNotActivatableError as exc:
-        raise HTTPException(
-            status_code=409,
-            detail=str(exc) or "Collection não pode ser ativada.",
-        ) from exc
     except SQLAlchemyError as exc:
         logger.error(
             "rag_collections_indisponivel",

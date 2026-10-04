@@ -120,6 +120,70 @@ describe("AdminMetricasPage", () => {
     });
   });
 
+  it("ignora resposta desatualizada quando a requisição mais antiga resolve depois da mais nova", async () => {
+    // Achado da revisão de 2026-10-04: sem controle de sequência, uma
+    // requisição mais antiga ("7d", disparada no mount) que demora mais do
+    // que a requisição mais nova ("Hoje", disparada pelo clique) podia
+    // resolver depois e sobrescrever a tela com dados do período errado.
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    function buildResponse(totalClosedChats: number): metricsApi.TokenCostMetricsResponse {
+      return {
+        period: "x",
+        summary: {
+          total_closed_chats: totalClosedChats,
+          total_internal_prompt_tokens: 0,
+          total_internal_completion_tokens: 0,
+          total_external_prompt_tokens: 0,
+          total_external_completion_tokens: 0,
+          total_cost_prompt_usd: 0,
+          total_cost_completion_usd: 0,
+          total_cost_usd: 0,
+        },
+        daily_breakdown: [],
+      };
+    }
+
+    let resolveOld: (v: metricsApi.TokenCostMetricsResponse) => void;
+    const oldRequest = new Promise<metricsApi.TokenCostMetricsResponse>((resolve) => {
+      resolveOld = resolve;
+    });
+
+    const spy = vi
+      .spyOn(metricsApi, "fetchTokenCostMetrics")
+      .mockImplementationOnce(() => oldRequest) // requisição inicial (7d, mount)
+      .mockResolvedValueOnce(buildResponse(99)); // requisição disparada pelo clique em "Hoje"
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    const hojeButton = screen.getByRole("button", { name: "Hoje" });
+    fireEvent.click(hojeButton);
+
+    await waitFor(() => {
+      expect(screen.getByText("99")).toBeInTheDocument();
+    });
+
+    // A requisição antiga ("7d") só resolve agora — não deve sobrescrever
+    // os dados de "Hoje" já exibidos.
+    resolveOld!(buildResponse(1));
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByText("99")).toBeInTheDocument();
+    expect(screen.queryByText("1")).not.toBeInTheDocument();
+  });
+
   it("atualiza métricas ao clicar no botão Atualizar e exibe feedback de sucesso e timestamp", async () => {
     useAuthStore.setState({
       user: {

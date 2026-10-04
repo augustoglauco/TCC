@@ -16,7 +16,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import AdminChart
 from app.services.chart_generator import detect_chart_request, execute_chart_aggregation
-from app.services.safe_sql import execute_readonly_sql, get_catalog_schema_prompt, validate_readonly_sql
+from app.services.safe_sql import (
+    SQLSecurityError,
+    execute_readonly_sql,
+    get_catalog_schema_prompt,
+    validate_readonly_sql,
+)
 
 logger = logging.getLogger("assistente.analytics_agent")
 
@@ -204,7 +209,20 @@ async def process_dynamic_chart_request(
                 await session.refresh(chart)
                 explicacao = llm_spec.get("explicacao") or f"Gerei o gráfico '{chart.titulo}' a partir de consulta direta ao banco de dados."
                 return chart, explicacao
+        except SQLSecurityError as exc:
+            # Achado da revisão de 2026-10-04: antes caía no mesmo `except
+            # Exception` genérico de baixo (falha de infraestrutura) — um
+            # sinal de segurança (o LLM gerou SQL que tenta ler fora do
+            # esquema permitido ou fazer escrita) ficava indistinguível de
+            # uma falha transitória de banco no log, e a sessão nunca era
+            # revertida antes do fallback abaixo reusá-la.
+            await session.rollback()
+            logger.warning(
+                "sql_dinamico_bloqueado_por_seguranca",
+                extra={"erro": str(exc), "sql": llm_spec.get("sql")},
+            )
         except Exception as exc:
+            await session.rollback()
             logger.warning("falha_execucao_sql_dinamico", extra={"erro": str(exc)})
 
     # 3. Fallback inteligente usando o mecanismo analítico de catálogo
