@@ -180,6 +180,9 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           metrics: metricsFromDone(data),
           card: data.card ?? undefined,
         });
+        if (data.card?.tipo === "grafico" && typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("refresh_admin_charts"));
+        }
       },
       onError: (msg) => {
         setError({
@@ -249,6 +252,9 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           metrics: metricsFromDone(data),
           card: data.card ?? undefined,
         });
+        if (data.card?.tipo === "grafico" && typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("refresh_admin_charts"));
+        }
       },
       onError: (msg) => {
         if (!transcricaoRecebida) {

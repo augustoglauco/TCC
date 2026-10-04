@@ -84,4 +84,19 @@ describe("AdminDashboardsPage", () => {
     expect(screen.getByText("Vendas por Categoria")).toBeInTheDocument();
     expect(screen.queryByText("Pedidos por Status")).not.toBeInTheDocument();
   });
+
+  it("recarrega os gráficos ao receber o evento refresh_admin_charts", async () => {
+    const { fetchAdminCharts } = await import("@/lib/api/charts");
+    render(<AdminDashboardsPage />);
+
+    await waitFor(() => {
+      expect(fetchAdminCharts).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent(window, new CustomEvent("refresh_admin_charts"));
+
+    await waitFor(() => {
+      expect(fetchAdminCharts).toHaveBeenCalledTimes(2);
+    });
+  });
 });

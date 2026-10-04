@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -100,10 +100,14 @@ async def _require_admin(
 
 @router.get("", response_model=list[AdminChartOut])
 async def list_admin_charts(
+    response: Response,
     session: AsyncSession = Depends(get_db_session),
     _: None = Depends(_require_admin),
 ) -> list[AdminChartOut]:
     """Retorna a lista de gráficos salvos no banco de dados."""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     stmt = (
         select(AdminChart)
         .order_by(AdminChart.fixado.desc(), AdminChart.ordem.asc(), AdminChart.criado_em.desc())

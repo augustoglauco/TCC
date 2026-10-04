@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import ChartRenderer from "@/components/charts/ChartRenderer";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 import type { ChatCardGrafico } from "@/lib/types/chat";
 
 interface ChatChartCardProps {
@@ -17,6 +20,15 @@ const TIPO_LABELS: Record<string, string> = {
 
 export default function ChatChartCard({ card }: ChatChartCardProps) {
   const tipoLabel = TIPO_LABELS[card.tipo_grafico] || card.tipo_grafico;
+
+  const handleLinkClick = () => {
+    // Fecha o modal do chat para que a página de dashboards fique visível
+    useChatStore.getState().close();
+    // Dispara evento para forçar a atualização da página de dashboards caso já esteja montada
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("refresh_admin_charts"));
+    }
+  };
 
   return (
     <div className="my-2.5 w-full max-w-lg overflow-hidden rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs transition-shadow hover:shadow-md">
@@ -45,6 +57,7 @@ export default function ChatChartCard({ card }: ChatChartCardProps) {
         <span className="text-[11px] text-slate-400">Salvo no painel permanente</span>
         <Link
           href="/admin/dashboards"
+          onClick={handleLinkClick}
           className="inline-flex items-center gap-1 font-semibold text-blue-600 hover:text-blue-700 hover:underline"
         >
           Ver no painel de dashboards →

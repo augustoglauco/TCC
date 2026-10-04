@@ -5,6 +5,21 @@ import ChatCard from "@/components/chat/cards/ChatCard";
 import DynamicChartCard from "@/components/admin/DynamicChartCard";
 import type { ChatCardGrafico } from "@/lib/types/chat";
 
+vi.mock("next/link", () => ({
+  default: ({ children, href, onClick, ...rest }: any) => (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick?.(e);
+      }}
+      {...rest}
+    >
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("recharts", async () => {
   const original = await vi.importActual<any>("recharts");
   return {
@@ -36,6 +51,19 @@ describe("ChatChartCard", () => {
   it("renderiza via despachante ChatCard", () => {
     render(<ChatCard card={mockCard} />);
     expect(screen.getByText("Vendas por Categoria")).toBeInTheDocument();
+  });
+
+  it("fecha o modal do chat e dispara evento de refresh ao clicar no link", () => {
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    render(<ChatChartCard card={mockCard} />);
+
+    const link = screen.getByRole("link", { name: /Ver no painel de dashboards/i });
+    fireEvent.click(link);
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "refresh_admin_charts" }),
+    );
+    dispatchSpy.mockRestore();
   });
 });
 

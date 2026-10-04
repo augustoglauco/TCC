@@ -17,6 +17,7 @@ export default function AdminDashboardsPage() {
   const token = useAuthStore((s) => s.token);
   const openChat = useChatStore((s) => s.open);
 
+  const [hasHydrated, setHasHydrated] = useState(false);
   const [charts, setCharts] = useState<AdminChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +25,10 @@ export default function AdminDashboardsPage() {
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
 
   const isAdmin = user?.perfil?.toLowerCase() === "admin";
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!token) {
@@ -43,8 +48,35 @@ export default function AdminDashboardsPage() {
   }, [token]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (isAdmin && token) {
+      loadData();
+    } else if (hasHydrated && !isAdmin) {
+      setLoading(false);
+    }
+  }, [isAdmin, token, loadData]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (token) {
+        loadData();
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && token) {
+        loadData();
+      }
+    };
+
+    window.addEventListener("refresh_admin_charts", handleRefresh);
+    window.addEventListener("focus", handleRefresh);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("refresh_admin_charts", handleRefresh);
+      window.removeEventListener("focus", handleRefresh);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [token, loadData]);
 
   const handleRefresh = async (id: string) => {
     if (!token) return;
@@ -106,7 +138,7 @@ export default function AdminDashboardsPage() {
     }
   };
 
-  if (!isAdmin && !loading) {
+  if (hasHydrated && !isAdmin && !loading) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-16 text-center">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-8">

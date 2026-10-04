@@ -3,10 +3,14 @@ import type { AdminChartData } from "@/components/admin/DynamicChartCard";
 
 export async function fetchAdminCharts(token: string): Promise<AdminChartData[]> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(`${baseUrl}/api/admin/charts`, {
+  const url = `${baseUrl}/api/admin/charts?_t=${Date.now()}`;
+  const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
     },
+    cache: "no-store",
   });
   if (!res.ok) {
     throw new Error("Erro ao carregar dashboards.");
