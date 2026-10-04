@@ -184,6 +184,25 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       (revisto em 2026-09-25: exposição com chave por parceiro entrou no
       MVP, ver Fase 5).
       Ver `docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md`.
+- [x] **Expansão de Finalidades (`purpose`) e UX do Painel de Ingestão (2026-10-03)** —
+      Collections ganham suporte a finalidade `admin` (além de `chat` e `mcp_b2b`),
+      criando collections exclusivas para buscas administrativas. Painel de Ingestão
+      `/admin/ingestao` reorganizado com Master Card unificado e filtros na tabela de
+      documentos (nome, domínio, collection, período).
+- [x] **Scroll Interno Responsivo com Cabeçalhos Sticky (2026-10-03)** —
+      Tabelas de produtos (`/admin/produtos`), catálogo público (`/produtos`) e documentos
+      de ingestão (`/admin/ingestao`) passam a utilizar containers com `max-h-[...vh]` e
+      scroll interno, preservando os cabeçalhos fixos no topo (sticky header) e melhorando
+      significativamente a navegação em celulares (mobile).
+- [x] **Especificação Arquitetural de Transbordo para Atendimento Humano (2026-10-03)** —
+      Design completo de central de suporte ao vivo (*Human-in-the-Loop / Live Agent Takeover*)
+      com locks atômicos, fila simultânea de múltiplos operadores e pausa da IA durante o
+      atendimento. Ver `docs/superpowers/specs/2026-10-03-atendimento-humano-transbordo-design.md`.
+- [x] **Destaque de Provedor Externo e Roteamento Local de Saudações (2026-10-03)** —
+      Respostas do assistente geradas por LLM externo ganham destaque em fundo vermelho clarinho
+      (`bg-red-50`). Mensagens `fora_escopo` de baixa complexidade (como saudações "boa noite", "olá")
+      passam a ser atendidas diretamente pelo LLM local (Ollama) com o novo `_FORA_ESCOPO_PLAYBOOK`,
+      evitando chamadas desnecessárias à nuvem.
 
 ## Extra fora do MVP — Gerenciador de Modelos Locais (Ollama)
 
