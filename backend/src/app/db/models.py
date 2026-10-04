@@ -6,7 +6,7 @@ import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Numeric, String, Text, func
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Numeric, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -418,5 +418,40 @@ class Agendamento(Base):
     conversation_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     atualizado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class ModelCharacteristics(Base):
+    """Características de um modelo (multimodalidade, contexto, specs),
+    buscadas em fontes externas (OpenRouter/Ollama/Hugging Face) e
+    cacheadas — ver docs/superpowers/specs/2026-10-03-caracteristicas-
+    modelo-hover-design.md. Staleness de 7 dias; refresh manual disponível
+    via endpoint dedicado.
+
+    # MVP: cache por tag exata, sem normalização entre fontes (a mesma
+    # família de modelo pode aparecer como linhas separadas se buscada via
+    # OpenRouter e via Ollama) — cada fonte+tag é uma unidade independente.
+    """
+
+    __tablename__ = "model_characteristics"
+    __table_args__ = (
+        UniqueConstraint("source", "tag", name="uq_model_characteristics_source_tag"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    source: Mapped[str]
+    tag: Mapped[str]
+    is_multimodal: Mapped[bool] = mapped_column(Boolean, default=False)
+    input_modalities: Mapped[list] = mapped_column(_JsonVariant, default=list)
+    output_modalities: Mapped[list] = mapped_column(_JsonVariant, default=list)
+    context_length: Mapped[int | None]
+    parameter_size: Mapped[str | None]
+    quantization: Mapped[str | None]
+    pricing_prompt_per_1k: Mapped[float | None]
+    pricing_completion_per_1k: Mapped[float | None]
+    knowledge_cutoff: Mapped[str | None]
+    raw_payload: Mapped[dict] = mapped_column(_JsonVariant, default=dict)
+    fetched_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
