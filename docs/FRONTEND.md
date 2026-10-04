@@ -48,6 +48,7 @@ registrada aqui com o motivo.
 | Admin — Catálogo de Produtos | `/admin/produtos` | Página interna (menu ⚙️) para cadastro e gestão de produtos, preços de revendedor e venda agrupados, estoque total consolidado com tooltip detalhado por Centro de Distribuição (CD), fotos vetorizadas no CLIP, e assistente Human-in-the-Loop de importação de catálogos | Não (`# MVP: sem autenticação`) |
 | Admin — Modelos locais (Ollama) | `/admin/modelos` | Página interna (menu ⚙️) para listar/ativar em runtime/baixar modelos locais de chat, visualizar características multimodais dos modelos no hover (`ModelCharacteristicsPanel`), gerenciar a residência na VRAM e latência (seletor `keep_alive`, warmup automático na inicialização, monitor em tempo real da VRAM em GB, botões para carregar e liberar VRAM), e ajustar parâmetros de execução com persistência permanente no PostgreSQL | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
 | Admin — Métricas & Custos de IA | `/admin/metricas` | Painel com KPIs de tokens internos (GPU local R$ 0,00) e externos (OpenRouter), segregação de custos de entrada (prompt) e saída (resposta), total acumulado em USD e relatório diário de atendimentos encerrados | Sim (`admin`) |
+| Admin — Dashboards & Gráficos | `/admin/dashboards` | Galeria permanente de gráficos e dashboards analíticos gerados interativamente via chat ou gerenciados pelo administrador, com persistência no PostgreSQL, suporte a Recharts, refresh individual e em lote, fixação e edição | Sim (`admin`) |
 
 Todas as páginas compartilham `layout.tsx`, que inclui o widget de chat — ele
 deve estar disponível em qualquer rota, inclusive durante o checkout.
@@ -103,6 +104,10 @@ com o histórico recarregado.
   - `QuoteCard` (`card.tipo === "cotacao"`): produto, quantidade, preço
     unitário, percentual de desconto e subtotal — mesmo produto do
     `ProductCard`, mas com quantidade informada pelo cliente (R12).
+  - `ChatChartCard` (`card.tipo === "grafico"`): gráfico analítico dinâmico
+    gerado pelo assistente via Recharts (barras, linhas, pizza, área, donut),
+    com persistência permanente na tabela `admin_charts` e link direto para
+    o painel `/admin/dashboards`.
   `# MVP`: consulta genérica por categoria ou catálogo completo (que lista
   vários produtos, não um item único) ainda não tem card próprio — continua
   só em texto.

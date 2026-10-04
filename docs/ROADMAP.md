@@ -285,12 +285,15 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       em tempo real e detalhamento diário (2026-10-04).
       Design Spec em [`docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md`](docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md).
       Plano de implementação em [`docs/superpowers/plans/2026-10-03-contabilizador-tokens-custos.md`](docs/superpowers/plans/2026-10-03-contabilizador-tokens-custos.md).
-- [ ] **Dashboards e Gráficos Dinâmicos Gerados via Chat com Persistência Permanente** —
-      Permitir que o Administrador solicite gráficos e visualizações analíticas em linguagem natural
-      no chat público ou modo admin, persistindo a estrutura, dados e consultas na tabela `admin_charts`
-      do PostgreSQL (migration `0019`). Exibição de cards ricos inline (`CardGrafico`) e galeria permanente
-      no frontend em `/admin/dashboards` utilizando Recharts, imune a reinicializações do servidor.
+- [x] **Dashboards e Gráficos Dinâmicos Gerados via Chat com Persistência Permanente** —
+      Permite ao Administrador solicitar gráficos analíticos em linguagem natural no chat
+      (vendas por categoria, estoques por CD, pedidos por status, consumo de tokens/custos diários),
+      persistindo a estrutura declarativa, configurações Recharts e dados na tabela `admin_charts` do
+      PostgreSQL (migration `0019_admin_charts.py`). Exibição de cards ricos inline (`CardGrafico` / `ChatChartCard`),
+      endpoints REST administrativos (`/api/admin/charts`) com suporte a refresh, fixar/desafixar e exclusão, e galeria
+      permanente no frontend em `/admin/dashboards` com Recharts, imune a reinicializações do servidor (2026-10-04).
       Design Spec em [`docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md`](docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md).
+      Plano de implementação em [`docs/superpowers/plans/2026-10-04-dashboards-dinamicos-admin.md`](docs/superpowers/plans/2026-10-04-dashboards-dinamicos-admin.md).
 - [ ] **Download de Documentos RAG de Origem Direta no Chat via Cards Ricos** —
       Identificar automaticamente documentos fonte no RAG com alto grau de relevância (`score >= 0.65`)
       na busca vetorial do Qdrant e emitir o card rico `CardDocumentoDownload` na resposta do chat.
