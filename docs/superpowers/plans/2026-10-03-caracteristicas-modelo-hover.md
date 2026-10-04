@@ -373,7 +373,10 @@ Adicione ao final da classe `OllamaClient` (depois de `pull_model_streaming`):
             )
             response.raise_for_status()
             return response.json()
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ValueError):
+            # ValueError cobre json.JSONDecodeError — um 200 com corpo
+            # malformado não pode escapar como exceção não tratada (ver
+            # Global Constraints).
             return None
 ```
 
@@ -546,7 +549,8 @@ async def _get_openrouter_catalog(http_client: httpx.AsyncClient) -> list[dict] 
         response = await http_client.get(OPENROUTER_MODELS_URL, timeout=10.0)
         response.raise_for_status()
         modelos = response.json().get("data", [])
-    except httpx.HTTPError:
+    except (httpx.HTTPError, ValueError):
+        # ValueError cobre json.JSONDecodeError (corpo malformado).
         return _openrouter_cache["models"]  # stale-se-houver, senão None
 
     _openrouter_cache["models"] = modelos
@@ -833,7 +837,8 @@ async def _fetch_huggingface(tag: str, http_client: httpx.AsyncClient) -> dict[s
         response = await http_client.get(f"{HUGGINGFACE_MODELS_URL}/{repo}", timeout=10.0)
         response.raise_for_status()
         dados = response.json()
-    except httpx.HTTPError:
+    except (httpx.HTTPError, ValueError):
+        # ValueError cobre json.JSONDecodeError (corpo malformado).
         return None
 
     pipeline_tag = dados.get("pipeline_tag")

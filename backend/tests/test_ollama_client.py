@@ -501,3 +501,17 @@ async def test_get_model_details_retorna_none_em_erro_de_conexao():
     )
 
     assert await client.get_model_details("qwen2.5:7b") is None
+
+
+async def test_get_model_details_retorna_none_em_resposta_json_invalida():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=b"not json")
+
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="qwen2.5:7b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    assert await client.get_model_details("qwen2.5:7b") is None

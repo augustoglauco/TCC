@@ -328,5 +328,5 @@ class OllamaClient:
             )
             response.raise_for_status()
             return response.json()
-        except httpx.HTTPError:
+        except (httpx.HTTPError, ValueError):
             return None
