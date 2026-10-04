@@ -29,9 +29,12 @@ from app.memory.store import (
 from app.models.chat import (
     ChatDoneEventData,
     ChatMessageRequest,
+    ConversaCloseRequest,
+    ConversaCloseResponse,
     ConversaHistoricoOut,
     ConversaMensagemOut,
 )
+from app.services.chat_closure_service import fechar_conversa
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
@@ -353,6 +356,9 @@ async def obter_conversa(conversation_id: str, request: Request) -> ConversaHist
         raise HTTPException(status_code=503, detail="Histórico indisponível no momento.") from exc
     return ConversaHistoricoOut(
         conversation_id=conversation_id,
+        status=conversa.status,
+        encerrada_em=conversa.encerrada_em,
+        motivo_encerramento=conversa.motivo_encerramento,
         resumo=conversa.resumo,
         mensagens=[
             ConversaMensagemOut(
@@ -365,6 +371,35 @@ async def obter_conversa(conversation_id: str, request: Request) -> ConversaHist
             for m in mensagens
         ],
     )
+
+
+@router.post("/conversations/{conversation_id}/close", response_model=ConversaCloseResponse)
+async def fechar_conversa_endpoint(
+    conversation_id: str,
+    request: Request,
+    payload: ConversaCloseRequest | None = None,
+) -> ConversaCloseResponse:
+    """Encerra a conversa manualmente pelo visitante ou admin (R9/Metricas)."""
+    motivo = payload.motivo if payload else "manual_usuario"
+    try:
+        session_factory = getattr(request.app.state, "db_sessionmaker", None)
+        if not session_factory:
+            raise HTTPException(status_code=503, detail="Banco de dados não configurado.")
+        async with session_factory() as session:
+            conversa = await fechar_conversa(session, conversation_id, motivo=motivo)
+            if conversa is None:
+                raise HTTPException(status_code=404, detail="Conversa não encontrada.")
+            return ConversaCloseResponse(
+                conversation_id=conversa.id,
+                status=conversa.status,
+                encerrada_em=conversa.encerrada_em,
+                motivo_encerramento=conversa.motivo_encerramento,
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _logar_memoria_indisponivel("fechar_conversa", exc)
+        raise HTTPException(status_code=503, detail="Não foi possível encerrar a conversa.") from exc
 
 
 @router.delete("/conversations/{conversation_id}", status_code=204)

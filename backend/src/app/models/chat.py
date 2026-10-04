@@ -224,5 +224,26 @@ class ConversaHistoricoOut(BaseModel):
     painel ⚙️."""
 
     conversation_id: str
+    status: str = "aberta"
+    encerrada_em: datetime | None = None
+    motivo_encerramento: str | None = None
     resumo: str | None = None
     mensagens: list[ConversaMensagemOut]
+
+
+class ConversaCloseRequest(BaseModel):
+    """Corpo opcional de `POST /api/chat/conversations/{id}/close`."""
+
+    motivo: str = Field(
+        default="manual_usuario",
+        description='Motivo do encerramento ("manual_usuario", "manual_admin", "inatividade").',
+    )
+
+
+class ConversaCloseResponse(BaseModel):
+    """Resposta de `POST /api/chat/conversations/{id}/close`."""
+
+    conversation_id: str
+    status: str
+    encerrada_em: datetime | None = None
+    motivo_encerramento: str | None = None

@@ -43,6 +43,7 @@ from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
 from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
+from app.services.chat_closure_service import inactivity_closure_worker
 from app.stt.whisper_client import WhisperSttClient
 
 logger = logging.getLogger(__name__)
@@ -116,6 +117,12 @@ async def lifespan(app: FastAPI):
         except Exception as exc:
             logger.warning("Falha ao carregar configurações persistidas do banco no startup: %s", exc)
 
+    closure_worker_task = None
+    if session_factory is not None:
+        closure_worker_task = asyncio.create_task(
+            inactivity_closure_worker(session_factory, interval_seconds=300, timeout_minutes=30)
+        )
+
     if getattr(app.state, "local_llm_warmup_on_startup", True):
         local_client = getattr(app.state, "local_client", None)
         if (
@@ -128,6 +135,13 @@ async def lifespan(app: FastAPI):
             asyncio.create_task(local_client.preload())
 
     yield
+
+    if closure_worker_task is not None:
+        closure_worker_task.cancel()
+        try:
+            await closure_worker_task
+        except asyncio.CancelledError:
+            pass
 
     crawler_http_client = getattr(app.state, "crawler_http_client", None)
     if crawler_http_client and not crawler_http_client.is_closed:
