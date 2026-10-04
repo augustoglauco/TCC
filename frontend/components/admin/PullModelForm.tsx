@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { LocalModelsApiError, getPullStatus, pullModel } from "@/lib/api/localModels";
-import { getModelCharacteristics } from "@/lib/api/modelCatalog";
+import { getModelCharacteristics, refreshModelCharacteristics } from "@/lib/api/modelCatalog";
 import { ModelCharacteristicsPanel } from "@/components/admin/ModelCharacteristicsPanel";
 import type { PullStatusResponse } from "@/lib/types/localModels";
 import type { ModelCharacteristics } from "@/lib/types/modelCatalog";
@@ -77,6 +77,10 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPreviewHf(null);
       setPreviewHfError(null);
+      // Uma busca de preview pode estar em voo quando o usuário edita a tag
+      // para algo que não bate mais com `hf.co/...` — sem isso, o loading
+      // ficava preso em `true` incoerentemente (achado #5 da revisão final).
+      setPreviewHfLoading(false);
       return;
     }
 
@@ -101,11 +105,13 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
     // refresh manual do preview antes de baixar — reaproveita o mesmo
     // endpoint usado pelo painel pós-download (ver ModelCharacteristicsPanel)
     setPreviewHfLoading(true);
-    import("@/lib/api/modelCatalog").then(({ refreshModelCharacteristics }) =>
-      refreshModelCharacteristics("huggingface", nome.trim())
-        .then((resultado) => setPreviewHf(resultado))
-        .finally(() => setPreviewHfLoading(false)),
-    );
+    setPreviewHfError(null);
+    refreshModelCharacteristics("huggingface", nome.trim())
+      .then((resultado) => setPreviewHf(resultado))
+      .catch(() => {
+        setPreviewHfError("Erro ao atualizar características.");
+      })
+      .finally(() => setPreviewHfLoading(false));
   };
 
   // Retoma um download em andamento após remount/reload — o backend não

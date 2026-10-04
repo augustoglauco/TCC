@@ -72,4 +72,12 @@ describe("refreshModelCharacteristics", () => {
       expect.objectContaining({ method: "POST" }),
     );
   });
+
+  it("devolve null quando a resposta é 404 (sem característica pra essa tag)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ detail: "não achado" }, 404)));
+
+    const resultado = await refreshModelCharacteristics("huggingface", "tag/inexistente");
+
+    expect(resultado).toBeNull();
+  });
 });

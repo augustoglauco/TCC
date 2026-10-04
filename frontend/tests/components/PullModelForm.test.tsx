@@ -266,11 +266,27 @@ vi.mock("@/lib/api/modelCatalog", () => ({
   ModelCatalogApiError: class extends Error {},
 }));
 
-import { getModelCharacteristics } from "@/lib/api/modelCatalog";
+import { getModelCharacteristics, refreshModelCharacteristics } from "@/lib/api/modelCatalog";
+
+const CARACTERISTICAS_HF_EXEMPLO = {
+  source: "huggingface" as const,
+  tag: "hf.co/usuario/repo",
+  is_multimodal: false,
+  input_modalities: ["text"],
+  output_modalities: ["text"],
+  context_length: null,
+  parameter_size: null,
+  quantization: null,
+  pricing_prompt_per_1k: null,
+  pricing_completion_per_1k: null,
+  knowledge_cutoff: null,
+  fetched_at: new Date().toISOString(),
+};
 
 describe("preview de características para tags do Hugging Face", () => {
   beforeEach(() => {
     vi.mocked(getModelCharacteristics).mockReset();
+    vi.mocked(refreshModelCharacteristics).mockReset();
   });
 
   it("mostra o preview 500ms depois de digitar uma tag hf.co/...", async () => {
@@ -309,6 +325,56 @@ describe("preview de características para tags do Hugging Face", () => {
 
     vi.advanceTimersByTime(500);
     expect(getModelCharacteristics).not.toHaveBeenCalled();
+
+    vi.useRealTimers();
+  });
+
+  it("clique em 'Atualizar características' que falha não quebra o formulário nem trava o botão carregando", async () => {
+    // Achado #5 da revisão final: `handleRefreshPreview` não tinha `.catch`
+    // — uma falha virava uma rejeição não tratada e nada acontecia na UI.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(getModelCharacteristics).mockResolvedValue(CARACTERISTICAS_HF_EXEMPLO);
+    vi.mocked(refreshModelCharacteristics).mockRejectedValue(new Error("falhou"));
+
+    render(<PullModelForm onPulled={vi.fn()} />);
+    await user.type(screen.getByLabelText(/Nome do modelo/i), "hf.co/usuario/repo");
+    vi.advanceTimersByTime(500);
+
+    const botaoRefresh = await screen.findByRole("button", {
+      name: "Atualizar características",
+    });
+    await user.click(botaoRefresh);
+
+    // Sem o fix, `previewHfLoading` ficava preso em `true` (botão travado em
+    // "carregando" pra sempre) porque nada no `.then` sem `.catch` nunca
+    // chegava ao `.finally`.
+    await waitFor(() => expect(botaoRefresh).not.toBeDisabled());
+    // O preview antigo continua exibido — uma falha no refresh manual não
+    // apaga dados já carregados (mesmo espírito do `refresh()` do hook).
+    expect(screen.getAllByText("Texto").length).toBeGreaterThan(0);
+
+    vi.useRealTimers();
+  });
+
+  it("clique em 'Atualizar características' que devolve 404 (null) limpa o preview sem travar nem quebrar", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.mocked(getModelCharacteristics).mockResolvedValue(CARACTERISTICAS_HF_EXEMPLO);
+    vi.mocked(refreshModelCharacteristics).mockResolvedValue(null);
+
+    render(<PullModelForm onPulled={vi.fn()} />);
+    await user.type(screen.getByLabelText(/Nome do modelo/i), "hf.co/usuario/repo");
+    vi.advanceTimersByTime(500);
+
+    const botaoRefresh = await screen.findByRole("button", {
+      name: "Atualizar características",
+    });
+    await user.click(botaoRefresh);
+
+    await waitFor(() =>
+      expect(screen.getByText("Características indisponíveis no momento.")).toBeInTheDocument(),
+    );
 
     vi.useRealTimers();
   });
