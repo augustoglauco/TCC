@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
-import app.model_catalog.characteristics as model_catalog_characteristics
 from app.db.models import ModelCharacteristics
 from app.model_catalog.characteristics import (
     _fetch_huggingface,
@@ -13,16 +13,6 @@ from app.model_catalog.characteristics import (
     _fetch_openrouter,
     get_or_fetch,
 )
-
-
-@pytest.fixture(autouse=True)
-def _reset_openrouter_cache():
-    """Isola o cache em memória do módulo entre testes — sem isso, o
-    cache (TTL de 1h) populado por um teste vazaria para o próximo e
-    mascararia, por exemplo, uma falha de rede simulada."""
-    model_catalog_characteristics._openrouter_cache["models"] = None
-    model_catalog_characteristics._openrouter_cache["fetched_at"] = None
-    yield
 
 
 def _mock_openrouter_transport(models: list[dict]) -> httpx.MockTransport:
@@ -347,6 +337,81 @@ async def test_get_or_fetch_falha_com_cache_stale_serve_o_stale(db_session):
 
     assert resultado is not None
     assert resultado.context_length == 42  # continua servindo o stale
+
+
+class _ConflictingInsertSession:
+    """Encapsula uma `AsyncSession` real, mas na primeira vez que o código
+    sob teste chama `commit()` simula que uma requisição concorrente venceu
+    a corrida para a mesma (source, tag): descarta o INSERT pendente desta
+    sessão (`rollback`), persiste de verdade a linha "vencedora" (como se
+    outra conexão já tivesse commitado) e levanta `IntegrityError` — igual
+    ao que o Postgres faria ao violar `uq_model_characteristics_source_tag`.
+    Usada no teste do achado #1 da revisão final (duas requisições
+    concorrentes de `get_or_fetch` inserindo a mesma tag pela primeira vez).
+    """
+
+    def __init__(self, session, linha_vencedora: ModelCharacteristics) -> None:
+        self._session = session
+        self._linha_vencedora = linha_vencedora
+        self._ja_simulou_corrida = False
+
+    def __getattr__(self, name):
+        return getattr(self._session, name)
+
+    async def commit(self) -> None:
+        if not self._ja_simulou_corrida:
+            self._ja_simulou_corrida = True
+            await self._session.rollback()
+            self._session.add(self._linha_vencedora)
+            await self._session.commit()
+            raise IntegrityError(
+                "INSERT INTO model_characteristics ...", {}, Exception("unique violation simulada")
+            )
+        await self._session.commit()
+
+
+async def test_get_or_fetch_commit_conflito_unique_recupera_linha_vencedora(
+    db_session, http_client_openrouter_ok
+):
+    """Duas requisições concorrentes pedindo características da mesma
+    (source, tag) pela primeira vez (ex.: dois cards do admin com a mesma
+    tag no mesmo carregamento de página) podem ambas fazer `_buscar_linha`
+    sem achar nada e tentar `INSERT` — a segunda viola
+    `uq_model_characteristics_source_tag`. `get_or_fetch` deve se recuperar
+    do `IntegrityError` e devolver a linha que a concorrente já inseriu, em
+    vez de propagar o erro (500)."""
+    import app.model_catalog.characteristics as mod
+
+    mod._openrouter_cache["models"] = None
+    mod._openrouter_cache["fetched_at"] = None
+
+    linha_vencedora = ModelCharacteristics(
+        source="openrouter",
+        tag="openai/gpt-4o-mini",
+        is_multimodal=False,
+        input_modalities=["text"],
+        output_modalities=["text"],
+        context_length=999,
+        raw_payload={},
+        fetched_at=datetime.now(UTC),
+    )
+    session_com_corrida = _ConflictingInsertSession(db_session, linha_vencedora)
+
+    resultado = await get_or_fetch(
+        session_com_corrida,
+        "openrouter",
+        "openai/gpt-4o-mini",
+        http_client=http_client_openrouter_ok,
+    )
+
+    assert resultado is not None
+    assert resultado.id == linha_vencedora.id
+    # A característica devolvida é a da linha vencedora da corrida, não a
+    # que esta chamada tentou inserir (context_length=128000 do mock).
+    assert resultado.context_length == 999
+
+    linhas = (await db_session.execute(select(ModelCharacteristics))).scalars().all()
+    assert len(linhas) == 1  # nenhuma linha duplicada sobrou
 
 
 async def test_get_or_fetch_falha_sem_cache_nenhum_retorna_none(db_session):

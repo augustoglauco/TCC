@@ -13,6 +13,7 @@ from typing import Any
 
 import httpx
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import ModelCharacteristics
@@ -237,6 +238,16 @@ async def get_or_fetch(
 
     nova_linha = ModelCharacteristics(source=source, tag=tag, is_multimodal=is_multimodal, **dados)
     session.add(nova_linha)
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        # Corrida: dois cards do admin pedindo a mesma (source, tag) no
+        # mesmo carregamento de página podem ambos passar pelo
+        # `_buscar_linha` acima sem achar nada e tentar inserir — o segundo
+        # commit viola `uq_model_characteristics_source_tag`. Em vez de
+        # propagar o IntegrityError (500), descarta esta tentativa e devolve
+        # a linha que a requisição concorrente já inseriu.
+        await session.rollback()
+        return await _buscar_linha(session, source, tag)
     await session.refresh(nova_linha)
     return nova_linha
