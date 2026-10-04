@@ -42,6 +42,7 @@ function RefreshIcon({ className = "h-4 w-4" }: { className?: string }) {
 
 export default function AdminMetricasPage() {
   const currentUser = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
   const isCurrentAdmin = currentUser?.perfil?.toLowerCase() === "admin";
 
   const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all" | "custom">("7d");
@@ -61,6 +62,7 @@ export default function AdminMetricasPage() {
       isManual = false,
       dateParam?: string
     ) => {
+      if (!token) return;
       setLoading(true);
       setError(null);
       const startTime = Date.now();
@@ -72,7 +74,7 @@ export default function AdminMetricasPage() {
             ? { startDate: targetDate, endDate: targetDate }
             : {}),
         };
-        const res = await fetchTokenCostMetrics(params);
+        const res = await fetchTokenCostMetrics(token, params);
         setData(res);
         setLastUpdated(new Date());
         if (isManual) {
@@ -92,14 +94,15 @@ export default function AdminMetricasPage() {
         setLoading(false);
       }
     },
-    [selectedDate, showToast]
+    [selectedDate, showToast, token]
   );
 
   useEffect(() => {
-    if (isCurrentAdmin) {
+    if (isCurrentAdmin && token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void carregarMetricas(period, false, selectedDate);
     }
-  }, [isCurrentAdmin, period, selectedDate, carregarMetricas]);
+  }, [isCurrentAdmin, token, period, selectedDate, carregarMetricas]);
 
   const handleSelectPorDia = () => {
     setPeriod("custom");

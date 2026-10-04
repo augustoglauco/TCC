@@ -17,6 +17,7 @@ import { DocumentsTable } from "@/components/admin/DocumentsTable";
 import { PlaygroundPanel } from "@/components/admin/playground/PlaygroundPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ToastStack, useToast } from "@/components/ui/Toast";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { RagApiError, activateCollection, createCollection, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
 import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
 import type {
@@ -467,15 +468,17 @@ function RagSearchConfigSection({
   onError: (msg: string) => void;
   onSuccess: (msg: string) => void;
 }) {
+  const token = useAuthStore((s) => s.token);
   const [ragFallback, setRagFallback] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
 
   useEffect(() => {
+    if (!token) return;
     let cancelado = false;
     async function carregar() {
       try {
-        const atual = await getRuntimeSettings();
+        const atual = await getRuntimeSettings(token!);
         if (!cancelado) setRagFallback(atual.rag_search_domain_fallback);
       } catch (err) {
         if (!cancelado) {
@@ -492,13 +495,14 @@ function RagSearchConfigSection({
     // Roda só uma vez ao montar — incluir `onError` (recriada a cada render
     // do pai) reexecutaria a busca a cada render, não só no mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token]);
 
   async function handleToggle(checked: boolean) {
+    if (!token) return;
     setSalvando(true);
     setRagFallback(checked);
     try {
-      await updateRuntimeSettings({ rag_search_domain_fallback: checked });
+      await updateRuntimeSettings(token, { rag_search_domain_fallback: checked });
       onSuccess("Regra de busca do RAG atualizada.");
     } catch (err) {
       setRagFallback(!checked);

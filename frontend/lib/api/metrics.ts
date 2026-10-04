@@ -36,6 +36,7 @@ export interface GetMetricsParams {
 }
 
 export async function fetchTokenCostMetrics(
+  token: string,
   params: GetMetricsParams = {}
 ): Promise<TokenCostMetricsResponse> {
   const baseUrl = getApiBaseUrl();
@@ -54,6 +55,7 @@ export async function fetchTokenCostMetrics(
       "Content-Type": "application/json",
       "Cache-Control": "no-cache",
       Pragma: "no-cache",
+      Authorization: `Bearer ${token}`,
     },
     cache: "no-store",
   });

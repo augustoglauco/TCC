@@ -1,8 +1,12 @@
 import inspect
 import logging
+from typing import Annotated
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth import verificar_admin_por_token
+from app.api.rag_dependencies import get_db_session
 from app.db.settings import save_multiple_app_settings
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
@@ -17,6 +21,31 @@ from app.router.openrouter_client import OpenRouterClient
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin/runtime-settings", tags=["runtime-settings"])
+
+
+async def _require_admin(
+    session: AsyncSession = Depends(get_db_session),
+    authorization: Annotated[str | None, Header()] = None,
+    x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
+    token_param: Annotated[str | None, Query(alias="token")] = None,
+) -> None:
+    token: str | None = None
+    if authorization:
+        parts = authorization.split()
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            token = parts[1]
+        elif len(parts) == 1:
+            token = parts[0]
+    elif x_auth_token:
+        token = x_auth_token
+    elif token_param:
+        token = token_param
+
+    if not token or not await verificar_admin_por_token(session, token):
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso restrito a administradores autenticados.",
+        )
 
 
 def _get_clients(
@@ -84,13 +113,17 @@ async def _build_response(request: Request) -> RuntimeSettingsResponse:
 
 
 @router.get("", response_model=RuntimeSettingsResponse)
-async def get_runtime_settings(request: Request) -> RuntimeSettingsResponse:
+async def get_runtime_settings(
+    request: Request, _: None = Depends(_require_admin)
+) -> RuntimeSettingsResponse:
     return await _build_response(request)
 
 
 @router.put("", response_model=RuntimeSettingsResponse)
 async def update_runtime_settings(
-    request: Request, body: RuntimeSettingsUpdateRequest
+    request: Request,
+    body: RuntimeSettingsUpdateRequest,
+    _: None = Depends(_require_admin),
 ) -> RuntimeSettingsResponse:
     local_client, external_client, qdrant_client = _get_clients(request)
 
@@ -162,7 +195,9 @@ async def update_runtime_settings(
 
 
 @router.post("/preload", response_model=RuntimeSettingsResponse)
-async def preload_local_model(request: Request) -> RuntimeSettingsResponse:
+async def preload_local_model(
+    request: Request, _: None = Depends(_require_admin)
+) -> RuntimeSettingsResponse:
     """Carrega o modelo local na VRAM imediatamente (warmup manual)."""
     local_client, _, _ = _get_clients(request)
     if hasattr(local_client, "preload") and inspect.iscoroutinefunction(local_client.preload):
@@ -171,7 +206,9 @@ async def preload_local_model(request: Request) -> RuntimeSettingsResponse:
 
 
 @router.post("/unload", response_model=RuntimeSettingsResponse)
-async def unload_local_model(request: Request) -> RuntimeSettingsResponse:
+async def unload_local_model(
+    request: Request, _: None = Depends(_require_admin)
+) -> RuntimeSettingsResponse:
     """Descarrega o modelo local da VRAM imediatamente (libera memória)."""
     local_client, _, _ = _get_clients(request)
     if hasattr(local_client, "unload") and inspect.iscoroutinefunction(local_client.unload):

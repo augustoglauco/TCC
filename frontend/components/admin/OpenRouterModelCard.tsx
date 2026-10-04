@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ModelCharacteristicsPanel } from "@/components/admin/ModelCharacteristicsPanel";
 import { useModelCharacteristics } from "@/lib/hooks/useModelCharacteristics";
@@ -122,6 +123,7 @@ interface OpenRouterModelCardProps {
 }
 
 export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardProps) {
+  const token = useAuthStore((s) => s.token);
   const [activeModel, setActiveModel] = useState<string>("");
   const [historyModels, setHistoryModels] = useState<string[]>([]);
   const [customInput, setCustomInput] = useState<string>("");
@@ -133,8 +135,12 @@ export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardP
     let cancelado = false;
 
     async function init() {
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       try {
-        const settings = await getRuntimeSettings();
+        const settings = await getRuntimeSettings(token);
         if (cancelado) return;
         const currentModel = settings.external_model_name || "openai/gpt-4o-mini";
         setActiveModel(currentModel);
@@ -167,16 +173,16 @@ export function OpenRouterModelCard({ onError, onSuccess }: OpenRouterModelCardP
     return () => {
       cancelado = true;
     };
-  }, [onError]);
+  }, [onError, token]);
 
   // Função central para ativar modelo e guardar no histórico
   const handleActivateModel = async (modelTag: string) => {
     const tag = modelTag.trim();
-    if (!tag || activatingTag) return;
+    if (!tag || activatingTag || !token) return;
 
     setActivatingTag(tag);
     try {
-      await updateRuntimeSettings({ external_model_name: tag });
+      await updateRuntimeSettings(token, { external_model_name: tag });
       setActiveModel(tag);
 
       // Salva e atualiza o histórico no localStorage

@@ -10,6 +10,7 @@ import {
   preloadLocalModel,
   unloadLocalModel,
 } from "@/lib/api/runtimeSettings";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { RuntimeSettings } from "@/lib/types/runtimeSettings";
 
 function formatVram(bytes: number | null | undefined): string {
@@ -24,6 +25,7 @@ export interface RuntimeSettingsFormProps {
 }
 
 export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormProps) {
+  const token = useAuthStore((s) => s.token);
   const [settings, setSettings] = useState<RuntimeSettings | null>(null);
   const [temperatura, setTemperatura] = useState("");
   const [numCtx, setNumCtx] = useState("");
@@ -57,8 +59,9 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
     let cancelado = false;
 
     async function carregar() {
+      if (!token) return;
       try {
-        const atual = await getRuntimeSettings();
+        const atual = await getRuntimeSettings(token);
         if (cancelado) return;
         setSettings(atual);
         setTemperatura(
@@ -138,15 +141,15 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [token]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (salvando) return;
+    if (salvando || !token) return;
 
     setSalvando(true);
     try {
-      const atualizado = await updateRuntimeSettings({
+      const atualizado = await updateRuntimeSettings(token, {
         local_llm_temperature: temperatura.trim() === "" ? null : Number(temperatura),
         local_llm_num_ctx: numCtx.trim() === "" ? null : Number(numCtx),
         local_llm_top_p: topP.trim() === "" ? null : Number(topP),
@@ -187,10 +190,10 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
   }
 
   async function handleCarregarVram() {
-    if (acaoVramEmAndamento) return;
+    if (acaoVramEmAndamento || !token) return;
     setAcaoVramEmAndamento("preload");
     try {
-      const resp = await preloadLocalModel();
+      const resp = await preloadLocalModel(token);
       setSettings(resp);
       setModelLoaded(resp.local_model_loaded ?? false);
       setVramBytes(resp.local_model_vram_bytes ?? null);
@@ -207,10 +210,10 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
   }
 
   async function handleLiberarVram() {
-    if (acaoVramEmAndamento) return;
+    if (acaoVramEmAndamento || !token) return;
     setAcaoVramEmAndamento("unload");
     try {
-      const resp = await unloadLocalModel();
+      const resp = await unloadLocalModel(token);
       setSettings(resp);
       setModelLoaded(resp.local_model_loaded ?? false);
       setVramBytes(resp.local_model_vram_bytes ?? null);

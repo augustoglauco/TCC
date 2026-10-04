@@ -1,7 +1,10 @@
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.api.rag_dependencies import get_db_session
 from app.api.runtime_settings import router as runtime_settings_router
+from app.db.models import Cliente
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
@@ -61,10 +64,24 @@ class _FakeQdrantClient:
         self.search_domain_fallback = search_domain_fallback
 
 
+@pytest.fixture
+async def admin_headers(db_session) -> dict[str, str]:
+    """Cria um Cliente admin real no `db_session` e devolve o header
+    `Authorization` correspondente — `_require_admin` (ver
+    `app.api.runtime_settings`) exige essa checagem desde a revisão de
+    2026-10-04 (achado: endpoint inteiro sem autenticação)."""
+    admin = Cliente(nome="Admin Teste", email="admin@empresa.com")
+    db_session.add(admin)
+    await db_session.commit()
+    await db_session.refresh(admin)
+    return {"Authorization": f"Bearer mock-token-{admin.id}"}
+
+
 def _build_app(
     local_client: _FakeLocalClient,
     external_client: _FakeExternalClient,
     qdrant_client: _FakeQdrantClient,
+    db_session,
     crawler_max_pages_default: int = 20,
     crawler_confidence_threshold: float = 0.7,
     image_internal_confidence: float = 0.30,
@@ -79,6 +96,7 @@ def _build_app(
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(runtime_settings_router)
+    app.dependency_overrides[get_db_session] = lambda: db_session
     app.state.local_client = local_client
     app.state.external_client = external_client
     app.state.qdrant_client = qdrant_client
@@ -97,25 +115,33 @@ def _build_app(
     return app
 
 
-def _build_default_app() -> tuple[
-    FastAPI, _FakeLocalClient, _FakeExternalClient, _FakeQdrantClient
-]:
+def _build_default_app(
+    db_session,
+) -> tuple[FastAPI, _FakeLocalClient, _FakeExternalClient, _FakeQdrantClient]:
     local_client = _FakeLocalClient(temperature=None, timeout_s=30.0)
     external_client = _FakeExternalClient(timeout_s=30.0)
     qdrant_client = _FakeQdrantClient(search_domain_fallback=False)
     return (
-        _build_app(local_client, external_client, qdrant_client),
+        _build_app(local_client, external_client, qdrant_client, db_session),
         local_client,
         external_client,
         qdrant_client,
     )
 
 
-def test_get_devolve_valores_atuais_dos_clientes():
-    app, *_ = _build_default_app()
+async def test_get_sem_token_de_admin_e_403(db_session):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.get("/api/admin/runtime-settings")
+    assert response.status_code == 403
+
+
+async def test_get_devolve_valores_atuais_dos_clientes(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
+    client = TestClient(app)
+
+    response = client.get("/api/admin/runtime-settings", headers=admin_headers)
 
     assert response.status_code == 200
     assert response.json() == {
@@ -146,11 +172,15 @@ def test_get_devolve_valores_atuais_dos_clientes():
     }
 
 
-def test_put_atualiza_so_os_campos_enviados():
-    app, local_client, external_client, qdrant_client = _build_default_app()
+async def test_put_atualiza_so_os_campos_enviados(db_session, admin_headers):
+    app, local_client, external_client, qdrant_client = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.put("/api/admin/runtime-settings", json={"local_llm_temperature": 0.2})
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"local_llm_temperature": 0.2},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 200
     assert response.json()["local_llm_temperature"] == 0.2
@@ -161,20 +191,26 @@ def test_put_atualiza_so_os_campos_enviados():
     assert qdrant_client.search_domain_fallback is False
 
 
-def test_put_com_temperatura_null_explicito_reseta_para_default_do_modelo():
-    app, local_client, *_ = _build_default_app()
+async def test_put_com_temperatura_null_explicito_reseta_para_default_do_modelo(
+    db_session, admin_headers
+):
+    app, local_client, *_ = _build_default_app(db_session)
     local_client.temperature = 0.5
     client = TestClient(app)
 
-    response = client.put("/api/admin/runtime-settings", json={"local_llm_temperature": None})
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"local_llm_temperature": None},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 200
     assert response.json()["local_llm_temperature"] is None
     assert local_client.temperature is None
 
 
-def test_put_atualiza_todos_os_campos_de_uma_vez():
-    app, local_client, external_client, qdrant_client = _build_default_app()
+async def test_put_atualiza_todos_os_campos_de_uma_vez(db_session, admin_headers):
+    app, local_client, external_client, qdrant_client = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
@@ -185,6 +221,7 @@ def test_put_atualiza_todos_os_campos_de_uma_vez():
             "external_llm_timeout_s": 45.0,
             "rag_search_domain_fallback": True,
         },
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -194,71 +231,96 @@ def test_put_atualiza_todos_os_campos_de_uma_vez():
     assert qdrant_client.search_domain_fallback is True
 
 
-def test_put_temperatura_fora_do_intervalo_e_422():
-    app, *_ = _build_default_app()
+async def test_put_temperatura_fora_do_intervalo_e_422(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.put("/api/admin/runtime-settings", json={"local_llm_temperature": 5.0})
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"local_llm_temperature": 5.0},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 422
 
 
-def test_put_timeout_zero_ou_negativo_e_422():
-    app, *_ = _build_default_app()
+async def test_put_timeout_zero_ou_negativo_e_422(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.put("/api/admin/runtime-settings", json={"local_llm_timeout_s": 0.0})
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"local_llm_timeout_s": 0.0},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 422
 
 
-def test_put_atualiza_crawler_max_pages_default():
-    app, *_ = _build_default_app()
+async def test_put_atualiza_crawler_max_pages_default(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.put("/api/admin/runtime-settings", json={"crawler_max_pages_default": 50})
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"crawler_max_pages_default": 50},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 200
     assert response.json()["crawler_max_pages_default"] == 50
     assert app.state.crawler_max_pages_default == 50
 
 
-def test_put_atualiza_crawler_confidence_threshold():
-    app, *_ = _build_default_app()
+async def test_put_atualiza_crawler_confidence_threshold(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.put("/api/admin/runtime-settings", json={"crawler_confidence_threshold": 0.5})
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"crawler_confidence_threshold": 0.5},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 200
     assert response.json()["crawler_confidence_threshold"] == 0.5
     assert app.state.crawler_confidence_threshold == 0.5
 
 
-def test_put_crawler_confidence_threshold_fora_do_intervalo_e_422():
-    app, *_ = _build_default_app()
+async def test_put_crawler_confidence_threshold_fora_do_intervalo_e_422(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.put("/api/admin/runtime-settings", json={"crawler_confidence_threshold": 1.5})
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"crawler_confidence_threshold": 1.5},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 422
 
 
-def test_put_crawler_max_pages_default_zero_ou_negativo_e_422():
-    app, *_ = _build_default_app()
+async def test_put_crawler_max_pages_default_zero_ou_negativo_e_422(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.put("/api/admin/runtime-settings", json={"crawler_max_pages_default": 0})
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"crawler_max_pages_default": 0},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 422
 
 
-def test_put_atualiza_external_vision_model_name():
-    app, _, external_client, _ = _build_default_app()
+async def test_put_atualiza_external_vision_model_name(db_session, admin_headers):
+    app, _, external_client, _ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"external_vision_model_name": "openai/gpt-4o-mini"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -266,13 +328,14 @@ def test_put_atualiza_external_vision_model_name():
     assert external_client.vision_model == "openai/gpt-4o-mini"
 
 
-def test_put_atualiza_limiares_de_identificacao_de_imagem():
-    app, *_ = _build_default_app()
+async def test_put_atualiza_limiares_de_identificacao_de_imagem(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"image_internal_confidence": 0.5, "image_external_confidence": 0.9},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -282,90 +345,98 @@ def test_put_atualiza_limiares_de_identificacao_de_imagem():
     assert app.state.image_external_confidence == 0.9
 
 
-def test_put_limiar_de_imagem_fora_do_intervalo_e_422():
-    app, *_ = _build_default_app()
+async def test_put_limiar_de_imagem_fora_do_intervalo_e_422(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.put("/api/admin/runtime-settings", json={"image_external_confidence": 1.5})
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"image_external_confidence": 1.5},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 422
 
 
-def test_get_retorna_intent_router_provider_default():
-    app, *_ = _build_default_app()
+async def test_get_retorna_intent_router_provider_default(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.get("/api/admin/runtime-settings")
+    response = client.get("/api/admin/runtime-settings", headers=admin_headers)
     assert response.status_code == 200
     data = response.json()
     assert data["intent_router_provider"] == "heuristica_llm"
 
 
-def test_put_atualiza_intent_router_provider():
-    app, *_ = _build_default_app()
+async def test_put_atualiza_intent_router_provider(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"intent_router_provider": "jev_openrouter"},
+        headers=admin_headers,
     )
     assert response.status_code == 200
     assert response.json()["intent_router_provider"] == "jev_openrouter"
     assert app.state.intent_router_provider == "jev_openrouter"
 
     # Confirma persistência em subsequente GET
-    get_resp = client.get("/api/admin/runtime-settings")
+    get_resp = client.get("/api/admin/runtime-settings", headers=admin_headers)
     assert get_resp.json()["intent_router_provider"] == "jev_openrouter"
 
 
-def test_put_atualiza_intent_router_provider_para_heuristica_llm():
-    app, *_ = _build_default_app()
+async def test_put_atualiza_intent_router_provider_para_heuristica_llm(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"intent_router_provider": "heuristica_llm"},
+        headers=admin_headers,
     )
     assert response.status_code == 200
     assert response.json()["intent_router_provider"] == "heuristica_llm"
     assert app.state.intent_router_provider == "heuristica_llm"
 
-    get_resp = client.get("/api/admin/runtime-settings")
+    get_resp = client.get("/api/admin/runtime-settings", headers=admin_headers)
     assert get_resp.json()["intent_router_provider"] == "heuristica_llm"
 
 
-def test_put_atualiza_intent_router_provider_para_heuristica():
-    app, *_ = _build_default_app()
+async def test_put_atualiza_intent_router_provider_para_heuristica(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"intent_router_provider": "heuristica"},
+        headers=admin_headers,
     )
     assert response.status_code == 200
     assert response.json()["intent_router_provider"] == "heuristica"
     assert app.state.intent_router_provider == "heuristica"
 
-    get_resp = client.get("/api/admin/runtime-settings")
+    get_resp = client.get("/api/admin/runtime-settings", headers=admin_headers)
     assert get_resp.json()["intent_router_provider"] == "heuristica"
 
 
-def test_put_rejeita_intent_router_provider_invalido():
-    app, *_ = _build_default_app()
+async def test_put_rejeita_intent_router_provider_invalido(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"intent_router_provider": "provedor_inexistente"},
+        headers=admin_headers,
     )
     assert response.status_code == 422
 
 
-def test_get_runtime_settings_traz_defaults_do_monitor_de_tom():
-    app, *_ = _build_default_app()
+async def test_get_runtime_settings_traz_defaults_do_monitor_de_tom(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.get("/api/admin/runtime-settings")
+    response = client.get("/api/admin/runtime-settings", headers=admin_headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -373,13 +444,14 @@ def test_get_runtime_settings_traz_defaults_do_monitor_de_tom():
     assert body["tone_monitor_provider"] == "heuristica_llm"
 
 
-def test_put_runtime_settings_atualiza_monitor_de_tom():
-    app, *_ = _build_default_app()
+async def test_put_runtime_settings_atualiza_monitor_de_tom(db_session, admin_headers):
+    app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"tone_monitor_enabled": False, "tone_monitor_provider": "jev_openrouter"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -388,13 +460,14 @@ def test_put_runtime_settings_atualiza_monitor_de_tom():
     assert body["tone_monitor_provider"] == "jev_openrouter"
 
 
-def test_put_atualiza_external_model_name():
-    app, _, ext_client, _ = _build_default_app()
+async def test_put_atualiza_external_model_name(db_session, admin_headers):
+    app, _, ext_client, _ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"external_model_name": "anthropic/claude-3.5-sonnet"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -403,13 +476,14 @@ def test_put_atualiza_external_model_name():
     assert ext_client.model == "anthropic/claude-3.5-sonnet"
 
 
-def test_put_atualiza_keep_alive_e_sincroniza_ollama():
-    app, local_client, _, _ = _build_default_app()
+async def test_put_atualiza_keep_alive_e_sincroniza_ollama(db_session, admin_headers):
+    app, local_client, _, _ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"local_llm_keep_alive": "30m"},
+        headers=admin_headers,
     )
     assert response.status_code == 200
     assert response.json()["local_llm_keep_alive"] == "30m"
@@ -420,6 +494,7 @@ def test_put_atualiza_keep_alive_e_sincroniza_ollama():
     response_unload = client.put(
         "/api/admin/runtime-settings",
         json={"local_llm_keep_alive": "0"},
+        headers=admin_headers,
     )
     assert response_unload.status_code == 200
     assert response_unload.json()["local_llm_keep_alive"] == "0"
@@ -427,39 +502,40 @@ def test_put_atualiza_keep_alive_e_sincroniza_ollama():
     assert local_client.unloaded is True
 
 
-def test_put_atualiza_warmup_on_startup():
-    app, _, _, _ = _build_default_app()
+async def test_put_atualiza_warmup_on_startup(db_session, admin_headers):
+    app, _, _, _ = _build_default_app(db_session)
     client = TestClient(app)
 
     response = client.put(
         "/api/admin/runtime-settings",
         json={"local_llm_warmup_on_startup": False},
+        headers=admin_headers,
     )
     assert response.status_code == 200
     assert response.json()["local_llm_warmup_on_startup"] is False
     assert app.state.local_llm_warmup_on_startup is False
 
 
-def test_post_preload_e_unload_endpoints():
-    app, local_client, _, _ = _build_default_app()
+async def test_post_preload_e_unload_endpoints(db_session, admin_headers):
+    app, local_client, _, _ = _build_default_app(db_session)
     client = TestClient(app)
 
     # Preload
-    resp_preload = client.post("/api/admin/runtime-settings/preload")
+    resp_preload = client.post("/api/admin/runtime-settings/preload", headers=admin_headers)
     assert resp_preload.status_code == 200
     assert resp_preload.json()["local_model_loaded"] is True
     assert resp_preload.json()["local_model_vram_bytes"] == 8589934592
     assert local_client.preloaded is True
 
     # Unload
-    resp_unload = client.post("/api/admin/runtime-settings/unload")
+    resp_unload = client.post("/api/admin/runtime-settings/unload", headers=admin_headers)
     assert resp_unload.status_code == 200
     assert resp_unload.json()["local_model_loaded"] is False
     assert resp_unload.json()["local_model_vram_bytes"] is None
     assert local_client.unloaded is True
 
 
-async def test_persistencia_de_runtime_settings_no_banco(db_session):
+async def test_persistencia_de_runtime_settings_no_banco():
     from app.db.engine import create_db_engine, create_session_factory
     from app.db.models import Base
     from app.db.settings import get_all_app_settings
@@ -469,15 +545,37 @@ async def test_persistencia_de_runtime_settings_no_banco(db_session):
         await conn.run_sync(Base.metadata.create_all)
     session_factory = create_session_factory(engine)
 
+    async with session_factory() as session:
+        admin = Cliente(nome="Admin Teste", email="admin@empresa.com")
+        session.add(admin)
+        await session.commit()
+        await session.refresh(admin)
+        admin_headers = {"Authorization": f"Bearer mock-token-{admin.id}"}
+
+    async def _override_get_db_session():
+        async with session_factory() as session:
+            yield session
+
     local_client = _FakeLocalClient()
     ext_client = _FakeExternalClient(timeout_s=30.0)
     qdrant = _FakeQdrantClient(search_domain_fallback=False)
-    app = _build_app(
-        local_client,
-        ext_client,
-        qdrant,
-        db_sessionmaker=session_factory,
-    )
+    app = FastAPI()
+    app.include_router(runtime_settings_router)
+    app.dependency_overrides[get_db_session] = _override_get_db_session
+    app.state.local_client = local_client
+    app.state.external_client = ext_client
+    app.state.qdrant_client = qdrant
+    app.state.crawler_max_pages_default = 20
+    app.state.crawler_confidence_threshold = 0.7
+    app.state.image_internal_confidence = 0.30
+    app.state.image_external_confidence = 0.80
+    app.state.intent_router_provider = DEFAULT_INTENT_ROUTER_PROVIDER
+    app.state.tone_monitor_enabled = True
+    app.state.tone_monitor_provider = DEFAULT_TONE_MONITOR_PROVIDER
+    app.state.rag_top_k = 3
+    app.state.rag_score_threshold = 0.35
+    app.state.local_llm_warmup_on_startup = True
+    app.state.db_sessionmaker = session_factory
 
     client = TestClient(app)
     response = client.put(
@@ -487,6 +585,7 @@ async def test_persistencia_de_runtime_settings_no_banco(db_session):
             "local_llm_warmup_on_startup": True,
             "local_llm_temperature": 0.35,
         },
+        headers=admin_headers,
     )
     assert response.status_code == 200
 
@@ -497,4 +596,3 @@ async def test_persistencia_de_runtime_settings_no_banco(db_session):
         assert stored["local_llm_temperature"] == 0.35
 
     await engine.dispose()
-

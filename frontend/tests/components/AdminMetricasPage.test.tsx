@@ -75,7 +75,7 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("2026-10-03")).toBeInTheDocument();
     });
 
-    expect(spy).toHaveBeenCalledWith({ period: "7d" });
+    expect(spy).toHaveBeenCalledWith("mock-token", { period: "7d" });
   });
 
   it("permite alternar período de filtro", async () => {
@@ -116,7 +116,7 @@ describe("AdminMetricasPage", () => {
     fireEvent.click(hojeButton);
 
     await waitFor(() => {
-      expect(spy).toHaveBeenCalledWith({ period: "today" });
+      expect(spy).toHaveBeenCalledWith("mock-token", { period: "today" });
     });
   });
 
@@ -286,7 +286,7 @@ describe("AdminMetricasPage", () => {
     fireEvent.change(dateInput, { target: { value: "2026-10-02" } });
 
     await waitFor(() => {
-      expect(spy).toHaveBeenCalledWith({
+      expect(spy).toHaveBeenCalledWith("mock-token", {
         period: "custom",
         startDate: "2026-10-02",
         endDate: "2026-10-02",

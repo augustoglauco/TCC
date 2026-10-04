@@ -21,10 +21,12 @@ async function _lancarErroComDetalhe(response: Response, mensagemPadrao: string)
 }
 
 /** Lê os parâmetros de execução atuais via `GET /api/admin/runtime-settings`. */
-export async function getRuntimeSettings(): Promise<RuntimeSettings> {
+export async function getRuntimeSettings(token: string): Promise<RuntimeSettings> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/admin/runtime-settings`);
+    response = await fetch(`${API_BASE_URL}/api/admin/runtime-settings`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new RuntimeSettingsApiError(
       "Não foi possível conectar ao servidor. Verifique sua conexão.",
@@ -40,13 +42,17 @@ export async function getRuntimeSettings(): Promise<RuntimeSettings> {
 
 /** Atualiza (parcialmente) os parâmetros de execução via `PUT /api/admin/runtime-settings`. */
 export async function updateRuntimeSettings(
+  token: string,
   update: RuntimeSettingsUpdate,
 ): Promise<RuntimeSettings> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/admin/runtime-settings`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(update),
     });
   } catch {
@@ -66,11 +72,12 @@ export async function updateRuntimeSettings(
 }
 
 /** Força o carregamento do modelo local na VRAM via `POST /api/admin/runtime-settings/preload`. */
-export async function preloadLocalModel(): Promise<RuntimeSettings> {
+export async function preloadLocalModel(token: string): Promise<RuntimeSettings> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/admin/runtime-settings/preload`, {
       method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
     });
   } catch {
     throw new RuntimeSettingsApiError(
@@ -89,11 +96,12 @@ export async function preloadLocalModel(): Promise<RuntimeSettings> {
 }
 
 /** Descarrega o modelo local da VRAM via `POST /api/admin/runtime-settings/unload`. */
-export async function unloadLocalModel(): Promise<RuntimeSettings> {
+export async function unloadLocalModel(token: string): Promise<RuntimeSettings> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/admin/runtime-settings/unload`, {
       method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
     });
   } catch {
     throw new RuntimeSettingsApiError(

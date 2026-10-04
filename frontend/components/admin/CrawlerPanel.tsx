@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { runCrawlerStream } from "@/lib/api/crawler";
 import { getRuntimeSettings } from "@/lib/api/runtimeSettings";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { CrawlRunResponse } from "@/lib/types/crawler";
 
 // Sem evento do backend por mais que este tempo (em segundos) enquanto o
@@ -29,6 +30,7 @@ const PROGRESSO_INICIAL: LiveProgress = {
 };
 
 export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
+  const token = useAuthStore((s) => s.token);
   const [url, setUrl] = useState("");
   const [depth, setDepth] = useState(1);
   const [maxPages, setMaxPages] = useState<number | "">("");
@@ -47,10 +49,11 @@ export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
     // Só usado pra pré-preencher `maxPages` — falha ao carregar não impede o
     // form de funcionar (o backend usa seu próprio default se `max_pages`
     // não for enviado).
-    getRuntimeSettings()
+    if (!token) return;
+    getRuntimeSettings(token)
       .then((settings) => setMaxPages(settings.crawler_max_pages_default))
       .catch(() => {});
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (!isRunning) return;

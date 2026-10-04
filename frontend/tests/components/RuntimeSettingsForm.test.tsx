@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { RuntimeSettingsForm } from "@/components/admin/RuntimeSettingsForm";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { RuntimeSettings } from "@/lib/types/runtimeSettings";
 
 vi.mock("@/lib/api/runtimeSettings", async () => {
@@ -52,6 +53,10 @@ describe("RuntimeSettingsForm", () => {
     mockedUpdate.mockReset();
     mockedPreload.mockReset();
     mockedUnload.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("carrega e mostra os valores atuais", async () => {
@@ -97,6 +102,7 @@ describe("RuntimeSettingsForm", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
 
     expect(mockedUpdate).toHaveBeenCalledWith(
+      "mock-token-1",
       expect.objectContaining({
         local_llm_temperature: 0.2,
         local_llm_timeout_s: 30,
@@ -128,6 +134,7 @@ describe("RuntimeSettingsForm", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
 
     expect(mockedUpdate).toHaveBeenCalledWith(
+      "mock-token-1",
       expect.objectContaining({ intent_router_provider: "jev_openrouter" }),
     );
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
@@ -145,6 +152,7 @@ describe("RuntimeSettingsForm", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
 
     expect(mockedUpdate).toHaveBeenCalledWith(
+      "mock-token-1",
       expect.objectContaining({ tone_monitor_enabled: false }),
     );
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
@@ -166,6 +174,7 @@ describe("RuntimeSettingsForm", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
 
     expect(mockedUpdate).toHaveBeenCalledWith(
+      "mock-token-1",
       expect.objectContaining({ tone_monitor_provider: "jev_openrouter" }),
     );
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
@@ -185,6 +194,7 @@ describe("RuntimeSettingsForm", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
 
     expect(mockedUpdate).toHaveBeenCalledWith(
+      "mock-token-1",
       expect.objectContaining({ local_llm_temperature: null }),
     );
   });
@@ -205,6 +215,7 @@ describe("RuntimeSettingsForm", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
 
     expect(mockedUpdate).toHaveBeenCalledWith(
+      "mock-token-1",
       expect.objectContaining({ intent_router_provider: "heuristica" }),
     );
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
@@ -247,6 +258,7 @@ describe("RuntimeSettingsForm", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
 
     expect(mockedUpdate).toHaveBeenCalledWith(
+      "mock-token-1",
       expect.objectContaining({
         local_llm_keep_alive: "-1",
         local_llm_warmup_on_startup: false,

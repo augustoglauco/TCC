@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { OpenRouterModelCard } from "@/components/admin/OpenRouterModelCard";
 import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
 vi.mock("@/lib/api/runtimeSettings", () => ({
   getRuntimeSettings: vi.fn(),
@@ -38,6 +39,10 @@ describe("OpenRouterModelCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
 
     mockGetSettings.mockResolvedValue({
       local_llm_temperature: null,
@@ -97,7 +102,7 @@ describe("OpenRouterModelCard", () => {
     }
 
     await waitFor(() => {
-      expect(mockUpdateSettings).toHaveBeenCalledWith({
+      expect(mockUpdateSettings).toHaveBeenCalledWith("mock-token-1", {
         external_model_name: "anthropic/claude-3.5-sonnet",
       });
       expect(onSuccess).toHaveBeenCalledWith(

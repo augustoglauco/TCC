@@ -1745,6 +1745,24 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
 - Escopo do MVP relativamente amplo (4 ferramentas do MCP B2B, playbooks
   iniciais, crawler/catálogo maiores) aumenta a superfície de testes dentro
   do próprio protótipo.
+- **Achado da revisão de 2026-10-04 (risco sistêmico, parcialmente
+  corrigido):** a maioria dos routers `/api/admin/*` não checa token de
+  administrador no servidor — a proteção é só a UI do Next.js escondendo a
+  tela (`/admin/*`) de quem não está logado como Admin. Investigado a
+  partir de dois achados pontuais (endpoints de métricas de custo e de
+  runtime-settings completamente sem autenticação), a checagem revelou que
+  **só `app.api.admin_charts` tinha a dependência `_require_admin`** — nem
+  `admin_products`, `local_models`, `model_catalog`, `rag_collections`,
+  `rag`, `rag_playground`, `crawler` nem `tom_escalonamentos` a têm.
+  `app.api.admin_metrics` e `app.api.runtime_settings` já foram corrigidos
+  (mesmo padrão `_require_admin` de `admin_charts.py`, replicado também em
+  `safe_sql.py`: bloqueio de `SELECT ... INTO` e enforcement real de
+  `ALLOWED_TABLES`, que existia mas nunca era usado). Os demais routers
+  seguem sem checagem — ver item correspondente na Fase 11 do roadmap. Note
+  que `/admin/ingestao` já documentava a lacuna explicitamente no código
+  (`# MVP: página administrativa ... sem autenticação`, decisão consciente);
+  os demais routers não têm esse comentário, sugerindo descuido em vez de
+  decisão deliberada.
 
 ## 8. Próximos passos após o protótipo
 

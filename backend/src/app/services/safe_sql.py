@@ -2,9 +2,9 @@
 para o Agente Analítico de Gráficos Dinâmicos.
 """
 
-from decimal import Decimal
 import logging
 import re
+from decimal import Decimal
 from typing import Any
 
 from sqlalchemy import text
@@ -32,9 +32,46 @@ ALLOWED_TABLES = {
 BLOCKED_PATTERNS = [
     r"\b(insert|update|delete|drop|alter|truncate|grant|revoke|create|replace)\b",
     r"\b(execute|exec|call|copy|vacuum|reindex|lock|pg_sleep)\b",
+    # `SELECT ... INTO <tabela>` cria uma tabela nova a partir da consulta
+    # (efetivamente DDL) — começa com SELECT como qualquer leitura legítima,
+    # então sem este bloqueio passava pela checagem de "deve iniciar com
+    # SELECT" acima sem cair em nenhum dos padrões de escrita (achado da
+    # revisão de 2026-10-04).
+    r"\binto\b",
     r"--",  # comentários de linha
     r"/\*",  # comentários em bloco
 ]
+
+# Nomes de identificador simples (sem aspas/schema) usados para extrair
+# tabelas referenciadas em FROM/JOIN e validar contra ALLOWED_TABLES abaixo.
+_IDENTIFIER_RE = r"[a-zA-Z_][a-zA-Z0-9_]*"
+
+
+def _validar_tabelas_permitidas(cleaned: str) -> None:
+    """Garante que toda tabela referenciada em FROM/JOIN está em
+    `ALLOWED_TABLES` — defesa em profundidade além do bloqueio de palavras-
+    chave de escrita acima: mesmo um SELECT "limpo" não pode ler tabelas
+    fora do esquema exposto ao LLM via `get_catalog_schema_prompt` (achado
+    da revisão de 2026-10-04: `ALLOWED_TABLES` existia mas nunca era usado).
+
+    # MVP: extração de tabelas por regex sobre FROM/JOIN, não um parser SQL
+    completo — suficiente para o conjunto de consultas geradas pelo Agente
+    Analítico (sem SQL dinâmico vindo do usuário final, só do LLM a partir
+    do esquema fixo documentado).
+    """
+    cte_names = {
+        nome.lower()
+        for nome in re.findall(rf"\b({_IDENTIFIER_RE})\s+as\s*\(", cleaned, re.IGNORECASE)
+    }
+    tabelas_referenciadas = {
+        nome.lower()
+        for nome in re.findall(rf"\b(?:from|join)\s+({_IDENTIFIER_RE})", cleaned, re.IGNORECASE)
+    }
+    nao_permitidas = tabelas_referenciadas - cte_names - ALLOWED_TABLES
+    if nao_permitidas:
+        raise SQLSecurityError(
+            f"Tabela(s) não permitida(s) na consulta: {', '.join(sorted(nao_permitidas))}."
+        )
 
 
 def validate_readonly_sql(sql: str) -> str:
@@ -63,6 +100,8 @@ def validate_readonly_sql(sql: str) -> str:
         match = re.search(pattern, cleaned, re.IGNORECASE)
         if match:
             raise SQLSecurityError(f"Comando não permitido: instrução perigosa detectada ({match.group(0)}).")
+
+    _validar_tabelas_permitidas(cleaned)
 
     # Garante limite máximo de 50 registros
     limit_match = re.search(r"\blimit\s+(\d+)\b", cleaned, re.IGNORECASE)

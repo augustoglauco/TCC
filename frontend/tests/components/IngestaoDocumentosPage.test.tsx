@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import IngestaoDocumentosPage from "@/app/admin/ingestao/page";
 import { RagApiError } from "@/lib/api/rag";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { DocumentRegistryEntry, RagCollection } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/rag", async () => {
@@ -80,6 +81,10 @@ describe("IngestaoDocumentosPage", () => {
     mockedListCollections.mockReset();
     mockedDeleteCollection.mockReset();
     mockedGetRuntimeSettings.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
     mockedListDocuments.mockResolvedValue([]);
     mockedListCollections.mockResolvedValue([COLLECTION_ATIVA]);
     mockedGetRuntimeSettings.mockResolvedValue({

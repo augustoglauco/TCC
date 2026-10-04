@@ -1,11 +1,13 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.admin_metrics import router as admin_metrics_router
-from app.db.models import Conversa, ConversaMensagem
+from app.api.rag_dependencies import get_db_session
+from app.db.models import Cliente, Conversa, ConversaMensagem
 
 
 class _SingleSessionMaker:
@@ -30,13 +32,31 @@ def metrics_client(db_session):
     app = FastAPI()
     app.include_router(admin_metrics_router)
     app.state.db_sessionmaker = _SingleSessionMaker(db_session)
+    app.dependency_overrides[get_db_session] = lambda: db_session
     with TestClient(app) as test_client:
         yield test_client
 
 
+@pytest.fixture
+async def admin_headers(db_session) -> dict[str, str]:
+    admin = Cliente(nome="Admin Master", email="admin@empresa.com")
+    db_session.add(admin)
+    await db_session.commit()
+    await db_session.refresh(admin)
+    return {"Authorization": f"Bearer mock-token-{admin.id}"}
+
+
 @pytest.mark.asyncio
-async def test_metrics_api_empty_data(metrics_client):
+async def test_metrics_api_requer_autenticacao_admin(metrics_client):
     response = metrics_client.get("/api/admin/metrics/tokens-and-costs?period=7d")
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_metrics_api_empty_data(metrics_client, admin_headers):
+    response = metrics_client.get(
+        "/api/admin/metrics/tokens-and-costs?period=7d", headers=admin_headers
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["period"] == "7d"
@@ -46,7 +66,9 @@ async def test_metrics_api_empty_data(metrics_client):
 
 
 @pytest.mark.asyncio
-async def test_metrics_api_aggregates_closed_chats_and_costs(metrics_client, db_session):
+async def test_metrics_api_aggregates_closed_chats_and_costs(
+    metrics_client, db_session, admin_headers
+):
     now = datetime.now(UTC)
     date_str = now.strftime("%Y-%m-%d")
 
@@ -126,7 +148,9 @@ async def test_metrics_api_aggregates_closed_chats_and_costs(metrics_client, db_
     await db_session.commit()
 
     # Consulta período 7d
-    res_7d = metrics_client.get("/api/admin/metrics/tokens-and-costs?period=7d")
+    res_7d = metrics_client.get(
+        "/api/admin/metrics/tokens-and-costs?period=7d", headers=admin_headers
+    )
     assert res_7d.status_code == 200
     data_7d = res_7d.json()
     assert data_7d["summary"]["total_closed_chats"] == 1
@@ -146,7 +170,9 @@ async def test_metrics_api_aggregates_closed_chats_and_costs(metrics_client, db_
     assert day["external_prompt_tokens"] == 200
 
     # Consulta período 30d (deve incluir c1 e c3)
-    res_30d = metrics_client.get("/api/admin/metrics/tokens-and-costs?period=30d")
+    res_30d = metrics_client.get(
+        "/api/admin/metrics/tokens-and-costs?period=30d", headers=admin_headers
+    )
     assert res_30d.status_code == 200
     data_30d = res_30d.json()
     assert data_30d["summary"]["total_closed_chats"] == 2

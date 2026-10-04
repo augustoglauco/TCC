@@ -2,17 +2,45 @@
 
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.auth import verificar_admin_por_token
+from app.api.rag_dependencies import get_db_session
 from app.db.models import Conversa, ConversaMensagem
 
 logger = logging.getLogger("assistente.admin_metrics")
 
 router = APIRouter(prefix="/api/admin/metrics", tags=["Admin Metricas"])
+
+
+async def _require_admin(
+    session: AsyncSession = Depends(get_db_session),
+    authorization: Annotated[str | None, Header()] = None,
+    x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
+    token_param: Annotated[str | None, Query(alias="token")] = None,
+) -> None:
+    token: str | None = None
+    if authorization:
+        parts = authorization.split()
+        if len(parts) == 2 and parts[0].lower() == "bearer":
+            token = parts[1]
+        elif len(parts) == 1:
+            token = parts[0]
+    elif x_auth_token:
+        token = x_auth_token
+    elif token_param:
+        token = token_param
+
+    if not token or not await verificar_admin_por_token(session, token):
+        raise HTTPException(
+            status_code=403,
+            detail="Acesso restrito a administradores autenticados.",
+        )
 
 
 class MetricSummary(BaseModel):
@@ -50,6 +78,7 @@ async def get_token_and_cost_metrics(
     period: str = Query("7d", description="Período: 'today', '7d', '30d' ou 'all'"),
     start_date: str | None = Query(None, description="Data inicial ISO YYYY-MM-DD"),
     end_date: str | None = Query(None, description="Data final ISO YYYY-MM-DD"),
+    _: None = Depends(_require_admin),
 ) -> TokenCostMetricsResponse:
     """Retorna sumário e relatório diário de tokens e custos para chats encerrados."""
     session_factory = getattr(request.app.state, "db_sessionmaker", None)
