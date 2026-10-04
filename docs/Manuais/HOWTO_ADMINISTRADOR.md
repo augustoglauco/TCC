@@ -14,6 +14,7 @@
 5. [🤖 Gerenciamento e Parametrização da IA (`/admin/modelos`)](#-gerenciamento-e-parametrização-da-ia-adminmodelos)
 6. [🛍️ Gestão do Catálogo B2B e Ferramentas MCP](#️-gestão-do-catálogo-b2b-e-ferramentas-mcp)
 7. [📊 Monitor de Tom, Sessões e Atendimento Humano](#-monitor-de-tom-sessões-e-atendimento-humano)
+8. [📈 Métricas de Tokens, Custos e Chats Encerrados (`/admin/metricas`)](#-métricas-de-tokens-custos-e-chats-encerrados-adminmetricas)
 
 ---
 
@@ -240,3 +241,32 @@ O assistente monitora continuamente o tom da mensagem do cliente (insatisfação
 
 * **Limiar de Alerta**: Se o cliente demonstrar forte insatisfação (ex.: *"Ninguém me ajuda, preciso falar com um atendente agora!"*), o monitor de tom aciona um alerta automático.
 * **Comportamento no Chat**: O assistente exibe um banner de transferência ("Conectando você a um atendente humano...") e envia a notificação para o painel da equipe de suporte com o resumo completo do histórico recente.
+
+---
+
+## 📈 Métricas de Tokens, Custos e Chats Encerrados (`/admin/metricas`)
+
+Acessível pelo menu de administração (ícone ⚙️ no topo → "Métricas & Custos IA") para usuários com perfil `Admin`.
+
+### 1. Painel de Indicadores (KPIs)
+O dashboard consolida em tempo real:
+* **Tokens Internos (GPU Local)**: Volume total de tokens de prompt e resposta processados no servidor com Ollama. Apresenta o badge de custo zero (**R$ 0,00**), demonstrando a economia de infraestrutura própria.
+* **Tokens Externos (OpenRouter)**: Volume total de tokens processados na nuvem.
+* **Custo Total Acumulado (USD)**: Gasto financeiro real acumulado no período selecionado.
+* **Custo de Entrada (Prompt USD)**: Valor segregado gasto no envio de contexto, perguntas e dados do RAG para a nuvem.
+* **Custo de Saída (Resposta USD)**: Valor segregado gasto na geração de texto pelos modelos externos.
+* **Chats Encerrados**: Quantidade de sessões finalizadas com sucesso.
+
+### 2. Filtros de Período
+Selecione o horizonte temporal desejado no topo:
+* **Hoje**: Atendimentos encerrados desde 00:00 UTC do dia corrente.
+* **7 Dias**: Atendimentos dos últimos 7 dias.
+* **30 Dias**: Atendimentos dos últimos 30 dias.
+* **Tudo**: Histórico acumulado completo.
+
+### 3. Tabela de Detalhamento Diário
+Apresenta o agrupamento dia a dia ordenado por data de encerramento (`date(encerrada_em)`), com o número de chats finalizados, contagem segregada de tokens locais e remotos (entrada/saída) e os custos monetários correspondentes.
+
+### 4. Ciclo de Vida do Atendimento e Encerramento
+* **Encerramento Manual**: O visitante pode encerrar o atendimento a qualquer momento clicando no botão 🏁 **Encerrar atendimento** no topo do widget de chat. A sessão é marcada como `encerrada` com motivo `manual_usuario` e contabilizada nos relatórios.
+* **Encerramento Automático por Inatividade**: O servidor executa um serviço em segundo plano (`inactivity_closure_worker`) que identifica conversas abertas sem nenhuma interação nos últimos 30 minutos e as encerra automaticamente com motivo `inatividade`.
