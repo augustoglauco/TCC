@@ -212,4 +212,87 @@ describe("AdminMetricasPage", () => {
       expect(screen.getAllByText("Falha de conexão com a API").length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  it("permite filtrar por dia específico abrindo seletor de data e calendário", async () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    const mockInitial: metricsApi.TokenCostMetricsResponse = {
+      period: "7d",
+      summary: {
+        total_closed_chats: 10,
+        total_internal_prompt_tokens: 500,
+        total_internal_completion_tokens: 200,
+        total_external_prompt_tokens: 100,
+        total_external_completion_tokens: 50,
+        total_cost_prompt_usd: 0.001,
+        total_cost_completion_usd: 0.0005,
+        total_cost_usd: 0.0015,
+      },
+      daily_breakdown: [],
+    };
+
+    const mockDay: metricsApi.TokenCostMetricsResponse = {
+      period: "custom",
+      summary: {
+        total_closed_chats: 3,
+        total_internal_prompt_tokens: 150,
+        total_internal_completion_tokens: 60,
+        total_external_prompt_tokens: 30,
+        total_external_completion_tokens: 15,
+        total_cost_prompt_usd: 0.0003,
+        total_cost_completion_usd: 0.0001,
+        total_cost_usd: 0.0004,
+      },
+      daily_breakdown: [
+        {
+          date: "2026-10-02",
+          closed_chats_count: 3,
+          internal_prompt_tokens: 150,
+          internal_completion_tokens: 60,
+          external_prompt_tokens: 30,
+          external_completion_tokens: 15,
+          cost_prompt_usd: 0.0003,
+          cost_completion_usd: 0.0001,
+          total_cost_usd: 0.0004,
+        },
+      ],
+    };
+
+    const spy = vi
+      .spyOn(metricsApi, "fetchTokenCostMetrics")
+      .mockResolvedValueOnce(mockInitial)
+      .mockResolvedValue(mockDay);
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
+    });
+
+    const porDiaBtn = screen.getByRole("button", { name: /por dia/i });
+    fireEvent.click(porDiaBtn);
+
+    const dateInput = await screen.findByLabelText(/escolher data específica/i);
+    expect(dateInput).toBeInTheDocument();
+
+    fireEvent.change(dateInput, { target: { value: "2026-10-02" } });
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledWith({
+        period: "custom",
+        startDate: "2026-10-02",
+        endDate: "2026-10-02",
+      });
+      expect(screen.getByText("Visualizando dia: 02/10/2026")).toBeInTheDocument();
+      expect(screen.getByText("2026-10-02")).toBeInTheDocument();
+    });
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { ToastStack, useToast } from "@/components/ui/Toast";
@@ -10,24 +10,48 @@ import {
   GetMetricsParams,
 } from "@/lib/api/metrics";
 
+function formatarDataPtBr(isoDate: string): string {
+  if (!isoDate) return "";
+  const parts = isoDate.split("-");
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  }
+  return isoDate;
+}
+
 export default function AdminMetricasPage() {
   const currentUser = useAuthStore((state) => state.user);
   const isCurrentAdmin = currentUser?.perfil?.toLowerCase() === "admin";
 
-  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all">("7d");
+  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all" | "custom">("7d");
+  const [selectedDate, setSelectedDate] = useState<string>(() =>
+    new Date().toLocaleDateString("en-CA")
+  );
   const [data, setData] = useState<TokenCostMetricsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const dateInputRef = useRef<HTMLInputElement | null>(null);
   const { toasts, showToast, dismissToast } = useToast();
 
   const carregarMetricas = useCallback(
-    async (p: "today" | "7d" | "30d" | "all", isManual = false) => {
+    async (
+      p: "today" | "7d" | "30d" | "all" | "custom",
+      isManual = false,
+      dateParam?: string
+    ) => {
       setLoading(true);
       setError(null);
       const startTime = Date.now();
       try {
-        const res = await fetchTokenCostMetrics({ period: p });
+        const targetDate = dateParam ?? selectedDate;
+        const params: GetMetricsParams = {
+          period: p,
+          ...(p === "custom" && targetDate
+            ? { startDate: targetDate, endDate: targetDate }
+            : {}),
+        };
+        const res = await fetchTokenCostMetrics(params);
         setData(res);
         setLastUpdated(new Date());
         if (isManual) {
@@ -47,14 +71,34 @@ export default function AdminMetricasPage() {
         setLoading(false);
       }
     },
-    [showToast]
+    [selectedDate, showToast]
   );
 
   useEffect(() => {
     if (isCurrentAdmin) {
-      void carregarMetricas(period);
+      void carregarMetricas(period, false, selectedDate);
     }
-  }, [isCurrentAdmin, period, carregarMetricas]);
+  }, [isCurrentAdmin, period, selectedDate, carregarMetricas]);
+
+  const handleSelectPorDia = () => {
+    setPeriod("custom");
+    setTimeout(() => {
+      try {
+        dateInputRef.current?.showPicker?.();
+      } catch {
+        dateInputRef.current?.focus();
+      }
+    }, 50);
+  };
+
+  const handleDateChange = (newDate: string) => {
+    if (newDate) {
+      setSelectedDate(newDate);
+      if (period !== "custom") {
+        setPeriod("custom");
+      }
+    }
+  };
 
   if (!currentUser || !isCurrentAdmin) {
     return (
@@ -149,7 +193,42 @@ export default function AdminMetricasPage() {
               >
                 Tudo
               </button>
+              <button
+                type="button"
+                onClick={handleSelectPorDia}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                  period === "custom"
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+                aria-label="Filtrar por dia específico"
+              >
+                <span>📅</span>
+                <span>Por Dia</span>
+              </button>
             </div>
+
+            {/* Seletor de Data / Calendário */}
+            {period === "custom" && (
+              <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/80 px-2.5 py-1 text-xs shadow-2xs">
+                <label
+                  htmlFor="filtro-data-especifica"
+                  className="text-xs font-bold text-blue-900 shrink-0"
+                >
+                  Dia:
+                </label>
+                <input
+                  id="filtro-data-especifica"
+                  ref={dateInputRef}
+                  type="date"
+                  max={new Date().toLocaleDateString("en-CA")}
+                  value={selectedDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  className="rounded-lg border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs"
+                  aria-label="Escolher data específica"
+                />
+              </div>
+            )}
 
             <button
               type="button"
@@ -163,11 +242,18 @@ export default function AdminMetricasPage() {
             </button>
           </div>
 
-          {lastUpdated && (
-            <span className="text-[11px] text-slate-500 font-medium">
-              Última atualização: {lastUpdated.toLocaleTimeString("pt-BR")}
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {period === "custom" && (
+              <span className="text-[11px] text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                Visualizando dia: {formatarDataPtBr(selectedDate)}
+              </span>
+            )}
+            {lastUpdated && (
+              <span className="text-[11px] text-slate-500 font-medium">
+                Última atualização: {lastUpdated.toLocaleTimeString("pt-BR")}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -324,6 +410,7 @@ export default function AdminMetricasPage() {
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               Agrupamento diário baseado na data de encerramento da conversa.
+              {period === "custom" && ` (Filtrando dia ${formatarDataPtBr(selectedDate)})`}
             </p>
           </div>
           <button
@@ -371,6 +458,8 @@ export default function AdminMetricasPage() {
                   <td colSpan={7} className="px-5 py-8 text-center text-slate-400">
                     {loading
                       ? "Carregando métricas..."
+                      : period === "custom"
+                      ? `Nenhum atendimento encerrado registrado no dia ${formatarDataPtBr(selectedDate)}.`
                       : "Nenhum chat encerrado registrado no período selecionado."}
                   </td>
                 </tr>

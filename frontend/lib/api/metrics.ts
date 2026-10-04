@@ -30,7 +30,7 @@ export interface TokenCostMetricsResponse {
 }
 
 export interface GetMetricsParams {
-  period?: "today" | "7d" | "30d" | "all";
+  period?: "today" | "7d" | "30d" | "all" | "custom" | string;
   startDate?: string;
   endDate?: string;
 }

@@ -257,12 +257,14 @@ O dashboard consolida em tempo real:
 * **Custo de Saída (Resposta USD)**: Valor segregado gasto na geração de texto pelos modelos externos.
 * **Chats Encerrados**: Quantidade de sessões finalizadas com sucesso.
 
-### 2. Filtros de Período
+### 2. Filtros de Período e Seleção de Data
 Selecione o horizonte temporal desejado no topo:
 * **Hoje**: Atendimentos encerrados desde 00:00 UTC do dia corrente.
 * **7 Dias**: Atendimentos dos últimos 7 dias.
 * **30 Dias**: Atendimentos dos últimos 30 dias.
 * **Tudo**: Histórico acumulado completo.
+* **📅 Por Dia**: Abre um calendário visual nativo para você escolher qualquer data específica do passado ou presente. Os cartões de indicadores e a tabela diária passam a exibir exclusivamente os dados consolidados do dia escolhido.
+* **🔄 Botão Atualizar**: Força a sincronização imediata dos dados com o backend com proteção anti-cache, exibindo feedback tátil animado, notificação toast e o horário exato da última atualização.
 
 ### 3. Tabela de Detalhamento Diário
 Apresenta o agrupamento dia a dia ordenado por data de encerramento (`date(encerrada_em)`), com o número de chats finalizados, contagem segregada de tokens locais e remotos (entrada/saída) e os custos monetários correspondentes.
