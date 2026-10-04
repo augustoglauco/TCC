@@ -44,6 +44,10 @@ export function useModelCharacteristics(
 
   useEffect(() => {
     if (_cache.has(chave)) {
+      // Sincroniza o estado do componente com o cache já preenchido por
+      // outro componente/efeito anterior para a mesma chave — padrão
+      // aceito no projeto para `react-hooks/set-state-in-effect`.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setData(_cache.get(chave) ?? null);
       setLoading(false);
       return;
