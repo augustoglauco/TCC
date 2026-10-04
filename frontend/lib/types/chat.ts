@@ -78,7 +78,28 @@ export interface ChatCardAgendamento {
   google_event_link?: string | null;
 }
 
-export type ChatCard = ChatCardProduto | ChatCardCotacao | ChatCardAgendamento;
+export interface ChatCardGrafico {
+  tipo: "grafico";
+  chart_id: string;
+  titulo: string;
+  tipo_grafico: "bar" | "line" | "pie" | "area" | "donut";
+  config: {
+    x_key?: string;
+    y_keys?: string[];
+    labels?: Record<string, string>;
+    format?: "currency" | "number" | "percent";
+    palette?: string[];
+    [key: string]: unknown;
+  };
+  dados: Array<Record<string, unknown>>;
+  fixado?: boolean;
+}
+
+export type ChatCard =
+  | ChatCardProduto
+  | ChatCardCotacao
+  | ChatCardAgendamento
+  | ChatCardGrafico;
 
 export interface ChatMetrics {
   modelName?: string;
