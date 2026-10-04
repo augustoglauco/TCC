@@ -157,6 +157,12 @@ class ChatDoneEventData(BaseModel):
         default=None, description="Confiança na classificação do roteador."
     )
     complexity: str | None = Field(default=None, description="Complexidade estimada da mensagem.")
+    cost_prompt_usd: float | None = Field(
+        default=0.0, description="Custo dos tokens de entrada (prompt) em USD."
+    )
+    cost_completion_usd: float | None = Field(
+        default=0.0, description="Custo dos tokens de saída (resposta) em USD."
+    )
     estimated_cost_usd: float | None = Field(
         default=None, description="Custo estimado da requisição em USD."
     )

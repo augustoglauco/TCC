@@ -106,13 +106,16 @@ class OpenRouterClient:
     async def is_model_ready(self) -> bool:
         return True
 
+    def _custo_detalhado(
+        self, prompt_tokens: int | None, completion_tokens: int | None
+    ) -> tuple[float, float, float]:
+        cost_prompt = (prompt_tokens / 1000.0 * self._price_in) if prompt_tokens else 0.0
+        cost_completion = (completion_tokens / 1000.0 * self._price_out) if completion_tokens else 0.0
+        return cost_prompt, cost_completion, cost_prompt + cost_completion
+
     def _custo(self, prompt_tokens: int | None, completion_tokens: int | None) -> float:
-        cost = 0.0
-        if prompt_tokens:
-            cost += (prompt_tokens / 1000) * self._price_in
-        if completion_tokens:
-            cost += (completion_tokens / 1000) * self._price_out
-        return cost
+        _, _, cost_total = self._custo_detalhado(prompt_tokens, completion_tokens)
+        return cost_total
 
     async def generate(self, prompt: str) -> LLMResponse:
         started_at = time.monotonic()
@@ -128,6 +131,7 @@ class OpenRouterClient:
         usage = data.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens")
         completion_tokens = usage.get("completion_tokens")
+        cost_prompt, cost_completion, cost_total = self._custo_detalhado(prompt_tokens, completion_tokens)
 
         # MVP: assume o formato bem-formado da resposta do OpenRouter — sem
         # checagem defensiva contra `choices` vazio/ausente (um payload
@@ -141,7 +145,9 @@ class OpenRouterClient:
             load_duration_ms=None,
             prompt_eval_duration_ms=None,
             eval_duration_ms=None,
-            estimated_cost_usd=self._custo(prompt_tokens, completion_tokens),
+            cost_prompt_usd=cost_prompt,
+            cost_completion_usd=cost_completion,
+            estimated_cost_usd=cost_total,
             model_name=self._model,
         )
 
@@ -256,12 +262,17 @@ class OpenRouterClient:
                     prompt_tokens = usage.get("prompt_tokens")
                     completion_tokens = usage.get("completion_tokens")
                     chunk_final_emitido = True
+                    cost_prompt, cost_completion, cost_total = self._custo_detalhado(
+                        prompt_tokens, completion_tokens
+                    )
                     yield LLMStreamChunk(
                         done=True,
                         prompt_tokens=prompt_tokens,
                         completion_tokens=completion_tokens,
                         total_duration_ms=elapsed_ms,
-                        estimated_cost_usd=self._custo(prompt_tokens, completion_tokens),
+                        cost_prompt_usd=cost_prompt,
+                        cost_completion_usd=cost_completion,
+                        estimated_cost_usd=cost_total,
                         model_name=self._model,
                     )
 
@@ -269,6 +280,9 @@ class OpenRouterClient:
             yield LLMStreamChunk(
                 done=True,
                 total_duration_ms=(time.monotonic() - started_at) * 1000,
+                cost_prompt_usd=0.0,
+                cost_completion_usd=0.0,
+                estimated_cost_usd=0.0,
                 model_name=self._model,
             )
 

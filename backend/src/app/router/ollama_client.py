@@ -251,6 +251,8 @@ class OllamaClient:
             eval_duration_ms=(
                 data["eval_duration"] / _NS_PER_MS if "eval_duration" in data else None
             ),
+            cost_prompt_usd=0.0,
+            cost_completion_usd=0.0,
             estimated_cost_usd=0.0,
             model_name=self._model,
         )
@@ -320,6 +322,8 @@ class OllamaClient:
                         eval_duration_ms=(
                             data["eval_duration"] / _NS_PER_MS if "eval_duration" in data else None
                         ),
+                        cost_prompt_usd=0.0,
+                        cost_completion_usd=0.0,
                         estimated_cost_usd=0.0,
                         model_name=self._model,
                     )

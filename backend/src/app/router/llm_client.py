@@ -16,6 +16,8 @@ class LLMResponse(BaseModel):
     # modelo na memória/VRAM, ~0 após o primeiro uso — métrica diferente).
     prompt_eval_duration_ms: float | None = None
     eval_duration_ms: float | None = None
+    cost_prompt_usd: float = 0.0
+    cost_completion_usd: float = 0.0
     estimated_cost_usd: float = 0.0
     model_name: str | None = None
 
@@ -37,6 +39,8 @@ class LLMStreamChunk(BaseModel):
     load_duration_ms: float | None = None
     prompt_eval_duration_ms: float | None = None
     eval_duration_ms: float | None = None
+    cost_prompt_usd: float = 0.0
+    cost_completion_usd: float = 0.0
     estimated_cost_usd: float = 0.0
     model_name: str | None = None
 
