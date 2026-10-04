@@ -19,6 +19,27 @@ function formatarDataPtBr(isoDate: string): string {
   return isoDate;
 }
 
+function RefreshIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path d="M21 3v5h-5" />
+      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+      <path d="M3 21v-5h5" />
+    </svg>
+  );
+}
+
 export default function AdminMetricasPage() {
   const currentUser = useAuthStore((state) => state.user);
   const isCurrentAdmin = currentUser?.perfil?.toLowerCase() === "admin";
@@ -133,11 +154,23 @@ export default function AdminMetricasPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-2xl">📊</span>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
               Métricas & Custos de IA
             </h1>
+            <button
+              type="button"
+              onClick={() => void carregarMetricas(period, true)}
+              disabled={loading}
+              title="Atualizar métricas"
+              aria-label="Atualizar métricas"
+              className="group inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-2xs hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <RefreshIcon
+                className={`h-4 w-4 ${loading ? "animate-spin text-blue-600" : "text-slate-500 group-hover:text-slate-800"}`}
+              />
+            </button>
           </div>
           <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-3xl">
             Acompanhamento de consumo de tokens (locais vs externos), custos financeiros segregados
@@ -145,7 +178,7 @@ export default function AdminMetricasPage() {
           </p>
         </div>
 
-        {/* Filtros de Período e Atualização */}
+        {/* Filtros de Período */}
         <div className="flex flex-col sm:items-end gap-2 self-start sm:self-auto">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
@@ -229,17 +262,6 @@ export default function AdminMetricasPage() {
                 />
               </div>
             )}
-
-            <button
-              type="button"
-              onClick={() => void carregarMetricas(period, true)}
-              disabled={loading}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-              aria-label="Atualizar métricas"
-            >
-              <span className={`inline-block ${loading ? "animate-spin" : ""}`}>🔄</span>
-              <span>{loading ? "Atualizando..." : "Atualizar"}</span>
-            </button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -416,11 +438,14 @@ export default function AdminMetricasPage() {
           <button
             type="button"
             onClick={() => void carregarMetricas(period, true)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            className="group flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             disabled={loading}
             aria-label="Atualizar tabela de métricas"
+            title="Atualizar dados da tabela"
           >
-            <span className={`inline-block ${loading ? "animate-spin" : ""}`}>🔄</span>
+            <RefreshIcon
+              className={`h-3.5 w-3.5 ${loading ? "animate-spin text-blue-600" : "text-slate-500 group-hover:text-slate-800"}`}
+            />
             <span>{loading ? "Atualizando..." : "Atualizar"}</span>
           </button>
         </div>
