@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { OpenRouterModelCard } from "@/components/admin/OpenRouterModelCard";
 import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
@@ -6,6 +7,28 @@ import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSett
 vi.mock("@/lib/api/runtimeSettings", () => ({
   getRuntimeSettings: vi.fn(),
   updateRuntimeSettings: vi.fn(),
+}));
+
+vi.mock("@/lib/hooks/useModelCharacteristics", () => ({
+  useModelCharacteristics: vi.fn(() => ({
+    data: {
+      source: "openrouter",
+      tag: "openai/gpt-4o-mini",
+      is_multimodal: true,
+      input_modalities: ["text", "image"],
+      output_modalities: ["text"],
+      context_length: 128000,
+      parameter_size: null,
+      quantization: null,
+      pricing_prompt_per_1k: 0.00015,
+      pricing_completion_per_1k: 0.0006,
+      knowledge_cutoff: "2023-10-31",
+      fetched_at: new Date().toISOString(),
+    },
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  })),
 }));
 
 const mockGetSettings = vi.mocked(getRuntimeSettings);
@@ -85,5 +108,19 @@ describe("OpenRouterModelCard", () => {
     // Verifica que foi salvo no localStorage
     const saved = localStorage.getItem("openrouter_model_history");
     expect(saved).toContain("anthropic/claude-3.5-sonnet");
+  });
+
+  it("mostra as características do modelo ao passar o mouse sobre o card", async () => {
+    const user = userEvent.setup();
+    render(<OpenRouterModelCard onError={vi.fn()} onSuccess={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText("openai/gpt-4o-mini").length).toBeGreaterThan(0);
+    });
+
+    const cardGptMini = screen.getByText("GPT-4o Mini").closest("div")!;
+    await user.hover(cardGptMini);
+
+    expect(await screen.findByText("Imagem")).toBeInTheDocument();
   });
 });
