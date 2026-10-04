@@ -49,6 +49,14 @@ vi.mock("@/lib/api/charts", () => ({
     Promise.resolve({ ...mockCharts[0], id, ...data })
   ),
   deleteAdminChart: vi.fn().mockResolvedValue({ ok: true }),
+  createAdminChart: vi.fn().mockImplementation((payload) =>
+    Promise.resolve({
+      id: "chart-new",
+      ...payload,
+      criado_em: new Date().toISOString(),
+      atualizado_em: new Date().toISOString(),
+    })
+  ),
 }));
 
 describe("AdminDashboardsPage", () => {
@@ -97,6 +105,34 @@ describe("AdminDashboardsPage", () => {
 
     await waitFor(() => {
       expect(fetchAdminCharts).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("abre modal de criação e adiciona novo gráfico na lista", async () => {
+    render(<AdminDashboardsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Vendas por Categoria")).toBeInTheDocument();
+    });
+
+    const btnCriar = screen.getByRole("button", { name: /Criar Gráfico/i });
+    fireEvent.click(btnCriar);
+
+    expect(screen.getByText("Criar Gráfico Personalizado")).toBeInTheDocument();
+
+    const inputTitulo = screen.getByLabelText(/Título do Gráfico/i);
+    fireEvent.change(inputTitulo, { target: { value: "Novo Gráfico Manual" } });
+
+    const catInputs = screen.getAllByPlaceholderText(/Ex: Categoria/i);
+    const valInputs = screen.getAllByPlaceholderText(/Ex: 100/i);
+    fireEvent.change(catInputs[0], { target: { value: "Cat 1" } });
+    fireEvent.change(valInputs[0], { target: { value: "50" } });
+
+    const btnSalvar = screen.getByRole("button", { name: /Salvar Gráfico/i });
+    fireEvent.click(btnSalvar);
+
+    await waitFor(() => {
+      expect(screen.getByText("Novo Gráfico Manual")).toBeInTheDocument();
     });
   });
 });

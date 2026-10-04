@@ -65,3 +65,32 @@ export async function deleteAdminChart(id: string, token: string): Promise<{ ok:
   }
   return res.json();
 }
+
+export async function createAdminChart(
+  payload: {
+    titulo: string;
+    descricao?: string | null;
+    tipo_grafico?: string;
+    config_json?: Record<string, any>;
+    dados_json?: Record<string, any>[];
+    sql_query?: string | null;
+    fixado?: boolean;
+    ordem?: number;
+  },
+  token: string,
+): Promise<AdminChartData> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/admin/charts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    throw new Error("Erro ao criar gráfico.");
+  }
+  return res.json();
+}
+

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import DynamicChartCard, { type AdminChartData } from "@/components/admin/DynamicChartCard";
+import CreateChartModal from "@/components/admin/CreateChartModal";
 import {
   deleteAdminChart,
   fetchAdminCharts,
@@ -23,6 +24,7 @@ export default function AdminDashboardsPage() {
   const [error, setError] = useState<string | null>(null);
   const [filterTab, setFilterTab] = useState<"todos" | "fixados">("todos");
   const [isRefreshingAll, setIsRefreshingAll] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const isAdmin = user?.perfil?.toLowerCase() === "admin";
 
@@ -138,6 +140,10 @@ export default function AdminDashboardsPage() {
     }
   };
 
+  const handleChartCreated = (newChart: AdminChartData) => {
+    setCharts((prev) => [newChart, ...prev]);
+  };
+
   if (hasHydrated && !isAdmin && !loading) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-16 text-center">
@@ -199,6 +205,15 @@ export default function AdminDashboardsPage() {
           >
             <span className={isRefreshingAll ? "animate-spin" : ""}>🔄</span>
             <span>Atualizar Todos</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-blue-700 shadow-2xs hover:bg-blue-100 transition-colors"
+          >
+            <span>➕</span>
+            <span>Criar Gráfico</span>
           </button>
 
           <button
@@ -275,6 +290,13 @@ export default function AdminDashboardsPage() {
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <button
               type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
+            >
+              ➕ Criar Gráfico Manualmente
+            </button>
+            <button
+              type="button"
               onClick={() => openChat()}
               className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
             >
@@ -304,6 +326,12 @@ export default function AdminDashboardsPage() {
           ))}
         </div>
       )}
+
+      <CreateChartModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreated={handleChartCreated}
+      />
     </main>
   );
 }
