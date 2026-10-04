@@ -534,6 +534,8 @@ class RouterDecision(BaseModel):
     latencia_ms: float
     tokens_entrada: int | None
     tokens_saida: int | None
+    cost_prompt_usd: float = 0.0
+    cost_completion_usd: float = 0.0
     custo_estimado_usd: float
     modelo_usado: str | None = None
     ttft_ms: float | None = None
@@ -653,6 +655,8 @@ async def _emitir_resposta_agendamento(
         latencia_ms=0.0,
         tokens_entrada=None,
         tokens_saida=None,
+        cost_prompt_usd=0.0,
+        cost_completion_usd=0.0,
         custo_estimado_usd=0.0,
         router_provider=intent_router_provider,
         card=card,
@@ -1253,6 +1257,8 @@ async def handle_message(
         latencia_ms=chunk_final.total_duration_ms or 0.0,
         tokens_entrada=chunk_final.prompt_tokens,
         tokens_saida=chunk_final.completion_tokens,
+        cost_prompt_usd=chunk_final.cost_prompt_usd,
+        cost_completion_usd=chunk_final.cost_completion_usd,
         custo_estimado_usd=chunk_final.estimated_cost_usd,
         modelo_usado=chunk_final.model_name or getattr(client, "model", None),
         ttft_ms=chunk_final.prompt_eval_duration_ms,

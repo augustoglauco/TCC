@@ -747,6 +747,8 @@ async def send_message(
                         tps=event.tps,
                         confidence=event.confidence,
                         complexity=event.complexity,
+                        cost_prompt_usd=event.cost_prompt_usd,
+                        cost_completion_usd=event.cost_completion_usd,
                         estimated_cost_usd=event.custo_estimado_usd,
                         rag_retrieval_ms=event.rag_retrieval_ms,
                         rag_chunks_count=event.rag_chunks_count,
