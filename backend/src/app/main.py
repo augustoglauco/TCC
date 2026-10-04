@@ -13,6 +13,7 @@ from app.api.chat import router as chat_router
 from app.api.crawler import router as crawler_router
 from app.api.image_search import router as image_search_router
 from app.api.local_models import router as local_models_router
+from app.api.model_catalog import router as model_catalog_router
 from app.api.orders import router as orders_router
 from app.api.products import router as products_router
 from app.api.rag import router as rag_router
@@ -115,6 +116,12 @@ def create_app() -> FastAPI:
     # fetch de páginas arbitrárias.
     app.state.crawler_http_client = httpx.AsyncClient()
 
+    # Cliente HTTP dedicado às fontes públicas de características de
+    # modelo (OpenRouter/Hugging Face, além do MVP — ver
+    # docs/superpowers/specs/2026-10-03-caracteristicas-modelo-hover-
+    # design.md) — separado dos demais clientes HTTP por propósito.
+    app.state.model_catalog_http_client = httpx.AsyncClient()
+
     # Primeiro uso real do Postgres do projeto (registro de documentos do
     # RAG, além do MVP — ver docs/ARCHITECTURE.md §5). Engine criado
     # explicitamente aqui (não via singleton global), mesmo padrão dos
@@ -189,6 +196,7 @@ def create_app() -> FastAPI:
     app.include_router(crawler_router)
     app.include_router(image_search_router)
     app.include_router(local_models_router)
+    app.include_router(model_catalog_router)
     app.include_router(rag_router)
     app.include_router(rag_collections_router)
     app.include_router(rag_playground_router)
