@@ -276,6 +276,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       histórico local; campo `external_model_name` em
       `/api/admin/runtime-settings` (commit `d1c567a`, 2026-09-27; decisão
       registrada em `docs/ARCHITECTURE.md` §5 na revisão de 2026-09-28)
+- [ ] **Contabilizador de Tokens Internos/Externos, Custos Segregados e Relatórios de Chats Encerrados** —
+      Implementar o subsistema de contabilidade de tokens (internos vs. externos) com segregação de custo
+      de entrada ($USD) e saída ($USD) para modelos remotos (OpenRouter). Ciclo de vida da conversa
+      (`conversas.status` aberta/encerrada, `encerrada_em`, `motivo_encerramento`) com botão de encerramento
+      manual no widget e worker de inatividade de 30 minutos. Endpoint analítico `GET /api/admin/metrics/tokens-and-costs`
+      e dashboard de relatórios em `/admin/metricas`.
+      Design Spec em [`docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md`](docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md).
+      Plano de implementação em [`docs/superpowers/plans/2026-10-03-contabilizador-tokens-custos.md`](docs/superpowers/plans/2026-10-03-contabilizador-tokens-custos.md).
 
 ## Extra fora do MVP — Gestão de Produtos no Admin, Ingestão de Catálogos (PDF/Imagens) e Catálogo Visual CLIP
 
