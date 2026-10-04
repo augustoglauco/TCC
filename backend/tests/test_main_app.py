@@ -82,3 +82,41 @@ def test_create_app_monta_o_cliente_de_calendario_e_config_de_agendamento():
 def test_create_app_monta_o_sales_catalog_client():
     app = create_app()
     assert isinstance(app.state.sales_catalog_client, SalesCatalogClient)
+
+
+async def test_lifespan_restaura_settings_e_dispara_warmup(monkeypatch):
+    import asyncio
+    from app.db.engine import create_db_engine, create_session_factory
+    from app.db.models import Base
+    from app.db.settings import set_app_setting
+
+    engine = create_db_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = create_session_factory(engine)
+
+    async with session_factory() as session:
+        await set_app_setting(session, "local_llm_keep_alive", "12h")
+        await set_app_setting(session, "local_llm_temperature", 0.42)
+        await set_app_setting(session, "local_llm_warmup_on_startup", True)
+
+    app = create_app()
+    app.state.db_sessionmaker = session_factory
+
+    preload_called = []
+
+    async def fake_preload():
+        preload_called.append(True)
+        return True
+
+    monkeypatch.setattr(app.state.local_client, "preload", fake_preload)
+
+    async with app.router.lifespan_context(app):
+        # Aguarda pequenas tarefas de background serem despachadas no event loop
+        await asyncio.sleep(0.05)
+        assert app.state.local_client.keep_alive == "12h"
+        assert app.state.local_client.temperature == 0.42
+        assert len(preload_called) == 1
+
+    await engine.dispose()
+

@@ -455,3 +455,16 @@ class ModelCharacteristics(Base):
     fetched_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class AppSetting(Base):
+    """Parâmetros de configuração e execução persistidos no banco."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[object] = mapped_column(_JsonVariant, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+

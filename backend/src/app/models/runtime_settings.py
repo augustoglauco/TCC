@@ -104,6 +104,22 @@ class RuntimeSettingsResponse(BaseModel):
             "sinal forte."
         ),
     )
+    local_llm_keep_alive: str = Field(
+        default="-1",
+        description="Tempo de retenção na VRAM do Ollama (-1=permanente, 5m=padrão, 0=descarrega)",
+    )
+    local_llm_warmup_on_startup: bool = Field(
+        default=True,
+        description="Se pré-carrega o modelo local na VRAM ao inicializar o backend.",
+    )
+    local_model_loaded: bool = Field(
+        default=False,
+        description="Se o modelo ativo está atualmente residente na VRAM do Ollama.",
+    )
+    local_model_vram_bytes: int | None = Field(
+        default=None,
+        description="Quantidade de bytes de VRAM alocados para o modelo ativo no Ollama.",
+    )
 
 
 class RuntimeSettingsUpdateRequest(BaseModel):
@@ -129,3 +145,5 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     intent_router_provider: IntentRouterProvider | None = None
     tone_monitor_enabled: bool | None = None
     tone_monitor_provider: ToneMonitorProvider | None = None
+    local_llm_keep_alive: str | None = None
+    local_llm_warmup_on_startup: bool | None = None

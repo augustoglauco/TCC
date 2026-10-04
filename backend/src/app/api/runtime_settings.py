@@ -1,14 +1,9 @@
-"""Endpoint HTTP dos parâmetros de execução ajustáveis em runtime (além do
-MVP) — temperatura do Ollama, timeouts dos backends local/externo, a flag
-de fallback de domínio do RAG, e o teto default/limiar de confiança do
-crawler de páginas. Mesmo padrão do gerenciador de modelos locais
-(`app.api.local_models`): valores só em memória (`request.app.state.*`),
-resetam a cada restart do processo. Ver decisão registrada em
-docs/ARCHITECTURE.md §5.
-"""
+import inspect
+import logging
 
 from fastapi import APIRouter, Request
 
+from app.db.settings import save_multiple_app_settings
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
@@ -18,6 +13,8 @@ from app.models.runtime_settings import (
 from app.rag.qdrant_client import QdrantRAGClient
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin/runtime-settings", tags=["runtime-settings"])
 
@@ -32,7 +29,7 @@ def _get_clients(
     )
 
 
-def _build_response(request: Request) -> RuntimeSettingsResponse:
+async def _build_response(request: Request) -> RuntimeSettingsResponse:
     local_client, external_client, qdrant_client = _get_clients(request)
     intent_provider = getattr(
         request.app.state, "intent_router_provider", DEFAULT_INTENT_ROUTER_PROVIDER
@@ -43,6 +40,21 @@ def _build_response(request: Request) -> RuntimeSettingsResponse:
     )
     rag_top_k = getattr(request.app.state, "rag_top_k", 3)
     rag_score_threshold = getattr(request.app.state, "rag_score_threshold", 0.35)
+    keep_alive = str(getattr(local_client, "keep_alive", "-1"))
+    warmup_on_startup = getattr(request.app.state, "local_llm_warmup_on_startup", True)
+
+    loaded_info = None
+    if hasattr(local_client, "get_loaded_status") and inspect.iscoroutinefunction(
+        local_client.get_loaded_status
+    ):
+        try:
+            loaded_info = await local_client.get_loaded_status()
+        except Exception:
+            pass
+
+    local_model_loaded = loaded_info is not None
+    local_model_vram_bytes = loaded_info.get("size_vram") if loaded_info else None
+
     return RuntimeSettingsResponse(
         local_llm_temperature=local_client.temperature,
         local_llm_num_ctx=local_client.num_ctx,
@@ -64,12 +76,16 @@ def _build_response(request: Request) -> RuntimeSettingsResponse:
         intent_router_provider=intent_provider,
         tone_monitor_enabled=tone_monitor_enabled,
         tone_monitor_provider=tone_monitor_provider,
+        local_llm_keep_alive=keep_alive,
+        local_llm_warmup_on_startup=warmup_on_startup,
+        local_model_loaded=local_model_loaded,
+        local_model_vram_bytes=local_model_vram_bytes,
     )
 
 
 @router.get("", response_model=RuntimeSettingsResponse)
 async def get_runtime_settings(request: Request) -> RuntimeSettingsResponse:
-    return _build_response(request)
+    return await _build_response(request)
 
 
 @router.put("", response_model=RuntimeSettingsResponse)
@@ -120,5 +136,44 @@ async def update_runtime_settings(
         request.app.state.tone_monitor_enabled = campos["tone_monitor_enabled"]
     if "tone_monitor_provider" in campos:
         request.app.state.tone_monitor_provider = campos["tone_monitor_provider"]
+    if "local_llm_keep_alive" in campos:
+        local_client.keep_alive = campos["local_llm_keep_alive"]
+        if hasattr(local_client, "preload") and inspect.iscoroutinefunction(local_client.preload):
+            try:
+                if str(campos["local_llm_keep_alive"]) == "0":
+                    await local_client.unload()
+                else:
+                    await local_client.preload()
+            except Exception as exc:
+                logger.warning("Falha ao sincronizar keep_alive no Ollama: %s", exc)
+    if "local_llm_warmup_on_startup" in campos:
+        request.app.state.local_llm_warmup_on_startup = campos["local_llm_warmup_on_startup"]
 
-    return _build_response(request)
+    # Persistência no PostgreSQL
+    session_factory = getattr(request.app.state, "db_sessionmaker", None)
+    if session_factory is not None and campos:
+        try:
+            async with session_factory() as session:
+                await save_multiple_app_settings(session, campos)
+        except Exception as exc:
+            logger.warning("Falha ao persistir runtime settings no banco: %s", exc)
+
+    return await _build_response(request)
+
+
+@router.post("/preload", response_model=RuntimeSettingsResponse)
+async def preload_local_model(request: Request) -> RuntimeSettingsResponse:
+    """Carrega o modelo local na VRAM imediatamente (warmup manual)."""
+    local_client, _, _ = _get_clients(request)
+    if hasattr(local_client, "preload") and inspect.iscoroutinefunction(local_client.preload):
+        await local_client.preload()
+    return await _build_response(request)
+
+
+@router.post("/unload", response_model=RuntimeSettingsResponse)
+async def unload_local_model(request: Request) -> RuntimeSettingsResponse:
+    """Descarrega o modelo local da VRAM imediatamente (libera memória)."""
+    local_client, _, _ = _get_clients(request)
+    if hasattr(local_client, "unload") and inspect.iscoroutinefunction(local_client.unload):
+        await local_client.unload()
+    return await _build_response(request)

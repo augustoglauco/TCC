@@ -9,17 +9,27 @@ vi.mock("@/lib/api/runtimeSettings", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/runtimeSettings")>(
     "@/lib/api/runtimeSettings",
   );
-  return { ...actual, getRuntimeSettings: vi.fn(), updateRuntimeSettings: vi.fn() };
+  return {
+    ...actual,
+    getRuntimeSettings: vi.fn(),
+    updateRuntimeSettings: vi.fn(),
+    preloadLocalModel: vi.fn(),
+    unloadLocalModel: vi.fn(),
+  };
 });
 
 import {
   RuntimeSettingsApiError,
   getRuntimeSettings,
   updateRuntimeSettings,
+  preloadLocalModel,
+  unloadLocalModel,
 } from "@/lib/api/runtimeSettings";
 
 const mockedGet = vi.mocked(getRuntimeSettings);
 const mockedUpdate = vi.mocked(updateRuntimeSettings);
+const mockedPreload = vi.mocked(preloadLocalModel);
+const mockedUnload = vi.mocked(unloadLocalModel);
 
 const SETTINGS_PADRAO: RuntimeSettings = {
   local_llm_temperature: null,
@@ -40,6 +50,8 @@ describe("RuntimeSettingsForm", () => {
   beforeEach(() => {
     mockedGet.mockReset();
     mockedUpdate.mockReset();
+    mockedPreload.mockReset();
+    mockedUnload.mockReset();
   });
 
   it("carrega e mostra os valores atuais", async () => {
@@ -197,4 +209,102 @@ describe("RuntimeSettingsForm", () => {
     );
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
   });
+
+  it("carrega e exibe campos de keep_alive, warmup e badge de VRAM", async () => {
+    mockedGet.mockResolvedValueOnce({
+      ...SETTINGS_PADRAO,
+      local_llm_keep_alive: "24h",
+      local_llm_warmup_on_startup: true,
+      local_model_loaded: true,
+      local_model_vram_bytes: 8589934592, // 8.00 GB
+    });
+
+    render(<RuntimeSettingsForm onError={vi.fn()} onSuccess={vi.fn()} />);
+
+    expect(await screen.findByLabelText(/tempo de retenção na vram/i)).toHaveValue("24h");
+    expect(screen.getByLabelText(/pré-carregar modelo ao inicializar o backend/i)).toBeChecked();
+    expect(screen.getByText(/modelo carregado na vram \(8.00 gb\)/i)).toBeInTheDocument();
+  });
+
+  it("altera keep_alive e warmup e envia no payload de atualização", async () => {
+    mockedGet.mockResolvedValueOnce(SETTINGS_PADRAO);
+    mockedUpdate.mockResolvedValueOnce({
+      ...SETTINGS_PADRAO,
+      local_llm_keep_alive: "-1",
+      local_llm_warmup_on_startup: false,
+    });
+    const onSuccess = vi.fn();
+    const user = userEvent.setup();
+
+    render(<RuntimeSettingsForm onError={vi.fn()} onSuccess={onSuccess} />);
+
+    const selectKeepAlive = await screen.findByLabelText(/tempo de retenção na vram/i);
+    await user.selectOptions(selectKeepAlive, "-1");
+
+    const checkboxWarmup = screen.getByLabelText(/pré-carregar modelo ao inicializar o backend/i);
+    await user.click(checkboxWarmup);
+
+    await user.click(screen.getByRole("button", { name: "Aplicar" }));
+
+    expect(mockedUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        local_llm_keep_alive: "-1",
+        local_llm_warmup_on_startup: false,
+      }),
+    );
+    await vi.waitFor(() => expect(onSuccess).toHaveBeenCalledWith(expect.stringMatching(/banco/i)));
+  });
+
+  it("executa ação manual de carregar na GPU via preloadLocalModel", async () => {
+    mockedGet.mockResolvedValueOnce({
+      ...SETTINGS_PADRAO,
+      local_model_loaded: false,
+      local_model_vram_bytes: null,
+    });
+    mockedPreload.mockResolvedValueOnce({
+      ...SETTINGS_PADRAO,
+      local_model_loaded: true,
+      local_model_vram_bytes: 8589934592,
+    });
+    const onSuccess = vi.fn();
+    const user = userEvent.setup();
+
+    render(<RuntimeSettingsForm onError={vi.fn()} onSuccess={onSuccess} />);
+
+    const btnCarregar = await screen.findByRole("button", { name: /carregar na gpu/i });
+    await user.click(btnCarregar);
+
+    expect(mockedPreload).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() =>
+      expect(onSuccess).toHaveBeenCalledWith("Modelo local carregado na VRAM da GPU com sucesso!"),
+    );
+    expect(screen.getByText(/modelo carregado na vram \(8.00 gb\)/i)).toBeInTheDocument();
+  });
+
+  it("executa ação manual de liberar VRAM via unloadLocalModel", async () => {
+    mockedGet.mockResolvedValueOnce({
+      ...SETTINGS_PADRAO,
+      local_model_loaded: true,
+      local_model_vram_bytes: 8589934592,
+    });
+    mockedUnload.mockResolvedValueOnce({
+      ...SETTINGS_PADRAO,
+      local_model_loaded: false,
+      local_model_vram_bytes: null,
+    });
+    const onSuccess = vi.fn();
+    const user = userEvent.setup();
+
+    render(<RuntimeSettingsForm onError={vi.fn()} onSuccess={onSuccess} />);
+
+    const btnLiberar = await screen.findByRole("button", { name: /liberar vram/i });
+    await user.click(btnLiberar);
+
+    expect(mockedUnload).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() =>
+      expect(onSuccess).toHaveBeenCalledWith("VRAM liberada com sucesso (modelo descarregado)."),
+    );
+    expect(screen.getByText(/modelo descarregado \(0 gb\)/i)).toBeInTheDocument();
+  });
 });
+

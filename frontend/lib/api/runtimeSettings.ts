@@ -64,3 +64,50 @@ export async function updateRuntimeSettings(
 
   return (await response.json()) as RuntimeSettings;
 }
+
+/** Força o carregamento do modelo local na VRAM via `POST /api/admin/runtime-settings/preload`. */
+export async function preloadLocalModel(): Promise<RuntimeSettings> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/admin/runtime-settings/preload`, {
+      method: "POST",
+    });
+  } catch {
+    throw new RuntimeSettingsApiError(
+      "Não foi possível conectar ao servidor. Verifique sua conexão.",
+    );
+  }
+
+  if (!response.ok) {
+    await _lancarErroComDetalhe(
+      response,
+      "Não foi possível carregar o modelo na VRAM.",
+    );
+  }
+
+  return (await response.json()) as RuntimeSettings;
+}
+
+/** Descarrega o modelo local da VRAM via `POST /api/admin/runtime-settings/unload`. */
+export async function unloadLocalModel(): Promise<RuntimeSettings> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/admin/runtime-settings/unload`, {
+      method: "POST",
+    });
+  } catch {
+    throw new RuntimeSettingsApiError(
+      "Não foi possível conectar ao servidor. Verifique sua conexão.",
+    );
+  }
+
+  if (!response.ok) {
+    await _lancarErroComDetalhe(
+      response,
+      "Não foi possível descarregar o modelo da VRAM.",
+    );
+  }
+
+  return (await response.json()) as RuntimeSettings;
+}
+

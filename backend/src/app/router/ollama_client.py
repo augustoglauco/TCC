@@ -54,6 +54,7 @@ class OllamaClient:
         top_k: int | None = None,
         repeat_penalty: float | None = None,
         seed: int | None = None,
+        keep_alive: str | int | None = "-1",
         client: httpx.AsyncClient | None = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
@@ -65,6 +66,7 @@ class OllamaClient:
         self._top_k = top_k
         self._repeat_penalty = repeat_penalty
         self._seed = seed
+        self._keep_alive = keep_alive
         self._client = client or httpx.AsyncClient()
 
     @property
@@ -74,6 +76,14 @@ class OllamaClient:
     @model.setter
     def model(self, value: str) -> None:
         self._model = value
+
+    @property
+    def keep_alive(self) -> str | int | None:
+        return self._keep_alive
+
+    @keep_alive.setter
+    def keep_alive(self, value: str | int | None) -> None:
+        self._keep_alive = value
 
     @property
     def timeout_s(self) -> float:
@@ -131,8 +141,18 @@ class OllamaClient:
     def seed(self, value: int | None) -> None:
         self._seed = value
 
+    def _normalize_keep_alive(self, value: str | int | None) -> Any:
+        if value is None:
+            return None
+        try:
+            return int(value)
+        except (ValueError, TypeError):
+            return value
+
     def _build_payload(self, prompt: str, stream: bool, think: bool | None = None) -> dict:
         payload: dict = {"model": self._model, "prompt": prompt, "stream": stream}
+        if self._keep_alive is not None:
+            payload["keep_alive"] = self._normalize_keep_alive(self._keep_alive)
         options: dict = {}
         if self._temperature is not None:
             options["temperature"] = self._temperature
@@ -151,6 +171,50 @@ class OllamaClient:
         if think is not None:
             payload["think"] = think
         return payload
+
+    async def preload(self) -> dict | None:
+        """Carrega o modelo na memória/VRAM com o keep_alive configurado (elimina cold-start)."""
+        payload = {
+            "model": self._model,
+            "keep_alive": self._normalize_keep_alive(self._keep_alive),
+        }
+        try:
+            response = await self._client.post(
+                f"{self._base_url}/api/generate",
+                json=payload,
+                timeout=120.0,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception:
+            return None
+
+    async def unload(self) -> dict | None:
+        """Descarrega o modelo da VRAM imediatamente (keep_alive: 0)."""
+        payload = {"model": self._model, "keep_alive": 0}
+        try:
+            response = await self._client.post(
+                f"{self._base_url}/api/generate",
+                json=payload,
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            return response.json()
+        except Exception:
+            return None
+
+    async def get_loaded_status(self) -> dict | None:
+        """Consulta GET /api/ps para verificar se o modelo ativo está carregado na VRAM."""
+        try:
+            resp = await self._client.get(f"{self._base_url}/api/ps", timeout=5.0)
+            if resp.status_code == 200:
+                models = resp.json().get("models", [])
+                for m in models:
+                    if m.get("name") == self._model or m.get("model") == self._model:
+                        return m
+            return None
+        except Exception:
+            return None
 
     async def generate(self, prompt: str) -> LLMResponse:
         # think=False: os três chamadores de generate() (classify_with_llm,

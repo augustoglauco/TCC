@@ -76,6 +76,12 @@ class Settings(BaseSettings):
     local_llm_top_k: int | None = None
     local_llm_repeat_penalty: float | None = None
     local_llm_seed: int | None = None
+    # Keep-alive do modelo no Ollama: "-1" mantém na VRAM permanentemente (sem descarregar);
+    # "5m" é o default do Ollama; "0" descarrega imediatamente após cada resposta.
+    local_llm_keep_alive: str = "-1"
+    # Pré-carregar modelo local na VRAM na inicialização do servidor (elimina latência de cold start).
+    local_llm_warmup_on_startup: bool = True
+
 
     # MVP: tamanho fixo por config, sem troca automática por VRAM disponível
     # em runtime (ver docs/ARCHITECTURE.md §7).

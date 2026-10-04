@@ -27,6 +27,10 @@ export interface RuntimeSettings {
   intent_router_provider?: "heuristica" | "heuristica_llm" | "jev_openrouter";
   tone_monitor_enabled?: boolean;
   tone_monitor_provider?: "heuristica_llm" | "jev_openrouter";
+  local_llm_keep_alive?: string;
+  local_llm_warmup_on_startup?: boolean;
+  local_model_loaded?: boolean;
+  local_model_vram_bytes?: number | null;
 }
 
 /** Corpo de `PUT /api/admin/runtime-settings` — atualização parcial, só os

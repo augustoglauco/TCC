@@ -1,6 +1,11 @@
 """Ponto de entrada da API FastAPI do backend (`uvicorn app.main:app`)."""
 
+import asyncio
+from contextlib import asynccontextmanager
+import inspect
+import logging
 from pathlib import Path
+from typing import Any
 
 import httpx
 from fastapi import FastAPI
@@ -24,6 +29,7 @@ from app.api.tom_escalonamentos import router as tom_escalonamentos_router
 from app.api.uploads import router as uploads_router
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
+from app.db.settings import get_all_app_settings
 from app.logging_config import configure_logging
 from app.mcp_client.google_calendar import GoogleCalendarMCPClient
 from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
@@ -39,12 +45,107 @@ from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
 from app.stt.whisper_client import WhisperSttClient
 
+logger = logging.getLogger(__name__)
+
+
+def _apply_runtime_settings(app: FastAPI, settings_dict: dict[str, Any]) -> None:
+    local_client = getattr(app.state, "local_client", None)
+    external_client = getattr(app.state, "external_client", None)
+    qdrant_client = getattr(app.state, "qdrant_client", None)
+
+    if local_client is not None:
+        if "local_llm_temperature" in settings_dict:
+            local_client.temperature = settings_dict["local_llm_temperature"]
+        if "local_llm_num_ctx" in settings_dict:
+            local_client.num_ctx = settings_dict["local_llm_num_ctx"]
+        if "local_llm_top_p" in settings_dict:
+            local_client.top_p = settings_dict["local_llm_top_p"]
+        if "local_llm_top_k" in settings_dict:
+            local_client.top_k = settings_dict["local_llm_top_k"]
+        if "local_llm_repeat_penalty" in settings_dict:
+            local_client.repeat_penalty = settings_dict["local_llm_repeat_penalty"]
+        if "local_llm_seed" in settings_dict:
+            local_client.seed = settings_dict["local_llm_seed"]
+        if "local_llm_timeout_s" in settings_dict:
+            local_client.timeout_s = settings_dict["local_llm_timeout_s"]
+        if "local_llm_keep_alive" in settings_dict:
+            local_client.keep_alive = str(settings_dict["local_llm_keep_alive"])
+
+    if external_client is not None:
+        if "external_llm_timeout_s" in settings_dict:
+            external_client.timeout_s = settings_dict["external_llm_timeout_s"]
+        if "external_model_name" in settings_dict:
+            external_client.model = settings_dict["external_model_name"]
+        if "external_vision_model_name" in settings_dict:
+            external_client.vision_model = settings_dict["external_vision_model_name"]
+
+    if qdrant_client is not None:
+        if "rag_search_domain_fallback" in settings_dict:
+            qdrant_client.search_domain_fallback = bool(settings_dict["rag_search_domain_fallback"])
+
+    if "rag_top_k" in settings_dict:
+        app.state.rag_top_k = settings_dict["rag_top_k"]
+    if "rag_score_threshold" in settings_dict:
+        app.state.rag_score_threshold = settings_dict["rag_score_threshold"]
+    if "crawler_max_pages_default" in settings_dict:
+        app.state.crawler_max_pages_default = settings_dict["crawler_max_pages_default"]
+    if "crawler_confidence_threshold" in settings_dict:
+        app.state.crawler_confidence_threshold = settings_dict["crawler_confidence_threshold"]
+    if "image_internal_confidence" in settings_dict:
+        app.state.image_internal_confidence = settings_dict["image_internal_confidence"]
+    if "image_external_confidence" in settings_dict:
+        app.state.image_external_confidence = settings_dict["image_external_confidence"]
+    if "intent_router_provider" in settings_dict:
+        app.state.intent_router_provider = settings_dict["intent_router_provider"]
+    if "tone_monitor_enabled" in settings_dict:
+        app.state.tone_monitor_enabled = settings_dict["tone_monitor_enabled"]
+    if "tone_monitor_provider" in settings_dict:
+        app.state.tone_monitor_provider = settings_dict["tone_monitor_provider"]
+    if "local_llm_warmup_on_startup" in settings_dict:
+        app.state.local_llm_warmup_on_startup = bool(settings_dict["local_llm_warmup_on_startup"])
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    session_factory = getattr(app.state, "db_sessionmaker", None)
+    if session_factory is not None:
+        try:
+            async with session_factory() as session:
+                persisted = await get_all_app_settings(session)
+                _apply_runtime_settings(app, persisted)
+        except Exception as exc:
+            logger.warning("Falha ao carregar configurações persistidas do banco no startup: %s", exc)
+
+    if getattr(app.state, "local_llm_warmup_on_startup", True):
+        local_client = getattr(app.state, "local_client", None)
+        if (
+            local_client
+            and hasattr(local_client, "preload")
+            and inspect.iscoroutinefunction(local_client.preload)
+            and str(getattr(local_client, "keep_alive", "-1")) != "0"
+        ):
+            logger.info("Disparando warmup do modelo local (%s) na VRAM...", getattr(local_client, "model", ""))
+            asyncio.create_task(local_client.preload())
+
+    yield
+
+    crawler_http_client = getattr(app.state, "crawler_http_client", None)
+    if crawler_http_client and not crawler_http_client.is_closed:
+        await crawler_http_client.aclose()
+    catalog_client = getattr(app.state, "model_catalog_http_client", None)
+    if catalog_client and not catalog_client.is_closed:
+        await catalog_client.aclose()
+
 
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
 
-    app = FastAPI(title="Assistente Multimodal — Backend", version="0.1.0")
+    app = FastAPI(
+        title="Assistente Multimodal — Backend",
+        version="0.1.0",
+        lifespan=lifespan,
+    )
 
     # MVP: libera as origens do frontend de dev (lista, ver
     # Settings.cors_allowed_origins) — sem lista por ambiente/parceiro
@@ -71,7 +172,9 @@ def create_app() -> FastAPI:
         top_k=settings.local_llm_top_k,
         repeat_penalty=settings.local_llm_repeat_penalty,
         seed=settings.local_llm_seed,
+        keep_alive=settings.local_llm_keep_alive,
     )
+    app.state.local_llm_warmup_on_startup = settings.local_llm_warmup_on_startup
     app.state.external_client = OpenRouterClient(
         base_url=settings.external_model_base_url,
         api_key=settings.external_model_api_key,

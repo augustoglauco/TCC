@@ -19,6 +19,7 @@ class _FakeLocalClient:
         top_k: int | None = None,
         repeat_penalty: float | None = None,
         seed: int | None = None,
+        keep_alive: str = "-1",
     ) -> None:
         self.temperature = temperature
         self.timeout_s = timeout_s
@@ -27,6 +28,23 @@ class _FakeLocalClient:
         self.top_k = top_k
         self.repeat_penalty = repeat_penalty
         self.seed = seed
+        self.keep_alive = keep_alive
+        self.preloaded = False
+        self.unloaded = False
+        self.loaded_status: dict | None = None
+
+    async def preload(self) -> bool:
+        self.preloaded = True
+        self.loaded_status = {"name": "test-model", "size_vram": 8589934592}
+        return True
+
+    async def unload(self) -> bool:
+        self.unloaded = True
+        self.loaded_status = None
+        return True
+
+    async def get_loaded_status(self) -> dict | None:
+        return self.loaded_status
 
 
 class _FakeExternalClient:
@@ -56,6 +74,8 @@ def _build_app(
     tone_monitor_provider: str = DEFAULT_TONE_MONITOR_PROVIDER,
     rag_top_k: int = 3,
     rag_score_threshold: float = 0.35,
+    local_llm_warmup_on_startup: bool = True,
+    db_sessionmaker=None,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(runtime_settings_router)
@@ -71,6 +91,9 @@ def _build_app(
     app.state.tone_monitor_provider = tone_monitor_provider
     app.state.rag_top_k = rag_top_k
     app.state.rag_score_threshold = rag_score_threshold
+    app.state.local_llm_warmup_on_startup = local_llm_warmup_on_startup
+    if db_sessionmaker is not None:
+        app.state.db_sessionmaker = db_sessionmaker
     return app
 
 
@@ -116,6 +139,10 @@ def test_get_devolve_valores_atuais_dos_clientes():
         "intent_router_provider": "heuristica_llm",
         "tone_monitor_enabled": True,
         "tone_monitor_provider": "heuristica_llm",
+        "local_llm_keep_alive": "-1",
+        "local_llm_warmup_on_startup": True,
+        "local_model_loaded": False,
+        "local_model_vram_bytes": None,
     }
 
 
@@ -374,3 +401,100 @@ def test_put_atualiza_external_model_name():
     body = response.json()
     assert body["external_model_name"] == "anthropic/claude-3.5-sonnet"
     assert ext_client.model == "anthropic/claude-3.5-sonnet"
+
+
+def test_put_atualiza_keep_alive_e_sincroniza_ollama():
+    app, local_client, _, _ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"local_llm_keep_alive": "30m"},
+    )
+    assert response.status_code == 200
+    assert response.json()["local_llm_keep_alive"] == "30m"
+    assert local_client.keep_alive == "30m"
+    assert local_client.preloaded is True
+
+    # Teste de descarregar com keep_alive == "0"
+    response_unload = client.put(
+        "/api/admin/runtime-settings",
+        json={"local_llm_keep_alive": "0"},
+    )
+    assert response_unload.status_code == 200
+    assert response_unload.json()["local_llm_keep_alive"] == "0"
+    assert local_client.keep_alive == "0"
+    assert local_client.unloaded is True
+
+
+def test_put_atualiza_warmup_on_startup():
+    app, _, _, _ = _build_default_app()
+    client = TestClient(app)
+
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={"local_llm_warmup_on_startup": False},
+    )
+    assert response.status_code == 200
+    assert response.json()["local_llm_warmup_on_startup"] is False
+    assert app.state.local_llm_warmup_on_startup is False
+
+
+def test_post_preload_e_unload_endpoints():
+    app, local_client, _, _ = _build_default_app()
+    client = TestClient(app)
+
+    # Preload
+    resp_preload = client.post("/api/admin/runtime-settings/preload")
+    assert resp_preload.status_code == 200
+    assert resp_preload.json()["local_model_loaded"] is True
+    assert resp_preload.json()["local_model_vram_bytes"] == 8589934592
+    assert local_client.preloaded is True
+
+    # Unload
+    resp_unload = client.post("/api/admin/runtime-settings/unload")
+    assert resp_unload.status_code == 200
+    assert resp_unload.json()["local_model_loaded"] is False
+    assert resp_unload.json()["local_model_vram_bytes"] is None
+    assert local_client.unloaded is True
+
+
+async def test_persistencia_de_runtime_settings_no_banco(db_session):
+    from app.db.engine import create_db_engine, create_session_factory
+    from app.db.models import Base
+    from app.db.settings import get_all_app_settings
+
+    engine = create_db_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    session_factory = create_session_factory(engine)
+
+    local_client = _FakeLocalClient()
+    ext_client = _FakeExternalClient(timeout_s=30.0)
+    qdrant = _FakeQdrantClient(search_domain_fallback=False)
+    app = _build_app(
+        local_client,
+        ext_client,
+        qdrant,
+        db_sessionmaker=session_factory,
+    )
+
+    client = TestClient(app)
+    response = client.put(
+        "/api/admin/runtime-settings",
+        json={
+            "local_llm_keep_alive": "24h",
+            "local_llm_warmup_on_startup": True,
+            "local_llm_temperature": 0.35,
+        },
+    )
+    assert response.status_code == 200
+
+    async with session_factory() as session:
+        stored = await get_all_app_settings(session)
+        assert stored["local_llm_keep_alive"] == "24h"
+        assert stored["local_llm_warmup_on_startup"] is True
+        assert stored["local_llm_temperature"] == 0.35
+
+    await engine.dispose()
+
