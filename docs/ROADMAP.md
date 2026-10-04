@@ -284,6 +284,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       e dashboard de relatórios em `/admin/metricas`.
       Design Spec em [`docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md`](docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md).
       Plano de implementação em [`docs/superpowers/plans/2026-10-03-contabilizador-tokens-custos.md`](docs/superpowers/plans/2026-10-03-contabilizador-tokens-custos.md).
+- [ ] **Dashboards e Gráficos Dinâmicos Gerados via Chat com Persistência Permanente** —
+      Permitir que o Administrador solicite gráficos e visualizações analíticas em linguagem natural
+      no chat público ou modo admin, persistindo a estrutura, dados e consultas na tabela `admin_charts`
+      do PostgreSQL (migration `0019`). Exibição de cards ricos inline (`CardGrafico`) e galeria permanente
+      no frontend em `/admin/dashboards` utilizando Recharts, imune a reinicializações do servidor.
+      Design Spec em [`docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md`](docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md).
 
 ## Extra fora do MVP — Gestão de Produtos no Admin, Ingestão de Catálogos (PDF/Imagens) e Catálogo Visual CLIP
 
