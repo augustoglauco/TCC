@@ -81,3 +81,37 @@ async def _fetch_openrouter(tag: str, http_client: httpx.AsyncClient) -> dict[st
         "knowledge_cutoff": item.get("knowledge_cutoff"),
         "raw_payload": item,
     }
+
+
+def _context_length_do_model_info(model_info: dict[str, Any]) -> int | None:
+    for chave, valor in model_info.items():
+        if chave.endswith(".context_length") and isinstance(valor, int):
+            return valor
+    return None
+
+
+async def _fetch_ollama(tag: str, ollama_client: Any) -> dict[str, Any] | None:
+    """`source="ollama"` — só funciona para modelo já baixado (`/api/show`
+    não existe para modelos não baixados). Ver spec §2 (fonte 2).
+    `ollama_client` é duck-typed (`OllamaClient`, precisa de
+    `get_model_details(name) -> dict | None`)."""
+    detalhes = await ollama_client.get_model_details(tag)
+    if detalhes is None:
+        return None
+
+    capabilities = detalhes.get("capabilities") or []
+    input_modalities = ["text", "image"] if "vision" in capabilities else ["text"]
+    details = detalhes.get("details") or {}
+    model_info = detalhes.get("model_info") or {}
+
+    return {
+        "input_modalities": input_modalities,
+        "output_modalities": ["text"],
+        "context_length": _context_length_do_model_info(model_info),
+        "parameter_size": details.get("parameter_size"),
+        "quantization": details.get("quantization_level"),
+        "pricing_prompt_per_1k": None,
+        "pricing_completion_per_1k": None,
+        "knowledge_cutoff": None,
+        "raw_payload": detalhes,
+    }

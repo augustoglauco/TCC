@@ -1,8 +1,10 @@
+from unittest.mock import AsyncMock
+
 import httpx
 import pytest
 
 import app.model_catalog.characteristics as model_catalog_characteristics
-from app.model_catalog.characteristics import _fetch_openrouter
+from app.model_catalog.characteristics import _fetch_ollama, _fetch_openrouter
 
 
 @pytest.fixture(autouse=True)
@@ -87,3 +89,45 @@ async def test_fetch_openrouter_cacheia_lista_entre_chamadas():
     await _fetch_openrouter("b/b", http_client)
 
     assert chamadas["n"] == 1
+
+
+async def test_fetch_ollama_modelo_com_visao():
+    ollama_client = AsyncMock()
+    ollama_client.get_model_details = AsyncMock(
+        return_value={
+            "capabilities": ["completion", "vision"],
+            "details": {"parameter_size": "7.6B", "quantization_level": "Q4_K_M"},
+            "model_info": {"qwen2vl.context_length": 32768},
+        }
+    )
+
+    resultado = await _fetch_ollama("qwen2-vl:7b", ollama_client)
+
+    assert resultado is not None
+    assert resultado["input_modalities"] == ["text", "image"]
+    assert resultado["output_modalities"] == ["text"]
+    assert resultado["context_length"] == 32768
+    assert resultado["parameter_size"] == "7.6B"
+    assert resultado["quantization"] == "Q4_K_M"
+
+
+async def test_fetch_ollama_modelo_so_texto():
+    ollama_client = AsyncMock()
+    ollama_client.get_model_details = AsyncMock(
+        return_value={
+            "capabilities": ["completion", "tools"],
+            "details": {"parameter_size": "14.8B", "quantization_level": "Q4_K_M"},
+            "model_info": {"qwen2.context_length": 131072},
+        }
+    )
+
+    resultado = await _fetch_ollama("qwen2.5-coder:14b", ollama_client)
+
+    assert resultado["input_modalities"] == ["text"]
+
+
+async def test_fetch_ollama_modelo_nao_baixado_retorna_none():
+    ollama_client = AsyncMock()
+    ollama_client.get_model_details = AsyncMock(return_value=None)
+
+    assert await _fetch_ollama("modelo-inexistente", ollama_client) is None
