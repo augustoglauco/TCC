@@ -54,11 +54,22 @@ class CardAgendamento(BaseModel):
     google_event_link: str | None = None
 
 
-# MVP: união discriminada por "tipo" — cobre só os 3 cards do roadmap
-# (produto/cotação/agendamento); consulta genérica por categoria/catálogo
-# completo (`DadosCatalogoCategoria`) ainda não vira card (lista, não item
-# único), fica para uma iteração futura.
-ChatCard = Annotated[CardProduto | CardCotacao | CardAgendamento, Field(discriminator="tipo")]
+class CardGrafico(BaseModel):
+    """Card rico de gráfico analítico dinâmico gerado via chat (Dashboards)."""
+
+    tipo: Literal["grafico"] = "grafico"
+    chart_id: str
+    titulo: str
+    tipo_grafico: Literal["bar", "line", "pie", "area", "donut"]
+    config: dict = Field(default_factory=dict)
+    dados: list[dict] = Field(default_factory=list)
+    fixado: bool = True
+
+
+# União discriminada por "tipo" — cobre produto, cotação, agendamento e gráficos dinâmicos
+ChatCard = Annotated[
+    CardProduto | CardCotacao | CardAgendamento | CardGrafico, Field(discriminator="tipo")
+]
 
 
 class ChatMessageRequest(BaseModel):

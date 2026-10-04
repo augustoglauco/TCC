@@ -13,7 +13,14 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.models import Agendamento
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
-from app.models.chat import CardAgendamento, CardCotacao, CardProduto, ChatCard, RagChunkMetric
+from app.models.chat import (
+    CardAgendamento,
+    CardCotacao,
+    CardGrafico,
+    CardProduto,
+    ChatCard,
+    RagChunkMetric,
+)
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
@@ -876,6 +883,8 @@ async def handle_message(
     db_sessionmaker: async_sessionmaker[AsyncSession] | None = None,
     rag_top_k: int = 3,
     rag_score_threshold: float = 0.35,
+    is_admin: bool = False,
+    user_email: str | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -1012,6 +1021,84 @@ async def handle_message(
             confianca=tone_result.confidence,
             provider_efetivo=tone_result.provider_efetivo,
         )
+
+    # Dashboards e Gráficos Dinâmicos Gerados via Chat (Admin)
+    from app.services.chart_generator import detect_chart_request, generate_and_persist_chart
+
+    chart_request = detect_chart_request(message)
+    if chart_request:
+        if not is_admin:
+            msg_negada = (
+                "A geração de gráficos e dashboards é um recurso exclusivo para "
+                "administradores autenticados. Faça login como administrador para gerar e visualizar gráficos dinâmicos."
+            )
+            yield TokenEvent(text=msg_negada)
+            yield RouterDecision(
+                domain="fora_escopo",
+                complexity="baixa",
+                confidence=1.0,
+                complexity_strategy_usada="regras",
+                backend_escolhido="local",
+                motivo_escalonamento="fora_escopo",
+                resposta=msg_negada,
+                latencia_ms=0.0,
+                tokens_entrada=None,
+                tokens_saida=None,
+                cost_prompt_usd=0.0,
+                cost_completion_usd=0.0,
+                custo_estimado_usd=0.0,
+                router_provider=intent_router_provider,
+            )
+            return
+
+        if db_sessionmaker:
+            chart = None
+            try:
+                session_ctx = db_sessionmaker()
+                if hasattr(session_ctx, "__aenter__"):
+                    async with session_ctx as session:
+                        chart = await generate_and_persist_chart(
+                            session, message, user_email or "admin"
+                        )
+                else:
+                    chart = await generate_and_persist_chart(
+                        session_ctx, message, user_email or "admin"
+                    )
+            except Exception as exc:
+                logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})
+
+            if chart:
+                texto_resp = (
+                    f"Gerei o gráfico '{chart.titulo}' para você com base nos dados mais recentes. "
+                    "Ele já está salvo no seu painel de Dashboards."
+                )
+                yield TokenEvent(text=texto_resp)
+                card = CardGrafico(
+                    chart_id=str(chart.id),
+                    titulo=chart.titulo,
+                    tipo_grafico=chart.tipo_grafico,
+                    config=chart.config_json,
+                    dados=chart.dados_json,
+                    fixado=chart.fixado,
+                )
+                yield RouterDecision(
+                    domain="atendimento",
+                    complexity="baixa",
+                    confidence=1.0,
+                    complexity_strategy_usada="regras",
+                    backend_escolhido="local",
+                    motivo_escalonamento="nenhum",
+                    resposta=texto_resp,
+                    latencia_ms=0.0,
+                    tokens_entrada=None,
+                    tokens_saida=None,
+                    cost_prompt_usd=0.0,
+                    cost_completion_usd=0.0,
+                    custo_estimado_usd=0.0,
+                    card=card,
+                    router_provider=intent_router_provider,
+                )
+                return
 
     # MVP: o ramo de agendamento só roda quando (a) o chamador forneceu
     # `calendar_client`/`scheduling_config` para esta chamada E (b) a

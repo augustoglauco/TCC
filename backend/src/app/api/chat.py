@@ -555,7 +555,8 @@ async def send_message(
     # `rag_client_admin` (busca a collection chat ativa + mcp_b2b + admin)
     # só quando `payload.auth_token` prova, no servidor, uma sessão admin de
     # verdade — nunca a partir de `payload.user_email` (livre).
-    if await _verificar_modo_admin_seguro(request.app.state, payload.auth_token):
+    is_admin = await _verificar_modo_admin_seguro(request.app.state, payload.auth_token)
+    if is_admin:
         rag_client = rag_client_admin
 
     # R10: Usuário autenticado vs. Visitante não logado.
@@ -731,6 +732,8 @@ async def send_message(
                 db_sessionmaker=getattr(request.app.state, "db_sessionmaker", None),
                 rag_top_k=getattr(request.app.state, "rag_top_k", 3),
                 rag_score_threshold=getattr(request.app.state, "rag_score_threshold", 0.35),
+                is_admin=is_admin,
+                user_email=email_cliente,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})
