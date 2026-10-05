@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import ProdutoDetalhePage from "@/app/produtos/[id]/page";
 import * as productsApi from "@/lib/api/products";
+import { useCartStore } from "@/lib/hooks/useCartStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
 // Mock do useRouter do Next.js
@@ -84,12 +85,19 @@ describe("ProdutoDetalhePage", () => {
   it("permite navegar no fluxo de compra e cotar pelo chat", async () => {
     vi.spyOn(productsApi, "fetchProductById").mockResolvedValue(MOCK_PRODUTO_COMPLETO);
     const chatOpenSpy = vi.spyOn(useChatStore.getState(), "open");
+    useCartStore.setState({ items: [] });
 
     render(<ProdutoDetalhePage params={{ id: "42" }} />);
 
     const buyButton = await screen.findByRole("button", { name: /Comprar Agora/i });
     fireEvent.click(buyButton);
     expect(mockPush).toHaveBeenCalledWith("/pedidos");
+
+    // Regressão: /pedidos renderizava sem foto porque o item do carrinho
+    // guardava a URL relativa (`/api/uploads/...`), não a URL completa do
+    // backend.
+    const item = useCartStore.getState().items[0];
+    expect(item.imagemUrl).toBe("http://localhost:8000/api/uploads/produtos/camera-principal.jpg");
 
     const quoteButton = screen.getByRole("button", { name: /Cotar com Assistente/i });
     fireEvent.click(quoteButton);

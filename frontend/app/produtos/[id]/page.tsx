@@ -3,11 +3,11 @@
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 import { fetchProductById, Produto } from "@/lib/api/products";
 import { ImageZoomModal } from "@/components/products/ImageZoomModal";
 import { useCartStore } from "@/lib/hooks/useCartStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
+import { resolveImageUrl } from "@/lib/utils/resolveImageUrl";
 
 interface ProdutoPageProps {
   params: Promise<{ id: string }> | { id: string };
@@ -25,17 +25,6 @@ export default function ProdutoDetalhePage({ params }: ProdutoPageProps) {
 
   // Estado para modal de zoom de imagem
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
-
-  // Helper para resolver URL completa da imagem
-  const resolveImageUrl = (url: string | null | undefined): string | null => {
-    if (!url) return null;
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:")) {
-      return url;
-    }
-    const baseUrl = getApiBaseUrl();
-    const cleanPath = url.startsWith("/") ? url : `/${url}`;
-    return `${baseUrl}${cleanPath}`;
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -125,7 +114,7 @@ export default function ProdutoDetalhePage({ params }: ProdutoPageProps) {
       produtoId: product.id,
       nome: product.nome,
       preco: Number(precoEfetivo),
-      imagemUrl: product.imagem_url,
+      imagemUrl: resolveImageUrl(product.imagem_url),
       quantidade: 1,
       centroDistribuicao: cd,
     });

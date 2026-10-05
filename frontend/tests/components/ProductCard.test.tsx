@@ -2,6 +2,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProductCard } from "@/components/products/ProductCard";
 import { Produto } from "@/lib/api/products";
+import { useCartStore } from "@/lib/hooks/useCartStore";
 
 // Mock do useRouter do Next.js
 vi.mock("next/navigation", () => ({
@@ -69,5 +70,15 @@ describe("ProductCard", () => {
     fireEvent.click(img);
 
     expect(handleZoom).toHaveBeenCalledWith("http://localhost:8000/api/uploads/produtos/foto1.jpg");
+  });
+
+  it("adiciona ao carrinho com a imagem resolvida para a URL completa do backend (regressão: /pedidos mostrava sem foto)", () => {
+    useCartStore.setState({ items: [] });
+    render(<ProductCard product={MOCK_PRODUCT} onOpenZoom={vi.fn()} />);
+
+    fireEvent.click(screen.getByText("Comprar"));
+
+    const item = useCartStore.getState().items[0];
+    expect(item.imagemUrl).toBe("http://localhost:8000/api/uploads/produtos/foto1.jpg");
   });
 });

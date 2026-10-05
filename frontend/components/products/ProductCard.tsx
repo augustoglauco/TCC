@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 import { Produto } from "@/lib/api/products";
 import { useCartStore } from "@/lib/hooks/useCartStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
+import { resolveImageUrl } from "@/lib/utils/resolveImageUrl";
 
 interface ProductCardProps {
   product: Produto;
@@ -15,16 +15,6 @@ interface ProductCardProps {
 
 export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
   const router = useRouter();
-
-  // Helper para resolver URL completa da imagem (ex: /api/uploads/... -> http://localhost:8000/api/uploads/...)
-  const resolveImageUrl = (url: string | null | undefined): string | null => {
-    if (!url) return null;
-    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("data:"))
-      return url;
-    const baseUrl = getApiBaseUrl();
-    const cleanPath = url.startsWith("/") ? url : `/${url}`;
-    return `${baseUrl}${cleanPath}`;
-  };
 
   // Lista consolidada de URLs de imagem completas
   const imageList = useMemo(() => {
@@ -91,7 +81,7 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
       produtoId: product.id,
       nome: product.nome,
       preco: Number(precoEfetivo),
-      imagemUrl: product.imagem_url,
+      imagemUrl: resolveImageUrl(product.imagem_url),
       quantidade: 1,
       centroDistribuicao: cd,
     });
