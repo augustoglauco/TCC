@@ -1786,6 +1786,13 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   destinado ao público. `GET /api/rag/documents/{id}/content` (usado só
   pela tela `/admin`) continua exigindo `require_admin` incondicionalmente
   — a exceção pública vale apenas para o novo endpoint `/download`.
+- **Decisão de 2026-10-05 (Transbordo para Atendimento Humano e Fila de Suporte - Human-in-the-Loop):**
+  Implementado sistema completo de escalonamento para operadores humanos conforme especificação arquitetural (`docs/superpowers/specs/2026-10-03-atendimento-humano-transbordo-design.md`):
+  1. *Banco de Dados (Migration 0021)*: Adicionadas colunas `atendente_id`, `atendente_nome`, `motivo_escalonamento`, `prioridade`, `escalado_em` na tabela `conversas`, e coluna `atendente_nome` na tabela `conversa_mensagens` com papel `"atendente"`.
+  2. *Lock Atômico contra Concorrência*: O método `claim_conversa` (`app.services.atendimento_service`) executa `UPDATE conversas SET status='em_atendimento_humano', atendente_id=:atendente_id WHERE id=:id AND status='aguardando_humano' AND atendente_id IS NULL`, retornando HTTP 409 Conflict caso outro operador já tenha assumido a conversa simultaneamente.
+  3. *Pausa Automática do LLM (Zero Custo)*: Durante os estados `aguardando_humano` e `em_atendimento_humano`, as mensagens do usuário são gravadas diretamente no banco (`ConversaMensagem`), e o gerador SSE do chat emite evento de status e finalização imediata com 0 tokens e $0,00 de custo, garantindo que o bot não interfira nem gaste recursos enquanto o cliente aguarda ou fala com um atendente humano.
+  4. *Gatilhos de Transbordo*: Acionamento automático pelo Monitor de Tom ao detectar tom frustrado (prioridade 5) e acionamento voluntário pelo cliente através do endpoint `POST /api/chat/conversations/{id}/transbordo` e do botão "Falar com atendente" no widget.
+  5. *API Administrativa e Central de Atendimento*: Endpoints REST `/api/admin/atendimento` (`/fila`, `/meus-chats`, `/{id}/claim`, `/{id}/mensagem`, `/{id}/close`) protegidos por `require_admin`, com tela dedicada em `/admin/atendimento` dividida em 3 colunas funcionais: Fila de Espera, Meus Chats Ativos e Painel de Contexto do Cliente com histórico cadastral e de compras.
 
 ## 8. Próximos passos após o protótipo
 

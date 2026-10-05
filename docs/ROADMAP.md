@@ -1132,6 +1132,14 @@ conversa e classificação do usuário").
       `backend/tests/test_product_sync.py` estavam órfãos desde o
       desacoplamento do CRUD de produtos do RAG (2026-10-03) — removidos
       fisicamente em 2026-10-04.
+- [x] **Transbordo para Atendimento Humano e Fila de Suporte - Human-in-the-Loop (2026-10-05):**
+      Implementação completa da especificação arquitetural `docs/superpowers/specs/2026-10-03-atendimento-humano-transbordo-design.md`:
+      - Banco de Dados (Alembic 0021): Adicionadas colunas `atendente_id`, `atendente_nome`, `motivo_escalonamento`, `prioridade`, `escalado_em` em `conversas` e `atendente_nome` em `conversa_mensagens` (papel `"atendente"`).
+      - Serviço com Lock Atômico (`atendimento_service.py`): Reivindicação concorrente atômica (`claim_conversa`) evitando que dois atendentes assumam o mesmo chat (HTTP 409 em colisão).
+      - Pausa Estrita de IA (Zero Custo): Interceptação no chat SSE durante `aguardando_humano` e `em_atendimento_humano`, persistindo as mensagens do cliente sem invocar LLM (0 tokens consumidos).
+      - Gatilhos de Transbordo: Automático via monitor de tom (frustração, prioridade 5) e solicitação direta no chat widget (`POST /api/chat/conversations/{id}/transbordo`).
+      - REST API Administrativa: Endpoints `/api/admin/atendimento` (`/fila`, `/meus-chats`, `/{id}/claim`, `/{id}/mensagem`, `/{id}/close`) protegidos por `require_admin`.
+      - Frontend Central de Atendimento: Página `/admin/atendimento` em 3 colunas (Fila de Espera, Meus Chats Ativos e Painel de Contexto do Cliente com dados cadastrais e compras) e link no `AdminGearMenu.tsx`.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
@@ -1141,6 +1149,8 @@ conversa e classificação do usuário").
   rate limiting, auditoria completa, expiração/rotação de chaves (a
   exposição pública com chave estática por parceiro entrou no MVP em
   2026-09-25, ver `docs/ARCHITECTURE.md` §6).
-- Integração real com fila de atendimento humano e sistema de ticketing.
+- Integração com sistema de ticketing externo (Zendesk/Jira/Freshdesk — a
+  fila nativa interna de atendimento humano e transbordo com locks atômicos
+  e Central /admin/atendimento foi implementada em 2026-10-05).
 - Reagendamento/cancelamento de visita e checagem de disponibilidade em
   múltiplas agendas.
