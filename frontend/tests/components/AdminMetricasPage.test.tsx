@@ -78,7 +78,9 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("Tokens Externos (OpenRouter)")).toBeInTheDocument();
       expect(screen.getByText("Visão Computacional (Imagens)")).toBeInTheDocument();
       expect(screen.getByText("$0.0025")).toBeInTheDocument();
-      expect(screen.getByText("Visão (Imagens / Custo)")).toBeInTheDocument();
+      // Tabela diária com visão segregada
+      expect(screen.getByText("Visão")).toBeInTheDocument();
+      expect(screen.getByText("(Imagens / Custo)")).toBeInTheDocument();
       expect(screen.getByText("2 imagens")).toBeInTheDocument();
       expect(screen.getByText("$0.0077")).toBeInTheDocument();
       expect(screen.getByText("2026-10-03")).toBeInTheDocument();
@@ -423,7 +425,8 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("Tokens: 2.800")).toBeInTheDocument();
 
       // Coluna e linha da tabela diária
-      expect(screen.getByText("Visão (Imagens / Custo)")).toBeInTheDocument();
+      expect(screen.getByText("Visão")).toBeInTheDocument();
+      expect(screen.getByText("(Imagens / Custo)")).toBeInTheDocument();
       expect(screen.getByText("3 imagens")).toBeInTheDocument();
       expect(screen.getByText("($0.0042)")).toBeInTheDocument();
     });
@@ -496,7 +499,8 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("Ingestão: $0.0050")).toBeInTheDocument();
 
       // Tabela diária: coluna de ingestão
-      expect(screen.getByText("Ingestão (Op / Custo)")).toBeInTheDocument();
+      expect(screen.getByText("Ingestão")).toBeInTheDocument();
+      expect(screen.getByText("(Op / Custo)")).toBeInTheDocument();
       expect(screen.getByText("5 ops")).toBeInTheDocument();
     });
   });
@@ -559,6 +563,60 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("01/10/2026")).toBeInTheDocument();
       expect(screen.getByText("30/09/2026")).toBeInTheDocument();
       expect(screen.getByText("29/09/2026")).toBeInTheDocument();
+    });
+  });
+
+  it("renderiza os títulos do cabeçalho da tabela de detalhamento em 2 linhas com trechos entre parênteses na mesma linha", async () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    const mockResponse: metricsApi.TokenCostMetricsResponse = {
+      period: "today",
+      summary: {
+        total_closed_chats: 0,
+        total_internal_prompt_tokens: 0,
+        total_internal_completion_tokens: 0,
+        total_external_prompt_tokens: 0,
+        total_external_completion_tokens: 0,
+        total_cost_prompt_usd: 0,
+        total_cost_completion_usd: 0,
+        total_cost_usd: 0,
+      },
+      daily_breakdown: [],
+    };
+
+    vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      // Verifica títulos principais da 1ª linha
+      expect(screen.getByText("Tokens Internos")).toBeInTheDocument();
+      expect(screen.getByText("Tokens Externos")).toBeInTheDocument();
+      expect(screen.getByText("Visão")).toBeInTheDocument();
+      expect(screen.getByText("Ingestão")).toBeInTheDocument();
+      expect(screen.getByText("Chats")).toBeInTheDocument();
+      expect(screen.getByText("Encerrados")).toBeInTheDocument();
+
+      // Verifica trechos entre parênteses na 2ª linha
+      const parensEntradaSaida = screen.getAllByText("(Entrada / Saída)");
+      expect(parensEntradaSaida.length).toBe(2);
+      parensEntradaSaida.forEach((el) => {
+        expect(el.className).toContain("whitespace-nowrap");
+      });
+
+      const parensVisao = screen.getByText("(Imagens / Custo)");
+      expect(parensVisao.className).toContain("whitespace-nowrap");
+
+      const parensIngestao = screen.getByText("(Op / Custo)");
+      expect(parensIngestao.className).toContain("whitespace-nowrap");
     });
   });
 });

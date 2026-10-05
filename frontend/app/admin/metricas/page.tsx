@@ -592,15 +592,19 @@ export default function AdminMetricasPage() {
       <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
         <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-3.5 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 flex flex-wrap items-center gap-x-2 gap-y-1">
               <span>Detalhamento Diário dos Atendimentos Encerrados</span>
-              <span className="rounded-full bg-slate-100 text-slate-600 px-2.5 py-0.5 text-xs font-semibold">
+              <span className="rounded-full bg-slate-100 text-slate-600 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap">
                 {daily.length} {daily.length === 1 ? "dia" : "dias"}
               </span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Agrupamento diário baseado na data de encerramento da conversa.
-              {period === "custom" && ` (Filtrando dia ${formatarDataPtBr(selectedDate)})`}
+              <span>Agrupamento diário baseado na data de encerramento da conversa.</span>
+              {period === "custom" && (
+                <span className="whitespace-nowrap font-medium text-slate-700 ml-1">
+                  (Filtrando dia {formatarDataPtBr(selectedDate)})
+                </span>
+              )}
             </p>
           </div>
           <button
@@ -619,59 +623,91 @@ export default function AdminMetricasPage() {
         </div>
 
         <div className="overflow-x-auto min-h-[360px] max-h-[580px] overflow-y-auto">
-          <table className="w-full text-left text-xs text-slate-700 border-collapse min-w-[1080px]">
+          <table className="w-full text-left text-xs text-slate-700 border-collapse min-w-[1000px]">
             <thead className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 shadow-2xs">
               <tr>
-                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[140px]">
+                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[130px] align-bottom">
                   <span>Data</span>
                   <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-30 w-44 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Data do encerramento da conversa
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[120px]">
-                  <span>Chats Encerrados</span>
+                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[110px] align-bottom">
+                  <span className="inline-block">
+                    <span>Chats</span>{" "}
+                    <span className="block whitespace-nowrap">Encerrados</span>
+                  </span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Total de atendimentos finalizados no dia
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[150px]">
-                  <span>Tokens Internos (Entrada / Saída)</span>
+                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[130px] align-bottom">
+                  <span className="inline-block">
+                    <span>Tokens Internos</span>{" "}
+                    <span className="block whitespace-nowrap font-normal text-slate-400 text-[10px] tracking-normal">
+                      (Entrada / Saída)
+                    </span>
+                  </span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Consumo de LLM em infraestrutura própria (Ollama Local)
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[150px]">
-                  <span>Tokens Externos (Entrada / Saída)</span>
+                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[130px] align-bottom">
+                  <span className="inline-block">
+                    <span>Tokens Externos</span>{" "}
+                    <span className="block whitespace-nowrap font-normal text-slate-400 text-[10px] tracking-normal">
+                      (Entrada / Saída)
+                    </span>
+                  </span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Consumo de modelos na nuvem pagando por token
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[120px]">
-                  <span>Visão (Imagens / Custo)</span>
+                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[120px] align-bottom">
+                  <span className="inline-block">
+                    <span>Visão</span>{" "}
+                    <span className="block whitespace-nowrap font-normal text-slate-400 text-[10px] tracking-normal">
+                      (Imagens / Custo)
+                    </span>
+                  </span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Chamadas para modelo multimodal de identificação de imagens
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[130px]">
-                  <span>Ingestão (Op / Custo)</span>
+                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[120px] align-bottom">
+                  <span className="inline-block">
+                    <span>Ingestão</span>{" "}
+                    <span className="block whitespace-nowrap font-normal text-slate-400 text-[10px] tracking-normal">
+                      (Op / Custo)
+                    </span>
+                  </span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Processamento de documentos e crawler de catálogo de produtos
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[110px]">
-                  <span>Custo Entrada</span>
+                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[100px] align-bottom">
+                  <span className="inline-block">
+                    <span>Custo</span>{" "}
+                    <span className="block whitespace-nowrap">Entrada</span>
+                  </span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Custo em USD dos tokens de Entrada (Prompt/RAG/Contexto)
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[110px]">
-                  <span>Custo Saída</span>
+                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[100px] align-bottom">
+                  <span className="inline-block">
+                    <span>Custo</span>{" "}
+                    <span className="block whitespace-nowrap">Saída</span>
+                  </span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Custo em USD dos tokens de Saída (Completion/Respostas)
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 text-right relative group cursor-help whitespace-nowrap min-w-[110px]">
-                  <span>Custo Total</span>
+                <th scope="col" className="px-5 py-3 text-right relative group cursor-help min-w-[100px] align-bottom">
+                  <span className="inline-block text-right">
+                    <span>Custo</span>{" "}
+                    <span className="block whitespace-nowrap">Total</span>
+                  </span>
                   <div className="absolute top-full right-0 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight text-left">
                     Consolidação total financeira em USD (LLM + Visão + Ingestão)
                   </div>
