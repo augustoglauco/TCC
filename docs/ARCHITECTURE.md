@@ -1770,6 +1770,22 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   código (`# MVP: página administrativa ... sem autenticação`, decisão
   consciente) antes da correção; os demais routers não tinham esse
   comentário, sugerindo descuido em vez de decisão deliberada.
+- **Decisão de 2026-10-05 (exceção pública ao `require_admin` de
+  `/api/rag/documents/*`):** o recurso de download de documento-fonte via
+  card rico no chat (`CardDocumentoDownload`) precisa ser acionável por
+  visitante anônimo do widget público — é o próprio motivo do recurso.
+  Isso colide com a correção de 2026-10-04 acima, que restringiu todos os
+  endpoints de `/api/rag/documents/*` a `require_admin`. Resolvido
+  gateando por `purpose` da collection de origem, não pelo endpoint
+  inteiro: `GET /api/rag/documents/{id}/download` libera sem token quando
+  a collection do documento tem `purpose="chat"` (mesmo conteúdo já
+  exposto nas respostas do chat público — baixar o arquivo original não
+  expõe nada que a resposta em texto já não tenha exposto) e exige
+  `require_admin` para qualquer outro `purpose` (`admin`, `mcp_b2b`),
+  mantendo a postura restritiva da correção anterior para conteúdo não
+  destinado ao público. `GET /api/rag/documents/{id}/content` (usado só
+  pela tela `/admin`) continua exigindo `require_admin` incondicionalmente
+  — a exceção pública vale apenas para o novo endpoint `/download`.
 
 ## 8. Próximos passos após o protótipo
 
