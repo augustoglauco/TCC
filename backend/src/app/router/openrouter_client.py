@@ -26,6 +26,41 @@ _VISION_RETRY_STATUS = {429, 500, 502, 503, 504}
 _VISION_RETRY_DELAYS_S = (0.5, 1.5)
 
 
+class VisionResult(str):
+    """Subclasse de str que preserva o texto retornado e carrega telemetria de tokens e custos."""
+
+    content: str
+    prompt_tokens: int | None
+    completion_tokens: int | None
+    total_tokens: int | None
+    cost_prompt_usd: float
+    cost_completion_usd: float
+    estimated_cost_usd: float
+    model_name: str | None
+
+    def __new__(
+        cls,
+        content: str,
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        total_tokens: int | None = None,
+        cost_prompt_usd: float = 0.0,
+        cost_completion_usd: float = 0.0,
+        estimated_cost_usd: float = 0.0,
+        model_name: str | None = None,
+    ):
+        obj = super().__new__(cls, content)
+        obj.content = content
+        obj.prompt_tokens = prompt_tokens
+        obj.completion_tokens = completion_tokens
+        obj.total_tokens = total_tokens
+        obj.cost_prompt_usd = cost_prompt_usd
+        obj.cost_completion_usd = cost_completion_usd
+        obj.estimated_cost_usd = estimated_cost_usd
+        obj.model_name = model_name
+        return obj
+
+
 class OpenRouterClient:
     """Cliente para o backend externo via OpenRouter (docs/ARCHITECTURE.md §2).
 
@@ -42,11 +77,13 @@ class OpenRouterClient:
         base_url: str,
         api_key: str,
         model: str,
-        timeout_s: float,
+        timeout_s: float = 30.0,
         price_per_1k_input_tokens: float = 0.0,
         price_per_1k_output_tokens: float = 0.0,
         client: httpx.AsyncClient | None = None,
         vision_model: str = "",
+        price_per_1k_vision_input_tokens: float = 0.0,
+        price_per_1k_vision_output_tokens: float = 0.0,
         jev_model: str = "",
         jev_timeout_s: float = 10.0,
     ) -> None:
@@ -56,6 +93,8 @@ class OpenRouterClient:
         self._timeout_s = timeout_s
         self._price_in = price_per_1k_input_tokens
         self._price_out = price_per_1k_output_tokens
+        self._price_vision_in = price_per_1k_vision_input_tokens
+        self._price_vision_out = price_per_1k_vision_output_tokens
         self._client = client or httpx.AsyncClient()
         # Modelo multimodal usado só no fluxo de identificação de imagem
         # (R6, Fase 3) — separado do modelo de texto (`_model`), ajustável em
@@ -113,6 +152,23 @@ class OpenRouterClient:
         cost_completion = (completion_tokens / 1000.0 * self._price_out) if completion_tokens else 0.0
         return cost_prompt, cost_completion, cost_prompt + cost_completion
 
+    def _custo_detalhado_visao(
+        self, prompt_tokens: int | None, completion_tokens: int | None
+    ) -> tuple[float, float, float]:
+        if self._price_vision_in > 0 or self._price_vision_out > 0:
+            price_in = self._price_vision_in
+            price_out = self._price_vision_out
+        elif ":free" in (self._vision_model or ""):
+            price_in = 0.0
+            price_out = 0.0
+        else:
+            price_in = self._price_in
+            price_out = self._price_out
+
+        cost_prompt = (prompt_tokens / 1000.0 * price_in) if prompt_tokens else 0.0
+        cost_completion = (completion_tokens / 1000.0 * price_out) if completion_tokens else 0.0
+        return cost_prompt, cost_completion, cost_prompt + cost_completion
+
     def _custo(self, prompt_tokens: int | None, completion_tokens: int | None) -> float:
         _, _, cost_total = self._custo_detalhado(prompt_tokens, completion_tokens)
         return cost_total
@@ -159,9 +215,6 @@ class OpenRouterClient:
         (`image_url`). Levanta `VisionModelIndisponivelError` se o modelo de
         visão não estiver configurado ou a chamada falhar — o chamador trata
         isso como "não identificado", sem escalar erro ao usuário.
-
-        # MVP: sem streaming (resposta curta e estruturada) e sem cálculo de
-        # custo (o benchmark de custo da Fase 10 é sobre o modelo de texto).
         """
         if not self._vision_model:
             raise VisionModelIndisponivelError("EXTERNAL_VISION_MODEL_NAME não configurado.")
@@ -199,7 +252,27 @@ class OpenRouterClient:
                 )
                 response.raise_for_status()
                 data = response.json()
-                return data["choices"][0]["message"]["content"]
+                content = data["choices"][0]["message"]["content"]
+                usage = data.get("usage", {}) if isinstance(data, dict) else {}
+                prompt_tokens = usage.get("prompt_tokens") if usage else None
+                completion_tokens = usage.get("completion_tokens") if usage else None
+                total_tokens = usage.get("total_tokens") if usage else None
+                if total_tokens is None and (prompt_tokens is not None or completion_tokens is not None):
+                    total_tokens = (prompt_tokens or 0) + (completion_tokens or 0)
+
+                cost_prompt, cost_completion, cost_total = self._custo_detalhado_visao(
+                    prompt_tokens, completion_tokens
+                )
+                return VisionResult(
+                    content=content,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    total_tokens=total_tokens,
+                    cost_prompt_usd=cost_prompt,
+                    cost_completion_usd=cost_completion,
+                    estimated_cost_usd=cost_total,
+                    model_name=self._vision_model,
+                )
             except httpx.HTTPStatusError as exc:
                 last_exc = exc
                 if exc.response.status_code not in _VISION_RETRY_STATUS:

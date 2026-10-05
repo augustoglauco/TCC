@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     # "openai/gpt-4o-mini"). Vazio = fallback externo indisponível (o motor
     # responde "não identificado" em vez de chamar o externo).
     external_vision_model_name: str = ""
+    external_vision_model_price_per_1k_input_tokens: float = 0.0
+    external_vision_model_price_per_1k_output_tokens: float = 0.0
     # Limiar alto de aceite do catálogo interno (CLIP): melhor score >= este
     # valor aceita o interno sem chamar o externo.
     image_internal_confidence: float = 0.30

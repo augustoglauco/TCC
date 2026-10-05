@@ -199,6 +199,8 @@ def create_app() -> FastAPI:
         price_per_1k_input_tokens=settings.external_model_price_per_1k_input_tokens,
         price_per_1k_output_tokens=settings.external_model_price_per_1k_output_tokens,
         vision_model=settings.external_vision_model_name,
+        price_per_1k_vision_input_tokens=settings.external_vision_model_price_per_1k_input_tokens,
+        price_per_1k_vision_output_tokens=settings.external_vision_model_price_per_1k_output_tokens,
         jev_model=settings.jev_model_name,
         jev_timeout_s=settings.jev_timeout_s,
     )
