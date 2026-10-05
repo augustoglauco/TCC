@@ -1,6 +1,7 @@
 """Aplicação Streamlit do Cliente Independente MCP B2B."""
 
 import asyncio
+import base64
 import streamlit as st
 
 try:
@@ -147,12 +148,13 @@ def main():
         "recursos de catálogo e ferramentas transacionais expostas via **Model Context Protocol (MCP)**."
     )
 
-    tab_recursos, tab_cotar, tab_frete, tab_comp, tab_pedido = st.tabs([
+    tab_recursos, tab_cotar, tab_frete, tab_comp, tab_pedido, tab_conversao = st.tabs([
         "📦 Catálogo & Recursos",
         "💰 Cotação de Preços",
         "🚚 Consulta de Frete",
         "🔍 Compatibilidade",
         "🛒 Fechar Pedido",
+        "🧾 Converter Reserva / Comprovante",
     ])
 
     # --------------------------
@@ -334,6 +336,7 @@ def main():
                         itens_envio = formatar_itens_pedido(st.session_state.carrinho, centro_distribuicao)
                         resultado_pedido = run_async(client.reservar_pedido(itens_envio))
                         st.balloons()
+                        st.session_state["ultimo_pedido_id"] = resultado_pedido.get("id")
                         st.success("🎉 **Pedido B2B Criado com Sucesso!**")
                         st.write(f"**Número do Pedido:** `{resultado_pedido.get('id', 'N/A')}`")
                         st.write(f"**Status:** `{resultado_pedido.get('status', 'reservado')}`")
@@ -342,6 +345,59 @@ def main():
                             st.json(resultado_pedido)
                     except Exception as exc:
                         st.error(f"Falha ao reservar pedido: {exc}")
+
+    # --------------------------
+    # TAB 6: CONVERSÃO DE RESERVA
+    # --------------------------
+    with tab_conversao:
+        st.subheader("Comprovação Financeira & Conversão de Reserva (`converter_reserva_venda`)")
+        st.info("Envie o comprovante de pagamento (PIX, TED, Boleto) referente a uma reserva para validação via IA Multimodal e conversão em venda faturada.")
+
+        pedido_id_sugerido = st.session_state.get("ultimo_pedido_id", "")
+        pedido_id_input = st.text_input("ID do Pedido / Reserva (UUID):", value=str(pedido_id_sugerido or ""), key="conv_pedido_id")
+
+        tipo_entrada = st.radio("Formato do Comprovante:", ["Arquivo (PDF, PNG, JPG)", "Texto / Linha Digitável / PIX"], horizontal=True)
+
+        comprovante_b64_ou_texto = ""
+        nome_arquivo = "comprovante.txt"
+
+        if tipo_entrada.startswith("Arquivo"):
+            upload_comprovante = st.file_uploader("Selecione o arquivo do comprovante:", type=["pdf", "png", "jpg", "jpeg", "webp"])
+            if upload_comprovante is not None:
+                nome_arquivo = upload_comprovante.name
+                comprovante_b64_ou_texto = base64.b64encode(upload_comprovante.getvalue()).decode("utf-8")
+        else:
+            texto_comprovante_input = st.text_area("Cole o texto do comprovante ou dados da transferência:", height=120, placeholder="Comprovante de Transferência PIX\nValor: R$ ...")
+            if texto_comprovante_input:
+                comprovante_b64_ou_texto = texto_comprovante_input.strip()
+
+        if st.button("🚀 Enviar Comprovante & Converter em Venda", type="primary"):
+            if not pedido_id_input.strip():
+                st.error("Informe o ID do Pedido / Reserva.")
+            elif not comprovante_b64_ou_texto:
+                st.error("Forneça o arquivo ou texto do comprovante de pagamento.")
+            else:
+                with st.spinner("Avaliando comprovante com IA Multimodal e convertendo reserva..."):
+                    try:
+                        resultado_conv = run_async(
+                            client.converter_reserva_venda(
+                                pedido_id=pedido_id_input.strip(),
+                                comprovante_base64_ou_texto=comprovante_b64_ou_texto,
+                                nome_arquivo=nome_arquivo,
+                            )
+                        )
+                        st.balloons()
+                        st.success(f"🎉 {resultado_conv.get('mensagem', 'Conversão realizada com sucesso!')}")
+                        st.write(f"**Status Atual:** `{resultado_conv.get('status')}`")
+                        st.write(f"**Tipo de Conversão:** `{resultado_conv.get('tipo_conversao')}`")
+                        st.write(f"**Convertido por:** `{resultado_conv.get('convertido_por')}`")
+                        if resultado_conv.get("parecer"):
+                            st.markdown("##### 📄 Parecer Financeiro da IA:")
+                            st.json(resultado_conv["parecer"])
+                        if modo_dev:
+                            st.json(resultado_conv)
+                    except Exception as exc:
+                        st.error(f"Falha na validação ou conversão: {exc}")
 
 
 if __name__ == "__main__":

@@ -164,3 +164,20 @@ class PedidoOut(BaseModel):
     itens: list[PedidoItemOut]
 
     model_config = {"from_attributes": True}
+
+
+# --- Ferramenta 5: conversão de reserva em venda (Modo 6) --------------------
+
+
+class ConversaoReservaOut(BaseModel):
+    pedido_id: UUID
+    status: str
+    tipo_conversao: str | None = None
+    convertido_em: datetime | None = None
+    convertido_por: str | None = None
+    comprovante_url: str | None = None
+    sucesso: bool = True
+    mensagem: str = ""
+    parecer: dict | None = None
+
+    model_config = {"from_attributes": True}

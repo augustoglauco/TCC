@@ -183,3 +183,19 @@ class B2BMCPClient:
     async def reservar_pedido(self, itens: list[dict]) -> dict:
         """`itens`: `[{"produto_id": int, "quantidade": int, "centro_distribuicao": str}]`."""
         return await self._call_tool("reservar_pedido", {"itens": itens})
+
+    async def converter_reserva_venda(
+        self,
+        pedido_id: str,
+        comprovante_base64_ou_texto: str,
+        nome_arquivo: str = "comprovante.txt",
+    ) -> dict:
+        """Converte uma reserva pendente em venda concluída através de comprovante financeiro."""
+        return await self._call_tool(
+            "converter_reserva_venda",
+            {
+                "pedido_id": pedido_id,
+                "comprovante_base64_ou_texto": comprovante_base64_ou_texto,
+                "nome_arquivo": nome_arquivo,
+            },
+        )

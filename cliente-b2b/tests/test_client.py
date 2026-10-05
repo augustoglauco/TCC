@@ -185,3 +185,26 @@ async def test_pesquisar_manuais_recurso():
 
     resultado = await client.pesquisar_manuais("vendas", "cabo de rede")
     assert resultado == busca["resultados"]
+
+
+@pytest.mark.asyncio
+async def test_converter_reserva_venda_chama_tool():
+    mock_conversao = {
+        "pedido_id": "3f6a1c1a-0000-4000-8000-000000000000",
+        "status": "venda_concluida",
+        "tipo_conversao": "auto_mcp_b2b",
+        "sucesso": True,
+        "mensagem": "Reserva convertida com sucesso",
+    }
+    session = _FakeMCPSession(tool_result=_FakeCallToolResult(structured_content=mock_conversao))
+    client = _novo_cliente(session)
+
+    resultado = await client.converter_reserva_venda(
+        pedido_id="3f6a1c1a-0000-4000-8000-000000000000",
+        comprovante_base64_ou_texto="Comprovante de pagamento PIX R$ 100",
+        nome_arquivo="comprovante.txt",
+    )
+    assert resultado["status"] == "venda_concluida"
+    assert resultado["sucesso"] is True
+    assert session.calls[0][0] == "converter_reserva_venda"
+    assert session.calls[0][1]["pedido_id"] == "3f6a1c1a-0000-4000-8000-000000000000"
