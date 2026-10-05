@@ -597,13 +597,23 @@ describe("AdminMetricasPage", () => {
     render(<AdminMetricasPage />);
 
     await waitFor(() => {
-      // Verifica títulos principais da 1ª linha
-      expect(screen.getByText("Tokens Internos")).toBeInTheDocument();
-      expect(screen.getByText("Tokens Externos")).toBeInTheDocument();
+      // Verifica títulos principais da 1ª linha (com whitespace-nowrap para impedir 3 linhas)
+      const titInternos = screen.getByText("Tokens Internos");
+      expect(titInternos).toBeInTheDocument();
+      expect(titInternos.className).toContain("whitespace-nowrap");
+
+      const titExternos = screen.getByText("Tokens Externos");
+      expect(titExternos).toBeInTheDocument();
+      expect(titExternos.className).toContain("whitespace-nowrap");
+
       expect(screen.getByText("Visão")).toBeInTheDocument();
       expect(screen.getByText("Ingestão")).toBeInTheDocument();
       expect(screen.getByText("Chats")).toBeInTheDocument();
       expect(screen.getByText("Encerrados")).toBeInTheDocument();
+
+      // Verifica título da seção limitado a 2 linhas
+      expect(screen.getByText("Detalhamento Diário").className).toContain("whitespace-nowrap");
+      expect(screen.getByText("dos Atendimentos Encerrados").className).toContain("whitespace-nowrap");
 
       // Verifica trechos entre parênteses na 2ª linha
       const parensEntradaSaida = screen.getAllByText("(Entrada / Saída)");
