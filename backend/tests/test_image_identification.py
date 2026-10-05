@@ -295,3 +295,64 @@ async def test_banco_fora_do_ar_cai_no_rag():
     assert result.status == "encontrado_interno"
     assert result.produto == "Camera XPTO"
     assert result.detalhes == "Camera XPTO manual"
+
+
+async def test_identificacao_externa_propaga_metricas_tokens_e_custos():
+    from app.router.openrouter_client import VisionResult
+
+    res_raw = VisionResult(
+        content=json.dumps({"produto": "Câmera IP", "e_do_portfolio": True, "confianca": 0.95}),
+        prompt_tokens=1050,
+        completion_tokens=65,
+        total_tokens=1115,
+        cost_prompt_usd=0.00525,
+        cost_completion_usd=0.000975,
+        estimated_cost_usd=0.006225,
+        model_name="google/gemma-4-31b-it:free",
+    )
+
+    class _VisionClientWithUsage:
+        async def describe_image(self, image_bytes: bytes, prompt: str):
+            return res_raw
+
+    rag = _FakeRAGClient(documents=[Document(content="Câmera IP manual", source="m", score=1)])
+    result = await _identificar(_FakeClipStore(), _VisionClientWithUsage(), rag, _FakeSalesCatalog())
+
+    assert result.status == "encontrado_externo"
+    assert result.prompt_tokens == 1050
+    assert result.completion_tokens == 65
+    assert result.cost_prompt_usd == 0.00525
+    assert result.cost_completion_usd == 0.000975
+    assert result.estimated_cost_usd == 0.006225
+    assert result.model_name == "google/gemma-4-31b-it:free"
+
+
+async def test_identificacao_externa_nao_identificado_ainda_propaga_metricas():
+    from app.router.openrouter_client import VisionResult
+
+    res_raw = VisionResult(
+        content=json.dumps({"produto": "Desconhecido", "e_do_portfolio": False, "confianca": 0.2}),
+        prompt_tokens=900,
+        completion_tokens=30,
+        total_tokens=930,
+        cost_prompt_usd=0.0045,
+        cost_completion_usd=0.00045,
+        estimated_cost_usd=0.00495,
+        model_name="google/gemma-4-31b-it:free",
+    )
+
+    class _VisionClientNotIdentified:
+        async def describe_image(self, image_bytes: bytes, prompt: str):
+            return res_raw
+
+    rag = _FakeRAGClient()
+    result = await _identificar(_FakeClipStore(), _VisionClientNotIdentified(), rag, _FakeSalesCatalog())
+
+    assert result.status == "nao_identificado"
+    assert result.prompt_tokens == 900
+    assert result.completion_tokens == 30
+    assert result.cost_prompt_usd == 0.0045
+    assert result.cost_completion_usd == 0.00045
+    assert result.estimated_cost_usd == 0.00495
+    assert result.model_name == "google/gemma-4-31b-it:free"
+

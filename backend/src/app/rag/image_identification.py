@@ -90,6 +90,13 @@ class ImageIdentificationResult(BaseModel):
     confianca_interna: float | None = None
     confianca_externa: float | None = None
     mensagem: str | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+    cost_prompt_usd: float | None = None
+    cost_completion_usd: float | None = None
+    estimated_cost_usd: float | None = None
+    model_name: str | None = None
 
 
 class _VisionAnswer(BaseModel):
@@ -163,10 +170,28 @@ async def identify_product_by_image(
         logger.info("identify_image vision_indisponivel -> nao_identificado")
         return ImageIdentificationResult(status="nao_identificado", mensagem=_NAO_IDENTIFICADO_MSG)
 
+    v_prompt_tokens = getattr(raw, "prompt_tokens", None)
+    v_comp_tokens = getattr(raw, "completion_tokens", None)
+    v_total_tokens = getattr(raw, "total_tokens", None)
+    v_cost_prompt = getattr(raw, "cost_prompt_usd", None)
+    v_cost_comp = getattr(raw, "cost_completion_usd", None)
+    v_cost_total = getattr(raw, "estimated_cost_usd", None)
+    v_model_name = getattr(raw, "model_name", None)
+
     answer = _parse_vision_answer(raw)
     # 3) Decisão sobre a resposta do externo.
     if answer is None or not answer.e_do_portfolio or answer.confianca < external_confidence:
-        return ImageIdentificationResult(status="nao_identificado", mensagem=_NAO_IDENTIFICADO_MSG)
+        return ImageIdentificationResult(
+            status="nao_identificado",
+            mensagem=_NAO_IDENTIFICADO_MSG,
+            prompt_tokens=v_prompt_tokens,
+            completion_tokens=v_comp_tokens,
+            total_tokens=v_total_tokens,
+            cost_prompt_usd=v_cost_prompt,
+            cost_completion_usd=v_cost_comp,
+            estimated_cost_usd=v_cost_total,
+            model_name=v_model_name,
+        )
 
     ficha = await _ficha_do_banco(sales_catalog_client, answer.produto, None)
     if ficha is not None:
@@ -183,6 +208,13 @@ async def identify_product_by_image(
         fonte=fonte,
         detalhes=detalhes,
         confianca_externa=answer.confianca,
+        prompt_tokens=v_prompt_tokens,
+        completion_tokens=v_comp_tokens,
+        total_tokens=v_total_tokens,
+        cost_prompt_usd=v_cost_prompt,
+        cost_completion_usd=v_cost_comp,
+        estimated_cost_usd=v_cost_total,
+        model_name=v_model_name,
     )
 
 
