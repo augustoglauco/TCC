@@ -314,7 +314,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       e modal de criação manual `CreateChartModal` para inserção direta de dados pelo administrador (2026-10-04).
       Design Spec em [`docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md`](docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md).
       Planos de implementação em [`docs/superpowers/plans/2026-10-04-dashboards-dinamicos-admin.md`](docs/superpowers/plans/2026-10-04-dashboards-dinamicos-admin.md) e [`docs/superpowers/plans/2026-10-04-llm-dynamic-charts-agent.md`](docs/superpowers/plans/2026-10-04-llm-dynamic-charts-agent.md).
-- [ ] **Download de Documentos RAG de Origem Direta no Chat via Cards Ricos** —
+- [x] **Download de Documentos RAG de Origem Direta no Chat via Cards Ricos** —
       Identificar automaticamente documentos fonte no RAG com alto grau de relevância (`score >= 0.65`)
       na busca vetorial do Qdrant e emitir o card rico `CardDocumentoDownload` na resposta do chat.
       Servimento seguro de PDFs/textos via endpoint `GET /api/rag/documents/{id}/download`, com controle
