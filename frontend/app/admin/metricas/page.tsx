@@ -495,61 +495,61 @@ export default function AdminMetricasPage() {
           </button>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto min-h-[220px]">
           <table className="w-full text-left text-xs text-slate-700 border-collapse">
             <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
               <tr>
                 <th scope="col" className="px-5 py-3 relative group cursor-help">
                   <span>Data</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-44 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                  <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-30 w-44 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Data do encerramento da conversa
                   </div>
                 </th>
                 <th scope="col" className="px-5 py-3 relative group cursor-help">
                   <span>Chats Encerrados</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Total de atendimentos finalizados no dia
                   </div>
                 </th>
                 <th scope="col" className="px-5 py-3 relative group cursor-help">
                   <span>Tokens Internos (Entrada / Saída)</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Consumo de LLM em infraestrutura própria (Ollama Local)
                   </div>
                 </th>
                 <th scope="col" className="px-5 py-3 relative group cursor-help">
                   <span>Tokens Externos (Entrada / Saída)</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Consumo de modelos na nuvem pagando por token
                   </div>
                 </th>
                 <th scope="col" className="px-5 py-3 relative group cursor-help">
                   <span>Visão (Imagens / Custo)</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Chamadas para modelo multimodal de identificação de imagens
                   </div>
                 </th>
                 <th scope="col" className="px-5 py-3 relative group cursor-help">
                   <span>Ingestão (Op / Custo)</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Processamento de documentos e crawler de catálogo de produtos
                   </div>
                 </th>
                 <th scope="col" className="px-5 py-3 relative group cursor-help">
                   <span>Custo Entrada</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Custo em USD dos tokens de Entrada (Prompt/RAG/Contexto)
                   </div>
                 </th>
                 <th scope="col" className="px-5 py-3 relative group cursor-help">
                   <span>Custo Saída</span>
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Custo em USD dos tokens de Saída (Completion/Respostas)
                   </div>
                 </th>
                 <th scope="col" className="px-5 py-3 text-right relative group cursor-help">
                   <span>Custo Total</span>
-                  <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight text-left">
+                  <div className="absolute top-full right-0 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight text-left">
                     Consolidação total financeira em USD (LLM + Visão + Ingestão)
                   </div>
                 </th>
@@ -567,7 +567,9 @@ export default function AdminMetricasPage() {
                   </td>
                 </tr>
               ) : (
-                daily.map((item) => (
+                daily.map((item, index) => {
+                  const isFirstRow = index === 0;
+                  return (
                   <tr key={item.date} className="hover:bg-slate-50/80 transition-colors">
                     {/* Coluna 1: Data */}
                     <td className="px-5 py-3.5 align-top">
@@ -599,7 +601,7 @@ export default function AdminMetricasPage() {
                         </span>
                       </div>
                       {/* Bubble Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
                         <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-emerald-400">GPU Local (Ollama)</div>
                         <div>{`Prompt Interno: ${item.internal_prompt_tokens.toLocaleString("pt-BR")} tokens`}</div>
                         <div>{`Completion Interno: ${item.internal_completion_tokens.toLocaleString("pt-BR")} tokens`}</div>
@@ -621,7 +623,7 @@ export default function AdminMetricasPage() {
                         </span>
                       </div>
                       {/* Bubble Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
                         <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-blue-400">OpenRouter (Nuvem)</div>
                         <div>{`Prompt Externo: ${item.external_prompt_tokens.toLocaleString("pt-BR")} tokens`}</div>
                         <div>{`Completion Externo: ${item.external_completion_tokens.toLocaleString("pt-BR")} tokens`}</div>
@@ -643,7 +645,7 @@ export default function AdminMetricasPage() {
                         <span className="text-[10px] text-slate-400">Multimodal</span>
                       </div>
                       {/* Bubble Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
                         <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-sky-400">Visão Computacional</div>
                         <div>{`Imagens Processadas: ${item.vision_calls_count ?? 0}`}</div>
                         <div>{`Custo Visão: $${item.vision_cost_usd !== undefined ? item.vision_cost_usd.toFixed(4) : "0.0000"}`}</div>
@@ -667,7 +669,7 @@ export default function AdminMetricasPage() {
                         <span className="text-[10px] text-slate-400">RAG / Catálogo</span>
                       </div>
                       {/* Bubble Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
                         <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-teal-400">Ingestão & Dados</div>
                         <div>{`Total Operações: ${item.ingestion_calls_count ?? 0}`}</div>
                         <div>{`Tokens Ingestão: ${(item.ingestion_tokens ?? 0).toLocaleString("pt-BR")}`}</div>
@@ -684,7 +686,7 @@ export default function AdminMetricasPage() {
                         <span className="text-[10px] text-slate-400">Prompt</span>
                       </div>
                       {/* Bubble Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
                         <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-indigo-400">Custo Entrada</div>
                         <div>{`Subtotal Entrada: $${item.cost_prompt_usd.toFixed(4)}`}</div>
                       </div>
@@ -699,7 +701,7 @@ export default function AdminMetricasPage() {
                         <span className="text-[10px] text-slate-400">Completion</span>
                       </div>
                       {/* Bubble Tooltip */}
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
                         <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-amber-400">Custo Saída</div>
                         <div>{`Subtotal Saída: $${item.cost_completion_usd.toFixed(4)}`}</div>
                       </div>
@@ -714,14 +716,15 @@ export default function AdminMetricasPage() {
                         <span className="text-[10px] text-slate-400">Consolidado</span>
                       </div>
                       {/* Bubble Tooltip */}
-                      <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-30 w-56 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug text-left">
+                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} right-0 hidden group-hover:block z-30 w-56 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug text-left`}>
                         <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-purple-400">Consolidado do Dia</div>
                         <div>{`Total Diário: $${item.total_cost_usd.toFixed(4)}`}</div>
                         <div className="text-[10px] text-slate-400 mt-1">Inclui Atendimento, Visão e Ingestão</div>
                       </div>
                     </td>
                   </tr>
-                ))
+                );
+              })
               )}
             </tbody>
           </table>
