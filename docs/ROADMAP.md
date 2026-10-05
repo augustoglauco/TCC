@@ -319,6 +319,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       Servimento seguro de PDFs/textos via endpoint `GET /api/rag/documents/{id}/download`, com controle
       de permissão por finalidade (`purpose="admin"` exige token) e botão de download direto no widget.
       Design Spec em [`docs/superpowers/specs/2026-10-04-download-documentos-rag-chat-design.md`](docs/superpowers/specs/2026-10-04-download-documentos-rag-chat-design.md).
+      Plano de implementação em [`docs/superpowers/plans/2026-10-04-download-documentos-rag-chat.md`](docs/superpowers/plans/2026-10-04-download-documentos-rag-chat.md).
 
 ## Extra fora do MVP — Gestão de Produtos no Admin, Ingestão de Catálogos (PDF/Imagens) e Catálogo Visual CLIP
 
