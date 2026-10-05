@@ -603,6 +603,28 @@ NÃO inclua nada fora do bloco JSON.
 
 ---
 
+### 15. `backend/src/app/services/comprovante_evaluator.py`
+**Caminho:** [`backend/src/app/services/comprovante_evaluator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/services/comprovante_evaluator.py)
+
+Prompt de extração estruturada de comprovante financeiro e validação de equivalência de valores de reserva para conversão em venda nas 6 modalidades de comprovação.
+
+```python
+system_instruction = """Você é um auditor financeiro automatizado.
+Analise o documento de comprovante de pagamento fornecido e compare-o com os dados da reserva de estoque.
+
+Responda OBRIGATORIAMENTE em formato JSON válido contendo:
+{
+  "comprovante_valido": true/false,
+  "valor_pago_detectado": float,
+  "codigo_transacao": "string ou null",
+  "justificativa": "explicação curta da auditoria"
+}
+"""
+```
+
+---
+
 ## Conclusão
 
-Todos os **14 arquivos de código** que contêm instruções diretas, prompts de sistema, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
+Todos os **15 arquivos de código** que contêm instruções diretas, prompts de sistema, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
+
