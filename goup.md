@@ -494,3 +494,6 @@ Logs: `/tmp/tcc-backend.log`, `/tmp/tcc-frontend.log`,
 | Horário do agendamento deslocado | Fuso errado | `AGENDAMENTO_TIMEZONE=America/Sao_Paulo` no `.env` |
 | Agendamento "esquece" os dados no meio | Backend reiniciado: os dados da coleta ficam só em memória (`# MVP`) | Recomece a conversa de agendamento |
 
+
+apagar banco e qdrant: uv run python scripts/reset_produtos_e_qdrant.py --sim
+
