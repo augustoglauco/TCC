@@ -163,12 +163,14 @@ export interface ChatDoneEventData {
   perfil_motivo?: string | null;
   vision_used?: boolean | null;
   card?: ChatCard | null;
+  conversa_status?: string | null;
+  atendente_nome?: string | null;
 }
 
 /** Mensagem exibida no painel do chat (estado de UI, não o payload da API). */
 export interface ChatUIMessage {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "atendente";
   text: string;
   domain?: ChatDomain;
   // Só preenchido em mensagens do assistente — origem do modelo que gerou a
@@ -176,16 +178,18 @@ export interface ChatUIMessage {
   // externo (ver MessageBubble).
   backendUsed?: ChatBackendUsed;
   metrics?: ChatMetrics;
+  atendenteNome?: string;
   // Card rico (Fase 8) — produto, cotação ou confirmação de agendamento.
   card?: ChatCard;
 }
 
 /** Uma mensagem gravada da conversa — `GET /api/chat/conversations/{id}` (R9). */
 export interface ConversaMensagem {
-  papel: "cliente" | "assistente";
+  papel: "cliente" | "assistente" | "atendente";
   texto: string;
   dominio: ChatDomain | null;
   criada_em: string;
+  atendente_nome?: string | null;
   /** Evento `done` da resposta (só do assistente); `null` em mensagens antigas. */
   metricas: ChatDoneEventData | null;
 }

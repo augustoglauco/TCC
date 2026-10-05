@@ -8,6 +8,7 @@ import ImageUploader from "@/components/chat/ImageUploader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
 import { closeConversation, deleteConversation, sendChatMessage } from "@/lib/api/chat";
+import { solicitarTransbordo } from "@/lib/api/adminAtendimento";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import type { ChatEscalonamentoData } from "@/lib/types/chat";
@@ -111,6 +112,25 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     });
     const userEmail = useAuthStore.getState().user?.email;
     setConversationId(generateId(), userEmail);
+  }
+
+  async function handleSolicitarAtendente() {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("Deseja falar com um atendente humano? A IA será pausada nesta conversa.")
+    ) {
+      return;
+    }
+    try {
+      await solicitarTransbordo(conversationId, "solicitacao_cliente");
+      addMessage({
+        id: generateId(),
+        role: "assistant",
+        text: "⏳ Solicitação de atendimento humano enviada! Um atendente assumirá este chat em breve. Enquanto isso, o assistente automático está pausado.",
+      });
+    } catch {
+      window.alert("Não foi possível solicitar atendimento humano no momento. Tente novamente.");
+    }
   }
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -362,6 +382,16 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       headerActions={
         messages.length > 0 && (
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => void handleSolicitarAtendente()}
+              className="flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 sm:px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors"
+              title="Solicitar transbordo para atendimento humano"
+              aria-label="Falar com atendente humano"
+            >
+              <span>👤</span>
+              <span className="hidden sm:inline">Falar com atendente</span>
+            </button>
             <button
               type="button"
               onClick={() => void handleCloseConversation()}

@@ -57,11 +57,13 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   }, []);
 
   const isUser = message.role === "user";
-  const isExternalLlm = !isUser && message.backendUsed === "externo";
+  const isAtendente = message.role === "atendente";
+  const isExternalLlm = !isUser && !isAtendente && message.backendUsed === "externo";
   const domainLabel = message.domain ? (DOMAIN_LABELS[message.domain] ?? message.domain) : null;
   const metrics = message.metrics;
   const isVision = Boolean(
     !isUser &&
+      !isAtendente &&
       (metrics?.visionUsed ||
         message.backendUsed === "identificacao_imagem" ||
         (message.domain === "vendas" &&
@@ -89,12 +91,23 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm shadow-xs ${
           isUser
             ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-tr-xs"
-            : isExternalLlm
-              ? "bg-red-50 text-red-950 border border-red-200/80 rounded-tl-xs"
-              : "bg-slate-100 text-slate-900 border border-slate-200/60 rounded-tl-xs"
+            : isAtendente
+              ? "bg-emerald-50 text-emerald-950 border border-emerald-300 rounded-tl-xs"
+              : isExternalLlm
+                ? "bg-red-50 text-red-950 border border-red-200/80 rounded-tl-xs"
+                : "bg-slate-100 text-slate-900 border border-slate-200/60 rounded-tl-xs"
         }`}
       >
-        {!isUser && domainLabel && (
+        {isAtendente ? (
+          <div className="mb-1 flex items-center gap-1.5 flex-wrap">
+            <span
+              data-testid="message-atendente-badge"
+              className="inline-flex items-center gap-1 rounded bg-emerald-100 border border-emerald-300 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800"
+            >
+              👤 Atendente Humano {message.atendenteNome ? `(${message.atendenteNome})` : ""}
+            </span>
+          </div>
+        ) : !isUser && domainLabel && (
           <div className="mb-1 flex items-center gap-1.5 flex-wrap">
             <span
               data-testid="message-domain-label"
@@ -132,9 +145,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         <p className="leading-relaxed whitespace-pre-wrap">{message.text}</p>
       </div>
 
-      {!isUser && message.card && <ChatCard card={message.card} />}
+      {!isUser && !isAtendente && message.card && <ChatCard card={message.card} />}
 
-      {!isUser && showDetails && (
+      {!isUser && !isAtendente && showDetails && (
         <div
           className="flex flex-col max-w-full items-start space-y-1"
           // Chunks de RAG/motivo/fonte não cabem legíveis abaixo de ~16rem —
