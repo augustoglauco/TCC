@@ -283,6 +283,7 @@ def create_app() -> FastAPI:
     app.state.image_external_confidence = settings.image_external_confidence
     app.state.rag_top_k = settings.rag_top_k
     app.state.rag_score_threshold = settings.rag_score_threshold
+    app.state.rag_download_confidence_threshold = settings.rag_download_confidence_threshold
     app.state.intent_router_provider = DEFAULT_INTENT_ROUTER_PROVIDER
     # Monitor de Tom (R8, Fase 4B) — diferente de intent_router_provider
     # acima, aqui o valor inicial vem de settings/env (TONE_MONITOR_ENABLED/

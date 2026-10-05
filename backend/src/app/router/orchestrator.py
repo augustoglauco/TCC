@@ -6,16 +6,19 @@ import unicodedata
 from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.models import Agendamento
+from app.db.models import Agendamento, RagDocument
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
 from app.models.chat import (
     CardAgendamento,
     CardCotacao,
+    CardDocumentoDownload,
     CardGrafico,
     CardProduto,
     ChatCard,
@@ -25,6 +28,7 @@ from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
 )
+from app.rag.collections_registry import get_collection
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
@@ -528,6 +532,59 @@ def _construir_card_vendas(
     )
 
 
+async def _construir_card_documento_download(
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
+    documentos: list[Document],
+    domain: str,
+    threshold: float,
+) -> ChatCard | None:
+    """Card rico de download do documento-fonte quando o melhor chunk do
+    RAG bate com confiança alta (Fase 8, além do MVP) — ver
+    docs/superpowers/specs/2026-10-04-download-documentos-rag-chat-design.md.
+    Só emite para documentos de collections purpose="chat": é a única
+    combinação em que o link de download (endpoint público, ver
+    docs/ARCHITECTURE.md §7) funciona sem token para quem está vendo o
+    chat. Nunca levanta — mesmo espírito de `_consultar_vendas`/
+    `analyze_tone`: qualquer falha aqui não pode derrubar o turno."""
+    if not documentos or db_sessionmaker is None:
+        return None
+    melhor_chunk = max(documentos, key=lambda d: d.score)
+    if melhor_chunk.score < threshold:
+        return None
+    try:
+        async with db_sessionmaker() as session:
+            resultado = await session.execute(
+                select(RagDocument)
+                .where(RagDocument.filename == melhor_chunk.source, RagDocument.domain == domain)
+                .limit(1)
+            )
+            # MVP: casamento por filename+domain, não por document_id — o
+            # `Document` devolvido por `RAGClient.search` não carrega
+            # document_id, só o filename em `source` (ver
+            # app/router/rag_client.py / app/rag/qdrant_client.py).
+            doc = resultado.scalar_one_or_none()
+            if doc is None or not doc.storage_path:
+                return None
+            collection = await get_collection(session, doc.collection_id)
+            if collection is None or collection.purpose != "chat":
+                return None
+            try:
+                file_size = Path(doc.storage_path).stat().st_size
+            except OSError:
+                return None
+            return CardDocumentoDownload(
+                documento_id=str(doc.id),
+                filename=doc.filename,
+                domain=doc.domain,
+                score=melhor_chunk.score,
+                download_url=f"/api/rag/documents/{doc.id}/download",
+                file_size_bytes=file_size,
+            )
+    except Exception:
+        logger.exception("documento_download_card_falhou")
+        return None
+
+
 class RouterDecision(BaseModel):
     domain: str
     complexity: str
@@ -883,6 +940,7 @@ async def handle_message(
     db_sessionmaker: async_sessionmaker[AsyncSession] | None = None,
     rag_top_k: int = 3,
     rag_score_threshold: float = 0.35,
+    rag_download_threshold: float = 0.65,
     is_admin: bool = False,
     user_email: str | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
@@ -1375,7 +1433,10 @@ async def handle_message(
         # parâmetro bruto — não há `ClassificationResult` de onde tirar um
         # valor efetivo ali.
         router_provider=classification.provider_efetivo,
-        card=_construir_card_vendas(dados_catalogo_vendas),
+        card=_construir_card_vendas(dados_catalogo_vendas)
+        or await _construir_card_documento_download(
+            db_sessionmaker, documentos, classification.domain, rag_download_threshold
+        ),
     )
     logger.info(
         "router_decision",
