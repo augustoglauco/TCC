@@ -36,7 +36,7 @@
 - Consumes: `RagDocument` and `RagCollection` models from `app.db.models`.
 - Produces: `GET /api/rag/documents/{id}/download` HTTP endpoint returning `FileResponse`.
 
-- [ ] **Step 1: Write failing test for document download endpoint**
+- [x] **Step 1: Write failing test for document download endpoint**
 
 ```python
 import pytest
@@ -61,12 +61,12 @@ async def test_download_rag_document_success(async_client: AsyncClient, db_sessi
     assert response.content == b"%PDF-1.4 mock content"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `PYTHONPATH=backend/src backend/.venv/bin/pytest backend/tests/test_rag_document_download_api.py -v`
 Expected: FAIL 404 Not Found.
 
-- [ ] **Step 3: Implement endpoint in `app/api/rag.py`**
+- [x] **Step 3: Implement endpoint in `app/api/rag.py`**
 
 ```python
 from fastapi.responses import FileResponse
@@ -100,12 +100,12 @@ async def download_rag_document(
     )
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `PYTHONPATH=backend/src backend/.venv/bin/pytest backend/tests/test_rag_document_download_api.py -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add backend/src/app/api/rag.py backend/tests/test_rag_document_download_api.py

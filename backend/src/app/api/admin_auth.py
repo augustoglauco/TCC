@@ -16,12 +16,20 @@ from app.api.auth import verificar_admin_por_token
 from app.api.rag_dependencies import get_db_session
 
 
-async def require_admin(
-    session: AsyncSession = Depends(get_db_session),
-    authorization: Annotated[str | None, Header()] = None,
-    x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
-    token_param: Annotated[str | None, Query(alias="token")] = None,
-) -> None:
+async def _is_admin(
+    session: AsyncSession,
+    authorization: str | None,
+    x_auth_token: str | None,
+    token_param: str | None,
+) -> bool:
+    """Extrai o token admin de `Authorization`/`X-Auth-Token`/`?token=`
+    (nessa prioridade) e valida contra `verificar_admin_por_token`.
+
+    Extraído de `require_admin` em 2026-10-05 para ser reutilizado por
+    `GET /api/rag/documents/{id}/download` (`app.api.rag`), que só exige
+    este mesmo check quando a collection de origem do documento não tem
+    `purpose="chat"` — ver decisão em `docs/ARCHITECTURE.md` §7. Mantém a
+    lógica de extração do token em um único lugar."""
     token: str | None = None
     if authorization:
         parts = authorization.split()
@@ -34,7 +42,16 @@ async def require_admin(
     elif token_param:
         token = token_param
 
-    if not token or not await verificar_admin_por_token(session, token):
+    return bool(token) and await verificar_admin_por_token(session, token)
+
+
+async def require_admin(
+    session: AsyncSession = Depends(get_db_session),
+    authorization: Annotated[str | None, Header()] = None,
+    x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
+    token_param: Annotated[str | None, Query(alias="token")] = None,
+) -> None:
+    if not await _is_admin(session, authorization, x_auth_token, token_param):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso restrito a administradores autenticados.",
