@@ -7,7 +7,7 @@
 // `docs/FRONTEND.md` §8. Ver
 // docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md e
 // docs/superpowers/specs/2026-09-15-rag-collections-config-design.md.
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CollectionFormModal } from "@/components/admin/CollectionFormModal";
 import { CollectionsTable } from "@/components/admin/CollectionsTable";
@@ -47,11 +47,51 @@ function AbaEnviarDocumento({
 }) {
   const token = useAuthStore((s) => s.token);
   const [file, setFile] = useState<File | null>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [domain, setDomain] = useState<RagDomain>("vendas");
   const [collectionId, setCollectionId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<DocumentIngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDraggingOver) {
+      setIsDraggingOver(true);
+    }
+  }
+
+  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDraggingOver(false);
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    const droppedFiles = e.dataTransfer.files;
+    if (!droppedFiles || droppedFiles.length === 0) return;
+
+    const droppedFile = droppedFiles[0];
+    const extensao = "." + (droppedFile.name.split(".").pop() || "").toLowerCase();
+    const permitidos = ACCEPTED_EXTENSIONS.split(",").map((ext) => ext.trim().toLowerCase());
+
+    if (!permitidos.includes(extensao)) {
+      setError(
+        `Formato de arquivo não suportado (${extensao}). Formatos aceitos: ${ACCEPTED_EXTENSIONS}`,
+      );
+      return;
+    }
+
+    setFile(droppedFile);
+    setError(null);
+  }
 
   const [criandoCollection, setCriandoCollection] = useState(false);
   const [modalCriarAberto, setModalCriarAberto] = useState(false);
@@ -151,6 +191,9 @@ function AbaEnviarDocumento({
       });
       setResult(response);
       setFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       form.reset();
       onIngerido();
     } catch (err) {
@@ -339,23 +382,84 @@ function AbaEnviarDocumento({
           <label htmlFor="file" className="block text-sm font-semibold text-slate-900">
             Arquivo
           </label>
-          <div className="relative border-2 border-dashed border-slate-300 hover:border-blue-500 transition-colors rounded-2xl p-6 bg-slate-50/50 hover:bg-blue-50/30 text-center space-y-2 group cursor-pointer">
+          <div
+            data-testid="document-dropzone"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                fileInputRef.current?.click();
+              }
+            }}
+            tabIndex={0}
+            role="button"
+            aria-label="Selecionar ou soltar arquivo para ingestão"
+            className={`relative border-2 border-dashed transition-all rounded-2xl p-6 text-center space-y-2 group cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+              isDraggingOver
+                ? "border-blue-500 bg-blue-50/80 scale-[1.01] shadow-md ring-2 ring-blue-500/30"
+                : "border-slate-300 hover:border-blue-500 bg-slate-50/50 hover:bg-blue-50/30"
+            }`}
+          >
             <input
+              ref={fileInputRef}
               id="file"
               type="file"
               accept={ACCEPTED_EXTENSIONS}
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+              onChange={(event) => {
+                const selected = event.target.files?.[0] ?? null;
+                setFile(selected);
+                if (selected) setError(null);
+              }}
+              className="sr-only"
             />
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-600 text-2xl group-hover:scale-110 transition-transform">
+            <div
+              className={`mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-2xl transition-transform ${
+                isDraggingOver
+                  ? "bg-blue-200 text-blue-700 scale-110"
+                  : "bg-blue-100 text-blue-600 group-hover:scale-110"
+              }`}
+            >
               📄
             </div>
-            {file ? (
+            {isDraggingOver ? (
               <div className="space-y-1">
-                <p className="text-sm font-bold text-slate-900">{file.name}</p>
-                <p className="text-xs text-slate-500">
-                  {(file.size / 1024).toFixed(1)} KB — Pronto para envio
+                <p className="text-sm font-bold text-blue-600">
+                  Solte o arquivo aqui para selecionar
                 </p>
+                <p className="text-xs text-blue-500">
+                  Formatos aceitos: .pdf, .txt, .md
+                </p>
+              </div>
+            ) : file ? (
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-slate-900">{file.name}</p>
+                  <p className="text-xs text-slate-500">
+                    {(file.size / 1024).toFixed(1)} KB — Pronto para envio
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-3 pt-1">
+                  <span className="text-xs text-blue-600 font-medium hover:underline">
+                    Clique ou arraste outro arquivo para trocar
+                  </span>
+                  <span className="text-slate-300">|</span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFile(null);
+                      if (fileInputRef.current) {
+                        fileInputRef.current.value = "";
+                      }
+                    }}
+                    className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+                  >
+                    ✕ Remover
+                  </button>
+                </div>
               </div>
             ) : (
               <div>

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -218,5 +218,88 @@ describe("IngestaoDocumentosPage", () => {
       domain: "vendas",
       collectionId: "col-1",
     });
+  });
+
+  it("destaca a área de dropzone ao arrastar arquivo e remove o destaque ao sair", async () => {
+    render(<IngestaoDocumentosPage />);
+    const dropzone = await screen.findByTestId("document-dropzone");
+
+    expect(screen.queryByText("Solte o arquivo aqui para selecionar")).not.toBeInTheDocument();
+
+    fireEvent.dragOver(dropzone, { dataTransfer: { files: [] } });
+    expect(screen.getByText("Solte o arquivo aqui para selecionar")).toBeInTheDocument();
+
+    fireEvent.dragLeave(dropzone);
+    expect(screen.queryByText("Solte o arquivo aqui para selecionar")).not.toBeInTheDocument();
+  });
+
+  it("aceita arquivo solto por drag and drop (.pdf), atualiza estado e permite envio", async () => {
+    const user = userEvent.setup();
+    mockedUploadDocument.mockResolvedValueOnce({
+      filename: "manual.pdf",
+      domain: "vendas",
+      chunks: 5,
+    });
+
+    render(<IngestaoDocumentosPage />);
+    const dropzone = await screen.findByTestId("document-dropzone");
+
+    const pdfFile = new File(["dummy pdf content"], "manual.pdf", { type: "application/pdf" });
+    fireEvent.drop(dropzone, {
+      dataTransfer: {
+        files: [pdfFile],
+      },
+    });
+
+    expect(await screen.findByText("manual.pdf")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enviar para ingestão" })).not.toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Enviar para ingestão" }));
+
+    expect(mockedUploadDocument).toHaveBeenCalledWith("mock-token-1", {
+      file: pdfFile,
+      domain: "vendas",
+      collectionId: "col-1",
+    });
+    expect(await screen.findByText(/5 chunk\(s\) gravado\(s\)/)).toBeInTheDocument();
+  });
+
+  it("rejeita arquivo com extensão inválida ao soltar por drag and drop e exibe erro", async () => {
+    render(<IngestaoDocumentosPage />);
+    const dropzone = await screen.findByTestId("document-dropzone");
+
+    const invalidFile = new File(["dummy"], "foto.png", { type: "image/png" });
+    fireEvent.drop(dropzone, {
+      dataTransfer: {
+        files: [invalidFile],
+      },
+    });
+
+    expect(
+      await screen.findByText(/Formato de arquivo não suportado \(\.png\)/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enviar para ingestão" })).toBeDisabled();
+  });
+
+  it("permite remover arquivo selecionado limpando o estado e desabilitando o envio", async () => {
+    const user = userEvent.setup();
+    render(<IngestaoDocumentosPage />);
+    const dropzone = await screen.findByTestId("document-dropzone");
+
+    const txtFile = new File(["conteudo"], "dados.txt", { type: "text/plain" });
+    fireEvent.drop(dropzone, {
+      dataTransfer: {
+        files: [txtFile],
+      },
+    });
+
+    expect(await screen.findByText("dados.txt")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enviar para ingestão" })).not.toBeDisabled();
+
+    const botaoRemover = screen.getByRole("button", { name: /Remover/i });
+    await user.click(botaoRemover);
+
+    expect(screen.queryByText("dados.txt")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Enviar para ingestão" })).toBeDisabled();
   });
 });
