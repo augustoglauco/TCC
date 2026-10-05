@@ -155,6 +155,9 @@ class ChatDoneEventData(BaseModel):
     completion_tokens: int | None = Field(
         default=None, description="Quantidade de tokens de saída (resposta)."
     )
+    total_tokens: int | None = Field(
+        default=None, description="Quantidade total de tokens (prompt + completion)."
+    )
     latency_ms: float | None = Field(
         default=None, description="Tempo total de latência da resposta em ms."
     )

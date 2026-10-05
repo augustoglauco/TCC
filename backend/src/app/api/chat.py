@@ -652,12 +652,27 @@ async def send_message(
             # MVP: sem card rico (Fase 8) neste caminho — o produto
             # identificado por imagem só tem `resultado` (evento SSE
             # `identification`, acima) e a ficha em texto; a construção do
-            # card (`orchestrator._construir_card_vendas`) só existe no
-            # caminho de resolução por texto em Vendas.
+            has_vision_call = (
+                resultado.prompt_tokens is not None
+                or resultado.cost_prompt_usd is not None
+                or (resultado.fonte and "visao_externa" in resultado.fonte)
+            )
+            backend_used = "externo" if has_vision_call else "identificacao_imagem"
+            total_tokens = resultado.total_tokens
+            if total_tokens is None and (resultado.prompt_tokens is not None or resultado.completion_tokens is not None):
+                total_tokens = (resultado.prompt_tokens or 0) + (resultado.completion_tokens or 0)
+
             done_data = ChatDoneEventData(
                 domain="vendas",
-                backend_used="identificacao_imagem",
+                backend_used=backend_used,
                 escalation_reason="nenhum",
+                model_name=resultado.model_name,
+                prompt_tokens=resultado.prompt_tokens,
+                completion_tokens=resultado.completion_tokens,
+                total_tokens=total_tokens,
+                cost_prompt_usd=resultado.cost_prompt_usd,
+                cost_completion_usd=resultado.cost_completion_usd,
+                estimated_cost_usd=resultado.estimated_cost_usd,
             )
             await _registrar_troca_segura(
                 request.app.state,
