@@ -33,7 +33,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.admin_auth import _is_admin, require_admin
+from app.api.admin_auth import is_admin_request, require_admin
 from app.api.rag_dependencies import (
     get_db_session,
     get_embedder_registry,
@@ -249,7 +249,7 @@ async def download_document_endpoint(
 
     collection = await get_collection(session, document.collection_id)
     if collection is None or collection.purpose != "chat":
-        if not await _is_admin(session, authorization, x_auth_token, token_param):
+        if not await is_admin_request(session, authorization, x_auth_token, token_param):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Acesso restrito a administradores autenticados.",
@@ -289,7 +289,7 @@ async def download_document_endpoint(
         path=file_path,
         media_type=media_type,
         filename=document.filename,
-        headers={"Content-Disposition": f'attachment; filename="{document.filename}"'},
+        content_disposition_type="attachment",
     )
 
 

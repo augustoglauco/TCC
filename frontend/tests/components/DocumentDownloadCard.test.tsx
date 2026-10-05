@@ -4,9 +4,7 @@ import { describe, expect, it } from "vitest";
 import DocumentDownloadCard from "@/components/chat/cards/DocumentDownloadCard";
 import type { ChatCardDocumentoDownload } from "@/lib/types/chat";
 
-function makeCard(
-  overrides: Partial<ChatCardDocumentoDownload> = {},
-): ChatCardDocumentoDownload {
+function makeCard(overrides: Partial<ChatCardDocumentoDownload> = {}): ChatCardDocumentoDownload {
   return {
     tipo: "documento_download",
     documento_id: "doc-123",

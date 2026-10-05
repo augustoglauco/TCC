@@ -9,8 +9,7 @@ público sem token — ver docs/ARCHITECTURE.md §7).
 """
 
 import uuid
-
-import pytest
+from datetime import UTC, datetime
 
 from app.db.models import RagCollection, RagDocument
 from app.models.chat import CardDocumentoDownload
@@ -195,6 +194,107 @@ async def test_card_nao_emitido_quando_db_sessionmaker_e_none():
 
 
 async def test_card_nao_emitido_quando_lista_de_documentos_vazia(db_session):
-    card = await _construir_card_documento_download(_MockSessionMaker(db_session), [], "suporte", 0.65)
+    card = await _construir_card_documento_download(
+        _MockSessionMaker(db_session), [], "suporte", 0.65
+    )
 
     assert card is None
+
+
+async def test_card_resolve_documento_correto_quando_filename_duplicado_entre_collections(
+    db_session, tmp_path
+):
+    """Achado importante 1 da revisão final: `reingest_document`
+    (app/rag/ingest.py) cria deliberadamente uma NOVA linha `RagDocument`
+    com o mesmo filename+domain numa collection diferente ao reingerir —
+    duplicatas entre collections são estado normal, não corner case. A
+    query do card precisa resolver sempre a linha de uma collection
+    `purpose="chat"`, nunca uma de `purpose="admin"` (ou outro), mesmo
+    quando as duas casam por filename+domain."""
+    col_admin = _make_collection("admin")
+    col_chat = _make_collection("chat")
+    arquivo = tmp_path / "Manual_GD30.pdf"
+    conteudo = b"conteudo do manual reingerido"
+    arquivo.write_bytes(conteudo)
+
+    doc_admin = RagDocument(
+        id=uuid.uuid4(),
+        collection_id=col_admin.id,
+        filename="Manual_GD30.pdf",
+        domain="suporte",
+        chunk_count=5,
+        storage_path=str(tmp_path / "Manual_GD30_admin_nao_deveria_ser_escolhido.pdf"),
+        origin="upload",
+    )
+    doc_chat = RagDocument(
+        id=uuid.uuid4(),
+        collection_id=col_chat.id,
+        filename="Manual_GD30.pdf",
+        domain="suporte",
+        chunk_count=5,
+        storage_path=str(arquivo),
+        origin="upload",
+    )
+    db_session.add_all([col_admin, col_chat, doc_admin, doc_chat])
+    await db_session.commit()
+
+    documentos = [Document(content="trecho relevante", source="Manual_GD30.pdf", score=0.88)]
+
+    card = await _construir_card_documento_download(
+        _MockSessionMaker(db_session), documentos, "suporte", 0.65
+    )
+
+    assert card is not None
+    assert card.documento_id == str(doc_chat.id)
+    assert card.file_size_bytes == len(conteudo)
+
+
+async def test_card_resolve_documento_mais_recente_quando_duas_collections_purpose_chat(
+    db_session, tmp_path
+):
+    """Desempate determinístico: se mais de uma linha `purpose="chat"`
+    casar por filename+domain (ex.: duas reingestões sucessivas em
+    collections `chat` diferentes), o card deve apontar para a mais
+    recente (`created_at` maior), não para uma escolhida arbitrariamente
+    pelo banco."""
+    col_chat_antiga = _make_collection("chat")
+    col_chat_nova = _make_collection("chat")
+
+    arquivo_antigo = tmp_path / "antigo.pdf"
+    arquivo_antigo.write_bytes(b"versao antiga")
+    arquivo_novo = tmp_path / "novo.pdf"
+    conteudo_novo = b"versao nova reingerida"
+    arquivo_novo.write_bytes(conteudo_novo)
+
+    doc_antigo = RagDocument(
+        id=uuid.uuid4(),
+        collection_id=col_chat_antiga.id,
+        filename="Manual_GD30.pdf",
+        domain="suporte",
+        chunk_count=5,
+        storage_path=str(arquivo_antigo),
+        origin="upload",
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+    doc_novo = RagDocument(
+        id=uuid.uuid4(),
+        collection_id=col_chat_nova.id,
+        filename="Manual_GD30.pdf",
+        domain="suporte",
+        chunk_count=5,
+        storage_path=str(arquivo_novo),
+        origin="upload",
+        created_at=datetime(2026, 6, 1, tzinfo=UTC),
+    )
+    db_session.add_all([col_chat_antiga, col_chat_nova, doc_antigo, doc_novo])
+    await db_session.commit()
+
+    documentos = [Document(content="trecho relevante", source="Manual_GD30.pdf", score=0.88)]
+
+    card = await _construir_card_documento_download(
+        _MockSessionMaker(db_session), documentos, "suporte", 0.65
+    )
+
+    assert card is not None
+    assert card.documento_id == str(doc_novo.id)
+    assert card.file_size_bytes == len(conteudo_novo)

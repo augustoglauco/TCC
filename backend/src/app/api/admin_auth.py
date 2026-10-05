@@ -16,7 +16,7 @@ from app.api.auth import verificar_admin_por_token
 from app.api.rag_dependencies import get_db_session
 
 
-async def _is_admin(
+async def is_admin_request(
     session: AsyncSession,
     authorization: str | None,
     x_auth_token: str | None,
@@ -51,7 +51,7 @@ async def require_admin(
     x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
     token_param: Annotated[str | None, Query(alias="token")] = None,
 ) -> None:
-    if not await _is_admin(session, authorization, x_auth_token, token_param):
+    if not await is_admin_request(session, authorization, x_auth_token, token_param):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso restrito a administradores autenticados.",

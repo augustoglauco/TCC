@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.models import Agendamento, RagDocument
+from app.db.models import Agendamento, RagCollection, RagDocument
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
 from app.models.chat import (
     CardAgendamento,
@@ -28,7 +28,6 @@ from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
 )
-from app.rag.collections_registry import get_collection
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
@@ -555,20 +554,37 @@ async def _construir_card_documento_download(
         async with db_sessionmaker() as session:
             resultado = await session.execute(
                 select(RagDocument)
-                .where(RagDocument.filename == melhor_chunk.source, RagDocument.domain == domain)
+                .join(RagCollection, RagDocument.collection_id == RagCollection.id)
+                .where(
+                    RagDocument.filename == melhor_chunk.source,
+                    RagDocument.domain == domain,
+                    RagCollection.purpose == "chat",
+                )
+                .order_by(RagDocument.created_at.desc())
                 .limit(1)
             )
             # MVP: casamento por filename+domain, não por document_id — o
             # `Document` devolvido por `RAGClient.search` não carrega
             # document_id, só o filename em `source` (ver
-            # app/router/rag_client.py / app/rag/qdrant_client.py).
+            # app/router/rag_client.py / app/rag/qdrant_client.py). O join
+            # com `RagCollection` e o filtro por `purpose="chat"` já
+            # resolvem a ambiguidade de `reingest_document` (app/rag/
+            # ingest.py) criar uma nova linha com o mesmo filename+domain em
+            # outra collection — duplicatas entre collections são estado
+            # normal, não um corner case (achado importante 1 da revisão
+            # final). `order_by(created_at desc)` é só o critério de
+            # desempate caso ainda sobre mais de uma linha `purpose="chat"`.
             doc = resultado.scalar_one_or_none()
             if doc is None or not doc.storage_path:
                 return None
-            collection = await get_collection(session, doc.collection_id)
-            if collection is None or collection.purpose != "chat":
-                return None
             try:
+                # Intencionalmente mais estrito que a cadeia de fallback do
+                # endpoint de download (`download_document_endpoint`, app/
+                # api/rag.py): aqui só `storage_path` é checado, sem tentar
+                # `uploads_dir / filename` nem `uploads_dir /
+                # f"{id}_{filename}"`. Um documento cujo arquivo só resolve
+                # via fallback simplesmente não ganha card — nunca um link
+                # morto no chat (achado menor 4 da revisão final).
                 file_size = Path(doc.storage_path).stat().st_size
             except OSError:
                 return None
@@ -581,7 +597,16 @@ async def _construir_card_documento_download(
                 file_size_bytes=file_size,
             )
     except Exception:
-        logger.exception("documento_download_card_falhou")
+        logger.exception(
+            "documento_download_card_falhou",
+            extra={
+                "router": {
+                    "event": "documento_download_card_falhou",
+                    "domain": domain,
+                    "score": melhor_chunk.score,
+                }
+            },
+        )
         return None
 
 
