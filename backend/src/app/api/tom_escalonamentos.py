@@ -7,6 +7,7 @@ dedicada nesta entrega, só a API, para inspeção manual/demonstração.
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.admin_auth import require_admin
 from app.api.rag_dependencies import get_db_session
 from app.models.tom_escalonamentos import EscalonamentoResponse
 from app.router.tone_monitor import listar_escalonamentos
@@ -17,6 +18,7 @@ router = APIRouter(prefix="/api/admin/tom", tags=["tom-escalonamentos"])
 @router.get("/escalonamentos", response_model=list[EscalonamentoResponse])
 async def get_escalonamentos(
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> list[EscalonamentoResponse]:
     # MVP: LIMIT 100 fixo, sem paginação — mesma simplicidade de outras
     # listagens administrativas do projeto.

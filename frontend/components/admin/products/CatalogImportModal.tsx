@@ -7,6 +7,7 @@ import {
   confirmCatalogExtraction,
   uploadTempImage,
 } from "@/lib/api/adminProducts";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type {
   ExtractedProductItem,
   CatalogExtractionProgress,
@@ -54,6 +55,7 @@ export default function CatalogImportModal({
   onClose,
   onSuccess,
 }: CatalogImportModalProps) {
+  const token = useAuthStore((s) => s.token);
   const [step, setStep] = useState<ModalStep>("upload");
   const [files, setFiles] = useState<File[]>([]);
   const [pageRange, setPageRange] = useState("");
@@ -170,6 +172,7 @@ export default function CatalogImportModal({
       setError("Selecione pelo menos um arquivo de catálogo (PDF, imagens ou texto).");
       return;
     }
+    if (!token) return;
 
     setStep("extracting");
     setError(null);
@@ -178,6 +181,7 @@ export default function CatalogImportModal({
     setProgress({ pagina: 0, total: 0, status: "Iniciando processamento..." });
 
     await extractCatalogStream(
+      token,
       files,
       { provider, fallbackExternal, pageRange: pageRange.trim() || undefined },
       {
@@ -233,10 +237,10 @@ export default function CatalogImportModal({
   };
 
   const handleUploadPhotoForProduct = async (file: File) => {
-    if (!pickerProduct) return;
+    if (!pickerProduct || !token) return;
     setUploadingPickerPhoto(true);
     try {
-      const url = await uploadTempImage(file);
+      const url = await uploadTempImage(token, file);
       const updatedFotos = pickerProduct.fotos_pagina
         ? [...pickerProduct.fotos_pagina, url]
         : [url];
@@ -276,11 +280,12 @@ export default function CatalogImportModal({
       setError("Selecione pelo menos um produto para salvar no catálogo.");
       return;
     }
+    if (!token) return;
 
     setSaving(true);
     setError(null);
     try {
-      await confirmCatalogExtraction({
+      await confirmCatalogExtraction(token, {
         produtos: selected.map((p) => ({
           nome: p.nome,
           descricao: p.descricao || "",

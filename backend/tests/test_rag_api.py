@@ -27,7 +27,7 @@ def _build_app(rag_client, db_session, uploads_dir) -> FastAPI:
 
 
 def test_upload_documento_txt_ingere_e_retorna_numero_de_chunks(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
@@ -36,6 +36,7 @@ def test_upload_documento_txt_ingere_e_retorna_numero_de_chunks(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"Conteudo de exemplo sobre o catalogo.", "text/plain")},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -47,7 +48,7 @@ def test_upload_documento_txt_ingere_e_retorna_numero_de_chunks(
 
 
 def test_upload_com_collection_id_explicito_usa_essa_collection(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     import asyncio
 
@@ -80,6 +81,7 @@ def test_upload_com_collection_id_explicito_usa_essa_collection(
         "/api/rag/documents",
         data={"domain": "vendas", "collection_id": str(outra.id)},
         files={"file": ("catalogo.txt", b"conteudo", "text/plain")},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -87,7 +89,9 @@ def test_upload_com_collection_id_explicito_usa_essa_collection(
     assert collection_name == "outra"
 
 
-def test_upload_com_collection_id_inexistente_retorna_404(db_session, active_collection, tmp_path):
+def test_upload_com_collection_id_inexistente_retorna_404(
+    db_session, active_collection, tmp_path, admin_headers
+):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
@@ -95,12 +99,13 @@ def test_upload_com_collection_id_inexistente_retorna_404(db_session, active_col
         "/api/rag/documents",
         data={"domain": "vendas", "collection_id": "00000000-0000-0000-0000-000000000000"},
         files={"file": ("catalogo.txt", b"conteudo", "text/plain")},
+        headers=admin_headers,
     )
 
     assert response.status_code == 404
 
 
-def test_upload_documento_pdf_ingere(db_session, active_collection, tmp_path):
+def test_upload_documento_pdf_ingere(db_session, active_collection, tmp_path, admin_headers):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
@@ -110,13 +115,16 @@ def test_upload_documento_pdf_ingere(db_session, active_collection, tmp_path):
         files={
             "file": ("manual.pdf", _build_minimal_pdf("Texto do manual em PDF"), "application/pdf")
         },
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
     assert response.json()["chunks"] == 1
 
 
-def test_upload_formato_nao_suportado_retorna_400(db_session, active_collection, tmp_path):
+def test_upload_formato_nao_suportado_retorna_400(
+    db_session, active_collection, tmp_path, admin_headers
+):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
@@ -124,13 +132,14 @@ def test_upload_formato_nao_suportado_retorna_400(db_session, active_collection,
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("planilha.csv", b"nao,suportado", "text/csv")},
+        headers=admin_headers,
     )
 
     assert response.status_code == 400
     assert fake.upserts == []
 
 
-def test_upload_domain_invalido_retorna_422(db_session, active_collection, tmp_path):
+def test_upload_domain_invalido_retorna_422(db_session, active_collection, tmp_path, admin_headers):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
@@ -138,12 +147,15 @@ def test_upload_domain_invalido_retorna_422(db_session, active_collection, tmp_p
         "/api/rag/documents",
         data={"domain": "agendamento"},
         files={"file": ("catalogo.txt", b"conteudo", "text/plain")},
+        headers=admin_headers,
     )
 
     assert response.status_code == 422
 
 
-def test_upload_com_qdrant_indisponivel_retorna_503(db_session, active_collection, tmp_path):
+def test_upload_com_qdrant_indisponivel_retorna_503(
+    db_session, active_collection, tmp_path, admin_headers
+):
     fake = _FakeQdrantRAGClient(error=RAGConnectionError("qdrant fora do ar"))
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
@@ -151,13 +163,14 @@ def test_upload_com_qdrant_indisponivel_retorna_503(db_session, active_collectio
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"conteudo", "text/plain")},
+        headers=admin_headers,
     )
 
     assert response.status_code == 503
 
 
 def test_upload_txt_com_encoding_invalido_retorna_400_em_vez_de_500(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
@@ -168,13 +181,16 @@ def test_upload_txt_com_encoding_invalido_retorna_400_em_vez_de_500(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", conteudo_invalido, "text/plain")},
+        headers=admin_headers,
     )
 
     assert response.status_code == 400
     assert fake.upserts == []
 
 
-def test_upload_pdf_corrompido_retorna_400_em_vez_de_500(db_session, active_collection, tmp_path):
+def test_upload_pdf_corrompido_retorna_400_em_vez_de_500(
+    db_session, active_collection, tmp_path, admin_headers
+):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
@@ -182,24 +198,25 @@ def test_upload_pdf_corrompido_retorna_400_em_vez_de_500(db_session, active_coll
         "/api/rag/documents",
         data={"domain": "suporte"},
         files={"file": ("manual.pdf", b"isto nao e um pdf valido", "application/pdf")},
+        headers=admin_headers,
     )
 
     assert response.status_code == 400
     assert fake.upserts == []
 
 
-def test_listar_documentos_vazio_retorna_lista_vazia(db_session, tmp_path):
+def test_listar_documentos_vazio_retorna_lista_vazia(db_session, tmp_path, admin_headers):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
-    response = client.get("/api/rag/documents")
+    response = client.get("/api/rag/documents", headers=admin_headers)
 
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_listar_documentos_apos_upload_retorna_o_documento_com_a_collection(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
@@ -207,9 +224,10 @@ def test_listar_documentos_apos_upload_retorna_o_documento_com_a_collection(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+        headers=admin_headers,
     )
 
-    response = client.get("/api/rag/documents")
+    response = client.get("/api/rag/documents", headers=admin_headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -223,7 +241,7 @@ def test_listar_documentos_apos_upload_retorna_o_documento_com_a_collection(
 
 
 async def test_listar_documentos_com_origem_crawler_nao_quebra_o_endpoint(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     """Achado #1 (crítico) da revisão final: `origin="crawler"` não estava no
     `Literal` de `DocumentRegistryResponse.origin`, então um único documento
@@ -247,7 +265,7 @@ async def test_listar_documentos_com_origem_crawler_nao_quebra_o_endpoint(
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
-    response = client.get("/api/rag/documents")
+    response = client.get("/api/rag/documents", headers=admin_headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -260,7 +278,7 @@ async def test_listar_documentos_com_origem_crawler_nao_quebra_o_endpoint(
 
 
 def test_excluir_documento_existente_remove_do_registro_do_qdrant_e_do_disco(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
@@ -268,32 +286,35 @@ def test_excluir_documento_existente_remove_do_registro_do_qdrant_e_do_disco(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+        headers=admin_headers,
     )
-    documento = client.get("/api/rag/documents").json()[0]
+    documento = client.get("/api/rag/documents", headers=admin_headers).json()[0]
     document_id = documento["id"]
 
-    response = client.delete(f"/api/rag/documents/{document_id}")
+    response = client.delete(f"/api/rag/documents/{document_id}", headers=admin_headers)
 
     assert response.status_code == 204
-    assert client.get("/api/rag/documents").json() == []
+    assert client.get("/api/rag/documents", headers=admin_headers).json() == []
     assert fake.deleted == [(active_collection.name, document_id)]
     arquivos_restantes = list((tmp_path).rglob("*catalogo.txt"))
     assert arquivos_restantes == []
 
 
-def test_excluir_documento_inexistente_retorna_404_sem_chamar_qdrant(db_session, tmp_path):
+def test_excluir_documento_inexistente_retorna_404_sem_chamar_qdrant(
+    db_session, tmp_path, admin_headers
+):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
     document_id = "00000000-0000-0000-0000-000000000000"
 
-    response = client.delete(f"/api/rag/documents/{document_id}")
+    response = client.delete(f"/api/rag/documents/{document_id}", headers=admin_headers)
 
     assert response.status_code == 404
     assert fake.deleted == []
 
 
 def test_reingest_documento_cria_novo_registro_na_collection_destino(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     import asyncio
 
@@ -305,8 +326,9 @@ def test_reingest_documento_cria_novo_registro_na_collection_destino(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+        headers=admin_headers,
     )
-    document_id = client.get("/api/rag/documents").json()[0]["id"]
+    document_id = client.get("/api/rag/documents", headers=admin_headers).json()[0]["id"]
     destino = asyncio.run(
         create_collection(
             db_session,
@@ -329,7 +351,9 @@ def test_reingest_documento_cria_novo_registro_na_collection_destino(
     )
 
     response = client.post(
-        f"/api/rag/documents/{document_id}/reingest", json={"target_collection_id": str(destino.id)}
+        f"/api/rag/documents/{document_id}/reingest",
+        json={"target_collection_id": str(destino.id)},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -339,20 +363,23 @@ def test_reingest_documento_cria_novo_registro_na_collection_destino(
     assert UUID(body["id"]) != UUID(document_id)
 
 
-def test_reingest_documento_inexistente_retorna_404(db_session, active_collection, tmp_path):
+def test_reingest_documento_inexistente_retorna_404(
+    db_session, active_collection, tmp_path, admin_headers
+):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
     response = client.post(
         "/api/rag/documents/00000000-0000-0000-0000-000000000000/reingest",
         json={"target_collection_id": str(active_collection.id)},
+        headers=admin_headers,
     )
 
     assert response.status_code == 404
 
 
 def test_reingest_para_a_propria_collection_de_origem_retorna_409(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
@@ -360,19 +387,21 @@ def test_reingest_para_a_propria_collection_de_origem_retorna_409(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+        headers=admin_headers,
     )
-    document_id = client.get("/api/rag/documents").json()[0]["id"]
+    document_id = client.get("/api/rag/documents", headers=admin_headers).json()[0]["id"]
 
     response = client.post(
         f"/api/rag/documents/{document_id}/reingest",
         json={"target_collection_id": str(active_collection.id)},
+        headers=admin_headers,
     )
 
     assert response.status_code == 409
 
 
 def test_reingest_para_collection_destino_inexistente_retorna_404(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
@@ -380,18 +409,22 @@ def test_reingest_para_collection_destino_inexistente_retorna_404(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+        headers=admin_headers,
     )
-    document_id = client.get("/api/rag/documents").json()[0]["id"]
+    document_id = client.get("/api/rag/documents", headers=admin_headers).json()[0]["id"]
 
     response = client.post(
         f"/api/rag/documents/{document_id}/reingest",
         json={"target_collection_id": "00000000-0000-0000-0000-000000000000"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 404
 
 
-async def test_reingest_com_erro_no_postgres_retorna_503(db_session, active_collection, tmp_path):
+async def test_reingest_com_erro_no_postgres_retorna_503(
+    db_session, active_collection, tmp_path, admin_headers
+):
     """`reingest_document_endpoint` também precisa tratar `SQLAlchemyError`
     como os outros três endpoints deste arquivo (achado #2 da revisão
     final) — antes só capturava `RAGConnectionError`."""
@@ -403,8 +436,9 @@ async def test_reingest_com_erro_no_postgres_retorna_503(db_session, active_coll
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+        headers=admin_headers,
     )
-    document_id = setup_client.get("/api/rag/documents").json()[0]["id"]
+    document_id = setup_client.get("/api/rag/documents", headers=admin_headers).json()[0]["id"]
     destino = await create_collection(
         db_session,
         name="destino",
@@ -426,14 +460,16 @@ async def test_reingest_com_erro_no_postgres_retorna_503(db_session, active_coll
     failing_client = TestClient(_build_app(fake, _CommitFailingSession(db_session), tmp_path))
 
     response = failing_client.post(
-        f"/api/rag/documents/{document_id}/reingest", json={"target_collection_id": str(destino.id)}
+        f"/api/rag/documents/{document_id}/reingest",
+        json={"target_collection_id": str(destino.id)},
+        headers=admin_headers,
     )
 
     assert response.status_code == 503
 
 
 async def test_reingest_com_arquivo_ausente_em_disco_retorna_404(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     """Achado #4 da revisão final: se o arquivo original foi apagado do
     disco entre a checagem de `storage_path is None` e a leitura de fato
@@ -448,8 +484,9 @@ async def test_reingest_com_arquivo_ausente_em_disco_retorna_404(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+        headers=admin_headers,
     )
-    document_id = client.get("/api/rag/documents").json()[0]["id"]
+    document_id = client.get("/api/rag/documents", headers=admin_headers).json()[0]["id"]
     destino = await create_collection(
         db_session,
         name="destino",
@@ -473,14 +510,16 @@ async def test_reingest_com_arquivo_ausente_em_disco_retorna_404(
     arquivos_salvos[0].unlink()
 
     response = client.post(
-        f"/api/rag/documents/{document_id}/reingest", json={"target_collection_id": str(destino.id)}
+        f"/api/rag/documents/{document_id}/reingest",
+        json={"target_collection_id": str(destino.id)},
+        headers=admin_headers,
     )
 
     assert response.status_code == 404
 
 
 def test_obter_conteudo_do_documento_retorna_arquivo_original(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
@@ -488,20 +527,23 @@ def test_obter_conteudo_do_documento_retorna_arquivo_original(
         "/api/rag/documents",
         data={"domain": "vendas"},
         files={"file": ("catalogo.txt", b"Conteudo do arquivo para teste.", "text/plain")},
+        headers=admin_headers,
     )
-    document_id = client.get("/api/rag/documents").json()[0]["id"]
+    document_id = client.get("/api/rag/documents", headers=admin_headers).json()[0]["id"]
 
-    response = client.get(f"/api/rag/documents/{document_id}/content")
+    response = client.get(f"/api/rag/documents/{document_id}/content", headers=admin_headers)
 
     assert response.status_code == 200
     assert response.content == b"Conteudo do arquivo para teste."
     assert response.headers["content-type"].startswith("text/plain")
 
 
-def test_obter_conteudo_de_documento_inexistente_retorna_404(db_session, tmp_path):
+def test_obter_conteudo_de_documento_inexistente_retorna_404(db_session, tmp_path, admin_headers):
     fake = _FakeQdrantRAGClient()
     client = TestClient(_build_app(fake, db_session, tmp_path))
 
-    response = client.get("/api/rag/documents/00000000-0000-0000-0000-000000000000/content")
+    response = client.get(
+        "/api/rag/documents/00000000-0000-0000-0000-000000000000/content", headers=admin_headers
+    )
 
     assert response.status_code == 404

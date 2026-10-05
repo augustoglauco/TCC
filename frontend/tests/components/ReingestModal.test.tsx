@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ReingestModal } from "@/components/admin/ReingestModal";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { DocumentRegistryEntry, RagCollection } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/rag", async () => {
@@ -58,6 +59,10 @@ const DOCUMENTO: DocumentRegistryEntry = {
 describe("ReingestModal", () => {
   beforeEach(() => {
     mockedReingest.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("não mostra a collection de origem entre os destinos", () => {
@@ -92,7 +97,7 @@ describe("ReingestModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Reingerir" }));
 
-    expect(mockedReingest).toHaveBeenCalledWith("doc-1", "destino");
+    expect(mockedReingest).toHaveBeenCalledWith("mock-token-1", "doc-1", "destino");
     expect(onReingested).toHaveBeenCalled();
   });
 
@@ -151,8 +156,8 @@ describe("ReingestModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Reingerir" }));
 
-    expect(mockedReingest).toHaveBeenCalledWith("doc-1", "destino");
-    expect(mockedReingest).not.toHaveBeenCalledWith("doc-1", DOCUMENTO.collection_id);
+    expect(mockedReingest).toHaveBeenCalledWith("mock-token-1", "doc-1", "destino");
+    expect(mockedReingest).not.toHaveBeenCalledWith("mock-token-1", "doc-1", DOCUMENTO.collection_id);
   });
 
   it("sem outra collection disponível, mostra aviso e desabilita o botão", () => {

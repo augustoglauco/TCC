@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { RagApiError, activateCollection, createCollection } from "@/lib/api/rag";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type {
   CollectionCreatePayload,
   CollectionPurpose,
@@ -53,6 +54,7 @@ export interface CollectionFormModalProps {
 }
 
 export function CollectionFormModal({ open, onOpenChange, onCreated }: CollectionFormModalProps) {
+  const token = useAuthStore((s) => s.token);
   const [name, setName] = useState("");
   const [purpose, setPurpose] = useState<CollectionPurpose>("chat");
   const [modelSelecionado, setModelSelecionado] = useState<string>(CURATED_MODELS[0].value);
@@ -124,7 +126,7 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmitting || chunkingInvalido || !embeddingModel) return;
+    if (isSubmitting || chunkingInvalido || !embeddingModel || !token) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -170,10 +172,10 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
     };
 
     try {
-      const collection = await createCollection(payload);
+      const collection = await createCollection(token, payload);
       if (ativarAposCriar) {
         try {
-          await activateCollection(collection.id);
+          await activateCollection(token, collection.id);
           collection.is_active = true;
         } catch {
           // Ativação não crítica pós-criação

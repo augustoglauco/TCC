@@ -111,7 +111,7 @@ async def test_extract_catalog_stream_imagem_sem_vision_client_reporta_erro(tmp_
 
 
 @pytest.mark.asyncio
-async def test_confirmar_catalogo_endpoint(app_sqlite):
+async def test_confirmar_catalogo_endpoint(app_sqlite, admin_headers):
     from httpx import ASGITransport, AsyncClient
 
     app = app_sqlite
@@ -130,6 +130,7 @@ async def test_confirmar_catalogo_endpoint(app_sqlite):
                     }
                 ]
             },
+            headers=admin_headers,
         )
         assert resp.status_code == 201
         data = resp.json()
@@ -139,7 +140,7 @@ async def test_confirmar_catalogo_endpoint(app_sqlite):
         assert data["produtos"][0]["nome"] == "Produto Teste Lote"
 
         # Limpa o produto criado
-        del_resp = await client.delete(f"/api/admin/produtos/{prod_id}")
+        del_resp = await client.delete(f"/api/admin/produtos/{prod_id}", headers=admin_headers)
         assert del_resp.status_code == 204
 
 
@@ -176,14 +177,16 @@ def test_extrair_figuras_pagina_filtra_ruido_e_recorta(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_upload_temp_endpoint(app_sqlite):
+async def test_upload_temp_endpoint(app_sqlite, admin_headers):
     from httpx import ASGITransport, AsyncClient
 
     app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         fake_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"  # noqa: E501
         files = {"file": ("manual_upload.png", fake_png, "image/png")}
-        resp = await client.post("/api/admin/produtos/upload-temp", files=files)
+        resp = await client.post(
+            "/api/admin/produtos/upload-temp", files=files, headers=admin_headers
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "imagem_temp_url" in data
@@ -191,7 +194,7 @@ async def test_upload_temp_endpoint(app_sqlite):
 
 
 @pytest.mark.asyncio
-async def test_confirmar_catalogo_com_imagem_temp(app_sqlite, tmp_path):
+async def test_confirmar_catalogo_com_imagem_temp(app_sqlite, tmp_path, admin_headers):
     from httpx import ASGITransport, AsyncClient
 
     # Cria arquivo temporário real no diretório de temp
@@ -223,6 +226,7 @@ async def test_confirmar_catalogo_com_imagem_temp(app_sqlite, tmp_path):
                         }
                     ]
                 },
+                headers=admin_headers,
             )
             assert resp.status_code == 201
             data = resp.json()
@@ -233,7 +237,7 @@ async def test_confirmar_catalogo_com_imagem_temp(app_sqlite, tmp_path):
             assert prod["imagem_url"].startswith("/api/uploads/produtos/")
 
             # Limpa
-            await client.delete(f"/api/admin/produtos/{prod['id']}")
+            await client.delete(f"/api/admin/produtos/{prod['id']}", headers=admin_headers)
 
 
 @pytest.mark.asyncio

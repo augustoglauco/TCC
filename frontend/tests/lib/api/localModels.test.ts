@@ -30,7 +30,7 @@ describe("activateModel", () => {
       ),
     );
 
-    await expect(activateModel("")).rejects.toMatchObject({
+    await expect(activateModel("mock-token", "")).rejects.toMatchObject({
       message: "name deve ter ao menos 1 caractere",
       status: 422,
     });
@@ -42,7 +42,7 @@ describe("activateModel", () => {
       vi.fn().mockResolvedValue(jsonResponse({ detail: "Modelo não encontrado." }, 404)),
     );
 
-    await expect(activateModel("modelo-x")).rejects.toMatchObject({
+    await expect(activateModel("mock-token", "modelo-x")).rejects.toMatchObject({
       message: "Modelo não encontrado.",
       status: 404,
     });
@@ -51,8 +51,8 @@ describe("activateModel", () => {
   it("usa a mensagem genérica de fallback quando o backend não retorna detail", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, 500)));
 
-    await expect(activateModel("modelo-x")).rejects.toBeInstanceOf(LocalModelsApiError);
-    await expect(activateModel("modelo-x")).rejects.toMatchObject({
+    await expect(activateModel("mock-token", "modelo-x")).rejects.toBeInstanceOf(LocalModelsApiError);
+    await expect(activateModel("mock-token", "modelo-x")).rejects.toMatchObject({
       message: "Não foi possível ativar o modelo. Tente novamente.",
     });
   });

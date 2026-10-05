@@ -3,6 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import CatalogImportModal from "@/components/admin/products/CatalogImportModal";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
+
+beforeEach(() => {
+  useAuthStore.setState({
+    user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+    token: "mock-token-1",
+  });
+});
 
 vi.mock("@/lib/api/adminProducts", () => ({
   extractCatalogStream: vi.fn(),
@@ -52,6 +60,7 @@ describe("CatalogImportModal - Intervalo de Páginas", () => {
     await user.click(startButton);
 
     expect(mockedExtractStream).toHaveBeenCalledWith(
+      "mock-token-1",
       [pdfFile],
       expect.objectContaining({
         pageRange: "1-5, 8",
@@ -79,6 +88,7 @@ describe("CatalogImportModal - Intervalo de Páginas", () => {
     await user.click(startButton);
 
     expect(mockedExtractStream).toHaveBeenCalledWith(
+      "mock-token-1",
       [pdfFile],
       expect.objectContaining({
         pageRange: undefined,
@@ -158,7 +168,7 @@ describe("CatalogImportModal - arrastar, colar e tipos de arquivo", () => {
     expect(await screen.findByText(/^texto-colado-\d+\.txt$/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Iniciar Extração Inteligente/i }));
 
-    const enviados = mockedExtractStream.mock.calls[0][0];
+    const enviados = mockedExtractStream.mock.calls[0][1];
     expect(enviados).toHaveLength(1);
     expect(enviados[0].name).toMatch(/^texto-colado-\d+\.txt$/);
     const conteudo = await new Promise<string>((resolve) => {
@@ -206,7 +216,7 @@ describe("CatalogImportModal - erro de extração por página", () => {
 
   it("mostra o erro da página (ex.: visão externa indisponível) em vez de 'nenhum produto encontrado'", async () => {
     const user = userEvent.setup();
-    mockedExtractStream.mockImplementation(async (_files, _opts, handlers) => {
+    mockedExtractStream.mockImplementation(async (_token, _files, _opts, handlers) => {
       handlers.onPageComplete?.({
         pagina: 1,
         total_paginas: 1,
@@ -236,7 +246,7 @@ describe("CatalogImportModal - erro de extração por página", () => {
 
   it("não mostra aviso de erro quando a extração simplesmente não encontra produtos", async () => {
     const user = userEvent.setup();
-    mockedExtractStream.mockImplementation(async (_files, _opts, handlers) => {
+    mockedExtractStream.mockImplementation(async (_token, _files, _opts, handlers) => {
       handlers.onPageComplete?.({
         pagina: 1,
         total_paginas: 1,

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CrawlerPanel } from "@/components/admin/CrawlerPanel";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { CrawlerStreamCallbacks, CrawlRunPayload } from "@/lib/types/crawler";
 
 vi.mock("@/lib/api/crawler", async () => {
@@ -26,6 +27,10 @@ describe("CrawlerPanel", () => {
   beforeEach(() => {
     mockedRunCrawlerStream.mockReset();
     mockedGetRuntimeSettings.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
     mockedGetRuntimeSettings.mockResolvedValue({
       local_llm_temperature: null,
       local_llm_timeout_s: 30,
@@ -41,7 +46,7 @@ describe("CrawlerPanel", () => {
     // Captura os callbacks para dirigir o "stream" manualmente no teste.
     let cbs: CrawlerStreamCallbacks | null = null;
     mockedRunCrawlerStream.mockImplementation(
-      async (_payload: CrawlRunPayload, callbacks: CrawlerStreamCallbacks) => {
+      async (_token: string, _payload: CrawlRunPayload, callbacks: CrawlerStreamCallbacks) => {
         cbs = callbacks;
         return new Promise<void>(() => {}); // não resolve sozinho — controlado no teste
       },
@@ -88,7 +93,7 @@ describe("CrawlerPanel", () => {
     try {
       let cbs: CrawlerStreamCallbacks | null = null;
       mockedRunCrawlerStream.mockImplementation(
-        (_payload: CrawlRunPayload, callbacks: CrawlerStreamCallbacks) => {
+        (_token: string, _payload: CrawlRunPayload, callbacks: CrawlerStreamCallbacks) => {
           // Captura síncrona: `cbs` fica disponível assim que o clique dispara.
           cbs = callbacks;
           return new Promise<void>(() => {});
@@ -118,7 +123,7 @@ describe("CrawlerPanel", () => {
 
   it("mostra o erro quando o stream falha", async () => {
     mockedRunCrawlerStream.mockImplementation(
-      async (_payload: CrawlRunPayload, callbacks: CrawlerStreamCallbacks) => {
+      async (_token: string, _payload: CrawlRunPayload, callbacks: CrawlerStreamCallbacks) => {
         callbacks.onError("Serviço indisponível.");
       },
     );

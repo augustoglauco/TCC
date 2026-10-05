@@ -58,7 +58,7 @@ describe("runCrawlerStream", () => {
     );
 
     const cbs = fakeCallbacks();
-    await runCrawlerStream({ url: "https://exemplo.com", depth: 1 }, cbs);
+    await runCrawlerStream("mock-token", { url: "https://exemplo.com", depth: 1 }, cbs);
 
     expect(cbs.onVisiting).toHaveBeenNthCalledWith(1, "https://exemplo.com/");
     expect(cbs.onIngested).toHaveBeenCalledWith("https://exemplo.com/", "vendas");
@@ -80,7 +80,7 @@ describe("runCrawlerStream", () => {
     );
 
     const cbs = fakeCallbacks();
-    await runCrawlerStream({ url: "https://exemplo.com", depth: 0 }, cbs);
+    await runCrawlerStream("mock-token", { url: "https://exemplo.com", depth: 0 }, cbs);
 
     expect(cbs.onPageError).toHaveBeenCalledWith("https://exemplo.com/x");
     expect(cbs.onDone).toHaveBeenCalled();
@@ -90,7 +90,7 @@ describe("runCrawlerStream", () => {
     mockFetchOnce(sseStream(['event: error\ndata: {"detail":"Falha no crawl: boom"}\n\n']));
 
     const cbs = fakeCallbacks();
-    await runCrawlerStream({ url: "https://exemplo.com", depth: 0 }, cbs);
+    await runCrawlerStream("mock-token", { url: "https://exemplo.com", depth: 0 }, cbs);
 
     expect(cbs.onError).toHaveBeenCalledWith("Falha no crawl: boom");
     expect(cbs.onDone).not.toHaveBeenCalled();
@@ -100,7 +100,7 @@ describe("runCrawlerStream", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
 
     const cbs = fakeCallbacks();
-    await runCrawlerStream({ url: "https://exemplo.com", depth: 0 }, cbs);
+    await runCrawlerStream("mock-token", { url: "https://exemplo.com", depth: 0 }, cbs);
 
     expect(cbs.onError).toHaveBeenCalledWith(
       "Não foi possível conectar ao servidor. Verifique sua conexão.",
@@ -111,7 +111,7 @@ describe("runCrawlerStream", () => {
     mockFetchOnce(null, false, 503);
 
     const cbs = fakeCallbacks();
-    await runCrawlerStream({ url: "https://exemplo.com", depth: 0 }, cbs);
+    await runCrawlerStream("mock-token", { url: "https://exemplo.com", depth: 0 }, cbs);
 
     expect(cbs.onError).toHaveBeenCalledWith(
       "Serviço de RAG temporariamente indisponível. Tente novamente.",
@@ -122,7 +122,7 @@ describe("runCrawlerStream", () => {
     mockFetchOnce(sseStream(['event: visitando\ndata: {"url":"https://exemplo.com/"}\n\n']));
 
     const cbs = fakeCallbacks();
-    await runCrawlerStream({ url: "https://exemplo.com", depth: 0 }, cbs);
+    await runCrawlerStream("mock-token", { url: "https://exemplo.com", depth: 0 }, cbs);
 
     expect(cbs.onVisiting).toHaveBeenCalled();
     expect(cbs.onError).toHaveBeenCalledWith(

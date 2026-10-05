@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.api.local_models import get_ollama_client, get_pull_progress_store
 from app.api.local_models import router as local_models_router
+from app.api.rag_dependencies import get_db_session
 from app.background_tasks import _background_tasks
 from app.router.ollama_client import LocalModel, PullProgressLine
 
@@ -30,17 +31,20 @@ class _FakeOllamaClient:
             yield linha
 
 
-def _build_app(ollama: _FakeOllamaClient, progress_store: dict | None = None) -> FastAPI:
+def _build_app(
+    ollama: _FakeOllamaClient, progress_store: dict | None = None, db_session=None
+) -> FastAPI:
     app = FastAPI()
     app.include_router(local_models_router)
     app.dependency_overrides[get_ollama_client] = lambda: ollama
     app.dependency_overrides[get_pull_progress_store] = lambda: (
         progress_store if progress_store is not None else {}
     )
+    app.dependency_overrides[get_db_session] = lambda: db_session
     return app
 
 
-def test_listar_modelos_marca_o_ativo(monkeypatch):
+def test_listar_modelos_marca_o_ativo(monkeypatch, db_session, admin_headers):
     ollama = _FakeOllamaClient(
         models=[
             LocalModel(name="llama3.1:8b", size_bytes=100, modified_at="2026-01-01"),
@@ -48,9 +52,9 @@ def test_listar_modelos_marca_o_ativo(monkeypatch):
         ],
         model_ativo="qwen2.5:7b",
     )
-    client = TestClient(_build_app(ollama))
+    client = TestClient(_build_app(ollama, db_session=db_session))
 
-    response = client.get("/api/admin/local-models")
+    response = client.get("/api/admin/local-models", headers=admin_headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -59,7 +63,7 @@ def test_listar_modelos_marca_o_ativo(monkeypatch):
     assert ativos == {"llama3.1:8b": False, "qwen2.5:7b": True}
 
 
-def test_ativar_modelo_existente_troca_o_ativo():
+def test_ativar_modelo_existente_troca_o_ativo(db_session, admin_headers):
     ollama = _FakeOllamaClient(
         models=[
             LocalModel(name="llama3.1:8b", size_bytes=100, modified_at="2026-01-01"),
@@ -67,25 +71,29 @@ def test_ativar_modelo_existente_troca_o_ativo():
         ],
         model_ativo="qwen2.5:7b",
     )
-    client = TestClient(_build_app(ollama))
+    client = TestClient(_build_app(ollama, db_session=db_session))
 
-    response = client.post("/api/admin/local-models/activate", json={"name": "llama3.1:8b"})
+    response = client.post(
+        "/api/admin/local-models/activate", json={"name": "llama3.1:8b"}, headers=admin_headers
+    )
 
     assert response.status_code == 204
     assert ollama.model == "llama3.1:8b"
 
 
-def test_ativar_modelo_nao_baixado_retorna_404():
+def test_ativar_modelo_nao_baixado_retorna_404(db_session, admin_headers):
     ollama = _FakeOllamaClient(models=[], model_ativo="llama3.1:8b")
-    client = TestClient(_build_app(ollama))
+    client = TestClient(_build_app(ollama, db_session=db_session))
 
-    response = client.post("/api/admin/local-models/activate", json={"name": "inexistente"})
+    response = client.post(
+        "/api/admin/local-models/activate", json={"name": "inexistente"}, headers=admin_headers
+    )
 
     assert response.status_code == 404
     assert ollama.model == "llama3.1:8b"
 
 
-def test_pull_dispara_download_e_devolve_202_na_hora():
+def test_pull_dispara_download_e_devolve_202_na_hora(db_session, admin_headers):
     ollama = _FakeOllamaClient(models=[], model_ativo="llama3.1:8b")
     ollama.programar_pull(
         "novo-modelo",
@@ -104,15 +112,17 @@ def test_pull_dispara_download_e_devolve_202_na_hora():
         ],
     )
     progress_store: dict = {}
-    client = TestClient(_build_app(ollama, progress_store))
+    client = TestClient(_build_app(ollama, progress_store, db_session=db_session))
 
-    response = client.post("/api/admin/local-models/pull", json={"name": "novo-modelo"})
+    response = client.post(
+        "/api/admin/local-models/pull", json={"name": "novo-modelo"}, headers=admin_headers
+    )
 
     assert response.status_code == 202
     assert response.json() == {"name": "novo-modelo"}
 
 
-async def test_pull_atualiza_o_progresso_ate_done():
+async def test_pull_atualiza_o_progresso_ate_done(db_session, admin_headers):
     ollama = _FakeOllamaClient(models=[], model_ativo="llama3.1:8b")
     ollama.programar_pull(
         "novo-modelo",
@@ -131,9 +141,9 @@ async def test_pull_atualiza_o_progresso_ate_done():
         ],
     )
     progress_store: dict = {}
-    client = TestClient(_build_app(ollama, progress_store))
+    client = TestClient(_build_app(ollama, progress_store, db_session=db_session))
 
-    client.post("/api/admin/local-models/pull", json={"name": "novo-modelo"})
+    client.post("/api/admin/local-models/pull", json={"name": "novo-modelo"}, headers=admin_headers)
     # A tarefa em background roda no mesmo loop de eventos do TestClient
     # (TransportClient síncrono por baixo do capô roda o loop até
     # completar cada requisição) — como o dublê itera uma lista já pronta
@@ -145,7 +155,9 @@ async def test_pull_atualiza_o_progresso_ate_done():
     # tentativas em vez de assumir conclusão imediata.
     await asyncio.sleep(0)
 
-    response = client.get("/api/admin/local-models/pull-status", params={"name": "novo-modelo"})
+    response = client.get(
+        "/api/admin/local-models/pull-status", params={"name": "novo-modelo"}, headers=admin_headers
+    )
 
     assert response.status_code == 200
     body = response.json()
@@ -153,7 +165,7 @@ async def test_pull_atualiza_o_progresso_ate_done():
     assert body["percent"] == 100.0
 
 
-async def test_pull_sem_linha_de_sucesso_marca_erro():
+async def test_pull_sem_linha_de_sucesso_marca_erro(db_session, admin_headers):
     """Item 1 (nice-to-have parked): se o stream termina sem uma linha
     `{"status": "success"}` (ex.: conexão encerrada de forma limpa antes da
     confirmação do Ollama), o pull não deve ser marcado como `done`."""
@@ -175,13 +187,19 @@ async def test_pull_sem_linha_de_sucesso_marca_erro():
         ],
     )
     progress_store: dict = {}
-    client = TestClient(_build_app(ollama, progress_store))
+    client = TestClient(_build_app(ollama, progress_store, db_session=db_session))
 
-    client.post("/api/admin/local-models/pull", json={"name": "modelo-sem-confirmacao"})
+    client.post(
+        "/api/admin/local-models/pull",
+        json={"name": "modelo-sem-confirmacao"},
+        headers=admin_headers,
+    )
     await asyncio.sleep(0)
 
     response = client.get(
-        "/api/admin/local-models/pull-status", params={"name": "modelo-sem-confirmacao"}
+        "/api/admin/local-models/pull-status",
+        params={"name": "modelo-sem-confirmacao"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -190,7 +208,9 @@ async def test_pull_sem_linha_de_sucesso_marca_erro():
     assert "confirmação" in body["detail"].lower()
 
 
-async def test_pull_concluido_remove_a_tarefa_do_set_de_referencias_fortes():
+async def test_pull_concluido_remove_a_tarefa_do_set_de_referencias_fortes(
+    db_session, admin_headers
+):
     """Item 2 (nice-to-have parked): a Task de background deve ser
     descartada do set `_background_tasks` assim que termina, para não
     vazar memória nem deixar o set crescendo indefinidamente."""
@@ -203,39 +223,51 @@ async def test_pull_concluido_remove_a_tarefa_do_set_de_referencias_fortes():
         ],
     )
     progress_store: dict = {}
-    client = TestClient(_build_app(ollama, progress_store))
+    client = TestClient(_build_app(ollama, progress_store, db_session=db_session))
 
-    client.post("/api/admin/local-models/pull", json={"name": "modelo-referencia-forte"})
+    client.post(
+        "/api/admin/local-models/pull",
+        json={"name": "modelo-referencia-forte"},
+        headers=admin_headers,
+    )
     await asyncio.sleep(0)
 
     response = client.get(
-        "/api/admin/local-models/pull-status", params={"name": "modelo-referencia-forte"}
+        "/api/admin/local-models/pull-status",
+        params={"name": "modelo-referencia-forte"},
+        headers=admin_headers,
     )
     assert response.json()["status"] == "done"
     assert len(_background_tasks) == 0
 
 
-def test_pull_duplicado_nao_dispara_segunda_tarefa():
+def test_pull_duplicado_nao_dispara_segunda_tarefa(db_session, admin_headers):
     ollama = _FakeOllamaClient(models=[], model_ativo="llama3.1:8b")
     progress_store = {"ja-baixando": {"status": "pulling", "percent": 10.0, "detail": "..."}}
-    client = TestClient(_build_app(ollama, progress_store))
+    client = TestClient(_build_app(ollama, progress_store, db_session=db_session))
 
-    response = client.post("/api/admin/local-models/pull", json={"name": "ja-baixando"})
+    response = client.post(
+        "/api/admin/local-models/pull", json={"name": "ja-baixando"}, headers=admin_headers
+    )
 
     assert response.status_code == 202
     assert ollama.pull_calls == []
 
 
-def test_status_sem_pull_iniciado_retorna_404():
+def test_status_sem_pull_iniciado_retorna_404(db_session, admin_headers):
     ollama = _FakeOllamaClient(models=[], model_ativo="llama3.1:8b")
-    client = TestClient(_build_app(ollama))
+    client = TestClient(_build_app(ollama, db_session=db_session))
 
-    response = client.get("/api/admin/local-models/pull-status", params={"name": "nunca-baixado"})
+    response = client.get(
+        "/api/admin/local-models/pull-status",
+        params={"name": "nunca-baixado"},
+        headers=admin_headers,
+    )
 
     assert response.status_code == 404
 
 
-def test_status_com_nome_contendo_barra_e_dois_pontos_funciona():
+def test_status_com_nome_contendo_barra_e_dois_pontos_funciona(db_session, admin_headers):
     """Regressão: nomes de modelo podem conter `/` (Hugging Face) e `:`
     (tag) — o endpoint usa `name` como query param, não path param, para
     não quebrar nesses casos."""
@@ -243,10 +275,12 @@ def test_status_com_nome_contendo_barra_e_dois_pontos_funciona():
     progress_store = {
         "hf.co/usuario/repo:Q4_K_M": {"status": "done", "percent": 100.0, "detail": "concluído"}
     }
-    client = TestClient(_build_app(ollama, progress_store))
+    client = TestClient(_build_app(ollama, progress_store, db_session=db_session))
 
     response = client.get(
-        "/api/admin/local-models/pull-status", params={"name": "hf.co/usuario/repo:Q4_K_M"}
+        "/api/admin/local-models/pull-status",
+        params={"name": "hf.co/usuario/repo:Q4_K_M"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200

@@ -1118,14 +1118,15 @@ conversa e classificação do usuário").
       o estado final do protótipo
 - [ ] Preparar demonstração cobrindo os quatro domínios + agendamento + MCP
       B2B, usando a interface completa (site + widget de chat)
-- [ ] **Achado da revisão de 2026-10-04 (ver `docs/ARCHITECTURE.md` §7):**
-      adicionar a dependência `_require_admin` (mesmo padrão de
-      `app.api.admin_charts`, já replicado em `admin_metrics`/
-      `runtime_settings`) aos routers `/api/admin/*` que ainda não checam
-      token de administrador no servidor: `admin_products`, `local_models`,
+- [x] Achado da revisão de 2026-10-04 (ver `docs/ARCHITECTURE.md` §7):
+      extraída a dependência compartilhada `require_admin`
+      (`app.api.admin_auth`, antes duplicada como `_require_admin` em
+      `admin_charts`/`admin_metrics`/`runtime_settings`) e aplicada a todos
+      os routers `/api/admin/*` e `/api/rag/*` que ainda não checavam token
+      de administrador no servidor: `admin_products`, `local_models`,
       `model_catalog`, `rag_collections`, `rag`, `rag_playground`, `crawler`,
-      `tom_escalonamentos`. Hoje a única proteção desses endpoints é a UI do
-      Next.js esconder a tela de quem não está logado como Admin.
+      `tom_escalonamentos`. Antes, a única proteção desses endpoints era a
+      UI do Next.js esconder a tela de quem não está logado como Admin.
 - [x] Achado da revisão de 2026-10-04 (ver `docs/ARCHITECTURE.md` §6):
       `backend/src/app/rag/product_sync.py` e
       `backend/tests/test_product_sync.py` estavam órfãos desde o

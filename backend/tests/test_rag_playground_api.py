@@ -76,7 +76,7 @@ def _build_app(qdrant, db_session, embedders=None) -> FastAPI:
 
 
 async def test_playground_busca_em_uma_collection_e_retorna_resultado_com_latencia(
-    db_session, active_collection
+    db_session, active_collection, admin_headers
 ):
     fake = _FakeQdrantSearch(resultado=[Document(content="conteúdo", source="a.txt", score=0.9)])
     client = TestClient(_build_app(fake, db_session))
@@ -88,6 +88,7 @@ async def test_playground_busca_em_uma_collection_e_retorna_resultado_com_latenc
             "domain": "vendas",
             "collection_ids": [str(active_collection.id)],
         },
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -100,7 +101,9 @@ async def test_playground_busca_em_uma_collection_e_retorna_resultado_com_latenc
     assert item["error"] is None
 
 
-async def test_playground_com_collection_inexistente_retorna_item_com_erro(db_session):
+async def test_playground_com_collection_inexistente_retorna_item_com_erro(
+    db_session, admin_headers
+):
     fake = _FakeQdrantSearch()
     client = TestClient(_build_app(fake, db_session))
     id_inexistente = str(uuid.uuid4())
@@ -108,6 +111,7 @@ async def test_playground_com_collection_inexistente_retorna_item_com_erro(db_se
     response = client.post(
         "/api/rag/playground/search",
         json={"query": "pergunta", "domain": "vendas", "collection_ids": [id_inexistente]},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -118,7 +122,7 @@ async def test_playground_com_collection_inexistente_retorna_item_com_erro(db_se
 
 
 async def test_playground_erro_de_conexao_em_uma_collection_nao_derruba_as_outras(
-    db_session, active_collection
+    db_session, active_collection, admin_headers
 ):
     from app.rag.collections_registry import create_collection
 
@@ -158,6 +162,7 @@ async def test_playground_erro_de_conexao_em_uma_collection_nao_derruba_as_outra
             "domain": "vendas",
             "collection_ids": [str(active_collection.id), str(outra.id)],
         },
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -167,7 +172,7 @@ async def test_playground_erro_de_conexao_em_uma_collection_nao_derruba_as_outra
 
 
 async def test_playground_erro_no_postgres_ao_buscar_uma_collection_nao_derruba_as_outras(
-    db_session, active_collection
+    db_session, active_collection, admin_headers
 ):
     """Mesmo isolamento por collection de
     `test_playground_erro_de_conexao_em_uma_collection_nao_derruba_as_outras`,
@@ -204,6 +209,7 @@ async def test_playground_erro_no_postgres_ao_buscar_uma_collection_nao_derruba_
             "domain": "vendas",
             "collection_ids": [str(active_collection.id), str(outra.id)],
         },
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -213,20 +219,21 @@ async def test_playground_erro_no_postgres_ao_buscar_uma_collection_nao_derruba_
     assert fake.chamadas == ["outra"]
 
 
-async def test_playground_sem_collection_ids_retorna_422(db_session):
+async def test_playground_sem_collection_ids_retorna_422(db_session, admin_headers):
     fake = _FakeQdrantSearch()
     client = TestClient(_build_app(fake, db_session))
 
     response = client.post(
         "/api/rag/playground/search",
         json={"query": "pergunta", "domain": "vendas", "collection_ids": []},
+        headers=admin_headers,
     )
 
     assert response.status_code == 422
 
 
 async def test_playground_erro_ao_carregar_embedder_de_uma_collection_nao_derruba_as_outras(
-    db_session, active_collection
+    db_session, active_collection, admin_headers
 ):
     """Achado #3 da revisão final: `embedders.get(...)` estava fora do
     try/except que isola falhas por collection — só `qdrant.search` era
@@ -265,6 +272,7 @@ async def test_playground_erro_ao_carregar_embedder_de_uma_collection_nao_derrub
             "domain": "vendas",
             "collection_ids": [str(active_collection.id), str(outra.id)],
         },
+        headers=admin_headers,
     )
 
     assert response.status_code == 200

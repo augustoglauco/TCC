@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DocumentsTable } from "@/components/admin/DocumentsTable";
 import { RagApiError } from "@/lib/api/rag";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { DocumentRegistryEntry, RagCollection } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/rag", async () => {
@@ -52,6 +53,10 @@ const DOCUMENTO: DocumentRegistryEntry = {
 describe("DocumentsTable", () => {
   beforeEach(() => {
     mockedDeleteDocument.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("renderiza uma linha por documento, com a collection", () => {
@@ -105,7 +110,7 @@ describe("DocumentsTable", () => {
     await user.click(screen.getByRole("button", { name: "Excluir" }));
     await user.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
 
-    expect(mockedDeleteDocument).toHaveBeenCalledWith(DOCUMENTO.id);
+    expect(mockedDeleteDocument).toHaveBeenCalledWith("mock-token-1", DOCUMENTO.id);
     expect(await screen.findByText(/excluído/i)).toBeInTheDocument();
     expect(onDeleted).toHaveBeenCalledWith(DOCUMENTO.id);
   });

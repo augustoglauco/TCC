@@ -26,13 +26,14 @@ def _http_client_openrouter_ok() -> httpx.AsyncClient:
     return httpx.AsyncClient(transport=httpx.MockTransport(handler))
 
 
-def test_get_characteristics_200_quando_encontrado(db_session):
+def test_get_characteristics_200_quando_encontrado(db_session, admin_headers):
     app = _build_app(db_session, http_client=_http_client_openrouter_ok())
     client = TestClient(app)
 
     response = client.get(
         "/api/admin/model-catalog/characteristics",
         params={"source": "openrouter", "tag": "openai/gpt-4o-mini"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -41,7 +42,7 @@ def test_get_characteristics_200_quando_encontrado(db_session):
     assert body["context_length"] == 128000
 
 
-def test_get_characteristics_404_quando_nao_encontrado(db_session):
+def test_get_characteristics_404_quando_nao_encontrado(db_session, admin_headers):
     def handler(request):
         return httpx.Response(200, json={"data": []})
 
@@ -52,30 +53,33 @@ def test_get_characteristics_404_quando_nao_encontrado(db_session):
     response = client.get(
         "/api/admin/model-catalog/characteristics",
         params={"source": "openrouter", "tag": "nao/existe"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 404
 
 
-def test_get_characteristics_source_invalido_422(db_session):
+def test_get_characteristics_source_invalido_422(db_session, admin_headers):
     app = _build_app(db_session)
     client = TestClient(app)
 
     response = client.get(
         "/api/admin/model-catalog/characteristics",
         params={"source": "invalido", "tag": "x"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 422
 
 
-def test_refresh_characteristics_forca_nova_busca(db_session):
+def test_refresh_characteristics_forca_nova_busca(db_session, admin_headers):
     app = _build_app(db_session, http_client=_http_client_openrouter_ok())
     client = TestClient(app)
 
     response = client.post(
         "/api/admin/model-catalog/characteristics/refresh",
         json={"source": "openrouter", "tag": "openai/gpt-4o-mini"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200

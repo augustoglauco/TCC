@@ -33,7 +33,11 @@ describe("getModelCharacteristics", () => {
   it("devolve as características quando a resposta é 200", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(CARACTERISTICAS_EXEMPLO, 200)));
 
-    const resultado = await getModelCharacteristics("openrouter", "openai/gpt-4o-mini");
+    const resultado = await getModelCharacteristics(
+      "mock-token",
+      "openrouter",
+      "openai/gpt-4o-mini",
+    );
 
     expect(resultado).toEqual(CARACTERISTICAS_EXEMPLO);
   });
@@ -41,7 +45,7 @@ describe("getModelCharacteristics", () => {
   it("devolve null quando a resposta é 404 (sem característica pra essa tag)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ detail: "não achado" }, 404)));
 
-    const resultado = await getModelCharacteristics("openrouter", "tag/inexistente");
+    const resultado = await getModelCharacteristics("mock-token", "openrouter", "tag/inexistente");
 
     expect(resultado).toBeNull();
   });
@@ -49,7 +53,7 @@ describe("getModelCharacteristics", () => {
   it("lança ModelCatalogApiError em erro 500", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, 500)));
 
-    await expect(getModelCharacteristics("openrouter", "x")).rejects.toBeInstanceOf(
+    await expect(getModelCharacteristics("mock-token", "openrouter", "x")).rejects.toBeInstanceOf(
       ModelCatalogApiError,
     );
   });
@@ -64,7 +68,11 @@ describe("refreshModelCharacteristics", () => {
     const mockFetch = vi.fn().mockResolvedValue(jsonResponse(CARACTERISTICAS_EXEMPLO, 200));
     vi.stubGlobal("fetch", mockFetch);
 
-    const resultado = await refreshModelCharacteristics("openrouter", "openai/gpt-4o-mini");
+    const resultado = await refreshModelCharacteristics(
+      "mock-token",
+      "openrouter",
+      "openai/gpt-4o-mini",
+    );
 
     expect(resultado).toEqual(CARACTERISTICAS_EXEMPLO);
     expect(mockFetch).toHaveBeenCalledWith(
@@ -76,7 +84,11 @@ describe("refreshModelCharacteristics", () => {
   it("devolve null quando a resposta é 404 (sem característica pra essa tag)", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ detail: "não achado" }, 404)));
 
-    const resultado = await refreshModelCharacteristics("huggingface", "tag/inexistente");
+    const resultado = await refreshModelCharacteristics(
+      "mock-token",
+      "huggingface",
+      "tag/inexistente",
+    );
 
     expect(resultado).toBeNull();
   });

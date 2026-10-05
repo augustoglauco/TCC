@@ -6,9 +6,11 @@ import { ComparisonResultCard } from "@/components/admin/playground/ComparisonRe
 import { PlaygroundForm } from "@/components/admin/playground/PlaygroundForm";
 import { PlaygroundManualModal } from "@/components/admin/playground/PlaygroundManualModal";
 import { RagApiError, runPlaygroundSearch } from "@/lib/api/rag";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { PlaygroundResultItem, RagCollection, RagDomain } from "@/lib/types/rag";
 
 export function PlaygroundPanel({ collections }: { collections: RagCollection[] }) {
+  const token = useAuthStore((s) => s.token);
   const [resultados, setResultados] = useState<PlaygroundResultItem[] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,10 +22,11 @@ export function PlaygroundPanel({ collections }: { collections: RagCollection[] 
     domain: RagDomain;
     collectionIds: string[];
   }) {
+    if (!token) return;
     setIsSubmitting(true);
     setError(null);
     try {
-      const response = await runPlaygroundSearch({
+      const response = await runPlaygroundSearch(token, {
         query: params.query,
         domain: params.domain,
         collection_ids: params.collectionIds,

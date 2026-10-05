@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CollectionFormModal } from "@/components/admin/CollectionFormModal";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { RagCollection } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/rag", async () => {
@@ -42,6 +43,10 @@ describe("CollectionFormModal", () => {
   beforeEach(() => {
     mockedCreate.mockReset();
     mockedActivate.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("preenche nome e envia — chama createCollection com o payload esperado", async () => {
@@ -55,6 +60,7 @@ describe("CollectionFormModal", () => {
     await user.click(screen.getByRole("button", { name: "Criar collection" }));
 
     expect(mockedCreate).toHaveBeenCalledWith(
+      "mock-token-1",
       expect.objectContaining({
         name: "nova",
         embedding_model: "paraphrase-multilingual-MiniLM-L12-v2",
@@ -76,7 +82,10 @@ describe("CollectionFormModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Criar collection" }));
 
-    expect(mockedCreate).toHaveBeenCalledWith(expect.objectContaining({ purpose: "mcp_b2b" }));
+    expect(mockedCreate).toHaveBeenCalledWith(
+      "mock-token-1",
+      expect.objectContaining({ purpose: "mcp_b2b" }),
+    );
   });
 
   it("selecionar finalidade 'Exclusiva do Admin' envia purpose=admin e mostra aviso", async () => {
@@ -92,7 +101,10 @@ describe("CollectionFormModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Criar collection" }));
 
-    expect(mockedCreate).toHaveBeenCalledWith(expect.objectContaining({ purpose: "admin" }));
+    expect(mockedCreate).toHaveBeenCalledWith(
+      "mock-token-1",
+      expect.objectContaining({ purpose: "admin" }),
+    );
   });
 
   it("por padrão envia purpose=chat", async () => {
@@ -104,7 +116,10 @@ describe("CollectionFormModal", () => {
     await user.type(screen.getByLabelText("Nome"), "nova");
     await user.click(screen.getByRole("button", { name: "Criar collection" }));
 
-    expect(mockedCreate).toHaveBeenCalledWith(expect.objectContaining({ purpose: "chat" }));
+    expect(mockedCreate).toHaveBeenCalledWith(
+      "mock-token-1",
+      expect.objectContaining({ purpose: "chat" }),
+    );
   });
 
   it("selecionar 'Outro' revela campo de texto livre para o modelo", async () => {
@@ -163,7 +178,7 @@ describe("CollectionFormModal", () => {
     await user.click(screen.getByRole("button", { name: "Criar collection" }));
 
     expect(mockedCreate).toHaveBeenCalled();
-    expect(mockedActivate).toHaveBeenCalledWith("1");
+    expect(mockedActivate).toHaveBeenCalledWith("mock-token-1", "1");
     expect(onCreated).toHaveBeenCalledWith(expect.objectContaining({ is_active: true }));
   });
 });

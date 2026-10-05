@@ -3,13 +3,14 @@ listar, ativar em runtime e baixar (biblioteca do Ollama ou GGUF do
 Hugging Face) sem bloquear o backend. Ver
 docs/superpowers/specs/2026-09-16-local-model-manager-design.md.
 
-# MVP: sem autenticação — e aqui o raio de ação é maior que o de
-`/admin/ingestao` (upload de arquivo limitado): `/pull` faz o SERVIDOR
-buscar, de uma referência de registry informada pelo caller, um payload
-arbitrário e não limitado (múltiplos GB), sem cap de tamanho, sem rate
-limit e sem cap de concorrência além do dedupe por nome já existente —
-risco de esgotar disco, e o `name` pode apontar para qualquer host de
-registry (não só a lib do Ollama ou `hf.co`). Não expor além de
+# Restrito a administradores autenticados (achado da revisão de
+2026-10-04: adicionado `require_admin` — até então, só a UI do Next.js
+escondia a tela). Ainda assim, `/pull` faz o SERVIDOR buscar, de uma
+referência de registry informada pelo caller, um payload arbitrário e não
+limitado (múltiplos GB), sem cap de tamanho, sem rate limit e sem cap de
+concorrência além do dedupe por nome já existente — risco de esgotar
+disco mesmo vindo de um admin real, e o `name` pode apontar para qualquer
+host de registry (não só a lib do Ollama ou `hf.co`). Não expor além de
 localhost sem adicionar limites reais antes.
 Modelo ativo só em memória (`OllamaClient.model`) — não substitui nem
 antecipa a Fase 10 (escolha de produção via benchmark offline, ver
@@ -25,6 +26,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from app.api.admin_auth import require_admin
 from app.background_tasks import spawn_background_task
 from app.models.local_models import (
     ActivateModelRequest,
@@ -93,6 +95,7 @@ async def _consumir_pull(ollama: OllamaClient, name: str, progress_store: dict[s
 @router.get("", response_model=LocalModelsListResponse)
 async def list_local_models_endpoint(
     ollama: OllamaClient = Depends(get_ollama_client),
+    _: None = Depends(require_admin),
 ) -> LocalModelsListResponse:
     modelos = await ollama.list_local_models()
     ativo = ollama.model
@@ -114,6 +117,7 @@ async def list_local_models_endpoint(
 async def activate_model_endpoint(
     body: ActivateModelRequest,
     ollama: OllamaClient = Depends(get_ollama_client),
+    _: None = Depends(require_admin),
 ) -> None:
     modelos = await ollama.list_local_models()
     if body.name not in {modelo.name for modelo in modelos}:
@@ -126,6 +130,7 @@ async def pull_model_endpoint(
     body: PullModelRequest,
     ollama: OllamaClient = Depends(get_ollama_client),
     progress_store: dict[str, dict] = Depends(get_pull_progress_store),
+    _: None = Depends(require_admin),
 ) -> dict:
     atual = progress_store.get(body.name)
     if atual is not None and atual.get("status") == "pulling":
@@ -140,6 +145,7 @@ async def pull_model_endpoint(
 async def pull_status_endpoint(
     name: str,
     progress_store: dict[str, dict] = Depends(get_pull_progress_store),
+    _: None = Depends(require_admin),
 ) -> PullStatusResponse:
     estado = progress_store.get(name)
     if estado is None:

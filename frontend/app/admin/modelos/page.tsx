@@ -1,7 +1,9 @@
 "use client";
 
-// MVP: página administrativa (fora da navegação pública, sem autenticação)
-// para gerenciar os modelos locais do Ollama, modelos externos (OpenRouter) e parâmetros em runtime.
+// MVP: página administrativa (fora da navegação pública) para gerenciar os
+// modelos locais do Ollama, modelos externos (OpenRouter) e parâmetros em
+// runtime. Os endpoints que consome exigem admin autenticado no servidor
+// desde a revisão de 2026-10-04 (`require_admin`, ver `app.api.admin_auth`).
 import { useCallback, useEffect, useState } from "react";
 
 import { LocalModelsTable } from "@/components/admin/LocalModelsTable";
@@ -10,18 +12,21 @@ import { PullModelForm } from "@/components/admin/PullModelForm";
 import { RuntimeSettingsForm } from "@/components/admin/RuntimeSettingsForm";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ToastStack, useToast } from "@/components/ui/Toast";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { LocalModelsApiError, listLocalModels } from "@/lib/api/localModels";
 import type { LocalModel } from "@/lib/types/localModels";
 
 export default function ModelosPage() {
+  const token = useAuthStore((s) => s.token);
   const [modelos, setModelos] = useState<LocalModel[] | null>(null);
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [runtimeStatus, setRuntimeStatus] = useState<"checking" | "ok" | "error">("checking");
   const { toasts, showToast, dismissToast } = useToast();
 
   const carregarModelos = useCallback(async () => {
+    if (!token) return;
     try {
-      const resposta = await listLocalModels();
+      const resposta = await listLocalModels(token);
       setModelos(resposta.models);
       setActiveModel(resposta.active_model);
       setRuntimeStatus("ok");
@@ -35,7 +40,7 @@ export default function ModelosPage() {
       setModelos([]);
       setRuntimeStatus("error");
     }
-  }, [showToast]);
+  }, [showToast, token]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

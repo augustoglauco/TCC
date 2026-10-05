@@ -33,10 +33,12 @@ async function _lancarErroComDetalhe(response: Response, mensagemPadrao: string)
 }
 
 /** Lista a fila de revisão via `GET /api/rag/crawler/pending`. */
-export async function listPendingPages(): Promise<PendingPage[]> {
+export async function listPendingPages(token: string): Promise<PendingPage[]> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/rag/crawler/pending`);
+    response = await fetch(`${API_BASE_URL}/api/rag/crawler/pending`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new CrawlerApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }
@@ -53,6 +55,7 @@ export async function listPendingPages(): Promise<PendingPage[]> {
 
 /** Aprova uma página pendente via `POST /api/rag/crawler/pending/{id}/approve`. */
 export async function approvePendingPage(
+  token: string,
   id: string,
   payload: ApprovePendingPagePayload,
 ): Promise<ApprovedPageResponse> {
@@ -60,7 +63,7 @@ export async function approvePendingPage(
   try {
     response = await fetch(`${API_BASE_URL}/api/rag/crawler/pending/${id}/approve`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
     });
   } catch {
@@ -75,11 +78,12 @@ export async function approvePendingPage(
 }
 
 /** Rejeita uma página pendente via `POST /api/rag/crawler/pending/{id}/reject`. */
-export async function rejectPendingPage(id: string): Promise<void> {
+export async function rejectPendingPage(token: string, id: string): Promise<void> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/rag/crawler/pending/${id}/reject`, {
       method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
     });
   } catch {
     throw new CrawlerApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
@@ -117,6 +121,7 @@ function parseSseBlock(block: string): { event: string; data: string } | null {
  * parser de blocos SSE do projeto.
  */
 export async function runCrawlerStream(
+  token: string,
   payload: CrawlRunPayload,
   callbacks: CrawlerStreamCallbacks,
 ): Promise<void> {
@@ -127,7 +132,9 @@ export async function runCrawlerStream(
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/rag/crawler/run/stream?${params.toString()}`);
+    response = await fetch(`${API_BASE_URL}/api/rag/crawler/run/stream?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     callbacks.onError("Não foi possível conectar ao servidor. Verifique sua conexão.");
     return;

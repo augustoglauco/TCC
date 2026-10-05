@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DocumentViewModal } from "@/components/admin/DocumentViewModal";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { DocumentRegistryEntry } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/rag", async () => {
@@ -10,7 +11,7 @@ vi.mock("@/lib/api/rag", async () => {
     ...actual,
     fetchDocumentContent: vi.fn(),
     getDocumentContentUrl: vi.fn(
-      (id: string) => `http://localhost:8000/api/rag/documents/${id}/content`,
+      (_token: string, id: string) => `http://localhost:8000/api/rag/documents/${id}/content`,
     ),
   };
 });
@@ -36,6 +37,10 @@ function documento(overrides: Partial<DocumentRegistryEntry> = {}): DocumentRegi
 describe("DocumentViewModal", () => {
   beforeEach(() => {
     mockedFetchContent.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
     // jsdom não implementa createObjectURL/revokeObjectURL.
     vi.stubGlobal("URL", {
       ...URL,

@@ -8,6 +8,7 @@ import { ReingestModal } from "@/components/admin/ReingestModal";
 import { Modal } from "@/components/ui/Modal";
 import { ToastStack, useToast } from "@/components/ui/Toast";
 import { RagApiError, deleteDocument } from "@/lib/api/rag";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { DocumentRegistryEntry, RagCollection, RagDomain } from "@/lib/types/rag";
 
 const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
@@ -29,6 +30,7 @@ export function DocumentsTable({
   onDeleted,
   onReingested,
 }: DocumentsTableProps) {
+  const token = useAuthStore((s) => s.token);
   const [documentoParaExcluir, setDocumentoParaExcluir] = useState<DocumentRegistryEntry | null>(
     null,
   );
@@ -107,10 +109,10 @@ export function DocumentsTable({
   }, [documents, filtroNome, dominiosSelecionados, collectionIdSelecionada, dataInicio, dataFim]);
 
   async function confirmarExclusao() {
-    if (!documentoParaExcluir) return;
+    if (!documentoParaExcluir || !token) return;
     setExcluindo(true);
     try {
-      await deleteDocument(documentoParaExcluir.id);
+      await deleteDocument(token, documentoParaExcluir.id);
       showToast(`"${documentoParaExcluir.filename}" excluído.`, "success");
       onDeleted(documentoParaExcluir.id);
       setDocumentoParaExcluir(null);

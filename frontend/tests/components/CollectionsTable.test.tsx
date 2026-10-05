@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CollectionsTable } from "@/components/admin/CollectionsTable";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { RagCollection } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/rag", async () => {
@@ -68,6 +69,10 @@ describe("CollectionsTable", () => {
   beforeEach(() => {
     mockedActivate.mockReset();
     mockedDelete.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("renderiza uma linha por collection, com badge 'Ativa'", () => {
@@ -114,7 +119,7 @@ describe("CollectionsTable", () => {
 
     await user.click(screen.getByRole("button", { name: "Ativar" }));
 
-    expect(mockedActivate).toHaveBeenCalledWith("333");
+    expect(mockedActivate).toHaveBeenCalledWith("mock-token-1", "333");
     expect(onChanged).toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalled();
   });
@@ -162,7 +167,7 @@ describe("CollectionsTable", () => {
 
     await user.click(screen.getByRole("button", { name: "Ativar" }));
 
-    expect(mockedActivate).toHaveBeenCalledWith("222");
+    expect(mockedActivate).toHaveBeenCalledWith("mock-token-1", "222");
     expect(onChanged).toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalled();
   });
@@ -199,7 +204,7 @@ describe("CollectionsTable", () => {
     await user.click(screen.getByRole("button", { name: "Excluir" }));
     await user.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
 
-    expect(mockedDelete).toHaveBeenCalledWith("222");
+    expect(mockedDelete).toHaveBeenCalledWith("mock-token-1", "222");
     expect(onChanged).toHaveBeenCalled();
   });
 

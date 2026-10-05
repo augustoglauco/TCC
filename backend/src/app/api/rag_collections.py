@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.admin_auth import require_admin
 from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_qdrant_client
 from app.models.rag import CollectionCreateRequest, CollectionResponse
 from app.rag.collections_registry import (
@@ -74,6 +75,7 @@ async def create_collection_endpoint(
     qdrant: QdrantRAGClient = Depends(get_qdrant_client),
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> CollectionResponse:
     # Limpeza da revisão final: checagem de nome duplicado é barata (uma
     # consulta ao Postgres) e deve rodar antes de `embedder.get_dimension()`,
@@ -174,6 +176,7 @@ async def create_collection_endpoint(
 @router.get("", response_model=list[CollectionResponse])
 async def list_collections_endpoint(
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> list[CollectionResponse]:
     try:
         collections = await list_collections(session)
@@ -194,7 +197,9 @@ async def list_collections_endpoint(
 
 @router.post("/{collection_id}/activate", status_code=204)
 async def activate_collection_endpoint(
-    collection_id: UUID, session: AsyncSession = Depends(get_db_session)
+    collection_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> None:
     try:
         ativado = await activate_collection(session, collection_id)
@@ -218,6 +223,7 @@ async def delete_collection_endpoint(
     collection_id: UUID,
     qdrant: QdrantRAGClient = Depends(get_qdrant_client),
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> None:
     try:
         # Limpeza da revisão final: `get_collection` (busca O(1) por chave

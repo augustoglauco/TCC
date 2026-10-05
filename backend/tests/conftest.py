@@ -222,6 +222,22 @@ async def db_session():
     await engine.dispose()
 
 
+@pytest.fixture
+async def admin_headers(db_session) -> dict[str, str]:
+    """Cria um `Cliente` admin real em `db_session` e devolve o header
+    `Authorization` correspondente — todo router sob `_require_admin`/
+    `require_admin` (ver `app.api.admin_auth`) exige essa checagem desde a
+    revisão de 2026-10-04 (achado: vários endpoints administrativos sem
+    nenhuma autenticação no servidor)."""
+    from app.db.models import Cliente
+
+    admin = Cliente(nome="Admin Teste", email="admin@empresa.com")
+    db_session.add(admin)
+    await db_session.commit()
+    await db_session.refresh(admin)
+    return {"Authorization": f"Bearer mock-token-{admin.id}"}
+
+
 class _FakeClipImageStore:
     """Dublê do `ClipImageStore` para os testes das APIs de produtos: não
     embeda nem grava vetor nenhum no Qdrant."""

@@ -45,6 +45,7 @@ function AbaEnviarDocumento({
   onColecoesMudaram: () => Promise<RagCollection[]>;
   onIngerido: () => void;
 }) {
+  const token = useAuthStore((s) => s.token);
   const [file, setFile] = useState<File | null>(null);
   const [domain, setDomain] = useState<RagDomain>("vendas");
   const [collectionId, setCollectionId] = useState("");
@@ -63,6 +64,7 @@ function AbaEnviarDocumento({
     : collectionAtiva?.id || collections[0]?.id || "";
 
   async function handleCriarCollectionRapida(purpose: CollectionPurpose) {
+    if (!token) return;
     setCriandoCollection(true);
     setError(null);
     const nomePadrao =
@@ -73,7 +75,7 @@ function AbaEnviarDocumento({
           : "docs_chat";
 
     try {
-      const novaCol = await createCollection({
+      const novaCol = await createCollection(token, {
         name: nomePadrao,
         purpose,
         embedding_model: "paraphrase-multilingual-MiniLM-L12-v2",
@@ -95,7 +97,7 @@ function AbaEnviarDocumento({
         ],
       });
       try {
-        await activateCollection(novaCol.id);
+        await activateCollection(token, novaCol.id);
       } catch {
         // Ativação não impeditiva
       }
@@ -132,7 +134,7 @@ function AbaEnviarDocumento({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!file || isSubmitting) {
+    if (!file || isSubmitting || !token) {
       return;
     }
     const form = event.currentTarget;
@@ -142,7 +144,7 @@ function AbaEnviarDocumento({
     setResult(null);
 
     try {
-      const response = await uploadDocument({
+      const response = await uploadDocument(token, {
         file,
         domain,
         collectionId: collectionSelecionada || undefined,
@@ -416,12 +418,14 @@ function AbaEnviarDocumento({
 }
 
 function AbaDocumentosIngeridos({ collections }: { collections: RagCollection[] }) {
+  const token = useAuthStore((s) => s.token);
   const [documentos, setDocumentos] = useState<DocumentRegistryEntry[] | null>(null);
   const { toasts, showToast, dismissToast } = useToast();
 
   const carregarDocumentos = useCallback(async () => {
+    if (!token) return;
     try {
-      setDocumentos(await listDocuments());
+      setDocumentos(await listDocuments(token));
     } catch (err) {
       showToast(
         err instanceof RagApiError ? err.message : "Erro inesperado ao carregar os documentos.",
@@ -429,7 +433,7 @@ function AbaDocumentosIngeridos({ collections }: { collections: RagCollection[] 
       );
       setDocumentos([]);
     }
-  }, [showToast]);
+  }, [showToast, token]);
 
   useEffect(() => {
     // `carregarDocumentos` só chama `setDocumentos`/`showToast` depois do
@@ -727,13 +731,15 @@ function AbaCrawler() {
 }
 
 export default function IngestaoDocumentosPage() {
+  const token = useAuthStore((s) => s.token);
   const [reloadKey, setReloadKey] = useState(0);
   const [collections, setCollections] = useState<RagCollection[]>([]);
   const { toasts, showToast, dismissToast } = useToast();
 
   const carregarColecoes = useCallback(async (): Promise<RagCollection[]> => {
+    if (!token) return [];
     try {
-      const novalista = await listCollections();
+      const novalista = await listCollections(token);
       setCollections(novalista);
       return novalista;
     } catch (err) {
@@ -743,7 +749,7 @@ export default function IngestaoDocumentosPage() {
       );
       return [];
     }
-  }, [showToast]);
+  }, [showToast, token]);
 
   useEffect(() => {
     carregarColecoes();

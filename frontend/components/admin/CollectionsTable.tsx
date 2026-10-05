@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { RagApiError, activateCollection, deleteCollection } from "@/lib/api/rag";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { CollectionPurpose, RagCollection } from "@/lib/types/rag";
 
 export interface CollectionsTableProps {
@@ -25,6 +26,7 @@ export function CollectionsTable({
   onError,
   onSuccess,
 }: CollectionsTableProps) {
+  const token = useAuthStore((s) => s.token);
   const [collectionParaExcluir, setCollectionParaExcluir] = useState<RagCollection | null>(null);
   const [processando, setProcessando] = useState(false);
   const [filtroPurpose, setFiltroPurpose] = useState<"todas" | CollectionPurpose>("todas");
@@ -39,9 +41,10 @@ export function CollectionsTable({
       : collections.filter((c) => (c.purpose || "chat") === filtroPurpose);
 
   async function handleAtivar(collection: RagCollection) {
+    if (!token) return;
     setProcessando(true);
     try {
-      await activateCollection(collection.id);
+      await activateCollection(token, collection.id);
       onSuccess(`"${collection.name}" agora é a collection ativa (${getPurposeLabel(collection.purpose)}).`);
       onChanged();
     } catch (err) {
@@ -52,10 +55,10 @@ export function CollectionsTable({
   }
 
   async function confirmarExclusao() {
-    if (!collectionParaExcluir) return;
+    if (!collectionParaExcluir || !token) return;
     setProcessando(true);
     try {
-      await deleteCollection(collectionParaExcluir.id);
+      await deleteCollection(token, collectionParaExcluir.id);
       onSuccess(`"${collectionParaExcluir.name}" excluída.`);
       setCollectionParaExcluir(null);
       onChanged();

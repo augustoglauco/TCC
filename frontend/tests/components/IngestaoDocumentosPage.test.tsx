@@ -122,7 +122,7 @@ describe("IngestaoDocumentosPage", () => {
     await user.click(screen.getByRole("button", { name: "Enviar para ingestão" }));
 
     expect(await screen.findByText(/3 chunk\(s\) gravado\(s\)/)).toBeInTheDocument();
-    expect(mockedUploadDocument).toHaveBeenCalledWith({
+    expect(mockedUploadDocument).toHaveBeenCalledWith("mock-token-1", {
       file,
       domain: "vendas",
       collectionId: "col-1",
@@ -203,7 +203,7 @@ describe("IngestaoDocumentosPage", () => {
     await user.click(botaoExcluirHabilitado!);
     await user.click(screen.getByRole("button", { name: "Confirmar exclusão" }));
 
-    expect(mockedDeleteCollection).toHaveBeenCalledWith("col-2");
+    expect(mockedDeleteCollection).toHaveBeenCalledWith("mock-token-1", "col-2");
 
     await user.click(screen.getByRole("tab", { name: "Enviar documento" }));
     const selectAposExclusao = await screen.findByLabelText("Collection destino");
@@ -213,7 +213,7 @@ describe("IngestaoDocumentosPage", () => {
     await user.upload(screen.getByLabelText("Arquivo"), file);
     await user.click(screen.getByRole("button", { name: "Enviar para ingestão" }));
 
-    expect(mockedUploadDocument).toHaveBeenCalledWith({
+    expect(mockedUploadDocument).toHaveBeenCalledWith("mock-token-1", {
       file,
       domain: "vendas",
       collectionId: "col-1",

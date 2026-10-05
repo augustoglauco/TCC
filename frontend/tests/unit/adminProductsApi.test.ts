@@ -15,7 +15,7 @@ describe("adminProducts API client", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await fetchAdminProducts({ termo: "Câmera", categoria: "CFTV" });
+    const result = await fetchAdminProducts("mock-token", { termo: "Câmera", categoria: "CFTV" });
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos?termo=C%C3%A2mera&categoria=CFTV"),
       expect.any(Object),
@@ -31,7 +31,7 @@ describe("adminProducts API client", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await createAdminProduct({ nome: "Gravador NVD", preco: 500 });
+    const result = await createAdminProduct("mock-token", { nome: "Gravador NVD", preco: 500 });
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos"),
       expect.objectContaining({ method: "POST" }),
@@ -47,7 +47,7 @@ describe("adminProducts API client", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    const result = await confirmCatalogExtraction({
+    const result = await confirmCatalogExtraction("mock-token", {
       produtos: [{ nome: "Prod 1", preco: 100 }],
     });
     expect(mockFetch).toHaveBeenCalledWith(
@@ -66,9 +66,10 @@ describe("adminProducts API client", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const { fetchAdminCategories } = await import("@/lib/api/adminProducts");
-    const result = await fetchAdminCategories();
+    const result = await fetchAdminCategories("mock-token");
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos/categorias"),
+      expect.any(Object),
     );
     expect(result).toEqual(["CFTV", "Alarmes", "Redes"]);
     vi.unstubAllGlobals();
@@ -83,7 +84,7 @@ describe("adminProducts API client", () => {
 
     const { uploadTempImage } = await import("@/lib/api/adminProducts");
     const file = new File(["dummy"], "teste.jpg", { type: "image/jpeg" });
-    const url = await uploadTempImage(file);
+    const url = await uploadTempImage("mock-token", file);
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos/upload-temp"),
       expect.objectContaining({ method: "POST" }),
@@ -99,7 +100,7 @@ describe("adminProducts API client", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    await expect(deleteAdminProductImage(1, 10)).resolves.toBeUndefined();
+    await expect(deleteAdminProductImage("mock-token", 1, 10)).resolves.toBeUndefined();
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/produtos/1/imagens/10"),
       expect.objectContaining({ method: "DELETE" }),
@@ -114,7 +115,7 @@ describe("adminProducts API client", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    await expect(deleteAdminProductImage(1, 10)).resolves.toBeUndefined();
+    await expect(deleteAdminProductImage("mock-token", 1, 10)).resolves.toBeUndefined();
     vi.unstubAllGlobals();
   });
 
@@ -125,7 +126,7 @@ describe("adminProducts API client", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    await expect(deleteAdminProductImage(1, 10)).rejects.toThrow("Erro ao excluir imagem (500)");
+    await expect(deleteAdminProductImage("mock-token", 1, 10)).rejects.toThrow("Erro ao excluir imagem (500)");
     vi.unstubAllGlobals();
   });
 
@@ -145,7 +146,7 @@ describe("adminProducts API client", () => {
     vi.stubGlobal("fetch", mockFetch);
 
     const file = new File(["dummy pdf"], "catalogo.pdf", { type: "application/pdf" });
-    await extractCatalogStream([file], { pageRange: "1-5, 8" }, {});
+    await extractCatalogStream("mock-token", [file], { pageRange: "1-5, 8" }, {});
 
     expect(capturedBody).not.toBeNull();
     expect(capturedBody?.get("page_range")).toBe("1-5, 8");

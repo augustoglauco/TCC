@@ -18,7 +18,7 @@ describe("activateCollection", () => {
       vi.fn().mockResolvedValue(jsonResponse({ detail: "Collection não encontrada." }, 404)),
     );
 
-    await expect(activateCollection("col-1")).rejects.toMatchObject({
+    await expect(activateCollection("mock-token", "col-1")).rejects.toMatchObject({
       message: "Collection não encontrada.",
       status: 404,
     });
@@ -27,8 +27,8 @@ describe("activateCollection", () => {
   it("usa a mensagem genérica de fallback quando o backend não retorna detail", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, 500)));
 
-    await expect(activateCollection("col-1")).rejects.toBeInstanceOf(RagApiError);
-    await expect(activateCollection("col-1")).rejects.toMatchObject({
+    await expect(activateCollection("mock-token", "col-1")).rejects.toBeInstanceOf(RagApiError);
+    await expect(activateCollection("mock-token", "col-1")).rejects.toMatchObject({
       message: "Não foi possível ativar a collection. Tente novamente.",
     });
   });
@@ -77,7 +77,7 @@ describe("createCollection", () => {
       purpose: "chat",
     };
 
-    await expect(createCollection(payload)).rejects.toMatchObject({
+    await expect(createCollection("mock-token", payload)).rejects.toMatchObject({
       message: "chunk_overlap deve ser menor que chunk_size",
       status: 422,
     });

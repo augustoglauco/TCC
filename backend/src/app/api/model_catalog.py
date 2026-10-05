@@ -7,6 +7,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.admin_auth import require_admin
 from app.api.rag_dependencies import get_db_session
 from app.db.models import ModelCharacteristics
 from app.model_catalog.characteristics import get_or_fetch
@@ -52,6 +53,7 @@ async def get_characteristics(
     session: AsyncSession = Depends(get_db_session),
     ollama_client: OllamaClient = Depends(get_ollama_client),
     http_client=Depends(get_model_catalog_http_client),
+    _: None = Depends(require_admin),
 ):
     linha = await get_or_fetch(
         session, source, tag, ollama_client=ollama_client, http_client=http_client
@@ -67,6 +69,7 @@ async def refresh_characteristics(
     session: AsyncSession = Depends(get_db_session),
     ollama_client: OllamaClient = Depends(get_ollama_client),
     http_client=Depends(get_model_catalog_http_client),
+    _: None = Depends(require_admin),
 ):
     linha = await get_or_fetch(
         session,

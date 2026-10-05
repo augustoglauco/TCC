@@ -3,7 +3,7 @@ from httpx import ASGITransport, AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_public_products_api_flow(app_sqlite):
+async def test_public_products_api_flow(app_sqlite, admin_headers):
     app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # 1. Cadastra 3 produtos (2 com estoque via admin, 1 sem estoque)
@@ -16,6 +16,7 @@ async def test_public_products_api_flow(app_sqlite):
                 "preco": "299.90",
                 "categoria": "CFTV",
             },
+            headers=admin_headers,
         )
         assert prod_a_resp.status_code == 201
         prod_a_id = prod_a_resp.json()["id"]
@@ -29,6 +30,7 @@ async def test_public_products_api_flow(app_sqlite):
                 "preco": "499.90",
                 "categoria": "CFTV",
             },
+            headers=admin_headers,
         )
         assert prod_b_resp.status_code == 201
         prod_b_id = prod_b_resp.json()["id"]
@@ -42,6 +44,7 @@ async def test_public_products_api_flow(app_sqlite):
                 "preco": "199.90",
                 "categoria": "CFTV",
             },
+            headers=admin_headers,
         )
         assert prod_c_resp.status_code == 201
         prod_c_id = prod_c_resp.json()["id"]
@@ -55,6 +58,7 @@ async def test_public_products_api_flow(app_sqlite):
                 "preco": "10.00",
                 "categoria": "Outros",
             },
+            headers=admin_headers,
         )
 
         try:
@@ -77,6 +81,6 @@ async def test_public_products_api_flow(app_sqlite):
 
         finally:
             # Limpeza dos produtos criados
-            await client.delete(f"/api/admin/produtos/{prod_a_id}")
-            await client.delete(f"/api/admin/produtos/{prod_b_id}")
-            await client.delete(f"/api/admin/produtos/{prod_c_id}")
+            await client.delete(f"/api/admin/produtos/{prod_a_id}", headers=admin_headers)
+            await client.delete(f"/api/admin/produtos/{prod_b_id}", headers=admin_headers)
+            await client.delete(f"/api/admin/produtos/{prod_c_id}", headers=admin_headers)

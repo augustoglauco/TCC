@@ -3,7 +3,7 @@ from httpx import ASGITransport, AsyncClient
 
 
 @pytest.mark.asyncio
-async def test_orders_api_full_flow(app_sqlite):
+async def test_orders_api_full_flow(app_sqlite, admin_headers):
     app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         # 1. Cadastra um produto com estoque e faixas de desconto
@@ -16,6 +16,7 @@ async def test_orders_api_full_flow(app_sqlite):
                 "categoria": "Energia Solar",
                 "peso_kg": "12.50",
             },
+            headers=admin_headers,
         )
         assert prod_resp.status_code == 201
         prod_id = prod_resp.json()["id"]
@@ -24,6 +25,7 @@ async def test_orders_api_full_flow(app_sqlite):
         est_resp = await client.post(
             f"/api/admin/produtos/{prod_id}/estoque",
             json={"centro_distribuicao": "CD-SP", "quantidade": 50},
+            headers=admin_headers,
         )
         assert est_resp.status_code == 200
 
@@ -31,6 +33,7 @@ async def test_orders_api_full_flow(app_sqlite):
         desc_resp = await client.post(
             f"/api/admin/produtos/{prod_id}/descontos-volume",
             json={"quantidade_minima": 10, "percentual_desconto": "10.00"},
+            headers=admin_headers,
         )
         assert desc_resp.status_code == 200
 
@@ -108,4 +111,4 @@ async def test_orders_api_full_flow(app_sqlite):
             assert "insuficiente" in fail_resp.json()["detail"].lower()
 
         finally:
-            await client.delete(f"/api/admin/produtos/{prod_id}")
+            await client.delete(f"/api/admin/produtos/{prod_id}", headers=admin_headers)

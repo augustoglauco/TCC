@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { LocalModelsApiError, getPullStatus, pullModel } from "@/lib/api/localModels";
 import { getModelCharacteristics, refreshModelCharacteristics } from "@/lib/api/modelCatalog";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { ModelCharacteristicsPanel } from "@/components/admin/ModelCharacteristicsPanel";
 import type { PullStatusResponse } from "@/lib/types/localModels";
 import type { ModelCharacteristics } from "@/lib/types/modelCatalog";
@@ -47,6 +48,7 @@ export interface PullModelFormProps {
 }
 
 export function PullModelForm({ onPulled }: PullModelFormProps) {
+  const token = useAuthStore((s) => s.token);
   const [nome, setNome] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [progresso, setProgresso] = useState<PullStatusResponse | null>(null);
@@ -83,11 +85,12 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
       setPreviewHfLoading(false);
       return;
     }
+    if (!token) return;
 
     const tagAtual = nome.trim();
     setPreviewHfLoading(true);
     const timeoutId = setTimeout(() => {
-      getModelCharacteristics("huggingface", tagAtual)
+      getModelCharacteristics(token, "huggingface", tagAtual)
         .then((resultado) => {
           setPreviewHf(resultado);
           setPreviewHfError(null);
@@ -99,14 +102,15 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [nome]);
+  }, [nome, token]);
 
   const handleRefreshPreview = () => {
+    if (!token) return;
     // refresh manual do preview antes de baixar — reaproveita o mesmo
     // endpoint usado pelo painel pós-download (ver ModelCharacteristicsPanel)
     setPreviewHfLoading(true);
     setPreviewHfError(null);
-    refreshModelCharacteristics("huggingface", nome.trim())
+    refreshModelCharacteristics(token, "huggingface", nome.trim())
       .then((resultado) => setPreviewHf(resultado))
       .catch(() => {
         setPreviewHfError("Erro ao atualizar características.");
@@ -124,10 +128,10 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
 
     async function retomarSeNecessario() {
       const nomeSalvo = lerNomeEmAndamento();
-      if (!nomeSalvo) return;
+      if (!nomeSalvo || !token) return;
 
       try {
-        const status = await getPullStatus(nomeSalvo);
+        const status = await getPullStatus(token, nomeSalvo);
         // Uma submissão manual pode ter começado enquanto aguardávamos essa
         // resposta (ex.: o usuário submeteu outro modelo antes desta
         // retomada resolver) — nesse caso o submit manual já é dono do
@@ -167,8 +171,9 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
     pararPolling(); // garante que nunca há dois intervals concorrentes (ex.: retomada + submit numa corrida)
     falhasConsecutivasRef.current = 0;
     intervalRef.current = setInterval(async () => {
+      if (!token) return;
       try {
-        const status = await getPullStatus(nomeModelo);
+        const status = await getPullStatus(token, nomeModelo);
         falhasConsecutivasRef.current = 0;
         setProgresso(status);
         if (status.status === "done") {
@@ -205,7 +210,7 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!nome.trim() || enviando) return;
+    if (!nome.trim() || enviando || !token) return;
 
     submissaoManualIniciadaRef.current = true;
     setEnviando(true);
@@ -213,7 +218,7 @@ export function PullModelForm({ onPulled }: PullModelFormProps) {
     setProgresso(null);
 
     try {
-      await pullModel(nome);
+      await pullModel(token, nome);
       salvarNomeEmAndamento(nome);
       iniciarPolling(nome);
     } catch (err) {

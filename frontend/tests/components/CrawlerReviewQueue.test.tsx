@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CrawlerReviewQueue } from "@/components/admin/CrawlerReviewQueue";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { PendingPage } from "@/lib/types/crawler";
 
 vi.mock("@/lib/api/crawler", async () => {
@@ -35,6 +36,10 @@ describe("CrawlerReviewQueue", () => {
     mockedList.mockReset();
     mockedApprove.mockReset();
     mockedReject.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("mostra a mensagem de fila vazia quando não há páginas pendentes", async () => {
@@ -56,7 +61,7 @@ describe("CrawlerReviewQueue", () => {
     await user.selectOptions(screen.getByRole("combobox"), "suporte");
     await user.click(screen.getByRole("button", { name: "Aprovar" }));
 
-    expect(mockedApprove).toHaveBeenCalledWith(PAGINA.id, { domain: "suporte" });
+    expect(mockedApprove).toHaveBeenCalledWith("mock-token-1", PAGINA.id, { domain: "suporte" });
     expect(screen.queryByText(PAGINA.url)).not.toBeInTheDocument();
   });
 
@@ -70,7 +75,7 @@ describe("CrawlerReviewQueue", () => {
     await screen.findByText(PAGINA.url);
     await user.click(screen.getByRole("button", { name: "Rejeitar" }));
 
-    expect(mockedReject).toHaveBeenCalledWith(PAGINA.id);
+    expect(mockedReject).toHaveBeenCalledWith("mock-token-1", PAGINA.id);
     expect(screen.queryByText(PAGINA.url)).not.toBeInTheDocument();
   });
 });

@@ -30,6 +30,7 @@ from pydantic import BaseModel
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.admin_auth import require_admin
 from app.api.rag_dependencies import get_db_session
 from app.api.uploads import salvar_imagem_produto
 from app.catalog_extractor.extractor import extract_catalog_stream
@@ -80,6 +81,7 @@ async def get_admin_produtos(
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     # MVP: paginação em memória (carrega todos os produtos do filtro e fatia).
     todos = await listar_produtos(session, categoria=categoria, termo=termo)
@@ -94,6 +96,7 @@ async def get_admin_produtos(
 @router.get("/categorias", response_model=list[str])
 async def get_admin_categorias(
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     return await listar_categorias_distintas(session)
 
@@ -105,6 +108,7 @@ async def post_extrair_catalogo_stream(
     provider: str = Form("local"),
     fallback_external: bool = Form(True),
     page_range: str | None = Form(None),
+    _: None = Depends(require_admin),
 ):
     settings = get_settings()
     temp_dir = Path(settings.product_images_dir) / "temp"
@@ -141,6 +145,7 @@ async def post_confirmar_catalogo(
     session: AsyncSession = Depends(get_db_session),
     clip_store: ClipImageStore = Depends(_get_clip_store),
     clip_embedder: ClipEmbedder = Depends(_get_clip_embedder),
+    _: None = Depends(require_admin),
 ):
     settings = get_settings()
     temp_dir = Path(settings.product_images_dir) / "temp"
@@ -208,6 +213,7 @@ async def post_confirmar_catalogo(
 @router.post("/upload-temp")
 async def upload_temp_imagem_catalogo(
     file: UploadFile = File(...),
+    _: None = Depends(require_admin),
 ):
     """Permite upload avulso de imagem temporária para a conferência prévia do catálogo."""
     content = await file.read()
@@ -221,6 +227,7 @@ async def upload_temp_imagem_catalogo(
 async def get_admin_produto(
     produto_id: int,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     produto = await obter_produto(session, produto_id)
     if not produto:
@@ -232,6 +239,7 @@ async def get_admin_produto(
 async def post_admin_produto(
     payload: ProdutoCreate,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     produto = await criar_produto(
         session,
@@ -255,6 +263,7 @@ async def put_admin_produto(
     produto_id: int,
     payload: ProdutoUpdate,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     updates = payload.model_dump(exclude_unset=True)
     produto = await atualizar_produto(session, produto_id, updates)
@@ -268,6 +277,7 @@ async def delete_admin_produto(
     produto_id: int,
     session: AsyncSession = Depends(get_db_session),
     clip_store: ClipImageStore = Depends(_get_clip_store),
+    _: None = Depends(require_admin),
 ):
     produto = await obter_produto(session, produto_id)
     if not produto:
@@ -307,6 +317,7 @@ async def upload_imagem_produto(
     session: AsyncSession = Depends(get_db_session),
     clip_store: ClipImageStore = Depends(_get_clip_store),
     clip_embedder: ClipEmbedder = Depends(_get_clip_embedder),
+    _: None = Depends(require_admin),
 ):
     produto = await obter_produto(session, produto_id)
     if not produto:
@@ -352,6 +363,7 @@ async def delete_imagem_produto(
     img_id: int,
     session: AsyncSession = Depends(get_db_session),
     clip_store: ClipImageStore = Depends(_get_clip_store),
+    _: None = Depends(require_admin),
 ):
     stmt = select(ProdutoImagem).where(
         ProdutoImagem.id == img_id, ProdutoImagem.produto_id == produto_id
@@ -411,6 +423,7 @@ async def post_atualizar_estoque(
     produto_id: int,
     payload: EstoqueUpdatePayload,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     prod = await obter_produto(session, produto_id)
     if not prod:
@@ -426,6 +439,7 @@ async def post_adicionar_desconto_volume(
     produto_id: int,
     payload: DescontoVolumePayload,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     prod = await obter_produto(session, produto_id)
     if not prod:
@@ -445,6 +459,7 @@ async def delete_desconto_volume(
     produto_id: int,
     desconto_id: str,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     from uuid import UUID
 
@@ -465,6 +480,7 @@ async def delete_desconto_volume(
 async def get_compatividades_produto(
     produto_id: int,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     prod = await obter_produto(session, produto_id)
     if not prod:
@@ -477,6 +493,7 @@ async def post_criar_compatividade(
     produto_id: int,
     payload: CompatibilidadePayload,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     prod = await obter_produto(session, produto_id)
     if not prod:
@@ -493,6 +510,7 @@ async def delete_compatividade(
     produto_id: int,
     compativel_com_id: int,
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ):
     prod = await obter_produto(session, produto_id)
     if not prod:

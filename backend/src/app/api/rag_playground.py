@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.admin_auth import require_admin
 from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_qdrant_client
 from app.models.rag import (
     PlaygroundDocumentResult,
@@ -31,6 +32,7 @@ async def playground_search(
     qdrant: QdrantRAGClient = Depends(get_qdrant_client),
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> PlaygroundSearchResponse:
     resultados: list[PlaygroundResultItem] = []
 

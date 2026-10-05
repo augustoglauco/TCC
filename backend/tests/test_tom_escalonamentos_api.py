@@ -15,16 +15,16 @@ def _build_app(db_session) -> FastAPI:
     return app
 
 
-def test_get_escalonamentos_vazio_quando_nao_ha_casos(db_session):
+def test_get_escalonamentos_vazio_quando_nao_ha_casos(db_session, admin_headers):
     client = TestClient(_build_app(db_session))
 
-    response = client.get("/api/admin/tom/escalonamentos")
+    response = client.get("/api/admin/tom/escalonamentos", headers=admin_headers)
 
     assert response.status_code == 200
     assert response.json() == []
 
 
-async def test_get_escalonamentos_retorna_caso_persistido(db_session):
+async def test_get_escalonamentos_retorna_caso_persistido(db_session, admin_headers):
     await criar_escalonamento(
         db_session,
         conversation_id="conv-1",
@@ -35,7 +35,7 @@ async def test_get_escalonamentos_retorna_caso_persistido(db_session):
     )
     client = TestClient(_build_app(db_session))
 
-    response = client.get("/api/admin/tom/escalonamentos")
+    response = client.get("/api/admin/tom/escalonamentos", headers=admin_headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -45,7 +45,7 @@ async def test_get_escalonamentos_retorna_caso_persistido(db_session):
     assert body[0]["provider_efetivo"] == "heuristica_llm"
 
 
-async def test_get_escalonamentos_ordena_mais_recente_primeiro(db_session):
+async def test_get_escalonamentos_ordena_mais_recente_primeiro(db_session, admin_headers):
     primeiro = await criar_escalonamento(
         db_session,
         conversation_id="conv-a",
@@ -69,7 +69,7 @@ async def test_get_escalonamentos_ordena_mais_recente_primeiro(db_session):
     )
     client = TestClient(_build_app(db_session))
 
-    response = client.get("/api/admin/tom/escalonamentos")
+    response = client.get("/api/admin/tom/escalonamentos", headers=admin_headers)
 
     body = response.json()
     assert [r["conversation_id"] for r in body] == ["conv-b", "conv-a"]

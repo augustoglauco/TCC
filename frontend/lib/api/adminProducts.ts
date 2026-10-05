@@ -23,7 +23,12 @@ function parseSseBlock(block: string): { event: string; data: string } | null {
   return data ? { event, data } : null;
 }
 
+function authHeaders(token: string): HeadersInit {
+  return { Authorization: `Bearer ${token}` };
+}
+
 export async function fetchAdminProducts(
+  token: string,
   params?: AdminProductsQueryParams,
 ): Promise<AdminProductsListResponse> {
   const baseUrl = getApiBaseUrl();
@@ -34,36 +39,41 @@ export async function fetchAdminProducts(
   if (params?.offset !== undefined) query.set("offset", String(params.offset));
 
   const url = `${baseUrl}/api/admin/produtos${query.toString() ? `?${query.toString()}` : ""}`;
-  const res = await fetch(url, { method: "GET" });
+  const res = await fetch(url, { method: "GET", headers: authHeaders(token) });
   if (!res.ok) {
     throw new Error(`Erro ao listar produtos (${res.status})`);
   }
   return res.json();
 }
 
-export async function fetchAdminCategories(): Promise<string[]> {
+export async function fetchAdminCategories(token: string): Promise<string[]> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(`${baseUrl}/api/admin/produtos/categorias`);
+  const res = await fetch(`${baseUrl}/api/admin/produtos/categorias`, {
+    headers: authHeaders(token),
+  });
   if (!res.ok) {
     throw new Error(`Erro ao listar categorias (${res.status})`);
   }
   return res.json();
 }
 
-export async function fetchAdminProduct(id: number): Promise<AdminProduct> {
+export async function fetchAdminProduct(token: string, id: number): Promise<AdminProduct> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(`${baseUrl}/api/admin/produtos/${id}`);
+  const res = await fetch(`${baseUrl}/api/admin/produtos/${id}`, { headers: authHeaders(token) });
   if (!res.ok) {
     throw new Error(`Erro ao obter produto ${id} (${res.status})`);
   }
   return res.json();
 }
 
-export async function createAdminProduct(data: Partial<AdminProduct>): Promise<AdminProduct> {
+export async function createAdminProduct(
+  token: string,
+  data: Partial<AdminProduct>,
+): Promise<AdminProduct> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -73,13 +83,14 @@ export async function createAdminProduct(data: Partial<AdminProduct>): Promise<A
 }
 
 export async function updateAdminProduct(
+  token: string,
   id: number,
   data: Partial<AdminProduct>,
 ): Promise<AdminProduct> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -88,10 +99,11 @@ export async function updateAdminProduct(
   return res.json();
 }
 
-export async function deleteAdminProduct(id: number): Promise<void> {
+export async function deleteAdminProduct(token: string, id: number): Promise<void> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${id}`, {
     method: "DELETE",
+    headers: authHeaders(token),
   });
   if (!res.ok) {
     throw new Error(`Erro ao excluir produto ${id} (${res.status})`);
@@ -99,6 +111,7 @@ export async function deleteAdminProduct(id: number): Promise<void> {
 }
 
 export async function uploadAdminProductImage(
+  token: string,
   produtoId: number,
   file: File,
 ): Promise<AdminProductImage> {
@@ -109,6 +122,7 @@ export async function uploadAdminProductImage(
   const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/imagens`, {
     method: "POST",
     body: formData,
+    headers: authHeaders(token),
   });
   if (!res.ok) {
     throw new Error(`Erro ao enviar imagem (${res.status})`);
@@ -116,10 +130,15 @@ export async function uploadAdminProductImage(
   return res.json();
 }
 
-export async function deleteAdminProductImage(produtoId: number, imgId: number): Promise<void> {
+export async function deleteAdminProductImage(
+  token: string,
+  produtoId: number,
+  imgId: number,
+): Promise<void> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/imagens/${imgId}`, {
     method: "DELETE",
+    headers: authHeaders(token),
   });
   if (!res.ok && res.status !== 404) {
     throw new Error(`Erro ao excluir imagem (${res.status})`);
@@ -127,12 +146,13 @@ export async function deleteAdminProductImage(produtoId: number, imgId: number):
 }
 
 export async function confirmCatalogExtraction(
+  token: string,
   payload: CatalogConfirmPayload,
 ): Promise<CatalogConfirmResponse> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/catalogo/confirmar`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify(payload),
   });
   if (!res.ok) {
@@ -141,7 +161,7 @@ export async function confirmCatalogExtraction(
   return res.json();
 }
 
-export async function uploadTempImage(file: File): Promise<string> {
+export async function uploadTempImage(token: string, file: File): Promise<string> {
   const baseUrl = getApiBaseUrl();
   const formData = new FormData();
   formData.append("file", file);
@@ -149,6 +169,7 @@ export async function uploadTempImage(file: File): Promise<string> {
   const res = await fetch(`${baseUrl}/api/admin/produtos/upload-temp`, {
     method: "POST",
     body: formData,
+    headers: authHeaders(token),
   });
   if (!res.ok) {
     throw new Error(`Erro ao enviar foto (${res.status})`);
@@ -158,6 +179,7 @@ export async function uploadTempImage(file: File): Promise<string> {
 }
 
 export async function updateAdminProductStock(
+  token: string,
   produtoId: number,
   centroDistribuicao: string,
   quantidade: number,
@@ -165,7 +187,7 @@ export async function updateAdminProductStock(
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/estoque`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({
       centro_distribuicao: centroDistribuicao,
       quantidade,
@@ -178,6 +200,7 @@ export async function updateAdminProductStock(
 }
 
 export async function addAdminProductVolumeDiscount(
+  token: string,
   produtoId: number,
   quantidadeMinima: number,
   percentualDesconto: number,
@@ -185,7 +208,7 @@ export async function addAdminProductVolumeDiscount(
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/descontos-volume`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({
       quantidade_minima: quantidadeMinima,
       percentual_desconto: percentualDesconto,
@@ -198,6 +221,7 @@ export async function addAdminProductVolumeDiscount(
 }
 
 export async function deleteAdminProductVolumeDiscount(
+  token: string,
   produtoId: number,
   descontoId: string,
 ): Promise<AdminProduct> {
@@ -206,6 +230,7 @@ export async function deleteAdminProductVolumeDiscount(
     `${baseUrl}/api/admin/produtos/${produtoId}/descontos-volume/${descontoId}`,
     {
       method: "DELETE",
+      headers: authHeaders(token),
     },
   );
   if (!res.ok) {
@@ -215,10 +240,13 @@ export async function deleteAdminProductVolumeDiscount(
 }
 
 export async function fetchAdminProductCompatibilities(
+  token: string,
   produtoId: number,
 ): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
   const baseUrl = getApiBaseUrl();
-  const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`);
+  const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`, {
+    headers: authHeaders(token),
+  });
   if (!res.ok) {
     throw new Error(`Erro ao buscar compatibilidades (${res.status})`);
   }
@@ -226,13 +254,14 @@ export async function fetchAdminProductCompatibilities(
 }
 
 export async function addAdminProductCompatibility(
+  token: string,
   produtoId: number,
   compativelComId: number,
 ): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders(token) },
     body: JSON.stringify({ compativel_com_id: compativelComId }),
   });
   if (!res.ok) {
@@ -242,6 +271,7 @@ export async function addAdminProductCompatibility(
 }
 
 export async function deleteAdminProductCompatibility(
+  token: string,
   produtoId: number,
   compativelComId: number,
 ): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
@@ -250,6 +280,7 @@ export async function deleteAdminProductCompatibility(
     `${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades/${compativelComId}`,
     {
       method: "DELETE",
+      headers: authHeaders(token),
     },
   );
   if (!res.ok) {
@@ -272,6 +303,7 @@ export interface ExtractCatalogCallbacks {
 }
 
 export async function extractCatalogStream(
+  token: string,
   files: File[],
   options: ExtractCatalogStreamOptions,
   callbacks: ExtractCatalogCallbacks,
@@ -292,6 +324,7 @@ export async function extractCatalogStream(
     res = await fetch(`${baseUrl}/api/admin/produtos/catalogo/extrair/stream`, {
       method: "POST",
       body: formData,
+      headers: authHeaders(token),
     });
   } catch (err) {
     callbacks.onError?.(

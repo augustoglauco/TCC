@@ -3,9 +3,10 @@ crawl a partir de uma URL semente, e gerencia a fila de revisão de páginas
 cuja classificação de domínio ficou abaixo do limiar de confiança. Ver
 docs/superpowers/specs/2026-09-19-crawler-paginas-design.md.
 
-# MVP: sem autenticação (mesma decisão do restante de `app.api.rag`) e
-execução síncrona do crawl (`/run/stream`) — sem fila de background nem
-agendamento.
+# Restrito a administradores autenticados (achado da revisão de
+2026-10-04: adicionado `require_admin`, mesmo padrão aplicado ao restante
+de `app.api.rag`). # MVP: execução síncrona do crawl (`/run/stream`) —
+sem fila de background nem agendamento.
 """
 
 import json
@@ -21,6 +22,7 @@ from pydantic import HttpUrl, TypeAdapter, ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.admin_auth import require_admin
 from app.api.rag_dependencies import (
     get_db_session,
     get_embedder_registry,
@@ -85,6 +87,7 @@ async def run_crawler_stream(
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
     uploads_dir: Path = Depends(get_uploads_dir),
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> StreamingResponse:
     """Dispara um crawl a partir de uma URL semente e emite progresso em
     tempo real via SSE — um evento por página, para que o frontend saiba que
@@ -198,7 +201,10 @@ async def run_crawler_stream(
 
 
 @router.get("/pending", response_model=list[PendingPageResponse])
-async def get_pending(session: AsyncSession = Depends(get_db_session)) -> list[PendingPageResponse]:
+async def get_pending(
+    session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
+) -> list[PendingPageResponse]:
     pages = await list_pending_pages(session)
     return [_to_pending_response(page) for page in pages]
 
@@ -211,6 +217,7 @@ async def approve_pending(
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
     uploads_dir: Path = Depends(get_uploads_dir),
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> ApprovedPageResponse:
     page = await get_pending_page(session, page_id)
     if page is None:
@@ -265,7 +272,11 @@ async def approve_pending(
 
 
 @router.post("/pending/{page_id}/reject", status_code=status.HTTP_204_NO_CONTENT)
-async def reject_pending(page_id: UUID, session: AsyncSession = Depends(get_db_session)) -> None:
+async def reject_pending(
+    page_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
+) -> None:
     deleted = await delete_pending_page(session, page_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Página pendente não encontrada.")

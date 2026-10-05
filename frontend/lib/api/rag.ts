@@ -46,11 +46,10 @@ export interface UploadDocumentParams {
  * MVP: usado pela página administrativa `/admin/ingestao` — sem barra de
  * progresso nem upload em lote (um arquivo por vez), ver `docs/FRONTEND.md`.
  */
-export async function uploadDocument({
-  file,
-  domain,
-  collectionId,
-}: UploadDocumentParams): Promise<DocumentIngestResponse> {
+export async function uploadDocument(
+  token: string,
+  { file, domain, collectionId }: UploadDocumentParams,
+): Promise<DocumentIngestResponse> {
   const formData = new FormData();
   formData.append("domain", domain);
   formData.append("file", file);
@@ -60,7 +59,11 @@ export async function uploadDocument({
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/rag/documents`, { method: "POST", body: formData });
+    response = await fetch(`${API_BASE_URL}/api/rag/documents`, {
+      method: "POST",
+      body: formData,
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }
@@ -79,10 +82,12 @@ export async function uploadDocument({
  * paginação nem filtro no backend (lista completa, ordenada do mais recente
  * para o mais antigo).
  */
-export async function listDocuments(): Promise<DocumentRegistryEntry[]> {
+export async function listDocuments(token: string): Promise<DocumentRegistryEntry[]> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/rag/documents`);
+    response = await fetch(`${API_BASE_URL}/api/rag/documents`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }
@@ -101,10 +106,13 @@ export async function listDocuments(): Promise<DocumentRegistryEntry[]> {
  * Exclui um documento (registro + pontos no Qdrant + arquivo em disco) via
  * `DELETE /api/rag/documents/{id}`.
  */
-export async function deleteDocument(id: string): Promise<void> {
+export async function deleteDocument(token: string, id: string): Promise<void> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/rag/documents/${id}`, { method: "DELETE" });
+    response = await fetch(`${API_BASE_URL}/api/rag/documents/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }
@@ -124,6 +132,7 @@ export async function deleteDocument(id: string): Promise<void> {
  * move o original.
  */
 export async function reingestDocument(
+  token: string,
   documentId: string,
   targetCollectionId: string,
 ): Promise<DocumentRegistryEntry> {
@@ -131,7 +140,7 @@ export async function reingestDocument(
   try {
     response = await fetch(`${API_BASE_URL}/api/rag/documents/${documentId}/reingest`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ target_collection_id: targetCollectionId }),
     });
   } catch {
@@ -149,10 +158,12 @@ export async function reingestDocument(
 }
 
 /** Lista as collections via `GET /api/rag/collections`. */
-export async function listCollections(): Promise<RagCollection[]> {
+export async function listCollections(token: string): Promise<RagCollection[]> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/rag/collections`);
+    response = await fetch(`${API_BASE_URL}/api/rag/collections`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }
@@ -168,12 +179,15 @@ export async function listCollections(): Promise<RagCollection[]> {
 }
 
 /** Cria uma collection via `POST /api/rag/collections`. */
-export async function createCollection(payload: CollectionCreatePayload): Promise<RagCollection> {
+export async function createCollection(
+  token: string,
+  payload: CollectionCreatePayload,
+): Promise<RagCollection> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/rag/collections`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
     });
   } catch {
@@ -188,11 +202,12 @@ export async function createCollection(payload: CollectionCreatePayload): Promis
 }
 
 /** Ativa uma collection via `POST /api/rag/collections/{id}/activate`. */
-export async function activateCollection(id: string): Promise<void> {
+export async function activateCollection(token: string, id: string): Promise<void> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/rag/collections/${id}/activate`, {
       method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
     });
   } catch {
     throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
@@ -204,10 +219,13 @@ export async function activateCollection(id: string): Promise<void> {
 }
 
 /** Exclui uma collection (em cascata) via `DELETE /api/rag/collections/{id}`. */
-export async function deleteCollection(id: string): Promise<void> {
+export async function deleteCollection(token: string, id: string): Promise<void> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/rag/collections/${id}`, { method: "DELETE" });
+    response = await fetch(`${API_BASE_URL}/api/rag/collections/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }
@@ -223,13 +241,14 @@ export async function deleteCollection(id: string): Promise<void> {
 
 /** Roda a busca comparativa via `POST /api/rag/playground/search`. */
 export async function runPlaygroundSearch(
+  token: string,
   payload: PlaygroundSearchPayload,
 ): Promise<PlaygroundSearchResponse> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/rag/playground/search`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
     });
   } catch {
@@ -243,18 +262,27 @@ export async function runPlaygroundSearch(
   return (await response.json()) as PlaygroundSearchResponse;
 }
 
-/** Retorna a URL do endpoint de download/visualização do conteúdo de um documento. */
-export function getDocumentContentUrl(id: string): string {
-  return `${API_BASE_URL}/api/rag/documents/${id}/content`;
+/**
+ * Retorna a URL do endpoint de download/visualização do conteúdo de um
+ * documento, com o token de admin embutido na query string (`?token=...`,
+ * suportado pela mesma dependência `require_admin` do backend) — usada
+ * diretamente num `<a href>`/`download`, que não permite anexar um header
+ * `Authorization` customizado.
+ */
+export function getDocumentContentUrl(token: string, id: string): string {
+  return `${API_BASE_URL}/api/rag/documents/${id}/content?token=${encodeURIComponent(token)}`;
 }
 
 /** Busca o conteúdo bruto (blob/texto) de um documento para visualização. */
 export async function fetchDocumentContent(
+  token: string,
   id: string,
 ): Promise<{ blob: Blob; contentType: string; text?: string }> {
   let response: Response;
   try {
-    response = await fetch(getDocumentContentUrl(id));
+    response = await fetch(`${API_BASE_URL}/api/rag/documents/${id}/content`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }

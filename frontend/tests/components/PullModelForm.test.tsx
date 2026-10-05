@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PullModelForm } from "@/components/admin/PullModelForm";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { PullStatusResponse } from "@/lib/types/localModels";
 
 vi.mock("@/lib/api/localModels", async () => {
@@ -24,6 +25,10 @@ describe("PullModelForm", () => {
     mockedPullModel.mockReset();
     mockedGetPullStatus.mockReset();
     window.localStorage.clear();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   afterEach(() => {
@@ -49,7 +54,7 @@ describe("PullModelForm", () => {
     await user.type(screen.getByLabelText(/nome do modelo/i), "llama3.1:8b");
     await user.click(screen.getByRole("button", { name: "Baixar" }));
 
-    expect(mockedPullModel).toHaveBeenCalledWith("llama3.1:8b");
+    expect(mockedPullModel).toHaveBeenCalledWith("mock-token-1", "llama3.1:8b");
     expect(await screen.findByText(/30/)).toBeInTheDocument();
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("llama3.1:8b");
 
@@ -117,7 +122,7 @@ describe("PullModelForm", () => {
 
     render(<PullModelForm onPulled={vi.fn()} />);
 
-    await waitFor(() => expect(mockedGetPullStatus).toHaveBeenCalledWith("llama3.1:8b"));
+    await waitFor(() => expect(mockedGetPullStatus).toHaveBeenCalledWith("mock-token-1", "llama3.1:8b"));
     expect(screen.queryByDisplayValue("llama3.1:8b")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Baixar" })).toBeDisabled();
     await waitFor(() => expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull());
@@ -143,7 +148,7 @@ describe("PullModelForm", () => {
       resolverRetomada = resolve;
     });
     let chamadaDeRetomadaJaConsumida = false;
-    mockedGetPullStatus.mockImplementation((nome: string) => {
+    mockedGetPullStatus.mockImplementation((_token: string, nome: string) => {
       if (nome === "modelo-b" && !chamadaDeRetomadaJaConsumida) {
         chamadaDeRetomadaJaConsumida = true;
         return statusDeRetomadaPendente;
@@ -167,7 +172,7 @@ describe("PullModelForm", () => {
     // modelo diferente pelo formulário.
     await user.type(screen.getByLabelText(/nome do modelo/i), "modelo-a");
     await user.click(screen.getByRole("button", { name: "Baixar" }));
-    expect(mockedPullModel).toHaveBeenCalledWith("modelo-a");
+    expect(mockedPullModel).toHaveBeenCalledWith("mock-token-1", "modelo-a");
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe("modelo-a");
 
     // Só agora a retomada de "modelo-b" resolve — com o polling de
@@ -188,10 +193,10 @@ describe("PullModelForm", () => {
     await vi.advanceTimersByTimeAsync(1500);
 
     const chamadasParaModeloA = mockedGetPullStatus.mock.calls.filter(
-      ([nome]) => nome === "modelo-a",
+      ([, nome]) => nome === "modelo-a",
     );
     const chamadasParaModeloB = mockedGetPullStatus.mock.calls.filter(
-      ([nome]) => nome === "modelo-b",
+      ([, nome]) => nome === "modelo-b",
     );
     expect(chamadasParaModeloA.length).toBeGreaterThan(0);
     // Única chamada para "modelo-b" = a checagem de retomada; nenhum tick de
@@ -287,6 +292,10 @@ describe("preview de características para tags do Hugging Face", () => {
   beforeEach(() => {
     vi.mocked(getModelCharacteristics).mockReset();
     vi.mocked(refreshModelCharacteristics).mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("mostra o preview 500ms depois de digitar uma tag hf.co/...", async () => {

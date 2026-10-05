@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LocalModelsTable } from "@/components/admin/LocalModelsTable";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { LocalModel } from "@/lib/types/localModels";
 
 vi.mock("@/lib/api/localModels", async () => {
@@ -54,6 +55,10 @@ const MODELO_INATIVO: LocalModel = {
 describe("LocalModelsTable", () => {
   beforeEach(() => {
     mockedActivate.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("renderiza uma linha por modelo, com badge 'Ativo'", () => {
@@ -100,7 +105,7 @@ describe("LocalModelsTable", () => {
 
     await user.click(screen.getByRole("button", { name: "Ativar" }));
 
-    expect(mockedActivate).toHaveBeenCalledWith("qwen2.5:7b");
+    expect(mockedActivate).toHaveBeenCalledWith("mock-token-1", "qwen2.5:7b");
     expect(onChanged).toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalled();
   });

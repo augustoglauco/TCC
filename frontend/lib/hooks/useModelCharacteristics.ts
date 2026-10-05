@@ -5,6 +5,7 @@ import {
   getModelCharacteristics,
   refreshModelCharacteristics,
 } from "@/lib/api/modelCatalog";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { ModelCharacteristics, ModelSource } from "@/lib/types/modelCatalog";
 
 // Cache em memória da aba (sobrevive entre cards diferentes que pedem a
@@ -37,6 +38,7 @@ export function useModelCharacteristics(
   source: ModelSource,
   tag: string,
 ): UseModelCharacteristicsResult {
+  const token = useAuthStore((s) => s.token);
   const chave = chaveCache(source, tag);
   const [data, setData] = useState<ModelCharacteristics | null>(() => _cache.get(chave) ?? null);
   const [loading, setLoading] = useState(!_cache.has(chave));
@@ -61,13 +63,18 @@ export function useModelCharacteristics(
       return;
     }
 
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
     let cancelado = false;
     setLoading(true);
     setError(null);
 
     let promessa = _inFlight.get(chave);
     if (!promessa) {
-      promessa = getModelCharacteristics(source, tag);
+      promessa = getModelCharacteristics(token, source, tag);
       _inFlight.set(chave, promessa);
       // Remove do mapa de em-voo assim que resolver/rejeitar, sem engolir o
       // erro (quem consome `promessa` abaixo trata a rejeição normalmente)
@@ -99,13 +106,14 @@ export function useModelCharacteristics(
       cancelado = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chave]);
+  }, [chave, token]);
 
   const refresh = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     setError(null);
     try {
-      const resultado = await refreshModelCharacteristics(source, tag);
+      const resultado = await refreshModelCharacteristics(token, source, tag);
       if (!montadoRef.current) return;
       _cache.set(chave, resultado);
       setData(resultado);
@@ -118,7 +126,7 @@ export function useModelCharacteristics(
       if (montadoRef.current) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chave]);
+  }, [chave, token]);
 
   return { data, loading, error, refresh };
 }

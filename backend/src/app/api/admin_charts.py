@@ -3,14 +3,14 @@
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import verificar_admin_por_token
+from app.api.admin_auth import require_admin
 from app.api.rag_dependencies import get_db_session
 from app.db.models import AdminChart
 from app.services.chart_generator import SUPPORTED_QUERIES, execute_chart_aggregation
@@ -57,7 +57,7 @@ class AdminChartOut(BaseModel):
     atualizado_em: datetime
 
     @classmethod
-    def from_model(cls, m: AdminChart) -> "AdminChartOut":
+    def from_model(cls, m: AdminChart) -> AdminChartOut:
         return cls(
             id=str(m.id),
             titulo=m.titulo,
@@ -74,36 +74,11 @@ class AdminChartOut(BaseModel):
         )
 
 
-async def _require_admin(
-    session: AsyncSession = Depends(get_db_session),
-    authorization: Annotated[str | None, Header()] = None,
-    x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
-    token_param: Annotated[str | None, Query(alias="token")] = None,
-) -> None:
-    token: str | None = None
-    if authorization:
-        parts = authorization.split()
-        if len(parts) == 2 and parts[0].lower() == "bearer":
-            token = parts[1]
-        elif len(parts) == 1:
-            token = parts[0]
-    elif x_auth_token:
-        token = x_auth_token
-    elif token_param:
-        token = token_param
-
-    if not token or not await verificar_admin_por_token(session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso restrito a administradores autenticados.",
-        )
-
-
 @router.get("", response_model=list[AdminChartOut])
 async def list_admin_charts(
     response: Response,
     session: AsyncSession = Depends(get_db_session),
-    _: None = Depends(_require_admin),
+    _: None = Depends(require_admin),
 ) -> list[AdminChartOut]:
     """Retorna a lista de gráficos salvos no banco de dados."""
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -121,7 +96,7 @@ async def list_admin_charts(
 async def create_admin_chart(
     payload: AdminChartCreate,
     session: AsyncSession = Depends(get_db_session),
-    _: None = Depends(_require_admin),
+    _: None = Depends(require_admin),
 ) -> AdminChartOut:
     """Cria e persiste um novo gráfico no painel do administrador."""
     chart = AdminChart(
@@ -145,7 +120,7 @@ async def create_admin_chart(
 async def refresh_admin_chart(
     chart_id: str,
     session: AsyncSession = Depends(get_db_session),
-    _: None = Depends(_require_admin),
+    _: None = Depends(require_admin),
 ) -> AdminChartOut:
     """Re-executa a agregação de dados e atualiza o gráfico no banco de dados."""
     try:
@@ -224,7 +199,7 @@ async def update_admin_chart(
     chart_id: str,
     payload: AdminChartUpdate,
     session: AsyncSession = Depends(get_db_session),
-    _: None = Depends(_require_admin),
+    _: None = Depends(require_admin),
 ) -> AdminChartOut:
     """Atualiza propriedades de exibição do gráfico (título, descrição, fixado, ordem)."""
     try:
@@ -261,7 +236,7 @@ async def update_admin_chart(
 async def delete_admin_chart(
     chart_id: str,
     session: AsyncSession = Depends(get_db_session),
-    _: None = Depends(_require_admin),
+    _: None = Depends(require_admin),
 ) -> dict[str, bool]:
     """Exclui permanentemente um gráfico do banco de dados."""
     try:

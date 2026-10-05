@@ -1,12 +1,14 @@
 """Endpoints HTTP de documentos do RAG (R4, além do MVP): upload, listagem,
 exclusão e reingestão em outra collection.
 
-# MVP: sem autenticação (rotas não listadas na navegação pública do
-# frontend, mas não protegidas por login). `upload_document` complementa,
-# sem substituir, o script de ingestão em lote
-# (`backend/scripts/ingest_sample_docs.py`). Mesma limitação de
-# `app.rag.qdrant_client.upsert_chunks`: sem deduplicação/reingestão
-# incremental automática. Decisão registrada em `docs/ARCHITECTURE.md` §5.
+# Restrito a administradores autenticados (achado da revisão de
+# 2026-10-04: adicionado `require_admin` — até então, rotas só não
+# listadas na navegação pública do frontend, sem proteção de login no
+# servidor). `upload_document` complementa, sem substituir, o script de
+# ingestão em lote (`backend/scripts/ingest_sample_docs.py`). Mesma
+# limitação de `app.rag.qdrant_client.upsert_chunks`: sem deduplicação/
+# reingestão incremental automática. Decisão registrada em
+# `docs/ARCHITECTURE.md` §5.
 """
 
 import logging
@@ -18,6 +20,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.admin_auth import require_admin
 from app.api.rag_dependencies import (
     get_db_session,
     get_embedder_registry,
@@ -66,6 +69,7 @@ async def upload_document(
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
     uploads_dir: Path = Depends(get_uploads_dir),
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> DocumentIngestResponse:
     filename = file.filename or ""
     suffix = Path(filename).suffix.lower()
@@ -131,6 +135,7 @@ async def upload_document(
 @router.get("/documents", response_model=list[DocumentRegistryResponse])
 async def get_documents(
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> list[DocumentRegistryResponse]:
     try:
         documentos = await list_documents(session)
@@ -158,6 +163,7 @@ async def get_document_content_endpoint(
     document_id: UUID,
     session: AsyncSession = Depends(get_db_session),
     uploads_dir: Path = Depends(get_uploads_dir),
+    _: None = Depends(require_admin),
 ) -> FileResponse:
     document = await session.get(RagDocument, document_id)
     if document is None:
@@ -206,6 +212,7 @@ async def delete_document_endpoint(
     document_id: UUID,
     qdrant: QdrantRAGClient = Depends(get_qdrant_client),
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> None:
     document = await session.get(RagDocument, document_id)
     if document is None:
@@ -250,6 +257,7 @@ async def reingest_document_endpoint(
     qdrant: QdrantRAGClient = Depends(get_qdrant_client),
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
     session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
 ) -> DocumentRegistryResponse:
     source_document = await session.get(RagDocument, document_id)
     if source_document is None:

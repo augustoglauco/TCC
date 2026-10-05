@@ -15,6 +15,7 @@ import {
   addAdminProductCompatibility,
   deleteAdminProductCompatibility,
 } from "@/lib/api/adminProducts";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type {
   AdminProduct,
   AdminProductImage,
@@ -39,6 +40,7 @@ export default function ProductFormModal({
   produtoParaEditar,
   allProducts = [],
 }: ProductFormModalProps) {
+  const token = useAuthStore((s) => s.token);
   const [activeTab, setActiveTab] = useState<
     "geral" | "estoque" | "descontos" | "compatibilidades"
   >("geral");
@@ -115,9 +117,11 @@ export default function ProductFormModal({
       setImagemFile(null);
 
       // Carrega compatibilidades remotas
-      fetchAdminProductCompatibilities(produtoParaEditar.id)
-        .then(setCompatividades)
-        .catch(() => setCompatividades([]));
+      if (token) {
+        fetchAdminProductCompatibilities(token, produtoParaEditar.id)
+          .then(setCompatividades)
+          .catch(() => setCompatividades([]));
+      }
     } else {
       setNome("");
       setCategoria("CFTV");
@@ -133,7 +137,7 @@ export default function ProductFormModal({
       setCompatividades([]);
     }
     setError(null);
-  }, [produtoParaEditar?.id, isOpen]);
+  }, [produtoParaEditar?.id, isOpen, token]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -144,7 +148,7 @@ export default function ProductFormModal({
   };
 
   const handleRemoverImagemExistente = async (imgId: number) => {
-    if (!produtoParaEditar || deletingImageId !== null) return;
+    if (!produtoParaEditar || deletingImageId !== null || !token) return;
     setDeletingImageId(imgId);
     setError(null);
 
@@ -153,10 +157,10 @@ export default function ProductFormModal({
     setImagens(imagensRestantes);
 
     try {
-      await deleteAdminProductImage(produtoParaEditar.id, imgId);
+      await deleteAdminProductImage(token, produtoParaEditar.id, imgId);
       let produtoAtualizado: AdminProduct | null = null;
       try {
-        produtoAtualizado = await fetchAdminProduct(produtoParaEditar.id);
+        produtoAtualizado = await fetchAdminProduct(token, produtoParaEditar.id);
         setImagens(produtoAtualizado.imagens || []);
         if (!imagemFile) {
           setImagemPreview(
@@ -190,7 +194,7 @@ export default function ProductFormModal({
 
   // Handlers de Estoque
   const handleSalvarEstoque = async () => {
-    if (!produtoParaEditar || !cdNome.trim()) return;
+    if (!produtoParaEditar || !cdNome.trim() || !token) return;
     const qtd = parseInt(cdQtd, 10);
     if (isNaN(qtd) || qtd < 0) {
       setError("Informe uma quantidade válida de estoque.");
@@ -200,6 +204,7 @@ export default function ProductFormModal({
     setError(null);
     try {
       const prodAtualizado = await updateAdminProductStock(
+        token,
         produtoParaEditar.id,
         cdNome.trim(),
         qtd,
@@ -215,7 +220,7 @@ export default function ProductFormModal({
 
   // Handlers de Desconto por Volume
   const handleAdicionarDesconto = async () => {
-    if (!produtoParaEditar) return;
+    if (!produtoParaEditar || !token) return;
     const qtdMin = parseInt(descQtdMin, 10);
     const perc = parseFloat(descPercentual);
     if (isNaN(qtdMin) || qtdMin <= 0 || isNaN(perc) || perc <= 0) {
@@ -226,6 +231,7 @@ export default function ProductFormModal({
     setError(null);
     try {
       const prodAtualizado = await addAdminProductVolumeDiscount(
+        token,
         produtoParaEditar.id,
         qtdMin,
         perc,
@@ -240,11 +246,12 @@ export default function ProductFormModal({
   };
 
   const handleRemoverDesconto = async (descontoId: string) => {
-    if (!produtoParaEditar) return;
+    if (!produtoParaEditar || !token) return;
     setUpdatingDiscount(true);
     setError(null);
     try {
       const prodAtualizado = await deleteAdminProductVolumeDiscount(
+        token,
         produtoParaEditar.id,
         descontoId,
       );
@@ -259,13 +266,13 @@ export default function ProductFormModal({
 
   // Handlers de Compatibilidade
   const handleAdicionarCompatibilidade = async () => {
-    if (!produtoParaEditar || !compativelSelectedId) return;
+    if (!produtoParaEditar || !compativelSelectedId || !token) return;
     const targetId = parseInt(compativelSelectedId, 10);
     if (isNaN(targetId) || targetId === produtoParaEditar.id) return;
     setUpdatingCompatibility(true);
     setError(null);
     try {
-      const list = await addAdminProductCompatibility(produtoParaEditar.id, targetId);
+      const list = await addAdminProductCompatibility(token, produtoParaEditar.id, targetId);
       setCompatividades(list);
       setCompativelSelectedId("");
     } catch (err) {
@@ -276,11 +283,15 @@ export default function ProductFormModal({
   };
 
   const handleRemoverCompatibilidade = async (compativelComId: number) => {
-    if (!produtoParaEditar) return;
+    if (!produtoParaEditar || !token) return;
     setUpdatingCompatibility(true);
     setError(null);
     try {
-      const list = await deleteAdminProductCompatibility(produtoParaEditar.id, compativelComId);
+      const list = await deleteAdminProductCompatibility(
+        token,
+        produtoParaEditar.id,
+        compativelComId,
+      );
       setCompatividades(list);
     } catch (err) {
       setError((err instanceof Error && err.message) || "Erro ao remover compatibilidade");
@@ -300,6 +311,7 @@ export default function ProductFormModal({
       setError("Informe um preço de venda válido.");
       return;
     }
+    if (!token) return;
 
     setSaving(true);
     setError(null);
@@ -316,13 +328,13 @@ export default function ProductFormModal({
 
       let produtoSalvo: AdminProduct;
       if (produtoParaEditar) {
-        produtoSalvo = await updateAdminProduct(produtoParaEditar.id, payload);
+        produtoSalvo = await updateAdminProduct(token, produtoParaEditar.id, payload);
       } else {
-        produtoSalvo = await createAdminProduct(payload);
+        produtoSalvo = await createAdminProduct(token, payload);
       }
 
       if (imagemFile && produtoSalvo) {
-        await uploadAdminProductImage(produtoSalvo.id, imagemFile);
+        await uploadAdminProductImage(token, produtoSalvo.id, imagemFile);
       }
 
       onSuccess();

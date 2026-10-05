@@ -1,8 +1,9 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { act } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useModelCharacteristics } from "@/lib/hooks/useModelCharacteristics";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
 vi.mock("@/lib/api/modelCatalog", () => ({
   getModelCharacteristics: vi.fn(),
@@ -31,6 +32,13 @@ const CARACTERISTICAS = {
 };
 
 describe("useModelCharacteristics", () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -46,7 +54,7 @@ describe("useModelCharacteristics", () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.data).toEqual(CARACTERISTICAS);
-    expect(mockGet).toHaveBeenCalledWith("openrouter", "openai/gpt-4o-mini");
+    expect(mockGet).toHaveBeenCalledWith("mock-token-1", "openrouter", "openai/gpt-4o-mini");
   });
 
   it("não refaz a busca para a mesma tag já cacheada", async () => {
@@ -112,7 +120,11 @@ describe("useModelCharacteristics", () => {
       await result.current.refresh();
     });
 
-    expect(mockRefresh).toHaveBeenCalledWith("openrouter", "modelo-ainda-nao-cacheado");
+    expect(mockRefresh).toHaveBeenCalledWith(
+      "mock-token-1",
+      "openrouter",
+      "modelo-ainda-nao-cacheado",
+    );
     expect(result.current.data).toEqual(CARACTERISTICAS);
   });
 });

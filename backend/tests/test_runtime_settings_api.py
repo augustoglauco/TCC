@@ -1,4 +1,3 @@
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -62,19 +61,6 @@ class _FakeExternalClient:
 class _FakeQdrantClient:
     def __init__(self, search_domain_fallback: bool) -> None:
         self.search_domain_fallback = search_domain_fallback
-
-
-@pytest.fixture
-async def admin_headers(db_session) -> dict[str, str]:
-    """Cria um Cliente admin real no `db_session` e devolve o header
-    `Authorization` correspondente — `_require_admin` (ver
-    `app.api.runtime_settings`) exige essa checagem desde a revisão de
-    2026-10-04 (achado: endpoint inteiro sem autenticação)."""
-    admin = Cliente(nome="Admin Teste", email="admin@empresa.com")
-    db_session.add(admin)
-    await db_session.commit()
-    await db_session.refresh(admin)
-    return {"Authorization": f"Bearer mock-token-{admin.id}"}
 
 
 def _build_app(

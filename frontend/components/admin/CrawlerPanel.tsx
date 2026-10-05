@@ -70,7 +70,7 @@ export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!url || isRunning) {
+    if (!url || isRunning || !token) {
       return;
     }
 
@@ -81,6 +81,7 @@ export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
     marcarAtividade();
 
     await runCrawlerStream(
+      token,
       { url, depth, max_pages: maxPages === "" ? undefined : maxPages },
       {
         onVisiting: (visitandoUrl) => {

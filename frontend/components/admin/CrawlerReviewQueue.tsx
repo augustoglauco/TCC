@@ -9,6 +9,7 @@ import {
   listPendingPages,
   rejectPendingPage,
 } from "@/lib/api/crawler";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { PendingPage } from "@/lib/types/crawler";
 import type { RagDomain } from "@/lib/types/rag";
 
@@ -19,14 +20,16 @@ const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
 ];
 
 export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
+  const token = useAuthStore((s) => s.token);
   const [pages, setPages] = useState<PendingPage[] | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<Record<string, RagDomain>>({});
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { toasts, showToast, dismissToast } = useToast();
 
   const carregar = useCallback(async () => {
+    if (!token) return;
     try {
-      const carregadas = await listPendingPages();
+      const carregadas = await listPendingPages(token);
       setPages(carregadas);
       setSelectedDomain((atual) => {
         const proximo = { ...atual };
@@ -44,7 +47,7 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
       );
       setPages([]);
     }
-  }, [showToast]);
+  }, [showToast, token]);
 
   useEffect(() => {
     // `carregar` só chama `setPages`/`showToast` depois do `await`
@@ -55,9 +58,10 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
   }, [carregar, reloadKey]);
 
   async function handleApprove(page: PendingPage) {
+    if (!token) return;
     setProcessingId(page.id);
     try {
-      await approvePendingPage(page.id, {
+      await approvePendingPage(token, page.id, {
         domain: selectedDomain[page.id] ?? page.domain_proposed,
       });
       showToast(`"${page.url}" aprovada e ingerida.`, "success");
@@ -73,9 +77,10 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
   }
 
   async function handleReject(page: PendingPage) {
+    if (!token) return;
     setProcessingId(page.id);
     try {
-      await rejectPendingPage(page.id);
+      await rejectPendingPage(token, page.id);
       showToast(`"${page.url}" rejeitada.`, "success");
       setPages((atual) => atual?.filter((p) => p.id !== page.id) ?? null);
     } catch (err) {

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PlaygroundPanel } from "@/components/admin/playground/PlaygroundPanel";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { RagCollection } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/rag", async () => {
@@ -46,6 +47,10 @@ const COLLECTION_B = collection({ id: "b", name: "collection-b", is_active: fals
 describe("PlaygroundPanel", () => {
   beforeEach(() => {
     mockedRunSearch.mockReset();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("botão comparar fica desabilitado sem pergunta ou sem collection marcada", () => {
@@ -79,7 +84,7 @@ describe("PlaygroundPanel", () => {
     await user.click(screen.getByLabelText("collection-b"));
     await user.click(screen.getByRole("button", { name: "Comparar" }));
 
-    expect(mockedRunSearch).toHaveBeenCalledWith({
+    expect(mockedRunSearch).toHaveBeenCalledWith("mock-token-1", {
       query: "qual a garantia?",
       domain: "vendas",
       collection_ids: ["a", "b"],

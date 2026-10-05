@@ -26,6 +26,7 @@ async function _lancarErroComDetalhe(response: Response, mensagemPadrao: string)
  * tem característica pra essa tag (404) — não é um erro.
  */
 export async function getModelCharacteristics(
+  token: string,
   source: ModelSource,
   tag: string,
 ): Promise<ModelCharacteristics | null> {
@@ -35,6 +36,7 @@ export async function getModelCharacteristics(
       `${API_BASE_URL}/api/admin/model-catalog/characteristics?source=${encodeURIComponent(
         source,
       )}&tag=${encodeURIComponent(tag)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
     );
   } catch {
     throw new ModelCatalogApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
@@ -50,6 +52,7 @@ export async function getModelCharacteristics(
 
 /** Força nova busca na fonte via `POST .../characteristics/refresh`, ignorando o cache. */
 export async function refreshModelCharacteristics(
+  token: string,
   source: ModelSource,
   tag: string,
 ): Promise<ModelCharacteristics | null> {
@@ -57,7 +60,7 @@ export async function refreshModelCharacteristics(
   try {
     response = await fetch(`${API_BASE_URL}/api/admin/model-catalog/characteristics/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ source, tag }),
     });
   } catch {

@@ -7,6 +7,7 @@ import {
   fetchAdminCategories,
   deleteAdminProduct,
 } from "@/lib/api/adminProducts";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { AdminProduct } from "@/lib/types/adminProducts";
 import ProductListTable from "@/components/admin/products/ProductListTable";
 import ProductFormModal from "@/components/admin/products/ProductFormModal";
@@ -25,6 +26,7 @@ const CATEGORIAS_PADRAO = [
 ];
 
 export default function AdminProdutosPage() {
+  const token = useAuthStore((s) => s.token);
   const [produtos, setProdutos] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [termo, setTermo] = useState("");
@@ -38,8 +40,9 @@ export default function AdminProdutosPage() {
 
   // Carrega categorias do backend e consolida com sugestões
   const carregarCategorias = useCallback(async () => {
+    if (!token) return;
     try {
-      const catsDoBanco = await fetchAdminCategories();
+      const catsDoBanco = await fetchAdminCategories(token);
       const todas = Array.from(new Set([...CATEGORIAS_PADRAO, ...catsDoBanco]))
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
@@ -47,7 +50,7 @@ export default function AdminProdutosPage() {
     } catch (err) {
       console.warn("Não foi possível carregar categorias remotas:", err);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     // Carga inicial dos dados (fetch assíncrono) — falso positivo conhecido de
@@ -57,9 +60,10 @@ export default function AdminProdutosPage() {
   }, [carregarCategorias]);
 
   const carregarProdutos = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     try {
-      const data = await fetchAdminProducts({
+      const data = await fetchAdminProducts(token, {
         termo: termo.trim() || undefined,
         categoria: selectedCategories.length > 0 ? selectedCategories.join(",") : undefined,
       });
@@ -80,7 +84,7 @@ export default function AdminProdutosPage() {
     } finally {
       setLoading(false);
     }
-  }, [termo, selectedCategories]);
+  }, [termo, selectedCategories, token]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -90,8 +94,9 @@ export default function AdminProdutosPage() {
   }, [carregarProdutos]);
 
   const handleDelete = async (id: number) => {
+    if (!token) return;
     try {
-      await deleteAdminProduct(id);
+      await deleteAdminProduct(token, id);
       carregarProdutos();
       carregarCategorias();
     } catch {

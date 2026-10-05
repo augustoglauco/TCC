@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 from qdrant_client import AsyncQdrantClient
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.api.admin_auth import require_admin
 from app.api.rag_collections import router as rag_collections_router
 from app.api.rag_dependencies import get_db_session, get_embedder_registry, get_qdrant_client
 from app.rag.embedders_registry import EmbedderRegistry
@@ -80,13 +81,23 @@ def _qdrant() -> QdrantRAGClient:
 
 
 def _build_app(
-    qdrant: QdrantRAGClient, db_session, embedders: EmbedderRegistry | None = None
+    qdrant: QdrantRAGClient,
+    db_session,
+    embedders: EmbedderRegistry | None = None,
+    bypass_admin: bool = False,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(rag_collections_router)
     app.dependency_overrides[get_qdrant_client] = lambda: qdrant
     app.dependency_overrides[get_embedder_registry] = lambda: embedders or _FakeEmbedderRegistry()
     app.dependency_overrides[get_db_session] = lambda: db_session
+    if bypass_admin:
+        # Testes de falha de Postgres injetam uma sessão-dublê que sempre
+        # levanta `SQLAlchemyError` — a MESMA sessão alimentaria a checagem
+        # de admin (também via `get_db_session`), quebrando antes de chegar
+        # no código que o teste quer exercitar. Esses testes não avaliam
+        # autenticação, então o bypass é explícito aqui.
+        app.dependency_overrides[require_admin] = lambda: None
     return app
 
 
@@ -133,10 +144,10 @@ _PAYLOAD_MINIMO = {
 }
 
 
-def test_criar_collection_grava_no_qdrant_e_no_registro(db_session):
+def test_criar_collection_grava_no_qdrant_e_no_registro(db_session, admin_headers):
     client = TestClient(_build_app(_qdrant(), db_session))
 
-    response = client.post("/api/rag/collections", json=_PAYLOAD_MINIMO)
+    response = client.post("/api/rag/collections", json=_PAYLOAD_MINIMO, headers=admin_headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -146,7 +157,9 @@ def test_criar_collection_grava_no_qdrant_e_no_registro(db_session):
     assert body["document_count"] == 0
 
 
-async def test_criar_collection_com_nome_duplicado_retorna_409(db_session, active_collection):
+async def test_criar_collection_com_nome_duplicado_retorna_409(
+    db_session, active_collection, admin_headers
+):
     qdrant = _qdrant()
     await qdrant.create_collection(
         name=active_collection.name,
@@ -160,12 +173,14 @@ async def test_criar_collection_com_nome_duplicado_retorna_409(db_session, activ
     client = TestClient(_build_app(qdrant, db_session))
     payload = {**_PAYLOAD_MINIMO, "name": active_collection.name}
 
-    response = client.post("/api/rag/collections", json=payload)
+    response = client.post("/api/rag/collections", json=payload, headers=admin_headers)
 
     assert response.status_code == 409
 
 
-async def test_criar_collection_com_nome_duplicado_nao_toca_qdrant(db_session, active_collection):
+async def test_criar_collection_com_nome_duplicado_nao_toca_qdrant(
+    db_session, active_collection, admin_headers
+):
     """A checagem de nome duplicado é Postgres-first (ver finding #3 da
     revisão final): o 409 deve sair sem nunca chamar `qdrant.create_collection`,
     mesmo que a collection ainda não exista no Qdrant."""
@@ -173,22 +188,24 @@ async def test_criar_collection_com_nome_duplicado_nao_toca_qdrant(db_session, a
     client = TestClient(_build_app(qdrant, db_session))
     payload = {**_PAYLOAD_MINIMO, "name": active_collection.name}
 
-    response = client.post("/api/rag/collections", json=payload)
+    response = client.post("/api/rag/collections", json=payload, headers=admin_headers)
 
     assert response.status_code == 409
     assert await qdrant.collection_exists(active_collection.name) is False
 
 
-def test_criar_collection_com_chunk_size_menor_que_overlap_retorna_422(db_session):
+def test_criar_collection_com_chunk_size_menor_que_overlap_retorna_422(db_session, admin_headers):
     client = TestClient(_build_app(_qdrant(), db_session))
     payload = {**_PAYLOAD_MINIMO, "chunk_size": 100, "chunk_overlap": 200}
 
-    response = client.post("/api/rag/collections", json=payload)
+    response = client.post("/api/rag/collections", json=payload, headers=admin_headers)
 
     assert response.status_code == 422
 
 
-async def test_listar_collections_inclui_contagem_de_documentos(db_session, active_collection):
+async def test_listar_collections_inclui_contagem_de_documentos(
+    db_session, active_collection, admin_headers
+):
     from app.rag.registry import create_document
 
     await create_document(
@@ -203,7 +220,7 @@ async def test_listar_collections_inclui_contagem_de_documentos(db_session, acti
     )
     client = TestClient(_build_app(_qdrant(), db_session))
 
-    response = client.get("/api/rag/collections")
+    response = client.get("/api/rag/collections", headers=admin_headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -212,7 +229,9 @@ async def test_listar_collections_inclui_contagem_de_documentos(db_session, acti
     assert body[0]["is_active"] is True
 
 
-async def test_ativar_collection_troca_qual_esta_ativa(db_session, active_collection):
+async def test_ativar_collection_troca_qual_esta_ativa(
+    db_session, active_collection, admin_headers
+):
     from app.rag.collections_registry import create_collection
 
     outra = await create_collection(
@@ -230,27 +249,29 @@ async def test_ativar_collection_troca_qual_esta_ativa(db_session, active_collec
     )
     client = TestClient(_build_app(_qdrant(), db_session))
 
-    response = client.post(f"/api/rag/collections/{outra.id}/activate")
+    response = client.post(f"/api/rag/collections/{outra.id}/activate", headers=admin_headers)
 
     assert response.status_code == 204
-    body = client.get("/api/rag/collections").json()
+    body = client.get("/api/rag/collections", headers=admin_headers).json()
     ativa = next(c for c in body if c["id"] == str(outra.id))
     assert ativa["is_active"] is True
 
 
-def test_ativar_collection_inexistente_retorna_404(db_session):
+def test_ativar_collection_inexistente_retorna_404(db_session, admin_headers):
     client = TestClient(_build_app(_qdrant(), db_session))
 
-    response = client.post("/api/rag/collections/00000000-0000-0000-0000-000000000000/activate")
+    response = client.post(
+        "/api/rag/collections/00000000-0000-0000-0000-000000000000/activate", headers=admin_headers
+    )
 
     assert response.status_code == 404
 
 
-def test_criar_collection_mcp_b2b_expoe_purpose_na_resposta(db_session):
+def test_criar_collection_mcp_b2b_expoe_purpose_na_resposta(db_session, admin_headers):
     client = TestClient(_build_app(_qdrant(), db_session))
     payload = {**_PAYLOAD_MINIMO, "name": "mcp_docs", "purpose": "mcp_b2b"}
 
-    response = client.post("/api/rag/collections", json=payload)
+    response = client.post("/api/rag/collections", json=payload, headers=admin_headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -258,7 +279,7 @@ def test_criar_collection_mcp_b2b_expoe_purpose_na_resposta(db_session):
     assert body["is_active"] is False
 
 
-def test_criar_collection_admin_expoe_purpose_na_resposta(db_session):
+def test_criar_collection_admin_expoe_purpose_na_resposta(db_session, admin_headers):
     """Regressão: `purpose="admin"` (exclusiva do Admin no modo admin do
     chat, decisão de 2026-09-30 em docs/ARCHITECTURE.md §6) era aceito pelo
     frontend (`CollectionFormModal`) e pelo registro, mas rejeitado aqui com
@@ -267,7 +288,7 @@ def test_criar_collection_admin_expoe_purpose_na_resposta(db_session):
     client = TestClient(_build_app(_qdrant(), db_session))
     payload = {**_PAYLOAD_MINIMO, "name": "admin_docs", "purpose": "admin"}
 
-    response = client.post("/api/rag/collections", json=payload)
+    response = client.post("/api/rag/collections", json=payload, headers=admin_headers)
 
     assert response.status_code == 200
     body = response.json()
@@ -275,16 +296,16 @@ def test_criar_collection_admin_expoe_purpose_na_resposta(db_session):
     assert body["is_active"] is False
 
 
-def test_criar_collection_sem_purpose_default_chat(db_session):
+def test_criar_collection_sem_purpose_default_chat(db_session, admin_headers):
     client = TestClient(_build_app(_qdrant(), db_session))
 
-    response = client.post("/api/rag/collections", json=_PAYLOAD_MINIMO)
+    response = client.post("/api/rag/collections", json=_PAYLOAD_MINIMO, headers=admin_headers)
 
     assert response.status_code == 200
     assert response.json()["purpose"] == "chat"
 
 
-async def test_ativar_collection_mcp_b2b_ativa_com_sucesso(db_session):
+async def test_ativar_collection_mcp_b2b_ativa_com_sucesso(db_session, admin_headers):
     from app.rag.collections_registry import create_collection
 
     mcp = await create_collection(
@@ -303,14 +324,16 @@ async def test_ativar_collection_mcp_b2b_ativa_com_sucesso(db_session):
     )
     client = TestClient(_build_app(_qdrant(), db_session))
 
-    response = client.post(f"/api/rag/collections/{mcp.id}/activate")
+    response = client.post(f"/api/rag/collections/{mcp.id}/activate", headers=admin_headers)
 
     assert response.status_code == 204
     await db_session.refresh(mcp)
     assert mcp.is_active is True
 
 
-async def test_excluir_collection_ativa_retorna_409_sem_tocar_qdrant(db_session, active_collection):
+async def test_excluir_collection_ativa_retorna_409_sem_tocar_qdrant(
+    db_session, active_collection, admin_headers
+):
     qdrant = _qdrant()
     await qdrant.create_collection(
         name=active_collection.name,
@@ -323,13 +346,15 @@ async def test_excluir_collection_ativa_retorna_409_sem_tocar_qdrant(db_session,
     )
     client = TestClient(_build_app(qdrant, db_session))
 
-    response = client.delete(f"/api/rag/collections/{active_collection.id}")
+    response = client.delete(f"/api/rag/collections/{active_collection.id}", headers=admin_headers)
 
     assert response.status_code == 409
     assert await qdrant.collection_exists(active_collection.name) is True
 
 
-async def test_excluir_collection_inativa_remove_em_cascata(db_session, active_collection):
+async def test_excluir_collection_inativa_remove_em_cascata(
+    db_session, active_collection, admin_headers
+):
     from app.rag.collections_registry import create_collection
     from app.rag.registry import create_document
 
@@ -368,18 +393,20 @@ async def test_excluir_collection_inativa_remove_em_cascata(db_session, active_c
     )
     client = TestClient(_build_app(qdrant, db_session))
 
-    response = client.delete(f"/api/rag/collections/{inativa.id}")
+    response = client.delete(f"/api/rag/collections/{inativa.id}", headers=admin_headers)
 
     assert response.status_code == 204
     assert await qdrant.collection_exists("para_excluir") is False
-    body = client.get("/api/rag/collections").json()
+    body = client.get("/api/rag/collections", headers=admin_headers).json()
     assert [c["id"] for c in body] == [str(active_collection.id)]
 
 
-def test_excluir_collection_inexistente_retorna_404(db_session):
+def test_excluir_collection_inexistente_retorna_404(db_session, admin_headers):
     client = TestClient(_build_app(_qdrant(), db_session))
 
-    response = client.delete("/api/rag/collections/00000000-0000-0000-0000-000000000000")
+    response = client.delete(
+        "/api/rag/collections/00000000-0000-0000-0000-000000000000", headers=admin_headers
+    )
 
     assert response.status_code == 404
 
@@ -387,7 +414,7 @@ def test_excluir_collection_inexistente_retorna_404(db_session):
 def test_listar_collections_com_erro_no_postgres_retorna_503():
     """`list_collections_endpoint` não tratava `SQLAlchemyError` (achado #2
     da revisão final) — agora vira 503, igual aos endpoints de documentos."""
-    client = TestClient(_build_app(_qdrant(), _FailingReadSession()))
+    client = TestClient(_build_app(_qdrant(), _FailingReadSession(), bypass_admin=True))
 
     response = client.get("/api/rag/collections")
 
@@ -396,7 +423,7 @@ def test_listar_collections_com_erro_no_postgres_retorna_503():
 
 def test_ativar_collection_com_erro_no_postgres_retorna_503():
     """Mesmo achado #2, para `activate_collection_endpoint`."""
-    client = TestClient(_build_app(_qdrant(), _FailingGetSession()))
+    client = TestClient(_build_app(_qdrant(), _FailingGetSession(), bypass_admin=True))
 
     response = client.post("/api/rag/collections/00000000-0000-0000-0000-000000000000/activate")
 
@@ -406,7 +433,7 @@ def test_ativar_collection_com_erro_no_postgres_retorna_503():
 def test_excluir_collection_com_erro_no_postgres_ao_listar_retorna_503():
     """Mesmo achado #2, para a etapa inicial (listar/checar) de
     `delete_collection_endpoint`."""
-    client = TestClient(_build_app(_qdrant(), _FailingReadSession()))
+    client = TestClient(_build_app(_qdrant(), _FailingReadSession(), bypass_admin=True))
 
     response = client.delete("/api/rag/collections/00000000-0000-0000-0000-000000000000")
 
@@ -446,7 +473,7 @@ async def test_excluir_collection_com_erro_no_postgres_ao_deletar_retorna_503_ma
         payload_indexes=[],
         **_DEFAULT_HNSW,
     )
-    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session)))
+    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session), bypass_admin=True))
 
     response = client.delete(f"/api/rag/collections/{inativa.id}")
     assert response.status_code == 503
@@ -466,7 +493,7 @@ async def test_criar_collection_com_erro_no_postgres_desfaz_criacao_no_qdrant(db
     e impossível de apagar pela API (ela nunca chegou a ter registro no
     Postgres)."""
     qdrant = _qdrant()
-    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session)))
+    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session), bypass_admin=True))
 
     response = client.post("/api/rag/collections", json=_PAYLOAD_MINIMO)
 
@@ -481,7 +508,7 @@ async def test_criar_collection_com_erro_no_postgres_e_rollback_tambem_falha_log
     estado órfão (collection existe só no Qdrant) precisa ficar registrado
     em log para limpeza manual."""
     qdrant = _DropFailingQdrant(_qdrant())
-    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session)))
+    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session), bypass_admin=True))
 
     with caplog.at_level(logging.WARNING):
         response = client.post("/api/rag/collections", json=_PAYLOAD_MINIMO)
@@ -525,7 +552,7 @@ async def test_excluir_collection_com_erro_no_postgres_ao_deletar_loga_warning_d
         payload_indexes=[],
         **_DEFAULT_HNSW,
     )
-    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session)))
+    client = TestClient(_build_app(qdrant, _CommitFailingSession(db_session), bypass_admin=True))
 
     with caplog.at_level(logging.WARNING):
         response = client.delete(f"/api/rag/collections/{inativa.id}")
@@ -536,7 +563,7 @@ async def test_excluir_collection_com_erro_no_postgres_ao_deletar_loga_warning_d
 
 
 async def test_criar_collection_com_nome_duplicado_nao_calcula_dimensao_do_embedder(
-    db_session, active_collection
+    db_session, active_collection, admin_headers
 ):
     """Achado de limpeza da revisão final: a checagem de nome duplicado
     (barata, uma consulta ao Postgres) deve rodar antes de
@@ -546,7 +573,7 @@ async def test_criar_collection_com_nome_duplicado_nao_calcula_dimensao_do_embed
     client = TestClient(_build_app(_qdrant(), db_session, embedders=tracking))
     payload = {**_PAYLOAD_MINIMO, "name": active_collection.name}
 
-    response = client.post("/api/rag/collections", json=payload)
+    response = client.post("/api/rag/collections", json=payload, headers=admin_headers)
 
     assert response.status_code == 409
     assert tracking.get_called is False

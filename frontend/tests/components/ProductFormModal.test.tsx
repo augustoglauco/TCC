@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ProductFormModal from "@/components/admin/products/ProductFormModal";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { AdminProduct } from "@/lib/types/adminProducts";
 
 vi.mock("@/lib/api/adminProducts", () => ({
@@ -56,6 +57,10 @@ const PRODUTO_MOCK: AdminProduct = {
 describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAuthStore.setState({
+      user: { id: 1, nome: "Admin Teste", email: "admin@empresa.com", perfil: "Admin" },
+      token: "mock-token-1",
+    });
   });
 
   it("exibe o nome do produto no título da modal ao editar e 'Novo Produto' na criação", () => {
@@ -126,7 +131,7 @@ describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
     const deleteButtons = screen.getAllByTitle("Remover imagem do produto e do CLIP");
     await user.click(deleteButtons[0]);
 
-    expect(mockedDeleteImage).toHaveBeenCalledWith(42, 101);
+    expect(mockedDeleteImage).toHaveBeenCalledWith("mock-token-1", 42, 101);
 
     await waitFor(() => {
       expect(screen.getByText("Imagens associadas (1):")).toBeInTheDocument();

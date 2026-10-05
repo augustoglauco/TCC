@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { LocalModelsApiError, activateModel, pullModel } from "@/lib/api/localModels";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { LocalModel } from "@/lib/types/localModels";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { ModelCharacteristicsPanel } from "@/components/admin/ModelCharacteristicsPanel";
@@ -102,15 +103,17 @@ export interface LocalModelsTableProps {
 }
 
 export function LocalModelsTable({ models, onChanged, onError, onSuccess }: LocalModelsTableProps) {
+  const token = useAuthStore((s) => s.token);
   const [processandoTag, setProcessandoTag] = useState<string | null>(null);
   const [baixandoPreset, setBaixandoPreset] = useState<string | null>(null);
 
   const activeModel = models.find((m) => m.is_active);
 
   async function handleAtivar(modelo: LocalModel) {
+    if (!token) return;
     setProcessandoTag(modelo.name);
     try {
-      await activateModel(modelo.name);
+      await activateModel(token, modelo.name);
       onSuccess(`"${modelo.name}" agora é o modelo ativo no chat.`);
       onChanged();
     } catch (err) {
@@ -123,10 +126,11 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
   }
 
   async function handleBaixarPreset(tag: string) {
+    if (!token) return;
     setBaixandoPreset(tag);
     try {
       onSuccess(`Iniciando download do modelo "${tag}"...`);
-      await pullModel(tag);
+      await pullModel(token, tag);
       onSuccess(`Modelo "${tag}" baixado com sucesso!`);
       onChanged();
     } catch (err) {

@@ -21,10 +21,12 @@ async function _lancarErroComDetalhe(response: Response, mensagemPadrao: string)
 }
 
 /** Lista os modelos locais via `GET /api/admin/local-models`. */
-export async function listLocalModels(): Promise<LocalModelsListResponse> {
+export async function listLocalModels(token: string): Promise<LocalModelsListResponse> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/admin/local-models`);
+    response = await fetch(`${API_BASE_URL}/api/admin/local-models`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new LocalModelsApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
   }
@@ -40,12 +42,12 @@ export async function listLocalModels(): Promise<LocalModelsListResponse> {
 }
 
 /** Ativa um modelo já baixado via `POST /api/admin/local-models/activate`. */
-export async function activateModel(name: string): Promise<void> {
+export async function activateModel(token: string, name: string): Promise<void> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/admin/local-models/activate`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ name }),
     });
   } catch {
@@ -58,12 +60,12 @@ export async function activateModel(name: string): Promise<void> {
 }
 
 /** Dispara o download de um modelo via `POST /api/admin/local-models/pull` (não bloqueia — retorna assim que a tarefa é iniciada). */
-export async function pullModel(name: string): Promise<void> {
+export async function pullModel(token: string, name: string): Promise<void> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/admin/local-models/pull`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ name }),
     });
   } catch {
@@ -80,11 +82,12 @@ export async function pullModel(name: string): Promise<void> {
  * `GET /api/admin/local-models/pull-status?name=...` — usado em polling
  * pelo componente de formulário de download.
  */
-export async function getPullStatus(name: string): Promise<PullStatusResponse> {
+export async function getPullStatus(token: string, name: string): Promise<PullStatusResponse> {
   let response: Response;
   try {
     response = await fetch(
       `${API_BASE_URL}/api/admin/local-models/pull-status?name=${encodeURIComponent(name)}`,
+      { headers: { Authorization: `Bearer ${token}` } },
     );
   } catch {
     throw new LocalModelsApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");

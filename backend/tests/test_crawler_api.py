@@ -69,7 +69,7 @@ def _build_app(
 
 
 def test_stream_confidence_baixa_enfileira_e_aparece_em_pending(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     html = "<html><body><p>Conteúdo ambíguo</p></body></html>"
     fake_qdrant = _FakeQdrantRAGClient()
@@ -83,7 +83,9 @@ def test_stream_confidence_baixa_enfileira_e_aparece_em_pending(
     )
     client = TestClient(app)
 
-    response = client.get("/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0")
+    response = client.get(
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0", headers=admin_headers
+    )
 
     eventos = _parse_sse(response.text)
     assert "enfileirada" in [ev for ev, _ in eventos]
@@ -92,13 +94,15 @@ def test_stream_confidence_baixa_enfileira_e_aparece_em_pending(
     assert done["auto_ingested"] == []
     assert fake_qdrant.upserts == []
 
-    pendentes = client.get("/api/rag/crawler/pending").json()
+    pendentes = client.get("/api/rag/crawler/pending", headers=admin_headers).json()
     assert len(pendentes) == 1
     assert pendentes[0]["url"] == "https://exemplo.com/"
     assert pendentes[0]["domain_proposed"] == "vendas"
 
 
-def test_stream_usa_max_pages_default_quando_nao_informado(db_session, active_collection, tmp_path):
+def test_stream_usa_max_pages_default_quando_nao_informado(
+    db_session, active_collection, tmp_path, admin_headers
+):
     html_com_link = (
         '<html><body><a href="/a">a</a><a href="/b">b</a><a href="/c">c</a></body></html>'
     )
@@ -113,7 +117,9 @@ def test_stream_usa_max_pages_default_quando_nao_informado(db_session, active_co
     app = _build_app(fake_qdrant, db_session, tmp_path, llm, max_pages_default=2, paginas=paginas)
     client = TestClient(app)
 
-    response = client.get("/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1")
+    response = client.get(
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1", headers=admin_headers
+    )
 
     done = _parse_sse(response.text)[-1][1]
     assert done["pages_visited"] == 2
@@ -157,7 +163,7 @@ class _PoisonedAfterFirstCommitFailureSession:
 
 
 def test_stream_com_falha_de_commit_em_uma_pagina_nao_contamina_as_seguintes(
-    db_session, active_collection, tmp_path
+    db_session, active_collection, tmp_path, admin_headers
 ):
     """Achado #2 da revisão final: uma falha de `SQLAlchemyError` na página 1
     não deve fazer a página 2 (mesmo crawl) também "falhar" só por causa do
@@ -173,7 +179,9 @@ def test_stream_com_falha_de_commit_em_uma_pagina_nao_contamina_as_seguintes(
     app = _build_app(fake_qdrant, session_com_falha, tmp_path, llm, paginas=paginas)
     client = TestClient(app)
 
-    response = client.get("/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1")
+    response = client.get(
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1", headers=admin_headers
+    )
 
     assert response.status_code == 200
     done = _parse_sse(response.text)[-1][1]
@@ -182,7 +190,9 @@ def test_stream_com_falha_de_commit_em_uma_pagina_nao_contamina_as_seguintes(
     assert done["auto_ingested"] == ["https://exemplo.com/outra"]
 
 
-def test_approve_pending_page_ingere_com_domain_escolhido(db_session, active_collection, tmp_path):
+def test_approve_pending_page_ingere_com_domain_escolhido(
+    db_session, active_collection, tmp_path, admin_headers
+):
     from app.rag.crawler_pending import upsert_pending_page
 
     fake_qdrant = _FakeQdrantRAGClient()
@@ -206,17 +216,21 @@ def test_approve_pending_page_ingere_com_domain_escolhido(db_session, active_col
     client = TestClient(app)
 
     response = client.post(
-        f"/api/rag/crawler/pending/{page.id}/approve", json={"domain": "suporte"}
+        f"/api/rag/crawler/pending/{page.id}/approve",
+        json={"domain": "suporte"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
     body = response.json()
     assert body == {"url": "https://exemplo.com/ambiguo", "domain": "suporte", "chunks": 1}
     assert len(fake_qdrant.upserts) == 1
-    assert client.get("/api/rag/crawler/pending").json() == []
+    assert client.get("/api/rag/crawler/pending", headers=admin_headers).json() == []
 
 
-def test_approve_pending_page_inexistente_retorna_404(db_session, active_collection, tmp_path):
+def test_approve_pending_page_inexistente_retorna_404(
+    db_session, active_collection, tmp_path, admin_headers
+):
     fake_qdrant = _FakeQdrantRAGClient()
     llm = _FakeLLMClient(domain="vendas", confidence=0.9)
     app = _build_app(fake_qdrant, db_session, tmp_path, llm)
@@ -225,12 +239,15 @@ def test_approve_pending_page_inexistente_retorna_404(db_session, active_collect
     response = client.post(
         "/api/rag/crawler/pending/00000000-0000-0000-0000-000000000000/approve",
         json={"domain": "vendas"},
+        headers=admin_headers,
     )
 
     assert response.status_code == 404
 
 
-def test_reject_pending_page_remove_sem_ingerir(db_session, active_collection, tmp_path):
+def test_reject_pending_page_remove_sem_ingerir(
+    db_session, active_collection, tmp_path, admin_headers
+):
     from app.rag.crawler_pending import upsert_pending_page
 
     fake_qdrant = _FakeQdrantRAGClient()
@@ -253,20 +270,25 @@ def test_reject_pending_page_remove_sem_ingerir(db_session, active_collection, t
     app = _build_app(fake_qdrant, db_session, tmp_path, llm)
     client = TestClient(app)
 
-    response = client.post(f"/api/rag/crawler/pending/{page.id}/reject")
+    response = client.post(f"/api/rag/crawler/pending/{page.id}/reject", headers=admin_headers)
 
     assert response.status_code == 204
     assert fake_qdrant.upserts == []
-    assert client.get("/api/rag/crawler/pending").json() == []
+    assert client.get("/api/rag/crawler/pending", headers=admin_headers).json() == []
 
 
-def test_reject_pending_page_inexistente_retorna_404(db_session, active_collection, tmp_path):
+def test_reject_pending_page_inexistente_retorna_404(
+    db_session, active_collection, tmp_path, admin_headers
+):
     fake_qdrant = _FakeQdrantRAGClient()
     llm = _FakeLLMClient(domain="vendas", confidence=0.9)
     app = _build_app(fake_qdrant, db_session, tmp_path, llm)
     client = TestClient(app)
 
-    response = client.post("/api/rag/crawler/pending/00000000-0000-0000-0000-000000000000/reject")
+    response = client.post(
+        "/api/rag/crawler/pending/00000000-0000-0000-0000-000000000000/reject",
+        headers=admin_headers,
+    )
 
     assert response.status_code == 404
 
@@ -290,7 +312,9 @@ def _parse_sse(body: str) -> list[tuple[str, dict]]:
     return eventos
 
 
-def test_stream_emite_visitando_ingerida_e_done(db_session, active_collection, tmp_path):
+def test_stream_emite_visitando_ingerida_e_done(
+    db_session, active_collection, tmp_path, admin_headers
+):
     html = "<html><body><p>Conteúdo de vendas</p></body></html>"
     fake_qdrant = _FakeQdrantRAGClient()
     llm = _FakeLLMClient(domain="vendas", confidence=0.9)
@@ -303,7 +327,9 @@ def test_stream_emite_visitando_ingerida_e_done(db_session, active_collection, t
     )
     client = TestClient(app)
 
-    response = client.get("/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0")
+    response = client.get(
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0", headers=admin_headers
+    )
 
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/event-stream")
@@ -324,23 +350,27 @@ def test_stream_emite_visitando_ingerida_e_done(db_session, active_collection, t
     assert done["errors"] == []
 
 
-def test_stream_url_invalida_retorna_422(db_session, active_collection, tmp_path):
+def test_stream_url_invalida_retorna_422(db_session, active_collection, tmp_path, admin_headers):
     fake_qdrant = _FakeQdrantRAGClient()
     llm = _FakeLLMClient(domain="vendas", confidence=0.9)
     app = _build_app(fake_qdrant, db_session, tmp_path, llm)
     client = TestClient(app)
 
-    response = client.get("/api/rag/crawler/run/stream?url=nao-e-url&depth=0")
+    response = client.get(
+        "/api/rag/crawler/run/stream?url=nao-e-url&depth=0", headers=admin_headers
+    )
 
     assert response.status_code == 422
 
 
-def test_stream_sem_collection_ativa_retorna_503(db_session, tmp_path):
+def test_stream_sem_collection_ativa_retorna_503(db_session, tmp_path, admin_headers):
     fake_qdrant = _FakeQdrantRAGClient()
     llm = _FakeLLMClient(domain="vendas", confidence=0.9)
     app = _build_app(fake_qdrant, db_session, tmp_path, llm)
     client = TestClient(app)
 
-    response = client.get("/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0")
+    response = client.get(
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0", headers=admin_headers
+    )
 
     assert response.status_code == 503

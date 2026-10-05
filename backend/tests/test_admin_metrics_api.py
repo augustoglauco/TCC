@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.api.admin_metrics import router as admin_metrics_router
 from app.api.rag_dependencies import get_db_session
-from app.db.models import Cliente, Conversa, ConversaMensagem
+from app.db.models import Conversa, ConversaMensagem
 
 
 class _SingleSessionMaker:
@@ -38,14 +38,6 @@ def metrics_client(db_session):
         yield test_client
 
 
-@pytest.fixture
-async def admin_headers(db_session) -> dict[str, str]:
-    admin = Cliente(nome="Admin Master", email="admin@empresa.com")
-    db_session.add(admin)
-    await db_session.commit()
-    await db_session.refresh(admin)
-    return {"Authorization": f"Bearer mock-token-{admin.id}"}
-
 
 @pytest.mark.asyncio
 async def test_metrics_api_requer_autenticacao_admin(metrics_client):
@@ -71,16 +63,17 @@ async def test_metrics_api_aggregates_closed_chats_and_costs(
     metrics_client, db_session, admin_headers
 ):
     now = datetime.now(UTC)
+    c1_encerrada_em = now - timedelta(hours=2)
     # O agrupamento diário bucketa no fuso local (America/Sao_Paulo, achado
-    # da revisão de 2026-10-04), não em UTC — calcula a data esperada do
-    # mesmo jeito para não ficar instável entre 00h-03h UTC.
-    date_str = now.astimezone(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d")
+    # da revisão de 2026-10-04), não em UTC — calcula a data esperada a partir
+    # da data em que c1 foi efetivamente encerrada.
+    date_str = c1_encerrada_em.astimezone(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d")
 
-    # Conversa 1: Fechada hoje, mensagens locais e externas
+    # Conversa 1: Fechada hoje/recente, mensagens locais e externas
     c1 = Conversa(
         id="conv-metrics-1",
         status="encerrada",
-        encerrada_em=now - timedelta(hours=2),
+        encerrada_em=c1_encerrada_em,
         motivo_encerramento="manual_usuario",
     )
     # Conversa 2: Aberta (NÃO deve entrar nas métricas de chats encerrados)

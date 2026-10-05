@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { fetchDocumentContent, getDocumentContentUrl } from "@/lib/api/rag";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { DocumentRegistryEntry } from "@/lib/types/rag";
 
 export interface DocumentViewModalProps {
@@ -67,6 +68,7 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } {
 }
 
 export function DocumentViewModal({ documento, onOpenChange }: DocumentViewModalProps) {
+  const token = useAuthStore((s) => s.token);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState<string | null>(null);
@@ -88,7 +90,7 @@ export function DocumentViewModal({ documento, onOpenChange }: DocumentViewModal
   }
 
   useEffect(() => {
-    if (!documento) {
+    if (!documento || !token) {
       return;
     }
 
@@ -98,7 +100,7 @@ export function DocumentViewModal({ documento, onOpenChange }: DocumentViewModal
     let active = true;
     let urlCriada: string | null = null;
 
-    fetchDocumentContent(documento.id)
+    fetchDocumentContent(token, documento.id)
       .then(({ blob, text }) => {
         if (!active) return;
         if (fileType === "pdf") {
@@ -125,11 +127,11 @@ export function DocumentViewModal({ documento, onOpenChange }: DocumentViewModal
       active = false;
       if (urlCriada) URL.revokeObjectURL(urlCriada);
     };
-  }, [documento, fileType]);
+  }, [documento, fileType, token]);
 
   if (!documento) return null;
 
-  const downloadUrl = getDocumentContentUrl(documento.id);
+  const downloadUrl = token ? getDocumentContentUrl(token, documento.id) : "";
 
   return (
     <Modal

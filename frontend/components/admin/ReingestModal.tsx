@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Modal } from "@/components/ui/Modal";
 import { RagApiError, reingestDocument } from "@/lib/api/rag";
+import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { DocumentRegistryEntry, RagCollection } from "@/lib/types/rag";
 
 export interface ReingestModalProps {
@@ -21,6 +22,7 @@ export function ReingestModal({
   onReingested,
   onError,
 }: ReingestModalProps) {
+  const token = useAuthStore((s) => s.token);
   const destinos = collections.filter((collection) => collection.id !== documento?.collection_id);
   // Este componente fica permanentemente montado dentro de DocumentsTable (visibilidade
   // controlada pela prop `documento`/`open`, não por mount/unmount) — o inicializador do
@@ -36,10 +38,10 @@ export function ReingestModal({
   const [enviando, setEnviando] = useState(false);
 
   async function confirmar() {
-    if (!documento || !targetIdEfetivo) return;
+    if (!documento || !targetIdEfetivo || !token) return;
     setEnviando(true);
     try {
-      await reingestDocument(documento.id, targetIdEfetivo);
+      await reingestDocument(token, documento.id, targetIdEfetivo);
       onReingested();
     } catch (err) {
       onError(
