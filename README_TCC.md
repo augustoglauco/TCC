@@ -62,11 +62,13 @@ Entrada Multimodal (Texto / Áudio / Imagem)
   - *Áudio*: Processado via OpenAI Whisper (`base`) para conversão Speech-to-Text (STT).
   - *Imagem*: OCR dirigido via Tesseract para extração de texto em comprovantes e embeddings visual CLIP (`ViT-B/32`) para busca no catálogo.
 * **Roteador / Orquestrador**: Classifica o contexto (analisando as últimas 1 a 3 mensagens) em um dos 4 domínios de atendimento (Vendas, Suporte, Atendimento Geral, Agendamento) e determina o caminho de execução.
-* **Inferência Local e Fallback**: O modelo local quantizado (Llama 3.1 8B ou Qwen 2.5 7B) responde às requisições padrão. Caso exceda o limite de tempo ou complexidade, o roteador aciona o modelo externo via OpenRouter API.
+* **Inferência Local e Fallback**: O modelo local quantizado (padrão `gemma4:12b-it-q4_K_M`, entre 9 configurações candidatas avaliadas comparativamente — ver Seção 3) responde às requisições padrão. Caso exceda o limite de tempo ou complexidade, o roteador aciona o modelo externo via OpenRouter API.
 * **Dual MCP (Model Context Protocol)**:
-  - *Cliente MCP*: Integração OAuth2 com Google Calendar para criação automatizada de eventos de visita.
-  - *Provedor MCP B2B*: Servidor próprio que expõe ferramentas de verificação de compatibilidade, cálculo de frete, cotação por volume e reserva de estoque.
-* **Interface Frontend (Next.js)**: Widget de chat flutuante adaptável com suporte a *Server-Sent Events (SSE)* para respostas em streaming e renderização de *Cards Ricos* de produtos, cotações e agendamentos.
+  - *Cliente MCP*: Consome um servidor MCP de terceiro self-hosted (`calendar-mcp-server`) que gerencia a autenticação OAuth2 com a Google Calendar API, para criação automatizada de eventos de visita.
+  - *Provedor MCP B2B*: Servidor próprio que expõe ferramentas de verificação de compatibilidade, cálculo de frete, cotação por volume, reserva de estoque e conversão de reserva em venda com comprovação multimodal.
+* **Interface Frontend (Next.js)**: Widget de chat flutuante adaptável com suporte a *Server-Sent Events (SSE)* para respostas em streaming e renderização de *Cards Ricos* de produtos, cotações, agendamentos, gráficos analíticos dinâmicos e download do documento-fonte do RAG.
+* **Central de Atendimento Humano ao Vivo**: além da escalada simulada do Monitor de Tom, o sistema implementa uma fila de transbordo real com *claim* atômico por atendente, pausa automática da geração de respostas da IA durante o atendimento humano e uma interface dedicada de operador.
+* **Painel Administrativo**: gestão de usuários, ingestão/configuração do RAG com isolamento por finalidade, web crawler, gerenciador de modelos locais com controle de residência em VRAM, importação inteligente de catálogos via visão computacional, gestão de pedidos e dashboards analíticos gerados sob demanda pelo próprio chat via um agente Text-to-SQL.
 
 ---
 
@@ -105,8 +107,8 @@ A aplicação é implantada e executada em ambiente de servidor local GPU e disp
 #### Resumo da Infraestrutura Local:
 * **Banco Relacional & Vetorial**: PostgreSQL 15+ e Qdrant Vector DB containerizados via Docker (`docker-compose up -d`).
 * **Inferência Local**: Serviço Ollama rodando localmente com suporte a GPU NVIDIA 16GB VRAM (CUDA 11.8+).
-* **Backend**: FastAPI (Python 3.11) executando na porta `8000` (documentação Swagger em `/docs`).
-* **Frontend**: Next.js 14+ / Node.js 18+ executando na porta `3001` (`next dev`, HTTP) e acessível pela internet em `http://augustoglauco.duckdns.org:3001`, com a porta liberada no firewall do Windows e encaminhada no roteador (ver `goup.md`, "Acesso Externo via Internet").
+* **Backend**: FastAPI (Python 3.14) executando na porta `8000` (documentação Swagger em `/docs`).
+* **Frontend**: Next.js 16 / Node.js 20+ executando na porta `3001` (`next dev`, HTTP) e acessível pela internet em `http://augustoglauco.duckdns.org:3001`, com a porta liberada no firewall do Windows e encaminhada no roteador (ver `goup.md`, "Acesso Externo via Internet").
 * **MCP B2B** (R12): servidor em `127.0.0.1:8100`, exposto a fornecedores só por HTTPS, via proxy reverso Caddy em `https://augustoglauco.duckdns.org:8443/mcp`, com chave por parceiro (ver `goup.md`, "MCP B2B público", e `docs/ARCHITECTURE.md` §6).
 
 > **Por que o site não usa HTTPS:** o frontend e o backend (porta 8000) rodam em HTTP puro. Abrir o site por `https://` não funciona, porque a página passaria a chamar o backend em `https://…:8000`, que não fala HTTPS. Só o MCP B2B tem HTTPS, porque é o único serviço que trafega uma credencial (a chave do parceiro) pela internet.
@@ -129,7 +131,7 @@ Para interagir com o sistema e explorar todas as suas funcionalidades:
    - **Mensagens de Texto**: Pergunte sobre produtos, preços, frete, manuais ou solicitações de agendamento.
    - **Mensagens de Voz (Áudio)**: Clique no ícone de microfone, fale sua pergunta e envie (transcrição automática via Whisper STT).
    - **Fotos e Imagens**: Anexe fotos de comprovantes (OCR) ou imagens de produtos para busca por similaridade visual no catálogo (CLIP).
-   - **Cards Interativos**: Interaja diretamente com os cards ricos de produtos, cotações B2B e confirmações de agendamento no Google Calendar.
+   - **Cards Interativos**: Interaja diretamente com os cards ricos de produtos, cotações B2B, confirmações de agendamento no Google Calendar e download do documento-fonte do RAG; administradores autenticados também podem pedir gráficos analíticos dinâmicos diretamente no chat.
 
 *Para o manual de instrução do usuário final, consulte:* [HOWTO_USUARIO.md](docs/Manuais/HOWTO_USUARIO.md).  
 *Para o manual do administrador (ingestão RAG, crawler e parametrização da IA), consulte:* [HOWTO_ADMINISTRADOR.md](docs/Manuais/HOWTO_ADMINISTRADOR.md).

@@ -436,9 +436,15 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       dos casos escalonados (evento SSE `escalonamento` + tabela
       `tom_escalonamentos` — banner visual no frontend implementado na Fase 8,
       ver `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md` §9)
-- [ ] **Central de Atendimento Humano ao Vivo (Live Agent Takeover / Transbordo)** —
-      Implementar o módulo completo de atendimento humano simultâneo conforme especificação
-      `docs/superpowers/specs/2026-10-03-atendimento-humano-transbordo-design.md`:
+- [x] **Central de Atendimento Humano ao Vivo (Live Agent Takeover / Transbordo)** —
+      Implementado o módulo completo de atendimento humano simultâneo conforme especificação
+      `docs/superpowers/specs/2026-10-03-atendimento-humano-transbordo-design.md`
+      (migração `0021_atendimento_humano_transbordo`, `app.services.atendimento_service`,
+      `app.api.admin_atendimento`, pausa da IA em `app.api.chat` quando
+      `conversa.status` está em `aguardando_humano`/`em_atendimento_humano`, e UI do
+      operador em `/admin/atendimento` com fila e abas de atendimento — achado desta
+      revisão de documentação de 2026-10-05: a caixa não tinha sido marcada quando a
+      feature foi entregue):
       - Alterações de banco de dados (`conversas.status`, `atendente_id`, `motivo_escalonamento`, `escalado_em`).
       - Endpoints de claim atômico e transmissão de mensagens operador ↔ cliente (`/api/admin/atendimento/*`).
       - Pausa automática do gerador de respostas da IA durante o atendimento humano ativo.
