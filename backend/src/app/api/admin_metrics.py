@@ -19,30 +19,32 @@ logger = logging.getLogger("assistente.admin_metrics")
 
 router = APIRouter(prefix="/api/admin/metrics", tags=["Admin Metricas"])
 
+try:
+    from app.api.admin_auth import require_admin
+except ImportError:
+    async def require_admin(
+        session: AsyncSession = Depends(get_db_session),
+        authorization: Annotated[str | None, Header()] = None,
+        x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
+        token_param: Annotated[str | None, Query(alias="token")] = None,
+    ) -> None:
+        token: str | None = None
+        if authorization:
+            parts = authorization.split()
+            if len(parts) == 2 and parts[0].lower() == "bearer":
+                token = parts[1]
+            elif len(parts) == 1:
+                token = parts[0]
+        elif x_auth_token:
+            token = x_auth_token
+        elif token_param:
+            token = token_param
 
-async def _require_admin(
-    session: AsyncSession = Depends(get_db_session),
-    authorization: Annotated[str | None, Header()] = None,
-    x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
-    token_param: Annotated[str | None, Query(alias="token")] = None,
-) -> None:
-    token: str | None = None
-    if authorization:
-        parts = authorization.split()
-        if len(parts) == 2 and parts[0].lower() == "bearer":
-            token = parts[1]
-        elif len(parts) == 1:
-            token = parts[0]
-    elif x_auth_token:
-        token = x_auth_token
-    elif token_param:
-        token = token_param
-
-    if not token or not await verificar_admin_por_token(session, token):
-        raise HTTPException(
-            status_code=403,
-            detail="Acesso restrito a administradores autenticados.",
-        )
+        if not token or not await verificar_admin_por_token(session, token):
+            raise HTTPException(
+                status_code=403,
+                detail="Acesso restrito a administradores autenticados.",
+            )
 
 
 class MetricSummary(BaseModel):
@@ -54,6 +56,9 @@ class MetricSummary(BaseModel):
     total_cost_prompt_usd: float = 0.0
     total_cost_completion_usd: float = 0.0
     total_cost_usd: float = 0.0
+    total_vision_calls: int = 0
+    total_vision_tokens: int = 0
+    total_vision_cost_usd: float = 0.0
 
 
 class DailyMetric(BaseModel):
@@ -66,6 +71,8 @@ class DailyMetric(BaseModel):
     cost_prompt_usd: float = 0.0
     cost_completion_usd: float = 0.0
     total_cost_usd: float = 0.0
+    vision_calls_count: int = 0
+    vision_cost_usd: float = 0.0
 
 
 class TokenCostMetricsResponse(BaseModel):
@@ -80,7 +87,7 @@ async def get_token_and_cost_metrics(
     period: str = Query("7d", description="Período: 'today', '7d', '30d' ou 'all'"),
     start_date: str | None = Query(None, description="Data inicial ISO YYYY-MM-DD"),
     end_date: str | None = Query(None, description="Data final ISO YYYY-MM-DD"),
-    _: None = Depends(_require_admin),
+    _: None = Depends(require_admin),
 ) -> TokenCostMetricsResponse:
     """Retorna sumário e relatório diário de tokens e custos para chats encerrados."""
     session_factory = getattr(request.app.state, "db_sessionmaker", None)
@@ -174,6 +181,9 @@ async def get_token_and_cost_metrics(
     total_cost_prompt = 0.0
     total_cost_comp = 0.0
     total_cost = 0.0
+    total_vision_calls = 0
+    total_vision_tokens = 0
+    total_vision_cost = 0.0
 
     daily_map: dict[str, dict[str, Any]] = {}
 
@@ -195,6 +205,8 @@ async def get_token_and_cost_metrics(
                 "cost_prompt_usd": 0.0,
                 "cost_completion_usd": 0.0,
                 "total_cost_usd": 0.0,
+                "vision_calls_count": 0,
+                "vision_cost_usd": 0.0,
             }
 
         daily = daily_map[date_key]
@@ -207,8 +219,25 @@ async def get_token_and_cost_metrics(
             c_prompt = float(metricas.get("cost_prompt_usd") or 0.0)
             c_comp = float(metricas.get("cost_completion_usd") or 0.0)
             c_tot = float(metricas.get("estimated_cost_usd") or (c_prompt + c_comp))
+            is_vision = bool(
+                metricas.get("vision_used")
+                or (backend_used == "identificacao_imagem")
+                or (
+                    backend_used == "externo"
+                    and metricas.get("model_name")
+                    and any(m in str(metricas.get("model_name")).lower() for m in ["gemma", "gemini-flash", "vision", "vl"])
+                    and c_prompt > 0
+                )
+            )
 
-            if backend_used == "externo":
+            if is_vision:
+                total_vision_calls += 1
+                total_vision_tokens += (p_tok + c_tok)
+                total_vision_cost += c_tot
+                daily["vision_calls_count"] += 1
+                daily["vision_cost_usd"] += c_tot
+
+            if backend_used in ("externo", "openrouter") or c_tot > 0:
                 total_external_prompt += p_tok
                 total_external_comp += c_tok
                 total_cost_prompt += c_prompt
@@ -238,6 +267,8 @@ async def get_token_and_cost_metrics(
             cost_prompt_usd=round(d["cost_prompt_usd"], 6),
             cost_completion_usd=round(d["cost_completion_usd"], 6),
             total_cost_usd=round(d["total_cost_usd"], 6),
+            vision_calls_count=d.get("vision_calls_count", 0),
+            vision_cost_usd=round(d.get("vision_cost_usd", 0.0), 6),
         )
         for d in sorted(daily_map.values(), key=lambda x: x["date"], reverse=True)
     ]
@@ -251,6 +282,9 @@ async def get_token_and_cost_metrics(
         total_cost_prompt_usd=round(total_cost_prompt, 6),
         total_cost_completion_usd=round(total_cost_comp, 6),
         total_cost_usd=round(total_cost, 6),
+        total_vision_calls=total_vision_calls,
+        total_vision_tokens=total_vision_tokens,
+        total_vision_cost_usd=round(total_vision_cost, 6),
     )
 
     return TokenCostMetricsResponse(

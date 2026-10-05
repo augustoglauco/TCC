@@ -47,6 +47,9 @@ describe("AdminMetricasPage", () => {
         total_cost_prompt_usd: 0.0045,
         total_cost_completion_usd: 0.0032,
         total_cost_usd: 0.0077,
+        total_vision_calls: 2,
+        total_vision_tokens: 1500,
+        total_vision_cost_usd: 0.0025,
       },
       daily_breakdown: [
         {
@@ -59,6 +62,8 @@ describe("AdminMetricasPage", () => {
           cost_prompt_usd: 0.0018,
           cost_completion_usd: 0.0012,
           total_cost_usd: 0.0030,
+          vision_calls_count: 2,
+          vision_cost_usd: 0.0025,
         },
       ],
     };
@@ -71,6 +76,10 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
       expect(screen.getByText("Tokens Internos (GPU Local)")).toBeInTheDocument();
       expect(screen.getByText("Tokens Externos (OpenRouter)")).toBeInTheDocument();
+      expect(screen.getByText("Visão Computacional (Fotos)")).toBeInTheDocument();
+      expect(screen.getByText("$0.0025")).toBeInTheDocument();
+      expect(screen.getByText("Visão (Fotos / Custo)")).toBeInTheDocument();
+      expect(screen.getByText(/2 fotos/i)).toBeInTheDocument();
       expect(screen.getByText("$0.0077")).toBeInTheDocument();
       expect(screen.getByText("2026-10-03")).toBeInTheDocument();
     });
@@ -357,6 +366,67 @@ describe("AdminMetricasPage", () => {
       });
       expect(screen.getByText("Visualizando dia: 02/10/2026")).toBeInTheDocument();
       expect(screen.getByText("2026-10-02")).toBeInTheDocument();
+    });
+  });
+
+  it("exibe segregação financeira de visão computacional no card de resumo e coluna da tabela", async () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    const mockResponse: metricsApi.TokenCostMetricsResponse = {
+      period: "today",
+      summary: {
+        total_closed_chats: 4,
+        total_internal_prompt_tokens: 1000,
+        total_internal_completion_tokens: 500,
+        total_external_prompt_tokens: 3500,
+        total_external_completion_tokens: 1200,
+        total_cost_prompt_usd: 0.0035,
+        total_cost_completion_usd: 0.0020,
+        total_cost_usd: 0.0055,
+        total_vision_calls: 3,
+        total_vision_tokens: 2800,
+        total_vision_cost_usd: 0.0042,
+      },
+      daily_breakdown: [
+        {
+          date: "2026-10-04",
+          closed_chats_count: 4,
+          internal_prompt_tokens: 1000,
+          internal_completion_tokens: 500,
+          external_prompt_tokens: 3500,
+          external_completion_tokens: 1200,
+          cost_prompt_usd: 0.0035,
+          cost_completion_usd: 0.0020,
+          total_cost_usd: 0.0055,
+          vision_calls_count: 3,
+          vision_cost_usd: 0.0042,
+        },
+      ],
+    };
+
+    vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      // Card de Visão
+      expect(screen.getByText("Visão Computacional (Fotos)")).toBeInTheDocument();
+      expect(screen.getByText("$0.0042")).toBeInTheDocument();
+      expect(screen.getByText(/Fotos: 3/i)).toBeInTheDocument();
+      expect(screen.getByText(/Tokens: 2\.800/i)).toBeInTheDocument();
+
+      // Coluna e linha da tabela diária
+      expect(screen.getByText("Visão (Fotos / Custo)")).toBeInTheDocument();
+      expect(screen.getByText("3 fotos")).toBeInTheDocument();
+      expect(screen.getByText("($0.0042)")).toBeInTheDocument();
     });
   });
 });

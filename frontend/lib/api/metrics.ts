@@ -9,6 +9,9 @@ export interface MetricSummary {
   total_cost_prompt_usd: number;
   total_cost_completion_usd: number;
   total_cost_usd: number;
+  total_vision_calls?: number;
+  total_vision_tokens?: number;
+  total_vision_cost_usd?: number;
 }
 
 export interface DailyMetric {
@@ -21,6 +24,8 @@ export interface DailyMetric {
   cost_prompt_usd: number;
   cost_completion_usd: number;
   total_cost_usd: number;
+  vision_calls_count?: number;
+  vision_cost_usd?: number;
 }
 
 export interface TokenCostMetricsResponse {
