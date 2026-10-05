@@ -1075,8 +1075,18 @@ entre os 5 produtos já existentes.
 **Decisão registrada (Fase 7, API REST de Pedidos, Cotação e Frete B2C/B2B, 2026-09-28):**
 A API pública de pedidos (`app.api.orders`) expõe endpoints `POST /api/orders`, `GET /api/orders`, `GET /api/orders/{id}`, `POST /api/orders/quote` e `POST /api/orders/freight` sobre o backend de dados único (`app.db.catalog`). Migração `0014` adiciona colunas `user_email` e `conversation_id` à tabela `pedidos` para vincular os pedidos à sessão do cliente. No frontend, a store Zustand `useCartStore` gerencia o carrinho localmente e a página `/pedidos` permite checkout B2C, cálculo de frete por CEP e simulação de descontos B2B por volume, enquanto `/pedidos/historico` consome o histórico de pedidos.
 
+**Decisão registrada (Conversão de Reserva para Venda com Comprovação Multimodal, 2026-10-05):**
+O sistema prevê a conversão de reservas de estoque (`Pedido.status == "reservado"`) em vendas efetivas (`"venda_concluida"`) através de 6 modalidades com suporte a análise de comprovantes financeiros (Imagem, PDF e TXT) via LLM multimodal:
+1. **Manual Simples (Admin):** O admin altera o status para venda no painel, podendo anexar o comprovante manualmente sem validação de LLM.
+2. **Manual Padrão (Admin com Parecer LLM):** O admin faz upload do comprovante, o LLM analisa o documento (valor pago vs. valor devido) e gera um parecer estruturado para aprovação manual do admin.
+3. **Automática (Admin Upload):** O admin envia o comprovante e, se o LLM confirmar equivalência sem divergência (`divergencia == 0.00`), o sistema efetiva a venda automaticamente.
+4. **Automática (Cliente B2C via Chat):** O cliente envia o comprovante no chat público; o roteador identifica a intenção, o LLM avalia a conformidade com a reserva da sessão e efetiva a venda, confirmando no chat.
+5. **Automática (Cliente B2B via Chat):** O cliente B2B envia o comprovante no chat; o LLM avalia os valores com base na cotação com descontos por volume e conclui a venda.
+6. **Automática (Cliente B2B via MCP Tool):** A nova ferramenta MCP `converter_reserva_venda` permite a integradores parceiros enviar o `pedido_id` e o comprovante, convertendo o pedido em venda após validação multimodal por LLM.
+Diffs de modelo: Tabela `pedidos` ganha colunas `comprovante_url`, `tipo_conversao`, `convertido_em`, `convertido_por`, `llm_parecer` e novos status (`venda_concluida`, `pagamento_divergente`). Especificação completa em `docs/superpowers/specs/2026-10-05-conversao-reserva-venda-design.md`.
+
 **Decisão registrada (Fase 5, Orquestrador como integrador do MCP B2B em
-Vendas, R12, 2026-09-24):** o quarto item da Fase 5 fecha a frase final da
+1089: Vendas, R12, 2026-09-24):** o quarto item da Fase 5 fecha a frase final da
 Seção 6 ("o próprio Roteador/Orquestrador deve ser tratado como 'mais um
 integrador' desse MCP para intenções de Vendas") no novo módulo
 `app.router.sales_catalog` (`SalesCatalogClient` + `extract_sales_slots`),

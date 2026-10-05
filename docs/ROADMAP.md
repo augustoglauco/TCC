@@ -1140,6 +1140,20 @@ conversa e classificação do usuário").
       - Gatilhos de Transbordo: Automático via monitor de tom (frustração, prioridade 5) e solicitação direta no chat widget (`POST /api/chat/conversations/{id}/transbordo`).
       - REST API Administrativa: Endpoints `/api/admin/atendimento` (`/fila`, `/meus-chats`, `/{id}/claim`, `/{id}/mensagem`, `/{id}/close`) protegidos por `require_admin`.
       - Frontend Central de Atendimento: Página `/admin/atendimento` em 3 colunas (Fila de Espera, Meus Chats Ativos e Painel de Contexto do Cliente com dados cadastrais e compras) e link no `AdminGearMenu.tsx`.
+- [ ] **Conversão de Reserva para Venda com Comprovação Multimodal (2026-10-05):**
+      Planejamento e especificação completos (`docs/superpowers/specs/2026-10-05-conversao-reserva-venda-design.md` e `docs/superpowers/plans/2026-10-05-conversao-reserva-venda.md`) cobrindo 6 modalidades de conversão:
+      - Modo 1: Manual Simples (Admin) com anexo opcional.
+      - Modo 2: Manual Padrão (Admin) com parecer estruturado gerado por LLM multimodal.
+      - Modo 3: Automática via Upload Admin com validação sem divergência de valores.
+      - Modo 4: Automática via Chat Cliente (B2C) com leitura do comprovante e confirmação no chat.
+      - Modo 5: Automática via Chat Cliente (B2B) alinhando o comprovante às faixas de desconto por volume.
+      - Modo 6: Automática via Protocolo MCP B2B exposto na tool `converter_reserva_venda`.
+- [ ] **Correção da Precisão de Métricas e Gráficos de Vendas e Chat (2026-10-05):**
+      Refatoração e ajuste analítico em `chart_generator.py` e `admin_metrics.py` para alinhar os dashboards com os dados reais do banco:
+      - **Filtro de Vendas Efetivadas:** Ajustar agregadoras `vendas_produtos_quantidade` e `vendas_produtos_valor` em `chart_generator.py` para filtrar apenas pedidos com `Pedido.status == "venda_concluida"` (além das compras históricas `ClienteCompra`), ignorando reservas pendentes ou orçamentos abertos.
+      - **Vendas por Categoria Reais:** Refatorar `vendas_por_categoria` e `vendas_categoria_quantidade` para agregar o volume e faturamento das compras/pedidos reais (`PedidoItem`), em vez de somar os preços do catálogo estático de produtos (`Produto.preco`).
+      - **Métricas de Chat em Tempo Real:** Atualizar a consulta de volume de conversas e tokens (`admin_metrics.py` e `metricas_tokens_por_dia`) para incluir conversas ativas/abertas (`status != "encerrada"`), permitindo que administradores visualizem o volume do dia corrente sem depender do encerramento manual/automático da sessão.
+      - **Agrupamento por Data de Mensagem:** Agrupar o volume de interações pela data de criação da mensagem (`ConversaMensagem.criada_em`) em vez da data de encerramento da conversa.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
