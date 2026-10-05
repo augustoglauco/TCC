@@ -198,6 +198,19 @@ export default function AdminMetricasPage() {
             <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs">
               <button
                 type="button"
+                onClick={handleSelectPorDia}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                  period === "custom"
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+                aria-label="Filtrar por dia específico"
+              >
+                <span>📅</span>
+                <span>Por Dia</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setPeriod("today")}
                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                   period === "today"
@@ -239,19 +252,6 @@ export default function AdminMetricasPage() {
                 }`}
               >
                 Tudo
-              </button>
-              <button
-                type="button"
-                onClick={handleSelectPorDia}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
-                  period === "custom"
-                    ? "bg-blue-600 text-white shadow-2xs"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-                aria-label="Filtrar por dia específico"
-              >
-                <span>📅</span>
-                <span>Por Dia</span>
               </button>
             </div>
 
