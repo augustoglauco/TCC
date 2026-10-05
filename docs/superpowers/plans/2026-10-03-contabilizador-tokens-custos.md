@@ -142,11 +142,17 @@ def test_openrouter_segregated_cost_calculation():
         timeout_s=10.0,
         price_per_1k_input_tokens=0.001,  # $0.001 per 1k input
         price_per_1k_output_tokens=0.003, # $0.003 per 1k output
+        vision_model="google/gemma-4-31b-it:free",
     )
     cost_prompt, cost_completion, cost_total = client._custo_detalhado(prompt_tokens=1000, completion_tokens=2000)
     assert pytest.approx(cost_prompt, 0.00001) == 0.001
     assert pytest.approx(cost_completion, 0.00001) == 0.006
     assert pytest.approx(cost_total, 0.00001) == 0.007
+
+@pytest.mark.asyncio
+async def test_describe_image_returns_tokens_and_costs(httpx_mock):
+    # Verify describe_image parses prompt_tokens, completion_tokens and calculates costs
+    ...
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
