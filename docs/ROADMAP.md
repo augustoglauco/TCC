@@ -1124,11 +1124,11 @@ conversa e classificação do usuário").
       `model_catalog`, `rag_collections`, `rag`, `rag_playground`, `crawler`,
       `tom_escalonamentos`. Hoje a única proteção desses endpoints é a UI do
       Next.js esconder a tela de quem não está logado como Admin.
-- [ ] **Achado da revisão de 2026-10-04 (ver `docs/ARCHITECTURE.md` §6):**
-      remover fisicamente `backend/src/app/rag/product_sync.py` e
-      `backend/tests/test_product_sync.py` — órfãos desde o desacoplamento
-      do CRUD de produtos do RAG (2026-10-03), nenhum código de produção os
-      importa mais.
+- [x] Achado da revisão de 2026-10-04 (ver `docs/ARCHITECTURE.md` §6):
+      `backend/src/app/rag/product_sync.py` e
+      `backend/tests/test_product_sync.py` estavam órfãos desde o
+      desacoplamento do CRUD de produtos do RAG (2026-10-03) — removidos
+      fisicamente em 2026-10-04.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
