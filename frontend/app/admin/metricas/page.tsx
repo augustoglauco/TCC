@@ -496,35 +496,62 @@ export default function AdminMetricasPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-700">
+          <table className="w-full text-left text-xs text-slate-700 border-collapse">
             <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
               <tr>
-                <th scope="col" className="px-5 py-3">
-                  Data
+                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                  <span>Data</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-44 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                    Data do encerramento da conversa
+                  </div>
                 </th>
-                <th scope="col" className="px-5 py-3">
-                  Chats Encerrados
+                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                  <span>Chats Encerrados</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                    Total de atendimentos finalizados no dia
+                  </div>
                 </th>
-                <th scope="col" className="px-5 py-3">
-                  Tokens Internos (Entrada / Saída)
+                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                  <span>Tokens Internos (Entrada / Saída)</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                    Consumo de LLM em infraestrutura própria (Ollama Local)
+                  </div>
                 </th>
-                <th scope="col" className="px-5 py-3">
-                  Tokens Externos (Entrada / Saída)
+                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                  <span>Tokens Externos (Entrada / Saída)</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                    Consumo de modelos na nuvem pagando por token
+                  </div>
                 </th>
-                <th scope="col" className="px-5 py-3">
-                  Visão (Imagens / Custo)
+                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                  <span>Visão (Imagens / Custo)</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                    Chamadas para modelo multimodal de identificação de imagens
+                  </div>
                 </th>
-                <th scope="col" className="px-5 py-3">
-                  Ingestão (Op / Custo)
+                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                  <span>Ingestão (Op / Custo)</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                    Processamento de documentos e crawler de catálogo de produtos
+                  </div>
                 </th>
-                <th scope="col" className="px-5 py-3">
-                  Custo Entrada
+                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                  <span>Custo Entrada</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                    Custo em USD dos tokens de Entrada (Prompt/RAG/Contexto)
+                  </div>
                 </th>
-                <th scope="col" className="px-5 py-3">
-                  Custo Saída
+                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                  <span>Custo Saída</span>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
+                    Custo em USD dos tokens de Saída (Completion/Respostas)
+                  </div>
                 </th>
-                <th scope="col" className="px-5 py-3 text-right">
-                  Custo Total
+                <th scope="col" className="px-5 py-3 text-right relative group cursor-help">
+                  <span>Custo Total</span>
+                  <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight text-left">
+                    Consolidação total financeira em USD (LLM + Visão + Ingestão)
+                  </div>
                 </th>
               </tr>
             </thead>
@@ -542,56 +569,150 @@ export default function AdminMetricasPage() {
               ) : (
                 daily.map((item) => (
                   <tr key={item.date} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="px-5 py-3.5 font-semibold text-slate-900">{item.date}</td>
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-800">
-                        {item.closed_chats_count}
-                      </span>
+                    {/* Coluna 1: Data */}
+                    <td className="px-5 py-3.5 align-top">
+                      <div className="font-semibold text-slate-900">{item.date}</div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">Sessão Diária</div>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="font-medium text-slate-900">
-                        {(item.internal_prompt_tokens + item.internal_completion_tokens).toLocaleString("pt-BR")}
-                      </span>{" "}
-                      <span className="text-slate-400 text-[11px]">
-                        ({item.internal_prompt_tokens.toLocaleString("pt-BR")} /{" "}
-                        {item.internal_completion_tokens.toLocaleString("pt-BR")})
-                      </span>
+
+                    {/* Coluna 2: Chats Encerrados */}
+                    <td className="px-5 py-3.5 align-top">
+                      <div className="flex flex-col items-start gap-0.5">
+                        <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-800">
+                          {item.closed_chats_count}
+                        </span>
+                        <span className="text-[10px] text-slate-400">concluídos</span>
+                      </div>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="font-medium text-slate-900">
-                        {(item.external_prompt_tokens + item.external_completion_tokens).toLocaleString("pt-BR")}
-                      </span>{" "}
-                      <span className="text-slate-400 text-[11px]">
-                        ({item.external_prompt_tokens.toLocaleString("pt-BR")} /{" "}
-                        {item.external_completion_tokens.toLocaleString("pt-BR")})
-                      </span>
+
+                    {/* Coluna 3: Tokens Internos */}
+                    <td className="px-5 py-3.5 align-top relative group">
+                      <div className="flex flex-col space-y-0.5">
+                        <span className="font-bold text-slate-900">
+                          {`${(item.internal_prompt_tokens + item.internal_completion_tokens).toLocaleString("pt-BR")} tokens`}
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {`Entrada: ${item.internal_prompt_tokens.toLocaleString("pt-BR")}`}
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {`Saída: ${item.internal_completion_tokens.toLocaleString("pt-BR")}`}
+                        </span>
+                      </div>
+                      {/* Bubble Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-emerald-400">GPU Local (Ollama)</div>
+                        <div>{`Prompt Interno: ${item.internal_prompt_tokens.toLocaleString("pt-BR")} tokens`}</div>
+                        <div>{`Completion Interno: ${item.internal_completion_tokens.toLocaleString("pt-BR")} tokens`}</div>
+                        <div className="text-[10px] text-slate-400 mt-1">Custo infra: R$ 0,00 (Local)</div>
+                      </div>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="font-semibold text-slate-900">
-                        {(item.vision_calls_count ?? 0) === 1
-                          ? "1 imagem"
-                          : `${item.vision_calls_count ?? 0} imagens`}
-                      </span>{" "}
-                      <span className="text-slate-500 text-[11px] font-mono">
-                        (${item.vision_cost_usd !== undefined ? item.vision_cost_usd.toFixed(4) : "0.0000"})
-                      </span>
+
+                    {/* Coluna 4: Tokens Externos */}
+                    <td className="px-5 py-3.5 align-top relative group">
+                      <div className="flex flex-col space-y-0.5">
+                        <span className="font-bold text-slate-900">
+                          {`${(item.external_prompt_tokens + item.external_completion_tokens).toLocaleString("pt-BR")} tokens`}
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {`Entrada: ${item.external_prompt_tokens.toLocaleString("pt-BR")}`}
+                        </span>
+                        <span className="text-[11px] text-slate-500">
+                          {`Saída: ${item.external_completion_tokens.toLocaleString("pt-BR")}`}
+                        </span>
+                      </div>
+                      {/* Bubble Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-blue-400">OpenRouter (Nuvem)</div>
+                        <div>{`Prompt Externo: ${item.external_prompt_tokens.toLocaleString("pt-BR")} tokens`}</div>
+                        <div>{`Completion Externo: ${item.external_completion_tokens.toLocaleString("pt-BR")} tokens`}</div>
+                        <div className="text-[10px] text-slate-400 mt-1">Segregação por modelo de IA</div>
+                      </div>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <span className="font-semibold text-slate-900">
-                        {item.ingestion_calls_count ?? 0} op{(item.ingestion_calls_count ?? 0) === 1 ? "" : "s"}
-                      </span>{" "}
-                      <span className="text-slate-500 text-[11px] font-mono">
-                        (${item.ingestion_cost_usd !== undefined ? item.ingestion_cost_usd.toFixed(4) : "0.0000"})
-                      </span>
+
+                    {/* Coluna 5: Visão */}
+                    <td className="px-5 py-3.5 align-top relative group">
+                      <div className="flex flex-col space-y-0.5">
+                        <span className="font-bold text-sky-700">
+                          {(item.vision_calls_count ?? 0) === 1
+                            ? "1 imagem"
+                            : `${item.vision_calls_count ?? 0} imagens`}
+                        </span>
+                        <span className="text-[11px] font-mono text-sky-600">
+                          {`($${item.vision_cost_usd !== undefined ? item.vision_cost_usd.toFixed(4) : "0.0000"})`}
+                        </span>
+                        <span className="text-[10px] text-slate-400">Multimodal</span>
+                      </div>
+                      {/* Bubble Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-sky-400">Visão Computacional</div>
+                        <div>{`Imagens Processadas: ${item.vision_calls_count ?? 0}`}</div>
+                        <div>{`Custo Visão: $${item.vision_cost_usd !== undefined ? item.vision_cost_usd.toFixed(4) : "0.0000"}`}</div>
+                      </div>
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-slate-600">
-                      ${item.cost_prompt_usd.toFixed(4)}
+
+                    {/* Coluna 6: Ingestão */}
+                    <td className="px-5 py-3.5 align-top relative group">
+                      <div className="flex flex-col space-y-0.5">
+                        <span className="font-bold text-teal-700">
+                          {`${item.ingestion_calls_count ?? 0} op${(item.ingestion_calls_count ?? 0) === 1 ? "" : "s"}`}
+                        </span>
+                        <span className="text-[11px] font-mono text-teal-600">
+                          {`($${item.ingestion_cost_usd !== undefined ? item.ingestion_cost_usd.toFixed(4) : "0.0000"})`}
+                        </span>
+                        <span className="text-[10px] text-slate-400">RAG / Catálogo</span>
+                      </div>
+                      {/* Bubble Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-teal-400">Ingestão & Dados</div>
+                        <div>{`Total Operações: ${item.ingestion_calls_count ?? 0}`}</div>
+                        <div>{`Custo Ingestão: $${item.ingestion_cost_usd !== undefined ? item.ingestion_cost_usd.toFixed(4) : "0.0000"}`}</div>
+                      </div>
                     </td>
-                    <td className="px-5 py-3.5 font-mono text-slate-600">
-                      ${item.cost_completion_usd.toFixed(4)}
+
+                    {/* Coluna 7: Custo Entrada */}
+                    <td className="px-5 py-3.5 align-top relative group">
+                      <div className="flex flex-col space-y-0.5">
+                        <span className="font-mono font-bold text-indigo-700">
+                          {`$${item.cost_prompt_usd.toFixed(4)}`}
+                        </span>
+                        <span className="text-[10px] text-slate-400">Prompt</span>
+                      </div>
+                      {/* Bubble Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-indigo-400">Custo Entrada</div>
+                        <div>{`Subtotal Entrada: $${item.cost_prompt_usd.toFixed(4)}`}</div>
+                      </div>
                     </td>
-                    <td className="px-5 py-3.5 font-mono font-bold text-slate-900 text-right">
-                      ${item.total_cost_usd.toFixed(4)}
+
+                    {/* Coluna 8: Custo Saída */}
+                    <td className="px-5 py-3.5 align-top relative group">
+                      <div className="flex flex-col space-y-0.5">
+                        <span className="font-mono font-bold text-amber-700">
+                          {`$${item.cost_completion_usd.toFixed(4)}`}
+                        </span>
+                        <span className="text-[10px] text-slate-400">Completion</span>
+                      </div>
+                      {/* Bubble Tooltip */}
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
+                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-amber-400">Custo Saída</div>
+                        <div>{`Subtotal Saída: $${item.cost_completion_usd.toFixed(4)}`}</div>
+                      </div>
+                    </td>
+
+                    {/* Coluna 9: Custo Total */}
+                    <td className="px-5 py-3.5 align-top text-right relative group">
+                      <div className="flex flex-col items-end space-y-0.5">
+                        <span className="font-mono font-extrabold text-slate-900">
+                          {`$${item.total_cost_usd.toFixed(4)}`}
+                        </span>
+                        <span className="text-[10px] text-slate-400">Consolidado</span>
+                      </div>
+                      {/* Bubble Tooltip */}
+                      <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block z-30 w-56 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug text-left">
+                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-purple-400">Consolidado do Dia</div>
+                        <div>{`Total Diário: $${item.total_cost_usd.toFixed(4)}`}</div>
+                        <div className="text-[10px] text-slate-400 mt-1">Inclui Atendimento, Visão e Ingestão</div>
+                      </div>
                     </td>
                   </tr>
                 ))
