@@ -347,7 +347,7 @@ export default function AdminMetricasPage() {
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Visão Computacional (Fotos)
+                Visão Computacional (Imagens)
               </span>
               <span className="rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700 border border-sky-200">
                 Multimodal
@@ -358,7 +358,7 @@ export default function AdminMetricasPage() {
             </p>
           </div>
           <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
-            <span>Fotos: {summary?.total_vision_calls?.toLocaleString("pt-BR") ?? 0}</span>
+            <span>{`Imagens: ${summary?.total_vision_calls?.toLocaleString("pt-BR") ?? 0}`}</span>
             <span>Tokens: {summary?.total_vision_tokens?.toLocaleString("pt-BR") ?? 0}</span>
           </p>
         </div>
@@ -379,8 +379,8 @@ export default function AdminMetricasPage() {
             </p>
           </div>
           <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
-            <span>Operações: {summary?.total_ingestion_calls?.toLocaleString("pt-BR") ?? 0}</span>
-            <span>Tokens: {summary?.total_ingestion_tokens?.toLocaleString("pt-BR") ?? 0}</span>
+            <span>{`Operações: ${summary?.total_ingestion_calls?.toLocaleString("pt-BR") ?? 0}`}</span>
+            <span>{`Tokens: ${summary?.total_ingestion_tokens?.toLocaleString("pt-BR") ?? 0}`}</span>
           </p>
         </div>
 
@@ -402,8 +402,8 @@ export default function AdminMetricasPage() {
             </p>
           </div>
           <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
-            <span>Atendimento: ${summary?.total_cost_usd?.toFixed(4) ?? "0.0000"}</span>
-            <span>Ingestão: ${summary?.total_ingestion_cost_usd?.toFixed(4) ?? "0.0000"}</span>
+            <span>{`Atendimento: $${summary?.total_cost_usd?.toFixed(4) ?? "0.0000"}`}</span>
+            <span>{`Ingestão: $${summary?.total_ingestion_cost_usd?.toFixed(4) ?? "0.0000"}`}</span>
           </p>
         </div>
 
@@ -512,7 +512,7 @@ export default function AdminMetricasPage() {
                   Tokens Externos (Entrada / Saída)
                 </th>
                 <th scope="col" className="px-5 py-3">
-                  Visão (Fotos / Custo)
+                  Visão (Imagens / Custo)
                 </th>
                 <th scope="col" className="px-5 py-3">
                   Ingestão (Op / Custo)
@@ -568,7 +568,9 @@ export default function AdminMetricasPage() {
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="font-semibold text-slate-900">
-                        {item.vision_calls_count ?? 0} foto{(item.vision_calls_count ?? 0) === 1 ? "" : "s"}
+                        {(item.vision_calls_count ?? 0) === 1
+                          ? "1 imagem"
+                          : `${item.vision_calls_count ?? 0} imagens`}
                       </span>{" "}
                       <span className="text-slate-500 text-[11px] font-mono">
                         (${item.vision_cost_usd !== undefined ? item.vision_cost_usd.toFixed(4) : "0.0000"})

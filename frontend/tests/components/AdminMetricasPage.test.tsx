@@ -76,10 +76,10 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
       expect(screen.getByText("Tokens Internos (GPU Local)")).toBeInTheDocument();
       expect(screen.getByText("Tokens Externos (OpenRouter)")).toBeInTheDocument();
-      expect(screen.getByText("Visão Computacional (Fotos)")).toBeInTheDocument();
+      expect(screen.getByText("Visão Computacional (Imagens)")).toBeInTheDocument();
       expect(screen.getByText("$0.0025")).toBeInTheDocument();
-      expect(screen.getByText("Visão (Fotos / Custo)")).toBeInTheDocument();
-      expect(screen.getByText(/2 fotos/i)).toBeInTheDocument();
+      expect(screen.getByText("Visão (Imagens / Custo)")).toBeInTheDocument();
+      expect(screen.getByText("2 imagens")).toBeInTheDocument();
       expect(screen.getByText("$0.0077")).toBeInTheDocument();
       expect(screen.getByText("2026-10-03")).toBeInTheDocument();
     });
@@ -417,14 +417,14 @@ describe("AdminMetricasPage", () => {
 
     await waitFor(() => {
       // Card de Visão
-      expect(screen.getByText("Visão Computacional (Fotos)")).toBeInTheDocument();
+      expect(screen.getByText("Visão Computacional (Imagens)")).toBeInTheDocument();
       expect(screen.getByText("$0.0042")).toBeInTheDocument();
-      expect(screen.getByText(/Fotos: 3/i)).toBeInTheDocument();
-      expect(screen.getByText(/Tokens: 2\.800/i)).toBeInTheDocument();
+      expect(screen.getByText("Imagens: 3")).toBeInTheDocument();
+      expect(screen.getByText("Tokens: 2.800")).toBeInTheDocument();
 
       // Coluna e linha da tabela diária
-      expect(screen.getByText("Visão (Fotos / Custo)")).toBeInTheDocument();
-      expect(screen.getByText("3 fotos")).toBeInTheDocument();
+      expect(screen.getByText("Visão (Imagens / Custo)")).toBeInTheDocument();
+      expect(screen.getByText("3 imagens")).toBeInTheDocument();
       expect(screen.getByText("($0.0042)")).toBeInTheDocument();
     });
   });
@@ -486,14 +486,14 @@ describe("AdminMetricasPage", () => {
       // Card Ingestão & Dados
       expect(screen.getByText("Ingestão & Dados (Crawler/Catálogo)")).toBeInTheDocument();
       expect(screen.getByText("$0.0050")).toBeInTheDocument();
-      expect(screen.getByText(/Operações: 5/i)).toBeInTheDocument();
-      expect(screen.getByText(/Tokens: 3\.500/i)).toBeInTheDocument();
+      expect(screen.getByText("Operações: 5")).toBeInTheDocument();
+      expect(screen.getByText("Tokens: 3.500")).toBeInTheDocument();
 
       // Card Custo Total Geral Consolidado (Atendimentos + Ingestão)
       expect(screen.getByText("Custo Total Geral (Infraestrutura)")).toBeInTheDocument();
       expect(screen.getByText("$0.0105")).toBeInTheDocument();
-      expect(screen.getByText(/Atendimento: \$0\.0055/i)).toBeInTheDocument();
-      expect(screen.getByText(/Ingestão: \$0\.0050/i)).toBeInTheDocument();
+      expect(screen.getByText("Atendimento: $0.0055")).toBeInTheDocument();
+      expect(screen.getByText("Ingestão: $0.0050")).toBeInTheDocument();
 
       // Tabela diária: coluna de ingestão
       expect(screen.getByText("Ingestão (Op / Custo)")).toBeInTheDocument();
