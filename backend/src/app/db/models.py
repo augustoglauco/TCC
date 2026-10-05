@@ -277,9 +277,14 @@ class Pedido(Base):
     __tablename__ = "pedidos"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    status: Mapped[str] = mapped_column(default="reservado")
+    status: Mapped[str] = mapped_column(default="reservado", index=True)
     user_email: Mapped[str | None] = mapped_column(index=True, nullable=True)
     conversation_id: Mapped[str | None] = mapped_column(index=True, nullable=True)
+    comprovante_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    tipo_conversao: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    convertido_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    convertido_por: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    llm_parecer: Mapped[str | None] = mapped_column(Text, nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     itens: Mapped[list[PedidoItem]] = relationship(
