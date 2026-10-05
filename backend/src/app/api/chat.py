@@ -748,6 +748,9 @@ async def send_message(
                 db_sessionmaker=getattr(request.app.state, "db_sessionmaker", None),
                 rag_top_k=getattr(request.app.state, "rag_top_k", 3),
                 rag_score_threshold=getattr(request.app.state, "rag_score_threshold", 0.35),
+                rag_download_threshold=getattr(
+                    request.app.state, "rag_download_confidence_threshold", 0.65
+                ),
                 is_admin=is_admin,
                 user_email=email_cliente,
             ):

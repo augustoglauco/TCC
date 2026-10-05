@@ -4,23 +4,36 @@ exclusão e reingestão em outra collection.
 # Restrito a administradores autenticados (achado da revisão de
 # 2026-10-04: adicionado `require_admin` — até então, rotas só não
 # listadas na navegação pública do frontend, sem proteção de login no
-# servidor). `upload_document` complementa, sem substituir, o script de
-# ingestão em lote (`backend/scripts/ingest_sample_docs.py`). Mesma
-# limitação de `app.rag.qdrant_client.upsert_chunks`: sem deduplicação/
-# reingestão incremental automática. Decisão registrada em
-# `docs/ARCHITECTURE.md` §5.
+# servidor). Exceção de 2026-10-05: `GET .../download` libera sem token
+# para documentos de uma collection `purpose="chat"` (card de download no
+# chat público) — ver `docs/ARCHITECTURE.md` §7. `upload_document`
+# complementa, sem substituir, o script de ingestão em lote
+# (`backend/scripts/ingest_sample_docs.py`). Mesma limitação de
+# `app.rag.qdrant_client.upsert_chunks`: sem deduplicação/reingestão
+# incremental automática. Decisão registrada em `docs/ARCHITECTURE.md` §5.
 """
 
 import logging
 from pathlib import Path
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.admin_auth import require_admin
+from app.api.admin_auth import is_admin_request, require_admin
 from app.api.rag_dependencies import (
     get_db_session,
     get_embedder_registry,
@@ -204,6 +217,79 @@ async def get_document_content_endpoint(
         media_type=media_type,
         filename=document.filename,
         headers={"Content-Disposition": f'inline; filename="{document.filename}"'},
+    )
+
+
+@router.get("/documents/{document_id}/download")
+async def download_document_endpoint(
+    document_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+    uploads_dir: Path = Depends(get_uploads_dir),
+    authorization: Annotated[str | None, Header()] = None,
+    x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
+    token_param: Annotated[str | None, Query(alias="token")] = None,
+) -> FileResponse:
+    """Baixa o arquivo original de um documento do RAG (card de download no
+    chat, Task 1 do plano
+    `.superpowers/sdd/2026-10-04-download-documentos-rag-chat/`).
+
+    Decisão de 2026-10-05 (`docs/ARCHITECTURE.md` §7): público (sem token)
+    só quando a collection de origem tem `purpose="chat"` — mesmo conteúdo
+    já exposto nas respostas do chat público. Qualquer outro `purpose`
+    (`admin`, `mcp_b2b`, ou futuro) exige o mesmo `require_admin` dos
+    demais endpoints de `/api/rag/documents/*`. Mirror de
+    `get_document_content_endpoint` (resolução de arquivo e media type
+    idênticas); a única diferença é esse gate condicional e
+    `Content-Disposition: attachment` (força o download) em vez de
+    `inline`.
+    """
+    document = await session.get(RagDocument, document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+
+    collection = await get_collection(session, document.collection_id)
+    if collection is None or collection.purpose != "chat":
+        if not await is_admin_request(session, authorization, x_auth_token, token_param):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Acesso restrito a administradores autenticados.",
+            )
+
+    file_path: Path | None = None
+
+    if document.storage_path:
+        p = Path(document.storage_path)
+        if p.exists():
+            file_path = p
+        elif (uploads_dir / p.name).exists():
+            file_path = uploads_dir / p.name
+
+    if file_path is None:
+        candidate = uploads_dir / f"{document.id}_{document.filename}"
+        if candidate.exists():
+            file_path = candidate
+
+    if file_path is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Arquivo original do documento não encontrado em disco.",
+        )
+
+    suffix = file_path.suffix.lower()
+
+    media_type_map = {
+        ".pdf": "application/pdf",
+        ".txt": "text/plain; charset=utf-8",
+        ".md": "text/markdown; charset=utf-8",
+        ".csv": "text/csv; charset=utf-8",
+    }
+    media_type = media_type_map.get(suffix, "application/octet-stream")
+
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        filename=document.filename,
+        content_disposition_type="attachment",
     )
 
 

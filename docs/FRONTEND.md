@@ -108,6 +108,15 @@ com o histórico recarregado.
     gerado pelo assistente via Recharts (barras, linhas, pizza, área, donut),
     com persistência permanente na tabela `admin_charts` e link direto para
     o painel `/admin/dashboards`.
+  - `DocumentDownloadCard` (`card.tipo === "documento_download"`, 2026-10-05):
+    nome do arquivo, badge de relevância (score arredondado em %) e tamanho
+    formatado (KB/MB), com link `<a download>` apontando para
+    `GET /api/rag/documents/{id}/download` (resolvido via `getApiBaseUrl()`
+    + `card.download_url`). Emitido pelo orquestrador quando a busca
+    vetorial do RAG retorna score >= 0.65 — **sempre** para documentos de
+    coleção `purpose="chat"`, então o link nunca exige token (endpoint
+    público só para essa finalidade; `purpose="admin"` exige token, mas o
+    backend nunca emite esse card para esses documentos).
   `# MVP`: consulta genérica por categoria ou catálogo completo (que lista
   vários produtos, não um item único) ainda não tem card próprio — continua
   só em texto.
@@ -473,7 +482,7 @@ frontend/
 │   │   ├── MessageBubble.tsx
 │   │   ├── AudioRecorder.tsx
 │   │   ├── ImageUploader.tsx
-│   │   └── cards/                  # ChatCard (dispatcher), ProductCard, AppointmentCard, QuoteCard
+│   │   └── cards/                  # ChatCard (dispatcher), ProductCard, AppointmentCard, QuoteCard, DocumentDownloadCard
 │   ├── layout/                     # Header, Footer, Nav
 │   └── ui/                         # botões, inputs, componentes genéricos
 ├── lib/

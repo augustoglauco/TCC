@@ -66,9 +66,23 @@ class CardGrafico(BaseModel):
     fixado: bool = True
 
 
-# União discriminada por "tipo" — cobre produto, cotação, agendamento e gráficos dinâmicos
+class CardDocumentoDownload(BaseModel):
+    """Card rico de download de documento fonte do RAG (Fase 8, além do MVP)."""
+
+    tipo: Literal["documento_download"] = "documento_download"
+    documento_id: str = Field(..., description="UUID do documento na tabela rag_documents.")
+    filename: str = Field(..., description="Nome do arquivo (ex.: Manual_GD30.pdf).")
+    domain: str = Field(..., description="Domínio do documento (suporte, vendas, etc).")
+    score: float = Field(..., description="Score de similaridade do melhor chunk.")
+    download_url: str = Field(..., description="URL para download direto no backend.")
+    file_size_bytes: int | None = Field(default=None, description="Tamanho do arquivo em bytes.")
+
+
+# União discriminada por "tipo" — cobre produto, cotação, agendamento, gráficos
+# dinâmicos e o card de download do documento-fonte do RAG
 ChatCard = Annotated[
-    CardProduto | CardCotacao | CardAgendamento | CardGrafico, Field(discriminator="tipo")
+    CardProduto | CardCotacao | CardAgendamento | CardGrafico | CardDocumentoDownload,
+    Field(discriminator="tipo"),
 ]
 
 

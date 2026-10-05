@@ -100,6 +100,12 @@ class Settings(BaseSettings):
     clip_timeout_s: float = 30.0
     rag_top_k: int = 3
     rag_score_threshold: float = 0.35
+    # Limiar de confiança do card de download do documento-fonte no chat
+    # (Fase 8, além do MVP — ver docs/ARCHITECTURE.md §7): score do melhor
+    # chunk >= este valor anexa `CardDocumentoDownload` à resposta.
+    # MVP: limiar fixo, não editável em runtime (ao contrário de
+    # rag_score_threshold) — sem decisão de arquitetura nova pedindo isso.
+    rag_download_confidence_threshold: float = 0.65
     # MVP: desligado por padrão — o comportamento documentado em
     # docs/ARCHITECTURE.md (RAG vazio para o domínio → escala pro modelo
     # externo) depende da busca filtrada por domínio poder retornar vazio de
