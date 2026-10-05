@@ -19,6 +19,7 @@ from app.memory.store import (
     ContextoConversa,
     carregar_contexto,
     contar_mensagens,
+    gravar_mensagem_cliente,
     gravar_metricas,
     limpar_conversa,
     listar_mensagens,
@@ -26,6 +27,8 @@ from app.memory.store import (
     registrar_email,
     registrar_troca,
 )
+from app.db.models import Conversa
+from app.services.atendimento_service import escalar_para_humano
 from app.models.chat import (
     ChatDoneEventData,
     ChatMessageRequest,
@@ -209,6 +212,41 @@ async def _carregar_contexto_anterior_seguro(
     except Exception as exc:
         _logar_memoria_indisponivel("carregar_contexto_anterior", exc)
         return None
+
+
+async def _carregar_conversa_db_segura(app_state, conversation_id: str) -> Conversa | None:
+    try:
+        session_factory = getattr(app_state, "db_sessionmaker", None)
+        if not session_factory:
+            return None
+        async with session_factory() as session:
+            return await session.get(Conversa, conversation_id)
+    except Exception as exc:
+        logger.warning("Falha ao carregar status da conversa %s: %s", conversation_id, exc)
+        return None
+
+
+async def _gravar_mensagem_cliente_segura(app_state, conversation_id: str, texto: str) -> None:
+    try:
+        session_factory = getattr(app_state, "db_sessionmaker", None)
+        if not session_factory:
+            return
+        async with session_factory() as session:
+            await gravar_mensagem_cliente(session, conversation_id, texto)
+    except Exception as exc:
+        logger.warning("Falha ao gravar mensagem de cliente em atendimento humano: %s", exc)
+
+
+async def _escalar_conversa_em_background(
+    session_factory, conversation_id: str, motivo: str, prioridade: int
+) -> None:
+    try:
+        if not session_factory:
+            return
+        async with session_factory() as session:
+            await escalar_para_humano(session, conversation_id, motivo=motivo, prioridade=prioridade)
+    except Exception as exc:
+        logger.warning("Falha ao escalar conversa %s em background: %s", conversation_id, exc)
 
 
 def _logar_memoria_indisponivel(operacao: str, exc: Exception) -> None:
@@ -417,6 +455,31 @@ async def deletar_conversa(conversation_id: str, request: Request) -> None:
         raise HTTPException(status_code=503, detail="Não foi possível limpar a conversa.") from exc
 
 
+@router.post("/conversations/{conversation_id}/transbordo")
+async def solicitar_transbordo(
+    conversation_id: str,
+    request: Request,
+) -> dict[str, Any]:
+    """Solicita transbordo para atendimento humano sob demanda pelo cliente."""
+    session_factory = getattr(request.app.state, "db_sessionmaker", None)
+    if not session_factory:
+        raise HTTPException(status_code=503, detail="Banco de dados não configurado.")
+    async with session_factory() as session:
+        conv = await escalar_para_humano(
+            session,
+            conversation_id=conversation_id,
+            motivo="solicitacao_direta",
+            prioridade=3,
+        )
+        return {
+            "conversation_id": conv.id,
+            "status": conv.status,
+            "motivo_escalonamento": conv.motivo_escalonamento,
+            "prioridade": conv.prioridade,
+            "escalado_em": conv.escalado_em.isoformat() if conv.escalado_em else None,
+        }
+
+
 @router.post("/messages")
 async def send_message(
     payload: ChatMessageRequest,
@@ -546,6 +609,71 @@ async def send_message(
                     f"({MAX_IMAGE_BYTES // (1024 * 1024)}MB)."
                 ),
             )
+
+    # Transbordo e Atendimento Humano: se o cliente solicitar atendimento humano explicitamente
+    import re
+    pede_humano = bool(
+        effective_message
+        and re.search(
+            r"\b(atendente humano|falar com humano|suporte humano|operador humano|atendimento humano|quero humano|chama um humano)\b",
+            effective_message.lower(),
+        )
+    )
+
+    conversa_db = await _carregar_conversa_db_segura(request.app.state, conversation_id)
+
+    if pede_humano and (conversa_db is None or conversa_db.status not in ("aguardando_humano", "em_atendimento_humano")):
+        session_factory = getattr(request.app.state, "db_sessionmaker", None)
+        if session_factory:
+            async with session_factory() as session:
+                conversa_db = await escalar_para_humano(
+                    session, conversation_id, motivo="solicitacao_direta", prioridade=3
+                )
+
+    if conversa_db and conversa_db.status in ("aguardando_humano", "em_atendimento_humano"):
+        await _gravar_mensagem_cliente_segura(request.app.state, conversation_id, effective_message)
+
+        async def event_stream_humano():
+            conversation_id_ctx.set(conversation_id)
+            yield _sse("conversation", {"conversation_id": conversation_id})
+            yield _sse(
+                "status",
+                {
+                    "status": conversa_db.status,
+                    "atendente_id": conversa_db.atendente_id,
+                    "atendente_nome": conversa_db.atendente_nome,
+                },
+            )
+            texto_aviso = (
+                f"Mensagem recebida por {conversa_db.atendente_nome}."
+                if conversa_db.status == "em_atendimento_humano" and conversa_db.atendente_nome
+                else "Sua mensagem foi recebida. Um atendente humano responderá em breve."
+            )
+            yield _sse("token", {"text": texto_aviso})
+            yield _sse(
+                "done",
+                {
+                    "domain": "atendimento_humano",
+                    "backend_used": "humano",
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
+                    "cost_prompt_usd": 0.0,
+                    "cost_completion_usd": 0.0,
+                    "estimated_cost_usd": 0.0,
+                    "conversa_status": conversa_db.status,
+                },
+            )
+
+        return StreamingResponse(
+            event_stream_humano(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     contexto = await _carregar_contexto_seguro(request.app.state, conversation_id)
     recent_messages = contexto.mensagens_recentes
@@ -789,6 +917,14 @@ async def send_message(
                             motivo=event.motivo,
                             confianca=event.confianca,
                             provider_efetivo=event.provider_efetivo,
+                        )
+                    )
+                    spawn_background_task(
+                        _escalar_conversa_em_background(
+                            getattr(request.app.state, "db_sessionmaker", None),
+                            conversation_id=conversation_id,
+                            motivo=event.motivo or "tom_frustrado",
+                            prioridade=5,
                         )
                     )
                 elif isinstance(event, RouterDecision):

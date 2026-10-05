@@ -141,6 +141,29 @@ async def gravar_metricas(
     await session.commit()
 
 
+async def gravar_mensagem_cliente(
+    session: AsyncSession,
+    conversation_id: str,
+    mensagem_cliente: str,
+) -> ConversaMensagem:
+    """Grava apenas a mensagem enviada pelo cliente (quando a conversa está em
+    atendimento humano ou fila de transbordo, sem gerar resposta de IA)."""
+    conversa = await session.get(Conversa, conversation_id)
+    if conversa is None:
+        conversa = Conversa(id=conversation_id, status="aguardando_humano")
+        session.add(conversa)
+    msg = ConversaMensagem(
+        conversa_id=conversation_id,
+        papel=PAPEL_CLIENTE,
+        texto=mensagem_cliente[:_TEXTO_MAX_CHARS],
+    )
+    session.add(msg)
+    conversa.atualizada_em = func.now()
+    await session.commit()
+    await session.refresh(msg)
+    return msg
+
+
 async def registrar_email(session: AsyncSession, conversation_id: str, email: str) -> None:
     """Guarda o e-mail na conversa (criando-a, se preciso) assim que a
     mensagem chega, antes do LLM: uma falha na resposta não o perde (R10)."""
