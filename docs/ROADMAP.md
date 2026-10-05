@@ -291,11 +291,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       histórico local; campo `external_model_name` em
       `/api/admin/runtime-settings` (commit `d1c567a`, 2026-09-27; decisão
       registrada em `docs/ARCHITECTURE.md` §5 na revisão de 2026-09-28)
-- [x] **Contabilizador de Tokens Internos/Externos, Custos Segregados e Relatórios de Chats Encerrados** —
+- [x] **Contabilizador de Tokens Internos/Externos, Custos Segregados (Texto + Visão) e Relatórios de Chats Encerrados** —
       Implementado o subsistema de contabilidade de tokens (internos vs. externos) com segregação de custo
-      de entrada ($USD) e saída ($USD) para modelos remotos (OpenRouter). Ciclo de vida da conversa
-      (`conversas.status` aberta/encerrada, `encerrada_em`, `motivo_encerramento`, migração Alembic `0018_conversas_status_custos.py`)
-      com botão de encerramento manual no widget e worker de inatividade de 30 minutos em background (`inactivity_closure_worker`).
+      de entrada ($USD) e saída ($USD) para modelos remotos (OpenRouter), incluindo modelo de texto e visão
+      computacional externa (`describe_image`). Ciclo de vida da conversa (`conversas.status` aberta/encerrada, `encerrada_em`,
+      `motivo_encerramento`, migração Alembic `0018_conversas_status_custos.py`) com botão de encerramento
+      manual no widget e worker de inatividade de 30 minutos em background (`inactivity_closure_worker`).
       Endpoint analítico `GET /api/admin/metrics/tokens-and-costs` e dashboard de relatórios em `/admin/metricas` com KPIs
       em tempo real e detalhamento diário (2026-10-04).
       Design Spec em [`docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md`](docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md).
