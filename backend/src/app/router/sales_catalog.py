@@ -14,13 +14,18 @@ Mesmo padrão de módulo de `app.router.scheduling`: lógica de domínio pura
 (sem tipos de streaming SSE), consumida por `app.router.orchestrator`.
 """
 
-import json
-import re
+from datetime import UTC, datetime
 from decimal import Decimal
+import json
+from pathlib import Path
+import re
+from typing import Any
+from uuid import UUID
 
 from pydantic import BaseModel, ValidationError
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.orm import selectinload
 
 from app.db.catalog import (
     calcular_item_cotacao,
@@ -30,9 +35,10 @@ from app.db.catalog import (
     obter_produto,
     sao_compativeis,
 )
-from app.db.models import Produto
+from app.db.models import Pedido, PedidoItem, Produto
 from app.router.classifier import normalize, strip_code_fence
 from app.router.llm_client import LLMClient
+from app.services.comprovante_evaluator import ComprovanteEvaluator, ParecerComprovante
 
 
 class CandidatoProduto(BaseModel):
@@ -429,3 +435,152 @@ async def extract_sales_slots(
     if slots.produto_id is not None or slots.categoria is not None:
         slots.listar_tudo = False
     return slots
+
+
+def detectar_intencao_comprovante(message: str) -> bool:
+    """Identifica se a mensagem contém ou referencia o envio de um comprovante de pagamento."""
+    if not message:
+        return False
+    t = message.lower()
+    if "[texto extraído da imagem]" in t:
+        return True
+    palavras_chave = (
+        "comprovante",
+        "recibo",
+        "pagamento realizado",
+        "paguei",
+        "transferência realizada",
+        "transferencia realizada",
+        "pix realizado",
+        "segue o pix",
+        "segue comprovante",
+        "envio o comprovante",
+        "anexo o comprovante",
+        "comprovante do pix",
+        "comprovante de transferência",
+        "comprovante de pagamento",
+    )
+    if any(p in t for p in palavras_chave):
+        return True
+    # Heurística combinada: menção a transação/autenticação/pix com valor ou moeda
+    if ("autentica" in t or "transa" in t or "favorecido" in t) and ("r$" in t or "valor" in t or "pix" in t):
+        return True
+    return False
+
+
+async def buscar_reserva_ativa(
+    session: AsyncSession,
+    conversation_id: str | None = None,
+    user_email: str | None = None,
+    pedido_id: str | None = None,
+) -> Pedido | None:
+    """Busca a reserva mais recente com status 'reservado' ou 'pagamento_divergente'."""
+    stmt = (
+        select(Pedido)
+        .options(selectinload(Pedido.itens))
+        .where(Pedido.status.in_(["reservado", "pagamento_divergente"]))
+    )
+    if pedido_id:
+        try:
+            uuid_obj = UUID(pedido_id)
+            stmt = stmt.where(Pedido.id == uuid_obj)
+        except (ValueError, TypeError):
+            pass
+    elif conversation_id:
+        stmt = stmt.where(Pedido.conversation_id == conversation_id)
+    elif user_email:
+        stmt = stmt.where(Pedido.user_email == user_email)
+    else:
+        return None
+
+    stmt = stmt.order_by(Pedido.criado_em.desc()).limit(1)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def processar_conversao_comprovante(
+    session: AsyncSession,
+    pedido: Pedido,
+    texto_comprovante: str,
+    llm_client: Any = None,
+    comprovante_bytes: bytes | None = None,
+    nome_arquivo: str | None = None,
+) -> tuple[bool, str, ParecerComprovante]:
+    """Avalia o comprovante de pagamento via ComprovanteEvaluator e converte o status do pedido."""
+    valor_devido = sum(
+        (item.preco_unitario * item.quantidade for item in pedido.itens),
+        Decimal("0.00"),
+    )
+    evaluator = ComprovanteEvaluator(llm_client=llm_client)
+
+    filename_safe = None
+    if comprovante_bytes:
+        ext = Path(nome_arquivo or "comprovante.png").suffix or ".png"
+        filename_safe = f"{pedido.id}_comprovante{ext}"
+        upload_dir = Path("uploads/comprovantes")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        file_path = upload_dir / filename_safe
+        file_path.write_bytes(comprovante_bytes)
+        pedido.comprovante_url = f"/uploads/comprovantes/{filename_safe}"
+
+    if texto_comprovante and texto_comprovante.strip():
+        parecer = await evaluator.avaliar_texto(
+            texto=texto_comprovante,
+            valor_devido=valor_devido,
+            reserva_id=str(pedido.id),
+            nome_comprador=pedido.user_email or "Cliente",
+        )
+    elif comprovante_bytes:
+        parecer = await evaluator.avaliar_documento(
+            conteudo=comprovante_bytes,
+            nome_arquivo=filename_safe or "comprovante.png",
+            valor_devido=valor_devido,
+            reserva_id=str(pedido.id),
+            nome_comprador=pedido.user_email or "Cliente",
+        )
+    else:
+        parecer = ParecerComprovante(
+            valido=False,
+            valor_pago=Decimal("0.00"),
+            divergencia=-valor_devido,
+            justificativa="Nenhum conteúdo de comprovante foi fornecido.",
+        )
+
+    # Identifica se é B2B (volume >= 5 em algum item ou cotacao B2B)
+    is_b2b = any(item.quantidade >= 5 for item in pedido.itens)
+    tipo_conversao = "auto_chat_b2b" if is_b2b else "auto_chat_b2c"
+
+    if parecer.valido and abs(parecer.divergencia) <= Decimal("0.01"):
+        pedido.status = "venda_concluida"
+        pedido.tipo_conversao = tipo_conversao
+        pedido.convertido_em = datetime.now(UTC)
+        pedido.convertido_por = "sistema_llm"
+        pedido.llm_parecer = parecer.to_json()
+        await session.commit()
+
+        tx_info = f" (Transação: {parecer.codigo_transacao})" if parecer.codigo_transacao else ""
+        mensagem_resposta = (
+            f"Seu pagamento foi confirmado com sucesso! O comprovante no valor de R$ {parecer.valor_pago:.2f} "
+            f"foi validado com êxito{tx_info}. Sua reserva ({pedido.id}) foi convertida em venda concluída."
+        )
+        return True, mensagem_resposta, parecer
+    else:
+        pedido.status = "pagamento_divergente"
+        pedido.llm_parecer = parecer.to_json()
+        await session.commit()
+
+        if parecer.valor_pago > Decimal("0.00") and abs(parecer.divergencia) > Decimal("0.01"):
+            mensagem_resposta = (
+                f"Identificamos uma divergência no seu comprovante. O valor devido para a sua reserva é de "
+                f"R$ {valor_devido:.2f}, mas o comprovante aponta R$ {parecer.valor_pago:.2f} "
+                f"(diferença de R$ {abs(parecer.divergencia):.2f}). "
+                f"Por favor, verifique e envie o comprovante com o valor correto para concluirmos sua compra."
+            )
+        else:
+            mensagem_resposta = (
+                f"Não foi possível validar o seu comprovante de pagamento: {parecer.justificativa}. "
+                f"Por favor, envie um comprovante legível (PIX, TED ou transferência) com o valor "
+                f"integral da sua reserva (R$ {valor_devido:.2f})."
+            )
+        return False, mensagem_resposta, parecer
+

@@ -849,6 +849,14 @@ async def send_message(
             else complexity_strategy
         )
 
+        # Comprovante em anexo de imagem
+        comprovante_bytes = None
+        if payload.image and payload.image_intent == "documento":
+            try:
+                comprovante_bytes = base64.b64decode(payload.image, validate=True)
+            except Exception:
+                comprovante_bytes = None
+
         # Texto completo da resposta, para gravar na memória da conversa.
         partes_resposta: list[str] = []
         try:
@@ -881,6 +889,8 @@ async def send_message(
                 ),
                 is_admin=is_admin,
                 user_email=email_cliente,
+                comprovante_bytes=comprovante_bytes,
+                comprovante_filename="comprovante.png" if comprovante_bytes else None,
             ):
                 if isinstance(event, StatusEvent):
                     yield _sse("status", {"status": event.status})

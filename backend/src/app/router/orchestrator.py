@@ -968,6 +968,8 @@ async def handle_message(
     rag_download_threshold: float = 0.65,
     is_admin: bool = False,
     user_email: str | None = None,
+    comprovante_bytes: bytes | None = None,
+    comprovante_filename: str | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -1188,6 +1190,106 @@ async def handle_message(
                     cost_completion_usd=0.0,
                     custo_estimado_usd=0.0,
                     card=card,
+                    router_provider=intent_router_provider,
+                )
+                return
+
+    # Conversão Automática de Reserva em Venda via Chat (Modos 4 e 5)
+    from app.router.sales_catalog import (
+        buscar_reserva_ativa,
+        detectar_intencao_comprovante,
+        processar_conversao_comprovante,
+    )
+
+    if detectar_intencao_comprovante(message) or (comprovante_bytes is not None):
+        if db_sessionmaker:
+            pedido_uuid_match = re.search(
+                r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+                message,
+            )
+            pedido_uuid = pedido_uuid_match.group(0) if pedido_uuid_match else None
+
+            houve_reserva = False
+            texto_resp: str | None = None
+            parecer_res: Any = None
+            llm_to_use = local_client if local_client is not None else external_client
+
+            session_ctx = db_sessionmaker()
+            if hasattr(session_ctx, "__aenter__"):
+                async with session_ctx as session:
+                    pedido = await buscar_reserva_ativa(
+                        session=session,
+                        conversation_id=conversation_id,
+                        user_email=user_email,
+                        pedido_id=pedido_uuid,
+                    )
+                    if pedido:
+                        houve_reserva = True
+                        sucesso, texto_resp, parecer_res = await processar_conversao_comprovante(
+                            session=session,
+                            pedido=pedido,
+                            texto_comprovante=message,
+                            llm_client=llm_to_use,
+                            comprovante_bytes=comprovante_bytes,
+                            nome_arquivo=comprovante_filename,
+                        )
+            else:
+                pedido = await buscar_reserva_ativa(
+                    session=session_ctx,
+                    conversation_id=conversation_id,
+                    user_email=user_email,
+                    pedido_id=pedido_uuid,
+                )
+                if pedido:
+                    houve_reserva = True
+                    sucesso, texto_resp, parecer_res = await processar_conversao_comprovante(
+                        session=session_ctx,
+                        pedido=pedido,
+                        texto_comprovante=message,
+                        llm_client=llm_to_use,
+                        comprovante_bytes=comprovante_bytes,
+                        nome_arquivo=comprovante_filename,
+                    )
+
+            if houve_reserva and texto_resp:
+                yield TokenEvent(text=texto_resp)
+                yield RouterDecision(
+                    domain="vendas",
+                    complexity="baixa",
+                    confidence=1.0,
+                    complexity_strategy_usada="regras",
+                    backend_escolhido="local",
+                    motivo_escalonamento="vendas_comprovante_pagamento",
+                    resposta=texto_resp,
+                    latencia_ms=0.0,
+                    tokens_entrada=None,
+                    tokens_saida=None,
+                    cost_prompt_usd=0.0,
+                    cost_completion_usd=0.0,
+                    custo_estimado_usd=0.0,
+                    router_provider=intent_router_provider,
+                )
+                return
+            else:
+                msg_sem_reserva = (
+                    "Recebi o envio do comprovante, mas não encontrei nenhuma reserva pendente ativa "
+                    "associada a esta conversa ou conta. Por favor, verifique o código da sua reserva ou faça seu pedido primeiro."
+                )
+                yield TokenEvent(text=msg_sem_reserva)
+                yield RouterDecision(
+                    domain="vendas",
+                    complexity="baixa",
+                    confidence=1.0,
+                    complexity_strategy_usada="regras",
+                    backend_escolhido="local",
+                    motivo_escalonamento="vendas_comprovante_pagamento",
+                    resposta=msg_sem_reserva,
+                    latencia_ms=0.0,
+                    tokens_entrada=None,
+                    tokens_saida=None,
+                    cost_prompt_usd=0.0,
+                    cost_completion_usd=0.0,
+                    custo_estimado_usd=0.0,
                     router_provider=intent_router_provider,
                 )
                 return

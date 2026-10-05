@@ -170,7 +170,13 @@ class ComprovanteEvaluator:
             codigo_transacao=codigo_transacao,
         )
 
-    async def avaliar_texto(self, texto: str, valor_devido: Decimal) -> ParecerComprovante:
+    async def avaliar_texto(
+        self,
+        texto: str,
+        valor_devido: Decimal,
+        reserva_id: str | None = None,
+        nome_comprador: str | None = None,
+    ) -> ParecerComprovante:
         """Avalia o texto do comprovante contra o valor devido da reserva usando LLM ou heurística."""
         if not texto or not texto.strip():
             return ParecerComprovante(
@@ -181,8 +187,11 @@ class ComprovanteEvaluator:
             )
 
         if self.llm_client:
+            info_reserva = f"Reserva: {reserva_id}\n" if reserva_id else ""
+            info_comprador = f"Comprador: {nome_comprador}\n" if nome_comprador else ""
             prompt = (
                 "Você é um auditor financeiro responsável por analisar comprovantes de pagamento.\n"
+                f"{info_reserva}{info_comprador}"
                 f"O valor devido para esta transação é de R$ {valor_devido:.2f}.\n\n"
                 "Analise o texto do comprovante fornecido e extraia as informações no seguinte formato JSON estrito:\n"
                 "{\n"
@@ -229,10 +238,18 @@ class ComprovanteEvaluator:
         return self._extrair_heuristica(texto, valor_devido)
 
     async def avaliar_documento(
-        self, conteudo: bytes, nome_arquivo_ou_extensao: str, valor_devido: Decimal
+        self,
+        conteudo: bytes,
+        nome_arquivo_ou_extensao: str = "",
+        valor_devido: Decimal = Decimal("0.00"),
+        reserva_id: str | None = None,
+        nome_comprador: str | None = None,
+        *,
+        nome_arquivo: str | None = None,
     ) -> ParecerComprovante:
         """Executa o pipeline completo: extração de mídia e avaliação com cálculo de divergência."""
-        ext = Path(nome_arquivo_ou_extensao).suffix.lower()
+        source_name = nome_arquivo or nome_arquivo_ou_extensao
+        ext = Path(source_name).suffix.lower()
 
         # Se for imagem e temos vision_client disponível, tenta análise visual direta
         if ext in (".png", ".jpg", ".jpeg", ".webp") and self.vision_client:
@@ -264,5 +281,10 @@ class ComprovanteEvaluator:
             except Exception as exc:
                 logger.warning("Falha na visão multimodal direta (%s), tentando extração de texto.", exc)
 
-        texto = self.extrair_texto(conteudo, nome_arquivo_ou_extensao)
-        return await self.avaliar_texto(texto, valor_devido)
+        texto = self.extrair_texto(conteudo, source_name)
+        return await self.avaliar_texto(
+            texto=texto,
+            valor_devido=valor_devido,
+            reserva_id=reserva_id,
+            nome_comprador=nome_comprador,
+        )
