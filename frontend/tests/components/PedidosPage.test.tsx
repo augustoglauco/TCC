@@ -29,6 +29,30 @@ describe("PedidosPage", () => {
     });
   });
 
+  it("renderiza a foto do item do carrinho (regressão: next/image rejeitava hostname dinâmico do backend)", async () => {
+    useAuthStore.setState({
+      user: { id: 1, nome: "Ana Recorrente", email: "ana.recorrente@example.com", perfil: "Cliente" },
+      token: "mock-token",
+    });
+    useCartStore.setState({
+      items: [
+        {
+          produtoId: 10,
+          nome: "Gerador Solar GD-15",
+          preco: 1500.0,
+          quantidade: 1,
+          centroDistribuicao: "CD-SP",
+          imagemUrl: "http://localhost:8000/api/uploads/produtos/foto.jpg",
+        },
+      ],
+    });
+
+    render(<PedidosPage />);
+
+    const img = await screen.findByAltText("Gerador Solar GD-15");
+    expect(img).toHaveAttribute("src", "http://localhost:8000/api/uploads/produtos/foto.jpg");
+  });
+
   it("renderiza o carrinho e permite finalizar pedido quando autenticado", async () => {
     useAuthStore.setState({
       user: {

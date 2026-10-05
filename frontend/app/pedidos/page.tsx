@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useCartStore } from "@/lib/hooks/useCartStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
@@ -357,11 +356,14 @@ function PedidosPageContent() {
                       <div className="flex items-center gap-3">
                         <div className="h-14 w-14 relative rounded-lg bg-slate-100 overflow-hidden border border-slate-200 shrink-0 flex items-center justify-center">
                           {item.imagemUrl ? (
-                            <Image
+                            // Mesmo padrão do ProductCard.tsx: a URL vem de um host dinâmico
+                            // resolvido em runtime (ver getApiBaseUrl()), então next/image
+                            // bloquearia por hostname não configurado em next.config.ts.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
                               src={item.imagemUrl}
                               alt={item.nome}
-                              fill
-                              className="object-cover"
+                              className="h-full w-full object-cover"
                             />
                           ) : (
                             <span className="text-slate-400 text-xs font-bold">Foto</span>
