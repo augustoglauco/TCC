@@ -377,23 +377,47 @@ export default function AdminMetricasPage() {
           </p>
         </div>
 
-        {/* Card 3: Custo Total */}
+        {/* Card 4: Ingestão & Dados */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Custo Total Acumulado
+                Ingestão & Dados (Crawler/Catálogo)
+              </span>
+              <span className="rounded-md bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-700 border border-teal-200">
+                Backoffice
+              </span>
+            </div>
+            <p className="mt-3 text-3xl font-extrabold text-teal-700 tracking-tight">
+              ${summary?.total_ingestion_cost_usd !== undefined ? summary.total_ingestion_cost_usd.toFixed(4) : "0.0000"}
+            </p>
+          </div>
+          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
+            <span>Operações: {summary?.total_ingestion_calls?.toLocaleString("pt-BR") ?? 0}</span>
+            <span>Tokens: {summary?.total_ingestion_tokens?.toLocaleString("pt-BR") ?? 0}</span>
+          </p>
+        </div>
+
+        {/* Card 5: Custo Total */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Custo Total Geral (Infraestrutura)
               </span>
               <span className="rounded-md bg-purple-50 px-2 py-0.5 text-[11px] font-semibold text-purple-700 border border-purple-200">
                 USD
               </span>
             </div>
             <p className="mt-3 text-3xl font-extrabold text-purple-700 tracking-tight">
-              ${summary?.total_cost_usd !== undefined ? summary.total_cost_usd.toFixed(4) : "0.0000"}
+              ${summary?.grand_total_cost_usd !== undefined
+                ? summary.grand_total_cost_usd.toFixed(4)
+                : ((summary?.total_cost_usd || 0) + (summary?.total_ingestion_cost_usd || 0)).toFixed(4)}
             </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
-            Entrada + Saída em modelos externos
+          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
+            <span>Atendimento: ${summary?.total_cost_usd?.toFixed(4) ?? "0.0000"}</span>
+            <span>Ingestão: ${summary?.total_ingestion_cost_usd?.toFixed(4) ?? "0.0000"}</span>
           </p>
         </div>
 
@@ -505,6 +529,9 @@ export default function AdminMetricasPage() {
                   Visão (Fotos / Custo)
                 </th>
                 <th scope="col" className="px-5 py-3">
+                  Ingestão (Op / Custo)
+                </th>
+                <th scope="col" className="px-5 py-3">
                   Custo Entrada
                 </th>
                 <th scope="col" className="px-5 py-3">
@@ -518,7 +545,7 @@ export default function AdminMetricasPage() {
             <tbody className="divide-y divide-slate-100">
               {daily.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-slate-400">
+                  <td colSpan={9} className="px-5 py-8 text-center text-slate-400">
                     {loading
                       ? "Carregando métricas..."
                       : period === "custom"
@@ -559,6 +586,14 @@ export default function AdminMetricasPage() {
                       </span>{" "}
                       <span className="text-slate-500 text-[11px] font-mono">
                         (${item.vision_cost_usd !== undefined ? item.vision_cost_usd.toFixed(4) : "0.0000"})
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className="font-semibold text-slate-900">
+                        {item.ingestion_calls_count ?? 0} op{(item.ingestion_calls_count ?? 0) === 1 ? "" : "s"}
+                      </span>{" "}
+                      <span className="text-slate-500 text-[11px] font-mono">
+                        (${item.ingestion_cost_usd !== undefined ? item.ingestion_cost_usd.toFixed(4) : "0.0000"})
                       </span>
                     </td>
                     <td className="px-5 py-3.5 font-mono text-slate-600">

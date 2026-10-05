@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.auth import verificar_admin_por_token
 from app.api.rag_dependencies import get_db_session
 from app.config import get_settings
-from app.db.models import Conversa, ConversaMensagem
+from app.db.models import Conversa, ConversaMensagem, IngestionCostEvent
 
 logger = logging.getLogger("assistente.admin_metrics")
 
@@ -59,6 +59,10 @@ class MetricSummary(BaseModel):
     total_vision_calls: int = 0
     total_vision_tokens: int = 0
     total_vision_cost_usd: float = 0.0
+    total_ingestion_calls: int = 0
+    total_ingestion_tokens: int = 0
+    total_ingestion_cost_usd: float = 0.0
+    grand_total_cost_usd: float = 0.0
 
 
 class DailyMetric(BaseModel):
@@ -73,6 +77,8 @@ class DailyMetric(BaseModel):
     total_cost_usd: float = 0.0
     vision_calls_count: int = 0
     vision_cost_usd: float = 0.0
+    ingestion_calls_count: int = 0
+    ingestion_cost_usd: float = 0.0
 
 
 class TokenCostMetricsResponse(BaseModel):
@@ -160,15 +166,34 @@ async def get_token_and_cost_metrics(
         .where(Conversa.encerrada_em.is_not(None))
     )
 
+    stmt_ingest = (
+        select(
+            IngestionCostEvent.criado_em,
+            IngestionCostEvent.prompt_tokens,
+            IngestionCostEvent.completion_tokens,
+            IngestionCostEvent.total_cost_usd,
+        )
+        .order_by(IngestionCostEvent.criado_em.desc())
+    )
+
     if cutoff_start is not None:
         stmt = stmt.where(Conversa.encerrada_em >= cutoff_start)
+        stmt_ingest = stmt_ingest.where(IngestionCostEvent.criado_em >= cutoff_start)
     if cutoff_end is not None:
         stmt = stmt.where(Conversa.encerrada_em <= cutoff_end)
+        stmt_ingest = stmt_ingest.where(IngestionCostEvent.criado_em <= cutoff_end)
 
     try:
         async with session_factory() as session:
             result = await session.execute(stmt)
             rows = result.all()
+
+            try:
+                ingest_res = await session.execute(stmt_ingest)
+                ingest_rows = ingest_res.all()
+            except Exception as e_ingest:
+                logger.warning("Falha ao consultar ingestion_cost_events: %s", e_ingest)
+                ingest_rows = []
     except Exception as exc:
         logger.error("Erro ao consultar métricas de conversas no banco: %s", exc)
         raise HTTPException(status_code=503, detail="Erro ao consultar métricas.") from exc
@@ -184,6 +209,9 @@ async def get_token_and_cost_metrics(
     total_vision_calls = 0
     total_vision_tokens = 0
     total_vision_cost = 0.0
+    total_ingestion_calls = 0
+    total_ingestion_tokens = 0
+    total_ingestion_cost = 0.0
 
     daily_map: dict[str, dict[str, Any]] = {}
 
@@ -207,6 +235,8 @@ async def get_token_and_cost_metrics(
                 "total_cost_usd": 0.0,
                 "vision_calls_count": 0,
                 "vision_cost_usd": 0.0,
+                "ingestion_calls_count": 0,
+                "ingestion_cost_usd": 0.0,
             }
 
         daily = daily_map[date_key]
@@ -256,6 +286,42 @@ async def get_token_and_cost_metrics(
                 daily["internal_prompt_tokens"] += p_tok
                 daily["internal_completion_tokens"] += c_tok
 
+    # Acumula eventos de custo de ingestão (crawler, catálogo, etc)
+    for criado_em, p_tok, c_tok, c_tot in ingest_rows:
+        p_tok = int(p_tok or 0)
+        c_tok = int(c_tok or 0)
+        c_tot = float(c_tot or 0.0)
+
+        total_ingestion_calls += 1
+        total_ingestion_tokens += (p_tok + c_tok)
+        total_ingestion_cost += c_tot
+
+        if criado_em is None:
+            continue
+        dt = criado_em if criado_em.tzinfo else criado_em.replace(tzinfo=UTC)
+        date_key = dt.astimezone(local_tz).strftime("%Y-%m-%d")
+
+        if date_key not in daily_map:
+            daily_map[date_key] = {
+                "date": date_key,
+                "chats_set": set(),
+                "internal_prompt_tokens": 0,
+                "internal_completion_tokens": 0,
+                "external_prompt_tokens": 0,
+                "external_completion_tokens": 0,
+                "cost_prompt_usd": 0.0,
+                "cost_completion_usd": 0.0,
+                "total_cost_usd": 0.0,
+                "vision_calls_count": 0,
+                "vision_cost_usd": 0.0,
+                "ingestion_calls_count": 0,
+                "ingestion_cost_usd": 0.0,
+            }
+
+        daily = daily_map[date_key]
+        daily["ingestion_calls_count"] += 1
+        daily["ingestion_cost_usd"] += c_tot
+
     daily_breakdown = [
         DailyMetric(
             date=d["date"],
@@ -269,6 +335,8 @@ async def get_token_and_cost_metrics(
             total_cost_usd=round(d["total_cost_usd"], 6),
             vision_calls_count=d.get("vision_calls_count", 0),
             vision_cost_usd=round(d.get("vision_cost_usd", 0.0), 6),
+            ingestion_calls_count=d.get("ingestion_calls_count", 0),
+            ingestion_cost_usd=round(d.get("ingestion_cost_usd", 0.0), 6),
         )
         for d in sorted(daily_map.values(), key=lambda x: x["date"], reverse=True)
     ]
@@ -285,6 +353,10 @@ async def get_token_and_cost_metrics(
         total_vision_calls=total_vision_calls,
         total_vision_tokens=total_vision_tokens,
         total_vision_cost_usd=round(total_vision_cost, 6),
+        total_ingestion_calls=total_ingestion_calls,
+        total_ingestion_tokens=total_ingestion_tokens,
+        total_ingestion_cost_usd=round(total_ingestion_cost, 6),
+        grand_total_cost_usd=round(total_cost + total_ingestion_cost, 6),
     )
 
     return TokenCostMetricsResponse(

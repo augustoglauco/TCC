@@ -183,10 +183,40 @@ async def extract_page_products_local(
 
 
 async def extract_page_products_vision(
-    image_bytes: bytes, vision_client: Any, prompt: str | None = None
+    image_bytes: bytes,
+    vision_client: Any,
+    prompt: str | None = None,
+    source_identifier: str | None = None,
+    session: Any = None,
 ) -> list[dict[str, Any]]:
     used_prompt = prompt or VISION_EXTRACTION_PROMPT
     raw_response = await vision_client.describe_image(image_bytes, used_prompt)
+
+    # Telemetria e auditoria de custo da extração de catálogo por visão
+    p_tok = getattr(raw_response, "prompt_tokens", 0) or 0
+    c_tok = getattr(raw_response, "completion_tokens", 0) or 0
+    c_prompt = getattr(raw_response, "cost_prompt_usd", 0.0) or 0.0
+    c_comp = getattr(raw_response, "cost_completion_usd", 0.0) or 0.0
+    c_tot = getattr(raw_response, "estimated_cost_usd", 0.0) or (c_prompt + c_comp)
+    model = getattr(raw_response, "model_name", None) or getattr(vision_client, "vision_model", None)
+
+    if (p_tok + c_tok > 0) or (c_tot > 0):
+        try:
+            from app.services.ingestion_metrics import record_ingestion_cost
+            await record_ingestion_cost(
+                source_type="catalog_extractor",
+                prompt_tokens=p_tok,
+                completion_tokens=c_tok,
+                cost_prompt_usd=c_prompt,
+                cost_completion_usd=c_comp,
+                total_cost_usd=c_tot,
+                source_identifier=source_identifier,
+                model_name=model,
+                session=session,
+            )
+        except Exception:
+            pass
+
     return _parse_products_json(raw_response)
 
 
@@ -416,7 +446,9 @@ async def extract_catalog_stream(
                         if img_bytes and vision_client:
                             try:
                                 raw_prods = await extract_page_products_vision(
-                                    img_bytes, vision_client
+                                    img_bytes,
+                                    vision_client,
+                                    source_identifier=f"{filename}#p{num_pagina_pdf}",
                                 )
                                 provider_usado = "external"
                             except Exception as e:
@@ -437,7 +469,9 @@ async def extract_catalog_stream(
                         if not raw_prods and fallback_external and img_bytes and vision_client:
                             try:
                                 raw_prods = await extract_page_products_vision(
-                                    img_bytes, vision_client
+                                    img_bytes,
+                                    vision_client,
+                                    source_identifier=f"{filename}#p{num_pagina_pdf}",
                                 )
                                 provider_usado = "external"
                             except Exception as e:
@@ -509,7 +543,9 @@ async def extract_catalog_stream(
             erro_pagina: str | None = None
             if vision_client:
                 try:
-                    raw_prods = await extract_page_products_vision(content, vision_client)
+                    raw_prods = await extract_page_products_vision(
+                        content, vision_client, source_identifier=filename
+                    )
                 except Exception as e:
                     logger.error(f"Erro na visão para imagem {filename}: {e}")
                     erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"

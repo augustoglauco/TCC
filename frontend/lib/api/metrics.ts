@@ -12,6 +12,10 @@ export interface MetricSummary {
   total_vision_calls?: number;
   total_vision_tokens?: number;
   total_vision_cost_usd?: number;
+  total_ingestion_calls?: number;
+  total_ingestion_tokens?: number;
+  total_ingestion_cost_usd?: number;
+  grand_total_cost_usd?: number;
 }
 
 export interface DailyMetric {
@@ -26,6 +30,8 @@ export interface DailyMetric {
   total_cost_usd: number;
   vision_calls_count?: number;
   vision_cost_usd?: number;
+  ingestion_calls_count?: number;
+  ingestion_cost_usd?: number;
 }
 
 export interface TokenCostMetricsResponse {

@@ -508,3 +508,25 @@ class AdminChart(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+
+class IngestionCostEvent(Base):
+    """Eventos de telemetria e custo de processamento com modelos externos
+    fora do fluxo de chat de clientes (ex: Crawler de páginas web, extração de
+    catálogos de produtos via visão computacional, etc).
+    """
+
+    __tablename__ = "ingestion_cost_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    source_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    source_identifier: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    model_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    prompt_tokens: Mapped[int] = mapped_column(default=0)
+    completion_tokens: Mapped[int] = mapped_column(default=0)
+    cost_prompt_usd: Mapped[float] = mapped_column(default=0.0)
+    cost_completion_usd: Mapped[float] = mapped_column(default=0.0)
+    total_cost_usd: Mapped[float] = mapped_column(default=0.0)
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+

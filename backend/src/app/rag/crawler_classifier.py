@@ -45,7 +45,12 @@ def _strip_code_fence(text: str) -> str:
     return match.group(1) if match else stripped
 
 
-async def classify_page(llm_client: LLMClient, text: str) -> PageClassification:
+async def classify_page(
+    llm_client: LLMClient,
+    text: str,
+    source_identifier: str | None = None,
+    session: Any = None,
+) -> PageClassification:
     """Classifica o texto de uma página crawleada. Qualquer falha de parse
     do JSON devolvido pelo LLM (ou `domain` fora de `RagDomain`) vira
     `confidence=0.0` — nunca assume confiança alta por omissão; o `domain`
@@ -53,8 +58,35 @@ async def classify_page(llm_client: LLMClient, text: str) -> PageClassification:
     o domain é editável antes de aprovar)."""
     prompt = _PROMPT_TEMPLATE.format(texto=text[:_MAX_PROMPT_CHARS])
     response = await llm_client.generate(prompt)
+
+    # Telemetria e auditoria de custo do crawler
+    p_tok = getattr(response, "prompt_tokens", 0) or 0
+    c_tok = getattr(response, "completion_tokens", 0) or 0
+    c_prompt = getattr(response, "cost_prompt_usd", 0.0) or 0.0
+    c_comp = getattr(response, "cost_completion_usd", 0.0) or 0.0
+    c_tot = getattr(response, "estimated_cost_usd", 0.0) or (c_prompt + c_comp)
+    model = getattr(response, "model_name", None) or getattr(llm_client, "model", None)
+
+    if (p_tok + c_tok > 0) or (c_tot > 0):
+        try:
+            from app.services.ingestion_metrics import record_ingestion_cost
+            await record_ingestion_cost(
+                source_type="crawler",
+                prompt_tokens=p_tok,
+                completion_tokens=c_tok,
+                cost_prompt_usd=c_prompt,
+                cost_completion_usd=c_comp,
+                total_cost_usd=c_tot,
+                source_identifier=source_identifier,
+                model_name=model,
+                session=session,
+            )
+        except Exception:
+            pass
+
     try:
         parsed = json.loads(_strip_code_fence(response.text))
         return PageClassification(**parsed)
     except (json.JSONDecodeError, ValidationError, TypeError):  # fmt: skip
         return PageClassification(domain=_FALLBACK_DOMAIN, confidence=0.0)
+

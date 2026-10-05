@@ -429,4 +429,76 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("($0.0042)")).toBeInTheDocument();
     });
   });
+
+  it("exibe card de ingestão de dados e consolidação do custo total da infraestrutura", async () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    const mockResponse: metricsApi.TokenCostMetricsResponse = {
+      period: "today",
+      summary: {
+        total_closed_chats: 4,
+        total_internal_prompt_tokens: 1000,
+        total_internal_completion_tokens: 500,
+        total_external_prompt_tokens: 3500,
+        total_external_completion_tokens: 1200,
+        total_cost_prompt_usd: 0.0035,
+        total_cost_completion_usd: 0.0020,
+        total_cost_usd: 0.0055,
+        total_vision_calls: 3,
+        total_vision_tokens: 2800,
+        total_vision_cost_usd: 0.0042,
+        total_ingestion_calls: 5,
+        total_ingestion_tokens: 3500,
+        total_ingestion_cost_usd: 0.0050,
+        grand_total_cost_usd: 0.0105,
+      },
+      daily_breakdown: [
+        {
+          date: "2026-10-04",
+          closed_chats_count: 4,
+          internal_prompt_tokens: 1000,
+          internal_completion_tokens: 500,
+          external_prompt_tokens: 3500,
+          external_completion_tokens: 1200,
+          cost_prompt_usd: 0.0035,
+          cost_completion_usd: 0.0020,
+          total_cost_usd: 0.0055,
+          vision_calls_count: 3,
+          vision_cost_usd: 0.0042,
+          ingestion_calls_count: 5,
+          ingestion_cost_usd: 0.0050,
+        },
+      ],
+    };
+
+    vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      // Card Ingestão & Dados
+      expect(screen.getByText("Ingestão & Dados (Crawler/Catálogo)")).toBeInTheDocument();
+      expect(screen.getByText("$0.0050")).toBeInTheDocument();
+      expect(screen.getByText(/Operações: 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/Tokens: 3\.500/i)).toBeInTheDocument();
+
+      // Card Custo Total Geral Consolidado (Atendimentos + Ingestão)
+      expect(screen.getByText("Custo Total Geral (Infraestrutura)")).toBeInTheDocument();
+      expect(screen.getByText("$0.0105")).toBeInTheDocument();
+      expect(screen.getByText(/Atendimento: \$0\.0055/i)).toBeInTheDocument();
+      expect(screen.getByText(/Ingestão: \$0\.0050/i)).toBeInTheDocument();
+
+      // Tabela diária: coluna de ingestão
+      expect(screen.getByText("Ingestão (Op / Custo)")).toBeInTheDocument();
+      expect(screen.getByText("5 ops")).toBeInTheDocument();
+    });
+  });
 });
