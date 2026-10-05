@@ -212,6 +212,10 @@ class ChatDoneEventData(BaseModel):
     perfil_motivo: str | None = Field(
         default=None, description="Por que o visitante recebeu esse perfil (R10)."
     )
+    vision_used: bool | None = Field(
+        default=None,
+        description="Indica se a resposta envolveu identificação de imagem / visão computacional.",
+    )
     card: ChatCard | None = Field(
         default=None,
         description="Card rico opcional (Fase 8) — produto, cotação ou confirmação de "

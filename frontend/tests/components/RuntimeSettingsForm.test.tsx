@@ -318,5 +318,21 @@ describe("RuntimeSettingsForm", () => {
     );
     expect(screen.getByText(/modelo descarregado \(0 gb\)/i)).toBeInTheDocument();
   });
+
+  it("permite selecionar uma sugestão de modelo de visão e atualiza o input", async () => {
+    mockedGet.mockResolvedValueOnce(SETTINGS_PADRAO);
+    const user = userEvent.setup();
+
+    render(<RuntimeSettingsForm onError={vi.fn()} onSuccess={vi.fn()} />);
+
+    const inputVision = await screen.findByLabelText(/modelo de visão/i);
+    expect(inputVision).toHaveValue("google/gemini-flash-1.5");
+
+    const btnPreset = screen.getByRole("button", { name: /gemma 4 31b \(free\)/i });
+    await user.click(btnPreset);
+
+    expect(inputVision).toHaveValue("google/gemma-4-31b-it:free");
+  });
 });
+
 

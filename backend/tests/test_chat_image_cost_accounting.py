@@ -87,3 +87,4 @@ def test_chat_image_external_vision_populates_done_event_costs():
     assert pytest.approx(done["cost_prompt_usd"], 0.00001) == 0.0075
     assert pytest.approx(done["cost_completion_usd"], 0.00001) == 0.00105
     assert pytest.approx(done["estimated_cost_usd"], 0.00001) == 0.00855
+    assert done.get("vision_used") is True

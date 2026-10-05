@@ -60,6 +60,15 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   const isExternalLlm = !isUser && message.backendUsed === "externo";
   const domainLabel = message.domain ? (DOMAIN_LABELS[message.domain] ?? message.domain) : null;
   const metrics = message.metrics;
+  const isVision = Boolean(
+    !isUser &&
+      (metrics?.visionUsed ||
+        message.backendUsed === "identificacao_imagem" ||
+        (message.domain === "vendas" &&
+          metrics?.costPromptUsd !== undefined &&
+          metrics.costPromptUsd > 0 &&
+          metrics?.modelName?.toLowerCase().includes("gemma")))
+  );
 
   // Cálculo dinâmico de TPS caso o backend não tenha enviado explicitamente
   const calculatedTps =
@@ -86,7 +95,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
         }`}
       >
         {!isUser && domainLabel && (
-          <div className="mb-1 flex items-center gap-1">
+          <div className="mb-1 flex items-center gap-1.5 flex-wrap">
             <span
               data-testid="message-domain-label"
               className={`text-[10px] font-bold uppercase tracking-wider ${
@@ -95,6 +104,15 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             >
               {domainLabel}
             </span>
+            {isVision && (
+              <span
+                data-testid="message-vision-badge"
+                className="inline-flex items-center gap-1 rounded bg-purple-100/90 border border-purple-200/80 px-1.5 py-0.5 text-[9px] font-bold text-purple-800 shadow-2xs"
+                title="Produto identificado via Visão Computacional (Multimodal)"
+              >
+                👁️ Visão Computacional
+              </span>
+            )}
             <button
               type="button"
               onClick={() => setShowDetails((prev) => !prev)}
@@ -279,6 +297,18 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                     ? `$${metrics.estimatedCostUsd.toFixed(6)}`
                     : "$0.000000 (Local)"}
                 </div>
+                {metrics?.costPromptUsd !== undefined && metrics.costPromptUsd !== null && (
+                  <div>
+                    <span className="text-slate-400">Custo Entrada (IN):</span>{" "}
+                    ${metrics.costPromptUsd.toFixed(6)}
+                  </div>
+                )}
+                {metrics?.costCompletionUsd !== undefined && metrics.costCompletionUsd !== null && (
+                  <div>
+                    <span className="text-slate-400">Custo Saída (OUT):</span>{" "}
+                    ${metrics.costCompletionUsd.toFixed(6)}
+                  </div>
+                )}
               </div>
 
               {/* RAG */}

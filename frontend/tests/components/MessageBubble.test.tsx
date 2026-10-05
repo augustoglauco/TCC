@@ -275,4 +275,52 @@ describe("MessageBubble", () => {
 
     expect(screen.getByTestId("message-bubble")).not.toHaveClass("bg-red-50");
   });
+
+  it("renderiza o badge de Visão Computacional quando a resposta envolveu visão", () => {
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Identificamos o produto Câmera IP",
+          domain: "vendas",
+          backendUsed: "externo",
+          metrics: { visionUsed: true },
+        })}
+      />,
+    );
+
+    const badge = screen.getByTestId("message-vision-badge");
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent("👁️ Visão Computacional");
+  });
+
+  it("mostra os custos segregados de entrada e saída no painel de métricas", async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageBubble
+        message={makeMessage({
+          role: "assistant",
+          text: "Produto com custo segregado",
+          domain: "vendas",
+          backendUsed: "externo",
+          metrics: {
+            promptTokens: 1200,
+            completionTokens: 80,
+            costPromptUsd: 0.006,
+            costCompletionUsd: 0.0012,
+            estimatedCostUsd: 0.0072,
+          },
+        })}
+      />,
+    );
+
+    const toggle = screen.getByRole("button", { name: "Mostrar métricas da resposta" });
+    await user.click(toggle);
+
+    expect(screen.getByText("Custo Entrada (IN):")).toBeInTheDocument();
+    expect(screen.getByText("$0.006000")).toBeInTheDocument();
+    expect(screen.getByText("Custo Saída (OUT):")).toBeInTheDocument();
+    expect(screen.getByText("$0.001200")).toBeInTheDocument();
+    expect(screen.getByText("$0.007200")).toBeInTheDocument();
+  });
 });

@@ -121,6 +121,7 @@ export interface ChatMetrics {
   routerProvider?: string;
   perfilUsuario?: ChatPerfilUsuario;
   perfilMotivo?: string;
+  visionUsed?: boolean;
 }
 
 export interface ChatDoneEventData {
@@ -145,6 +146,7 @@ export interface ChatDoneEventData {
   router_provider?: string | null;
   perfil_usuario?: ChatPerfilUsuario | null;
   perfil_motivo?: string | null;
+  vision_used?: boolean | null;
   card?: ChatCard | null;
 }
 

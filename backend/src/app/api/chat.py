@@ -673,6 +673,7 @@ async def send_message(
                 cost_prompt_usd=resultado.cost_prompt_usd,
                 cost_completion_usd=resultado.cost_completion_usd,
                 estimated_cost_usd=resultado.estimated_cost_usd,
+                vision_used=True,
             )
             await _registrar_troca_segura(
                 request.app.state,
