@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Implementar o recurso de conversão de reservas de produtos em vendas efetivas com validação por documentos de comprovante de pagamento (Imagem, PDF e TXT) processados por LLM multimodal interno, cobrindo as 6 modalidades especificadas: Manual Simples (Admin), Manual Padrão (Admin com Assistência de IA), Automática por Upload (Admin), Automática via Chat (Cliente B2C), Automática via Chat (Cliente B2B) e Automática via Protocolo MCP (`converter_reserva_venda`).
+**Goal:** Implementar o recurso de conversão de reservas de produtos em vendas efetivas com validação por documentos de comprovante de pagamento (Imagem, PDF e TXT) processados por LLM multimodal interno, cobrindo as 5 modalidades especificadas: Manual Simples (Admin), Manual Padrão (Admin com Assistência de IA), Automática por Upload (Admin), Automática via Chat (Cliente / Assistente Virtual) e Automática via Protocolo MCP (`converter_reserva_venda`).
 
 **Architecture:** 
 Novas colunas e tabelas estendem o modelo de `Pedido` em `app.db.models` (`status` expandido para `"venda_concluida"`, `"pagamento_divergente"`, adicionando `comprovante_url`, `tipo_conversao`, `convertido_em`, `convertido_por`, `llm_parecer`). 
@@ -19,7 +19,7 @@ O servidor MCP B2B expõe a ferramenta `converter_reserva_venda` para automaçã
 
 - Python 3.11+ assíncrono com SQLAlchemy 2.0 e asyncpg.
 - Modificação estrutural de banco de dados versionada via Alembic migration (`0022_conversao_reserva_venda.py`).
-- Manter o escopo alinhado às 6 modalidades especificadas.
+- Manter o escopo alinhado às 5 modalidades especificadas.
 - O serviço de avaliação por LLM deve retornar parecer padronizado em JSON (`valido`, `valor_comprovante`, `divergencia`, `justificativa`).
 - Em caso de falha de leitura ou divergência nos valores, o pedido não pode ser convertido automaticamente em venda (deve ir para `pagamento_divergente` ou permanecer `reservado`).
 - Commits cirúrgicos com referências claras aos requisitos (R12/Vendas).
@@ -53,7 +53,7 @@ async def test_pedido_conversao_venda_fields(db_session):
         status="venda_concluida",
         user_email="cliente@exemplo.com",
         comprovante_url="/uploads/comprovantes/pix_123.pdf",
-        tipo_conversao="auto_chat_b2c",
+        tipo_conversao="auto_chat",
         convertido_em=now,
         convertido_por="sistema_llm",
         llm_parecer='{"valido": true, "valor_comprovante": 1500.00, "divergencia": 0.0}',
@@ -64,7 +64,7 @@ async def test_pedido_conversao_venda_fields(db_session):
     saved_pedido = await db_session.get(Pedido, pedido.id)
     assert saved_pedido.status == "venda_concluida"
     assert saved_pedido.comprovante_url == "/uploads/comprovantes/pix_123.pdf"
-    assert saved_pedido.tipo_conversao == "auto_chat_b2c"
+    assert saved_pedido.tipo_conversao == "auto_chat"
     assert saved_pedido.convertido_em is not None
     assert saved_pedido.convertido_por == "sistema_llm"
     assert "valido" in saved_pedido.llm_parecer
@@ -191,7 +191,7 @@ Simular o envio de uma mensagem de chat contendo anexo ou referência de pagamen
 
 - [ ] **Step 2: Implementar detecção de intenção em `orchestrator.py` e handler em `sales_catalog.py`**
 
-Atualizar o orquestrador para identificar intenção `vendas_comprovante_pagamento` quando um anexo ou texto de comprovante é enviado. Executar o `ComprovanteEvaluator` com o valor devido do pedido da sessão. Se aprovado, atualizar status para `venda_concluida` (`tipo_conversao="auto_chat_b2c"` ou `"auto_chat_b2b"`) e responder ao usuário confirmando o encerramento da venda.
+Atualizar o orquestrador para identificar intenção `vendas_comprovante_pagamento` quando um anexo ou texto de comprovante é enviado. Executar o `ComprovanteEvaluator` com o valor devido do pedido da sessão. Se aprovado, atualizar status para `venda_concluida` (`tipo_conversao="auto_chat"`) e responder ao usuário confirmando o encerramento da venda.
 
 - [ ] **Step 3: Executar testes de integração do chat**
 
@@ -200,7 +200,7 @@ Expected: PASS.
 
 ---
 
-### Task 5: Tool MCP B2B `converter_reserva_venda` (Modo 6)
+### Task 5: Tool MCP B2B `converter_reserva_venda` (Modo 5)
 
 **Files:**
 - Modify: `backend/src/app/mcp_server/b2b.py`
@@ -257,7 +257,7 @@ Expected: Compilação TypeScript / Next.js com 0 erros.
 - Modify: `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`
 
 - [ ] **Step 1: Atualizar `docs/ARCHITECTURE.md`**
-Registrar a funcionalidade de conversão de reserva em venda com as 6 modalidades, detalhando os estados estendidos do pedido (`venda_concluida`, `pagamento_divergente`) e a integração multimodal com LLM.
+Registrar a funcionalidade de conversão de reserva em venda com as 5 modalidades, detalhando os estados estendidos do pedido (`venda_concluida`, `pagamento_divergente`) e a integração multimodal com LLM.
 
 - [ ] **Step 2: Atualizar `docs/ROADMAP.md`**
 Adicionar a nova seção no Roadmap referente à funcionalidade de Conversão de Reserva em Venda com as caixas de verificação marcadas.

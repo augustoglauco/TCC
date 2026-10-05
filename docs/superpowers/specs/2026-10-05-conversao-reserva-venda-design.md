@@ -10,13 +10,12 @@
 
 Esta especificação define a arquitetura e o fluxo funcional para a **conversão de reservas em vendas efetivadas** no sistema, suportando validação por documentos de comprovação de pagamento (Imagem, PDF e TXT) processados via LLM interno multimodal.
 
-O sistema suportará **6 modalidades de conversão**:
+O sistema suportará **5 modalidades de conversão** (por canal de efetivação):
 1. **Manual Simples (Admin):** O administrador altera o status da reserva para venda no painel, podendo anexar opcionalmente um comprovante (sem análise de LLM).
 2. **Manual Padrão (Admin com Assistência de IA):** O administrador envia o comprovante, o LLM analisa e exibe o parecer (valores da reserva vs. comprovante), e o admin confirma manualmente a conversão.
 3. **Automática (Admin):** O admin envia o comprovante; o LLM valida se o valor bate com o total da reserva e, se verificado com sucesso, o sistema converte automaticamente para venda.
-4. **Automática (Cliente B2C via Chat):** O cliente envia o comprovante no widget de chat B2C; o pipeline multimodal processa o arquivo, confirma o valor com a reserva ativa e converte o pedido para venda, emitindo a confirmação no chat.
-5. **Automática (Cliente B2B via Chat):** O comprador B2B envia o comprovante no chat; o LLM valida com o valor cotado (incluindo descontos por volume) e converte automaticamente a reserva em venda.
-6. **Automática (Cliente B2B via MCP / Integrador):** O parceiro B2B chama a ferramenta MCP (`converter_reserva_venda`) enviando o ID da reserva e o comprovante (base64, URL ou texto); o servidor MCP roda a validação por LLM e efetiva a conversão.
+4. **Automática (Cliente via Chat):** O cliente envia o comprovante no chat; o pipeline multimodal processa o arquivo ou texto, confirma o valor com a reserva ativa (independente de quantidade ou descontos aplicados) e converte o pedido para venda, emitindo a confirmação no chat.
+5. **Automática (Parceiro B2B via MCP / Integrador):** O parceiro B2B chama a ferramenta MCP (`converter_reserva_venda`) enviando o ID da reserva e o comprovante (base64, URL ou texto); o servidor MCP roda a validação por LLM e efetiva a conversão.
 
 ---
 
@@ -72,7 +71,7 @@ Novos campos na tabela `pedidos` (tabela modelada em [`models.py`](file:///home/
 | :--- | :--- | :--- |
 | `status` | `VARCHAR(50)` | Novos estados: `"reservado"`, `"venda_concluida"`, `"pagamento_divergente"` |
 | `comprovante_url` | `VARCHAR(255)` (Null) | Caminho relativo do arquivo de comprovante armazenado |
-| `tipo_conversao` | `VARCHAR(50)` (Null) | Enum: `"manual_simples"`, `"manual_padrao"`, `"auto_admin"`, `"auto_chat_b2c"`, `"auto_chat_b2b"`, `"auto_mcp_b2b"` |
+| `tipo_conversao` | `VARCHAR(50)` (Null) | Enum: `"manual_simples"`, `"manual_padrao"`, `"auto_admin"`, `"auto_chat"`, `"auto_mcp_b2b"` |
 | `convertido_em` | `TIMESTAMP` (Null) | Data/hora exata em que a conversão foi efetivada |
 | `convertido_por` | `VARCHAR(100)` (Null) | Identificador de quem efetuou ou autorizou (e-mail do admin, "sistema_llm", "mcp_partner") |
 | `llm_parecer` | `TEXT` (Null) | JSON/Texto com o resultado da avaliação do LLM (valor extraído, divergência e justificativa) |
@@ -103,7 +102,7 @@ O prompt envia as informações do pedido (Número do Pedido, Valor Total Devido
 
 ---
 
-## 5. Detalhamento das 6 Modalidades de Conversão
+## 5. Detalhamento das 5 Modalidades de Conversão
 
 ### 1. Manual Simples (Admin)
 - **Endpoint:** `POST /api/admin/pedidos/{id}/converter-manual-simples`
@@ -121,17 +120,12 @@ O prompt envia as informações do pedido (Número do Pedido, Valor Total Devido
 - **Upload:** Obrigatório.
 - **Ação:** Invoca a análise do LLM. Se `divergencia == 0.00`, converte para `"venda_concluida"` automaticamente e registra `tipo_conversao = "auto_admin"`. Se houver divergência, retorna erro e altera status para `"pagamento_divergente"`.
 
-### 4. Automática via Chat (Cliente B2C)
-- **Fluxo:** Cliente envia comprovante no Chat público (`POST /api/chat/message` com anexo ou upload).
-- **Orquestrador:** Roteador detecta a intenção `vendas_comprovante_pagamento`.
-- **Ação:** Identifica a reserva ativa da sessão (`conversation_id`), roda a análise por LLM e, se aprovado, atualiza o pedido para `"venda_concluida"`. O assistente responde: *"Seu pagamento foi confirmado com sucesso! Sua reserva agora é uma venda concluída."*
+### 4. Automática via Chat (Cliente / Usuário)
+- **Fluxo:** O cliente envia o comprovante no chat (`POST /api/chat/message` com anexo de imagem, PDF ou texto de PIX/TED).
+- **Orquestrador:** Roteador detecta a intenção de comprovante e busca a reserva ativa da sessão (`conversation_id` ou `user_email`).
+- **Ação:** O LLM compara o valor pago no comprovante com o valor devido da reserva ativa (já calculado e faturado na emissão da reserva, independente de quantidade ou faixas de desconto acordadas). Se validado, converte a reserva em venda (`tipo_conversao = "auto_chat"`). O assistente responde: *"Seu pagamento foi confirmado com sucesso! O comprovante no valor de R$ X,XX foi validado com êxito. Sua reserva foi convertida em venda concluída."*
 
-### 5. Automática via Chat (Cliente B2B)
-- **Fluxo:** Comprador B2B envia comprovante no chat de atendimento B2B.
-- **Diferencial:** O LLM compara o valor pago no comprovante com a cotação B2B (considerando a tabela de descontos por volume negociados para aquela empresa/parceiro).
-- **Ação:** Se validado, converte a reserva em venda (`tipo_conversao = "auto_chat_b2b"`).
-
-### 6. Automática via MCP Tool B2B (`converter_reserva_venda`)
+### 5. Automática via MCP Tool B2B (`converter_reserva_venda`)
 - **Servidor MCP:** Exposição no servidor B2B em [`b2b.py`](file:///home/augusto/Projetos/TCC/backend/src/app/mcp_server/b2b.py).
 - **Ferramenta:** `converter_reserva_venda(pedido_id: str, comprovante_base64_ou_texto: str, nome_arquivo: str)`
 - **Ação:** O backend MCP executa o pipeline de leitura LLM. Se validado, converte a reserva para `"venda_concluida"` (`tipo_conversao = "auto_mcp_b2b"`) e devolve a resposta estruturada para o agente integrador.

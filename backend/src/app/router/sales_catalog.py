@@ -546,9 +546,8 @@ async def processar_conversao_comprovante(
             justificativa="Nenhum conteúdo de comprovante foi fornecido.",
         )
 
-    # Identifica se é B2B (volume >= 5 em algum item ou cotacao B2B)
-    is_b2b = any(item.quantidade >= 5 for item in pedido.itens)
-    tipo_conversao = "auto_chat_b2b" if is_b2b else "auto_chat_b2c"
+    # Conversão genérica via chat para qualquer reserva emitida
+    tipo_conversao = "auto_chat"
 
     if parecer.valido and abs(parecer.divergencia) <= Decimal("0.01"):
         pedido.status = "venda_concluida"

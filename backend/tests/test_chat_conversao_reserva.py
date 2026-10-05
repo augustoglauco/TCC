@@ -75,8 +75,8 @@ def test_detectar_intencao_comprovante():
 
 
 @pytest.mark.asyncio
-async def test_chat_conversao_b2c_sucesso(db_session):
-    # Setup de produto e pedido reservado B2C (quantidade 1)
+async def test_chat_conversao_item_unico_sucesso(db_session):
+    # Setup de produto e pedido reservado com 1 item
     prod = Produto(nome="Painel Solar 500W", descricao="Painel fotovoltaico", preco=Decimal("1500.00"), categoria="Solar")
     db_session.add(prod)
     await db_session.flush()
@@ -127,7 +127,7 @@ async def test_chat_conversao_b2c_sucesso(db_session):
 
     await db_session.refresh(pedido)
     assert pedido.status == "venda_concluida"
-    assert pedido.tipo_conversao == "auto_chat_b2c"
+    assert pedido.tipo_conversao == "auto_chat"
     assert pedido.convertido_em is not None
     assert pedido.convertido_por == "sistema_llm"
     assert pedido.llm_parecer is not None
@@ -137,15 +137,15 @@ async def test_chat_conversao_b2c_sucesso(db_session):
 
 
 @pytest.mark.asyncio
-async def test_chat_conversao_b2b_sucesso(db_session):
-    # Setup de pedido B2B com quantidade de atacado (>= 5)
+async def test_chat_conversao_multiplos_itens_sucesso(db_session):
+    # Setup de pedido reservado com múltiplos itens faturados
     prod = Produto(nome="Inversor Híbrido 5kW", descricao="Inversor Solar", preco=Decimal("450.00"), categoria="Solar")
     db_session.add(prod)
     await db_session.flush()
 
     pedido = Pedido(
         user_email="compras@industria.com.br",
-        conversation_id="conv-b2b-1",
+        conversation_id="conv-multi-1",
         status="reservado",
     )
     db_session.add(pedido)
@@ -165,13 +165,13 @@ async def test_chat_conversao_b2b_sucesso(db_session):
 
     events = []
     async for ev in handle_message(
-        message="Segue comprovante de pagamento da cotação B2B: TED no valor de R$ 4.500,00. Transação: TED998877",
+        message="Segue comprovante de pagamento da reserva: TED no valor de R$ 4.500,00. Transação: TED998877",
         recent_messages=[],
         local_client=AsyncMock(),
         external_client=AsyncMock(),
         rag_client=AsyncMock(),
         complexity_strategy="heuristic",
-        conversation_id="conv-b2b-1",
+        conversation_id="conv-multi-1",
         db_sessionmaker=sessionmaker,
         user_email="compras@industria.com.br",
     ):
@@ -183,7 +183,7 @@ async def test_chat_conversao_b2b_sucesso(db_session):
 
     await db_session.refresh(pedido)
     assert pedido.status == "venda_concluida"
-    assert pedido.tipo_conversao == "auto_chat_b2b"
+    assert pedido.tipo_conversao == "auto_chat"
 
 
 @pytest.mark.asyncio
@@ -348,6 +348,6 @@ async def test_chat_api_endpoint_comprovante_imagem(chat_client, db_session, mon
 
     await db_session.refresh(pedido)
     assert pedido.status == "venda_concluida"
-    assert pedido.tipo_conversao == "auto_chat_b2c"
+    assert pedido.tipo_conversao == "auto_chat"
     assert pedido.comprovante_url is not None
 

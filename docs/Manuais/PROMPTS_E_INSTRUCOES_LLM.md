@@ -606,7 +606,7 @@ NÃO inclua nada fora do bloco JSON.
 ### 15. `backend/src/app/services/comprovante_evaluator.py`
 **Caminho:** [`backend/src/app/services/comprovante_evaluator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/services/comprovante_evaluator.py)
 
-Prompt de extração estruturada de comprovante financeiro e validação de equivalência de valores de reserva para conversão em venda nas 6 modalidades de comprovação.
+Prompt de extração estruturada de comprovante financeiro e validação de equivalência de valores de reserva para conversão em venda nas 5 modalidades de comprovação.
 
 ```python
 # Line 193: Prompt de auditoria financeira estruturada de comprovantes de pagamento
