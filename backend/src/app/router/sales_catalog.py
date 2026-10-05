@@ -437,8 +437,26 @@ async def extract_sales_slots(
     return slots
 
 
+def _texto_contem_evidencia_transacional(t: str) -> bool:
+    """Heurística combinada: indícios de DADO real de transação (autenticação,
+    código, favorecido) junto de valor/moeda — diferente de só mencionar a
+    palavra "comprovante"/"pagamento" numa frase qualquer."""
+    return ("autentica" in t or "transa" in t or "favorecido" in t) and (
+        "r$" in t or "valor" in t or "pix" in t
+    )
+
+
 def detectar_intencao_comprovante(message: str) -> bool:
-    """Identifica se a mensagem contém ou referencia o envio de um comprovante de pagamento."""
+    """Identifica se a mensagem contém ou referencia o envio de um comprovante de pagamento.
+
+    Propositalmente sensível (inclui frases que só ANUNCIAM a intenção, ex.:
+    "quero enviar o comprovante") — é o que decide se entramos no fluxo de
+    conversão de reserva em venda. Não decide sozinho se há conteúdo de fato
+    para validar: ver `texto_parece_conteudo_de_comprovante` para essa
+    distinção (achado de 2026-10-05: sem ela, uma frase de intenção sem
+    anexo e sem dado real de transação era mandada para o avaliador de IA
+    como se fosse o próprio comprovante, que sempre reprovava).
+    """
     if not message:
         return False
     t = message.lower()
@@ -462,10 +480,24 @@ def detectar_intencao_comprovante(message: str) -> bool:
     )
     if any(p in t for p in palavras_chave):
         return True
-    # Heurística combinada: menção a transação/autenticação/pix com valor ou moeda
-    if ("autentica" in t or "transa" in t or "favorecido" in t) and ("r$" in t or "valor" in t or "pix" in t):
+    return _texto_contem_evidencia_transacional(t)
+
+
+def texto_parece_conteudo_de_comprovante(message: str) -> bool:
+    """Diferente de `detectar_intencao_comprovante`: aqui verificamos se o
+    TEXTO EM SI parece conter dados reais de uma transação (colados pelo
+    cliente, ou extraídos por OCR de uma imagem — ver marcador `[Texto
+    extraído da imagem]` concatenado em `app.api.chat`), e não apenas
+    anunciar a intenção de enviar um comprovante (ex.: "quero enviar o
+    comprovante"). Usado para decidir se vale a pena mandar o texto para o
+    avaliador de IA — uma frase de intenção pura sempre reprovaria, de forma
+    confusa para o cliente."""
+    if not message:
+        return False
+    t = message.lower()
+    if "[texto extraído da imagem]" in t:
         return True
-    return False
+    return _texto_contem_evidencia_transacional(t)
 
 
 async def buscar_reserva_ativa(
@@ -523,7 +555,19 @@ async def processar_conversao_comprovante(
         file_path.write_bytes(comprovante_bytes)
         pedido.comprovante_url = f"/uploads/comprovantes/{filename_safe}"
 
-    if texto_comprovante and texto_comprovante.strip():
+    # Achado de 2026-10-05: a ordem aqui importa. Texto só vai para o
+    # avaliador de IA quando PARECE conter dado real de transação
+    # (`texto_parece_conteudo_de_comprovante`) — cobre tanto o comprovante
+    # colado como texto literal quanto o OCR de imagem já concatenado pelo
+    # `app.api.chat` (marcador `[Texto extraído da imagem]`). Uma frase que
+    # só ANUNCIA a intenção de enviar (ex.: "quero enviar o comprovante",
+    # sem anexo e sem dado real) nunca tinha conteúdo nenhum para validar —
+    # mandá-la para o avaliador sempre reprovava de forma confusa para o
+    # cliente. Se não há texto com conteúdo mas há um arquivo anexado
+    # (`comprovante_bytes`), avalia o arquivo; sem nenhum dos dois, pede o
+    # anexo explicitamente, sem marcar a reserva como divergente (nada foi
+    # de fato submetido para já haver uma divergência a registrar).
+    if texto_comprovante and texto_parece_conteudo_de_comprovante(texto_comprovante):
         parecer = await evaluator.avaliar_texto(
             texto=texto_comprovante,
             valor_devido=valor_devido,
@@ -539,12 +583,20 @@ async def processar_conversao_comprovante(
             nome_comprador=pedido.user_email or "Cliente",
         )
     else:
-        parecer = ParecerComprovante(
+        mensagem_resposta = (
+            f"Para confirmar o pagamento da sua reserva ({pedido.id}), por favor envie uma foto "
+            f"ou um arquivo legível do comprovante (PIX, TED ou transferência) no valor de "
+            f"R$ {valor_devido:.2f}."
+        )
+        parecer_vazio = ParecerComprovante(
             valido=False,
             valor_pago=Decimal("0.00"),
             divergencia=-valor_devido,
-            justificativa="Nenhum conteúdo de comprovante foi fornecido.",
+            justificativa=(
+                "Nenhum conteúdo de comprovante foi fornecido; apenas intenção de envio detectada."
+            ),
         )
+        return False, mensagem_resposta, parecer_vazio
 
     # Conversão genérica via chat para qualquer reserva emitida
     tipo_conversao = "auto_chat"

@@ -236,6 +236,69 @@ async def test_chat_conversao_pagamento_divergente(db_session):
 
 
 @pytest.mark.asyncio
+async def test_chat_conversao_apenas_intencao_sem_conteudo_pede_anexo(db_session):
+    """Regressão: mensagem que só ANUNCIA a intenção de enviar o comprovante
+    (sem anexar nada e sem colar dados reais de uma transação) não deve ser
+    mandada para o avaliador de IA como se fosse o próprio comprovante — isso
+    sempre reprova e confunde o cliente. Deve pedir o anexo e NÃO marcar a
+    reserva como `pagamento_divergente` (nada foi de fato submetido para
+    haver uma divergência a registrar)."""
+    prod = Produto(
+        nome="Câmera IDFACE",
+        descricao="Controle de acesso facial",
+        preco=Decimal("2109.85"),
+        categoria="Controle de Acesso",
+    )
+    db_session.add(prod)
+    await db_session.flush()
+
+    pedido = Pedido(
+        user_email="carla@gmail.com",
+        conversation_id="conv-intencao-1",
+        status="reservado",
+    )
+    db_session.add(pedido)
+    await db_session.flush()
+
+    item = PedidoItem(
+        pedido_id=pedido.id,
+        produto_id=prod.id,
+        quantidade=1,
+        centro_distribuicao="CD-SP",
+        preco_unitario=Decimal("2109.85"),
+    )
+    db_session.add(item)
+    await db_session.commit()
+
+    sessionmaker = _SingleSessionMaker(db_session)
+
+    events = []
+    async for ev in handle_message(
+        message="quero enviar o comprovante de pagamento",
+        recent_messages=[],
+        local_client=AsyncMock(),
+        external_client=AsyncMock(),
+        rag_client=AsyncMock(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-intencao-1",
+        db_sessionmaker=sessionmaker,
+        user_email="carla@gmail.com",
+    ):
+        events.append(ev)
+
+    token_events = [e for e in events if isinstance(e, TokenEvent)]
+    assert len(token_events) > 0
+    resposta = token_events[0].text.lower()
+    assert "envie" in resposta or "anexe" in resposta
+    assert "foto" in resposta or "arquivo" in resposta
+    # Não deve ser a mensagem de reprovação do avaliador de IA.
+    assert "não foi possível validar" not in resposta
+
+    await db_session.refresh(pedido)
+    assert pedido.status == "reservado"
+
+
+@pytest.mark.asyncio
 async def test_chat_conversao_sem_reserva_ativa(db_session):
     sessionmaker = _SingleSessionMaker(db_session)
 
