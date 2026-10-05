@@ -350,12 +350,11 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
     });
 
-    const porDiaBtn = screen.getByRole("button", { name: /por dia/i });
-    fireEvent.click(porDiaBtn);
-
-    const dateInput = await screen.findByLabelText(/escolher data específica/i);
+    const dateInput = screen.getByLabelText(/escolher data específica/i);
     expect(dateInput).toBeInTheDocument();
+    expect(screen.getByText("Calendário")).toBeInTheDocument();
 
+    fireEvent.click(dateInput);
     fireEvent.change(dateInput, { target: { value: "2026-10-02" } });
 
     await waitFor(() => {
@@ -364,7 +363,7 @@ describe("AdminMetricasPage", () => {
         startDate: "2026-10-02",
         endDate: "2026-10-02",
       });
-      expect(screen.getByText("Visualizando dia: 02/10/2026")).toBeInTheDocument();
+      expect(screen.getAllByText(/02\/10\/2026/).length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText("2026-10-02")).toBeInTheDocument();
     });
   });

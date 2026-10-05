@@ -115,17 +115,6 @@ export default function AdminMetricasPage() {
     }
   }, [isCurrentAdmin, token, period, selectedDate, carregarMetricas]);
 
-  const handleSelectPorDia = () => {
-    setPeriod("custom");
-    setTimeout(() => {
-      try {
-        dateInputRef.current?.showPicker?.();
-      } catch {
-        dateInputRef.current?.focus();
-      }
-    }, 50);
-  };
-
   const handleDateChange = (newDate: string) => {
     if (newDate) {
       setSelectedDate(newDate);
@@ -196,19 +185,38 @@ export default function AdminMetricasPage() {
         <div className="flex flex-col sm:items-end gap-2 self-start sm:self-auto shrink-0">
           <div className="flex items-center gap-2 flex-nowrap overflow-x-auto max-w-full">
             <div className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs shrink-0 flex-nowrap">
-              <button
-                type="button"
-                onClick={handleSelectPorDia}
-                className={`rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-colors flex items-center gap-1.5 shrink-0 whitespace-nowrap ${
+              <label
+                className={`relative inline-flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 whitespace-nowrap cursor-pointer select-none focus-within:ring-2 focus-within:ring-blue-500 ${
                   period === "custom"
                     ? "bg-blue-600 text-white shadow-2xs"
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
-                aria-label="Filtrar por dia específico"
+                title="Filtrar por data no calendário"
               >
-                <span>📅</span>
-                <span>Por Dia</span>
-              </button>
+                <span aria-hidden="true">📅</span>
+                <span>
+                  {period === "custom" && selectedDate
+                    ? formatarDataPtBr(selectedDate)
+                    : "Calendário"}
+                </span>
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  max={new Date().toLocaleDateString("en-CA")}
+                  value={selectedDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  onClick={(e) => {
+                    if (period !== "custom") {
+                      setPeriod("custom");
+                    }
+                    try {
+                      (e.target as HTMLInputElement).showPicker?.();
+                    } catch {}
+                  }}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  aria-label="Escolher data específica"
+                />
+              </label>
               <button
                 type="button"
                 onClick={() => setPeriod("today")}
@@ -254,28 +262,6 @@ export default function AdminMetricasPage() {
                 Tudo
               </button>
             </div>
-
-            {/* Seletor de Data / Calendário */}
-            {period === "custom" && (
-              <div className="flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50/80 px-2.5 py-1 text-xs shadow-2xs shrink-0 whitespace-nowrap">
-                <label
-                  htmlFor="filtro-data-especifica"
-                  className="text-xs font-bold text-blue-900 shrink-0"
-                >
-                  Dia:
-                </label>
-                <input
-                  id="filtro-data-especifica"
-                  ref={dateInputRef}
-                  type="date"
-                  max={new Date().toLocaleDateString("en-CA")}
-                  value={selectedDate}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  className="rounded-lg border border-blue-300 bg-white px-2 py-1 text-xs font-semibold text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-2xs shrink-0"
-                  aria-label="Escolher data específica"
-                />
-              </div>
-            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
