@@ -153,9 +153,9 @@ export default function AdminMetricasPage() {
   const daily = data?.daily_breakdown ?? [];
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-12 space-y-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8 space-y-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-4">
         <div>
           <div className="flex items-center gap-3">
             <span className="text-2xl">📊</span>
@@ -289,19 +289,19 @@ export default function AdminMetricasPage() {
       )}
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {/* Card 1: Tokens Internos */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
                 Tokens Internos (GPU Local)
               </span>
-              <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200">
+              <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200">
                 R$ 0,00
               </span>
             </div>
-            <p className="mt-3 text-3xl font-extrabold text-slate-900 tracking-tight">
+            <p className="mt-1.5 text-xl font-bold text-slate-900 tracking-tight">
               {summary
                 ? (
                     summary.total_internal_prompt_tokens +
@@ -310,24 +310,24 @@ export default function AdminMetricasPage() {
                 : "0"}
             </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
+          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between">
             <span>Entrada: {summary?.total_internal_prompt_tokens.toLocaleString("pt-BR") ?? 0}</span>
             <span>Saída: {summary?.total_internal_completion_tokens.toLocaleString("pt-BR") ?? 0}</span>
           </p>
         </div>
 
         {/* Card 2: Tokens Externos */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
                 Tokens Externos (OpenRouter)
               </span>
-              <span className="rounded-md bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200">
+              <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">
                 Nuvem
               </span>
             </div>
-            <p className="mt-3 text-3xl font-extrabold text-slate-900 tracking-tight">
+            <p className="mt-1.5 text-xl font-bold text-slate-900 tracking-tight">
               {summary
                 ? (
                     summary.total_external_prompt_tokens +
@@ -336,133 +336,133 @@ export default function AdminMetricasPage() {
                 : "0"}
             </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
+          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between">
             <span>Entrada: {summary?.total_external_prompt_tokens.toLocaleString("pt-BR") ?? 0}</span>
             <span>Saída: {summary?.total_external_completion_tokens.toLocaleString("pt-BR") ?? 0}</span>
           </p>
         </div>
 
         {/* Card 3: Visão Computacional */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
                 Visão Computacional (Imagens)
               </span>
-              <span className="rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-semibold text-sky-700 border border-sky-200">
+              <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 border border-sky-200">
                 Multimodal
               </span>
             </div>
-            <p className="mt-3 text-3xl font-extrabold text-sky-700 tracking-tight">
+            <p className="mt-1.5 text-xl font-bold text-sky-700 tracking-tight">
               ${summary?.total_vision_cost_usd !== undefined ? summary.total_vision_cost_usd.toFixed(4) : "0.0000"}
             </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
+          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between">
             <span>{`Imagens: ${summary?.total_vision_calls?.toLocaleString("pt-BR") ?? 0}`}</span>
             <span>Tokens: {summary?.total_vision_tokens?.toLocaleString("pt-BR") ?? 0}</span>
           </p>
         </div>
 
         {/* Card 4: Ingestão & Dados */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
                 Ingestão & Dados (Crawler/Catálogo)
               </span>
-              <span className="rounded-md bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-700 border border-teal-200">
+              <span className="rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold text-teal-700 border border-teal-200">
                 Backoffice
               </span>
             </div>
-            <p className="mt-3 text-3xl font-extrabold text-teal-700 tracking-tight">
+            <p className="mt-1.5 text-xl font-bold text-teal-700 tracking-tight">
               ${summary?.total_ingestion_cost_usd !== undefined ? summary.total_ingestion_cost_usd.toFixed(4) : "0.0000"}
             </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
+          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between">
             <span>{`Operações: ${summary?.total_ingestion_calls?.toLocaleString("pt-BR") ?? 0}`}</span>
             <span>{`Tokens: ${summary?.total_ingestion_tokens?.toLocaleString("pt-BR") ?? 0}`}</span>
           </p>
         </div>
 
         {/* Card 5: Custo Total */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
                 Custo Total Geral (Infraestrutura)
               </span>
-              <span className="rounded-md bg-purple-50 px-2 py-0.5 text-[11px] font-semibold text-purple-700 border border-purple-200">
+              <span className="rounded-md bg-purple-50 px-1.5 py-0.5 text-[10px] font-semibold text-purple-700 border border-purple-200">
                 USD
               </span>
             </div>
-            <p className="mt-3 text-3xl font-extrabold text-purple-700 tracking-tight">
+            <p className="mt-1.5 text-xl font-bold text-purple-700 tracking-tight">
               ${summary?.grand_total_cost_usd !== undefined
                 ? summary.grand_total_cost_usd.toFixed(4)
                 : ((summary?.total_cost_usd || 0) + (summary?.total_ingestion_cost_usd || 0)).toFixed(4)}
             </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2 flex justify-between">
+          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between">
             <span>{`Atendimento: $${summary?.total_cost_usd?.toFixed(4) ?? "0.0000"}`}</span>
             <span>{`Ingestão: $${summary?.total_ingestion_cost_usd?.toFixed(4) ?? "0.0000"}`}</span>
           </p>
         </div>
 
-        {/* Card 4: Custo Entrada */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+        {/* Card 6: Custo Entrada */}
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
                 Custo de Entrada (Prompt)
               </span>
-              <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 border border-indigo-200">
+              <span className="rounded-md bg-indigo-50 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700 border border-indigo-200">
                 Contexto
               </span>
             </div>
-            <p className="mt-3 text-2xl font-bold text-slate-900 tracking-tight">
+            <p className="mt-1.5 text-xl font-bold text-slate-900 tracking-tight">
               ${summary?.total_cost_prompt_usd !== undefined ? summary.total_cost_prompt_usd.toFixed(4) : "0.0000"}
             </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
+          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5">
             Perguntas, sistema e RAG enviados
           </p>
         </div>
 
-        {/* Card 5: Custo Saída */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+        {/* Card 7: Custo Saída */}
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
                 Custo de Saída (Resposta)
               </span>
-              <span className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200">
+              <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 border border-amber-200">
                 Geração
               </span>
             </div>
-            <p className="mt-3 text-2xl font-bold text-slate-900 tracking-tight">
+            <p className="mt-1.5 text-xl font-bold text-slate-900 tracking-tight">
               ${summary?.total_cost_completion_usd !== undefined ? summary.total_cost_completion_usd.toFixed(4) : "0.0000"}
             </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
+          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5">
             Tokens de respostas gerados na nuvem
           </p>
         </div>
 
-        {/* Card 6: Chats Encerrados */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs flex flex-col justify-between">
+        {/* Card 8: Chats Encerrados */}
+        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
                 Chats Encerrados
               </span>
-              <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 border border-slate-200">
+              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 border border-slate-200">
                 Sessões
               </span>
             </div>
-            <p className="mt-3 text-3xl font-extrabold text-slate-900 tracking-tight">
+            <p className="mt-1.5 text-xl font-bold text-slate-900 tracking-tight">
               {summary?.total_closed_chats ?? 0}
             </p>
           </div>
-          <p className="mt-2 text-xs text-slate-500 border-t border-slate-100 pt-2">
+          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5">
             Finalizados manualmente ou inatividade
           </p>
         </div>
@@ -470,7 +470,7 @@ export default function AdminMetricasPage() {
 
       {/* Tabela de Detalhamento Diário */}
       <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-        <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-4 flex items-center justify-between">
+        <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-3.5 flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-slate-900">
               Detalhamento Diário dos Atendimentos Encerrados

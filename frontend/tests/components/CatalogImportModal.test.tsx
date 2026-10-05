@@ -2,7 +2,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import CatalogImportModal from "@/components/admin/products/CatalogImportModal";
+import CatalogImportModal, {
+  formatarMoedaInput,
+  parseMoedaInput,
+} from "@/components/admin/products/CatalogImportModal";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
 beforeEach(() => {
@@ -18,9 +21,10 @@ vi.mock("@/lib/api/adminProducts", () => ({
   uploadTempImage: vi.fn(),
 }));
 
-import { extractCatalogStream } from "@/lib/api/adminProducts";
+import { extractCatalogStream, confirmCatalogExtraction } from "@/lib/api/adminProducts";
 
 const mockedExtractStream = vi.mocked(extractCatalogStream);
+const mockedConfirmExtraction = vi.mocked(confirmCatalogExtraction);
 
 describe("CatalogImportModal - Intervalo de Páginas", () => {
   beforeEach(() => {
@@ -267,3 +271,87 @@ describe("CatalogImportModal - erro de extração por página", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("CatalogImportModal - formatação de moedas em Real com 2 casas decimais", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("funções de apoio formatam números com 2 casas decimais e analisam texto adequadamente", () => {
+    expect(formatarMoedaInput(250)).toBe("250,00");
+    expect(formatarMoedaInput(12.5)).toBe("12,50");
+    expect(formatarMoedaInput(1250.75)).toBe("1.250,75");
+    expect(formatarMoedaInput(0)).toBe("0,00");
+    expect(formatarMoedaInput(null)).toBe("");
+    expect(formatarMoedaInput(undefined)).toBe("");
+
+    expect(parseMoedaInput("250,00")).toBe(250);
+    expect(parseMoedaInput("1.250,50")).toBe(1250.5);
+    expect(parseMoedaInput("12.50")).toBe(12.5);
+    expect(parseMoedaInput("R$ 49,90")).toBe(49.9);
+    expect(parseMoedaInput("")).toBeNull();
+  });
+
+  it("exibe os campos de valores gerados em moeda real com 2 casas decimais e permite edição", async () => {
+    const user = userEvent.setup();
+    mockedExtractStream.mockImplementation(async (_token, _files, _opts, handlers) => {
+      handlers.onPageComplete?.({
+        pagina: 1,
+        total_paginas: 1,
+        produtos: [
+          {
+            nome: "Câmera Bullet IP",
+            categoria: "CFTV",
+            preco_base_fornecedor: 150,
+            preco: 202.5,
+            descricao: "Câmera HD",
+          },
+        ],
+        provider_usado: "local",
+      });
+      handlers.onDone?.({ total_produtos: 1, total_paginas: 1 });
+    });
+
+    render(<CatalogImportModal isOpen={true} onClose={vi.fn()} onSuccess={vi.fn()} />);
+    const foto = new File(["x"], "camera.png", { type: "image/png" });
+    fireEvent.drop(screen.getByTestId("catalog-dropzone"), { dataTransfer: { files: [foto] } });
+
+    await user.click(screen.getByRole("button", { name: /Iniciar Extração Inteligente/i }));
+
+    // Aguarda a transição para a etapa de revisão
+    const inputRevenda = await screen.findByLabelText("Preço revenda Câmera Bullet IP");
+    const inputVenda = screen.getByLabelText("Preço venda Câmera Bullet IP");
+
+    // Verifica se os valores são exibidos formatados em Real com 2 casas decimais
+    expect(inputRevenda).toHaveValue("150,00");
+    expect(inputVenda).toHaveValue("202,50");
+
+    // Edita o preço de venda para 350
+    await user.clear(inputVenda);
+    await user.type(inputVenda, "350");
+    fireEvent.blur(inputVenda);
+
+    // Após o blur, deve ser formatado para 350,00
+    expect(inputVenda).toHaveValue("350,00");
+
+    // Confirma e verifica se os valores numéricos são repassados corretamente
+    const confirmBtn = screen.getByRole("button", {
+      name: /Confirmar e Gravar 1 Produto\(s\)/i,
+    });
+    await user.click(confirmBtn);
+
+    expect(mockedConfirmExtraction).toHaveBeenCalledWith(
+      "mock-token-1",
+      expect.objectContaining({
+        produtos: [
+          expect.objectContaining({
+            nome: "Câmera Bullet IP",
+            preco_base_fornecedor: 150,
+            preco: 350,
+          }),
+        ],
+      }),
+    );
+  });
+});
+
