@@ -656,6 +656,11 @@ export default function AdminMetricasPage() {
                         <span className="font-bold text-teal-700">
                           {`${item.ingestion_calls_count ?? 0} op${(item.ingestion_calls_count ?? 0) === 1 ? "" : "s"}`}
                         </span>
+                        {(item.ingestion_tokens ?? 0) > 0 && (
+                          <span className="text-[11px] font-semibold text-slate-700">
+                            {`${(item.ingestion_tokens ?? 0).toLocaleString("pt-BR")} tokens`}
+                          </span>
+                        )}
                         <span className="text-[11px] font-mono text-teal-600">
                           {`($${item.ingestion_cost_usd !== undefined ? item.ingestion_cost_usd.toFixed(4) : "0.0000"})`}
                         </span>
