@@ -1201,8 +1201,9 @@ async def handle_message(
         processar_conversao_comprovante,
     )
 
-    if detectar_intencao_comprovante(message) or (comprovante_bytes is not None):
-        if db_sessionmaker:
+    eh_intencao_comprovante = detectar_intencao_comprovante(message)
+    if eh_intencao_comprovante and db_sessionmaker:
+        try:
             pedido_uuid_match = re.search(
                 r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
                 message,
@@ -1293,6 +1294,17 @@ async def handle_message(
                     router_provider=intent_router_provider,
                 )
                 return
+        except Exception as exc:
+            logger.warning(
+                "falha_processar_comprovante",
+                extra={
+                    "router": {
+                        "event": "falha_processar_comprovante",
+                        "conversation_id": conversation_id,
+                        "erro": str(exc),
+                    }
+                },
+            )
 
     # MVP: o ramo de agendamento só roda quando (a) o chamador forneceu
     # `calendar_client`/`scheduling_config` para esta chamada E (b) a

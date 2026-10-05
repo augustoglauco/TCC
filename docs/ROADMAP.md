@@ -1140,14 +1140,17 @@ conversa e classificação do usuário").
       - Gatilhos de Transbordo: Automático via monitor de tom (frustração, prioridade 5) e solicitação direta no chat widget (`POST /api/chat/conversations/{id}/transbordo`).
       - REST API Administrativa: Endpoints `/api/admin/atendimento` (`/fila`, `/meus-chats`, `/{id}/claim`, `/{id}/mensagem`, `/{id}/close`) protegidos por `require_admin`.
       - Frontend Central de Atendimento: Página `/admin/atendimento` em 3 colunas (Fila de Espera, Meus Chats Ativos e Painel de Contexto do Cliente com dados cadastrais e compras) e link no `AdminGearMenu.tsx`.
-- [ ] **Conversão de Reserva para Venda com Comprovação Multimodal (2026-10-05):**
-      Planejamento e especificação completos (`docs/superpowers/specs/2026-10-05-conversao-reserva-venda-design.md` e `docs/superpowers/plans/2026-10-05-conversao-reserva-venda.md`) cobrindo 6 modalidades de conversão:
-      - Modo 1: Manual Simples (Admin) com anexo opcional.
-      - Modo 2: Manual Padrão (Admin) com parecer estruturado gerado por LLM multimodal.
-      - Modo 3: Automática via Upload Admin com validação sem divergência de valores.
-      - Modo 4: Automática via Chat Cliente (B2C) com leitura do comprovante e confirmação no chat.
-      - Modo 5: Automática via Chat Cliente (B2B) alinhando o comprovante às faixas de desconto por volume.
-      - Modo 6: Automática via Protocolo MCP B2B exposto na tool `converter_reserva_venda`.
+- [x] **Conversão de Reserva para Venda com Comprovação Multimodal (2026-10-05):**
+      Implementação completa da especificação e plano (`docs/superpowers/specs/2026-10-05-conversao-reserva-venda-design.md` e `docs/superpowers/plans/2026-10-05-conversao-reserva-venda.md`) cobrindo as 6 modalidades de conversão:
+      - Banco de Dados (Alembic 0022): Novas colunas em `pedidos` (`comprovante_url`, `tipo_conversao`, `convertido_em`, `convertido_por`, `llm_parecer`) e novos status (`venda_concluida`, `pagamento_divergente`).
+      - Serviço `ComprovanteEvaluator`: Auditoria multimodal de PDFs (via `pypdf`), imagens (visão/OCR) e texto estruturado com cálculo determinístico de divergência.
+      - Modo 1 (Admin - Manual Simples): Endpoint `POST /api/admin/pedidos/{id}/converter-manual-simples` para baixa direta pelo operador.
+      - Modo 2 (Admin - Manual com IA): Endpoints `POST /api/admin/pedidos/{id}/analisar-comprovante` e `POST /api/admin/pedidos/{id}/confirmar-conversao` para auditoria assistida com parecer e validação humana.
+      - Modo 3 (Admin - Automática via Upload): Endpoint `POST /api/admin/pedidos/{id}/converter-auto-admin` com validação autônoma por IA e tratamento de divergências.
+      - Modo 4 (Chat B2C): Conversão automática em tempo real no chat com cliente a partir de comprovante em texto ou imagem.
+      - Modo 5 (Chat B2B): Conversão automática via chat com cotações e faixas de desconto por volume.
+      - Modo 6 (MCP B2B): Tool `@server.tool(name="converter_reserva_venda")` no servidor MCP corporativo e suporte no cliente independente Streamlit (`cliente-b2b`).
+      - Frontend Administrativo: Interface `/admin/pedidos` com filtros por status, KPIs de faturamento, busca rápida e modal de conversão multimodal integrado com atalho no `AdminGearMenu.tsx`.
 - [ ] **Correção da Precisão de Métricas e Gráficos de Vendas e Chat (2026-10-05):**
       Refatoração e ajuste analítico em `chart_generator.py` e `admin_metrics.py` para alinhar os dashboards com os dados reais do banco:
       - **Filtro de Vendas Efetivadas:** Ajustar agregadoras `vendas_produtos_quantidade` e `vendas_produtos_valor` em `chart_generator.py` para filtrar apenas pedidos com `Pedido.status == "venda_concluida"` (além das compras históricas `ClienteCompra`), ignorando reservas pendentes ou orçamentos abertos.

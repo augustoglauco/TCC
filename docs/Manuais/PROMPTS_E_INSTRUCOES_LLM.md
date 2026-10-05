@@ -609,17 +609,23 @@ NÃO inclua nada fora do bloco JSON.
 Prompt de extração estruturada de comprovante financeiro e validação de equivalência de valores de reserva para conversão em venda nas 6 modalidades de comprovação.
 
 ```python
-system_instruction = """Você é um auditor financeiro automatizado.
-Analise o documento de comprovante de pagamento fornecido e compare-o com os dados da reserva de estoque.
-
-Responda OBRIGATORIAMENTE em formato JSON válido contendo:
-{
-  "comprovante_valido": true/false,
-  "valor_pago_detectado": float,
-  "codigo_transacao": "string ou null",
-  "justificativa": "explicação curta da auditoria"
-}
-"""
+# Line 193: Prompt de auditoria financeira estruturada de comprovantes de pagamento
+prompt = (
+    "Você é um auditor financeiro responsável por analisar comprovantes de pagamento.\n"
+    f"{info_reserva}{info_comprador}"
+    f"O valor devido para esta transação é de R$ {valor_devido:.2f}.\n\n"
+    "Analise o texto do comprovante fornecido e extraia as informações no seguinte formato JSON estrito:\n"
+    "{\n"
+    '  "comprovante_valido": true,\n'
+    '  "valor_pago": 1500.00,\n'
+    '  "codigo_transacao": "E1234567890",\n'
+    '  "justificativa": "Comprovante válido com valor correspondente."\n'
+    "}\n\n"
+    'Se o documento não for um comprovante de pagamento legítimo, defina "comprovante_valido": false '
+    'e "valor_pago": 0.0.\n'
+    "Responda EXCLUSIVAMENTE o bloco JSON, sem blocos de markdown adicionais.\n\n"
+    f"Texto do Comprovante:\n---\n{texto}\n---\n"
+)
 ```
 
 ---
