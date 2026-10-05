@@ -8,6 +8,7 @@ import {
   fetchTokenCostMetrics,
   TokenCostMetricsResponse,
   GetMetricsParams,
+  DailyMetric,
 } from "@/lib/api/metrics";
 
 function formatarDataPtBr(isoDate: string): string {
@@ -17,6 +18,124 @@ function formatarDataPtBr(isoDate: string): string {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
   return isoDate;
+}
+
+function obterDiaSemanaPtBr(isoDate: string): string {
+  if (!isoDate) return "";
+  try {
+    const parts = isoDate.split("-");
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+      return dias[d.getDay()] || "";
+    }
+  } catch {}
+  return "";
+}
+
+function preencherLinhasDetalhamento(
+  daily: DailyMetric[],
+  period: "today" | "7d" | "30d" | "all" | "custom",
+  selectedDate: string,
+): DailyMetric[] {
+  if (period === "custom") {
+    if (daily.length > 0) return daily;
+    return [
+      {
+        date: selectedDate,
+        closed_chats_count: 0,
+        internal_prompt_tokens: 0,
+        internal_completion_tokens: 0,
+        external_prompt_tokens: 0,
+        external_completion_tokens: 0,
+        cost_prompt_usd: 0,
+        cost_completion_usd: 0,
+        total_cost_usd: 0,
+        vision_calls_count: 0,
+        vision_cost_usd: 0,
+        ingestion_calls_count: 0,
+        ingestion_tokens: 0,
+        ingestion_cost_usd: 0,
+      },
+    ];
+  }
+
+  if (period === "today") {
+    if (daily.length > 0) return daily;
+    const hojeStr = new Date().toLocaleDateString("en-CA");
+    return [
+      {
+        date: hojeStr,
+        closed_chats_count: 0,
+        internal_prompt_tokens: 0,
+        internal_completion_tokens: 0,
+        external_prompt_tokens: 0,
+        external_completion_tokens: 0,
+        cost_prompt_usd: 0,
+        cost_completion_usd: 0,
+        total_cost_usd: 0,
+        vision_calls_count: 0,
+        vision_cost_usd: 0,
+        ingestion_calls_count: 0,
+        ingestion_tokens: 0,
+        ingestion_cost_usd: 0,
+      },
+    ];
+  }
+
+  const numDias = period === "30d" ? 30 : 7;
+  const mapExistente = new Map<string, DailyMetric>();
+  for (const item of daily) {
+    mapExistente.set(item.date, item);
+  }
+
+  // Base para contagem: usa a data mais recente retornada ou a data atual
+  const baseDate = daily.length > 0
+    ? new Date(daily[0].date + "T12:00:00")
+    : new Date();
+
+  const resultado: DailyMetric[] = [];
+  const datasInseridas = new Set<string>();
+
+  for (let i = 0; i < numDias; i++) {
+    const d = new Date(baseDate);
+    d.setDate(baseDate.getDate() - i);
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+    const iso = `${ano}-${mes}-${dia}`;
+    datasInseridas.add(iso);
+
+    if (mapExistente.has(iso)) {
+      resultado.push(mapExistente.get(iso)!);
+    } else {
+      resultado.push({
+        date: iso,
+        closed_chats_count: 0,
+        internal_prompt_tokens: 0,
+        internal_completion_tokens: 0,
+        external_prompt_tokens: 0,
+        external_completion_tokens: 0,
+        cost_prompt_usd: 0,
+        cost_completion_usd: 0,
+        total_cost_usd: 0,
+        vision_calls_count: 0,
+        vision_cost_usd: 0,
+        ingestion_calls_count: 0,
+        ingestion_tokens: 0,
+        ingestion_cost_usd: 0,
+      });
+    }
+  }
+
+  // Inclui qualquer outro dia retornado pelo backend que não esteja nos primeiros N dias
+  for (const item of daily) {
+    if (!datasInseridas.has(item.date)) {
+      resultado.push(item);
+    }
+  }
+
+  return resultado.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 function RefreshIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -150,7 +269,8 @@ export default function AdminMetricasPage() {
   }
 
   const summary = data?.summary;
-  const daily = data?.daily_breakdown ?? [];
+  const rawDaily = data?.daily_breakdown ?? [];
+  const daily = preencherLinhasDetalhamento(rawDaily, period, selectedDate);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8 space-y-5">
@@ -472,8 +592,11 @@ export default function AdminMetricasPage() {
       <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
         <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-3.5 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-slate-900">
-              Detalhamento Diário dos Atendimentos Encerrados
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <span>Detalhamento Diário dos Atendimentos Encerrados</span>
+              <span className="rounded-full bg-slate-100 text-slate-600 px-2.5 py-0.5 text-xs font-semibold">
+                {daily.length} {daily.length === 1 ? "dia" : "dias"}
+              </span>
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               Agrupamento diário baseado na data de encerramento da conversa.
@@ -495,59 +618,59 @@ export default function AdminMetricasPage() {
           </button>
         </div>
 
-        <div className="overflow-x-auto min-h-[220px]">
-          <table className="w-full text-left text-xs text-slate-700 border-collapse">
-            <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+        <div className="overflow-x-auto min-h-[360px] max-h-[580px] overflow-y-auto">
+          <table className="w-full text-left text-xs text-slate-700 border-collapse min-w-[1080px]">
+            <thead className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 shadow-2xs">
               <tr>
-                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[140px]">
                   <span>Data</span>
                   <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-30 w-44 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Data do encerramento da conversa
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[120px]">
                   <span>Chats Encerrados</span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Total de atendimentos finalizados no dia
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[150px]">
                   <span>Tokens Internos (Entrada / Saída)</span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Consumo de LLM em infraestrutura própria (Ollama Local)
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[150px]">
                   <span>Tokens Externos (Entrada / Saída)</span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Consumo de modelos na nuvem pagando por token
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[120px]">
                   <span>Visão (Imagens / Custo)</span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Chamadas para modelo multimodal de identificação de imagens
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[130px]">
                   <span>Ingestão (Op / Custo)</span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Processamento de documentos e crawler de catálogo de produtos
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[110px]">
                   <span>Custo Entrada</span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Custo em USD dos tokens de Entrada (Prompt/RAG/Contexto)
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help">
+                <th scope="col" className="px-5 py-3 relative group cursor-help whitespace-nowrap min-w-[110px]">
                   <span>Custo Saída</span>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
                     Custo em USD dos tokens de Saída (Completion/Respostas)
                   </div>
                 </th>
-                <th scope="col" className="px-5 py-3 text-right relative group cursor-help">
+                <th scope="col" className="px-5 py-3 text-right relative group cursor-help whitespace-nowrap min-w-[110px]">
                   <span>Custo Total</span>
                   <div className="absolute top-full right-0 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight text-left">
                     Consolidação total financeira em USD (LLM + Visão + Ingestão)
@@ -572,13 +695,19 @@ export default function AdminMetricasPage() {
                   return (
                   <tr key={item.date} className="hover:bg-slate-50/80 transition-colors">
                     {/* Coluna 1: Data */}
-                    <td className="px-5 py-3.5 align-top">
-                      <div className="font-semibold text-slate-900">{item.date}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Sessão Diária</div>
+                    <td className="px-5 py-3.5 align-top whitespace-nowrap min-w-[140px]">
+                      <div className="font-semibold text-slate-900 text-xs sm:text-sm tracking-tight">
+                        {formatarDataPtBr(item.date)}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5 font-medium flex items-center gap-1">
+                        <span>{obterDiaSemanaPtBr(item.date)}</span>
+                        <span>•</span>
+                        <span className="font-mono">{item.date}</span>
+                      </div>
                     </td>
 
                     {/* Coluna 2: Chats Encerrados */}
-                    <td className="px-5 py-3.5 align-top">
+                    <td className="px-5 py-3.5 align-top whitespace-nowrap min-w-[120px]">
                       <div className="flex flex-col items-start gap-0.5">
                         <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-800">
                           {item.closed_chats_count}
@@ -588,7 +717,7 @@ export default function AdminMetricasPage() {
                     </td>
 
                     {/* Coluna 3: Tokens Internos */}
-                    <td className="px-5 py-3.5 align-top relative group">
+                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[150px]">
                       <div className="flex flex-col space-y-0.5">
                         <span className="font-bold text-slate-900">
                           {`${(item.internal_prompt_tokens + item.internal_completion_tokens).toLocaleString("pt-BR")} tokens`}
@@ -610,7 +739,7 @@ export default function AdminMetricasPage() {
                     </td>
 
                     {/* Coluna 4: Tokens Externos */}
-                    <td className="px-5 py-3.5 align-top relative group">
+                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[150px]">
                       <div className="flex flex-col space-y-0.5">
                         <span className="font-bold text-slate-900">
                           {`${(item.external_prompt_tokens + item.external_completion_tokens).toLocaleString("pt-BR")} tokens`}
@@ -632,7 +761,7 @@ export default function AdminMetricasPage() {
                     </td>
 
                     {/* Coluna 5: Visão */}
-                    <td className="px-5 py-3.5 align-top relative group">
+                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[120px]">
                       <div className="flex flex-col space-y-0.5">
                         <span className="font-bold text-sky-700">
                           {(item.vision_calls_count ?? 0) === 1
@@ -653,7 +782,7 @@ export default function AdminMetricasPage() {
                     </td>
 
                     {/* Coluna 6: Ingestão */}
-                    <td className="px-5 py-3.5 align-top relative group">
+                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[130px]">
                       <div className="flex flex-col space-y-0.5">
                         <span className="font-bold text-teal-700">
                           {`${item.ingestion_calls_count ?? 0} op${(item.ingestion_calls_count ?? 0) === 1 ? "" : "s"}`}
@@ -678,7 +807,7 @@ export default function AdminMetricasPage() {
                     </td>
 
                     {/* Coluna 7: Custo Entrada */}
-                    <td className="px-5 py-3.5 align-top relative group">
+                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[110px]">
                       <div className="flex flex-col space-y-0.5">
                         <span className="font-mono font-bold text-indigo-700">
                           {`$${item.cost_prompt_usd.toFixed(4)}`}
@@ -693,7 +822,7 @@ export default function AdminMetricasPage() {
                     </td>
 
                     {/* Coluna 8: Custo Saída */}
-                    <td className="px-5 py-3.5 align-top relative group">
+                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[110px]">
                       <div className="flex flex-col space-y-0.5">
                         <span className="font-mono font-bold text-amber-700">
                           {`$${item.cost_completion_usd.toFixed(4)}`}
@@ -708,7 +837,7 @@ export default function AdminMetricasPage() {
                     </td>
 
                     {/* Coluna 9: Custo Total */}
-                    <td className="px-5 py-3.5 align-top text-right relative group">
+                    <td className="px-5 py-3.5 align-top text-right relative group whitespace-nowrap min-w-[110px]">
                       <div className="flex flex-col items-end space-y-0.5">
                         <span className="font-mono font-extrabold text-slate-900">
                           {`$${item.total_cost_usd.toFixed(4)}`}

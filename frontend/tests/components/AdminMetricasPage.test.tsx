@@ -500,4 +500,65 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("5 ops")).toBeInTheDocument();
     });
   });
+
+  it("preenche todas as linhas do período selecionado e exibe data formatada com dia da semana sem corte", async () => {
+    useAuthStore.setState({
+      user: {
+        id: 1,
+        nome: "Admin Teste",
+        email: "admin@example.com",
+        perfil: "Admin",
+      },
+      token: "mock-token",
+    });
+
+    const mockResponse: metricsApi.TokenCostMetricsResponse = {
+      period: "7d",
+      summary: {
+        total_closed_chats: 2,
+        total_internal_prompt_tokens: 500,
+        total_internal_completion_tokens: 200,
+        total_external_prompt_tokens: 0,
+        total_external_completion_tokens: 0,
+        total_cost_prompt_usd: 0,
+        total_cost_completion_usd: 0,
+        total_cost_usd: 0,
+      },
+      daily_breakdown: [
+        {
+          date: "2026-10-05",
+          closed_chats_count: 2,
+          internal_prompt_tokens: 500,
+          internal_completion_tokens: 200,
+          external_prompt_tokens: 0,
+          external_completion_tokens: 0,
+          cost_prompt_usd: 0,
+          cost_completion_usd: 0,
+          total_cost_usd: 0,
+        },
+      ],
+    };
+
+    vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      // Badge indicando 7 dias na tabela
+      expect(screen.getByText("7 dias")).toBeInTheDocument();
+
+      // Data formatada em padrão brasileiro (05/10/2026) e ISO
+      expect(screen.getByText("05/10/2026")).toBeInTheDocument();
+      expect(screen.getByText("2026-10-05")).toBeInTheDocument();
+      expect(screen.getByText(/Segunda/)).toBeInTheDocument();
+
+      // Linhas dos dias anteriores preenchidas
+      expect(screen.getByText("04/10/2026")).toBeInTheDocument();
+      expect(screen.getByText("03/10/2026")).toBeInTheDocument();
+      expect(screen.getByText("02/10/2026")).toBeInTheDocument();
+      expect(screen.getByText("01/10/2026")).toBeInTheDocument();
+      expect(screen.getByText("30/09/2026")).toBeInTheDocument();
+      expect(screen.getByText("29/09/2026")).toBeInTheDocument();
+    });
+  });
 });
