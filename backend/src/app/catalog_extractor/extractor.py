@@ -188,6 +188,7 @@ async def extract_page_products_vision(
     prompt: str | None = None,
     source_identifier: str | None = None,
     session: Any = None,
+    session_factory: Any = None,
 ) -> list[dict[str, Any]]:
     used_prompt = prompt or VISION_EXTRACTION_PROMPT
     raw_response = await vision_client.describe_image(image_bytes, used_prompt)
@@ -200,22 +201,41 @@ async def extract_page_products_vision(
     c_tot = getattr(raw_response, "estimated_cost_usd", 0.0) or (c_prompt + c_comp)
     model = getattr(raw_response, "model_name", None) or getattr(vision_client, "vision_model", None)
 
-    if (p_tok + c_tok > 0) or (c_tot > 0):
+    # Garante contabilização de tokens e operação mesmo se o modelo for gratuito ou omitir usage
+    if (p_tok + c_tok > 0) or (c_tot > 0) or raw_response:
+        if p_tok == 0 and c_tok == 0:
+            p_tok = max(1, len(used_prompt) // 4) + 500
+            c_tok = max(1, len(str(raw_response)) // 4)
+
         try:
             from app.services.ingestion_metrics import record_ingestion_cost
-            await record_ingestion_cost(
-                source_type="catalog_extractor",
-                prompt_tokens=p_tok,
-                completion_tokens=c_tok,
-                cost_prompt_usd=c_prompt,
-                cost_completion_usd=c_comp,
-                total_cost_usd=c_tot,
-                source_identifier=source_identifier,
-                model_name=model,
-                session=session,
-            )
-        except Exception:
-            pass
+            if session is None and session_factory is not None:
+                async with session_factory() as s:
+                    await record_ingestion_cost(
+                        source_type="catalog_extractor",
+                        prompt_tokens=p_tok,
+                        completion_tokens=c_tok,
+                        cost_prompt_usd=c_prompt,
+                        cost_completion_usd=c_comp,
+                        total_cost_usd=c_tot,
+                        source_identifier=source_identifier,
+                        model_name=model,
+                        session=s,
+                    )
+            else:
+                await record_ingestion_cost(
+                    source_type="catalog_extractor",
+                    prompt_tokens=p_tok,
+                    completion_tokens=c_tok,
+                    cost_prompt_usd=c_prompt,
+                    cost_completion_usd=c_comp,
+                    total_cost_usd=c_tot,
+                    source_identifier=source_identifier,
+                    model_name=model,
+                    session=session,
+                )
+        except Exception as e:
+            logger.warning("Falha ao registrar métricas de telemetria de catálogo: %s", e)
 
     return _parse_products_json(raw_response)
 
@@ -310,9 +330,10 @@ async def extract_catalog_stream(
     provider: str,
     fallback_external: bool,
     temp_dir: Path,
-    local_client: Any,
-    vision_client: Any,
+    local_client: Any = None,
+    vision_client: Any = None,
     page_range: str | None = None,
+    session_factory: Any = None,
 ) -> AsyncGenerator[str]:
     """Itera sobre documentos ou imagens e gera stream de eventos SSE."""
     temp_dir.mkdir(parents=True, exist_ok=True)
@@ -449,6 +470,7 @@ async def extract_catalog_stream(
                                     img_bytes,
                                     vision_client,
                                     source_identifier=f"{filename}#p{num_pagina_pdf}",
+                                    session_factory=session_factory,
                                 )
                                 provider_usado = "external"
                             except Exception as e:
@@ -472,6 +494,7 @@ async def extract_catalog_stream(
                                     img_bytes,
                                     vision_client,
                                     source_identifier=f"{filename}#p{num_pagina_pdf}",
+                                    session_factory=session_factory,
                                 )
                                 provider_usado = "external"
                             except Exception as e:
@@ -544,7 +567,10 @@ async def extract_catalog_stream(
             if vision_client:
                 try:
                     raw_prods = await extract_page_products_vision(
-                        content, vision_client, source_identifier=filename
+                        content,
+                        vision_client,
+                        source_identifier=filename,
+                        session_factory=session_factory,
                     )
                 except Exception as e:
                     logger.error(f"Erro na visão para imagem {filename}: {e}")

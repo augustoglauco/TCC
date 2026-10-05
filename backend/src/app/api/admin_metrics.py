@@ -78,6 +78,7 @@ class DailyMetric(BaseModel):
     vision_calls_count: int = 0
     vision_cost_usd: float = 0.0
     ingestion_calls_count: int = 0
+    ingestion_tokens: int = 0
     ingestion_cost_usd: float = 0.0
 
 
@@ -236,6 +237,7 @@ async def get_token_and_cost_metrics(
                 "vision_calls_count": 0,
                 "vision_cost_usd": 0.0,
                 "ingestion_calls_count": 0,
+                "ingestion_tokens": 0,
                 "ingestion_cost_usd": 0.0,
             }
 
@@ -315,11 +317,13 @@ async def get_token_and_cost_metrics(
                 "vision_calls_count": 0,
                 "vision_cost_usd": 0.0,
                 "ingestion_calls_count": 0,
+                "ingestion_tokens": 0,
                 "ingestion_cost_usd": 0.0,
             }
 
         daily = daily_map[date_key]
         daily["ingestion_calls_count"] += 1
+        daily["ingestion_tokens"] += (p_tok + c_tok)
         daily["ingestion_cost_usd"] += c_tot
 
     daily_breakdown = [
@@ -336,6 +340,7 @@ async def get_token_and_cost_metrics(
             vision_calls_count=d.get("vision_calls_count", 0),
             vision_cost_usd=round(d.get("vision_cost_usd", 0.0), 6),
             ingestion_calls_count=d.get("ingestion_calls_count", 0),
+            ingestion_tokens=d.get("ingestion_tokens", 0),
             ingestion_cost_usd=round(d.get("ingestion_cost_usd", 0.0), 6),
         )
         for d in sorted(daily_map.values(), key=lambda x: x["date"], reverse=True)

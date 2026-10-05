@@ -31,6 +31,7 @@ export interface DailyMetric {
   vision_calls_count?: number;
   vision_cost_usd?: number;
   ingestion_calls_count?: number;
+  ingestion_tokens?: number;
   ingestion_cost_usd?: number;
 }
 

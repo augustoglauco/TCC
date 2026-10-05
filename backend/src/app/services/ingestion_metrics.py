@@ -29,7 +29,7 @@ def _get_fallback_sessionmaker() -> async_sessionmaker[AsyncSession] | None:
         from app.db.engine import create_db_engine, create_session_factory
 
         settings = get_settings()
-        engine = create_db_engine(settings.database_url)
+        engine = create_db_engine(settings.postgres_dsn)
         _global_sessionmaker = create_session_factory(engine)
         return _global_sessionmaker
     except Exception as exc:

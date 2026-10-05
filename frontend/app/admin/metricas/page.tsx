@@ -665,6 +665,7 @@ export default function AdminMetricasPage() {
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug">
                         <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-teal-400">Ingestão & Dados</div>
                         <div>{`Total Operações: ${item.ingestion_calls_count ?? 0}`}</div>
+                        <div>{`Tokens Ingestão: ${(item.ingestion_tokens ?? 0).toLocaleString("pt-BR")}`}</div>
                         <div>{`Custo Ingestão: $${item.ingestion_cost_usd !== undefined ? item.ingestion_cost_usd.toFixed(4) : "0.0000"}`}</div>
                       </div>
                     </td>

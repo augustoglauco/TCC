@@ -256,9 +256,16 @@ class OpenRouterClient:
                 usage = data.get("usage", {}) if isinstance(data, dict) else {}
                 prompt_tokens = usage.get("prompt_tokens") if usage else None
                 completion_tokens = usage.get("completion_tokens") if usage else None
-                total_tokens = usage.get("total_tokens") if usage else None
                 if total_tokens is None and (prompt_tokens is not None or completion_tokens is not None):
                     total_tokens = (prompt_tokens or 0) + (completion_tokens or 0)
+
+                # Fallback de estimativa caso o provedor omita usage (ex.: certos modelos gratuitos)
+                if not prompt_tokens:
+                    prompt_tokens = max(1, len(prompt) // 4) + 500
+                if not completion_tokens:
+                    completion_tokens = max(1, len(content) // 4)
+                if not total_tokens:
+                    total_tokens = prompt_tokens + completion_tokens
 
                 cost_prompt, cost_completion, cost_total = self._custo_detalhado_visao(
                     prompt_tokens, completion_tokens

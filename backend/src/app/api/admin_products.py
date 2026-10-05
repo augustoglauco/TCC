@@ -120,6 +120,7 @@ async def post_extrair_catalogo_stream(
 
     local_client = getattr(request.app.state, "local_client", None)
     vision_client = getattr(request.app.state, "external_client", None)
+    session_factory = getattr(request.app.state, "db_sessionmaker", None)
 
     return StreamingResponse(
         extract_catalog_stream(
@@ -130,6 +131,7 @@ async def post_extrair_catalogo_stream(
             local_client=local_client,
             vision_client=vision_client,
             page_range=page_range,
+            session_factory=session_factory,
         ),
         media_type="text/event-stream",
     )

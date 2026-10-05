@@ -251,6 +251,8 @@ def create_app() -> FastAPI:
     # outros clientes de infraestrutura desta função.
     db_engine = create_db_engine(settings.postgres_dsn)
     app.state.db_sessionmaker = create_session_factory(db_engine)
+    from app.services.ingestion_metrics import set_global_sessionmaker
+    set_global_sessionmaker(app.state.db_sessionmaker)
 
     app.state.rag_client = ActiveCollectionRagClient(
         qdrant=app.state.qdrant_client,
