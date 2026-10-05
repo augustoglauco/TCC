@@ -349,9 +349,16 @@ class Conversa(Base):
     perfil_motivo: Mapped[str | None]
 
     # Status e encerramento (Contabilizador de Tokens e Ciclo de Vida do Chat)
-    status: Mapped[str] = mapped_column(String(20), default="aberta", server_default="aberta", index=True)
+    status: Mapped[str] = mapped_column(String(50), default="aberta", server_default="aberta", index=True)
     encerrada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
     motivo_encerramento: Mapped[str | None] = mapped_column(String(50), nullable=True)
+
+    # Transbordo e Atendimento Humano (Human-in-the-Loop)
+    atendente_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    atendente_nome: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    motivo_escalonamento: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    prioridade: Mapped[int] = mapped_column(default=1, server_default="1")
+    escalado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     mensagens: Mapped[list[ConversaMensagem]] = relationship(
         back_populates="conversa", order_by="ConversaMensagem.id"
@@ -359,15 +366,16 @@ class Conversa(Base):
 
 
 class ConversaMensagem(Base):
-    """Uma mensagem de uma conversa: do cliente ou a resposta do assistente
-    (R9). `id` inteiro autoincremental dá a ordem de gravação — duas
-    mensagens gravadas no mesmo instante teriam o mesmo `criada_em`."""
+    """Uma mensagem de uma conversa: do cliente, a resposta do assistente (IA)
+    ou de um atendente humano (R9 / Human-in-the-Loop). `id` inteiro autoincremental
+    dá a ordem de gravação."""
 
     __tablename__ = "conversa_mensagens"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     conversa_id: Mapped[str] = mapped_column(ForeignKey("conversas.id"), index=True)
-    papel: Mapped[str]  # "cliente" | "assistente"
+    papel: Mapped[str]  # "cliente" | "assistente" | "atendente"
+    atendente_nome: Mapped[str | None] = mapped_column(String(100), nullable=True)
     texto: Mapped[str]
     # Domínio da resposta (só nas mensagens do assistente) — usado pela
     # classificação do usuário (R10: intenção de compra).
