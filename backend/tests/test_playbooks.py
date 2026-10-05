@@ -33,6 +33,20 @@ def test_vendas_oferece_agendamento_proativo():
     assert "visita" in prompt.lower()
 
 
+def test_vendas_nao_oferece_agendamento_a_toa_nem_repete():
+    # Achado de 2026-10-05 (usuário reportou o chat oferecendo agendamento
+    # em praticamente toda resposta de Vendas): o playbook antigo não tinha
+    # nenhum limite de frequência nem instrução para checar se já tinha
+    # oferecido antes, e o gatilho (qualquer pedido de orçamento/cotação)
+    # era largo demais — cobre quase toda mensagem normal de Vendas.
+    prompt = build_system_prompt("vendas")
+    assert prompt is not None
+    prompt_lower = prompt.lower()
+    assert "não repita" in prompt_lower or "nao repita" in prompt_lower
+    assert "troca anterior" in prompt_lower
+    assert "fechar negócio" in prompt_lower or "fechar o negócio" in prompt_lower
+
+
 def test_suporte_pede_passos_e_honestidade():
     prompt = build_system_prompt("suporte")
     assert prompt is not None

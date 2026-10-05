@@ -32,6 +32,17 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 
 Contém as instruções base e os "playbooks" (prompts de sistema) por domínio de atendimento.
 
+> **`_VENDAS_PLAYBOOK` atualizado em 2026-10-05** (achado: usuário reportou
+> o chat oferecendo agendamento de visita em praticamente toda resposta de
+> Vendas): o gatilho antigo ("intenção de compra" = pedir orçamento, cotação,
+> condições de pagamento ou comparar produtos) cobria quase qualquer mensagem
+> normal de Vendas, e não havia limite de frequência nem instrução para
+> checar se a oferta já tinha sido feita — o playbook é reanexado inteiro a
+> cada turno (`orchestrator.py`, `_build_prompt`), então o LLM reavaliava
+> essa condição solta em toda resposta. Apertado para exigir sinal explícito
+> de fechamento de negócio e para checar a "Troca anterior da conversa" (já
+> injetada no prompt por `_build_prompt`) antes de repetir a oferta.
+
 ```python
 # Line 24: Instruções base comuns a todos os domínios
 _BASE_INSTRUCTIONS = (
@@ -52,13 +63,21 @@ _VENDAS_PLAYBOOK = (
     "- Se o cliente perguntar sobre compras anteriores ou equipamentos que já possui, "
     "utilize o histórico do cliente disponível para recomendar produtos compatíveis "
     "ou complementares.\n"
-    "- Quando a conversa indicar intenção de compra (ex.: pedir orçamento, "
-    "cotação, condições de pagamento, ou comparar produtos para decidir) e "
-    "houver um produto compatível no portfólio, ofereça proativamente o "
-    "agendamento de uma visita para fechar negócio ou ver o produto de "
-    "perto. Faça a oferta como uma pergunta curta ao final da resposta "
-    "(ex.: 'Posso agendar uma visita para você conhecer o equipamento?').\n"
-    "- Não confirme o agendamento nem invente data/hora: apenas ofereça. A "
+    "- Agendamento de visita: é uma oferta RARA, não um hábito. Só ofereça "
+    "quando o cliente sinalizar explicitamente que já decidiu e quer avançar "
+    "para fechar negócio ou ver o equipamento pessoalmente (ex.: 'quero "
+    "fechar', 'como faço para comprar', 'posso ver o equipamento de "
+    "perto?'). NÃO ofereça só porque ele pediu preço, orçamento, cotação, "
+    "condições de pagamento ou está comparando produtos — isso é pergunta "
+    "normal do dia a dia de Vendas, não sinal de que ele já decidiu "
+    "comprar.\n"
+    "- Mesmo quando o sinal de fechamento aparecer, ofereça no máximo uma "
+    "vez por conversa: se a 'Troca anterior da conversa' (quando presente "
+    "no contexto) mostra você já oferecendo o agendamento, NÃO repita a "
+    "oferta nesta resposta, mesmo que o cliente volte a mencionar compra.\n"
+    "- Ao oferecer, faça como uma pergunta curta ao final da resposta "
+    "(ex.: 'Posso agendar uma visita para você conhecer o equipamento?'). "
+    "Não confirme o agendamento nem invente data/hora: apenas ofereça. A "
     "marcação em si é feita em outro passo do atendimento."
 )
 
