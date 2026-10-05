@@ -47,6 +47,8 @@ async def record_ingestion_cost(
     source_identifier: str | None = None,
     model_name: str | None = None,
     session: AsyncSession | None = None,
+    session_factory: async_sessionmaker[AsyncSession] | None = None,
+    commit: bool = False,
 ) -> IngestionCostEvent | None:
     """Registra um evento de telemetria e custo gerado por modelo externo
     em pipeline de dados (crawler, extração de catálogo, etc).
@@ -67,10 +69,13 @@ async def record_ingestion_cost(
     try:
         if session is not None:
             session.add(event)
-            await session.flush()
+            if commit:
+                await session.commit()
+            else:
+                await session.flush()
             return event
 
-        factory = _get_fallback_sessionmaker()
+        factory = session_factory or _get_fallback_sessionmaker()
         if factory is not None:
             async with factory() as s:
                 s.add(event)

@@ -210,18 +210,17 @@ async def extract_page_products_vision(
         try:
             from app.services.ingestion_metrics import record_ingestion_cost
             if session is None and session_factory is not None:
-                async with session_factory() as s:
-                    await record_ingestion_cost(
-                        source_type="catalog_extractor",
-                        prompt_tokens=p_tok,
-                        completion_tokens=c_tok,
-                        cost_prompt_usd=c_prompt,
-                        cost_completion_usd=c_comp,
-                        total_cost_usd=c_tot,
-                        source_identifier=source_identifier,
-                        model_name=model,
-                        session=s,
-                    )
+                await record_ingestion_cost(
+                    source_type="catalog_extractor",
+                    prompt_tokens=p_tok,
+                    completion_tokens=c_tok,
+                    cost_prompt_usd=c_prompt,
+                    cost_completion_usd=c_comp,
+                    total_cost_usd=c_tot,
+                    source_identifier=source_identifier,
+                    model_name=model,
+                    session_factory=session_factory,
+                )
             else:
                 await record_ingestion_cost(
                     source_type="catalog_extractor",
@@ -233,6 +232,7 @@ async def extract_page_products_vision(
                     source_identifier=source_identifier,
                     model_name=model,
                     session=session,
+                    commit=True if session is not None else False,
                 )
         except Exception as e:
             logger.warning("Falha ao registrar métricas de telemetria de catálogo: %s", e)

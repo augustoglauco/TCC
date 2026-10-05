@@ -98,7 +98,7 @@ main() {
     passo "Subindo o Backend"
     (
         cd backend
-        nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 > /tmp/tcc-backend.log 2>&1 & disown
+        nohup .venv/bin/uvicorn src.app.main:app --host 0.0.0.0 --port 8000 --reload > /tmp/tcc-backend.log 2>&1 & disown
     )
 
     passo "Subindo o Frontend"

@@ -256,6 +256,7 @@ class OpenRouterClient:
                 usage = data.get("usage", {}) if isinstance(data, dict) else {}
                 prompt_tokens = usage.get("prompt_tokens") if usage else None
                 completion_tokens = usage.get("completion_tokens") if usage else None
+                total_tokens = usage.get("total_tokens") if usage else None
                 if total_tokens is None and (prompt_tokens is not None or completion_tokens is not None):
                     total_tokens = (prompt_tokens or 0) + (completion_tokens or 0)
 
