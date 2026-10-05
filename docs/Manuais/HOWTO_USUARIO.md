@@ -11,7 +11,7 @@
 2. [💬 Como usar o Assistente Virtual (Widget de Chat)](#-como-usar-o-assistente-virtual-widget-de-chat)
 3. [🎨 Recursos Multimodais no Chat (Texto, Áudio e Imagem)](#-recursos-multimodais-no-chat-texto-áudio-e-imagem)
 4. [🎯 O que você pode pedir ao Chat (Por Área de Atendimento)](#-o-que-você-pode-pedir-ao-chat-por-área-de-atendimento)
-5. [📦 Interação com Cards Ricos de Produtos, Cotações e Agendamentos](#-interação-com-cards-ricos-de-produtos-cotações-e-agendamentos)
+5. [📦 Interação com Cards Ricos no Chat](#-interação-com-cards-ricos-no-chat)
 6. [🙋‍♂️ Atendimento Humano e Suporte Especializado](#-atendimento-humano-e-suporte-especializado)
 
 ---
@@ -118,13 +118,14 @@ O assistente é treinado para resolver solicitações em 4 domínios principais:
 
 ---
 
-## 📦 Interação com Cards Ricos de Produtos, Cotações e Agendamentos
+## 📦 Interação com Cards Ricos no Chat
 
 Em vez de apenas mensagens de texto longas, o assistente pode enviar **Cards Interativos** direto no chat:
 
 * **Card de Produto**: Exibe a foto do produto, preço atual e disponibilidade em estoque, com um botão direto para comprar ou ver detalhes no site.
 * **Card de Cotação**: Exibe a proposta comercial gerada com descontos e botão para levar os itens direto para o checkout.
 * **Card de Agendamento**: Exibe a data, hora e link do agendamento confirmado da sua visita.
+* **Card de Download de Documento** (novo, 2026-10-05): quando sua pergunta bate com alta confiança num manual, catálogo ou outro documento da nossa base de conhecimento, o assistente anexa um card com o nome do arquivo, o tamanho e um botão **"📥 Baixar Documento"** para você baixar o arquivo original completo — sem precisar de login.
 
 ---
 

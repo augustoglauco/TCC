@@ -21,6 +21,7 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 | [`classificacao.py`](file:///home/augusto/Projetos/TCC/backend/src/app/user_profile/classificacao.py) | Backend (`app.user_profile`) | Injeção de perfil do cliente, histórico de compras e regras de privacidade/LGPD |
 | [`useChatStore.ts`](file:///home/augusto/Projetos/TCC/frontend/lib/hooks/useChatStore.ts) | Frontend (`lib/hooks`) | Gerador do prompt inicial da interface do usuário para agendamento de visita |
 | [`eval/rag_quality/run_eval.py`](file:///home/augusto/Projetos/TCC/backend/eval/rag_quality/run_eval.py) | Backend (`eval`, Fase 10) | Prompt de avaliação LLM-as-judge (qualidade das respostas do RAG) |
+| [`analytics_agent.py`](file:///home/augusto/Projetos/TCC/backend/src/app/services/analytics_agent.py) | Backend (`app.services`) | Prompt de Text-to-SQL para geração de gráficos dinâmicos via chat (Admin), com esquema de tabelas injetado via `safe_sql.get_catalog_schema_prompt()` |
 
 ---
 
@@ -563,6 +564,45 @@ Responda APENAS com JSON no formato: {{"nota": <1 a 5>, "relevancia": <1 a 5>, \
 
 ---
 
+### 14. `backend/src/app/services/analytics_agent.py`
+**Caminho:** [`backend/src/app/services/analytics_agent.py`](file:///home/augusto/Projetos/TCC/backend/src/app/services/analytics_agent.py#L113-L137)
+
+Prompt de Text-to-SQL (além do MVP) usado pelo recurso de **gráficos
+dinâmicos via chat**, exclusivo para Admin (ver
+`docs/Manuais/HOWTO_ADMINISTRADOR.md`, seção "Dashboards e Gráficos
+Dinâmicos via Chat"): pede ao LLM para traduzir o pedido em linguagem
+natural numa consulta `SELECT` somente-leitura (validada depois por
+`app.services.safe_sql.execute_readonly_sql`) e numa especificação de
+gráfico (tipo, eixos, rótulos). O esquema de tabelas disponíveis é
+injetado por `app.services.safe_sql.get_catalog_schema_prompt()` (não
+catalogado em entrada própria — é um helper de descrição de schema, não um
+prompt de instrução independente).
+
+```python
+# Line 119: Prompt de Text-to-SQL para geração de gráficos analíticos
+system_instruction = f"""Você é um analista de dados especialista em PostgreSQL e visualizações de dados.
+O usuário solicitou um gráfico: "{prompt}".
+
+{schema_prompt}
+
+Responda OBRIGATORIAMENTE em formato JSON válido contendo:
+{{
+  "sql": "sua consulta SELECT otimizada aqui",
+  "titulo": "Título claro do gráfico",
+  "descricao": "Breve descrição dos dados",
+  "tipo_grafico": "bar" ou "line" ou "pie" ou "donut" ou "area",
+  "x_key": "nome da coluna no eixo X",
+  "y_keys": ["nome da coluna métrica no eixo Y"],
+  "format": "number" ou "currency" ou "percent",
+  "labels": {{ "coluna_y": "Rótulo Amigável" }},
+  "explicacao": "Uma frase resumindo os dados apresentados."
+}}
+NÃO inclua nada fora do bloco JSON.
+"""
+```
+
+---
+
 ## Conclusão
 
-Todos os **13 arquivos de código** que contêm instruções diretas, prompts de sistema, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
+Todos os **14 arquivos de código** que contêm instruções diretas, prompts de sistema, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.

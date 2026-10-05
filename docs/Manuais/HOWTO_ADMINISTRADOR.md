@@ -14,7 +14,8 @@
 5. [🤖 Gerenciamento e Parametrização da IA (`/admin/modelos`)](#-gerenciamento-e-parametrização-da-ia-adminmodelos)
 6. [🛍️ Gestão do Catálogo B2B e Ferramentas MCP](#️-gestão-do-catálogo-b2b-e-ferramentas-mcp)
 7. [📊 Monitor de Tom, Sessões e Atendimento Humano](#-monitor-de-tom-sessões-e-atendimento-humano)
-8. [📈 Métricas de Tokens, Custos e Chats Encerrados (`/admin/metricas`)](#-métricas-de-tokens-custos-e-chats-encerrados-adminmetricas)
+8. [📉 Dashboards e Gráficos Dinâmicos via Chat (`/admin/dashboards`)](#-dashboards-e-gráficos-dinâmicos-via-chat-admindashboards)
+9. [📈 Métricas de Tokens, Custos e Chats Encerrados (`/admin/metricas`)](#-métricas-de-tokens-custos-e-chats-encerrados-adminmetricas)
 
 ---
 
@@ -79,6 +80,8 @@ Ao criar uma collection (base de documentos), você escolhe sua **Finalidade**:
 * **Exclusiva do Admin (`admin`)**: visualizada estritamente pelo Administrador logado — nem o chat público, nem os parceiros do MCP B2B têm acesso a ela. Ideal para notas de custo, acordos contratuais e manuais confidenciais.
 
 > **Ativação Independente por Finalidade**: O sistema mantém **uma collection ativa para cada finalidade**. Isso significa que você pode ter uma base ativa para o Chat, outra ativa para o MCP B2B e outra ativa para o Admin simultaneamente. Ao clicar em **Ativar** em uma collection, o sistema desativa apenas a collection anterior daquela mesma finalidade.
+
+> **Download do documento original no chat (novo, 2026-10-05)**: a finalidade que você escolhe aqui também decide se o visitante pode baixar o arquivo original pelo card de download do chat (ver `docs/Manuais/HOWTO_USUARIO.md`). Documentos de collections **Chat (pública)** ficam disponíveis para download **sem login**, pois é o mesmo conteúdo que já aparece nas respostas do chat público. Documentos de collections **Restrita ao MCP B2B** ou **Exclusiva do Admin** nunca geram esse card — o assistente simplesmente não oferece o download nesses casos, mesmo para você logado como Admin.
 
 ### Organização e Navegação do Painel (`/admin/ingestao`)
 
@@ -241,6 +244,30 @@ O assistente monitora continuamente o tom da mensagem do cliente (insatisfação
 
 * **Limiar de Alerta**: Se o cliente demonstrar forte insatisfação (ex.: *"Ninguém me ajuda, preciso falar com um atendente agora!"*), o monitor de tom aciona um alerta automático.
 * **Comportamento no Chat**: O assistente exibe um banner de transferência ("Conectando você a um atendente humano...") e envia a notificação para o painel da equipe de suporte com o resumo completo do histórico recente.
+
+---
+
+## 📉 Dashboards e Gráficos Dinâmicos via Chat (`/admin/dashboards`)
+
+Exclusivo para quem está logado como Admin: além de responder perguntas, o
+**próprio widget de chat** pode gerar gráficos analíticos sob demanda a
+partir dos dados reais do catálogo (produtos, estoque, pedidos) no
+PostgreSQL — sem precisar abrir nenhuma outra tela.
+
+* **Como pedir um gráfico**: peça normalmente no chat, logado como Admin —
+  ex.: *"Mostre um gráfico de barras com o estoque total por centro de
+  distribuição"* ou *"Quais os 5 produtos mais caros? faça um gráfico de
+  pizza"*. Se você não estiver logado como Admin, o assistente explica que
+  esse recurso é exclusivo para administradores.
+* **Como funciona**: o assistente monta uma consulta SQL de leitura
+  (somente `SELECT`, nunca grava nem altera dados) a partir do seu pedido,
+  executa contra o catálogo e devolve o resultado como um card de gráfico
+  interativo (barras, linha, pizza, área ou rosca) diretamente na
+  conversa.
+* **Persistência Automática**: todo gráfico gerado é salvo permanentemente
+  e aparece na tela `/admin/dashboards` (menu ⚙️ → "Dashboards"), onde você
+  pode revisitar, fixar ou remover gráficos anteriores sem precisar pedir
+  de novo pelo chat.
 
 ---
 
