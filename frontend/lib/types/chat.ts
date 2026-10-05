@@ -95,11 +95,26 @@ export interface ChatCardGrafico {
   fixado?: boolean;
 }
 
+/** Card de download de documento-fonte do RAG (Fase 8) — só emitido pelo
+ * backend para documentos cuja coleção de origem tem `purpose="chat"`, ou
+ * seja, o link de download nunca exige token (ver
+ * `_construir_card_documento_download` em `backend/src/app/router/orchestrator.py`). */
+export interface ChatCardDocumentoDownload {
+  tipo: "documento_download";
+  documento_id: string;
+  filename: string;
+  domain: string;
+  score: number;
+  download_url: string;
+  file_size_bytes?: number | null;
+}
+
 export type ChatCard =
   | ChatCardProduto
   | ChatCardCotacao
   | ChatCardAgendamento
-  | ChatCardGrafico;
+  | ChatCardGrafico
+  | ChatCardDocumentoDownload;
 
 export interface ChatMetrics {
   modelName?: string;
