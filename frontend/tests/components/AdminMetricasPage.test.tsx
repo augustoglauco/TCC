@@ -82,7 +82,11 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("Visão")).toBeInTheDocument();
       expect(screen.getByText("(Imagens / Custo)")).toBeInTheDocument();
       expect(screen.getByText("2 imagens")).toBeInTheDocument();
-      expect(screen.getByText("$0.0077")).toBeInTheDocument();
+      // Custo Total Geral (fallback sem grand_total_cost_usd do backend):
+      // Atendimento (0.0077) + Visão (0.0025) + Ingestão (ausente, 0) —
+      // achado de 2026-10-05, Visão deixou de ser double-counted dentro de
+      // Atendimento e passou a somar no Total.
+      expect(screen.getByText("$0.0102")).toBeInTheDocument();
       expect(screen.getByText("2026-10-03")).toBeInTheDocument();
     });
 
@@ -460,7 +464,9 @@ describe("AdminMetricasPage", () => {
         total_ingestion_calls: 5,
         total_ingestion_tokens: 3500,
         total_ingestion_cost_usd: 0.0050,
-        grand_total_cost_usd: 0.0105,
+        // Atendimento (0.0055) + Visão (0.0042) + Ingestão (0.0050), sem
+        // sobreposição (achado de 2026-10-05).
+        grand_total_cost_usd: 0.0147,
       },
       daily_breakdown: [
         {
@@ -492,10 +498,11 @@ describe("AdminMetricasPage", () => {
       expect(screen.getByText("Operações: 5")).toBeInTheDocument();
       expect(screen.getByText("Tokens: 3.500")).toBeInTheDocument();
 
-      // Card Custo Total Geral Consolidado (Atendimentos + Ingestão)
+      // Card Custo Total Geral Consolidado (Atendimento + Visão + Ingestão)
       expect(screen.getByText("Custo Total Geral (Infraestrutura)")).toBeInTheDocument();
-      expect(screen.getByText("$0.0105")).toBeInTheDocument();
+      expect(screen.getByText("$0.0147")).toBeInTheDocument();
       expect(screen.getByText("Atendimento: $0.0055")).toBeInTheDocument();
+      expect(screen.getByText("Visão: $0.0042")).toBeInTheDocument();
       expect(screen.getByText("Ingestão: $0.0050")).toBeInTheDocument();
 
       // Tabela diária: coluna de ingestão
