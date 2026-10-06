@@ -1231,6 +1231,34 @@ conversa e classificação do usuário").
         agrupamentos independentes agora, cada um na data que lhe pertence.
       Testes novos/atualizados em `tests/test_admin_metrics_api.py`. Doc de
       usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
+- [x] **MCP B2B (`converter_reserva_venda`, Modo 5) sem LLM/visão nenhuma
+      (achado de 2026-10-06, implementado em 2026-10-06):** decisão
+      registrada em `docs/ARCHITECTURE.md` §4 (gap 3) — achado ao revisar se
+      as mudanças de comprovante/visão chegaram no MCP B2B e no cliente de
+      demonstração do revendedor (`cliente-b2b/`). `create_b2b_mcp_server`
+      (`app.mcp_server.b2b`) instanciava `ComprovanteEvaluator()` sem
+      nenhum argumento — nem `llm_client`, nem visão local/externa — então
+      essa ferramenta nunca usou LLM nenhum (só o fallback heurístico por
+      regex) e nunca teve fallback de visão para comprovante em imagem,
+      ficando pior que o chat antes mesmo da correção do item acima.
+      `cliente-b2b/` não precisou de nenhuma mudança — é um cliente fino
+      que só repassa o arquivo/texto pro servidor via chamada de
+      ferramenta, toda a avaliação acontece do lado do servidor MCP.
+      1. `create_b2b_mcp_server` ganhou `local_client`/`external_client`
+         opcionais (mesmo padrão `OllamaClient`/`OpenRouterClient` do resto
+         do projeto); `converter_reserva_venda` monta o `ComprovanteEvaluator`
+         com a mesma política de custo mínimo (texto/OCR → visão local →
+         visão externa) do chat e do admin.
+      2. `scripts/run_mcp_b2b_server.py` (processo separado do FastAPI
+         principal, não herda `app.state`) passou a instanciar os dois
+         clientes a partir de `Settings` (mesmos campos que `app.main` usa)
+         e repassar para `create_b2b_mcp_server`.
+      Testes novos em `tests/test_mcp_converter_reserva.py` (LLM local
+      chamado quando disponível; visão local antes da externa para
+      comprovante em imagem; fallback para externa quando a local falha).
+      Parâmetros opcionais com default `None` — os testes existentes que
+      não passam clientes continuam no mesmo fallback heurístico de antes,
+      comportamento inalterado.
 - [x] **Unificar política de custo mínimo em processamento de imagem de
       documento (achado de 2026-10-06, implementado em 2026-10-06):** decisão
       registrada em `docs/ARCHITECTURE.md` §4 — para comprovante/pagamento/

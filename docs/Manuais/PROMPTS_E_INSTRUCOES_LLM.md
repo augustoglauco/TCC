@@ -643,6 +643,8 @@ NÃO inclua nada fora do bloco JSON.
 
 Prompt de extração estruturada de comprovante financeiro e validação de equivalência de valores de reserva para conversão em venda nas 5 modalidades de comprovação. Dois prompts: um para texto (comprovante colado ou já extraído por OCR) e um para imagem (visão — local, depois externa, decisão de custo mínimo em `docs/ARCHITECTURE.md` §4, 2026-10-06).
 
+**Atualizado em 2026-10-06:** o Modo 5 (MCP B2B, `converter_reserva_venda` em `app.mcp_server.b2b`) também passou a usar esses dois prompts de verdade — antes instanciava `ComprovanteEvaluator()` sem nenhum cliente, então nunca chamava nem o de texto nem o de imagem (só o fallback heurístico por regex). `create_b2b_mcp_server` ganhou `local_client`/`external_client`; `scripts/run_mcp_b2b_server.py` instancia os dois.
+
 ```python
 # Line 208 (avaliar_texto): Prompt de auditoria financeira estruturada sobre TEXTO de comprovante
 prompt = (

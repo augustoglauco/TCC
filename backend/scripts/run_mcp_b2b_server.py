@@ -32,6 +32,8 @@ from app.mcp_server.auth import ChavesParceirosInvalidasError, preparar_autentic
 from app.mcp_server.b2b import create_b2b_mcp_server, host_somente_local
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import QdrantRAGClient
+from app.router.ollama_client import OllamaClient
+from app.router.openrouter_client import OpenRouterClient
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +61,44 @@ def main() -> None:
     )
     embedders = EmbedderRegistry()
 
+    # Mesmos clientes que o backend FastAPI principal monta em `app.main`
+    # (processo separado, não herda `app.state`) — usados só pela ferramenta
+    # `converter_reserva_venda` (comprovante de pagamento), política de
+    # custo mínimo registrada em docs/ARCHITECTURE.md §4 (achado de
+    # 2026-10-06: antes não existiam aqui, então essa ferramenta nunca tinha
+    # LLM nem visão nenhuma, só o fallback heurístico por regex).
+    local_client = OllamaClient(
+        base_url=settings.local_model_base_url,
+        model=settings.local_model_name,
+        timeout_s=settings.local_llm_timeout_s,
+        temperature=settings.local_llm_temperature,
+        num_ctx=settings.local_llm_num_ctx,
+        top_p=settings.local_llm_top_p,
+        top_k=settings.local_llm_top_k,
+        repeat_penalty=settings.local_llm_repeat_penalty,
+        seed=settings.local_llm_seed,
+        keep_alive=settings.local_llm_keep_alive,
+    )
+    external_client = OpenRouterClient(
+        base_url=settings.external_model_base_url,
+        api_key=settings.external_model_api_key,
+        model=settings.external_model_name,
+        timeout_s=settings.external_llm_timeout_s,
+        price_per_1k_input_tokens=settings.external_model_price_per_1k_input_tokens,
+        price_per_1k_output_tokens=settings.external_model_price_per_1k_output_tokens,
+        vision_model=settings.external_vision_model_name,
+        price_per_1k_vision_input_tokens=settings.external_vision_model_price_per_1k_input_tokens,
+        price_per_1k_vision_output_tokens=settings.external_vision_model_price_per_1k_output_tokens,
+    )
+
     server = create_b2b_mcp_server(
         session_factory,
         qdrant,
         embedders,
         token_verifier=autenticacao.verificador,
         auth=autenticacao.auth,
+        local_client=local_client,
+        external_client=external_client,
     )
 
     logger.info(

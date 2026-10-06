@@ -47,6 +47,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from mcp.server.auth.provider import TokenVerifier
@@ -177,8 +178,10 @@ def create_b2b_mcp_server(
     embedders: EmbedderRegistry,
     token_verifier: TokenVerifier | None = None,
     auth: AuthSettings | None = None,
+    local_client: Any = None,
+    external_client: Any = None,
 ) -> MCPServer:
-    """Monta o servidor MCP B2B com os 4 recursos de leitura e as 4
+    """Monta o servidor MCP B2B com os 4 recursos de leitura e as 5
     ferramentas transacionais, recebendo as dependências já prontas (mesmo
     estilo de injeção por closure usado pelas dependências do FastAPI em
     `app.api.rag_dependencies`) — facilita testar o servidor de verdade
@@ -189,6 +192,16 @@ def create_b2b_mcp_server(
     (`app.mcp_server.auth`) no transporte HTTP. Ficam `None` nos testes que
     chamam o servidor direto, sem HTTP; `scripts/run_mcp_b2b_server.py`
     sempre passa os dois e não sobe sem chave.
+
+    `local_client`/`external_client` (`OllamaClient`/`OpenRouterClient`,
+    opcionais): usados só pela ferramenta `converter_reserva_venda`, mesma
+    política de custo mínimo do chat/admin (docs/ARCHITECTURE.md §4,
+    2026-10-06) — OCR/LLM local primeiro, visão local, visão externa por
+    último. Achado de 2026-10-06: antes não existiam aqui, então essa
+    ferramenta nunca usou LLM nenhum (só o fallback heurístico por regex) e
+    nunca teve visão nenhuma para comprovante em imagem. Ficam `None` nos
+    testes que não precisam exercitar esse caminho (cai no mesmo fallback
+    heurístico de sempre, comportamento inalterado).
     """
 
     server = MCPServer(
@@ -531,7 +544,11 @@ def create_b2b_mcp_server(
 
         async with _abrir_sessao_bd("Falha ao processar a conversão da reserva"):
             async with session_factory() as session:
-                stmt = select(Pedido).options(selectinload(Pedido.itens)).where(Pedido.id == pedido_uuid)
+                stmt = (
+                    select(Pedido)
+                    .options(selectinload(Pedido.itens))
+                    .where(Pedido.id == pedido_uuid)
+                )
                 result = await session.execute(stmt)
                 pedido = result.scalar_one_or_none()
 
@@ -571,7 +588,12 @@ def create_b2b_mcp_server(
                     Decimal("0.00"),
                 )
 
-                evaluator = ComprovanteEvaluator()
+                llm_client = local_client if local_client is not None else external_client
+                evaluator = ComprovanteEvaluator(
+                    llm_client=llm_client,
+                    vision_client=external_client,
+                    local_vision_client=local_client,
+                )
                 filename_safe = None
                 if comprovante_bytes:
                     filename_safe = f"{pedido.id}_mcp_{nome_arquivo}"

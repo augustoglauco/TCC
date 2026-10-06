@@ -262,30 +262,37 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 > o passo de visão local; tratar o risco acima) **ainda não feita** — ver
 > item do roadmap (Fase 11).
 >
-> **Dois gaps encontrados que contrariam essa diretriz e ficam registrados
-> para correção (achado de 2026-10-06, revisão da leitura de comprovante no
-> chat):**
-> 1. **Comprovante no chat já roda OCR primeiro, mas sem fallback de
->    visão quando o OCR falha.** `processar_conversao_comprovante`
->    (`app.router.sales_catalog`) cria `ComprovanteEvaluator(llm_client=...)`
+> **Gaps encontrados que contrariavam essa diretriz, todos já corrigidos**
+> (achado de 2026-10-06, revisão da leitura de comprovante no chat; gap 3
+> achado numa revisão separada no mesmo dia, ao revisar o MCP B2B):
+> 1. ~~Comprovante no chat já roda OCR primeiro, mas sem fallback de
+>    visão quando o OCR falha.~~ **Corrigido**: `processar_conversao_comprovante`
+>    (`app.router.sales_catalog`) criava `ComprovanteEvaluator(llm_client=...)`
 >    **sem `vision_client`** — diferente do fluxo administrativo
->    (`app.api.admin_pedidos_conversao`), que já passa
->    `vision_client=external_client`. Resultado: se o OCR não extrai nada
+>    (`app.api.admin_pedidos_conversao`), que já passava
+>    `vision_client=external_client`. Resultado: se o OCR não extraía nada
 >    útil de uma foto de comprovante malfeita (ângulo, luz, resolução — o
 >    caso mais comum vindo do cliente final pelo celular), o cliente só
->    recebe um pedido para reenviar, sem nenhuma tentativa de visão.
-> 2. **Imagem avulsa de folder/catálogo sempre usa visão externa, sem
->    tentar OCR+LLM texto primeiro** — contrariava a diretriz de custo
->    mínimo mesmo antes de ela existir formalmente; decisão anterior
->    (Seção 5, "Gestão de Produtos, Catálogo Visual CLIP e Ingestão de
->    Catálogos", item 3) tratava isso como simplificação consciente do MVP
->    ("`OllamaClient` local não implementa chamada multimodal"), mas não
->    havia necessidade de chamada multimodal para tentar OCR primeiro — só
->    para o fallback.
->
-> Correção de ambos os gaps (religar `vision_client` no fluxo de chat;
-> tentar OCR antes da visão externa na ingestão de catálogo por imagem
-> avulsa) é item pendente do roadmap (Fase 11), ainda não implementado.
+>    recebia um pedido para reenviar, sem nenhuma tentativa de visão. Religado
+>    em `app.router.orchestrator`/`sales_catalog`, ver testes em
+>    `tests/test_comprovante_evaluator.py`/`tests/test_chat_conversao_reserva.py`.
+> 2. ~~Imagem avulsa de folder/catálogo sempre usa visão externa, sem
+>    tentar OCR+LLM texto primeiro.~~ **Corrigido** em
+>    `app.catalog_extractor.extractor.extract_catalog_stream` — ver testes
+>    em `tests/test_catalog_extractor.py`.
+> 3. ~~MCP B2B (`converter_reserva_venda`, Modo 5) nunca recebia nenhum
+>    cliente de LLM/visão.~~ **Corrigido**: `create_b2b_mcp_server`
+>    (`app.mcp_server.b2b`) instanciava `ComprovanteEvaluator()` **sem
+>    nenhum argumento** — nem `llm_client`, nem visão nenhuma. Resultado: o
+>    parceiro B2B recebia a avaliação menos inteligente de todo o sistema
+>    (só o fallback heurístico por regex para texto, só OCR sem fallback
+>    nenhum para imagem) — pior do que o chat tinha *antes* da correção do
+>    gap 1. `create_b2b_mcp_server` ganhou os parâmetros opcionais
+>    `local_client`/`external_client` (mesmo padrão `OllamaClient`/
+>    `OpenRouterClient` do resto do projeto); `scripts/run_mcp_b2b_server.py`
+>    (processo separado do FastAPI principal, não herda `app.state`) passou
+>    a instanciar os dois e repassar. Testes em
+>    `tests/test_mcp_converter_reserva.py`.
 
 **(b) Monitoramento de tom e transbordo humano:** nova mensagem no chat → classificador de
 sentimento/urgência → ultrapassou o limiar de urgência/insatisfação? →
