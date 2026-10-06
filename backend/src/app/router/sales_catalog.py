@@ -506,28 +506,48 @@ async def buscar_reserva_ativa(
     user_email: str | None = None,
     pedido_id: str | None = None,
 ) -> Pedido | None:
-    """Busca a reserva mais recente com status 'reservado' ou 'pagamento_divergente'."""
-    stmt = (
+    """Busca a reserva mais recente com status 'reservado' ou 'pagamento_divergente'.
+
+    Tenta, em ordem, pedido_id -> conversation_id -> user_email, só
+    avançando para o próximo critério se o anterior não achar nada (achado
+    de 2026-10-05: antes era um `if/elif` que escolhia só UM critério pela
+    prioridade de qual parâmetro foi passado, não por qual realmente
+    encontra algo — como toda mensagem de chat tem um `conversation_id`,
+    `user_email` nunca era tentado quando o cliente confirma o pagamento
+    numa conversa NOVA, diferente daquela em que fez o pedido).
+    """
+    base_stmt = (
         select(Pedido)
         .options(selectinload(Pedido.itens))
         .where(Pedido.status.in_(["reservado", "pagamento_divergente"]))
+        .order_by(Pedido.criado_em.desc())
+        .limit(1)
     )
+
     if pedido_id:
         try:
             uuid_obj = UUID(pedido_id)
-            stmt = stmt.where(Pedido.id == uuid_obj)
         except (ValueError, TypeError):
-            pass
-    elif conversation_id:
-        stmt = stmt.where(Pedido.conversation_id == conversation_id)
-    elif user_email:
-        stmt = stmt.where(Pedido.user_email == user_email)
-    else:
-        return None
+            uuid_obj = None
+        if uuid_obj is not None:
+            result = await session.execute(base_stmt.where(Pedido.id == uuid_obj))
+            pedido = result.scalar_one_or_none()
+            if pedido is not None:
+                return pedido
 
-    stmt = stmt.order_by(Pedido.criado_em.desc()).limit(1)
-    result = await session.execute(stmt)
-    return result.scalar_one_or_none()
+    if conversation_id:
+        result = await session.execute(base_stmt.where(Pedido.conversation_id == conversation_id))
+        pedido = result.scalar_one_or_none()
+        if pedido is not None:
+            return pedido
+
+    if user_email:
+        result = await session.execute(base_stmt.where(Pedido.user_email == user_email))
+        pedido = result.scalar_one_or_none()
+        if pedido is not None:
+            return pedido
+
+    return None
 
 
 async def processar_conversao_comprovante(

@@ -236,6 +236,69 @@ async def test_chat_conversao_pagamento_divergente(db_session):
 
 
 @pytest.mark.asyncio
+async def test_chat_conversao_acha_reserva_de_conversa_anterior_pelo_email(db_session):
+    """Regressão (achado de 2026-10-05): cliente faz o pedido numa conversa,
+    e meses/dias depois volta numa conversa NOVA só para confirmar o
+    pagamento ("já paguei"). `buscar_reserva_ativa` priorizava
+    conversation_id sobre user_email com um `elif` — como toda mensagem de
+    chat tem um conversation_id, user_email nunca era tentado como
+    fallback quando a reserva foi criada numa conversa diferente da atual,
+    e o cliente recebia "não encontrei nenhuma reserva pendente" mesmo
+    tendo uma reserva real e ativa associada ao seu e-mail."""
+    prod = Produto(
+        nome="Controle de Acesso IDFACE",
+        descricao="Facial",
+        preco=Decimal("2109.85"),
+        categoria="Controle de Acesso",
+    )
+    db_session.add(prod)
+    await db_session.flush()
+
+    # Reserva criada na conversa original de compra.
+    pedido = Pedido(
+        user_email="carla@gmail.com",
+        conversation_id="conv-compra-original",
+        status="pagamento_divergente",
+    )
+    db_session.add(pedido)
+    await db_session.flush()
+
+    item = PedidoItem(
+        pedido_id=pedido.id,
+        produto_id=prod.id,
+        quantidade=1,
+        centro_distribuicao="CD-SP",
+        preco_unitario=Decimal("2109.85"),
+    )
+    db_session.add(item)
+    await db_session.commit()
+
+    sessionmaker = _SingleSessionMaker(db_session)
+
+    # Cliente volta numa conversa NOVA e diferente só para avisar que pagou.
+    events = []
+    async for ev in handle_message(
+        message="já paguei",
+        recent_messages=["olá, eu tenho pagamento de compra pendente?"],
+        local_client=AsyncMock(),
+        external_client=AsyncMock(),
+        rag_client=AsyncMock(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-nova-confirmacao",
+        db_sessionmaker=sessionmaker,
+        user_email="carla@gmail.com",
+    ):
+        events.append(ev)
+
+    token_events = [e for e in events if isinstance(e, TokenEvent)]
+    assert len(token_events) > 0
+    resposta = token_events[0].text.lower()
+    # Deve achar a reserva pelo e-mail e pedir o comprovante — não a
+    # mensagem de "não encontrei nenhuma reserva".
+    assert "não encontrei nenhuma reserva" not in resposta
+
+
+@pytest.mark.asyncio
 async def test_chat_conversao_apenas_intencao_sem_conteudo_pede_anexo(db_session):
     """Regressão: mensagem que só ANUNCIA a intenção de enviar o comprovante
     (sem anexar nada e sem colar dados reais de uma transação) não deve ser
