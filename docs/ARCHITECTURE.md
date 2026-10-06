@@ -1701,6 +1701,32 @@ aqui junto da revisão abaixo.
 > ("Métricas de Chat em Tempo Real", "Agrupamento por Data de Mensagem")
 > continuam pendentes ali, independentes desta revisão.
 
+**Decisão registrada (2026-10-06 — `/admin/metricas`: tokens/custos não
+exigem mais conversa encerrada, agrupamento diário por data da mensagem):**
+resolve os bullets 3 e 4 citados acima, em `app.api.admin_metrics`. A
+consulta original fazia duas coisas numa só — contar chats encerrados e
+somar tokens/custos — com uma única condição `Conversa.status ==
+"encerrada"` para ambas. Token/custo já é um fato consumado por mensagem
+(gravado em `ConversaMensagem.metricas` assim que o LLM responde), não
+depende da conversa como um todo ter sido encerrada; uma conversa aberta
+(cliente ainda digitando, ou só não atingiu os 30 min de inatividade do
+worker) nunca contribuía em nada até fechar, deixando o filtro "Hoje"
+artificialmente vazio em qualquer horário com conversa em andamento.
+
+Dividido em duas consultas independentes: `stmt_closed` (KPI "Chats
+Encerrados", continua exigindo `status == "encerrada"`, bucketado por
+`Conversa.encerrada_em` — isso é literalmente o que a métrica mede, não é
+bug) e `stmt_msgs` (tokens/custos, agora sobre `ConversaMensagem` sem
+filtro de status da conversa, bucketado por `ConversaMensagem.criada_em`
+em vez de `encerrada_em`). Efeito colateral corrigido pelo bucketamento
+por `criada_em`: uma conversa com mensagem numa noite, fechada só na manhã
+seguinte, não joga mais os tokens dela para o dia seguinte — cada métrica
+aparece no dia que de fato lhe pertence. Testes novos em
+`tests/test_admin_metrics_api.py` cobrindo os dois achados separadamente
+(conversa aberta conta tokens mas não chats encerrados; tokens e
+encerramento bucketados em dias diferentes quando divergem). Doc de
+usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

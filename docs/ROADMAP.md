@@ -1214,22 +1214,23 @@ conversa e classificação do usuário").
       `tests/test_chat_chart_card.py`. `docs/Manuais/
       PROMPTS_E_INSTRUCOES_LLM.md` e `docs/Manuais/HOWTO_ADMINISTRADOR.md`
       atualizados.
-- [ ] **Métricas de Chat em Tempo Real (`admin_metrics.py`, achado de
-      2026-10-05):** código independente do item acima (não importa nada de
-      `chart_generator`/`analytics_agent`/`safe_sql` — tela fixa, sem
-      interface conversacional, "Text-to-SQL dinâmico" não se aplica aqui
-      por desenho).
-      - **Conversas ativas:** a consulta de volume/tokens
-        (`metricas_tokens_por_dia` em `admin_metrics.py`) só conta
-        `Conversa.status == "encerrada"` — uma conversa aberta agora (ainda
-        não fechada manualmente nem pelo worker de inatividade de 30min) não
-        aparece em nada; incluir também conversas abertas para o período
-        atual ("hoje") não ficar artificialmente vazio.
-      - **Agrupamento por Data de Mensagem:** agrupar pela data de criação de
-        cada mensagem (`ConversaMensagem.criada_em`), não pela data de
-        encerramento da conversa (`Conversa.encerrada_em`) — hoje uma
-        conversa de segunda à noite fechada só terça de manhã aparece
-        inteira no gráfico de terça.
+- [x] **Métricas de Chat em Tempo Real (`admin_metrics.py`, achado de
+      2026-10-05, implementado em 2026-10-06):** código independente do item
+      acima (não importa nada de `chart_generator`/`analytics_agent`/
+      `safe_sql` — tela fixa, sem interface conversacional, "Text-to-SQL
+      dinâmico" não se aplica aqui por desenho). Decisão registrada em
+      `docs/ARCHITECTURE.md` §5.
+      - **Conversas ativas:** a consulta de tokens/custos deixou de exigir
+        `Conversa.status == "encerrada"` — agora é uma consulta própria
+        sobre `ConversaMensagem`, conta qualquer mensagem já respondida no
+        período, conversa aberta ou não. O KPI "Chats Encerrados" continua
+        exigindo fechada (é o que ele mede de propósito, não mudou).
+      - **Agrupamento por Data de Mensagem:** tokens/custos agora bucketam
+        por `ConversaMensagem.criada_em`; "Chats Encerrados" continua
+        bucketado por `Conversa.encerrada_em` — são duas consultas e dois
+        agrupamentos independentes agora, cada um na data que lhe pertence.
+      Testes novos/atualizados em `tests/test_admin_metrics_api.py`. Doc de
+      usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 - [x] **Unificar política de custo mínimo em processamento de imagem de
       documento (achado de 2026-10-06, implementado em 2026-10-06):** decisão
       registrada em `docs/ARCHITECTURE.md` §4 — para comprovante/pagamento/

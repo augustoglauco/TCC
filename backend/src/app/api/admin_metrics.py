@@ -1,4 +1,5 @@
-"""Endpoints administrativos de métricas de tokens, custos e chats encerrados."""
+"""Endpoints administrativos de métricas de tokens, custos (de todas as
+conversas) e volume de chats encerrados."""
 
 import logging
 from datetime import UTC, date, datetime, timedelta
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/api/admin/metrics", tags=["Admin Metricas"])
 try:
     from app.api.admin_auth import require_admin
 except ImportError:
+
     async def require_admin(
         session: AsyncSession = Depends(get_db_session),
         authorization: Annotated[str | None, Header()] = None,
@@ -96,7 +98,8 @@ async def get_token_and_cost_metrics(
     end_date: str | None = Query(None, description="Data final ISO YYYY-MM-DD"),
     _: None = Depends(require_admin),
 ) -> TokenCostMetricsResponse:
-    """Retorna sumário e relatório diário de tokens e custos para chats encerrados."""
+    """Retorna sumário e relatório diário de tokens e custos (de todas as
+    conversas, abertas ou encerradas) e a contagem de chats encerrados."""
     session_factory = getattr(request.app.state, "db_sessionmaker", None)
     if not session_factory:
         raise HTTPException(status_code=503, detail="Banco de dados não configurado.")
@@ -115,9 +118,9 @@ async def get_token_and_cost_metrics(
     if start_date:
         try:
             d = date.fromisoformat(start_date)
-            cutoff_start = datetime(
-                d.year, d.month, d.day, 0, 0, 0, tzinfo=local_tz
-            ).astimezone(UTC)
+            cutoff_start = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=local_tz).astimezone(
+                UTC
+            )
         except ValueError as exc:
             # Achado da revisão de 2026-10-04: antes, uma data mal formada
             # era silenciosamente ignorada e a resposta caía no período
@@ -153,41 +156,59 @@ async def get_token_and_cost_metrics(
         elif period == "all":
             cutoff_start = None
 
-    stmt = (
+    # Achado de 2026-10-06 (docs/ROADMAP.md, "Métricas de Chat em Tempo
+    # Real"): a consulta antiga fazia as duas coisas numa só — contava
+    # chats encerrados E tokens/custos — exigindo `Conversa.status ==
+    # "encerrada"` para AMBOS. Token/custo já é um fato consumado por
+    # mensagem (gravado em `ConversaMensagem.metricas` assim que o LLM
+    # responde), não depende da conversa ter sido fechada ainda — uma
+    # conversa aberta agora (cliente ainda digitando, ou só não atingiu os
+    # 30 min de inatividade do worker) nunca aparecia em nada até fechar.
+    # Duas consultas agora: `stmt_closed` só para o KPI "chats encerrados"
+    # (bucketado por `encerrada_em`, continua exigindo o status — isso É o
+    # que a métrica significa); `stmt_msgs` para tokens/custos, bucketado
+    # pela data de cada mensagem (`criada_em`), sem exigir conversa fechada.
+    stmt_closed = (
         select(
             Conversa.id,
             Conversa.encerrada_em,
-            ConversaMensagem.metricas,
-        )
-        .outerjoin(
-            ConversaMensagem,
-            (Conversa.id == ConversaMensagem.conversa_id) & (ConversaMensagem.papel == "assistente"),
         )
         .where(Conversa.status == "encerrada")
         .where(Conversa.encerrada_em.is_not(None))
     )
 
-    stmt_ingest = (
+    stmt_msgs = (
         select(
-            IngestionCostEvent.criado_em,
-            IngestionCostEvent.prompt_tokens,
-            IngestionCostEvent.completion_tokens,
-            IngestionCostEvent.total_cost_usd,
+            ConversaMensagem.criada_em,
+            ConversaMensagem.metricas,
         )
-        .order_by(IngestionCostEvent.criado_em.desc())
+        .where(ConversaMensagem.papel == "assistente")
+        .where(ConversaMensagem.metricas.is_not(None))
     )
 
+    stmt_ingest = select(
+        IngestionCostEvent.criado_em,
+        IngestionCostEvent.prompt_tokens,
+        IngestionCostEvent.completion_tokens,
+        IngestionCostEvent.total_cost_usd,
+    ).order_by(IngestionCostEvent.criado_em.desc())
+
     if cutoff_start is not None:
-        stmt = stmt.where(Conversa.encerrada_em >= cutoff_start)
+        stmt_closed = stmt_closed.where(Conversa.encerrada_em >= cutoff_start)
+        stmt_msgs = stmt_msgs.where(ConversaMensagem.criada_em >= cutoff_start)
         stmt_ingest = stmt_ingest.where(IngestionCostEvent.criado_em >= cutoff_start)
     if cutoff_end is not None:
-        stmt = stmt.where(Conversa.encerrada_em <= cutoff_end)
+        stmt_closed = stmt_closed.where(Conversa.encerrada_em <= cutoff_end)
+        stmt_msgs = stmt_msgs.where(ConversaMensagem.criada_em <= cutoff_end)
         stmt_ingest = stmt_ingest.where(IngestionCostEvent.criado_em <= cutoff_end)
 
     try:
         async with session_factory() as session:
-            result = await session.execute(stmt)
-            rows = result.all()
+            closed_res = await session.execute(stmt_closed)
+            closed_rows = closed_res.all()
+
+            msgs_res = await session.execute(stmt_msgs)
+            msg_rows = msgs_res.all()
 
             try:
                 ingest_res = await session.execute(stmt_ingest)
@@ -216,13 +237,11 @@ async def get_token_and_cost_metrics(
 
     daily_map: dict[str, dict[str, Any]] = {}
 
-    for conv_id, encerrada_em, metricas in rows:
-        total_closed_chats_set.add(conv_id)
-        if encerrada_em is None:
-            continue
-        dt = encerrada_em if encerrada_em.tzinfo else encerrada_em.replace(tzinfo=UTC)
-        date_key = dt.astimezone(local_tz).strftime("%Y-%m-%d")
+    def _date_key(dt: datetime) -> str:
+        dt = dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+        return dt.astimezone(local_tz).strftime("%Y-%m-%d")
 
+    def _ensure_day(date_key: str) -> dict[str, Any]:
         if date_key not in daily_map:
             daily_map[date_key] = {
                 "date": date_key,
@@ -240,9 +259,22 @@ async def get_token_and_cost_metrics(
                 "ingestion_tokens": 0,
                 "ingestion_cost_usd": 0.0,
             }
+        return daily_map[date_key]
 
-        daily = daily_map[date_key]
+    # Chats encerrados: KPI próprio, continua exigindo `status ==
+    # "encerrada"` e bucketado por `encerrada_em` — é literalmente isso que
+    # a métrica mede (ver docstring da query acima).
+    for conv_id, encerrada_em in closed_rows:
+        total_closed_chats_set.add(conv_id)
+        if encerrada_em is None:
+            continue
+        daily = _ensure_day(_date_key(encerrada_em))
         daily["chats_set"].add(conv_id)
+
+    # Tokens/custos: por mensagem, bucketado por `criada_em` — não exige
+    # mais a conversa estar encerrada (achado de 2026-10-06).
+    for criada_em, metricas in msg_rows:
+        daily = _ensure_day(_date_key(criada_em))
 
         if isinstance(metricas, dict):
             backend_used = metricas.get("backend_used")
@@ -257,7 +289,10 @@ async def get_token_and_cost_metrics(
                 or (
                     backend_used == "externo"
                     and metricas.get("model_name")
-                    and any(m in str(metricas.get("model_name")).lower() for m in ["gemma", "gemini-flash", "vision", "vl"])
+                    and any(
+                        m in str(metricas.get("model_name")).lower()
+                        for m in ["gemma", "gemini-flash", "vision", "vl"]
+                    )
                     and c_prompt > 0
                 )
             )
@@ -273,7 +308,7 @@ async def get_token_and_cost_metrics(
             # sobreposição.
             if is_vision:
                 total_vision_calls += 1
-                total_vision_tokens += (p_tok + c_tok)
+                total_vision_tokens += p_tok + c_tok
                 total_vision_cost += c_tot
                 daily["vision_calls_count"] += 1
                 daily["vision_cost_usd"] += c_tot
@@ -302,35 +337,14 @@ async def get_token_and_cost_metrics(
         c_tot = float(c_tot or 0.0)
 
         total_ingestion_calls += 1
-        total_ingestion_tokens += (p_tok + c_tok)
+        total_ingestion_tokens += p_tok + c_tok
         total_ingestion_cost += c_tot
 
         if criado_em is None:
             continue
-        dt = criado_em if criado_em.tzinfo else criado_em.replace(tzinfo=UTC)
-        date_key = dt.astimezone(local_tz).strftime("%Y-%m-%d")
-
-        if date_key not in daily_map:
-            daily_map[date_key] = {
-                "date": date_key,
-                "chats_set": set(),
-                "internal_prompt_tokens": 0,
-                "internal_completion_tokens": 0,
-                "external_prompt_tokens": 0,
-                "external_completion_tokens": 0,
-                "cost_prompt_usd": 0.0,
-                "cost_completion_usd": 0.0,
-                "total_cost_usd": 0.0,
-                "vision_calls_count": 0,
-                "vision_cost_usd": 0.0,
-                "ingestion_calls_count": 0,
-                "ingestion_tokens": 0,
-                "ingestion_cost_usd": 0.0,
-            }
-
-        daily = daily_map[date_key]
+        daily = _ensure_day(_date_key(criado_em))
         daily["ingestion_calls_count"] += 1
-        daily["ingestion_tokens"] += (p_tok + c_tok)
+        daily["ingestion_tokens"] += p_tok + c_tok
         daily["ingestion_cost_usd"] += c_tot
 
     daily_breakdown = [

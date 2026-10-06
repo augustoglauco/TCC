@@ -283,24 +283,23 @@ Acessível pelo menu de administração (ícone ⚙️ no topo → "Métricas & 
 
 ### 1. Painel de Indicadores (KPIs)
 O dashboard consolida em tempo real:
-* **Tokens Internos (GPU Local)**: Volume total de tokens de prompt e resposta processados no servidor com Ollama. Apresenta o badge de custo zero (**R$ 0,00**), demonstrando a economia de infraestrutura própria.
-* **Tokens Externos (OpenRouter)**: Volume total de tokens processados na nuvem.
+* **Tokens Internos (GPU Local)**: Volume total de tokens de prompt e resposta processados no servidor com Ollama. Apresenta o badge de custo zero (**R$ 0,00**), demonstrando a economia de infraestrutura própria. **Desde 2026-10-06**, conta tokens de qualquer conversa que já teve mensagem respondida no período, mesmo que a conversa ainda esteja aberta — não depende mais dela ter sido encerrada.
+* **Tokens Externos (OpenRouter)**: Volume total de tokens processados na nuvem (mesma regra acima: inclui conversas ainda abertas).
 * **Custo Total Acumulado (USD)**: Gasto financeiro real acumulado no período selecionado.
 * **Custo de Entrada (Prompt USD)**: Valor segregado gasto no envio de contexto, perguntas e dados do RAG para a nuvem.
 * **Custo de Saída (Resposta USD)**: Valor segregado gasto na geração de texto pelos modelos externos.
-* **Chats Encerrados**: Quantidade de sessões finalizadas com sucesso.
+* **Chats Encerrados**: Quantidade de sessões finalizadas com sucesso — esta, sim, só conta conversa que já foi encerrada (manual ou pelo worker de inatividade de 30min).
 
 ### 2. Filtros de Período e Seleção de Data
-Selecione o horizonte temporal desejado no topo:
-* **Hoje**: Atendimentos encerrados desde 00:00 UTC do dia corrente.
-* **7 Dias**: Atendimentos dos últimos 7 dias.
-* **30 Dias**: Atendimentos dos últimos 30 dias.
+Selecione o horizonte temporal desejado no topo (fuso horário local do administrador, não UTC):
+* **Hoje**: tokens/custos de mensagens respondidas desde 00:00 local do dia corrente (conversas abertas ou encerradas) + chats encerrados desde esse horário.
+* **7 Dias** / **30 Dias**: mesma regra, para os últimos 7/30 dias.
 * **Tudo**: Histórico acumulado completo.
 * **📅 Por Dia**: Abre um calendário visual nativo para você escolher qualquer data específica do passado ou presente. Os cartões de indicadores e a tabela diária passam a exibir exclusivamente os dados consolidados do dia escolhido.
 * **🔄 Botão Atualizar**: Força a sincronização imediata dos dados com o backend com proteção anti-cache, exibindo feedback tátil animado, notificação toast e o horário exato da última atualização.
 
 ### 3. Tabela de Detalhamento Diário
-Apresenta o agrupamento dia a dia ordenado por data de encerramento (`date(encerrada_em)`), com o número de chats finalizados, contagem segregada de tokens locais e remotos (entrada/saída) e os custos monetários correspondentes.
+Apresenta o agrupamento dia a dia, com o número de chats encerrados, contagem segregada de tokens locais e remotos (entrada/saída) e os custos monetários correspondentes. **Desde 2026-10-06**, cada coluna bucketa pela data que faz sentido pra ela: chats encerrados pela data em que a conversa foi fechada (`date(encerrada_em)`); tokens e custos pela data de cada mensagem respondida (`date(criada_em)`) — uma conversa com mensagem numa noite, fechada só na manhã seguinte, não joga mais os tokens dela pro dia do fechamento.
 
 ### 4. Ciclo de Vida do Atendimento e Encerramento
 * **Encerramento Manual**: O visitante pode encerrar o atendimento a qualquer momento clicando no botão 🏁 **Encerrar atendimento** no topo do widget de chat. A sessão é marcada como `encerrada` com motivo `manual_usuario` e contabilizada nos relatórios.
