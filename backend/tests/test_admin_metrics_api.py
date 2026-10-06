@@ -180,6 +180,68 @@ async def test_metrics_api_aggregates_closed_chats_and_costs(
 
 
 @pytest.mark.asyncio
+async def test_metrics_api_visao_nao_duplica_custo_e_total_soma_tudo(
+    metrics_client, db_session, admin_headers
+):
+    """Achado de 2026-10-05 (usuário reportou custo de Visão igual ao
+    consolidado, sem bater com Entrada+Saída): uma mensagem de
+    identificação de imagem (vision) era contada TANTO no bucket de Visão
+    quanto no de Entrada/Saída (Atendimento) — double count —, e o total
+    diário/consolidado nunca somava Ingestão. Confirmado com o usuário: o
+    esperado é cada card mostrar o gasto isolado do seu domínio (Atendimento
+    sem Visão, Visão, Ingestão), e o consolidado ser a soma de todos, sem
+    sobreposição."""
+    now = datetime.now(UTC)
+    c1 = Conversa(
+        id="conv-metrics-vis-1",
+        status="encerrada",
+        encerrada_em=now - timedelta(hours=1),
+        motivo_encerramento="manual_usuario",
+    )
+    db_session.add(c1)
+    await db_session.flush()
+
+    m_vision = ConversaMensagem(
+        conversa_id="conv-metrics-vis-1",
+        papel="assistente",
+        texto="identificação de imagem",
+        metricas={
+            "backend_used": "externo",
+            "vision_used": True,
+            "prompt_tokens": 1200,
+            "completion_tokens": 80,
+            "cost_prompt_usd": 0.0075,
+            "cost_completion_usd": 0.0010,
+            "estimated_cost_usd": 0.0086,
+        },
+    )
+    db_session.add(m_vision)
+    await db_session.commit()
+
+    res = metrics_client.get(
+        "/api/admin/metrics/tokens-and-costs?period=7d", headers=admin_headers
+    )
+    assert res.status_code == 200
+    data = res.json()
+
+    # Visão aparece no seu próprio bucket.
+    assert pytest.approx(data["summary"]["total_vision_cost_usd"], 0.00001) == 0.0086
+    # Atendimento (entrada/saída de texto) NÃO inclui o custo de visão.
+    assert data["summary"]["total_cost_prompt_usd"] == 0.0
+    assert data["summary"]["total_cost_completion_usd"] == 0.0
+    assert data["summary"]["total_cost_usd"] == 0.0
+    # Tokens externos também não contam os tokens de visão (contador próprio).
+    assert data["summary"]["total_external_prompt_tokens"] == 0
+    assert data["summary"]["total_external_completion_tokens"] == 0
+    # Grand total = atendimento (0) + visão (0.0086) + ingestão (0).
+    assert pytest.approx(data["summary"]["grand_total_cost_usd"], 0.00001) == 0.0086
+
+    day = data["daily_breakdown"][0]
+    # Consolidado diário também é a soma de tudo (aqui só visão).
+    assert pytest.approx(day["total_cost_usd"], 0.00001) == 0.0086
+
+
+@pytest.mark.asyncio
 async def test_metrics_api_start_date_invalida_e_400(metrics_client, admin_headers):
     # Achado da revisão de 2026-10-04: antes, uma data mal formada era
     # silenciosamente ignorada e a resposta caía no período default (7d)

@@ -97,10 +97,14 @@ async def test_metrics_api_segregates_vision_and_text(
     # Total de chats encerrados
     assert summary["total_closed_chats"] == 1
 
-    # Totais globais
-    assert summary["total_external_prompt_tokens"] == 1600  # 1200 + 400
-    assert summary["total_external_completion_tokens"] == 200  # 150 + 50
-    assert summary["total_cost_usd"] == 0.0020  # 0.0015 + 0.0005
+    # Totais globais — achado de 2026-10-05: Visão e Atendimento (texto) são
+    # mutuamente exclusivos (antes, a mensagem de visão também era somada
+    # aqui, um double count — "segregar" significava o oposto do que o nome
+    # do teste dizia). Só a mensagem de texto puro entra em
+    # external_*_tokens/total_cost_usd agora.
+    assert summary["total_external_prompt_tokens"] == 400
+    assert summary["total_external_completion_tokens"] == 50
+    assert summary["total_cost_usd"] == 0.0005
 
     # Segregação específica de Visão Computacional
     assert summary["total_vision_calls"] == 1
@@ -113,4 +117,6 @@ async def test_metrics_api_segregates_vision_and_text(
     assert daily["closed_chats_count"] == 1
     assert daily["vision_calls_count"] == 1
     assert daily["vision_cost_usd"] == 0.0015
+    # Consolidado do dia = soma de Atendimento (0.0005) + Visão (0.0015),
+    # sem sobreposição.
     assert daily["total_cost_usd"] == 0.0020

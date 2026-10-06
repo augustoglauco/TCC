@@ -186,7 +186,10 @@ async def test_admin_metrics_aggregates_ingestion_and_chat_costs(test_client, db
     # Daily breakdown
     daily = data["daily_breakdown"][0]
     assert daily["closed_chats_count"] == 1
-    assert daily["total_cost_usd"] == 0.0010
+    # Consolidado do dia = Atendimento (0.0010) + Ingestão (0.0030), sem
+    # sobreposição — achado de 2026-10-05: antes não somava Ingestão aqui,
+    # apesar do tooltip do frontend já afirmar que incluía.
+    assert daily["total_cost_usd"] == 0.0040
     assert daily["ingestion_calls_count"] == 2
     assert daily["ingestion_tokens"] == 2000
     assert daily["ingestion_cost_usd"] == 0.0030

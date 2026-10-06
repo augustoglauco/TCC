@@ -262,14 +262,22 @@ async def get_token_and_cost_metrics(
                 )
             )
 
+            # Achado de 2026-10-05 (usuário reportou custo de Visão igual ao
+            # consolidado): este `if`/`elif` era dois `if`s independentes —
+            # uma mensagem de visão também satisfaz a condição de baixo
+            # (backend_used="externo", custo > 0), então era somada nos DOIS
+            # buckets ao mesmo tempo (double count). Visão agora é
+            # mutuamente exclusiva de Atendimento (entrada/saída) — cada
+            # card mostra o gasto isolado do seu domínio, e o consolidado
+            # (`total_cost_usd`, montado mais abaixo) soma todos sem
+            # sobreposição.
             if is_vision:
                 total_vision_calls += 1
                 total_vision_tokens += (p_tok + c_tok)
                 total_vision_cost += c_tot
                 daily["vision_calls_count"] += 1
                 daily["vision_cost_usd"] += c_tot
-
-            if backend_used in ("externo", "openrouter") or c_tot > 0:
+            elif backend_used in ("externo", "openrouter") or c_tot > 0:
                 total_external_prompt += p_tok
                 total_external_comp += c_tok
                 total_cost_prompt += c_prompt
@@ -280,7 +288,6 @@ async def get_token_and_cost_metrics(
                 daily["external_completion_tokens"] += c_tok
                 daily["cost_prompt_usd"] += c_prompt
                 daily["cost_completion_usd"] += c_comp
-                daily["total_cost_usd"] += c_tot
             else:
                 total_internal_prompt += p_tok
                 total_internal_comp += c_tok
@@ -336,7 +343,16 @@ async def get_token_and_cost_metrics(
             external_completion_tokens=d["external_completion_tokens"],
             cost_prompt_usd=round(d["cost_prompt_usd"], 6),
             cost_completion_usd=round(d["cost_completion_usd"], 6),
-            total_cost_usd=round(d["total_cost_usd"], 6),
+            # Consolidado do dia = soma de todos os domínios sem
+            # sobreposição (Atendimento + Visão + Ingestão) — achado de
+            # 2026-10-05, ver comentário acima no loop principal.
+            total_cost_usd=round(
+                d["cost_prompt_usd"]
+                + d["cost_completion_usd"]
+                + d.get("vision_cost_usd", 0.0)
+                + d.get("ingestion_cost_usd", 0.0),
+                6,
+            ),
             vision_calls_count=d.get("vision_calls_count", 0),
             vision_cost_usd=round(d.get("vision_cost_usd", 0.0), 6),
             ingestion_calls_count=d.get("ingestion_calls_count", 0),
@@ -361,7 +377,11 @@ async def get_token_and_cost_metrics(
         total_ingestion_calls=total_ingestion_calls,
         total_ingestion_tokens=total_ingestion_tokens,
         total_ingestion_cost_usd=round(total_ingestion_cost, 6),
-        grand_total_cost_usd=round(total_cost + total_ingestion_cost, 6),
+        # Soma de todos os domínios sem sobreposição (Atendimento + Visão +
+        # Ingestão) — achado de 2026-10-05: `total_cost` já era só
+        # Atendimento depois da correção do double-count de Visão acima,
+        # mas `total_vision_cost` nunca entrava aqui.
+        grand_total_cost_usd=round(total_cost + total_vision_cost + total_ingestion_cost, 6),
     )
 
     return TokenCostMetricsResponse(
