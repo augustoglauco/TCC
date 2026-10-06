@@ -1140,23 +1140,29 @@ async def handle_message(
         if db_sessionmaker:
             chart = None
             explicacao = ""
+            chart_prompt_tokens: int | None = None
+            chart_completion_tokens: int | None = None
             try:
                 analytics_llm = local_client if local_client is not None else external_client
                 session_ctx = db_sessionmaker()
                 if hasattr(session_ctx, "__aenter__"):
                     async with session_ctx as session:
-                        chart, explicacao = await process_dynamic_chart_request(
-                            session=session,
+                        chart, explicacao, chart_prompt_tokens, chart_completion_tokens = (
+                            await process_dynamic_chart_request(
+                                session=session,
+                                prompt=message,
+                                user_email=user_email or "admin",
+                                llm_client=analytics_llm,
+                            )
+                        )
+                else:
+                    chart, explicacao, chart_prompt_tokens, chart_completion_tokens = (
+                        await process_dynamic_chart_request(
+                            session=session_ctx,
                             prompt=message,
                             user_email=user_email or "admin",
                             llm_client=analytics_llm,
                         )
-                else:
-                    chart, explicacao = await process_dynamic_chart_request(
-                        session=session_ctx,
-                        prompt=message,
-                        user_email=user_email or "admin",
-                        llm_client=analytics_llm,
                     )
             except Exception as exc:
                 logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})
@@ -1184,8 +1190,8 @@ async def handle_message(
                     motivo_escalonamento="nenhum",
                     resposta=texto_resp,
                     latencia_ms=0.0,
-                    tokens_entrada=None,
-                    tokens_saida=None,
+                    tokens_entrada=chart_prompt_tokens,
+                    tokens_saida=chart_completion_tokens,
                     cost_prompt_usd=0.0,
                     cost_completion_usd=0.0,
                     custo_estimado_usd=0.0,
@@ -1263,8 +1269,13 @@ async def handle_message(
                     motivo_escalonamento="vendas_comprovante_pagamento",
                     resposta=texto_resp,
                     latencia_ms=0.0,
-                    tokens_entrada=None,
-                    tokens_saida=None,
+                    # Achado de 2026-10-05: tokens do LLM local gasto avaliando o
+                    # comprovante (via `ComprovanteEvaluator.avaliar_texto`) eram
+                    # descartados aqui, então essas chamadas nunca contavam em
+                    # Métricas → Tokens Internos. `parecer_res` vem `None` só
+                    # quando nenhuma avaliação de IA rodou (ex.: pedido de anexo).
+                    tokens_entrada=parecer_res.prompt_tokens if parecer_res else None,
+                    tokens_saida=parecer_res.completion_tokens if parecer_res else None,
                     cost_prompt_usd=0.0,
                     cost_completion_usd=0.0,
                     custo_estimado_usd=0.0,

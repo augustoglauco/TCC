@@ -9,8 +9,15 @@ from app.services.analytics_agent import (
 
 
 class _FakeChunk:
-    def __init__(self, text: str) -> None:
+    def __init__(
+        self,
+        text: str,
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+    ) -> None:
         self.text = text
+        self.prompt_tokens = prompt_tokens
+        self.completion_tokens = completion_tokens
 
 
 class _FakeLLMClientSql:
@@ -29,6 +36,22 @@ class _FakeLLMClientSql:
             "y_keys": ["b"],
         }
         yield _FakeChunk(json.dumps(payload))
+
+
+class _FakeLLMClientSqlComTokens:
+    """Simula um LLM local que reporta uso de tokens no chunk final do
+    stream — mesmo formato de `OllamaClient.generate_stream` (tokens só no
+    último chunk, os demais vêm com `None`)."""
+
+    async def generate_stream(self, prompt: str):
+        payload = {
+            "sql": "SELECT categoria, COUNT(*) as total FROM produtos GROUP BY categoria",
+            "titulo": "Produtos por Categoria",
+            "x_key": "categoria",
+            "y_keys": ["total"],
+        }
+        yield _FakeChunk(json.dumps(payload))
+        yield _FakeChunk("", prompt_tokens=120, completion_tokens=45)
 
 
 def test_extract_prompt_inline_data_key_value():
@@ -62,7 +85,7 @@ def test_extract_prompt_inline_data_none_when_no_data():
 @pytest.mark.asyncio
 async def test_process_dynamic_chart_request_inline_data(db_session):
     prompt = "gere gráfico de barras: Projeto A: 40h, Projeto B: 65h, Projeto C: 20h"
-    chart, explicacao = await process_dynamic_chart_request(
+    chart, explicacao, _prompt_tokens, _completion_tokens = await process_dynamic_chart_request(
         session=db_session,
         prompt=prompt,
         user_email="admin@teste.com",
@@ -85,7 +108,7 @@ async def test_process_dynamic_chart_request_sql_data(db_session):
     await db_session.commit()
 
     prompt = "gere gráfico de produtos por faturamento"
-    chart, explicacao = await process_dynamic_chart_request(
+    chart, explicacao, _prompt_tokens, _completion_tokens = await process_dynamic_chart_request(
         session=db_session,
         prompt=prompt,
         user_email="admin@teste.com",
@@ -111,7 +134,7 @@ async def test_process_dynamic_chart_request_sql_inseguro_cai_no_fallback_sem_qu
 
     llm_client = _FakeLLMClientSql(sql="SELECT * FROM app_settings")
 
-    chart, explicacao = await process_dynamic_chart_request(
+    chart, explicacao, _prompt_tokens, _completion_tokens = await process_dynamic_chart_request(
         session=db_session,
         prompt="gere gráfico de produtos por faturamento",
         user_email="admin@teste.com",
@@ -143,7 +166,7 @@ async def test_erro_de_execucao_sql_cai_no_fallback_sem_quebrar_sessao(db_sessio
 
     llm_client = _FakeLLMClientSql(sql="SELECT coluna_que_nao_existe FROM produtos")
 
-    chart, explicacao = await process_dynamic_chart_request(
+    chart, explicacao, _prompt_tokens, _completion_tokens = await process_dynamic_chart_request(
         session=db_session,
         prompt="gere gráfico de produtos por faturamento",
         user_email="admin@teste.com",
@@ -152,3 +175,29 @@ async def test_erro_de_execucao_sql_cai_no_fallback_sem_quebrar_sessao(db_sessio
 
     assert chart is not None
     assert chart.sql_query != "dynamic_sql: SELECT coluna_que_nao_existe FROM produtos"
+
+
+@pytest.mark.asyncio
+async def test_process_dynamic_chart_request_sql_dinamico_retorna_tokens_usados(db_session):
+    """Achado de 2026-10-05 (usuário reportou que os tokens do modelo
+    interno não apareciam em Métricas): o uso de tokens do LLM local era
+    descartado na trilha de Text-to-SQL dinâmico (gráfico via chat), então
+    essas chamadas nunca contribuíam para 'Tokens Internos (GPU Local)'."""
+    p1 = Produto(
+        nome="Gerador X", descricao="Gerador", preco=Decimal("5000.00"), categoria="Geradores"
+    )
+    db_session.add(p1)
+    await db_session.commit()
+
+    llm_client = _FakeLLMClientSqlComTokens()
+
+    chart, explicacao, prompt_tokens, completion_tokens = await process_dynamic_chart_request(
+        session=db_session,
+        prompt="gere gráfico de produtos por categoria",
+        user_email="admin@teste.com",
+        llm_client=llm_client,
+    )
+
+    assert chart is not None
+    assert prompt_tokens == 120
+    assert completion_tokens == 45

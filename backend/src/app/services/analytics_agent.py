@@ -110,10 +110,15 @@ def extract_prompt_inline_data(prompt: str) -> dict[str, Any] | None:
     }
 
 
-async def _generate_sql_with_llm(llm_client: Any, prompt: str) -> dict[str, Any] | None:
-    """Solicita ao LLM que gere a consulta Text-to-SQL e a especificação do gráfico."""
+async def _generate_sql_with_llm(
+    llm_client: Any, prompt: str
+) -> tuple[dict[str, Any] | None, int | None, int | None]:
+    """Solicita ao LLM que gere a consulta Text-to-SQL e a especificação do
+    gráfico. Devolve também `prompt_tokens`/`completion_tokens` usados pela
+    chamada (achado de 2026-10-05: eram descartados, então essas chamadas ao
+    modelo local nunca contavam em Métricas → Tokens Internos)."""
     if not llm_client or not hasattr(llm_client, "generate_stream"):
-        return None
+        return None, None, None
 
     schema_prompt = get_catalog_schema_prompt()
     system_instruction = f"""Você é um analista de dados especialista em PostgreSQL e visualizações de dados.
@@ -137,18 +142,26 @@ NÃO inclua nada fora do bloco JSON.
 """
     try:
         raw_text = ""
+        prompt_tokens: int | None = None
+        completion_tokens: int | None = None
         async for chunk in llm_client.generate_stream(system_instruction):
             if chunk.text:
                 raw_text += chunk.text
+            # Mesmo padrão do stream principal (orchestrator.py): tokens só
+            # vêm populados no chunk final.
+            if getattr(chunk, "prompt_tokens", None) is not None:
+                prompt_tokens = chunk.prompt_tokens
+            if getattr(chunk, "completion_tokens", None) is not None:
+                completion_tokens = chunk.completion_tokens
 
         # Extrai bloco JSON
         match = re.search(r"\{.*\}", raw_text, re.DOTALL)
         if match:
-            return json.loads(match.group(0))
+            return json.loads(match.group(0)), prompt_tokens, completion_tokens
     except Exception as exc:
         logger.warning("falha_llm_text_to_sql", extra={"erro": str(exc)})
 
-    return None
+    return None, None, None
 
 
 async def process_dynamic_chart_request(
@@ -156,9 +169,13 @@ async def process_dynamic_chart_request(
     prompt: str,
     user_email: str,
     llm_client: Any = None,
-) -> tuple[AdminChart, str]:
+) -> tuple[AdminChart, str, int | None, int | None]:
     """Processa a solicitação de gráfico do usuário, identificando a fonte de dados,
     executando as consultas necessárias e persistindo o AdminChart correspondente.
+
+    Devolve também `(prompt_tokens, completion_tokens)` da chamada ao LLM —
+    `None` quando a trilha percorrida não usa LLM (dados inline do usuário,
+    ou fallback heurístico), já que não há chamada real a contar.
     """
     # 1. Verifica se o usuário forneceu dados no próprio texto
     inline_spec = extract_prompt_inline_data(prompt)
@@ -178,10 +195,10 @@ async def process_dynamic_chart_request(
         await session.commit()
         await session.refresh(chart)
         explicacao = f"Gerei o gráfico com os dados que você informou no chat. Ele já está salvo no seu painel de Dashboards."
-        return chart, explicacao
+        return chart, explicacao, None, None
 
     # 2. Tenta gerar via Text-to-SQL dinâmico com o LLM
-    llm_spec = await _generate_sql_with_llm(llm_client, prompt)
+    llm_spec, prompt_tokens, completion_tokens = await _generate_sql_with_llm(llm_client, prompt)
     if llm_spec and "sql" in llm_spec:
         try:
             sql_query = llm_spec["sql"]
@@ -208,7 +225,7 @@ async def process_dynamic_chart_request(
                 await session.commit()
                 await session.refresh(chart)
                 explicacao = llm_spec.get("explicacao") or f"Gerei o gráfico '{chart.titulo}' a partir de consulta direta ao banco de dados."
-                return chart, explicacao
+                return chart, explicacao, prompt_tokens, completion_tokens
         except SQLSecurityError as exc:
             # Achado da revisão de 2026-10-04: antes caía no mesmo `except
             # Exception` genérico de baixo (falha de infraestrutura) — um
@@ -245,4 +262,4 @@ async def process_dynamic_chart_request(
     await session.commit()
     await session.refresh(chart)
     explicacao = f"Gerei o gráfico '{chart.titulo}' para você com base nos dados do sistema. Ele já está salvo no seu painel de Dashboards."
-    return chart, explicacao
+    return chart, explicacao, None, None

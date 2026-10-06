@@ -24,6 +24,12 @@ class ParecerComprovante:
     justificativa: str
     codigo_transacao: str | None = None
     raw_json: dict[str, Any] | None = None
+    # Tokens da chamada ao LLM que gerou este parecer (achado de 2026-10-05:
+    # eram descartados pelos chamadores, então nunca contavam em Métricas →
+    # Tokens Internos). `None` quando o parecer veio do fallback heurístico
+    # (`_extrair_heuristica`) ou de quando não havia conteúdo para avaliar.
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
 
     def to_json(self) -> str:
         return json.dumps(
@@ -231,6 +237,8 @@ class ComprovanteEvaluator:
                     justificativa=parsed.get("justificativa", ""),
                     codigo_transacao=codigo_transacao,
                     raw_json=parsed,
+                    prompt_tokens=getattr(res, "prompt_tokens", None),
+                    completion_tokens=getattr(res, "completion_tokens", None),
                 )
             except Exception as exc:
                 logger.warning("Falha na interpretação via LLM (%s), acionando fallback heurístico.", exc)

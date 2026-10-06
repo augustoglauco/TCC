@@ -71,6 +71,38 @@ async def test_avaliar_com_llm_client_mock():
 
 
 @pytest.mark.asyncio
+async def test_avaliar_texto_retorna_tokens_usados_pelo_llm():
+    """Achado de 2026-10-05 (usuário reportou que os tokens do modelo
+    interno não apareciam em Métricas): `avaliar_texto` descartava
+    `prompt_tokens`/`completion_tokens` da resposta do LLM, então essas
+    chamadas nunca contavam em 'Tokens Internos (GPU Local)'."""
+    mock_llm = AsyncMock()
+    mock_response = AsyncMock(
+        text='{"comprovante_valido": true, "valor_pago": 500.00, "justificativa": "ok"}',
+    )
+    mock_response.prompt_tokens = 230
+    mock_response.completion_tokens = 60
+    mock_llm.generate.return_value = mock_response
+
+    evaluator = ComprovanteEvaluator(llm_client=mock_llm)
+    parecer = await evaluator.avaliar_texto("texto do comprovante", valor_devido=Decimal("500.00"))
+
+    assert parecer.prompt_tokens == 230
+    assert parecer.completion_tokens == 60
+
+
+@pytest.mark.asyncio
+async def test_avaliar_texto_sem_llm_nao_tem_tokens():
+    # Fallback heurístico (sem llm_client) não faz chamada nenhuma a LLM.
+    evaluator = ComprovanteEvaluator()
+    parecer = await evaluator.avaliar_texto(
+        "COMPROVANTE DE PAGAMENTO PIX\nValor: R$ 500,00", valor_devido=Decimal("500.00")
+    )
+    assert parecer.prompt_tokens is None
+    assert parecer.completion_tokens is None
+
+
+@pytest.mark.asyncio
 async def test_extrair_texto_documento_txt():
     evaluator = ComprovanteEvaluator()
     texto = evaluator.extrair_texto(b"Comprovante em arquivo texto", "comprovante.txt")
