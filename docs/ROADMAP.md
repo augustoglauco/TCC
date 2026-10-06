@@ -1159,12 +1159,77 @@ conversa e classificação do usuário").
       - Modo 4 (Chat - Cliente / Assistente Virtual): Conversão automática em tempo real no chat a partir de comprovante em texto ou imagem para qualquer reserva ativa (`auto_chat`), agnóstica a quantidade de itens ou descontos.
       - Modo 5 (MCP B2B Tool): Tool `@server.tool(name="converter_reserva_venda")` no servidor MCP corporativo e suporte no cliente independente Streamlit (`cliente-b2b`) com `auto_mcp_b2b`.
       - Frontend Administrativo: Interface `/admin/pedidos` com filtros por status, KPIs de faturamento, busca rápida e modal de conversão multimodal integrado com atalho no `AdminGearMenu.tsx`.
-- [ ] **Correção da Precisão de Métricas e Gráficos de Vendas e Chat (2026-10-05):**
-      Refatoração e ajuste analítico em `chart_generator.py` e `admin_metrics.py` para alinhar os dashboards com os dados reais do banco:
-      - **Filtro de Vendas Efetivadas:** Ajustar agregadoras `vendas_produtos_quantidade` e `vendas_produtos_valor` em `chart_generator.py` para filtrar apenas pedidos com `Pedido.status == "venda_concluida"` (além das compras históricas `ClienteCompra`), ignorando reservas pendentes ou orçamentos abertos.
-      - **Vendas por Categoria Reais:** Refatorar `vendas_por_categoria` e `vendas_categoria_quantidade` para agregar o volume e faturamento das compras/pedidos reais (`PedidoItem`), em vez de somar os preços do catálogo estático de produtos (`Produto.preco`).
-      - **Métricas de Chat em Tempo Real:** Atualizar a consulta de volume de conversas e tokens (`admin_metrics.py` e `metricas_tokens_por_dia`) para incluir conversas ativas/abertas (`status != "encerrada"`), permitindo que administradores visualizem o volume do dia corrente sem depender do encerramento manual/automático da sessão.
-      - **Agrupamento por Data de Mensagem:** Agrupar o volume de interações pela data de criação da mensagem (`ConversaMensagem.criada_em`) em vez da data de encerramento da conversa.
+- [x] **Agente Analítico de Gráficos Dinâmicos: eliminar fallback hardcoded
+      + introspecção automática de esquema (achado de 2026-10-06, revisão da
+      "Correção de Precisão" de 2026-10-05, implementado em 2026-10-06):**
+      decisão registrada em
+      `docs/ARCHITECTURE.md` §5 ("Agente Analítico de Gráficos Dinâmicos").
+      Substitui a parte deste item que falava em só corrigir
+      `vendas_produtos_quantidade`/`vendas_produtos_valor`/
+      `vendas_por_categoria`/`vendas_categoria_quantidade` em
+      `chart_generator.py` — o objetivo real é que o LLM formule o SQL a
+      partir do pedido em linguagem natural usando conhecimento real do
+      esquema do banco, sem cair num fallback de consulta hardcoded quando
+      falhar (achado concreto do motivo da imprecisão: o esquema escrito à
+      mão em `safe_sql.get_catalog_schema_prompt()` não listava
+      `venda_concluida` como valor de `pedidos.status`, só
+      `reservado/aprovado/cancelado` — o LLM nunca tinha como filtrar venda
+      efetivada corretamente).
+      1. `analytics_agent.process_dynamic_chart_request`: remover o passo 3
+         (fallback para `chart_generator.execute_chart_aggregation`) do
+         caminho de geração de gráfico **novo** — se o Text-to-SQL falhar
+         (LLM indisponível, SQL rejeitado pela validação de segurança, ou
+         zero linhas), devolver `chart=None` com explicação do motivo em
+         vez de um gráfico hardcoded potencialmente incorreto.
+      2. Orquestrador: quando `chart=None`, responder ao admin com a
+         explicação em vez de seguir silenciosamente tentando casar outras
+         intenções (achado lateral: hoje isso já acontece em erro não
+         tratado, sem nenhum aviso ao admin).
+      3. `safe_sql.get_catalog_schema_prompt`: trocar o texto Markdown
+         escrito à mão por introspecção real do banco (`sqlalchemy.inspect`,
+         dialect-agnostic — Postgres em produção, SQLite nos testes),
+         restrita à mesma whitelist `ALLOWED_TABLES`. Colunas tipo-enum sem
+         `CHECK` no banco (ex.: `pedidos.status`) continuam com notas
+         semânticas curadas à mão, à parte da introspecção automática.
+      4. `chart_generator.execute_chart_aggregation`/`SUPPORTED_QUERIES`
+         **removidos por completo** (não só desativados) — plano inicial era
+         manter só para o refresh de gráficos antigos salvos com `query_key`
+         fixa, mas o desenvolvedor confirmou que nenhum gráfico desses
+         existe em uso; sem dado real pra migrar, não fazia sentido manter o
+         código. `chart_generator.py` fica só com `detect_chart_request`
+         (gate de intenção). O terceiro ramo do refresh em
+         `app.api.admin_charts` (que recalculava via `query_key` fixa)
+         também foi removido — `sql_query` fora de `dynamic_sql:`/
+         `dynamic_user_data` simplesmente não é recalculado.
+      As duas correções de precisão originais (filtrar `venda_concluida`;
+      "vendas por categoria" somar vendas reais em vez do catálogo) foram
+      implementadas antes dessa remoção ter sido decidida — ficam só
+      registradas em `docs/ARCHITECTURE.md` §5 como histórico do bug, já que
+      o código onde viviam não existe mais.
+      Achado lateral removido no mesmo commit: `chart_generator.
+      generate_and_persist_chart` já era código órfão antes de hoje (só os
+      próprios testes do módulo chamavam; nenhum caminho de produção).
+      Testes: `tests/test_safe_sql.py`, `tests/test_analytics_agent.py`,
+      `tests/test_chart_generator.py`, `tests/test_admin_charts_api.py`,
+      `tests/test_chat_chart_card.py`. `docs/Manuais/
+      PROMPTS_E_INSTRUCOES_LLM.md` e `docs/Manuais/HOWTO_ADMINISTRADOR.md`
+      atualizados.
+- [ ] **Métricas de Chat em Tempo Real (`admin_metrics.py`, achado de
+      2026-10-05):** código independente do item acima (não importa nada de
+      `chart_generator`/`analytics_agent`/`safe_sql` — tela fixa, sem
+      interface conversacional, "Text-to-SQL dinâmico" não se aplica aqui
+      por desenho).
+      - **Conversas ativas:** a consulta de volume/tokens
+        (`metricas_tokens_por_dia` em `admin_metrics.py`) só conta
+        `Conversa.status == "encerrada"` — uma conversa aberta agora (ainda
+        não fechada manualmente nem pelo worker de inatividade de 30min) não
+        aparece em nada; incluir também conversas abertas para o período
+        atual ("hoje") não ficar artificialmente vazio.
+      - **Agrupamento por Data de Mensagem:** agrupar pela data de criação de
+        cada mensagem (`ConversaMensagem.criada_em`), não pela data de
+        encerramento da conversa (`Conversa.encerrada_em`) — hoje uma
+        conversa de segunda à noite fechada só terça de manhã aparece
+        inteira no gráfico de terça.
 - [x] **Unificar política de custo mínimo em processamento de imagem de
       documento (achado de 2026-10-06, implementado em 2026-10-06):** decisão
       registrada em `docs/ARCHITECTURE.md` §4 — para comprovante/pagamento/

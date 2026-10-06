@@ -268,6 +268,12 @@ PostgreSQL — sem precisar abrir nenhuma outra tela.
   e aparece na tela `/admin/dashboards` (menu ⚙️ → "Dashboards"), onde você
   pode revisitar, fixar ou remover gráficos anteriores sem precisar pedir
   de novo pelo chat.
+* **Quando o gráfico não é gerado**: desde 2026-10-06, se o assistente não
+  conseguir montar uma consulta segura para o seu pedido (modelo de análise
+  indisponível, SQL recusado pela validação de segurança, ou nenhum dado
+  encontrado com os filtros atuais), ele explica o motivo em vez de mostrar
+  um gráfico com números que podem não corresponder ao que foi pedido — vale
+  tentar reformular a pergunta de forma mais específica.
 
 ---
 

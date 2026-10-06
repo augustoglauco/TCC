@@ -1,7 +1,10 @@
 import json
-import pytest
 from decimal import Decimal
-from app.db.models import AdminChart, Cliente, ClienteCompra, Produto
+
+import pytest
+from sqlalchemy import select
+
+from app.db.models import AdminChart, Produto
 from app.services.analytics_agent import (
     extract_prompt_inline_data,
     process_dynamic_chart_request,
@@ -102,27 +105,51 @@ async def test_process_dynamic_chart_request_inline_data(db_session):
 
 @pytest.mark.asyncio
 async def test_process_dynamic_chart_request_sql_data(db_session):
-    p1 = Produto(nome="Gerador Turbo 1", descricao="Gerador potente", preco=Decimal("5000.00"), categoria="Geradores")
-    p2 = Produto(nome="Gerador Turbo 2", descricao="Gerador potente", preco=Decimal("8000.00"), categoria="Geradores")
+    p1 = Produto(
+        nome="Gerador Turbo 1",
+        descricao="Gerador potente",
+        preco=Decimal("5000.00"),
+        categoria="Geradores",
+    )
+    p2 = Produto(
+        nome="Gerador Turbo 2",
+        descricao="Gerador potente",
+        preco=Decimal("8000.00"),
+        categoria="Geradores",
+    )
     db_session.add_all([p1, p2])
     await db_session.commit()
+
+    llm_client = _FakeLLMClientSql(
+        sql="SELECT nome AS produto, preco AS total FROM produtos ORDER BY preco DESC"
+    )
 
     prompt = "gere gráfico de produtos por faturamento"
     chart, explicacao, _prompt_tokens, _completion_tokens = await process_dynamic_chart_request(
         session=db_session,
         prompt=prompt,
         user_email="admin@teste.com",
-        llm_client=None,
+        llm_client=llm_client,
     )
     assert chart is not None
+    assert chart.sql_query.startswith("dynamic_sql:")
     assert len(chart.dados_json) >= 2
-    assert "produto" in chart.dados_json[0] or "nome" in chart.dados_json[0] or "categoria" in chart.dados_json[0]
+    assert (
+        "produto" in chart.dados_json[0]
+        or "nome" in chart.dados_json[0]
+        or "categoria" in chart.dados_json[0]
+    )
 
 
 @pytest.mark.asyncio
-async def test_process_dynamic_chart_request_sql_inseguro_cai_no_fallback_sem_quebrar_sessao(
+async def test_process_dynamic_chart_request_sql_inseguro_nao_gera_grafico_sem_quebrar_sessao(
     db_session,
 ):
+    """Decisão de 2026-10-06 (docs/ARCHITECTURE.md §5): não existe mais
+    fallback para uma consulta hardcoded quando o SQL gerado é rejeitado
+    pela validação de segurança — o pedido simplesmente não gera gráfico, com
+    uma explicação do motivo. A sessão precisa continuar utilizável depois
+    (achado da revisão de 2026-10-04, `session.rollback()`)."""
     p1 = Produto(
         nome="Gerador Turbo 1",
         descricao="Gerador potente",
@@ -141,14 +168,16 @@ async def test_process_dynamic_chart_request_sql_inseguro_cai_no_fallback_sem_qu
         llm_client=llm_client,
     )
 
-    assert chart is not None
-    assert chart.sql_query != "dynamic_sql: SELECT * FROM app_settings"
+    assert chart is None
+    assert "não é permitida" in explicacao.lower() or "segurança" in explicacao.lower()
+    # Sessão não ficou numa transação quebrada — ainda dá pra usar
+    await db_session.execute(select(Produto))
 
 
 @pytest.mark.asyncio
-async def test_erro_de_execucao_sql_cai_no_fallback_sem_quebrar_sessao(db_session):
-    # Cobre o caminho feliz do fallback quando a SQL gerada pelo LLM passa a
-    # validação léxica mas falha na execução real (coluna inexistente).
+async def test_erro_de_execucao_sql_nao_gera_grafico_sem_quebrar_sessao(db_session):
+    # Cobre o SQL gerado pelo LLM que passa a validação léxica mas falha na
+    # execução real (coluna inexistente).
     # # MVP: roda contra SQLite em memória (ver docstring de `db_session` em
     # conftest.py) — não reproduz o `PendingRollbackError` específico do
     # dialeto Postgres (produção) que motivou o `session.rollback()`
@@ -173,8 +202,10 @@ async def test_erro_de_execucao_sql_cai_no_fallback_sem_quebrar_sessao(db_sessio
         llm_client=llm_client,
     )
 
-    assert chart is not None
-    assert chart.sql_query != "dynamic_sql: SELECT coluna_que_nao_existe FROM produtos"
+    assert chart is None
+    assert explicacao
+    # Sessão não ficou numa transação quebrada — ainda dá pra usar
+    await db_session.execute(select(Produto))
 
 
 @pytest.mark.asyncio
@@ -201,3 +232,39 @@ async def test_process_dynamic_chart_request_sql_dinamico_retorna_tokens_usados(
     assert chart is not None
     assert prompt_tokens == 120
     assert completion_tokens == 45
+
+
+@pytest.mark.asyncio
+async def test_process_dynamic_chart_request_sem_llm_nao_gera_grafico(db_session):
+    """Sem dados inline e sem llm_client (ex.: modelo local indisponível no
+    momento), não há mais fallback hardcoded — o pedido não gera gráfico."""
+    chart, explicacao, prompt_tokens, completion_tokens = await process_dynamic_chart_request(
+        session=db_session,
+        prompt="gere gráfico de produtos por faturamento",
+        user_email="admin@teste.com",
+        llm_client=None,
+    )
+
+    assert chart is None
+    assert explicacao
+    assert prompt_tokens is None
+    assert completion_tokens is None
+
+
+@pytest.mark.asyncio
+async def test_process_dynamic_chart_request_sql_sem_resultado_nao_gera_grafico(db_session):
+    """SQL válido e seguro, mas que não retorna nenhuma linha — não deve
+    gerar um gráfico vazio nem cair em dado hardcoded; só explica o motivo."""
+    llm_client = _FakeLLMClientSql(
+        sql="SELECT nome FROM produtos WHERE nome = 'Produto Inexistente'"
+    )
+
+    chart, explicacao, _prompt_tokens, _completion_tokens = await process_dynamic_chart_request(
+        session=db_session,
+        prompt="gere gráfico de um produto que não existe",
+        user_email="admin@teste.com",
+        llm_client=llm_client,
+    )
+
+    assert chart is None
+    assert "não encontrei dados" in explicacao.lower()

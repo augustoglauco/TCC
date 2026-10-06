@@ -1612,6 +1612,95 @@ cards) e os testes de componente do frontend
 (`tests/components/Chat{ProductCard,QuoteCard,AppointmentCard}.test.tsx`,
 `MessageBubble.test.tsx`).
 
+**Decisão registrada (2026-10-06 — Agente Analítico de Gráficos Dinâmicos:
+eliminar o fallback hardcoded, introspecção automática de esquema):** a
+feature "Dashboards e Gráficos Dinâmicos via Chat" (além do MVP, entregue em
+2026-10-04 — `docs/superpowers/plans/2026-10-04-llm-dynamic-charts-agent.md`)
+nunca tinha ganhado um registro de decisão nesta seção; fica documentada
+aqui junto da revisão abaixo.
+
+> **Estado antes desta revisão:** `app.services.analytics_agent.
+> process_dynamic_chart_request` tentava, em cadeia, (1) dados digitados
+> pelo próprio usuário no prompt; (2) Text-to-SQL via LLM (esquema das 8
+> tabelas permitidas injetado no prompt como texto Markdown escrito à mão em
+> `get_catalog_schema_prompt()`, SQL validado por whitelist em
+> `app.services.safe_sql`); (3) **fallback para uma das 7 agregações fixas
+> de `app.services.chart_generator.execute_chart_aggregation`** sempre que
+> (2) falhasse — LLM indisponível, JSON malformado, SQL rejeitado pela
+> whitelist, ou zero linhas retornadas. Isso contrariava o objetivo real da
+> feature (o LLM deveria formular o SQL a partir do pedido em linguagem
+> natural, sem consulta hardcoded) e escondia o problema: o esquema
+> escrito à mão estava **desatualizado** — descrevia `pedidos.status` como
+> `'reservado'/'aprovado'/'cancelado'`, sem o valor real `venda_concluida`
+> usado em todo o resto do sistema (ver "Conversão de Reserva em Venda",
+> 2026-10-05) — o LLM nunca tinha como filtrar vendas efetivadas
+> corretamente, então o passo (3) hardcoded quase sempre "vencia" por
+> omissão.
+>
+> **Revisão (decisão do desenvolvedor, 2026-10-06):**
+> 1. **Passo (3) removido da geração de gráficos novos.** Se (1) não
+>    disparar e (2) falhar/não retornar linhas, `process_dynamic_chart_request`
+>    devolve `chart=None` com uma explicação do motivo (LLM indisponível,
+>    SQL recusado pela validação de segurança, ou consulta sem resultado) —
+>    o admin recebe essa explicação como resposta no chat, em vez de um
+>    gráfico silenciosamente incorreto. Achado lateral corrigido: antes,
+>    quando `process_dynamic_chart_request` levantava uma exceção não
+>    tratada, `chart` ficava `None` e o orquestrador **não dizia nada ao
+>    admin**, só seguia tentando casar a mensagem com outras intenções
+>    (comprovante, agendamento) — agora qualquer caminho que resulte em
+>    `chart=None` gera uma resposta explicativa.
+> 2. **`get_catalog_schema_prompt` passa a introspectar o banco de verdade**
+>    (via `sqlalchemy.inspect`/`Inspector.get_columns`, dialect-agnostic —
+>    roda igual contra Postgres em produção e SQLite nos testes), restrito
+>    às mesmas 8 tabelas de `ALLOWED_TABLES` (a whitelist de segurança não
+>    muda, só a fonte da descrição de colunas/tipos). Colunas "tipo enum"
+>    sem constraint no banco (ex.: `pedidos.status`, texto livre, sem
+>    `CHECK`) não têm de onde a introspecção tirar os valores válidos — por
+>    isso uma pequena tabela de **notas semânticas curadas à mão** continua
+>    existindo, à parte da introspecção, documentando essas regras de
+>    negócio (ex.: os 3 valores reais de `pedidos.status` e que
+>    `venda_concluida` é o único que representa venda efetivada). `# MVP:
+>    notas semânticas exigem atualização manual se um novo valor de status
+>    for introduzido — risco aceito, mesmo padrão de documentação manual já
+>    usado em outras partes do projeto`.
+> 3. **`chart_generator.py` fica só com `detect_chart_request`** (gate barato
+>    de intenção no orquestrador — heurística por palavra-chave, decide só
+>    "parece pedido de gráfico?" antes de acionar o LLM; não é uma consulta
+>    SQL, é classificação de intenção). `execute_chart_aggregation` e
+>    `SUPPORTED_QUERIES` (as 7 agregações fixas) foram **removidos**, não só
+>    desativados — intenção inicial da revisão era manter esse código vivo
+>    só para o **refresh** de gráficos já persistidos com uma `query_key`
+>    fixa antes desta revisão (`app.api.admin_charts`, endpoint `/refresh`),
+>    mas o desenvolvedor confirmou (2026-10-06) que nenhum gráfico desses
+>    existe em uso — sem dado real para migrar, manter o código só
+>    adicionava superfície sem propósito. O terceiro ramo do endpoint
+>    `/refresh` (que reexecutava essa agregação) também foi removido; um
+>    `sql_query` que não seja `dynamic_sql: ...` nem `dynamic_user_data`
+>    agora simplesmente não é recalculado no refresh (sem erro, sem efeito).
+>    Os bugs de precisão abaixo foram corrigidos antes dessa remoção ser
+>    decidida — ficam só como registro histórico do que estava errado, já
+>    que o código em que viviam não existe mais.
+> 4. **Bugs de precisão que existiam em `execute_chart_aggregation`** (achado
+>    de 2026-10-05, item "Correção da Precisão de Métricas e Gráficos" do
+>    roadmap — metade da correção; a outra metade, `admin_metrics.py`,
+>    é **código totalmente independente** deste sistema, tela fixa sem
+>    interface conversacional, segue pendente separada):
+>    - `vendas_produtos_quantidade`/`vendas_produtos_valor` somavam
+>      `PedidoItem` de qualquer pedido, incluindo reservas nunca pagas —
+>      não filtravam `Pedido.status == "venda_concluida"`.
+>    - `vendas_por_categoria`/`vendas_categoria_quantidade` somavam
+>      `Produto.preco` do catálogo estático agrupado por categoria (medindo
+>      "valor do catálogo cadastrado", não "valor vendido") em vez de
+>      agregar vendas reais.
+>
+> A tela fixa `/admin/metricas` (`app.api.admin_metrics`) não foi tocada
+> nesta revisão — confirmado por leitura de código que não importa nada de
+> `chart_generator`/`analytics_agent`/`safe_sql`/`AdminChart`; é SQL direto
+> sem qualquer caminho conversacional, então "Text-to-SQL dinâmico" não se
+> aplica a ela por desenho. Os bullets 3 e 4 do item de roadmap
+> ("Métricas de Chat em Tempo Real", "Agrupamento por Data de Mensagem")
+> continuam pendentes ali, independentes desta revisão.
+
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |

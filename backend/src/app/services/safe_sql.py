@@ -7,6 +7,7 @@ import re
 from decimal import Decimal
 from typing import Any
 
+from sqlalchemy import inspect as sa_inspect
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +16,7 @@ logger = logging.getLogger("assistente.safe_sql")
 
 class SQLSecurityError(ValueError):
     """Exceção levantada quando uma consulta viola as regras de segurança."""
+
     pass
 
 
@@ -99,7 +101,9 @@ def validate_readonly_sql(sql: str) -> str:
     for pattern in BLOCKED_PATTERNS:
         match = re.search(pattern, cleaned, re.IGNORECASE)
         if match:
-            raise SQLSecurityError(f"Comando não permitido: instrução perigosa detectada ({match.group(0)}).")
+            raise SQLSecurityError(
+                f"Comando não permitido: instrução perigosa detectada ({match.group(0)})."
+            )
 
     _validar_tabelas_permitidas(cleaned)
 
@@ -115,9 +119,7 @@ def validate_readonly_sql(sql: str) -> str:
     return cleaned
 
 
-async def execute_readonly_sql(
-    session: AsyncSession, sql: str
-) -> list[dict[str, Any]]:
+async def execute_readonly_sql(session: AsyncSession, sql: str) -> list[dict[str, Any]]:
     """Executa de forma segura uma consulta SQL somente-leitura e retorna
     uma lista de dicionários com tipos serializáveis em JSON.
     """
@@ -142,65 +144,90 @@ async def execute_readonly_sql(
     return registros
 
 
-def get_catalog_schema_prompt() -> str:
-    """Retorna o esquema descritivo das tabelas disponíveis no PostgreSQL para que
-    o LLM consiga formular consultas Text-to-SQL analíticas precisas.
-    """
-    return """
-Tabelas e Colunas disponíveis para consulta (PostgreSQL):
+# Descrições curtas de cada tabela (contexto de negócio que a introspecção
+# do banco não traz sozinha).
+_TABLE_DESCRIPTIONS: dict[str, str] = {
+    "produtos": "Catálogo de produtos.",
+    "produto_estoque": "Estoque de cada produto por centro de distribuição.",
+    "cliente_compras": "Histórico de compras já concluídas de clientes antigos (dados fixos).",
+    "clientes": "Clientes cadastrados.",
+    "pedidos": "Cabeçalho de reservas/pedidos feitos pelo chat ou site.",
+    "pedido_itens": "Itens de cada pedido/reserva — uma linha por produto no carrinho.",
+    "agendamentos": "Agendamentos de visita.",
+    "conversa_mensagens": "Mensagens trocadas no chat (cliente e assistente).",
+}
 
-1. produtos
-   - id (INTEGER, PK)
-   - nome (VARCHAR): Nome completo do produto (ex: 'Gerador Diesel GD-15')
-   - descricao (TEXT)
-   - preco (NUMERIC(10,2)): Preço unitário em Reais (R$)
-   - preco_promocional (NUMERIC(10,2))
-   - categoria (VARCHAR): Categoria do produto (ex: 'geradores', 'acessórios', 'Controle de Acesso')
-   - ativo (BOOLEAN)
+# Notas semânticas curadas à mão para colunas "tipo enum" sem CHECK
+# constraint no banco — a introspecção automática abaixo não tem de onde
+# descobrir os valores válidos desses campos. Decisão registrada em
+# docs/ARCHITECTURE.md §5 ("Agente Analítico de Gráficos Dinâmicos",
+# 2026-10-06): achado concreto que motivou isso — o texto anterior (escrito
+# à mão, sem introspecção nenhuma) descrevia `pedidos.status` como
+# 'reservado'/'aprovado'/'cancelado', sem o valor real `venda_concluida`
+# usado em todo o resto do sistema, então o LLM nunca tinha como filtrar
+# venda efetivada corretamente.
+# `# MVP: exige atualização manual se um novo valor de status for
+# introduzido — risco aceito, mesmo padrão de documentação manual já usado
+# em outras partes do projeto.`
+_SEMANTIC_NOTES: dict[str, str] = {
+    "pedidos": (
+        "   Nota: `status` é texto livre (sem constraint no banco). Valores reais "
+        "usados pelo sistema: 'reservado' (reserva ainda não paga), "
+        "'venda_concluida' (ÚNICO valor que representa venda efetivada) e "
+        "'pagamento_divergente'. Para 'vendas'/'faturamento' reais a partir de "
+        "pedido_itens, SEMPRE filtre pedidos.status = 'venda_concluida'."
+    ),
+    "cliente_compras": (
+        "   Nota: toda linha aqui já é uma venda concluída (histórico fixo) — "
+        "não precisa (nem existe) filtro de status nesta tabela."
+    ),
+}
 
-2. produto_estoque
-   - produto_id (INTEGER, FK -> produtos.id)
-   - centro_distribuicao (VARCHAR): Nome do CD (ex: 'CD-SP', 'CD-RJ')
-   - quantidade (INTEGER): Quantidade física disponível em estoque
-
-3. cliente_compras (Histórico de Vendas Concluídas)
-   - id (INTEGER, PK)
-   - cliente_id (INTEGER, FK -> clientes.id)
-   - produto_id (INTEGER, FK -> produtos.id)
-   - quantidade (INTEGER): Quantidade de unidades compradas
-   - valor_total (NUMERIC(12,2)): Valor total da compra em Reais (R$)
-   - comprado_em (TIMESTAMP WITH TIME ZONE)
-
-4. clientes
-   - id (INTEGER, PK)
-   - nome (VARCHAR)
-   - email (VARCHAR)
-
-5. pedidos (Reservas e Pedidos de Venda)
-   - id (UUID, PK)
-   - status (VARCHAR): 'reservado', 'aprovado', 'cancelado'
-   - user_email (VARCHAR)
-   - criado_em (TIMESTAMP WITH TIME ZONE)
-
-6. pedido_itens (Itens de Pedidos / Reservas)
-   - id (UUID, PK)
-   - pedido_id (UUID, FK -> pedidos.id)
-   - produto_id (INTEGER, FK -> produtos.id)
-   - centro_distribuicao (VARCHAR)
-   - quantidade (INTEGER): Quantidade de unidades no pedido
-   - preco_unitario (NUMERIC(10,2))
-
-7. agendamentos
-   - id (UUID, PK)
-   - user_email (VARCHAR)
-   - nome_cliente (VARCHAR)
-   - status (VARCHAR): 'confirmado', 'cancelado'
-   - data_hora_inicio (TIMESTAMP WITH TIME ZONE)
-
+_SCHEMA_RULES = """
 Regras para gerar SQL:
 - Utilize apenas comandos SELECT.
-- Para vendas totais por produto, cruze 'produtos' com 'cliente_compras' e/ou 'pedido_itens'.
-- Sempre agrupe (GROUP BY) quando usar funções de agregação como SUM(quantidade), COUNT(*), SUM(valor_total).
+- Para vendas totais por produto, cruze 'produtos' com 'cliente_compras' e/ou
+  'pedido_itens' (filtrando pedidos.status = 'venda_concluida' ao usar pedido_itens).
+- Sempre agrupe (GROUP BY) quando usar funções de agregação como SUM(quantidade),
+  COUNT(*), SUM(valor_total).
 - Ordene de forma decrescente pelo volume ou valor (ORDER BY ... DESC).
 - Limite os resultados aos 10 ou 15 principais (LIMIT 15).
 """
+
+
+async def get_catalog_schema_prompt(session: AsyncSession) -> str:
+    """Gera a descrição do esquema das tabelas permitidas a partir do banco de
+    dados real, para que o LLM formule consultas Text-to-SQL precisas.
+
+    Introspecção via `sqlalchemy.inspect` (dialect-agnostic — roda igual
+    contra Postgres em produção e SQLite nos testes), restrita às mesmas
+    tabelas de `ALLOWED_TABLES` (a whitelist de segurança não muda, só a
+    fonte da descrição de colunas/tipos deixa de ser um texto escrito à
+    mão). Decisão registrada em docs/ARCHITECTURE.md §5, 2026-10-06.
+    """
+    conn = await session.connection()
+
+    def _reflect(sync_conn: Any) -> dict[str, list[dict[str, Any]]]:
+        inspector = sa_inspect(sync_conn)
+        return {
+            tabela: inspector.get_columns(tabela)
+            for tabela in sorted(ALLOWED_TABLES)
+            if inspector.has_table(tabela)
+        }
+
+    tabelas_colunas = await conn.run_sync(_reflect)
+
+    linhas = ["Tabelas e Colunas disponíveis para consulta:\n"]
+    for i, (tabela, colunas) in enumerate(tabelas_colunas.items(), start=1):
+        descricao = _TABLE_DESCRIPTIONS.get(tabela, "")
+        cabecalho = f"{i}. {tabela}" + (f" ({descricao})" if descricao else "")
+        linhas.append(cabecalho)
+        for col in colunas:
+            nullable = "" if col.get("nullable", True) else ", NOT NULL"
+            linhas.append(f"   - {col['name']} ({col['type']}{nullable})")
+        if tabela in _SEMANTIC_NOTES:
+            linhas.append(_SEMANTIC_NOTES[tabela])
+        linhas.append("")
+
+    linhas.append(_SCHEMA_RULES.strip())
+    return "\n".join(linhas)

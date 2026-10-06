@@ -1,11 +1,36 @@
+import json
 from unittest.mock import AsyncMock
+
 import pytest
 from pydantic import TypeAdapter
-from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from app.db.models import AdminChart, Produto
+from app.db.models import Produto
 from app.models.chat import CardGrafico, ChatCard, ChatDoneEventData
-from app.router.orchestrator import RouterDecision, StatusEvent, TokenEvent, handle_message
+from app.router.orchestrator import RouterDecision, TokenEvent, handle_message
+
+
+class _FakeChunk:
+    def __init__(self, text: str) -> None:
+        self.text = text
+        self.prompt_tokens: int | None = None
+        self.completion_tokens: int | None = None
+
+
+class _FakeLLMClientChart:
+    """Simula o LLM gerando SQL válido para 'vendas por categoria' — desde
+    2026-10-06 (docs/ARCHITECTURE.md §5) não existe mais fallback hardcoded,
+    então o teste de ponta a ponta do card de gráfico precisa de um LLM que
+    de fato devolve SQL, não um AsyncMock genérico sem resposta real."""
+
+    async def generate_stream(self, prompt: str):
+        payload = {
+            "sql": "SELECT categoria, COUNT(*) as total FROM produtos GROUP BY categoria",
+            "titulo": "Vendas por Categoria",
+            "tipo_grafico": "bar",
+            "x_key": "categoria",
+            "y_keys": ["total"],
+        }
+        yield _FakeChunk(json.dumps(payload))
 
 
 def test_card_grafico_schema():
@@ -49,7 +74,7 @@ async def test_orchestrator_chart_generation_admin(db_session):
     async for ev in handle_message(
         message="Por favor, gere um gráfico de vendas por categoria",
         recent_messages=[],
-        local_client=AsyncMock(),
+        local_client=_FakeLLMClientChart(),
         external_client=AsyncMock(),
         rag_client=AsyncMock(),
         complexity_strategy="heuristic",

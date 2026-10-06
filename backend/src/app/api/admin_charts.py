@@ -13,7 +13,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.admin_auth import require_admin
 from app.api.rag_dependencies import get_db_session
 from app.db.models import AdminChart
-from app.services.chart_generator import SUPPORTED_QUERIES, execute_chart_aggregation
 from app.services.safe_sql import SQLSecurityError, execute_readonly_sql
 
 logger = logging.getLogger("assistente.admin_charts")
@@ -84,9 +83,8 @@ async def list_admin_charts(
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
-    stmt = (
-        select(AdminChart)
-        .order_by(AdminChart.fixado.desc(), AdminChart.ordem.asc(), AdminChart.criado_em.desc())
+    stmt = select(AdminChart).order_by(
+        AdminChart.fixado.desc(), AdminChart.ordem.asc(), AdminChart.criado_em.desc()
     )
     res = await session.scalars(stmt)
     return [AdminChartOut.from_model(c) for c in res.all()]
@@ -126,7 +124,9 @@ async def refresh_admin_chart(
     try:
         cid = uuid.UUID(chart_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ID de gráfico inválido.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="ID de gráfico inválido."
+        )
 
     chart = await session.get(AdminChart, cid)
     if not chart:
@@ -169,27 +169,14 @@ async def refresh_admin_chart(
             chart.atualizado_em = datetime.now(UTC)
             await session.commit()
             await session.refresh(chart)
-        elif chart.sql_query in SUPPORTED_QUERIES:
-            try:
-                config_json, dados_json = await execute_chart_aggregation(session, chart.sql_query)
-                chart.config_json = config_json
-                chart.dados_json = dados_json
-                chart.atualizado_em = datetime.now(UTC)
-                await session.commit()
-                await session.refresh(chart)
-            except Exception as exc:
-                logger.error("falha_ao_recalcular_grafico", extra={"chart_id": chart_id, "erro": str(exc)})
-                # Achado da revisão de 2026-10-04: o commit acima pode ter
-                # falhado a meio caminho, deixando a sessão em estado de
-                # rollback pendente — sem este rollback, o commit de
-                # fallback abaixo (lista vazia em vez de 500) também falha,
-                # com uma `PendingRollbackError` não tratada escapando do
-                # `except`.
-                await session.rollback()
-                # Atualiza para lista vazia em caso de falha controlada em vez de 500
-                chart.dados_json = []
-                await session.commit()
-                await session.refresh(chart)
+        # Achado de 2026-10-06 (docs/ARCHITECTURE.md §5): removido o
+        # terceiro caminho, que recalculava gráficos salvos com uma
+        # `query_key` fixa de `chart_generator.execute_chart_aggregation`
+        # (ex.: "vendas_por_categoria") — não existe mais gráfico gerado
+        # dessa forma em uso, e gráfico novo só é criado via Text-to-SQL
+        # (`sql_query` sempre vem com o prefixo `dynamic_sql:` ou é
+        # `dynamic_user_data`). Qualquer `sql_query` que não caia nos dois
+        # ramos acima simplesmente não é recalculado no refresh.
 
     return AdminChartOut.from_model(chart)
 
@@ -205,7 +192,9 @@ async def update_admin_chart(
     try:
         cid = uuid.UUID(chart_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ID de gráfico inválido.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="ID de gráfico inválido."
+        )
 
     chart = await session.get(AdminChart, cid)
     if not chart:
@@ -242,7 +231,9 @@ async def delete_admin_chart(
     try:
         cid = uuid.UUID(chart_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ID de gráfico inválido.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="ID de gráfico inválido."
+        )
 
     chart = await session.get(AdminChart, cid)
     if not chart:

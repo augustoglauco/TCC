@@ -602,8 +602,19 @@ injetado por `app.services.safe_sql.get_catalog_schema_prompt()` (não
 catalogado em entrada própria — é um helper de descrição de schema, não um
 prompt de instrução independente).
 
+**Atualizado em 2026-10-06 (docs/ARCHITECTURE.md §5, "Agente Analítico de
+Gráficos Dinâmicos"):** `get_catalog_schema_prompt()` passou a ser `async` e
+introspecta o esquema real do banco (`sqlalchemy.inspect`) em vez de um
+texto Markdown escrito à mão — o texto injetado em `{schema_prompt}` agora
+reflete colunas/tipos reais, mais notas semânticas curadas para colunas
+tipo-enum sem constraint (ex.: valores válidos de `pedidos.status`). Também
+não existe mais fallback para uma consulta hardcoded quando este prompt
+falha (JSON inválido, SQL rejeitado pela validação de segurança, ou zero
+linhas) — `process_dynamic_chart_request` devolve `chart=None` com uma
+explicação do motivo, sem gerar gráfico.
+
 ```python
-# Line 119: Prompt de Text-to-SQL para geração de gráficos analíticos
+# Line 123: Prompt de Text-to-SQL para geração de gráficos analíticos
 system_instruction = f"""Você é um analista de dados especialista em PostgreSQL e visualizações de dados.
 O usuário solicitou um gráfico: "{prompt}".
 

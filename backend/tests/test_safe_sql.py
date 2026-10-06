@@ -67,8 +67,7 @@ def test_validate_readonly_sql_permite_join_entre_tabelas_do_allowlist():
 
 def test_validate_readonly_sql_permite_referenciar_cte_propria():
     cleaned = validate_readonly_sql(
-        "WITH top_vendas AS (SELECT produto_id FROM cliente_compras) "
-        "SELECT * FROM top_vendas"
+        "WITH top_vendas AS (SELECT produto_id FROM cliente_compras) SELECT * FROM top_vendas"
     )
     assert "LIMIT" in cleaned
 
@@ -79,12 +78,22 @@ def test_validate_readonly_sql_enforces_limit():
     assert "LIMIT 50" in cleaned
 
 
-def test_get_catalog_schema_prompt():
-    prompt = get_catalog_schema_prompt()
+@pytest.mark.asyncio
+async def test_get_catalog_schema_prompt(db_session):
+    # Decisão de 2026-10-06 (docs/ARCHITECTURE.md §5): o esquema deixou de
+    # ser um texto escrito à mão e passou a ser introspectado do banco real
+    # — este teste roda contra o SQLite de testes (ver conftest.py), que
+    # tem as mesmas tabelas/colunas criadas via `Base.metadata.create_all`.
+    prompt = await get_catalog_schema_prompt(db_session)
     assert "produtos" in prompt
     assert "cliente_compras" in prompt
     assert "pedidos" in prompt
     assert "pedido_itens" in prompt
+    # Colunas reais vieram da introspecção, não de texto hardcoded
+    assert "nome" in prompt
+    assert "categoria" in prompt
+    # Nota semântica curada à mão sobre o valor real de status continua lá
+    assert "venda_concluida" in prompt
 
 
 @pytest.mark.asyncio
@@ -93,11 +102,16 @@ async def test_execute_readonly_sql_success(db_session):
 
     from app.db.models import Produto
 
-    p = Produto(nome="Produto Teste Seguro", descricao="Desc", preco=Decimal("99.90"), categoria="Segurança")
+    p = Produto(
+        nome="Produto Teste Seguro", descricao="Desc", preco=Decimal("99.90"), categoria="Segurança"
+    )
     db_session.add(p)
     await db_session.commit()
 
-    rows = await execute_readonly_sql(db_session, "SELECT nome, preco, categoria FROM produtos WHERE nome = 'Produto Teste Seguro'")
+    rows = await execute_readonly_sql(
+        db_session,
+        "SELECT nome, preco, categoria FROM produtos WHERE nome = 'Produto Teste Seguro'",
+    )
     assert len(rows) == 1
     assert rows[0]["nome"] == "Produto Teste Seguro"
     assert float(rows[0]["preco"]) == 99.90

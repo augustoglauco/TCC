@@ -1176,6 +1176,10 @@ async def handle_message(
                     )
             except Exception as exc:
                 logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})
+                explicacao = (
+                    "Não consegui gerar esse gráfico agora por uma falha interna. "
+                    "Tente novamente em instantes."
+                )
 
             if chart:
                 texto_resp = explicacao or (
@@ -1206,6 +1210,31 @@ async def handle_message(
                     cost_completion_usd=0.0,
                     custo_estimado_usd=0.0,
                     card=card,
+                    router_provider=intent_router_provider,
+                )
+                return
+
+            # Achado de 2026-10-06 (docs/ARCHITECTURE.md §5, "Agente
+            # Analítico de Gráficos Dinâmicos"): sem fallback hardcoded,
+            # `chart` pode ser `None` em caminhos normais (não só em
+            # exceção) — antes disso o admin não recebia nenhum aviso,
+            # só caía em silêncio na tentativa de casar outra intenção.
+            if explicacao:
+                yield TokenEvent(text=explicacao)
+                yield RouterDecision(
+                    domain="atendimento",
+                    complexity="baixa",
+                    confidence=1.0,
+                    complexity_strategy_usada="regras",
+                    backend_escolhido="local",
+                    motivo_escalonamento="nenhum",
+                    resposta=explicacao,
+                    latencia_ms=0.0,
+                    tokens_entrada=chart_prompt_tokens,
+                    tokens_saida=chart_completion_tokens,
+                    cost_prompt_usd=0.0,
+                    cost_completion_usd=0.0,
+                    custo_estimado_usd=0.0,
                     router_provider=intent_router_provider,
                 )
                 return

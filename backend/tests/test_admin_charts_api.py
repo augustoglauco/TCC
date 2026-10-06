@@ -1,9 +1,11 @@
 from decimal import Decimal
+
 import pytest
 from httpx import ASGITransport, AsyncClient
-from app.db.models import AdminChart, Cliente, Produto
-from app.main import create_app
+
 from app.api.rag_dependencies import get_db_session
+from app.db.models import Cliente, Produto
+from app.main import create_app
 
 
 @pytest.fixture
@@ -25,10 +27,13 @@ async def test_admin_charts_api_unauthorized(test_app):
 async def test_admin_charts_crud_flow(test_app, db_session):
     admin = Cliente(nome="Admin Master", email="admin@empresa.com")
     db_session.add(admin)
-    p = Produto(nome="Produto 1", descricao="Desc", preco=Decimal("100.00"), categoria="Ferramentas")
+    p = Produto(
+        nome="Produto 1", descricao="Desc", preco=Decimal("100.00"), categoria="Ferramentas"
+    )
     db_session.add(p)
     await db_session.commit()
     await db_session.refresh(admin)
+    await db_session.refresh(p)
 
     admin_token = f"mock-token-{admin.id}"
     headers = {"Authorization": f"Bearer {admin_token}"}
@@ -36,13 +41,16 @@ async def test_admin_charts_crud_flow(test_app, db_session):
 
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         # 1. Create chart
+        # sql_query=None: gráfico criado manualmente pelo admin (CreateChartModal),
+        # sem consulta nenhuma por trás — caso real de uso, ao contrário de uma
+        # `query_key` fixa (removida em 2026-10-06, ver docs/ARCHITECTURE.md §5).
         payload = {
             "titulo": "Gráfico de Teste",
             "descricao": "Descrição do teste",
             "tipo_grafico": "bar",
             "config_json": {"x_key": "categoria", "y_keys": ["total"]},
             "dados_json": [{"categoria": "Ferramentas", "total": 100.0}],
-            "sql_query": "vendas_por_categoria",
+            "sql_query": None,
             "fixado": True,
             "ordem": 0,
         }
@@ -59,11 +67,12 @@ async def test_admin_charts_crud_flow(test_app, db_session):
         assert len(items) >= 1
         assert any(c["id"] == chart_id for c in items)
 
-        # 3. Refresh chart
+        # 3. Refresh chart — sql_query=None não é recalculado (nada para
+        # reexecutar), dados_json permanece o que foi criado.
         res_refresh = await client.post(f"/api/admin/charts/{chart_id}/refresh", headers=headers)
         assert res_refresh.status_code == 200
         refreshed = res_refresh.json()
-        assert len(refreshed["dados_json"]) >= 1
+        assert refreshed["dados_json"] == [{"categoria": "Ferramentas", "total": 100.0}]
 
         # 4. Update chart
         res_update = await client.put(
@@ -88,7 +97,9 @@ async def test_admin_charts_crud_flow(test_app, db_session):
 async def test_admin_charts_refresh_dynamic_sql_and_user_data(test_app, db_session):
     admin = Cliente(nome="Admin Dynamic", email="admin@empresa.com")
     db_session.add(admin)
-    p = Produto(nome="Item Dynamic", descricao="Desc", preco=Decimal("250.00"), categoria="Ferramentas")
+    p = Produto(
+        nome="Item Dynamic", descricao="Desc", preco=Decimal("250.00"), categoria="Ferramentas"
+    )
     db_session.add(p)
     await db_session.commit()
     await db_session.refresh(admin)
@@ -169,4 +180,3 @@ async def test_admin_charts_refresh_dynamic_sql_rejeita_tabela_fora_do_allowlist
         # requisição seguinte continua funcionando normalmente.
         res_list = await client.get("/api/admin/charts", headers=headers)
         assert res_list.status_code == 200
-
