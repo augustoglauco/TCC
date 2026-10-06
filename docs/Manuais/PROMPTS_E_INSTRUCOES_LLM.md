@@ -473,7 +473,12 @@ Texto da página:
 {texto}
 """
 
-# Line 56: Prompt de extração por visão de catálogo
+# Line 56: Prompt de extração por visão de catálogo — usado em
+# extract_page_products_vision(image_bytes, vision_client, ...); desde 2026-10-06
+# (docs/ARCHITECTURE.md §4), para imagem avulsa (folder/página sem PDF) é mandado
+# primeiro ao local_client (Ollama, describe_image) antes do fallback para o
+# vision_client externo (OpenRouter), só depois de OCR+LLM local já terem sido
+# tentados sobre o texto da imagem.
 VISION_EXTRACTION_PROMPT = """Você é um assistente especialista em extrair dados de catálogos e folhetos comerciais.
 Analise visualmente a imagem desta página de catálogo e extraia todos os produtos que constam nela.
 Responda APENAS com um array JSON no seguinte formato:
@@ -625,10 +630,10 @@ NÃO inclua nada fora do bloco JSON.
 ### 15. `backend/src/app/services/comprovante_evaluator.py`
 **Caminho:** [`backend/src/app/services/comprovante_evaluator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/services/comprovante_evaluator.py)
 
-Prompt de extração estruturada de comprovante financeiro e validação de equivalência de valores de reserva para conversão em venda nas 5 modalidades de comprovação.
+Prompt de extração estruturada de comprovante financeiro e validação de equivalência de valores de reserva para conversão em venda nas 5 modalidades de comprovação. Dois prompts: um para texto (comprovante colado ou já extraído por OCR) e um para imagem (visão — local, depois externa, decisão de custo mínimo em `docs/ARCHITECTURE.md` §4, 2026-10-06).
 
 ```python
-# Line 193: Prompt de auditoria financeira estruturada de comprovantes de pagamento
+# Line 208 (avaliar_texto): Prompt de auditoria financeira estruturada sobre TEXTO de comprovante
 prompt = (
     "Você é um auditor financeiro responsável por analisar comprovantes de pagamento.\n"
     f"{info_reserva}{info_comprador}"
@@ -644,6 +649,22 @@ prompt = (
     'e "valor_pago": 0.0.\n'
     "Responda EXCLUSIVAMENTE o bloco JSON, sem blocos de markdown adicionais.\n\n"
     f"Texto do Comprovante:\n---\n{texto}\n---\n"
+)
+```
+
+```python
+# Line 289 (avaliar_documento): Prompt de auditoria financeira sobre IMAGEM de comprovante —
+# mandado a vision_client.describe_image(conteudo, prompt_vision), primeiro ao
+# local_vision_client (Ollama, reaproveitando o LOCAL_MODEL_NAME já residente — achado de
+# 2026-10-06: já tem capability de visão nativa), depois ao vision_client externo
+# (OpenRouter) se o local falhar/não estiver disponível. Só é tentado quando o OCR
+# (`extrair_texto`) não extrai nenhum texto utilizável da imagem.
+prompt_vision = (
+    "Você é um auditor financeiro. Analise a imagem deste comprovante de pagamento.\n"
+    f"O valor devido para a compra é R$ {valor_devido:.2f}.\n"
+    "Retorne EXCLUSIVAMENTE um objeto JSON no formato:\n"
+    '{"comprovante_valido": true/false, "valor_pago": 1500.00, '
+    '"codigo_transacao": "string ou null", "justificativa": "detalhes"}'
 )
 ```
 

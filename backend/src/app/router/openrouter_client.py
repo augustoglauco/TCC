@@ -8,13 +8,9 @@ import httpx
 
 from app.ocr.image_processor import detect_image_format
 from app.router.classifier import DOMAIN_CRITERIA
-from app.router.llm_client import LLMResponse, LLMStreamChunk
+from app.router.llm_client import LLMResponse, LLMStreamChunk, VisionModelIndisponivelError
 
-
-class VisionModelIndisponivelError(Exception):
-    """Modelo de visão externo não configurado ou falhou — o motor de
-    identificação de imagem trata como 'não identificado' (sem fallback)."""
-
+__all__ = ["OpenRouterClient", "VisionModelIndisponivelError", "VisionResult"]
 
 _VALID_DOMAINS = {"vendas", "suporte", "atendimento", "agendamento", "fora_escopo"}
 
@@ -149,7 +145,9 @@ class OpenRouterClient:
         self, prompt_tokens: int | None, completion_tokens: int | None
     ) -> tuple[float, float, float]:
         cost_prompt = (prompt_tokens / 1000.0 * self._price_in) if prompt_tokens else 0.0
-        cost_completion = (completion_tokens / 1000.0 * self._price_out) if completion_tokens else 0.0
+        cost_completion = (
+            (completion_tokens / 1000.0 * self._price_out) if completion_tokens else 0.0
+        )
         return cost_prompt, cost_completion, cost_prompt + cost_completion
 
     def _custo_detalhado_visao(
@@ -187,7 +185,9 @@ class OpenRouterClient:
         usage = data.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens")
         completion_tokens = usage.get("completion_tokens")
-        cost_prompt, cost_completion, cost_total = self._custo_detalhado(prompt_tokens, completion_tokens)
+        cost_prompt, cost_completion, cost_total = self._custo_detalhado(
+            prompt_tokens, completion_tokens
+        )
 
         # MVP: assume o formato bem-formado da resposta do OpenRouter — sem
         # checagem defensiva contra `choices` vazio/ausente (um payload
@@ -257,7 +257,9 @@ class OpenRouterClient:
                 prompt_tokens = usage.get("prompt_tokens") if usage else None
                 completion_tokens = usage.get("completion_tokens") if usage else None
                 total_tokens = usage.get("total_tokens") if usage else None
-                if total_tokens is None and (prompt_tokens is not None or completion_tokens is not None):
+                if total_tokens is None and (
+                    prompt_tokens is not None or completion_tokens is not None
+                ):
                     total_tokens = (prompt_tokens or 0) + (completion_tokens or 0)
 
                 # Fallback de estimativa caso o provedor omita usage (ex.: certos modelos gratuitos)

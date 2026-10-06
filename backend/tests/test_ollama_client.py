@@ -1,9 +1,10 @@
+import base64
 import json
 
 import httpx
 import pytest
 
-from app.router.llm_client import LLMStreamChunk
+from app.router.llm_client import LLMStreamChunk, VisionModelIndisponivelError
 from app.router.ollama_client import LocalModel, OllamaClient, PullProgressLine
 
 
@@ -515,3 +516,105 @@ async def test_get_model_details_retorna_none_em_resposta_json_invalida():
     )
 
     assert await client.get_model_details("qwen2.5:7b") is None
+
+
+def _vision_transport(
+    show_response: dict, generate_response: dict, generate_status: int = 200
+) -> tuple[httpx.MockTransport, list[dict]]:
+    """Diferencia /api/show (checagem de capability) de /api/generate (chamada
+    de fato) — os demais helpers deste arquivo só sabem responder um único
+    endpoint, e `describe_image` chama os dois."""
+    generate_payloads: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/api/show":
+            return httpx.Response(200, json=show_response)
+        generate_payloads.append(json.loads(request.content))
+        return httpx.Response(generate_status, json=generate_response)
+
+    return httpx.MockTransport(handler), generate_payloads
+
+
+async def test_describe_image_sucesso_quando_modelo_tem_capability_vision():
+    # Achado de 2026-10-06 (docs/ARCHITECTURE.md §4): o LOCAL_MODEL_NAME já
+    # em produção (gemma4:12b-it-q4_K_M) tem capability "vision" nativa —
+    # describe_image reaproveita essa mesma instância, sem modelo adicional.
+    transport, payloads = _vision_transport(
+        show_response={"capabilities": ["completion", "vision"]},
+        generate_response={
+            "response": '{"produto": "câmera"}',
+            "prompt_eval_count": 500,
+            "eval_count": 20,
+        },
+    )
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="gemma4:12b-it-q4_K_M",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=transport),
+    )
+
+    resultado = await client.describe_image(b"fake-image-bytes", "descreva a imagem")
+
+    assert resultado == '{"produto": "câmera"}'
+    assert resultado.prompt_tokens == 500
+    assert resultado.completion_tokens == 20
+    assert resultado.model_name == "gemma4:12b-it-q4_K_M"
+    assert resultado.estimated_cost_usd == 0.0
+    assert payloads[0]["images"] == [base64.b64encode(b"fake-image-bytes").decode("ascii")]
+    assert payloads[0]["think"] is False
+
+
+async def test_describe_image_levanta_erro_quando_modelo_sem_capability_vision():
+    # Risco documentado na decisão: se o admin trocar LOCAL_MODEL_NAME em
+    # runtime para um modelo sem visão, a chamada precisa falhar com
+    # segurança (para o chamador cair no próximo nível do fallback), nunca
+    # mandar a imagem às cegas.
+    transport, payloads = _vision_transport(
+        show_response={"capabilities": ["completion"]},
+        generate_response={"response": "não deveria chegar aqui"},
+    )
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="qwen2.5-coder:14b",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=transport),
+    )
+
+    with pytest.raises(VisionModelIndisponivelError, match="capability de visão"):
+        await client.describe_image(b"fake-image-bytes", "descreva a imagem")
+
+    assert payloads == []  # nunca chega a chamar /api/generate
+
+
+async def test_describe_image_levanta_erro_quando_resposta_vazia():
+    transport, _ = _vision_transport(
+        show_response={"capabilities": ["vision"]},
+        generate_response={"response": ""},
+    )
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="gemma4:12b-it-q4_K_M",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=transport),
+    )
+
+    with pytest.raises(VisionModelIndisponivelError, match="não retornou conteúdo"):
+        await client.describe_image(b"fake-image-bytes", "descreva a imagem")
+
+
+async def test_describe_image_levanta_erro_em_falha_http():
+    transport, _ = _vision_transport(
+        show_response={"capabilities": ["vision"]},
+        generate_response={"error": "boom"},
+        generate_status=500,
+    )
+    client = OllamaClient(
+        base_url="http://localhost:11434",
+        model="gemma4:12b-it-q4_K_M",
+        timeout_s=30.0,
+        client=httpx.AsyncClient(transport=transport),
+    )
+
+    with pytest.raises(VisionModelIndisponivelError):
+        await client.describe_image(b"fake-image-bytes", "descreva a imagem")

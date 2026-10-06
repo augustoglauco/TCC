@@ -22,6 +22,7 @@ import pdfplumber
 from PIL import Image
 
 from app.models.catalog_extractor import CatalogPageResult, ExtractedProduct
+from app.ocr.image_processor import ImageFormatError, OcrIndisponivelError, extract_text_from_bytes
 from app.rag.pdf_extract import _extrair_texto_pagina
 
 logger = logging.getLogger(__name__)
@@ -199,7 +200,9 @@ async def extract_page_products_vision(
     c_prompt = getattr(raw_response, "cost_prompt_usd", 0.0) or 0.0
     c_comp = getattr(raw_response, "cost_completion_usd", 0.0) or 0.0
     c_tot = getattr(raw_response, "estimated_cost_usd", 0.0) or (c_prompt + c_comp)
-    model = getattr(raw_response, "model_name", None) or getattr(vision_client, "vision_model", None)
+    model = getattr(raw_response, "model_name", None) or getattr(
+        vision_client, "vision_model", None
+    )
 
     # Garante contabilização de tokens e operação mesmo se o modelo for gratuito ou omitir usage
     if (p_tok + c_tok > 0) or (c_tot > 0) or raw_response:
@@ -209,6 +212,7 @@ async def extract_page_products_vision(
 
         try:
             from app.services.ingestion_metrics import record_ingestion_cost
+
             if session is None and session_factory is not None:
                 await record_ingestion_cost(
                     source_type="catalog_extractor",
@@ -561,10 +565,43 @@ async def extract_catalog_stream(
             temp_img_path.write_bytes(content)
             temp_img_url = f"/api/uploads/produtos/temp/{temp_img_name}"
 
+            # Política de custo mínimo (decisão registrada em
+            # docs/ARCHITECTURE.md §4, 2026-10-06): imagem avulsa antes
+            # pulava direto para a visão externa (sempre paga) — achado de
+            # 2026-10-06. Agora, a menos que o admin force `provider=
+            # "external"` explicitamente, tenta OCR + LLM local, depois
+            # visão local, antes do fallback externo.
             provider_usado = "external"
             raw_prods: list[dict[str, Any]] = []
             erro_pagina: str | None = None
-            if vision_client:
+
+            if provider != "external":
+                texto_ocr = ""
+                try:
+                    texto_ocr = extract_text_from_bytes(content)
+                except (ImageFormatError, OcrIndisponivelError) as e:
+                    logger.warning(f"OCR indisponível/falhou para imagem {filename}: {e}")
+
+                if len(texto_ocr.strip()) >= 30 and local_client:
+                    try:
+                        raw_prods = await extract_page_products_local(texto_ocr, local_client)
+                        provider_usado = "local"
+                    except Exception as e:
+                        logger.warning(f"Erro na extração local (OCR) da imagem {filename}: {e}")
+
+                if not raw_prods and local_client:
+                    try:
+                        raw_prods = await extract_page_products_vision(
+                            content,
+                            local_client,
+                            source_identifier=filename,
+                            session_factory=session_factory,
+                        )
+                        provider_usado = "local"
+                    except Exception as e:
+                        logger.warning(f"Erro na visão local da imagem {filename}: {e}")
+
+            if not raw_prods and (provider == "external" or fallback_external) and vision_client:
                 try:
                     raw_prods = await extract_page_products_vision(
                         content,
@@ -572,11 +609,16 @@ async def extract_catalog_stream(
                         source_identifier=filename,
                         session_factory=session_factory,
                     )
+                    provider_usado = "external"
                 except Exception as e:
-                    logger.error(f"Erro na visão para imagem {filename}: {e}")
+                    logger.error(f"Erro na visão externa para imagem {filename}: {e}")
                     erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
-            else:
-                erro_pagina = "Modelo de visão externo não configurado."
+
+            if not raw_prods and not erro_pagina:
+                erro_pagina = (
+                    "Nenhum produto detectado (OCR, visão local e visão externa "
+                    "indisponíveis ou sem resultado)."
+                )
 
             produtos = []
             for i, item in enumerate(raw_prods):

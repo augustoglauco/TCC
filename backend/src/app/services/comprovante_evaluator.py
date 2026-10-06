@@ -1,15 +1,16 @@
-"""Serviço de análise, extração e auditoria financeira de comprovantes de pagamento (LLM Multimodal)."""
+"""Serviço de análise, extração e auditoria financeira de comprovantes de
+pagamento (LLM Multimodal)."""
 
-from dataclasses import asdict, dataclass
-from decimal import Decimal, InvalidOperation
 import json
 import logging
-from pathlib import Path
 import re
+from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any
 
-from app.ocr.image_processor import extract_text_from_bytes, ImageFormatError, OcrIndisponivelError
-from app.rag.pdf_extract import extract_text_from_pdf, PdfExtractionError
+from app.ocr.image_processor import ImageFormatError, OcrIndisponivelError, extract_text_from_bytes
+from app.rag.pdf_extract import PdfExtractionError, extract_text_from_pdf
 
 logger = logging.getLogger("assistente.comprovante_evaluator")
 
@@ -54,16 +55,26 @@ def _parse_decimal(valor_str: str) -> Decimal | None:
             return Decimal(s_clean)
         # Se contiver apenas ponto decimal (ex: 1500.50)
         return Decimal(s)
-    except (InvalidOperation, ValueError):
+    except InvalidOperation, ValueError:
         return None
 
 
 class ComprovanteEvaluator:
     """Avaliador multimodal de comprovantes de pagamento (PDF, Imagem, TXT)."""
 
-    def __init__(self, llm_client: Any = None, vision_client: Any = None):
+    def __init__(
+        self,
+        llm_client: Any = None,
+        vision_client: Any = None,
+        local_vision_client: Any = None,
+    ):
         self.llm_client = llm_client
+        # `vision_client`: visão externa (OpenRouter), último recurso.
+        # `local_vision_client`: visão local (Ollama, `describe_image`),
+        # tentada antes — decisão de custo mínimo registrada em
+        # docs/ARCHITECTURE.md §4 (2026-10-06).
         self.vision_client = vision_client
+        self.local_vision_client = local_vision_client
 
     def extrair_texto(self, conteudo: bytes, nome_arquivo_ou_extensao: str) -> str:
         """Extrai o texto bruto do documento conforme seu formato/extensão."""
@@ -118,7 +129,9 @@ class ComprovanteEvaluator:
                 valido=False,
                 valor_pago=Decimal("0.00"),
                 divergencia=-valor_devido,
-                justificativa="O documento fornecido não parece ser um comprovante de pagamento legítimo.",
+                justificativa=(
+                    "O documento fornecido não parece ser um comprovante de pagamento legítimo."
+                ),
             )
 
         # 1. Procura valor pago
@@ -143,7 +156,9 @@ class ComprovanteEvaluator:
                 valido=False,
                 valor_pago=Decimal("0.00"),
                 divergencia=-valor_devido,
-                justificativa="Não foi possível identificar o valor do pagamento no comprovante fornecido.",
+                justificativa=(
+                    "Não foi possível identificar o valor do pagamento no comprovante fornecido."
+                ),
             )
 
         # 2. Procura código / ID de transação
@@ -164,8 +179,9 @@ class ComprovanteEvaluator:
             )
         else:
             justificativa = (
-                f"Valor divergente. Valor detectado no comprovante foi R$ {valor_detectado:.2f}, "
-                f"enquanto o valor devido é R$ {valor_devido:.2f} (divergência: R$ {divergencia:.2f})."
+                f"Valor divergente. Valor detectado no comprovante foi "
+                f"R$ {valor_detectado:.2f}, enquanto o valor devido é "
+                f"R$ {valor_devido:.2f} (divergência: R$ {divergencia:.2f})."
             )
 
         return ParecerComprovante(
@@ -183,7 +199,8 @@ class ComprovanteEvaluator:
         reserva_id: str | None = None,
         nome_comprador: str | None = None,
     ) -> ParecerComprovante:
-        """Avalia o texto do comprovante contra o valor devido da reserva usando LLM ou heurística."""
+        """Avalia o texto do comprovante contra o valor devido da reserva usando
+        LLM ou heurística."""
         if not texto or not texto.strip():
             return ParecerComprovante(
                 valido=False,
@@ -199,14 +216,14 @@ class ComprovanteEvaluator:
                 "Você é um auditor financeiro responsável por analisar comprovantes de pagamento.\n"
                 f"{info_reserva}{info_comprador}"
                 f"O valor devido para esta transação é de R$ {valor_devido:.2f}.\n\n"
-                "Analise o texto do comprovante fornecido e extraia as informações no seguinte formato JSON estrito:\n"
+                "Analise o texto do comprovante fornecido e extraia as informações no seguinte formato JSON estrito:\n"  # noqa: E501 — prompt: quebrar a linha mudaria o texto enviado ao LLM
                 "{\n"
                 '  "comprovante_valido": true,\n'
                 '  "valor_pago": 1500.00,\n'
                 '  "codigo_transacao": "E1234567890",\n'
                 '  "justificativa": "Comprovante válido com valor correspondente."\n'
                 "}\n\n"
-                'Se o documento não for um comprovante de pagamento legítimo, defina "comprovante_valido": false '
+                'Se o documento não for um comprovante de pagamento legítimo, defina "comprovante_valido": false '  # noqa: E501 — prompt: quebrar a linha mudaria o texto enviado ao LLM
                 'e "valor_pago": 0.0.\n'
                 "Responda EXCLUSIVAMENTE o bloco JSON, sem blocos de markdown adicionais.\n\n"
                 f"Texto do Comprovante:\n---\n{texto}\n---\n"
@@ -228,7 +245,9 @@ class ComprovanteEvaluator:
                 valor_pago = Decimal(str(parsed.get("valor_pago", 0.0)))
                 codigo_transacao = parsed.get("codigo_transacao")
                 divergencia = valor_pago - valor_devido
-                valido = bool(parsed.get("comprovante_valido")) and (abs(divergencia) <= Decimal("0.01"))
+                valido = bool(parsed.get("comprovante_valido")) and (
+                    abs(divergencia) <= Decimal("0.01")
+                )
 
                 return ParecerComprovante(
                     valido=valido,
@@ -241,7 +260,9 @@ class ComprovanteEvaluator:
                     completion_tokens=getattr(res, "completion_tokens", None),
                 )
             except Exception as exc:
-                logger.warning("Falha na interpretação via LLM (%s), acionando fallback heurístico.", exc)
+                logger.warning(
+                    "Falha na interpretação via LLM (%s), acionando fallback heurístico.", exc
+                )
 
         return self._extrair_heuristica(texto, valor_devido)
 
@@ -255,12 +276,23 @@ class ComprovanteEvaluator:
         *,
         nome_arquivo: str | None = None,
     ) -> ParecerComprovante:
-        """Executa o pipeline completo: extração de mídia e avaliação com cálculo de divergência."""
+        """Executa o pipeline de custo mínimo (decisão registrada em
+        docs/ARCHITECTURE.md §4, 2026-10-06): OCR local + LLM local primeiro;
+        só recorre a um modelo de visão (local, depois externo, nessa ordem)
+        quando o OCR não extrai nenhum texto utilizável da imagem."""
         source_name = nome_arquivo or nome_arquivo_ou_extensao
         ext = Path(source_name).suffix.lower()
 
-        # Se for imagem e temos vision_client disponível, tenta análise visual direta
-        if ext in (".png", ".jpg", ".jpeg", ".webp") and self.vision_client:
+        texto = self.extrair_texto(conteudo, source_name)
+        if texto.strip():
+            return await self.avaliar_texto(
+                texto=texto,
+                valor_devido=valor_devido,
+                reserva_id=reserva_id,
+                nome_comprador=nome_comprador,
+            )
+
+        if ext in (".png", ".jpg", ".jpeg", ".webp"):
             prompt_vision = (
                 "Você é um auditor financeiro. Analise a imagem deste comprovante de pagamento.\n"
                 f"O valor devido para a compra é R$ {valor_devido:.2f}.\n"
@@ -268,28 +300,39 @@ class ComprovanteEvaluator:
                 '{"comprovante_valido": true/false, "valor_pago": 1500.00, '
                 '"codigo_transacao": "string ou null", "justificativa": "detalhes"}'
             )
-            try:
-                raw_vision = await self.vision_client.describe_image(conteudo, prompt_vision)
-                cleaned = re.sub(r"^```(?:json)?\s*", "", raw_vision.strip(), flags=re.MULTILINE)
-                cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE).strip()
-                parsed = json.loads(cleaned)
-                valor_pago = Decimal(str(parsed.get("valor_pago", 0.0)))
-                codigo = parsed.get("codigo_transacao")
-                divergencia = valor_pago - valor_devido
-                valido = bool(parsed.get("comprovante_valido")) and (abs(divergencia) <= Decimal("0.01"))
+            for vision_client in (self.local_vision_client, self.vision_client):
+                if not vision_client:
+                    continue
+                try:
+                    raw_vision = await vision_client.describe_image(conteudo, prompt_vision)
+                    cleaned = re.sub(
+                        r"^```(?:json)?\s*", "", raw_vision.strip(), flags=re.MULTILINE
+                    )
+                    cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE).strip()
+                    parsed = json.loads(cleaned)
+                    valor_pago = Decimal(str(parsed.get("valor_pago", 0.0)))
+                    codigo = parsed.get("codigo_transacao")
+                    divergencia = valor_pago - valor_devido
+                    valido = bool(parsed.get("comprovante_valido")) and (
+                        abs(divergencia) <= Decimal("0.01")
+                    )
 
-                return ParecerComprovante(
-                    valido=valido,
-                    valor_pago=valor_pago,
-                    divergencia=divergencia,
-                    justificativa=parsed.get("justificativa", ""),
-                    codigo_transacao=codigo,
-                    raw_json=parsed,
-                )
-            except Exception as exc:
-                logger.warning("Falha na visão multimodal direta (%s), tentando extração de texto.", exc)
+                    return ParecerComprovante(
+                        valido=valido,
+                        valor_pago=valor_pago,
+                        divergencia=divergencia,
+                        justificativa=parsed.get("justificativa", ""),
+                        codigo_transacao=codigo,
+                        raw_json=parsed,
+                        prompt_tokens=getattr(raw_vision, "prompt_tokens", None),
+                        completion_tokens=getattr(raw_vision, "completion_tokens", None),
+                    )
+                except Exception as exc:
+                    logger.warning("Falha na visão (%s), tentando próximo nível do fallback.", exc)
 
-        texto = self.extrair_texto(conteudo, source_name)
+        # Sem texto do OCR e sem visão disponível/bem-sucedida: cai no
+        # tratamento padrão de `avaliar_texto` para texto vazio ("não
+        # contém texto legível").
         return await self.avaliar_texto(
             texto=texto,
             valor_devido=valor_devido,

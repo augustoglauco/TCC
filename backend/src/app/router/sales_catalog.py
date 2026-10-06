@@ -14,11 +14,11 @@ Mesmo padrão de módulo de `app.router.scheduling`: lógica de domínio pura
 (sem tipos de streaming SSE), consumida por `app.router.orchestrator`.
 """
 
+import json
+import re
 from datetime import UTC, datetime
 from decimal import Decimal
-import json
 from pathlib import Path
-import re
 from typing import Any
 from uuid import UUID
 
@@ -35,7 +35,7 @@ from app.db.catalog import (
     obter_produto,
     sao_compativeis,
 )
-from app.db.models import Pedido, PedidoItem, Produto
+from app.db.models import Pedido, Produto
 from app.router.classifier import normalize, strip_code_fence
 from app.router.llm_client import LLMClient
 from app.services.comprovante_evaluator import ComprovanteEvaluator, ParecerComprovante
@@ -527,7 +527,7 @@ async def buscar_reserva_ativa(
     if pedido_id:
         try:
             uuid_obj = UUID(pedido_id)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             uuid_obj = None
         if uuid_obj is not None:
             result = await session.execute(base_stmt.where(Pedido.id == uuid_obj))
@@ -557,13 +557,24 @@ async def processar_conversao_comprovante(
     llm_client: Any = None,
     comprovante_bytes: bytes | None = None,
     nome_arquivo: str | None = None,
+    vision_client: Any = None,
+    local_vision_client: Any = None,
 ) -> tuple[bool, str, ParecerComprovante]:
-    """Avalia o comprovante de pagamento via ComprovanteEvaluator e converte o status do pedido."""
+    """Avalia o comprovante de pagamento via ComprovanteEvaluator e converte o status do pedido.
+
+    `local_vision_client`/`vision_client` (achado de 2026-10-06, religado
+    aqui — antes só o fluxo administrativo passava visão): sem eles, uma
+    foto de comprovante malfeita (ângulo/luz, comum vindo do celular do
+    cliente) que o OCR não consegue ler nunca tinha nenhuma tentativa de
+    visão no chat.
+    """
     valor_devido = sum(
         (item.preco_unitario * item.quantidade for item in pedido.itens),
         Decimal("0.00"),
     )
-    evaluator = ComprovanteEvaluator(llm_client=llm_client)
+    evaluator = ComprovanteEvaluator(
+        llm_client=llm_client, vision_client=vision_client, local_vision_client=local_vision_client
+    )
 
     filename_safe = None
     if comprovante_bytes:
@@ -631,8 +642,9 @@ async def processar_conversao_comprovante(
 
         tx_info = f" (Transação: {parecer.codigo_transacao})" if parecer.codigo_transacao else ""
         mensagem_resposta = (
-            f"Seu pagamento foi confirmado com sucesso! O comprovante no valor de R$ {parecer.valor_pago:.2f} "
-            f"foi validado com êxito{tx_info}. Sua reserva ({pedido.id}) foi convertida em venda concluída."
+            f"Seu pagamento foi confirmado com sucesso! O comprovante no valor de "
+            f"R$ {parecer.valor_pago:.2f} foi validado com êxito{tx_info}. Sua reserva "
+            f"({pedido.id}) foi convertida em venda concluída."
         )
         return True, mensagem_resposta, parecer
     else:
@@ -642,16 +654,18 @@ async def processar_conversao_comprovante(
 
         if parecer.valor_pago > Decimal("0.00") and abs(parecer.divergencia) > Decimal("0.01"):
             mensagem_resposta = (
-                f"Identificamos uma divergência no seu comprovante. O valor devido para a sua reserva é de "
-                f"R$ {valor_devido:.2f}, mas o comprovante aponta R$ {parecer.valor_pago:.2f} "
+                f"Identificamos uma divergência no seu comprovante. O valor devido "
+                f"para a sua reserva é de R$ {valor_devido:.2f}, mas o comprovante "
+                f"aponta R$ {parecer.valor_pago:.2f} "
                 f"(diferença de R$ {abs(parecer.divergencia):.2f}). "
-                f"Por favor, verifique e envie o comprovante com o valor correto para concluirmos sua compra."
+                f"Por favor, verifique e envie o comprovante com o valor correto "
+                f"para concluirmos sua compra."
             )
         else:
             mensagem_resposta = (
-                f"Não foi possível validar o seu comprovante de pagamento: {parecer.justificativa}. "
-                f"Por favor, envie um comprovante legível (PIX, TED ou transferência) com o valor "
-                f"integral da sua reserva (R$ {valor_devido:.2f})."
+                f"Não foi possível validar o seu comprovante de pagamento: "
+                f"{parecer.justificativa}. Por favor, envie um comprovante legível "
+                f"(PIX, TED ou transferência) com o valor integral da sua reserva "
+                f"(R$ {valor_devido:.2f})."
             )
         return False, mensagem_resposta, parecer
-

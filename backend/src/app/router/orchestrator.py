@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -1108,7 +1108,10 @@ async def handle_message(
         )
 
     # Dashboards e Gráficos Dinâmicos Gerados via Chat (Admin)
-    from app.services.analytics_agent import extract_prompt_inline_data, process_dynamic_chart_request
+    from app.services.analytics_agent import (
+        extract_prompt_inline_data,
+        process_dynamic_chart_request,
+    )
     from app.services.chart_generator import detect_chart_request
 
     chart_request = detect_chart_request(message) or extract_prompt_inline_data(message)
@@ -1116,7 +1119,8 @@ async def handle_message(
         if not is_admin:
             msg_negada = (
                 "A geração de gráficos e dashboards é um recurso exclusivo para "
-                "administradores autenticados. Faça login como administrador para gerar e visualizar gráficos dinâmicos."
+                "administradores autenticados. Faça login como administrador para "
+                "gerar e visualizar gráficos dinâmicos."
             )
             yield TokenEvent(text=msg_negada)
             yield RouterDecision(
@@ -1147,22 +1151,28 @@ async def handle_message(
                 session_ctx = db_sessionmaker()
                 if hasattr(session_ctx, "__aenter__"):
                     async with session_ctx as session:
-                        chart, explicacao, chart_prompt_tokens, chart_completion_tokens = (
-                            await process_dynamic_chart_request(
-                                session=session,
-                                prompt=message,
-                                user_email=user_email or "admin",
-                                llm_client=analytics_llm,
-                            )
-                        )
-                else:
-                    chart, explicacao, chart_prompt_tokens, chart_completion_tokens = (
-                        await process_dynamic_chart_request(
-                            session=session_ctx,
+                        (
+                            chart,
+                            explicacao,
+                            chart_prompt_tokens,
+                            chart_completion_tokens,
+                        ) = await process_dynamic_chart_request(
+                            session=session,
                             prompt=message,
                             user_email=user_email or "admin",
                             llm_client=analytics_llm,
                         )
+                else:
+                    (
+                        chart,
+                        explicacao,
+                        chart_prompt_tokens,
+                        chart_completion_tokens,
+                    ) = await process_dynamic_chart_request(
+                        session=session_ctx,
+                        prompt=message,
+                        user_email=user_email or "admin",
+                        llm_client=analytics_llm,
                     )
             except Exception as exc:
                 logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})
@@ -1239,6 +1249,8 @@ async def handle_message(
                             llm_client=llm_to_use,
                             comprovante_bytes=comprovante_bytes,
                             nome_arquivo=comprovante_filename,
+                            vision_client=external_client,
+                            local_vision_client=local_client,
                         )
             else:
                 pedido = await buscar_reserva_ativa(
@@ -1256,6 +1268,8 @@ async def handle_message(
                         llm_client=llm_to_use,
                         comprovante_bytes=comprovante_bytes,
                         nome_arquivo=comprovante_filename,
+                        vision_client=external_client,
+                        local_vision_client=local_client,
                     )
 
             if houve_reserva and texto_resp:
@@ -1284,8 +1298,9 @@ async def handle_message(
                 return
             else:
                 msg_sem_reserva = (
-                    "Recebi o envio do comprovante, mas não encontrei nenhuma reserva pendente ativa "
-                    "associada a esta conversa ou conta. Por favor, verifique o código da sua reserva ou faça seu pedido primeiro."
+                    "Recebi o envio do comprovante, mas não encontrei nenhuma reserva "
+                    "pendente ativa associada a esta conversa ou conta. Por favor, "
+                    "verifique o código da sua reserva ou faça seu pedido primeiro."
                 )
                 yield TokenEvent(text=msg_sem_reserva)
                 yield RouterDecision(

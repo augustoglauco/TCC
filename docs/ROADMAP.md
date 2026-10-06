@@ -355,14 +355,17 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `EXTERNAL_VISION_MODEL_NAME` passou a ter um default (`google/gemma-4-31b-it:free`).
       Testes em `test_openrouter_client.py` e `test_catalog_extractor.py`
       (backend) e `CatalogImportModal.test.tsx` (frontend).
-- [ ] **Investigar visão multimodal no modelo local** — avaliar se vale a
-      pena dar suporte a imagem no `OllamaClient` (hoje só texto) para que a
-      extração de catálogo e a identificação de produto por imagem (R6)
-      possam usar o modelo local como alternativa à visão externa paga/com
-      rate limit. É uma decisão de arquitetura nova (não é bug) — atualizar
-      `docs/ARCHITECTURE.md` antes de implementar, ver nota em §
-      "Extra fora do MVP" acima sobre a decisão consciente de visão só
-      externa.
+- [x] **Investigar visão multimodal no modelo local** — decisão tomada em
+      2026-10-06 (`docs/ARCHITECTURE.md` §4, "visão multimodal local
+      resolvida"): o `LOCAL_MODEL_NAME` já em produção
+      (`gemma4:12b-it-q4_K_M`) já tem capability `vision` nativa (projetor
+      CLIP embutido, achado não óbvio), confirmado em teste isolado contra
+      imagens reais de produto/comprovante com os prompts exatos de
+      produção — não é preciso baixar nem manter residente um segundo
+      modelo (Qwen2.5-VL, Gemma 3 etc. foram mapeados como alternativas e
+      descartados por ora). A *implementação* (religar visão no fluxo de
+      chat/catálogo usando esse achado) é o item novo logo abaixo, ainda
+      pendente.
 
 ## Fase 3 — RAG Multimodal, Tratamento de Imagem e Domínios (R4, R6, R7)
 
@@ -1162,6 +1165,53 @@ conversa e classificação do usuário").
       - **Vendas por Categoria Reais:** Refatorar `vendas_por_categoria` e `vendas_categoria_quantidade` para agregar o volume e faturamento das compras/pedidos reais (`PedidoItem`), em vez de somar os preços do catálogo estático de produtos (`Produto.preco`).
       - **Métricas de Chat em Tempo Real:** Atualizar a consulta de volume de conversas e tokens (`admin_metrics.py` e `metricas_tokens_por_dia`) para incluir conversas ativas/abertas (`status != "encerrada"`), permitindo que administradores visualizem o volume do dia corrente sem depender do encerramento manual/automático da sessão.
       - **Agrupamento por Data de Mensagem:** Agrupar o volume de interações pela data de criação da mensagem (`ConversaMensagem.criada_em`) em vez da data de encerramento da conversa.
+- [x] **Unificar política de custo mínimo em processamento de imagem de
+      documento (achado de 2026-10-06, implementado em 2026-10-06):** decisão
+      registrada em `docs/ARCHITECTURE.md` §4 — para comprovante/pagamento/
+      nota fiscal e para folder/página de catálogo (cadastro de produto),
+      ordem de tentativa: (1) OCR local + LLM local sobre o texto; (2) se o
+      OCR não render texto útil ou a interpretação local falhar, **visão
+      local** via Ollama reaproveitando o `LOCAL_MODEL_NAME` já residente
+      (sem modelo adicional); (3) só então fallback para visão externa
+      (OpenRouter). O fluxo de identificação de produto por imagem qualquer
+      já seguia "interno antes de externo" desde a Fase 3, não mudou. Três
+      frentes implementadas:
+      1. `OllamaClient.describe_image()` (`app.router.ollama_client`) —
+         método novo (antes só texto): checa capability `vision` via
+         `GET /api/show` antes de mandar a imagem (levanta
+         `VisionModelIndisponivelError`, movida para `app.router.llm_client`
+         e compartilhada com `OpenRouterClient`, se o modelo ativo não tiver
+         visão — trata o caso de o admin trocar `LOCAL_MODEL_NAME` em
+         runtime para um modelo só-texto), chama `POST /api/generate` com
+         `images`, `think: false`. Testes em `tests/test_ollama_client.py`.
+      2. `ComprovanteEvaluator.avaliar_documento` (`app.services.
+         comprovante_evaluator`) reordenado para OCR-primeiro (antes, com
+         `vision_client` presente, ia direto para visão, pulando o OCR) e
+         ganhou `local_vision_client`, tentado antes do `vision_client`
+         externo; religado em `processar_conversao_comprovante`
+         (`app.router.sales_catalog`, antes só com `llm_client`) e nos dois
+         endpoints de `app.api.admin_pedidos_conversao`. Tokens da chamada
+         de visão (local e externa) agora contam em `ParecerComprovante`.
+         Testes em `tests/test_comprovante_evaluator.py`.
+      3. `extract_catalog_stream` (`app.catalog_extractor.extractor`) —
+         branch de imagem avulsa (antes sempre `provider_usado="external"`
+         direto) ganhou OCR + extração local, depois visão local, antes do
+         fallback externo; `provider="external"` explícito do admin continua
+         pulando direto para o externo, igual já fazia para páginas de PDF.
+         Testes em `tests/test_catalog_extractor.py`.
+      Prompts de visão (comprovante e catálogo) sem alteração de texto, só de
+      roteamento — catalogados em
+      `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` com a nota de onde cada um
+      agora é chamado. Suíte completa (993 testes) e lint (`ruff check`/
+      `ruff format`) verificados nos arquivos alterados.
+- [x] Corrigir o `EXTERNAL_VISION_MODEL_NAME` quebrado no `.env` (achado de
+      2026-10-06 ao testar visão: `qwen/qwen3.8-27b:free` devolve 404 do
+      OpenRouter — "model unavailable for free") — trocado para
+      `google/gemma-4-31b-it:free`, o mesmo default já documentado em
+      `.env.example` (drift só no `.env` local, nunca commitado — ver
+      `.gitignore`). Validado ao vivo: devolve 429 (rate limit temporário do
+      provedor gratuito, já tratado com retry/backoff em
+      `OpenRouterClient.describe_image`), não mais 404 (modelo inexistente).
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 

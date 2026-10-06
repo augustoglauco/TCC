@@ -4,6 +4,16 @@ from typing import Protocol
 from pydantic import BaseModel
 
 
+class VisionModelIndisponivelError(Exception):
+    """Um cliente de visão (local ou externo) não está configurado, não tem
+    capability de visão, ou a chamada falhou — o chamador trata como "não
+    identificado"/cai para o próximo nível de fallback, sem propagar erro ao
+    usuário. Compartilhada por `OllamaClient.describe_image` e
+    `OpenRouterClient.describe_image` (decisão registrada em
+    docs/ARCHITECTURE.md §4, 2026-10-06 — visão local antes de visão
+    externa)."""
+
+
 class LLMResponse(BaseModel):
     text: str
     prompt_tokens: int | None = None

@@ -1,13 +1,23 @@
 """Endpoints REST administrativos para Gestão de Pedidos e Conversão de Reserva em Venda."""
 
+import logging
+import uuid
 from datetime import UTC, datetime
 from decimal import Decimal
-import logging
 from pathlib import Path
 from typing import Any
-import uuid
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -81,13 +91,18 @@ def _serializar_pedido(pedido: Pedido) -> dict[str, Any]:
 
 class ConfirmarConversaoRequest(BaseModel):
     comprovante_url: str | None = Field(default=None, description="URL do arquivo comprovante")
-    parecer_json: str | None = Field(default=None, description="Parecer em JSON da avaliação do LLM")
+    parecer_json: str | None = Field(
+        default=None, description="Parecer em JSON da avaliação do LLM"
+    )
     convertido_por: str | None = Field(default=None, description="Identificador do operador admin")
 
 
 @router.get("")
 async def listar_pedidos_admin(
-    status: str | None = Query(default=None, description="Filtrar por status: reservado, venda_concluida, pagamento_divergente"),
+    status: str | None = Query(
+        default=None,
+        description="Filtrar por status: reservado, venda_concluida, pagamento_divergente",
+    ),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     session: AsyncSession = Depends(get_db_session),
@@ -126,7 +141,7 @@ async def post_converter_manual_simples(
     session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     """Modalidade 1: Conversão Manual Simples (Admin).
-    
+
     Converte a reserva em venda diretamente, sem exigir análise por LLM.
     """
     pedido = await obter_pedido(session, pedido_id)
@@ -141,7 +156,9 @@ async def post_converter_manual_simples(
 
     if comprovante and comprovante.filename:
         conteudo = await comprovante.read()
-        comprovante_url = _salvar_arquivo_comprovante(str(pedido.id), comprovante.filename, conteudo)
+        comprovante_url = _salvar_arquivo_comprovante(
+            str(pedido.id), comprovante.filename, conteudo
+        )
         pedido.comprovante_url = comprovante_url
 
     pedido.status = "venda_concluida"
@@ -162,8 +179,9 @@ async def post_analisar_comprovante(
     session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     """Modalidade 2 (Etapa 1): Submete o comprovante para auditoria do LLM.
-    
-    Retorna o parecer técnico (valores, divergência, justificativa) para conferência manual do Admin.
+
+    Retorna o parecer técnico (valores, divergência, justificativa) para
+    conferência manual do Admin.
     """
     pedido = await obter_pedido(session, pedido_id)
     if not pedido:
@@ -177,13 +195,22 @@ async def post_analisar_comprovante(
 
     valor_devido = _calcular_total_pedido(pedido)
     conteudo = await comprovante.read()
-    comprovante_url = _salvar_arquivo_comprovante(str(pedido.id), comprovante.filename or "comprovante.bin", conteudo)
+    comprovante_url = _salvar_arquivo_comprovante(
+        str(pedido.id), comprovante.filename or "comprovante.bin", conteudo
+    )
 
-    llm_client = getattr(request.app.state, "local_client", None) or getattr(request.app.state, "external_client", None)
+    llm_client = getattr(request.app.state, "local_client", None) or getattr(
+        request.app.state, "external_client", None
+    )
     vision_client = getattr(request.app.state, "external_client", None)
-    evaluator = ComprovanteEvaluator(llm_client=llm_client, vision_client=vision_client)
+    local_vision_client = getattr(request.app.state, "local_client", None)
+    evaluator = ComprovanteEvaluator(
+        llm_client=llm_client, vision_client=vision_client, local_vision_client=local_vision_client
+    )
 
-    parecer = await evaluator.avaliar_documento(conteudo, comprovante.filename or "arquivo.bin", valor_devido)
+    parecer = await evaluator.avaliar_documento(
+        conteudo, comprovante.filename or "arquivo.bin", valor_devido
+    )
 
     return {
         "pedido_id": str(pedido.id),
@@ -238,7 +265,7 @@ async def post_converter_auto_admin(
     session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     """Modalidade 3: Conversão Automática no Admin por Upload.
-    
+
     Processa o comprovante com LLM; se validado e com divergência 0, converte automaticamente.
     Em caso de divergência ou inconsistência, altera o pedido para 'pagamento_divergente'.
     """
@@ -254,13 +281,22 @@ async def post_converter_auto_admin(
 
     valor_devido = _calcular_total_pedido(pedido)
     conteudo = await comprovante.read()
-    comprovante_url = _salvar_arquivo_comprovante(str(pedido.id), comprovante.filename or "comprovante.bin", conteudo)
+    comprovante_url = _salvar_arquivo_comprovante(
+        str(pedido.id), comprovante.filename or "comprovante.bin", conteudo
+    )
 
-    llm_client = getattr(request.app.state, "local_client", None) or getattr(request.app.state, "external_client", None)
+    llm_client = getattr(request.app.state, "local_client", None) or getattr(
+        request.app.state, "external_client", None
+    )
     vision_client = getattr(request.app.state, "external_client", None)
-    evaluator = ComprovanteEvaluator(llm_client=llm_client, vision_client=vision_client)
+    local_vision_client = getattr(request.app.state, "local_client", None)
+    evaluator = ComprovanteEvaluator(
+        llm_client=llm_client, vision_client=vision_client, local_vision_client=local_vision_client
+    )
 
-    parecer = await evaluator.avaliar_documento(conteudo, comprovante.filename or "arquivo.bin", valor_devido)
+    parecer = await evaluator.avaliar_documento(
+        conteudo, comprovante.filename or "arquivo.bin", valor_devido
+    )
 
     pedido.comprovante_url = comprovante_url
     pedido.llm_parecer = parecer.to_json()

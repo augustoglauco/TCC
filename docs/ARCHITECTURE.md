@@ -212,6 +212,81 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 > externo, o "externo" é um modelo de visão que só nomeia/classifica o
 > produto`.
 
+> **Decisão registrada (2026-10-06 — política de custo mínimo para imagens
+> de documento: recursos internos antes de visão externa):** diretriz do
+> desenvolvedor ao revisar a leitura de comprovante no chat — para
+> **qualquer imagem classificada como documento** (comprovante de
+> pagamento/PIX/TED, nota fiscal **ou** folder/página de catálogo para
+> cadastro de produto), a ordem de tentativa passa a ser sempre: (1) OCR
+> local (Tesseract, `app.ocr.image_processor.extract_text_from_bytes`); (2)
+> interpretação do texto extraído por LLM local (Ollama, texto); (3) se o
+> OCR não extrair texto utilizável ou a interpretação local falhar/for de
+> baixa confiança → **visão local** (ver decisão abaixo, "Visão multimodal
+> local resolvida — reaproveitar o modelo de texto já residente"); (4) só se
+> a visão local também falhar ou o Ollama estiver indisponível → fallback
+> para visão externa (hoje OpenRouter). O fluxo de **identificação de
+> produto por imagem qualquer** (passos 1–4 da decisão de Fase 3: CLIP
+> interno → RAG de texto → visão externa) já é "recurso interno antes de
+> externo" desde que foi implementado — não precisa de um passo novo de
+> visão local no meio, fica como está.
+>
+> **Decisão registrada (2026-10-06 — visão multimodal local resolvida:
+> reaproveitar o modelo de texto já residente, sem modelo adicional):**
+> resolve o item do roadmap "Investigar visão multimodal no modelo local"
+> (Fase 2/Extra). Teste isolado (script ad hoc, não commitado, fora de
+> `app.*`) chamando `POST /api/generate` do Ollama com `images` diretamente
+> contra `LOCAL_MODEL_NAME` (`gemma4:12b-it-q4_K_M`) mostrou que esse modelo
+> **já tem capability `vision`** (`ollama show` lista um projetor CLIP
+> embutido — descoberta não óbvia, não documentada antes). Rodado com os
+> prompts exatos de produção (`_VISION_PROMPT` de
+> `app.rag.image_identification` e o prompt do `ComprovanteEvaluator`)
+> contra 2 fotos reais de produto e 1 comprovante real já existentes no
+> repo: identificou corretamente o produto (categoria + `e_do_portfolio`,
+> confiança 0,90–0,98) e extraiu `valor_pago`/`codigo_transacao` do
+> comprovante **exatamente certos**. `comprovante_valido` veio `false`
+> porque o modelo notou se tratar de um comprovante fictício (banco/empresa
+> de teste, data futura) — comportamento do *prompt* ("auditor financeiro"),
+> não específico de rodar local, o mesmo aconteceria com qualquer modelo
+> (local ou externo) recebendo esse prompt. Latência 15–18s por chamada
+> (bem mais lenta que texto puro, mas sem rede/rate limit).
+> **Consequência prática: não é preciso baixar nem manter residente um
+> segundo modelo multimodal** (Qwen2.5-VL, Gemma 3, etc. — alternativas
+> mapeadas e descartadas por ora) — o passo (3) acima chama o Ollama com o
+> `LOCAL_MODEL_NAME` configurado, reaproveitando a mesma instância já
+> residente em VRAM (`keep_alive=-1`) usada para texto, sem custo extra de
+> carga/VRAM. Risco a tratar na implementação: se o admin trocar
+> `LOCAL_MODEL_NAME` em runtime (`/admin/modelos`) para um modelo sem
+> capability `vision` (ex.: `qwen2.5-coder`), a chamada de visão local falha
+> — precisa cair com segurança para o passo (4), não propagar erro ao
+> usuário. Implementação (religar `vision_client` no fluxo de chat; inserir
+> o passo de visão local; tratar o risco acima) **ainda não feita** — ver
+> item do roadmap (Fase 11).
+>
+> **Dois gaps encontrados que contrariam essa diretriz e ficam registrados
+> para correção (achado de 2026-10-06, revisão da leitura de comprovante no
+> chat):**
+> 1. **Comprovante no chat já roda OCR primeiro, mas sem fallback de
+>    visão quando o OCR falha.** `processar_conversao_comprovante`
+>    (`app.router.sales_catalog`) cria `ComprovanteEvaluator(llm_client=...)`
+>    **sem `vision_client`** — diferente do fluxo administrativo
+>    (`app.api.admin_pedidos_conversao`), que já passa
+>    `vision_client=external_client`. Resultado: se o OCR não extrai nada
+>    útil de uma foto de comprovante malfeita (ângulo, luz, resolução — o
+>    caso mais comum vindo do cliente final pelo celular), o cliente só
+>    recebe um pedido para reenviar, sem nenhuma tentativa de visão.
+> 2. **Imagem avulsa de folder/catálogo sempre usa visão externa, sem
+>    tentar OCR+LLM texto primeiro** — contrariava a diretriz de custo
+>    mínimo mesmo antes de ela existir formalmente; decisão anterior
+>    (Seção 5, "Gestão de Produtos, Catálogo Visual CLIP e Ingestão de
+>    Catálogos", item 3) tratava isso como simplificação consciente do MVP
+>    ("`OllamaClient` local não implementa chamada multimodal"), mas não
+>    havia necessidade de chamada multimodal para tentar OCR primeiro — só
+>    para o fallback.
+>
+> Correção de ambos os gaps (religar `vision_client` no fluxo de chat;
+> tentar OCR antes da visão externa na ingestão de catálogo por imagem
+> avulsa) é item pendente do roadmap (Fase 11), ainda não implementado.
+
 **(b) Monitoramento de tom e transbordo humano:** nova mensagem no chat → classificador de
 sentimento/urgência → ultrapassou o limiar de urgência/insatisfação? →
 **não:** fluxo normal continua. → **sim:** alerta e registro para
@@ -1320,7 +1395,7 @@ e-mail guardado sem política de consentimento/retenção (LGPD), ver Seção 7`
 O administrador do sistema ganha uma interface dedicada (`/admin/produtos`) para gestão completa do catálogo de produtos, cálculo de margem comercial e ingestão inteligente de catálogos via IA:
 1. **Modelo de dados:** estende `Produto` com `preco_base_fornecedor` (custo) e `imagem_url`, criando a tabela `produto_imagens` com relação 1:N no Postgres (migração `0013`).
 2. **Catálogo visual CLIP integrado:** as fotos cadastradas ou importadas são salvas em `data/product_images/`, servidas estaticamente em `/api/uploads/produtos/{filename}` com proteção a path traversal e checagem de MIME, e automaticamente vetorizadas no Qdrant (`catalogo_imagens`) com payload enriquecido (`produto_id`, `imagem_url`). Ao ser excluída, a imagem é expurgada do Qdrant.
-3. **Extração híbrida Human-in-the-Loop:** o backend expõe `/api/admin/produtos/catalogo/extrair/stream` com Server-Sent Events (SSE). Processa PDFs multipáginas (`pdfplumber` + renderização visual), múltiplas imagens ou arquivos de texto (`.txt`/`.md`/`.csv`, divididos em blocos de 6000 caracteres e lidos só pelo modelo local — `# MVP`: sem fallback de visão, pois não há imagem). No frontend os arquivos podem ser arrastados, colados (Ctrl+V) ou selecionados. Realiza extração local via Ollama quando há texto disponível e recorre à visão multimodal via OpenRouter em caso de catálogo escaneado ou baixa confiança. **Imagem avulsa (upload de uma única foto de página, sem PDF) sempre usa a visão externa** — o `OllamaClient` local não implementa chamada multimodal, decisão consciente de manter o modelo local só-texto (ver visão por imagem em `R6` acima). Falhas transitórias do modelo de visão (`429`/`5xx`, comuns em modelos `:free` do OpenRouter, que compartilham um pool de limite de taxa) ganham 2 tentativas extras com backoff curto (`OpenRouterClient.describe_image`); se mesmo assim falhar, o evento `pagina_concluida` da SSE traz um campo `erro` que o modal exibe distinto de "nenhum produto encontrado", para o administrador não confundir falha de infraestrutura com página genuinamente vazia. Uma tela de conferência prévia permite revisar, ajustar campos e selecionar itens antes da gravação definitiva (`POST /api/admin/produtos/catalogo/confirmar`).
+3. **Extração híbrida Human-in-the-Loop:** o backend expõe `/api/admin/produtos/catalogo/extrair/stream` com Server-Sent Events (SSE). Processa PDFs multipáginas (`pdfplumber` + renderização visual), múltiplas imagens ou arquivos de texto (`.txt`/`.md`/`.csv`, divididos em blocos de 6000 caracteres e lidos só pelo modelo local — `# MVP`: sem fallback de visão, pois não há imagem). No frontend os arquivos podem ser arrastados, colados (Ctrl+V) ou selecionados. Realiza extração local via Ollama quando há texto disponível e recorre à visão multimodal via OpenRouter em caso de catálogo escaneado ou baixa confiança. **Atualizado em 2026-10-06 (política de custo mínimo, ver mais abaixo nesta seção):** imagem avulsa (upload de uma única foto de página, sem PDF) deixou de usar sempre a visão externa — agora tenta OCR + extração local, depois visão local (`OllamaClient.describe_image`, novo), só caindo para a visão externa como último recurso (ou direto, se o admin forçar `provider="external"`). Falhas transitórias do modelo de visão (`429`/`5xx`, comuns em modelos `:free` do OpenRouter, que compartilham um pool de limite de taxa) ganham 2 tentativas extras com backoff curto (`OpenRouterClient.describe_image`); se mesmo assim falhar, o evento `pagina_concluida` da SSE traz um campo `erro` que o modal exibe distinto de "nenhum produto encontrado", para o administrador não confundir falha de infraestrutura com página genuinamente vazia. Uma tela de conferência prévia permite revisar, ajustar campos e selecionar itens antes da gravação definitiva (`POST /api/admin/produtos/catalogo/confirmar`).
 4. **Estoque, descontos e compatibilidade no admin (2026-09-27, commit
    `a6c530d`; registrado na revisão de 2026-09-28):** o formulário de
    produto ganhou abas para editar o estoque por centro de distribuição, as

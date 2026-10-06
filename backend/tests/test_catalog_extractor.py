@@ -107,7 +107,150 @@ async def test_extract_catalog_stream_imagem_sem_vision_client_reporta_erro(tmp_
     pagina_evento = next(e for e in events if "event: pagina_concluida" in e)
     payload = json.loads(pagina_evento.split("data: ", 1)[1])
     assert payload["produtos"] == []
-    assert payload["erro"] == "Modelo de visão externo não configurado."
+    # Mensagem genérica desde a política de custo mínimo (2026-10-06):
+    # cobre os 3 níveis do fallback (OCR/LLM local, visão local, visão
+    # externa), não só "visão externa não configurada".
+    assert payload["erro"] == (
+        "Nenhum produto detectado (OCR, visão local e visão externa "
+        "indisponíveis ou sem resultado)."
+    )
+
+
+async def test_extract_catalog_stream_imagem_com_texto_ocr_usa_extracao_local(tmp_path):
+    """Política de custo mínimo (docs/ARCHITECTURE.md §4, 2026-10-06): se o
+    OCR extrai texto suficiente da imagem avulsa (folder/página de
+    catálogo), usa extração local por texto e nem tenta nenhum modelo de
+    visão (nem local, nem externo) — antes pulava direto para o externo."""
+    local_client = AsyncMock()
+    mock_resp = MagicMock()
+    mock_resp.response = '[{"nome": "Sensor IVP 3000", "descricao": "Sensor infravermelho", "categoria": "Alarmes", "preco_base_fornecedor": 45.0, "preco": 75.0, "especificacoes_tecnicas": "Sem fio"}]'  # noqa: E501
+    mock_resp.text = mock_resp.response
+    local_client.generate = AsyncMock(return_value=mock_resp)
+    local_client.describe_image = AsyncMock(
+        side_effect=AssertionError("não deveria chamar visão local")
+    )
+    vision_client = AsyncMock()
+    vision_client.describe_image = AsyncMock(
+        side_effect=AssertionError("não deveria chamar visão externa")
+    )
+
+    texto_longo = "Folder de produtos de segurança com especificações " * 2  # >= 30 chars
+
+    with patch("app.catalog_extractor.extractor.extract_text_from_bytes", return_value=texto_longo):
+        files = [("folder.jpg", b"fake-jpg-content")]
+        events = []
+        async for event in extract_catalog_stream(
+            files=files,
+            provider="local",
+            fallback_external=True,
+            temp_dir=tmp_path,
+            local_client=local_client,
+            vision_client=vision_client,
+        ):
+            events.append(event)
+
+    pagina_evento = next(e for e in events if "event: pagina_concluida" in e)
+    payload = json.loads(pagina_evento.split("data: ", 1)[1])
+    assert payload["provider_usado"] == "local"
+    assert len(payload["produtos"]) == 1
+    local_client.describe_image.assert_not_called()
+    vision_client.describe_image.assert_not_called()
+
+
+async def test_extract_catalog_stream_imagem_sem_ocr_tenta_visao_local_antes_da_externa(tmp_path):
+    """Quando o OCR não extrai texto utilizável (imagem sem texto reconhecível
+    nos magic bytes, caso de `b"fake-jpg-content"` neste teste), tenta visão
+    LOCAL antes do fallback externo — gap corrigido em 2026-10-06."""
+    local_client = AsyncMock()
+    local_client.describe_image = AsyncMock(
+        return_value='[{"nome": "Sensor IVP 3000", "descricao": "Sensor infravermelho", "categoria": "Alarmes", "preco_base_fornecedor": 45.0, "preco": 75.0, "especificacoes_tecnicas": "Sem fio"}]'  # noqa: E501
+    )
+    vision_client = AsyncMock()
+    vision_client.describe_image = AsyncMock(
+        side_effect=AssertionError("não deveria chamar visão externa")
+    )
+
+    files = [("folder.jpg", b"fake-jpg-content")]
+    events = []
+    async for event in extract_catalog_stream(
+        files=files,
+        provider="local",
+        fallback_external=True,
+        temp_dir=tmp_path,
+        local_client=local_client,
+        vision_client=vision_client,
+    ):
+        events.append(event)
+
+    pagina_evento = next(e for e in events if "event: pagina_concluida" in e)
+    payload = json.loads(pagina_evento.split("data: ", 1)[1])
+    assert payload["provider_usado"] == "local"
+    assert len(payload["produtos"]) == 1
+    local_client.describe_image.assert_called_once()
+    vision_client.describe_image.assert_not_called()
+
+
+async def test_extract_catalog_stream_imagem_cai_para_visao_externa_quando_local_falha(tmp_path):
+    """Visão local indisponível (ex.: LOCAL_MODEL_NAME trocado pelo admin
+    para um modelo sem capability de visão) ainda cai com segurança para o
+    fallback externo, último nível da política de custo mínimo."""
+    local_client = AsyncMock()
+    local_client.describe_image = AsyncMock(side_effect=RuntimeError("modelo local sem visão"))
+    vision_client = AsyncMock()
+    vision_client.describe_image = AsyncMock(
+        return_value='[{"nome": "Sensor IVP 3000", "descricao": "Sensor infravermelho", "categoria": "Alarmes", "preco_base_fornecedor": 45.0, "preco": 75.0, "especificacoes_tecnicas": "Sem fio"}]'  # noqa: E501
+    )
+
+    files = [("folder.jpg", b"fake-jpg-content")]
+    events = []
+    async for event in extract_catalog_stream(
+        files=files,
+        provider="local",
+        fallback_external=True,
+        temp_dir=tmp_path,
+        local_client=local_client,
+        vision_client=vision_client,
+    ):
+        events.append(event)
+
+    pagina_evento = next(e for e in events if "event: pagina_concluida" in e)
+    payload = json.loads(pagina_evento.split("data: ", 1)[1])
+    assert payload["provider_usado"] == "external"
+    assert len(payload["produtos"]) == 1
+    local_client.describe_image.assert_called_once()
+    vision_client.describe_image.assert_called_once()
+
+
+async def test_extract_catalog_stream_imagem_provider_external_pula_visao_local(tmp_path):
+    """`provider="external"` é uma escolha explícita do admin — pula a visão
+    local mesmo com `local_client` disponível, igual já fazia para páginas
+    de PDF."""
+    local_client = AsyncMock()
+    local_client.describe_image = AsyncMock(
+        side_effect=AssertionError("não deveria chamar visão local")
+    )
+    vision_client = AsyncMock()
+    vision_client.describe_image = AsyncMock(
+        return_value='[{"nome": "Sensor IVP 3000", "descricao": "Sensor infravermelho", "categoria": "Alarmes", "preco_base_fornecedor": 45.0, "preco": 75.0, "especificacoes_tecnicas": "Sem fio"}]'  # noqa: E501
+    )
+
+    files = [("folder.jpg", b"fake-jpg-content")]
+    events = []
+    async for event in extract_catalog_stream(
+        files=files,
+        provider="external",
+        fallback_external=True,
+        temp_dir=tmp_path,
+        local_client=local_client,
+        vision_client=vision_client,
+    ):
+        events.append(event)
+
+    pagina_evento = next(e for e in events if "event: pagina_concluida" in e)
+    payload = json.loads(pagina_evento.split("data: ", 1)[1])
+    assert payload["provider_usado"] == "external"
+    local_client.describe_image.assert_not_called()
+    vision_client.describe_image.assert_called_once()
 
 
 @pytest.mark.asyncio

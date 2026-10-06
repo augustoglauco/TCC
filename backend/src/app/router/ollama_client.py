@@ -1,12 +1,43 @@
+import base64
 import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from typing import Any
 
 import httpx
 
-from app.router.llm_client import LLMResponse, LLMStreamChunk
+from app.router.llm_client import LLMResponse, LLMStreamChunk, VisionModelIndisponivelError
 
 _NS_PER_MS = 1_000_000
+
+
+class LocalVisionResult(str):
+    """Subclasse de str que preserva o texto retornado por
+    `OllamaClient.describe_image` e carrega telemetria de tokens — espelha
+    `VisionResult` (`app.router.openrouter_client`), mas sem custo (modelo
+    local, mesma instância já residente em VRAM usada para texto)."""
+
+    content: str
+    prompt_tokens: int | None
+    completion_tokens: int | None
+    model_name: str | None
+
+    def __new__(
+        cls,
+        content: str,
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        model_name: str | None = None,
+    ):
+        obj = super().__new__(cls, content)
+        obj.content = content
+        obj.prompt_tokens = prompt_tokens
+        obj.completion_tokens = completion_tokens
+        obj.cost_prompt_usd = 0.0
+        obj.cost_completion_usd = 0.0
+        obj.estimated_cost_usd = 0.0
+        obj.model_name = model_name
+        return obj
 
 
 @dataclass(frozen=True)
@@ -146,7 +177,7 @@ class OllamaClient:
             return None
         try:
             return int(value)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return value
 
     def _build_payload(self, prompt: str, stream: bool, think: bool | None = None) -> dict:
@@ -254,6 +285,52 @@ class OllamaClient:
             cost_prompt_usd=0.0,
             cost_completion_usd=0.0,
             estimated_cost_usd=0.0,
+            model_name=self._model,
+        )
+
+    async def describe_image(self, image_bytes: bytes, prompt: str) -> str:
+        """Envia uma imagem + prompt ao modelo local (Ollama) e devolve o
+        texto cru — visão LOCAL, tentada antes do fallback para visão
+        externa (decisão registrada em docs/ARCHITECTURE.md §4, 2026-10-06).
+        Reaproveita `self._model` (a mesma instância já residente em VRAM
+        usada para texto), sem baixar nem carregar modelo adicional.
+
+        Levanta `VisionModelIndisponivelError` se `self._model` não tiver
+        capability `vision` (checado via `GET/POST /api/show`, já que
+        mandar `images` para um modelo sem suporte não falha explicitamente
+        — ou ignora a imagem, ou responde algo não confiável) ou se a
+        chamada falhar — o chamador trata como "indisponível" e cai para o
+        próximo nível do fallback, igual a `OpenRouterClient.describe_image`.
+        """
+        details = await self.get_model_details(self._model)
+        capabilities = (details or {}).get("capabilities") or []
+        if "vision" not in capabilities:
+            raise VisionModelIndisponivelError(
+                f"Modelo local '{self._model}' não tem capability de visão."
+            )
+
+        payload = self._build_payload(prompt, stream=False, think=False)
+        payload["images"] = [base64.b64encode(image_bytes).decode("ascii")]
+        try:
+            response = await self._client.post(
+                f"{self._base_url}/api/generate",
+                json=payload,
+                timeout=self._timeout_s,
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise VisionModelIndisponivelError(str(exc)) from exc
+
+        data = response.json()
+        texto = data.get("response", "")
+        if not texto.strip():
+            raise VisionModelIndisponivelError(
+                f"Modelo local '{self._model}' não retornou conteúdo para a imagem."
+            )
+        return LocalVisionResult(
+            content=texto,
+            prompt_tokens=data.get("prompt_eval_count"),
+            completion_tokens=data.get("eval_count"),
             model_name=self._model,
         )
 
@@ -396,5 +473,5 @@ class OllamaClient:
             )
             response.raise_for_status()
             return response.json()
-        except (httpx.HTTPError, ValueError):
+        except httpx.HTTPError, ValueError:
             return None
