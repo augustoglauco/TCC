@@ -47,6 +47,18 @@ async def test_describe_image_calculates_segregated_costs_and_usage():
 
 @pytest.mark.asyncio
 async def test_describe_image_handles_missing_usage():
+    # Achado de 2026-10-05: este teste ainda esperava o comportamento
+    # anterior ao fallback de estimativa de tokens (commit fe6ea34,
+    # `describe_image` linhas ~263-269) — provedores que omitem `usage` na
+    # resposta (ex.: alguns modelos gratuitos) agora têm prompt_tokens/
+    # completion_tokens ESTIMADOS a partir do tamanho do prompt/conteúdo, em
+    # vez de ficarem `None`. O teste nunca foi atualizado quando esse
+    # fallback foi introduzido como melhoria deliberada (sem ele, chamadas a
+    # modelos gratuitos apareciam com custo/uso zerado em Métricas, mesmo
+    # tendo consumido tokens de verdade). Custo continua 0.0 porque este
+    # teste não configura preço de visão (`price_per_1k_vision_*`, default
+    # 0.0) — a estimativa de tokens existe independente do preço estar
+    # configurado.
     mock_response = httpx.Response(
         status_code=200,
         json={
@@ -70,8 +82,11 @@ async def test_describe_image_handles_missing_usage():
         assert isinstance(res, str)
         assert isinstance(res, VisionResult)
         assert res == "Identificação sem usage"
-        assert res.prompt_tokens is None
-        assert res.completion_tokens is None
+        # Estimativa: max(1, len(prompt)//4) + 500 e max(1, len(content)//4)
+        # — "Identifique" (11 chars) -> 502; "Identificação sem usage"
+        # (23 chars) -> 5.
+        assert res.prompt_tokens == 502
+        assert res.completion_tokens == 5
         assert res.cost_prompt_usd == 0.0
         assert res.cost_completion_usd == 0.0
         assert res.estimated_cost_usd == 0.0
