@@ -111,6 +111,24 @@ Três abordagens foram discutidas para o vetor 1 (prompt injection direta):
   da Fase 4B) com o `conversation_id` e um trecho da mensagem — **não**
   interrompe nem altera a resposta.
 
+### 3.2bis Correção em relação à spec original (texto de OCR do comprovante)
+
+O §1 acima agrupa "RAG/OCR" como se fossem o mesmo caminho de código, e uma
+versão anterior deste §3.2 chegou a descrever o texto OCR do comprovante
+como se virasse um `Document` consumido por `_build_prompt`. Investigação
+feita durante a execução deste plano (ver Task 3) mostrou que isso é
+**inexato**: o texto extraído por OCR de um comprovante nunca passa por
+`_build_prompt`/`Document` — grep confirmado, a única fábrica de `Document`
+usada pelo orquestrador é `app/rag/qdrant_client.py`, alimentada só por
+documentos ingeridos pelo admin. O texto do comprovante vai direto para
+`app.services.comprovante_evaluator.ComprovanteEvaluator.avaliar_texto`
+(`backend/src/app/services/comprovante_evaluator.py`), que monta seu
+próprio prompt separado (antes isolado só por um delimitador `---` sem
+nenhuma instrução de "trate como dado"; hoje usa
+`wrap_untrusted("texto_comprovante", texto)`, mesma função do §3.1). A
+defesa deste vetor está na Task 3 do plano de implementação, não em
+`_build_prompt`.
+
 ### 3.3 `app/router/playbooks.py` (`build_system_prompt`)
 
 - Acrescenta uma frase fixa ao final do prompt de sistema de cada domínio

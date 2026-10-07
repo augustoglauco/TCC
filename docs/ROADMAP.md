@@ -1239,6 +1239,13 @@ conversa e classificação do usuário").
       o `chunk_size` real (requer recriar `docs_texto` e reingerir tudo)
       fica para quando o desenvolvedor decidir, não automática aqui.
       Detalhes em `backend/eval/rag_quality/README.md`.
+- [x] Resiliência a prompt injection (direta, indireta via RAG, e via
+      comprovante OCR) e abuso das ferramentas MCP B2B — plano de
+      segurança anterior fictício (`PLANO_ANTI_AI_ATTACK.md`) descartado e
+      substituído por isolamento real por delimitador + detecção log-only
+      + eval comportamental com LLM real. Ver
+      `docs/superpowers/specs/2026-10-07-seguranca-prompt-injection-mcp-design.md`
+      e `backend/eval/prompt_injection/README.md` (resultado real).
 - [ ] Medir latência (média e p95) do modelo local (configuração vencedora
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto
