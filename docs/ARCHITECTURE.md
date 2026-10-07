@@ -165,11 +165,24 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 > **identificação de produto**; o OCR é a exceção, acionado apenas quando o
 > sistema solicitou explicitamente um comprovante/extrato. No contrato do
 > chat isso é sinalizado por `image_intent`: ausente/`"produto"` → fluxo de
-> identificação (padrão); `"documento"` → OCR (comportamento atual). A regra
-> de negócio que faz o assistente *pedir* um comprovante (e assim ativar o
-> modo OCR do lado do servidor) depende de estado de conversa das Fases 4/6;
-> por ora o gatilho do modo documento é carregado pelo frontend quando o
-> assistente pede o comprovante.
+> identificação (padrão); `"documento"` → OCR.
+>
+> **Correção (2026-10-06):** o frontend (MVP) nunca implementou um
+> botão/estado dedicado de "enviar comprovante" — nunca preenche
+> `image_intent`. Depender só dele deixava o modo documento inatingível pelo
+> chat: uma foto de comprovante legendada "segue comprovante", enviada pelo
+> upload genérico de imagem, sempre caía na identificação de produto (o
+> cliente recebia "Identifiquei: <produto do catálogo>" em vez da validação
+> do pagamento). `app.api.chat` agora ativa o modo documento também quando a
+> legenda/mensagem enviada junto da imagem bate com a heurística de texto já
+> usada para comprovante sem anexo
+> (`app.router.sales_catalog.detectar_intencao_comprovante` — frases como
+> "comprovante", "segue o pix", "pagamento realizado" etc.); `image_intent`
+> explícito continua aceito e tem prioridade (ex.: telas de admin que já o
+> enviam). Uma imagem sem nenhuma legenda que sinalize comprovante ainda cai
+> no padrão de identificação de produto — cobrir esse caso exigiria estado de
+> conversa (lembrar que o assistente pediu o comprovante no turno anterior),
+> deixado para evolução futura.
 >
 > **Fluxo de identificação de produto** (motor em
 > `app.rag.image_identification`, endpoint `POST /api/rag/images/identify` e

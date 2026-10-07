@@ -64,7 +64,7 @@ from app.router.orchestrator import (
     handle_message,
 )
 from app.router.rag_client import RAGClient, RAGConnectionError
-from app.router.sales_catalog import SalesCatalogClient
+from app.router.sales_catalog import SalesCatalogClient, detectar_intencao_comprovante
 from app.router.scheduling import SchedulingConfig
 from app.router.tone_monitor import criar_escalonamento
 from app.stt.whisper_client import SttClient, SttIndisponivelError
@@ -538,10 +538,21 @@ async def send_message(
 
     # Fluxo de imagem (ver docs/ARCHITECTURE.md §4). O PADRÃO é identificação
     # de produto (mais abaixo, no event_stream); o OCR só roda quando o
-    # sistema solicitou um comprovante/documento (`image_intent="documento"`).
-    is_identificacao_imagem = bool(payload.image) and payload.image_intent != "documento"
+    # sistema solicitou um comprovante/documento. O frontend (MVP, sem botão
+    # dedicado de "enviar comprovante") nunca preenche `image_intent`, então
+    # confiar só nele deixava o fluxo de comprovante por imagem inatingível
+    # mesmo quando o cliente legenda o anexo com algo como "segue
+    # comprovante" (achado de 2026-10-06) — a imagem caía sempre na
+    # identificação de produto. `image_intent="documento"` explícito
+    # continua valendo (ex.: telas de admin que já o enviam); sem ele, cai
+    # para a mesma heurística de texto usada no comprovante sem anexo
+    # (`detectar_intencao_comprovante`).
+    imagem_e_documento = payload.image_intent == "documento" or (
+        bool(payload.image) and detectar_intencao_comprovante(effective_message or "")
+    )
+    is_identificacao_imagem = bool(payload.image) and not imagem_e_documento
 
-    if payload.image and payload.image_intent == "documento":
+    if payload.image and imagem_e_documento:
         # MVP: OCR extrai o texto da imagem e o concatena à mensagem efetiva
         # (pode combinar com texto digitado). Se o OCR não extrair nada, a
         # imagem é ignorada silenciosamente. Se o Tesseract não estiver
@@ -851,7 +862,7 @@ async def send_message(
 
         # Comprovante em anexo de imagem
         comprovante_bytes = None
-        if payload.image and payload.image_intent == "documento":
+        if payload.image and imagem_e_documento:
             try:
                 comprovante_bytes = base64.b64decode(payload.image, validate=True)
             except Exception:

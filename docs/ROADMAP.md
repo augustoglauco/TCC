@@ -394,10 +394,18 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `docs/ARCHITECTURE.md` §4; testes em `tests/test_image_identification.py`,
       `tests/test_image_api.py`, `tests/test_openrouter_client.py`,
       `tests/test_runtime_settings_api.py`.
-      > NOTA: a lógica de negócio que faz o assistente *solicitar* um
-      > comprovante (e assim ativar o modo OCR do lado do servidor) depende de
-      > estado de conversa das Fases 4/6; por ora o modo documento é acionado
-      > pelo frontend ao sinalizar `image_intent="documento"`.
+      > NOTA (atualizada em 2026-10-06): o frontend (MVP) nunca chegou a
+      > implementar um botão/estado dedicado de "enviar comprovante" — nunca
+      > preenche `image_intent`. Depender só dele deixava o modo documento
+      > inatingível mesmo quando o assistente já tinha pedido o comprovante:
+      > uma foto legendada "segue comprovante" caía sempre na identificação
+      > de produto. `app.api.chat` agora também ativa o modo documento
+      > quando a legenda/mensagem junto da imagem bate com a mesma heurística
+      > de texto do comprovante sem anexo
+      > (`sales_catalog.detectar_intencao_comprovante`) — `image_intent`
+      > explícito continua aceito (ex.: telas de admin). Teste de regressão:
+      > `test_chat_api_endpoint_comprovante_imagem_sem_image_intent_explicito`
+      > em `tests/test_chat_conversao_reserva.py`.
 - [x] Separar fluxo/prompts por domínio: Vendas, Suporte Técnico, Atendimento
       ao Usuário, Agendamento de Visita — `app.router.playbooks` (prompt de
       sistema por domínio), anteposto pelo orchestrator em `_build_prompt`

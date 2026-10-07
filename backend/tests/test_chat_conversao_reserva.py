@@ -477,3 +477,78 @@ async def test_chat_api_endpoint_comprovante_imagem(chat_client, db_session, mon
     assert pedido.tipo_conversao == "auto_chat"
     assert pedido.comprovante_url is not None
 
+
+async def test_chat_api_endpoint_comprovante_imagem_sem_image_intent_explicito(
+    chat_client, db_session, monkeypatch
+):
+    """Regressão de 2026-10-06: o frontend (MVP) não tem botão dedicado de
+    "enviar comprovante" e nunca preenche `image_intent="documento"` — uma
+    foto de comprovante legendada como "segue comprovante" caía sempre na
+    identificação de produto (CLIP/visão), que "identificava" a imagem como
+    se fosse uma foto de produto do catálogo em vez de validar o pagamento.
+    Sem `image_intent` no payload, só a legenda decide."""
+    prod = Produto(
+        nome="Painel Solar 500W", descricao="Painel", preco=Decimal("1500.00"), categoria="Solar"
+    )
+    db_session.add(prod)
+    await db_session.flush()
+
+    pedido = Pedido(
+        user_email="cliente@gmail.com",
+        conversation_id="conv-img-2",
+        status="reservado",
+    )
+    db_session.add(pedido)
+    await db_session.flush()
+
+    item = PedidoItem(
+        pedido_id=pedido.id,
+        produto_id=prod.id,
+        quantidade=1,
+        centro_distribuicao="CD-SP",
+        preco_unitario=Decimal("1500.00"),
+    )
+    db_session.add(item)
+    await db_session.commit()
+
+    monkeypatch.setattr(
+        "app.api.chat.extract_text_from_base64",
+        lambda img_b64: (
+            "Comprovante de Transferência PIX\nValor: R$ 1.500,00\nAutenticação: TX12345"
+        ),
+    )
+
+    def _identify_nao_deve_ser_chamado(*args, **kwargs):
+        raise AssertionError(
+            "identify_product_by_image não deveria ser chamado para uma imagem "
+            "legendada como comprovante"
+        )
+
+    monkeypatch.setattr(
+        "app.api.chat.identify_product_by_image", _identify_nao_deve_ser_chamado
+    )
+
+    png_1x1 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+
+    res = chat_client.post(
+        "/api/chat/messages",
+        json={
+            "conversation_id": "conv-img-2",
+            "message": "segue comprovante",
+            "image": png_1x1,
+            "user_email": "cliente@gmail.com",
+        },
+    )
+    assert res.status_code == 200
+    eventos = _parse_sse(res.text)
+    token_events = [dados for tipo, dados in eventos if tipo == "token"]
+    assert any("confirmado com sucesso" in t.get("text", "").lower() for t in token_events)
+    assert not any("identifiquei" in t.get("text", "").lower() for t in token_events)
+
+    await db_session.refresh(pedido)
+    assert pedido.status == "venda_concluida"
+    assert pedido.tipo_conversao == "auto_chat"
+    assert pedido.comprovante_url is not None
+
