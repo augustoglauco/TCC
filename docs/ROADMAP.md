@@ -553,6 +553,30 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       > estado vazio ("Central de Conversas em Andamento") no poll de 5s
       > seguinte. Teste em `AdminAtendimentoPage.test.tsx` (verificado
       > contra a versão com o bug antes do fix).
+      > Melhoria (2026-10-07, a pedido do desenvolvedor): `claim_conversa`
+      > agora grava automaticamente, como mensagem do próprio atendente
+      > (`papel="atendente"`, `atendente_nome` do atendente que assumiu),
+      > o aviso "Um atendente irá atendê-lo agora." assim que o claim
+      > sucede — chega ao cliente pelo mesmo polling do `ChatModal` (achado
+      > acima), sem esperar o atendente digitar a primeira linha. Não
+      > duplica no claim perdido de uma corrida (só grava dentro do `if
+      > sucesso`). Testes em `test_atendimento_service.py` e
+      > `test_admin_atendimento_api.py`.
+      > Melhoria (2026-10-07, a pedido do desenvolvedor): mesmo padrão para
+      > `devolver_para_ia` ("Redirecionado para atendente virtual",
+      > atendente_nome lido antes de ser limpo) e `finalizar_atendimento`
+      > ("O Atendente encerrou o atendimento."). Como as duas ações tiram a
+      > conversa do status humano no mesmo instante em que a mensagem é
+      > gravada, o guard de replace do polling do `ChatModal` (achado
+      > acima) precisou de um ajuste — ele só substituía mensagens quando
+      > `novoStatus` (o status pós-poll) era humano; no tick em que a
+      > transição acontece, `novoStatus` já vem `null`, então a mensagem de
+      > despedida nunca era entregue ao vivo (só reapareceria num reload).
+      > Passou a considerar `novoStatus || statusAnterior`, cobrindo esse
+      > tick de transição sem voltar a interferir numa conversa normal de
+      > IA nos ticks seguintes. Testes em `test_atendimento_service.py` e
+      > `ChatModal.test.tsx` (verificados contra a versão sem o ajuste,
+      > para confirmar que pegam a regressão).
 
 ## Fase 5 — MCP B2B Provido pela Empresa (R12)
 

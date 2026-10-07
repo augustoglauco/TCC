@@ -71,6 +71,19 @@ async def test_claim_conversa_atomico_e_prevencao_concorrencia(db_session):
     assert reloaded.atendente_id == "atendente_1"
     assert reloaded.atendente_nome == "Mariana Atendente"
 
+    # Achado de 2026-10-07 (pedido do desenvolvedor): claim bem-sucedido
+    # grava um aviso automático para o cliente, como se o atendente tivesse
+    # digitado — não duplicado pelo claim perdido do Atendente 2.
+    mensagens = (
+        await db_session.execute(
+            select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-claim-1")
+        )
+    ).scalars().all()
+    assert len(mensagens) == 1
+    assert mensagens[0].papel == "atendente"
+    assert mensagens[0].atendente_nome == "Mariana Atendente"
+    assert mensagens[0].texto == "Um atendente irá atendê-lo agora."
+
 
 @pytest.mark.asyncio
 async def test_listar_fila_espera_ordena_por_prioridade_e_tempo(db_session):
@@ -132,6 +145,36 @@ async def test_finalizar_atendimento_encerra_conversa(db_session):
 
 
 @pytest.mark.asyncio
+async def test_finalizar_atendimento_avisa_o_cliente(db_session):
+    """Achado de 2026-10-07 (pedido do desenvolvedor): ao encerrar, o
+    cliente deve ver "O Atendente encerrou o atendimento." — mesmo padrão
+    do aviso de claim."""
+    c = Conversa(
+        id="conv-fim-aviso",
+        status="em_atendimento_humano",
+        atendente_id="op_1",
+        atendente_nome="Operador Teste",
+    )
+    db_session.add(c)
+    await db_session.commit()
+
+    await atendimento_service.finalizar_atendimento(
+        db_session,
+        conversation_id="conv-fim-aviso",
+    )
+
+    mensagens = (
+        await db_session.execute(
+            select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-fim-aviso")
+        )
+    ).scalars().all()
+    assert len(mensagens) == 1
+    assert mensagens[0].papel == "atendente"
+    assert mensagens[0].atendente_nome == "Operador Teste"
+    assert mensagens[0].texto == "O Atendente encerrou o atendimento."
+
+
+@pytest.mark.asyncio
 async def test_devolver_para_ia_reseta_status(db_session):
     c = Conversa(
         id="conv-devolver-1",
@@ -151,6 +194,37 @@ async def test_devolver_para_ia_reseta_status(db_session):
     assert conv.atendente_id is None
     assert conv.atendente_nome is None
     assert conv.motivo_escalonamento is None
+
+
+@pytest.mark.asyncio
+async def test_devolver_para_ia_avisa_o_cliente(db_session):
+    """Achado de 2026-10-07 (pedido do desenvolvedor): ao devolver para a
+    IA, o cliente deve ver "Redirecionado para atendente virtual" — gravado
+    com o nome do atendente que estava na conversa antes de limpá-lo."""
+    c = Conversa(
+        id="conv-devolver-aviso",
+        status="em_atendimento_humano",
+        atendente_id="op_1",
+        atendente_nome="Operador Teste",
+        motivo_escalonamento="tom_frustrado",
+    )
+    db_session.add(c)
+    await db_session.commit()
+
+    await atendimento_service.devolver_para_ia(
+        db_session,
+        conversation_id="conv-devolver-aviso",
+    )
+
+    mensagens = (
+        await db_session.execute(
+            select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-devolver-aviso")
+        )
+    ).scalars().all()
+    assert len(mensagens) == 1
+    assert mensagens[0].papel == "atendente"
+    assert mensagens[0].atendente_nome == "Operador Teste"
+    assert mensagens[0].texto == "Redirecionado para atendente virtual"
 
 
 @pytest.mark.asyncio

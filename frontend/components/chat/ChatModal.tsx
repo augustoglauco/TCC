@@ -188,6 +188,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       if (!snapshot) {
         return;
       }
+      const statusAnterior = useChatStore.getState().humanAttendanceStatus;
       const novoStatus = paraStatusAtendimento(snapshot.status);
       setHumanAttendanceStatus(novoStatus);
       // Só substitui (e, por tabela, dispara o scroll-to-bottom do efeito
@@ -195,7 +196,21 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       // novo de fato — sem este guard, cada tick de 4s trocava `messages`
       // por uma lista nova idêntica e prendia a tela sempre no fundo,
       // impedindo o cliente de rolar para cima durante a espera.
-      if (novoStatus && snapshot.messages.length !== useChatStore.getState().messages.length) {
+      //
+      // `novoStatus || statusAnterior` (não só `novoStatus`): achado de
+      // 2026-10-07 — `devolver_para_ia`/`finalizar_atendimento` gravam uma
+      // mensagem de despedida ("Redirecionado para atendente virtual"/"O
+      // Atendente encerrou o atendimento.") no mesmo instante em que o
+      // status deixa de ser humano. Guardar só por `novoStatus` perdia essa
+      // última mensagem: no tick em que a transição é detectada, `novoStatus`
+      // já veio `null`, então o `if` nunca chegava a rodar. Com
+      // `statusAnterior` também valendo, esse tick de transição ainda
+      // processa o replace; os ticks seguintes (os dois `null`) voltam a
+      // ficar fora do caminho de uma conversa normal de IA.
+      if (
+        (novoStatus || statusAnterior) &&
+        snapshot.messages.length !== useChatStore.getState().messages.length
+      ) {
         replaceMessages(snapshot.messages);
       }
     }, 4000);

@@ -121,6 +121,18 @@ async def test_admin_atendimento_claim_e_conflito(test_app, db_session, admin_he
         assert data1["status"] == "em_atendimento_humano"
         assert data1["atendente_id"] == "op_carlos"
 
+        # Achado de 2026-10-07: claim bem-sucedido grava automaticamente o
+        # aviso "Um atendente irá atendê-lo agora." para o cliente.
+        mensagens = (
+            await db_session.execute(
+                select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-claim-test")
+            )
+        ).scalars().all()
+        assert len(mensagens) == 1
+        assert mensagens[0].papel == "atendente"
+        assert mensagens[0].atendente_nome == "Carlos Suporte"
+        assert mensagens[0].texto == "Um atendente irá atendê-lo agora."
+
         # Atendente 2 tenta assumir simultaneamente a mesma conversa -> 409 Conflict
         claim_payload_2 = {
             "atendente_id": "op_mariana",

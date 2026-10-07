@@ -266,9 +266,24 @@ async def claim_conversa(
         )
     )
     res = await session.execute(stmt)
+    sucesso = res.rowcount > 0
+    if sucesso:
+        # Aviso automático ao cliente (a pedido do desenvolvedor,
+        # 2026-10-07): grava como mensagem do próprio atendente — aparece no
+        # widget do cliente (via o polling de `ChatModal`) exatamente como
+        # se ele tivesse digitado a primeira linha, sem esperar o atendente
+        # escrever de fato.
+        session.add(
+            ConversaMensagem(
+                conversa_id=conversation_id,
+                papel="atendente",
+                atendente_nome=atendente_nome,
+                texto="Um atendente irá atendê-lo agora.",
+            )
+        )
     await session.commit()
     session.expire_all()
-    return res.rowcount > 0
+    return sucesso
 
 
 async def enviar_mensagem_atendente(
@@ -310,6 +325,16 @@ async def finalizar_atendimento(
     conversa.status = "encerrada"
     conversa.encerrada_em = now
     conversa.motivo_encerramento = motivo
+    # Aviso automático ao cliente (a pedido do desenvolvedor, 2026-10-07):
+    # mesmo padrão do aviso de claim em `claim_conversa`.
+    session.add(
+        ConversaMensagem(
+            conversa_id=conversation_id,
+            papel="atendente",
+            atendente_nome=conversa.atendente_nome,
+            texto="O Atendente encerrou o atendimento.",
+        )
+    )
     await session.commit()
     await session.refresh(conversa)
     return conversa
@@ -324,6 +349,16 @@ async def devolver_para_ia(
     if conversa is None:
         raise ValueError(f"Conversa {conversation_id} não encontrada.")
 
+    # Grava com o nome do atendente ainda associado (lido antes de limpá-lo
+    # abaixo) — mesmo padrão do aviso de claim em `claim_conversa`.
+    session.add(
+        ConversaMensagem(
+            conversa_id=conversation_id,
+            papel="atendente",
+            atendente_nome=conversa.atendente_nome,
+            texto="Redirecionado para atendente virtual",
+        )
+    )
     conversa.status = "aberta"
     conversa.atendente_id = None
     conversa.atendente_nome = None

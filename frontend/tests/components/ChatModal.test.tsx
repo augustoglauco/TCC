@@ -844,6 +844,47 @@ describe("ChatModal", () => {
         vi.useRealTimers();
       }
     });
+
+    it("entrega o aviso de despedida do atendente (devolver/encerrar) mesmo no tick em que o status deixa de ser humano", async () => {
+      // Achado de 2026-10-07: `devolver_para_ia`/`finalizar_atendimento`
+      // gravam uma mensagem de despedida no mesmo instante em que o status
+      // deixa de ser humano. Guardar o replace só por `novoStatus` perdia
+      // essa mensagem — no tick em que a transição é detectada, `novoStatus`
+      // já vem `null`.
+      vi.useFakeTimers();
+      try {
+        useChatStore.setState({
+          conversationId: "conv-humano-4",
+          humanAttendanceStatus: "em_atendimento_humano",
+          messages: [{ id: "m1", role: "user", text: "Oi" }],
+        });
+        mockedFetchSnapshot.mockResolvedValue({
+          status: "aberta",
+          messages: [
+            { id: "m1", role: "user", text: "Oi" },
+            {
+              id: "m2",
+              role: "atendente",
+              text: "Redirecionado para atendente virtual",
+              atendenteNome: "Fernanda Suporte",
+            },
+          ],
+        });
+
+        renderModal();
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(4000);
+        });
+
+        expect(useChatStore.getState().humanAttendanceStatus).toBeNull();
+        expect(
+          screen.getByText("Redirecionado para atendente virtual"),
+        ).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });
 
