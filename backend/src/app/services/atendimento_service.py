@@ -5,9 +5,52 @@ from sqlalchemy import select, update, desc, asc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import Conversa, ConversaMensagem
+from app.db.models import Cliente, ClienteCompra, Conversa, ConversaMensagem
 
 logger = logging.getLogger(__name__)
+
+
+def _com_fuso(data: datetime) -> datetime:
+    """SQLite (testes) devolve datas sem fuso; Postgres, com — mesma guarda
+    de `app.user_profile.classificacao._com_fuso`, duplicada aqui porque é
+    um utilitário de 2 linhas, não uma dependência entre módulos."""
+    return data if data.tzinfo else data.replace(tzinfo=UTC)
+
+
+def _tempo_espera_segundos(conversa: Conversa, agora: datetime) -> int:
+    """Segundos desde que a conversa entrou na fila (`escalado_em`; cai para
+    `criada_em` se `escalado_em` não tiver sido gravado)."""
+    referencia = conversa.escalado_em or conversa.criada_em
+    if referencia is None:
+        return 0
+    return max(0, int((agora - _com_fuso(referencia)).total_seconds()))
+
+
+async def _carregar_clientes_por_email(
+    session: AsyncSession, emails: set[str]
+) -> dict[str, Cliente]:
+    """Busca em lote (evita N+1) os `Cliente` cadastrados para os e-mails das
+    conversas da fila/meus-chats — achado de 2026-10-06: sem isso, o painel
+    da Central de Atendimento mostrava "Cliente Visitante" mesmo para um
+    cliente autenticado, porque o dict retornado nunca tinha a chave
+    `cliente` que o frontend lê (`item.cliente?.nome || "Cliente
+    Visitante"`)."""
+    if not emails:
+        return {}
+    result = await session.execute(select(Cliente).where(Cliente.email.in_(emails)))
+    return {c.email: c for c in result.scalars().all()}
+
+
+def _montar_cliente_info(conversa: Conversa, cliente: Cliente | None) -> dict[str, Any] | None:
+    if cliente is None:
+        return None
+    return {
+        "id": cliente.id,
+        "nome": cliente.nome,
+        "email": conversa.email,
+        "perfil": conversa.perfil,
+        "perfil_motivo": conversa.perfil_motivo,
+    }
 
 
 async def escalar_para_humano(
@@ -61,6 +104,11 @@ async def listar_fila_espera(session: AsyncSession) -> list[dict[str, Any]]:
     result = await session.execute(stmt)
     conversas = result.scalars().all()
 
+    clientes_por_email = await _carregar_clientes_por_email(
+        session, {c.email for c in conversas if c.email}
+    )
+    agora = datetime.now(UTC)
+
     fila: list[dict[str, Any]] = []
     for c in conversas:
         ultimas_mensagens = c.mensagens or []
@@ -76,10 +124,14 @@ async def listar_fila_espera(session: AsyncSession) -> list[dict[str, Any]]:
             "motivo_escalonamento": c.motivo_escalonamento,
             "prioridade": c.prioridade,
             "escalado_em": c.escalado_em.isoformat() if c.escalado_em else None,
-            "email": c.email,
-            "perfil": c.perfil,
-            "total_mensagens": len(ultimas_mensagens),
+            "criada_em": c.criada_em.isoformat() if c.criada_em else None,
+            "atualizada_em": c.atualizada_em.isoformat() if c.atualizada_em else None,
+            "tempo_espera_segundos": _tempo_espera_segundos(c, agora),
+            "mensagens_count": len(ultimas_mensagens),
             "ultima_mensagem": ultima_msg_cliente,
+            "cliente": (
+                _montar_cliente_info(c, clientes_por_email.get(c.email)) if c.email else None
+            ),
         })
     return fila
 
@@ -98,6 +150,11 @@ async def listar_meus_chats(session: AsyncSession, atendente_id: str) -> list[di
     result = await session.execute(stmt)
     conversas = result.scalars().all()
 
+    clientes_por_email = await _carregar_clientes_por_email(
+        session, {c.email for c in conversas if c.email}
+    )
+    agora = datetime.now(UTC)
+
     chats: list[dict[str, Any]] = []
     for c in conversas:
         ultimas_mensagens = c.mensagens or []
@@ -115,10 +172,14 @@ async def listar_meus_chats(session: AsyncSession, atendente_id: str) -> list[di
             "motivo_escalonamento": c.motivo_escalonamento,
             "prioridade": c.prioridade,
             "escalado_em": c.escalado_em.isoformat() if c.escalado_em else None,
-            "email": c.email,
-            "perfil": c.perfil,
-            "total_mensagens": len(ultimas_mensagens),
+            "criada_em": c.criada_em.isoformat() if c.criada_em else None,
+            "atualizada_em": c.atualizada_em.isoformat() if c.atualizada_em else None,
+            "tempo_espera_segundos": _tempo_espera_segundos(c, agora),
+            "mensagens_count": len(ultimas_mensagens),
             "ultima_mensagem": ultima_msg_cliente,
+            "cliente": (
+                _montar_cliente_info(c, clientes_por_email.get(c.email)) if c.email else None
+            ),
         })
     return chats
 
@@ -147,6 +208,22 @@ async def obter_detalhes_atendimento(session: AsyncSession, conversation_id: str
             "criada_em": m.criada_em.isoformat() if m.criada_em else None,
         })
 
+    cliente_info: dict[str, Any] | None = None
+    if conversa.email:
+        cliente = await session.scalar(select(Cliente).where(Cliente.email == conversa.email))
+        if cliente is not None:
+            agregados = await session.execute(
+                select(
+                    func.count(ClienteCompra.id),
+                    func.coalesce(func.sum(ClienteCompra.valor_total), 0),
+                ).where(ClienteCompra.cliente_id == cliente.id)
+            )
+            compras_count, total_gasto = agregados.one()
+            cliente_info = _montar_cliente_info(conversa, cliente) | {
+                "compras_count": compras_count,
+                "total_gasto": float(total_gasto),
+            }
+
     return {
         "id": conversa.id,
         "status": conversa.status,
@@ -155,8 +232,9 @@ async def obter_detalhes_atendimento(session: AsyncSession, conversation_id: str
         "motivo_escalonamento": conversa.motivo_escalonamento,
         "prioridade": conversa.prioridade,
         "escalado_em": conversa.escalado_em.isoformat() if conversa.escalado_em else None,
-        "email": conversa.email,
-        "perfil": conversa.perfil,
+        "criada_em": conversa.criada_em.isoformat() if conversa.criada_em else None,
+        "atualizada_em": conversa.atualizada_em.isoformat() if conversa.atualizada_em else None,
+        "cliente": cliente_info,
         "resumo": conversa.resumo,
         "mensagens": mensagens_list,
     }

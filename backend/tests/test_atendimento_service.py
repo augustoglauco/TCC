@@ -1,7 +1,7 @@
 import pytest
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from sqlalchemy import select
-from app.db.models import Conversa, ConversaMensagem
+from app.db.models import Cliente, ClienteCompra, Conversa, ConversaMensagem
 from app.services import atendimento_service
 
 @pytest.mark.asyncio
@@ -151,3 +151,91 @@ async def test_devolver_para_ia_reseta_status(db_session):
     assert conv.atendente_id is None
     assert conv.atendente_nome is None
     assert conv.motivo_escalonamento is None
+
+
+@pytest.mark.asyncio
+async def test_listar_fila_espera_tempo_de_espera_e_cliente_cadastrado(db_session):
+    """Regressão de 2026-10-06: `listar_fila_espera` nunca incluía
+    `tempo_espera_segundos` nem `cliente` no dict retornado — o painel da
+    Central de Atendimento mostrava "NaNh NaNm" (o frontend calcula a partir
+    de `tempo_espera_segundos`, que chegava `undefined`) e "Cliente
+    Visitante" mesmo para um cliente cadastrado e logado."""
+    cliente = Cliente(nome="Carla Antiga", email="carla.antiga@example.com")
+    db_session.add(cliente)
+    await db_session.commit()
+    await db_session.refresh(cliente)
+
+    escalado_em = datetime.now(UTC) - timedelta(minutes=5)
+    c = Conversa(
+        id="conv-fila-tempo",
+        status="aguardando_humano",
+        prioridade=3,
+        email="carla.antiga@example.com",
+        perfil="cliente",
+        perfil_motivo="2 compras",
+        escalado_em=escalado_em,
+    )
+    db_session.add(c)
+    await db_session.commit()
+
+    fila = await atendimento_service.listar_fila_espera(db_session)
+    item = next(i for i in fila if i["id"] == "conv-fila-tempo")
+
+    assert isinstance(item["tempo_espera_segundos"], int)
+    assert item["tempo_espera_segundos"] >= 290  # ~5 minutos, sem ser NaN
+
+    assert item["cliente"] is not None
+    assert item["cliente"]["nome"] == "Carla Antiga"
+    assert item["cliente"]["id"] == cliente.id
+    assert item["cliente"]["perfil"] == "cliente"
+
+
+@pytest.mark.asyncio
+async def test_listar_fila_espera_visitante_sem_cadastro_fica_sem_cliente(db_session):
+    """Sem e-mail (ou e-mail sem `Cliente` cadastrado), `cliente` continua
+    `None` de propósito — "Cliente Visitante" no frontend só deve aparecer
+    para um visitante de verdade."""
+    c = Conversa(id="conv-fila-visitante", status="aguardando_humano", prioridade=1)
+    db_session.add(c)
+    await db_session.commit()
+
+    fila = await atendimento_service.listar_fila_espera(db_session)
+    item = next(i for i in fila if i["id"] == "conv-fila-visitante")
+    assert item["cliente"] is None
+    assert item["tempo_espera_segundos"] == 0
+
+
+@pytest.mark.asyncio
+async def test_obter_detalhes_atendimento_inclui_cliente_com_historico_de_compras(db_session):
+    """Mesma regressão do teste acima, mas no painel "Contexto do Cliente"
+    (aberto após "Assumir Chat"), que também nunca montava `cliente`."""
+    cliente = Cliente(nome="Carla Antiga", email="carla.antiga@example.com")
+    db_session.add(cliente)
+    await db_session.commit()
+    await db_session.refresh(cliente)
+
+    compra = ClienteCompra(
+        cliente_id=cliente.id,
+        quantidade=1,
+        valor_total=1500,
+        comprado_em=datetime.now(UTC) - timedelta(days=10),
+    )
+    db_session.add(compra)
+
+    c = Conversa(
+        id="conv-detalhes-cliente",
+        status="em_atendimento_humano",
+        atendente_id="op_1",
+        email="carla.antiga@example.com",
+        perfil="cliente",
+    )
+    db_session.add(c)
+    await db_session.commit()
+
+    detalhes = await atendimento_service.obter_detalhes_atendimento(
+        db_session, "conv-detalhes-cliente"
+    )
+    assert detalhes["cliente"] is not None
+    assert detalhes["cliente"]["nome"] == "Carla Antiga"
+    assert detalhes["cliente"]["compras_count"] == 1
+    assert detalhes["cliente"]["total_gasto"] == 1500.0

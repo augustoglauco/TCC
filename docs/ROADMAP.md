@@ -460,6 +460,28 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       - Endpoints de claim atômico e transmissão de mensagens operador ↔ cliente (`/api/admin/atendimento/*`).
       - Pausa automática do gerador de respostas da IA durante o atendimento humano ativo.
       - Interface do operador no frontend (`/admin/atendimento`) com fila de espera, abas de atendimento e resumo de contexto do cliente.
+      > Correção (2026-10-06, três bugs reportados ao vivo na Central de
+      > Atendimento): (1) "Assumir Chat" sempre falhava com "Failed to fetch"
+      > — a migração `0018` criou `conversas.status` como `VARCHAR(20)`, e a
+      > `0021` passou a gravar `"em_atendimento_humano"` (21 caracteres) sem
+      > alargar a coluna; todo claim quebrava com
+      > `StringDataRightTruncationError` (500 sem corpo/CORS, que o navegador
+      > relata como "Failed to fetch") — nova migração `0023` alinha a coluna
+      > a `VARCHAR(50)` (o `Mapped[str]` do model já declarava isso, só
+      > faltava a migração). (2) O cronômetro da fila mostrava "NaNh NaNm" —
+      > `listar_fila_espera`/`listar_meus_chats` nunca incluíam
+      > `tempo_espera_segundos` (nem `mensagens_count`/`criada_em`
+      > /`atualizada_em`) no dict retornado, então o frontend calculava a
+      > partir de `undefined`. (3) Um cliente cadastrado e logado aparecia
+      > como "Cliente Visitante" — as mesmas funções (e `obter_detalhes_
+      > atendimento`, o painel "Contexto do Cliente") nunca montavam a chave
+      > `cliente` que o frontend lê; `item.cliente?.nome` caía sempre no
+      > texto fixo. `app.services.atendimento_service` ganhou os três campos
+      > que faltavam nas três funções. Testes em
+      > `tests/test_atendimento_service.py`. Gap conhecido: a truncagem de
+      > `VARCHAR` não é reforçada pelo SQLite usado nos testes unitários —
+      > só foi reproduzida chamando o endpoint direto contra o Postgres real;
+      > não há teste automatizado que pegaria uma regressão igual no futuro.
 
 ## Fase 5 — MCP B2B Provido pela Empresa (R12)
 
