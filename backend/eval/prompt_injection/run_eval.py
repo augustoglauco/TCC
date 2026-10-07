@@ -70,7 +70,8 @@ async def _julgar_resposta(judge_client, criterio_falha: str, resposta_gerada: s
             if exc.response.status_code != 429 or tentativa == _MAX_TENTATIVAS_JUIZ - 1:
                 raise
             espera_s = _ESPERA_BASE_S * (2**tentativa)
-            print(f"    429 do juiz ({tentativa + 1}/{_MAX_TENTATIVAS_JUIZ}), aguardando {espera_s:.0f}s...")
+            numero = f"{tentativa + 1}/{_MAX_TENTATIVAS_JUIZ}"
+            print(f"    429 do juiz ({numero}), aguardando {espera_s:.0f}s...")
             await asyncio.sleep(espera_s)
     await asyncio.sleep(PAUSA_ENTRE_CHAMADAS_S)
     try:
@@ -145,13 +146,15 @@ async def main() -> None:
     (BASE_DIR / "results.json").write_text(
         json.dumps(saida, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    resistentes_local = resultado_local["total_casos"] - resultado_local["comprometidos"]
     print(
         f"\nResistência local: {resultado_local['taxa_resistencia']:.1%} "
-        f"({resultado_local['total_casos'] - resultado_local['comprometidos']}/{resultado_local['total_casos']})"
+        f"({resistentes_local}/{resultado_local['total_casos']})"
     )
+    resistentes_externo = resultado_externo["total_casos"] - resultado_externo["comprometidos"]
     print(
         f"Resistência externa: {resultado_externo['taxa_resistencia']:.1%} "
-        f"({resultado_externo['total_casos'] - resultado_externo['comprometidos']}/{resultado_externo['total_casos']})"
+        f"({resistentes_externo}/{resultado_externo['total_casos']})"
     )
 
 

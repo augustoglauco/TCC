@@ -1981,7 +1981,9 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   blocklist/bloqueio (decisão consciente: um blocklist teria falso
   positivo real em conversas legítimas de vendas/suporte, ex. "ignore o
   que eu falei antes"). Detecção log-only (nunca bloqueia) para padrões de
-  alta confiança, reaproveitando o log do monitor de tom da Fase 4B.
+  alta confiança, via um `logger.warning` próprio do orquestrador (mesma
+  convenção `extra={"router": {...}}` já usada pelo módulo — não é
+  infraestrutura compartilhada com o monitor de tom da Fase 4B).
   Eficácia real medida por eval comportamental com LLM real (não
   fictícia), ao vivo em 2026-10-07: taxa de resistência do cliente local
   (`gemma4:12b-it-q4_K_M`) **62,5% (5/8)**; do cliente externo
