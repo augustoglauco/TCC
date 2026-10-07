@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-import httpx
+import httpx2
 import pytest
 
 import app.mcp_client.google_calendar as google_calendar_module
@@ -49,7 +49,14 @@ async def test_default_session_factory_aplica_timeout_configurado(monkeypatch):
     `timeout` explícito, `create_mcp_http_client` usa o timeout de leitura
     padrão do SDK `mcp` (300s) — um `calendar-mcp-server` travado poderia
     prender um turno de agendamento por minutos. `timeout_s` do construtor
-    precisa chegar de fato ao `httpx.AsyncClient` usado pela sessão MCP."""
+    precisa chegar de fato ao `httpx.AsyncClient` usado pela sessão MCP.
+
+    Também cobre a regressão em que `GoogleCalendarMCPClient` construía um
+    `httpx.Timeout` (pacote antigo) para passar a `create_mcp_http_client` —
+    que a partir do SDK `mcp` 2.x espera um `httpx2.Timeout`. O tipo errado
+    não falhava aqui (ambos têm a mesma API), só bem mais embaixo, dentro do
+    `httpcore2`/`anyio`, com um `TypeError` escondido num `ExceptionGroup`
+    relatado apenas como "unhandled errors in a TaskGroup"."""
     capturado: dict = {}
 
     @asynccontextmanager
@@ -87,7 +94,8 @@ async def test_default_session_factory_aplica_timeout_configurado(monkeypatch):
     async with client._session_factory():
         pass
 
-    assert capturado["timeout"] == httpx.Timeout(7.5)
+    assert capturado["timeout"] == httpx2.Timeout(7.5)
+    assert isinstance(capturado["timeout"], httpx2.Timeout)
 
 
 async def test_is_time_available_true_quando_nao_ha_eventos():

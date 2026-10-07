@@ -30,7 +30,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Any, Protocol
 
-import httpx
+import httpx2
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from mcp.shared._httpx_utils import create_mcp_http_client
@@ -103,7 +103,13 @@ class GoogleCalendarMCPClient:
     def _default_session_factory(self):
         @asynccontextmanager
         async def factory():
-            timeout = httpx.Timeout(self._timeout_s)
+            # `create_mcp_http_client` (SDK `mcp`) usa internamente o pacote
+            # `httpx2` (fork/sucessor do `httpx` adotado pelo SDK a partir da
+            # versão 2.x) — passar um `httpx.Timeout` (pacote antigo) aqui
+            # quebra silenciosamente dentro do `httpcore2`/`anyio` com um
+            # `TypeError` encapsulado num `ExceptionGroup`, reportado só como
+            # "unhandled errors in a TaskGroup".
+            timeout = httpx2.Timeout(self._timeout_s)
             async with create_mcp_http_client(timeout=timeout) as http_client:
                 async with streamable_http_client(
                     self._mcp_server_url, http_client=http_client
