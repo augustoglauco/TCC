@@ -31,6 +31,7 @@ from app.models.runtime_settings import (
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
+from app.router.prompt_safety import detectar_tentativa_injecao, wrap_untrusted
 from app.router.rag_client import Document, RAGClient
 from app.router.sales_catalog import (
     SALES_CANDIDATOS_LIMITE,
@@ -146,7 +147,7 @@ def _build_prompt(
             "da empresa, para responder à mensagem do cliente. Se as "
             "informações não forem suficientes, responda com o que souber, sem "
             "inventar dados específicos (preços, prazos, números de série).\n\n"
-            f"Informações recuperadas:\n{contexto}"
+            f"Informações recuperadas:\n{wrap_untrusted('contexto_rag', contexto)}"
         )
 
     if pedir_email_pos_venda and domain in DOMINIOS_POS_VENDA:
@@ -158,7 +159,7 @@ def _build_prompt(
             "e-mail usado na compra."
         )
 
-    partes.append(f"Mensagem do cliente: {message}")
+    partes.append(f"Mensagem do cliente: {wrap_untrusted('entrada_cliente', message)}")
     return "\n\n".join(partes)
 
 
@@ -1524,6 +1525,21 @@ async def handle_message(
     # _build_prompt é sempre chamado para anexar o playbook do domínio (Fase
     # 3); para `fora_escopo` (sem playbook) e sem documentos, ele reduz a
     # apenas "Mensagem do cliente: ...".
+    # Log-only (nunca bloqueia — decisão C, spec §2): dá visibilidade ao
+    # admin sobre tentativas de injeção de alta confiança, sem recusar
+    # nenhuma mensagem de cliente legítima.
+    if detectar_tentativa_injecao(message):
+        logger.warning(
+            "tentativa_injecao_detectada",
+            extra={
+                "router": {
+                    "event": "tentativa_injecao_detectada",
+                    "conversation_id": conversation_id,
+                    "trecho": message[:200],
+                }
+            },
+        )
+
     prompt = _build_prompt(
         message,
         documentos,
