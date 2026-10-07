@@ -3,9 +3,13 @@
 import { useEffect } from "react";
 
 import { ChatModal } from "@/components/chat/ChatModal";
-import { fetchConversationHistory } from "@/lib/api/chat";
+import { fetchConversationSnapshot } from "@/lib/api/chat";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
-import { getOrCreateConversationId, useChatStore } from "@/lib/hooks/useChatStore";
+import {
+  getOrCreateConversationId,
+  paraStatusAtendimento,
+  useChatStore,
+} from "@/lib/hooks/useChatStore";
 
 export default function ChatWidget() {
   const isOpen = useChatStore((state) => state.isOpen);
@@ -14,6 +18,7 @@ export default function ChatWidget() {
   const conversationId = useChatStore((state) => state.conversationId);
   const setConversationId = useChatStore((state) => state.setConversationId);
   const loadHistory = useChatStore((state) => state.loadHistory);
+  const setHumanAttendanceStatus = useChatStore((state) => state.setHumanAttendanceStatus);
   const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
@@ -23,21 +28,29 @@ export default function ChatWidget() {
   }, [conversationId, setConversationId, user?.email]);
 
   // Retomada (R9): ao ter o id, busca uma vez as mensagens gravadas no
-  // backend. Falha ou conversa nova: o chat abre vazio, como antes.
+  // backend. Falha ou conversa nova: o chat abre vazio, como antes. Também
+  // captura o status (achado de 2026-10-06): se o cliente recarrega a
+  // página já com um atendente assumido, o `ChatModal` precisa saber disso
+  // de cara para começar o polling de novas mensagens — sem isso, só
+  // descobria o status ao enviar a próxima mensagem.
   useEffect(() => {
     if (!conversationId) {
       return;
     }
     let cancelado = false;
-    fetchConversationHistory(conversationId).then((historico) => {
-      if (!cancelado && historico && historico.length > 0) {
-        loadHistory(historico);
+    fetchConversationSnapshot(conversationId).then((snapshot) => {
+      if (cancelado || !snapshot) {
+        return;
       }
+      if (snapshot.messages.length > 0) {
+        loadHistory(snapshot.messages);
+      }
+      setHumanAttendanceStatus(paraStatusAtendimento(snapshot.status));
     });
     return () => {
       cancelado = true;
     };
-  }, [conversationId, loadHistory]);
+  }, [conversationId, loadHistory, setHumanAttendanceStatus]);
 
   return (
     <>

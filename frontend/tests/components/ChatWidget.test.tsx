@@ -2,15 +2,15 @@ import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import ChatWidget from "@/components/chat/ChatWidget";
-import { fetchConversationHistory } from "@/lib/api/chat";
+import { fetchConversationSnapshot } from "@/lib/api/chat";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 
 vi.mock("@/lib/api/chat", () => ({
-  fetchConversationHistory: vi.fn(),
+  fetchConversationSnapshot: vi.fn(),
   sendChatMessage: vi.fn(),
 }));
 
-const mockedFetchHistory = vi.mocked(fetchConversationHistory);
+const mockedFetchSnapshot = vi.mocked(fetchConversationSnapshot);
 
 const HISTORICO = [
   { id: "m1", role: "user" as const, text: "Quanto custa o GD-15?" },
@@ -18,37 +18,52 @@ const HISTORICO = [
 ];
 
 beforeEach(() => {
-  mockedFetchHistory.mockReset();
-  useChatStore.setState({ isOpen: false, conversationId: "conv-1", messages: [] });
+  mockedFetchSnapshot.mockReset();
+  useChatStore.setState({
+    isOpen: false,
+    conversationId: "conv-1",
+    messages: [],
+    humanAttendanceStatus: null,
+  });
 });
 
 describe("ChatWidget — retomada da conversa (R9)", () => {
   it("carrega o histórico gravado ao montar", async () => {
-    mockedFetchHistory.mockResolvedValue(HISTORICO);
+    mockedFetchSnapshot.mockResolvedValue({ status: "aberta", messages: HISTORICO });
 
     render(<ChatWidget />);
 
     await waitFor(() => expect(useChatStore.getState().messages).toEqual(HISTORICO));
-    expect(mockedFetchHistory).toHaveBeenCalledWith("conv-1");
+    expect(mockedFetchSnapshot).toHaveBeenCalledWith("conv-1");
   });
 
   it("não sobrescreve mensagens que já estão na tela", async () => {
     const naTela = [{ id: "n1", role: "user" as const, text: "mensagem nova" }];
     useChatStore.setState({ messages: naTela });
-    mockedFetchHistory.mockResolvedValue(HISTORICO);
+    mockedFetchSnapshot.mockResolvedValue({ status: "aberta", messages: HISTORICO });
 
     render(<ChatWidget />);
 
-    await waitFor(() => expect(mockedFetchHistory).toHaveBeenCalled());
+    await waitFor(() => expect(mockedFetchSnapshot).toHaveBeenCalled());
     expect(useChatStore.getState().messages).toEqual(naTela);
   });
 
   it("falha ao buscar o histórico deixa o chat vazio", async () => {
-    mockedFetchHistory.mockResolvedValue(null);
+    mockedFetchSnapshot.mockResolvedValue(null);
 
     render(<ChatWidget />);
 
-    await waitFor(() => expect(mockedFetchHistory).toHaveBeenCalled());
+    await waitFor(() => expect(mockedFetchSnapshot).toHaveBeenCalled());
     expect(useChatStore.getState().messages).toEqual([]);
+  });
+
+  it("captura o status de atendimento humano já ao montar, sem esperar o envio de mensagem", async () => {
+    mockedFetchSnapshot.mockResolvedValue({ status: "em_atendimento_humano", messages: [] });
+
+    render(<ChatWidget />);
+
+    await waitFor(() =>
+      expect(useChatStore.getState().humanAttendanceStatus).toBe("em_atendimento_humano"),
+    );
   });
 });

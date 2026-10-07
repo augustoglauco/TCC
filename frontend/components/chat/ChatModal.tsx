@@ -7,10 +7,15 @@ import EscalonamentoBanner from "@/components/chat/EscalonamentoBanner";
 import ImageUploader from "@/components/chat/ImageUploader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
-import { closeConversation, deleteConversation, sendChatMessage } from "@/lib/api/chat";
+import {
+  closeConversation,
+  deleteConversation,
+  fetchConversationSnapshot,
+  sendChatMessage,
+} from "@/lib/api/chat";
 import { solicitarTransbordo } from "@/lib/api/adminAtendimento";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
-import { useChatStore } from "@/lib/hooks/useChatStore";
+import { paraStatusAtendimento, useChatStore } from "@/lib/hooks/useChatStore";
 import type { ChatEscalonamentoData } from "@/lib/types/chat";
 import { metricsFromDone } from "@/lib/utils/chatMetrics";
 import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetrics";
@@ -58,8 +63,11 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const conversationId = useChatStore((state) => state.conversationId);
   const addMessage = useChatStore((state) => state.addMessage);
   const updateMessage = useChatStore((state) => state.updateMessage);
+  const replaceMessages = useChatStore((state) => state.replaceMessages);
   const setConversationId = useChatStore((state) => state.setConversationId);
   const clearChat = useChatStore((state) => state.clearChat);
+  const humanAttendanceStatus = useChatStore((state) => state.humanAttendanceStatus);
+  const setHumanAttendanceStatus = useChatStore((state) => state.setHumanAttendanceStatus);
 
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -148,6 +156,32 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     }
   }, [messages, error, open, pendingInput]);
 
+  // Entrega da mensagem do atendente humano (Fase 4, achado de 2026-10-06):
+  // quando um atendente responde pelo painel admin, a mensagem é gravada
+  // direto no banco — não existe WebSocket nem SSE do servidor para esse
+  // evento chegar ao widget do cliente enquanto ele já está com o chat
+  // aberto. Sem isso, "atendente responde mas a mensagem não aparece no
+  // chat do cliente" (só reapareceria se o cliente recarregasse a página).
+  // Com o widget aberto e a conversa sob atendimento humano, repolla o
+  // histórico periodicamente e substitui as mensagens em tela pelas do
+  // servidor — fonte de verdade enquanto esse modo durar. Também é assim
+  // que detectamos quando o atendente encerra/devolve a conversa para a IA
+  // (o status deixa de ser humano e o polling para).
+  useEffect(() => {
+    if (!open || !conversationId || !humanAttendanceStatus) {
+      return;
+    }
+    const intervalo = setInterval(async () => {
+      const snapshot = await fetchConversationSnapshot(conversationId);
+      if (!snapshot) {
+        return;
+      }
+      replaceMessages(snapshot.messages);
+      setHumanAttendanceStatus(paraStatusAtendimento(snapshot.status));
+    }, 4000);
+    return () => clearInterval(intervalo);
+  }, [open, conversationId, humanAttendanceStatus, replaceMessages, setHumanAttendanceStatus]);
+
   const hasAssistantMessages = messages.some((m) => m.role === "assistant");
 
   async function submitMessage(
@@ -198,6 +232,13 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       onTranscription: () => {},
       onEscalonamento: (data) => setEscalonamento(data),
       onStatus: (status) => {
+        // Acompanha se a conversa está (ou deixou de estar) sob atendimento
+        // humano — liga/desliga o polling de novas mensagens do atendente
+        // (ver efeito mais abaixo). Os dois fluxos não se misturam: enquanto
+        // pausada para atendimento humano, o backend nunca consulta o LLM
+        // (`app.api.chat.event_stream_humano`), então "carregando_modelo"
+        // só ocorre fora desse modo.
+        setHumanAttendanceStatus(paraStatusAtendimento(status));
         if (status === "carregando_modelo") {
           garantirBolha("🤖 Aguarde, consultando documentos internos...");
         }
@@ -270,6 +311,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       },
       onEscalonamento: (data) => setEscalonamento(data),
       onStatus: (status) => {
+        setHumanAttendanceStatus(paraStatusAtendimento(status));
         if (status === "carregando_modelo") {
           garantirBolha("🤖 Aguarde, consultando documentos internos...");
         }

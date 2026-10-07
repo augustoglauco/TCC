@@ -404,6 +404,7 @@ async def obter_conversa(conversation_id: str, request: Request) -> ConversaHist
                 texto=m.texto,
                 dominio=m.dominio,
                 criada_em=m.criada_em,
+                atendente_nome=m.atendente_nome,
                 metricas=m.metricas,
             )
             for m in mensagens

@@ -191,3 +191,38 @@ async def test_solicitar_transbordo_endpoint(chat_client, db_session):
     reloaded = await db_session.get(Conversa, "conv-solicitar-1")
     assert reloaded.status == "aguardando_humano"
     assert reloaded.motivo_escalonamento == "solicitacao_direta"
+
+
+@pytest.mark.asyncio
+async def test_conversation_history_endpoint_inclui_mensagem_do_atendente(chat_client, db_session):
+    """Regressão de 2026-10-06: `ConversaMensagemOut.papel` não incluía
+    `"atendente"` — `GET /api/chat/conversations/{id}` quebrava com 500
+    (ValidationError) assim que havia uma mensagem do atendente na conversa,
+    derrubando o histórico inteiro para o cliente que reabria/recarregava o
+    chat (ele nunca via a resposta do atendente nem o restante da conversa)."""
+    c = Conversa(id="conv-historico-atendente", status="em_atendimento_humano", atendente_id="op_1")
+    db_session.add(c)
+    await db_session.commit()
+
+    db_session.add(
+        ConversaMensagem(
+            conversa_id="conv-historico-atendente", papel="cliente", texto="Preciso de ajuda"
+        )
+    )
+    db_session.add(
+        ConversaMensagem(
+            conversa_id="conv-historico-atendente",
+            papel="atendente",
+            atendente_nome="Fernanda Suporte",
+            texto="Olá! Em que posso ajudar?",
+        )
+    )
+    await db_session.commit()
+
+    res = chat_client.get("/api/chat/conversations/conv-historico-atendente")
+    assert res.status_code == 200
+    mensagens = res.json()["mensagens"]
+    assert [m["papel"] for m in mensagens] == ["cliente", "atendente"]
+    atendente_msg = mensagens[1]
+    assert atendente_msg["texto"] == "Olá! Em que posso ajudar?"
+    assert atendente_msg["atendente_nome"] == "Fernanda Suporte"

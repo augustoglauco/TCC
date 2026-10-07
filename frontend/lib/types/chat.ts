@@ -197,6 +197,7 @@ export interface ConversaMensagem {
 /** Corpo de `GET /api/chat/conversations/{id}` (R9). */
 export interface ConversaHistorico {
   conversation_id: string;
+  status: string;
   resumo: string | null;
   mensagens: ConversaMensagem[];
 }

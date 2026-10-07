@@ -76,11 +76,23 @@ export function getVisitPrompt(
   return `Quero agendar uma visita técnica. Por favor, solicite meu e-mail, nome e os dados necessários para o agendamento.`;
 }
 
+/** Status de atendimento humano (Fase 4) que liga o polling de novas
+ * mensagens no `ChatModal` — `null` fora desse fluxo (IA normal). */
+export type HumanAttendanceStatus = "aguardando_humano" | "em_atendimento_humano" | null;
+
+/** Normaliza o `status` bruto da conversa (vindo do SSE ou de
+ * `fetchConversationSnapshot`) para `HumanAttendanceStatus` — qualquer
+ * outro valor (`aberta`, `encerrada`, ...) não liga o polling. */
+export function paraStatusAtendimento(status: string): HumanAttendanceStatus {
+  return status === "aguardando_humano" || status === "em_atendimento_humano" ? status : null;
+}
+
 interface ChatState {
   isOpen: boolean;
   conversationId: string;
   messages: ChatUIMessage[];
   pendingInput: string | null;
+  humanAttendanceStatus: HumanAttendanceStatus;
   toggleOpen: () => void;
   open: () => void;
   openWithPrompt: (promptText: string) => void;
@@ -94,6 +106,11 @@ interface ChatState {
   setConversationId: (id: string, userEmail?: string | null) => void;
   /** Reexibe o histórico gravado — só se ainda não houver mensagem na tela. */
   loadHistory: (messages: ChatUIMessage[]) => void;
+  /** Substitui as mensagens em tela pelas do servidor (polling do
+   * atendimento humano) — ao contrário de `loadHistory`, não checa se já
+   * há mensagens: o servidor é a fonte de verdade enquanto o polling roda. */
+  replaceMessages: (messages: ChatUIMessage[]) => void;
+  setHumanAttendanceStatus: (status: HumanAttendanceStatus) => void;
   /** Limpa as mensagens em tela e gera um novo conversationId. */
   clearChat: (userEmail?: string | null) => void;
 }
@@ -104,6 +121,7 @@ export const useChatStore = create<ChatState>((set) => ({
   conversationId: "",
   messages: [],
   pendingInput: null,
+  humanAttendanceStatus: null,
   toggleOpen: () => set((state) => ({ isOpen: !state.isOpen })),
   open: () => set({ isOpen: true }),
   openWithPrompt: (promptText) => set({ isOpen: true, pendingInput: promptText }),
@@ -137,6 +155,8 @@ export const useChatStore = create<ChatState>((set) => ({
   // histórico não é aplicado (não intercala mensagens antigas com a nova).
   loadHistory: (history) =>
     set((state) => (state.messages.length === 0 ? { messages: history } : {})),
+  replaceMessages: (messages) => set({ messages }),
+  setHumanAttendanceStatus: (status) => set({ humanAttendanceStatus: status }),
   clearChat: (userEmail) => {
     const newId = generateId();
     if (typeof window !== "undefined") {
@@ -151,6 +171,6 @@ export const useChatStore = create<ChatState>((set) => ({
         // ignora
       }
     }
-    set({ conversationId: newId, messages: [] });
+    set({ conversationId: newId, messages: [], humanAttendanceStatus: null });
   },
 }));

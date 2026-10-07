@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -10,6 +10,7 @@ vi.mock("@/lib/api/chat", async () => {
   return {
     ...actual,
     sendChatMessage: vi.fn(),
+    fetchConversationSnapshot: vi.fn(),
   };
 });
 
@@ -46,12 +47,18 @@ vi.mock("@/components/chat/ImageUploader", () => ({
   ),
 }));
 
-import { sendChatMessage } from "@/lib/api/chat";
+import { fetchConversationSnapshot, sendChatMessage } from "@/lib/api/chat";
 
 const mockedSendChatMessage = vi.mocked(sendChatMessage);
+const mockedFetchSnapshot = vi.mocked(fetchConversationSnapshot);
 
 function resetStore() {
-  useChatStore.setState({ isOpen: true, conversationId: "", messages: [] });
+  useChatStore.setState({
+    isOpen: true,
+    conversationId: "",
+    messages: [],
+    humanAttendanceStatus: null,
+  });
 }
 
 function renderModal() {
@@ -62,6 +69,7 @@ describe("ChatModal", () => {
   beforeEach(() => {
     resetStore();
     mockedSendChatMessage.mockReset();
+    mockedFetchSnapshot.mockReset();
   });
 
   it("conversa vazia mostra a boas-vindas com o convite opcional para o e-mail", () => {
@@ -668,6 +676,91 @@ describe("ChatModal", () => {
       expect(alertSpy).toHaveBeenCalled();
     });
     expect(useChatStore.getState().messages).toHaveLength(1);
+  });
+
+  describe("entrega de mensagem do atendente humano (Fase 4, achado de 2026-10-06)", () => {
+    it("busca novas mensagens periodicamente enquanto a conversa está sob atendimento humano", async () => {
+      vi.useFakeTimers();
+      try {
+        useChatStore.setState({
+          conversationId: "conv-humano-1",
+          humanAttendanceStatus: "em_atendimento_humano",
+          messages: [{ id: "m1", role: "user", text: "Preciso de ajuda" }],
+        });
+        mockedFetchSnapshot.mockResolvedValue({
+          status: "em_atendimento_humano",
+          messages: [
+            { id: "m1", role: "user", text: "Preciso de ajuda" },
+            {
+              id: "m2",
+              role: "atendente",
+              text: "Olá! Em que posso ajudar?",
+              atendenteNome: "Fernanda Suporte",
+            },
+          ],
+        });
+
+        renderModal();
+
+        expect(mockedFetchSnapshot).not.toHaveBeenCalled();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(4000);
+        });
+
+        expect(mockedFetchSnapshot).toHaveBeenCalledWith("conv-humano-1");
+        expect(useChatStore.getState().messages).toHaveLength(2);
+        expect(screen.getByText("Olá! Em que posso ajudar?")).toBeInTheDocument();
+        expect(screen.getByText(/Fernanda Suporte/)).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("para de repollar quando o atendente encerra e a conversa volta para a IA", async () => {
+      vi.useFakeTimers();
+      try {
+        useChatStore.setState({
+          conversationId: "conv-humano-2",
+          humanAttendanceStatus: "em_atendimento_humano",
+          messages: [{ id: "m1", role: "user", text: "Oi" }],
+        });
+        mockedFetchSnapshot.mockResolvedValue({
+          status: "encerrada",
+          messages: [{ id: "m1", role: "user", text: "Oi" }],
+        });
+
+        renderModal();
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(4000);
+        });
+
+        expect(useChatStore.getState().humanAttendanceStatus).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("não faz polling fora do atendimento humano", async () => {
+      vi.useFakeTimers();
+      try {
+        useChatStore.setState({
+          conversationId: "conv-ia-normal",
+          humanAttendanceStatus: null,
+          messages: [{ id: "m1", role: "user", text: "Oi" }],
+        });
+
+        renderModal();
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(10000);
+        });
+
+        expect(mockedFetchSnapshot).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });
 

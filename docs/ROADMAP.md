@@ -482,6 +482,30 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       > `VARCHAR` não é reforçada pelo SQLite usado nos testes unitários —
       > só foi reproduzida chamando o endpoint direto contra o Postgres real;
       > não há teste automatizado que pegaria uma regressão igual no futuro.
+      > Correção (2026-10-06, quarto bug — "atendente responde mas a
+      > mensagem não aparece no chat do cliente"): dois problemas distintos.
+      > (a) `ConversaMensagemOut.papel` (contrato de
+      > `GET /api/chat/conversations/{id}`, o endpoint que o widget do
+      > cliente usa para reexibir/retomar a conversa) só aceitava
+      > `"cliente"`/`"assistente"` — não incluía `"atendente"`. Assim que a
+      > conversa tinha uma mensagem do atendente, o endpoint quebrava com
+      > `ValidationError` (500), derrubando o histórico inteiro (não só a
+      > mensagem dele) para o cliente que reabria/recarregava o chat. (b)
+      > mesmo corrigido, nada no `ChatModal` fazia esse endpoint ser
+      > reconsultado enquanto o widget já estava aberto — não existe
+      > WebSocket/SSE do servidor para empurrar a mensagem do atendente ao
+      > cliente; a única sincronização era a busca única ao montar o
+      > `ChatWidget` (R9). Fix: `app.api.chat` passa `atendente_nome` e
+      > inclui `"atendente"` no `Literal`; o frontend ganhou
+      > `fetchConversationSnapshot` (histórico + `status` num só fetch) e o
+      > `ChatModal` agora repolla a cada 4s enquanto `status` for
+      > `aguardando_humano`/`em_atendimento_humano`, substituindo as
+      > mensagens em tela pelas do servidor — e para sozinho quando o
+      > atendente encerra/devolve a conversa. A bolha "atendente" (estilo
+      > verde dedicado) já existia em `MessageBubble`, nunca tinha sido
+      > alimentada. Testes em `tests/test_chat_transbordo_pausa.py`
+      > (backend) e `ChatModal.test.tsx`/`chatHistory.test.ts`/
+      > `ChatWidget.test.tsx` (frontend).
 
 ## Fase 5 — MCP B2B Provido pela Empresa (R12)
 

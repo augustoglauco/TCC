@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchConversationHistory } from "@/lib/api/chat";
+import { fetchConversationHistory, fetchConversationSnapshot } from "@/lib/api/chat";
 
 function mockFetch(resposta: Partial<Response> | Error) {
   vi.stubGlobal(
@@ -101,5 +101,60 @@ describe("fetchConversationHistory (retomada da conversa, R9)", () => {
 
     mockFetch(new TypeError("Failed to fetch"));
     expect(await fetchConversationHistory("conv-1")).toBeNull();
+  });
+
+  it("mensagem do atendente vira bolha própria (role 'atendente'), com o nome dele", async () => {
+    mockFetch({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        conversation_id: "conv-1",
+        status: "em_atendimento_humano",
+        resumo: null,
+        mensagens: [
+          {
+            papel: "atendente",
+            texto: "Olá, aqui é a Fernanda do suporte.",
+            dominio: null,
+            criada_em: "x",
+            atendente_nome: "Fernanda Suporte",
+            metricas: null,
+          },
+        ],
+      }),
+    });
+
+    const [mensagem] = (await fetchConversationHistory("conv-1")) ?? [];
+    expect(mensagem.role).toBe("atendente");
+    expect(mensagem.atendenteNome).toBe("Fernanda Suporte");
+  });
+});
+
+describe("fetchConversationSnapshot (polling do atendimento humano, Fase 4)", () => {
+  it("devolve status e mensagens juntos", async () => {
+    mockFetch({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        conversation_id: "conv-1",
+        status: "em_atendimento_humano",
+        resumo: null,
+        mensagens: [
+          { papel: "cliente", texto: "Oi", dominio: null, criada_em: "x", metricas: null },
+        ],
+      }),
+    });
+
+    const snapshot = await fetchConversationSnapshot("conv-1");
+    expect(snapshot?.status).toBe("em_atendimento_humano");
+    expect(snapshot?.messages).toEqual([{ id: expect.any(String), role: "user", text: "Oi" }]);
+  });
+
+  it("falha do backend ou de rede devolve null, sem lançar — mesmo em 404", async () => {
+    mockFetch({ ok: false, status: 404 });
+    expect(await fetchConversationSnapshot("conv-nova")).toBeNull();
+
+    mockFetch(new TypeError("Failed to fetch"));
+    expect(await fetchConversationSnapshot("conv-1")).toBeNull();
   });
 });

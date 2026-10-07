@@ -238,12 +238,21 @@ class ChatDoneEventData(BaseModel):
 
 
 class ConversaMensagemOut(BaseModel):
-    """Uma mensagem gravada da conversa (R9, Fase 6)."""
+    """Uma mensagem gravada da conversa (R9, Fase 6).
 
-    papel: Literal["cliente", "assistente"]
+    Achado de 2026-10-06: `papel` não incluía `"atendente"` (Fase 4,
+    atendimento humano) — `GET /api/chat/conversations/{id}` quebrava com
+    `ValidationError` (500) assim que a conversa tinha uma mensagem do
+    atendente, derrubando o histórico inteiro (não só a mensagem dele) para
+    o cliente que reabria/recarregava o chat.
+    """
+
+    papel: Literal["cliente", "assistente", "atendente"]
     texto: str
     dominio: str | None = None
     criada_em: datetime
+    # Só preenchido em mensagens do atendente (papel="atendente").
+    atendente_nome: str | None = None
     # Conteúdo do evento `done` da resposta (só nas mensagens do assistente;
     # `None` nas gravadas antes da migração 0012).
     metricas: dict | None = None

@@ -158,6 +158,38 @@ export async function sendChatMessage({
   }
 }
 
+function mapHistoricoMensagens(historico: ConversaHistorico): ChatUIMessage[] {
+  return historico.mensagens.map((mensagem) => {
+    if (mensagem.papel === "cliente") {
+      return { id: generateId(), role: "user", text: mensagem.texto };
+    }
+    // Achado de 2026-10-06: faltava este ramo — toda mensagem não-"cliente"
+    // (inclusive do atendente humano) virava bolha de "assistant", sem
+    // nome do atendente nem o estilo verde dedicado (ver MessageBubble).
+    if (mensagem.papel === "atendente") {
+      return {
+        id: generateId(),
+        role: "atendente",
+        text: mensagem.texto,
+        atendenteNome: mensagem.atendente_nome ?? undefined,
+      };
+    }
+    // Com as métricas gravadas, o painel ⚙️ reaparece igual ao da resposta
+    // original; sem elas (mensagens anteriores à migração 0012), só o domínio.
+    return {
+      id: generateId(),
+      role: "assistant",
+      text: mensagem.texto,
+      domain: mensagem.dominio ?? undefined,
+      ...(mensagem.metricas && {
+        backendUsed: mensagem.metricas.backend_used,
+        metrics: metricsFromDone(mensagem.metricas),
+        card: mensagem.metricas.card ?? undefined,
+      }),
+    };
+  });
+}
+
 /**
  * Busca o histórico gravado da conversa (R9) para reexibir ao reabrir o chat.
  * Conversa que ainda não existe no backend (404) devolve `[]`. Qualquer outra
@@ -181,24 +213,39 @@ export async function fetchConversationHistory(
     return null;
   }
   const historico = (await response.json()) as ConversaHistorico;
-  return historico.mensagens.map((mensagem) => {
-    if (mensagem.papel === "cliente") {
-      return { id: generateId(), role: "user", text: mensagem.texto };
-    }
-    // Com as métricas gravadas, o painel ⚙️ reaparece igual ao da resposta
-    // original; sem elas (mensagens anteriores à migração 0012), só o domínio.
-    return {
-      id: generateId(),
-      role: "assistant",
-      text: mensagem.texto,
-      domain: mensagem.dominio ?? undefined,
-      ...(mensagem.metricas && {
-        backendUsed: mensagem.metricas.backend_used,
-        metrics: metricsFromDone(mensagem.metricas),
-        card: mensagem.metricas.card ?? undefined,
-      }),
-    };
-  });
+  return mapHistoricoMensagens(historico);
+}
+
+export interface ConversationSnapshot {
+  status: string;
+  messages: ChatUIMessage[];
+}
+
+/**
+ * Como `fetchConversationHistory`, mas também devolve o `status` da
+ * conversa — usado pelo polling do atendimento humano (ver `ChatModal`):
+ * quando o atendente responde enquanto o widget já está aberto, não há
+ * push (sem WebSocket/SSE do lado do servidor para isso) nem nenhum outro
+ * sinal de que uma mensagem nova chegou — só reconsultar este endpoint
+ * periodicamente enquanto `status` for `aguardando_humano`/
+ * `em_atendimento_humano` revela o que o atendente escreveu.
+ */
+export async function fetchConversationSnapshot(
+  conversationId: string,
+): Promise<ConversationSnapshot | null> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `${API_BASE_URL}/api/chat/conversations/${encodeURIComponent(conversationId)}`,
+    );
+  } catch {
+    return null;
+  }
+  if (!response.ok) {
+    return null;
+  }
+  const historico = (await response.json()) as ConversaHistorico;
+  return { status: historico.status, messages: mapHistoricoMensagens(historico) };
 }
 
 /**
