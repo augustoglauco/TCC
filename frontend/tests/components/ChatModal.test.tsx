@@ -741,7 +741,53 @@ describe("ChatModal", () => {
       }
     });
 
-    it("não faz polling fora do atendimento humano", async () => {
+    it("detecta sozinho quando o atendente assume a conversa com o widget já aberto e parado (achado de 2026-10-07)", async () => {
+      // Antes: o polling só começava depois que `humanAttendanceStatus`
+      // virava verdadeiro, e isso só acontecia via evento SSE `status` — que
+      // só chega numa resposta a uma mensagem DO CLIENTE. Se o atendente
+      // assumisse a conversa com o cliente só olhando o chat aberto, sem
+      // mandar nada, nada nunca ligava o polling: a mensagem do atendente só
+      // "chegava" se o cliente mandasse outra mensagem primeiro. Este teste
+      // reproduz exatamente esse caso — `humanAttendanceStatus` começa nulo
+      // e nenhuma mensagem é enviada.
+      vi.useFakeTimers();
+      try {
+        useChatStore.setState({
+          conversationId: "conv-assumida-sem-msg",
+          humanAttendanceStatus: null,
+          messages: [{ id: "m1", role: "user", text: "Oi" }],
+        });
+        mockedFetchSnapshot.mockResolvedValue({
+          status: "em_atendimento_humano",
+          messages: [
+            { id: "m1", role: "user", text: "Oi" },
+            {
+              id: "m2",
+              role: "atendente",
+              text: "Olá! Assumi seu atendimento, em que posso ajudar?",
+              atendenteNome: "Fernanda Suporte",
+            },
+          ],
+        });
+
+        renderModal();
+        expect(mockedFetchSnapshot).not.toHaveBeenCalled();
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(4000);
+        });
+
+        expect(mockedFetchSnapshot).toHaveBeenCalledWith("conv-assumida-sem-msg");
+        expect(useChatStore.getState().humanAttendanceStatus).toBe("em_atendimento_humano");
+        expect(
+          screen.getByText("Olá! Assumi seu atendimento, em que posso ajudar?"),
+        ).toBeInTheDocument();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("polling roda mesmo fora do atendimento humano, mas não mexe nas mensagens de uma conversa normal", async () => {
       vi.useFakeTimers();
       try {
         useChatStore.setState({
@@ -749,14 +795,51 @@ describe("ChatModal", () => {
           humanAttendanceStatus: null,
           messages: [{ id: "m1", role: "user", text: "Oi" }],
         });
+        mockedFetchSnapshot.mockResolvedValue({
+          status: "aberta",
+          messages: [{ id: "m1", role: "user", text: "Oi" }],
+        });
 
         renderModal();
 
         await act(async () => {
-          await vi.advanceTimersByTimeAsync(10000);
+          await vi.advanceTimersByTimeAsync(8000);
         });
 
-        expect(mockedFetchSnapshot).not.toHaveBeenCalled();
+        expect(mockedFetchSnapshot).toHaveBeenCalled();
+        expect(useChatStore.getState().humanAttendanceStatus).toBeNull();
+        expect(useChatStore.getState().messages).toHaveLength(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("não força scroll a cada poll de 4s sem mensagem nova (achado de 2026-10-07)", async () => {
+      vi.useFakeTimers();
+      const scrollIntoViewMock = vi.fn();
+      window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
+      try {
+        useChatStore.setState({
+          conversationId: "conv-humano-3",
+          humanAttendanceStatus: "em_atendimento_humano",
+          messages: [{ id: "m1", role: "user", text: "Oi" }],
+        });
+        // Como a API real, devolve um array novo (mesmo conteúdo) a cada
+        // chamada — reproduz a condição que causava o scroll repetido.
+        mockedFetchSnapshot.mockImplementation(async () => ({
+          status: "em_atendimento_humano",
+          messages: [{ id: "m1", role: "user", text: "Oi" }],
+        }));
+
+        renderModal();
+        const chamadasIniciais = scrollIntoViewMock.mock.calls.length;
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(12000); // 3 polls de 4s
+        });
+
+        expect(mockedFetchSnapshot).toHaveBeenCalledTimes(3);
+        expect(scrollIntoViewMock.mock.calls.length).toBe(chamadasIniciais);
       } finally {
         vi.useRealTimers();
       }

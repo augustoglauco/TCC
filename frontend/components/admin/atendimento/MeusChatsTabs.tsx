@@ -29,9 +29,16 @@ export default function MeusChatsTabs({
   const [inputText, setInputText] = useState("");
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
+  // Achado de 2026-10-07: `detalhes` é repollado a cada 3s (ver
+  // `app/admin/atendimento/page.tsx`) e cada busca traz um array de
+  // `mensagens` novo (nova referência) mesmo sem nenhuma mensagem nova —
+  // usar o array inteiro como dependência disparava o scroll a cada poll,
+  // prendendo a tela sempre no fundo e impedindo o atendente de rolar para
+  // cima para reler o histórico. `.length` só muda quando chega mensagem
+  // nova de fato.
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView?.({ behavior: "smooth" });
-  }, [detalhes?.mensagens]);
+  }, [detalhes?.mensagens.length]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

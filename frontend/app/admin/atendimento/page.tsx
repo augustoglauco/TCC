@@ -52,9 +52,17 @@ export default function AdminAtendimentoPage() {
       setFila(filaRes);
       setMeusChats(meusChatsRes);
 
-      // Se há um chat ativo mas ele não está mais em meusChats, remove
+      // Achado de 2026-10-07: este bloco só tinha o comentário da intenção,
+      // nunca a limpeza em si — quando o cliente encerrava a conversa (ou
+      // outro atendente/a devolvia para a IA), ela sumia da lista de abas
+      // (`meusChats`), mas `activeChatId`/`detalhes` continuavam apontando
+      // para ela. O painel de chat ativo (`MeusChatsTabs`) não olha o
+      // status da conversa para decidir o que mostrar — então o atendente
+      // via o chat como se o cliente ainda estivesse ali, podendo mandar
+      // mensagem sem efeito, achando que a conversa "não encerra".
       if (activeChatId && !meusChatsRes.some((c) => c.id === activeChatId)) {
-        // chat foi fechado ou devolvido
+        setActiveChatId(null);
+        setDetalhes(null);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao atualizar fila";

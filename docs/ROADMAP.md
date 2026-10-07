@@ -506,6 +506,53 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       > alimentada. Testes em `tests/test_chat_transbordo_pausa.py`
       > (backend) e `ChatModal.test.tsx`/`chatHistory.test.ts`/
       > `ChatWidget.test.tsx` (frontend).
+      > Correção (2026-10-07, "a página de atendente fica com scroll
+      > sempre para baixo"): o `useEffect` de scroll-to-bottom em
+      > `MeusChatsTabs` (painel do atendente) e o polling recém-adicionado
+      > acima em `ChatModal` (painel do cliente) tinham o mesmo problema —
+      > `detalhes`/`fetchConversationSnapshot` são repollados a cada
+      > 3s/4s e cada busca traz um array de mensagens novo (nova
+      > referência) mesmo sem mensagem nova de fato; usar esse array
+      > inteiro como dependência/gatilho disparava `scrollIntoView` (ou
+      > `replaceMessages`, que o disparava por tabela) a cada poll,
+      > prendendo a tela sempre no fundo e impedindo rolar para cima para
+      > reler o histórico. `MeusChatsTabs` passou a depender de
+      > `detalhes?.mensagens.length`; o polling do `ChatModal` só chama
+      > `replaceMessages` quando a contagem de mensagens muda. Testes
+      > novos em `AdminAtendimentoPage.test.tsx` e `ChatModal.test.tsx`
+      > (ambos verificados contra a versão com o bug antes do fix, para
+      > confirmar que pegam a regressão).
+      > Correção (2026-10-07, "quando o atendente responde não chega no
+      > chat, só se o cliente mandar outra mensagem"): o polling do
+      > `ChatModal` (achado acima) só *começava* quando
+      > `humanAttendanceStatus` já estava verdadeiro — e isso só acontecia
+      > via evento SSE `status` (que só chega numa resposta a uma mensagem
+      > DO CLIENTE) ou na checagem única ao montar o `ChatWidget`. Se o
+      > atendente assumisse a conversa com o widget do cliente já aberto e
+      > parado (sem o cliente mandar nada), nada nunca ligava o polling — a
+      > mensagem do atendente só "chegava" (e só então posicionava a tela
+      > corretamente) depois que o cliente mandasse outra mensagem, o que
+      > finalmente disparava o `status` e, por tabela, o polling. O
+      > polling agora roda sempre que o widget está aberto (não mais só
+      > quando já se sabe que está em atendimento humano) — é o próprio
+      > polling que detecta a entrada nesse modo. MVP: sem WebSocket/SSE do
+      > servidor para esse evento, o custo é uma requisição leve a cada 4s
+      > por widget aberto, mesmo em conversas que nunca escalam. Testes
+      > atualizados em `ChatModal.test.tsx`.
+      > Correção (2026-10-07, "quando o cliente encerra o chat, o chat no
+      > atendente não encerra"): em `app/admin/atendimento/page.tsx`, o
+      > bloco que deveria limpar `activeChatId`/`detalhes` quando a
+      > conversa ativa some de `meusChats` (porque o cliente encerrou, ou
+      > ela foi devolvida para a IA) só tinha o comentário da intenção —
+      > `if (...) { /* chat foi fechado ou devolvido */ }`, corpo vazio,
+      > nunca implementado. `MeusChatsTabs` não olha o `status` da
+      > conversa para decidir o que mostrar, então o painel continuava
+      > exibindo o histórico e os botões de ação como se a conversa
+      > seguisse ativa. Implementado o `setActiveChatId(null)`/
+      > `setDetalhes(null)` que o comentário já previa — o painel volta ao
+      > estado vazio ("Central de Conversas em Andamento") no poll de 5s
+      > seguinte. Teste em `AdminAtendimentoPage.test.tsx` (verificado
+      > contra a versão com o bug antes do fix).
 
 ## Fase 5 — MCP B2B Provido pela Empresa (R12)
 

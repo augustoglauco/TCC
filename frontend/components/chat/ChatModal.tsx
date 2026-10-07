@@ -66,7 +66,6 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const replaceMessages = useChatStore((state) => state.replaceMessages);
   const setConversationId = useChatStore((state) => state.setConversationId);
   const clearChat = useChatStore((state) => state.clearChat);
-  const humanAttendanceStatus = useChatStore((state) => state.humanAttendanceStatus);
   const setHumanAttendanceStatus = useChatStore((state) => state.setHumanAttendanceStatus);
 
   const [input, setInput] = useState("");
@@ -162,13 +161,26 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   // evento chegar ao widget do cliente enquanto ele já está com o chat
   // aberto. Sem isso, "atendente responde mas a mensagem não aparece no
   // chat do cliente" (só reapareceria se o cliente recarregasse a página).
-  // Com o widget aberto e a conversa sob atendimento humano, repolla o
-  // histórico periodicamente e substitui as mensagens em tela pelas do
-  // servidor — fonte de verdade enquanto esse modo durar. Também é assim
-  // que detectamos quando o atendente encerra/devolve a conversa para a IA
-  // (o status deixa de ser humano e o polling para).
+  // Com o widget aberto, repolla o histórico periodicamente e substitui as
+  // mensagens em tela pelas do servidor quando a conversa está sob
+  // atendimento humano. Também é assim que detectamos quando o atendente
+  // encerra/devolve a conversa para a IA (o status deixa de ser humano).
+  //
+  // Achado de 2026-10-07: gatear o início do polling em
+  // `humanAttendanceStatus` já verdadeiro quebrava o caso mais comum —
+  // `humanAttendanceStatus` só vira verdadeiro via evento SSE `status` (que
+  // só chega numa resposta a uma mensagem DO CLIENTE) ou na checagem única
+  // ao montar o `ChatWidget`. Se o atendente assume a conversa enquanto o
+  // cliente já está com o chat aberto e parado (sem mandar nada), nada
+  // nunca ligava o polling — a mensagem só "chegava" se o cliente mandasse
+  // outra mensagem primeiro (o que então disparava o `status` e, por
+  // tabela, o polling). Agora o polling roda sempre que o widget está
+  // aberto, não só quando já sabemos que está em atendimento humano — é
+  // o próprio polling que detecta a entrada nesse modo. MVP: sem
+  // WebSocket/SSE do servidor, isso significa uma requisição leve a cada
+  // 4s por widget aberto, mesmo em conversas que nunca escalam.
   useEffect(() => {
-    if (!open || !conversationId || !humanAttendanceStatus) {
+    if (!open || !conversationId) {
       return;
     }
     const intervalo = setInterval(async () => {
@@ -176,11 +188,19 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       if (!snapshot) {
         return;
       }
-      replaceMessages(snapshot.messages);
-      setHumanAttendanceStatus(paraStatusAtendimento(snapshot.status));
+      const novoStatus = paraStatusAtendimento(snapshot.status);
+      setHumanAttendanceStatus(novoStatus);
+      // Só substitui (e, por tabela, dispara o scroll-to-bottom do efeito
+      // acima, que depende de `messages`) quando o servidor tem conteúdo
+      // novo de fato — sem este guard, cada tick de 4s trocava `messages`
+      // por uma lista nova idêntica e prendia a tela sempre no fundo,
+      // impedindo o cliente de rolar para cima durante a espera.
+      if (novoStatus && snapshot.messages.length !== useChatStore.getState().messages.length) {
+        replaceMessages(snapshot.messages);
+      }
     }, 4000);
     return () => clearInterval(intervalo);
-  }, [open, conversationId, humanAttendanceStatus, replaceMessages, setHumanAttendanceStatus]);
+  }, [open, conversationId, replaceMessages, setHumanAttendanceStatus]);
 
   const hasAssistantMessages = messages.some((m) => m.role === "assistant");
 
