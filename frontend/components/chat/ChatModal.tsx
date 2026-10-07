@@ -112,6 +112,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     });
     const userEmail = useAuthStore.getState().user?.email;
     setConversationId(generateId(), userEmail);
+    onOpenChange(false);
   }
 
   async function handleSolicitarAtendente() {
