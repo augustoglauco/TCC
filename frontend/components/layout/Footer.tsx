@@ -1,6 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // Esconde o footer em páginas do painel admin (ex. /admin/atendimento)
+  // para permitir layout full-screen (100vh) sem barra de rolagem externa.
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+
   return (
     <footer className="border-t border-slate-200/80 bg-slate-900 text-slate-400">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:py-10">

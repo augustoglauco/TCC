@@ -194,7 +194,7 @@ export default function AdminAtendimentoPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] p-3 sm:p-4 bg-slate-100 overflow-hidden space-y-3">
+    <div className="flex flex-col h-[calc(100vh-3.75rem)] sm:h-[calc(100vh-4rem)] p-2.5 sm:p-3 bg-slate-100 overflow-hidden space-y-2.5">
       {/* Top Banner / Header */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs shrink-0">
         <div className="flex items-center gap-3">
