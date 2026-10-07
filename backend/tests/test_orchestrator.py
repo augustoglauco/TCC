@@ -2694,6 +2694,83 @@ async def test_build_prompt_isola_contexto_rag_em_tag():
     assert "</contexto_rag>" in prompt_usado
 
 
+async def test_build_prompt_isola_mensagem_anterior_do_cliente_em_tag():
+    # A mensagem ANTERIOR do cliente (via `ultima_troca`) também é texto de
+    # origem do cliente e precisa do mesmo isolamento da mensagem atual —
+    # senão uma injeção no turno N reaparece sem tag no prompt do turno N+1.
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+
+    await _coletar_eventos(
+        "e qual o prazo de entrega?",
+        recent_messages=["Quero comprar o gerador GD-30"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        ultima_troca=("Quero comprar o gerador GD-30", "Temos o GD-30 em estoque."),
+    )
+
+    prompt_usado = local_client.last_prompt or external_client.last_prompt
+    assert prompt_usado is not None
+    assert "<entrada_cliente>" in prompt_usado
+    assert "Quero comprar o gerador GD-30" in prompt_usado
+    assert "</entrada_cliente>" in prompt_usado
+
+
+async def test_build_prompt_isola_resumo_da_conversa_em_tag():
+    # O resumo é gerado a partir de mensagens do cliente; sem isolamento,
+    # uma injeção capturada no resumo reapareceria sem tag em todo prompt
+    # subsequente até o próximo resumo.
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+
+    await _coletar_eventos(
+        "E se eu levar 3?",
+        recent_messages=["Quero comprar um gerador GD-30"],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        resumo_conversa="Cliente quer comprar o gerador GD-30.",
+    )
+
+    prompt_usado = local_client.last_prompt or external_client.last_prompt
+    assert prompt_usado is not None
+    assert "<entrada_cliente>" in prompt_usado
+    assert "Cliente quer comprar o gerador GD-30." in prompt_usado
+    assert "</entrada_cliente>" in prompt_usado
+
+
+async def test_build_prompt_isola_contexto_conversa_anterior_em_tag():
+    # Contexto trazido de uma sessão anterior também é texto de origem do
+    # cliente (resumo de uma conversa passada) e precisa do mesmo isolamento.
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    contexto_anterior = (
+        "Cliente solicitou cotação de 5 rádios RC 4102g2 ontem e aguardava desconto."
+    )
+
+    await _coletar_eventos(
+        "Como ficou o orçamento que conversamos ontem?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        contexto_conversa_anterior=contexto_anterior,
+    )
+
+    prompt_usado = local_client.last_prompt or external_client.last_prompt
+    assert prompt_usado is not None
+    assert "<entrada_cliente>" in prompt_usado
+    assert contexto_anterior in prompt_usado
+    assert "</entrada_cliente>" in prompt_usado
+
+
 async def test_tentativa_de_injecao_direta_e_logada_sem_bloquear_resposta(caplog):
     local_client = _FakeLLMClient(response=_resposta_local())
     external_client = _FakeLLMClient(response=_resposta_externa())

@@ -301,6 +301,14 @@ Constrói e une todos os blocos de contexto (playbook, dados do cliente, resumo,
 > `playbooks.py`, para a instrução que diz ao modelo como tratá-las).
 > `handle_message` também loga (sem bloquear) tentativas de injeção de
 > alta confiança via `app.router.prompt_safety.detectar_tentativa_injecao`.
+> **Correção da revisão final (2026-10-07):** `wrap_untrusted` passou a
+> escapar as tags de TODOS os labels conhecidos (não só a do próprio
+> label) — sem isso, um documento do RAG rotulado `contexto_rag` podia
+> conter literalmente `</entrada_cliente><entrada_cliente>` e forjar uma
+> falsa troca do cliente. Além disso, `ultima_troca` (mensagem anterior do
+> cliente), `resumo_conversa` e `contexto_conversa_anterior` — todos de
+> origem do cliente, só que entrando como texto raw até então — passaram a
+> ser isolados com a mesma tag `entrada_cliente` da mensagem atual.
 
 ```python
 # Line 71: Construtor dinâmico do prompt final
@@ -326,13 +334,15 @@ def _build_prompt(
     if contexto_conversa_anterior:
         partes.append(
             "Contexto da conversa anterior do cliente (use como histórico prévio do cliente; "
-            f"se a conversa atual tratar de algo novo, priorize o contexto atual):\n{contexto_conversa_anterior}"
+            "se a conversa atual tratar de algo novo, priorize o contexto atual):\n"
+            f"{wrap_untrusted('entrada_cliente', contexto_conversa_anterior)}"
         )
 
     if resumo_conversa:
         partes.append(
             "Resumo da conversa até aqui (use como contexto; se a mensagem "
-            f"atual disser algo diferente, ela vale):\n{resumo_conversa}"
+            f"atual disser algo diferente, ela vale):\n"
+            f"{wrap_untrusted('entrada_cliente', resumo_conversa)}"
         )
 
     if ultima_troca:
@@ -340,7 +350,7 @@ def _build_prompt(
         partes.append(
             "Troca anterior da conversa (use para entender referências como "
             "'o produto acima' ou 'esse'):\n"
-            f"Cliente: {cliente[:_ULTIMA_RESPOSTA_MAX_CHARS]}\n"
+            f"Cliente: {wrap_untrusted('entrada_cliente', cliente[:_ULTIMA_RESPOSTA_MAX_CHARS])}\n"
             f"Assistente: {assistente[:_ULTIMA_RESPOSTA_MAX_CHARS]}"
         )
 

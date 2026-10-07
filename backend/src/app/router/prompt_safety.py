@@ -23,12 +23,17 @@ _TAGS: dict[str, tuple[str, str]] = {
 
 def wrap_untrusted(label: str, content: str) -> str:
     """Envolve `content` nas tags de `label`, escapando qualquer ocorrência
-    literal da própria tag dentro de `content` — sem isso, o cliente
-    poderia "fechar" a tag mais cedo e inserir texto fora do isolamento."""
+    literal de QUALQUER uma das tags conhecidas (`_TAGS`) dentro de `content`
+    — não só as do próprio `label`. Sem isso, um texto não confiável
+    rotulado com um label (ex. `contexto_rag`) poderia conter a tag de
+    OUTRO label (ex. `</entrada_cliente><entrada_cliente>`) e forjar uma
+    falsa troca do cliente dentro do que deveria ser só contexto do RAG."""
     open_tag, close_tag = _TAGS[label]
-    escaped = content.replace(open_tag, f"&lt;{label}&gt;").replace(
-        close_tag, f"&lt;/{label}&gt;"
-    )
+    escaped = content
+    for outro_label, (outro_open, outro_close) in _TAGS.items():
+        escaped = escaped.replace(outro_open, f"&lt;{outro_label}&gt;").replace(
+            outro_close, f"&lt;/{outro_label}&gt;"
+        )
     return f"{open_tag}\n{escaped}\n{close_tag}"
 
 

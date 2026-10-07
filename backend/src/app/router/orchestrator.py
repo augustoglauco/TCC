@@ -115,7 +115,7 @@ def _build_prompt(
         partes.append(
             "Contexto da conversa anterior do cliente (use como histórico prévio do cliente; "
             "se a conversa atual tratar de algo novo, priorize o contexto atual):\n"
-            f"{contexto_conversa_anterior}"
+            f"{wrap_untrusted('entrada_cliente', contexto_conversa_anterior)}"
         )
 
     if resumo_conversa:
@@ -123,7 +123,8 @@ def _build_prompt(
         # que dá ao LLM o contexto da conversa (ex.: de que produto se fala).
         partes.append(
             "Resumo da conversa até aqui (use como contexto; se a mensagem "
-            f"atual disser algo diferente, ela vale):\n{resumo_conversa}"
+            f"atual disser algo diferente, ela vale):\n"
+            f"{wrap_untrusted('entrada_cliente', resumo_conversa)}"
         )
 
     if ultima_troca:
@@ -133,7 +134,7 @@ def _build_prompt(
         partes.append(
             "Troca anterior da conversa (use para entender referências como "
             "'o produto acima' ou 'esse'):\n"
-            f"Cliente: {cliente[:_ULTIMA_RESPOSTA_MAX_CHARS]}\n"
+            f"Cliente: {wrap_untrusted('entrada_cliente', cliente[:_ULTIMA_RESPOSTA_MAX_CHARS])}\n"
             f"Assistente: {assistente[:_ULTIMA_RESPOSTA_MAX_CHARS]}"
         )
 
