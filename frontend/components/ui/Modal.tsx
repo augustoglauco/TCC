@@ -8,7 +8,7 @@ export type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 export interface ModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
+  title: ReactNode;
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
@@ -46,15 +46,17 @@ export function Modal({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-200" />
         <Dialog.Content
-          className={`fixed left-1/2 top-1/2 z-50 w-[calc(100vw-1.5rem)] sm:w-full ${sizeClass} max-h-[92vh] flex flex-col -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-6 shadow-2xl transition-all duration-200 overflow-y-auto`}
+          className={`fixed left-1/2 top-1/2 z-50 w-[calc(100vw-1.5rem)] sm:w-full ${sizeClass} max-h-[92vh] flex flex-col -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-5 shadow-2xl transition-all duration-200 overflow-y-auto`}
         >
-          <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-2.5 sm:pb-3 shrink-0">
-            <div>
-              <Dialog.Title className="text-base sm:text-lg font-bold text-slate-900">
-                {title}
+          <div className="flex items-center justify-between gap-2.5 sm:gap-4 border-b border-slate-100 pb-3 shrink-0">
+            <div className="flex flex-col min-w-0">
+              <Dialog.Title asChild>
+                <div className="text-base sm:text-lg font-bold text-slate-900 truncate flex items-center gap-2">
+                  {title}
+                </div>
               </Dialog.Title>
               {description && (
-                <Dialog.Description className="mt-0.5 text-xs text-slate-500">
+                <Dialog.Description className="mt-0.5 text-xs text-slate-500 truncate hidden sm:block">
                   {description}
                 </Dialog.Description>
               )}
@@ -65,7 +67,7 @@ export function Modal({
                 <button
                   type="button"
                   aria-label="Fechar"
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-all hover:scale-105 active:scale-95 shrink-0"
                 >
                   ✕
                 </button>

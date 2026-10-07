@@ -376,7 +376,18 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Chat com Agente Virtual"
+      title={
+        <div className="flex items-center gap-2 text-slate-900">
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+          </span>
+          <span className="font-extrabold text-sm sm:text-base tracking-tight">Chat com Agente Virtual</span>
+          <span className="hidden md:inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] sm:text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+            Ollama + Dual MCP
+          </span>
+        </div>
+      }
       description="Assistente IA multimodal com métricas de inferência em tempo real"
       size="2xl"
       headerActions={
@@ -385,7 +396,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             <button
               type="button"
               onClick={() => void handleSolicitarAtendente()}
-              className="flex items-center gap-1 rounded-lg border border-emerald-300 bg-emerald-50 px-2 sm:px-2.5 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/80 bg-emerald-50/90 px-2.5 sm:px-3 py-1 text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-100 hover:border-emerald-400 transition-all active:scale-95 cursor-pointer"
               title="Solicitar transbordo para atendimento humano"
               aria-label="Falar com atendente humano"
             >
@@ -395,22 +406,22 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             <button
               type="button"
               onClick={() => void handleCloseConversation()}
-              className="flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-2 sm:px-2.5 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/80 bg-amber-50/90 px-2.5 sm:px-3 py-1 text-xs font-semibold text-amber-800 shadow-2xs hover:bg-amber-100 hover:border-amber-400 transition-all active:scale-95 cursor-pointer"
               title="Encerrar atendimento atual e contabilizar métricas"
               aria-label="Encerrar atendimento"
             >
               <span>🏁</span>
-              <span className="hidden sm:inline">Encerrar atendimento</span>
+              <span className="hidden sm:inline">Encerrar</span>
             </button>
             <button
               type="button"
               onClick={() => void handleClearHistory()}
-              className="flex items-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 sm:px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50/90 px-2.5 sm:px-3 py-1 text-xs font-semibold text-rose-700 shadow-2xs hover:bg-rose-100 hover:border-rose-300 transition-all active:scale-95 cursor-pointer"
               title="Apagar mensagens e memória da conversa"
               aria-label="Limpar histórico da conversa"
             >
               <span>🗑️</span>
-              <span className="hidden sm:inline">Limpar conversa</span>
+              <span className="hidden sm:inline">Limpar</span>
             </button>
           </div>
         )
@@ -437,25 +448,26 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           </div>
         )}
         {hasAssistantMessages && (
-          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100/80 px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs shrink-0">
-            <span className="text-slate-600 font-medium flex items-center gap-1 text-[11px] sm:text-xs">
-              📊 <span className="hidden sm:inline">Métricas de Desempenho & Telemetria</span>
+          <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-100/90 backdrop-blur-xs px-3 sm:px-4 py-1.5 text-xs shrink-0 shadow-2xs">
+            <span className="text-slate-600 font-semibold flex items-center gap-1.5 text-[11px] sm:text-xs">
+              <span className="text-blue-600">📊</span>
+              <span className="hidden sm:inline">Métricas de Desempenho & Telemetria</span>
               <span className="sm:hidden">Telemetria</span>
             </span>
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
                 onClick={() => exportMetricsToCsv(messages)}
-                className="rounded bg-slate-900 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-white hover:bg-slate-800 transition-colors flex items-center gap-1"
+                className="rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-white hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
               >
-                📥 <span className="hidden xs:inline">Exportar </span>CSV
+                <span>📥</span> <span className="hidden xs:inline">Exportar </span>CSV
               </button>
               <button
                 type="button"
                 onClick={() => exportMetricsToJson(messages)}
-                className="rounded bg-slate-200 px-2 sm:px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 hover:bg-slate-300 transition-colors flex items-center gap-1"
+                className="rounded-lg bg-slate-200/90 border border-slate-300/60 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 hover:bg-slate-300 transition-all active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
               >
-                📥 <span className="hidden xs:inline">Exportar </span>JSON
+                <span>📥</span> <span className="hidden xs:inline">Exportar </span>JSON
               </button>
             </div>
           </div>
