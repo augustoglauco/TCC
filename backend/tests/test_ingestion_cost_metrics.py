@@ -9,8 +9,6 @@ from app.api.rag_dependencies import get_db_session
 from app.db.models import Conversa, ConversaMensagem, IngestionCostEvent
 from app.router.llm_client import LLMResponse
 from app.rag.crawler_classifier import classify_page
-from app.catalog_extractor.extractor import extract_page_products_vision
-from app.router.openrouter_client import VisionResult
 
 
 class _SingleSessionMaker:
@@ -57,23 +55,18 @@ class _MockCrawlerLLM:
         return self.response
 
 
-class _MockVisionClient:
-    def __init__(self, result: str, prompt_tokens: int, completion_tokens: int, cost: float):
-        self.result = VisionResult(result)
-        self.result.prompt_tokens = prompt_tokens
-        self.result.completion_tokens = completion_tokens
-        self.result.cost_prompt_usd = cost * 0.8
-        self.result.cost_completion_usd = cost * 0.2
-        self.result.estimated_cost_usd = cost
-        self.result.model_name = "google/gemma-4-31b-it:free"
-
-    async def describe_image(self, image_bytes: bytes, prompt: str) -> VisionResult:
-        return self.result
+# MVP/telemetria: a extração de catálogo por visão (`extract_page_products_vision`)
+# usava `_MockVisionClient` + `record_ingestion_cost` aqui, mas migrou para o
+# ledger unificado `registrar_uso_ia` (item D, pontos 3a-3b, 2026-10-08) —
+# migração sem dual-write, decisão do usuário de não preservar os dados
+# antigos. A cobertura equivalente agora vive em
+# `tests/test_catalog_extractor.py`
+# (`test_extract_page_products_vision_interna_registra_uso_ia` /
+# `..._externa_registra_uso_ia`).
 
 
 @pytest.mark.asyncio
-async def test_crawler_and_catalog_record_ingestion_cost_events(db_session):
-    # 1. Test crawler classification records cost event
+async def test_crawler_records_ingestion_cost_event(db_session):
     mock_llm = _MockCrawlerLLM(
         text='{"domain": "vendas", "confidence": 0.95}',
         prompt_tokens=500,
@@ -88,22 +81,6 @@ async def test_crawler_and_catalog_record_ingestion_cost_events(db_session):
     )
     assert classification.domain == "vendas"
     assert classification.confidence == 0.95
-
-    # 2. Test catalog extractor records vision cost event
-    mock_vision = _MockVisionClient(
-        result='[{"nome": "Câmera IP", "preco": 299.90}]',
-        prompt_tokens=1400,
-        completion_tokens=80,
-        cost=0.0022,
-    )
-    products = await extract_page_products_vision(
-        b"fake-bytes",
-        mock_vision,
-        source_identifier="catalogo_2026.pdf#p1",
-        session=db_session,
-    )
-    assert len(products) == 1
-    assert products[0]["nome"] == "Câmera IP"
 
     await db_session.commit()
 
@@ -195,92 +172,12 @@ async def test_admin_metrics_aggregates_ingestion_and_chat_costs(test_client, db
     assert daily["ingestion_cost_usd"] == 0.0030
 
 
-@pytest.mark.asyncio
-async def test_catalog_extractor_records_cost_without_session_using_global_sessionmaker(db_session):
-    from app.services.ingestion_metrics import set_global_sessionmaker
-    set_global_sessionmaker(_SingleSessionMaker(db_session))
-
-    mock_vision = _MockVisionClient(
-        result='[{"nome": "Inversor Solar 3kW", "preco": 1850.00}]',
-        prompt_tokens=900,
-        completion_tokens=60,
-        cost=0.0015,
-    )
-
-    products = await extract_page_products_vision(
-        b"fake-bytes-no-session",
-        mock_vision,
-        source_identifier="painel_solar.jpg",
-    )
-    assert len(products) == 1
-    assert products[0]["nome"] == "Inversor Solar 3kW"
-
-    from sqlalchemy import select
-    stmt = select(IngestionCostEvent).where(IngestionCostEvent.source_identifier == "painel_solar.jpg")
-    res = await db_session.execute(stmt)
-    evt = res.scalar_one()
-    assert evt.source_type == "catalog_extractor"
-    assert evt.prompt_tokens == 900
-    assert evt.completion_tokens == 60
-    assert evt.total_cost_usd == 0.0015
-
-
-@pytest.mark.asyncio
-async def test_catalog_extractor_estimates_tokens_when_model_usage_is_missing(db_session):
-    mock_vision = _MockVisionClient(
-        result='[{"nome": "Módulo Fotovoltaico", "preco": 600.00}]',
-        prompt_tokens=0,
-        completion_tokens=0,
-        cost=0.0,
-    )
-
-    products = await extract_page_products_vision(
-        b"fake-bytes",
-        mock_vision,
-        prompt="Extraia produtos desta imagem em formato JSON",
-        source_identifier="foto_sem_usage.jpg",
-        session=db_session,
-    )
-    assert len(products) == 1
-
-    from sqlalchemy import select
-    stmt = select(IngestionCostEvent).where(IngestionCostEvent.source_identifier == "foto_sem_usage.jpg")
-    res = await db_session.execute(stmt)
-    evt = res.scalar_one()
-    assert evt.prompt_tokens >= 500
-    assert evt.completion_tokens > 0
-
-
-@pytest.mark.asyncio
-async def test_extract_catalog_stream_single_image_records_cost(tmp_path, db_session):
-    from app.catalog_extractor.extractor import extract_catalog_stream
-
-    mock_vision = _MockVisionClient(
-        result='[{"nome": "Controlador MPPT", "preco": 420.00}]',
-        prompt_tokens=1100,
-        completion_tokens=70,
-        cost=0.002,
-    )
-
-    sessionmaker = _SingleSessionMaker(db_session)
-    events = []
-    async for ev in extract_catalog_stream(
-        files=[("controlador.jpg", b"fake-jpg-content")],
-        provider="external",
-        fallback_external=True,
-        temp_dir=tmp_path,
-        vision_client=mock_vision,
-        session_factory=sessionmaker,
-    ):
-        events.append(ev)
-
-    assert len(events) >= 2
-
-    from sqlalchemy import select
-    stmt = select(IngestionCostEvent).where(IngestionCostEvent.source_identifier == "controlador.jpg")
-    res = await db_session.execute(stmt)
-    evt = res.scalar_one()
-    assert evt.source_type == "catalog_extractor"
-    assert evt.prompt_tokens == 1100
-    assert evt.completion_tokens == 70
-    assert evt.total_cost_usd == 0.002
+# Removidos em 2026-10-08: três testes que cobriam exclusivamente o caminho
+# antigo de `extract_page_products_vision` via `record_ingestion_cost`
+# (sessionmaker global sem `session`, estimativa de tokens por tamanho de
+# texto quando a API de visão não reporta uso, e `extract_catalog_stream`
+# persistindo em `IngestionCostEvent`) — removido na migração para
+# `registrar_uso_ia` (item D, pontos 3a-3b); a estimativa por tamanho de
+# texto contrariava a semântica `None`=não-capturado do ledger novo e por
+# isso não foi portada. Ver `tests/test_catalog_extractor.py` para a
+# cobertura atual.

@@ -10,6 +10,7 @@ from app.catalog_extractor.extractor import (
     extract_page_products_local,
     extract_page_products_vision,
 )
+from app.router.ollama_client import LocalVisionResult
 
 
 @pytest.mark.asyncio
@@ -69,16 +70,98 @@ async def test_extract_page_products_local_registra_uso_ia(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_extract_page_products_vision_retorna_produtos():
+async def test_extract_page_products_vision_interna_registra_uso_ia(monkeypatch):
+    import app.catalog_extractor.extractor as extractor_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(extractor_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
     vision_client = AsyncMock()
+    raw = LocalVisionResult(
+        content=(
+            '[{"nome": "Câmera Bullet VIP 1230", "descricao": "Câmera Bullet IP", '
+            '"categoria": "CFTV", "preco_base_fornecedor": 210.0, "preco": 320.0, '
+            '"especificacoes_tecnicas": "Full HD, IR 30m"}]'
+        ),
+        prompt_tokens=900,
+        completion_tokens=60,
+        model_name="gemma4:12b-it-q4_K_M-vision",
+    )
+    vision_client.describe_image = AsyncMock(return_value=raw)
+
+    produtos = await extract_page_products_vision(
+        b"fake-image-bytes",
+        vision_client,
+        source_identifier="catalogo.pdf#p3",
+        ambiente="interno",
+    )
+    await asyncio.sleep(0)
+
+    assert len(produtos) == 1
+    assert captured == {
+        "origem": "admin",
+        "ambiente": "interno",
+        "modelo": "gemma4:12b-it-q4_K_M-vision",
+        "operacao": "extracao_catalogo_visao_interna",
+        "tokens_entrada": 900,
+        "tokens_saida": 60,
+        "custo_usd": 0.0,
+        "referencia_id": "catalogo.pdf#p3",
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }
+
+
+@pytest.mark.asyncio
+async def test_extract_page_products_vision_externa_registra_uso_ia(monkeypatch):
+    import app.catalog_extractor.extractor as extractor_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(extractor_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    vision_client = AsyncMock()
+    vision_client.vision_model = "openai/gpt-4o-mini"
     vision_client.describe_image = AsyncMock(
-        return_value='```json\n[{"nome": "Câmera Bullet VIP 1230", "descricao": "Câmera Bullet IP", "categoria": "CFTV", "preco_base_fornecedor": 210.0, "preco": 320.0, "especificacoes_tecnicas": "Full HD, IR 30m"}]\n```'  # noqa: E501
+        return_value='[{"nome": "Sensor IVP 3000", "descricao": "Sensor infravermelho", '
+        '"categoria": "Alarmes", "preco_base_fornecedor": 45.0, "preco": 75.0, '
+        '"especificacoes_tecnicas": "Sem fio"}]'
     )
 
-    produtos = await extract_page_products_vision(b"fake-image-bytes", vision_client)
+    produtos = await extract_page_products_vision(
+        b"fake-image-bytes",
+        vision_client,
+        source_identifier="foto.jpg",
+        ambiente="externo",
+    )
+    await asyncio.sleep(0)
+
     assert len(produtos) == 1
-    assert produtos[0]["nome"] == "Câmera Bullet VIP 1230"
-    assert produtos[0]["preco"] == 320.0
+    assert captured["origem"] == "admin"
+    assert captured["ambiente"] == "externo"
+    assert captured["operacao"] == "extracao_catalogo_visao_externa"
+    assert captured["referencia_id"] == "foto.jpg"
+    # describe_image devolveu uma string pura (sem atributos de telemetria
+    # próprios) — tokens/custo ficam None (nada para extrair via getattr).
+    # `modelo` cai no fallback `getattr(vision_client, "vision_model", None)`
+    # explicitamente setado acima — sem isso, um `AsyncMock()` comum
+    # auto-cria um atributo filho (truthy) em vez de devolver `None`,
+    # mascarando o fallback real "desconhecido" que só vale quando NENHUM
+    # dos dois (raw_response.model_name / vision_client.vision_model) está
+    # disponível.
+    assert captured["modelo"] == "openai/gpt-4o-mini"
+    assert captured["tokens_entrada"] is None
+    assert captured["tokens_saida"] is None
 
 
 @pytest.mark.asyncio

@@ -207,56 +207,49 @@ async def extract_page_products_vision(
     source_identifier: str | None = None,
     session: Any = None,
     session_factory: Any = None,
+    *,
+    ambiente: str,
 ) -> list[dict[str, Any]]:
     used_prompt = prompt or VISION_EXTRACTION_PROMPT
     raw_response = await vision_client.describe_image(image_bytes, used_prompt)
 
-    # Telemetria e auditoria de custo da extração de catálogo por visão
-    p_tok = getattr(raw_response, "prompt_tokens", 0) or 0
-    c_tok = getattr(raw_response, "completion_tokens", 0) or 0
-    c_prompt = getattr(raw_response, "cost_prompt_usd", 0.0) or 0.0
-    c_comp = getattr(raw_response, "cost_completion_usd", 0.0) or 0.0
-    c_tot = getattr(raw_response, "estimated_cost_usd", 0.0) or (c_prompt + c_comp)
+    # Telemetria da extração de catálogo por visão — registrada no ledger
+    # unificado (app.services.ai_usage), não mais em IngestionCostEvent
+    # (decisão do usuário, 2026-10-08: migração sem dual-write; a
+    # estimativa de tokens por tamanho de texto que existia aqui foi
+    # removida de propósito — fabricava um número quando a API não
+    # reportava uso real, contrariando a semântica None=não-capturado do
+    # ledger novo).
+    p_tok = getattr(raw_response, "prompt_tokens", None)
+    c_tok = getattr(raw_response, "completion_tokens", None)
+    c_prompt = getattr(raw_response, "cost_prompt_usd", None)
+    c_comp = getattr(raw_response, "cost_completion_usd", None)
+    c_tot = getattr(raw_response, "estimated_cost_usd", None)
+    if c_tot is None and c_prompt is not None and c_comp is not None:
+        c_tot = c_prompt + c_comp
     model = getattr(raw_response, "model_name", None) or getattr(
         vision_client, "vision_model", None
     )
 
-    # Garante contabilização de tokens e operação mesmo se o modelo for gratuito ou omitir usage
-    if (p_tok + c_tok > 0) or (c_tot > 0) or raw_response:
-        if p_tok == 0 and c_tok == 0:
-            p_tok = max(1, len(used_prompt) // 4) + 500
-            c_tok = max(1, len(str(raw_response)) // 4)
-
-        try:
-            from app.services.ingestion_metrics import record_ingestion_cost
-
-            if session is None and session_factory is not None:
-                await record_ingestion_cost(
-                    source_type="catalog_extractor",
-                    prompt_tokens=p_tok,
-                    completion_tokens=c_tok,
-                    cost_prompt_usd=c_prompt,
-                    cost_completion_usd=c_comp,
-                    total_cost_usd=c_tot,
-                    source_identifier=source_identifier,
-                    model_name=model,
-                    session_factory=session_factory,
-                )
-            else:
-                await record_ingestion_cost(
-                    source_type="catalog_extractor",
-                    prompt_tokens=p_tok,
-                    completion_tokens=c_tok,
-                    cost_prompt_usd=c_prompt,
-                    cost_completion_usd=c_comp,
-                    total_cost_usd=c_tot,
-                    source_identifier=source_identifier,
-                    model_name=model,
-                    session=session,
-                    commit=True if session is not None else False,
-                )
-        except Exception as e:
-            logger.warning("Falha ao registrar métricas de telemetria de catálogo: %s", e)
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="admin",
+            ambiente=ambiente,
+            modelo=model or "desconhecido",
+            operacao=(
+                "extracao_catalogo_visao_interna"
+                if ambiente == "interno"
+                else "extracao_catalogo_visao_externa"
+            ),
+            tokens_entrada=p_tok,
+            tokens_saida=c_tok,
+            custo_usd=c_tot,
+            referencia_id=source_identifier,
+            session=session,
+            session_factory=session_factory,
+            commit=False,
+        )
+    )
 
     return _parse_products_json(raw_response)
 
@@ -492,6 +485,7 @@ async def extract_catalog_stream(
                                     vision_client,
                                     source_identifier=f"{filename}#p{num_pagina_pdf}",
                                     session_factory=session_factory,
+                                    ambiente="externo",
                                 )
                                 provider_usado = "external"
                             except Exception as e:
@@ -516,6 +510,7 @@ async def extract_catalog_stream(
                                     vision_client,
                                     source_identifier=f"{filename}#p{num_pagina_pdf}",
                                     session_factory=session_factory,
+                                    ambiente="externo",
                                 )
                                 provider_usado = "external"
                             except Exception as e:
@@ -613,6 +608,7 @@ async def extract_catalog_stream(
                             local_client,
                             source_identifier=filename,
                             session_factory=session_factory,
+                            ambiente="interno",
                         )
                         provider_usado = "local"
                     except Exception as e:
@@ -625,6 +621,7 @@ async def extract_catalog_stream(
                         vision_client,
                         source_identifier=filename,
                         session_factory=session_factory,
+                        ambiente="externo",
                     )
                     provider_usado = "external"
                 except Exception as e:
