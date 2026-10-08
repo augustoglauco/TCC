@@ -1068,6 +1068,60 @@ conversa e classificação do usuário").
       > (`test_get_conversa_com_mais_de_50_mensagens_devolve_tudo`),
       > verificados contra a versão com o bug antes do fix.
 
+## Extra fora do MVP — Ledger Unificado de Uso de IA (Origem × Ambiente × Modelo)
+
+> Pedido explícito do usuário (2026-10-08), motivado por não conseguir
+> identificar no painel `/admin/metricas` o que foi efetivamente gasto em
+> Visão Computacional interna x externa. Investigação revelou um problema
+> maior: hoje o uso de IA é rastreado em dois lugares com esquemas
+> diferentes (`ConversaMensagem.metricas`, JSON por mensagem de chat, e
+> `IngestionCostEvent`, tabela própria da extração de catálogo) e nenhum
+> dos dois tem a dimensão "origem" (de onde a chamada partiu). Pelo menos
+> três gaps reais de rastreio confirmados por investigação de código: (1)
+> `vision_used` é setado incondicionalmente em `app.api.chat`, misturando
+> acerto grátis do CLIP interno com chamada paga de visão externa; (2) o
+> avaliador de comprovante (`app.services.comprovante_evaluator`) chama
+> visão (local ou OpenRouter) mas nunca captura custo em USD, só tokens;
+> essa mesma função já é chamada hoje pelo MCP B2B
+> (`converter_reserva_venda`), gerando custo real não rastreado em
+> nenhum lugar; (3) o classificador/monitor de tom via TypeSafe Jev
+> (`OpenRouterClient._perguntar_systemone_jev`, usado por
+> `classify_intent_jev`/`classify_tone_jev`) não captura nenhuma métrica
+> de uso — nem contagem de chamada — desde que foi implementado.
+>
+> Decisão de design (brainstorming de 2026-10-08): construir uma tabela
+> nova e genérica, com uma função central de registro chamada por todo
+> ponto de uso de IA do sistema, em vez de remendar os dois esquemas
+> existentes. Dimensões exigidas pelo usuário: `origem` (Chat, B2B, Admin,
+> extensível para o que vier a existir), `ambiente` (interno/externo),
+> `modelo`/estrutura (CLIP, nome do LLM, Jev, etc.), tokens de
+> entrada/saída quando fizer sentido, custo em USD quando existir.
+> Decomposto em sub-projetos sequenciais (cada um com seu próprio
+> spec → plano → implementação), já que é grande demais para uma spec só:
+
+- [ ] **A — Fundação: tabela `ai_usage_events` + função central de
+      registro.** Sem mudança de comportamento observável ainda — só a
+      infraestrutura que B/C/D vão usar. Spec a escrever em
+      `docs/superpowers/specs/`.
+- [ ] **B — Origem Chat.** Conecta todos os pontos de uso de IA que
+      passam por `app.api.chat`/`app.router.orchestrator` à função de A:
+      geração de texto local/externo, identificação de produto por imagem
+      (CLIP interno x visão externa), comprovante por chat (OCR + visão +
+      julgamento), e o classificador/monitor de tom via TypeSafe Jev
+      (`classify_intent_jev`/`classify_tone_jev` — hoje sem nenhuma
+      métrica capturada).
+- [ ] **C — Origem B2B.** Conecta o servidor MCP B2B (`converter_reserva_venda`,
+      que já chama o mesmo avaliador de comprovante do item B) à função de
+      A, com origem `"b2b"` em vez de `"chat"`.
+- [ ] **D — Origem Admin.** Conecta a extração de catálogo por visão
+      (`app.catalog_extractor.extractor`) e a geração de gráficos
+      dinâmicos via LLM (`app.services.analytics_agent`) à função de A.
+- [ ] **E — Painel.** Nova seção em `/admin/metricas`, estratificada por
+      origem × ambiente × modelo, consultando a tabela de A (substituindo
+      ou complementando os cards atuais "Visão Computacional"/"Ingestão &
+      Dados", que continuam cobrindo só uma fração do que a tabela nova
+      vai mostrar).
+
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 
 - [x] Testes de integração cobrindo os quatro domínios de atendimento
