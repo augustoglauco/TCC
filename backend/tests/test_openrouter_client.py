@@ -335,7 +335,9 @@ async def test_classify_intent_jev_choice_fora_do_enum_vira_fora_escopo():
             client=mock_client,
             jev_model="typesafe/jev-latest",
         )
-        domain, _, usage_info = await client.classify_intent_jev(message="teste", recent_messages=[])
+        domain, _, usage_info = await client.classify_intent_jev(
+            message="teste", recent_messages=[]
+        )
         assert domain == "fora_escopo"
         assert usage_info is None
 

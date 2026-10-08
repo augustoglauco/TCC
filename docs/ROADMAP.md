@@ -1112,10 +1112,20 @@ conversa e classificação do usuário").
       métrica capturada).
 - [ ] **C — Origem B2B.** Conecta o servidor MCP B2B (`converter_reserva_venda`,
       que já chama o mesmo avaliador de comprovante do item B) à função de
-      A, com origem `"b2b"` em vez de `"chat"`.
+      A, com origem `"b2b"` em vez de `"chat"`. Nota: a instrumentação do
+      avaliador de comprovante feita na Tarefa 6 do item B tornou
+      `origem`/`llm_ambiente` parâmetros obrigatórios do construtor de
+      `ComprovanteEvaluator`, forçando toda chamada (inclusive a do MCP
+      B2B) a já passar `origem="b2b"` corretamente como efeito colateral;
+      o escopo restante do item C é tudo exceto os pontos de comprovante,
+      que já estão feitos.
 - [ ] **D — Origem Admin.** Conecta a extração de catálogo por visão
       (`app.catalog_extractor.extractor`) e a geração de gráficos
       dinâmicos via LLM (`app.services.analytics_agent`) à função de A.
+      Nota: pelo mesmo motivo do item C, os pontos de comprovante do admin
+      (`api/admin_pedidos_conversao.py`) já emitem `origem="admin"`
+      corretamente; o escopo restante do item D é extração de catálogo e
+      geração de gráficos, não comprovante.
 - [ ] **E — Painel.** Nova seção em `/admin/metricas`, estratificada por
       origem × ambiente × modelo, consultando a tabela de A (substituindo
       ou complementando os cards atuais "Visão Computacional"/"Ingestão &
