@@ -826,11 +826,20 @@ essas métricas num painel e permite exportar a conversa em CSV/JSON
 (`frontend/lib/utils/exportMetrics.ts`). Motivo: alimentar a avaliação
 experimental da Fase 10 (`docs/EVALUATION.md`) com dados reais coletados
 durante o desenvolvimento/demonstração, não uma feature de produto para o
-usuário final. `# MVP: telemetria só em memória por resposta — não é
-persistida em banco (isso seria a tabela `router_logs` da Fase 6); TTFT só
-é preenchido para o backend local (Ollama expõe `prompt_eval_duration`),
-fica `null` para o externo (OpenRouter não expõe essa granularidade em modo
-não-streaming)`.
+usuário final. `# MVP:` nota corrigida em 2026-10-08 — a telemetria por
+mensagem É persistida no Postgres desde a migração `0012` (coluna
+`ConversaMensagem.metricas`, JSON com o evento `done` inteiro); a nota
+original ("só em memória, não persistida") ficou desatualizada quando essa
+migração entrou. TTFT só é preenchido para o backend local (Ollama expõe
+`prompt_eval_duration`), fica `null` para o externo (OpenRouter não expõe
+essa granularidade em modo não-streaming) — essa parte continua válida.
+Correção também em 2026-10-08 (bug relatado): `GET /api/chat/conversations/
+{id}` (fonte dos dados do `ChatModal`, incluindo o export) cortava
+silenciosamente em 50 mensagens por não pedir `limite=None` a
+`app.memory.store.listar_mensagens`; e `exportMetricsToJson`/
+`exportMetricsToCsv` filtravam só mensagens do assistente, descartando
+cliente e atendente. Ver `docs/ROADMAP.md`, "Extra fora do MVP — Telemetria
+de Inferência no Chat", para o detalhe completo da correção.
 
 **Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
 `POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou

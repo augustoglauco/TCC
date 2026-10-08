@@ -482,6 +482,26 @@ def test_get_conversa_devolve_as_metricas_de_cada_resposta(client):
     assert cliente["metricas"] is None
 
 
+def test_get_conversa_com_mais_de_50_mensagens_devolve_tudo(client):
+    """Achado de 2026-10-08: `listar_mensagens` sem `limite` explícito caía
+    no default de 50, cortando silenciosamente conversas longas — a
+    telemetria/histórico deve existir por completo até a conversa ser
+    limpa, não só as últimas 50 mensagens."""
+    for i in range(1, 27):
+        client.post(
+            "/api/chat/messages",
+            json={"message": f"pergunta {i}", "conversation_id": "conv-longa-1"},
+        )
+
+    resposta = client.get("/api/chat/conversations/conv-longa-1")
+
+    assert resposta.status_code == 200
+    mensagens = resposta.json()["mensagens"]
+    assert len(mensagens) == 52  # 26 trocas * 2 mensagens, nenhuma cortada
+    assert mensagens[0]["texto"] == "pergunta 1"
+    assert mensagens[-1]["texto"] == "resposta local"
+
+
 def test_get_conversa_inexistente_da_404(client):
     assert client.get("/api/chat/conversations/nao-existe").status_code == 404
 

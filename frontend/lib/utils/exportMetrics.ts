@@ -1,30 +1,30 @@
 import type { ChatUIMessage } from "@/lib/types/chat";
 
 export function exportMetricsToJson(messages: ChatUIMessage[]) {
-  const data = messages
-    .filter((m) => m.role === "assistant")
-    .map((m, idx) => ({
-      message_index: idx + 1,
-      id: m.id,
-      text_length: m.text.length,
-      domain: m.domain ?? null,
-      backend_used: m.backendUsed ?? null,
-      model_name: m.metrics?.modelName ?? null,
-      prompt_tokens: m.metrics?.promptTokens ?? null,
-      completion_tokens: m.metrics?.completionTokens ?? null,
-      total_tokens: (m.metrics?.promptTokens ?? 0) + (m.metrics?.completionTokens ?? 0),
-      latency_ms: m.metrics?.latencyMs ?? null,
-      ttft_ms: m.metrics?.ttftMs ?? null,
-      tps: m.metrics?.tps ?? null,
-      confidence: m.metrics?.confidence ?? null,
-      complexity: m.metrics?.complexity ?? null,
-      estimated_cost_usd: m.metrics?.estimatedCostUsd ?? null,
-      rag_retrieval_ms: m.metrics?.ragRetrievalMs ?? null,
-      rag_chunks_count: m.metrics?.ragChunksCount ?? null,
-      rag_avg_score: m.metrics?.ragAvgScore ?? null,
-      rag_chunks: m.metrics?.ragChunks ?? null,
-      escalation_reason: m.metrics?.escalationReason ?? null,
-    }));
+  const data = messages.map((m, idx) => ({
+    message_index: idx + 1,
+    id: m.id,
+    role: m.role,
+    text: m.text,
+    text_length: m.text.length,
+    domain: m.domain ?? null,
+    backend_used: m.backendUsed ?? null,
+    model_name: m.metrics?.modelName ?? null,
+    prompt_tokens: m.metrics?.promptTokens ?? null,
+    completion_tokens: m.metrics?.completionTokens ?? null,
+    total_tokens: (m.metrics?.promptTokens ?? 0) + (m.metrics?.completionTokens ?? 0),
+    latency_ms: m.metrics?.latencyMs ?? null,
+    ttft_ms: m.metrics?.ttftMs ?? null,
+    tps: m.metrics?.tps ?? null,
+    confidence: m.metrics?.confidence ?? null,
+    complexity: m.metrics?.complexity ?? null,
+    estimated_cost_usd: m.metrics?.estimatedCostUsd ?? null,
+    rag_retrieval_ms: m.metrics?.ragRetrievalMs ?? null,
+    rag_chunks_count: m.metrics?.ragChunksCount ?? null,
+    rag_avg_score: m.metrics?.ragAvgScore ?? null,
+    rag_chunks: m.metrics?.ragChunks ?? null,
+    escalation_reason: m.metrics?.escalationReason ?? null,
+  }));
 
   const jsonString = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonString], { type: "application/json" });
@@ -36,13 +36,24 @@ export function exportMetricsToJson(messages: ChatUIMessage[]) {
   URL.revokeObjectURL(url);
 }
 
+// Escapa um campo para CSV: aspas duplas (RFC 4180) quando o valor contém
+// vírgula, aspas ou quebra de linha — necessário agora que o texto livre da
+// mensagem (cliente/assistente/atendente) entra como coluna.
+function escaparCampoCsv(valor: string): string {
+  if (/[",\n]/.test(valor)) {
+    return `"${valor.replace(/"/g, '""')}"`;
+  }
+  return valor;
+}
+
 export function exportMetricsToCsv(messages: ChatUIMessage[]) {
-  const assistantMessages = messages.filter((m) => m.role === "assistant");
-  if (assistantMessages.length === 0) return;
+  if (messages.length === 0) return;
 
   const headers = [
     "Index",
     "ID",
+    "Role",
+    "Text",
     "Domain",
     "Backend",
     "Model",
@@ -62,9 +73,11 @@ export function exportMetricsToCsv(messages: ChatUIMessage[]) {
     "Escalation_Reason",
   ];
 
-  const rows = assistantMessages.map((m, idx) => [
+  const rows = messages.map((m, idx) => [
     idx + 1,
     m.id,
+    m.role,
+    escaparCampoCsv(m.text),
     m.domain ?? "",
     m.backendUsed ?? "",
     m.metrics?.modelName ?? "",

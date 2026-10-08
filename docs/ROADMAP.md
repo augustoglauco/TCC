@@ -1039,6 +1039,34 @@ conversa e classificação do usuário").
       bolha alterna a exibição (`MessageBubble.tsx`, `showDetails`). Não
       afeta o export CSV/JSON do `ChatModal`, que continua agregando a
       telemetria de todas as mensagens independente do painel estar aberto.
+      > Correção (2026-10-08, bug relatado: "o CSV e JSON de telemetria não
+      > registra todos os valores nem todas as mensagens"): dois problemas
+      > distintos. (1) `exportMetricsToJson`/`exportMetricsToCsv`
+      > (`frontend/lib/utils/exportMetrics.ts`) filtravam
+      > `.filter(m => m.role === "assistant")` — mensagens do cliente e do
+      > atendente humano nunca apareciam em nenhum dos dois formatos, e o
+      > texto da própria mensagem nunca era exportado (só `text_length`).
+      > Removido o filtro (agora exporta `role` e `text` de toda mensagem;
+      > campos de métrica saem `null`/vazios para papéis sem métrica, como
+      > esperado) — o CSV ganhou escape RFC 4180 (`escaparCampoCsv`), antes
+      > inexistente, necessário agora que texto livre do cliente pode conter
+      > vírgulas/aspas. (2) `GET /api/chat/conversations/{id}` (fonte dos
+      > dados do `ChatModal`, incluindo o export) chamava
+      > `app.memory.store.listar_mensagens` sem `limite` explícito, caindo
+      > no default de 50 — qualquer conversa com mais de 25 trocas perdia
+      > silenciosamente tudo que fosse mais antigo ao reabrir o chat. Mesma
+      > função já aceitava `limite=None` (sem alteração, `.limit(None)` do
+      > SQLAlchemy já remove a cláusula) — só faltava `app.api.chat.
+      > obter_conversa` pedir explicitamente. A conversa agora existe por
+      > completo (histórico e telemetria) até ser limpa pelo cliente
+      > (`DELETE /api/chat/conversations/{id}`), não só as últimas 50
+      > mensagens. Investigado com `superpowers:systematic-debugging`.
+      > Testes novos em `frontend/tests/lib/utils/exportMetrics.test.ts`,
+      > `backend/tests/test_memory_store.py`
+      > (`test_listar_mensagens_com_limite_none_devolve_tudo`) e
+      > `backend/tests/test_chat_api.py`
+      > (`test_get_conversa_com_mais_de_50_mensagens_devolve_tudo`),
+      > verificados contra a versão com o bug antes do fix.
 
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 

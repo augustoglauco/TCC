@@ -185,10 +185,13 @@ async def contar_mensagens(session: AsyncSession, conversation_id: str) -> int:
 
 
 async def listar_mensagens(
-    session: AsyncSession, conversation_id: str, limite: int = 50
+    session: AsyncSession, conversation_id: str, limite: int | None = 50
 ) -> list[ConversaMensagem]:
     """As últimas `limite` mensagens da conversa, mais antiga primeiro —
-    para o widget reexibir o histórico ao reabrir o chat."""
+    para o widget reexibir o histórico ao reabrir o chat. `limite=None`
+    devolve a conversa inteira (usado por `app.api.chat.obter_conversa`:
+    achado de 2026-10-08, o histórico/telemetria deve existir por completo
+    até a conversa ser limpa, não só as últimas 50 mensagens)."""
     resultado = await session.execute(
         select(ConversaMensagem)
         .where(ConversaMensagem.conversa_id == conversation_id)

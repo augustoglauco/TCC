@@ -88,6 +88,23 @@ async def test_listar_mensagens_respeita_o_limite_e_devolve_as_mais_recentes(fac
     assert [m.texto for m in mensagens] == ["r2", "p3", "r3"]
 
 
+async def test_listar_mensagens_com_limite_none_devolve_tudo(factory):
+    """Achado de 2026-10-08: o default `limite=50` cortava silenciosamente o
+    histórico/telemetria de qualquer conversa com mais de 25 trocas quando
+    reexibida (`GET /api/chat/conversations/{id}`) — a conversa deve existir
+    por completo até ser limpa, não só as últimas 50 mensagens."""
+    async with factory() as session:
+        for i in range(1, 30):
+            await registrar_troca(session, "conv-longa", f"p{i}", f"r{i}", "vendas")
+
+    async with factory() as session:
+        mensagens = await listar_mensagens(session, "conv-longa", limite=None)
+
+    assert len(mensagens) == 58  # 29 trocas * 2 mensagens
+    assert mensagens[0].texto == "p1"
+    assert mensagens[-1].texto == "r29"
+
+
 async def test_limpar_conversa_deleta_mensagens_e_reseta_resumo(factory):
     async with factory() as session:
         await registrar_troca(session, "conv-del", "olá", "oi", "vendas")

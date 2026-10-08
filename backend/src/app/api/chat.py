@@ -391,7 +391,10 @@ async def obter_conversa(conversation_id: str, request: Request) -> ConversaHist
             conversa = await session.get(Conversa, conversation_id)
             if conversa is None:
                 raise HTTPException(status_code=404, detail="Conversa não encontrada.")
-            mensagens = await listar_mensagens(session, conversation_id)
+            # Achado de 2026-10-08: sem `limite=None`, caía no default de 50
+            # (`app.memory.store.listar_mensagens`), cortando silenciosamente
+            # o histórico/telemetria de conversas com mais de 25 trocas.
+            mensagens = await listar_mensagens(session, conversation_id, limite=None)
     except HTTPException:
         raise
     except Exception as exc:
