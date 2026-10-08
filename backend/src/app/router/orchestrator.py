@@ -1109,6 +1109,20 @@ async def handle_message(
             provider_efetivo=tone_result.provider_efetivo,
         )
 
+    # Conversão Automática de Reserva em Venda via Chat (Modos 4 e 5) —
+    # calculado aqui (antes do bloco de gráficos abaixo) porque
+    # `eh_intencao_comprovante` também guarda o bloco de gráficos: achado de
+    # 2026-10-08, `extract_prompt_inline_data` (sem nenhum gatilho de
+    # palavra-chave, ao contrário de `detect_chart_request`) dispara com
+    # qualquer texto com 2+ padrões "rótulo: número" — exatamente a forma do
+    # texto OCR de um comprovante de pagamento real (ex.: "Valor: R$
+    # 150,00", "Código de autenticação: 123456789"), fazendo uma mensagem de
+    # comprovante virar a mensagem de bloqueio de admin de gráficos antes de
+    # a detecção de comprovante abaixo ter a chance de rodar.
+    from app.router.sales_catalog import detectar_intencao_comprovante
+
+    eh_intencao_comprovante = detectar_intencao_comprovante(message)
+
     # Dashboards e Gráficos Dinâmicos Gerados via Chat (Admin)
     from app.services.analytics_agent import (
         extract_prompt_inline_data,
@@ -1116,7 +1130,9 @@ async def handle_message(
     )
     from app.services.chart_generator import detect_chart_request
 
-    chart_request = detect_chart_request(message) or extract_prompt_inline_data(message)
+    chart_request = not eh_intencao_comprovante and (
+        detect_chart_request(message) or extract_prompt_inline_data(message)
+    )
     if chart_request:
         if not is_admin:
             msg_negada = (
@@ -1241,14 +1257,10 @@ async def handle_message(
                 )
                 return
 
-    # Conversão Automática de Reserva em Venda via Chat (Modos 4 e 5)
-    from app.router.sales_catalog import (
-        buscar_reserva_ativa,
-        detectar_intencao_comprovante,
-        processar_conversao_comprovante,
-    )
+    # `eh_intencao_comprovante` já foi calculado acima, antes do bloco de
+    # gráficos (achado de 2026-10-08).
+    from app.router.sales_catalog import buscar_reserva_ativa, processar_conversao_comprovante
 
-    eh_intencao_comprovante = detectar_intencao_comprovante(message)
     if eh_intencao_comprovante and db_sessionmaker:
         try:
             pedido_uuid_match = re.search(

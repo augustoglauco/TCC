@@ -314,6 +314,29 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       e modal de criação manual `CreateChartModal` para inserção direta de dados pelo administrador (2026-10-04).
       Design Spec em [`docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md`](docs/superpowers/specs/2026-10-04-dashboards-dinamicos-admin-design.md).
       Planos de implementação em [`docs/superpowers/plans/2026-10-04-dashboards-dinamicos-admin.md`](docs/superpowers/plans/2026-10-04-dashboards-dinamicos-admin.md) e [`docs/superpowers/plans/2026-10-04-llm-dynamic-charts-agent.md`](docs/superpowers/plans/2026-10-04-llm-dynamic-charts-agent.md).
+      > Correção (2026-10-08, bug relatado: cliente comum enviando comprovante
+      > de pagamento recebia a mensagem de bloqueio "recurso exclusivo para
+      > administradores" de gráficos em vez de ter o comprovante processado):
+      > `extract_prompt_inline_data` (`app/services/analytics_agent.py`), ao
+      > contrário de `detect_chart_request`, não tem nenhum gatilho de
+      > palavra-chave — dispara com qualquer texto contendo 2+ padrões
+      > "rótulo: número", exatamente a forma do texto OCR de um comprovante
+      > real (ex.: "Valor: R$ 150,00", "Código de autenticação: 123456789").
+      > Esse bloco (`handle_message`) rodava antes da detecção de intenção
+      > de comprovante (`detectar_intencao_comprovante`), interceptando a
+      > mensagem com `return` antes que o fluxo de comprovante tivesse
+      > qualquer chance de rodar. Reproduzido e confirmado empiricamente
+      > (`extract_prompt_inline_data` chamado direto com texto OCR
+      > realista) antes da correção, por `superpowers:systematic-debugging`.
+      > Corrigido movendo `eh_intencao_comprovante =
+      > detectar_intencao_comprovante(message)` para ANTES do bloco de
+      > gráficos e condicionando `chart_request` a `not
+      > eh_intencao_comprovante` — uma mensagem já reconhecida como
+      > comprovante nunca mais é avaliada como pedido de gráfico. Teste de
+      > regressão em `tests/test_chat_chart_card.py`
+      > (`test_orchestrator_comprovante_com_ocr_nao_e_interceptado_pelo_gate_de_grafico`),
+      > verificado contra a versão com o bug antes do fix. Suíte completa
+      > (962 testes) e lint confirmados sem regressão.
 - [x] **Download de Documentos RAG de Origem Direta no Chat via Cards Ricos** —
       Identificar automaticamente documentos fonte no RAG com alto grau de relevância (`score >= 0.65`)
       na busca vetorial do Qdrant e emitir o card rico `CardDocumentoDownload` na resposta do chat.

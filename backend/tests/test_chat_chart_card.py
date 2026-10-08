@@ -117,3 +117,46 @@ async def test_orchestrator_chart_generation_non_admin(db_session):
     decisions = [e for e in events if isinstance(e, RouterDecision)]
     assert len(decisions) == 1
     assert decisions[0].card is None
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_comprovante_com_ocr_nao_e_interceptado_pelo_gate_de_grafico():
+    """Achado de 2026-10-08: o bloco de detecção de pedido de gráfico roda
+    ANTES da detecção de intenção de comprovante dentro de `handle_message` e
+    retorna imediatamente ao achar `chart_request` — e
+    `extract_prompt_inline_data` (sem nenhum gatilho de palavra-chave, ao
+    contrário de `detect_chart_request`) dispara com qualquer texto com 2+
+    padrões 'rótulo: número', exatamente a forma do texto OCR de um
+    comprovante de pagamento real (ex.: 'Valor: R$ 150,00', 'Código de
+    autenticação: 123456789'). Isso fazia uma mensagem real de comprovante
+    virar a mensagem de bloqueio de admin de gráficos para clientes comuns
+    (não-admin), em vez de seguir para a detecção de comprovante."""
+    from tests.test_orchestrator import _FakeLLMClient, _FakeRAGClient, _resposta_local
+
+    ocr_texto = (
+        "COMPROVANTE DE PAGAMENTO PIX\n"
+        "Valor: R$ 150,00\n"
+        "Data: 06/10/2026\n"
+        "Codigo de autenticacao: 123456789\n"
+        "Favorecido: Empresa B2B LTDA\n"
+    )
+    mensagem = f"segue comprovante de pagamento\n\n[Texto extraído da imagem]:\n{ocr_texto}"
+
+    events = []
+    async for ev in handle_message(
+        message=mensagem,
+        recent_messages=[],
+        local_client=_FakeLLMClient(response=_resposta_local()),
+        external_client=_FakeLLMClient(response=_resposta_local()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-comprovante-1",
+        is_admin=False,
+    ):
+        events.append(ev)
+
+    token_events = [e for e in events if isinstance(e, TokenEvent)]
+    assert not any("administrador" in e.text.lower() for e in token_events), (
+        "mensagem de comprovante foi incorretamente interceptada pelo "
+        "bloqueio de geração de gráficos (admin-only)"
+    )
