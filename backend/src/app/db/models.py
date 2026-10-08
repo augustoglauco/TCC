@@ -561,11 +561,10 @@ class AiUsageEvent(Base):
     ambiente: Mapped[str] = mapped_column(String(20), nullable=False)
     modelo: Mapped[str] = mapped_column(String(100), nullable=False)
     operacao: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    tokens_entrada: Mapped[int] = mapped_column(default=0)
-    tokens_saida: Mapped[int] = mapped_column(default=0)
-    custo_usd: Mapped[float] = mapped_column(default=0.0)
+    tokens_entrada: Mapped[int | None] = mapped_column(nullable=True)
+    tokens_saida: Mapped[int | None] = mapped_column(nullable=True)
+    custo_usd: Mapped[float | None] = mapped_column(nullable=True)
     referencia_id: Mapped[str | None] = mapped_column(String(500), nullable=True)
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
-

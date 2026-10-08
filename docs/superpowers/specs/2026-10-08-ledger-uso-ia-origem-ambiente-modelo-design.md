@@ -115,11 +115,22 @@ independentes, mesmo padrão de duplicação pequena já presente no código
 | `ambiente` | `String(20)` | não | `"interno"` ou `"externo"` |
 | `modelo` | `String(100)` | não | `"clip"`, nome do modelo local/externo, `"jev"` |
 | `operacao` | `String(100)` | não | índice — granularidade do que aconteceu |
-| `tokens_entrada` | `Integer` | não | `default=0` (mesma convenção de `IngestionCostEvent`: "não se aplica" é `0`, não `NULL`) |
-| `tokens_saida` | `Integer` | não | `default=0` |
-| `custo_usd` | `Float` | não | `default=0.0` — `0.0` é um valor real conhecido (CLIP/local), não "não aplicável" |
+| `tokens_entrada` | `Integer` | sim | sem default — `NULL` é "não capturado"; um valor conhecido pode ser `0` |
+| `tokens_saida` | `Integer` | sim | sem default — mesma convenção de `tokens_entrada` |
+| `custo_usd` | `Float` | sim | sem default — `NULL` é "não capturado"; `0.0` é um valor real conhecido (CLIP/local) |
 | `referencia_id` | `String(500)` | sim | `conversation_id`/`pedido_id`/etc., para rastrear até a origem exata |
 | `criado_em` | `DateTime(timezone=True)` | não | `server_default=func.now()`, índice |
+
+Nota (correção pós-implementação, revisão final de item A, 2026-10-08):
+`tokens_entrada`, `tokens_saida` e `custo_usd` são `NULL`able sem default,
+não `default=0`/`0.0` como uma versão anterior desta decisão (na seção de
+Global Constraints do plano, que não faz parte desta spec) havia
+estabelecido para todos os campos numéricos. Isso satisfaz o §1 acima:
+"falha ao capturar é a única razão legítima de ficar vazio" exige que
+"não capturado" (`NULL`) seja distinguível de "capturado como zero"
+(`0`/`0.0`, ex.: uma chamada local ao CLIP sem custo de API) — um default
+numérico apagaria essa distinção. `origem`/`ambiente`/`modelo`/`operacao`/
+`id`/`criado_em` não são afetados: nunca foram ambíguos.
 
 Índices: `origem`, `operacao`, `criado_em` (mesmo padrão de
 `idx_ingestion_cost_events_source_type`/`idx_ingestion_cost_events_criado_em`)

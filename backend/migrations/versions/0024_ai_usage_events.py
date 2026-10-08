@@ -24,9 +24,9 @@ def upgrade() -> None:
         sa.Column("ambiente", sa.String(length=20), nullable=False),
         sa.Column("modelo", sa.String(length=100), nullable=False),
         sa.Column("operacao", sa.String(length=100), nullable=False),
-        sa.Column("tokens_entrada", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("tokens_saida", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("custo_usd", sa.Float(), server_default="0.0", nullable=False),
+        sa.Column("tokens_entrada", sa.Integer(), nullable=True),
+        sa.Column("tokens_saida", sa.Integer(), nullable=True),
+        sa.Column("custo_usd", sa.Float(), nullable=True),
         sa.Column("referencia_id", sa.String(length=500), nullable=True),
         sa.Column("criado_em", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )

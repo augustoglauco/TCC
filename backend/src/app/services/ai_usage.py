@@ -35,9 +35,9 @@ async def registrar_uso_ia(
     ambiente: str,
     modelo: str,
     operacao: str,
-    tokens_entrada: int = 0,
-    tokens_saida: int = 0,
-    custo_usd: float = 0.0,
+    tokens_entrada: int | None = None,
+    tokens_saida: int | None = None,
+    custo_usd: float | None = None,
     referencia_id: str | None = None,
     session: AsyncSession | None = None,
     session_factory: async_sessionmaker[AsyncSession] | None = None,
@@ -45,19 +45,26 @@ async def registrar_uso_ia(
 ) -> AiUsageEvent | None:
     """Registra um evento de uso de IA. Nunca lança exceção: falha de
     banco (ou nenhuma sessão disponível) vira `logger.warning` e `None` —
-    telemetria não pode derrubar a chamada de IA real que ela registra."""
-    evento = AiUsageEvent(
-        origem=origem,
-        ambiente=ambiente,
-        modelo=modelo,
-        operacao=operacao,
-        tokens_entrada=tokens_entrada,
-        tokens_saida=tokens_saida,
-        custo_usd=round(custo_usd, 6),
-        referencia_id=referencia_id,
-    )
+    telemetria não pode derrubar a chamada de IA real que ela registra.
 
+    Quando `session` é passada explicitamente e `commit=False` (o default), o
+    evento só é `flush()`ado — quem chama é responsável por commitar a
+    própria transação; se a sessão fechar sem commit, o evento é perdido
+    silenciosamente (a função já retornou um `AiUsageEvent` não-`None`,
+    não há como saber disso de fora). Use `commit=True`, ou gerencie o
+    commit você mesmo, se não tiver certeza.
+    """
     try:
+        evento = AiUsageEvent(
+            origem=origem,
+            ambiente=ambiente,
+            modelo=modelo,
+            operacao=operacao,
+            tokens_entrada=tokens_entrada,
+            tokens_saida=tokens_saida,
+            custo_usd=round(custo_usd, 6) if custo_usd is not None else None,
+            referencia_id=referencia_id,
+        )
         if session is not None:
             session.add(evento)
             if commit:

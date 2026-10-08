@@ -42,10 +42,10 @@ async def test_ai_usage_event_grava_e_le_com_defaults_corretos():
         assert salvo.ambiente == "interno"
         assert salvo.modelo == "clip"
         assert salvo.operacao == "identificacao_imagem_clip"
-        # Defaults: "não se aplica" é 0/0.0, nunca None.
-        assert salvo.tokens_entrada == 0
-        assert salvo.tokens_saida == 0
-        assert salvo.custo_usd == 0.0
+        # Sem default: "não capturado" é None, distinto de "capturado como zero".
+        assert salvo.tokens_entrada is None
+        assert salvo.tokens_saida is None
+        assert salvo.custo_usd is None
         assert salvo.referencia_id is None
         assert salvo.criado_em is not None
     finally:
@@ -76,6 +76,30 @@ async def test_registrar_uso_ia_com_session_explicita_grava():
         assert len(salvos) == 1
         assert salvos[0].referencia_id == "conv-123"
         assert salvos[0].custo_usd == 0.0021
+    finally:
+        await engine.dispose()
+
+
+async def test_registrar_uso_ia_com_session_explicita_e_commit_false_exige_commit_do_chamador():
+    engine, factory = await _engine_e_sessionmaker_vazios()
+    try:
+        async with factory() as session:
+            evento = await registrar_uso_ia(
+                origem="admin",
+                ambiente="interno",
+                modelo="clip",
+                operacao="identificacao_imagem_clip",
+                session=session,
+                # commit=False é o default — o chamador precisa commitar.
+            )
+            assert evento is not None
+            await session.commit()
+
+        async with factory() as session:
+            resultado = await session.execute(select(AiUsageEvent))
+            salvos = resultado.scalars().all()
+        assert len(salvos) == 1
+        assert salvos[0].modelo == "clip"
     finally:
         await engine.dispose()
 
