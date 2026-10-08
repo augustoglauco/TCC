@@ -1296,6 +1296,8 @@ async def handle_message(
                             nome_arquivo=comprovante_filename,
                             vision_client=external_client,
                             local_vision_client=local_client,
+                            origem="chat",
+                            llm_ambiente="interno" if llm_to_use is local_client else "externo",
                         )
             else:
                 pedido = await buscar_reserva_ativa(
@@ -1315,6 +1317,8 @@ async def handle_message(
                         nome_arquivo=comprovante_filename,
                         vision_client=external_client,
                         local_vision_client=local_client,
+                        origem="chat",
+                        llm_ambiente="interno" if llm_to_use is local_client else "externo",
                     )
 
             if houve_reserva and texto_resp:

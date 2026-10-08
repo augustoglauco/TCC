@@ -199,13 +199,15 @@ async def post_analisar_comprovante(
         str(pedido.id), comprovante.filename or "comprovante.bin", conteudo
     )
 
-    llm_client = getattr(request.app.state, "local_client", None) or getattr(
-        request.app.state, "external_client", None
-    )
-    vision_client = getattr(request.app.state, "external_client", None)
-    local_vision_client = getattr(request.app.state, "local_client", None)
+    local_client = getattr(request.app.state, "local_client", None)
+    external_client = getattr(request.app.state, "external_client", None)
+    llm_client = local_client if local_client is not None else external_client
     evaluator = ComprovanteEvaluator(
-        llm_client=llm_client, vision_client=vision_client, local_vision_client=local_vision_client
+        llm_client=llm_client,
+        vision_client=external_client,
+        local_vision_client=local_client,
+        origem="admin",
+        llm_ambiente="interno" if llm_client is local_client else "externo",
     )
 
     parecer = await evaluator.avaliar_documento(
@@ -285,13 +287,15 @@ async def post_converter_auto_admin(
         str(pedido.id), comprovante.filename or "comprovante.bin", conteudo
     )
 
-    llm_client = getattr(request.app.state, "local_client", None) or getattr(
-        request.app.state, "external_client", None
-    )
-    vision_client = getattr(request.app.state, "external_client", None)
-    local_vision_client = getattr(request.app.state, "local_client", None)
+    local_client = getattr(request.app.state, "local_client", None)
+    external_client = getattr(request.app.state, "external_client", None)
+    llm_client = local_client if local_client is not None else external_client
     evaluator = ComprovanteEvaluator(
-        llm_client=llm_client, vision_client=vision_client, local_vision_client=local_vision_client
+        llm_client=llm_client,
+        vision_client=external_client,
+        local_vision_client=local_client,
+        origem="admin",
+        llm_ambiente="interno" if llm_client is local_client else "externo",
     )
 
     parecer = await evaluator.avaliar_documento(

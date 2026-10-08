@@ -576,6 +576,9 @@ async def processar_conversao_comprovante(
     nome_arquivo: str | None = None,
     vision_client: Any = None,
     local_vision_client: Any = None,
+    *,
+    origem: str,
+    llm_ambiente: str,
 ) -> tuple[bool, str, ParecerComprovante]:
     """Avalia o comprovante de pagamento via ComprovanteEvaluator e converte o status do pedido.
 
@@ -584,13 +587,21 @@ async def processar_conversao_comprovante(
     foto de comprovante malfeita (ângulo/luz, comum vindo do celular do
     cliente) que o OCR não consegue ler nunca tinha nenhuma tentativa de
     visão no chat.
+
+    `origem`/`llm_ambiente` são obrigatórios e repassados direto ao
+    `ComprovanteEvaluator` — ver docs/superpowers/specs/
+    2026-10-08-ledger-uso-ia-item-b-origem-chat-design.md §4.3.
     """
     valor_devido = sum(
         (item.preco_unitario * item.quantidade for item in pedido.itens),
         Decimal("0.00"),
     )
     evaluator = ComprovanteEvaluator(
-        llm_client=llm_client, vision_client=vision_client, local_vision_client=local_vision_client
+        llm_client=llm_client,
+        vision_client=vision_client,
+        local_vision_client=local_vision_client,
+        origem=origem,
+        llm_ambiente=llm_ambiente,
     )
 
     filename_safe = None
