@@ -543,3 +543,29 @@ class IngestionCostEvent(Base):
         DateTime(timezone=True), server_default=func.now(), index=True
     )
 
+
+class AiUsageEvent(Base):
+    """Ledger unificado de uso de IA — todo ponto do sistema que chama um
+    modelo/engine (local ou externo, texto ou visão) registra um evento
+    aqui, via `app.services.ai_usage.registrar_uso_ia`. Substitui a
+    necessidade de inferir origem/ambiente a partir de campos espalhados
+    em `ConversaMensagem.metricas`/`IngestionCostEvent` (que continuam
+    existindo, sem mudança — ver decisão em
+    docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md §6).
+    """
+
+    __tablename__ = "ai_usage_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    origem: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    ambiente: Mapped[str] = mapped_column(String(20), nullable=False)
+    modelo: Mapped[str] = mapped_column(String(100), nullable=False)
+    operacao: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    tokens_entrada: Mapped[int] = mapped_column(default=0)
+    tokens_saida: Mapped[int] = mapped_column(default=0)
+    custo_usd: Mapped[float] = mapped_column(default=0.0)
+    referencia_id: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
