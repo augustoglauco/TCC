@@ -841,6 +841,26 @@ silenciosamente em 50 mensagens por não pedir `limite=None` a
 cliente e atendente. Ver `docs/ROADMAP.md`, "Extra fora do MVP — Telemetria
 de Inferência no Chat", para o detalhe completo da correção.
 
+**Decisão registrada (Ledger unificado de uso de IA, 2026-10-08):** nova
+tabela `ai_usage_events` (`app.db.models.AiUsageEvent`, migração `0024`)
+e função central `app.services.ai_usage.registrar_uso_ia` — todo ponto do
+sistema que usa um modelo/engine de IA (local ou externo, texto ou visão)
+registra um evento com `origem` (chat/b2b/admin, extensível),
+`ambiente` (interno/externo), `modelo`, `operacao`, tokens de
+entrada/saída e custo em USD. Motivado por não ser possível, antes desta
+mudança, identificar no painel `/admin/metricas` o que foi gasto em visão
+computacional interna x externa — e por achados mais graves durante a
+investigação: custo de visão do avaliador de comprovante nunca era
+capturado (nem no fluxo de chat, nem no da ferramenta MCP B2B
+`converter_reserva_venda`, que chama o mesmo avaliador), e o
+classificador/monitor de tom via TypeSafe Jev nunca teve métrica alguma
+capturada. Mesmo padrão de sessão (explícita / fire-and-forget / fallback
+global) de `app.services.ingestion_metrics.record_ingestion_cost`,
+reaproveitado de propósito. Este item (A) só entrega a fundação — nenhum
+ponto de chamada real foi conectado ainda; ver
+`docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md`
+e os itens B/C/D/E em `docs/ROADMAP.md`.
+
 **Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
 `POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou
 a devolver a resposta como o próprio stream **Server-Sent Events** (SSE),

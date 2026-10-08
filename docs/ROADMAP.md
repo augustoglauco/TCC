@@ -1099,7 +1099,7 @@ conversa e classificação do usuário").
 > Decomposto em sub-projetos sequenciais (cada um com seu próprio
 > spec → plano → implementação), já que é grande demais para uma spec só:
 
-- [ ] **A — Fundação: tabela `ai_usage_events` + função central de
+- [x] **A — Fundação: tabela `ai_usage_events` + função central de
       registro.** Sem mudança de comportamento observável ainda — só a
       infraestrutura que B/C/D vão usar. Spec a escrever em
       `docs/superpowers/specs/`.
