@@ -179,10 +179,23 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 > (`app.router.sales_catalog.detectar_intencao_comprovante` — frases como
 > "comprovante", "segue o pix", "pagamento realizado" etc.); `image_intent`
 > explícito continua aceito e tem prioridade (ex.: telas de admin que já o
-> enviam). Uma imagem sem nenhuma legenda que sinalize comprovante ainda cai
-> no padrão de identificação de produto — cobrir esse caso exigiria estado de
-> conversa (lembrar que o assistente pediu o comprovante no turno anterior),
-> deixado para evolução futura.
+> enviam).
+>
+> **Correção (2026-10-08):** uma imagem sem nenhuma legenda que sinalizasse
+> comprovante ainda caía sempre no padrão de identificação de produto, mesmo
+> quando o cliente tinha uma reserva pendente de pagamento (`status`
+> "reservado"/"pagamento_divergente") em aberto — o estado de reserva nunca
+> era consultado antes da decisão de imagem. `app.api.chat` agora também
+> consulta `app.router.sales_catalog.buscar_reserva_ativa` (por
+> `conversation_id`/`user_email`) antes de decidir: havendo reserva
+> pendente, o modo comprovante é tentado mesmo sem legenda/`image_intent`.
+> Se o OCR não confirmar que o conteúdo extraído parece dado real de
+> transação (`app.router.sales_catalog.texto_parece_conteudo_de_comprovante`),
+> o fluxo volta para identificação de produto em vez de insistir — cobre o
+> caso de um cliente com pendência mandando, por exemplo, uma foto de
+> produto em vez do comprovante. Continua fora de escopo: lembrar que o
+> assistente pediu o comprovante num turno anterior sem reserva pendente
+> alguma (estado de conversa dedicado), deixado para evolução futura.
 >
 > **Fluxo de identificação de produto** (motor em
 > `app.rag.image_identification`, endpoint `POST /api/rag/images/identify` e

@@ -429,6 +429,26 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       > explícito continua aceito (ex.: telas de admin). Teste de regressão:
       > `test_chat_api_endpoint_comprovante_imagem_sem_image_intent_explicito`
       > em `tests/test_chat_conversao_reserva.py`.
+      > Melhoria (2026-10-08, a pedido do desenvolvedor): a nota acima ainda
+      > exigia uma legenda que batesse a heurística — uma foto SEM legenda
+      > nenhuma de um cliente com reserva pendente (`status` "reservado"/
+      > "pagamento_divergente") continuava caindo em identificação de
+      > produto. `app.api.chat` agora também consulta
+      > `sales_catalog.buscar_reserva_ativa` (por `conversation_id`/
+      > `user_email`) antes da decisão de imagem: havendo reserva pendente,
+      > o modo comprovante é tentado mesmo sem legenda/`image_intent`. Se o
+      > OCR não confirmar que o conteúdo parece um comprovante de verdade
+      > (`sales_catalog.texto_parece_conteudo_de_comprovante`), o fluxo volta
+      > para identificação de produto em vez de insistir (ex.: cliente com
+      > pendência manda foto de um produto, não do pagamento). Falha do
+      > banco na consulta de reserva degrada graciosamente (mesmo padrão de
+      > `_carregar_contexto_seguro`) — não derruba a identificação de imagem.
+      > `# MVP:` a busca usa `conversation_id`/`user_email` sem autenticação
+      > forte, mesmo nível de confiança já aceito pelo fluxo de conversão.
+      > Testes em `tests/test_chat_conversao_reserva.py`
+      > (`test_chat_api_endpoint_comprovante_imagem_sem_legenda_com_reserva_pendente`,
+      > `test_chat_api_endpoint_imagem_sem_legenda_com_reserva_pendente_mas_nao_e_comprovante`),
+      > verificados contra a versão sem a melhoria antes do fix.
 - [x] Separar fluxo/prompts por domínio: Vendas, Suporte Técnico, Atendimento
       ao Usuário, Agendamento de Visita — `app.router.playbooks` (prompt de
       sistema por domínio), anteposto pelo orchestrator em `_build_prompt`

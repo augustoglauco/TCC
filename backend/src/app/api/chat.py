@@ -64,7 +64,12 @@ from app.router.orchestrator import (
     handle_message,
 )
 from app.router.rag_client import RAGClient, RAGConnectionError
-from app.router.sales_catalog import SalesCatalogClient, detectar_intencao_comprovante
+from app.router.sales_catalog import (
+    SalesCatalogClient,
+    buscar_reserva_ativa,
+    detectar_intencao_comprovante,
+    texto_parece_conteudo_de_comprovante,
+)
 from app.router.scheduling import SchedulingConfig
 from app.router.tone_monitor import criar_escalonamento
 from app.stt.whisper_client import SttClient, SttIndisponivelError
@@ -548,10 +553,42 @@ async def send_message(
     # continua valendo (ex.: telas de admin que já o enviam); sem ele, cai
     # para a mesma heurística de texto usada no comprovante sem anexo
     # (`detectar_intencao_comprovante`).
-    imagem_e_documento = payload.image_intent == "documento" or (
+    # Achado de 2026-10-08: um cliente com reserva pendente de pagamento
+    # (status "reservado"/"pagamento_divergente") mandando uma imagem SEM
+    # legenda nenhuma caía sempre em identificação de produto, mesmo sendo
+    # quase certo que a imagem é o comprovante que falta para concluir a
+    # compra. A pendência de pagamento, por si só, força a tentativa de
+    # comprovante primeiro — sem exigir legenda nem `image_intent`
+    # explícito. `# MVP:` a busca usa `conversation_id`/`payload.user_email`
+    # sem exigir autenticação forte (mesmo nível de confiança que o fluxo de
+    # conversão em `app.router.orchestrator` já usa); um falso positivo só
+    # custa tentar o OCR a mais, nunca expõe dado de outro cliente.
+    tem_reserva_pendente = False
+    if payload.image:
+        session_factory = getattr(request.app.state, "db_sessionmaker", None)
+        if session_factory:
+            try:
+                async with session_factory() as session:
+                    reserva_pendente = await buscar_reserva_ativa(
+                        session, conversation_id=conversation_id, user_email=payload.user_email
+                    )
+                tem_reserva_pendente = reserva_pendente is not None
+            except Exception as exc:
+                # Mesmo padrão de `_carregar_contexto_seguro`: falha do banco
+                # (ou indisponível nos testes) não deve derrubar a
+                # identificação de imagem — só significa que não sabemos se
+                # há reserva pendente, então seguimos como se não houvesse.
+                _logar_memoria_indisponivel("verificar_reserva_pendente", exc)
+
+    comprovante_por_legenda_ou_intent = payload.image_intent == "documento" or (
         bool(payload.image) and detectar_intencao_comprovante(effective_message or "")
     )
+    imagem_e_documento = comprovante_por_legenda_ou_intent or tem_reserva_pendente
     is_identificacao_imagem = bool(payload.image) and not imagem_e_documento
+    # Só forçado pela pendência (sem legenda/intent explícito) — se o OCR não
+    # confirmar que parece um comprovante de verdade, cai de volta para
+    # identificação de produto em vez de insistir (ver bloco de OCR abaixo).
+    forcado_so_por_reserva_pendente = tem_reserva_pendente and not comprovante_por_legenda_ou_intent
 
     if payload.image and imagem_e_documento:
         # MVP: OCR extrai o texto da imagem e o concatena à mensagem efetiva
@@ -561,7 +598,14 @@ async def send_message(
         # em vez de derrubar a requisição — mesmo padrão do STT.
         try:
             ocr_text = extract_text_from_base64(payload.image)
-            if ocr_text:
+            if forcado_so_por_reserva_pendente and not texto_parece_conteudo_de_comprovante(
+                ocr_text or ""
+            ):
+                # Não era comprovante afinal (ex.: foto de produto) — volta
+                # para identificação de produto em vez de insistir no OCR.
+                imagem_e_documento = False
+                is_identificacao_imagem = True
+            elif ocr_text:
                 effective_message = (
                     f"{effective_message}\n\n[Texto extraído da imagem]:\n{ocr_text}"
                     if effective_message

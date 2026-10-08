@@ -24,6 +24,7 @@ from app.api.chat import (
     get_tone_monitor_provider,
 )
 from app.db.models import Pedido, PedidoItem, Produto
+from app.rag.image_identification import ImageIdentificationResult
 from app.router.orchestrator import RouterDecision, TokenEvent, handle_message
 from app.router.sales_catalog import (
     buscar_reserva_ativa,
@@ -551,4 +552,124 @@ async def test_chat_api_endpoint_comprovante_imagem_sem_image_intent_explicito(
     assert pedido.status == "venda_concluida"
     assert pedido.tipo_conversao == "auto_chat"
     assert pedido.comprovante_url is not None
+
+
+async def test_chat_api_endpoint_comprovante_imagem_sem_legenda_com_reserva_pendente(
+    chat_client, db_session, monkeypatch
+):
+    """Cliente com reserva pendente manda uma imagem SEM legenda nenhuma e
+    SEM `image_intent` — a reserva pendente por si só deve forçar o modo
+    comprovante (decisão de 2026-10-08), já que antes uma imagem sem
+    legenda caía sempre em identificação de produto, mesmo com pagamento
+    pendente em aberto."""
+    prod = Produto(
+        nome="Painel Solar 500W", descricao="Painel", preco=Decimal("1500.00"), categoria="Solar"
+    )
+    db_session.add(prod)
+    await db_session.flush()
+
+    pedido = Pedido(
+        user_email="cliente@gmail.com",
+        conversation_id="conv-img-3",
+        status="reservado",
+    )
+    db_session.add(pedido)
+    await db_session.flush()
+
+    item = PedidoItem(
+        pedido_id=pedido.id,
+        produto_id=prod.id,
+        quantidade=1,
+        centro_distribuicao="CD-SP",
+        preco_unitario=Decimal("1500.00"),
+    )
+    db_session.add(item)
+    await db_session.commit()
+
+    monkeypatch.setattr(
+        "app.api.chat.extract_text_from_base64",
+        lambda img_b64: (
+            "Comprovante de Transferência PIX\nValor: R$ 1.500,00\nAutenticação: TX12345"
+        ),
+    )
+
+    def _identify_nao_deve_ser_chamado(*args, **kwargs):
+        raise AssertionError(
+            "identify_product_by_image não deveria ser chamado para um cliente "
+            "com reserva pendente, mesmo sem legenda na imagem"
+        )
+
+    monkeypatch.setattr("app.api.chat.identify_product_by_image", _identify_nao_deve_ser_chamado)
+
+    png_1x1 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+
+    res = chat_client.post(
+        "/api/chat/messages",
+        json={
+            "conversation_id": "conv-img-3",
+            "image": png_1x1,
+            "user_email": "cliente@gmail.com",
+        },
+    )
+    assert res.status_code == 200
+    eventos = _parse_sse(res.text)
+    token_events = [dados for tipo, dados in eventos if tipo == "token"]
+    assert any("confirmado com sucesso" in t.get("text", "").lower() for t in token_events)
+
+    await db_session.refresh(pedido)
+    assert pedido.status == "venda_concluida"
+    assert pedido.tipo_conversao == "auto_chat"
+    assert pedido.comprovante_url is not None
+
+
+async def test_chat_api_endpoint_imagem_sem_legenda_com_reserva_pendente_mas_nao_e_comprovante(
+    chat_client, db_session, monkeypatch
+):
+    """Cliente com reserva pendente manda uma foto que NÃO é comprovante
+    (ex.: foto de um produto) sem legenda — a reserva pendente sozinha força
+    a tentativa de OCR primeiro, mas como o texto extraído não parece dado
+    real de transação, o fluxo deve cair de volta para identificação de
+    produto em vez de insistir no comprovante (decisão de 2026-10-08)."""
+    pedido = Pedido(
+        user_email="cliente@gmail.com",
+        conversation_id="conv-img-4",
+        status="reservado",
+    )
+    db_session.add(pedido)
+    await db_session.commit()
+
+    monkeypatch.setattr(
+        "app.api.chat.extract_text_from_base64",
+        lambda img_b64: "",
+    )
+
+    chamadas_identify = []
+
+    async def _identify_produto_fake(*args, **kwargs):
+        chamadas_identify.append(True)
+        return ImageIdentificationResult(
+            status="nao_identificado", mensagem="Não consegui identificar o produto."
+        )
+
+    monkeypatch.setattr("app.api.chat.identify_product_by_image", _identify_produto_fake)
+
+    png_1x1 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+
+    res = chat_client.post(
+        "/api/chat/messages",
+        json={
+            "conversation_id": "conv-img-4",
+            "image": png_1x1,
+            "user_email": "cliente@gmail.com",
+        },
+    )
+    assert res.status_code == 200
+    assert chamadas_identify, "identify_product_by_image deveria ter sido chamado"
+
+    await db_session.refresh(pedido)
+    assert pedido.status == "reservado"
 
