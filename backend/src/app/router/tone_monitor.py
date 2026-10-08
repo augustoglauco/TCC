@@ -110,6 +110,21 @@ async def _analyze_with_llm(
     prompt = _TONE_PROMPT_TEMPLATE.format(contexto=contexto, mensagem=message)
     try:
         response = await llm_client.generate(prompt)
+        spawn_background_task(
+            registrar_uso_ia(
+                origem="chat",
+                ambiente="interno",
+                modelo=response.model_name or "desconhecido",
+                operacao="monitor_tom_heuristica_llm",
+                tokens_entrada=response.prompt_tokens,
+                tokens_saida=response.completion_tokens,
+                custo_usd=response.estimated_cost_usd,
+                referencia_id=None,
+                session=None,
+                session_factory=None,
+                commit=False,
+            )
+        )
         parsed = json.loads(strip_code_fence(response.text))
         escalate = bool(parsed.get("escalar", False))
         motivo = parsed.get("motivo") if escalate else None

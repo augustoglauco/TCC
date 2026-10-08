@@ -19,6 +19,20 @@ class _FakeLLMClient:
         return LLMResponse(text=self._text, total_duration_ms=10.0)
 
 
+class _FakeLLMClientComModelo(_FakeLLMClient):
+    async def generate(self, prompt: str) -> LLMResponse:
+        self.calls += 1
+        self.last_prompt = prompt
+        return LLMResponse(
+            text=self._text,
+            total_duration_ms=10.0,
+            model_name="gemma4:12b-it-q4_K_M",
+            prompt_tokens=120,
+            completion_tokens=15,
+            estimated_cost_usd=0.0,
+        )
+
+
 class _RaisingLLMClient:
     """Simula falha de infraestrutura do backend local dentro de `generate()`."""
 
@@ -521,3 +535,39 @@ async def test_classify_heuristica_llm_nao_usa_atalho_quando_keyword_ficaria_amb
 
     assert result.domain == "agendamento"
     assert llm_client.calls == 1
+
+
+async def test_classify_com_llm_local_registra_uso_ia(monkeypatch):
+    import app.router.classifier as classifier_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(classifier_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    await classify(
+        message="Isso realmente funciona bem?",
+        strategy="llm",
+        llm_client=_FakeLLMClientComModelo(
+            '{"domain": "vendas", "complexity": "baixa", "confidence": 0.8}'
+        ),
+        provider="heuristica_llm",
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "interno",
+        "modelo": "gemma4:12b-it-q4_K_M",
+        "operacao": "classificacao_heuristica_llm",
+        "tokens_entrada": 120,
+        "tokens_saida": 15,
+        "custo_usd": 0.0,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }

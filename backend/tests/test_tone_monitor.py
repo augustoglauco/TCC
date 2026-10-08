@@ -492,3 +492,47 @@ async def test_listar_escalonamentos_respeita_limit(db_session):
     resultado = await listar_escalonamentos(db_session, limit=2)
 
     assert len(resultado) == 2
+
+
+async def test_analyze_tone_llm_local_registra_uso_ia(monkeypatch):
+    import app.router.tone_monitor as tone_monitor_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(tone_monitor_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    response = LLMResponse(
+        text='{"escalar": false, "motivo": null, "confianca": 0.1}',
+        total_duration_ms=10.0,
+        model_name="gemma4:12b-it-q4_K_M",
+        prompt_tokens=80,
+        completion_tokens=12,
+        estimated_cost_usd=0.0,
+    )
+    llm = _FakeLLMClient(response=response)
+    await analyze_tone(
+        message="Só queria saber o horário de funcionamento da loja hoje",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "interno",
+        "modelo": "gemma4:12b-it-q4_K_M",
+        "operacao": "monitor_tom_heuristica_llm",
+        "tokens_entrada": 80,
+        "tokens_saida": 12,
+        "custo_usd": 0.0,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }

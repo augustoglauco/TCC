@@ -281,6 +281,21 @@ async def _classify_with_llm(
     # deve propagar para o orchestrator virar LocalBackendIndisponivelError,
     # nunca degradar em silêncio para a heurística (spec §2.4).
     response = await llm_client.generate(prompt)
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="chat",
+            ambiente="interno",
+            modelo=response.model_name or "desconhecido",
+            operacao="classificacao_heuristica_llm",
+            tokens_entrada=response.prompt_tokens,
+            tokens_saida=response.completion_tokens,
+            custo_usd=response.estimated_cost_usd,
+            referencia_id=None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
+    )
 
     try:
         return _parse_llm_classification(response.text, provider_efetivo=provider_efetivo)
