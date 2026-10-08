@@ -177,7 +177,13 @@ async def test_admin_metrics_aggregates_ingestion_and_chat_costs(test_client, db
 # (sessionmaker global sem `session`, estimativa de tokens por tamanho de
 # texto quando a API de visão não reporta uso, e `extract_catalog_stream`
 # persistindo em `IngestionCostEvent`) — removido na migração para
-# `registrar_uso_ia` (item D, pontos 3a-3b); a estimativa por tamanho de
-# texto contrariava a semântica `None`=não-capturado do ledger novo e por
-# isso não foi portada. Ver `tests/test_catalog_extractor.py` para a
-# cobertura atual.
+# `registrar_uso_ia` (item D, pontos 3a-3b); a estimativa LOCAL por tamanho
+# de texto que existia dentro de `extract_page_products_vision` contrariava
+# a semântica `None`=não-capturado do ledger novo e por isso não foi
+# portada. Isso cobre só a estimativa local dessa função: a mesma fabricação
+# ainda pode ocorrer uma camada acima, em
+# `OpenRouterClient.describe_image` (app/router/openrouter_client.py),
+# quando a API de visão externa não reporta uso real — gap conhecido, fora
+# do escopo deste item (compartilhado com código do item B), candidato a
+# revisão no item E ou em follow-up dedicado. Ver
+# `tests/test_catalog_extractor.py` para a cobertura atual.

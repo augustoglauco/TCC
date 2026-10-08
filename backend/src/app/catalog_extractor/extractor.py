@@ -210,16 +210,37 @@ async def extract_page_products_vision(
     *,
     ambiente: str,
 ) -> list[dict[str, Any]]:
+    """Extrai produtos de uma imagem de página de catálogo via modelo de visão.
+
+    Nota sobre `session`/`session_factory`: esta função sempre chama
+    `registrar_uso_ia(..., commit=False)` — quando o chamador passa
+    `session_factory`, o registro abre sua própria transação e comita
+    sozinho; quando o chamador passa `session` diretamente (sem
+    `session_factory`), o evento só é dado como `flush`, não commit, e
+    depende do caminho de chamada comitar essa sessão depois — se a
+    transação nunca for comitada, o evento é perdido silenciosamente. Hoje
+    nenhum chamador em produção passa `session` diretamente (só
+    `session_factory`, vindo de `backend/src/app/api/admin_products.py`),
+    então isso não é um bug observável — é só uma armadilha a evitar se um
+    novo chamador vier a passar `session` sem garantir o commit.
+    """
     used_prompt = prompt or VISION_EXTRACTION_PROMPT
     raw_response = await vision_client.describe_image(image_bytes, used_prompt)
 
     # Telemetria da extração de catálogo por visão — registrada no ledger
     # unificado (app.services.ai_usage), não mais em IngestionCostEvent
     # (decisão do usuário, 2026-10-08: migração sem dual-write; a
-    # estimativa de tokens por tamanho de texto que existia aqui foi
-    # removida de propósito — fabricava um número quando a API não
-    # reportava uso real, contrariando a semântica None=não-capturado do
-    # ledger novo).
+    # estimativa de tokens por tamanho de texto que existia aqui, nesta
+    # função, foi removida de propósito — fabricava um número quando a API
+    # não reportava uso real, contrariando a semântica None=não-capturado
+    # do ledger novo). Isso remove só a estimativa LOCAL desta função: a
+    # API de visão externa (OpenRouterClient.describe_image, em
+    # app/router/openrouter_client.py) ainda pode fabricar
+    # prompt_tokens/completion_tokens por tamanho de texto quando a
+    # resposta não reporta uso real — gap conhecido, não corrigido aqui
+    # (é compartilhado com image_identification.py/comprovante_evaluator.py
+    # do item B, fora do escopo deste item), candidato a revisão no item E
+    # ou em follow-up dedicado.
     p_tok = getattr(raw_response, "prompt_tokens", None)
     c_tok = getattr(raw_response, "completion_tokens", None)
     c_prompt = getattr(raw_response, "cost_prompt_usd", None)

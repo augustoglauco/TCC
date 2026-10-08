@@ -856,13 +856,18 @@ capturado (nem no fluxo de chat, nem no da ferramenta MCP B2B
 classificador/monitor de tom via TypeSafe Jev nunca teve métrica alguma
 capturada. Mesmo padrão de sessão (explícita / fire-and-forget / fallback
 global) de `app.services.ingestion_metrics.record_ingestion_cost`,
-reaproveitado de propósito. Este item (A) só entrega a fundação — nenhum
-ponto de chamada real foi conectado ainda; ver
-`docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md`
-e os itens B/C/D/E em `docs/ROADMAP.md`.
+reaproveitado de propósito. Este item (A) entregou só a fundação — na
+época, nenhum ponto de chamada real estava conectado ainda; os itens B
+(chat, 2026-10-08) e D (admin, 2026-10-08) já conectaram diversos pontos de
+chamada reais desde então, ver abaixo e os itens B/C/D/E em
+`docs/ROADMAP.md`. Spec original:
+`docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md`.
 
 **Decisão registrada (Parâmetros obrigatórios de origem/llm_ambiente em ComprovanteEvaluator, item B, 2026-10-08):**
 durante a implementação do item B (conectar pontos de chamada real da origem "chat" ao ledger), `ComprovanteEvaluator.__init__` ganhou dois parâmetros de construtor obrigatórios, keyword-only, **sem defaults**: `origem: str` e `llm_ambiente: str`. Motivado por `ComprovanteEvaluator` ser compartilhada por três origens distintas (chat em item B, B2B em item C, admin em item D) — um padrão com defaults silenciosos teria mislabelado os chamadores fora do chat, tornando impossível depois rastrear cada evento de volta à sua origem verdadeira. Como efeito colateral dessa obrigatoriedade, todos os 4 call sites passam agora `origem`/`llm_ambiente` explícitos (chat ×2 em `orchestrator.py`, b2b ×1 em `mcp_server/b2b.py`, admin ×2 em `api/admin_pedidos_conversao.py`) — as dimensões corretas do ledger são garantidas por construção.
+
+**Decisão registrada (Migração da telemetria de extração de catálogo por visão para o ledger unificado, sem dual-write, item D, 2026-10-08):**
+`extract_page_products_vision` (`app.catalog_extractor.extractor`) registrava seu custo/tokens na tabela antiga `IngestionCostEvent` via `app.services.ingestion_metrics.record_ingestion_cost`. Na implementação do item D, esse ponto de chamada passou a registrar no ledger novo (`registrar_uso_ia`, origem `"admin"`) **sem dual-write** — `record_ingestion_cost` foi removido desse caminho, não duplicado. Motivo: unificação do rastreio de uso de IA é o próprio objetivo do ledger (item A §6 do spec de design já havia flagueado essa decisão — manter ou não `IngestionCostEvent` em paralelo — como fora do escopo da fundação e deferida para o item que de fato migrasse esse call site); e a estimativa de tokens por tamanho de texto que o caminho antigo fazia quando a API de visão não reportava uso real contrariava a semântica `None`=não-capturado do ledger novo, então não fazia sentido portá-la. Decisão explícita do dono do projeto: os dados históricos de `IngestionCostEvent` não precisavam ser preservados/migrados. Consequência observável: o card "Ingestão & Dados" do painel `/admin/metricas` (que lê `IngestionCostEvent`) deixou de receber novos registros de extração de catálogo por visão a partir desta mudança — esperado, não um bug; será endereçado pelo item E (reconstrução do painel sobre a tabela nova `ai_usage_events`).
 
 **Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
 `POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou
