@@ -1,3 +1,4 @@
+import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -25,6 +26,46 @@ async def test_extract_page_products_local_retorna_produtos():
     assert len(produtos) == 1
     assert produtos[0]["nome"] == "Gravador NVD 1016"
     assert produtos[0]["preco_base_fornecedor"] == 550.0
+
+
+@pytest.mark.asyncio
+async def test_extract_page_products_local_registra_uso_ia(monkeypatch):
+    import app.catalog_extractor.extractor as extractor_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(extractor_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    local_client = AsyncMock()
+    mock_resp = MagicMock()
+    mock_resp.response = "[]"
+    mock_resp.text = mock_resp.response
+    mock_resp.model_name = "gemma4:12b-it-q4_K_M"
+    mock_resp.prompt_tokens = 450
+    mock_resp.completion_tokens = 30
+    mock_resp.estimated_cost_usd = 0.0
+    local_client.generate = AsyncMock(return_value=mock_resp)
+
+    await extract_page_products_local("texto de teste da página", local_client)
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "admin",
+        "ambiente": "interno",
+        "modelo": "gemma4:12b-it-q4_K_M",
+        "operacao": "extracao_catalogo_texto_local",
+        "tokens_entrada": 450,
+        "tokens_saida": 30,
+        "custo_usd": 0.0,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }
 
 
 @pytest.mark.asyncio

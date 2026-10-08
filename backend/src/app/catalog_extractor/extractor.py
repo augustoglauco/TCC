@@ -21,9 +21,11 @@ from typing import Any
 import pdfplumber
 from PIL import Image
 
+from app.background_tasks import spawn_background_task
 from app.models.catalog_extractor import CatalogPageResult, ExtractedProduct
 from app.ocr.image_processor import ImageFormatError, OcrIndisponivelError, extract_text_from_bytes
 from app.rag.pdf_extract import _extrair_texto_pagina
+from app.services.ai_usage import registrar_uso_ia
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +181,21 @@ async def extract_page_products_local(
 ) -> list[dict[str, Any]]:
     prompt = LOCAL_EXTRACTION_PROMPT.replace("{texto}", texto)
     res = await local_client.generate(prompt)
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="admin",
+            ambiente="interno",
+            modelo=getattr(res, "model_name", None) or "desconhecido",
+            operacao="extracao_catalogo_texto_local",
+            tokens_entrada=getattr(res, "prompt_tokens", None),
+            tokens_saida=getattr(res, "completion_tokens", None),
+            custo_usd=getattr(res, "estimated_cost_usd", None),
+            referencia_id=None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
+    )
     raw_response = getattr(res, "response", getattr(res, "text", str(res)))
     return _parse_products_json(raw_response)
 
