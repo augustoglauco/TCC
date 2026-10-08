@@ -6,10 +6,12 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.background_tasks import spawn_background_task
 from app.db.models import TomEscalonamento
 from app.models.runtime_settings import DEFAULT_TONE_MONITOR_PROVIDER
 from app.router.classifier import normalize, strip_code_fence
 from app.router.llm_client import LLMClient
+from app.services.ai_usage import registrar_uso_ia
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +159,25 @@ async def _analyze_with_jev(
     try:
         if external_client is None or not hasattr(external_client, "classify_tone_jev"):
             raise ValueError("external_client inválido para Jev")
-        escalate, confidence = await external_client.classify_tone_jev(message, recent_messages)
+        escalate, confidence, usage_info = await external_client.classify_tone_jev(
+            message, recent_messages
+        )
+        usage_info = usage_info or {}
+        spawn_background_task(
+            registrar_uso_ia(
+                origem="chat",
+                ambiente="externo",
+                modelo=usage_info.get("model") or "jev",
+                operacao="monitor_tom_jev",
+                tokens_entrada=usage_info.get("input_tokens"),
+                tokens_saida=usage_info.get("output_tokens"),
+                custo_usd=usage_info.get("cost"),
+                referencia_id=None,
+                session=None,
+                session_factory=None,
+                commit=False,
+            )
+        )
         # Jev responde com uma única pergunta noul (sim/não) — não distingue
         # motivo. "insatisfacao" é um rótulo genérico quando escala; refinar
         # com duas perguntas noul separadas fica para uma iteração futura.

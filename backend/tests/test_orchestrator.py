@@ -121,7 +121,7 @@ class _FakeLLMClientComJev(_FakeLLMClient):
     async def classify_intent_jev(self, message: str, recent_messages: list[str] | None = None):
         if self._jev_fail:
             raise RuntimeError("Conexão com OpenRouter falhou")
-        return self._jev_domain, self._jev_confidence
+        return self._jev_domain, self._jev_confidence, None
 
 
 class _FakeRAGClient:
