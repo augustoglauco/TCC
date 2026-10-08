@@ -1125,13 +1125,18 @@ conversa e classificação do usuário").
       infraestrutura compartilhada com o chat, não específica do B2B, e
       que o próprio item B nunca instrumentou pelo mesmo motivo). Item
       fechado sem nenhuma tarefa de implementação nova.
-- [ ] **D — Origem Admin.** Conecta a extração de catálogo por visão
+- [x] **D — Origem Admin.** Conecta a extração de catálogo por visão
       (`app.catalog_extractor.extractor`) e a geração de gráficos
       dinâmicos via LLM (`app.services.analytics_agent`) à função de A.
       Nota: pelo mesmo motivo do item C, os pontos de comprovante do admin
       (`api/admin_pedidos_conversao.py`) já emitem `origem="admin"`
       corretamente; o escopo restante do item D é extração de catálogo e
-      geração de gráficos, não comprovante.
+      geração de gráficos, não comprovante. A extração por visão migrou de
+      `IngestionCostEvent` para `ai_usage_events` sem dual-write (decisão do
+      usuário, 2026-10-08), razão pela qual o card "Ingestão & Dados" do
+      painel de métricas deixou de receber novos registros desta mudança em
+      diante — isto é esperado e será resolvido pelo item E (reconstrução do
+      painel).
 - [ ] **E — Painel.** Nova seção em `/admin/metricas`, estratificada por
       origem × ambiente × modelo, consultando a tabela de A (substituindo
       ou complementando os cards atuais "Visão Computacional"/"Ingestão &
