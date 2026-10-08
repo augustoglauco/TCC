@@ -1103,7 +1103,7 @@ conversa e classificação do usuário").
       registro.** Sem mudança de comportamento observável ainda — só a
       infraestrutura que B/C/D vão usar. Spec a escrever em
       `docs/superpowers/specs/`.
-- [ ] **B — Origem Chat.** Conecta todos os pontos de uso de IA que
+- [x] **B — Origem Chat.** Conecta todos os pontos de uso de IA que
       passam por `app.api.chat`/`app.router.orchestrator` à função de A:
       geração de texto local/externo, identificação de produto por imagem
       (CLIP interno x visão externa), comprovante por chat (OCR + visão +

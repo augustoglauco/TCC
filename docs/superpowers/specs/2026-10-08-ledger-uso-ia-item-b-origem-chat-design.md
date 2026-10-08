@@ -166,6 +166,20 @@ inferido dentro do evaluator:
    e um valor ausente é mais provável vir de um teste/fluxo futuro que
    ainda não repassa o parâmetro do que de uma ambiguidade real).
 
+Nota (correção pós-implementação, revisão final do item B, 2026-10-08):
+ambos `origem` e `llm_ambiente` foram tornados parâmetros de construtor
+obrigatórios (keyword-only, sem defaults), não opcionais como descrito
+acima. Decisão deliberada tomada durante implementação (commit 2243d5a)
+para evitar rotulagem incorreta no ledger: um padrão com defaults
+silenciosos teria mislabelado os chamadores de fora do chat (MCP B2B em
+`mcp_server/b2b.py` e admin em `api/admin_pedidos_conversao.py`), tornando
+impossível depois rastrear cada evento de volta à sua origem verdadeira.
+Como efeito colateral dessa mudança, todos os 4 call sites de
+`ComprovanteEvaluator` agora passam `origem`/`llm_ambiente` explícitos
+(chat ×2 em `orchestrator.py`, b2b ×1 em `mcp_server/b2b.py`, admin ×2 em
+`api/admin_pedidos_conversao.py`) — dimensões corretas do ledger são
+garantidas por construção, não inferência.
+
 ### 4.4 Comprovante — visão (#10a, #10b) — `comprovante_evaluator.py`
 
 `ParecerComprovante` já extrai `prompt_tokens`/`completion_tokens` do
