@@ -1,11 +1,12 @@
 """Testes para app.rag.image_identification (R6, Fase 3)."""
 
+import asyncio
 import json
 from decimal import Decimal
 
 from app.rag.image_identification import identify_product_by_image
 from app.rag.image_search import ImageSearchResult
-from app.router.openrouter_client import VisionModelIndisponivelError
+from app.router.openrouter_client import VisionModelIndisponivelError, VisionResult
 from app.router.rag_client import Document
 from app.router.sales_catalog import CandidatoProduto, DadosCatalogoVendas
 
@@ -23,16 +24,34 @@ class _FakeClipStore:
 
 
 class _FakeVisionClient:
-    def __init__(self, answer: dict | None = None, raise_exc: Exception | None = None) -> None:
+    def __init__(
+        self,
+        answer: dict | None = None,
+        raise_exc: Exception | None = None,
+        usage: dict | None = None,
+    ) -> None:
         self._answer = answer
         self._raise = raise_exc
+        self._usage = usage
         self.called = False
 
     async def describe_image(self, image_bytes: bytes, prompt: str) -> str:
         self.called = True
         if self._raise is not None:
             raise self._raise
-        return json.dumps(self._answer)
+        content = json.dumps(self._answer)
+        if self._usage is None:
+            return content
+        return VisionResult(
+            content=content,
+            prompt_tokens=self._usage.get("prompt_tokens"),
+            completion_tokens=self._usage.get("completion_tokens"),
+            total_tokens=self._usage.get("total_tokens"),
+            cost_prompt_usd=self._usage.get("cost_prompt_usd", 0.0),
+            cost_completion_usd=self._usage.get("cost_completion_usd", 0.0),
+            estimated_cost_usd=self._usage.get("estimated_cost_usd", 0.0),
+            model_name=self._usage.get("model_name"),
+        )
 
 
 class _FakeRAGClient:
@@ -325,6 +344,96 @@ async def test_identificacao_externa_propaga_metricas_tokens_e_custos():
     assert result.cost_completion_usd == 0.000975
     assert result.estimated_cost_usd == 0.006225
     assert result.model_name == "google/gemma-4-31b-it:free"
+
+
+async def test_identify_product_clip_registra_uso_ia(monkeypatch):
+    import app.rag.image_identification as image_identification_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(image_identification_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    clip_store = _FakeClipStore(results=[_clip_hit(0.95)])
+    resultado = await identify_product_by_image(
+        _IMG,
+        clip_store=clip_store,
+        clip_embedder=None,
+        vision_client=_FakeVisionClient(),
+        rag_client=_FakeRAGClient(),
+        internal_confidence=0.8,
+        external_confidence=0.6,
+    )
+    await asyncio.sleep(0)
+
+    assert resultado.status == "encontrado_interno"
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "interno",
+        "modelo": "clip",
+        "operacao": "identificacao_imagem_clip",
+        "tokens_entrada": None,
+        "tokens_saida": None,
+        "custo_usd": 0.0,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }
+
+
+async def test_identify_product_visao_externa_registra_uso_ia(monkeypatch):
+    import app.rag.image_identification as image_identification_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(image_identification_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    clip_store = _FakeClipStore(results=[])
+    vision_client = _FakeVisionClient(
+        answer={"produto": "Câmera XPTO", "e_do_portfolio": True, "confianca": 0.9},
+        usage={
+            "prompt_tokens": 1200,
+            "completion_tokens": 40,
+            "total_tokens": 1240,
+            "cost_prompt_usd": 0.0008,
+            "cost_completion_usd": 0.0002,
+            "estimated_cost_usd": 0.001,
+            "model_name": "openai/gpt-4o-mini",
+        },
+    )
+    resultado = await identify_product_by_image(
+        _IMG,
+        clip_store=clip_store,
+        clip_embedder=None,
+        vision_client=vision_client,
+        rag_client=_FakeRAGClient(),
+        internal_confidence=0.8,
+        external_confidence=0.6,
+    )
+    await asyncio.sleep(0)
+
+    assert resultado.status == "encontrado_externo"
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "externo",
+        "modelo": "openai/gpt-4o-mini",
+        "operacao": "identificacao_imagem_visao_externa",
+        "tokens_entrada": 1200,
+        "tokens_saida": 40,
+        "custo_usd": 0.001,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }
 
 
 async def test_identificacao_externa_nao_identificado_ainda_propaga_metricas():
