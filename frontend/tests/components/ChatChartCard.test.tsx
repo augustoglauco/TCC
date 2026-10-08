@@ -110,4 +110,36 @@ describe("DynamicChartCard", () => {
     fireEvent.click(deleteBtn);
     expect(onDelete).toHaveBeenCalledWith("chart-123");
   });
+
+  it("exibe engrenagem e abre o bubble com a consulta SQL dinâmico ao clicar", () => {
+    const chartComSql = {
+      ...mockChart,
+      sql_query: "dynamic_sql: SELECT * FROM produtos",
+    };
+
+    render(
+      <DynamicChartCard
+        chart={chartComSql}
+        onRefresh={vi.fn()}
+        onTogglePin={vi.fn()}
+        onDelete={vi.fn()}
+      />,
+    );
+
+    // O SQL não deve estar visível no DOM antes de clicar na engrenagem
+    expect(screen.queryByText("dynamic_sql: SELECT * FROM produtos")).not.toBeInTheDocument();
+
+    // Clica no botão de SQL Dinâmico com ícone de engrenagem
+    const gearBtn = screen.getByTitle("Exibir SQL Dinâmico");
+    expect(gearBtn).toBeInTheDocument();
+    fireEvent.click(gearBtn);
+
+    // Agora o bubble deve exibir o SQL
+    expect(screen.getByText("dynamic_sql: SELECT * FROM produtos")).toBeInTheDocument();
+
+    // Clica novamente para fechar
+    fireEvent.click(gearBtn);
+    expect(screen.queryByText("dynamic_sql: SELECT * FROM produtos")).not.toBeInTheDocument();
+  });
 });
+

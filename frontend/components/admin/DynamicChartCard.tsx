@@ -43,6 +43,7 @@ export default function DynamicChartCard({
   const [isEditing, setIsEditing] = useState(false);
   const [titleValue, setTitleValue] = useState(chart.titulo);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showSqlBubble, setShowSqlBubble] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -178,9 +179,43 @@ export default function DynamicChartCard({
           {chart.atualizado_em ? `Atualizado às ${formatUpdatedAt(chart.atualizado_em)}` : "Recente"}
         </span>
         {chart.sql_query && (
-          <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-            {chart.sql_query}
-          </span>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSqlBubble((prev) => !prev)}
+              title="Exibir SQL Dinâmico"
+              className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-200 hover:text-slate-800 transition-colors cursor-pointer"
+            >
+              <span>SQL Dinâmico</span>
+              <span className="text-xs">⚙️</span>
+            </button>
+
+            {showSqlBubble && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowSqlBubble(false)}
+                />
+                <div className="absolute right-0 bottom-full mb-2 z-20 w-72 sm:w-96 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-700 bg-slate-900 p-3 text-slate-100 shadow-xl text-xs font-mono">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 font-sans font-semibold text-slate-300">
+                    <span>SQL Dinâmico</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowSqlBubble(false)}
+                      className="text-slate-400 hover:text-slate-200"
+                      title="Fechar"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="max-h-48 overflow-y-auto whitespace-pre-wrap break-words leading-relaxed text-slate-200">
+                    {chart.sql_query}
+                  </div>
+                  <div className="absolute -bottom-1.5 right-4 h-3 w-3 rotate-45 border-b border-r border-slate-700 bg-slate-900" />
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
     </div>
