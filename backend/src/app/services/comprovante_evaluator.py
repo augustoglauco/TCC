@@ -9,9 +9,11 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
+from app.background_tasks import spawn_background_task
 from app.ocr.image_processor import ImageFormatError, OcrIndisponivelError, extract_text_from_bytes
 from app.rag.pdf_extract import PdfExtractionError, extract_text_from_pdf
 from app.router.prompt_safety import wrap_untrusted
+from app.services.ai_usage import registrar_uso_ia
 
 logger = logging.getLogger("assistente.comprovante_evaluator")
 
@@ -68,6 +70,9 @@ class ComprovanteEvaluator:
         llm_client: Any = None,
         vision_client: Any = None,
         local_vision_client: Any = None,
+        *,
+        origem: str,
+        llm_ambiente: str,
     ):
         self.llm_client = llm_client
         # `vision_client`: visão externa (OpenRouter), último recurso.
@@ -76,6 +81,13 @@ class ComprovanteEvaluator:
         # docs/ARCHITECTURE.md §4 (2026-10-06).
         self.vision_client = vision_client
         self.local_vision_client = local_vision_client
+        # `origem`/`llm_ambiente`: dimensões do ledger de uso de IA
+        # (docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-b-origem-chat-design.md
+        # §4.3) — obrigatórios porque esta classe é compartilhada por chat
+        # (item B), MCP B2B (item C) e admin (item D); um default
+        # mascararia a origem real de quem chama.
+        self.origem = origem
+        self.llm_ambiente = llm_ambiente
 
     def extrair_texto(self, conteudo: bytes, nome_arquivo_ou_extensao: str) -> str:
         """Extrai o texto bruto do documento conforme seu formato/extensão."""
@@ -241,6 +253,21 @@ class ComprovanteEvaluator:
                     res = await self.llm_client.chat(prompt)
 
                 raw_text = res.text if hasattr(res, "text") else str(res)
+                spawn_background_task(
+                    registrar_uso_ia(
+                        origem=self.origem,
+                        ambiente=self.llm_ambiente,
+                        modelo=getattr(res, "model_name", None) or "desconhecido",
+                        operacao="comprovante_texto_llm",
+                        tokens_entrada=getattr(res, "prompt_tokens", None),
+                        tokens_saida=getattr(res, "completion_tokens", None),
+                        custo_usd=getattr(res, "estimated_cost_usd", None),
+                        referencia_id=None,
+                        session=None,
+                        session_factory=None,
+                        commit=False,
+                    )
+                )
                 # Remove cercas de markdown
                 cleaned = re.sub(r"^```(?:json)?\s*", "", raw_text.strip(), flags=re.MULTILINE)
                 cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE).strip()
@@ -309,6 +336,37 @@ class ComprovanteEvaluator:
                     continue
                 try:
                     raw_vision = await vision_client.describe_image(conteudo, prompt_vision)
+                    ambiente_vision = (
+                        "interno" if vision_client is self.local_vision_client else "externo"
+                    )
+                    # `custo_usd` com fallback `0.0` (e não `None`, como nos
+                    # outros pontos do ledger): `LocalVisionResult`
+                    # genuinamente não tem custo — visão local é sempre
+                    # grátis, um "não existe" que já sabemos valer zero —
+                    # enquanto nos outros pontos um atributo ausente
+                    # significaria "não foi possível capturar".
+                    spawn_background_task(
+                        registrar_uso_ia(
+                            origem=self.origem,
+                            ambiente=ambiente_vision,
+                            modelo=getattr(raw_vision, "model_name", None) or "desconhecido",
+                            operacao=(
+                                "comprovante_visao_interna"
+                                if ambiente_vision == "interno"
+                                else "comprovante_visao_externa"
+                            ),
+                            tokens_entrada=getattr(raw_vision, "prompt_tokens", None),
+                            tokens_saida=getattr(raw_vision, "completion_tokens", None),
+                            custo_usd=(
+                                getattr(raw_vision, "cost_prompt_usd", 0.0)
+                                + getattr(raw_vision, "cost_completion_usd", 0.0)
+                            ),
+                            referencia_id=None,
+                            session=None,
+                            session_factory=None,
+                            commit=False,
+                        )
+                    )
                     cleaned = re.sub(
                         r"^```(?:json)?\s*", "", raw_vision.strip(), flags=re.MULTILINE
                     )

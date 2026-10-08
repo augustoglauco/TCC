@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from pydantic import ValidationError
 
@@ -15,6 +17,20 @@ class _FakeLLMClient:
         self.calls += 1
         self.last_prompt = prompt
         return LLMResponse(text=self._text, total_duration_ms=10.0)
+
+
+class _FakeLLMClientComModelo(_FakeLLMClient):
+    async def generate(self, prompt: str) -> LLMResponse:
+        self.calls += 1
+        self.last_prompt = prompt
+        return LLMResponse(
+            text=self._text,
+            total_duration_ms=10.0,
+            model_name="gemma4:12b-it-q4_K_M",
+            prompt_tokens=120,
+            completion_tokens=15,
+            estimated_cost_usd=0.0,
+        )
 
 
 class _RaisingLLMClient:
@@ -182,15 +198,22 @@ async def test_classify_ignora_acentos_no_contexto_recente():
 
 
 class _FakeOpenRouterJevClient:
-    def __init__(self, domain: str = "vendas", confidence: float = 0.9, fail: bool = False):
+    def __init__(
+        self,
+        domain: str = "vendas",
+        confidence: float = 0.9,
+        fail: bool = False,
+        usage_info: dict | None = None,
+    ):
         self.domain = domain
         self.confidence = confidence
         self.fail = fail
+        self.usage_info = usage_info
 
     async def classify_intent_jev(self, message: str, recent_messages: list[str] | None = None):
         if self.fail:
             raise RuntimeError("Conexão com OpenRouter falhou")
-        return self.domain, self.confidence
+        return self.domain, self.confidence, self.usage_info
 
 
 async def test_classify_com_jev_sucesso():
@@ -208,6 +231,96 @@ async def test_classify_com_jev_sucesso():
     # parâmetro `provider` pedido pelo chamador) que o orchestrator usa para
     # popular `RouterDecision.router_provider`.
     assert result.provider_efetivo == "jev_openrouter"
+
+
+async def test_classify_com_jev_sucesso_registra_uso_ia(monkeypatch):
+    import app.router.classifier as classifier_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(classifier_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    fake_client = _FakeOpenRouterJevClient(
+        domain="vendas",
+        confidence=0.92,
+        usage_info={
+            "model": "typesafe/jev-1.13-20260917",
+            "input_tokens": 401,
+            "output_tokens": 63,
+            "cost": 1.6842e-05,
+        },
+    )
+    await classify(
+        message="Quero saber o valor do plano",
+        provider="jev_openrouter",
+        external_client=fake_client,
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "externo",
+        "modelo": "typesafe/jev-1.13-20260917",
+        "operacao": "classificacao_jev",
+        "tokens_entrada": 401,
+        "tokens_saida": 63,
+        "custo_usd": 1.6842e-05,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }
+
+
+async def test_classify_com_jev_sem_usage_info_registra_uso_ia_com_none(monkeypatch):
+    import app.router.classifier as classifier_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(classifier_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    fake_client = _FakeOpenRouterJevClient(domain="vendas", confidence=0.92, usage_info=None)
+    await classify(
+        message="Quero saber o valor do plano",
+        provider="jev_openrouter",
+        external_client=fake_client,
+    )
+    await asyncio.sleep(0)
+
+    assert captured["modelo"] == "jev"
+    assert captured["tokens_entrada"] is None
+    assert captured["tokens_saida"] is None
+    assert captured["custo_usd"] is None
+
+
+async def test_classify_jev_falha_nao_registra_uso_ia(monkeypatch):
+    import app.router.classifier as classifier_module
+
+    calls: list[dict] = []
+
+    async def fake_registrar_uso_ia(**kwargs):
+        calls.append(kwargs)
+        return None
+
+    monkeypatch.setattr(classifier_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    fake_client = _FakeOpenRouterJevClient(fail=True)
+    await classify(
+        message="Quero saber o valor do plano",
+        provider="jev_openrouter",
+        external_client=fake_client,
+    )
+    await asyncio.sleep(0)
+
+    assert calls == []
 
 
 async def test_classify_com_jev_fallback_em_falha():
@@ -422,3 +535,39 @@ async def test_classify_heuristica_llm_nao_usa_atalho_quando_keyword_ficaria_amb
 
     assert result.domain == "agendamento"
     assert llm_client.calls == 1
+
+
+async def test_classify_com_llm_local_registra_uso_ia(monkeypatch):
+    import app.router.classifier as classifier_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(classifier_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    await classify(
+        message="Isso realmente funciona bem?",
+        strategy="llm",
+        llm_client=_FakeLLMClientComModelo(
+            '{"domain": "vendas", "complexity": "baixa", "confidence": 0.8}'
+        ),
+        provider="heuristica_llm",
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "interno",
+        "modelo": "gemma4:12b-it-q4_K_M",
+        "operacao": "classificacao_heuristica_llm",
+        "tokens_entrada": 120,
+        "tokens_saida": 15,
+        "custo_usd": 0.0,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }

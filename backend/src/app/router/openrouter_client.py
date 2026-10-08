@@ -3,6 +3,7 @@ import base64
 import json
 import time
 from collections.abc import AsyncIterator
+from typing import Any
 
 import httpx
 
@@ -375,13 +376,17 @@ class OpenRouterClient:
         recent_messages: list[str] | None,
         question_key: str,
         question: dict,
-    ) -> dict:
+    ) -> tuple[dict, dict[str, Any] | None]:
         """Faz uma pergunta tipada via TypeSafe Jev, endpoint dedicado do
         OpenRouter (`/systemone`, não `/chat/completions`) — devolve a
-        decisão tipada (`answers[question_key]`), sem geração de texto livre
-        nem parsing de JSON solto. Compartilhado por `classify_intent_jev`
-        (pergunta `choice`) e `classify_tone_jev` (pergunta `noul`, R8) —
-        acha review (2026-09-24): as duas duplicavam a mesma chamada HTTP.
+        decisão tipada (`answers[question_key]`) e, junto, os metadados de
+        uso da resposta (`model`/`usage.input_tokens`/`usage.output_tokens`/
+        `usage.cost`, ou `None` quando a resposta não trouxer `usage` —
+        achado de 2026-10-08: até aqui esses campos existiam na resposta
+        real e eram descartados, zerando qualquer métrica de uso do Jev).
+        Compartilhado por `classify_intent_jev` (pergunta `choice`) e
+        `classify_tone_jev` (pergunta `noul`, R8) — acha review
+        (2026-09-24): as duas duplicavam a mesma chamada HTTP.
         """
         if not self._jev_model:
             raise ValueError("jev_model não configurado (JEV_MODEL_NAME).")
@@ -398,13 +403,25 @@ class OpenRouterClient:
             timeout=self._jev_timeout_s,
         )
         response.raise_for_status()
-        return response.json()["answers"][question_key]
+        data = response.json()
+        usage_raw = data.get("usage")
+        usage_info = (
+            {
+                "model": data.get("model"),
+                "input_tokens": usage_raw.get("input_tokens"),
+                "output_tokens": usage_raw.get("output_tokens"),
+                "cost": usage_raw.get("cost"),
+            }
+            if isinstance(usage_raw, dict)
+            else None
+        )
+        return data["answers"][question_key], usage_info
 
     async def classify_intent_jev(
         self, message: str, recent_messages: list[str] | None = None
-    ) -> tuple[str, float]:
+    ) -> tuple[str, float, dict[str, Any] | None]:
         """Classifica o domínio via TypeSafe Jev — ver `_perguntar_systemone_jev`."""
-        answer = await self._perguntar_systemone_jev(
+        answer, usage_info = await self._perguntar_systemone_jev(
             message,
             recent_messages,
             "dominio",
@@ -420,18 +437,18 @@ class OpenRouterClient:
         confidence = float(answer.get("confidence", 0.5))
         if choice not in _VALID_DOMAINS:
             choice = "fora_escopo"
-        return choice, confidence
+        return choice, confidence, usage_info
 
     async def classify_tone_jev(
         self, message: str, recent_messages: list[str] | None = None
-    ) -> tuple[bool, float]:
+    ) -> tuple[bool, float, dict[str, Any] | None]:
         """Avalia urgência/insatisfação via TypeSafe Jev (R8, Fase 4B) —
         mesmo endpoint dedicado de `classify_intent_jev` (`/systemone`), mas
         com uma pergunta do tipo `noul` (sim/não com probabilidade
         calibrada) em vez de `choice` — ver
         docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §3.2.
         """
-        answer = await self._perguntar_systemone_jev(
+        answer, usage_info = await self._perguntar_systemone_jev(
             message,
             recent_messages,
             "escalar",
@@ -460,4 +477,4 @@ class OpenRouterClient:
         # depender só disso. Default `0.0` (não escala) é o lado seguro,
         # mesmo espírito de `_classify_heuristic_fallback`.
         noul = float(answer.get("noul", 0.0))
-        return noul >= 0.5, noul
+        return noul >= 0.5, noul, usage_info

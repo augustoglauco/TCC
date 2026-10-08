@@ -124,7 +124,7 @@ class _FakeLLMClientComJev(_FakeLLMClient):
         self._jev_confidence = jev_confidence
 
     async def classify_intent_jev(self, message: str, recent_messages: list[str] | None = None):
-        return self._jev_domain, self._jev_confidence
+        return self._jev_domain, self._jev_confidence, None
 
 
 class _FakeClipStore:

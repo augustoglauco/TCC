@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.background_tasks import spawn_background_task
 from app.db.models import Agendamento, RagCollection, RagDocument
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
 from app.models.chat import (
@@ -58,6 +59,7 @@ from app.router.scheduling import (
     validar_expediente,
 )
 from app.router.tone_monitor import ToneResult, analyze_tone, ja_escalada, marcar_escalada
+from app.services.ai_usage import registrar_uso_ia
 from app.user_profile.classificacao import DOMINIOS_POS_VENDA
 
 logger = logging.getLogger(__name__)
@@ -1294,6 +1296,8 @@ async def handle_message(
                             nome_arquivo=comprovante_filename,
                             vision_client=external_client,
                             local_vision_client=local_client,
+                            origem="chat",
+                            llm_ambiente="interno" if llm_to_use is local_client else "externo",
                         )
             else:
                 pedido = await buscar_reserva_ativa(
@@ -1313,6 +1317,8 @@ async def handle_message(
                         nome_arquivo=comprovante_filename,
                         vision_client=external_client,
                         local_vision_client=local_client,
+                        origem="chat",
+                        llm_ambiente="interno" if llm_to_use is local_client else "externo",
                     )
 
             if houve_reserva and texto_resp:
@@ -1664,5 +1670,20 @@ async def handle_message(
     logger.info(
         "router_decision",
         extra={"router": {"event": "router_decision", **decisao.model_dump()}},
+    )
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="chat",
+            ambiente="interno" if backend_escolhido == "local" else "externo",
+            modelo=decisao.modelo_usado or "desconhecido",
+            operacao="geracao_resposta",
+            tokens_entrada=decisao.tokens_entrada,
+            tokens_saida=decisao.tokens_saida,
+            custo_usd=decisao.custo_estimado_usd,
+            referencia_id=conversation_id or None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
     )
     yield decisao

@@ -1,3 +1,4 @@
+import asyncio
 from datetime import timedelta
 
 import pytest
@@ -35,15 +36,17 @@ class _FakeJevClient:
         escalate: bool = False,
         confidence: float = 0.0,
         exception: Exception | None = None,
+        usage_info: dict | None = None,
     ) -> None:
         self._escalate = escalate
         self._confidence = confidence
         self._exception = exception
+        self.usage_info = usage_info
 
     async def classify_tone_jev(self, message: str, recent_messages: list[str] | None = None):
         if self._exception is not None:
             raise self._exception
-        return self._escalate, self._confidence
+        return self._escalate, self._confidence, self.usage_info
 
 
 @pytest.mark.asyncio
@@ -305,6 +308,75 @@ async def test_fallback_jev_sucesso_usa_provider_jev_openrouter():
     assert llm.prompts == []
 
 
+async def test_analyze_tone_jev_sucesso_registra_uso_ia(monkeypatch):
+    import app.router.tone_monitor as tone_monitor_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(tone_monitor_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    jev = _FakeJevClient(
+        escalate=True,
+        confidence=0.9,
+        usage_info={
+            "model": "typesafe/jev-1.13-20260917",
+            "input_tokens": 300,
+            "output_tokens": 10,
+            "cost": 5e-06,
+        },
+    )
+    await analyze_tone(
+        message="Será que vocês poderiam me ajudar com uma dúvida sobre o pedido",
+        recent_messages=[],
+        strategy_provider="jev_openrouter",
+        llm_client=_FakeLLMClient(),
+        external_client=jev,
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "externo",
+        "modelo": "typesafe/jev-1.13-20260917",
+        "operacao": "monitor_tom_jev",
+        "tokens_entrada": 300,
+        "tokens_saida": 10,
+        "custo_usd": 5e-06,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }
+
+
+async def test_analyze_tone_jev_falha_nao_registra_uso_ia(monkeypatch):
+    import app.router.tone_monitor as tone_monitor_module
+
+    calls: list[dict] = []
+
+    async def fake_registrar_uso_ia(**kwargs):
+        calls.append(kwargs)
+        return None
+
+    monkeypatch.setattr(tone_monitor_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    jev = _FakeJevClient(exception=RuntimeError("timeout"))
+    await analyze_tone(
+        message="Será que vocês poderiam me ajudar com uma dúvida sobre o pedido",
+        recent_messages=[],
+        strategy_provider="jev_openrouter",
+        llm_client=_FakeLLMClient(),
+        external_client=jev,
+    )
+    await asyncio.sleep(0)
+
+    assert calls == []
+
+
 @pytest.mark.asyncio
 async def test_fallback_jev_falha_degrada_para_heuristica_llm_sem_escalar():
     llm = _FakeLLMClient()
@@ -420,3 +492,47 @@ async def test_listar_escalonamentos_respeita_limit(db_session):
     resultado = await listar_escalonamentos(db_session, limit=2)
 
     assert len(resultado) == 2
+
+
+async def test_analyze_tone_llm_local_registra_uso_ia(monkeypatch):
+    import app.router.tone_monitor as tone_monitor_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(tone_monitor_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    response = LLMResponse(
+        text='{"escalar": false, "motivo": null, "confianca": 0.1}',
+        total_duration_ms=10.0,
+        model_name="gemma4:12b-it-q4_K_M",
+        prompt_tokens=80,
+        completion_tokens=12,
+        estimated_cost_usd=0.0,
+    )
+    llm = _FakeLLMClient(response=response)
+    await analyze_tone(
+        message="Só queria saber o horário de funcionamento da loja hoje",
+        recent_messages=[],
+        strategy_provider="heuristica_llm",
+        llm_client=llm,
+        external_client=None,
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "interno",
+        "modelo": "gemma4:12b-it-q4_K_M",
+        "operacao": "monitor_tom_heuristica_llm",
+        "tokens_entrada": 80,
+        "tokens_saida": 12,
+        "custo_usd": 0.0,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }

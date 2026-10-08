@@ -270,6 +270,7 @@ async def test_classify_intent_jev_sucesso():
         captured_request["url"] = str(request.url)
         captured_request["body"] = json.loads(request.content)
         data = {
+            "model": "typesafe/jev-1.13-20260917",
             "answers": {
                 "dominio": {
                     "type": "choice",
@@ -291,11 +292,17 @@ async def test_classify_intent_jev_sucesso():
             client=mock_client,
             jev_model="typesafe/jev-latest",
         )
-        domain, confidence = await client.classify_intent_jev(
+        domain, confidence, usage_info = await client.classify_intent_jev(
             message="quanto custa o produto?", recent_messages=[]
         )
         assert domain == "vendas"
         assert confidence == 0.95
+        assert usage_info == {
+            "model": "typesafe/jev-1.13-20260917",
+            "input_tokens": 42,
+            "output_tokens": 5,
+            "cost": 0.000002,
+        }
         # Endpoint dedicado, distinto de /chat/completions
         assert captured_request["url"].endswith("/systemone")
         # Corpo da requisição segue o schema estruturado do System One
@@ -328,8 +335,11 @@ async def test_classify_intent_jev_choice_fora_do_enum_vira_fora_escopo():
             client=mock_client,
             jev_model="typesafe/jev-latest",
         )
-        domain, _ = await client.classify_intent_jev(message="teste", recent_messages=[])
+        domain, _, usage_info = await client.classify_intent_jev(
+            message="teste", recent_messages=[]
+        )
         assert domain == "fora_escopo"
+        assert usage_info is None
 
 
 @pytest.mark.asyncio
@@ -352,7 +362,7 @@ async def test_classify_tone_jev_noul_alto_escala():
             client=mock_client,
             jev_model="typesafe/jev-latest",
         )
-        escalate, confidence = await client.classify_tone_jev(
+        escalate, confidence, usage_info = await client.classify_tone_jev(
             message="Ninguém me ajuda, preciso falar com um atendente agora!",
             recent_messages=[],
         )
@@ -380,7 +390,7 @@ async def test_classify_tone_jev_noul_baixo_nao_escala():
             client=mock_client,
             jev_model="typesafe/jev-latest",
         )
-        escalate, confidence = await client.classify_tone_jev(
+        escalate, confidence, usage_info = await client.classify_tone_jev(
             message="Só queria saber o horário de funcionamento.", recent_messages=[]
         )
         assert escalate is False
@@ -406,7 +416,9 @@ async def test_classify_tone_jev_resposta_sem_noul_usa_default_seguro():
             client=mock_client,
             jev_model="typesafe/jev-latest",
         )
-        escalate, confidence = await client.classify_tone_jev(message="teste", recent_messages=[])
+        escalate, confidence, usage_info = await client.classify_tone_jev(
+            message="teste", recent_messages=[]
+        )
         assert escalate is False
         assert confidence == 0.0
 

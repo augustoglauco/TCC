@@ -20,7 +20,9 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ValidationError
 
+from app.background_tasks import spawn_background_task
 from app.router.llm_client import LLMClient
+from app.services.ai_usage import registrar_uso_ia
 
 DURACAO_VISITA = timedelta(minutes=60)
 
@@ -180,6 +182,21 @@ async def extract_booking_slots(
         mensagem=message,
     )
     response = await llm_client.generate(prompt)
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="chat",
+            ambiente="interno",
+            modelo=response.model_name or "desconhecido",
+            operacao="extracao_slots_agendamento",
+            tokens_entrada=response.prompt_tokens,
+            tokens_saida=response.completion_tokens,
+            custo_usd=response.estimated_cost_usd,
+            referencia_id=None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
+    )
     try:
         return _parse_extraction(response.text)
     except (json.JSONDecodeError, ValidationError, TypeError):  # fmt: skip

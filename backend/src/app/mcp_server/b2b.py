@@ -593,6 +593,8 @@ def create_b2b_mcp_server(
                     llm_client=llm_client,
                     vision_client=external_client,
                     local_vision_client=local_client,
+                    origem="b2b",
+                    llm_ambiente="interno" if llm_client is local_client else "externo",
                 )
                 filename_safe = None
                 if comprovante_bytes:

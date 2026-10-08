@@ -6,8 +6,10 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ValidationError
 
+from app.background_tasks import spawn_background_task
 from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
 from app.router.llm_client import LLMClient
+from app.services.ai_usage import registrar_uso_ia
 
 logger = logging.getLogger(__name__)
 
@@ -279,6 +281,21 @@ async def _classify_with_llm(
     # deve propagar para o orchestrator virar LocalBackendIndisponivelError,
     # nunca degradar em silêncio para a heurística (spec §2.4).
     response = await llm_client.generate(prompt)
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="chat",
+            ambiente="interno",
+            modelo=response.model_name or "desconhecido",
+            operacao="classificacao_heuristica_llm",
+            tokens_entrada=response.prompt_tokens,
+            tokens_saida=response.completion_tokens,
+            custo_usd=response.estimated_cost_usd,
+            referencia_id=None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
+    )
 
     try:
         return _parse_llm_classification(response.text, provider_efetivo=provider_efetivo)
@@ -299,8 +316,24 @@ async def _classify_with_jev(
     try:
         if external_client is None or not hasattr(external_client, "classify_intent_jev"):
             raise ValueError("external_client inválido para Jev")
-        domain, confidence = await external_client.classify_intent_jev(
+        domain, confidence, usage_info = await external_client.classify_intent_jev(
             message, _contexto_com_ultima_resposta(recent_messages, ultima_resposta)
+        )
+        usage_info = usage_info or {}
+        spawn_background_task(
+            registrar_uso_ia(
+                origem="chat",
+                ambiente="externo",
+                modelo=usage_info.get("model") or "jev",
+                operacao="classificacao_jev",
+                tokens_entrada=usage_info.get("input_tokens"),
+                tokens_saida=usage_info.get("output_tokens"),
+                custo_usd=usage_info.get("cost"),
+                referencia_id=None,
+                session=None,
+                session_factory=None,
+                commit=False,
+            )
         )
         return ClassificationResult(
             domain=domain,

@@ -29,6 +29,7 @@ import unicodedata
 
 from pydantic import BaseModel, ValidationError
 
+from app.background_tasks import spawn_background_task
 from app.rag.clip_embedder import ClipEmbedder
 from app.rag.image_search import ClipImageStore
 from app.router.openrouter_client import VisionModelIndisponivelError
@@ -38,6 +39,7 @@ from app.router.sales_catalog import (
     SalesCatalogClient,
     extrair_termos_busca,
 )
+from app.services.ai_usage import registrar_uso_ia
 
 logger = logging.getLogger(__name__)
 
@@ -153,6 +155,21 @@ async def identify_product_by_image(
             detalhes = await _buscar_detalhes(
                 rag_client, melhor.filename, recent_messages, produto_id=melhor.produto_id
             )
+        spawn_background_task(
+            registrar_uso_ia(
+                origem="chat",
+                ambiente="interno",
+                modelo="clip",
+                operacao="identificacao_imagem_clip",
+                tokens_entrada=None,
+                tokens_saida=None,
+                custo_usd=0.0,
+                referencia_id=None,
+                session=None,
+                session_factory=None,
+                commit=False,
+            )
+        )
         return ImageIdentificationResult(
             status="encontrado_interno",
             produto=nome,
@@ -177,6 +194,22 @@ async def identify_product_by_image(
     v_cost_comp = getattr(raw, "cost_completion_usd", None)
     v_cost_total = getattr(raw, "estimated_cost_usd", None)
     v_model_name = getattr(raw, "model_name", None)
+
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="chat",
+            ambiente="externo",
+            modelo=v_model_name or "desconhecido",
+            operacao="identificacao_imagem_visao_externa",
+            tokens_entrada=v_prompt_tokens,
+            tokens_saida=v_comp_tokens,
+            custo_usd=v_cost_total,
+            referencia_id=None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
+    )
 
     answer = _parse_vision_answer(raw)
     # 3) Decisão sobre a resposta do externo.

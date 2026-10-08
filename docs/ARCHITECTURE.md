@@ -861,6 +861,9 @@ ponto de chamada real foi conectado ainda; ver
 `docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md`
 e os itens B/C/D/E em `docs/ROADMAP.md`.
 
+**Decisão registrada (Parâmetros obrigatórios de origem/llm_ambiente em ComprovanteEvaluator, item B, 2026-10-08):**
+durante a implementação do item B (conectar pontos de chamada real da origem "chat" ao ledger), `ComprovanteEvaluator.__init__` ganhou dois parâmetros de construtor obrigatórios, keyword-only, **sem defaults**: `origem: str` e `llm_ambiente: str`. Motivado por `ComprovanteEvaluator` ser compartilhada por três origens distintas (chat em item B, B2B em item C, admin em item D) — um padrão com defaults silenciosos teria mislabelado os chamadores fora do chat, tornando impossível depois rastrear cada evento de volta à sua origem verdadeira. Como efeito colateral dessa obrigatoriedade, todos os 4 call sites passam agora `origem`/`llm_ambiente` explícitos (chat ×2 em `orchestrator.py`, b2b ×1 em `mcp_server/b2b.py`, admin ×2 em `api/admin_pedidos_conversao.py`) — as dimensões corretas do ledger são garantidas por construção.
+
 **Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
 `POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou
 a devolver a resposta como o próprio stream **Server-Sent Events** (SSE),

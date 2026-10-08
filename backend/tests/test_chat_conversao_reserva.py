@@ -138,6 +138,70 @@ async def test_chat_conversao_item_unico_sucesso(db_session):
 
 
 @pytest.mark.asyncio
+async def test_chat_conversao_local_client_none_usa_ambiente_externo(db_session, monkeypatch):
+    # Achado da revisão final do item B (ledger de uso de IA): a expressão
+    # `llm_ambiente="interno" if llm_to_use is local_client else "externo"`
+    # (orchestrator.py, pontos 1290-1300/1311-1321) nunca era exercitada em
+    # nenhum teste de produção com `local_client=None` — só a nível do
+    # `ComprovanteEvaluator` construído direto em test_comprovante_evaluator.py.
+    prod = Produto(nome="Painel Solar 500W", descricao="Painel fotovoltaico", preco=Decimal("1500.00"), categoria="Solar")
+    db_session.add(prod)
+    await db_session.flush()
+
+    pedido = Pedido(
+        user_email="cliente@gmail.com",
+        conversation_id="conv-ambiente-externo",
+        status="reservado",
+    )
+    db_session.add(pedido)
+    await db_session.flush()
+
+    item = PedidoItem(
+        pedido_id=pedido.id,
+        produto_id=prod.id,
+        quantidade=1,
+        centro_distribuicao="CD-SP",
+        preco_unitario=Decimal("1500.00"),
+    )
+    db_session.add(item)
+    await db_session.commit()
+
+    sessionmaker = _SingleSessionMaker(db_session)
+
+    captured: dict = {}
+
+    async def fake_processar_conversao_comprovante(*args, **kwargs):
+        captured["origem"] = kwargs.get("origem")
+        captured["llm_ambiente"] = kwargs.get("llm_ambiente")
+        return True, "Pagamento confirmado com sucesso. Venda concluída.", None
+
+    monkeypatch.setattr(
+        "app.router.sales_catalog.processar_conversao_comprovante",
+        fake_processar_conversao_comprovante,
+    )
+
+    events = []
+    async for ev in handle_message(
+        message="Segue o comprovante do pagamento PIX de R$ 1.500,00 da reserva. Código de autenticação: E12345678202610051200",
+        recent_messages=[],
+        local_client=None,
+        external_client=AsyncMock(),
+        rag_client=AsyncMock(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-ambiente-externo",
+        db_sessionmaker=sessionmaker,
+        user_email="cliente@gmail.com",
+    ):
+        events.append(ev)
+
+    token_events = [e for e in events if isinstance(e, TokenEvent)]
+    assert len(token_events) > 0
+
+    assert captured["origem"] == "chat"
+    assert captured["llm_ambiente"] == "externo"
+
+
+@pytest.mark.asyncio
 async def test_chat_conversao_multiplos_itens_sucesso(db_session):
     # Setup de pedido reservado com múltiplos itens faturados
     prod = Produto(nome="Inversor Híbrido 5kW", descricao="Inversor Solar", preco=Decimal("450.00"), categoria="Solar")

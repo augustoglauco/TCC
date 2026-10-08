@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
@@ -121,7 +122,7 @@ class _FakeLLMClientComJev(_FakeLLMClient):
     async def classify_intent_jev(self, message: str, recent_messages: list[str] | None = None):
         if self._jev_fail:
             raise RuntimeError("Conexão com OpenRouter falhou")
-        return self._jev_domain, self._jev_confidence
+        return self._jev_domain, self._jev_confidence, None
 
 
 class _FakeRAGClient:
@@ -882,6 +883,56 @@ async def test_fora_escopo_baixa_complexidade_usa_modelo_local():
     assert decisao.motivo_escalonamento == "nenhum"
     assert local_client.calls == 1
     assert external_client.calls == 0
+
+
+async def test_handle_message_registra_uso_ia_geracao_principal_local(monkeypatch):
+    import app.router.orchestrator as orchestrator_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(orchestrator_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    resposta = LLMResponse(
+        text="resposta local",
+        total_duration_ms=100.0,
+        model_name="gemma4:12b-it-q4_K_M",
+        prompt_tokens=500,
+        completion_tokens=80,
+        estimated_cost_usd=0.0,
+    )
+    local_client = _FakeLLMClient(response=resposta)
+    external_client = _FakeLLMClient(response=_resposta_externa())
+    rag_client = _FakeRAGClient(exception=RAGConnectionError("não deveria ser chamado"))
+
+    await _coletar_eventos(
+        "Olá, boa noite",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        complexity_strategy="heuristic",
+        tone_monitor_enabled=False,
+        conversation_id="conv-123",
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "interno",
+        "modelo": "gemma4:12b-it-q4_K_M",
+        "operacao": "geracao_resposta",
+        "tokens_entrada": 500,
+        "tokens_saida": 80,
+        "custo_usd": 0.0,
+        "referencia_id": "conv-123",
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }
 
 
 async def test_rag_vazio_escala_para_externo():
