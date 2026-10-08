@@ -1168,6 +1168,7 @@ async def handle_message(
             chart_completion_tokens: int | None = None
             try:
                 analytics_llm = local_client if local_client is not None else external_client
+                ambiente_grafico = "interno" if analytics_llm is local_client else "externo"
                 session_ctx = db_sessionmaker()
                 if hasattr(session_ctx, "__aenter__"):
                     async with session_ctx as session:
@@ -1181,6 +1182,7 @@ async def handle_message(
                             prompt=message,
                             user_email=user_email or "admin",
                             llm_client=analytics_llm,
+                            ambiente=ambiente_grafico,
                         )
                 else:
                     (
@@ -1193,6 +1195,7 @@ async def handle_message(
                         prompt=message,
                         user_email=user_email or "admin",
                         llm_client=analytics_llm,
+                        ambiente=ambiente_grafico,
                     )
             except Exception as exc:
                 logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})

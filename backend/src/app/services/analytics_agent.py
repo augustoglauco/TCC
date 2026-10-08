@@ -13,7 +13,9 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.background_tasks import spawn_background_task
 from app.db.models import AdminChart
+from app.services.ai_usage import registrar_uso_ia
 from app.services.safe_sql import (
     SQLSecurityError,
     execute_readonly_sql,
@@ -110,12 +112,18 @@ def extract_prompt_inline_data(prompt: str) -> dict[str, Any] | None:
 
 
 async def _generate_sql_with_llm(
-    llm_client: Any, prompt: str, session: AsyncSession
+    llm_client: Any, prompt: str, session: AsyncSession, ambiente: str
 ) -> tuple[dict[str, Any] | None, int | None, int | None]:
     """Solicita ao LLM que gere a consulta Text-to-SQL e a especificação do
     gráfico. Devolve também `prompt_tokens`/`completion_tokens` usados pela
     chamada (achado de 2026-10-05: eram descartados, então essas chamadas ao
-    modelo local nunca contavam em Métricas → Tokens Internos)."""
+    modelo local nunca contavam em Métricas → Tokens Internos).
+
+    `ambiente` ("interno"/"externo") é obrigatório porque o chamador já
+    sabe qual cliente resolveu (`analytics_llm = local_client if
+    local_client is not None else external_client` em
+    `app.router.orchestrator`) — esta função não tem como inferir sozinha
+    qual objeto recebeu."""
     if not llm_client or not hasattr(llm_client, "generate_stream"):
         return None, None, None
 
@@ -143,6 +151,10 @@ NÃO inclua nada fora do bloco JSON.
         raw_text = ""
         prompt_tokens: int | None = None
         completion_tokens: int | None = None
+        cost_prompt_usd: float | None = None
+        cost_completion_usd: float | None = None
+        estimated_cost_usd: float | None = None
+        model_name: str | None = None
         async for chunk in llm_client.generate_stream(system_instruction):
             if chunk.text:
                 raw_text += chunk.text
@@ -152,6 +164,30 @@ NÃO inclua nada fora do bloco JSON.
                 prompt_tokens = chunk.prompt_tokens
             if getattr(chunk, "completion_tokens", None) is not None:
                 completion_tokens = chunk.completion_tokens
+            if getattr(chunk, "cost_prompt_usd", None) is not None:
+                cost_prompt_usd = chunk.cost_prompt_usd  # noqa: F841 — mesmo padrão de extração dos outros campos; não usado fora desta função
+            if getattr(chunk, "cost_completion_usd", None) is not None:
+                cost_completion_usd = chunk.cost_completion_usd  # noqa: F841 — idem
+            if getattr(chunk, "estimated_cost_usd", None) is not None:
+                estimated_cost_usd = chunk.estimated_cost_usd
+            if getattr(chunk, "model_name", None) is not None:
+                model_name = chunk.model_name
+
+        spawn_background_task(
+            registrar_uso_ia(
+                origem="admin",
+                ambiente=ambiente,
+                modelo=model_name or "desconhecido",
+                operacao="geracao_grafico_dinamico",
+                tokens_entrada=prompt_tokens,
+                tokens_saida=completion_tokens,
+                custo_usd=estimated_cost_usd,
+                referencia_id=None,
+                session=None,
+                session_factory=None,
+                commit=False,
+            )
+        )
 
         # Extrai bloco JSON
         match = re.search(r"\{.*\}", raw_text, re.DOTALL)
@@ -168,6 +204,8 @@ async def process_dynamic_chart_request(
     prompt: str,
     user_email: str,
     llm_client: Any = None,
+    *,
+    ambiente: str,
 ) -> tuple[AdminChart | None, str, int | None, int | None]:
     """Processa a solicitação de gráfico do usuário, identificando a fonte de dados,
     executando as consultas necessárias e persistindo o AdminChart correspondente.
@@ -217,7 +255,7 @@ async def process_dynamic_chart_request(
         )
 
     llm_spec, prompt_tokens, completion_tokens = await _generate_sql_with_llm(
-        llm_client, prompt, session
+        llm_client, prompt, session, ambiente
     )
     if not llm_spec or "sql" not in llm_spec:
         return (

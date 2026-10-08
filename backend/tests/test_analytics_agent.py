@@ -1,3 +1,4 @@
+import asyncio
 import json
 from decimal import Decimal
 
@@ -17,10 +18,18 @@ class _FakeChunk:
         text: str,
         prompt_tokens: int | None = None,
         completion_tokens: int | None = None,
+        cost_prompt_usd: float | None = None,
+        cost_completion_usd: float | None = None,
+        estimated_cost_usd: float | None = None,
+        model_name: str | None = None,
     ) -> None:
         self.text = text
         self.prompt_tokens = prompt_tokens
         self.completion_tokens = completion_tokens
+        self.cost_prompt_usd = cost_prompt_usd
+        self.cost_completion_usd = cost_completion_usd
+        self.estimated_cost_usd = estimated_cost_usd
+        self.model_name = model_name
 
 
 class _FakeLLMClientSql:
@@ -55,6 +64,31 @@ class _FakeLLMClientSqlComTokens:
         }
         yield _FakeChunk(json.dumps(payload))
         yield _FakeChunk("", prompt_tokens=120, completion_tokens=45)
+
+
+class _FakeLLMClientSqlComCustoReal:
+    """Simula um LLM externo que reporta tokens, modelo e custo real no
+    chunk final — usado para provar que a instrumentação nova captura
+    custo de verdade, ao contrário do RouterDecision antigo que hardcoda
+    cost_*=0.0 independente do backend escolhido."""
+
+    async def generate_stream(self, prompt: str):
+        payload = {
+            "sql": "SELECT categoria, COUNT(*) as total FROM produtos GROUP BY categoria",
+            "titulo": "Produtos por Categoria",
+            "x_key": "categoria",
+            "y_keys": ["total"],
+        }
+        yield _FakeChunk(json.dumps(payload))
+        yield _FakeChunk(
+            "",
+            prompt_tokens=300,
+            completion_tokens=50,
+            cost_prompt_usd=0.0009,
+            cost_completion_usd=0.0003,
+            estimated_cost_usd=0.0012,
+            model_name="openai/gpt-4o-mini",
+        )
 
 
 def test_extract_prompt_inline_data_key_value():
@@ -93,6 +127,7 @@ async def test_process_dynamic_chart_request_inline_data(db_session):
         prompt=prompt,
         user_email="admin@teste.com",
         llm_client=None,
+        ambiente="interno",
     )
     assert chart is not None
     assert isinstance(chart, AdminChart)
@@ -130,6 +165,7 @@ async def test_process_dynamic_chart_request_sql_data(db_session):
         prompt=prompt,
         user_email="admin@teste.com",
         llm_client=llm_client,
+        ambiente="interno",
     )
     assert chart is not None
     assert chart.sql_query.startswith("dynamic_sql:")
@@ -166,6 +202,7 @@ async def test_process_dynamic_chart_request_sql_inseguro_nao_gera_grafico_sem_q
         prompt="gere gráfico de produtos por faturamento",
         user_email="admin@teste.com",
         llm_client=llm_client,
+        ambiente="interno",
     )
 
     assert chart is None
@@ -200,6 +237,7 @@ async def test_erro_de_execucao_sql_nao_gera_grafico_sem_quebrar_sessao(db_sessi
         prompt="gere gráfico de produtos por faturamento",
         user_email="admin@teste.com",
         llm_client=llm_client,
+        ambiente="interno",
     )
 
     assert chart is None
@@ -227,11 +265,56 @@ async def test_process_dynamic_chart_request_sql_dinamico_retorna_tokens_usados(
         prompt="gere gráfico de produtos por categoria",
         user_email="admin@teste.com",
         llm_client=llm_client,
+        ambiente="interno",
     )
 
     assert chart is not None
     assert prompt_tokens == 120
     assert completion_tokens == 45
+
+
+@pytest.mark.asyncio
+async def test_process_dynamic_chart_request_externo_registra_uso_ia(db_session, monkeypatch):
+    import app.services.analytics_agent as analytics_agent_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(analytics_agent_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    p1 = Produto(
+        nome="Gerador X", descricao="Gerador", preco=Decimal("5000.00"), categoria="Geradores"
+    )
+    db_session.add(p1)
+    await db_session.commit()
+
+    llm_client = _FakeLLMClientSqlComCustoReal()
+
+    await process_dynamic_chart_request(
+        session=db_session,
+        prompt="gere gráfico de produtos por categoria",
+        user_email="admin@teste.com",
+        llm_client=llm_client,
+        ambiente="externo",
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "admin",
+        "ambiente": "externo",
+        "modelo": "openai/gpt-4o-mini",
+        "operacao": "geracao_grafico_dinamico",
+        "tokens_entrada": 300,
+        "tokens_saida": 50,
+        "custo_usd": 0.0012,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }
 
 
 @pytest.mark.asyncio
@@ -243,6 +326,7 @@ async def test_process_dynamic_chart_request_sem_llm_nao_gera_grafico(db_session
         prompt="gere gráfico de produtos por faturamento",
         user_email="admin@teste.com",
         llm_client=None,
+        ambiente="interno",
     )
 
     assert chart is None
@@ -264,6 +348,7 @@ async def test_process_dynamic_chart_request_sql_sem_resultado_nao_gera_grafico(
         prompt="gere gráfico de um produto que não existe",
         user_email="admin@teste.com",
         llm_client=llm_client,
+        ambiente="interno",
     )
 
     assert chart is None
