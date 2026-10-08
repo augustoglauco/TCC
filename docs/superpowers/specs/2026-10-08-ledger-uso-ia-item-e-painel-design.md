@@ -192,9 +192,10 @@ deriva **todas** as visões não-diárias (`totais`, `por_origem`,
 banco para cinco visões, e os números fecham entre si por construção — não
 há como um filtro divergir entre duas consultas.
 
-**Q2 — recorte diário:** seleciona seis colunas estreitas por evento no
-período (`criado_em`, `origem`, `ambiente`, `tokens_entrada`,
-`tokens_saida`, `custo_usd`) e bucketa por **dia local** em Python.
+**Q2 — recorte diário:** seleciona cinco colunas estreitas por evento no
+período (`criado_em`, `origem`, `tokens_entrada`, `tokens_saida`,
+`custo_usd` — o recorte diário é por origem, não por ambiente/modelo, ver
+§2.3) e bucketa por **dia local** em Python.
 
 Por que o dia não é agrupado em SQL: o bucket é o dia do calendário local do
 administrador, e não existe expressão portável entre SQLite (testes, `sqlite
