@@ -27,6 +27,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
+from app.background_tasks import spawn_background_task
 from app.db.catalog import (
     calcular_item_cotacao,
     listar_categorias_distintas,
@@ -38,6 +39,7 @@ from app.db.catalog import (
 from app.db.models import Pedido, Produto
 from app.router.classifier import normalize, strip_code_fence
 from app.router.llm_client import LLMClient
+from app.services.ai_usage import registrar_uso_ia
 from app.services.comprovante_evaluator import ComprovanteEvaluator, ParecerComprovante
 
 
@@ -411,6 +413,21 @@ async def extract_sales_slots(
         mensagem=message,
     )
     response = await llm_client.generate(prompt)
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="chat",
+            ambiente="interno",
+            modelo=response.model_name or "desconhecido",
+            operacao="extracao_slots_vendas",
+            tokens_entrada=response.prompt_tokens,
+            tokens_saida=response.completion_tokens,
+            custo_usd=response.estimated_cost_usd,
+            referencia_id=None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
+    )
     try:
         slots = _parse_extraction(response.text)
     except json.JSONDecodeError, ValidationError, TypeError:

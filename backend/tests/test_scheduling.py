@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta
 
 import pytest
@@ -265,3 +266,52 @@ def test_mensagem_sucesso_menciona_email():
 
 def test_msg_erro_mcp_nao_promete_confirmacao_automatica():
     assert "não consegui confirmar" in MSG_ERRO_MCP.lower()
+
+
+async def test_extract_booking_slots_registra_uso_ia(monkeypatch):
+    import app.router.scheduling as scheduling_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(scheduling_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    response = LLMResponse(
+        text="{}",
+        total_duration_ms=10.0,
+        model_name="gemma4:12b-it-q4_K_M",
+        prompt_tokens=150,
+        completion_tokens=20,
+        estimated_cost_usd=0.0,
+    )
+
+    class _FakeLLMClientComMetricas(_FakeLLMClient):
+        async def generate(self, prompt: str) -> LLMResponse:
+            return response
+
+    client = _FakeLLMClientComMetricas("{}")
+    await extract_booking_slots(
+        message="quero agendar para quarta",
+        recent_messages=[],
+        current_slots=BookingSlots(),
+        llm_client=client,
+        timezone="America/Sao_Paulo",
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "interno",
+        "modelo": "gemma4:12b-it-q4_K_M",
+        "operacao": "extracao_slots_agendamento",
+        "tokens_entrada": 150,
+        "tokens_saida": 20,
+        "custo_usd": 0.0,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }

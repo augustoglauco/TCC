@@ -3,6 +3,7 @@ integrador do MCP B2B em Vendas). Ver
 docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md.
 """
 
+import asyncio
 from decimal import Decimal
 
 import pytest
@@ -489,3 +490,51 @@ async def test_consultar_detalhes_traz_a_ficha_do_produto(factory):
     assert dados.especificacoes_tecnicas == "Motor 4 cilindros; tanque de 60 L."
     assert dados.dimensoes_cm == "150x80x110"
     assert dados.peso_kg == Decimal("520.000")
+
+
+async def test_extract_sales_slots_registra_uso_ia(monkeypatch):
+    import app.router.sales_catalog as sales_catalog_module
+
+    captured: dict = {}
+
+    async def fake_registrar_uso_ia(**kwargs):
+        captured.update(kwargs)
+        return None
+
+    monkeypatch.setattr(sales_catalog_module, "registrar_uso_ia", fake_registrar_uso_ia)
+
+    class _FakeLLMClientComMetricas(_FakeLLMClient):
+        async def generate(self, prompt: str) -> LLMResponse:
+            self.last_prompt = prompt
+            return LLMResponse(
+                text=self._text,
+                total_duration_ms=10.0,
+                model_name="gemma4:12b-it-q4_K_M",
+                prompt_tokens=200,
+                completion_tokens=30,
+                estimated_cost_usd=0.0,
+            )
+
+    client = _FakeLLMClientComMetricas('{"produto_id": null, "categoria": null}')
+    await extract_sales_slots(
+        message="quais produtos vocês têm?",
+        recent_messages=[],
+        candidatos=[],
+        llm_client=client,
+        categorias_disponiveis=[],
+    )
+    await asyncio.sleep(0)
+
+    assert captured == {
+        "origem": "chat",
+        "ambiente": "interno",
+        "modelo": "gemma4:12b-it-q4_K_M",
+        "operacao": "extracao_slots_vendas",
+        "tokens_entrada": 200,
+        "tokens_saida": 30,
+        "custo_usd": 0.0,
+        "referencia_id": None,
+        "session": None,
+        "session_factory": None,
+        "commit": False,
+    }
