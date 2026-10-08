@@ -1110,15 +1110,21 @@ conversa e classificação do usuário").
       julgamento), e o classificador/monitor de tom via TypeSafe Jev
       (`classify_intent_jev`/`classify_tone_jev` — hoje sem nenhuma
       métrica capturada).
-- [ ] **C — Origem B2B.** Conecta o servidor MCP B2B (`converter_reserva_venda`,
+- [x] **C — Origem B2B.** Conecta o servidor MCP B2B (`converter_reserva_venda`,
       que já chama o mesmo avaliador de comprovante do item B) à função de
       A, com origem `"b2b"` em vez de `"chat"`. Nota: a instrumentação do
       avaliador de comprovante feita na Tarefa 6 do item B tornou
       `origem`/`llm_ambiente` parâmetros obrigatórios do construtor de
       `ComprovanteEvaluator`, forçando toda chamada (inclusive a do MCP
-      B2B) a já passar `origem="b2b"` corretamente como efeito colateral;
-      o escopo restante do item C é tudo exceto os pontos de comprovante,
-      que já estão feitos.
+      B2B) a já passar `origem="b2b"` corretamente como efeito colateral.
+      Fechamento (2026-10-08): leitura completa de `backend/src/app/
+      mcp_server/b2b.py` confirmou que não há nenhum outro ponto de uso de
+      IA nesse servidor — `validar_compatibilidade`/`consultar_frete`/
+      `cotar`/`reservar_pedido` são regras de banco/aritmética pura, e
+      `manuais_busca` usa só um embedder de texto local/gratuito (RAG,
+      infraestrutura compartilhada com o chat, não específica do B2B, e
+      que o próprio item B nunca instrumentou pelo mesmo motivo). Item
+      fechado sem nenhuma tarefa de implementação nova.
 - [ ] **D — Origem Admin.** Conecta a extração de catálogo por visão
       (`app.catalog_extractor.extractor`) e a geração de gráficos
       dinâmicos via LLM (`app.services.analytics_agent`) à função de A.
