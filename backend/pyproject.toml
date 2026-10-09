@@ -56,6 +56,11 @@ extend-immutable-calls = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+# `src` na frente do sys.path para que a suite teste SEMPRE o codigo da
+# arvore em que o pytest roda. Sem isto, o editable install do .venv
+# (um .pth com caminho absoluto) faz `import app` resolver para o
+# checkout principal, e um git worktree acaba testando o codigo do outro.
+pythonpath = ["src"]
 markers = [
     "gpu: teste depende de GPU/modelo local, pulado por padrão sem GPU disponível",
     "qdrant: teste depende de uma instância real do Qdrant no ar (ver backend/docker-compose.yml)",
