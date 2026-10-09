@@ -11,8 +11,10 @@ from typing import get_args
 
 from pydantic import BaseModel, ValidationError
 
+from app.background_tasks import spawn_background_task
 from app.models.rag import RagDomain
 from app.router.llm_client import LLMClient
+from app.services.ai_usage import registrar_uso_ia
 
 _PROMPT_TEMPLATE = """\
 Classifique o conteúdo de uma página de site em UM dos domínios: vendas, \
@@ -59,30 +61,32 @@ async def classify_page(
     prompt = _PROMPT_TEMPLATE.format(texto=text[:_MAX_PROMPT_CHARS])
     response = await llm_client.generate(prompt)
 
-    # Telemetria e auditoria de custo do crawler
-    p_tok = getattr(response, "prompt_tokens", 0) or 0
-    c_tok = getattr(response, "completion_tokens", 0) or 0
-    c_prompt = getattr(response, "cost_prompt_usd", 0.0) or 0.0
-    c_comp = getattr(response, "cost_completion_usd", 0.0) or 0.0
-    c_tot = getattr(response, "estimated_cost_usd", 0.0) or (c_prompt + c_comp)
-    model = getattr(response, "model_name", None) or getattr(llm_client, "model", None)
-
-    if (p_tok + c_tok > 0) or (c_tot > 0):
-        try:
-            from app.services.ingestion_metrics import record_ingestion_cost
-            await record_ingestion_cost(
-                source_type="crawler",
-                prompt_tokens=p_tok,
-                completion_tokens=c_tok,
-                cost_prompt_usd=c_prompt,
-                cost_completion_usd=c_comp,
-                total_cost_usd=c_tot,
-                source_identifier=source_identifier,
-                model_name=model,
-                session=session,
-            )
-        except Exception:
-            pass
+    # Telemetria de uso de IA no ledger unificado (item E, 2026-10-08).
+    # Antes escrevia em `IngestionCostEvent` via `record_ingestion_cost`;
+    # era o último ponto de uso de IA fora do ledger, e o painel
+    # `/admin/metricas` passou a ler só `ai_usage_events`.
+    # `None` = não capturado, nunca um zero fabricado (semântica dos itens
+    # A/B/D) — por isso `getattr(..., None)` sem `or 0`.
+    # MVP: `ambiente="externo"` fixo porque `app.api.crawler` sempre passa
+    # `app.state.external_client`; se o crawler passar a aceitar modelo
+    # local, isto precisa virar parâmetro.
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="admin",
+            ambiente="externo",
+            modelo=getattr(response, "model_name", None)
+            or getattr(llm_client, "model", None)
+            or "desconhecido",
+            operacao="classificacao_crawler",
+            tokens_entrada=getattr(response, "prompt_tokens", None),
+            tokens_saida=getattr(response, "completion_tokens", None),
+            custo_usd=getattr(response, "estimated_cost_usd", None),
+            referencia_id=source_identifier,
+            session=session,
+            session_factory=None,
+            commit=False,
+        )
+    )
 
     try:
         parsed = json.loads(_strip_code_fence(response.text))

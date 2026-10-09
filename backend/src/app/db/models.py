@@ -526,6 +526,13 @@ class IngestionCostEvent(Base):
     """Eventos de telemetria e custo de processamento com modelos externos
     fora do fluxo de chat de clientes (ex: Crawler de páginas web, extração de
     catálogos de produtos via visão computacional, etc).
+
+    # MORTA desde 2026-10-08 (item E do ledger de uso de IA): nenhum
+    # caminho de produção escreve nem lê esta tabela — a extração de
+    # catálogo por visão migrou para `ai_usage_events` no item D e o
+    # classificador do crawler no item E. A tabela, o modelo e a migração
+    # permanecem no banco por decisão do dono do projeto (não vale uma
+    # migração destrutiva); os dados históricos não foram migrados.
     """
 
     __tablename__ = "ingestion_cost_events"

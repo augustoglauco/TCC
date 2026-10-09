@@ -134,7 +134,9 @@ async def run_crawler_stream(
                 pages_visited += 1
                 try:
                     classification = await classify_page(
-                        request.app.state.external_client, page.text
+                        request.app.state.external_client,
+                        page.text,
+                        source_identifier=page.url,
                     )
                     outcome = await ingest_or_queue(
                         session,

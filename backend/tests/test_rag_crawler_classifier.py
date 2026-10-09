@@ -1,19 +1,32 @@
+import asyncio
+
+import pytest
+
 from app.rag.crawler_classifier import classify_page
-from app.router.llm_client import LLMResponse
 
 
 class _FakeLLMClient:
-    def __init__(self, texto_resposta: str) -> None:
-        self._texto_resposta = texto_resposta
+    """Mock de LLM único deste arquivo — carrega os campos de uso (tokens,
+    custo, modelo) para cobrir tanto a classificação em si quanto a
+    telemetria no ledger unificado (item E)."""
 
-    async def generate(self, prompt: str) -> LLMResponse:
-        return LLMResponse(text=self._texto_resposta, total_duration_ms=1.0)
+    def __init__(
+        self,
+        texto_resposta: str,
+        prompt_tokens=None,
+        completion_tokens=None,
+        estimated_cost_usd=None,
+        model_name=None,
+    ) -> None:
+        self.text = texto_resposta
+        self.prompt_tokens = prompt_tokens
+        self.completion_tokens = completion_tokens
+        self.estimated_cost_usd = estimated_cost_usd
+        self.model_name = model_name
+        self.model = model_name
 
-    def generate_stream(self, prompt: str):
-        raise NotImplementedError
-
-    async def is_model_ready(self) -> bool:
-        return True
+    async def generate(self, prompt: str):
+        return self
 
 
 async def test_classify_page_json_valido():
@@ -48,3 +61,76 @@ async def test_classify_page_domain_invalido_confidence_zero():
     resultado = await classify_page(llm, "conteúdo da página")
 
     assert resultado.confidence == 0.0
+
+
+@pytest.mark.asyncio
+async def test_classify_page_registra_uso_no_ledger(monkeypatch):
+    """O classificador do crawler foi o último ponto de uso de IA a entrar
+    no ledger unificado (item E) — antes disso escrevia em
+    `IngestionCostEvent`, que o painel deixou de ler."""
+    registros: list[dict] = []
+
+    async def _fake_registrar(**kwargs):
+        registros.append(kwargs)
+        return None
+
+    monkeypatch.setattr("app.rag.crawler_classifier.registrar_uso_ia", _fake_registrar)
+
+    llm = _FakeLLMClient(
+        '{"domain": "vendas", "confidence": 0.9}',
+        prompt_tokens=500,
+        completion_tokens=20,
+        estimated_cost_usd=0.0008,
+        model_name="gpt-x",
+    )
+
+    resultado = await classify_page(llm, "promoções", source_identifier="https://ex.com/p")
+    await asyncio.sleep(0)  # dá chance à background task de rodar (fire-and-forget)
+
+    assert resultado.domain == "vendas"
+    assert len(registros) == 1
+    assert registros[0]["origem"] == "admin"
+    assert registros[0]["operacao"] == "classificacao_crawler"
+    assert registros[0]["ambiente"] == "externo"
+    assert registros[0]["modelo"] == "gpt-x"
+    assert registros[0]["tokens_entrada"] == 500
+    assert registros[0]["tokens_saida"] == 20
+    assert registros[0]["custo_usd"] == 0.0008
+    assert registros[0]["referencia_id"] == "https://ex.com/p"
+
+
+@pytest.mark.asyncio
+async def test_classify_page_sem_uso_reportado_registra_none_nao_zero(monkeypatch):
+    """`None` = não capturado; nunca um zero fabricado (semântica do
+    ledger, itens A/B/D)."""
+    registros: list[dict] = []
+
+    async def _fake_registrar(**kwargs):
+        registros.append(kwargs)
+        return None
+
+    monkeypatch.setattr("app.rag.crawler_classifier.registrar_uso_ia", _fake_registrar)
+
+    llm = _FakeLLMClient('{"domain": "suporte", "confidence": 0.5}')
+    await classify_page(llm, "texto")
+    await asyncio.sleep(0)  # dá chance à background task de rodar (fire-and-forget)
+
+    assert len(registros) == 1
+    assert registros[0]["tokens_entrada"] is None
+    assert registros[0]["custo_usd"] is None
+
+
+@pytest.mark.asyncio
+async def test_classify_page_sobrevive_a_falha_de_telemetria(monkeypatch):
+    """Telemetria não derruba a classificação que ela registra."""
+
+    async def _explode(**kwargs):
+        raise RuntimeError("banco fora")
+
+    monkeypatch.setattr("app.rag.crawler_classifier.registrar_uso_ia", _explode)
+
+    llm = _FakeLLMClient('{"domain": "vendas", "confidence": 0.8}')
+    resultado = await classify_page(llm, "texto")
+
+    assert resultado.domain == "vendas"
+    assert resultado.confidence == 0.8
