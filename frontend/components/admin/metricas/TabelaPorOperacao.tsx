@@ -22,14 +22,15 @@ export function TabelaPorOperacao({ linhas }: { linhas: MetricasPorOperacao[] })
               <th className="px-3 py-2 text-left">Origem</th>
               <th className="px-3 py-2 text-left">Ambiente</th>
               <th className="px-3 py-2 text-right">Chamadas</th>
-              <th className="px-3 py-2 text-right">Tokens</th>
+              <th className="px-3 py-2 text-right">Tokens entrada</th>
+              <th className="px-3 py-2 text-right">Tokens saída</th>
               <th className="px-3 py-2 text-right">Custo</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {linhas.length === 0 ? (
               <tr>
-                <td className="px-3 py-4 text-slate-500" colSpan={6}>
+                <td className="px-3 py-4 text-slate-500" colSpan={7}>
                   Nenhum uso de IA registrado no período.
                 </td>
               </tr>
@@ -43,6 +44,7 @@ export function TabelaPorOperacao({ linhas }: { linhas: MetricasPorOperacao[] })
                     <td className="px-3 py-2 text-slate-600">{linha.ambiente}</td>
                     <td className="px-3 py-2 text-right">{linha.chamadas.toLocaleString("pt-BR")}</td>
                     <td className="px-3 py-2 text-right">{formatarTokens(linha.tokens_entrada)}</td>
+                    <td className="px-3 py-2 text-right">{formatarTokens(linha.tokens_saida)}</td>
                     <td
                       className="px-3 py-2 text-right font-semibold"
                       data-testid={`custo-operacao-${id}`}

@@ -1,10 +1,5 @@
 import { DiaUsoIa } from "@/lib/api/metrics";
-import { formatarCusto, TITULO_NAO_MEDIDO } from "@/lib/format/metricas";
-
-function formatarDataPtBr(isoDate: string): string {
-  const [ano, mes, dia] = isoDate.split("-");
-  return ano && mes && dia ? `${dia}/${mes}/${ano}` : isoDate;
-}
+import { formatarCusto, formatarDataPtBr, TITULO_NAO_MEDIDO } from "@/lib/format/metricas";
 
 const ORIGENS = ["chat", "b2b", "admin"] as const;
 
@@ -55,7 +50,11 @@ export function TabelaDiaria({ dias }: { dias: DiaUsoIa[] }) {
                       >
                         {porOrigem.has(origem)
                           ? formatarCusto(porOrigem.get(origem)!.custo_usd)
-                          : "—"}
+                          : /* Origem ausente no dia = zero chamadas conhecido (contrato de
+                             `montar_relatorio` só inclui origens com chamadas > 0 nesse dia),
+                             não "não medido" — por isso formatarCusto(0), e não o traço de
+                             NAO_MEDIDO usado para custo_usd === null. */
+                            formatarCusto(0)}
                       </td>
                     ))}
                     <td

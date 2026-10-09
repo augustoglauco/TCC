@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminMetricasPage from "@/app/admin/metricas/page";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
@@ -151,5 +151,57 @@ describe("AdminMetricasPage", () => {
     await waitFor(() => {
       expect(screen.getByText(/Falha ao obter métricas/i)).toBeInTheDocument();
     });
+  });
+
+  it("ignora resposta desatualizada quando a requisição mais antiga resolve depois da mais nova", async () => {
+    // Achado da revisão de 2026-10-04: sem controle de sequência
+    // (`requestIdRef`), uma requisição mais antiga ("7 Dias", disparada no
+    // mount) que demora mais do que uma requisição mais nova ("Hoje",
+    // disparada pelo clique) podia resolver depois e sobrescrever a tela
+    // com dados do período errado.
+    logarComoAdmin();
+
+    function buildResponse(chatsEncerrados: number): metricsApi.AiUsageReport {
+      return {
+        period: "x",
+        atendimento: { chats_encerrados: chatsEncerrados },
+        totais: bloco({ chamadas: 0, custo_usd: 0, tokens_entrada: 0, tokens_saida: 0 }),
+        por_origem: [],
+        por_ambiente: [],
+        por_modelo: [],
+        por_operacao: [],
+        diario: [],
+      };
+    }
+
+    let resolveOld: (v: metricsApi.AiUsageReport) => void;
+    const oldRequest = new Promise<metricsApi.AiUsageReport>((resolve) => {
+      resolveOld = resolve;
+    });
+
+    const spy = vi
+      .spyOn(metricsApi, "fetchAiUsageMetrics")
+      .mockImplementationOnce(() => oldRequest) // requisição inicial ("7 Dias", mount)
+      .mockResolvedValueOnce(buildResponse(99)); // requisição disparada pelo clique em "Hoje"
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      expect(spy).toHaveBeenCalledTimes(1);
+    });
+
+    const hojeButton = screen.getByRole("button", { name: "Hoje" });
+    fireEvent.click(hojeButton);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("chats-encerrados")).toHaveTextContent("99");
+    });
+
+    // A requisição antiga ("7 Dias") só resolve agora — não deve
+    // sobrescrever os dados de "Hoje" já exibidos.
+    resolveOld!(buildResponse(1));
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByTestId("chats-encerrados")).toHaveTextContent("99");
   });
 });

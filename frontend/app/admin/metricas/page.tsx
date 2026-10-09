@@ -5,20 +5,12 @@ import Link from "next/link";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { ToastStack, useToast } from "@/components/ui/Toast";
 import { fetchAiUsageMetrics, AiUsageReport, GetMetricsParams } from "@/lib/api/metrics";
+import { formatarDataPtBr } from "@/lib/format/metricas";
 import { SecaoPorOrigem } from "@/components/admin/metricas/SecaoPorOrigem";
 import { SecaoPorAmbiente } from "@/components/admin/metricas/SecaoPorAmbiente";
 import { TabelaPorModelo } from "@/components/admin/metricas/TabelaPorModelo";
 import { TabelaPorOperacao } from "@/components/admin/metricas/TabelaPorOperacao";
 import { TabelaDiaria } from "@/components/admin/metricas/TabelaDiaria";
-
-function formatarDataPtBr(isoDate: string): string {
-  if (!isoDate) return "";
-  const parts = isoDate.split("-");
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return isoDate;
-}
 
 function RefreshIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (

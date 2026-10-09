@@ -20,3 +20,9 @@ export function formatarTokens(valor: number | null | undefined): string {
   if (valor === null || valor === undefined) return NAO_MEDIDO;
   return valor.toLocaleString("pt-BR");
 }
+
+export function formatarDataPtBr(isoDate: string): string {
+  if (!isoDate) return "";
+  const [ano, mes, dia] = isoDate.split("-");
+  return ano && mes && dia ? `${dia}/${mes}/${ano}` : isoDate;
+}
