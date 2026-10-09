@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 
+from app.background_tasks import _background_tasks
 from app.rag.crawler_classifier import classify_page
 
 
@@ -122,15 +123,33 @@ async def test_classify_page_sem_uso_reportado_registra_none_nao_zero(monkeypatc
 
 @pytest.mark.asyncio
 async def test_classify_page_sobrevive_a_falha_de_telemetria(monkeypatch):
-    """Telemetria não derruba a classificação que ela registra."""
+    """Telemetria não derruba a classificação que ela registra. A exceção
+    precisa de fato acontecer aqui (não só existir como coroutine nunca
+    executada) — por isso o teste espiona a chamada e aguarda a volta do
+    event loop antes de checar `chamou`, e depois consome a exceção da task
+    via `task.exception()` para a saída do pytest ficar limpa (sem
+    "exception was never retrieved")."""
+    chamou = False
 
     async def _explode(**kwargs):
+        nonlocal chamou
+        chamou = True
         raise RuntimeError("banco fora")
 
     monkeypatch.setattr("app.rag.crawler_classifier.registrar_uso_ia", _explode)
 
+    antes = set(_background_tasks)
     llm = _FakeLLMClient('{"domain": "vendas", "confidence": 0.8}')
     resultado = await classify_page(llm, "texto")
 
+    novas = set(_background_tasks) - antes
+    assert len(novas) == 1
+    task = novas.pop()
+
     assert resultado.domain == "vendas"
     assert resultado.confidence == 0.8
+
+    await asyncio.sleep(0)  # dá chance à task de rodar e de fato explodir
+    assert chamou is True
+    assert task.done()
+    assert isinstance(task.exception(), RuntimeError)  # consome a exceção
