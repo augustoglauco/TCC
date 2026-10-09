@@ -1,20 +1,33 @@
-"""Endpoints administrativos de métricas de tokens, custos (de todas as
-conversas) e volume de chats encerrados."""
+"""Endpoint administrativo de uso de IA, estratificado por origem ×
+ambiente × modelo, sobre o ledger unificado `ai_usage_events` (item E, ver
+docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-e-painel-design.md).
+
+Substituiu `GET /api/admin/metrics/tokens-and-costs`, que lia dois esquemas
+diferentes (`ConversaMensagem.metricas` e `IngestionCostEvent`) e inferia
+"isto é visão?" por heurística de nome de modelo. A dimensão que faltava
+(`origem`) e a separação interno/externo agora são fatos gravados pelo
+ledger, então a heurística foi removida — não portada.
+"""
 
 import logging
 from datetime import UTC, date, datetime, timedelta
-from typing import Annotated, Any
+from typing import Annotated
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
-from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import verificar_admin_por_token
 from app.api.rag_dependencies import get_db_session
 from app.config import get_settings
-from app.db.models import Conversa, ConversaMensagem, IngestionCostEvent
+from app.db.models import AiUsageEvent, Conversa
+from app.services.ai_usage_report import (
+    AiUsageReport,
+    EventoDiario,
+    LinhaAgregada,
+    montar_relatorio,
+)
 
 logger = logging.getLogger("assistente.admin_metrics")
 
@@ -49,357 +62,188 @@ except ImportError:
             )
 
 
-class MetricSummary(BaseModel):
-    total_closed_chats: int = 0
-    total_internal_prompt_tokens: int = 0
-    total_internal_completion_tokens: int = 0
-    total_external_prompt_tokens: int = 0
-    total_external_completion_tokens: int = 0
-    total_cost_prompt_usd: float = 0.0
-    total_cost_completion_usd: float = 0.0
-    total_cost_usd: float = 0.0
-    total_vision_calls: int = 0
-    total_vision_tokens: int = 0
-    total_vision_cost_usd: float = 0.0
-    total_ingestion_calls: int = 0
-    total_ingestion_tokens: int = 0
-    total_ingestion_cost_usd: float = 0.0
-    grand_total_cost_usd: float = 0.0
+def _resolver_janela(
+    period: str,
+    start_date: str | None,
+    end_date: str | None,
+    local_tz: ZoneInfo,
+) -> tuple[datetime | None, datetime | None]:
+    """Converte o filtro do painel em limites UTC.
 
+    "Hoje"/`start_date`/`end_date` são conceitos de calendário LOCAL do
+    administrador, não UTC — bucketar em UTC fazia o filtro cortar o dia às
+    21h (horário de Brasília) em vez da meia-noite local (achado da revisão
+    de 2026-10-04). Reaproveita o fuso já configurado para o Agendamento
+    (`agendamento_timezone`) em vez de introduzir uma config nova.
 
-class DailyMetric(BaseModel):
-    date: str
-    closed_chats_count: int = 0
-    internal_prompt_tokens: int = 0
-    internal_completion_tokens: int = 0
-    external_prompt_tokens: int = 0
-    external_completion_tokens: int = 0
-    cost_prompt_usd: float = 0.0
-    cost_completion_usd: float = 0.0
-    total_cost_usd: float = 0.0
-    vision_calls_count: int = 0
-    vision_cost_usd: float = 0.0
-    ingestion_calls_count: int = 0
-    ingestion_tokens: int = 0
-    ingestion_cost_usd: float = 0.0
-
-
-class TokenCostMetricsResponse(BaseModel):
-    period: str
-    summary: MetricSummary
-    daily_breakdown: list[DailyMetric]
-
-
-@router.get("/tokens-and-costs", response_model=TokenCostMetricsResponse)
-async def get_token_and_cost_metrics(
-    request: Request,
-    period: str = Query("7d", description="Período: 'today', '7d', '30d' ou 'all'"),
-    start_date: str | None = Query(None, description="Data inicial ISO YYYY-MM-DD"),
-    end_date: str | None = Query(None, description="Data final ISO YYYY-MM-DD"),
-    _: None = Depends(require_admin),
-) -> TokenCostMetricsResponse:
-    """Retorna sumário e relatório diário de tokens e custos (de todas as
-    conversas, abertas ou encerradas) e a contagem de chats encerrados."""
-    session_factory = getattr(request.app.state, "db_sessionmaker", None)
-    if not session_factory:
-        raise HTTPException(status_code=503, detail="Banco de dados não configurado.")
-
-    # Achado da revisão de 2026-10-04: "hoje"/`start_date`/`end_date` são
-    # conceitos de calendário LOCAL do administrador, não UTC — bucketar em
-    # UTC fazia o filtro "Hoje" e o agrupamento diário cortarem o dia às
-    # 21h (horário de Brasília) em vez da meia-noite local. Reaproveita o
-    # mesmo fuso já configurado para o Agendamento (`agendamento_timezone`)
-    # em vez de introduzir uma config nova só para isto.
-    local_tz = ZoneInfo(get_settings().agendamento_timezone)
-    now_local = datetime.now(local_tz)
+    Data mal formada é `400`, não um fallback silencioso para o período
+    default — também achado de 2026-10-04: o administrador via um filtro
+    aplicado que na verdade era outro, bem diferente.
+    """
     cutoff_start: datetime | None = None
     cutoff_end: datetime | None = None
 
     if start_date:
         try:
             d = date.fromisoformat(start_date)
-            cutoff_start = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=local_tz).astimezone(
-                UTC
-            )
         except ValueError as exc:
-            # Achado da revisão de 2026-10-04: antes, uma data mal formada
-            # era silenciosamente ignorada e a resposta caía no período
-            # default (ex.: 7d) sem avisar o administrador — parecendo um
-            # filtro aplicado quando na verdade foi outro, bem diferente.
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"start_date inválida ({start_date!r}); use o formato YYYY-MM-DD.",
             ) from exc
+        cutoff_start = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=local_tz).astimezone(UTC)
 
     if end_date:
         try:
             d = date.fromisoformat(end_date)
-            cutoff_end = datetime(
-                d.year, d.month, d.day, 23, 59, 59, 999999, tzinfo=local_tz
-            ).astimezone(UTC)
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"end_date inválida ({end_date!r}); use o formato YYYY-MM-DD.",
             ) from exc
+        cutoff_end = datetime(
+            d.year, d.month, d.day, 23, 59, 59, 999999, tzinfo=local_tz
+        ).astimezone(UTC)
 
     if cutoff_start is None and cutoff_end is None:
+        now_local = datetime.now(local_tz)
         if period == "today":
-            local_midnight = datetime(
+            cutoff_start = datetime(
                 now_local.year, now_local.month, now_local.day, 0, 0, 0, tzinfo=local_tz
-            )
-            cutoff_start = local_midnight.astimezone(UTC)
+            ).astimezone(UTC)
         elif period == "7d":
             cutoff_start = now_local.astimezone(UTC) - timedelta(days=7)
         elif period == "30d":
             cutoff_start = now_local.astimezone(UTC) - timedelta(days=30)
-        elif period == "all":
-            cutoff_start = None
+        # period == "all" (ou desconhecido): sem corte.
 
-    # Achado de 2026-10-06 (docs/ROADMAP.md, "Métricas de Chat em Tempo
-    # Real"): a consulta antiga fazia as duas coisas numa só — contava
-    # chats encerrados E tokens/custos — exigindo `Conversa.status ==
-    # "encerrada"` para AMBOS. Token/custo já é um fato consumado por
-    # mensagem (gravado em `ConversaMensagem.metricas` assim que o LLM
-    # responde), não depende da conversa ter sido fechada ainda — uma
-    # conversa aberta agora (cliente ainda digitando, ou só não atingiu os
-    # 30 min de inatividade do worker) nunca aparecia em nada até fechar.
-    # Duas consultas agora: `stmt_closed` só para o KPI "chats encerrados"
-    # (bucketado por `encerrada_em`, continua exigindo o status — isso É o
-    # que a métrica significa); `stmt_msgs` para tokens/custos, bucketado
-    # pela data de cada mensagem (`criada_em`), sem exigir conversa fechada.
+    return cutoff_start, cutoff_end
+
+
+def _dia_local(dt: datetime, local_tz: ZoneInfo) -> str:
+    dt = dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+    return dt.astimezone(local_tz).strftime("%Y-%m-%d")
+
+
+@router.get("/ai-usage", response_model=AiUsageReport)
+async def get_ai_usage_metrics(
+    request: Request,
+    period: str = Query("7d", description="Período: 'today', '7d', '30d' ou 'all'"),
+    start_date: str | None = Query(None, description="Data inicial ISO YYYY-MM-DD"),
+    end_date: str | None = Query(None, description="Data final ISO YYYY-MM-DD"),
+    _: None = Depends(require_admin),
+) -> AiUsageReport:
+    """Uso de IA do período, estratificado por origem × ambiente × modelo ×
+    operação, mais o recorte diário e o volume de chats encerrados."""
+    session_factory = getattr(request.app.state, "db_sessionmaker", None)
+    if not session_factory:
+        raise HTTPException(status_code=503, detail="Banco de dados não configurado.")
+
+    local_tz = ZoneInfo(get_settings().agendamento_timezone)
+    cutoff_start, cutoff_end = _resolver_janela(period, start_date, end_date, local_tz)
+
+    # Q1 — agregação cross-dimensional no banco. `SUM()` devolve NULL
+    # quando TODOS os valores do grupo são NULL, que é exatamente a
+    # semântica desejada ("não medido"); nenhum COALESCE aqui, de
+    # propósito. `COUNT(coluna)` ignora NULLs, então
+    # `COUNT(*) - COUNT(custo_usd)` é a contagem de chamadas sem custo
+    # medido.
+    stmt_agregado = select(
+        AiUsageEvent.origem,
+        AiUsageEvent.ambiente,
+        AiUsageEvent.modelo,
+        AiUsageEvent.operacao,
+        func.count().label("chamadas"),
+        func.sum(AiUsageEvent.tokens_entrada).label("tokens_entrada"),
+        func.sum(AiUsageEvent.tokens_saida).label("tokens_saida"),
+        func.sum(AiUsageEvent.custo_usd).label("custo_usd"),
+        (func.count() - func.count(AiUsageEvent.custo_usd)).label("sem_custo"),
+    ).group_by(
+        AiUsageEvent.origem,
+        AiUsageEvent.ambiente,
+        AiUsageEvent.modelo,
+        AiUsageEvent.operacao,
+    )
+
+    # Q2 — recorte diário. O bucket é o dia do calendário LOCAL do
+    # administrador e não existe expressão portável entre SQLite (testes) e
+    # PostgreSQL (produção) para truncar um timestamp num fuso arbitrário
+    # (`date_trunc(... AT TIME ZONE ...)` é PostgreSQL, `date(x, '-3
+    # hours')` é SQLite), e `CAST(criado_em AS DATE)` reintroduziria o bug
+    # do dia cortado às 21h. Por isso só estas cinco colunas vêm do banco e
+    # o agrupamento por dia é feito em Python — escolha deliberada, não
+    # descuido (ver spec §3.1).
+    stmt_eventos = select(
+        AiUsageEvent.criado_em,
+        AiUsageEvent.origem,
+        AiUsageEvent.tokens_entrada,
+        AiUsageEvent.tokens_saida,
+        AiUsageEvent.custo_usd,
+    )
+
+    # Chats encerrados: KPI de volume de atendimento, não de uso de IA —
+    # continua exigindo `status == "encerrada"` e bucketado por
+    # `encerrada_em`, porque é literalmente isso que a métrica mede.
     stmt_closed = (
-        select(
-            Conversa.id,
-            Conversa.encerrada_em,
-        )
+        select(Conversa.id, Conversa.encerrada_em)
         .where(Conversa.status == "encerrada")
         .where(Conversa.encerrada_em.is_not(None))
     )
 
-    stmt_msgs = (
-        select(
-            ConversaMensagem.criada_em,
-            ConversaMensagem.metricas,
-        )
-        .where(ConversaMensagem.papel == "assistente")
-        .where(ConversaMensagem.metricas.is_not(None))
-    )
-
-    stmt_ingest = select(
-        IngestionCostEvent.criado_em,
-        IngestionCostEvent.prompt_tokens,
-        IngestionCostEvent.completion_tokens,
-        IngestionCostEvent.total_cost_usd,
-    ).order_by(IngestionCostEvent.criado_em.desc())
-
     if cutoff_start is not None:
+        stmt_agregado = stmt_agregado.where(AiUsageEvent.criado_em >= cutoff_start)
+        stmt_eventos = stmt_eventos.where(AiUsageEvent.criado_em >= cutoff_start)
         stmt_closed = stmt_closed.where(Conversa.encerrada_em >= cutoff_start)
-        stmt_msgs = stmt_msgs.where(ConversaMensagem.criada_em >= cutoff_start)
-        stmt_ingest = stmt_ingest.where(IngestionCostEvent.criado_em >= cutoff_start)
     if cutoff_end is not None:
+        stmt_agregado = stmt_agregado.where(AiUsageEvent.criado_em <= cutoff_end)
+        stmt_eventos = stmt_eventos.where(AiUsageEvent.criado_em <= cutoff_end)
         stmt_closed = stmt_closed.where(Conversa.encerrada_em <= cutoff_end)
-        stmt_msgs = stmt_msgs.where(ConversaMensagem.criada_em <= cutoff_end)
-        stmt_ingest = stmt_ingest.where(IngestionCostEvent.criado_em <= cutoff_end)
 
     try:
         async with session_factory() as session:
+            linhas_res = await session.execute(stmt_agregado)
+            eventos_res = await session.execute(stmt_eventos)
             closed_res = await session.execute(stmt_closed)
+
+            linhas = [
+                LinhaAgregada(
+                    origem=row.origem,
+                    ambiente=row.ambiente,
+                    modelo=row.modelo,
+                    operacao=row.operacao,
+                    chamadas=row.chamadas,
+                    tokens_entrada=row.tokens_entrada,
+                    tokens_saida=row.tokens_saida,
+                    custo_usd=row.custo_usd,
+                    chamadas_sem_custo_medido=row.sem_custo,
+                )
+                for row in linhas_res.all()
+            ]
+            eventos_diarios = [
+                EventoDiario(
+                    data=_dia_local(row.criado_em, local_tz),
+                    origem=row.origem,
+                    tokens_entrada=row.tokens_entrada,
+                    tokens_saida=row.tokens_saida,
+                    custo_usd=row.custo_usd,
+                )
+                for row in eventos_res.all()
+            ]
             closed_rows = closed_res.all()
-
-            msgs_res = await session.execute(stmt_msgs)
-            msg_rows = msgs_res.all()
-
-            try:
-                ingest_res = await session.execute(stmt_ingest)
-                ingest_rows = ingest_res.all()
-            except Exception as e_ingest:
-                logger.warning("Falha ao consultar ingestion_cost_events: %s", e_ingest)
-                ingest_rows = []
     except Exception as exc:
-        logger.error("Erro ao consultar métricas de conversas no banco: %s", exc)
+        logger.error("Erro ao consultar métricas de uso de IA no banco: %s", exc)
         raise HTTPException(status_code=503, detail="Erro ao consultar métricas.") from exc
 
-    total_closed_chats_set: set[str] = set()
-    total_internal_prompt = 0
-    total_internal_comp = 0
-    total_external_prompt = 0
-    total_external_comp = 0
-    total_cost_prompt = 0.0
-    total_cost_comp = 0.0
-    total_cost = 0.0
-    total_vision_calls = 0
-    total_vision_tokens = 0
-    total_vision_cost = 0.0
-    total_ingestion_calls = 0
-    total_ingestion_tokens = 0
-    total_ingestion_cost = 0.0
-
-    daily_map: dict[str, dict[str, Any]] = {}
-
-    def _date_key(dt: datetime) -> str:
-        dt = dt if dt.tzinfo else dt.replace(tzinfo=UTC)
-        return dt.astimezone(local_tz).strftime("%Y-%m-%d")
-
-    def _ensure_day(date_key: str) -> dict[str, Any]:
-        if date_key not in daily_map:
-            daily_map[date_key] = {
-                "date": date_key,
-                "chats_set": set(),
-                "internal_prompt_tokens": 0,
-                "internal_completion_tokens": 0,
-                "external_prompt_tokens": 0,
-                "external_completion_tokens": 0,
-                "cost_prompt_usd": 0.0,
-                "cost_completion_usd": 0.0,
-                "total_cost_usd": 0.0,
-                "vision_calls_count": 0,
-                "vision_cost_usd": 0.0,
-                "ingestion_calls_count": 0,
-                "ingestion_tokens": 0,
-                "ingestion_cost_usd": 0.0,
-            }
-        return daily_map[date_key]
-
-    # Chats encerrados: KPI próprio, continua exigindo `status ==
-    # "encerrada"` e bucketado por `encerrada_em` — é literalmente isso que
-    # a métrica mede (ver docstring da query acima).
+    chats_por_dia: dict[str, set[str]] = {}
+    todos_chats: set[str] = set()
     for conv_id, encerrada_em in closed_rows:
-        total_closed_chats_set.add(conv_id)
-        if encerrada_em is None:
-            continue
-        daily = _ensure_day(_date_key(encerrada_em))
-        daily["chats_set"].add(conv_id)
+        todos_chats.add(conv_id)
+        chats_por_dia.setdefault(_dia_local(encerrada_em, local_tz), set()).add(conv_id)
 
-    # Tokens/custos: por mensagem, bucketado por `criada_em` — não exige
-    # mais a conversa estar encerrada (achado de 2026-10-06).
-    for criada_em, metricas in msg_rows:
-        daily = _ensure_day(_date_key(criada_em))
-
-        if isinstance(metricas, dict):
-            backend_used = metricas.get("backend_used")
-            p_tok = int(metricas.get("prompt_tokens") or 0)
-            c_tok = int(metricas.get("completion_tokens") or 0)
-            c_prompt = float(metricas.get("cost_prompt_usd") or 0.0)
-            c_comp = float(metricas.get("cost_completion_usd") or 0.0)
-            c_tot = float(metricas.get("estimated_cost_usd") or (c_prompt + c_comp))
-            is_vision = bool(
-                metricas.get("vision_used")
-                or (backend_used == "identificacao_imagem")
-                or (
-                    backend_used == "externo"
-                    and metricas.get("model_name")
-                    and any(
-                        m in str(metricas.get("model_name")).lower()
-                        for m in ["gemma", "gemini-flash", "vision", "vl"]
-                    )
-                    and c_prompt > 0
-                )
-            )
-
-            # Achado de 2026-10-05 (usuário reportou custo de Visão igual ao
-            # consolidado): este `if`/`elif` era dois `if`s independentes —
-            # uma mensagem de visão também satisfaz a condição de baixo
-            # (backend_used="externo", custo > 0), então era somada nos DOIS
-            # buckets ao mesmo tempo (double count). Visão agora é
-            # mutuamente exclusiva de Atendimento (entrada/saída) — cada
-            # card mostra o gasto isolado do seu domínio, e o consolidado
-            # (`total_cost_usd`, montado mais abaixo) soma todos sem
-            # sobreposição.
-            if is_vision:
-                total_vision_calls += 1
-                total_vision_tokens += p_tok + c_tok
-                total_vision_cost += c_tot
-                daily["vision_calls_count"] += 1
-                daily["vision_cost_usd"] += c_tot
-            elif backend_used in ("externo", "openrouter") or c_tot > 0:
-                total_external_prompt += p_tok
-                total_external_comp += c_tok
-                total_cost_prompt += c_prompt
-                total_cost_comp += c_comp
-                total_cost += c_tot
-
-                daily["external_prompt_tokens"] += p_tok
-                daily["external_completion_tokens"] += c_tok
-                daily["cost_prompt_usd"] += c_prompt
-                daily["cost_completion_usd"] += c_comp
-            else:
-                total_internal_prompt += p_tok
-                total_internal_comp += c_tok
-
-                daily["internal_prompt_tokens"] += p_tok
-                daily["internal_completion_tokens"] += c_tok
-
-    # Acumula eventos de custo de ingestão (crawler, catálogo, etc)
-    for criado_em, p_tok, c_tok, c_tot in ingest_rows:
-        p_tok = int(p_tok or 0)
-        c_tok = int(c_tok or 0)
-        c_tot = float(c_tot or 0.0)
-
-        total_ingestion_calls += 1
-        total_ingestion_tokens += p_tok + c_tok
-        total_ingestion_cost += c_tot
-
-        if criado_em is None:
-            continue
-        daily = _ensure_day(_date_key(criado_em))
-        daily["ingestion_calls_count"] += 1
-        daily["ingestion_tokens"] += p_tok + c_tok
-        daily["ingestion_cost_usd"] += c_tot
-
-    daily_breakdown = [
-        DailyMetric(
-            date=d["date"],
-            closed_chats_count=len(d["chats_set"]),
-            internal_prompt_tokens=d["internal_prompt_tokens"],
-            internal_completion_tokens=d["internal_completion_tokens"],
-            external_prompt_tokens=d["external_prompt_tokens"],
-            external_completion_tokens=d["external_completion_tokens"],
-            cost_prompt_usd=round(d["cost_prompt_usd"], 6),
-            cost_completion_usd=round(d["cost_completion_usd"], 6),
-            # Consolidado do dia = soma de todos os domínios sem
-            # sobreposição (Atendimento + Visão + Ingestão) — achado de
-            # 2026-10-05, ver comentário acima no loop principal.
-            total_cost_usd=round(
-                d["cost_prompt_usd"]
-                + d["cost_completion_usd"]
-                + d.get("vision_cost_usd", 0.0)
-                + d.get("ingestion_cost_usd", 0.0),
-                6,
-            ),
-            vision_calls_count=d.get("vision_calls_count", 0),
-            vision_cost_usd=round(d.get("vision_cost_usd", 0.0), 6),
-            ingestion_calls_count=d.get("ingestion_calls_count", 0),
-            ingestion_tokens=d.get("ingestion_tokens", 0),
-            ingestion_cost_usd=round(d.get("ingestion_cost_usd", 0.0), 6),
-        )
-        for d in sorted(daily_map.values(), key=lambda x: x["date"], reverse=True)
-    ]
-
-    summary = MetricSummary(
-        total_closed_chats=len(total_closed_chats_set),
-        total_internal_prompt_tokens=total_internal_prompt,
-        total_internal_completion_tokens=total_internal_comp,
-        total_external_prompt_tokens=total_external_prompt,
-        total_external_completion_tokens=total_external_comp,
-        total_cost_prompt_usd=round(total_cost_prompt, 6),
-        total_cost_completion_usd=round(total_cost_comp, 6),
-        total_cost_usd=round(total_cost, 6),
-        total_vision_calls=total_vision_calls,
-        total_vision_tokens=total_vision_tokens,
-        total_vision_cost_usd=round(total_vision_cost, 6),
-        total_ingestion_calls=total_ingestion_calls,
-        total_ingestion_tokens=total_ingestion_tokens,
-        total_ingestion_cost_usd=round(total_ingestion_cost, 6),
-        # Soma de todos os domínios sem sobreposição (Atendimento + Visão +
-        # Ingestão) — achado de 2026-10-05: `total_cost` já era só
-        # Atendimento depois da correção do double-count de Visão acima,
-        # mas `total_vision_cost` nunca entrava aqui.
-        grand_total_cost_usd=round(total_cost + total_vision_cost + total_ingestion_cost, 6),
-    )
-
-    return TokenCostMetricsResponse(
+    return montar_relatorio(
         period=period,
-        summary=summary,
-        daily_breakdown=daily_breakdown,
+        linhas=linhas,
+        eventos_diarios=eventos_diarios,
+        chats_encerrados_total=len(todos_chats),
+        chats_encerrados_por_dia={dia: len(ids) for dia, ids in chats_por_dia.items()},
     )
