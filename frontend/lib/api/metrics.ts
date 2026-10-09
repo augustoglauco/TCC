@@ -1,44 +1,57 @@
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 
-export interface MetricSummary {
-  total_closed_chats: number;
-  total_internal_prompt_tokens: number;
-  total_internal_completion_tokens: number;
-  total_external_prompt_tokens: number;
-  total_external_completion_tokens: number;
-  total_cost_prompt_usd: number;
-  total_cost_completion_usd: number;
-  total_cost_usd: number;
-  total_vision_calls?: number;
-  total_vision_tokens?: number;
-  total_vision_cost_usd?: number;
-  total_ingestion_calls?: number;
-  total_ingestion_tokens?: number;
-  total_ingestion_cost_usd?: number;
-  grand_total_cost_usd?: number;
+/**
+ * Contrato de `GET /api/admin/metrics/ai-usage` (item E do ledger de uso
+ * de IA). Substituiu `/tokens-and-costs`.
+ *
+ * `tokens_entrada`/`tokens_saida`/`custo_usd` são `number | null`: `null`
+ * é "não medido", `0` é "grátis". Nunca normalize `null` para `0` aqui —
+ * use os helpers de `@/lib/format/metricas` na renderização.
+ */
+
+export interface BlocoMetricas {
+  chamadas: number;
+  tokens_entrada: number | null;
+  tokens_saida: number | null;
+  custo_usd: number | null;
+  chamadas_sem_custo_medido: number;
 }
 
-export interface DailyMetric {
-  date: string;
-  closed_chats_count: number;
-  internal_prompt_tokens: number;
-  internal_completion_tokens: number;
-  external_prompt_tokens: number;
-  external_completion_tokens: number;
-  cost_prompt_usd: number;
-  cost_completion_usd: number;
-  total_cost_usd: number;
-  vision_calls_count?: number;
-  vision_cost_usd?: number;
-  ingestion_calls_count?: number;
-  ingestion_tokens?: number;
-  ingestion_cost_usd?: number;
+export interface MetricasPorOrigem extends BlocoMetricas {
+  origem: string;
 }
 
-export interface TokenCostMetricsResponse {
+export interface MetricasPorAmbiente extends BlocoMetricas {
+  ambiente: string;
+}
+
+export interface MetricasPorModelo extends BlocoMetricas {
+  modelo: string;
+  ambiente: string;
+}
+
+export interface MetricasPorOperacao extends BlocoMetricas {
+  operacao: string;
+  origem: string;
+  ambiente: string;
+}
+
+export interface DiaUsoIa {
+  data: string;
+  chats_encerrados: number;
+  totais: BlocoMetricas;
+  por_origem: MetricasPorOrigem[];
+}
+
+export interface AiUsageReport {
   period: string;
-  summary: MetricSummary;
-  daily_breakdown: DailyMetric[];
+  atendimento: { chats_encerrados: number };
+  totais: BlocoMetricas;
+  por_origem: MetricasPorOrigem[];
+  por_ambiente: MetricasPorAmbiente[];
+  por_modelo: MetricasPorModelo[];
+  por_operacao: MetricasPorOperacao[];
+  diario: DiaUsoIa[];
 }
 
 export interface GetMetricsParams {
@@ -47,10 +60,10 @@ export interface GetMetricsParams {
   endDate?: string;
 }
 
-export async function fetchTokenCostMetrics(
+export async function fetchAiUsageMetrics(
   token: string,
   params: GetMetricsParams = {}
-): Promise<TokenCostMetricsResponse> {
+): Promise<AiUsageReport> {
   const baseUrl = getApiBaseUrl();
   const query = new URLSearchParams();
   if (params.period) query.set("period", params.period);
@@ -59,7 +72,7 @@ export async function fetchTokenCostMetrics(
   query.set("_t", Date.now().toString());
 
   const qs = query.toString();
-  const url = `${baseUrl}/api/admin/metrics/tokens-and-costs${qs ? `?${qs}` : ""}`;
+  const url = `${baseUrl}/api/admin/metrics/ai-usage${qs ? `?${qs}` : ""}`;
 
   const response = await fetch(url, {
     method: "GET",
