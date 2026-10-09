@@ -869,6 +869,23 @@ durante a implementação do item B (conectar pontos de chamada real da origem "
 **Decisão registrada (Migração da telemetria de extração de catálogo por visão para o ledger unificado, sem dual-write, item D, 2026-10-08):**
 `extract_page_products_vision` (`app.catalog_extractor.extractor`) registrava seu custo/tokens na tabela antiga `IngestionCostEvent` via `app.services.ingestion_metrics.record_ingestion_cost`. Na implementação do item D, esse ponto de chamada passou a registrar no ledger novo (`registrar_uso_ia`, origem `"admin"`) **sem dual-write** — `record_ingestion_cost` foi removido desse caminho, não duplicado. Motivo: unificação do rastreio de uso de IA é o próprio objetivo do ledger (item A §6 do spec de design já havia flagueado essa decisão — manter ou não `IngestionCostEvent` em paralelo — como fora do escopo da fundação e deferida para o item que de fato migrasse esse call site); e a estimativa de tokens por tamanho de texto que o caminho antigo fazia quando a API de visão não reportava uso real contrariava a semântica `None`=não-capturado do ledger novo, então não fazia sentido portá-la. Decisão explícita do dono do projeto: os dados históricos de `IngestionCostEvent` não precisavam ser preservados/migrados. Consequência observável: o card "Ingestão & Dados" do painel `/admin/metricas` (que lê `IngestionCostEvent`) deixou de receber novos registros de extração de catálogo por visão a partir desta mudança — esperado, não um bug; será endereçado pelo item E (reconstrução do painel sobre a tabela nova `ai_usage_events`).
 
+Fechamento do ledger (item E, 2026-10-08): o painel `/admin/metricas`
+passou a ler **somente** `ai_usage_events`. Decisões do dono do projeto:
+(1) substituir o painel antigo em vez de mantê-lo em paralelo; (2) descartar
+o histórico pré-ledger sem backfill — inferir `origem`/`operacao` dos dados
+antigos exigiria exatamente a heurística que o ledger veio eliminar, e os
+números que importam para a avaliação experimental (Fase 10) serão gerados
+em cima do ledger; (3) manter a tabela `IngestionCostEvent` no banco sem
+leitor nem escritor, marcada como morta no modelo, em vez de uma migração
+destrutiva. O classificador do crawler
+(`app.rag.crawler_classifier.classify_page`), último ponto de uso de IA
+fora do ledger, foi migrado neste item. A distinção `custo_usd`/`tokens`
+`None` (não capturado) × `0.0` (grátis conhecido) é preservada da tabela
+até a tela: `—` versus `$0.0000`, mais um contador
+`chamadas_sem_custo_medido` por grupo, que é como o painel expõe — em vez
+de esconder atrás de um zero — o gap conhecido de estimativa de uso em
+`OpenRouterClient.describe_image`.
+
 **Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
 `POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou
 a devolver a resposta como o próprio stream **Server-Sent Events** (SSE),
@@ -1454,7 +1471,20 @@ implementação.
    - **Encerramento Manual e Idempotente:** endpoint `POST /api/chat/conversations/{id}/close` permite encerramento voluntário pelo visitante no botão "Encerrar atendimento" do widget ou por rotinas de moderação, retornando HTTP 200 de forma idempotente em chamadas repetidas.
    - **Worker de Inatividade:** serviço em background (`inactivity_closure_worker`), gerenciado pelo ciclo de vida `lifespan` do FastAPI, varre o banco periodicamente (a cada 5 minutos) e encerra automaticamente conversas com `status='aberta'` e inatividade superior a 30 minutos (`atualizada_em < NOW() - INTERVAL '30 minutes'`).
    - **Contabilidade de Entrada e Saída (Prompt vs Completion):** todas as respostas geradas registram contagens separadas de `prompt_tokens` e `completion_tokens`. Para provedores externos (OpenRouter), calculam-se separadamente `cost_prompt_usd` e `cost_completion_usd` baseados nas tabelas de preço por 1k tokens, gravando o payload no JSON `conversa_mensagens.metricas` e no evento SSE `done`. Para o modelo local (Ollama), os custos são estritamente US$ 0.00.
-   - **Relatório Analítico Consolidado:** o endpoint `GET /api/admin/metrics/tokens-and-costs` agrega as sessões finalizadas por `date(encerrada_em)` e expõe filtros por período (`today`, `7d`, `30d`, `all`), entregando os totais de tokens locais, tokens de nuvem e valores financeiros segregados para o painel `/admin/metricas`.
+   - **Painel de Uso de IA:** o endpoint `GET /api/admin/metrics/ai-usage`
+     agrega a tabela `ai_usage_events` (ledger unificado, item A) por
+     origem × ambiente × modelo × operação, com filtros de período
+     (`today`, `7d`, `30d`, `all` ou `start_date`+`end_date`) no calendário
+     local do administrador, e alimenta o painel `/admin/metricas`. Duas
+     consultas: um `GROUP BY` das quatro dimensões, de onde cinco visões
+     são derivadas por roll-up (`app.services.ai_usage_report`), e uma
+     seleção estreita por evento para o recorte diário — o bucket diário é
+     feito em Python porque não existe expressão SQL portável entre SQLite
+     (testes) e PostgreSQL (produção) para truncar um timestamp num fuso
+     arbitrário. Substituiu `GET /api/admin/metrics/tokens-and-costs`
+     (removido em 2026-10-08), que lia dois esquemas diferentes
+     (`ConversaMensagem.metricas` e `IngestionCostEvent`) e inferia visão
+     computacional por heurística de nome de modelo.
 
 `# MVP: um visitante = um navegador (conversation_id no localStorage), sem
 login; base de clientes fictícia; e-mail captado por expressão regular, sem

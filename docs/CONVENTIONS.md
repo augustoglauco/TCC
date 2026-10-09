@@ -164,6 +164,13 @@ intencional achando que é um bug ou uma tarefa esquecida.
 - Testes que dependem de GPU/modelo local devem ser marcados
   (`@pytest.mark.gpu` ou equivalente) para poderem ser pulados em ambientes
   sem GPU.
+- `backend/pyproject.toml` fixa `pythonpath = ["src"]` em
+  `[tool.pytest.ini_options]` (commit `40f99de`). Achado ao preparar um
+  worktree deste repositório: o `.venv` instala o pacote em modo editável
+  via um `.pth` com caminho **absoluto** para o checkout principal, então
+  sem esse `pythonpath` a suíte roda num worktree mas importa `app` do
+  checkout principal — passa (ou falha) em silêncio contra o código
+  errado. Não remova essa opção ao tocar no `pyproject.toml`.
 - Teste manual ponta a ponta contra a aplicação no ar (Ollama, Qdrant,
   Postgres reais): `./testar.sh`, na raiz do repo, que chama
   `backend/scripts/teste_local.py` e dá push do relatório em

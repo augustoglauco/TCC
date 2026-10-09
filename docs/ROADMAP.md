@@ -1137,11 +1137,25 @@ conversa e classificação do usuário").
       painel de métricas deixou de receber novos registros desta mudança em
       diante — isto é esperado e será resolvido pelo item E (reconstrução do
       painel).
-- [ ] **E — Painel.** Nova seção em `/admin/metricas`, estratificada por
+- [x] **E — Painel.** Nova seção em `/admin/metricas`, estratificada por
       origem × ambiente × modelo, consultando a tabela de A (substituindo
       ou complementando os cards atuais "Visão Computacional"/"Ingestão &
       Dados", que continuam cobrindo só uma fração do que a tabela nova
       vai mostrar).
+
+      Fechamento (2026-10-08): `GET /api/admin/metrics/ai-usage` substituiu
+      `/tokens-and-costs`, que foi removido junto com a heurística de nome
+      de modelo que inferia "isto é visão?". O painel passou a ter cinco
+      seções (origem, ambiente, modelo, operação, diária) e distingue na
+      tela custo `null` (não medido, `—`) de `0.0` (grátis, `$0.0000`).
+      Descoberta durante o design e corrigida neste item: o classificador
+      do crawler (`app.rag.crawler_classifier.classify_page`) era o último
+      ponto de uso de IA ainda escrevendo em `IngestionCostEvent` e foi
+      migrado para o ledger (`origem="admin"`,
+      `operacao="classificacao_crawler"`). Histórico pré-ledger descartado
+      sem backfill e `IngestionCostEvent` mantida como tabela morta — ambas
+      decisões do dono do projeto. Com isto o plano A→E está completo: todo
+      uso de IA do sistema é registrado num só lugar.
 
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 

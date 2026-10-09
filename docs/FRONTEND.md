@@ -47,7 +47,7 @@ registrada aqui com o motivo.
 | Admin — Ingestão de documentos | `/admin/ingestao` | Página interna (menu ⚙️) para upload de PDF/texto e ingestão no RAG (R4). Possui painel de collections ativas por finalidade (`Chat`, `MCP B2B`, `Admin`), abas de filtro por finalidade na tabela, botões compactos com ícones SVG, cards flutuantes no hover com contagem de arquivos e métricas técnicas, e playground de busca comparativa restrito ao mesmo purpose | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
 | Admin — Catálogo de Produtos | `/admin/produtos` | Página interna (menu ⚙️) para cadastro e gestão de produtos, preços de revendedor e venda agrupados, estoque total consolidado com tooltip detalhado por Centro de Distribuição (CD), fotos vetorizadas no CLIP, e assistente Human-in-the-Loop de importação de catálogos | Não (`# MVP: sem autenticação`) |
 | Admin — Modelos locais (Ollama) | `/admin/modelos` | Página interna (menu ⚙️) para listar/ativar em runtime/baixar modelos locais de chat, visualizar características multimodais dos modelos no hover (`ModelCharacteristicsPanel`), gerenciar a residência na VRAM e latência (seletor `keep_alive`, warmup automático na inicialização, monitor em tempo real da VRAM em GB, botões para carregar e liberar VRAM), e ajustar parâmetros de execução com persistência permanente no PostgreSQL | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
-| Admin — Métricas & Custos de IA | `/admin/metricas` | Painel com KPIs de tokens internos (GPU local R$ 0,00) e externos (OpenRouter), segregação de custos de entrada (prompt) e saída (resposta), total acumulado em USD e relatório diário de atendimentos encerrados | Sim (`admin`) |
+| Admin — Métricas & Custos de IA | `/admin/metricas` | Painel de uso de IA sobre o ledger unificado `ai_usage_events` (item E, 2026-10-08), com cinco seções — Por Origem, Por Ambiente, Por Modelo, Por Operação e Detalhamento Diário — mais o KPI de chats encerrados; distingue custo `null` ("não medido", `—`) de `0.0` ("medido e grátis", `$0.0000`) | Sim (`admin`) |
 | Admin — Dashboards & Gráficos | `/admin/dashboards` | Galeria permanente de gráficos e dashboards analíticos gerados interativamente via chat ou gerenciados pelo administrador, com persistência no PostgreSQL, suporte a Recharts, refresh individual e em lote, fixação e edição | Sim (`admin`) |
 
 Todas as páginas compartilham `layout.tsx`, que inclui o widget de chat — ele
@@ -213,6 +213,7 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `GET /api/admin/runtime-settings` | Lê os parâmetros de execução ajustáveis em runtime (temperatura do modelo local, timeouts local/externo, fallback de domínio do RAG, `crawler_max_pages_default`, `crawler_confidence_threshold`, `intent_router_provider`: `heuristica` \| `heuristica_llm` \| `jev_openrouter`, `tone_monitor_enabled`, `tone_monitor_provider`: `heuristica_llm` \| `jev_openrouter`, `external_model_name`: modelo de texto do OpenRouter, trocado pelo card "Modelo externo" de `/admin/modelos`, `external_vision_model_name`, `image_internal_confidence`, `image_external_confidence`), só em memória, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `PUT /api/admin/runtime-settings` | Atualiza (parcialmente — só os campos enviados mudam) os parâmetros acima; `local_llm_temperature: null` explícito reseta para o default do próprio modelo, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `GET /api/admin/tom/escalonamentos` | Lista os casos escalonados pelo Monitor de Tom (R8) persistidos em `tom_escalonamentos`, mais recente primeiro, `LIMIT 100` fixo, sem paginação — sem UI dedicada nesta entrega, só para inspeção manual/demonstração, ver `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md` §6.2 |
+| `GET /api/admin/metrics/ai-usage` | Painel de uso de IA (`/admin/metricas`, item E do ledger, 2026-10-08): agrega `ai_usage_events` por origem × ambiente × modelo × operação, mais o recorte diário e o volume de chats encerrados. Query: `period` (`today`\|`7d`\|`30d`\|`all`) ou `start_date`+`end_date` (`YYYY-MM-DD`, `400` se mal formada); o recorte é no calendário **local** do administrador. Substituiu `GET /api/admin/metrics/tokens-and-costs` (removido em 2026-10-08) — ver contrato completo abaixo |
 
 `POST /api/chat/messages` — contrato já implementado (Fase 2 para o request;
 streaming SSE do response adicionado depois, ver decisão em
@@ -449,6 +450,52 @@ conversa atual (`frontend/lib/utils/exportMetrics.ts`), independente do
 painel por mensagem estar aberto ou fechado, pensados para alimentar a
 avaliação experimental da Fase 10 (`docs/EVALUATION.md`), não como uma
 feature de produto para o usuário final.
+
+`GET /api/admin/metrics/ai-usage` — contrato do painel de uso de IA
+(`/admin/metricas`, item E do ledger, 2026-10-08, ver
+`docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-e-painel-design.md`
+§2):
+
+```jsonc
+// Resposta (AiUsageReport, frontend/lib/api/metrics.ts)
+{
+  "period": "7d",
+  "atendimento": { "chats_encerrados": 42 },
+  "totais":       { /* BlocoMetricas */ },
+  "por_origem":   [ { "origem": "chat", ...bloco }, { "origem": "b2b", ... }, { "origem": "admin", ... } ],
+  "por_ambiente": [ { "ambiente": "interno", ...bloco }, { "ambiente": "externo", ...bloco } ],
+  "por_modelo":   [ { "modelo": "clip", "ambiente": "interno", ...bloco }, ... ],
+  "por_operacao": [ { "operacao": "geracao_resposta", "origem": "chat", "ambiente": "interno", ...bloco }, ... ],
+  "diario": [
+    { "data": "2026-10-08", "chats_encerrados": 7, "totais": { /* bloco */ }, "por_origem": [ { "origem": "chat", ...bloco }, ... ] }
+  ]
+}
+// BlocoMetricas: { chamadas: number, tokens_entrada: number|null,
+//                  tokens_saida: number|null, custo_usd: number|null,
+//                  chamadas_sem_custo_medido: number }
+```
+
+`tokens_entrada`/`tokens_saida`/`custo_usd` são `number | null`: `null` é
+"não medido" (a chamada aconteceu, mas o custo/tokens não foram
+capturados), `0` é "medido e grátis" (CLIP, modelo local na GPU). O
+frontend nunca normaliza `null` para `0` — a renderização passa pelos
+helpers de `frontend/lib/format/metricas.ts` (`formatarCusto`,
+`formatarTokens`, `formatarDataPtBr`, mais as constantes `NAO_MEDIDO`
+(`"—"`) e `TITULO_NAO_MEDIDO`, usado como `title`/tooltip do traço):
+`null` → `—`; `0` → `$0.0000`/`0`. Em `por_origem`/`por_ambiente` só vêm
+as dimensões com evento no período; na tabela diária, uma origem sem linha
+num dia é renderizada como `$0.0000` (zero chamadas conhecido), não como
+`—` — distinção implementada em `TabelaDiaria.tsx`, não em
+`formatarCusto`.
+
+Consumido por `fetchAiUsageMetrics` (`frontend/lib/api/metrics.ts`) e
+renderizado por `frontend/app/admin/metricas/page.tsx` (cabeçalho, filtro
+de período e KPI de chats encerrados preservados da versão anterior),
+delegando cada seção a um componente em
+`frontend/components/admin/metricas/`: `CardMetrica.tsx` (card genérico de
+um bloco de métricas, reusado por origem/ambiente), `SecaoPorOrigem.tsx`,
+`SecaoPorAmbiente.tsx`, `TabelaPorModelo.tsx`, `TabelaPorOperacao.tsx` e
+`TabelaDiaria.tsx`.
 
 Os tipos de request/response devem espelhar os schemas Pydantic do backend
 (`src/app/models/`, ver `docs/CONVENTIONS.md`) — ao gerar os tipos

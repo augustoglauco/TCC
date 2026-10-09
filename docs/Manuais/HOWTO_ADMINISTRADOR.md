@@ -281,25 +281,67 @@ PostgreSQL — sem precisar abrir nenhuma outra tela.
 
 Acessível pelo menu de administração (ícone ⚙️ no topo → "Métricas & Custos IA") para usuários com perfil `Admin`.
 
-### 1. Painel de Indicadores (KPIs)
-O dashboard consolida em tempo real:
-* **Tokens Internos (GPU Local)**: Volume total de tokens de prompt e resposta processados no servidor com Ollama. Apresenta o badge de custo zero (**R$ 0,00**), demonstrando a economia de infraestrutura própria. **Desde 2026-10-06**, conta tokens de qualquer conversa que já teve mensagem respondida no período, mesmo que a conversa ainda esteja aberta — não depende mais dela ter sido encerrada.
-* **Tokens Externos (OpenRouter)**: Volume total de tokens processados na nuvem (mesma regra acima: inclui conversas ainda abertas).
-* **Custo Total Acumulado (USD)**: Gasto financeiro real acumulado no período selecionado.
-* **Custo de Entrada (Prompt USD)**: Valor segregado gasto no envio de contexto, perguntas e dados do RAG para a nuvem.
-* **Custo de Saída (Resposta USD)**: Valor segregado gasto na geração de texto pelos modelos externos.
-* **Chats Encerrados**: Quantidade de sessões finalizadas com sucesso — esta, sim, só conta conversa que já foi encerrada (manual ou pelo worker de inatividade de 30min).
+**Reconstruído em 2026-10-08** sobre o ledger unificado de uso de IA
+(`ai_usage_events`): o painel deixou de somar dois esquemas diferentes de
+telemetria e passou a ler uma única fonte, que registra **todo** uso de
+IA do sistema (chat, B2B e admin) com a mesma estrutura.
+
+### 1. As Cinco Seções do Painel
+Abaixo do cabeçalho (filtro de período e contagem de chats encerrados), o
+painel mostra cinco seções, cada uma respondendo uma pergunta diferente
+sobre o mesmo período selecionado:
+
+* **Por Origem** (cards Chat / B2B / Admin): de onde partiu a chamada de
+  IA — atendimento ao cliente no site, ferramentas expostas a parceiros
+  via MCP, ou uso interno do admin (ingestão, catálogo, gráficos).
+* **Por Ambiente** (cards Interno / Externo): quanto do uso foi na GPU
+  local (CLIP, modelo local — sem custo de API) e quanto foi em API
+  paga (OpenRouter, visão externa). É a pergunta original que motivou o
+  painel: quanto é grátis e quanto é pago.
+* **Por Modelo** (tabela): chamadas, tokens e custo por modelo/engine —
+  `clip` e o modelo local aparecem com custo `$0.0000`, os modelos
+  externos com o custo real medido.
+* **Por Operação** (tabela): o nível mais fino, separando por exemplo
+  identificação de produto por CLIP de identificação por visão externa,
+  ou o monitor de tom via heurística/LLM local do monitor de tom via Jev
+  externo — útil para saber exatamente qual funcionalidade está gerando
+  custo.
+* **Detalhamento Diário** (tabela): data, chats encerrados, chamadas e
+  custo total e por origem, um dia por linha, mais recente primeiro.
 
 ### 2. Filtros de Período e Seleção de Data
 Selecione o horizonte temporal desejado no topo (fuso horário local do administrador, não UTC):
-* **Hoje**: tokens/custos de mensagens respondidas desde 00:00 local do dia corrente (conversas abertas ou encerradas) + chats encerrados desde esse horário.
+* **Hoje**: uso de IA e chats encerrados desde 00:00 local do dia corrente.
 * **7 Dias** / **30 Dias**: mesma regra, para os últimos 7/30 dias.
 * **Tudo**: Histórico acumulado completo.
-* **📅 Por Dia**: Abre um calendário visual nativo para você escolher qualquer data específica do passado ou presente. Os cartões de indicadores e a tabela diária passam a exibir exclusivamente os dados consolidados do dia escolhido.
+* **📅 Por Dia**: Abre um calendário visual nativo para você escolher qualquer data específica do passado ou presente. As cinco seções passam a exibir exclusivamente os dados consolidados do dia escolhido.
 * **🔄 Botão Atualizar**: Força a sincronização imediata dos dados com o backend com proteção anti-cache, exibindo feedback tátil animado, notificação toast e o horário exato da última atualização.
 
-### 3. Tabela de Detalhamento Diário
-Apresenta o agrupamento dia a dia, com o número de chats encerrados, contagem segregada de tokens locais e remotos (entrada/saída) e os custos monetários correspondentes. **Desde 2026-10-06**, cada coluna bucketa pela data que faz sentido pra ela: chats encerrados pela data em que a conversa foi fechada (`date(encerrada_em)`); tokens e custos pela data de cada mensagem respondida (`date(criada_em)`) — uma conversa com mensagem numa noite, fechada só na manhã seguinte, não joga mais os tokens dela pro dia do fechamento.
+### 3. O que `—` e `$0.0000` significam
+Esta é a dúvida mais comum ao olhar o painel, porque os dois parecem
+"zero" à primeira vista — não são a mesma coisa:
+
+* **`—` (traço)** — passe o mouse para ver a explicação: "Não medido — a
+  chamada aconteceu, mas o custo/tokens não foram capturados". Ou seja,
+  houve uso de IA ali, mas o sistema não tem o número de tokens/custo
+  daquela chamada específica (hoje, o caso conhecido é a estimativa de
+  uso da visão externa no `OpenRouterClient.describe_image`).
+* **`$0.0000`** — a chamada foi medida e o resultado é, de fato, zero: é
+  o que aparece para CLIP e para o modelo local na GPU, que são
+  genuinamente gratuitos.
+
+Tratar os dois como a mesma coisa esconderia justamente o que o painel
+existe para mostrar: quanto do uso de IA está sem instrumentação, em vez
+de disfarçado de "gasto zero". Por isso, no cabeçalho, o campo
+**"Chamadas sem custo medido"** só aparece quando esse número é maior
+que zero — ele é o resumo, no topo da tela, de quantas chamadas do
+período caem no caso `—`.
+
+Uma exceção na tabela diária: se uma origem (Chat/B2B/Admin) não aparece
+numa linha de um dia específico, isso significa zero chamadas daquela
+origem naquele dia — e a célula mostra `$0.0000`, não `—`, porque
+"nenhuma chamada" e "chamada sem custo medido" são informações
+diferentes.
 
 ### 4. Ciclo de Vida do Atendimento e Encerramento
 * **Encerramento Manual**: O visitante pode encerrar o atendimento a qualquer momento clicando no botão 🏁 **Encerrar atendimento** no topo do widget de chat. A sessão é marcada como `encerrada` com motivo `manual_usuario` e contabilizada nos relatórios.
