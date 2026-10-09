@@ -4,12 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { ToastStack, useToast } from "@/components/ui/Toast";
-import {
-  fetchTokenCostMetrics,
-  TokenCostMetricsResponse,
-  GetMetricsParams,
-  DailyMetric,
-} from "@/lib/api/metrics";
+import { fetchAiUsageMetrics, AiUsageReport, GetMetricsParams } from "@/lib/api/metrics";
+import { SecaoPorOrigem } from "@/components/admin/metricas/SecaoPorOrigem";
+import { SecaoPorAmbiente } from "@/components/admin/metricas/SecaoPorAmbiente";
+import { TabelaPorModelo } from "@/components/admin/metricas/TabelaPorModelo";
+import { TabelaPorOperacao } from "@/components/admin/metricas/TabelaPorOperacao";
+import { TabelaDiaria } from "@/components/admin/metricas/TabelaDiaria";
 
 function formatarDataPtBr(isoDate: string): string {
   if (!isoDate) return "";
@@ -18,124 +18,6 @@ function formatarDataPtBr(isoDate: string): string {
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
   return isoDate;
-}
-
-function obterDiaSemanaPtBr(isoDate: string): string {
-  if (!isoDate) return "";
-  try {
-    const parts = isoDate.split("-");
-    if (parts.length === 3) {
-      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      const dias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
-      return dias[d.getDay()] || "";
-    }
-  } catch {}
-  return "";
-}
-
-function preencherLinhasDetalhamento(
-  daily: DailyMetric[],
-  period: "today" | "7d" | "30d" | "all" | "custom",
-  selectedDate: string,
-): DailyMetric[] {
-  if (period === "custom") {
-    if (daily.length > 0) return daily;
-    return [
-      {
-        date: selectedDate,
-        closed_chats_count: 0,
-        internal_prompt_tokens: 0,
-        internal_completion_tokens: 0,
-        external_prompt_tokens: 0,
-        external_completion_tokens: 0,
-        cost_prompt_usd: 0,
-        cost_completion_usd: 0,
-        total_cost_usd: 0,
-        vision_calls_count: 0,
-        vision_cost_usd: 0,
-        ingestion_calls_count: 0,
-        ingestion_tokens: 0,
-        ingestion_cost_usd: 0,
-      },
-    ];
-  }
-
-  if (period === "today") {
-    if (daily.length > 0) return daily;
-    const hojeStr = new Date().toLocaleDateString("en-CA");
-    return [
-      {
-        date: hojeStr,
-        closed_chats_count: 0,
-        internal_prompt_tokens: 0,
-        internal_completion_tokens: 0,
-        external_prompt_tokens: 0,
-        external_completion_tokens: 0,
-        cost_prompt_usd: 0,
-        cost_completion_usd: 0,
-        total_cost_usd: 0,
-        vision_calls_count: 0,
-        vision_cost_usd: 0,
-        ingestion_calls_count: 0,
-        ingestion_tokens: 0,
-        ingestion_cost_usd: 0,
-      },
-    ];
-  }
-
-  const numDias = period === "30d" ? 30 : 7;
-  const mapExistente = new Map<string, DailyMetric>();
-  for (const item of daily) {
-    mapExistente.set(item.date, item);
-  }
-
-  // Base para contagem: usa a data mais recente retornada ou a data atual
-  const baseDate = daily.length > 0
-    ? new Date(daily[0].date + "T12:00:00")
-    : new Date();
-
-  const resultado: DailyMetric[] = [];
-  const datasInseridas = new Set<string>();
-
-  for (let i = 0; i < numDias; i++) {
-    const d = new Date(baseDate);
-    d.setDate(baseDate.getDate() - i);
-    const ano = d.getFullYear();
-    const mes = String(d.getMonth() + 1).padStart(2, "0");
-    const dia = String(d.getDate()).padStart(2, "0");
-    const iso = `${ano}-${mes}-${dia}`;
-    datasInseridas.add(iso);
-
-    if (mapExistente.has(iso)) {
-      resultado.push(mapExistente.get(iso)!);
-    } else {
-      resultado.push({
-        date: iso,
-        closed_chats_count: 0,
-        internal_prompt_tokens: 0,
-        internal_completion_tokens: 0,
-        external_prompt_tokens: 0,
-        external_completion_tokens: 0,
-        cost_prompt_usd: 0,
-        cost_completion_usd: 0,
-        total_cost_usd: 0,
-        vision_calls_count: 0,
-        vision_cost_usd: 0,
-        ingestion_calls_count: 0,
-        ingestion_tokens: 0,
-        ingestion_cost_usd: 0,
-      });
-    }
-  }
-
-  // Inclui qualquer outro dia retornado pelo backend que não esteja nos primeiros N dias
-  for (const item of daily) {
-    if (!datasInseridas.has(item.date)) {
-      resultado.push(item);
-    }
-  }
-
-  return resultado.sort((a, b) => b.date.localeCompare(a.date));
 }
 
 function RefreshIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -168,7 +50,7 @@ export default function AdminMetricasPage() {
   const [selectedDate, setSelectedDate] = useState<string>(() =>
     new Date().toLocaleDateString("en-CA")
   );
-  const [data, setData] = useState<TokenCostMetricsResponse | null>(null);
+  const [data, setData] = useState<AiUsageReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -200,7 +82,7 @@ export default function AdminMetricasPage() {
             ? { startDate: targetDate, endDate: targetDate }
             : {}),
         };
-        const res = await fetchTokenCostMetrics(token, params);
+        const res = await fetchAiUsageMetrics(token, params);
         if (requestId !== requestIdRef.current) return;
         setData(res);
         setLastUpdated(new Date());
@@ -267,10 +149,6 @@ export default function AdminMetricasPage() {
       </div>
     );
   }
-
-  const summary = data?.summary;
-  const rawDaily = data?.daily_breakdown ?? [];
-  const daily = preencherLinhasDetalhamento(rawDaily, period, selectedDate);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8 space-y-5">
@@ -399,508 +277,39 @@ export default function AdminMetricasPage() {
         </div>
       </div>
 
-      {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-2xs"
-        >
-          <p className="font-semibold">{error}</p>
+      {error ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
         </div>
-      )}
+      ) : null}
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {/* Card 1: Tokens Internos */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-snug whitespace-pre-line">
-                {"Tokens Internos\n(GPU Local)"}
-              </span>
-              <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 border border-emerald-200 shrink-0">
-                R$ 0,00
-              </span>
-            </div>
-            <p className="mt-2 text-xl font-bold text-slate-900 tracking-tight">
-              {summary
-                ? (
-                    summary.total_internal_prompt_tokens +
-                    summary.total_internal_completion_tokens
-                  ).toLocaleString("pt-BR")
-                : "0"}
-            </p>
-          </div>
-          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between">
-            <span>Entrada: {summary?.total_internal_prompt_tokens.toLocaleString("pt-BR") ?? 0}</span>
-            <span>Saída: {summary?.total_internal_completion_tokens.toLocaleString("pt-BR") ?? 0}</span>
-          </p>
-        </div>
-
-        {/* Card 2: Tokens Externos */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-snug whitespace-pre-line">
-                {"Tokens Externos\n(OpenRouter)"}
-              </span>
-              <span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700 border border-blue-200 shrink-0">
-                Nuvem
-              </span>
-            </div>
-            <p className="mt-2 text-xl font-bold text-slate-900 tracking-tight">
-              {summary
-                ? (
-                    summary.total_external_prompt_tokens +
-                    summary.total_external_completion_tokens
-                  ).toLocaleString("pt-BR")
-                : "0"}
-            </p>
-          </div>
-          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between">
-            <span>Entrada: {summary?.total_external_prompt_tokens.toLocaleString("pt-BR") ?? 0}</span>
-            <span>Saída: {summary?.total_external_completion_tokens.toLocaleString("pt-BR") ?? 0}</span>
-          </p>
-        </div>
-
-        {/* Card 3: Visão Computacional */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-snug whitespace-pre-line">
-                {"Visão Computacional\n(Imagens)"}
-              </span>
-              <span className="rounded-md bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-700 border border-sky-200 shrink-0">
-                Multimodal
-              </span>
-            </div>
-            <p className="mt-2 text-xl font-bold text-sky-700 tracking-tight">
-              ${summary?.total_vision_cost_usd !== undefined ? summary.total_vision_cost_usd.toFixed(4) : "0.0000"}
-            </p>
-          </div>
-          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between">
-            <span>{`Imagens: ${summary?.total_vision_calls?.toLocaleString("pt-BR") ?? 0}`}</span>
-            <span>Tokens: {summary?.total_vision_tokens?.toLocaleString("pt-BR") ?? 0}</span>
-          </p>
-        </div>
-
-        {/* Card 4: Ingestão & Dados */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-snug whitespace-pre-line">
-                {"Ingestão & Dados\n(Crawler/Catálogo)"}
-              </span>
-              <span className="rounded-md bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-700 border border-teal-200 shrink-0">
-                Backoffice
-              </span>
-            </div>
-            <p className="mt-2 text-xl font-bold text-teal-700 tracking-tight">
-              ${summary?.total_ingestion_cost_usd !== undefined ? summary.total_ingestion_cost_usd.toFixed(4) : "0.0000"}
-            </p>
-          </div>
-          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between">
-            <span>{`Operações: ${summary?.total_ingestion_calls?.toLocaleString("pt-BR") ?? 0}`}</span>
-            <span>{`Tokens: ${summary?.total_ingestion_tokens?.toLocaleString("pt-BR") ?? 0}`}</span>
-          </p>
-        </div>
-
-        {/* Card 5: Custo Total */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-snug whitespace-pre-line">
-                {"Custo Total Geral\n(Infraestrutura)"}
-              </span>
-              <span className="rounded-md bg-purple-50 px-2.5 py-1 text-xs font-bold text-purple-700 border border-purple-200 shrink-0">
-                USD
-              </span>
-            </div>
-            <p className="mt-2 text-xl font-bold text-purple-700 tracking-tight">
-              ${summary?.grand_total_cost_usd !== undefined
-                ? summary.grand_total_cost_usd.toFixed(4)
-                : (
-                    (summary?.total_cost_usd || 0) +
-                    (summary?.total_vision_cost_usd || 0) +
-                    (summary?.total_ingestion_cost_usd || 0)
-                  ).toFixed(4)}
-            </p>
-          </div>
-          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5 flex justify-between gap-2">
-            <span>{`Atendimento: $${summary?.total_cost_usd?.toFixed(4) ?? "0.0000"}`}</span>
-            <span>{`Visão: $${summary?.total_vision_cost_usd?.toFixed(4) ?? "0.0000"}`}</span>
-            <span>{`Ingestão: $${summary?.total_ingestion_cost_usd?.toFixed(4) ?? "0.0000"}`}</span>
-          </p>
-        </div>
-
-        {/* Card 6: Custo Entrada */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-snug whitespace-pre-line">
-                {"Custo de Entrada\n(Prompt)"}
-              </span>
-              <span className="rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 border border-indigo-200 shrink-0">
-                Contexto
-              </span>
-            </div>
-            <p className="mt-2 text-xl font-bold text-slate-900 tracking-tight">
-              ${summary?.total_cost_prompt_usd !== undefined ? summary.total_cost_prompt_usd.toFixed(4) : "0.0000"}
-            </p>
-          </div>
-          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5">
-            Perguntas, sistema e RAG enviados
-          </p>
-        </div>
-
-        {/* Card 7: Custo Saída */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-snug whitespace-pre-line">
-                {"Custo de Saída\n(Resposta)"}
-              </span>
-              <span className="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700 border border-amber-200 shrink-0">
-                Geração
-              </span>
-            </div>
-            <p className="mt-2 text-xl font-bold text-slate-900 tracking-tight">
-              ${summary?.total_cost_completion_usd !== undefined ? summary.total_cost_completion_usd.toFixed(4) : "0.0000"}
-            </p>
-          </div>
-          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5">
-            Tokens de respostas gerados na nuvem
-          </p>
-        </div>
-
-        {/* Card 8: Chats Encerrados */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-2xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-start justify-between gap-2">
-              <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500 leading-snug whitespace-pre-line">
-                {"Chats Encerrados\n(Sessões)"}
-              </span>
-              <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 border border-slate-200 shrink-0">
-                Sessões
-              </span>
-            </div>
-            <p className="mt-2 text-xl font-bold text-slate-900 tracking-tight">
-              {summary?.total_closed_chats ?? 0}
-            </p>
-          </div>
-          <p className="mt-1.5 text-[11px] text-slate-500 border-t border-slate-100 pt-1.5">
-            Finalizados manualmente ou inatividade
-          </p>
-        </div>
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-slate-600">
+        <span>
+          Chats encerrados no período:{" "}
+          <strong data-testid="chats-encerrados" className="text-slate-900">
+            {data?.atendimento.chats_encerrados ?? 0}
+          </strong>
+        </span>
+        {data && data.totais.chamadas_sem_custo_medido > 0 ? (
+          <span className="text-amber-700">
+            Chamadas sem custo medido:{" "}
+            <strong data-testid="sem-custo-medido">
+              {data.totais.chamadas_sem_custo_medido}
+            </strong>
+          </span>
+        ) : null}
       </div>
 
-      {/* Tabela de Detalhamento Diário */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-2xs overflow-hidden">
-        <div className="border-b border-slate-200 bg-slate-50/70 px-5 py-3.5 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-slate-900 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <span className="whitespace-nowrap">Detalhamento Diário</span>
-              <span className="whitespace-nowrap">dos Atendimentos Encerrados</span>
-              <span className="rounded-full bg-slate-100 text-slate-600 px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap">
-                {daily.length} {daily.length === 1 ? "dia" : "dias"}
-              </span>
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              <span>Agrupamento diário baseado na data de encerramento da conversa.</span>
-              {period === "custom" && (
-                <span className="whitespace-nowrap font-medium text-slate-700 ml-1">
-                  (Filtrando dia {formatarDataPtBr(selectedDate)})
-                </span>
-              )}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void carregarMetricas(period, true)}
-            className="group flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
-            disabled={loading}
-            aria-label="Atualizar tabela de métricas"
-            title="Atualizar dados da tabela"
-          >
-            <RefreshIcon
-              className={`h-3.5 w-3.5 ${loading ? "animate-spin text-blue-600" : "text-slate-500 group-hover:text-slate-800"}`}
-            />
-            <span>{loading ? "Atualizando..." : "Atualizar"}</span>
-          </button>
+      {data ? (
+        <div className="space-y-6">
+          <SecaoPorOrigem linhas={data.por_origem} />
+          <SecaoPorAmbiente linhas={data.por_ambiente} totais={data.totais} />
+          <TabelaPorModelo linhas={data.por_modelo} />
+          <TabelaPorOperacao linhas={data.por_operacao} />
+          <TabelaDiaria dias={data.diario} />
         </div>
+      ) : null}
 
-        <div className="overflow-x-auto min-h-[360px] max-h-[580px] overflow-y-auto">
-          <table className="w-full text-left text-xs text-slate-700 border-collapse min-w-[1020px]">
-            <thead className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 shadow-2xs">
-              <tr>
-                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[120px] align-bottom">
-                  <span className="whitespace-nowrap">Data</span>
-                  <div className="absolute top-full left-0 mt-2 hidden group-hover:block z-30 w-44 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
-                    Data do encerramento da conversa
-                  </div>
-                </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[110px] align-bottom">
-                  <span className="inline-block leading-tight">
-                    <span className="whitespace-nowrap">Chats</span>{" "}
-                    <span className="block whitespace-nowrap">Encerrados</span>
-                  </span>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
-                    Total de atendimentos finalizados no dia
-                  </div>
-                </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[160px] align-bottom">
-                  <span className="inline-block leading-tight">
-                    <span className="whitespace-nowrap">Tokens Internos</span>{" "}
-                    <span className="block whitespace-nowrap font-normal text-slate-400 text-[10px] tracking-normal">
-                      (Entrada / Saída)
-                    </span>
-                  </span>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
-                    Consumo de LLM em infraestrutura própria (Ollama Local)
-                  </div>
-                </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[160px] align-bottom">
-                  <span className="inline-block leading-tight">
-                    <span className="whitespace-nowrap">Tokens Externos</span>{" "}
-                    <span className="block whitespace-nowrap font-normal text-slate-400 text-[10px] tracking-normal">
-                      (Entrada / Saída)
-                    </span>
-                  </span>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
-                    Consumo de modelos na nuvem pagando por token
-                  </div>
-                </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[130px] align-bottom">
-                  <span className="inline-block leading-tight">
-                    <span className="whitespace-nowrap">Visão</span>{" "}
-                    <span className="block whitespace-nowrap font-normal text-slate-400 text-[10px] tracking-normal">
-                      (Imagens / Custo)
-                    </span>
-                  </span>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
-                    Chamadas para modelo multimodal de identificação de imagens
-                  </div>
-                </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[130px] align-bottom">
-                  <span className="inline-block leading-tight">
-                    <span className="whitespace-nowrap">Ingestão</span>{" "}
-                    <span className="block whitespace-nowrap font-normal text-slate-400 text-[10px] tracking-normal">
-                      (Op / Custo)
-                    </span>
-                  </span>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
-                    Processamento de documentos e crawler de catálogo de produtos
-                  </div>
-                </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[100px] align-bottom">
-                  <span className="inline-block leading-tight">
-                    <span className="whitespace-nowrap">Custo</span>{" "}
-                    <span className="block whitespace-nowrap">Entrada</span>
-                  </span>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
-                    Custo em USD dos tokens de Entrada (Prompt/RAG/Contexto)
-                  </div>
-                </th>
-                <th scope="col" className="px-5 py-3 relative group cursor-help min-w-[100px] align-bottom">
-                  <span className="inline-block leading-tight">
-                    <span className="whitespace-nowrap">Custo</span>{" "}
-                    <span className="block whitespace-nowrap">Saída</span>
-                  </span>
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight">
-                    Custo em USD dos tokens de Saída (Completion/Respostas)
-                  </div>
-                </th>
-                <th scope="col" className="px-5 py-3 text-right relative group cursor-help min-w-[100px] align-bottom">
-                  <span className="inline-block text-right leading-tight">
-                    <span className="whitespace-nowrap">Custo</span>{" "}
-                    <span className="block whitespace-nowrap">Total</span>
-                  </span>
-                  <div className="absolute top-full right-0 mt-2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none normal-case font-normal leading-tight text-left">
-                    Consolidação total financeira em USD (LLM + Visão + Ingestão)
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {daily.length === 0 ? (
-                <tr>
-                  <td colSpan={9} className="px-5 py-8 text-center text-slate-400">
-                    {loading
-                      ? "Carregando métricas..."
-                      : period === "custom"
-                      ? `Nenhum atendimento encerrado registrado no dia ${formatarDataPtBr(selectedDate)}.`
-                      : "Nenhum chat encerrado registrado no período selecionado."}
-                  </td>
-                </tr>
-              ) : (
-                daily.map((item, index) => {
-                  const isFirstRow = index === 0;
-                  return (
-                  <tr key={item.date} className="hover:bg-slate-50/80 transition-colors">
-                    {/* Coluna 1: Data */}
-                    <td className="px-5 py-3.5 align-top whitespace-nowrap min-w-[140px]">
-                      <div className="font-semibold text-slate-900 text-xs sm:text-sm tracking-tight">
-                        {formatarDataPtBr(item.date)}
-                      </div>
-                      <div className="text-[10px] text-slate-400 mt-0.5 font-medium flex items-center gap-1">
-                        <span>{obterDiaSemanaPtBr(item.date)}</span>
-                        <span>•</span>
-                        <span className="font-mono">{item.date}</span>
-                      </div>
-                    </td>
-
-                    {/* Coluna 2: Chats Encerrados */}
-                    <td className="px-5 py-3.5 align-top whitespace-nowrap min-w-[120px]">
-                      <div className="flex flex-col items-start gap-0.5">
-                        <span className="inline-flex items-center justify-center rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-800">
-                          {item.closed_chats_count}
-                        </span>
-                        <span className="text-[10px] text-slate-400">concluídos</span>
-                      </div>
-                    </td>
-
-                    {/* Coluna 3: Tokens Internos */}
-                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[150px]">
-                      <div className="flex flex-col space-y-0.5">
-                        <span className="font-bold text-slate-900">
-                          {`${(item.internal_prompt_tokens + item.internal_completion_tokens).toLocaleString("pt-BR")} tokens`}
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          {`Entrada: ${item.internal_prompt_tokens.toLocaleString("pt-BR")}`}
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          {`Saída: ${item.internal_completion_tokens.toLocaleString("pt-BR")}`}
-                        </span>
-                      </div>
-                      {/* Bubble Tooltip */}
-                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
-                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-emerald-400">GPU Local (Ollama)</div>
-                        <div>{`Prompt Interno: ${item.internal_prompt_tokens.toLocaleString("pt-BR")} tokens`}</div>
-                        <div>{`Completion Interno: ${item.internal_completion_tokens.toLocaleString("pt-BR")} tokens`}</div>
-                        <div className="text-[10px] text-slate-400 mt-1">Custo infra: R$ 0,00 (Local)</div>
-                      </div>
-                    </td>
-
-                    {/* Coluna 4: Tokens Externos */}
-                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[150px]">
-                      <div className="flex flex-col space-y-0.5">
-                        <span className="font-bold text-slate-900">
-                          {`${(item.external_prompt_tokens + item.external_completion_tokens).toLocaleString("pt-BR")} tokens`}
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          {`Entrada: ${item.external_prompt_tokens.toLocaleString("pt-BR")}`}
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          {`Saída: ${item.external_completion_tokens.toLocaleString("pt-BR")}`}
-                        </span>
-                      </div>
-                      {/* Bubble Tooltip */}
-                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
-                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-blue-400">OpenRouter (Nuvem)</div>
-                        <div>{`Prompt Externo: ${item.external_prompt_tokens.toLocaleString("pt-BR")} tokens`}</div>
-                        <div>{`Completion Externo: ${item.external_completion_tokens.toLocaleString("pt-BR")} tokens`}</div>
-                        <div className="text-[10px] text-slate-400 mt-1">Segregação por modelo de IA</div>
-                      </div>
-                    </td>
-
-                    {/* Coluna 5: Visão */}
-                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[120px]">
-                      <div className="flex flex-col space-y-0.5">
-                        <span className="font-bold text-sky-700">
-                          {(item.vision_calls_count ?? 0) === 1
-                            ? "1 imagem"
-                            : `${item.vision_calls_count ?? 0} imagens`}
-                        </span>
-                        <span className="text-[11px] font-mono text-sky-600">
-                          {`($${item.vision_cost_usd !== undefined ? item.vision_cost_usd.toFixed(4) : "0.0000"})`}
-                        </span>
-                        <span className="text-[10px] text-slate-400">Multimodal</span>
-                      </div>
-                      {/* Bubble Tooltip */}
-                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
-                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-sky-400">Visão Computacional</div>
-                        <div>{`Imagens Processadas: ${item.vision_calls_count ?? 0}`}</div>
-                        <div>{`Custo Visão: $${item.vision_cost_usd !== undefined ? item.vision_cost_usd.toFixed(4) : "0.0000"}`}</div>
-                      </div>
-                    </td>
-
-                    {/* Coluna 6: Ingestão */}
-                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[130px]">
-                      <div className="flex flex-col space-y-0.5">
-                        <span className="font-bold text-teal-700">
-                          {`${item.ingestion_calls_count ?? 0} op${(item.ingestion_calls_count ?? 0) === 1 ? "" : "s"}`}
-                        </span>
-                        {(item.ingestion_tokens ?? 0) > 0 && (
-                          <span className="text-[11px] font-semibold text-slate-700">
-                            {`${(item.ingestion_tokens ?? 0).toLocaleString("pt-BR")} tokens`}
-                          </span>
-                        )}
-                        <span className="text-[11px] font-mono text-teal-600">
-                          {`($${item.ingestion_cost_usd !== undefined ? item.ingestion_cost_usd.toFixed(4) : "0.0000"})`}
-                        </span>
-                        <span className="text-[10px] text-slate-400">RAG / Catálogo</span>
-                      </div>
-                      {/* Bubble Tooltip */}
-                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-52 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
-                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-teal-400">Ingestão & Dados</div>
-                        <div>{`Total Operações: ${item.ingestion_calls_count ?? 0}`}</div>
-                        <div>{`Tokens Ingestão: ${(item.ingestion_tokens ?? 0).toLocaleString("pt-BR")}`}</div>
-                        <div>{`Custo Ingestão: $${item.ingestion_cost_usd !== undefined ? item.ingestion_cost_usd.toFixed(4) : "0.0000"}`}</div>
-                      </div>
-                    </td>
-
-                    {/* Coluna 7: Custo Entrada */}
-                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[110px]">
-                      <div className="flex flex-col space-y-0.5">
-                        <span className="font-mono font-bold text-indigo-700">
-                          {`$${item.cost_prompt_usd.toFixed(4)}`}
-                        </span>
-                        <span className="text-[10px] text-slate-400">Prompt</span>
-                      </div>
-                      {/* Bubble Tooltip */}
-                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
-                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-indigo-400">Custo Entrada</div>
-                        <div>{`Subtotal Entrada: $${item.cost_prompt_usd.toFixed(4)}`}</div>
-                      </div>
-                    </td>
-
-                    {/* Coluna 8: Custo Saída */}
-                    <td className="px-5 py-3.5 align-top relative group whitespace-nowrap min-w-[110px]">
-                      <div className="flex flex-col space-y-0.5">
-                        <span className="font-mono font-bold text-amber-700">
-                          {`$${item.cost_completion_usd.toFixed(4)}`}
-                        </span>
-                        <span className="text-[10px] text-slate-400">Completion</span>
-                      </div>
-                      {/* Bubble Tooltip */}
-                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} left-1/2 -translate-x-1/2 hidden group-hover:block z-30 w-48 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug`}>
-                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-amber-400">Custo Saída</div>
-                        <div>{`Subtotal Saída: $${item.cost_completion_usd.toFixed(4)}`}</div>
-                      </div>
-                    </td>
-
-                    {/* Coluna 9: Custo Total */}
-                    <td className="px-5 py-3.5 align-top text-right relative group whitespace-nowrap min-w-[110px]">
-                      <div className="flex flex-col items-end space-y-0.5">
-                        <span className="font-mono font-extrabold text-slate-900">
-                          {`$${item.total_cost_usd.toFixed(4)}`}
-                        </span>
-                        <span className="text-[10px] text-slate-400">Consolidado</span>
-                      </div>
-                      {/* Bubble Tooltip */}
-                      <div className={`absolute ${isFirstRow ? "top-full mt-2" : "bottom-full mb-2"} right-0 hidden group-hover:block z-30 w-56 rounded-xl bg-slate-900 text-white text-[11px] p-2.5 shadow-xl border border-slate-700 pointer-events-none leading-snug text-left`}>
-                        <div className="font-semibold border-b border-slate-700 pb-1 mb-1 text-purple-400">Consolidado do Dia</div>
-                        <div>{`Total Diário: $${item.total_cost_usd.toFixed(4)}`}</div>
-                        <div className="text-[10px] text-slate-400 mt-1">Inclui Atendimento, Visão e Ingestão</div>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
       <ToastStack toasts={toasts} onDismiss={dismissToast} />
     </div>
   );

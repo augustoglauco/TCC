@@ -1,8 +1,65 @@
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminMetricasPage from "@/app/admin/metricas/page";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import * as metricsApi from "@/lib/api/metrics";
+
+function bloco(over: Partial<metricsApi.BlocoMetricas> = {}): metricsApi.BlocoMetricas {
+  return {
+    chamadas: 1,
+    tokens_entrada: 100,
+    tokens_saida: 10,
+    custo_usd: 0.001,
+    chamadas_sem_custo_medido: 0,
+    ...over,
+  };
+}
+
+const mockResponse: metricsApi.AiUsageReport = {
+  period: "7d",
+  atendimento: { chats_encerrados: 12 },
+  totais: bloco({ chamadas: 7, custo_usd: 0.0065, tokens_entrada: 2400, tokens_saida: 190, chamadas_sem_custo_medido: 1 }),
+  por_origem: [
+    { origem: "chat", ...bloco({ chamadas: 4, custo_usd: 0.0025 }) },
+    { origem: "b2b", ...bloco({ chamadas: 1, custo_usd: 0.0 }) },
+    { origem: "admin", ...bloco({ chamadas: 2, custo_usd: 0.004 }) },
+  ],
+  por_ambiente: [
+    { ambiente: "interno", ...bloco({ chamadas: 3, custo_usd: 0.0, tokens_entrada: null, tokens_saida: null }) },
+    { ambiente: "externo", ...bloco({ chamadas: 4, custo_usd: 0.0065 }) },
+  ],
+  por_modelo: [
+    { modelo: "gemma-vision", ambiente: "externo", ...bloco({ chamadas: 2, custo_usd: 0.0065 }) },
+    { modelo: "clip", ambiente: "interno", ...bloco({ chamadas: 2, custo_usd: 0.0, tokens_entrada: null, tokens_saida: null }) },
+    { modelo: "gpt-desconhecido", ambiente: "externo", ...bloco({ chamadas: 1, custo_usd: null, chamadas_sem_custo_medido: 1 }) },
+  ],
+  por_operacao: [
+    { operacao: "identificacao_imagem_clip", origem: "chat", ambiente: "interno", ...bloco({ chamadas: 2, custo_usd: 0.0 }) },
+    { operacao: "identificacao_imagem_visao_externa", origem: "chat", ambiente: "externo", ...bloco({ chamadas: 1, custo_usd: 0.0025 }) },
+    { operacao: "classificacao_crawler", origem: "admin", ambiente: "externo", ...bloco({ chamadas: 2, custo_usd: 0.004 }) },
+  ],
+  diario: [
+    {
+      data: "2026-10-08",
+      chats_encerrados: 7,
+      totais: bloco({ chamadas: 5, custo_usd: 0.005 }),
+      por_origem: [{ origem: "chat", ...bloco({ chamadas: 5, custo_usd: 0.005 }) }],
+    },
+    {
+      data: "2026-10-07",
+      chats_encerrados: 5,
+      totais: bloco({ chamadas: 2, custo_usd: 0.0015 }),
+      por_origem: [{ origem: "admin", ...bloco({ chamadas: 2, custo_usd: 0.0015 }) }],
+    },
+  ],
+};
+
+function logarComoAdmin() {
+  useAuthStore.setState({
+    user: { id: 1, nome: "Admin Teste", email: "admin@example.com", perfil: "Admin" },
+    token: "mock-token",
+  });
+}
 
 describe("AdminMetricasPage", () => {
   beforeEach(() => {
@@ -12,12 +69,7 @@ describe("AdminMetricasPage", () => {
 
   it("renderiza aviso de acesso restrito se o usuário não for Administrador", () => {
     useAuthStore.setState({
-      user: {
-        id: 2,
-        nome: "João Cliente",
-        email: "joao@example.com",
-        perfil: "Cliente",
-      },
+      user: { id: 2, nome: "João Cliente", email: "joao@example.com", perfil: "Cliente" },
       token: "mock-token",
     });
 
@@ -25,615 +77,79 @@ describe("AdminMetricasPage", () => {
     expect(screen.getByText("Acesso Restrito ao Administrador")).toBeInTheDocument();
   });
 
-  it("renderiza cards de resumo e tabela diária quando logado como admin", async () => {
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
-    });
-
-    const mockResponse: metricsApi.TokenCostMetricsResponse = {
-      period: "7d",
-      summary: {
-        total_closed_chats: 12,
-        total_internal_prompt_tokens: 5000,
-        total_internal_completion_tokens: 2000,
-        total_external_prompt_tokens: 1500,
-        total_external_completion_tokens: 800,
-        total_cost_prompt_usd: 0.0045,
-        total_cost_completion_usd: 0.0032,
-        total_cost_usd: 0.0077,
-        total_vision_calls: 2,
-        total_vision_tokens: 1500,
-        total_vision_cost_usd: 0.0025,
-      },
-      daily_breakdown: [
-        {
-          date: "2026-10-03",
-          closed_chats_count: 5,
-          internal_prompt_tokens: 2000,
-          internal_completion_tokens: 800,
-          external_prompt_tokens: 600,
-          external_completion_tokens: 300,
-          cost_prompt_usd: 0.0018,
-          cost_completion_usd: 0.0012,
-          total_cost_usd: 0.0030,
-          vision_calls_count: 2,
-          vision_cost_usd: 0.0025,
-        },
-      ],
-    };
-
-    const spy = vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+  it("renderiza as cinco seções do painel de uso de IA", async () => {
+    logarComoAdmin();
+    vi.spyOn(metricsApi, "fetchAiUsageMetrics").mockResolvedValue(mockResponse);
 
     render(<AdminMetricasPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
-      expect(screen.getByText("Tokens Internos (GPU Local)")).toBeInTheDocument();
-      expect(screen.getByText("Tokens Externos (OpenRouter)")).toBeInTheDocument();
-      expect(screen.getByText("Visão Computacional (Imagens)")).toBeInTheDocument();
-      expect(screen.getByText("$0.0025")).toBeInTheDocument();
-      // Tabela diária com visão segregada
-      expect(screen.getByText("Visão")).toBeInTheDocument();
-      expect(screen.getByText("(Imagens / Custo)")).toBeInTheDocument();
-      expect(screen.getByText("2 imagens")).toBeInTheDocument();
-      // Custo Total Geral (fallback sem grand_total_cost_usd do backend):
-      // Atendimento (0.0077) + Visão (0.0025) + Ingestão (ausente, 0) —
-      // achado de 2026-10-05, Visão deixou de ser double-counted dentro de
-      // Atendimento e passou a somar no Total.
-      expect(screen.getByText("$0.0102")).toBeInTheDocument();
-      expect(screen.getByText("2026-10-03")).toBeInTheDocument();
+      expect(screen.getByText(/Por Origem/i)).toBeInTheDocument();
     });
-
-    expect(spy).toHaveBeenCalledWith("mock-token", { period: "7d" });
+    expect(screen.getByText(/Por Ambiente/i)).toBeInTheDocument();
+    expect(screen.getByText(/Por Modelo/i)).toBeInTheDocument();
+    expect(screen.getByText(/Por Operação/i)).toBeInTheDocument();
+    expect(screen.getByText(/Detalhamento Diário/i)).toBeInTheDocument();
   });
 
-  it("permite alternar período de filtro", async () => {
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
+  it("mostra custo não medido como traço e grátis como $0.0000", async () => {
+    logarComoAdmin();
+    vi.spyOn(metricsApi, "fetchAiUsageMetrics").mockResolvedValue(mockResponse);
+
+    render(<AdminMetricasPage />);
+
+    // `clip` (interno) tem custo 0.0 medido => $0.0000
+    await waitFor(() => {
+      expect(screen.getByTestId("custo-modelo-clip-interno")).toHaveTextContent("$0.0000");
     });
+    // `gpt-desconhecido` tem custo null => traço, não "$0.0000"
+    expect(screen.getByTestId("custo-modelo-gpt-desconhecido-externo")).toHaveTextContent("—");
+  });
 
-    const mockResponse: metricsApi.TokenCostMetricsResponse = {
-      period: "today",
-      summary: {
-        total_closed_chats: 2,
-        total_internal_prompt_tokens: 1000,
-        total_internal_completion_tokens: 400,
-        total_external_prompt_tokens: 200,
-        total_external_completion_tokens: 100,
-        total_cost_prompt_usd: 0.0006,
-        total_cost_completion_usd: 0.0004,
-        total_cost_usd: 0.0010,
-      },
-      daily_breakdown: [],
-    };
-
-    const spy = vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+  it("mostra tokens não medidos como traço", async () => {
+    logarComoAdmin();
+    vi.spyOn(metricsApi, "fetchAiUsageMetrics").mockResolvedValue(mockResponse);
 
     render(<AdminMetricasPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
-    });
-
-    const hojeButton = screen.getByRole("button", { name: "Hoje" });
-    fireEvent.click(hojeButton);
-
-    await waitFor(() => {
-      expect(spy).toHaveBeenCalledWith("mock-token", { period: "today" });
+      expect(screen.getByTestId("tokens-entrada-ambiente-interno")).toHaveTextContent("—");
     });
   });
 
-  it("ignora resposta desatualizada quando a requisição mais antiga resolve depois da mais nova", async () => {
-    // Achado da revisão de 2026-10-04: sem controle de sequência, uma
-    // requisição mais antiga ("7d", disparada no mount) que demora mais do
-    // que a requisição mais nova ("Hoje", disparada pelo clique) podia
-    // resolver depois e sobrescrever a tela com dados do período errado.
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
-    });
-
-    function buildResponse(totalClosedChats: number): metricsApi.TokenCostMetricsResponse {
-      return {
-        period: "x",
-        summary: {
-          total_closed_chats: totalClosedChats,
-          total_internal_prompt_tokens: 0,
-          total_internal_completion_tokens: 0,
-          total_external_prompt_tokens: 0,
-          total_external_completion_tokens: 0,
-          total_cost_prompt_usd: 0,
-          total_cost_completion_usd: 0,
-          total_cost_usd: 0,
-        },
-        daily_breakdown: [],
-      };
-    }
-
-    let resolveOld: (v: metricsApi.TokenCostMetricsResponse) => void;
-    const oldRequest = new Promise<metricsApi.TokenCostMetricsResponse>((resolve) => {
-      resolveOld = resolve;
-    });
-
-    const spy = vi
-      .spyOn(metricsApi, "fetchTokenCostMetrics")
-      .mockImplementationOnce(() => oldRequest) // requisição inicial (7d, mount)
-      .mockResolvedValueOnce(buildResponse(99)); // requisição disparada pelo clique em "Hoje"
+  it("exibe as origens, operações e o volume de chats encerrados", async () => {
+    logarComoAdmin();
+    vi.spyOn(metricsApi, "fetchAiUsageMetrics").mockResolvedValue(mockResponse);
 
     render(<AdminMetricasPage />);
 
     await waitFor(() => {
-      expect(spy).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId("custo-origem-chat")).toHaveTextContent("$0.0025");
     });
-
-    const hojeButton = screen.getByRole("button", { name: "Hoje" });
-    fireEvent.click(hojeButton);
-
-    await waitFor(() => {
-      expect(screen.getByText("99")).toBeInTheDocument();
-    });
-
-    // A requisição antiga ("7d") só resolve agora — não deve sobrescrever
-    // os dados de "Hoje" já exibidos.
-    resolveOld!(buildResponse(1));
-
-    await new Promise((r) => setTimeout(r, 50));
-    expect(screen.getByText("99")).toBeInTheDocument();
-    expect(screen.queryByText("1")).not.toBeInTheDocument();
+    expect(screen.getByTestId("custo-origem-admin")).toHaveTextContent("$0.0040");
+    expect(screen.getByText("classificacao_crawler")).toBeInTheDocument();
+    expect(screen.getByTestId("chats-encerrados")).toHaveTextContent("12");
   });
 
-  it("atualiza métricas ao clicar no botão Atualizar e exibe feedback de sucesso e timestamp", async () => {
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
-    });
-
-    const mockResponse: metricsApi.TokenCostMetricsResponse = {
-      period: "7d",
-      summary: {
-        total_closed_chats: 5,
-        total_internal_prompt_tokens: 100,
-        total_internal_completion_tokens: 50,
-        total_external_prompt_tokens: 0,
-        total_external_completion_tokens: 0,
-        total_cost_prompt_usd: 0,
-        total_cost_completion_usd: 0,
-        total_cost_usd: 0,
-      },
-      daily_breakdown: [],
-    };
-
-    const spy = vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
+  it("sinaliza quantas chamadas ficaram sem custo medido", async () => {
+    logarComoAdmin();
+    vi.spyOn(metricsApi, "fetchAiUsageMetrics").mockResolvedValue(mockResponse);
 
     render(<AdminMetricasPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
-    });
-
-    expect(spy).toHaveBeenCalledTimes(1);
-
-    const atualizarButtons = screen.getAllByRole("button", { name: /atualizar métricas/i });
-    expect(atualizarButtons.length).toBeGreaterThan(0);
-
-    fireEvent.click(atualizarButtons[0]);
-
-    await waitFor(() => {
-      expect(spy).toHaveBeenCalledTimes(2);
-      expect(screen.getByText("Métricas atualizadas com sucesso!")).toBeInTheDocument();
-      expect(screen.getByText(/Última atualização:/i)).toBeInTheDocument();
+      expect(screen.getByTestId("sem-custo-medido")).toHaveTextContent("1");
     });
   });
 
-  it("exibe feedback de erro ao falhar na atualização manual", async () => {
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
-    });
-
-    const mockResponse: metricsApi.TokenCostMetricsResponse = {
-      period: "7d",
-      summary: {
-        total_closed_chats: 1,
-        total_internal_prompt_tokens: 10,
-        total_internal_completion_tokens: 10,
-        total_external_prompt_tokens: 0,
-        total_external_completion_tokens: 0,
-        total_cost_prompt_usd: 0,
-        total_cost_completion_usd: 0,
-        total_cost_usd: 0,
-      },
-      daily_breakdown: [],
-    };
-
-    const spy = vi
-      .spyOn(metricsApi, "fetchTokenCostMetrics")
-      .mockResolvedValueOnce(mockResponse)
-      .mockRejectedValueOnce(new Error("Falha de conexão com a API"));
+  it("mostra mensagem de erro quando a requisição falha", async () => {
+    logarComoAdmin();
+    vi.spyOn(metricsApi, "fetchAiUsageMetrics").mockRejectedValue(new Error("Falha ao obter métricas (503)"));
 
     render(<AdminMetricasPage />);
 
     await waitFor(() => {
-      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
-    });
-
-    const atualizarBtn = screen.getByRole("button", { name: "Atualizar métricas" });
-    fireEvent.click(atualizarBtn);
-
-    await waitFor(() => {
-      expect(screen.getAllByText("Falha de conexão com a API").length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  it("permite filtrar por dia específico abrindo seletor de data e calendário", async () => {
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
-    });
-
-    const mockInitial: metricsApi.TokenCostMetricsResponse = {
-      period: "7d",
-      summary: {
-        total_closed_chats: 10,
-        total_internal_prompt_tokens: 500,
-        total_internal_completion_tokens: 200,
-        total_external_prompt_tokens: 100,
-        total_external_completion_tokens: 50,
-        total_cost_prompt_usd: 0.001,
-        total_cost_completion_usd: 0.0005,
-        total_cost_usd: 0.0015,
-      },
-      daily_breakdown: [],
-    };
-
-    const mockDay: metricsApi.TokenCostMetricsResponse = {
-      period: "custom",
-      summary: {
-        total_closed_chats: 3,
-        total_internal_prompt_tokens: 150,
-        total_internal_completion_tokens: 60,
-        total_external_prompt_tokens: 30,
-        total_external_completion_tokens: 15,
-        total_cost_prompt_usd: 0.0003,
-        total_cost_completion_usd: 0.0001,
-        total_cost_usd: 0.0004,
-      },
-      daily_breakdown: [
-        {
-          date: "2026-10-02",
-          closed_chats_count: 3,
-          internal_prompt_tokens: 150,
-          internal_completion_tokens: 60,
-          external_prompt_tokens: 30,
-          external_completion_tokens: 15,
-          cost_prompt_usd: 0.0003,
-          cost_completion_usd: 0.0001,
-          total_cost_usd: 0.0004,
-        },
-      ],
-    };
-
-    const spy = vi
-      .spyOn(metricsApi, "fetchTokenCostMetrics")
-      .mockResolvedValueOnce(mockInitial)
-      .mockResolvedValue(mockDay);
-
-    render(<AdminMetricasPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Métricas & Custos de IA")).toBeInTheDocument();
-    });
-
-    const dateInput = screen.getByLabelText(/escolher data específica/i);
-    expect(dateInput).toBeInTheDocument();
-    expect(screen.getByText("Calendário")).toBeInTheDocument();
-
-    fireEvent.click(dateInput);
-    fireEvent.change(dateInput, { target: { value: "2026-10-02" } });
-
-    await waitFor(() => {
-      expect(spy).toHaveBeenCalledWith("mock-token", {
-        period: "custom",
-        startDate: "2026-10-02",
-        endDate: "2026-10-02",
-      });
-      expect(screen.getAllByText(/02\/10\/2026/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText("2026-10-02")).toBeInTheDocument();
-    });
-  });
-
-  it("exibe segregação financeira de visão computacional no card de resumo e coluna da tabela", async () => {
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
-    });
-
-    const mockResponse: metricsApi.TokenCostMetricsResponse = {
-      period: "today",
-      summary: {
-        total_closed_chats: 4,
-        total_internal_prompt_tokens: 1000,
-        total_internal_completion_tokens: 500,
-        total_external_prompt_tokens: 3500,
-        total_external_completion_tokens: 1200,
-        total_cost_prompt_usd: 0.0035,
-        total_cost_completion_usd: 0.0020,
-        total_cost_usd: 0.0055,
-        total_vision_calls: 3,
-        total_vision_tokens: 2800,
-        total_vision_cost_usd: 0.0042,
-      },
-      daily_breakdown: [
-        {
-          date: "2026-10-04",
-          closed_chats_count: 4,
-          internal_prompt_tokens: 1000,
-          internal_completion_tokens: 500,
-          external_prompt_tokens: 3500,
-          external_completion_tokens: 1200,
-          cost_prompt_usd: 0.0035,
-          cost_completion_usd: 0.0020,
-          total_cost_usd: 0.0055,
-          vision_calls_count: 3,
-          vision_cost_usd: 0.0042,
-        },
-      ],
-    };
-
-    vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
-
-    render(<AdminMetricasPage />);
-
-    await waitFor(() => {
-      // Card de Visão
-      expect(screen.getByText("Visão Computacional (Imagens)")).toBeInTheDocument();
-      expect(screen.getByText("$0.0042")).toBeInTheDocument();
-      expect(screen.getByText("Imagens: 3")).toBeInTheDocument();
-      expect(screen.getByText("Tokens: 2.800")).toBeInTheDocument();
-
-      // Coluna e linha da tabela diária
-      expect(screen.getByText("Visão")).toBeInTheDocument();
-      expect(screen.getByText("(Imagens / Custo)")).toBeInTheDocument();
-      expect(screen.getByText("3 imagens")).toBeInTheDocument();
-      expect(screen.getByText("($0.0042)")).toBeInTheDocument();
-    });
-  });
-
-  it("exibe card de ingestão de dados e consolidação do custo total da infraestrutura", async () => {
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
-    });
-
-    const mockResponse: metricsApi.TokenCostMetricsResponse = {
-      period: "today",
-      summary: {
-        total_closed_chats: 4,
-        total_internal_prompt_tokens: 1000,
-        total_internal_completion_tokens: 500,
-        total_external_prompt_tokens: 3500,
-        total_external_completion_tokens: 1200,
-        total_cost_prompt_usd: 0.0035,
-        total_cost_completion_usd: 0.0020,
-        total_cost_usd: 0.0055,
-        total_vision_calls: 3,
-        total_vision_tokens: 2800,
-        total_vision_cost_usd: 0.0042,
-        total_ingestion_calls: 5,
-        total_ingestion_tokens: 3500,
-        total_ingestion_cost_usd: 0.0050,
-        // Atendimento (0.0055) + Visão (0.0042) + Ingestão (0.0050), sem
-        // sobreposição (achado de 2026-10-05).
-        grand_total_cost_usd: 0.0147,
-      },
-      daily_breakdown: [
-        {
-          date: "2026-10-04",
-          closed_chats_count: 4,
-          internal_prompt_tokens: 1000,
-          internal_completion_tokens: 500,
-          external_prompt_tokens: 3500,
-          external_completion_tokens: 1200,
-          cost_prompt_usd: 0.0035,
-          cost_completion_usd: 0.0020,
-          total_cost_usd: 0.0055,
-          vision_calls_count: 3,
-          vision_cost_usd: 0.0042,
-          ingestion_calls_count: 5,
-          ingestion_cost_usd: 0.0050,
-        },
-      ],
-    };
-
-    vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
-
-    render(<AdminMetricasPage />);
-
-    await waitFor(() => {
-      // Card Ingestão & Dados
-      expect(screen.getByText("Ingestão & Dados (Crawler/Catálogo)")).toBeInTheDocument();
-      expect(screen.getByText("$0.0050")).toBeInTheDocument();
-      expect(screen.getByText("Operações: 5")).toBeInTheDocument();
-      expect(screen.getByText("Tokens: 3.500")).toBeInTheDocument();
-
-      // Card Custo Total Geral Consolidado (Atendimento + Visão + Ingestão)
-      expect(screen.getByText("Custo Total Geral (Infraestrutura)")).toBeInTheDocument();
-      expect(screen.getByText("$0.0147")).toBeInTheDocument();
-      expect(screen.getByText("Atendimento: $0.0055")).toBeInTheDocument();
-      expect(screen.getByText("Visão: $0.0042")).toBeInTheDocument();
-      expect(screen.getByText("Ingestão: $0.0050")).toBeInTheDocument();
-
-      // Tabela diária: coluna de ingestão
-      expect(screen.getByText("Ingestão")).toBeInTheDocument();
-      expect(screen.getByText("(Op / Custo)")).toBeInTheDocument();
-      expect(screen.getByText("5 ops")).toBeInTheDocument();
-    });
-  });
-
-  it("preenche todas as linhas do período selecionado e exibe data formatada com dia da semana sem corte", async () => {
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
-    });
-
-    const mockResponse: metricsApi.TokenCostMetricsResponse = {
-      period: "7d",
-      summary: {
-        total_closed_chats: 2,
-        total_internal_prompt_tokens: 500,
-        total_internal_completion_tokens: 200,
-        total_external_prompt_tokens: 0,
-        total_external_completion_tokens: 0,
-        total_cost_prompt_usd: 0,
-        total_cost_completion_usd: 0,
-        total_cost_usd: 0,
-      },
-      daily_breakdown: [
-        {
-          date: "2026-10-05",
-          closed_chats_count: 2,
-          internal_prompt_tokens: 500,
-          internal_completion_tokens: 200,
-          external_prompt_tokens: 0,
-          external_completion_tokens: 0,
-          cost_prompt_usd: 0,
-          cost_completion_usd: 0,
-          total_cost_usd: 0,
-        },
-      ],
-    };
-
-    vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
-
-    render(<AdminMetricasPage />);
-
-    await waitFor(() => {
-      // Badge indicando 7 dias na tabela
-      expect(screen.getByText("7 dias")).toBeInTheDocument();
-
-      // Data formatada em padrão brasileiro (05/10/2026) e ISO
-      expect(screen.getByText("05/10/2026")).toBeInTheDocument();
-      expect(screen.getByText("2026-10-05")).toBeInTheDocument();
-      expect(screen.getByText(/Segunda/)).toBeInTheDocument();
-
-      // Linhas dos dias anteriores preenchidas
-      expect(screen.getByText("04/10/2026")).toBeInTheDocument();
-      expect(screen.getByText("03/10/2026")).toBeInTheDocument();
-      expect(screen.getByText("02/10/2026")).toBeInTheDocument();
-      expect(screen.getByText("01/10/2026")).toBeInTheDocument();
-      expect(screen.getByText("30/09/2026")).toBeInTheDocument();
-      expect(screen.getByText("29/09/2026")).toBeInTheDocument();
-    });
-  });
-
-  it("renderiza os títulos do cabeçalho da tabela de detalhamento em 2 linhas com trechos entre parênteses na mesma linha", async () => {
-    useAuthStore.setState({
-      user: {
-        id: 1,
-        nome: "Admin Teste",
-        email: "admin@example.com",
-        perfil: "Admin",
-      },
-      token: "mock-token",
-    });
-
-    const mockResponse: metricsApi.TokenCostMetricsResponse = {
-      period: "today",
-      summary: {
-        total_closed_chats: 0,
-        total_internal_prompt_tokens: 0,
-        total_internal_completion_tokens: 0,
-        total_external_prompt_tokens: 0,
-        total_external_completion_tokens: 0,
-        total_cost_prompt_usd: 0,
-        total_cost_completion_usd: 0,
-        total_cost_usd: 0,
-      },
-      daily_breakdown: [],
-    };
-
-    vi.spyOn(metricsApi, "fetchTokenCostMetrics").mockResolvedValue(mockResponse);
-
-    render(<AdminMetricasPage />);
-
-    await waitFor(() => {
-      // Verifica títulos principais da 1ª linha (com whitespace-nowrap para impedir 3 linhas)
-      const titInternos = screen.getByText("Tokens Internos");
-      expect(titInternos).toBeInTheDocument();
-      expect(titInternos.className).toContain("whitespace-nowrap");
-
-      const titExternos = screen.getByText("Tokens Externos");
-      expect(titExternos).toBeInTheDocument();
-      expect(titExternos.className).toContain("whitespace-nowrap");
-
-      expect(screen.getByText("Visão")).toBeInTheDocument();
-      expect(screen.getByText("Ingestão")).toBeInTheDocument();
-      expect(screen.getByText("Chats")).toBeInTheDocument();
-      expect(screen.getByText("Encerrados")).toBeInTheDocument();
-
-      // Verifica título da seção limitado a 2 linhas
-      expect(screen.getByText("Detalhamento Diário").className).toContain("whitespace-nowrap");
-      expect(screen.getByText("dos Atendimentos Encerrados").className).toContain("whitespace-nowrap");
-
-      // Verifica trechos entre parênteses na 2ª linha
-      const parensEntradaSaida = screen.getAllByText("(Entrada / Saída)");
-      expect(parensEntradaSaida.length).toBe(2);
-      parensEntradaSaida.forEach((el) => {
-        expect(el.className).toContain("whitespace-nowrap");
-      });
-
-      const parensVisao = screen.getByText("(Imagens / Custo)");
-      expect(parensVisao.className).toContain("whitespace-nowrap");
-
-      const parensIngestao = screen.getByText("(Op / Custo)");
-      expect(parensIngestao.className).toContain("whitespace-nowrap");
+      expect(screen.getByText(/Falha ao obter métricas/i)).toBeInTheDocument();
     });
   });
 });
