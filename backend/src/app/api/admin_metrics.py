@@ -173,6 +173,11 @@ async def get_ai_usage_metrics(
     # do dia cortado às 21h. Por isso só estas cinco colunas vêm do banco e
     # o agrupamento por dia é feito em Python — escolha deliberada, não
     # descuido (ver spec §3.1).
+    # MVP: sem LIMIT — em `period=all` com um ledger grande isto busca a
+    # tabela inteira para o agrupamento diário em Python. Aceitável para o
+    # volume de um TCC; se o ledger crescer muito, precisa paginar ou mover
+    # o truncamento de fuso para o banco (ver comentário acima sobre por
+    # que isso não foi feito agora).
     stmt_eventos = select(
         AiUsageEvent.criado_em,
         AiUsageEvent.origem,

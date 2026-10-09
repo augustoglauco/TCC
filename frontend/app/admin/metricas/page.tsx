@@ -40,7 +40,7 @@ export default function AdminMetricasPage() {
 
   const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all" | "custom">("7d");
   const [selectedDate, setSelectedDate] = useState<string>(() =>
-    new Date().toLocaleDateString("en-CA")
+    new Date().toLocaleDateString("en-CA"),
   );
   const [data, setData] = useState<AiUsageReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,11 +56,7 @@ export default function AdminMetricasPage() {
   const requestIdRef = useRef(0);
 
   const carregarMetricas = useCallback(
-    async (
-      p: "today" | "7d" | "30d" | "all" | "custom",
-      isManual = false,
-      dateParam?: string
-    ) => {
+    async (p: "today" | "7d" | "30d" | "all" | "custom", isManual = false, dateParam?: string) => {
       if (!token) return;
       const requestId = ++requestIdRef.current;
       setLoading(true);
@@ -70,9 +66,7 @@ export default function AdminMetricasPage() {
         const targetDate = dateParam ?? selectedDate;
         const params: GetMetricsParams = {
           period: p,
-          ...(p === "custom" && targetDate
-            ? { startDate: targetDate, endDate: targetDate }
-            : {}),
+          ...(p === "custom" && targetDate ? { startDate: targetDate, endDate: targetDate } : {}),
         };
         const res = await fetchAiUsageMetrics(token, params);
         if (requestId !== requestIdRef.current) return;
@@ -98,7 +92,7 @@ export default function AdminMetricasPage() {
         }
       }
     },
-    [selectedDate, showToast, token]
+    [selectedDate, showToast, token],
   );
 
   useEffect(() => {
@@ -166,8 +160,8 @@ export default function AdminMetricasPage() {
             </button>
           </div>
           <p className="mt-1.5 text-xs sm:text-sm text-slate-600 max-w-3xl">
-            Acompanhamento de consumo de tokens (locais vs externos), custos financeiros segregados
-            (entrada/saída) e relatórios de atendimentos encerrados.
+            Acompanhamento de uso de IA por origem (chat, B2B, admin), ambiente (interno/externo),
+            modelo e operação, além de relatórios de atendimentos encerrados.
           </p>
         </div>
 
@@ -285,9 +279,7 @@ export default function AdminMetricasPage() {
         {data && data.totais.chamadas_sem_custo_medido > 0 ? (
           <span className="text-amber-700">
             Chamadas sem custo medido:{" "}
-            <strong data-testid="sem-custo-medido">
-              {data.totais.chamadas_sem_custo_medido}
-            </strong>
+            <strong data-testid="sem-custo-medido">{data.totais.chamadas_sem_custo_medido}</strong>
           </span>
         ) : null}
       </div>

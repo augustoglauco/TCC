@@ -18,25 +18,57 @@ function bloco(over: Partial<metricsApi.BlocoMetricas> = {}): metricsApi.BlocoMe
 const mockResponse: metricsApi.AiUsageReport = {
   period: "7d",
   atendimento: { chats_encerrados: 12 },
-  totais: bloco({ chamadas: 7, custo_usd: 0.0065, tokens_entrada: 2400, tokens_saida: 190, chamadas_sem_custo_medido: 1 }),
+  totais: bloco({
+    chamadas: 7,
+    custo_usd: 0.0065,
+    tokens_entrada: 2400,
+    tokens_saida: 190,
+    chamadas_sem_custo_medido: 1,
+  }),
   por_origem: [
     { origem: "chat", ...bloco({ chamadas: 4, custo_usd: 0.0025 }) },
     { origem: "b2b", ...bloco({ chamadas: 1, custo_usd: 0.0 }) },
     { origem: "admin", ...bloco({ chamadas: 2, custo_usd: 0.004 }) },
   ],
   por_ambiente: [
-    { ambiente: "interno", ...bloco({ chamadas: 3, custo_usd: 0.0, tokens_entrada: null, tokens_saida: null }) },
+    {
+      ambiente: "interno",
+      ...bloco({ chamadas: 3, custo_usd: 0.0, tokens_entrada: null, tokens_saida: null }),
+    },
     { ambiente: "externo", ...bloco({ chamadas: 4, custo_usd: 0.0065 }) },
   ],
   por_modelo: [
     { modelo: "gemma-vision", ambiente: "externo", ...bloco({ chamadas: 2, custo_usd: 0.0065 }) },
-    { modelo: "clip", ambiente: "interno", ...bloco({ chamadas: 2, custo_usd: 0.0, tokens_entrada: null, tokens_saida: null }) },
-    { modelo: "gpt-desconhecido", ambiente: "externo", ...bloco({ chamadas: 1, custo_usd: null, chamadas_sem_custo_medido: 1 }) },
+    {
+      modelo: "clip",
+      ambiente: "interno",
+      ...bloco({ chamadas: 2, custo_usd: 0.0, tokens_entrada: null, tokens_saida: null }),
+    },
+    {
+      modelo: "gpt-desconhecido",
+      ambiente: "externo",
+      ...bloco({ chamadas: 1, custo_usd: null, chamadas_sem_custo_medido: 1 }),
+    },
   ],
   por_operacao: [
-    { operacao: "identificacao_imagem_clip", origem: "chat", ambiente: "interno", ...bloco({ chamadas: 2, custo_usd: 0.0 }) },
-    { operacao: "identificacao_imagem_visao_externa", origem: "chat", ambiente: "externo", ...bloco({ chamadas: 1, custo_usd: 0.0025 }) },
-    { operacao: "classificacao_crawler", origem: "admin", ambiente: "externo", ...bloco({ chamadas: 2, custo_usd: 0.004 }) },
+    {
+      operacao: "identificacao_imagem_clip",
+      origem: "chat",
+      ambiente: "interno",
+      ...bloco({ chamadas: 2, custo_usd: 0.0 }),
+    },
+    {
+      operacao: "identificacao_imagem_visao_externa",
+      origem: "chat",
+      ambiente: "externo",
+      ...bloco({ chamadas: 1, custo_usd: 0.0025 }),
+    },
+    {
+      operacao: "classificacao_crawler",
+      origem: "admin",
+      ambiente: "externo",
+      ...bloco({ chamadas: 2, custo_usd: 0.004 }),
+    },
   ],
   diario: [
     {
@@ -142,9 +174,60 @@ describe("AdminMetricasPage", () => {
     });
   });
 
+  it("com payload vazio, ainda renderiza as três origens e os dois ambientes zerados", async () => {
+    // Regressão (revisão final de ponta a ponta, 2026-10-09): o spec diz
+    // que o backend só manda linhas com evento e o frontend renderiza as
+    // dimensões conhecidas ausentes como zero — antes desta correção, um
+    // período sem uso de IA fazia o card "Externo" (o único que este item
+    // foi construído para entregar) desaparecer, em vez de mostrar
+    // $0.0000. Este é o estado de um painel recém-implantado, e era o
+    // único caminho de renderização sem teste.
+    logarComoAdmin();
+    const respostaVazia: metricsApi.AiUsageReport = {
+      period: "7d",
+      atendimento: { chats_encerrados: 0 },
+      totais: bloco({ chamadas: 0, custo_usd: null, tokens_entrada: null, tokens_saida: null }),
+      por_origem: [],
+      por_ambiente: [],
+      por_modelo: [],
+      por_operacao: [],
+      diario: [],
+    };
+    vi.spyOn(metricsApi, "fetchAiUsageMetrics").mockResolvedValue(respostaVazia);
+
+    render(<AdminMetricasPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("custo-origem-chat")).toBeInTheDocument();
+    });
+    // As três origens conhecidas aparecem, zeradas — não "não medido".
+    expect(screen.getByTestId("custo-origem-chat")).toHaveTextContent("$0.0000");
+    expect(screen.getByTestId("custo-origem-b2b")).toHaveTextContent("$0.0000");
+    expect(screen.getByTestId("custo-origem-admin")).toHaveTextContent("$0.0000");
+    expect(screen.getByTestId("chamadas-origem-chat")).toHaveTextContent("0");
+
+    // Os dois ambientes conhecidos também aparecem, zerados — em
+    // particular o card "Externo", o único que este item existe para
+    // entregar, não pode desaparecer num período sem uso externo.
+    expect(screen.getByTestId("custo-ambiente-interno")).toHaveTextContent("$0.0000");
+    expect(screen.getByTestId("custo-ambiente-externo")).toHaveTextContent("$0.0000");
+
+    // A mensagem "nenhum uso registrado" ainda aparece como aviso
+    // informativo acima dos cards de origem (decisão: ela não substitui
+    // mais os cards, só avisa que o período não teve eventos) — e também
+    // nas tabelas "Por Modelo"/"Por Operação" como fallback, por isso
+    // ocorre mais de uma vez na tela.
+    expect(screen.getAllByText("Nenhum uso de IA registrado no período.").length).toBeGreaterThan(
+      1,
+    );
+    expect(screen.getByText("Nenhum registro no período.")).toBeInTheDocument();
+  });
+
   it("mostra mensagem de erro quando a requisição falha", async () => {
     logarComoAdmin();
-    vi.spyOn(metricsApi, "fetchAiUsageMetrics").mockRejectedValue(new Error("Falha ao obter métricas (503)"));
+    vi.spyOn(metricsApi, "fetchAiUsageMetrics").mockRejectedValue(
+      new Error("Falha ao obter métricas (503)"),
+    );
 
     render(<AdminMetricasPage />);
 

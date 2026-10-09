@@ -298,7 +298,9 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `motivo_encerramento`, migração Alembic `0018_conversas_status_custos.py`) com botão de encerramento
       manual no widget e worker de inatividade de 30 minutos em background (`inactivity_closure_worker`).
       Endpoint analítico `GET /api/admin/metrics/tokens-and-costs` e dashboard de relatórios em `/admin/metricas` com KPIs
-      em tempo real e detalhamento diário (2026-10-04).
+      em tempo real e detalhamento diário (2026-10-04) (endpoint substituído por
+      `GET /api/admin/metrics/ai-usage` no item E, 2026-10-08 — ver Fase "Extra fora do MVP —
+      Ledger Unificado de Uso de IA").
       Design Spec em [`docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md`](docs/superpowers/specs/2026-10-03-contabilizador-tokens-custos-design.md).
       Plano de implementação em [`docs/superpowers/plans/2026-10-03-contabilizador-tokens-custos.md`](docs/superpowers/plans/2026-10-03-contabilizador-tokens-custos.md).
 - [x] **Dashboards e Gráficos Dinâmicos Gerados via Chat com Persistência Permanente & Agente Analítico LLM** —
@@ -1139,9 +1141,9 @@ conversa e classificação do usuário").
       painel).
 - [x] **E — Painel.** Nova seção em `/admin/metricas`, estratificada por
       origem × ambiente × modelo, consultando a tabela de A (substituindo
-      ou complementando os cards atuais "Visão Computacional"/"Ingestão &
-      Dados", que continuam cobrindo só uma fração do que a tabela nova
-      vai mostrar).
+      os cards atuais "Visão Computacional"/"Ingestão & Dados" — resolvido:
+      foram substituídos, não mantidos em paralelo — que continuavam
+      cobrindo só uma fração do que a tabela nova passou a mostrar).
 
       Fechamento (2026-10-08): `GET /api/admin/metrics/ai-usage` substituiu
       `/tokens-and-costs`, que foi removido junto com a heurística de nome
@@ -1154,8 +1156,33 @@ conversa e classificação do usuário").
       migrado para o ledger (`origem="admin"`,
       `operacao="classificacao_crawler"`). Histórico pré-ledger descartado
       sem backfill e `IngestionCostEvent` mantida como tabela morta — ambas
-      decisões do dono do projeto. Com isto o plano A→E está completo: todo
-      uso de IA do sistema é registrado num só lugar.
+      decisões do dono do projeto. Com isto o plano A→E está completo: o
+      ledger registra toda chamada de IA que consome um modelo de
+      *geração* (local ou externo) num só lugar — STT, embeddings de texto
+      e CLIP, e o resumo periódico de conversa continuam fora dele (ver
+      item novo abaixo).
+
+- [ ] **Extra — avaliar inclusão de STT/embeddings/resumo periódico no
+      ledger.** Revisão de ponta a ponta do item E (2026-10-09) comparou os
+      pontos de invocação de IA do sistema contra os 16 call sites de
+      `registrar_uso_ia` e achou três famílias ainda fora do ledger, todas
+      locais e portanto sem custo de API, mas que o ledger não contabiliza
+      em volume de chamadas/tokens:
+      - `backend/src/app/memory/resumo.py:79` (`llm_client.generate`, o
+        resumo periódico de conversa, disparado por
+        `backend/src/app/api/chat.py:134` a cada 6 mensagens).
+      - `backend/src/app/api/chat.py:534` (`stt_client.transcribe`, Whisper
+        na mesma GPU).
+      - `backend/src/app/rag/qdrant_client.py:266,313` e
+        `backend/src/app/rag/image_search.py:130,211,227` (embeddings de
+        texto e CLIP, a cada ingestão e a cada busca).
+
+      Como são grátis, incluí-las não mudaria a resposta de custo
+      interno×externo do painel — o argumento é só precisão de volume de
+      chamadas e completude da Fase 10 (avaliação experimental). O
+      inventário §1 do spec do item E tratou os 15 pontos então
+      levantados como exaustivos; não eram. Decisão pendente: instrumentar
+      ou documentar a exclusão como definitiva.
 
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 

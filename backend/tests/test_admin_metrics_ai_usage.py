@@ -15,6 +15,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.api.admin_metrics import _resolver_janela
 from app.api.admin_metrics import router as admin_metrics_router
 from app.api.rag_dependencies import get_db_session
 from app.config import get_settings
@@ -214,9 +215,7 @@ async def test_ai_usage_period_today_usa_calendario_local_nao_utc(
     res_7d = metrics_client.get("/api/admin/metrics/ai-usage?period=7d", headers=admin_headers)
     data_7d = res_7d.json()
     assert data_7d["totais"]["chamadas"] == 1
-    assert [d["data"] for d in data_7d["diario"]] == [
-        ontem_22h_local.strftime("%Y-%m-%d")
-    ]
+    assert [d["data"] for d in data_7d["diario"]] == [ontem_22h_local.strftime("%Y-%m-%d")]
 
 
 @pytest.mark.asyncio
@@ -253,9 +252,59 @@ async def test_ai_usage_diario_ordenado_do_mais_recente_e_com_chats_encerrados(
     assert data["diario"][0]["chats_encerrados"] == 1
 
 
+def test_resolver_janela_com_ambas_as_datas_usa_limites_do_dia_local():
+    """Teste direto de `_resolver_janela` (revisão final de ponta a ponta,
+    2026-10-09): com `start_date`/`end_date` setados, os limites devolvidos
+    devem ser o início e o fim do DIA LOCAL correspondente, convertidos
+    para UTC — não meia-noite/fim de dia em UTC."""
+    local_tz = ZoneInfo(get_settings().agendamento_timezone)
+
+    cutoff_start, cutoff_end = _resolver_janela("custom", "2026-03-10", "2026-03-12", local_tz)
+
+    esperado_start = datetime(2026, 3, 10, 0, 0, 0, tzinfo=local_tz).astimezone(UTC)
+    esperado_end = datetime(2026, 3, 12, 23, 59, 59, 999999, tzinfo=local_tz).astimezone(UTC)
+
+    assert cutoff_start == esperado_start
+    assert cutoff_end == esperado_end
+
+
+@pytest.mark.asyncio
+async def test_ai_usage_custom_date_filtra_janela_local_do_dia(
+    metrics_client, admin_headers, db_session, local_tz
+):
+    """Regressão para a janela `start_date`/`end_date` (achado da revisão
+    final de ponta a ponta, 2026-10-09): até aqui só havia cobertura para
+    data mal formada (`400`); nada garantia que o filtro de fato
+    restringia os eventos contados, então um `cutoff_start`/`cutoff_end`
+    trocado, ou um `start_date` que silenciosamente não fosse aplicado,
+    passaria a suíte inteira. Um evento antes da janela e um depois dela
+    (além do que está dentro) cobre tanto a omissão do filtro quanto uma
+    transposição dos limites."""
+    dia_pedido = (datetime.now(local_tz) - timedelta(days=3)).date()
+    inicio_do_dia = datetime(
+        dia_pedido.year, dia_pedido.month, dia_pedido.day, 0, 0, 0, tzinfo=local_tz
+    )
+    antes_da_janela = inicio_do_dia - timedelta(hours=1)  # 23h do dia anterior, local
+    dentro_da_janela = inicio_do_dia + timedelta(hours=12)
+    depois_da_janela = inicio_do_dia + timedelta(days=1, hours=1)  # 01h do dia seguinte, local
+
+    await _evento(db_session, criado_em=antes_da_janela.astimezone(UTC), custo_usd=0.001)
+    await _evento(db_session, criado_em=dentro_da_janela.astimezone(UTC), custo_usd=0.002)
+    await _evento(db_session, criado_em=depois_da_janela.astimezone(UTC), custo_usd=0.003)
+
+    data_str = dia_pedido.isoformat()
+    res = metrics_client.get(
+        f"/api/admin/metrics/ai-usage?period=custom&start_date={data_str}&end_date={data_str}",
+        headers=admin_headers,
+    )
+
+    assert res.status_code == 200
+    data = res.json()
+    assert data["totais"]["chamadas"] == 1
+    assert data["totais"]["custo_usd"] == pytest.approx(0.002)
+
+
 @pytest.mark.asyncio
 async def test_endpoint_antigo_de_tokens_e_custos_nao_existe_mais(metrics_client, admin_headers):
-    res = metrics_client.get(
-        "/api/admin/metrics/tokens-and-costs?period=7d", headers=admin_headers
-    )
+    res = metrics_client.get("/api/admin/metrics/tokens-and-costs?period=7d", headers=admin_headers)
     assert res.status_code == 404

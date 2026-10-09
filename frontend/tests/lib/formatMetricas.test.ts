@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  formatarCusto,
-  formatarTokens,
-  NAO_MEDIDO,
-} from "@/lib/format/metricas";
+import { formatarCusto, formatarTokens, NAO_MEDIDO } from "@/lib/format/metricas";
 
 describe("formatarCusto", () => {
   it("mostra zero conhecido como valor monetário, não como traço", () => {
@@ -20,6 +16,15 @@ describe("formatarCusto", () => {
   it("formata custo com 4 casas", () => {
     expect(formatarCusto(0.00254)).toBe("$0.0025");
     expect(formatarCusto(1.5)).toBe("$1.5000");
+  });
+
+  it("distingue custo medido e exatamente zero de custo medido abaixo do limiar de exibição", () => {
+    // Zero exato (grátis, conhecido) continua $0.0000.
+    expect(formatarCusto(0)).toBe("$0.0000");
+    // Não-zero, mas pequeno demais para 4 casas decimais: não pode
+    // aparentar ser o zero conhecido, então ganha seu próprio rótulo.
+    expect(formatarCusto(0.00004)).toBe("<$0.0001");
+    expect(formatarCusto(0.000001)).toBe("<$0.0001");
   });
 });
 

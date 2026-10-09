@@ -453,12 +453,12 @@ _VISION_PROMPT = (
 ---
 
 ### 9. `backend/src/app/rag/crawler_classifier.py`
-**Caminho:** [`backend/src/app/rag/crawler_classifier.py`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/crawler_classifier.py#L17-L25)
+**Caminho:** [`backend/src/app/rag/crawler_classifier.py`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/crawler_classifier.py#L19-L27)
 
 Prompt para classificação de domínio de conteúdos raspados na Web pelo crawler.
 
 ```python
-# Line 17: Prompt de classificação de páginas web
+# Line 19: Prompt de classificação de páginas web
 _PROMPT_TEMPLATE = """\
 Classifique o conteúdo de uma página de site em UM dos domínios: vendas, \
 suporte, atendimento. Avalie também sua confiança nessa classificação, de \

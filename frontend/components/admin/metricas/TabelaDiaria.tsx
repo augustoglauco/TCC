@@ -1,7 +1,8 @@
 import { DiaUsoIa } from "@/lib/api/metrics";
 import { formatarCusto, formatarDataPtBr, TITULO_NAO_MEDIDO } from "@/lib/format/metricas";
+import { ORIGENS_CONHECIDAS, ROTULOS_ORIGEM } from "./SecaoPorOrigem";
 
-const ORIGENS = ["chat", "b2b", "admin"] as const;
+const ORIGENS = ORIGENS_CONHECIDAS;
 
 export function TabelaDiaria({ dias }: { dias: DiaUsoIa[] }) {
   return (
@@ -19,7 +20,7 @@ export function TabelaDiaria({ dias }: { dias: DiaUsoIa[] }) {
               <th className="px-3 py-2 text-right">Chamadas</th>
               {ORIGENS.map((origem) => (
                 <th key={origem} className="px-3 py-2 text-right">
-                  {origem}
+                  {ROTULOS_ORIGEM[origem]?.titulo ?? origem}
                 </th>
               ))}
               <th className="px-3 py-2 text-right">Custo total</th>

@@ -51,7 +51,6 @@ async def classify_page(
     llm_client: LLMClient,
     text: str,
     source_identifier: str | None = None,
-    session: Any = None,
 ) -> PageClassification:
     """Classifica o texto de uma página crawleada. Qualquer falha de parse
     do JSON devolvido pelo LLM (ou `domain` fora de `RagDomain`) vira
@@ -82,7 +81,7 @@ async def classify_page(
             tokens_saida=getattr(response, "completion_tokens", None),
             custo_usd=getattr(response, "estimated_cost_usd", None),
             referencia_id=source_identifier,
-            session=session,
+            session=None,
             session_factory=None,
             commit=False,
         )
@@ -93,4 +92,3 @@ async def classify_page(
         return PageClassification(**parsed)
     except (json.JSONDecodeError, ValidationError, TypeError):  # fmt: skip
         return PageClassification(domain=_FALLBACK_DOMAIN, confidence=0.0)
-

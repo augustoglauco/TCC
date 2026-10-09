@@ -68,6 +68,19 @@ desapareceria do painel por completo. **Este item migra esse ponto** —
 nasce incompleta. É o último ponto de uso de IA fora do ledger; depois dele
 `record_ingestion_cost` fica sem nenhum chamador em produção.
 
+> **Correção (revisão final de ponta a ponta, 2026-10-09):** a afirmação
+> acima de que o classificador do crawler era "o único"/"o último ponto de
+> uso de IA fora do ledger" estava errada. A revisão enumerou os pontos de
+> invocação de IA do sistema contra os 16 call sites de `registrar_uso_ia`
+> e achou três famílias que este inventário também deixou de fora: o
+> resumo periódico de conversa (`app/memory/resumo.py:79`), a transcrição
+> de áudio/STT (`app/api/chat.py:534`) e os embedders de texto/CLIP
+> (`app/rag/qdrant_client.py:266,313`, `app/rag/image_search.py:130,211,227`).
+> Todos são locais e gratuitos — não afetam a resposta de custo
+> interno×externo — mas não foram instrumentados por este item; ver item
+> novo em `docs/ROADMAP.md` ("Extra fora do MVP — Ledger Unificado de Uso
+> de IA") registrando a decisão pendente.
+
 ---
 
 ## 2. Contrato da API

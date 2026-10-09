@@ -283,8 +283,13 @@ Acessível pelo menu de administração (ícone ⚙️ no topo → "Métricas & 
 
 **Reconstruído em 2026-10-08** sobre o ledger unificado de uso de IA
 (`ai_usage_events`): o painel deixou de somar dois esquemas diferentes de
-telemetria e passou a ler uma única fonte, que registra **todo** uso de
-IA do sistema (chat, B2B e admin) com a mesma estrutura.
+telemetria e passou a ler uma única fonte, com a mesma estrutura para
+chat, B2B e admin. Essa fonte registra toda chamada que usa um modelo de
+**geração** (local ou externo) — transcrição de áudio (STT), os
+embeddings de texto/imagem usados na busca e o resumo periódico de
+conversa ainda não entram nela; todos são locais e portanto gratuitos,
+então isso não afeta a leitura de custo interno×externo do painel, só o
+volume de chamadas de IA contabilizado.
 
 ### 1. As Cinco Seções do Painel
 Abaixo do cabeçalho (filtro de período e contagem de chats encerrados), o
@@ -301,11 +306,11 @@ sobre o mesmo período selecionado:
 * **Por Modelo** (tabela): chamadas, tokens e custo por modelo/engine —
   `clip` e o modelo local aparecem com custo `$0.0000`, os modelos
   externos com o custo real medido.
-* **Por Operação** (tabela): o nível mais fino, separando por exemplo
-  identificação de produto por CLIP de identificação por visão externa,
-  ou o monitor de tom via heurística/LLM local do monitor de tom via Jev
-  externo — útil para saber exatamente qual funcionalidade está gerando
-  custo.
+* **Por Operação** (tabela): o nível mais fino. Separa, por exemplo,
+  identificação de produto por CLIP de identificação por visão externa.
+  Separa também o monitor de tom via heurística/LLM local do monitor de
+  tom via Jev externo — útil para saber exatamente qual funcionalidade
+  está gerando custo.
 * **Detalhamento Diário** (tabela): data, chats encerrados, chamadas e
   custo total e por origem, um dia por linha, mais recente primeiro.
 
@@ -325,7 +330,7 @@ Esta é a dúvida mais comum ao olhar o painel, porque os dois parecem
   chamada aconteceu, mas o custo/tokens não foram capturados". Ou seja,
   houve uso de IA ali, mas o sistema não tem o número de tokens/custo
   daquela chamada específica (hoje, o caso conhecido é a estimativa de
-  uso da visão externa no `OpenRouterClient.describe_image`).
+  uso da visão externa — identificação de produto por imagem).
 * **`$0.0000`** — a chamada foi medida e o resultado é, de fato, zero: é
   o que aparece para CLIP e para o modelo local na GPU, que são
   genuinamente gratuitos.
