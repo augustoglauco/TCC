@@ -41,3 +41,13 @@ install.cmd
 
 # Segredos do Caddy (token do DuckDNS)
 infra/caddy/caddy.env
+
+# Ferramentas locais de agente / memória
+.headroom/
+.serena/
+.claude/.headroom_wrap*
+
+# Graphify cache e apontadores locais de ambiente
+graphify-out/cache/
+graphify-out/.graphify_python
+graphify-out/.graphify_root

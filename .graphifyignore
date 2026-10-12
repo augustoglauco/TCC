@@ -1,0 +1,22 @@
+# Exclude testes_locais and all test files per user instruction
+testes_locais/
+testar.sh
+tests/
+**/tests/**
+**/test/**
+test_*.py
+*_test.py
+teste_*.py
+*teste*
+*.test.*
+*.spec.*
+vitest.config.*
+
+# Exclude agent / tool state directories from code analysis
+.claude/
+.cmem-projects/
+.headroom/
+.kiro/
+.serena/
+.superpowers/
+agent-transcripts/
