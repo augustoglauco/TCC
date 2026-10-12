@@ -46,6 +46,7 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 | `goup.md` (raiz) | Para instalar numa máquina nova (passo 0) ou subir o ambiente à mão; acesso externo, MCP B2B público com o manual do parceiro, solução de problemas. `./g.sh` sobe tudo de uma vez. |
 | `docs/Manuais/` | Manuais para quem usa o sistema: `HOWTO_USUARIO.md` (site e chat) e `HOWTO_ADMINISTRADOR.md` (telas `/admin`). Atualize quando mudar o que o usuário ou o administrador vê. |
 | `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` | Mapeamento de todos os prompts/instruções de sistema/playbooks/extratores estruturados enviados a um LLM no código. Consulte antes de alterar qualquer prompt existente (para achar todos os pontos relacionados) e atualize sempre que um prompt for alterado ou um novo for criado — ver regra 11. |
+| `graphify-out/` (Knowledge Graph) | **Primeira consulta obrigatória** ao receber perguntas sobre código ou pedidos de alterações. Use a CLI (`graphify query`, `explain`, `path`) ou navegue por `wiki/index.md` e `GRAPH_REPORT.md` para entender arquitetura, dependências e nós centrais antes de ler arquivos brutos. |
 | `README.md` e `README_TCC.md` | Apresentação do projeto; o `README_TCC.md` é a entrega acadêmica no formato do curso. |
 
 Não crie documentos novos fora desta lista (resumos, cópias de spec, guias
@@ -109,6 +110,24 @@ manuais foram incorporados aos documentos acima e apagados.
     mapeado, atualize a entrada correspondente; ao criar um prompt novo,
     adicione uma entrada nova. Trate esse documento como desatualizado (bug a
     corrigir) se um prompt existir no código e não constar nele.
+12. **Sempre checar o Graphify primeiro ao receber perguntas sobre código ou pedir alterações.**
+    Sempre que o usuário fizer perguntas sobre o código/arquitetura ou solicitar
+    alterações/novas implementações, consulte **primeiramente** o knowledge graph
+    em `graphify-out/` antes de inspecionar arquivos brutos ou propor soluções:
+    - Execute `graphify query "<pergunta>"` (ou MCP `query_graph`) para obter um subgrafo enxuto de nós, classes e funções relevantes.
+    - Use `graphify explain "<conceito/símbolo>"` (ou MCP `get_node`) para inspecionar um conceito ou nó focalizado.
+    - Use `graphify path "<A>" "<B>"` (ou MCP `shortest_path`) para rastrear conexões e dependências entre componentes.
+    - Se `graphify-out/wiki/index.md` existir, navegue por ele em vez de ler arquivos brutos.
+    - Consulte `graphify-out/GRAPH_REPORT.md` apenas para visão macro da arquitetura ou se a busca direcionada não for suficiente.
+13. **Atualização automática do Graphify sempre após qualquer alteração no código.**
+    Sempre que houver alteração em arquivos de código (criação, edição, renomeação
+    ou exclusão no backend, frontend, scripts, etc.), execute de maneira **automática**
+    e sem esperar pedido manual:
+    ```bash
+    graphify update .
+    ```
+    Isso mantém o grafo em `graphify-out/` sempre atualizado e sincronizado (atualização
+    via AST, rápida e sem custo de API).
 
 ## Fora de escopo (não implementar sem pedido explícito)
 

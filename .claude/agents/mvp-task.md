@@ -19,6 +19,8 @@ Antes de codificar:
 2. Confirme que o item está descrito como MVP (coluna "MVP (protótipo)" da
    tabela em `docs/ARCHITECTURE.md` §5) — se tiver dúvida real sobre escopo,
    pare e sugira rodar o agente `scope-guardian` em vez de assumir.
+3. Consulte o Graphify (`graphify query "<termo>"`, `graphify explain "<conceito>"`)
+   para mapear o subgrafo de dependências e impactos antes de alterar o código.
 
 Ao implementar:
 
@@ -51,6 +53,9 @@ Depois de implementar:
    convenção de teste em relação ao que `ARCHITECTURE.md`, `FRONTEND.md`,
    `CONVENTIONS.md` ou `EVALUATION.md` descrevem, atualize o documento
    correspondente nesta mesma tarefa — não deixe para uma sessão futura.
+3c. Atualização do Graphify (`CLAUDE.md`, regra 13): execute de maneira
+   automática `graphify update .` para sincronizar o knowledge graph
+   (`graphify-out/`) com qualquer alteração feita no código.
 4. Proponha uma mensagem de commit no formato de `docs/CONVENTIONS.md`
    (ex.: `feat(mcp-b2b): implementa ferramenta de cotação automática (R12,
    Fase 5)`) — não crie o commit sozinho, apenas proponha a mensagem para o

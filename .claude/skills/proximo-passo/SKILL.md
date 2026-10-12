@@ -24,8 +24,9 @@ Objetivo: avançar `docs/ROADMAP.md` um item de cada vez, seguindo o loop de
 4. **Implemente** invocando o agente `mvp-task` com o item validado — passe a
    ele o texto exato do item do roadmap e o requisito `Rn` relacionado.
 5. **Revise o resultado**: leia o diff/resumo do `mvp-task`, confira que os
-   testes relevantes rodaram e passaram, e que `docs/ROADMAP.md` foi marcado
-   (`- [x]`) para esse item.
+   testes relevantes rodaram e passaram, que `graphify update .` foi executado
+   se houve alteração no código (`CLAUDE.md`, regra 13), e que
+   `docs/ROADMAP.md` foi marcado (`- [x]`) para esse item.
 6. **Rode a skill `code-review`** sobre o diff gerado por este item antes de
    propor o commit. Se o item tocou algo sensível (MCPs, autenticação,
    `.env`/segredos, endpoints expostos), rode também `security-review`. Trate

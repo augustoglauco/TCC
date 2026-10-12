@@ -211,6 +211,8 @@ no backend e 10 no frontend. Antes de commitar, confira:
    nos `.md` e no código.
 8. Nenhum documento novo fora da lista do `CLAUDE.md` (resumos, cópias de
    spec, guias paralelos): atualize o documento que já cobre o assunto.
+9. Se houve alteração no código, execute `graphify update .` para manter
+   o knowledge graph (`graphify-out/`) atualizado e sincronizado.
 - Não commitar arquivos de ambiente com segredos reais (`.env` — apenas
   `.env.example` vai para o repositório).
 

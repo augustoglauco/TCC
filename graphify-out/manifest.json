@@ -1668,10 +1668,10 @@
     "semantic_hash": "505d0018e92c63934006cd7f9f2998e4"
   },
   "CLAUDE.md": {
-    "mtime": 1790727089.1651566,
-    "seen": 1791840346.4559188,
-    "ast_hash": "4a95c9f03c1f056bb93203613d9a3b06",
-    "semantic_hash": "4a95c9f03c1f056bb93203613d9a3b06"
+    "mtime": 1791844286.1150074,
+    "seen": 1791844513.5521195,
+    "ast_hash": "1b9e877c52fae432b701c29b68219546",
+    "semantic_hash": ""
   },
   "README.md": {
     "mtime": 1791238932.2767766,
@@ -1746,10 +1746,10 @@
     "semantic_hash": "c560de78c05a1b5bc3e151d686833305"
   },
   "docs/AGENTIC_WORKFLOW.md": {
-    "mtime": 1790342459.8361788,
-    "seen": 1791840346.4559283,
-    "ast_hash": "875821750909753d37de8efe5c581716",
-    "semantic_hash": "875821750909753d37de8efe5c581716"
+    "mtime": 1791844338.9483898,
+    "seen": 1791844513.5521317,
+    "ast_hash": "6518a6d4642ca9727c4b161bf47c703b",
+    "semantic_hash": ""
   },
   "docs/ARCHITECTURE.md": {
     "mtime": 1791559283.0268545,
@@ -1758,10 +1758,10 @@
     "semantic_hash": "45038ad552c01b454b513426800682d2"
   },
   "docs/CONVENTIONS.md": {
-    "mtime": 1791559283.0268545,
-    "seen": 1791840346.4559298,
-    "ast_hash": "e249d8267af2b0af9f4eba69c43bc68e",
-    "semantic_hash": "e249d8267af2b0af9f4eba69c43bc68e"
+    "mtime": 1791844310.1991005,
+    "seen": 1791844513.5521333,
+    "ast_hash": "3e5b2ea9c6270e391335080e22035332",
+    "semantic_hash": ""
   },
   "docs/EVALUATION.md": {
     "mtime": 1791383043.29844,
@@ -2128,5 +2128,17 @@
     "seen": 1791840346.4559765,
     "ast_hash": "4398a09240716db9a3079f7ef2239abd",
     "semantic_hash": "4398a09240716db9a3079f7ef2239abd"
+  },
+  ".agents/rules/graphify.md": {
+    "mtime": 1791836550.713148,
+    "seen": 1791844513.5521154,
+    "ast_hash": "f1e53ecc9194573d3c28fc116c743a2e",
+    "semantic_hash": ""
+  },
+  ".agents/workflows/graphify.md": {
+    "mtime": 1791836550.7136624,
+    "seen": 1791844513.5521185,
+    "ast_hash": "6d73634a678cf1e1c71930adf80bd1f0",
+    "semantic_hash": ""
   }
 }

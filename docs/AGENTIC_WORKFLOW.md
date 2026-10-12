@@ -89,9 +89,14 @@ a ferramenta, o contexto lido e a documentação atualizada sejam os mesmos.
 ## Loop de trabalho recomendado
 
 1. Escolha o próximo item pendente (`- [ ]`) em `docs/ROADMAP.md`.
-2. Implemente (Antigravity Editor View, Manager Surface, Claude Code CLI ou
+2. Consulte primeiramente o **Graphify** (`graphify query`, `explain`, `path`
+   ou `graphify-out/wiki/index.md`) para mapear dependências e entender o
+   impacto antes de alterar ou escrever código.
+3. Implemente (Antigravity Editor View, Manager Surface, Claude Code CLI ou
    Kiro CLI).
-3. Verifique o resultado:
+4. Após qualquer alteração no código, execute de maneira automática
+   `graphify update .` para sincronizar o knowledge graph (`graphify-out/`).
+5. Verifique o resultado:
    - No Antigravity, revise os **Artifacts** (plano, screenshots, gravações
      de navegador/terminal) em vez de aceitar às cegas.
    - Com o Claude Code CLI ou o Kiro CLI, revise o diff proposto e rode os
@@ -100,13 +105,13 @@ a ferramenta, o contexto lido e a documentação atualizada sejam os mesmos.
      ponta a ponta é feita na máquina do desenvolvedor com `./testar.sh`,
      que roda o teste e dá push do relatório para o agente ler (ver
      `docs/TESTE_LOCAL.md`).
-4. Rode a skill/comando `code-review` sobre o diff do item (e também
+6. Rode a skill/comando `code-review` sobre o diff do item (e também
    `security-review` quando o item tocar algo sensível — MCPs, autenticação,
    segredos/`.env`, endpoints expostos). Achados `high`/`critical` bloqueiam
    o commit; achados de estilo/baixo risco só ficam registrados. O
    `/proximo-passo` já automatiza esse passo.
-5. Marque o item como concluído (`- [x]`) em `docs/ROADMAP.md`.
-6. Faça commit seguindo a convenção de `docs/CONVENTIONS.md` (mensagem
+7. Marque o item como concluído (`- [x]`) em `docs/ROADMAP.md`.
+8. Faça commit seguindo a convenção de `docs/CONVENTIONS.md` (mensagem
    referenciando requisito + fase).
 
 ## Boas práticas de revisão de agentes
