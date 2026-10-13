@@ -285,11 +285,13 @@ Acessível pelo menu de administração (ícone ⚙️ no topo → "Métricas & 
 (`ai_usage_events`): o painel deixou de somar dois esquemas diferentes de
 telemetria e passou a ler uma única fonte, com a mesma estrutura para
 chat, B2B e admin. Essa fonte registra toda chamada que usa um modelo de
-**geração** (local ou externo) — transcrição de áudio (STT), os
-embeddings de texto/imagem usados na busca e o resumo periódico de
-conversa ainda não entram nela; todos são locais e portanto gratuitos,
-então isso não afeta a leitura de custo interno×externo do painel, só o
-volume de chamadas de IA contabilizado.
+**geração** que possa ter custo de API (local ou externo). Transcrição de
+áudio (STT), os embeddings de texto/imagem usados na busca e o resumo
+periódico de conversa **não entram nela, por decisão definitiva de
+2026-10-12**: todos rodam localmente e são sempre gratuitos, então isso não
+afeta a leitura de custo interno×externo do painel — só o volume de chamadas
+contabilizado. Em outras palavras: o painel conta chamadas de geração, não
+toda inferência que a GPU executa.
 
 ### 1. As Cinco Seções do Painel
 Abaixo do cabeçalho (filtro de período e contagem de chats encerrados), o

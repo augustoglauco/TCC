@@ -1162,8 +1162,23 @@ conversa e classificação do usuário").
       e CLIP, e o resumo periódico de conversa continuam fora dele (ver
       item novo abaixo).
 
-- [ ] **Extra — avaliar inclusão de STT/embeddings/resumo periódico no
-      ledger.** Revisão de ponta a ponta do item E (2026-10-09) comparou os
+- [x] **Extra — avaliar inclusão de STT/embeddings/resumo periódico no
+      ledger.** Resolvido em 2026-10-12: **exclusão documentada como
+      definitiva**, nenhum dos pontos foi instrumentado. A fronteira do
+      ledger passou a ser explícita — "modelo de geração que possa ter custo
+      de API" — registrada em `docs/ARCHITECTURE.md` §6 e no próprio módulo
+      `backend/src/app/services/ai_usage.py` (comentário `# MVP:` logo antes
+      do `logger`, onde quem ligar um ponto de uso de IA novo vai ler). As
+      quatro famílias rodam sempre locais e a custo zero, então incluí-las
+      não mudaria nenhum número de custo do painel nem a resposta da Fase 10;
+      o único ganho seria volume de chamadas, ao preço de instrumentar 6 call
+      sites em caminhos quentes (toda busca RAG e toda ingestão geram
+      embeddings). Consequência assumida: `/admin/metricas` conta chamadas de
+      geração, não toda inferência da GPU — a latência da Fase 10 é medida
+      por fora do ledger, em `backend/eval/`. Corrigida na mesma passagem a
+      afirmação do fechamento do item E de que o classificador do crawler era
+      o "último ponto de uso de IA fora do ledger" (era o último escrevendo
+      na tabela antiga `IngestionCostEvent`). Levantamento original: Revisão de ponta a ponta do item E (2026-10-09) comparou os
       pontos de invocação de IA do sistema contra os 16 call sites de
       `registrar_uso_ia` e achou três famílias ainda fora do ledger, todas
       locais e portanto sem custo de API, mas que o ledger não contabiliza

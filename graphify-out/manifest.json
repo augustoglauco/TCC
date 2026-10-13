@@ -810,10 +810,10 @@
     "semantic_hash": "3137e7ecc3c4bfba8612c048bc90e4d6"
   },
   "backend/src/app/services/ai_usage.py": {
-    "mtime": 1791465939.9668171,
-    "seen": 1791840346.4557922,
-    "ast_hash": "b43b2ba4abb7e09056fd18cf2d53a26b",
-    "semantic_hash": "b43b2ba4abb7e09056fd18cf2d53a26b"
+    "mtime": 1791850424.4769223,
+    "seen": 1791850513.2472627,
+    "ast_hash": "2d1ffe3b2bac345294999280592ddba0",
+    "semantic_hash": ""
   },
   "backend/src/app/services/ai_usage_report.py": {
     "mtime": 1791559283.0192187,
@@ -1668,9 +1668,9 @@
     "semantic_hash": "505d0018e92c63934006cd7f9f2998e4"
   },
   "CLAUDE.md": {
-    "mtime": 1791844286.1150074,
-    "seen": 1791844513.5521195,
-    "ast_hash": "1b9e877c52fae432b701c29b68219546",
+    "mtime": 1791845363.9759681,
+    "seen": 1791845457.8505704,
+    "ast_hash": "96d4214c8ff1225c35907f37f52b8176",
     "semantic_hash": ""
   },
   "README.md": {
@@ -1752,10 +1752,10 @@
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE.md": {
-    "mtime": 1791559283.0268545,
-    "seen": 1791840346.455929,
-    "ast_hash": "45038ad552c01b454b513426800682d2",
-    "semantic_hash": "45038ad552c01b454b513426800682d2"
+    "mtime": 1791850445.013207,
+    "seen": 1791850513.2474182,
+    "ast_hash": "8a58ce668eea5d2714057b8cade4af0d",
+    "semantic_hash": ""
   },
   "docs/CONVENTIONS.md": {
     "mtime": 1791844310.1991005,
@@ -1776,10 +1776,10 @@
     "semantic_hash": "a120b74f5b9988acef9d7037ed70e10b"
   },
   "docs/Manuais/HOWTO_ADMINISTRADOR.md": {
-    "mtime": 1791559283.027219,
-    "seen": 1791840346.455932,
-    "ast_hash": "83bec9fbf40b8802d8857dfe1137b167",
-    "semantic_hash": "83bec9fbf40b8802d8857dfe1137b167"
+    "mtime": 1791850470.2960727,
+    "seen": 1791850513.2474222,
+    "ast_hash": "c0617c2941d93b221d26ad62326be321",
+    "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_USUARIO.md": {
     "mtime": 1791193181.638197,
@@ -1806,10 +1806,10 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1791559283.0326514,
-    "seen": 1791840346.4559357,
-    "ast_hash": "2350decabe341525925d2153acf69de6",
-    "semantic_hash": "2350decabe341525925d2153acf69de6"
+    "mtime": 1791850457.499628,
+    "seen": 1791850513.2474282,
+    "ast_hash": "667aa5262c6b59476c7ff8156b9f81c4",
+    "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
     "mtime": 1790624227.9578757,
@@ -2139,6 +2139,12 @@
     "mtime": 1791836550.7136624,
     "seen": 1791844513.5521185,
     "ast_hash": "6d73634a678cf1e1c71930adf80bd1f0",
+    "semantic_hash": ""
+  },
+  "docs/Manuais/repowise-manual.md": {
+    "mtime": 1791848282.2301385,
+    "seen": 1791850513.247426,
+    "ast_hash": "6a1182cfa4e5e3b6dcb84d43d00a9dd8",
     "semantic_hash": ""
   }
 }

@@ -879,12 +879,43 @@ em cima do ledger; (3) manter a tabela `IngestionCostEvent` no banco sem
 leitor nem escritor, marcada como morta no modelo, em vez de uma migração
 destrutiva. O classificador do crawler
 (`app.rag.crawler_classifier.classify_page`), último ponto de uso de IA
-fora do ledger, foi migrado neste item. A distinção `custo_usd`/`tokens`
+ainda escrevendo na tabela antiga `IngestionCostEvent`, foi migrado neste
+item (não era, porém, o último ponto de uso de IA fora do ledger — ver a
+decisão de fronteira a seguir). A distinção `custo_usd`/`tokens`
 `None` (não capturado) × `0.0` (grátis conhecido) é preservada da tabela
 até a tela: `—` versus `$0.0000`, mais um contador
 `chamadas_sem_custo_medido` por grupo, que é como o painel expõe — em vez
 de esconder atrás de um zero — o gap conhecido de estimativa de uso em
 `OpenRouterClient.describe_image`.
+
+**Decisão registrada (Fronteira do ledger de uso de IA — STT, embeddings e
+resumo periódico ficam fora, em definitivo, 2026-10-12):** a revisão de ponta
+a ponta do item E (2026-10-09) comparou os pontos de invocação de IA do
+sistema contra os 16 call sites de `registrar_uso_ia` e achou quatro famílias
+ainda fora do ledger — o inventário §1 do spec do item E tratou os 15 pontos
+então levantados como exaustivos, e não eram:
+
+- `app.memory.resumo` (`llm_client.generate`, o resumo periódico de conversa,
+  disparado por `app.api.chat` a cada 6 mensagens);
+- `app.api.chat` (`stt_client.transcribe`, Whisper na mesma GPU);
+- `app.rag.qdrant_client` e `app.rag.image_search` (embeddings de texto e
+  CLIP, a cada ingestão e a cada busca).
+
+Decisão: **documentar a exclusão como definitiva**, não instrumentar. A
+fronteira do ledger passa a ser explícita — "modelo de geração que possa ter
+custo de API" — e está registrada também no módulo
+`app.services.ai_usage`, onde quem for ligar um ponto de uso de IA novo vai
+ler. Motivo: as quatro famílias rodam sempre localmente e nunca têm custo em
+USD, então incluí-las não mudaria nenhum número de custo interno × externo do
+painel nem a resposta que a Fase 10 precisa; o único ganho seria precisão de
+volume de chamadas, ao preço de instrumentar 6 call sites em caminhos quentes
+(cada busca RAG e cada ingestão geram embeddings) e de poluir o painel com
+operações de natureza diferente das que ele compara. Consequência assumida: o
+painel `/admin/metricas` conta chamadas de **geração**, não toda inferência
+que a GPU executa — a avaliação de latência da Fase 10 mede o caminho
+completo por fora do ledger, via `backend/eval/`. Reverter é barato se a
+precisão de volume vier a importar: a decisão é de escopo, não de
+arquitetura.
 
 **Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
 `POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou

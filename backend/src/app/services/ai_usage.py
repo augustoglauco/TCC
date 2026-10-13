@@ -1,8 +1,9 @@
 """Ledger unificado de uso de IA (origem × ambiente × modelo) — ver
 docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md.
 
-Todo ponto do sistema que usa um modelo/engine de IA (local ou externo,
-texto ou visão) chama `registrar_uso_ia`. Mesmo padrão de sessão de
+Todo ponto do sistema que usa um modelo/engine de IA **de geração que
+possa ter custo de API** (local ou externo, texto ou visão) chama
+`registrar_uso_ia` — ver a fronteira do ledger abaixo. Mesmo padrão de sessão de
 `app.services.ingestion_metrics.record_ingestion_cost` (sessão explícita /
 sessão própria via factory / fallback para um sessionmaker global
 configurado uma vez em `app.main`) — reaproveitado de propósito em vez de
@@ -16,6 +17,16 @@ import logging
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.models import AiUsageEvent
+
+# MVP: a fronteira do ledger é "modelo de geração que possa ter custo de
+# API". Quatro famílias de chamadas de IA ficam fora dele por decisão
+# definitiva de 2026-10-12 (ver docs/ARCHITECTURE.md §6 e o item Extra do
+# ledger em docs/ROADMAP.md), todas locais e sempre a custo zero: STT/Whisper
+# (`app.api.chat`), embeddings de texto (`app.rag.qdrant_client`), embeddings
+# CLIP (`app.rag.image_search`) e o resumo periódico de conversa
+# (`app.memory.resumo`). Instrumentá-las não mudaria nenhum número de custo
+# do painel, só o volume de chamadas. Ao ligar um ponto de uso de IA novo,
+# a pergunta é "esse modelo pode cobrar?" — se sim, ele entra no ledger.
 
 logger = logging.getLogger("assistente.ai_usage")
 
