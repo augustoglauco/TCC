@@ -89,6 +89,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       "bom dia" em `atendimento`, o RAG voltava vazio (~10 s) e o roteador
       escalava ao externo por `rag_vazio`. Cortesia com conteúdo ("bom dia,
       quero um orçamento") segue o fluxo normal.
+- [x] Consistência de quantidade e fechamento em Vendas (2026-10-13): o
+      texto citava 2 unidades (estoque do CD-RJ) com card de 1, e "sim feche
+      o pedido" virava `quantidade: 2` e "vou iniciar o fechamento" (o chat
+      não cria pedidos). Corrigido com a linha "Quantidade do pedido do
+      cliente" no bloco do catálogo e regra de quantidade no extrator.
+      Playbook de Vendas (a pedido do usuário): logado → oferece prosseguir
+      com o fechamento; não logado → só a proposta e aviso de que fechar
+      exige login; visita só se o cliente desistir.
 
 ## Fase 2 — Entrada Multimodal e RAG Textual (R2, R4, R5)
 

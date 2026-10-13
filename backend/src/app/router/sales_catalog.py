@@ -349,6 +349,13 @@ e deixe "produto_id" e "categoria" null.
 Contexto recente da conversa:
 {contexto}
 
+Regra da "quantidade": é a ÚLTIMA quantidade que o PRÓPRIO CLIENTE pediu na \
+conversa (ex.: "quero 2", "somente 1 unidade"), mantida em mensagens de \
+confirmação como "sim", "perfeito" ou "feche o pedido". Números que aparecem \
+em falas do assistente (estoque por centro de distribuição, preços, "2 \
+unidades disponíveis") NÃO são a quantidade do cliente. Se o cliente nunca \
+disse uma quantidade, use null.
+
 Mensagem atual do cliente: {mensagem}
 
 Responda APENAS com JSON no formato: {{"produto_id": <id ou null>, \

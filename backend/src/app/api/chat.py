@@ -959,6 +959,7 @@ async def send_message(
                 ),
                 is_admin=is_admin,
                 user_email=email_cliente,
+                usuario_autenticado=usuario_autenticado,
                 comprovante_bytes=comprovante_bytes,
                 comprovante_filename="comprovante.png" if comprovante_bytes else None,
             ):

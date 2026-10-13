@@ -34,6 +34,19 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 
 Contém as instruções base e os "playbooks" (prompts de sistema) por domínio de atendimento.
 
+> **`_VENDAS_PLAYBOOK` atualizado em 2026-10-13** (achado: o assistente
+> respondeu "vou iniciar o fechamento do seu pedido" e logo ofereceu visita,
+> mas o chat não cria nem reserva pedidos — reservas só existem pelo MCP
+> B2B). Por decisão do usuário: (1) visita NÃO é mais oferecida durante a
+> compra, só quando o cliente demonstra desistência (no máximo uma vez);
+> (2) o chat não promete "iniciar o fechamento" e usa sempre a quantidade da
+> cotação, nunca o estoque de um CD; (3) `build_system_prompt(domain,
+> usuario_autenticado)` anexa ao playbook de Vendas uma de duas regras de
+> fechamento — logado: confirmar produto/quantidade/total e oferecer
+> prosseguir com o fechamento (finalização na página Pedidos do site); não
+> logado: apresentar a proposta e informar que fechar o pedido exige estar
+> logado. "Logado" = `user_email` no payload do chat.
+>
 > **`_VENDAS_PLAYBOOK` atualizado em 2026-10-05** (achado: usuário reportou
 > o chat oferecendo agendamento de visita em praticamente toda resposta de
 > Vendas): o gatilho antigo ("intenção de compra" = pedir orçamento, cotação,
@@ -214,6 +227,13 @@ null."""
 ### 4. `backend/src/app/router/sales_catalog.py`
 **Caminho:** [`backend/src/app/router/sales_catalog.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/sales_catalog.py#L316-L358)
 
+> **Regra da "quantidade" adicionada em 2026-10-13:** a quantidade é a
+> última que o próprio cliente pediu, mantida em confirmações ("sim",
+> "perfeito"); números de falas do assistente (estoque por CD) não contam e,
+> sem quantidade dita pelo cliente, vale `null`. Sem isso, o estoque "CD-RJ:
+> 2 unidades" da última resposta virava `quantidade: 2` em "sim feche o
+> pedido", mesmo o cliente tendo pedido 1.
+
 Prompt para identificação estruturada de intenções de catálogo de produtos e compatibilidade em conversas de vendas.
 
 ```python
@@ -291,6 +311,12 @@ Responda apenas com JSON no formato: \
 **Caminho:** [`backend/src/app/router/orchestrator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/orchestrator.py#L71-L152)
 
 Constrói e une todos os blocos de contexto (playbook, dados do cliente, resumo, RAG e mensagem atual) no prompt final enviado ao modelo de linguagem.
+
+> **`_formatar_dados_catalogo_vendas` atualizado em 2026-10-13:** quando há
+> cotação, o bloco ganha a linha "Quantidade do pedido do cliente: N
+> unidade(s)", dizendo que o estoque (total ou por CD) é só disponibilidade
+> e nunca a quantidade do pedido. O texto dizia "2 unidades" (estoque do
+> CD-RJ) enquanto o card mostrava 1.
 
 > **`_build_prompt` atualizado em 2026-10-07** (resiliência a prompt
 > injection, ver `docs/superpowers/specs/2026-10-07-seguranca-prompt-injection-mcp-design.md`):

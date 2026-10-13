@@ -44,7 +44,9 @@ def test_vendas_nao_oferece_agendamento_a_toa_nem_repete():
     prompt_lower = prompt.lower()
     assert "não repita" in prompt_lower or "nao repita" in prompt_lower
     assert "troca anterior" in prompt_lower
-    assert "fechar negócio" in prompt_lower or "fechar o negócio" in prompt_lower
+    # 2026-10-13: visita só na desistência, nunca durante a compra.
+    assert "não ofereça durante a compra" in prompt_lower
+    assert "desistência" in prompt_lower
 
 
 def test_suporte_pede_passos_e_honestidade():
@@ -67,3 +69,32 @@ def test_system_prompt_inclui_regras_base():
         prompt = build_system_prompt(domain)
         assert prompt is not None
         assert "não invente" in prompt.lower() or "nunca invente" in prompt.lower()
+
+
+def test_playbook_vendas_nao_promete_criar_pedido_e_usa_a_quantidade_da_cotacao():
+    from app.router.playbooks import _VENDAS_PLAYBOOK
+
+    assert "O chat NÃO cria nem reserva pedidos" in _VENDAS_PLAYBOOK
+    assert "nunca o estoque de um CD" in _VENDAS_PLAYBOOK
+
+
+def test_vendas_logado_oferece_prosseguir_com_o_fechamento():
+    prompt = build_system_prompt("vendas", usuario_autenticado=True)
+    assert prompt is not None
+    assert "LOGADO no sistema" in prompt
+    assert "prosseguir com o fechamento da venda" in prompt
+    assert "NÃO LOGADO" not in prompt
+
+
+def test_vendas_nao_logado_so_apresenta_proposta_e_pede_login():
+    prompt = build_system_prompt("vendas")
+    assert prompt is not None
+    assert "NÃO LOGADO" in prompt
+    assert "preciso estar logado no sistema" in prompt
+    assert "prosseguir com o fechamento da venda" not in prompt
+
+
+def test_regra_de_login_so_existe_no_dominio_vendas():
+    for domain in ("suporte", "atendimento", "fora_escopo"):
+        prompt = build_system_prompt(domain, usuario_autenticado=True)
+        assert prompt is None or "LOGADO no sistema" not in prompt

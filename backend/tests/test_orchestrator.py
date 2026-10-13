@@ -2875,3 +2875,56 @@ def test_build_system_prompt_termina_com_regra_anti_injecao():
     assert "<entrada_cliente>" in prompt
     assert "<contexto_rag>" in prompt
     assert "nunca" in prompt.lower()
+
+
+def test_formatar_dados_catalogo_vendas_fixa_quantidade_do_pedido_separada_do_estoque():
+    # Achado de 2026-10-13: o texto trocou a quantidade pedida (1) pelo
+    # estoque do CD-RJ (2) enquanto o card mostrava 1.
+    dados = DadosCatalogoVendas(
+        produto_nome="IDMAX/FP/M",
+        estoque_total=3,
+        estoque_por_cd=[
+            EstoqueCentroDistribuicao(centro_distribuicao="CD-RJ", quantidade=2),
+            EstoqueCentroDistribuicao(centro_distribuicao="CD-SP", quantidade=1),
+        ],
+        cotacao=(Decimal("1716.05"), Decimal("0"), Decimal("1716.05")),
+        quantidade=1,
+    )
+
+    texto = _formatar_dados_catalogo_vendas(dados)
+
+    assert "- Quantidade do pedido do cliente: 1 unidade(s)." in texto
+    assert "nunca a quantidade do pedido" in texto
+
+
+def test_formatar_dados_catalogo_vendas_sem_cotacao_nao_tem_linha_de_quantidade_do_pedido():
+    dados = DadosCatalogoVendas(produto_nome="Gerador GD-15", estoque_total=8)
+
+    assert "Quantidade do pedido do cliente" not in _formatar_dados_catalogo_vendas(dados)
+
+
+@pytest.mark.parametrize(
+    ("logado", "esperado", "ausente"),
+    [(True, "LOGADO no sistema", "NÃO LOGADO"), (False, "NÃO LOGADO", "LOGADO no sistema")],
+)
+async def test_handle_message_vendas_propaga_login_para_o_playbook(logado, esperado, ausente):
+    local_client = _FakeLLMClient(response=_resposta_local())
+    external_client = _FakeLLMClient(response=_resposta_externa())
+
+    async for _ in handle_message(
+        "Qual o preço do gerador GD-15?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=_FakeRAGClient(
+            documents=[Document(content="GD-15 custa R$ 100.", source="cat.pdf", score=0.9)]
+        ),
+        complexity_strategy="heuristic",
+        usuario_autenticado=logado,
+    ):
+        pass
+
+    prompt_usado = local_client.last_prompt or external_client.last_prompt
+    assert prompt_usado is not None
+    assert esperado in prompt_usado
+    assert ausente not in prompt_usado

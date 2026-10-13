@@ -963,6 +963,19 @@ em `docs/FRONTEND.md` §4. `# MVP: sem reconexão automática/`Last-Event-ID`
 se a conexão cair no meio do stream — o cliente perde os tokens já enviados
 e precisa reenviar a mensagem inteira, aceitável para este protótipo`.
 
+**Decisão registrada (quantidade e fechamento no chat de Vendas, R3, 2026-10-13):**
+a quantidade da cotação é a última pedida pelo próprio cliente (o extrator
+ignora números de falas do assistente, como o estoque por CD), e o bloco do
+catálogo a repete como "Quantidade do pedido do cliente", separada do
+estoque. O chat de Vendas não cria nem reserva pedidos (reserva é do MCP
+B2B). Regra de fechamento (a pedido do usuário): com o visitante logado
+(`user_email` no payload), o playbook manda confirmar produto, quantidade e
+total e oferecer prosseguir com o fechamento (finalização na página Pedidos
+do site); deslogado, apresenta só a proposta e informa que fechar o pedido
+exige login. Visita não é oferecida durante a compra, apenas se o cliente
+demonstrar desistência. MVP: a correção é por prompt; um modelo local fraco
+ainda pode errar o texto, mas o card segue o dado do banco.
+
 **Decisão registrada (saudação/cortesia pura não escala, R3, 2026-10-13):**
 `classify()` reconhece saudações e agradecimentos puros ("bom dia!", "olá",
 "tudo bem?", "obrigado") por um conjunto fechado de palavras (pelo menos

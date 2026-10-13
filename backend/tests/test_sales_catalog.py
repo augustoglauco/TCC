@@ -538,3 +538,10 @@ async def test_extract_sales_slots_registra_uso_ia(monkeypatch):
         "session_factory": None,
         "commit": False,
     }
+
+
+def test_prompt_de_extracao_define_quantidade_como_a_do_cliente_nao_a_do_assistente():
+    from app.router.sales_catalog import _EXTRACTION_PROMPT_TEMPLATE
+
+    assert 'Regra da "quantidade"' in _EXTRACTION_PROMPT_TEMPLATE
+    assert "NÃO são a quantidade do cliente" in _EXTRACTION_PROMPT_TEMPLATE

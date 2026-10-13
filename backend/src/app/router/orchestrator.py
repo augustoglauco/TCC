@@ -91,6 +91,7 @@ def _build_prompt(
     ultima_troca: tuple[str, str] | None = None,
     dados_cliente: str | None = None,
     contexto_conversa_anterior: str | None = None,
+    usuario_autenticado: bool = False,
 ) -> str:
     """Monta o prompt final: prompt de sistema do domínio (playbook) +
     dados do cliente/compras (quando houver, R10 Fase 6/7) +
@@ -105,7 +106,7 @@ def _build_prompt(
     # §5). O playbook do domínio (ver app/router/playbooks.py) é anteposto
     # quando existe; `fora_escopo` não tem playbook.
     """
-    system_prompt = build_system_prompt(domain)
+    system_prompt = build_system_prompt(domain, usuario_autenticado=usuario_autenticado)
     partes: list[str] = []
     if system_prompt is not None:
         partes.append(system_prompt)
@@ -453,6 +454,16 @@ def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
                 f" ({percentual}% de desconto aplicado sobre R$ {preco_unitario}/unidade)"
             )
         linhas.append(linha_cotacao)
+        # Achado de 2026-10-13: com o estoque "CD-RJ: 2 unidades" no mesmo
+        # bloco, o modelo local trocou a quantidade pedida (1) pelo estoque
+        # do CD (2) no texto, enquanto o card mostrava 1. Como o prompt final
+        # não leva o histórico, esta linha é a única fonte da quantidade.
+        linhas.append(
+            f"- Quantidade do pedido do cliente: {dados.quantidade} unidade(s). "
+            "Esta é a quantidade que ele quer comprar; os números de estoque "
+            "(total ou por centro de distribuição) são só disponibilidade e "
+            "nunca a quantidade do pedido."
+        )
     if dados.compativel is not None:
         compat_texto = "sim" if dados.compativel else "não"
         linhas.append(f"- Compatível com {dados.produto_relacionado_nome}: {compat_texto}")
@@ -974,6 +985,7 @@ async def handle_message(
     user_email: str | None = None,
     comprovante_bytes: bytes | None = None,
     comprovante_filename: str | None = None,
+    usuario_autenticado: bool = False,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
     # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
@@ -1572,6 +1584,7 @@ async def handle_message(
         ultima_troca=ultima_troca,
         dados_cliente=dados_cliente,
         contexto_conversa_anterior=contexto_conversa_anterior,
+        usuario_autenticado=usuario_autenticado,
     )
 
     client = local_client if backend_escolhido == "local" else external_client

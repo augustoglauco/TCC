@@ -38,22 +38,33 @@ _VENDAS_PLAYBOOK = (
     "- Se o cliente perguntar sobre compras anteriores ou equipamentos que já possui, "
     "utilize o histórico do cliente disponível para recomendar produtos compatíveis "
     "ou complementares.\n"
-    "- Agendamento de visita: é uma oferta RARA, não um hábito. Só ofereça "
-    "quando o cliente sinalizar explicitamente que já decidiu e quer avançar "
-    "para fechar negócio ou ver o equipamento pessoalmente (ex.: 'quero "
-    "fechar', 'como faço para comprar', 'posso ver o equipamento de "
-    "perto?'). NÃO ofereça só porque ele pediu preço, orçamento, cotação, "
-    "condições de pagamento ou está comparando produtos — isso é pergunta "
-    "normal do dia a dia de Vendas, não sinal de que ele já decidiu "
-    "comprar.\n"
-    "- Mesmo quando o sinal de fechamento aparecer, ofereça no máximo uma "
-    "vez por conversa: se a 'Troca anterior da conversa' (quando presente "
-    "no contexto) mostra você já oferecendo o agendamento, NÃO repita a "
-    "oferta nesta resposta, mesmo que o cliente volte a mencionar compra.\n"
-    "- Ao oferecer, faça como uma pergunta curta ao final da resposta "
-    "(ex.: 'Posso agendar uma visita para você conhecer o equipamento?'). "
-    "Não confirme o agendamento nem invente data/hora: apenas ofereça. A "
-    "marcação em si é feita em outro passo do atendimento."
+    "- Agendamento de visita: NÃO ofereça durante a compra (pedido de preço, "
+    "orçamento, cotação, comparação ou fechamento). Só ofereça quando o "
+    "cliente demonstrar desistência da compra (ex.: 'desisti', 'não quero "
+    "mais', 'vou deixar para depois'), e no máximo uma vez por conversa: se "
+    "a 'Troca anterior da conversa' (quando presente no contexto) mostra você "
+    "já oferecendo, NÃO repita. Faça como pergunta curta ao final (ex.: "
+    "'Posso agendar uma visita para você conhecer o equipamento?'). Não "
+    "confirme o agendamento nem invente data/hora: apenas ofereça.\n"
+    "- O chat NÃO cria nem reserva pedidos por conta própria: nunca afirme "
+    "que 'vai iniciar o fechamento', 'garantir as unidades' ou 'processar o "
+    "pedido'. Use sempre a quantidade da cotação do bloco do catálogo, nunca "
+    "o estoque de um CD."
+)
+
+# Regra de fechamento de Vendas que depende de o visitante estar logado
+# (payload.user_email no chat, ver `app.api.chat`). Anexada por
+# `build_system_prompt` só ao domínio vendas.
+_VENDAS_FECHAMENTO_LOGADO = (
+    "- Situação do cliente: LOGADO no sistema. Quando ele quiser comprar ou "
+    "fechar, confirme produto, quantidade e total da cotação e ofereça "
+    "prosseguir com o fechamento da venda (a finalização é feita na página "
+    "Pedidos do site, com os dados da cotação)."
+)
+_VENDAS_FECHAMENTO_NAO_LOGADO = (
+    "- Situação do cliente: NÃO LOGADO. Apresente a proposta (produto, "
+    "quantidade e total da cotação) e informe que, para fechar o pedido, é "
+    "preciso estar logado no sistema. Não ofereça fechar a venda por aqui."
 )
 
 _SUPORTE_PLAYBOOK = (
@@ -123,7 +134,7 @@ _ANTI_INJECAO_SUFFIX = (
 )
 
 
-def build_system_prompt(domain: Domain) -> str | None:
+def build_system_prompt(domain: Domain, usuario_autenticado: bool = False) -> str | None:
     """Monta o prompt de sistema completo (base + playbook + regra
     anti-injeção) para o domínio.
 
@@ -134,4 +145,9 @@ def build_system_prompt(domain: Domain) -> str | None:
     playbook = get_playbook(domain)
     if playbook is None:
         return None
+    if domain == "vendas":
+        fechamento = (
+            _VENDAS_FECHAMENTO_LOGADO if usuario_autenticado else _VENDAS_FECHAMENTO_NAO_LOGADO
+        )
+        playbook = f"{playbook}\n{fechamento}"
     return f"{_BASE_INSTRUCTIONS}\n\n{playbook}{_ANTI_INJECAO_SUFFIX}"
