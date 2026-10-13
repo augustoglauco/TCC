@@ -565,6 +565,14 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       > alimentada. Testes em `tests/test_chat_transbordo_pausa.py`
       > (backend) e `ChatModal.test.tsx`/`chatHistory.test.ts`/
       > `ChatWidget.test.tsx` (frontend).
+      > Correção (2026-10-13, "a mensagem de que um humano vai atender some
+      > do chat"): o aviso automático ("Sua mensagem foi recebida. Um
+      > atendente humano responderá em breve." / "Mensagem recebida por
+      > <nome>.") só existia no stream SSE; o polling acima trocava a lista
+      > local pelo snapshot do servidor e o aviso desaparecia. Agora
+      > `app.api.chat` o grava como mensagem do assistente
+      > (`memory.store.gravar_aviso_assistente`, domínio
+      > `atendimento_humano`) antes de emiti-lo.
       > Correção (2026-10-07, "a página de atendente fica com scroll
       > sempre para baixo"): o `useEffect` de scroll-to-bottom em
       > `MeusChatsTabs` (painel do atendente) e o polling recém-adicionado

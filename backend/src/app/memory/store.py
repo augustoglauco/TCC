@@ -164,6 +164,33 @@ async def gravar_mensagem_cliente(
     return msg
 
 
+async def gravar_aviso_assistente(
+    session: AsyncSession,
+    conversation_id: str,
+    texto: str,
+    dominio: str | None = "atendimento_humano",
+) -> ConversaMensagem:
+    """Grava só uma mensagem do assistente (aviso automático em conversa sob
+    atendimento humano, sem resposta de IA). Sem isto o aviso existia apenas
+    no stream: o polling do widget trocava a lista local pelo snapshot do
+    servidor e a mensagem sumia (achado de 2026-10-13)."""
+    conversa = await session.get(Conversa, conversation_id)
+    if conversa is None:
+        conversa = Conversa(id=conversation_id, status="aguardando_humano")
+        session.add(conversa)
+    msg = ConversaMensagem(
+        conversa_id=conversation_id,
+        papel=PAPEL_ASSISTENTE,
+        texto=texto[:_TEXTO_MAX_CHARS],
+        dominio=dominio,
+    )
+    session.add(msg)
+    conversa.atualizada_em = func.now()
+    await session.commit()
+    await session.refresh(msg)
+    return msg
+
+
 async def registrar_email(session: AsyncSession, conversation_id: str, email: str) -> None:
     """Guarda o e-mail na conversa (criando-a, se preciso) assim que a
     mensagem chega, antes do LLM: uma falha na resposta não o perde (R10)."""

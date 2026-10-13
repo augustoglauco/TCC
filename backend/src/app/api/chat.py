@@ -20,6 +20,7 @@ from app.memory.store import (
     ContextoConversa,
     carregar_contexto,
     contar_mensagens,
+    gravar_aviso_assistente,
     gravar_mensagem_cliente,
     gravar_metricas,
     limpar_conversa,
@@ -240,6 +241,17 @@ async def _gravar_mensagem_cliente_segura(app_state, conversation_id: str, texto
             await gravar_mensagem_cliente(session, conversation_id, texto)
     except Exception as exc:
         logger.warning("Falha ao gravar mensagem de cliente em atendimento humano: %s", exc)
+
+
+async def _gravar_aviso_humano_seguro(app_state, conversation_id: str, texto: str) -> None:
+    try:
+        session_factory = getattr(app_state, "db_sessionmaker", None)
+        if not session_factory:
+            return
+        async with session_factory() as session:
+            await gravar_aviso_assistente(session, conversation_id, texto)
+    except Exception as exc:
+        logger.warning("Falha ao gravar aviso de atendimento humano: %s", exc)
 
 
 async def _escalar_conversa_em_background(
@@ -717,6 +729,9 @@ async def send_message(
                 if conversa_db.status == "em_atendimento_humano" and conversa_db.atendente_nome
                 else "Sua mensagem foi recebida. Um atendente humano responderá em breve."
             )
+            # Grava antes de emitir: o polling do widget substitui a lista
+            # local pelo snapshot do servidor, e um aviso só no stream sumia.
+            await _gravar_aviso_humano_seguro(request.app.state, conversation_id, texto_aviso)
             yield _sse("token", {"text": texto_aviso})
             yield _sse(
                 "done",

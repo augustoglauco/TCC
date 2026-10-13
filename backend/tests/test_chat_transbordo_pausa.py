@@ -134,13 +134,17 @@ async def test_chat_pausado_quando_aguardando_humano(chat_client, db_session):
     stmt = (
         select(ConversaMensagem)
         .where(ConversaMensagem.conversa_id == "conv-pausa-1")
-        .order_by(ConversaMensagem.id.desc())
+        .order_by(ConversaMensagem.id)
     )
     res_db = await db_session.execute(stmt)
-    msg = res_db.scalars().first()
-    assert msg is not None
-    assert msg.papel == "cliente"
-    assert msg.texto == "Ainda estou aguardando!"
+    msgs = res_db.scalars().all()
+    # Cliente + aviso automático do assistente. O aviso precisa estar no
+    # banco: o polling do widget troca a lista local pelo snapshot do
+    # servidor, e um aviso só no stream sumia da tela (achado de 2026-10-13).
+    assert [m.papel for m in msgs] == ["cliente", "assistente"]
+    assert msgs[0].texto == "Ainda estou aguardando!"
+    assert msgs[1].texto == "Sua mensagem foi recebida. Um atendente humano responderá em breve."
+    assert msgs[1].dominio == "atendimento_humano"
 
 
 @pytest.mark.asyncio
@@ -170,12 +174,13 @@ async def test_chat_pausado_quando_em_atendimento_humano(chat_client, db_session
     stmt = (
         select(ConversaMensagem)
         .where(ConversaMensagem.conversa_id == "conv-pausa-2")
-        .order_by(ConversaMensagem.id.desc())
+        .order_by(ConversaMensagem.id)
     )
     res_db = await db_session.execute(stmt)
-    msg = res_db.scalars().first()
-    assert msg is not None
-    assert msg.texto == "Oi Fernanda, deu certo?"
+    msgs = res_db.scalars().all()
+    assert [m.papel for m in msgs] == ["cliente", "assistente"]
+    assert msgs[0].texto == "Oi Fernanda, deu certo?"
+    assert msgs[1].texto == "Mensagem recebida por Fernanda Suporte."
 
 
 @pytest.mark.asyncio
