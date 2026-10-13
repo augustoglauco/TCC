@@ -126,6 +126,17 @@ class Settings(BaseSettings):
     rag_uploads_dir: str = "./data/rag_uploads"
     product_images_dir: str = "./data/product_images"
 
+    # Ferramentas de inteligência de código reunidas em `/admin/ferramentas`
+    # (ver `app.api.admin_ferramentas`). O default do Graphify é relativo
+    # ao diretório de onde o backend sobe (`backend/`), e as duas URLs
+    # apontam para as portas documentadas em `docs/Manuais/` — Repowise
+    # 7339 (`repowise serve`) e GitNexus 4747 (`gitnexus serve`).
+    # MVP: sem descoberta de porta dinâmica; se a ferramenta subir em outra
+    # porta, ajuste a variável de ambiente correspondente.
+    graphify_out_dir: str = "../graphify-out"
+    repowise_web_url: str = "http://localhost:7339"
+    gitnexus_web_url: str = "http://localhost:4747"
+
     # MVP: teto default (não rígido — o form do admin pode pedir mais por
     # execução, ver `app.api.crawler`) de páginas por execução do crawler de
     # páginas (R4). Ajustável em runtime via `PUT /api/admin/runtime-settings`

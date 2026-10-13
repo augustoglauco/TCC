@@ -353,3 +353,44 @@ diferentes.
 ### 4. Ciclo de Vida do Atendimento e Encerramento
 * **Encerramento Manual**: O visitante pode encerrar o atendimento a qualquer momento clicando no botão 🏁 **Encerrar atendimento** no topo do widget de chat. A sessão é marcada como `encerrada` com motivo `manual_usuario` e contabilizada nos relatórios.
 * **Encerramento Automático por Inatividade**: O servidor executa um serviço em segundo plano (`inactivity_closure_worker`) que identifica conversas abertas sem nenhuma interação nos últimos 30 minutos e as encerra automaticamente com motivo `inatividade`.
+
+---
+
+## 🕸️ Ferramentas de Código (`/admin/ferramentas`)
+
+Acessível pelo menu de administração (ícone ⚙️ → "Ferramentas de Código")
+para usuários com perfil `Admin`.
+
+**Adicionada em 2026-10-13.** É uma tela de apoio ao desenvolvimento, não
+parte do assistente: reúne num lugar só as três ferramentas que mapeiam este
+repositório, para não ter de lembrar porta e comando de cada uma.
+
+| Ferramenta | O que mostra | Como fica disponível |
+| --- | --- | --- |
+| **Graphify** | Grafo estrutural por AST — nós, comunidades e dependências | Artefato versionado (`graphify-out/graph.html`); gerado por `graphify update .` |
+| **Repowise** | Wiki viva do código, busca semântica, código morto | Servidor local: `repowise serve` (porta 7339) |
+| **GitNexus** | Grafo de chamadas, fluxos de execução e raio de impacto | Servidor local: `node .gitnexus/run.cjs serve` (porta 4747) |
+
+### Como usar
+
+1. Abra a página: ela consulta o estado das três e já abre a primeira
+   disponível. O normal é só o Graphify estar pronto — o artefato dele vive
+   no repositório, enquanto os outros dois são servidores que você liga
+   quando precisa.
+2. Cada cartão mostra um selo de estado (*Gerado*/*Não gerado* para o
+   Graphify; *No ar*/*Fora do ar* para os servidores). Clique num cartão
+   para trocar o que está sendo exibido no quadro abaixo.
+3. Quando a ferramenta está indisponível, o quadro mostra **o comando que
+   a sobe ou a gera**, em vez de uma tela em branco. Rode o comando no
+   terminal e clique em "Verificar novamente".
+4. O link "Abrir em nova aba" está sempre visível. Use-o se o quadro
+   embutido aparecer em branco: algumas ferramentas recusam ser carregadas
+   dentro de um iframe (cabeçalho `X-Frame-Options`).
+
+### Se as portas forem outras
+
+As portas padrão estão documentadas nos manuais de cada ferramenta
+(`docs/Manuais/repowise-manual.md`, `gitnexus-manual.md`). Se você subir uma
+delas em outra porta, ajuste as variáveis `REPOWISE_WEB_URL`,
+`GITNEXUS_WEB_URL` ou `GRAPHIFY_OUT_DIR` no `.env` do backend — não há
+descoberta automática de porta.

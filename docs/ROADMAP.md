@@ -1234,6 +1234,37 @@ conversa e classificação do usuário").
       remoção em massa. Backup dos registros antigos foi gerado com
       `pg_dump --data-only --table=ai_usage_events` antes da tentativa.
 
+## Extra fora do MVP — Painel de Ferramentas de Código
+
+> Pedido explícito do dono do projeto em 2026-10-13: "crie na administração
+> página para integrar a visualização do Repowise, Graphify e GitNexus".
+> **Fora do escopo do MVP** (regra 1 do `CLAUDE.md`): é tela de apoio ao
+> desenvolvimento, não parte do assistente multimodal nem de nenhum dos 12
+> requisitos funcionais. Implementada por pedido direto, não por iniciativa.
+
+- [x] **Tela `/admin/ferramentas` reunindo Graphify, Repowise e GitNexus.**
+      As três mapeiam o mesmo repositório por caminhos diferentes (grafo
+      estático por AST; wiki viva com busca semântica; grafo de execução com
+      raio de impacto) e cada uma tinha a sua porta e o seu comando. Backend:
+      `app.api.admin_ferramentas` com `GET /api/admin/ferramentas` (estado
+      das três — artefato existe? servidor responde?) e
+      `GET /api/admin/ferramentas/graphify/grafo` (serve o
+      `graphify-out/graph.html`, 3 MB, que mora fora de `frontend/public/`).
+      Frontend: `frontend/app/admin/ferramentas/page.tsx` com três cartões,
+      iframe embutido da selecionada e, para a que estiver indisponível, o
+      comando que a gera/sobe no lugar do quadro. Entrada no menu ⚙️.
+      Decisões: (1) a sondagem dos servidores é server-side, porque o
+      navegador não consegue distinguir "fora do ar" de "CORS" ao bater em
+      `localhost:7339`/`:4747`; (2) o iframe do Graphify autentica por
+      `?token=`, único caminho possível (iframe não manda cabeçalho
+      `Authorization`), reaproveitando o que `require_admin` já aceita;
+      (3) servidor fora do ar devolve `200` com `online: false`, não erro —
+      é o estado normal, já que o desenvolvedor não deixa os dois rodando.
+      Cobertura: 10 testes de backend (`test_admin_ferramentas_api.py`,
+      incluindo a sondagem real contra porta fechada) e 7 de frontend
+      (`AdminFerramentasPage.test.tsx`). Variáveis novas em `.env.example`:
+      `GRAPHIFY_OUT_DIR`, `REPOWISE_WEB_URL`, `GITNEXUS_WEB_URL`.
+
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 
 - [x] Testes de integração cobrindo os quatro domínios de atendimento

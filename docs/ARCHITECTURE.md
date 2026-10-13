@@ -917,6 +917,28 @@ completo por fora do ledger, via `backend/eval/`. Reverter é barato se a
 precisão de volume vier a importar: a decisão é de escopo, não de
 arquitetura.
 
+**Decisão registrada (Tela de ferramentas de código em `/admin`, fora do
+escopo do MVP, 2026-10-13):** a área administrativa ganhou
+`/admin/ferramentas`, que reúne Graphify, Repowise e GitNexus — as três
+ferramentas de inteligência de código usadas no desenvolvimento deste TCC.
+Pedido explícito do dono do projeto; **não** é parte do assistente nem de
+nenhum dos 12 requisitos funcionais, e está registrada como item "Extra fora
+do MVP" em `docs/ROADMAP.md`. Três decisões de implementação valem registro:
+(1) a verificação de "a ferramenta está no ar?" é feita no backend
+(`app.api.admin_ferramentas.sondar_servidor`, timeout de 1,5s), porque do
+navegador uma requisição a `localhost:7339`/`:4747` falha de forma opaca e
+não dá para distinguir servidor desligado de bloqueio de CORS; (2) o
+artefato do Graphify (`graphify-out/graph.html`, ~3 MB) é servido por um
+endpoint administrativo em vez de copiado para `frontend/public/` a cada
+`graphify update`, e o iframe autentica por `?token=` — único caminho
+possível, já que iframe não envia cabeçalho `Authorization` (mesmo padrão de
+`GET /api/rag/documents/{id}/download`, §7); (3) servidor fora do ar devolve
+`200` com `online: false` e o comando para subir, não erro: com dois
+servidores locais que o desenvolvedor liga sob demanda, "offline" é o estado
+comum, não uma falha. # MVP: sem descoberta dinâmica de porta — se uma
+ferramenta subir fora da porta documentada, ajusta-se a variável de ambiente
+correspondente (`REPOWISE_WEB_URL`, `GITNEXUS_WEB_URL`, `GRAPHIFY_OUT_DIR`).
+
 **Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
 `POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou
 a devolver a resposta como o próprio stream **Server-Sent Events** (SSE),
