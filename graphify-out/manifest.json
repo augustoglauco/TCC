@@ -312,9 +312,9 @@
     "semantic_hash": "b77ae1efa471593d2a90cc85058221cb"
   },
   "backend/src/app/api/chat.py": {
-    "mtime": 1791931950.5831296,
-    "seen": 1791932147.471288,
-    "ast_hash": "becf96e0468071ab43a960b0f8dbbcef",
+    "mtime": 1791933067.2733912,
+    "seen": 1791933251.7397473,
+    "ast_hash": "a3bf85b4b5ecef8659b2a639d0b6b46d",
     "semantic_hash": ""
   },
   "backend/src/app/api/crawler.py": {
@@ -504,10 +504,10 @@
     "semantic_hash": "ad3055a62ba639da795cac3fd4b66f66"
   },
   "backend/src/app/memory/store.py": {
-    "mtime": 1791456903.6582417,
-    "seen": 1791840346.4557512,
-    "ast_hash": "2a89ce47eed6665ad81346f31e838c7c",
-    "semantic_hash": "2a89ce47eed6665ad81346f31e838c7c"
+    "mtime": 1791933067.2721972,
+    "seen": 1791933251.7397795,
+    "ast_hash": "66f471da359710016602fdc759339cb1",
+    "semantic_hash": ""
   },
   "backend/src/app/model_catalog/__init__.py": {
     "mtime": 1791077593.9537787,
@@ -1278,10 +1278,10 @@
     "semantic_hash": "60647700d45662205e9484f10dea93ee"
   },
   "frontend/components/chat/EscalonamentoBanner.tsx": {
-    "mtime": 1790565308.8484933,
-    "seen": 1791840346.455867,
-    "ast_hash": "a5d683238506876a02937efaa9803375",
-    "semantic_hash": "a5d683238506876a02937efaa9803375"
+    "mtime": 1791933453.3692315,
+    "seen": 1791933480.566965,
+    "ast_hash": "772ce8e65fbf74fac15fe6015f4521a4",
+    "semantic_hash": ""
   },
   "frontend/components/chat/ImageUploader.tsx": {
     "mtime": 1790550365.7231674,
@@ -1770,9 +1770,9 @@
     "semantic_hash": "a824b21331368000d3937b125aef8436"
   },
   "docs/FRONTEND.md": {
-    "mtime": 1791862863.1700068,
-    "seen": 1791862920.2326703,
-    "ast_hash": "be1f041573eacbbf30ed30a33442abf0",
+    "mtime": 1791933473.5267901,
+    "seen": 1791933480.567066,
+    "ast_hash": "e23138b4a6fa522be0632402542ca0e2",
     "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_ADMINISTRADOR.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1791931995.0013258,
-    "seen": 1791932147.4715397,
-    "ast_hash": "a781f29ed64e90bf28ffd4ef5f6abbee",
+    "mtime": 1791933247.0175474,
+    "seen": 1791933251.740001,
+    "ast_hash": "3515d3d9393a4d07054b688c69b5fbae",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
