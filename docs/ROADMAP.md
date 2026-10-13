@@ -1196,8 +1196,9 @@ conversa e classificação do usuário").
       interno×externo do painel — o argumento é só precisão de volume de
       chamadas e completude da Fase 10 (avaliação experimental). O
       inventário §1 do spec do item E tratou os 15 pontos então
-      levantados como exaustivos; não eram. Decisão pendente: instrumentar
-      ou documentar a exclusão como definitiva.
+      levantados como exaustivos; não eram. A decisão entre instrumentar e
+      documentar a exclusão ficou pendente até 2026-10-12, quando o dono do
+      projeto escolheu documentar — ver o fechamento no início deste item.
 
 - [x] **Bug — a suíte de testes gravava telemetria no Postgres do
       desenvolvedor** (achado e corrigido em 2026-10-12, a partir da
