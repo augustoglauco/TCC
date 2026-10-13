@@ -1260,6 +1260,12 @@ conversa e classificação do usuário").
       `Authorization`), reaproveitando o que `require_admin` já aceita;
       (3) servidor fora do ar devolve `200` com `online: false`, não erro —
       é o estado normal, já que o desenvolvedor não deixa os dois rodando.
+      O `./g.sh` passou a garantir as três (2026-10-13): gera o grafo do
+      Graphify se faltar e sobe Repowise (`--ui-port 3002` fixo, senão ele
+      escolhe a primeira porta livre a partir da 3000) e GitNexus (4747) se
+      não responderem — mesma política do Ollama, sem derrubar o que já está
+      no ar. Correção do mesmo dia: a porta do Repowise é 3002, não a 7339
+      que o manual dele anunciava (medido; só 3002 e 4747 escutavam).
       Cobertura: 10 testes de backend (`test_admin_ferramentas_api.py`,
       incluindo a sondagem real contra porta fechada) e 7 de frontend
       (`AdminFerramentasPage.test.tsx`). Variáveis novas em `.env.example`:

@@ -382,7 +382,9 @@ repositório, para não ter de lembrar porta e comando de cada uma.
    para trocar o que está sendo exibido no quadro abaixo.
 3. Quando a ferramenta está indisponível, o quadro mostra **o comando que
    a sobe ou a gera**, em vez de uma tela em branco. Rode o comando no
-   terminal e clique em "Verificar novamente".
+   terminal e clique em "Verificar novamente". Desde 2026-10-13 o `./g.sh`
+   já faz isso ao subir o ambiente: gera o grafo do Graphify se faltar e
+   sobe Repowise e GitNexus se não estiverem respondendo (ver `goup.md`).
 4. O link "Abrir em nova aba" está sempre visível. Use-o se o quadro
    embutido aparecer em branco: algumas ferramentas recusam ser carregadas
    dentro de um iframe (cabeçalho `X-Frame-Options`).

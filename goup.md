@@ -21,6 +21,8 @@ tudo de novo, limpo. Rode a partir da raiz do repositório
 | Postgres | 5433 | Docker (`backend/docker-compose.yml`) |
 | Qdrant | 6335 / 6336 | Docker (`backend/docker-compose.yml`) |
 | Ollama | 11434 | serviço do sistema (`ollama serve`) |
+| **Repowise (Web UI — tela `/admin/ferramentas`)** | **3002** | processo solto (`repowise serve --ui-port 3002`) |
+| **GitNexus (Web UI — tela `/admin/ferramentas`)** | **4747** | processo solto (`gitnexus serve -p 4747`) |
 
 > **Novo desde 2026-09-23:** o agendamento de visita (R11) não fala mais
 > direto com o MCP do Google — fala com um MCP de terceiro self-hosted
@@ -269,7 +271,19 @@ as portas, sobe Docker e migrações, confere o Ollama (sobe um `ollama
 serve` só se nada responder na 11434), o `calendar-mcp-server` (se houver
 credenciais em `backend/secrets/`), o MCP B2B, o Caddy (se
 `infra/caddy/caddy.env` existir), o backend e o frontend, e confere cada
-serviço. Para subir e já rodar os testes, use o `./testar.sh`
+serviço.
+
+Desde 2026-10-13 ele também garante as três ferramentas de inteligência
+de código que a tela `/admin/ferramentas` exibe: gera o grafo do Graphify
+se `graphify-out/graph.html` não existir, e sobe o Repowise (3002) e o
+GitNexus (4747) se nada responder nessas portas. Elas seguem a mesma
+política do Ollama — ferramentas reaproveitadas entre sessões, que o
+script **não** derruba no passo 1 e só inicia quando estão fora do ar.
+Nenhuma é necessária para o assistente funcionar; faltando qualquer uma,
+a tela mostra o comando que a sobe. As portas precisam bater com
+`REPOWISE_WEB_URL`/`GITNEXUS_WEB_URL` do `.env` do backend — daí o
+`--ui-port` fixo, já que o Repowise, sem ele, escolhe a primeira porta
+livre a partir da 3000. Para subir e já rodar os testes, use o `./testar.sh`
 (`docs/TESTE_LOCAL.md`).
 
 ## 🌐 Acesso Externo via Internet (WSL2 + Windows + DuckDNS)

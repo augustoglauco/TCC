@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Sobe o ambiente completo (Docker, migrações, calendar-mcp-server, MCP B2B,
-# Caddy, backend e frontend) e confere cada serviço — os passos 1 a 7 do
+# Caddy, backend, frontend e as ferramentas de inteligência de código da tela
+# /admin/ferramentas) e confere cada serviço — os passos 1 a 7 do
 # goup.md de uma vez. Para subir e já rodar os testes, use ./testar.sh.
 set -uo pipefail
 cd "$(dirname "$0")"
@@ -92,6 +93,52 @@ main() {
         echo "⚠️  Ollama não encontrado — o chat não vai responder sem ele (ver goup.md, passo 0.3)."
     fi
 
+    passo "Conferindo as ferramentas de código (/admin/ferramentas)"
+    # Mesma política do Ollama: Graphify, Repowise e GitNexus são ferramentas
+    # de desenvolvimento reaproveitadas entre sessões, então este bloco só
+    # sobe o que NÃO estiver respondendo — e, de propósito, elas ficam fora do
+    # `fuser -k` lá em cima. Nenhuma delas é necessária para o assistente
+    # funcionar; a tela /admin/ferramentas mostra o comando de cada uma
+    # quando falta.
+
+    # Graphify é artefato, não servidor: basta o HTML existir.
+    if [ -f graphify-out/graph.html ]; then
+        echo "Graphify: grafo já gerado."
+    elif command -v graphify >/dev/null 2>&1; then
+        if graphify update . > /tmp/tcc-graphify.log 2>&1; then
+            echo "Graphify: grafo gerado agora."
+        else
+            echo "⚠️  Graphify falhou ao gerar o grafo (ver /tmp/tcc-graphify.log)."
+        fi
+    else
+        echo "⚠️  Graphify não encontrado (ver CLAUDE.md, regra 13)."
+    fi
+
+    # `--ui-port` fixo: sem ele o Repowise escolhe a primeira porta livre a
+    # partir da 3000, e a tela (REPOWISE_WEB_URL) apontaria para a porta errada.
+    if curl -s -o /dev/null --max-time 3 http://localhost:3002; then
+        echo "Repowise já está no ar (3002)."
+    elif command -v repowise >/dev/null 2>&1; then
+        nohup repowise serve --ui-port 3002 > /tmp/tcc-repowise.log 2>&1 & disown
+        echo "Repowise iniciado (log em /tmp/tcc-repowise.log)."
+    else
+        echo "⚠️  Repowise não encontrado (ver docs/Manuais/repowise-manual.md)."
+    fi
+
+    # Binário do PATH primeiro, `.gitnexus/run.cjs` como alternativa — os dois
+    # existem nesta máquina e o CLAUDE.md descreve o runner como intercambiável.
+    if curl -s -o /dev/null --max-time 3 http://localhost:4747; then
+        echo "GitNexus já está no ar (4747)."
+    elif command -v gitnexus >/dev/null 2>&1; then
+        nohup gitnexus serve -p 4747 > /tmp/tcc-gitnexus.log 2>&1 & disown
+        echo "GitNexus iniciado (log em /tmp/tcc-gitnexus.log)."
+    elif [ -f .gitnexus/run.cjs ]; then
+        nohup node .gitnexus/run.cjs serve -p 4747 > /tmp/tcc-gitnexus.log 2>&1 & disown
+        echo "GitNexus iniciado via .gitnexus/run.cjs (log em /tmp/tcc-gitnexus.log)."
+    else
+        echo "⚠️  GitNexus não encontrado (ver docs/Manuais/gitnexus-manual.md)."
+    fi
+
     passo "Subindo o Caddy"
     [ -f infra/caddy/caddy.env ] && nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 & disown
 
@@ -117,6 +164,13 @@ main() {
     checar_servico "Frontend (3001)"     "http://localhost:3001"
     checar_servico "Calendar MCP (8090)" "http://localhost:8090/mcp"
     checar_servico "MCP B2B (8100)"      "http://localhost:8100/mcp"
+    checar_servico "Repowise (3002)"     "http://localhost:3002"
+    checar_servico "GitNexus (4747)"     "http://localhost:4747"
+    if [ -f graphify-out/graph.html ]; then
+        printf "  ✅ %-22s -> artefato presente\n" "Graphify (grafo)"
+    else
+        printf "  ❌ %-22s -> AUSENTE (rode: graphify update .)\n" "Graphify (grafo)"
+    fi
     
     if [ -f infra/caddy/caddy.env ]; then
         checar_servico "Caddy (8443)" "https://augustoglauco.duckdns.org:8443/mcp" "-k --resolve augustoglauco.duckdns.org:8443:127.0.0.1"
