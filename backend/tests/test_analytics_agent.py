@@ -92,7 +92,10 @@ class _FakeLLMClientSqlComCustoReal:
 
 
 def test_extract_prompt_inline_data_key_value():
-    prompt = "crie um gráfico de barras com os dados: São Paulo: 150, Rio de Janeiro: 90, Belo Horizonte: 60"
+    prompt = (
+        "crie um gráfico de barras com os dados: São Paulo: 150, Rio de Janeiro: "
+        "90, Belo Horizonte: 60"
+    )
     res = extract_prompt_inline_data(prompt)
     assert res is not None
     assert res["tipo_grafico"] == "bar"

@@ -1,7 +1,8 @@
-from datetime import datetime, UTC
-from typing import Any
 import logging
-from sqlalchemy import select, update, desc, asc, func
+from datetime import UTC, datetime
+from typing import Any
+
+from sqlalchemy import asc, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -94,7 +95,7 @@ async def escalar_para_humano(
 
 
 async def listar_fila_espera(session: AsyncSession) -> list[dict[str, Any]]:
-    """Lista todas as conversas aguardando atendimento humano, ordenadas por prioridade desc e tempo asc."""
+    """Lista as conversas aguardando atendimento humano (prioridade desc, tempo asc)."""
     stmt = (
         select(Conversa)
         .options(selectinload(Conversa.mensagens))
@@ -118,21 +119,23 @@ async def listar_fila_espera(session: AsyncSession) -> list[dict[str, Any]]:
                 ultima_msg_cliente = m.texto
                 break
 
-        fila.append({
-            "id": c.id,
-            "status": c.status,
-            "motivo_escalonamento": c.motivo_escalonamento,
-            "prioridade": c.prioridade,
-            "escalado_em": c.escalado_em.isoformat() if c.escalado_em else None,
-            "criada_em": c.criada_em.isoformat() if c.criada_em else None,
-            "atualizada_em": c.atualizada_em.isoformat() if c.atualizada_em else None,
-            "tempo_espera_segundos": _tempo_espera_segundos(c, agora),
-            "mensagens_count": len(ultimas_mensagens),
-            "ultima_mensagem": ultima_msg_cliente,
-            "cliente": (
-                _montar_cliente_info(c, clientes_por_email.get(c.email)) if c.email else None
-            ),
-        })
+        fila.append(
+            {
+                "id": c.id,
+                "status": c.status,
+                "motivo_escalonamento": c.motivo_escalonamento,
+                "prioridade": c.prioridade,
+                "escalado_em": c.escalado_em.isoformat() if c.escalado_em else None,
+                "criada_em": c.criada_em.isoformat() if c.criada_em else None,
+                "atualizada_em": c.atualizada_em.isoformat() if c.atualizada_em else None,
+                "tempo_espera_segundos": _tempo_espera_segundos(c, agora),
+                "mensagens_count": len(ultimas_mensagens),
+                "ultima_mensagem": ultima_msg_cliente,
+                "cliente": (
+                    _montar_cliente_info(c, clientes_por_email.get(c.email)) if c.email else None
+                ),
+            }
+        )
     return fila
 
 
@@ -164,27 +167,31 @@ async def listar_meus_chats(session: AsyncSession, atendente_id: str) -> list[di
                 ultima_msg_cliente = m.texto
                 break
 
-        chats.append({
-            "id": c.id,
-            "status": c.status,
-            "atendente_id": c.atendente_id,
-            "atendente_nome": c.atendente_nome,
-            "motivo_escalonamento": c.motivo_escalonamento,
-            "prioridade": c.prioridade,
-            "escalado_em": c.escalado_em.isoformat() if c.escalado_em else None,
-            "criada_em": c.criada_em.isoformat() if c.criada_em else None,
-            "atualizada_em": c.atualizada_em.isoformat() if c.atualizada_em else None,
-            "tempo_espera_segundos": _tempo_espera_segundos(c, agora),
-            "mensagens_count": len(ultimas_mensagens),
-            "ultima_mensagem": ultima_msg_cliente,
-            "cliente": (
-                _montar_cliente_info(c, clientes_por_email.get(c.email)) if c.email else None
-            ),
-        })
+        chats.append(
+            {
+                "id": c.id,
+                "status": c.status,
+                "atendente_id": c.atendente_id,
+                "atendente_nome": c.atendente_nome,
+                "motivo_escalonamento": c.motivo_escalonamento,
+                "prioridade": c.prioridade,
+                "escalado_em": c.escalado_em.isoformat() if c.escalado_em else None,
+                "criada_em": c.criada_em.isoformat() if c.criada_em else None,
+                "atualizada_em": c.atualizada_em.isoformat() if c.atualizada_em else None,
+                "tempo_espera_segundos": _tempo_espera_segundos(c, agora),
+                "mensagens_count": len(ultimas_mensagens),
+                "ultima_mensagem": ultima_msg_cliente,
+                "cliente": (
+                    _montar_cliente_info(c, clientes_por_email.get(c.email)) if c.email else None
+                ),
+            }
+        )
     return chats
 
 
-async def obter_detalhes_atendimento(session: AsyncSession, conversation_id: str) -> dict[str, Any] | None:
+async def obter_detalhes_atendimento(
+    session: AsyncSession, conversation_id: str
+) -> dict[str, Any] | None:
     """Retorna o histórico completo e contexto da conversa para o operador humano."""
     stmt = (
         select(Conversa)
@@ -198,15 +205,17 @@ async def obter_detalhes_atendimento(session: AsyncSession, conversation_id: str
 
     mensagens_list = []
     for m in conversa.mensagens or []:
-        mensagens_list.append({
-            "id": m.id,
-            "papel": m.papel,
-            "atendente_nome": m.atendente_nome,
-            "texto": m.texto,
-            "dominio": m.dominio,
-            "metricas": m.metricas,
-            "criada_em": m.criada_em.isoformat() if m.criada_em else None,
-        })
+        mensagens_list.append(
+            {
+                "id": m.id,
+                "papel": m.papel,
+                "atendente_nome": m.atendente_nome,
+                "texto": m.texto,
+                "dominio": m.dominio,
+                "metricas": m.metricas,
+                "criada_em": m.criada_em.isoformat() if m.criada_em else None,
+            }
+        )
 
     cliente_info: dict[str, Any] | None = None
     if conversa.email:
@@ -247,7 +256,7 @@ async def claim_conversa(
     atendente_nome: str,
 ) -> bool:
     """Realiza o claim atômico de uma conversa da fila de espera.
-    
+
     Garante que se dois operadores clicarem ao mesmo tempo, exatamente um
     consegue assumir (retorna True) e o outro falha (retorna False, 0 rows).
     """

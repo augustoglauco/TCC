@@ -1,6 +1,9 @@
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, UTC
+
 from app.db.models import Pedido
+
 
 @pytest.mark.asyncio
 async def test_pedido_conversao_venda_fields(db_session):

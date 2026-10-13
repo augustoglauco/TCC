@@ -354,8 +354,12 @@ class Conversa(Base):
     perfil_motivo: Mapped[str | None]
 
     # Status e encerramento (Contabilizador de Tokens e Ciclo de Vida do Chat)
-    status: Mapped[str] = mapped_column(String(50), default="aberta", server_default="aberta", index=True)
-    encerrada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(
+        String(50), default="aberta", server_default="aberta", index=True
+    )
+    encerrada_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
     motivo_encerramento: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Transbordo e Atendimento Humano (Human-in-the-Loop)

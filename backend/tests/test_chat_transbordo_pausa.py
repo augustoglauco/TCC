@@ -1,30 +1,32 @@
 import asyncio
 import json
-import pytest
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
 from app.api.chat import (
-    router as chat_router,
-    get_local_client,
+    get_calendar_client,
+    get_clip_embedder,
+    get_clip_store,
     get_external_client,
+    get_intent_router_provider,
+    get_local_client,
     get_rag_client,
     get_rag_client_admin,
-    get_stt_client,
-    get_clip_store,
-    get_clip_embedder,
-    get_calendar_client,
-    get_scheduling_config,
     get_sales_catalog_client,
-    get_intent_router_provider,
+    get_scheduling_config,
+    get_stt_client,
     get_tone_monitor_enabled,
     get_tone_monitor_provider,
 )
+from app.api.chat import (
+    router as chat_router,
+)
 from app.db.models import Conversa, ConversaMensagem
-from app.router.orchestrator import TokenEvent, RouterDecision, EscalonamentoEvent
 
 
 class _SingleSessionMaker:

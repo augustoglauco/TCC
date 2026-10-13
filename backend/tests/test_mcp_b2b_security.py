@@ -82,9 +82,7 @@ async def test_cotar_com_quantidade_negativa_levanta_tool_error(factory, qdrant,
     server = create_b2b_mcp_server(factory, qdrant, embedders)
 
     with pytest.raises(ToolError, match="greater than 0"):
-        await server.call_tool(
-            "cotar", {"itens": [{"produto_id": produto_id, "quantidade": -5}]}
-        )
+        await server.call_tool("cotar", {"itens": [{"produto_id": produto_id, "quantidade": -5}]})
 
 
 async def test_reservar_pedido_com_produto_id_tipo_errado_levanta_tool_error(

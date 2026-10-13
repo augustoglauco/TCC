@@ -1,7 +1,10 @@
+from datetime import UTC, datetime
+
 import pytest
-from datetime import datetime, UTC
 from sqlalchemy import select
+
 from app.db.models import Conversa, ConversaMensagem
+
 
 @pytest.mark.asyncio
 async def test_conversa_atendimento_humano_fields(db_session):

@@ -31,7 +31,9 @@ class MensagemAtendenteRequest(BaseModel):
 
 
 class CloseRequest(BaseModel):
-    acao: Literal["finalizar", "devolver_ia"] = Field(..., description="Ação: finalizar ou devolver_ia")
+    acao: Literal["finalizar", "devolver_ia"] = Field(
+        ..., description="Ação: finalizar ou devolver_ia"
+    )
     motivo: str | None = Field(default=None, description="Motivo ou resolução do atendimento")
 
 
@@ -39,7 +41,7 @@ class CloseRequest(BaseModel):
 async def get_fila_espera(
     session: AsyncSession = Depends(get_db_session),
 ) -> list[dict[str, Any]]:
-    """Retorna as conversas em fila de espera (aguardando_humano) ordenadas por prioridade desc e tempo."""
+    """Retorna as conversas em fila de espera (aguardando_humano), por prioridade desc e tempo."""
     return await atendimento_service.listar_fila_espera(session)
 
 
@@ -74,7 +76,7 @@ async def post_claim_conversa(
     session: AsyncSession = Depends(get_db_session),
 ) -> dict[str, Any]:
     """Tenta assumir o atendimento de uma conversa na fila de espera.
-    
+
     Utiliza lock atômico condicional. Se outro atendente assumir antes, retorna HTTP 409 Conflict.
     """
     sucesso = await atendimento_service.claim_conversa(
@@ -86,7 +88,10 @@ async def post_claim_conversa(
     if not sucesso:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Esta conversa já foi assumida por outro atendente ou não está mais aguardando atendimento.",
+            detail=(
+                "Esta conversa já foi assumida por outro atendente "
+                "ou não está mais aguardando atendimento."
+            ),
         )
 
     return {

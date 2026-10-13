@@ -4,6 +4,7 @@ import base64
 import binascii
 import json
 import logging
+from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -27,8 +28,6 @@ from app.memory.store import (
     registrar_email,
     registrar_troca,
 )
-from app.db.models import Conversa
-from app.services.atendimento_service import escalar_para_humano
 from app.models.chat import (
     ChatDoneEventData,
     ChatMessageRequest,
@@ -37,7 +36,6 @@ from app.models.chat import (
     ConversaHistoricoOut,
     ConversaMensagemOut,
 )
-from app.services.chat_closure_service import fechar_conversa
 from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
@@ -72,6 +70,8 @@ from app.router.sales_catalog import (
 )
 from app.router.scheduling import SchedulingConfig
 from app.router.tone_monitor import criar_escalonamento
+from app.services.atendimento_service import escalar_para_humano
+from app.services.chat_closure_service import fechar_conversa
 from app.stt.whisper_client import SttClient, SttIndisponivelError
 from app.user_profile.classificacao import (
     RESPOSTA_SO_EMAIL,
@@ -249,7 +249,9 @@ async def _escalar_conversa_em_background(
         if not session_factory:
             return
         async with session_factory() as session:
-            await escalar_para_humano(session, conversation_id, motivo=motivo, prioridade=prioridade)
+            await escalar_para_humano(
+                session, conversation_id, motivo=motivo, prioridade=prioridade
+            )
     except Exception as exc:
         logger.warning("Falha ao escalar conversa %s em background: %s", conversation_id, exc)
 
@@ -446,7 +448,9 @@ async def fechar_conversa_endpoint(
         raise
     except Exception as exc:
         _logar_memoria_indisponivel("fechar_conversa", exc)
-        raise HTTPException(status_code=503, detail="Não foi possível encerrar a conversa.") from exc
+        raise HTTPException(
+            status_code=503, detail="Não foi possível encerrar a conversa."
+        ) from exc
 
 
 @router.delete("/conversations/{conversation_id}", status_code=204)
@@ -671,17 +675,22 @@ async def send_message(
 
     # Transbordo e Atendimento Humano: se o cliente solicitar atendimento humano explicitamente
     import re
+
     pede_humano = bool(
         effective_message
         and re.search(
-            r"\b(atendente humano|falar com humano|suporte humano|operador humano|atendimento humano|quero humano|chama um humano)\b",
+            r"\b(atendente humano|falar com humano|suporte humano|operador humano"
+            r"|atendimento humano|quero humano|chama um humano)\b",
             effective_message.lower(),
         )
     )
 
     conversa_db = await _carregar_conversa_db_segura(request.app.state, conversation_id)
 
-    if pede_humano and (conversa_db is None or conversa_db.status not in ("aguardando_humano", "em_atendimento_humano")):
+    if pede_humano and (
+        conversa_db is None
+        or conversa_db.status not in ("aguardando_humano", "em_atendimento_humano")
+    ):
         session_factory = getattr(request.app.state, "db_sessionmaker", None)
         if session_factory:
             async with session_factory() as session:
@@ -846,7 +855,9 @@ async def send_message(
             )
             backend_used = "externo" if has_vision_call else "identificacao_imagem"
             total_tokens = resultado.total_tokens
-            if total_tokens is None and (resultado.prompt_tokens is not None or resultado.completion_tokens is not None):
+            if total_tokens is None and (
+                resultado.prompt_tokens is not None or resultado.completion_tokens is not None
+            ):
                 total_tokens = (resultado.prompt_tokens or 0) + (resultado.completion_tokens or 0)
 
             done_data = ChatDoneEventData(

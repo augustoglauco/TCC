@@ -1,6 +1,8 @@
 import uuid
+
 import pytest
 from sqlalchemy import select
+
 from app.db.models import AdminChart
 
 

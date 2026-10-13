@@ -149,6 +149,7 @@ def test_api_close_conversation(chat_client, db_session):
     db_session.add(chat)
     # commit síncrono ou flush no session
     import asyncio
+
     asyncio.run(db_session.commit())
 
     response = chat_client.post(

@@ -170,9 +170,25 @@ def test_custo_zero_conhecido_nao_e_confundido_com_nao_medido():
 
 def test_agrupamentos_usam_as_chaves_certas():
     linhas = [
-        _linha(origem="chat", ambiente="interno", modelo="clip", operacao="identificacao_imagem_clip", custo_usd=0.0),
-        _linha(origem="chat", ambiente="externo", modelo="gemma-vision", operacao="identificacao_imagem_visao_externa"),
-        _linha(origem="admin", ambiente="externo", modelo="gemma-vision", operacao="extracao_catalogo_visao_externa"),
+        _linha(
+            origem="chat",
+            ambiente="interno",
+            modelo="clip",
+            operacao="identificacao_imagem_clip",
+            custo_usd=0.0,
+        ),
+        _linha(
+            origem="chat",
+            ambiente="externo",
+            modelo="gemma-vision",
+            operacao="identificacao_imagem_visao_externa",
+        ),
+        _linha(
+            origem="admin",
+            ambiente="externo",
+            modelo="gemma-vision",
+            operacao="extracao_catalogo_visao_externa",
+        ),
     ]
 
     rel = montar_relatorio(
@@ -196,9 +212,19 @@ def test_agrupamentos_usam_as_chaves_certas():
 
 def test_diario_agrupa_por_dia_local_ordenado_do_mais_recente():
     eventos = [
-        EventoDiario(data="2026-10-06", origem="chat", tokens_entrada=10, tokens_saida=1, custo_usd=0.001),
-        EventoDiario(data="2026-10-08", origem="chat", tokens_entrada=20, tokens_saida=2, custo_usd=0.002),
-        EventoDiario(data="2026-10-08", origem="admin", tokens_entrada=None, tokens_saida=None, custo_usd=None),
+        EventoDiario(
+            data="2026-10-06", origem="chat", tokens_entrada=10, tokens_saida=1, custo_usd=0.001
+        ),
+        EventoDiario(
+            data="2026-10-08", origem="chat", tokens_entrada=20, tokens_saida=2, custo_usd=0.002
+        ),
+        EventoDiario(
+            data="2026-10-08",
+            origem="admin",
+            tokens_entrada=None,
+            tokens_saida=None,
+            custo_usd=None,
+        ),
     ]
 
     rel = montar_relatorio(

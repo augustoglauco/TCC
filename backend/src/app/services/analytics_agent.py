@@ -52,7 +52,10 @@ def extract_prompt_inline_data(prompt: str) -> dict[str, Any] | None:
     texto = prompt.strip()
     # Padrão: Nome da categoria seguido por : ou = ou - e o valor numérico
     # Ex: 'São Paulo: 150', 'Item A: R$ 1.500,50', 'Fev: 30%'
-    pattern = r"([A-Za-zÀ-ÖØ-öø-ÿ0-9\s\-_/]+)\s*[:=\-]\s*(?:R\$\s*)?([\d\.,]+)\s*(%|h|unid|unidades|itens)?"
+    pattern = (
+        r"([A-Za-zÀ-ÖØ-öø-ÿ0-9\s\-_/]+)\s*[:=\-]\s*(?:R\$\s*)?"
+        r"([\d\.,]+)\s*(%|h|unid|unidades|itens)?"
+    )
 
     matches = re.findall(pattern, texto, re.IGNORECASE)
     if len(matches) < 2:
@@ -128,7 +131,8 @@ async def _generate_sql_with_llm(
         return None, None, None
 
     schema_prompt = await get_catalog_schema_prompt(session)
-    system_instruction = f"""Você é um analista de dados especialista em PostgreSQL e visualizações de dados.
+    system_instruction = f"""Você é um analista de dados especialista em PostgreSQL e \
+visualizações de dados.
 O usuário solicitou um gráfico: "{prompt}".
 
 {schema_prompt}

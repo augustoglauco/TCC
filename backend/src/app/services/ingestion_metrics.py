@@ -3,7 +3,7 @@ em operações de ingestão, crawler e catálogo de produtos.
 """
 
 import logging
-from typing import Any
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.models import IngestionCostEvent
@@ -33,7 +33,9 @@ def _get_fallback_sessionmaker() -> async_sessionmaker[AsyncSession] | None:
         _global_sessionmaker = create_session_factory(engine)
         return _global_sessionmaker
     except Exception as exc:
-        logger.warning("Não foi possível criar sessionmaker de fallback para métricas de ingestão: %s", exc)
+        logger.warning(
+            "Não foi possível criar sessionmaker de fallback para métricas de ingestão: %s", exc
+        )
         return None
 
 

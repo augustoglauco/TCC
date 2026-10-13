@@ -839,7 +839,9 @@ async def test_fora_escopo_alta_complexidade_escala_para_externo():
     rag_client = _FakeRAGClient(exception=RAGConnectionError("não deveria ser chamado"))
 
     # Mensagem longa com múltiplos questionamentos (alta complexidade)
-    mensagem_alta_complexidade = "Qual a capital da França? " * 15 + " Podem me explicar a história detalhada?"
+    mensagem_alta_complexidade = (
+        "Qual a capital da França? " * 15 + " Podem me explicar a história detalhada?"
+    )
     eventos = await _coletar_eventos(
         mensagem_alta_complexidade,
         recent_messages=[],

@@ -1,7 +1,8 @@
 """Testes da API REST Administrativa para Atendimento Humano e Fila (/api/admin/atendimento)."""
 
-import pytest
 from datetime import UTC, datetime
+
+import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 
@@ -124,10 +125,16 @@ async def test_admin_atendimento_claim_e_conflito(test_app, db_session, admin_he
         # Achado de 2026-10-07: claim bem-sucedido grava automaticamente o
         # aviso "Um atendente irá atendê-lo agora." para o cliente.
         mensagens = (
-            await db_session.execute(
-                select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-claim-test")
+            (
+                await db_session.execute(
+                    select(ConversaMensagem).where(
+                        ConversaMensagem.conversa_id == "conv-claim-test"
+                    )
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
         assert len(mensagens) == 1
         assert mensagens[0].papel == "atendente"
         assert mensagens[0].atendente_nome == "Carlos Suporte"
@@ -186,7 +193,10 @@ async def test_admin_atendimento_mensagem(test_app, db_session, admin_headers):
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.post(
             "/api/admin/atendimento/conv-msg-test/mensagem",
-            json={"atendente_nome": "Carlos Suporte", "texto": "Olá! Sou o Carlos, como posso ajudar?"},
+            json={
+                "atendente_nome": "Carlos Suporte",
+                "texto": "Olá! Sou o Carlos, como posso ajudar?",
+            },
             headers=admin_headers,
         )
         assert res.status_code == 200

@@ -1,6 +1,7 @@
-import pytest
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+
 from app.db.models import Conversa
+
 
 def test_conversa_model_has_status_and_closure_fields():
     conversa = Conversa(
@@ -12,6 +13,7 @@ def test_conversa_model_has_status_and_closure_fields():
     assert conversa.status == "encerrada"
     assert conversa.encerrada_em is not None
     assert conversa.motivo_encerramento == "manual_usuario"
+
 
 def test_conversa_model_default_status():
     conversa = Conversa(id="test-session-default")

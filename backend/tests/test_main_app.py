@@ -86,6 +86,7 @@ def test_create_app_monta_o_sales_catalog_client():
 
 async def test_lifespan_restaura_settings_e_dispara_warmup(monkeypatch):
     import asyncio
+
     from app.db.engine import create_db_engine, create_session_factory
     from app.db.models import Base
     from app.db.settings import set_app_setting
@@ -119,4 +120,3 @@ async def test_lifespan_restaura_settings_e_dispara_warmup(monkeypatch):
         assert len(preload_called) == 1
 
     await engine.dispose()
-

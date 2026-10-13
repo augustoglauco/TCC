@@ -1,7 +1,8 @@
 import base64
 import json
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
@@ -20,7 +21,11 @@ class _FakeClipEmbedder:
 
 def _png_b64() -> str:
     # 1x1 PNG dummy
-    raw = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+    raw = (
+        b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08"
+        b"\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05"
+        b"\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+    )
     return base64.b64encode(raw).decode()
 
 
@@ -48,7 +53,9 @@ def test_chat_image_external_vision_populates_done_event_costs():
     app.state.clip_embedder = _FakeClipEmbedder()
 
     vision_res = VisionResult(
-        content=json.dumps({"produto": "Câmera Bullet HD", "e_do_portfolio": True, "confianca": 0.92}),
+        content=json.dumps(
+            {"produto": "Câmera Bullet HD", "e_do_portfolio": True, "confianca": 0.92}
+        ),
         prompt_tokens=1500,
         completion_tokens=70,
         total_tokens=1570,

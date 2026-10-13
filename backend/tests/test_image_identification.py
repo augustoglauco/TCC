@@ -335,7 +335,9 @@ async def test_identificacao_externa_propaga_metricas_tokens_e_custos():
             return res_raw
 
     rag = _FakeRAGClient(documents=[Document(content="Câmera IP manual", source="m", score=1)])
-    result = await _identificar(_FakeClipStore(), _VisionClientWithUsage(), rag, _FakeSalesCatalog())
+    result = await _identificar(
+        _FakeClipStore(), _VisionClientWithUsage(), rag, _FakeSalesCatalog()
+    )
 
     assert result.status == "encontrado_externo"
     assert result.prompt_tokens == 1050
@@ -455,7 +457,9 @@ async def test_identificacao_externa_nao_identificado_ainda_propaga_metricas():
             return res_raw
 
     rag = _FakeRAGClient()
-    result = await _identificar(_FakeClipStore(), _VisionClientNotIdentified(), rag, _FakeSalesCatalog())
+    result = await _identificar(
+        _FakeClipStore(), _VisionClientNotIdentified(), rag, _FakeSalesCatalog()
+    )
 
     assert result.status == "nao_identificado"
     assert result.prompt_tokens == 900
@@ -464,4 +468,3 @@ async def test_identificacao_externa_nao_identificado_ainda_propaga_metricas():
     assert result.cost_completion_usd == 0.00045
     assert result.estimated_cost_usd == 0.00495
     assert result.model_name == "google/gemma-4-31b-it:free"
-

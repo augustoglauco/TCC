@@ -648,7 +648,8 @@ def create_b2b_mcp_server(
 
                     raise ToolError(
                         f"Divergência ou comprovante inválido: {parecer.justificativa} "
-                        f"(Valor devido: R$ {valor_devido:.2f}, Valor detectado: R$ {parecer.valor_pago:.2f})"
+                        f"(Valor devido: R$ {valor_devido:.2f}, "
+                        f"Valor detectado: R$ {parecer.valor_pago:.2f})"
                     )
 
     return server

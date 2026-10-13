@@ -92,9 +92,11 @@ _PLAYBOOKS: dict[Domain, str] = {
     "atendimento": _ATENDIMENTO_PLAYBOOK,
     "fora_escopo": (
         "Domínio: CONVERSA GERAL E FORA DE ESCOPO.\n"
-        "- Se a mensagem do cliente for uma saudação (ex.: 'olá', 'boa noite', 'bom dia') ou cortesia social, "
+        "- Se a mensagem do cliente for uma saudação (ex.: 'olá', 'boa noite', "
+        "'bom dia') ou cortesia social, "
         "responda de forma cordial, breve e acolhedora, perguntando em que pode ajudar hoje.\n"
-        "- Não apresente listas de produtos, catálogos nem recomendações proativas a menos que o cliente solicite explicitamente."
+        "- Não apresente listas de produtos, catálogos nem recomendações proativas "
+        "a menos que o cliente solicite explicitamente."
     ),
 }
 

@@ -1,35 +1,35 @@
 import asyncio
-from datetime import UTC, datetime
-from decimal import Decimal
 import json
-import pytest
+from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.api.chat import (
-    router as chat_router,
-    get_local_client,
+    get_calendar_client,
+    get_clip_embedder,
+    get_clip_store,
     get_external_client,
+    get_intent_router_provider,
+    get_local_client,
     get_rag_client,
     get_rag_client_admin,
-    get_stt_client,
-    get_clip_store,
-    get_clip_embedder,
-    get_calendar_client,
-    get_scheduling_config,
     get_sales_catalog_client,
-    get_intent_router_provider,
+    get_scheduling_config,
+    get_stt_client,
     get_tone_monitor_enabled,
     get_tone_monitor_provider,
+)
+from app.api.chat import (
+    router as chat_router,
 )
 from app.db.models import Pedido, PedidoItem, Produto
 from app.rag.image_identification import ImageIdentificationResult
 from app.router.orchestrator import RouterDecision, TokenEvent, handle_message
 from app.router.sales_catalog import (
-    buscar_reserva_ativa,
     detectar_intencao_comprovante,
-    processar_conversao_comprovante,
 )
 
 
@@ -68,9 +68,17 @@ def _parse_sse(texto: str) -> list[tuple[str, dict]]:
 
 
 def test_detectar_intencao_comprovante():
-    assert detectar_intencao_comprovante("Segue o comprovante do pagamento PIX de R$ 1.500,00") is True
-    assert detectar_intencao_comprovante("Paguei a reserva, aqui está o recibo com autenticação 12345") is True
-    assert detectar_intencao_comprovante("[Texto extraído da imagem]:\nComprovante de Transferência") is True
+    assert (
+        detectar_intencao_comprovante("Segue o comprovante do pagamento PIX de R$ 1.500,00") is True
+    )
+    assert (
+        detectar_intencao_comprovante("Paguei a reserva, aqui está o recibo com autenticação 12345")
+        is True
+    )
+    assert (
+        detectar_intencao_comprovante("[Texto extraído da imagem]:\nComprovante de Transferência")
+        is True
+    )
     assert detectar_intencao_comprovante("Quanto custa um gerador solar?") is False
     assert detectar_intencao_comprovante("Vocês têm estoque em São Paulo?") is False
 
@@ -78,7 +86,12 @@ def test_detectar_intencao_comprovante():
 @pytest.mark.asyncio
 async def test_chat_conversao_item_unico_sucesso(db_session):
     # Setup de produto e pedido reservado com 1 item
-    prod = Produto(nome="Painel Solar 500W", descricao="Painel fotovoltaico", preco=Decimal("1500.00"), categoria="Solar")
+    prod = Produto(
+        nome="Painel Solar 500W",
+        descricao="Painel fotovoltaico",
+        preco=Decimal("1500.00"),
+        categoria="Solar",
+    )
     db_session.add(prod)
     await db_session.flush()
 
@@ -104,7 +117,10 @@ async def test_chat_conversao_item_unico_sucesso(db_session):
 
     events = []
     async for ev in handle_message(
-        message="Segue o comprovante do pagamento PIX de R$ 1.500,00 da reserva. Código de autenticação: E12345678202610051200",
+        message=(
+            "Segue o comprovante do pagamento PIX de R$ 1.500,00 da reserva. Código d"
+            "e autenticação: E12345678202610051200"
+        ),
         recent_messages=[],
         local_client=AsyncMock(),
         external_client=AsyncMock(),
@@ -144,7 +160,12 @@ async def test_chat_conversao_local_client_none_usa_ambiente_externo(db_session,
     # (orchestrator.py, pontos 1290-1300/1311-1321) nunca era exercitada em
     # nenhum teste de produção com `local_client=None` — só a nível do
     # `ComprovanteEvaluator` construído direto em test_comprovante_evaluator.py.
-    prod = Produto(nome="Painel Solar 500W", descricao="Painel fotovoltaico", preco=Decimal("1500.00"), categoria="Solar")
+    prod = Produto(
+        nome="Painel Solar 500W",
+        descricao="Painel fotovoltaico",
+        preco=Decimal("1500.00"),
+        categoria="Solar",
+    )
     db_session.add(prod)
     await db_session.flush()
 
@@ -182,7 +203,10 @@ async def test_chat_conversao_local_client_none_usa_ambiente_externo(db_session,
 
     events = []
     async for ev in handle_message(
-        message="Segue o comprovante do pagamento PIX de R$ 1.500,00 da reserva. Código de autenticação: E12345678202610051200",
+        message=(
+            "Segue o comprovante do pagamento PIX de R$ 1.500,00 da reserva. Código d"
+            "e autenticação: E12345678202610051200"
+        ),
         recent_messages=[],
         local_client=None,
         external_client=AsyncMock(),
@@ -204,7 +228,12 @@ async def test_chat_conversao_local_client_none_usa_ambiente_externo(db_session,
 @pytest.mark.asyncio
 async def test_chat_conversao_multiplos_itens_sucesso(db_session):
     # Setup de pedido reservado com múltiplos itens faturados
-    prod = Produto(nome="Inversor Híbrido 5kW", descricao="Inversor Solar", preco=Decimal("450.00"), categoria="Solar")
+    prod = Produto(
+        nome="Inversor Híbrido 5kW",
+        descricao="Inversor Solar",
+        preco=Decimal("450.00"),
+        categoria="Solar",
+    )
     db_session.add(prod)
     await db_session.flush()
 
@@ -230,7 +259,10 @@ async def test_chat_conversao_multiplos_itens_sucesso(db_session):
 
     events = []
     async for ev in handle_message(
-        message="Segue comprovante de pagamento da reserva: TED no valor de R$ 4.500,00. Transação: TED998877",
+        message=(
+            "Segue comprovante de pagamento da reserva: TED no valor de R$ 4.500,00. "
+            "Transação: TED998877"
+        ),
         recent_messages=[],
         local_client=AsyncMock(),
         external_client=AsyncMock(),
@@ -253,7 +285,12 @@ async def test_chat_conversao_multiplos_itens_sucesso(db_session):
 
 @pytest.mark.asyncio
 async def test_chat_conversao_pagamento_divergente(db_session):
-    prod = Produto(nome="Bateria de Lítio", descricao="Bateria 48V", preco=Decimal("2000.00"), categoria="Baterias")
+    prod = Produto(
+        nome="Bateria de Lítio",
+        descricao="Bateria 48V",
+        preco=Decimal("2000.00"),
+        categoria="Baterias",
+    )
     db_session.add(prod)
     await db_session.flush()
 
@@ -293,7 +330,10 @@ async def test_chat_conversao_pagamento_divergente(db_session):
 
     token_events = [e for e in events if isinstance(e, TokenEvent)]
     assert len(token_events) > 0
-    assert "divergência" in token_events[0].text.lower() or "divergencia" in token_events[0].text.lower()
+    assert (
+        "divergência" in token_events[0].text.lower()
+        or "divergencia" in token_events[0].text.lower()
+    )
 
     await db_session.refresh(pedido)
     assert pedido.status == "pagamento_divergente"
@@ -491,7 +531,9 @@ def chat_client(db_session):
 
 @pytest.mark.asyncio
 async def test_chat_api_endpoint_comprovante_imagem(chat_client, db_session, monkeypatch):
-    prod = Produto(nome="Painel Solar 500W", descricao="Painel", preco=Decimal("1500.00"), categoria="Solar")
+    prod = Produto(
+        nome="Painel Solar 500W", descricao="Painel", preco=Decimal("1500.00"), categoria="Solar"
+    )
     db_session.add(prod)
     await db_session.flush()
 
@@ -515,11 +557,14 @@ async def test_chat_api_endpoint_comprovante_imagem(chat_client, db_session, mon
 
     monkeypatch.setattr(
         "app.api.chat.extract_text_from_base64",
-        lambda img_b64: "Comprovante de Transferência PIX\nValor: R$ 1.500,00\nAutenticação: TX12345",
+        lambda img_b64: (
+            "Comprovante de Transferência PIX\nValor: R$ 1.500,00\nAutenticação: TX12345"
+        ),
     )
 
     png_1x1 = (
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGA"
+        "hKmMIQAAAABJRU5ErkJggg=="
     )
 
     res = chat_client.post(
@@ -589,12 +634,11 @@ async def test_chat_api_endpoint_comprovante_imagem_sem_image_intent_explicito(
             "legendada como comprovante"
         )
 
-    monkeypatch.setattr(
-        "app.api.chat.identify_product_by_image", _identify_nao_deve_ser_chamado
-    )
+    monkeypatch.setattr("app.api.chat.identify_product_by_image", _identify_nao_deve_ser_chamado)
 
     png_1x1 = (
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGA"
+        "hKmMIQAAAABJRU5ErkJggg=="
     )
 
     res = chat_client.post(
@@ -666,7 +710,8 @@ async def test_chat_api_endpoint_comprovante_imagem_sem_legenda_com_reserva_pend
     monkeypatch.setattr("app.api.chat.identify_product_by_image", _identify_nao_deve_ser_chamado)
 
     png_1x1 = (
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGA"
+        "hKmMIQAAAABJRU5ErkJggg=="
     )
 
     res = chat_client.post(
@@ -720,7 +765,8 @@ async def test_chat_api_endpoint_imagem_sem_legenda_com_reserva_pendente_mas_nao
     monkeypatch.setattr("app.api.chat.identify_product_by_image", _identify_produto_fake)
 
     png_1x1 = (
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGA"
+        "hKmMIQAAAABJRU5ErkJggg=="
     )
 
     res = chat_client.post(
@@ -736,4 +782,3 @@ async def test_chat_api_endpoint_imagem_sem_legenda_com_reserva_pendente_mas_nao
 
     await db_session.refresh(pedido)
     assert pedido.status == "reservado"
-

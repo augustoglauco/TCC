@@ -1,7 +1,8 @@
 """Testes da API REST Administrativa para Conversão de Reserva em Venda (/api/admin/pedidos)."""
 
-from decimal import Decimal
 import io
+from decimal import Decimal
+
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -82,15 +83,15 @@ async def test_admin_pedidos_list_and_filter(test_app, admin_headers, pedido_res
         assert len(ped["itens"]) == 1
 
         # 2. Filtrar por status
-        res_filter = await client.get(
-            "/api/admin/pedidos?status=reservado", headers=admin_headers
-        )
+        res_filter = await client.get("/api/admin/pedidos?status=reservado", headers=admin_headers)
         assert res_filter.status_code == 200
         assert any(p["id"] == str(pedido_reservado.id) for p in res_filter.json())
 
 
 @pytest.mark.asyncio
-async def test_admin_converter_manual_simples(test_app, admin_headers, pedido_reservado, db_session):
+async def test_admin_converter_manual_simples(
+    test_app, admin_headers, pedido_reservado, db_session
+):
     transport = ASGITransport(app=test_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.post(
@@ -152,9 +153,7 @@ async def test_admin_converter_auto_admin_sucesso(test_app, admin_headers, pedid
     transport = ASGITransport(app=test_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         comprovante_content = b"COMPROVANTE TRANSFERENCIA\nValor: R$ 500,00\nAutenticacao: ABC-999"
-        files = {
-            "comprovante": ("recibo.txt", io.BytesIO(comprovante_content), "text/plain")
-        }
+        files = {"comprovante": ("recibo.txt", io.BytesIO(comprovante_content), "text/plain")}
 
         res = await client.post(
             f"/api/admin/pedidos/{pedido_reservado.id}/converter-auto-admin",
@@ -168,7 +167,9 @@ async def test_admin_converter_auto_admin_sucesso(test_app, admin_headers, pedid
 
 
 @pytest.mark.asyncio
-async def test_admin_converter_auto_admin_divergente(test_app, admin_headers, pedido_reservado, db_session):
+async def test_admin_converter_auto_admin_divergente(
+    test_app, admin_headers, pedido_reservado, db_session
+):
     transport = ASGITransport(app=test_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         comprovante_content = b"COMPROVANTE TRANSFERENCIA\nValor: R$ 350,00\nAutenticacao: ABC-888"

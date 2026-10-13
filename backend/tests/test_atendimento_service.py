@@ -1,8 +1,11 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
-from datetime import datetime, timedelta, UTC
 from sqlalchemy import select
+
 from app.db.models import Cliente, ClienteCompra, Conversa, ConversaMensagem
 from app.services import atendimento_service
+
 
 @pytest.mark.asyncio
 async def test_escalar_para_humano_atualiza_status(db_session):
@@ -75,10 +78,14 @@ async def test_claim_conversa_atomico_e_prevencao_concorrencia(db_session):
     # grava um aviso automático para o cliente, como se o atendente tivesse
     # digitado — não duplicado pelo claim perdido do Atendente 2.
     mensagens = (
-        await db_session.execute(
-            select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-claim-1")
+        (
+            await db_session.execute(
+                select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-claim-1")
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(mensagens) == 1
     assert mensagens[0].papel == "atendente"
     assert mensagens[0].atendente_nome == "Mariana Atendente"
@@ -164,10 +171,14 @@ async def test_finalizar_atendimento_avisa_o_cliente(db_session):
     )
 
     mensagens = (
-        await db_session.execute(
-            select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-fim-aviso")
+        (
+            await db_session.execute(
+                select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-fim-aviso")
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(mensagens) == 1
     assert mensagens[0].papel == "atendente"
     assert mensagens[0].atendente_nome == "Operador Teste"
@@ -217,10 +228,16 @@ async def test_devolver_para_ia_avisa_o_cliente(db_session):
     )
 
     mensagens = (
-        await db_session.execute(
-            select(ConversaMensagem).where(ConversaMensagem.conversa_id == "conv-devolver-aviso")
+        (
+            await db_session.execute(
+                select(ConversaMensagem).where(
+                    ConversaMensagem.conversa_id == "conv-devolver-aviso"
+                )
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     assert len(mensagens) == 1
     assert mensagens[0].papel == "atendente"
     assert mensagens[0].atendente_nome == "Operador Teste"

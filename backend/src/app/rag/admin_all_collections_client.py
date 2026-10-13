@@ -43,11 +43,7 @@ class AdminAllCollectionsRagClient:
         except SQLAlchemyError as exc:
             raise RAGConnectionError(str(exc)) from exc
 
-        alvo = [
-            c
-            for c in collections
-            if c.is_active and c.purpose in ("chat", "mcp_b2b", "admin")
-        ]
+        alvo = [c for c in collections if c.is_active and c.purpose in ("chat", "mcp_b2b", "admin")]
         pares = await buscar_em_varias_collections(
             alvo,
             self._qdrant,

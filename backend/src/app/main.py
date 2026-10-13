@@ -1,9 +1,9 @@
 """Ponto de entrada da API FastAPI do backend (`uvicorn app.main:app`)."""
 
 import asyncio
-from contextlib import asynccontextmanager
 import inspect
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -120,7 +120,9 @@ async def lifespan(app: FastAPI):
                 persisted = await get_all_app_settings(session)
                 _apply_runtime_settings(app, persisted)
         except Exception as exc:
-            logger.warning("Falha ao carregar configurações persistidas do banco no startup: %s", exc)
+            logger.warning(
+                "Falha ao carregar configurações persistidas do banco no startup: %s", exc
+            )
 
     closure_worker_task = None
     if session_factory is not None:
@@ -136,7 +138,10 @@ async def lifespan(app: FastAPI):
             and inspect.iscoroutinefunction(local_client.preload)
             and str(getattr(local_client, "keep_alive", "-1")) != "0"
         ):
-            logger.info("Disparando warmup do modelo local (%s) na VRAM...", getattr(local_client, "model", ""))
+            logger.info(
+                "Disparando warmup do modelo local (%s) na VRAM...",
+                getattr(local_client, "model", ""),
+            )
             asyncio.create_task(local_client.preload())
 
     yield
@@ -253,8 +258,10 @@ def create_app() -> FastAPI:
     db_engine = create_db_engine(settings.postgres_dsn)
     app.state.db_sessionmaker = create_session_factory(db_engine)
     from app.services.ingestion_metrics import set_global_sessionmaker
+
     set_global_sessionmaker(app.state.db_sessionmaker)
     from app.services.ai_usage import set_global_sessionmaker as set_global_sessionmaker_ai
+
     set_global_sessionmaker_ai(app.state.db_sessionmaker)
 
     app.state.rag_client = ActiveCollectionRagClient(

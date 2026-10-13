@@ -123,10 +123,10 @@ async def refresh_admin_chart(
     """Re-executa a agregação de dados e atualiza o gráfico no banco de dados."""
     try:
         cid = uuid.UUID(chart_id)
-    except ValueError:
+    except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="ID de gráfico inválido."
-        )
+        ) from exc
 
     chart = await session.get(AdminChart, cid)
     if not chart:
@@ -191,10 +191,10 @@ async def update_admin_chart(
     """Atualiza propriedades de exibição do gráfico (título, descrição, fixado, ordem)."""
     try:
         cid = uuid.UUID(chart_id)
-    except ValueError:
+    except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="ID de gráfico inválido."
-        )
+        ) from exc
 
     chart = await session.get(AdminChart, cid)
     if not chart:
@@ -230,10 +230,10 @@ async def delete_admin_chart(
     """Exclui permanentemente um gráfico do banco de dados."""
     try:
         cid = uuid.UUID(chart_id)
-    except ValueError:
+    except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="ID de gráfico inválido."
-        )
+        ) from exc
 
     chart = await session.get(AdminChart, cid)
     if not chart:

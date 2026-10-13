@@ -115,7 +115,9 @@ async def test_admin_charts_refresh_dynamic_sql_and_user_data(test_app, db_sessi
             "tipo_grafico": "bar",
             "config_json": {"x_key": "nome", "y_keys": ["preco"]},
             "dados_json": [],
-            "sql_query": "dynamic_sql: SELECT nome, preco FROM produtos WHERE nome = 'Item Dynamic'",
+            "sql_query": (
+                "dynamic_sql: SELECT nome, preco FROM produtos WHERE nome = 'Item Dynamic'"
+            ),
         }
         res1 = await client.post("/api/admin/charts", json=payload_sql, headers=headers)
         assert res1.status_code == 201

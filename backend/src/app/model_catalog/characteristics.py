@@ -45,7 +45,7 @@ async def _get_openrouter_catalog(http_client: httpx.AsyncClient) -> list[dict] 
         response = await http_client.get(OPENROUTER_MODELS_URL, timeout=10.0)
         response.raise_for_status()
         modelos = response.json().get("data", [])
-    except (httpx.HTTPError, ValueError):
+    except httpx.HTTPError, ValueError:
         # ValueError cobre json.JSONDecodeError (corpo malformado).
         return _openrouter_cache["models"]  # stale-se-houver, senão None
 
@@ -73,7 +73,7 @@ async def _fetch_openrouter(tag: str, http_client: httpx.AsyncClient) -> dict[st
             return None
         try:
             return float(valor) * 1000
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return None
 
     return {
@@ -154,7 +154,7 @@ async def _fetch_huggingface(tag: str, http_client: httpx.AsyncClient) -> dict[s
         response = await http_client.get(f"{HUGGINGFACE_MODELS_URL}/{repo}", timeout=10.0)
         response.raise_for_status()
         dados = response.json()
-    except (httpx.HTTPError, ValueError):
+    except httpx.HTTPError, ValueError:
         # ValueError cobre json.JSONDecodeError (corpo malformado).
         return None
 
