@@ -47,6 +47,12 @@ infra/caddy/caddy.env
 .serena/
 .repowise/
 .claude/.headroom_wrap*
+# Instrucoes e config auto-geradas pelo Repowise (`repowise init` + hook de
+# post-commit): regravadas a cada commit e com caminho absoluto da maquina
+# no .mcp.json — cada maquina gera as suas. Manual: docs/Manuais/repowise-manual.md
+.claude/CLAUDE.md
+.mcp.json
+.github/copilot-instructions.md
 
 # Graphify cache e apontadores locais de ambiente
 graphify-out/cache/
