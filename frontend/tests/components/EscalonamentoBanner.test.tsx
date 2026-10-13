@@ -10,6 +10,13 @@ describe("EscalonamentoBanner", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("fica fixo no topo da área rolável (flutuante) para ser visto em conversas longas", () => {
+    render(<EscalonamentoBanner escalonamento={{ motivo: "insatisfacao" }} />);
+
+    const banner = screen.getByTestId("escalonamento-banner");
+    expect(banner).toHaveClass("sticky", "top-0", "z-20");
+  });
+
   it("renderiza mensagem de urgência quando motivo é 'urgencia'", () => {
     render(<EscalonamentoBanner escalonamento={{ motivo: "urgencia", confianca: 0.9 }} />);
 

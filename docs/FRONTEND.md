@@ -132,7 +132,9 @@ com o histórico recarregado.
   local, útil para a demonstração do TCC (R1).
 - **Banner de transferência humana** quando o monitor de tom aciona a
   escalada (R8): implementado em `components/chat/EscalonamentoBanner.tsx`
-  e integrado ao topo da listagem de mensagens em `ChatModal.tsx`. Consome o
+  e integrado ao topo da listagem de mensagens em `ChatModal.tsx`, como
+  elemento flutuante (`sticky top-0 z-20`, 2026-10-13): fica visível sobre
+  as mensagens mesmo em conversas longas com scroll. Consome o
   evento SSE `escalonamento` (`lib/api/chat.ts`, callback `onEscalonamento`)
   com mensagem contextualizada de acordo com o motivo detectado (`urgencia`:
   "Identificamos urgência na sua solicitação. Um atendente humano foi notificado...";

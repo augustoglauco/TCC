@@ -13,6 +13,10 @@ export default function EscalonamentoBanner({
 }: EscalonamentoBannerProps) {
   if (!escalonamento) return null;
 
+  // Flutuante (pedido de 2026-10-13): o banner vive dentro da área rolável
+  // do chat, e `sticky top-0` o mantém visível sobre as mensagens — numa
+  // conversa longa ele ficava no topo e o cliente nunca o via.
+
   const { motivo } = escalonamento;
 
   let mensagem =
@@ -30,7 +34,7 @@ export default function EscalonamentoBanner({
     <div
       role="status"
       data-testid="escalonamento-banner"
-      className="mb-2 sm:mb-3 rounded-xl border border-amber-300 bg-amber-50/95 p-3 sm:p-3.5 text-xs text-amber-950 shadow-2xs transition-all"
+      className="sticky top-0 z-20 mb-2 sm:mb-3 rounded-xl border border-amber-300 bg-amber-50 p-3 sm:p-3.5 text-xs text-amber-950 shadow-md transition-all"
     >
       <div className="flex items-start justify-between gap-2.5">
         <div className="flex items-start gap-2.5">
