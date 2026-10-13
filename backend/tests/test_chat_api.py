@@ -338,7 +338,7 @@ def test_chat_stream_router_provider_reflete_fallback_do_jev(fakes):
     app = _build_app(fakes)
     app.state.intent_router_provider = "jev_openrouter"
     with TestClient(app) as test_client:
-        response = test_client.post("/api/chat/messages", json={"message": "olá"})
+        response = test_client.post("/api/chat/messages", json={"message": "me fale da empresa"})
 
     dados_done = _find(_parse_sse(response.text), "done")
     assert dados_done["router_provider"] == "heuristica_llm"
@@ -353,7 +353,7 @@ def test_chat_stream_router_provider_jev_quando_client_sucede(fakes):
     app = _build_app(fakes)
     app.state.intent_router_provider = "jev_openrouter"
     with TestClient(app) as test_client:
-        response = test_client.post("/api/chat/messages", json={"message": "olá"})
+        response = test_client.post("/api/chat/messages", json={"message": "me fale da empresa"})
 
     dados_done = _find(_parse_sse(response.text), "done")
     assert dados_done["router_provider"] == "jev_openrouter"
@@ -363,7 +363,7 @@ def test_chat_stream_router_provider_default_sem_app_state(client):
     # `_build_app` (fixture `client`) não define `app.state.intent_router_provider`
     # — a dependência precisa cair no default "heuristica_llm" (getattr com
     # fallback), não estourar AttributeError.
-    response = client.post("/api/chat/messages", json={"message": "olá"})
+    response = client.post("/api/chat/messages", json={"message": "me fale da empresa"})
 
     dados_done = _find(_parse_sse(response.text), "done")
     assert dados_done["router_provider"] == "heuristica_llm"

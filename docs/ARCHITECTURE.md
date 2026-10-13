@@ -963,6 +963,16 @@ em `docs/FRONTEND.md` §4. `# MVP: sem reconexão automática/`Last-Event-ID`
 se a conexão cair no meio do stream — o cliente perde os tokens já enviados
 e precisa reenviar a mensagem inteira, aceitável para este protótipo`.
 
+**Decisão registrada (saudação/cortesia pura não escala, R3, 2026-10-13):**
+`classify()` reconhece saudações e agradecimentos puros ("bom dia!", "olá",
+"tudo bem?", "obrigado") por um conjunto fechado de palavras (pelo menos
+uma âncora, todas as palavras no conjunto, até 6 palavras) e devolve
+`fora_escopo`/`baixa`/`confidence=1.0` com `provider_efetivo="regras"`, sem
+chamar LLM (local ou Jev) nem o RAG. Motivo: o LLM local classificava
+"bom dia" em `atendimento`, a busca RAG vazia (~10 s) disparava
+`rag_vazio` e a saudação ia ao modelo externo. Confirmações curtas ("sim",
+"ok") ficam de fora: dependem do contexto. MVP: lista fixa em pt-BR.
+
 **Decisão registrada (RAG com contexto de fallback, R4, 2026-09-17):**
 A busca do RAG (`rag_client.search`) usava só a mensagem atual, mesmo o
 classificador já considerando as últimas mensagens da conversa (ver linha

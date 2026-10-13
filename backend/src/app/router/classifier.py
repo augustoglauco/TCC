@@ -200,6 +200,69 @@ def _match_domain_by_keywords(message: str) -> Domain | None:
     return None
 
 
+# Saudações/cortesias puras ("bom dia!", "olá", "obrigado"). Uma mensagem só
+# conta como cortesia se TODAS as palavras estão neste conjunto fechado (e há
+# no máximo `_CORTESIA_MAX_PALAVRAS`): "bom dia, quero um orçamento" não
+# casa. Sem este atalho, o LLM local classificava "bom dia" em um domínio
+# (ex.: atendimento), a busca RAG voltava vazia e o roteador escalava ao
+# externo por `rag_vazio` (achado de 2026-10-13: 10 s de RAG + chamada externa
+# para um cumprimento). Confirmações curtas ("sim", "ok") ficam de fora de
+# propósito: dependem do contexto (oferta do assistente).
+# MVP: lista fixa em pt-BR, sem NLP.
+# Palavras que ancoram a cortesia (ao menos uma é obrigatória) e palavras de
+# apoio ("bom DIA", "tudo BEM", "muito obrigado") que só valem junto de uma.
+_CORTESIA_ANCORAS = frozenset(
+    {
+        "bom",
+        "boa",
+        "tudo",
+        "ola",
+        "oi",
+        "oie",
+        "opa",
+        "eai",
+        "hey",
+        "hello",
+        "hi",
+        "obrigado",
+        "obrigada",
+        "obg",
+        "brigado",
+        "brigada",
+        "valeu",
+        "agradeco",
+    }
+)
+_CORTESIA_APOIO = frozenset(
+    {
+        "dia",
+        "tarde",
+        "noite",
+        "ai",
+        "bem",
+        "bom",
+        "como",
+        "vai",
+        "voce",
+        "vc",
+        "td",
+        "e",
+        "muito",
+        "demais",
+    }
+)
+_CORTESIA_MAX_PALAVRAS = 6
+
+
+def _is_cortesia(message: str) -> bool:
+    palavras = re.findall(r"[a-z]+", normalize(message))
+    if not palavras or len(palavras) > _CORTESIA_MAX_PALAVRAS:
+        return False
+    return any(p in _CORTESIA_ANCORAS for p in palavras) and all(
+        p in _CORTESIA_ANCORAS or p in _CORTESIA_APOIO for p in palavras
+    )
+
+
 def _heuristic_complexity(message: str) -> Complexity:
     if len(message) > _COMPLEXITY_LENGTH_THRESHOLD:
         return "alta"
@@ -369,6 +432,17 @@ async def classify(
     ultima_resposta: str | None = None,
 ) -> ClassificationResult:
     recent_messages = recent_messages or []
+
+    # Saudação/cortesia pura: resolve sem LLM (local ou Jev) e sem RAG — o
+    # orchestrator trata `fora_escopo` + `baixa` como local (playbook de
+    # cortesia), nunca escalando por `rag_vazio`.
+    if _is_cortesia(message):
+        return ClassificationResult(
+            domain="fora_escopo",
+            complexity="baixa",
+            confidence=1.0,
+            provider_efetivo="regras",
+        )
 
     if provider == "jev_openrouter":
         return await _classify_with_jev(message, recent_messages, external_client, ultima_resposta)

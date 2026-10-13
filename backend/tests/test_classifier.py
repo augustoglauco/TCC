@@ -571,3 +571,42 @@ async def test_classify_com_llm_local_registra_uso_ia(monkeypatch):
         "session_factory": None,
         "commit": False,
     }
+
+
+@pytest.mark.parametrize(
+    "mensagem",
+    [
+        "bom dia!",
+        "Bom dia",
+        "boa tarde 😊",
+        "Olá!",
+        "oi, tudo bem?",
+        "e aí, tudo bem",
+        "obrigado",
+        "Muito obrigada!",
+    ],
+)
+async def test_classify_saudacao_pura_vira_fora_escopo_baixa_sem_llm(mensagem):
+    llm = _FakeLLMClient("não deveria ser chamado")
+    result = await classify(mensagem, strategy="llm", llm_client=llm, provider="heuristica_llm")
+
+    assert result.domain == "fora_escopo"
+    assert result.complexity == "baixa"
+    assert result.provider_efetivo == "regras"
+    assert llm.calls == 0
+
+
+@pytest.mark.parametrize(
+    "mensagem",
+    [
+        "bom dia, quero um orçamento",
+        "oi, meu gerador não liga",
+        "olá, qual o preço do QTA-100?",
+        "sim",
+        "bem",
+    ],
+)
+async def test_classify_saudacao_com_conteudo_nao_e_cortesia(mensagem):
+    result = await classify(mensagem)
+
+    assert result.provider_efetivo != "regras"

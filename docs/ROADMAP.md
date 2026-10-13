@@ -83,6 +83,12 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       agendamento proposto)
 - [x] Adicionar log básico de decisões do roteador (intenção escolhida,
       custo/latência estimados)
+- [x] Atalho de saudação/cortesia pura no classificador (2026-10-13):
+      "bom dia!", "olá", "obrigado" viram `fora_escopo`/`baixa` sem LLM nem
+      RAG (`provider_efetivo="regras"`). Antes, o LLM local classificava
+      "bom dia" em `atendimento`, o RAG voltava vazio (~10 s) e o roteador
+      escalava ao externo por `rag_vazio`. Cortesia com conteúdo ("bom dia,
+      quero um orçamento") segue o fluxo normal.
 
 ## Fase 2 — Entrada Multimodal e RAG Textual (R2, R4, R5)
 
