@@ -1199,6 +1199,40 @@ conversa e classificação do usuário").
       levantados como exaustivos; não eram. Decisão pendente: instrumentar
       ou documentar a exclusão como definitiva.
 
+- [x] **Bug — a suíte de testes gravava telemetria no Postgres do
+      desenvolvedor** (achado e corrigido em 2026-10-12, a partir da
+      pergunta "por que o painel mostra modelo interno `desconhecido`?").
+      O painel `/admin/metricas` exibia 129 chamadas internas com modelo
+      `desconhecido`, tokens vazios e custo zero. Não era uso real: o
+      lifespan de `app.main` (`main.py:253-257`) aponta os sessionmakers
+      **globais** de `app.services.ai_usage` e
+      `app.services.ingestion_metrics` para `settings.postgres_dsn`, então
+      todo teste que subia a app de verdade (`with TestClient(app)`) com o
+      `.env` real deixava esses globais apontando para o banco do dev — e os
+      registros fire-and-forget dos testes seguintes caíam no fallback
+      global e gravavam lá, com os dados dos dublês (o
+      `_DomainAwareLLMClient` devolve `LLMResponse` sem `model_name` nem
+      tokens, que é exatamente a assinatura das linhas no painel). Provas:
+      rodar a suíte completa levava o ledger de 133 para 258 linhas; o repro
+      mínimo é `pytest tests/test_main_app.py tests/test_integration_domains.py`
+      (+12 linhas), enquanto cada arquivo sozinho não grava nada; e o
+      `OllamaClient` real, chamado direto, devolve
+      `model_name='gemma4:12b-it-q4_K_M'` com tokens — ou seja, produção
+      sempre registrou o modelo certo. Correção: duas fixtures `autouse` em
+      `backend/tests/conftest.py` — `_isola_banco_de_telemetria` (DSN da
+      sessão de testes vira um SQLite de arquivo descartável, com schema, de
+      modo que o lifespan continua sendo exercitado de verdade) e
+      `_reset_sessionmakers_globais` (zera os dois globais entre testes).
+      Depois da correção, a suíte completa (994 testes) não grava **nenhuma**
+      linha no Postgres. Regra correspondente registrada em
+      `docs/CONVENTIONS.md` (seção Testes). Os 270 eventos acumulados na
+      tabela `ai_usage_events` do banco de desenvolvimento são todos lixo de
+      teste (133 de 2026-10-08 + 137 das rodadas de diagnóstico de
+      2026-10-12); esvaziar a tabela ficou pendente de execução manual pelo
+      desenvolvedor — o classificador de permissões do Claude Code bloqueia
+      remoção em massa. Backup dos registros antigos foi gerado com
+      `pg_dump --data-only --table=ai_usage_events` antes da tentativa.
+
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 
 - [x] Testes de integração cobrindo os quatro domínios de atendimento

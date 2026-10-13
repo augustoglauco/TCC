@@ -161,6 +161,19 @@ intencional achando que é um bug ou uma tarefa esquecida.
   2026-09-28, os testes das APIs de produtos criavam e apagavam produtos no
   catálogo real e deixavam lixo quando falhavam (limpeza:
   `backend/scripts/limpar_produtos_de_teste.py`).
+- **Sobrescrever a dependência `get_db_session` não basta.** A telemetria
+  (`app.services.ai_usage` e `app.services.ingestion_metrics`) grava em
+  *fire-and-forget*, por um sessionmaker **global de módulo** que o lifespan
+  de `app.main` aponta para `settings.postgres_dsn` — caminho que não passa
+  por nenhuma dependência do FastAPI. Até 2026-10-12, um teste que subia a
+  app de verdade (`with TestClient(app)`) deixava esse global apontando para
+  o Postgres do desenvolvedor, e os testes seguintes gravavam lá os dados
+  dos seus dublês: 129 eventos de IA com modelo "desconhecido" apareceram no
+  painel `/admin/metricas` como se fossem uso real. Duas fixtures `autouse`
+  em `conftest.py` fecham isso — `_isola_banco_de_telemetria` (troca o DSN
+  por um SQLite descartável da sessão de testes, com schema) e
+  `_reset_sessionmakers_globais` (zera os dois globais entre testes). Ao
+  criar um serviço novo com sessionmaker global, acrescente-o à segunda.
 - Testes que dependem de GPU/modelo local devem ser marcados
   (`@pytest.mark.gpu` ou equivalente) para poderem ser pulados em ambientes
   sem GPU.

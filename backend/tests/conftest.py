@@ -75,6 +75,65 @@ class _FakeQdrantRAGClient:
         self.dropped_collections.append(collection_name)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _isola_banco_de_telemetria(tmp_path_factory):
+    """Impede que a suíte escreva no Postgres real do desenvolvedor.
+
+    O lifespan de `app.main` monta o engine a partir de `settings.postgres_dsn`
+    e aponta os sessionmakers GLOBAIS de `app.services.ai_usage` e
+    `app.services.ingestion_metrics` para ele (`main.py:253-257`). Todo teste
+    que sobe a app de verdade (`with TestClient(app)`) executava esse lifespan
+    com o `.env` real — e, como esses globais são variáveis de módulo que
+    ninguém reseta, os registros fire-and-forget (`registrar_uso_ia(session=
+    None, session_factory=None)`) dos testes SEGUINTES caíam no fallback
+    global e gravavam no banco do dev, com os dados dos dublês.
+
+    Sintoma que isso produziu (2026-10-12): o painel `/admin/metricas` exibia
+    129 chamadas internas com modelo "desconhecido" e tokens vazios — a
+    assinatura do dublê `_DomainAwareLLMClient`, que devolve `LLMResponse`
+    sem `model_name` nem tokens. Nenhuma chamada real: o `OllamaClient`
+    preenche `model_name` desde 2026-09-17.
+
+    A fixture troca o DSN por um SQLite de arquivo próprio da sessão de
+    testes, com o schema criado — assim o lifespan continua funcionando (e
+    sendo exercitado de verdade), as gravações de telemetria continuam
+    acontecendo e sendo observáveis, mas em um banco descartável.
+    """
+    import asyncio
+
+    caminho = tmp_path_factory.mktemp("telemetria") / "telemetria_testes.sqlite"
+    dsn = f"sqlite+aiosqlite:///{caminho}"
+
+    async def _criar_schema() -> None:
+        engine = create_db_engine(dsn)
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        await engine.dispose()
+
+    asyncio.run(_criar_schema())
+
+    mp = pytest.MonkeyPatch()
+    mp.setattr(get_settings(), "postgres_dsn", dsn)
+    yield dsn
+    mp.undo()
+
+
+@pytest.fixture(autouse=True)
+def _reset_sessionmakers_globais():
+    """Zera, entre testes, os sessionmakers globais de telemetria que o
+    lifespan de `app.main` configura — segunda camada da proteção descrita em
+    `_isola_banco_de_telemetria`. Sem isso, um teste que sobe a app deixa o
+    global apontando para o banco dela e contamina os testes posteriores:
+    `pytest tests/test_main_app.py tests/test_integration_domains.py` gravava
+    12 eventos fora do banco do próprio teste; cada arquivo sozinho, nenhum."""
+    yield
+    from app.services.ai_usage import set_global_sessionmaker as _reset_ai
+    from app.services.ingestion_metrics import set_global_sessionmaker as _reset_ing
+
+    _reset_ai(None)
+    _reset_ing(None)
+
+
 @pytest.fixture(autouse=True)
 def _reset_openrouter_cache():
     """Isola o cache em memória do processo da lista do OpenRouter
