@@ -17171,7 +17171,7 @@
       },
       "norm_label": "checar_servico()",
       "source_file": "g.sh",
-      "source_location": "L10"
+      "source_location": "L11"
     },
     {
       "id": "g_falha",
@@ -17186,7 +17186,7 @@
       },
       "norm_label": "falha()",
       "source_file": "g.sh",
-      "source_location": "L9"
+      "source_location": "L10"
     },
     {
       "id": "g_main",
@@ -17201,7 +17201,7 @@
       },
       "norm_label": "main()",
       "source_file": "g.sh",
-      "source_location": "L42"
+      "source_location": "L43"
     },
     {
       "id": "g_passo",
@@ -17216,7 +17216,7 @@
       },
       "norm_label": "passo()",
       "source_file": "g.sh",
-      "source_location": "L8"
+      "source_location": "L9"
     },
     {
       "id": "g_sh__entry",
@@ -49222,7 +49222,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "g.sh",
-      "source_location": "L115",
+      "source_location": "L162",
       "weight": 1.0
     },
     {
@@ -49234,7 +49234,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "g.sh",
-      "source_location": "L44",
+      "source_location": "L45",
       "weight": 1.0
     },
     {
@@ -49246,7 +49246,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "g.sh",
-      "source_location": "L52",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -49258,7 +49258,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "g.sh",
-      "source_location": "L127",
+      "source_location": "L181",
       "weight": 1.0
     },
     {
@@ -98879,7 +98879,7 @@
     },
     {
       "source": "g",
-      "target": "g_checar_servico",
+      "target": "g_falha",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -98890,29 +98890,29 @@
     },
     {
       "source": "g",
+      "target": "g_checar_servico",
+      "relation": "defines",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "g.sh",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "g",
       "target": "g_main",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "g.sh",
-      "source_location": "L42",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
       "source": "g",
       "target": "g_passo",
-      "relation": "defines",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "g.sh",
-      "source_location": "L8",
-      "weight": 1.0
-    },
-    {
-      "source": "g",
-      "target": "g_falha",
       "relation": "defines",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -115692,5 +115692,5 @@
       "source_file": "docs/superpowers/plans/2026-09-14-registro-documentos-rag.md"
     }
   ],
-  "built_at_commit": "0ab0c881afbf0f069e6adc18d61364c5c14f336d"
+  "built_at_commit": "8175833d18a7886a37a21309eb699e8c1594f3ac"
 }

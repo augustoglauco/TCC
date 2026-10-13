@@ -1656,10 +1656,10 @@
     "semantic_hash": "02fc19ad21338c2ab820a70136310db4"
   },
   "g.sh": {
-    "mtime": 1791218878.9992259,
-    "seen": 1791840346.4559176,
-    "ast_hash": "9d7317be81cdb876efca0d3f3ac4d686",
-    "semantic_hash": "9d7317be81cdb876efca0d3f3ac4d686"
+    "mtime": 1791863635.2867846,
+    "seen": 1791863716.527461,
+    "ast_hash": "bfb0423e6f12869cf3b6dae94607dc26",
+    "semantic_hash": ""
   },
   ".agents/rules/project.md": {
     "mtime": 1790566164.6635647,
@@ -1776,9 +1776,9 @@
     "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_ADMINISTRADOR.md": {
-    "mtime": 1791862863.1693869,
-    "seen": 1791862920.2326713,
-    "ast_hash": "83896fd2f23395cf0ec0cbbb8384d0ff",
+    "mtime": 1791863699.3490813,
+    "seen": 1791863716.52749,
+    "ast_hash": "eeac4f19267155720a64942977d65330",
     "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_USUARIO.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1791862823.3151724,
-    "seen": 1791862920.232679,
-    "ast_hash": "43fd9138a9016d1bc81127ae31a0d065",
+    "mtime": 1791863699.3606176,
+    "seen": 1791863716.5274959,
+    "ast_hash": "cd641cdbf9c45487903ddeaac7d92e5a",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
@@ -2124,10 +2124,10 @@
     "semantic_hash": "5c27369b226fcf2be8a6cfe52224e767"
   },
   "goup.md": {
-    "mtime": 1791218206.696098,
-    "seen": 1791840346.4559765,
-    "ast_hash": "4398a09240716db9a3079f7ef2239abd",
-    "semantic_hash": "4398a09240716db9a3079f7ef2239abd"
+    "mtime": 1791863686.6687982,
+    "seen": 1791863716.5275419,
+    "ast_hash": "0b70af90b0ab65d74733abf275122227",
+    "semantic_hash": ""
   },
   ".agents/rules/graphify.md": {
     "mtime": 1791836550.713148,

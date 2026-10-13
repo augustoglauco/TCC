@@ -1,7 +1,7 @@
 # Graph Report - TCC  (2026-10-13)
 
 ## Corpus Check
-- 364 files · ~441,845 words
+- 364 files · ~442,450 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `0ab0c881`
+- Built from commit: `8175833d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -769,7 +769,7 @@ Cohesion: 0.13
 Nodes (22): asyncio, _avaliar_cliente(), _carregar_casos(), _julgar_resposta(), main(), Avalia resiliência comportamental a prompt injection (Fase 10, avaliação…, _avaliar_provider(), _carregar_casos() (+14 more)
 
 ## Knowledge Gaps
-- **369 isolated node(s):** `📌 1. Sumário de Recursos, Portas e Convivência no Ecossistema`, `🔄 2. Convivência e Papéis: GitNexus vs. Repowise vs. Graphify`, `3.1 Inicialização Interativa (Primeiro Plano)`, `3.2 Inicialização com Porta Customizada ou Acesso em Rede`, `3.3 Inicialização em Segundo Plano (Background / Daemon)` (+364 more)
+- **369 isolated node(s):** `FileType`, `PlaygroundManualModalProps`, `ModalProps`, `ModalSize`, `BinaryQuantizationConfig` (+364 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -777,16 +777,16 @@ Nodes (22): asyncio, _avaliar_cliente(), _carregar_casos(), _julgar_resposta(), 
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `OllamaClient` connect `OllamaClient` to `pathlib`, `api/runtime_settings.py`, `QdrantRAGClient`, `LocalModel`, `characteristics.py`, `api/local_models.py`, `chunk_size_search.py`, `main.py`, `collections_abc`, `.pull_model_streaming`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
-- **Why does `useAuthStore` connect `useAuthStore` to `types/rag.ts`, `ChatModal.tsx`, `CatalogImportModal.tsx`, `metricas/page.tsx`, `RuntimeSettingsForm.tsx`, `getApiBaseUrl`, `PullModelForm.tsx`, `ingestao/page.tsx`, `api/crawler.ts`, `LocalModelsTable.tsx`, `adminAtendimento.ts`, `dashboards/page.tsx`, `PlaygroundPanel.tsx`, `orders.ts`, `AbaEnviarDocumento`, `ferramentas/page.tsx`, `adminPedidos.ts`, `api/agendamentos.ts`, `useChatStore.ts`?**
-  _High betweenness centrality (0.018) - this node is a cross-community bridge._
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
 - **Why does `QdrantRAGClient` connect `QdrantRAGClient` to `b2b.py`, `pathlib`, `ingest.py`, `api/runtime_settings.py`, `upload_document`, `models/rag.py`, `api/crawler.py`, `chunk_size_search.py`, `main.py`, `rag_collections.py`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+- **Why does `OpenRouterClient` connect `OpenRouterClient` to `pathlib`, `api/runtime_settings.py`, `QdrantRAGClient`, `chunk_size_search.py`, `main.py`, `collections_abc`?**
+  _High betweenness centrality (0.012) - this node is a cross-community bridge._
 - **Are the 29 inferred relationships involving `QdrantRAGClient` (e.g. with `_FixedCollectionRagClient` and `main()`) actually correct?**
   _`QdrantRAGClient` has 29 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 17 inferred relationships involving `OllamaClient` (e.g. with `main()` and `main()`) actually correct?**
   _`OllamaClient` has 17 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `📌 1. Sumário de Recursos, Portas e Convivência no Ecossistema`, `🔄 2. Convivência e Papéis: GitNexus vs. Repowise vs. Graphify`, `3.1 Inicialização Interativa (Primeiro Plano)` to the rest of the system?**
+- **What connects `FileType`, `PlaygroundManualModalProps`, `ModalProps` to the rest of the system?**
   _369 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `types/rag.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.058823529411764705 - nodes in this community are weakly interconnected._
