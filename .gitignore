@@ -45,6 +45,7 @@ infra/caddy/caddy.env
 # Ferramentas locais de agente / memória
 .headroom/
 .serena/
+.repowise/
 .claude/.headroom_wrap*
 
 # Graphify cache e apontadores locais de ambiente
