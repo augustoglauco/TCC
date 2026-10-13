@@ -1668,9 +1668,9 @@
     "semantic_hash": "505d0018e92c63934006cd7f9f2998e4"
   },
   "CLAUDE.md": {
-    "mtime": 1791845363.9759681,
-    "seen": 1791845457.8505704,
-    "ast_hash": "96d4214c8ff1225c35907f37f52b8176",
+    "mtime": 1791860284.9696271,
+    "seen": 1791860309.0686297,
+    "ast_hash": "e067305c6dfcec8a5666db047136d8b9",
     "semantic_hash": ""
   },
   "README.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1791854139.632663,
-    "seen": 1791854196.20468,
-    "ast_hash": "dbca6b0e84da1f23a046160663bcdfb5",
+    "mtime": 1791858118.4543715,
+    "seen": 1791860309.0686529,
+    "ast_hash": "b2cbd7f523e4aa855a92203dbbee282f",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
@@ -2145,6 +2145,54 @@
     "mtime": 1791848282.2301385,
     "seen": 1791850513.247426,
     "ast_hash": "6a1182cfa4e5e3b6dcb84d43d00a9dd8",
+    "semantic_hash": ""
+  },
+  ".agents/skills/gitnexus-cli/SKILL.md": {
+    "mtime": 1791854666.5886376,
+    "seen": 1791860309.0686216,
+    "ast_hash": "c40f5ed1d32a4f298484644deb023ba4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/gitnexus-debugging/SKILL.md": {
+    "mtime": 1791854666.5811226,
+    "seen": 1791860309.0686233,
+    "ast_hash": "5a6e25eee809c31a0cc7071018b62aa8",
+    "semantic_hash": ""
+  },
+  ".agents/skills/gitnexus-exploring/SKILL.md": {
+    "mtime": 1791854666.5753703,
+    "seen": 1791860309.0686245,
+    "ast_hash": "d84b30f0d425f42c7278957bfe8c2498",
+    "semantic_hash": ""
+  },
+  ".agents/skills/gitnexus-guide/SKILL.md": {
+    "mtime": 1791854666.585991,
+    "seen": 1791860309.0686252,
+    "ast_hash": "51eee64e023b05990b57ea22eac4957d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/gitnexus-impact-analysis/SKILL.md": {
+    "mtime": 1791854666.5783277,
+    "seen": 1791860309.068626,
+    "ast_hash": "6bfe180855650916db5f0493990a3e4f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/gitnexus-refactoring/SKILL.md": {
+    "mtime": 1791854666.5834672,
+    "seen": 1791860309.0686269,
+    "ast_hash": "7bd98a42fc96205ae57283575451a142",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1791854666.5701256,
+    "seen": 1791860309.0686288,
+    "ast_hash": "9c7c66835ef2f17f70a7535e78a98b55",
+    "semantic_hash": ""
+  },
+  "docs/Manuais/gitnexus-manual.md": {
+    "mtime": 1791855973.4644003,
+    "seen": 1791860309.068649,
+    "ast_hash": "524c9e02fb950e9e93e5feffd4d8ccd2",
     "semantic_hash": ""
   }
 }
