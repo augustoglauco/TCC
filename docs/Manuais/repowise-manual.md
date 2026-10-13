@@ -12,7 +12,7 @@ O ambiente de desenvolvimento deste projeto combina múltiplos serviços e utili
 | :--------------------------- | :------------------------------------------------------ | :--------------------------------------------------- | :------------------------------------------------- |
 | **Repowise CLI**       | Inteligência de código, wiki viva, triage e dead code | CLI local (`~/.local/bin/repowise`)                | `.repowise/` (banco `wiki.db`, vetores)        |
 | **Repowise MCP**       | Protocolo de contexto para agentes de IA                | `stdio` ou porta `7338` (Streamable HTTP / SSE)  | Configurado nos agentes /`.mcp.json`             |
-| **Repowise Web UI**    | Dashboard gráfico para navegação na wiki             | `7339` (ou porta dinâmica via `repowise serve`) | Cache local do frontend web                        |
+| **Repowise Web UI**    | Dashboard gráfico para navegação na wiki             | `3002` (medido; o valor `7339` anunciado antes não confere) | Cache local do frontend web                        |
 | **Graphify**           | Grafo de dependências estrutural via AST (estático)   | CLI local (`graphify`)                             | `graphify-out/` (`graph.json`, `graph.html`) |
 | **Headroom**           | Proxy de compressão de contexto e histórico de LLM    | `8787` (HTTP)                                      | Local / Wrapper`headroom wrap claude`            |
 | **Strata (Swift 1.5)** | Engine local de inferência MoE (CUDA / GPU)            | `8080` (OpenAI `/v1` e Anthropic `/v1`)        | `/home/augusto/Projetos/Strata`                  |
@@ -20,7 +20,7 @@ O ambiente de desenvolvimento deste projeto combina múltiplos serviços e utili
 | **OmniRoute**          | Gateway unificado de roteamento de LLMs                 | `20128` (HTTP)                                     | Sistema                                            |
 
 > [!NOTE]
-> **Isolamento de Portas:** O Repowise opera por padrão via `stdio` ao se comunicar com agentes (sem ocupar portas de rede). Quando levantado em modo servidor de rede (`repowise mcp --transport streamable-http` ou `repowise serve`), utiliza as portas `7338` e `7339`, livres de qualquer colisão com Strata (`8080`), Headroom (`8787`) ou Ollama (`11434`).
+> **Isolamento de Portas:** O Repowise opera por padrão via `stdio` ao se comunicar com agentes (sem ocupar portas de rede). Quando levantado em modo servidor de rede (`repowise mcp --transport streamable-http` ou `repowise serve`), utiliza as portas `7338` (MCP) e `3002` (Web UI). **Medido em 2026-10-13 nesta máquina: a Web UI sobe na `3002` (servidor Next.js), não na `7339` — só `3002` e `4747` estavam escutando. A tela `/admin/ferramentas` usa a `3002`; ajuste `REPOWISE_WEB_URL` se mudar.** Livres de qualquer colisão com Strata (`8080`), Headroom (`8787`) ou Ollama (`11434`).
 
 ---
 
@@ -158,7 +158,7 @@ Inicia o visualizador web interativo para explorar a documentação e navegar no
 repowise serve
 ```
 
-Abra no navegador em `http://localhost:7339` (ou na porta indicada no terminal).
+Abra no navegador em `http://localhost:3002` — a lista de repositórios indexados — ou direto na visão geral deste repo: `http://localhost:3002/repos/98bf7b208ee54e9a840110278f8d9641/overview` (o id vem do índice local; confira a porta indicada no terminal).
 
 ---
 

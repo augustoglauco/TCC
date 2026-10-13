@@ -28,9 +28,9 @@ const RESPOSTA: ferramentasApi.FerramentasResposta = {
       nome: "Repowise",
       descricao: "Wiki viva do código.",
       tipo: "servidor",
-      url: "http://localhost:7339",
+      url: "http://localhost:3002/repos/abc123/overview",
       online: false,
-      detalhe: "Sem resposta em http://localhost:7339 (ConnectError)",
+      detalhe: "Sem resposta em http://localhost:3002/repos/abc123/overview (ConnectError)",
       comando: "repowise serve",
     }),
     ferramenta({

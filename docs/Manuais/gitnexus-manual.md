@@ -13,7 +13,7 @@ O ambiente de desenvolvimento deste projeto combina múltiplos serviços e utili
 | **GitNexus Web UI / HTTP** | Dashboard visual do grafo, fluxos e clusters | `4747` (ou porta dinâmica via `-p`) | Web UI SPA / Servidor local |
 | **GitNexus MCP** | Contexto estrutural profundo e guardrails para agentes | `stdio` ou `/api/mcp` | Configurado nos agentes / `.mcp.json` |
 | **GitNexus CLI / Engine** | Indexador AST, grafo KùzuDB/LadybugDB, análise de impacto | CLI local (`gitnexus` ou `node .gitnexus/run.cjs`) | Diretório `.gitnexus/` |
-| **Repowise Web UI** | Dashboard gráfico para navegação na wiki | `7339` (ou dinâmico via `repowise serve`) | Cache local do frontend web |
+| **Repowise Web UI** | Dashboard gráfico para navegação na wiki | `3002` (medido em 2026-10-13; o `7339` anunciado no manual dele não confere) | Cache local do frontend web |
 | **Repowise MCP / CLI** | Wiki viva, triagem semântica, dead code e distill | `stdio` ou `7338` | Diretório `.repowise/` |
 | **Graphify** | Grafo estático estrutural via AST (sem servidor) | CLI local (`graphify`) | `graphify-out/` (`graph.json`, `graph.html`) |
 | **Headroom** | Proxy de compressão de contexto e histórico de LLM | `8787` (HTTP) | Wrapper `headroom wrap claude` |
@@ -22,7 +22,7 @@ O ambiente de desenvolvimento deste projeto combina múltiplos serviços e utili
 | **OmniRoute** | Gateway unificado de roteamento de LLMs | `20128` (HTTP) | Sistema |
 
 > [!NOTE]
-> **Isolamento de Portas:** O GitNexus utiliza por padrão a porta `4747` para o servidor Web / HTTP. Essa porta não conflita com o Repowise (`7338`/`7339`), Strata (`8080`), Headroom (`8787`) ou Ollama (`11434`). Caso necessite rodar em outra porta, basta usar o parâmetro `-p <porta>`.
+> **Isolamento de Portas:** O GitNexus utiliza por padrão a porta `4747` para o servidor Web / HTTP. Essa porta não conflita com o Repowise (`7338` MCP / `3002` Web UI), Strata (`8080`), Headroom (`8787`) ou Ollama (`11434`). Caso necessite rodar em outra porta, basta usar o parâmetro `-p <porta>`.
 
 ---
 

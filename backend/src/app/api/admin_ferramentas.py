@@ -6,7 +6,7 @@ por AST, wiki viva com busca semântica, e grafo de execução com raio de
 impacto), e cada uma tinha a sua própria porta e o seu próprio comando para
 abrir. Este módulo expõe o estado das três e serve o artefato do Graphify,
 para a tela `/admin/ferramentas` não depender do desenvolvedor lembrar
-`localhost:7339` x `localhost:4747` x abrir um HTML na mão.
+`localhost:3002` x `localhost:4747` x abrir um HTML na mão.
 
 # MVP: fora do escopo do MVP do TCC (ver docs/ROADMAP.md, "Extra fora do
 # MVP — Painel de Ferramentas de Código") — é tela de apoio ao

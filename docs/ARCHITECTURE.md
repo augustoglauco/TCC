@@ -926,7 +926,7 @@ nenhum dos 12 requisitos funcionais, e está registrada como item "Extra fora
 do MVP" em `docs/ROADMAP.md`. Três decisões de implementação valem registro:
 (1) a verificação de "a ferramenta está no ar?" é feita no backend
 (`app.api.admin_ferramentas.sondar_servidor`, timeout de 1,5s), porque do
-navegador uma requisição a `localhost:7339`/`:4747` falha de forma opaca e
+navegador uma requisição a `localhost:3002`/`:4747` falha de forma opaca e
 não dá para distinguir servidor desligado de bloqueio de CORS; (2) o
 artefato do Graphify (`graphify-out/graph.html`, ~3 MB) é servido por um
 endpoint administrativo em vez de copiado para `frontend/public/` a cada

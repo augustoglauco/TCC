@@ -1255,7 +1255,7 @@ conversa e classificação do usuário").
       comando que a gera/sobe no lugar do quadro. Entrada no menu ⚙️.
       Decisões: (1) a sondagem dos servidores é server-side, porque o
       navegador não consegue distinguir "fora do ar" de "CORS" ao bater em
-      `localhost:7339`/`:4747`; (2) o iframe do Graphify autentica por
+      `localhost:3002`/`:4747`; (2) o iframe do Graphify autentica por
       `?token=`, único caminho possível (iframe não manda cabeçalho
       `Authorization`), reaproveitando o que `require_admin` já aceita;
       (3) servidor fora do ar devolve `200` com `online: false`, não erro —

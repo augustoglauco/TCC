@@ -368,7 +368,7 @@ repositório, para não ter de lembrar porta e comando de cada uma.
 | Ferramenta | O que mostra | Como fica disponível |
 | --- | --- | --- |
 | **Graphify** | Grafo estrutural por AST — nós, comunidades e dependências | Artefato versionado (`graphify-out/graph.html`); gerado por `graphify update .` |
-| **Repowise** | Wiki viva do código, busca semântica, código morto | Servidor local: `repowise serve` (porta 7339) |
+| **Repowise** | Wiki viva do código, busca semântica, código morto | Servidor local: `repowise serve` (porta 3002) |
 | **GitNexus** | Grafo de chamadas, fluxos de execução e raio de impacto | Servidor local: `node .gitnexus/run.cjs serve` (porta 4747) |
 
 ### Como usar

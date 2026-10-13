@@ -414,9 +414,9 @@
     "semantic_hash": "e132da7de396f44bf62ee147f49a9031"
   },
   "backend/src/app/config.py": {
-    "mtime": 1791862120.8902624,
-    "seen": 1791862568.8560395,
-    "ast_hash": "3cf03c4b62c91eeda78082af946ced4c",
+    "mtime": 1791862823.312156,
+    "seen": 1791862920.2324278,
+    "ast_hash": "2036fc47452c41830f3a40b838254837",
     "semantic_hash": ""
   },
   "backend/src/app/db/__init__.py": {
@@ -1752,9 +1752,9 @@
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE.md": {
-    "mtime": 1791862544.6636882,
-    "seen": 1791862568.8562582,
-    "ast_hash": "a0487b18b09fb72d05aab872507cbdaa",
+    "mtime": 1791862823.3144283,
+    "seen": 1791862920.232667,
+    "ast_hash": "5aa220d26d7a414bf5fe6a86c3e4d76f",
     "semantic_hash": ""
   },
   "docs/CONVENTIONS.md": {
@@ -1770,15 +1770,15 @@
     "semantic_hash": "a824b21331368000d3937b125aef8436"
   },
   "docs/FRONTEND.md": {
-    "mtime": 1791862514.0264857,
-    "seen": 1791862568.8562608,
-    "ast_hash": "f6c5a416474f74ba4af2ede1971e3758",
+    "mtime": 1791862863.1700068,
+    "seen": 1791862920.2326703,
+    "ast_hash": "be1f041573eacbbf30ed30a33442abf0",
     "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_ADMINISTRADOR.md": {
-    "mtime": 1791862563.8973129,
-    "seen": 1791862568.856262,
-    "ast_hash": "6706e1de3818862ff5436cebaa1e04f1",
+    "mtime": 1791862863.1693869,
+    "seen": 1791862920.2326713,
+    "ast_hash": "83896fd2f23395cf0ec0cbbb8384d0ff",
     "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_USUARIO.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1791862530.403575,
-    "seen": 1791862568.856268,
-    "ast_hash": "fc18c451cc8f5d56ced252c3f787e100",
+    "mtime": 1791862823.3151724,
+    "seen": 1791862920.232679,
+    "ast_hash": "43fd9138a9016d1bc81127ae31a0d065",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
@@ -2142,9 +2142,9 @@
     "semantic_hash": ""
   },
   "docs/Manuais/repowise-manual.md": {
-    "mtime": 1791848282.2301385,
-    "seen": 1791850513.247426,
-    "ast_hash": "6a1182cfa4e5e3b6dcb84d43d00a9dd8",
+    "mtime": 1791862863.1684678,
+    "seen": 1791862920.232677,
+    "ast_hash": "d07e720b495f28cb8592ba0817fcf6e7",
     "semantic_hash": ""
   },
   ".agents/skills/gitnexus-cli/SKILL.md": {
@@ -2190,15 +2190,15 @@
     "semantic_hash": ""
   },
   "docs/Manuais/gitnexus-manual.md": {
-    "mtime": 1791855973.4644003,
-    "seen": 1791860309.068649,
-    "ast_hash": "524c9e02fb950e9e93e5feffd4d8ccd2",
+    "mtime": 1791862863.1689336,
+    "seen": 1791862920.2326746,
+    "ast_hash": "07939f840e0bd086cca30bbccd38877b",
     "semantic_hash": ""
   },
   "backend/src/app/api/admin_ferramentas.py": {
-    "mtime": 1791862090.2502508,
-    "seen": 1791862568.856014,
-    "ast_hash": "fc37405550215c68e12f9c4f07ec9b0e",
+    "mtime": 1791862823.3131127,
+    "seen": 1791862920.2324,
+    "ast_hash": "3cdad52acbd2f6b11ee96d6e57049a1f",
     "semantic_hash": ""
   },
   "frontend/app/admin/ferramentas/page.tsx": {
