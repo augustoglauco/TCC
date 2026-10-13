@@ -312,9 +312,9 @@
     "semantic_hash": "b77ae1efa471593d2a90cc85058221cb"
   },
   "backend/src/app/api/chat.py": {
-    "mtime": 1791927063.8554769,
-    "seen": 1791927238.612765,
-    "ast_hash": "634f8dbfba7c4d5b2131baf43ef8be88",
+    "mtime": 1791931950.5831296,
+    "seen": 1791932147.471288,
+    "ast_hash": "becf96e0468071ab43a960b0f8dbbcef",
     "semantic_hash": ""
   },
   "backend/src/app/api/crawler.py": {
@@ -762,15 +762,15 @@
     "semantic_hash": "cb95aae540082a5e7f456b0e73af3d42"
   },
   "backend/src/app/router/orchestrator.py": {
-    "mtime": 1791496191.0508163,
-    "seen": 1791840346.4557824,
-    "ast_hash": "7bc12156b065e2435670c74792a5c0c5",
-    "semantic_hash": "7bc12156b065e2435670c74792a5c0c5"
+    "mtime": 1791931950.5826933,
+    "seen": 1791932147.4713607,
+    "ast_hash": "612abb426d63fd689f897c18c12f2fb9",
+    "semantic_hash": ""
   },
   "backend/src/app/router/playbooks.py": {
-    "mtime": 1791925514.9732628,
-    "seen": 1791925683.655403,
-    "ast_hash": "3ae8dbf911b22259a75ea0696811d8b3",
+    "mtime": 1791931945.7150056,
+    "seen": 1791932147.4713619,
+    "ast_hash": "3c119a90129a59b53b0a8dc58edaad8a",
     "semantic_hash": ""
   },
   "backend/src/app/router/prompt_safety.py": {
@@ -786,10 +786,10 @@
     "semantic_hash": "51dd7e75e5da011baf05b8c8f35d2b14"
   },
   "backend/src/app/router/sales_catalog.py": {
-    "mtime": 1791482384.188414,
-    "seen": 1791840346.4557853,
-    "ast_hash": "dd28bb6a65c6aca12c263ffddaae0800",
-    "semantic_hash": "dd28bb6a65c6aca12c263ffddaae0800"
+    "mtime": 1791931066.3842545,
+    "seen": 1791931425.1319044,
+    "ast_hash": "cdf869208c6ec5258ae0dc2028aa4fd8",
+    "semantic_hash": ""
   },
   "backend/src/app/router/scheduling.py": {
     "mtime": 1791482384.188414,
@@ -1752,9 +1752,9 @@
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE.md": {
-    "mtime": 1791925514.975169,
-    "seen": 1791925683.6555622,
-    "ast_hash": "7302102ea6fc40679079a95a77d2b556",
+    "mtime": 1791931995.0023038,
+    "seen": 1791932147.471529,
+    "ast_hash": "2075c27f393f52b67ac684383978bee0",
     "semantic_hash": ""
   },
   "docs/CONVENTIONS.md": {
@@ -1788,10 +1788,10 @@
     "semantic_hash": "d9abb197a164f873bfb0dd988ac58f1a"
   },
   "docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md": {
-    "mtime": 1791559283.0299284,
-    "seen": 1791840346.4559338,
-    "ast_hash": "9a7017d8cca9e187b5c9858df3e01db4",
-    "semantic_hash": "9a7017d8cca9e187b5c9858df3e01db4"
+    "mtime": 1791931995.0004792,
+    "seen": 1791932147.4715345,
+    "ast_hash": "721c2a4a0993c4df1d4ae5911d757255",
+    "semantic_hash": ""
   },
   "docs/Manuais/headroom-manual.md": {
     "mtime": 1791476947.8468373,
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1791925514.9759243,
-    "seen": 1791925683.6555722,
-    "ast_hash": "48c97959b4ed7b976897952342c1ad58",
+    "mtime": 1791931995.0013258,
+    "seen": 1791932147.4715397,
+    "ast_hash": "a781f29ed64e90bf28ffd4ef5f6abbee",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
