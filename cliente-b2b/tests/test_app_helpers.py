@@ -1,9 +1,9 @@
 from src.app import (
-    formatar_moeda,
-    formatar_itens_carrinho,
-    formatar_itens_pedido,
     calcular_resumo_cotacao,
     calcular_total_pedido,
+    formatar_itens_carrinho,
+    formatar_itens_pedido,
+    formatar_moeda,
 )
 
 
@@ -29,7 +29,14 @@ def test_formatar_itens_pedido():
 
 def test_calcular_resumo_cotacao_sem_desconto():
     cotacao = {
-        "itens": [{"produto_id": 1, "quantidade": 2, "preco_unitario": 100.0, "percentual_desconto_aplicado": 0}],
+        "itens": [
+            {
+                "produto_id": 1,
+                "quantidade": 2,
+                "preco_unitario": 100.0,
+                "percentual_desconto_aplicado": 0,
+            }
+        ],
         "total": 200.0,
     }
     resumo = calcular_resumo_cotacao(cotacao)
@@ -39,7 +46,14 @@ def test_calcular_resumo_cotacao_sem_desconto():
 def test_calcular_resumo_cotacao_com_desconto():
     # preço líquido 90 com 10% de desconto -> preço cheio 100
     cotacao = {
-        "itens": [{"produto_id": 1, "quantidade": 2, "preco_unitario": 90.0, "percentual_desconto_aplicado": 10}],
+        "itens": [
+            {
+                "produto_id": 1,
+                "quantidade": 2,
+                "preco_unitario": 90.0,
+                "percentual_desconto_aplicado": 10,
+            }
+        ],
         "total": 180.0,
     }
     resumo = calcular_resumo_cotacao(cotacao)
@@ -51,7 +65,12 @@ def test_calcular_resumo_cotacao_com_desconto():
 def test_calcular_total_pedido():
     pedido = {
         "itens": [
-            {"produto_id": 1, "quantidade": 2, "preco_unitario": 100.0, "centro_distribuicao": "SP"},
+            {
+                "produto_id": 1,
+                "quantidade": 2,
+                "preco_unitario": 100.0,
+                "centro_distribuicao": "SP",
+            },
             {"produto_id": 2, "quantidade": 1, "preco_unitario": 50.0, "centro_distribuicao": "SP"},
         ]
     }

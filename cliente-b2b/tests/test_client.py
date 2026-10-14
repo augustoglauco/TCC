@@ -1,7 +1,9 @@
-from contextlib import asynccontextmanager
 import json
+from contextlib import asynccontextmanager
+
 import pytest
-from src.client import B2BMCPClient, B2BAuthError, B2BMCPError
+
+from src.client import B2BAuthError, B2BMCPClient
 
 
 class _FakeCallToolResult:
@@ -53,7 +55,9 @@ class _FakeMCPSession:
         return _FakeInitResult()
 
     async def list_tools(self):
-        return _FakeListToolsResult(["cotar", "consultar_frete", "validar_compatibilidade", "reservar_pedido"])
+        return _FakeListToolsResult(
+            ["cotar", "consultar_frete", "validar_compatibilidade", "reservar_pedido"]
+        )
 
     async def call_tool(self, name, arguments):
         self.calls.append((name, arguments))
@@ -67,12 +71,14 @@ def _fake_factory(session: _FakeMCPSession):
     @asynccontextmanager
     async def factory():
         yield session
+
     return factory
 
 
 def _fake_prober(session: _FakeMCPSession):
     async def prober(url, token, timeout_s):
         return 401 if session.is_401 else 200
+
     return prober
 
 
@@ -145,7 +151,9 @@ async def test_reservar_pedido_chama_tool():
         "id": "3f6a1c1a-0000-4000-8000-000000000000",
         "status": "reservado",
         "criado_em": "2026-09-30T00:00:00Z",
-        "itens": [{"produto_id": 1, "quantidade": 2, "centro_distribuicao": "SP", "preco_unitario": 125.0}],
+        "itens": [
+            {"produto_id": 1, "quantidade": 2, "centro_distribuicao": "SP", "preco_unitario": 125.0}
+        ],
     }
     session = _FakeMCPSession(tool_result=_FakeCallToolResult(structured_content=mock_ped))
     client = _novo_cliente(session)
@@ -160,7 +168,9 @@ async def test_reservar_pedido_chama_tool():
 @pytest.mark.asyncio
 async def test_obter_catalogo_recurso():
     produtos = [{"id": 1, "nome": "Gerador X"}, {"id": 2, "nome": "Gerador Y"}]
-    session = _FakeMCPSession(resource_result=_FakeReadResourceResult([_FakeResourceContent(json.dumps(produtos))]))
+    session = _FakeMCPSession(
+        resource_result=_FakeReadResourceResult([_FakeResourceContent(json.dumps(produtos))])
+    )
     client = _novo_cliente(session)
 
     resultado = await client.obter_catalogo()
@@ -170,7 +180,9 @@ async def test_obter_catalogo_recurso():
 @pytest.mark.asyncio
 async def test_obter_estoque_recurso():
     estoque = {"produto_id": 1, "centros": [{"centro_distribuicao": "SP", "quantidade": 10}]}
-    session = _FakeMCPSession(resource_result=_FakeReadResourceResult([_FakeResourceContent(json.dumps(estoque))]))
+    session = _FakeMCPSession(
+        resource_result=_FakeReadResourceResult([_FakeResourceContent(json.dumps(estoque))])
+    )
     client = _novo_cliente(session)
 
     resultado = await client.obter_estoque(1)
@@ -179,8 +191,19 @@ async def test_obter_estoque_recurso():
 
 @pytest.mark.asyncio
 async def test_pesquisar_manuais_recurso():
-    busca = {"resultados": [{"content": "trecho relevante", "source": "manual.pdf", "score": 0.9, "collection": "c1"}]}
-    session = _FakeMCPSession(resource_result=_FakeReadResourceResult([_FakeResourceContent(json.dumps(busca))]))
+    busca = {
+        "resultados": [
+            {
+                "content": "trecho relevante",
+                "source": "manual.pdf",
+                "score": 0.9,
+                "collection": "c1",
+            }
+        ]
+    }
+    session = _FakeMCPSession(
+        resource_result=_FakeReadResourceResult([_FakeResourceContent(json.dumps(busca))])
+    )
     client = _novo_cliente(session)
 
     resultado = await client.pesquisar_manuais("vendas", "cabo de rede")

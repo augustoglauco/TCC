@@ -1,9 +1,10 @@
 """Cliente assíncrono para o Servidor MCP B2B Corporativo."""
 
-from contextlib import asynccontextmanager
 import json
 import logging
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from contextlib import asynccontextmanager
+from typing import Any
 
 import httpx
 from mcp.client.session import ClientSession
@@ -79,10 +80,14 @@ class B2BMCPClient:
         async def factory():
             headers = {"Authorization": f"Bearer {self.auth_token}"}
             async with create_mcp_http_client(headers=headers) as http_client:
-                async with streamable_http_client(self.server_url, http_client=http_client) as (read_stream, write_stream):
+                async with streamable_http_client(self.server_url, http_client=http_client) as (
+                    read_stream,
+                    write_stream,
+                ):
                     async with ClientSession(read_stream, write_stream) as session:
                         await session.initialize()
                         yield session
+
         return factory()
 
     async def _call_tool(self, name: str, arguments: dict) -> dict[str, Any]:

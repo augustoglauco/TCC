@@ -16,3 +16,13 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
 ]
+
+# Mesmo conjunto de regras do backend (ver backend/pyproject.toml) para o lint
+# nao divergir entre os dois pacotes Python do repositorio. `target-version`
+# acompanha o `requires-python` deste pacote, que roda em 3.11+.
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

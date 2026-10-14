@@ -2,12 +2,13 @@
 
 import asyncio
 import base64
+
 import streamlit as st
 
 try:
-    from src.client import B2BMCPClient, B2BAuthError, B2BMCPError
+    from src.client import B2BAuthError, B2BMCPClient
 except ImportError:
-    from client import B2BMCPClient, B2BAuthError, B2BMCPError
+    from client import B2BAuthError, B2BMCPClient
 
 # Domínios de atendimento existentes para a busca em manuais (R7) — o
 # recurso `manuais://busca/{domain}` exige um deles no caminho da URI.
@@ -23,7 +24,10 @@ def formatar_moeda(valor: float | int | None) -> str:
 
 def formatar_itens_carrinho(carrinho: list[dict]) -> list[dict]:
     """Extrai produto_id e quantidade dos itens para `cotar`/`consultar_frete`."""
-    return [{"produto_id": int(item["produto_id"]), "quantidade": int(item["quantidade"])} for item in carrinho]
+    return [
+        {"produto_id": int(item["produto_id"]), "quantidade": int(item["quantidade"])}
+        for item in carrinho
+    ]
 
 
 def formatar_itens_pedido(carrinho: list[dict], centro_distribuicao: str) -> list[dict]:
@@ -98,7 +102,10 @@ def main():
         server_url = st.text_input(
             "URL do Servidor MCP",
             value="http://127.0.0.1:8100/mcp",
-            help="Endpoint HTTP Streamable do servidor MCP corporativo (MCP_B2B_HOST:MCP_B2B_PORT/mcp)",
+            help=(
+                "Endpoint HTTP Streamable do servidor MCP corporativo "
+                "(MCP_B2B_HOST:MCP_B2B_PORT/mcp)"
+            ),
         )
 
         auth_token = st.text_input(
@@ -118,7 +125,10 @@ def main():
                     info = run_async(client.testar_conexao())
                     st.session_state.conexao_ok = True
                     st.session_state.info_servidor = info
-                    st.success(f"Conectado com sucesso ao servidor: **{info['servidor']}** (v{info['versao']})")
+                    st.success(
+                        f"Conectado com sucesso ao servidor: "
+                        f"**{info['servidor']}** (v{info['versao']})"
+                    )
                 except B2BAuthError as err:
                     st.session_state.conexao_ok = False
                     st.error(f"Erro de Autenticação: {err}")
@@ -145,28 +155,35 @@ def main():
     st.title("Portal do Parceiro B2B — Demonstração MCP")
     st.markdown(
         "Este portal simula a integração de um cliente/parceiro comercial corporativo consumindo "
-        "recursos de catálogo e ferramentas transacionais expostas via **Model Context Protocol (MCP)**."
+        "recursos de catálogo e ferramentas transacionais expostas via "
+        "**Model Context Protocol (MCP)**."
     )
 
-    tab_recursos, tab_cotar, tab_frete, tab_comp, tab_pedido, tab_conversao = st.tabs([
-        "📦 Catálogo & Recursos",
-        "💰 Cotação de Preços",
-        "🚚 Consulta de Frete",
-        "🔍 Compatibilidade",
-        "🛒 Fechar Pedido",
-        "🧾 Converter Reserva / Comprovante",
-    ])
+    tab_recursos, tab_cotar, tab_frete, tab_comp, tab_pedido, tab_conversao = st.tabs(
+        [
+            "📦 Catálogo & Recursos",
+            "💰 Cotação de Preços",
+            "🚚 Consulta de Frete",
+            "🔍 Compatibilidade",
+            "🛒 Fechar Pedido",
+            "🧾 Converter Reserva / Comprovante",
+        ]
+    )
 
     # --------------------------
     # TAB 1: CATÁLOGO & RECURSOS
     # --------------------------
     with tab_recursos:
         st.subheader("Catálogo de Produtos (`catalogo://produtos`)")
-        categoria_filtro = st.text_input("Filtrar por categoria (opcional):", key="categoria_filtro")
+        categoria_filtro = st.text_input(
+            "Filtrar por categoria (opcional):", key="categoria_filtro"
+        )
         if st.button("Carregar Catálogo", use_container_width=True):
             with st.spinner("Lendo recurso..."):
                 try:
-                    st.session_state.catalogo = run_async(client.obter_catalogo(categoria_filtro or None))
+                    st.session_state.catalogo = run_async(
+                        client.obter_catalogo(categoria_filtro or None)
+                    )
                 except Exception as exc:
                     st.error(str(exc))
 
@@ -176,20 +193,26 @@ def main():
 
         st.divider()
         st.markdown("#### Estoque e Preços por Produto")
-        produto_id_recurso = st.number_input("ID do Produto", min_value=1, value=1, step=1, key="produto_id_recurso")
+        produto_id_recurso = st.number_input(
+            "ID do Produto", min_value=1, value=1, step=1, key="produto_id_recurso"
+        )
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Consultar Estoque (`estoque://produtos/{id}`)", use_container_width=True):
                 with st.spinner("Lendo recurso..."):
                     try:
-                        st.session_state.estoque = run_async(client.obter_estoque(int(produto_id_recurso)))
+                        st.session_state.estoque = run_async(
+                            client.obter_estoque(int(produto_id_recurso))
+                        )
                     except Exception as exc:
                         st.error(str(exc))
         with col2:
             if st.button("Tabela de Preços (`precos://produtos/{id}`)", use_container_width=True):
                 with st.spinner("Lendo recurso..."):
                     try:
-                        st.session_state.precos = run_async(client.obter_precos(int(produto_id_recurso)))
+                        st.session_state.precos = run_async(
+                            client.obter_precos(int(produto_id_recurso))
+                        )
                     except Exception as exc:
                         st.error(str(exc))
 
@@ -207,12 +230,17 @@ def main():
         with col_dom:
             domain_manual = st.selectbox("Domínio", DOMINIOS_MANUAIS)
         with col_query:
-            query_manual = st.text_input("Buscar dúvidas ou especificações técnicas:", placeholder="ex.: cabo de rede e alcance máximo")
+            query_manual = st.text_input(
+                "Buscar dúvidas ou especificações técnicas:",
+                placeholder="ex.: cabo de rede e alcance máximo",
+            )
         if st.button("Buscar Manual"):
             if query_manual:
                 with st.spinner("Pesquisando na base vetorial via MCP..."):
                     try:
-                        res_manual = run_async(client.pesquisar_manuais(domain_manual, query_manual))
+                        res_manual = run_async(
+                            client.pesquisar_manuais(domain_manual, query_manual)
+                        )
                         if modo_dev:
                             st.json(res_manual)
                         else:
@@ -254,7 +282,9 @@ def main():
 
                         col_m1, col_m2, col_m3 = st.columns(3)
                         col_m1.metric("Subtotal Bruto", formatar_moeda(resumo["subtotal_bruto"]))
-                        col_m2.metric("Desconto Total Volume", formatar_moeda(resumo["desconto_total"]))
+                        col_m2.metric(
+                            "Desconto Total Volume", formatar_moeda(resumo["desconto_total"])
+                        )
                         col_m3.metric("Total Líquido Cotação", formatar_moeda(resumo["total"]))
 
                         st.markdown("##### Detalhamento por Item:")
@@ -280,8 +310,12 @@ def main():
                         itens_envio = formatar_itens_carrinho(st.session_state.carrinho)
                         res_frete = run_async(client.consultar_frete(cep_destino, itens_envio))
                         col_f1, col_f2 = st.columns(2)
-                        col_f1.metric("Prazo de Entrega", f"{res_frete.get('prazo_dias', '-')} dias úteis")
-                        col_f2.metric("Valor do Frete", formatar_moeda(res_frete.get("custo_estimado", 0)))
+                        col_f1.metric(
+                            "Prazo de Entrega", f"{res_frete.get('prazo_dias', '-')} dias úteis"
+                        )
+                        col_f2.metric(
+                            "Valor do Frete", formatar_moeda(res_frete.get("custo_estimado", 0))
+                        )
                         st.json(res_frete) if modo_dev else st.write(res_frete)
                     except Exception as exc:
                         st.error(f"Erro ao consultar frete: {exc}")
@@ -295,7 +329,9 @@ def main():
         with col_c1:
             prod_a = st.number_input("ID do Produto", min_value=1, value=1, step=1, key="comp_a")
         with col_c2:
-            prod_b = st.number_input("ID do Produto Relacionado", min_value=1, value=2, step=1, key="comp_b")
+            prod_b = st.number_input(
+                "ID do Produto Relacionado", min_value=1, value=2, step=1, key="comp_b"
+            )
 
         if st.button("Verificar Compatibilidade Técnica", use_container_width=True):
             with st.spinner("Validando compatibilidade no MCP..."):
@@ -316,7 +352,10 @@ def main():
     # --------------------------
     with tab_pedido:
         st.subheader("Emissão de Pedido B2B (`reservar_pedido`)")
-        st.warning("Atenção: A chamada a esta ferramenta reserva e baixa o estoque real dos produtos no sistema.")
+        st.warning(
+            "Atenção: A chamada a esta ferramenta reserva e baixa o estoque "
+            "real dos produtos no sistema."
+        )
 
         centro_distribuicao = st.text_input(
             "Centro de Distribuição para Reserva:",
@@ -325,22 +364,32 @@ def main():
             help="Aplicado a todos os itens da cesta (ver limitação no README).",
         )
 
-        confirma_pedido = st.checkbox("Confirmo que desejo efetivar a reserva de estoque e emitir o pedido oficial.")
+        confirma_pedido = st.checkbox(
+            "Confirmo que desejo efetivar a reserva de estoque e emitir o pedido oficial."
+        )
 
         if st.button("🛒 Emitir Pedido B2B", type="primary", disabled=not confirma_pedido):
             if not st.session_state.carrinho:
-                st.error("Cesta de produtos está vazia. Adicione itens na aba Cotação antes de fechar o pedido.")
+                st.error(
+                    "Cesta de produtos está vazia. Adicione itens na aba Cotação "
+                    "antes de fechar o pedido."
+                )
             else:
                 with st.spinner("Processando pedido e reserva no servidor MCP..."):
                     try:
-                        itens_envio = formatar_itens_pedido(st.session_state.carrinho, centro_distribuicao)
+                        itens_envio = formatar_itens_pedido(
+                            st.session_state.carrinho, centro_distribuicao
+                        )
                         resultado_pedido = run_async(client.reservar_pedido(itens_envio))
                         st.balloons()
                         st.session_state["ultimo_pedido_id"] = resultado_pedido.get("id")
                         st.success("🎉 **Pedido B2B Criado com Sucesso!**")
                         st.write(f"**Número do Pedido:** `{resultado_pedido.get('id', 'N/A')}`")
                         st.write(f"**Status:** `{resultado_pedido.get('status', 'reservado')}`")
-                        st.write(f"**Total Faturado:** {formatar_moeda(calcular_total_pedido(resultado_pedido))}")
+                        st.write(
+                            f"**Total Faturado:** "
+                            f"{formatar_moeda(calcular_total_pedido(resultado_pedido))}"
+                        )
                         if modo_dev:
                             st.json(resultado_pedido)
                     except Exception as exc:
@@ -351,23 +400,43 @@ def main():
     # --------------------------
     with tab_conversao:
         st.subheader("Comprovação Financeira & Conversão de Reserva (`converter_reserva_venda`)")
-        st.info("Envie o comprovante de pagamento (PIX, TED, Boleto) referente a uma reserva para validação via IA Multimodal e conversão em venda faturada.")
+        st.info(
+            "Envie o comprovante de pagamento (PIX, TED, Boleto) referente a uma "
+            "reserva para validação via IA Multimodal e conversão em venda "
+            "faturada."
+        )
 
         pedido_id_sugerido = st.session_state.get("ultimo_pedido_id", "")
-        pedido_id_input = st.text_input("ID do Pedido / Reserva (UUID):", value=str(pedido_id_sugerido or ""), key="conv_pedido_id")
+        pedido_id_input = st.text_input(
+            "ID do Pedido / Reserva (UUID):",
+            value=str(pedido_id_sugerido or ""),
+            key="conv_pedido_id",
+        )
 
-        tipo_entrada = st.radio("Formato do Comprovante:", ["Arquivo (PDF, PNG, JPG)", "Texto / Linha Digitável / PIX"], horizontal=True)
+        tipo_entrada = st.radio(
+            "Formato do Comprovante:",
+            ["Arquivo (PDF, PNG, JPG)", "Texto / Linha Digitável / PIX"],
+            horizontal=True,
+        )
 
         comprovante_b64_ou_texto = ""
         nome_arquivo = "comprovante.txt"
 
         if tipo_entrada.startswith("Arquivo"):
-            upload_comprovante = st.file_uploader("Selecione o arquivo do comprovante:", type=["pdf", "png", "jpg", "jpeg", "webp"])
+            upload_comprovante = st.file_uploader(
+                "Selecione o arquivo do comprovante:", type=["pdf", "png", "jpg", "jpeg", "webp"]
+            )
             if upload_comprovante is not None:
                 nome_arquivo = upload_comprovante.name
-                comprovante_b64_ou_texto = base64.b64encode(upload_comprovante.getvalue()).decode("utf-8")
+                comprovante_b64_ou_texto = base64.b64encode(upload_comprovante.getvalue()).decode(
+                    "utf-8"
+                )
         else:
-            texto_comprovante_input = st.text_area("Cole o texto do comprovante ou dados da transferência:", height=120, placeholder="Comprovante de Transferência PIX\nValor: R$ ...")
+            texto_comprovante_input = st.text_area(
+                "Cole o texto do comprovante ou dados da transferência:",
+                height=120,
+                placeholder="Comprovante de Transferência PIX\nValor: R$ ...",
+            )
             if texto_comprovante_input:
                 comprovante_b64_ou_texto = texto_comprovante_input.strip()
 
@@ -387,7 +456,10 @@ def main():
                             )
                         )
                         st.balloons()
-                        st.success(f"🎉 {resultado_conv.get('mensagem', 'Conversão realizada com sucesso!')}")
+                        st.success(
+                            f"🎉 "
+                            f"{resultado_conv.get('mensagem', 'Conversão realizada com sucesso!')}"
+                        )
                         st.write(f"**Status Atual:** `{resultado_conv.get('status')}`")
                         st.write(f"**Tipo de Conversão:** `{resultado_conv.get('tipo_conversao')}`")
                         st.write(f"**Convertido por:** `{resultado_conv.get('convertido_por')}`")
