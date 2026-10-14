@@ -18,9 +18,14 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column("conversas", sa.Column("status", sa.String(length=20), server_default="aberta", nullable=False))
+    op.add_column(
+        "conversas",
+        sa.Column("status", sa.String(length=20), server_default="aberta", nullable=False),
+    )
     op.add_column("conversas", sa.Column("encerrada_em", sa.DateTime(timezone=True), nullable=True))
-    op.add_column("conversas", sa.Column("motivo_encerramento", sa.String(length=50), nullable=True))
+    op.add_column(
+        "conversas", sa.Column("motivo_encerramento", sa.String(length=50), nullable=True)
+    )
     op.create_index("idx_conversas_status", "conversas", ["status"])
     op.create_index("idx_conversas_encerrada_em", "conversas", ["encerrada_em"])
 

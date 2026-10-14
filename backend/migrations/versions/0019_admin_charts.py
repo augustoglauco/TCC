@@ -5,6 +5,7 @@ Revises: 0018
 Create Date: 2026-10-04
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -32,8 +33,15 @@ def upgrade() -> None:
         sa.Column("fixado", sa.Boolean(), server_default=sa.true(), nullable=False),
         sa.Column("ordem", sa.Integer(), server_default="0", nullable=False),
         sa.Column("criado_por", sa.String(length=255), nullable=False),
-        sa.Column("criado_em", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.Column("atualizado_em", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "criado_em", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
+        sa.Column(
+            "atualizado_em",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
+            nullable=False,
+        ),
     )
     op.create_index("idx_admin_charts_fixado", "admin_charts", ["fixado"])
     op.create_index("idx_admin_charts_criado_em", "admin_charts", ["criado_em"])

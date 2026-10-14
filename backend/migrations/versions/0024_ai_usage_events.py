@@ -5,6 +5,7 @@ Revises: 0023
 Create Date: 2026-10-08
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -28,7 +29,9 @@ def upgrade() -> None:
         sa.Column("tokens_saida", sa.Integer(), nullable=True),
         sa.Column("custo_usd", sa.Float(), nullable=True),
         sa.Column("referencia_id", sa.String(length=500), nullable=True),
-        sa.Column("criado_em", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "criado_em", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
     )
     op.create_index("idx_ai_usage_events_origem", "ai_usage_events", ["origem"])
     op.create_index("idx_ai_usage_events_operacao", "ai_usage_events", ["operacao"])

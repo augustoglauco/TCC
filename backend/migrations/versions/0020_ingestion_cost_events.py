@@ -5,6 +5,7 @@ Revises: 0019
 Create Date: 2026-10-04
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -28,9 +29,13 @@ def upgrade() -> None:
         sa.Column("cost_prompt_usd", sa.Float(), server_default="0.0", nullable=False),
         sa.Column("cost_completion_usd", sa.Float(), server_default="0.0", nullable=False),
         sa.Column("total_cost_usd", sa.Float(), server_default="0.0", nullable=False),
-        sa.Column("criado_em", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+        sa.Column(
+            "criado_em", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
+        ),
     )
-    op.create_index("idx_ingestion_cost_events_source_type", "ingestion_cost_events", ["source_type"])
+    op.create_index(
+        "idx_ingestion_cost_events_source_type", "ingestion_cost_events", ["source_type"]
+    )
     op.create_index("idx_ingestion_cost_events_criado_em", "ingestion_cost_events", ["criado_em"])
 
 

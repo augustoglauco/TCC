@@ -5,6 +5,7 @@ Revises: 0020
 Create Date: 2026-10-05
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -19,13 +20,21 @@ depends_on: str | Sequence[str] | None = None
 def upgrade() -> None:
     op.add_column("conversas", sa.Column("atendente_id", sa.String(length=100), nullable=True))
     op.add_column("conversas", sa.Column("atendente_nome", sa.String(length=100), nullable=True))
-    op.add_column("conversas", sa.Column("motivo_escalonamento", sa.String(length=100), nullable=True))
-    op.add_column("conversas", sa.Column("prioridade", sa.Integer(), server_default="1", nullable=False))
+    op.add_column(
+        "conversas", sa.Column("motivo_escalonamento", sa.String(length=100), nullable=True)
+    )
+    op.add_column(
+        "conversas", sa.Column("prioridade", sa.Integer(), server_default="1", nullable=False)
+    )
     op.add_column("conversas", sa.Column("escalado_em", sa.DateTime(timezone=True), nullable=True))
-    op.create_index("idx_conversas_fila_atendimento", "conversas", ["status", "prioridade", "escalado_em"])
+    op.create_index(
+        "idx_conversas_fila_atendimento", "conversas", ["status", "prioridade", "escalado_em"]
+    )
     op.create_index("idx_conversas_atendente_id", "conversas", ["atendente_id"])
 
-    op.add_column("conversa_mensagens", sa.Column("atendente_nome", sa.String(length=100), nullable=True))
+    op.add_column(
+        "conversa_mensagens", sa.Column("atendente_nome", sa.String(length=100), nullable=True)
+    )
 
 
 def downgrade() -> None:
