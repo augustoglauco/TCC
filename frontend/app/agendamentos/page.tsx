@@ -63,7 +63,7 @@ export default function AgendamentosPage() {
     try {
       const atualizado = await cancelarAgendamento(agendamentoParaCancelar.id, user.email);
       setAgendamentos((prev) =>
-        prev.map((item) => (item.id === atualizado.id ? { ...item, status: "cancelado" } : item))
+        prev.map((item) => (item.id === atualizado.id ? { ...item, status: "cancelado" } : item)),
       );
       setAgendamentoParaCancelar(null);
     } catch (err: unknown) {
@@ -79,7 +79,7 @@ export default function AgendamentosPage() {
       <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12 space-y-8">
         <div className="border-b border-slate-200 pb-6">
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Minhas Visitas & Agendamentos
+            Minhas Visitas &amp; Agendamentos
           </h1>
           <p className="mt-2 text-sm text-slate-600">
             Consulte seus horários agendados e gerencie suas visitas com facilidade.
@@ -92,8 +92,8 @@ export default function AgendamentosPage() {
           </div>
           <h2 className="text-xl font-bold text-slate-900">Login Necessário</h2>
           <p className="mx-auto max-w-md text-sm text-slate-600">
-            Para consultar e gerenciar seus agendamentos, faça login na sua conta. Novos agendamentos
-            podem ser solicitados a qualquer momento pelo nosso Chat inteligente!
+            Para consultar e gerenciar seus agendamentos, faça login na sua conta. Novos
+            agendamentos podem ser solicitados a qualquer momento pelo nosso Chat inteligente!
           </p>
           <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
@@ -121,10 +121,11 @@ export default function AgendamentosPage() {
       <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Minhas Visitas & Agendamentos
+            Minhas Visitas &amp; Agendamentos
           </h1>
           <p className="mt-2 text-sm text-slate-600">
-            Visitas agendadas para <span className="font-semibold text-slate-800">{user.email}</span>.
+            Visitas agendadas para{" "}
+            <span className="font-semibold text-slate-800">{user.email}</span>.
           </p>
         </div>
 
@@ -179,7 +180,8 @@ export default function AgendamentosPage() {
             Você ainda não possui agendamentos cadastrados.
           </p>
           <p className="text-sm text-slate-500">
-            Abra o chat para solicitar uma visita técnica ou comercial no dia e horário de sua preferência.
+            Abra o chat para solicitar uma visita técnica ou comercial no dia e horário de sua
+            preferência.
           </p>
           <button
             type="button"
@@ -221,7 +223,10 @@ export default function AgendamentosPage() {
                   </h3>
 
                   <p className="text-xs sm:text-sm text-slate-600">
-                    🕒 <span className="font-medium text-slate-800">{formatarDataHora(item.data_hora_inicio)}</span>
+                    🕒{" "}
+                    <span className="font-medium text-slate-800">
+                      {formatarDataHora(item.data_hora_inicio)}
+                    </span>
                   </p>
 
                   {item.google_event_link && (
@@ -259,8 +264,8 @@ export default function AgendamentosPage() {
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-4">
             <h3 className="text-lg font-bold text-slate-900">Desmarcar Visita</h3>
             <p className="text-sm text-slate-600">
-              Deseja realmente desmarcar esta visita? O horário será liberado na agenda corporativa e o
-              evento do Google Calendar será removido.
+              Deseja realmente desmarcar esta visita? O horário será liberado na agenda corporativa
+              e o evento do Google Calendar será removido.
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button

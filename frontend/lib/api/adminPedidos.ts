@@ -49,7 +49,7 @@ function getAuthHeaders(token?: string): Record<string, string> {
 
 export async function fetchPedidos(
   params?: { status?: string; limit?: number; offset?: number },
-  token?: string
+  token?: string,
 ): Promise<PedidoAdminItem[]> {
   const baseUrl = getApiBaseUrl();
   const query = new URLSearchParams();
@@ -77,10 +77,7 @@ export async function fetchPedidos(
   return res.json();
 }
 
-export async function fetchPedido(
-  pedidoId: string,
-  token?: string
-): Promise<PedidoAdminItem> {
+export async function fetchPedido(pedidoId: string, token?: string): Promise<PedidoAdminItem> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/pedidos/${pedidoId}`, {
     headers: getAuthHeaders(token),
@@ -96,7 +93,7 @@ export async function fetchPedido(
 export async function converterManualSimples(
   pedidoId: string,
   payload: { convertido_por?: string; comprovante?: File },
-  token?: string
+  token?: string,
 ): Promise<PedidoAdminItem> {
   const baseUrl = getApiBaseUrl();
   const formData = new FormData();
@@ -123,7 +120,7 @@ export async function converterManualSimples(
 export async function analisarComprovante(
   pedidoId: string,
   comprovante: File,
-  token?: string
+  token?: string,
 ): Promise<AnaliseComprovanteResponse> {
   const baseUrl = getApiBaseUrl();
   const formData = new FormData();
@@ -145,7 +142,7 @@ export async function analisarComprovante(
 export async function confirmarConversaoManual(
   pedidoId: string,
   payload: { comprovante_url?: string; parecer_json?: string; convertido_por?: string },
-  token?: string
+  token?: string,
 ): Promise<PedidoAdminItem> {
   const baseUrl = getApiBaseUrl();
   const headers = getAuthHeaders(token);
@@ -167,7 +164,7 @@ export async function confirmarConversaoManual(
 export async function converterAutoAdmin(
   pedidoId: string,
   comprovante: File,
-  token?: string
+  token?: string,
 ): Promise<PedidoAdminItem> {
   const baseUrl = getApiBaseUrl();
   const formData = new FormData();

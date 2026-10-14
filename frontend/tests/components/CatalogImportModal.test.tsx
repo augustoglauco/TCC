@@ -354,4 +354,3 @@ describe("CatalogImportModal - formatação de moedas em Real com 2 casas decima
     );
   });
 });
-

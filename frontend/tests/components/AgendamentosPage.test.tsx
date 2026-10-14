@@ -130,7 +130,9 @@ describe("AgendamentosPage", () => {
     render(<AgendamentosPage />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Agendar Nova Visita pelo Chat/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: /Agendar Nova Visita pelo Chat/i }),
+      ).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole("button", { name: /Agendar Nova Visita pelo Chat/i }));

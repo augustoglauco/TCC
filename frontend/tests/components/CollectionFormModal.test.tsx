@@ -174,7 +174,9 @@ describe("CollectionFormModal", () => {
     render(<CollectionFormModal open onOpenChange={vi.fn()} onCreated={onCreated} />);
 
     await user.type(screen.getByLabelText("Nome"), "nova");
-    await user.click(screen.getByRole("checkbox", { name: /Tornar esta collection a ativa imediata/ }));
+    await user.click(
+      screen.getByRole("checkbox", { name: /Tornar esta collection a ativa imediata/ }),
+    );
     await user.click(screen.getByRole("button", { name: "Criar collection" }));
 
     expect(mockedCreate).toHaveBeenCalled();

@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "./apiBaseUrl";
 import type { AdminChartData } from "@/components/admin/DynamicChartCard";
+import type { ChartConfig, ChartRow } from "@/lib/types/charts";
 
 export async function fetchAdminCharts(token: string): Promise<AdminChartData[]> {
   const baseUrl = getApiBaseUrl();
@@ -71,8 +72,8 @@ export async function createAdminChart(
     titulo: string;
     descricao?: string | null;
     tipo_grafico?: string;
-    config_json?: Record<string, any>;
-    dados_json?: Record<string, any>[];
+    config_json?: ChartConfig;
+    dados_json?: ChartRow[];
     sql_query?: string | null;
     fixado?: boolean;
     ordem?: number;
@@ -93,4 +94,3 @@ export async function createAdminChart(
   }
   return res.json();
 }
-

@@ -4,6 +4,8 @@
  * backend nesta etapa do protótipo.
  */
 
+import type { ChartConfig, ChartRow } from "./charts";
+
 export type ChatDomain = "vendas" | "suporte" | "atendimento" | "agendamento" | "fora_escopo";
 
 // "resposta_fixa": mensagem só com e-mail, respondida sem LLM (R10);
@@ -83,15 +85,8 @@ export interface ChatCardGrafico {
   chart_id: string;
   titulo: string;
   tipo_grafico: "bar" | "line" | "pie" | "area" | "donut";
-  config: {
-    x_key?: string;
-    y_keys?: string[];
-    labels?: Record<string, string>;
-    format?: "currency" | "number" | "percent";
-    palette?: string[];
-    [key: string]: unknown;
-  };
-  dados: Array<Record<string, unknown>>;
+  config: ChartConfig;
+  dados: ChartRow[];
   fixado?: boolean;
 }
 

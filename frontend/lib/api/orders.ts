@@ -81,12 +81,14 @@ export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
   return response.json();
 }
 
-export async function fetchOrders(params: {
-  userEmail?: string;
-  conversationId?: string;
-  limit?: number;
-  offset?: number;
-} = {}): Promise<PaginatedOrdersResponse> {
+export async function fetchOrders(
+  params: {
+    userEmail?: string;
+    conversationId?: string;
+    limit?: number;
+    offset?: number;
+  } = {},
+): Promise<PaginatedOrdersResponse> {
   const baseUrl = getApiBaseUrl();
   const urlParams = new URLSearchParams();
 

@@ -2,14 +2,15 @@
 
 import React, { useState } from "react";
 import ChartRenderer from "@/components/charts/ChartRenderer";
+import type { ChartConfig, ChartRow } from "@/lib/types/charts";
 
 export interface AdminChartData {
   id: string;
   titulo: string;
   descricao?: string | null;
   tipo_grafico: string;
-  config_json: Record<string, any>;
-  dados_json: Array<Record<string, any>>;
+  config_json: ChartConfig;
+  dados_json: ChartRow[];
   sql_query?: string | null;
   fixado: boolean;
   ordem: number;
@@ -96,10 +97,7 @@ export default function DynamicChartCard({
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <h3
-                className="truncate text-base font-bold text-slate-800"
-                title={chart.titulo}
-              >
+              <h3 className="truncate text-base font-bold text-slate-800" title={chart.titulo}>
                 {chart.titulo}
               </h3>
               {onEditTitle && (
@@ -176,7 +174,9 @@ export default function DynamicChartCard({
       {/* Footer */}
       <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/30 px-4 py-2 text-[11px] text-slate-400">
         <span>
-          {chart.atualizado_em ? `Atualizado às ${formatUpdatedAt(chart.atualizado_em)}` : "Recente"}
+          {chart.atualizado_em
+            ? `Atualizado às ${formatUpdatedAt(chart.atualizado_em)}`
+            : "Recente"}
         </span>
         {chart.sql_query && (
           <div className="relative">
@@ -192,10 +192,7 @@ export default function DynamicChartCard({
 
             {showSqlBubble && (
               <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowSqlBubble(false)}
-                />
+                <div className="fixed inset-0 z-10" onClick={() => setShowSqlBubble(false)} />
                 <div className="absolute right-0 bottom-full mb-2 z-20 w-72 sm:w-96 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-700 bg-slate-900 p-3 text-slate-100 shadow-xl text-xs font-mono">
                   <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800 font-sans font-semibold text-slate-300">
                     <span>SQL Dinâmico</span>

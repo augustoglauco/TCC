@@ -1,9 +1,5 @@
 import { BlocoMetricas } from "@/lib/api/metrics";
-import {
-  formatarCusto,
-  formatarTokens,
-  TITULO_NAO_MEDIDO,
-} from "@/lib/format/metricas";
+import { formatarCusto, formatarTokens, TITULO_NAO_MEDIDO } from "@/lib/format/metricas";
 
 interface CardMetricaProps {
   titulo: string;
@@ -28,9 +24,7 @@ export function CardMetrica({
         destaque ? "border-blue-200 bg-blue-50/60" : "border-slate-200 bg-white"
       }`}
     >
-      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {titulo}
-      </div>
+      <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">{titulo}</div>
       {subtitulo ? <div className="text-[11px] text-slate-400">{subtitulo}</div> : null}
       <div
         className="mt-2 text-2xl font-bold text-slate-900"

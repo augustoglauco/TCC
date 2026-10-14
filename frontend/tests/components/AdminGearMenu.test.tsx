@@ -86,4 +86,3 @@ describe("AdminGearMenu", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 });
-

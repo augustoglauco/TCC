@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import MessageBubble from "@/components/chat/MessageBubble";
-import { solicitarTransbordo, claimConversa, enviarMensagemAtendente } from "@/lib/api/adminAtendimento";
+import {
+  solicitarTransbordo,
+  claimConversa,
+  enviarMensagemAtendente,
+} from "@/lib/api/adminAtendimento";
 import type { ChatUIMessage } from "@/lib/types/chat";
 
 describe("Atendimento Humano - Chat Widget & MessageBubble", () => {

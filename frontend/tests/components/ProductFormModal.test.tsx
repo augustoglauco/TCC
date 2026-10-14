@@ -73,9 +73,7 @@ describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("heading", { level: 2, name: PRODUTO_MOCK.nome }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: PRODUTO_MOCK.nome })).toBeInTheDocument();
 
     rerender(
       <ProductFormModal
@@ -86,9 +84,7 @@ describe("ProductFormModal - Exclusão e Atualização de Imagens", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("heading", { level: 2, name: "Novo Produto" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Novo Produto" })).toBeInTheDocument();
   });
 
   it("exibe lista de imagens associadas ao produto", () => {

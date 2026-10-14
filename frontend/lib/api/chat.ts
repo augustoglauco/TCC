@@ -269,7 +269,7 @@ export async function deleteConversation(conversationId: string): Promise<boolea
  */
 export async function closeConversation(
   conversationId: string,
-  motivo: string = "manual_usuario"
+  motivo: string = "manual_usuario",
 ): Promise<boolean> {
   if (!conversationId) return true;
   try {

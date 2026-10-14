@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import type { AdminChartData } from "./DynamicChartCard";
 import { createAdminChart } from "@/lib/api/charts";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
+import type { ChartFormat } from "@/lib/types/charts";
 
 interface CreateChartModalProps {
   isOpen: boolean;
@@ -16,17 +17,13 @@ interface DataRow {
   value: string;
 }
 
-export default function CreateChartModal({
-  isOpen,
-  onClose,
-  onCreated,
-}: CreateChartModalProps) {
+export default function CreateChartModal({ isOpen, onClose, onCreated }: CreateChartModalProps) {
   const token = useAuthStore((s) => s.token);
 
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [tipoGrafico, setTipoGrafico] = useState("bar");
-  const [formato, setFormato] = useState("number");
+  const [formato, setFormato] = useState<ChartFormat>("number");
   const [fixado, setFixado] = useState(true);
   const [rows, setRows] = useState<DataRow[]>([
     { label: "", value: "" },
@@ -100,8 +97,8 @@ export default function CreateChartModal({
 
       onCreated(newChart);
       onClose();
-    } catch (err: any) {
-      setError(err?.message || "Erro ao criar gráfico.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar gráfico.");
     } finally {
       setLoading(false);
     }
@@ -113,9 +110,7 @@ export default function CreateChartModal({
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <span className="text-xl">📊</span>
-            <h2 className="text-lg font-bold text-slate-800">
-              Criar Gráfico Personalizado
-            </h2>
+            <h2 className="text-lg font-bold text-slate-800">Criar Gráfico Personalizado</h2>
           </div>
           <button
             type="button"
@@ -135,7 +130,10 @@ export default function CreateChartModal({
           )}
 
           <div>
-            <label htmlFor="input-titulo" className="block text-xs font-semibold text-slate-700 mb-1">
+            <label
+              htmlFor="input-titulo"
+              className="block text-xs font-semibold text-slate-700 mb-1"
+            >
               Título do Gráfico *
             </label>
             <input
@@ -165,7 +163,10 @@ export default function CreateChartModal({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label htmlFor="select-tipo" className="block text-xs font-semibold text-slate-700 mb-1">
+              <label
+                htmlFor="select-tipo"
+                className="block text-xs font-semibold text-slate-700 mb-1"
+              >
                 Tipo de Gráfico
               </label>
               <select
@@ -183,13 +184,16 @@ export default function CreateChartModal({
             </div>
 
             <div>
-              <label htmlFor="select-formato" className="block text-xs font-semibold text-slate-700 mb-1">
+              <label
+                htmlFor="select-formato"
+                className="block text-xs font-semibold text-slate-700 mb-1"
+              >
                 Formato dos Valores
               </label>
               <select
                 id="select-formato"
                 value={formato}
-                onChange={(e) => setFormato(e.target.value)}
+                onChange={(e) => setFormato(e.target.value as ChartFormat)}
                 className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-hidden"
               >
                 <option value="number">Numérico (123)</option>
@@ -207,7 +211,10 @@ export default function CreateChartModal({
               onChange={(e) => setFixado(e.target.checked)}
               className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
-            <label htmlFor="check-fixado" className="text-xs font-medium text-slate-700 cursor-pointer">
+            <label
+              htmlFor="check-fixado"
+              className="text-xs font-medium text-slate-700 cursor-pointer"
+            >
               Fixar este gráfico no topo do dashboard
             </label>
           </div>

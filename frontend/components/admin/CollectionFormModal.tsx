@@ -237,8 +237,8 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           </select>
           {purpose === "mcp_b2b" && (
             <p className="mt-1 text-xs text-amber-700">
-              Conteúdo restrito aos revendedores parceiros; consultado pelo canal MCP B2B e pelo Admin no modo admin.
-              Pode ser definida como a collection ativa para MCP B2B.
+              Conteúdo restrito aos revendedores parceiros; consultado pelo canal MCP B2B e pelo
+              Admin no modo admin. Pode ser definida como a collection ativa para MCP B2B.
             </p>
           )}
           {purpose === "admin" && (
@@ -249,8 +249,8 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           )}
           {purpose === "chat" && (
             <p className="mt-1 text-xs text-blue-700">
-              Conteúdo público consultado pelo assistente do chat aberto aos clientes.
-              Pode ser definida como a collection ativa para o Chat.
+              Conteúdo público consultado pelo assistente do chat aberto aos clientes. Pode ser
+              definida como a collection ativa para o Chat.
             </p>
           )}
 
@@ -262,8 +262,12 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
               onChange={(e) => setAtivarAposCriar(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
             />
-            <label htmlFor="ativar-apos-criar" className="text-xs font-semibold text-slate-800 cursor-pointer">
-              Tornar esta collection a ativa imediata para {purpose === "mcp_b2b" ? "MCP B2B" : purpose === "admin" ? "Admin" : "Chat"}
+            <label
+              htmlFor="ativar-apos-criar"
+              className="text-xs font-semibold text-slate-800 cursor-pointer"
+            >
+              Tornar esta collection a ativa imediata para{" "}
+              {purpose === "mcp_b2b" ? "MCP B2B" : purpose === "admin" ? "Admin" : "Chat"}
             </label>
           </div>
         </div>

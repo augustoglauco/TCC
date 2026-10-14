@@ -157,7 +157,11 @@ describe("ReingestModal", () => {
     await user.click(screen.getByRole("button", { name: "Reingerir" }));
 
     expect(mockedReingest).toHaveBeenCalledWith("mock-token-1", "doc-1", "destino");
-    expect(mockedReingest).not.toHaveBeenCalledWith("mock-token-1", "doc-1", DOCUMENTO.collection_id);
+    expect(mockedReingest).not.toHaveBeenCalledWith(
+      "mock-token-1",
+      "doc-1",
+      DOCUMENTO.collection_id,
+    );
   });
 
   it("sem outra collection disponível, mostra aviso e desabilita o botão", () => {

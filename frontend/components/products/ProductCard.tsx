@@ -125,7 +125,10 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
         {/* Área da Imagem do Produto */}
         <div className="relative mt-4 aspect-4/3 w-full overflow-hidden rounded-lg bg-slate-100 flex items-center justify-center group/img border border-slate-100">
           {activeImageUrl ? (
-            // eslint-disable-next-html-element-suppression
+            // Mesmo padrao de app/pedidos/page.tsx: a URL vem de um host dinamico
+            // resolvido em runtime (ver getApiBaseUrl()), entao next/image bloquearia
+            // por hostname nao configurado em next.config.ts.
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={activeImageUrl}
               alt={product.nome}

@@ -45,7 +45,9 @@ export function CollectionsTable({
     setProcessando(true);
     try {
       await activateCollection(token, collection.id);
-      onSuccess(`"${collection.name}" agora é a collection ativa (${getPurposeLabel(collection.purpose)}).`);
+      onSuccess(
+        `"${collection.name}" agora é a collection ativa (${getPurposeLabel(collection.purpose)}).`,
+      );
       onChanged();
     } catch (err) {
       onError(err instanceof RagApiError ? err.message : "Erro inesperado ao ativar a collection.");
@@ -180,7 +182,9 @@ export function CollectionsTable({
                 >
                   {collection.embedding_model}
                 </td>
-                <td className="py-2.5 px-3 text-slate-700 text-center">{collection.vector_dimension}</td>
+                <td className="py-2.5 px-3 text-slate-700 text-center">
+                  {collection.vector_dimension}
+                </td>
                 <td className="py-2.5 px-3 text-slate-700 capitalize whitespace-nowrap">
                   {collection.distance_metric}
                 </td>
@@ -190,7 +194,9 @@ export function CollectionsTable({
                 <td className="py-2.5 px-3 text-slate-700 capitalize whitespace-nowrap">
                   {collection.quantization_type}
                 </td>
-                <td className="py-2.5 px-3 text-slate-700 text-center">{collection.document_count}</td>
+                <td className="py-2.5 px-3 text-slate-700 text-center">
+                  {collection.document_count}
+                </td>
                 <td className="py-2.5 px-3 text-center whitespace-nowrap w-20">
                   <div className="inline-flex items-center justify-center gap-1.5">
                     {!collection.is_active ? (
@@ -209,7 +215,11 @@ export function CollectionsTable({
                           stroke="currentColor"
                           strokeWidth={2.2}
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M4.5 12.75l6 6 9-13.5"
+                          />
                         </svg>
                         <span className="sr-only">Ativar</span>
                       </button>

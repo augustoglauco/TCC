@@ -102,7 +102,7 @@ export default function AdminGearMenu() {
               className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
             >
               <span className="text-base">📊</span>
-              <span>Métricas & Custos IA</span>
+              <span>Métricas &amp; Custos IA</span>
             </Link>
             <Link
               href="/admin/ferramentas"
@@ -120,7 +120,7 @@ export default function AdminGearMenu() {
               className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
             >
               <span className="text-base">📈</span>
-              <span>Dashboards & Gráficos</span>
+              <span>Dashboards &amp; Gráficos</span>
             </Link>
             <Link
               href="/admin/atendimento"
@@ -138,7 +138,7 @@ export default function AdminGearMenu() {
               className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
             >
               <span className="text-base">💳</span>
-              <span>Pedidos & Conversão</span>
+              <span>Pedidos &amp; Conversão</span>
             </Link>
             <Link
               href="/admin/produtos"

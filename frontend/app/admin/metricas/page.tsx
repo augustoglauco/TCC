@@ -144,7 +144,7 @@ export default function AdminMetricasPage() {
           <div className="flex items-center gap-3">
             <span className="text-2xl">📊</span>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-              Métricas & Custos de IA
+              Métricas &amp; Custos de IA
             </h1>
             <button
               type="button"

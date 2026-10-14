@@ -1,6 +1,7 @@
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 import type {
   AdminProduct,
+  AdminProductCompatibility,
   AdminProductImage,
   AdminProductsListResponse,
   AdminProductsQueryParams,
@@ -242,7 +243,7 @@ export async function deleteAdminProductVolumeDiscount(
 export async function fetchAdminProductCompatibilities(
   token: string,
   produtoId: number,
-): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
+): Promise<AdminProductCompatibility[]> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`, {
     headers: authHeaders(token),
@@ -257,7 +258,7 @@ export async function addAdminProductCompatibility(
   token: string,
   produtoId: number,
   compativelComId: number,
-): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
+): Promise<AdminProductCompatibility[]> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades`, {
     method: "POST",
@@ -274,7 +275,7 @@ export async function deleteAdminProductCompatibility(
   token: string,
   produtoId: number,
   compativelComId: number,
-): Promise<import("@/lib/types/adminProducts").AdminProductCompatibility[]> {
+): Promise<AdminProductCompatibility[]> {
   const baseUrl = getApiBaseUrl();
   const res = await fetch(
     `${baseUrl}/api/admin/produtos/${produtoId}/compatibilidades/${compativelComId}`,

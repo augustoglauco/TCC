@@ -85,7 +85,10 @@ export function ImageZoomModal({ imageUrl, productName, onClose }: ImageZoomModa
 
       {/* Container de exibição da imagem */}
       <div className="max-h-[85vh] max-w-[90vw] overflow-auto flex items-center justify-center p-4">
-        {/* eslint-disable-next-html-element-suppression */}
+        {/* Mesmo padrao de app/pedidos/page.tsx: a URL vem de um host dinamico */}
+        {/* resolvido em runtime (ver getApiBaseUrl()), entao next/image bloquearia */}
+        {/* por hostname nao configurado em next.config.ts. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageUrl}
           alt={productName}

@@ -189,7 +189,8 @@ function PedidosPageContent() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Autenticação Necessária</h1>
           <p className="mt-2 text-sm text-slate-600">
-            Para entrar em pedidos, acessar seu carrinho e finalizar compras, é necessário estar logado na sua conta.
+            Para entrar em pedidos, acessar seu carrinho e finalizar compras, é necessário estar
+            logado na sua conta.
           </p>
         </div>
 
@@ -217,7 +218,7 @@ function PedidosPageContent() {
       <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Pedidos, Frete & Preços Diferenciados B2B
+            Pedidos, Frete &amp; Preços Diferenciados B2B
           </h1>
           <p className="mt-2 text-sm text-slate-600">
             Finalize sua compra como cliente final ou simule descontos por volume para parceiros
@@ -253,7 +254,7 @@ function PedidosPageContent() {
               : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
-          <span>🛒 Meu Carrinho & Checkout</span>
+          <span>🛒 Meu Carrinho &amp; Checkout</span>
           {cartItems.length > 0 && (
             <span className="rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-xs font-bold">
               {cartItems.length}
@@ -440,7 +441,7 @@ function PedidosPageContent() {
                 {/* Calculadora de Frete por CEP */}
                 <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3 mt-6">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    🚚 Simulador de Frete & Entrega por CEP
+                    🚚 Simulador de Frete &amp; Entrega por CEP
                   </h4>
                   <form onSubmit={handleCalcFreight} className="flex gap-2">
                     <input
@@ -523,7 +524,9 @@ function PedidosPageContent() {
                     <div className="rounded-lg bg-blue-50/70 border border-blue-100 p-2.5 flex items-center justify-between text-xs">
                       <div>
                         <span className="font-bold text-slate-900 block">{currentUser.nome}</span>
-                        <span className="text-slate-500 font-mono text-[11px]">{currentUser.email}</span>
+                        <span className="text-slate-500 font-mono text-[11px]">
+                          {currentUser.email}
+                        </span>
                       </div>
                       <span className="rounded bg-blue-100 text-blue-700 px-2 py-0.5 text-[10px] font-bold">
                         {currentUser.perfil || "Cliente"}
@@ -547,7 +550,7 @@ function PedidosPageContent() {
                       <span>Processando Reserva...</span>
                     ) : (
                       <>
-                        <span>Finalizar Pedido & Reservar</span> &rarr;
+                        <span>Finalizar Pedido &amp; Reservar</span> &rarr;
                       </>
                     )}
                   </button>

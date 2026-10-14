@@ -40,13 +40,18 @@ describe("agendamentos API client", () => {
       const res = await fetchMeusAgendamentos("cliente@teste.com");
       expect(res).toEqual(mockData);
       expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/api/agendamentos/meus?user_email=cliente%40teste.com")
+        expect.stringContaining("/api/agendamentos/meus?user_email=cliente%40teste.com"),
       );
     });
 
     it("lança erro amigável se a requisição falhar", async () => {
-      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({ detail: "Erro interno no servidor" }, 500)));
-      await expect(fetchMeusAgendamentos("cliente@teste.com")).rejects.toThrow("Erro interno no servidor");
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue(jsonResponse({ detail: "Erro interno no servidor" }, 500)),
+      );
+      await expect(fetchMeusAgendamentos("cliente@teste.com")).rejects.toThrow(
+        "Erro interno no servidor",
+      );
     });
   });
 
@@ -63,17 +68,19 @@ describe("agendamentos API client", () => {
       expect(res).toEqual(mockUpdated);
       expect(fetchMock).toHaveBeenCalledWith(
         expect.stringContaining("/api/agendamentos/ag-1/cancelar?user_email=cliente%40teste.com"),
-        expect.objectContaining({ method: "POST" })
+        expect.objectContaining({ method: "POST" }),
       );
     });
 
     it("lança erro com o detail do backend se o status for 400 ou 403", async () => {
       vi.stubGlobal(
         "fetch",
-        vi.fn().mockResolvedValue(jsonResponse({ detail: "Este agendamento já está cancelado." }, 400))
+        vi
+          .fn()
+          .mockResolvedValue(jsonResponse({ detail: "Este agendamento já está cancelado." }, 400)),
       );
       await expect(cancelarAgendamento("ag-1", "cliente@teste.com")).rejects.toThrow(
-        "Este agendamento já está cancelado."
+        "Este agendamento já está cancelado.",
       );
     });
   });
@@ -89,7 +96,9 @@ describe("agendamentos API client", () => {
       });
 
       expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringMatching(/\/api\/agendamentos\/admin\?.*filtro_email=teste.*status=confirmado/)
+        expect.stringMatching(
+          /\/api\/agendamentos\/admin\?.*filtro_email=teste.*status=confirmado/,
+        ),
       );
     });
   });
@@ -114,14 +123,18 @@ describe("agendamentos API client", () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        })
+        }),
       );
     });
 
     it("lança erro caso retorne 409 conflito de horário", async () => {
       vi.stubGlobal(
         "fetch",
-        vi.fn().mockResolvedValue(jsonResponse({ detail: "Horário indisponível na agenda Google." }, 409))
+        vi
+          .fn()
+          .mockResolvedValue(
+            jsonResponse({ detail: "Horário indisponível na agenda Google." }, 409),
+          ),
       );
 
       await expect(
@@ -129,7 +142,7 @@ describe("agendamentos API client", () => {
           user_email: "manual@teste.com",
           nome_cliente: "Admin Cliente",
           data_hora_inicio: "2026-10-15T14:00:00Z",
-        })
+        }),
       ).rejects.toThrow("Horário indisponível na agenda Google.");
     });
   });
@@ -147,7 +160,7 @@ describe("agendamentos API client", () => {
 
       expect(res).toEqual(mockEvents);
       expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringMatching(/\/api\/agendamentos\/admin\/google-events\?.*time_min=.*time_max=/)
+        expect.stringMatching(/\/api\/agendamentos\/admin\/google-events\?.*time_min=.*time_max=/),
       );
     });
   });

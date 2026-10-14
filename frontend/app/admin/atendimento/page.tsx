@@ -26,8 +26,7 @@ export default function AdminAtendimentoPage() {
   const [fila, setFila] = useState<AtendimentoFilaItem[]>([]);
   const [meusChats, setMeusChats] = useState<AtendimentoFilaItem[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [detalhesCarregados, setDetalhesCarregados] =
-    useState<AtendimentoDetalhes | null>(null);
+  const [detalhesCarregados, setDetalhesCarregados] = useState<AtendimentoDetalhes | null>(null);
 
   const [loadingFila, setLoadingFila] = useState(true);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -42,7 +41,6 @@ export default function AdminAtendimentoPage() {
   // Derivar evita o setState sincrono dentro de efeito que a regra
   // react-hooks/set-state-in-effect proibe.
   const detalhes = activeChatId ? detalhesCarregados : null;
-
 
   const atendenteId = user?.id ? String(user.id) : "admin_1";
   const atendenteNome = user?.nome || "Atendente Humano";
@@ -219,9 +217,7 @@ export default function AdminAtendimentoPage() {
             🎧
           </div>
           <div>
-            <h1 className="text-sm font-bold text-slate-900">
-              Central de Atendimento Humano
-            </h1>
+            <h1 className="text-sm font-bold text-slate-900">Central de Atendimento Humano</h1>
             <p className="text-[11px] text-slate-500">
               Fila de transbordo e suporte Human-in-the-Loop em tempo real
             </p>

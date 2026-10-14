@@ -31,11 +31,7 @@ const MOCK_COLLECTION: RagCollection = {
 describe("CollectionOptionCard", () => {
   it("renderiza o card com o nome e status da collection", () => {
     render(
-      <CollectionOptionCard
-        collection={MOCK_COLLECTION}
-        isSelected={false}
-        onToggle={vi.fn()}
-      />,
+      <CollectionOptionCard collection={MOCK_COLLECTION} isSelected={false} onToggle={vi.fn()} />,
     );
 
     expect(screen.getByText("collection_vendas")).toBeInTheDocument();
@@ -46,11 +42,7 @@ describe("CollectionOptionCard", () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
     render(
-      <CollectionOptionCard
-        collection={MOCK_COLLECTION}
-        isSelected={false}
-        onToggle={onToggle}
-      />,
+      <CollectionOptionCard collection={MOCK_COLLECTION} isSelected={false} onToggle={onToggle} />,
     );
 
     const checkbox = screen.getByLabelText("collection_vendas");
@@ -61,11 +53,7 @@ describe("CollectionOptionCard", () => {
 
   it("exibe bubble com todos os parâmetros e quantidade de arquivos no hover e oculta no mouseLeave", async () => {
     render(
-      <CollectionOptionCard
-        collection={MOCK_COLLECTION}
-        isSelected={false}
-        onToggle={vi.fn()}
-      />,
+      <CollectionOptionCard collection={MOCK_COLLECTION} isSelected={false} onToggle={vi.fn()} />,
     );
 
     const card = screen.getByText("collection_vendas").closest("label");

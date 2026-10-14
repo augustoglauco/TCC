@@ -54,15 +54,14 @@ export function PlaygroundPanel({ collections }: { collections: RagCollection[] 
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xl">🧪</span>
-              <h2 className="text-lg font-bold text-slate-900">
-                Playground de Busca Semântica
-              </h2>
+              <h2 className="text-lg font-bold text-slate-900">Playground de Busca Semântica</h2>
               <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200/60">
                 Qdrant RAG
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500 max-w-2xl leading-relaxed">
-              Compare os resultados de busca da mesma pergunta em collections diferentes, avaliando chunks recuperados, scores de similaridade e tempo de resposta.
+              Compare os resultados de busca da mesma pergunta em collections diferentes, avaliando
+              chunks recuperados, scores de similaridade e tempo de resposta.
             </p>
           </div>
 
@@ -91,7 +90,9 @@ export function PlaygroundPanel({ collections }: { collections: RagCollection[] 
             <div className="flex items-center gap-2.5">
               <span className="text-base">⚠️</span>
               <div>
-                <p className="font-semibold text-xs text-red-900">Falha ao executar consulta comparativa</p>
+                <p className="font-semibold text-xs text-red-900">
+                  Falha ao executar consulta comparativa
+                </p>
                 <p className="text-xs text-red-700 mt-0.5">{error}</p>
               </div>
             </div>
@@ -110,24 +111,31 @@ export function PlaygroundPanel({ collections }: { collections: RagCollection[] 
               Pronto para comparar o comportamento do RAG
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Digite uma pergunta real de atendimento ou vendas, selecione o domínio correspondente e marque as collections que deseja confrontar.
+              Digite uma pergunta real de atendimento ou vendas, selecione o domínio correspondente
+              e marque as collections que deseja confrontar.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 text-left">
               <div className="rounded-xl border border-slate-200/80 bg-white p-3 space-y-1">
                 <span className="text-sm">🎯</span>
                 <p className="text-xs font-semibold text-slate-800">Relevância Semântica</p>
-                <p className="text-[11px] text-slate-500">Avalie os scores de cosseno dos chunks recuperados.</p>
+                <p className="text-[11px] text-slate-500">
+                  Avalie os scores de cosseno dos chunks recuperados.
+                </p>
               </div>
               <div className="rounded-xl border border-slate-200/80 bg-white p-3 space-y-1">
                 <span className="text-sm">⏱️</span>
                 <p className="text-xs font-semibold text-slate-800">Latência Comparada</p>
-                <p className="text-[11px] text-slate-500">Monitore o tempo de resposta k-NN em cada collection.</p>
+                <p className="text-[11px] text-slate-500">
+                  Monitore o tempo de resposta k-NN em cada collection.
+                </p>
               </div>
               <div className="rounded-xl border border-slate-200/80 bg-white p-3 space-y-1">
                 <span className="text-sm">📑</span>
                 <p className="text-xs font-semibold text-slate-800">Granularidade</p>
-                <p className="text-[11px] text-slate-500">Analise o impacto do tamanho de chunk e overlap.</p>
+                <p className="text-[11px] text-slate-500">
+                  Analise o impacto do tamanho de chunk e overlap.
+                </p>
               </div>
             </div>
           </div>
@@ -152,12 +160,15 @@ export function PlaygroundPanel({ collections }: { collections: RagCollection[] 
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3 px-1">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
-                Resultados da Busca Comparativa
-              </h3>
+              <h3 className="text-sm font-bold text-slate-900">Resultados da Busca Comparativa</h3>
               {ultimaBusca && (
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Pergunta: <span className="font-medium text-slate-700 italic">&ldquo;{ultimaBusca.query}&rdquo;</span> • Domínio: <span className="font-medium text-slate-700 uppercase">{ultimaBusca.domain}</span>
+                  Pergunta:{" "}
+                  <span className="font-medium text-slate-700 italic">
+                    &ldquo;{ultimaBusca.query}&rdquo;
+                  </span>{" "}
+                  • Domínio:{" "}
+                  <span className="font-medium text-slate-700 uppercase">{ultimaBusca.domain}</span>
                 </p>
               )}
             </div>
@@ -179,10 +190,7 @@ export function PlaygroundPanel({ collections }: { collections: RagCollection[] 
         </div>
       )}
 
-      <PlaygroundManualModal
-        open={manualAberto}
-        onOpenChange={setManualAberto}
-      />
+      <PlaygroundManualModal open={manualAberto} onOpenChange={setManualAberto} />
     </div>
   );
 }

@@ -2,12 +2,13 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import AdminDashboardsPage from "@/app/admin/dashboards/page";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
+import type { ReactNode } from "react";
 
 vi.mock("recharts", async () => {
-  const original = await vi.importActual<any>("recharts");
+  const original = await vi.importActual<typeof import("recharts")>("recharts");
   return {
     ...original,
-    ResponsiveContainer: ({ children }: any) => (
+    ResponsiveContainer: ({ children }: { children?: ReactNode }) => (
       <div data-testid="responsive-container">{children}</div>
     ),
   };

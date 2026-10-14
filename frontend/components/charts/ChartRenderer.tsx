@@ -18,20 +18,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
-interface ChartConfig {
-  x_key?: string;
-  y_keys?: string[];
-  labels?: Record<string, string>;
-  format?: "currency" | "number" | "percent";
-  palette?: string[];
-  [key: string]: unknown;
-}
+import type { TooltipContentProps } from "recharts";
+import type { ChartConfig, ChartFormat, ChartRow } from "@/lib/types/charts";
 
 interface ChartRendererProps {
   tipo_grafico: "bar" | "line" | "pie" | "area" | "donut" | string;
   config: ChartConfig;
-  dados: Array<Record<string, any>>;
+  dados: ChartRow[];
   height?: number;
 }
 
@@ -45,8 +38,8 @@ const DEFAULT_PALETTE = [
   "#ec4899", // pink-500
 ];
 
-function formatValue(value: any, fmt?: "currency" | "number" | "percent"): string {
-  const num = typeof value === "number" ? value : parseFloat(value);
+function formatValue(value: unknown, fmt?: ChartFormat): string {
+  const num = typeof value === "number" ? value : Number.parseFloat(String(value));
   if (isNaN(num)) return String(value ?? "");
 
   if (fmt === "currency") {
@@ -87,7 +80,7 @@ export default function ChartRenderer({
 
   const effectiveYKeys = yKeys.length > 0 ? yKeys : [Object.keys(dados[0])[1] || "total"];
 
-  const renderTooltip = (props: any) => {
+  const renderTooltip = (props: TooltipContentProps) => {
     const { active, payload, label } = props;
     if (!active || !payload || !payload.length) return null;
 
@@ -95,8 +88,8 @@ export default function ChartRenderer({
       <div className="rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-xs shadow-md backdrop-blur-sm">
         <p className="font-semibold text-slate-700">{label}</p>
         <div className="mt-1 space-y-0.5">
-          {payload.map((entry: any, index: number) => {
-            const labelKey = entry.dataKey || entry.name;
+          {payload.map((entry, index) => {
+            const labelKey = String(entry.dataKey ?? entry.name ?? "");
             const displayLabel = config.labels?.[labelKey] || labelKey;
             return (
               <p key={`tooltip-${index}`} className="flex items-center gap-1.5 text-slate-600">

@@ -24,7 +24,6 @@ export function CollectionOptionCard({
     null,
   );
 
-
   const updatePosition = useCallback(() => {
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
@@ -120,14 +119,15 @@ export function CollectionOptionCard({
           <span className="font-semibold text-slate-200">Arquivos indexados:</span>
         </div>
         <span className="font-bold text-emerald-400 text-sm bg-emerald-950/80 px-2 py-0.5 rounded-md border border-emerald-800/40">
-          {collection.document_count ?? 0} {collection.document_count === 1 ? "documento" : "documentos"}
+          {collection.document_count ?? 0}{" "}
+          {collection.document_count === 1 ? "documento" : "documentos"}
         </span>
       </div>
 
       {/* Parâmetros de Vetorização */}
       <div className="space-y-1">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-          Vetorização & Embeddings
+          Vetorização &amp; Embeddings
         </span>
         <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300 bg-slate-800/40 p-2 rounded-lg border border-slate-800">
           <div className="col-span-2 truncate">
@@ -140,7 +140,9 @@ export function CollectionOptionCard({
           </div>
           <div>
             <span className="text-slate-400">Métrica: </span>
-            <span className="font-semibold text-slate-200 uppercase">{collection.distance_metric}</span>
+            <span className="font-semibold text-slate-200 uppercase">
+              {collection.distance_metric}
+            </span>
           </div>
         </div>
       </div>
@@ -165,7 +167,7 @@ export function CollectionOptionCard({
       {/* Parâmetros HNSW & Armazenamento */}
       <div className="space-y-1">
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-          HNSW, Quantização & Índices
+          HNSW, Quantização &amp; Índices
         </span>
         <div className="grid grid-cols-2 gap-1.5 text-[11px] text-slate-300 bg-slate-800/40 p-2 rounded-lg border border-slate-800">
           <div>
@@ -182,7 +184,9 @@ export function CollectionOptionCard({
           </div>
           <div>
             <span className="text-slate-400">Quantização: </span>
-            <span className="font-mono text-slate-200 uppercase">{collection.quantization_type}</span>
+            <span className="font-mono text-slate-200 uppercase">
+              {collection.quantization_type}
+            </span>
           </div>
           <div>
             <span className="text-slate-400">Payload Índices: </span>
@@ -232,7 +236,8 @@ export function CollectionOptionCard({
               {collection.name}
             </span>
             <span className="text-[10px] text-slate-400 font-mono block truncate">
-              dim: {collection.vector_dimension} • chunk: {collection.chunk_size} • {collection.document_count ?? 0} docs
+              dim: {collection.vector_dimension} • chunk: {collection.chunk_size} •{" "}
+              {collection.document_count ?? 0} docs
             </span>
           </div>
         </div>

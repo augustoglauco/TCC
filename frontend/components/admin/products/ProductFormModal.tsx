@@ -137,7 +137,10 @@ export default function ProductFormModal({
       setCompatividades([]);
     }
     setError(null);
-  }, [produtoParaEditar?.id, isOpen, token]);
+    // `produtoParaEditar` vem do state do pai (`editingProduct`), entao a
+    // referencia e estavel entre renders — depender do objeto inteiro nao
+    // re-dispara o reset do formulario a cada render.
+  }, [produtoParaEditar, isOpen, token]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -383,7 +386,7 @@ export default function ProductFormModal({
                   : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
-              📝 Informações Gerais & Fotos
+              📝 Informações Gerais &amp; Fotos
             </button>
             <button
               type="button"
@@ -531,7 +534,7 @@ export default function ProductFormModal({
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">
-                    Foto do Produto & Catálogo Visual CLIP
+                    Foto do Produto &amp; Catálogo Visual CLIP
                   </h4>
                   <p className="text-xs text-blue-700">
                     A imagem é vetorizada automaticamente no Qdrant para reconhecimento por foto no
@@ -540,6 +543,10 @@ export default function ProductFormModal({
                 </div>
                 {imagemPreview && (
                   <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200 bg-white">
+                    {/* O preview e um `blob:` de URL.createObjectURL (ou a URL do backend em */}
+                    {/* host dinamico) — next/image nao aceita nenhum dos dois sem */}
+                    {/* remotePatterns de build-time. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={imagemPreview} alt="Preview" className="h-full w-full object-cover" />
                   </div>
                 )}
@@ -569,6 +576,10 @@ export default function ProductFormModal({
                             isDeleting ? "opacity-40" : ""
                           }`}
                         >
+                          {/* Mesmo padrao de app/pedidos/page.tsx: a URL vem de um host dinamico */}
+                          {/* resolvido em runtime (ver getApiBaseUrl()), entao next/image bloquearia */}
+                          {/* por hostname nao configurado em next.config.ts. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={
                               img.imagem_url.startsWith("http")

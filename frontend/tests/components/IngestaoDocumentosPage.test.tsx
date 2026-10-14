@@ -6,6 +6,18 @@ import IngestaoDocumentosPage from "@/app/admin/ingestao/page";
 import { RagApiError } from "@/lib/api/rag";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { DocumentRegistryEntry, RagCollection } from "@/lib/types/rag";
+import type { RuntimeSettings } from "@/lib/types/runtimeSettings";
+
+// Só os campos obrigatórios de RuntimeSettings; os testes abaixo olham apenas
+// `rag_search_domain_fallback`.
+const RUNTIME_SETTINGS_PADRAO: RuntimeSettings = {
+  local_llm_temperature: null,
+  local_llm_timeout_s: 120,
+  external_llm_timeout_s: 60,
+  rag_search_domain_fallback: false,
+  crawler_max_pages_default: 20,
+  crawler_confidence_threshold: 0.6,
+};
 
 vi.mock("@/lib/api/rag", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/rag")>("@/lib/api/rag");
@@ -87,9 +99,7 @@ describe("IngestaoDocumentosPage", () => {
     });
     mockedListDocuments.mockResolvedValue([]);
     mockedListCollections.mockResolvedValue([COLLECTION_ATIVA]);
-    mockedGetRuntimeSettings.mockResolvedValue({
-      rag_search_domain_fallback: false,
-    } as any);
+    mockedGetRuntimeSettings.mockResolvedValue(RUNTIME_SETTINGS_PADRAO);
   });
 
   it("exibe notificação de erro quando getRuntimeSettings falha ao carregar a seção RagSearchConfigSection", async () => {

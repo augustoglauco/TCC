@@ -27,7 +27,6 @@ export function metricsFromDone(data: ChatDoneEventData): ChatMetrics {
     perfilUsuario: data.perfil_usuario ?? undefined,
     perfilMotivo: data.perfil_motivo ?? undefined,
     visionUsed:
-      data.vision_used ??
-      (data.backend_used === "identificacao_imagem" ? true : undefined),
+      data.vision_used ?? (data.backend_used === "identificacao_imagem" ? true : undefined),
   };
 }

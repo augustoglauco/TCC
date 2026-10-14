@@ -81,7 +81,12 @@ describe("Painel de Gestão de Pedidos e Conversão de Reserva (/admin/pedidos)"
         tipo_conversao: null,
         convertido_em: null,
         convertido_por: null,
-        llm_parecer: JSON.stringify({ valido: false, valor_pago: 300.0, divergencia: 200.0, justificativa: "Valor inferior" }),
+        llm_parecer: JSON.stringify({
+          valido: false,
+          valor_pago: 300.0,
+          divergencia: 200.0,
+          justificativa: "Valor inferior",
+        }),
         criado_em: new Date().toISOString(),
         valor_total: 500.0,
         itens: [],
@@ -105,7 +110,7 @@ describe("Painel de Gestão de Pedidos e Conversão de Reserva (/admin/pedidos)"
 
     expect(adminPedidosApi.fetchPedidos).toHaveBeenCalledWith(
       expect.objectContaining({ status: "reservado" }),
-      "mock-token-admin"
+      "mock-token-admin",
     );
   });
 
@@ -150,14 +155,16 @@ describe("Painel de Gestão de Pedidos e Conversão de Reserva (/admin/pedidos)"
     expect(screen.getByText("Modal de Conversão de Reserva")).toBeInTheDocument();
 
     // Seleciona modalidade Manual Simples e clica em confirmar
-    const btnConfirmarSimples = screen.getByRole("button", { name: /Confirmar Conversão Simples/i });
+    const btnConfirmarSimples = screen.getByRole("button", {
+      name: /Confirmar Conversão Simples/i,
+    });
     fireEvent.click(btnConfirmarSimples);
 
     await waitFor(() => {
       expect(adminPedidosApi.converterManualSimples).toHaveBeenCalledWith(
         "pedido-uuid-1",
         expect.any(Object),
-        "mock-token-admin"
+        "mock-token-admin",
       );
     });
   });
@@ -236,7 +243,7 @@ describe("Painel de Gestão de Pedidos e Conversão de Reserva (/admin/pedidos)"
       expect(adminPedidosApi.confirmarConversaoManual).toHaveBeenCalledWith(
         "pedido-uuid-2",
         expect.any(Object),
-        "mock-token-admin"
+        "mock-token-admin",
       );
     });
   });
@@ -282,21 +289,24 @@ describe("Painel de Gestão de Pedidos e Conversão de Reserva (/admin/pedidos)"
     fireEvent.click(tabModo3);
 
     // Mock do arquivo
-    const file = new File(["dummy auto content"], "comprovante_pix.pdf", { type: "application/pdf" });
+    const file = new File(["dummy auto content"], "comprovante_pix.pdf", {
+      type: "application/pdf",
+    });
     const input = screen.getByTestId("input-file-auto");
     fireEvent.change(input, { target: { files: [file] } });
 
     // Clica no botão de conversão automática
-    const btnConverterAuto = screen.getByRole("button", { name: /Validar e Converter Automaticamente via IA/i });
+    const btnConverterAuto = screen.getByRole("button", {
+      name: /Validar e Converter Automaticamente via IA/i,
+    });
     fireEvent.click(btnConverterAuto);
 
     await waitFor(() => {
       expect(adminPedidosApi.converterAutoAdmin).toHaveBeenCalledWith(
         "pedido-uuid-3",
         file,
-        "mock-token-admin"
+        "mock-token-admin",
       );
     });
   });
 });
-

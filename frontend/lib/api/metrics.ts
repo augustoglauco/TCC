@@ -62,7 +62,7 @@ export interface GetMetricsParams {
 
 export async function fetchAiUsageMetrics(
   token: string,
-  params: GetMetricsParams = {}
+  params: GetMetricsParams = {},
 ): Promise<AiUsageReport> {
   const baseUrl = getApiBaseUrl();
   const query = new URLSearchParams();

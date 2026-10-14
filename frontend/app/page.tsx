@@ -19,7 +19,7 @@ export default function HomePage() {
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
             Distribuidora de equipamentos e peças industriais. Protótipo de TCC integrado com
             inferência local em GPU (16GB), RAG vetorial híbrido, entrada multimodal (texto, áudio e
-            imagem) e suporte a protocolo MCP (Google Calendar & Provedor B2B).
+            imagem) e suporte a protocolo MCP (Google Calendar &amp; Provedor B2B).
           </p>
 
           <div className="pt-2 flex flex-wrap gap-3">
@@ -73,7 +73,7 @@ export default function HomePage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
               🛍️
             </div>
-            <h3 className="mt-4 font-bold text-slate-900">Vendas & Cotações</h3>
+            <h3 className="mt-4 font-bold text-slate-900">Vendas &amp; Cotações</h3>
             <p className="mt-2 text-xs text-slate-600 leading-relaxed">
               Consulta de estoque em tempo real, especificações técnicas, cotações e reservas via
               MCP B2B.
@@ -120,7 +120,7 @@ export default function HomePage() {
       {/* 🛠️ Funcionalidades & Arquitetura */}
       <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 sm:p-8 space-y-6">
         <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-          Recursos Multimodais & Arquitetura Agêntica
+          Recursos Multimodais &amp; Arquitetura Agêntica
         </h2>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -133,7 +133,7 @@ export default function HomePage() {
           </div>
 
           <div className="rounded-lg bg-white p-4 border border-slate-200/80">
-            <div className="text-xl">🖼️ Visão & OCR (CLIP)</div>
+            <div className="text-xl">🖼️ Visão &amp; OCR (CLIP)</div>
             <p className="mt-1.5 text-xs text-slate-600">
               Reconhecimento de texto em fotos de placas/comprovantes e busca vetorial por
               similaridade de imagem.

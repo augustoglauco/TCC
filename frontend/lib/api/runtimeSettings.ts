@@ -86,10 +86,7 @@ export async function preloadLocalModel(token: string): Promise<RuntimeSettings>
   }
 
   if (!response.ok) {
-    await _lancarErroComDetalhe(
-      response,
-      "Não foi possível carregar o modelo na VRAM.",
-    );
+    await _lancarErroComDetalhe(response, "Não foi possível carregar o modelo na VRAM.");
   }
 
   return (await response.json()) as RuntimeSettings;
@@ -110,12 +107,8 @@ export async function unloadLocalModel(token: string): Promise<RuntimeSettings> 
   }
 
   if (!response.ok) {
-    await _lancarErroComDetalhe(
-      response,
-      "Não foi possível descarregar o modelo da VRAM.",
-    );
+    await _lancarErroComDetalhe(response, "Não foi possível descarregar o modelo da VRAM.");
   }
 
   return (await response.json()) as RuntimeSettings;
 }
-

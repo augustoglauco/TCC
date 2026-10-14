@@ -10,10 +10,15 @@ vi.mock("@/lib/api/crawler", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/crawler")>("@/lib/api/crawler");
   return { ...actual, runCrawlerStream: vi.fn() };
 });
+// Alias do tipo do módulo: `vi.importActual<typeof import("…")>("…")` em uma
+// chamada quebrada em várias linhas é TypeScript válido, mas o parser TSX do
+// tree-sitter (usado pelo extrator do graphify) falha no argumento após o
+// argumento de tipo, e o arquivo inteiro deixa de entrar no grafo
+// (`graphify-out/`). Com o alias a chamada cabe em uma linha.
+type RuntimeSettingsModule = typeof import("@/lib/api/runtimeSettings");
+
 vi.mock("@/lib/api/runtimeSettings", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/api/runtimeSettings")>(
-    "@/lib/api/runtimeSettings",
-  );
+  const actual = await vi.importActual<RuntimeSettingsModule>("@/lib/api/runtimeSettings");
   return { ...actual, getRuntimeSettings: vi.fn() };
 });
 

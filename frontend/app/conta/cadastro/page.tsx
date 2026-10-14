@@ -24,7 +24,11 @@ export default function CadastroPage() {
     setError(null);
 
     try {
-      if (perfil === "Admin" && user?.perfil?.toLowerCase() !== "admin" && email !== "admin@example.com") {
+      if (
+        perfil === "Admin" &&
+        user?.perfil?.toLowerCase() !== "admin" &&
+        email !== "admin@example.com"
+      ) {
         setError("Apenas um administrador logado pode criar contas com perfil Administrador.");
         setIsLoading(false);
         return;
@@ -61,10 +65,12 @@ export default function CadastroPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Sessão Ativa</h1>
           <p className="mt-2 text-sm text-slate-600">
-            Você está logado como <strong className="text-slate-900">{user.nome}</strong> ({user.email}) - Perfil{" "}
+            Você está logado como <strong className="text-slate-900">{user.nome}</strong> (
+            {user.email}) - Perfil{" "}
             <span className="rounded bg-blue-100 text-blue-800 px-2 py-0.5 font-bold text-xs">
               {user.perfil}
-            </span>.
+            </span>
+            .
           </p>
           <p className="mt-2 text-xs text-slate-500">
             Apenas um Administrador autenticado pode cadastrar novos Administradores.
@@ -91,7 +97,8 @@ export default function CadastroPage() {
           <span className="text-xl">⚙️</span>
           <div className="text-xs text-purple-900">
             <span className="font-bold block">Sessão Administrativa Ativa ({user.nome})</span>
-            Você possui autorização para criar contas com perfil <strong>Administrador (Admin)</strong> ou <strong>Cliente</strong>.
+            Você possui autorização para criar contas com perfil{" "}
+            <strong>Administrador (Admin)</strong> ou <strong>Cliente</strong>.
           </div>
         </div>
       )}
@@ -105,7 +112,8 @@ export default function CadastroPage() {
           Novo Cadastro de Usuário
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 max-w-sm mx-auto">
-          Crie sua conta para acessar pedidos, frete por CEP, simulações B2B ou permissões administrativas.
+          Crie sua conta para acessar pedidos, frete por CEP, simulações B2B ou permissões
+          administrativas.
         </p>
       </div>
 

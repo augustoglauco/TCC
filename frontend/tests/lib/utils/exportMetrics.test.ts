@@ -102,12 +102,16 @@ describe("exportMetricsToJson", () => {
 describe("exportMetricsToCsv", () => {
   let linkClicado: HTMLAnchorElement | null;
 
+  function registrarClique(link: HTMLAnchorElement) {
+    linkClicado = link;
+  }
+
   beforeEach(() => {
     linkClicado = null;
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
       this: HTMLAnchorElement,
     ) {
-      linkClicado = this;
+      registrarClique(this);
     });
   });
 

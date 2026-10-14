@@ -113,9 +113,7 @@ export function CatalogPriceInput({
 
   return (
     <div className="relative flex items-center rounded border border-gray-300 bg-white transition-colors focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 shadow-2xs">
-      <span className="pl-2 pr-0.5 text-[11px] font-semibold text-gray-500 select-none">
-        R$
-      </span>
+      <span className="pl-2 pr-0.5 text-[11px] font-semibold text-gray-500 select-none">R$</span>
       <input
         type="text"
         inputMode="decimal"
@@ -725,6 +723,10 @@ export default function CatalogImportModal({
                                 className="group relative h-12 w-12 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center hover:border-blue-500 hover:ring-2 hover:ring-blue-200 transition-all cursor-pointer"
                               >
                                 {item.imagem_temp_url ? (
+                                  // Mesmo padrao de app/pedidos/page.tsx: a URL vem de um host dinamico
+                                  // resolvido em runtime (ver getApiBaseUrl()), entao next/image bloquearia
+                                  // por hostname nao configurado em next.config.ts.
+                                  // eslint-disable-next-line @next/next/no-img-element
                                   <img
                                     src={
                                       item.imagem_temp_url.startsWith("http")
@@ -791,11 +793,7 @@ export default function CatalogImportModal({
                             <CatalogPriceInput
                               value={item.preco}
                               onChange={(val) =>
-                                handleUpdateProduct(
-                                  item.id_temporario,
-                                  "preco",
-                                  val,
-                                )
+                                handleUpdateProduct(item.id_temporario, "preco", val)
                               }
                               isBold
                               ariaLabel={`Preço venda ${item.nome}`}
@@ -912,6 +910,10 @@ export default function CatalogImportModal({
               <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
                 <div className="h-16 w-16 rounded border bg-white overflow-hidden flex items-center justify-center shrink-0">
                   {pickerProduct.imagem_temp_url ? (
+                    // Mesmo padrao de app/pedidos/page.tsx: a URL vem de um host dinamico
+                    // resolvido em runtime (ver getApiBaseUrl()), entao next/image bloquearia
+                    // por hostname nao configurado em next.config.ts.
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={
                         pickerProduct.imagem_temp_url.startsWith("http")
@@ -964,6 +966,10 @@ export default function CatalogImportModal({
                               : "border-gray-200 hover:border-gray-400"
                           }`}
                         >
+                          {/* Mesmo padrao de app/pedidos/page.tsx: a URL vem de um host dinamico */}
+                          {/* resolvido em runtime (ver getApiBaseUrl()), entao next/image bloquearia */}
+                          {/* por hostname nao configurado em next.config.ts. */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={
                               fotoUrl.startsWith("http") ? fotoUrl : `${getApiBaseUrl()}${fotoUrl}`

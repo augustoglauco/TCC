@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import CreateChartModal from "@/components/admin/CreateChartModal";
+import type { AdminChartData } from "@/components/admin/DynamicChartCard";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import * as chartsApi from "@/lib/api/charts";
 
@@ -26,7 +27,7 @@ describe("CreateChartModal", () => {
   });
 
   it("renderiza campos e permite preencher dados manuais e submeter", async () => {
-    const mockCreated = {
+    const mockCreated: AdminChartData = {
       id: "new-chart-1",
       titulo: "Metas por Região",
       descricao: "Vendas Q3",

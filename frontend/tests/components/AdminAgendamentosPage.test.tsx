@@ -25,7 +25,9 @@ describe("AdminAgendamentosPage", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: /Acesso Restrito/i })).toBeInTheDocument();
-      expect(screen.getByText(/Apenas administradores podem acessar esta página/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Apenas administradores podem acessar esta página/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -160,9 +162,8 @@ describe("AdminAgendamentosPage", () => {
           user_email: "novo@cliente.com",
           nome_cliente: "Novo Cliente",
           duracao_minutos: 90,
-        })
+        }),
       );
     });
   });
 });
-

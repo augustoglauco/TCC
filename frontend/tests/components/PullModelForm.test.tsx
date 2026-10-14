@@ -122,7 +122,9 @@ describe("PullModelForm", () => {
 
     render(<PullModelForm onPulled={vi.fn()} />);
 
-    await waitFor(() => expect(mockedGetPullStatus).toHaveBeenCalledWith("mock-token-1", "llama3.1:8b"));
+    await waitFor(() =>
+      expect(mockedGetPullStatus).toHaveBeenCalledWith("mock-token-1", "llama3.1:8b"),
+    );
     expect(screen.queryByDisplayValue("llama3.1:8b")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Baixar" })).toBeDisabled();
     await waitFor(() => expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull());

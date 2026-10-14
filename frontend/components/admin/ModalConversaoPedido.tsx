@@ -55,7 +55,7 @@ export default function ModalConversaoPedido({
           convertido_por: operadorSimples,
           comprovante: arquivoSimples || undefined,
         },
-        token
+        token,
       );
       onSuccess();
       onClose();
@@ -95,7 +95,7 @@ export default function ModalConversaoPedido({
           parecer_json: JSON.stringify(analiseResultado.parecer),
           convertido_por: user?.nome || "Admin IA Conferido",
         },
-        token
+        token,
       );
       onSuccess();
       onClose();
@@ -159,8 +159,8 @@ export default function ModalConversaoPedido({
                 pedido.status === "venda_concluida"
                   ? "bg-green-100 text-green-800"
                   : pedido.status === "pagamento_divergente"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-amber-100 text-amber-800"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-amber-100 text-amber-800"
               }`}
             >
               {pedido.status}
@@ -240,7 +240,8 @@ export default function ModalConversaoPedido({
           {modo === "simples" && (
             <div className="space-y-4">
               <p className="text-xs text-gray-600">
-                Converte a reserva em venda diretamente, sem validação automatizada de IA (para pagamentos já conferidos no banco ou via extrato).
+                Converte a reserva em venda diretamente, sem validação automatizada de IA (para
+                pagamentos já conferidos no banco ou via extrato).
               </p>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -286,7 +287,8 @@ export default function ModalConversaoPedido({
           {modo === "padrao" && (
             <div className="space-y-4">
               <p className="text-xs text-gray-600">
-                Auditoria com IA: O comprovante é processado pelo modelo de Visão/LLM e o parecer financeiro é apresentado para sua validação humana antes de concluir a venda.
+                Auditoria com IA: O comprovante é processado pelo modelo de Visão/LLM e o parecer
+                financeiro é apresentado para sua validação humana antes de concluir a venda.
               </p>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -325,9 +327,8 @@ export default function ModalConversaoPedido({
                   </div>
                   <p className="text-gray-700">
                     <strong>Valor Detectado:</strong> R${" "}
-                    {analiseResultado.parecer.valor_pago.toFixed(2)} |{" "}
-                    <strong>Divergência:</strong> R${" "}
-                    {analiseResultado.parecer.divergencia.toFixed(2)}
+                    {analiseResultado.parecer.valor_pago.toFixed(2)} | <strong>Divergência:</strong>{" "}
+                    R$ {analiseResultado.parecer.divergencia.toFixed(2)}
                   </p>
                   {analiseResultado.parecer.codigo_transacao && (
                     <p className="text-gray-700">
@@ -357,7 +358,9 @@ export default function ModalConversaoPedido({
           {modo === "auto" && (
             <div className="space-y-4">
               <p className="text-xs text-gray-600">
-                Conversão Automática via Upload: Se a IA validar o valor integral sem divergências, o status é alterado para <strong>venda_concluida</strong> imediatamente. Caso contrário, o pedido será marcado como <strong>pagamento_divergente</strong>.
+                Conversão Automática via Upload: Se a IA validar o valor integral sem divergências,
+                o status é alterado para <strong>venda_concluida</strong> imediatamente. Caso
+                contrário, o pedido será marcado como <strong>pagamento_divergente</strong>.
               </p>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">

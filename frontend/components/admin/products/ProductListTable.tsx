@@ -225,6 +225,10 @@ export default function ProductListTable({
                   <td className="py-3.5 pl-4 pr-3 whitespace-nowrap">
                     <div className="relative h-14 w-14 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 flex items-center justify-center">
                       {fullImg ? (
+                        // Mesmo padrao de app/pedidos/page.tsx: a URL vem de um host dinamico
+                        // resolvido em runtime (ver getApiBaseUrl()), entao next/image bloquearia
+                        // por hostname nao configurado em next.config.ts.
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={fullImg} alt={p.nome} className="h-full w-full object-cover" />
                       ) : (
                         <span className="text-2xl text-gray-400">📷</span>

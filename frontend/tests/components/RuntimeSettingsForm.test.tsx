@@ -6,10 +6,15 @@ import { RuntimeSettingsForm } from "@/components/admin/RuntimeSettingsForm";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { RuntimeSettings } from "@/lib/types/runtimeSettings";
 
+// Alias do tipo do módulo: `vi.importActual<typeof import("…")>("…")` em uma
+// chamada quebrada em várias linhas é TypeScript válido, mas o parser TSX do
+// tree-sitter (usado pelo extrator do graphify) falha no argumento após o
+// argumento de tipo, e o arquivo inteiro deixa de entrar no grafo
+// (`graphify-out/`). Com o alias a chamada cabe em uma linha.
+type RuntimeSettingsModule = typeof import("@/lib/api/runtimeSettings");
+
 vi.mock("@/lib/api/runtimeSettings", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/api/runtimeSettings")>(
-    "@/lib/api/runtimeSettings",
-  );
+  const actual = await vi.importActual<RuntimeSettingsModule>("@/lib/api/runtimeSettings");
   return {
     ...actual,
     getRuntimeSettings: vi.fn(),
@@ -334,5 +339,3 @@ describe("RuntimeSettingsForm", () => {
     expect(inputVision).toHaveValue("google/gemma-4-31b-it:free");
   });
 });
-
-

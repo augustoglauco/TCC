@@ -34,7 +34,7 @@ export default function AdminPedidosPage() {
     try {
       const data = await fetchPedidos(
         { status: filtroStatus === "todos" ? undefined : filtroStatus },
-        token
+        token,
       );
       setPedidos(data);
       setErroMsg(null);
@@ -104,10 +104,11 @@ export default function AdminPedidosPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            Gestão de Pedidos & Conversão
+            Gestão de Pedidos &amp; Conversão
           </h1>
           <p className="text-sm text-gray-500">
-            Acompanhe reservas, audite comprovantes financeiros com IA Multimodal e realize a conversão em vendas concluídas.
+            Acompanhe reservas, audite comprovantes financeiros com IA Multimodal e realize a
+            conversão em vendas concluídas.
           </p>
         </div>
         <button
@@ -140,11 +141,15 @@ export default function AdminPedidosPage() {
           <p className="mt-1 text-2xl font-bold text-green-900">{totalConcluidos}</p>
         </div>
         <div className="rounded-xl border border-red-200 bg-red-50/50 p-4 shadow-sm">
-          <span className="text-xs font-semibold uppercase text-red-700">Pagamentos Divergentes</span>
+          <span className="text-xs font-semibold uppercase text-red-700">
+            Pagamentos Divergentes
+          </span>
           <p className="mt-1 text-2xl font-bold text-red-900">{totalDivergentes}</p>
         </div>
         <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 shadow-sm">
-          <span className="text-xs font-semibold uppercase text-blue-700">Total Faturado (Vendas)</span>
+          <span className="text-xs font-semibold uppercase text-blue-700">
+            Total Faturado (Vendas)
+          </span>
           <p className="mt-1 text-2xl font-bold text-blue-900">
             R$ {valorTotalVendas.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </p>
@@ -230,7 +235,9 @@ export default function AdminPedidosPage() {
               {pedidosFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-sm text-gray-500">
-                    {loading ? "Carregando pedidos..." : "Nenhum pedido encontrado para os filtros selecionados."}
+                    {loading
+                      ? "Carregando pedidos..."
+                      : "Nenhum pedido encontrado para os filtros selecionados."}
                   </td>
                 </tr>
               ) : (
@@ -241,7 +248,9 @@ export default function AdminPedidosPage() {
                         {pedido.id.substring(0, 8)}...
                       </span>
                       <span className="text-[11px] text-gray-400">
-                        {pedido.criado_em ? new Date(pedido.criado_em).toLocaleDateString("pt-BR") : "-"}
+                        {pedido.criado_em
+                          ? new Date(pedido.criado_em).toLocaleDateString("pt-BR")
+                          : "-"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-700">
@@ -259,8 +268,8 @@ export default function AdminPedidosPage() {
                           pedido.status === "venda_concluida"
                             ? "bg-green-100 text-green-800"
                             : pedido.status === "pagamento_divergente"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-amber-100 text-amber-800"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-amber-100 text-amber-800"
                         }`}
                       >
                         {pedido.status}
@@ -293,7 +302,9 @@ export default function AdminPedidosPage() {
                             : "bg-blue-600 text-white hover:bg-blue-700"
                         }`}
                       >
-                        {pedido.status === "venda_concluida" ? "Ver Detalhes" : "Converter / Tratar"}
+                        {pedido.status === "venda_concluida"
+                          ? "Ver Detalhes"
+                          : "Converter / Tratar"}
                       </button>
                     </td>
                   </tr>

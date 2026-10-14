@@ -31,7 +31,12 @@ describe("PedidosPage", () => {
 
   it("renderiza a foto do item do carrinho (regressão: next/image rejeitava hostname dinâmico do backend)", async () => {
     useAuthStore.setState({
-      user: { id: 1, nome: "Ana Recorrente", email: "ana.recorrente@example.com", perfil: "Cliente" },
+      user: {
+        id: 1,
+        nome: "Ana Recorrente",
+        email: "ana.recorrente@example.com",
+        perfil: "Cliente",
+      },
       token: "mock-token",
     });
     useCartStore.setState({

@@ -31,7 +31,7 @@ export async function cancelarAgendamento(id: string, userEmail: string): Promis
 }
 
 export async function fetchAdminAgendamentos(
-  filters: AgendamentoAdminFilters = {}
+  filters: AgendamentoAdminFilters = {},
 ): Promise<Agendamento[]> {
   const baseUrl = getApiBaseUrl();
   const params = new URLSearchParams();
@@ -50,7 +50,7 @@ export async function fetchAdminAgendamentos(
 }
 
 export async function criarAgendamentoManual(
-  payload: AgendamentoManualInput
+  payload: AgendamentoManualInput,
 ): Promise<Agendamento> {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/api/agendamentos/admin/manual`, {
@@ -71,7 +71,7 @@ export async function fetchGoogleCalendarEvents(
   params: {
     timeMin?: string;
     timeMax?: string;
-  } = {}
+  } = {},
 ): Promise<GoogleCalendarEvent[]> {
   const baseUrl = getApiBaseUrl();
   const searchParams = new URLSearchParams();

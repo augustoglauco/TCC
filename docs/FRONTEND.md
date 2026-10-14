@@ -628,6 +628,33 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
   local idêntica passa sem reclamar). O comentário `eslint-disable-next-line`
   precisa ser a última linha antes do código — explicação vem acima dele, ou
   a diretiva não se aplica.
+- **Tipos dos gráficos dinâmicos: `lib/types/charts.ts`.** `ChartCellValue`,
+  `ChartRow`, `ChartFormat` e `ChartConfig` são a fonte única usada por
+  `AdminChartData` (`components/admin/DynamicChartCard.tsx`), por
+  `ChartRenderer`, por `lib/api/charts.ts` e pelo card `ChatCardGrafico`
+  (`lib/types/chat.ts`, que antes duplicava a mesma forma inline). Nada aqui
+  usa `any`: o payload de tooltip do Recharts vem de `TooltipContentProps`
+  (exportado por `recharts` 3) e `formatValue` recebe `unknown`.
+- **`<img>` em vez de `next/image` (regra `@next/next/no-img-element`).** Toda
+  imagem de produto vem do host do backend, resolvido **em runtime** por
+  `getApiBaseUrl()` (IP da LAN, domínio DuckDNS, `localhost`…), e o preview de
+  upload é um `blob:` de `URL.createObjectURL`. `next/image` precisa de
+  `images.remotePatterns` conhecido em **build-time** e rejeita `blob:`, então
+  os 8 pontos de imagem usam `<img>` com
+  `// eslint-disable-next-line @next/next/no-img-element` e a justificativa
+  acima da diretiva — ver a regressão já coberta em
+  `tests/components/PedidosPage.test.tsx`. Em JSX, quando o `<img>` é filho
+  direto, o comentário tem de vir entre chaves (`{/* … */}`), senão vira text
+  node (`react/jsx-no-comment-textnodes`).
+- **`react-hooks/exhaustive-deps`: loader estável, não dependência omitida.**
+  Em `app/admin/agendamentos`, os loaders são `useCallback(…, [])` e leem os
+  filtros de um `useRef` atualizado por efeito, porque os filtros são
+  aplicados por botão (não a cada tecla) — assim o loader entra na lista de
+  dependências do efeito de carga sem que digitar no filtro dispare uma nova
+  requisição. Em `ProductFormModal`, o efeito depende do objeto
+  `produtoParaEditar` inteiro (e não de `produtoParaEditar?.id`): a prop vem
+  do state do pai (`editingProduct`), logo a referência é estável entre
+  renders.
 
 ## 7. Rastreabilidade com os requisitos funcionais
 

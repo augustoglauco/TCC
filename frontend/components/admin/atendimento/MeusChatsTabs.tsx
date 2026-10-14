@@ -80,7 +80,9 @@ export default function MeusChatsTabs({
                 }`}
               >
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                <span className="truncate max-w-[130px]">{c.cliente?.nome || c.id.slice(0, 8)}</span>
+                <span className="truncate max-w-[130px]">
+                  {c.cliente?.nome || c.id.slice(0, 8)}
+                </span>
               </button>
             );
           })
@@ -93,7 +95,8 @@ export default function MeusChatsTabs({
           <span className="text-3xl mb-2">💬</span>
           <p className="text-sm font-medium text-slate-700">Central de Conversas em Andamento</p>
           <p className="text-xs text-slate-500 max-w-sm mt-1">
-            Selecione uma aba acima ou assuma uma conversa da fila de espera para interagir diretamente com o cliente.
+            Selecione uma aba acima ou assuma uma conversa da fila de espera para interagir
+            diretamente com o cliente.
           </p>
         </div>
       ) : (
@@ -104,9 +107,7 @@ export default function MeusChatsTabs({
               <div className="text-xs font-semibold text-slate-900">
                 {detalhes.cliente?.nome || "Cliente Visitante"}
               </div>
-              <div className="text-[11px] text-slate-500 font-mono">
-                Conversa ID: {detalhes.id}
-              </div>
+              <div className="text-[11px] text-slate-500 font-mono">Conversa ID: {detalhes.id}</div>
             </div>
 
             <div className="flex items-center gap-2">
@@ -156,9 +157,7 @@ export default function MeusChatsTabs({
               return (
                 <div
                   key={m.id}
-                  className={`flex flex-col ${
-                    isOperador ? "items-end" : "items-start"
-                  }`}
+                  className={`flex flex-col ${isOperador ? "items-end" : "items-start"}`}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs shadow-2xs ${

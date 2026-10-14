@@ -51,7 +51,9 @@ describe("activateModel", () => {
   it("usa a mensagem genérica de fallback quando o backend não retorna detail", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, 500)));
 
-    await expect(activateModel("mock-token", "modelo-x")).rejects.toBeInstanceOf(LocalModelsApiError);
+    await expect(activateModel("mock-token", "modelo-x")).rejects.toBeInstanceOf(
+      LocalModelsApiError,
+    );
     await expect(activateModel("mock-token", "modelo-x")).rejects.toMatchObject({
       message: "Não foi possível ativar o modelo. Tente novamente.",
     });

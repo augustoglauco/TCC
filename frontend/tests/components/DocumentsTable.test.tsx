@@ -184,10 +184,7 @@ describe("DocumentsTable", () => {
       created_at: "2026-10-02T08:00:00Z",
     };
 
-    const COLLECTIONS = [
-      COLLECTION,
-      { ...COLLECTION, id: "col-2", name: "docs_suporte" },
-    ];
+    const COLLECTIONS = [COLLECTION, { ...COLLECTION, id: "col-2", name: "docs_suporte" }];
 
     it("filtra por nome do arquivo (case-insensitive)", async () => {
       const user = userEvent.setup();
@@ -298,7 +295,9 @@ describe("DocumentsTable", () => {
       const inputBusca = screen.getByPlaceholderText(/Buscar por nome do arquivo/i);
       await user.type(inputBusca, "termo_inexistente");
 
-      expect(screen.getByText(/Nenhum documento encontrado com os filtros selecionados/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Nenhum documento encontrado com os filtros selecionados/i),
+      ).toBeInTheDocument();
 
       const btnLimpar = screen.getAllByRole("button", { name: /Limpar filtros/i })[0];
       await user.click(btnLimpar);

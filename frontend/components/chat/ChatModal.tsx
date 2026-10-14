@@ -460,7 +460,9 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
-          <span className="font-extrabold text-sm sm:text-base tracking-tight">Chat com Agente Virtual</span>
+          <span className="font-extrabold text-sm sm:text-base tracking-tight">
+            Chat com Agente Virtual
+          </span>
           <span className="hidden sm:inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[10px] sm:text-[11px] font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
             Ollama + Dual MCP
           </span>
@@ -493,7 +495,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-100/90 backdrop-blur-xs px-3 sm:px-4 py-1.5 text-xs shrink-0 shadow-2xs">
             <span className="text-slate-600 font-semibold flex items-center gap-1.5 text-[11px] sm:text-xs">
               <span className="text-blue-600">📊</span>
-              <span className="hidden sm:inline">Métricas de Desempenho & Telemetria</span>
+              <span className="hidden sm:inline">Métricas de Desempenho &amp; Telemetria</span>
               <span className="sm:hidden">Telemetria</span>
             </span>
             <div className="flex items-center gap-1.5 sm:gap-2">

@@ -18,7 +18,14 @@ import { PlaygroundPanel } from "@/components/admin/playground/PlaygroundPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { ToastStack, useToast } from "@/components/ui/Toast";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
-import { RagApiError, activateCollection, createCollection, listCollections, listDocuments, uploadDocument } from "@/lib/api/rag";
+import {
+  RagApiError,
+  activateCollection,
+  createCollection,
+  listCollections,
+  listDocuments,
+  uploadDocument,
+} from "@/lib/api/rag";
 import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
 import type {
   CollectionPurpose,
@@ -108,11 +115,7 @@ function AbaEnviarDocumento({
     setCriandoCollection(true);
     setError(null);
     const nomePadrao =
-      purpose === "mcp_b2b"
-        ? "docs_mcp_b2b"
-        : purpose === "admin"
-          ? "docs_admin"
-          : "docs_chat";
+      purpose === "mcp_b2b" ? "docs_mcp_b2b" : purpose === "admin" ? "docs_admin" : "docs_chat";
 
     try {
       const novaCol = await createCollection(token, {
@@ -213,10 +216,11 @@ function AbaEnviarDocumento({
     <div className="rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs space-y-6">
       <div>
         <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <span>📥</span> Upload & Indexação de Documento
+          <span>📥</span> Upload &amp; Indexação de Documento
         </h2>
         <p className="mt-1 text-sm text-slate-600">
-          Envie um arquivo PDF ou texto (.txt / .md) para fragmentação (chunking), vetorização e indexação vetorial.
+          Envie um arquivo PDF ou texto (.txt / .md) para fragmentação (chunking), vetorização e
+          indexação vetorial.
         </p>
       </div>
 
@@ -224,7 +228,10 @@ function AbaEnviarDocumento({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Seletor de Domínio */}
           <div className="space-y-2">
-            <label htmlFor="domain" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+            <label
+              htmlFor="domain"
+              className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+            >
               Domínio da Informação
             </label>
             <select
@@ -244,7 +251,10 @@ function AbaEnviarDocumento({
           {/* Seletor de Collection Destino */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label htmlFor="collection" className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+              <label
+                htmlFor="collection"
+                className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+              >
                 Collection destino
               </label>
               <button
@@ -310,7 +320,9 @@ function AbaEnviarDocumento({
         {/* Card Explicativo sobre a Finalidade Escolhida */}
         <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-700">Finalidades Previstas no Projeto:</span>
+            <span className="text-xs font-bold text-slate-700">
+              Finalidades Previstas no Projeto:
+            </span>
             {selectedPurpose === "chat" && (
               <span className="rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold px-2.5 py-0.5">
                 💬 Chat Público
@@ -339,7 +351,9 @@ function AbaEnviarDocumento({
           {/* Botões de Ação Rápida caso a Finalidade não possua Collections */}
           {selectedPurpose === "mcp_b2b" && b2bCollections.length === 0 && (
             <div className="mt-3 pt-2 border-t border-purple-200/80 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs text-purple-900 font-medium">Nenhuma coleção MCP B2B existente.</span>
+              <span className="text-xs text-purple-900 font-medium">
+                Nenhuma coleção MCP B2B existente.
+              </span>
               <button
                 type="button"
                 disabled={criandoCollection}
@@ -353,7 +367,9 @@ function AbaEnviarDocumento({
 
           {selectedPurpose === "admin" && adminCollections.length === 0 && (
             <div className="mt-3 pt-2 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs text-amber-900 font-medium">Nenhuma coleção Admin existente.</span>
+              <span className="text-xs text-amber-900 font-medium">
+                Nenhuma coleção Admin existente.
+              </span>
               <button
                 type="button"
                 disabled={criandoCollection}
@@ -429,9 +445,7 @@ function AbaEnviarDocumento({
                 <p className="text-sm font-bold text-blue-600">
                   Solte o arquivo aqui para selecionar
                 </p>
-                <p className="text-xs text-blue-500">
-                  Formatos aceitos: .pdf, .txt, .md
-                </p>
+                <p className="text-xs text-blue-500">Formatos aceitos: .pdf, .txt, .md</p>
               </div>
             ) : file ? (
               <div className="space-y-2">
@@ -505,7 +519,8 @@ function AbaEnviarDocumento({
           </div>
           <p>
             Arquivo <strong>&ldquo;{result.filename}&rdquo;</strong> ingerido no domínio{" "}
-            <strong>&ldquo;{result.domain}&rdquo;</strong> — <strong>{result.chunks} chunk(s) gravado(s).</strong>
+            <strong>&ldquo;{result.domain}&rdquo;</strong> —{" "}
+            <strong>{result.chunks} chunk(s) gravado(s).</strong>
           </p>
         </div>
       )}
@@ -626,7 +641,7 @@ function RagSearchConfigSection({
         <span className="text-xl">🔍</span>
         <div>
           <h2 className="text-base font-bold text-slate-900">
-            Regras de Busca & Isolamento de Domínios RAG
+            Regras de Busca &amp; Isolamento de Domínios RAG
           </h2>
           <p className="text-xs text-slate-500">
             Configuração do comportamento de busca vetorial no Qdrant
@@ -691,7 +706,8 @@ function AbaConfiguracao({
               <span>⭐</span> Collections Ativas por Finalidade (Purpose)
             </h2>
             <p className="text-xs text-slate-600">
-              Cada canal do sistema possui exatamente uma collection ativa independente para buscas vetoriais.
+              Cada canal do sistema possui exatamente uma collection ativa independente para buscas
+              vetoriais.
             </p>
           </div>
 
@@ -787,7 +803,9 @@ function AbaConfiguracao({
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-slate-900">Perfis de Coleções Qdrant</h2>
-              <p className="text-xs text-slate-600">Perfis de collection do Qdrant usados pelo RAG.</p>
+              <p className="text-xs text-slate-600">
+                Perfis de collection do Qdrant usados pelo RAG.
+              </p>
             </div>
             <button
               type="button"
@@ -877,29 +895,40 @@ export default function IngestaoDocumentosPage() {
             <div className="flex items-center gap-2">
               <span className="text-2xl sm:text-3xl">📄</span>
               <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                Ingestão de Documentos & Coleções RAG
+                Ingestão de Documentos &amp; Coleções RAG
               </h1>
             </div>
             <p className="mt-1 text-xs sm:text-sm text-slate-600 max-w-2xl">
-              Gestão de documentos indexados, perfis de coleção no Qdrant, varredura web com crawler e playground comparativo de busca semântica.
+              Gestão de documentos indexados, perfis de coleção no Qdrant, varredura web com crawler
+              e playground comparativo de busca semântica.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 border border-blue-100">
-              <span>🗂️</span> {collections.length} {collections.length === 1 ? "Collection" : "Collections"}
+              <span>🗂️</span> {collections.length}{" "}
+              {collections.length === 1 ? "Collection" : "Collections"}
             </span>
             {ativaChat && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 border border-emerald-100" title="Collection ativa para Chat Público">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 border border-emerald-100"
+                title="Collection ativa para Chat Público"
+              >
                 ★ Chat: {ativaChat.name}
               </span>
             )}
             {ativaB2B && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 border border-purple-100" title="Collection ativa para MCP B2B">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 border border-purple-100"
+                title="Collection ativa para MCP B2B"
+              >
                 ★ MCP B2B: {ativaB2B.name}
               </span>
             )}
             {ativaAdmin && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 border border-rose-100" title="Collection ativa para Admin">
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 border border-rose-100"
+                title="Collection ativa para Admin"
+              >
                 ★ Admin: {ativaAdmin.name}
               </span>
             )}

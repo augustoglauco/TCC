@@ -36,14 +36,12 @@ describe("fetchProductById", () => {
   it("lança erro genérico em caso de falha de servidor (500)", async () => {
     vi.stubGlobal(
       "fetch",
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response("Internal Server Error", {
-            status: 500,
-            statusText: "Internal Server Error",
-          }),
-        ),
+      vi.fn().mockResolvedValue(
+        new Response("Internal Server Error", {
+          status: 500,
+          statusText: "Internal Server Error",
+        }),
+      ),
     );
 
     await expect(fetchProductById(1)).rejects.toThrow(/Erro ao buscar produto/);

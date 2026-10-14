@@ -128,9 +128,7 @@ describe("Central de Atendimento Humano (/admin/atendimento)", () => {
     };
 
     vi.mocked(adminApi.fetchFilaEspera).mockResolvedValue([mockFilaItem]);
-    vi.mocked(adminApi.fetchMeusChats)
-      .mockResolvedValueOnce([])
-      .mockResolvedValue([mockFilaItem]);
+    vi.mocked(adminApi.fetchMeusChats).mockResolvedValueOnce([]).mockResolvedValue([mockFilaItem]);
     vi.mocked(adminApi.claimConversa).mockResolvedValue({
       status: "em_atendimento_humano",
       conversation_id: "conv-101",
@@ -157,7 +155,12 @@ describe("Central de Atendimento Humano (/admin/atendimento)", () => {
     fireEvent.click(screen.getByRole("button", { name: /Assumir/i }));
 
     await waitFor(() => {
-      expect(adminApi.claimConversa).toHaveBeenCalledWith("conv-101", "1", "Carlos Atendente", "mock-token-1");
+      expect(adminApi.claimConversa).toHaveBeenCalledWith(
+        "conv-101",
+        "1",
+        "Carlos Atendente",
+        "mock-token-1",
+      );
       expect(screen.getAllByText("João Cliente").length).toBeGreaterThan(0);
     });
 
@@ -225,9 +228,7 @@ describe("Central de Atendimento Humano (/admin/atendimento)", () => {
     }));
 
     vi.mocked(adminApi.fetchFilaEspera).mockResolvedValue([mockFilaItem]);
-    vi.mocked(adminApi.fetchMeusChats)
-      .mockResolvedValueOnce([])
-      .mockResolvedValue([mockFilaItem]);
+    vi.mocked(adminApi.fetchMeusChats).mockResolvedValueOnce([]).mockResolvedValue([mockFilaItem]);
     vi.mocked(adminApi.claimConversa).mockResolvedValue({
       status: "em_atendimento_humano",
       conversation_id: "conv-101",

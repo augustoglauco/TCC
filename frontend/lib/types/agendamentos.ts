@@ -26,7 +26,6 @@ export interface AgendamentoManualInput {
   forcar_sem_validacao?: boolean;
 }
 
-
 export interface AgendamentoAdminFilters {
   filtroEmail?: string;
   status?: string;

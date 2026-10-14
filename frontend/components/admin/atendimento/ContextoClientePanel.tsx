@@ -79,7 +79,8 @@ export default function ContextoClientePanel({ detalhes }: ContextoClientePanelP
                 Total Gasto
               </span>
               <span className="text-sm font-bold text-emerald-700">
-                R$ {(cliente?.total_gasto ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R${" "}
+                {(cliente?.total_gasto ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -125,9 +126,7 @@ export default function ContextoClientePanel({ detalhes }: ContextoClientePanelP
             {detalhes.atendente_nome && (
               <div className="flex justify-between py-1">
                 <span className="text-slate-500">Atendente:</span>
-                <span className="font-semibold text-emerald-700">
-                  {detalhes.atendente_nome}
-                </span>
+                <span className="font-semibold text-emerald-700">{detalhes.atendente_nome}</span>
               </div>
             )}
           </div>

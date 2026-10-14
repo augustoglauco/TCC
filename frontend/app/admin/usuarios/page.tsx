@@ -51,7 +51,8 @@ export default function AdminUsuariosPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Acesso Restrito ao Administrador</h1>
           <p className="mt-2 text-sm text-slate-600">
-            Apenas usuários com perfil <strong>Administrador (Admin)</strong> têm permissão para acessar a gestão de contas e usuários.
+            Apenas usuários com perfil <strong>Administrador (Admin)</strong> têm permissão para
+            acessar a gestão de contas e usuários.
           </p>
         </div>
 
@@ -96,7 +97,8 @@ export default function AdminUsuariosPage() {
             Gerenciamento de Usuários
           </h1>
           <p className="text-xs sm:text-sm text-slate-600 mt-1">
-            Consulte usuários cadastrados, atribua perfis comerciais e crie novos administradores ou clientes.
+            Consulte usuários cadastrados, atribua perfis comerciais e crie novos administradores ou
+            clientes.
           </p>
         </div>
 
@@ -177,7 +179,9 @@ export default function AdminUsuariosPage() {
         <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center space-y-2">
           <div className="text-3xl">👥</div>
           <h3 className="text-sm font-bold text-slate-800">Nenhum usuário encontrado</h3>
-          <p className="text-xs text-slate-500">Tente ajustar os termos de busca ou filtro de perfil.</p>
+          <p className="text-xs text-slate-500">
+            Tente ajustar os termos de busca ou filtro de perfil.
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-2xs">

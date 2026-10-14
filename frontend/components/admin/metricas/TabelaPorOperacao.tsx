@@ -1,9 +1,5 @@
 import { MetricasPorOperacao } from "@/lib/api/metrics";
-import {
-  formatarCusto,
-  formatarTokens,
-  TITULO_NAO_MEDIDO,
-} from "@/lib/format/metricas";
+import { formatarCusto, formatarTokens, TITULO_NAO_MEDIDO } from "@/lib/format/metricas";
 
 export function TabelaPorOperacao({ linhas }: { linhas: MetricasPorOperacao[] }) {
   return (
@@ -42,7 +38,9 @@ export function TabelaPorOperacao({ linhas }: { linhas: MetricasPorOperacao[] })
                     <td className="px-3 py-2 font-medium text-slate-900">{linha.operacao}</td>
                     <td className="px-3 py-2 text-slate-600">{linha.origem}</td>
                     <td className="px-3 py-2 text-slate-600">{linha.ambiente}</td>
-                    <td className="px-3 py-2 text-right">{linha.chamadas.toLocaleString("pt-BR")}</td>
+                    <td className="px-3 py-2 text-right">
+                      {linha.chamadas.toLocaleString("pt-BR")}
+                    </td>
                     <td className="px-3 py-2 text-right">{formatarTokens(linha.tokens_entrada)}</td>
                     <td className="px-3 py-2 text-right">{formatarTokens(linha.tokens_saida)}</td>
                     <td

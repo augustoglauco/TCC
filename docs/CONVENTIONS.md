@@ -119,7 +119,15 @@ O frontend segue sua própria estrutura, detalhada em `docs/FRONTEND.md`.
 
 - Type hints em todo código novo; funções públicas com docstring curta.
 - Formatação/lint com `ruff` (inclui a função de `black`); rodar antes de
-  cada commit.
+  cada commit. Os **dois** pacotes Python do repositório têm o mesmo conjunto
+  de regras (`line-length = 100`, `select = ["E", "F", "I", "UP", "B"]`),
+  configurado em `backend/pyproject.toml` e em `cliente-b2b/pyproject.toml`
+  (adicionado em 2026-10-14; antes `cliente-b2b/` não tinha configuração
+  própria e ficava fora de qualquer verificação). Rode `ruff check` e
+  `ruff format` **na raiz de cada pacote** — um `ruff check` com caminhos
+  explícitos (`ruff check src/ tests/`) deixa de fora o que não foi listado,
+  foi assim que `backend/migrations/` acumulou 11 violações de E501 sem
+  ninguém ver.
 - Preferir funções e módulos pequenos e testáveis a classes grandes com
   muita responsabilidade — especialmente no roteador e no RAG, onde a lógica
   de decisão deve ser fácil de testar isoladamente.
@@ -218,8 +226,9 @@ no backend e 10 no frontend. Antes de commitar, confira:
 5. Testes novos rodam sem Postgres/Qdrant reais (seção "Testes" acima) e
    passam.
 6. Lint limpo nos arquivos alterados: `uv run ruff check` e
-   `uv run ruff format` (backend); `npx eslint` e `npx prettier --write`
-   só nos arquivos alterados (frontend).
+   `uv run ruff format` (backend e `cliente-b2b/`, cada um na sua raiz, sem
+   passar caminhos); `npx eslint` e `npx prettier --write` só nos arquivos
+   alterados (frontend).
 7. Nenhum caminho absoluto da máquina (`file:///home/...`) nem credencial
    nos `.md` e no código.
 8. Nenhum documento novo fora da lista do `CLAUDE.md` (resumos, cópias de

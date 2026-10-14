@@ -4,9 +4,10 @@ import ChatChartCard from "@/components/chat/cards/ChatChartCard";
 import ChatCard from "@/components/chat/cards/ChatCard";
 import DynamicChartCard from "@/components/admin/DynamicChartCard";
 import type { ChatCardGrafico } from "@/lib/types/chat";
+import type { ComponentProps, ReactNode } from "react";
 
 vi.mock("next/link", () => ({
-  default: ({ children, href, onClick, ...rest }: any) => (
+  default: ({ children, href, onClick, ...rest }: ComponentProps<"a">) => (
     <a
       href={href}
       onClick={(e) => {
@@ -21,10 +22,12 @@ vi.mock("next/link", () => ({
 }));
 
 vi.mock("recharts", async () => {
-  const original = await vi.importActual<any>("recharts");
+  const original = await vi.importActual<typeof import("recharts")>("recharts");
   return {
     ...original,
-    ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
+    ResponsiveContainer: ({ children }: { children?: ReactNode }) => (
+      <div data-testid="responsive-container">{children}</div>
+    ),
   };
 });
 
@@ -43,9 +46,10 @@ describe("ChatChartCard", () => {
     render(<ChatChartCard card={mockCard} />);
 
     expect(screen.getByText("Vendas por Categoria")).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /Ver no painel de dashboards/i }),
-    ).toHaveAttribute("href", "/admin/dashboards");
+    expect(screen.getByRole("link", { name: /Ver no painel de dashboards/i })).toHaveAttribute(
+      "href",
+      "/admin/dashboards",
+    );
   });
 
   it("renderiza via despachante ChatCard", () => {
@@ -142,4 +146,3 @@ describe("DynamicChartCard", () => {
     expect(screen.queryByText("dynamic_sql: SELECT * FROM produtos")).not.toBeInTheDocument();
   });
 });
-

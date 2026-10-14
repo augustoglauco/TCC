@@ -1,12 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import ChartRenderer from "@/components/charts/ChartRenderer";
+import type { ReactNode } from "react";
 
 vi.mock("recharts", async () => {
-  const original = await vi.importActual<any>("recharts");
+  const original = await vi.importActual<typeof import("recharts")>("recharts");
   return {
     ...original,
-    ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
+    ResponsiveContainer: ({ children }: { children?: ReactNode }) => (
+      <div data-testid="responsive-container">{children}</div>
+    ),
   };
 });
 

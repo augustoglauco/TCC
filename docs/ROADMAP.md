@@ -1771,6 +1771,67 @@ conversa e classificação do usuário").
       27 erros pré-existentes de outras regras (`no-explicit-any` ×22,
       `no-unescaped-entities` ×4, `no-this-alias` ×1) e 68 arquivos fora do
       padrão do Prettier — limpeza separada, fora desta tarefa.
+- [x] Zerar o inventário de erros restante do repositório inteiro
+      (2026-10-14) — 13 itens levantados na sessão anterior, todos resolvidos:
+      - **Frontend ESLint: 27 erros + 12 warnings → 0.** `no-explicit-any`
+        ×22 eliminado com tipos de verdade, não `unknown` solto: criado
+        `lib/types/charts.ts` (`ChartCellValue`/`ChartRow`/`ChartFormat`/
+        `ChartConfig`) como fonte única de `AdminChartData`, `ChartRenderer`,
+        `lib/api/charts.ts` e `ChatCardGrafico` (que duplicava a forma
+        inline), tooltip do Recharts tipado por `TooltipContentProps`, e os 5
+        `catch (err: any)` de `/admin/dashboards` passaram para o idioma do
+        repositório (`err instanceof Error ? err.message : …`). Os tipos
+        novos revelaram 3 erros de `tsc` que o `any` escondia
+        (`format: string` em `CreateChartModal` e em fixture de teste,
+        `Record<string, unknown>[]` no card do chat). `no-unescaped-entities`
+        ×4, `no-this-alias` ×1 (passa `this` por argumento em vez de
+        aliasar) e `no-unused-vars` ×2 resolvidos; `exhaustive-deps` ×2 por
+        `useCallback` estável + filtros em `useRef` (agendamentos) e
+        dependência do objeto inteiro (`ProductFormModal`); `no-img-element`
+        ×8 documentado por site — `next/image` exige `remotePatterns` de
+        build-time e o host do backend só existe em runtime
+        (`getApiBaseUrl()`), além de `blob:` no preview de upload.
+      - **Prettier: 68 arquivos → 0** (`prettier --write .`).
+      - **`cliente-b2b/` entrou no lint.** O pacote não tinha `[tool.ruff]`
+        nenhum, então nunca era verificado; com o mesmo conjunto de regras do
+        backend apareceram 46 violações (E501 ×37, I001 ×6, F401 ×2,
+        UP035 ×1), todas corrigidas — 16 testes seguem passando no `.venv`
+        próprio. Convenção atualizada em `docs/CONVENTIONS.md`.
+      - **Warnings da suíte do backend: 18 → 0.** (1) `SAWarning: DELETE
+        statement on table 'produto_descontos_volume' expected to delete 1
+        row(s); 0 were matched` — `deletar_produto` apaga os filhos por
+        `DELETE` explícito e depois `session.delete(produto)` fazia o cascade
+        `delete-orphan` tentar apagar de novo as linhas já carregadas por
+        `selectinload`; resolvido expirando as coleções antes do delete.
+        (2) `RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call'
+        was never awaited` em 7 testes — diagnosticado com um plugin que
+        retém as coroutines de AsyncMock e inspeciona `cr_frame` no fim da
+        sessão (a linha do aviso é onde o GC rodou, não onde o bug está): o
+        `local_client=AsyncMock()` fazia o Monitor de Tom e o
+        `ComprovanteEvaluator` chamarem o LLM falso, e `res.text.strip()`
+        sobre um AsyncMock deixava a coroutine órfã; os testes agora
+        declaram o que cobrem (`tone_monitor_enabled=False`, cliente sem
+        `generate`/`chat`). (3) Avisos de terceiros sem ponto de chamada
+        nosso (Qdrant local ×2, alias de `anyio` no `TestClient`,
+        `HTTP_422_UNPROCESSABLE_ENTITY` do FastAPI) silenciados com
+        justificativa em `filterwarnings`.
+      - **Grafo do graphify completo.** Os "syntax errors" em
+        `frontend/app/page.tsx` e `RuntimeSettingsForm.tsx` não eram do
+        projeto: o parser TSX do tree-sitter falha num `&` literal em texto
+        JSX e num argumento após argumento de tipo quebrado em várias linhas
+        (`vi.importActual<typeof import("…")>(`). Varredura de todo o
+        frontend achou **17** arquivos com nó `ERROR` (o graphify só avisava
+        de 2) — 26 `&` viraram `&amp;` (neutro no render), 3 tipos
+        `import("…")` inline viraram import de topo em `lib/api/
+        adminProducts.ts` e 2 testes ganharam alias de tipo do módulo.
+        Agora 0 arquivos com `ERROR`, e `graphify update` não emite mais
+        aviso de extração parcial nem de rótulos de comunidade defasados.
+      - **Índice do GitNexus** reindexado (9.686 nós, 16.994 arestas).
+
+      Verificado ao fim: `ruff check .` limpo em `backend/` e em
+      `cliente-b2b/`; 1032 testes do backend passando com 0 warnings;
+      `tsc --noEmit`, `eslint .`, `prettier --check .` limpos, 440 testes
+      Vitest passando e `next build` com rc=0.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 

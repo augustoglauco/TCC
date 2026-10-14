@@ -126,7 +126,9 @@ describe("adminProducts API client", () => {
     });
     vi.stubGlobal("fetch", mockFetch);
 
-    await expect(deleteAdminProductImage("mock-token", 1, 10)).rejects.toThrow("Erro ao excluir imagem (500)");
+    await expect(deleteAdminProductImage("mock-token", 1, 10)).rejects.toThrow(
+      "Erro ao excluir imagem (500)",
+    );
     vi.unstubAllGlobals();
   });
 

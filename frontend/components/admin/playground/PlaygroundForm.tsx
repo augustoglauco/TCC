@@ -7,14 +7,39 @@ import type { CollectionPurpose, RagCollection, RagDomain } from "@/lib/types/ra
 
 const DOMAIN_OPTIONS: { value: RagDomain; label: string; desc: string; icon: string }[] = [
   { value: "vendas", label: "Vendas", desc: "Catálogos, preços e propostas", icon: "💼" },
-  { value: "suporte", label: "Suporte Técnico", desc: "Manuais, CFTV e troubleshooting", icon: "🛠️" },
-  { value: "atendimento", label: "Atendimento ao Usuário", desc: "Políticas, trocas e FAQs", icon: "💬" },
+  {
+    value: "suporte",
+    label: "Suporte Técnico",
+    desc: "Manuais, CFTV e troubleshooting",
+    icon: "🛠️",
+  },
+  {
+    value: "atendimento",
+    label: "Atendimento ao Usuário",
+    desc: "Políticas, trocas e FAQs",
+    icon: "💬",
+  },
 ];
 
 const PURPOSE_OPTIONS: { value: CollectionPurpose; label: string; desc: string; icon: string }[] = [
-  { value: "chat", label: "Chat (Público)", desc: "Canal público para visitantes e clientes", icon: "💬" },
-  { value: "mcp_b2b", label: "MCP B2B (Parceiros)", desc: "Canal de revendedores e parceiros B2B", icon: "🤝" },
-  { value: "admin", label: "Admin (Interno)", desc: "Procedimentos e relatórios internos da administração", icon: "🔒" },
+  {
+    value: "chat",
+    label: "Chat (Público)",
+    desc: "Canal público para visitantes e clientes",
+    icon: "💬",
+  },
+  {
+    value: "mcp_b2b",
+    label: "MCP B2B (Parceiros)",
+    desc: "Canal de revendedores e parceiros B2B",
+    icon: "🤝",
+  },
+  {
+    value: "admin",
+    label: "Admin (Interno)",
+    desc: "Procedimentos e relatórios internos da administração",
+    icon: "🔒",
+  },
 ];
 
 export interface PlaygroundFormProps {
@@ -27,7 +52,9 @@ export function PlaygroundForm({ collections, onSubmit, isSubmitting }: Playgrou
   const [query, setQuery] = useState("");
   const [domain, setDomain] = useState<RagDomain>("vendas");
   const [purpose, setPurpose] = useState<CollectionPurpose>(() => {
-    return collections.find((c) => c.purpose === "chat") ? "chat" : collections[0]?.purpose ?? "chat";
+    return collections.find((c) => c.purpose === "chat")
+      ? "chat"
+      : (collections[0]?.purpose ?? "chat");
   });
   const [selecionadas, setSelecionadas] = useState<string[]>([]);
 
@@ -117,9 +144,7 @@ export function PlaygroundForm({ collections, onSubmit, isSubmitting }: Playgrou
             >
               Pergunta de teste
             </label>
-            <span className="text-[11px] text-slate-400">
-              {query.length} caracteres
-            </span>
+            <span className="text-[11px] text-slate-400">{query.length} caracteres</span>
           </div>
           <div className="relative">
             <textarea
@@ -173,7 +198,8 @@ export function PlaygroundForm({ collections, onSubmit, isSubmitting }: Playgrou
               Collections a comparar ({PURPOSE_OPTIONS.find((p) => p.value === purpose)?.label})
             </legend>
             <p className="text-[11px] text-slate-500">
-              Selecione as collections com finalidade &ldquo;{purpose}&rdquo; que serão consultadas em paralelo.
+              Selecione as collections com finalidade &ldquo;{purpose}&rdquo; que serão consultadas
+              em paralelo.
             </p>
           </div>
 
@@ -200,7 +226,8 @@ export function PlaygroundForm({ collections, onSubmit, isSubmitting }: Playgrou
 
         {collectionsDoPurpose.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
-            Nenhuma collection cadastrada com a finalidade &ldquo;{PURPOSE_OPTIONS.find((p) => p.value === purpose)?.label}&rdquo;.
+            Nenhuma collection cadastrada com a finalidade &ldquo;
+            {PURPOSE_OPTIONS.find((p) => p.value === purpose)?.label}&rdquo;.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -220,11 +247,14 @@ export function PlaygroundForm({ collections, onSubmit, isSubmitting }: Playgrou
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
         <div className="text-xs text-slate-500">
           {selecionadas.length === 0 ? (
-            <span className="text-amber-600">⚠️ Selecione ao menos uma collection de mesmo propósito para comparar.</span>
+            <span className="text-amber-600">
+              ⚠️ Selecione ao menos uma collection de mesmo propósito para comparar.
+            </span>
           ) : (
             <span>
               <span className="font-semibold text-slate-700">{selecionadas.length}</span>{" "}
-              {selecionadas.length === 1 ? "collection selecionada" : "collections selecionadas"} ({purpose})
+              {selecionadas.length === 1 ? "collection selecionada" : "collections selecionadas"} (
+              {purpose})
             </span>
           )}
         </div>

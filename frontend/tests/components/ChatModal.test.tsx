@@ -878,13 +878,10 @@ describe("ChatModal", () => {
         });
 
         expect(useChatStore.getState().humanAttendanceStatus).toBeNull();
-        expect(
-          screen.getByText("Redirecionado para atendente virtual"),
-        ).toBeInTheDocument();
+        expect(screen.getByText("Redirecionado para atendente virtual")).toBeInTheDocument();
       } finally {
         vi.useRealTimers();
       }
     });
   });
 });
-

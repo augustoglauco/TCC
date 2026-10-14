@@ -15,7 +15,8 @@ function HistoricoPedidosContent() {
 
   const targetEmail =
     isAdmin && targetEmailParam ? targetEmailParam.trim() : (currentUser?.email ?? "");
-  const isAdminInspectingCustomer = isAdmin && Boolean(targetEmailParam) && targetEmailParam !== currentUser?.email;
+  const isAdminInspectingCustomer =
+    isAdmin && Boolean(targetEmailParam) && targetEmailParam !== currentUser?.email;
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -118,7 +119,8 @@ function HistoricoPedidosContent() {
                 Modo de Consulta Administrativa
               </h4>
               <p className="text-xs text-purple-700 mt-0.5">
-                Exibindo histórico de pedidos do cliente: <strong className="font-mono text-purple-900">{targetEmail}</strong>
+                Exibindo histórico de pedidos do cliente:{" "}
+                <strong className="font-mono text-purple-900">{targetEmail}</strong>
               </p>
             </div>
           </div>
@@ -272,4 +274,3 @@ export default function HistoricoPedidosPage() {
     </Suspense>
   );
 }
-

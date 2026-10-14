@@ -29,7 +29,7 @@ export const useCartStore = create<CartState>()(
           const index = state.items.findIndex(
             (i) =>
               i.produtoId === newItem.produtoId &&
-              i.centroDistribuicao === newItem.centroDistribuicao
+              i.centroDistribuicao === newItem.centroDistribuicao,
           );
           if (index >= 0) {
             const updated = [...state.items];
@@ -45,7 +45,7 @@ export const useCartStore = create<CartState>()(
       removeItem: (produtoId, centroDistribuicao) => {
         set((state) => ({
           items: state.items.filter(
-            (i) => !(i.produtoId === produtoId && i.centroDistribuicao === centroDistribuicao)
+            (i) => !(i.produtoId === produtoId && i.centroDistribuicao === centroDistribuicao),
           ),
         }));
       },
@@ -58,7 +58,7 @@ export const useCartStore = create<CartState>()(
           items: state.items.map((i) =>
             i.produtoId === produtoId && i.centroDistribuicao === centroDistribuicao
               ? { ...i, quantidade }
-              : i
+              : i,
           ),
         }));
       },
@@ -68,6 +68,6 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "tcc_shopping_cart",
-    }
-  )
+    },
+  ),
 );

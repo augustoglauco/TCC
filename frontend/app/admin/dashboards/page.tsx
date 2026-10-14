@@ -46,8 +46,8 @@ export default function AdminDashboardsPage() {
       const data = await fetchAdminCharts(token);
       setCharts(data);
       setError(null);
-    } catch (err: any) {
-      setError(err?.message || "Não foi possível carregar os gráficos.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível carregar os gráficos.");
     } finally {
       setLoading(false);
     }
@@ -105,8 +105,8 @@ export default function AdminDashboardsPage() {
     try {
       const updated = await refreshAdminChart(id, token);
       setCharts((prev) => prev.map((c) => (c.id === id ? updated : c)));
-    } catch (err: any) {
-      alert(err?.message || "Erro ao atualizar gráfico.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao atualizar gráfico.");
     }
   };
 
@@ -134,8 +134,8 @@ export default function AdminDashboardsPage() {
     try {
       const updated = await updateAdminChart(id, { fixado }, token);
       setCharts((prev) => prev.map((c) => (c.id === id ? updated : c)));
-    } catch (err: any) {
-      alert(err?.message || "Erro ao alternar fixação.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao alternar fixação.");
     }
   };
 
@@ -144,8 +144,8 @@ export default function AdminDashboardsPage() {
     try {
       const updated = await updateAdminChart(id, { titulo: novoTitulo }, token);
       setCharts((prev) => prev.map((c) => (c.id === id ? updated : c)));
-    } catch (err: any) {
-      alert(err?.message || "Erro ao renomear gráfico.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao renomear gráfico.");
     }
   };
 
@@ -155,8 +155,8 @@ export default function AdminDashboardsPage() {
     try {
       await deleteAdminChart(id, token);
       setCharts((prev) => prev.filter((c) => c.id !== id));
-    } catch (err: any) {
-      alert(err?.message || "Erro ao excluir gráfico.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao excluir gráfico.");
     }
   };
 
@@ -207,7 +207,7 @@ export default function AdminDashboardsPage() {
           <div className="flex items-center gap-2">
             <span className="text-2xl">📈</span>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Dashboards & Gráficos
+              Dashboards &amp; Gráficos
             </h1>
           </div>
           <p className="mt-1 text-sm text-slate-500">
@@ -317,14 +317,14 @@ export default function AdminDashboardsPage() {
               onClick={() => openChat()}
               className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
             >
-              "Gere um gráfico de vendas por categoria"
+              &quot;Gere um gráfico de vendas por categoria&quot;
             </button>
             <button
               type="button"
               onClick={() => openChat()}
               className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
             >
-              "Mostre o estoque por centro de distribuição"
+              &quot;Mostre o estoque por centro de distribuição&quot;
             </button>
           </div>
         </div>

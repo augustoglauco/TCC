@@ -63,13 +63,13 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
   const metrics = message.metrics;
   const isVision = Boolean(
     !isUser &&
-      !isAtendente &&
-      (metrics?.visionUsed ||
-        message.backendUsed === "identificacao_imagem" ||
-        (message.domain === "vendas" &&
-          metrics?.costPromptUsd !== undefined &&
-          metrics.costPromptUsd > 0 &&
-          metrics?.modelName?.toLowerCase().includes("gemma")))
+    !isAtendente &&
+    (metrics?.visionUsed ||
+      message.backendUsed === "identificacao_imagem" ||
+      (message.domain === "vendas" &&
+        metrics?.costPromptUsd !== undefined &&
+        metrics.costPromptUsd > 0 &&
+        metrics?.modelName?.toLowerCase().includes("gemma"))),
   );
 
   // Cálculo dinâmico de TPS caso o backend não tenha enviado explicitamente
@@ -107,40 +107,45 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               👤 Atendente Humano {message.atendenteNome ? `(${message.atendenteNome})` : ""}
             </span>
           </div>
-        ) : !isUser && domainLabel && (
-          <div className="mb-1 flex items-center gap-1.5 flex-wrap">
-            <span
-              data-testid="message-domain-label"
-              className={`text-[10px] font-bold uppercase tracking-wider ${
-                isExternalLlm ? "text-red-700" : "text-blue-600"
-              }`}
-            >
-              {domainLabel}
-            </span>
-            {isVision && (
+        ) : (
+          !isUser &&
+          domainLabel && (
+            <div className="mb-1 flex items-center gap-1.5 flex-wrap">
               <span
-                data-testid="message-vision-badge"
-                className="inline-flex items-center gap-1 rounded bg-purple-100/90 border border-purple-200/80 px-1.5 py-0.5 text-[9px] font-bold text-purple-800 shadow-2xs"
-                title="Produto identificado via Visão Computacional (Multimodal)"
+                data-testid="message-domain-label"
+                className={`text-[10px] font-bold uppercase tracking-wider ${
+                  isExternalLlm ? "text-red-700" : "text-blue-600"
+                }`}
               >
-                👁️ Visão Computacional
+                {domainLabel}
               </span>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowDetails((prev) => !prev)}
-              aria-label={
-                showDetails ? "Ocultar métricas da resposta" : "Mostrar métricas da resposta"
-              }
-              aria-pressed={showDetails}
-              title={showDetails ? "Ocultar métricas" : "Mostrar métricas"}
-              className={`text-[10px] leading-none cursor-pointer ${
-                isExternalLlm ? "text-red-700/70 hover:text-red-700" : "text-blue-600/70 hover:text-blue-600"
-              }`}
-            >
-              ⚙️
-            </button>
-          </div>
+              {isVision && (
+                <span
+                  data-testid="message-vision-badge"
+                  className="inline-flex items-center gap-1 rounded bg-purple-100/90 border border-purple-200/80 px-1.5 py-0.5 text-[9px] font-bold text-purple-800 shadow-2xs"
+                  title="Produto identificado via Visão Computacional (Multimodal)"
+                >
+                  👁️ Visão Computacional
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowDetails((prev) => !prev)}
+                aria-label={
+                  showDetails ? "Ocultar métricas da resposta" : "Mostrar métricas da resposta"
+                }
+                aria-pressed={showDetails}
+                title={showDetails ? "Ocultar métricas" : "Mostrar métricas"}
+                className={`text-[10px] leading-none cursor-pointer ${
+                  isExternalLlm
+                    ? "text-red-700/70 hover:text-red-700"
+                    : "text-blue-600/70 hover:text-blue-600"
+                }`}
+              >
+                ⚙️
+              </button>
+            </div>
+          )
         )}
         <p className="leading-relaxed whitespace-pre-wrap">{message.text}</p>
       </div>
@@ -202,7 +207,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           <div className="w-full rounded-xl border border-slate-700/60 bg-slate-900/95 p-3 text-xs text-slate-200 shadow-xl space-y-2.5 font-mono animate-in fade-in slide-in-from-top-1 duration-200">
             <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
               <span className="font-semibold text-slate-100 flex items-center gap-1.5">
-                🔍 Telemetria & Diagnóstico LLM
+                🔍 Telemetria &amp; Diagnóstico LLM
               </span>
               <span className="text-[10px] text-slate-400">TCC Performance Analytics</span>
             </div>
@@ -211,7 +216,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               {/* Roteador e Modelo */}
               <div className="rounded-lg bg-slate-800/60 p-2 space-y-1">
                 <div className="font-sans font-semibold text-blue-400 text-[10px] uppercase tracking-wider">
-                  🤖 Roteador & Modelo
+                  🤖 Roteador &amp; Modelo
                 </div>
                 <div>
                   <span className="text-slate-400">Backend:</span>{" "}
@@ -290,7 +295,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               {/* Tokens & Custo */}
               <div className="rounded-lg bg-slate-800/60 p-2 space-y-1">
                 <div className="font-sans font-semibold text-emerald-400 text-[10px] uppercase tracking-wider">
-                  🔤 Tokens & Custo
+                  🔤 Tokens &amp; Custo
                 </div>
                 <div>
                   <span className="text-slate-400">Prompt (IN):</span> {metrics?.promptTokens ?? 0}{" "}
@@ -312,14 +317,14 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
                 </div>
                 {metrics?.costPromptUsd !== undefined && metrics.costPromptUsd !== null && (
                   <div>
-                    <span className="text-slate-400">Custo Entrada (IN):</span>{" "}
-                    ${metrics.costPromptUsd.toFixed(6)}
+                    <span className="text-slate-400">Custo Entrada (IN):</span> $
+                    {metrics.costPromptUsd.toFixed(6)}
                   </div>
                 )}
                 {metrics?.costCompletionUsd !== undefined && metrics.costCompletionUsd !== null && (
                   <div>
-                    <span className="text-slate-400">Custo Saída (OUT):</span>{" "}
-                    ${metrics.costCompletionUsd.toFixed(6)}
+                    <span className="text-slate-400">Custo Saída (OUT):</span> $
+                    {metrics.costCompletionUsd.toFixed(6)}
                   </div>
                 )}
               </div>
@@ -327,7 +332,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               {/* RAG */}
               <div className="rounded-lg bg-slate-800/60 p-2 space-y-1">
                 <div className="font-sans font-semibold text-cyan-400 text-[10px] uppercase tracking-wider">
-                  📚 RAG & Recuperação
+                  📚 RAG &amp; Recuperação
                 </div>
                 <div>
                   <span className="text-slate-400">Tempo Busca RAG:</span>{" "}

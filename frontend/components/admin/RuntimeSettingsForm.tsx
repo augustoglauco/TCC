@@ -34,7 +34,7 @@ function VisionModelPreview({ tag }: { tag: string }) {
     >
       <div className="flex items-center justify-between">
         <span className="font-semibold text-purple-900 flex items-center gap-1 text-[11px]">
-          📊 Preço & Modalidades no OpenRouter
+          📊 Preço &amp; Modalidades no OpenRouter
         </span>
         <button
           type="button"
@@ -54,9 +54,7 @@ function VisionModelPreview({ tag }: { tag: string }) {
 
       {error && !data && (
         <div className="text-[11px] text-slate-500 italic">
-          {error.includes("404")
-            ? "Sem catálogo público cacheado para este modelo."
-            : error}
+          {error.includes("404") ? "Sem catálogo público cacheado para este modelo." : error}
         </div>
       )}
 
@@ -68,9 +66,7 @@ function VisionModelPreview({ tag }: { tag: string }) {
               <span
                 key={m}
                 className={`rounded px-1.5 py-0.2 text-[10px] font-bold ${
-                  m === "image"
-                    ? "bg-purple-200 text-purple-900"
-                    : "bg-slate-200 text-slate-700"
+                  m === "image" ? "bg-purple-200 text-purple-900" : "bg-slate-200 text-slate-700"
                 }`}
               >
                 {m === "image" ? "🖼️ Imagem" : m === "text" ? "Texto" : m}
@@ -188,9 +184,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         setLocalTimeout(String(atual.local_llm_timeout_s));
         setExternalTimeout(String(atual.external_llm_timeout_s));
         setRagTopK(
-          atual.rag_top_k !== undefined && atual.rag_top_k !== null
-            ? String(atual.rag_top_k)
-            : "3",
+          atual.rag_top_k !== undefined && atual.rag_top_k !== null ? String(atual.rag_top_k) : "3",
         );
         setRagScoreThreshold(
           atual.rag_score_threshold !== undefined && atual.rag_score_threshold !== null
@@ -250,7 +244,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         local_llm_timeout_s: Number(localTimeout),
         external_llm_timeout_s: Number(externalTimeout),
         rag_top_k: ragTopK.trim() === "" ? undefined : Number(ragTopK),
-        rag_score_threshold: ragScoreThreshold.trim() === "" ? undefined : Number(ragScoreThreshold),
+        rag_score_threshold:
+          ragScoreThreshold.trim() === "" ? undefined : Number(ragScoreThreshold),
         rag_search_domain_fallback: ragSearchDomainFallback,
         intent_router_provider: routerProvider,
         tone_monitor_enabled: toneMonitorEnabled,
@@ -311,9 +306,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
       onSuccess("VRAM liberada com sucesso (modelo descarregado).");
     } catch (err) {
       onError(
-        err instanceof RuntimeSettingsApiError
-          ? err.message
-          : "Erro ao tentar liberar VRAM.",
+        err instanceof RuntimeSettingsApiError ? err.message : "Erro ao tentar liberar VRAM.",
       );
     } finally {
       setAcaoVramEmAndamento(null);
@@ -340,7 +333,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">
-                Parâmetros de Inferência & Orquestração
+                Parâmetros de Inferência &amp; Orquestração
               </span>
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
             </div>
@@ -350,8 +343,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                 {routerProvider === "jev_openrouter"
                   ? "Jev OpenRouter"
                   : routerProvider === "heuristica"
-                  ? "Heurística (Palavras-chave)"
-                  : "Heurística + LLM Local"}
+                    ? "Heurística (Palavras-chave)"
+                    : "Heurística + LLM Local"}
               </span>
             </h2>
           </div>
@@ -583,10 +576,11 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <span>🚀</span> Residência na VRAM & Otimização de Latência (Ollama)
+              <span>🚀</span> Residência na VRAM &amp; Otimização de Latência (Ollama)
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Evite latência de cold start mantendo os pesos do modelo local residentes na memória de GPU
+              Evite latência de cold start mantendo os pesos do modelo local residentes na memória
+              de GPU
             </p>
           </div>
           {/* Badge de Status VRAM */}
@@ -634,7 +628,9 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                 onChange={(e) => setKeepAlive(e.target.value)}
                 className="block w-full rounded-lg border border-slate-300 bg-slate-50/50 px-3 py-2 text-sm font-medium text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               >
-                <option value="-1">Permanente / Indefinido (-1) — Recomendado (Zero Latência)</option>
+                <option value="-1">
+                  Permanente / Indefinido (-1) — Recomendado (Zero Latência)
+                </option>
                 <option value="24h">24 Horas (24h)</option>
                 <option value="1h">1 Hora (1h)</option>
                 <option value="30m">30 Minutos (30m)</option>
@@ -647,7 +643,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
             <div className="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex items-start gap-2">
               <span className="text-sm">💡</span>
               <span>
-                Com <strong>Permanente (-1)</strong>, o modelo não é descarregado após 5 minutos de inatividade, eliminando a espera de recarga do modelo nas conversas.
+                Com <strong>Permanente (-1)</strong>, o modelo não é descarregado após 5 minutos de
+                inatividade, eliminando a espera de recarga do modelo nas conversas.
               </span>
             </div>
           </div>
@@ -657,14 +654,15 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
             <div>
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800">
-                  Pré-aquecimento (Warmup) & Controle Manual
+                  Pré-aquecimento (Warmup) &amp; Controle Manual
                 </span>
                 <span className="text-[10px] font-mono bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold">
                   Inicialização
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 mt-1">
-                Suba o modelo para a GPU logo no boot do servidor ou faça a gestão manual sob demanda.
+                Suba o modelo para a GPU logo no boot do servidor ou faça a gestão manual sob
+                demanda.
               </p>
             </div>
 
@@ -681,7 +679,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                   Pré-carregar modelo ao inicializar o backend
                 </span>
                 <span className="text-slate-500 text-[11px]">
-                  Dispara uma carga não bloqueante na inicialização para o primeiro usuário ter resposta imediata.
+                  Dispara uma carga não bloqueante na inicialização para o primeiro usuário ter
+                  resposta imediata.
                 </span>
               </div>
             </label>
@@ -733,7 +732,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
       <div className="space-y-3 pt-4 border-t border-slate-200/80">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <span>🧭</span> Roteador de Intenções & Classificação
+            <span>🧭</span> Roteador de Intenções &amp; Classificação
           </h3>
           <span className="text-xs text-slate-500">Mecanismo de triagem e direcionamento</span>
         </div>
@@ -771,11 +770,10 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                   className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 cursor-pointer"
                 />
                 <div>
-                  <h4 className="font-bold text-slate-900 text-sm">
-                    Heurística (Palavras-chave)
-                  </h4>
+                  <h4 className="font-bold text-slate-900 text-sm">Heurística (Palavras-chave)</h4>
                   <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                    Classificação determinística ultrarrápida (0 ms) baseada em palavras-chave. Se inconclusivo, escala direto para fora de escopo.
+                    Classificação determinística ultrarrápida (0 ms) baseada em palavras-chave. Se
+                    inconclusivo, escala direto para fora de escopo.
                   </p>
                 </div>
               </div>
@@ -818,7 +816,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                     Heurística + LLM Local (Ollama)
                   </h4>
                   <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                    Tenta palavras-chave primeiro; se for inconclusivo, consulta o modelo Ollama para classificar o domínio antes de desistir.
+                    Tenta palavras-chave primeiro; se for inconclusivo, consulta o modelo Ollama
+                    para classificar o domínio antes de desistir.
                   </p>
                 </div>
               </div>
@@ -859,7 +858,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
                 <div>
                   <h4 className="font-bold text-slate-900 text-sm">TypeSafe Jev (OpenRouter)</h4>
                   <p className="mt-1 text-xs text-slate-500 leading-relaxed">
-                    Classificação estritamente estruturada em JSON via endpoint /systemone de alta precisão e baixo custo.
+                    Classificação estritamente estruturada em JSON via endpoint /systemone de alta
+                    precisão e baixo custo.
                   </p>
                 </div>
               </div>
@@ -872,7 +872,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
       <div className="space-y-3 pt-4 border-t border-slate-200/80">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <span>🛡️</span> Monitor de Tom & Sentimento (R8)
+            <span>🛡️</span> Monitor de Tom &amp; Sentimento (R8)
           </h3>
           <span className="text-xs text-slate-500">
             Detecção de urgência e frustração do cliente
@@ -963,7 +963,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
       <div className="space-y-3 pt-4 border-t border-slate-200/80">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <span>👁️</span> Visão Computacional & Identificação por Foto (R6)
+            <span>👁️</span> Visão Computacional &amp; Identificação por Foto (R6)
           </h3>
           <span className="text-xs text-slate-500">
             Limiares de confiança e modelo de visão para imagens
@@ -974,7 +974,10 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
           {/* Modelo de Visão Externo */}
           <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-2 hover:border-slate-300 transition-all">
             <div className="flex items-center justify-between">
-              <label htmlFor="rt-external-vision-model" className="text-xs font-bold text-slate-800">
+              <label
+                htmlFor="rt-external-vision-model"
+                className="text-xs font-bold text-slate-800"
+              >
                 Modelo de Visão (OpenRouter)
               </label>
               <span className="text-[10px] font-mono bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded font-bold">
@@ -990,7 +993,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
               className="block w-full rounded-lg border border-slate-300 bg-slate-50/50 px-3 py-2 text-sm font-mono text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
             <p className="text-[11px] text-slate-500 leading-tight">
-              Modelo multimodal para identificação externa por imagem. Vazio = desliga visão externa.
+              Modelo multimodal para identificação externa por imagem. Vazio = desliga visão
+              externa.
             </p>
 
             {/* Sugestões Rápidas de Modelos de Visão */}
@@ -1022,7 +1026,10 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
             {/* Confiança Catálogo Interno (CLIP) */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-2 hover:border-slate-300 transition-all">
               <div className="flex items-center justify-between">
-                <label htmlFor="rt-image-internal-confidence" className="text-xs font-bold text-slate-800">
+                <label
+                  htmlFor="rt-image-internal-confidence"
+                  className="text-xs font-bold text-slate-800"
+                >
                   Limiar Catálogo Interno (CLIP)
                 </label>
                 <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
@@ -1048,7 +1055,10 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
             {/* Confiança Visão Externa */}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-2 hover:border-slate-300 transition-all">
               <div className="flex items-center justify-between">
-                <label htmlFor="rt-image-external-confidence" className="text-xs font-bold text-slate-800">
+                <label
+                  htmlFor="rt-image-external-confidence"
+                  className="text-xs font-bold text-slate-800"
+                >
                   Limiar Visão Externa
                 </label>
                 <span className="text-[10px] font-mono bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">
@@ -1078,7 +1088,7 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
       <div className="space-y-3 pt-4 border-t border-slate-200/80">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <span>📚</span> Busca Vetorial & Recuperação RAG (Qdrant)
+            <span>📚</span> Busca Vetorial &amp; Recuperação RAG (Qdrant)
           </h3>
           <span className="text-xs text-slate-500">
             Parâmetros de recuperação vetorial e limiares do RAG
@@ -1174,7 +1184,8 @@ export function RuntimeSettingsForm({ onError, onSuccess }: RuntimeSettingsFormP
           <div>
             <span className="font-bold block">Configurações Persistentes no Banco de Dados</span>
             <span className="text-blue-700 text-[11px]">
-              Todos os parâmetros definidos nesta página são salvos no PostgreSQL e restaurados automaticamente ao reiniciar o backend.
+              Todos os parâmetros definidos nesta página são salvos no PostgreSQL e restaurados
+              automaticamente ao reiniciar o backend.
             </span>
           </div>
         </div>

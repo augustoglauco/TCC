@@ -177,7 +177,8 @@ export default function PerfilPage() {
               </span>
             </div>
             <p className="text-xs text-purple-800">
-              Como administrador, você tem permissão para gerenciar contas cadastradas e registrar novos administradores ou clientes.
+              Como administrador, você tem permissão para gerenciar contas cadastradas e registrar
+              novos administradores ou clientes.
             </p>
             <div className="flex flex-wrap gap-2 pt-1">
               <Link
@@ -229,7 +230,9 @@ export default function PerfilPage() {
       {!isAdmin && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-900">Meus Pedidos & Reservas Recentes</h3>
+            <h3 className="text-lg font-bold text-slate-900">
+              Meus Pedidos &amp; Reservas Recentes
+            </h3>
             <Link
               href="/pedidos/historico"
               className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"

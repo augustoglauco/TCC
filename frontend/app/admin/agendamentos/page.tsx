@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   cancelarAgendamento,
@@ -44,6 +44,13 @@ export default function AdminAgendamentosPage() {
   // Filtros Aba 1 (Sistema)
   const [filtroEmail, setFiltroEmail] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
+  // Os filtros sao aplicados por botao, nao a cada tecla. Os loaders leem o
+  // valor corrente por ref para continuarem estaveis (`useCallback` sem
+  // dependencias) e o efeito de carga nao reagir a digitacao.
+  const filtrosRef = useRef({ email: filtroEmail, status: filtroStatus });
+  useEffect(() => {
+    filtrosRef.current = { email: filtroEmail, status: filtroStatus };
+  }, [filtroEmail, filtroStatus]);
 
   // Modal Agendamento Manual
   const [modalAberto, setModalAberto] = useState(false);
@@ -58,12 +65,12 @@ export default function AdminAgendamentosPage() {
     descricao: "",
   });
 
-
-  const carregarSistema = async () => {
+  const carregarSistema = useCallback(async () => {
+    const { email, status } = filtrosRef.current;
     try {
       const dados = await fetchAdminAgendamentos({
-        filtroEmail: filtroEmail.trim() || undefined,
-        status: filtroStatus || undefined,
+        filtroEmail: email.trim() || undefined,
+        status: status || undefined,
       });
       setAgendamentos(dados);
       setError(null);
@@ -73,9 +80,9 @@ export default function AdminAgendamentosPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const carregarGoogle = async () => {
+  const carregarGoogle = useCallback(async () => {
     try {
       const eventos = await fetchGoogleCalendarEvents();
       setGoogleEvents(eventos);
@@ -86,29 +93,29 @@ export default function AdminAgendamentosPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isAdmin) {
       if (activeTab === "sistema") {
-        // Falso positivo: `carregarSistema` so toca estado depois de
-        // `await fetchAdminAgendamentos`. A regra nao resolve a assincronia
-        // da chamada quando ela recebe argumentos e assume o pior caso —
-        // `carregarGoogle` logo abaixo, identico mas sem argumentos, passa.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         void carregarSistema();
       } else {
+        // Falso positivo: `carregarGoogle` so toca estado depois de
+        // `await fetchGoogleCalendarEvents`. A regra nao resolve a assincronia
+        // de funcao importada e assume o pior caso — `carregarSistema` logo
+        // acima, identico na forma, passa.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         void carregarGoogle();
       }
     }
-  }, [isAdmin, activeTab]);
+  }, [isAdmin, activeTab, carregarSistema, carregarGoogle]);
 
   const handleCancelar = async (item: Agendamento) => {
     if (!confirm(`Deseja realmente cancelar a visita de ${item.nome_cliente}?`)) return;
     try {
       await cancelarAgendamento(item.id, item.user_email);
       setAgendamentos((prev) =>
-        prev.map((a) => (a.id === item.id ? { ...a, status: "cancelado" } : a))
+        prev.map((a) => (a.id === item.id ? { ...a, status: "cancelado" } : a)),
       );
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao cancelar agendamento.";
@@ -194,7 +201,9 @@ export default function AdminAgendamentosPage() {
       {/* Cards de Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-          <span className="text-xs font-semibold uppercase text-slate-500">Total de Agendamentos</span>
+          <span className="text-xs font-semibold uppercase text-slate-500">
+            Total de Agendamentos
+          </span>
           <p className="mt-2 text-2xl font-bold text-slate-900">{agendamentos.length}</p>
         </div>
         <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-5 shadow-xs">
@@ -261,10 +270,10 @@ export default function AdminAgendamentosPage() {
             <button
               type="button"
               onClick={() => {
-              setLoading(true);
-              setError(null);
-              void carregarSistema();
-            }}
+                setLoading(true);
+                setError(null);
+                void carregarSistema();
+              }}
               className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 cursor-pointer"
             >
               Filtrar
@@ -272,7 +281,9 @@ export default function AdminAgendamentosPage() {
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-slate-500 text-sm">Carregando agendamentos...</div>
+            <div className="py-12 text-center text-slate-500 text-sm">
+              Carregando agendamentos...
+            </div>
           ) : error ? (
             <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
               {error}
@@ -366,10 +377,10 @@ export default function AdminAgendamentosPage() {
             <button
               type="button"
               onClick={() => {
-              setLoading(true);
-              setError(null);
-              void carregarGoogle();
-            }}
+                setLoading(true);
+                setError(null);
+                void carregarGoogle();
+              }}
               className="rounded-lg bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 cursor-pointer"
             >
               🔄 Atualizar Agenda
@@ -377,7 +388,9 @@ export default function AdminAgendamentosPage() {
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-slate-500 text-sm">Consultando Google Calendar...</div>
+            <div className="py-12 text-center text-slate-500 text-sm">
+              Consultando Google Calendar...
+            </div>
           ) : error ? (
             <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
               {error}
@@ -391,7 +404,9 @@ export default function AdminAgendamentosPage() {
               {googleEvents.map((evt) => {
                 const startTime =
                   evt.start_time ||
-                  (typeof evt.start === "string" ? evt.start : evt.start?.dateTime || evt.start?.date) ||
+                  (typeof evt.start === "string"
+                    ? evt.start
+                    : evt.start?.dateTime || evt.start?.date) ||
                   "";
                 return (
                   <div
@@ -401,7 +416,9 @@ export default function AdminAgendamentosPage() {
                     <div>
                       <h4 className="font-bold text-slate-900">{evt.summary || "(Sem Título)"}</h4>
                       {startTime && (
-                        <p className="text-xs text-slate-600 mt-1">🕒 {formatarDataHora(startTime)}</p>
+                        <p className="text-xs text-slate-600 mt-1">
+                          🕒 {formatarDataHora(startTime)}
+                        </p>
                       )}
                       {evt.description && (
                         <p className="text-xs text-slate-500 mt-1 max-w-xl">{evt.description}</p>
@@ -431,7 +448,8 @@ export default function AdminAgendamentosPage() {
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4">
             <h3 className="text-lg font-bold text-slate-900">Novo Agendamento Manual</h3>
             <p className="text-xs text-slate-600">
-              O agendamento manual checará conflitos no Google Calendar e gravará a visita no sistema.
+              O agendamento manual checará conflitos no Google Calendar e gravará a visita no
+              sistema.
             </p>
 
             {manualError && (
@@ -456,7 +474,10 @@ export default function AdminAgendamentosPage() {
               </div>
 
               <div>
-                <label htmlFor="nome_cliente" className="block text-xs font-semibold text-slate-700">
+                <label
+                  htmlFor="nome_cliente"
+                  className="block text-xs font-semibold text-slate-700"
+                >
                   Nome do Cliente
                 </label>
                 <input
@@ -484,7 +505,10 @@ export default function AdminAgendamentosPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="data_hora_inicio" className="block text-xs font-semibold text-slate-700">
+                  <label
+                    htmlFor="data_hora_inicio"
+                    className="block text-xs font-semibold text-slate-700"
+                  >
                     Data e Hora de Início
                   </label>
                   <input
@@ -492,13 +516,18 @@ export default function AdminAgendamentosPage() {
                     type="datetime-local"
                     required
                     value={manualForm.data_hora_inicio}
-                    onChange={(e) => setManualForm({ ...manualForm, data_hora_inicio: e.target.value })}
+                    onChange={(e) =>
+                      setManualForm({ ...manualForm, data_hora_inicio: e.target.value })
+                    }
                     className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="duracao_minutos" className="block text-xs font-semibold text-slate-700">
+                  <label
+                    htmlFor="duracao_minutos"
+                    className="block text-xs font-semibold text-slate-700"
+                  >
                     Duração (minutos)
                   </label>
                   <input
@@ -518,7 +547,6 @@ export default function AdminAgendamentosPage() {
                   />
                 </div>
               </div>
-
 
               <div>
                 <label htmlFor="descricao" className="block text-xs font-semibold text-slate-700">

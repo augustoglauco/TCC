@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 
 const defaultDevOrigins = ["192.168.1.200", "augustoglauco.duckdns.org"];
 const envDevOrigins = process.env.ALLOWED_DEV_ORIGINS
-  ? process.env.ALLOWED_DEV_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+  ? process.env.ALLOWED_DEV_ORIGINS.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
   : [];
 
 const nextConfig: NextConfig = {
