@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { RagCollection } from "@/lib/types/rag";
+import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
 
 export interface CollectionOptionCardProps {
   collection: RagCollection;
@@ -16,16 +17,13 @@ export function CollectionOptionCard({
   isSelected,
   onToggle,
 }: CollectionOptionCardProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useEstaNoCliente();
   const [isOpen, setIsOpen] = useState(false);
   const cardRef = useRef<HTMLLabelElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; placeBelow: boolean } | null>(
     null,
   );
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const updatePosition = useCallback(() => {
     if (!cardRef.current) return;

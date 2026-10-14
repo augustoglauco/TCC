@@ -34,7 +34,11 @@ export default function AdminAgendamentosPage() {
   const [activeTab, setActiveTab] = useState<"sistema" | "google">("sistema");
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [googleEvents, setGoogleEvents] = useState<GoogleCalendarEvent[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Comeca `true`: o efeito abaixo sempre carrega para um admin, e ligar o
+  // spinner de dentro do efeito seria setState sincrono
+  // (react-hooks/set-state-in-effect). Os caminhos interativos ligam o
+  // spinner no proprio handler.
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Filtros Aba 1 (Sistema)
@@ -56,14 +60,13 @@ export default function AdminAgendamentosPage() {
 
 
   const carregarSistema = async () => {
-    setLoading(true);
-    setError(null);
     try {
       const dados = await fetchAdminAgendamentos({
         filtroEmail: filtroEmail.trim() || undefined,
         status: filtroStatus || undefined,
       });
       setAgendamentos(dados);
+      setError(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao carregar agendamentos.";
       setError(msg);
@@ -73,11 +76,10 @@ export default function AdminAgendamentosPage() {
   };
 
   const carregarGoogle = async () => {
-    setLoading(true);
-    setError(null);
     try {
       const eventos = await fetchGoogleCalendarEvents();
       setGoogleEvents(eventos);
+      setError(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao carregar eventos do Google.";
       setError(msg);
@@ -89,9 +91,14 @@ export default function AdminAgendamentosPage() {
   useEffect(() => {
     if (isAdmin) {
       if (activeTab === "sistema") {
-        carregarSistema();
+        // Falso positivo: `carregarSistema` so toca estado depois de
+        // `await fetchAdminAgendamentos`. A regra nao resolve a assincronia
+        // da chamada quando ela recebe argumentos e assume o pior caso —
+        // `carregarGoogle` logo abaixo, identico mas sem argumentos, passa.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        void carregarSistema();
       } else {
-        carregarGoogle();
+        void carregarGoogle();
       }
     }
   }, [isAdmin, activeTab]);
@@ -129,7 +136,8 @@ export default function AdminAgendamentosPage() {
         descricao: "",
       });
 
-      carregarSistema();
+      setLoading(true);
+      void carregarSistema();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao criar agendamento manual.";
       setManualError(msg);
@@ -252,7 +260,11 @@ export default function AdminAgendamentosPage() {
             </select>
             <button
               type="button"
-              onClick={carregarSistema}
+              onClick={() => {
+              setLoading(true);
+              setError(null);
+              void carregarSistema();
+            }}
               className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 cursor-pointer"
             >
               Filtrar
@@ -353,7 +365,11 @@ export default function AdminAgendamentosPage() {
             </span>
             <button
               type="button"
-              onClick={carregarGoogle}
+              onClick={() => {
+              setLoading(true);
+              setError(null);
+              void carregarGoogle();
+            }}
               className="rounded-lg bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 cursor-pointer"
             >
               🔄 Atualizar Agenda

@@ -21,10 +21,13 @@ const mensagens: ChatUIMessage[] = [
       confidence: 0.9,
       complexity: "baixa",
       estimatedCostUsd: 0,
-      ragRetrievalMs: null,
-      ragChunksCount: null,
-      ragAvgScore: null,
-      ragChunks: null,
+      // `undefined`, nao `null`: chatMetrics.ts normaliza a resposta do
+      // backend com `?? undefined`, entao `null` e um estado que o codigo de
+      // producao nunca entrega a um ChatUIMessage.
+      ragRetrievalMs: undefined,
+      ragChunksCount: undefined,
+      ragAvgScore: undefined,
+      ragChunks: undefined,
       escalationReason: "nenhum",
     },
   },

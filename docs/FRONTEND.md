@@ -596,6 +596,38 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
   dependência externa e da latência de LLM real.
 - Lint/format: ESLint + Prettier, mesma disciplina de PRs pequenos descrita
   em `docs/CONVENTIONS.md`.
+- **Hidratação ("estamos no cliente?"): use `useEstaNoCliente()`**
+  (`frontend/lib/hooks/useEstaNoCliente.ts`), não o par
+  `useState(false)` + `useEffect(() => setMounted(true), [])`. O hook usa
+  `useSyncExternalStore` (snapshot do servidor `false`, do cliente `true`), o
+  que evita o segundo render e o `setState` síncrono dentro de efeito que a
+  regra `react-hooks/set-state-in-effect` (eslint-plugin-react-hooks 7)
+  proíbe. `components/ui/Tooltip.tsx` ainda tem uma cópia local equivalente
+  (`useEstaNoCliente` interno) — consolidar quando algo mais mexer no
+  Tooltip, que é componente de risco alto no grafo.
+- **Carregar dados em efeito: nenhum `setState` antes do primeiro `await`.**
+  O padrão nas páginas é: o estado de carregamento já nasce `true`
+  (`useState(true)`) porque o efeito sempre carrega no mount; o loader só
+  toca estado depois do `await`; e os caminhos interativos (botão
+  "Atualizar", listeners de `focus`/`visibilitychange`, submit de filtro)
+  ligam o spinner no próprio handler, onde `setState` é permitido. Estado que
+  só espelha outro estado é **derivado** em vez de escrito por efeito — ex.:
+  `detalhes = activeChatId ? detalhesCarregados : null`
+  (`app/admin/atendimento`) e `carregando = loading && (!hasHydrated ||
+  (isAdmin && !!token))` (`app/admin/dashboards`, que substituiu o
+  `else { setLoading(false) }` responsável pelo bug do visitante não-admin
+  preso no esqueleto de carregamento). Para sincronizar estado local com uma
+  prop, ajuste durante o render (padrão "adjusting state when a prop
+  changes"), como em `CatalogPriceInput`
+  (`components/admin/products/CatalogImportModal.tsx`), nunca por efeito.
+- `# MVP:` alguns efeitos que disparam um loader `async` ficam com
+  `// eslint-disable-next-line react-hooks/set-state-in-effect` e uma
+  justificativa logo acima. São **falsos positivos**: o `setState` só ocorre
+  depois de `await` sobre uma função `async` importada, e a regra não resolve
+  a assincronia dessas chamadas, assumindo o pior caso (uma `async function`
+  local idêntica passa sem reclamar). O comentário `eslint-disable-next-line`
+  precisa ser a última linha antes do código — explicação vem acima dele, ou
+  a diretiva não se aplica.
 
 ## 7. Rastreabilidade com os requisitos funcionais
 

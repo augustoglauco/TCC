@@ -12,13 +12,14 @@ import {
 } from "@/lib/api/charts";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
+import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
 
 export default function AdminDashboardsPage() {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
   const openChat = useChatStore((s) => s.open);
 
-  const [hasHydrated, setHasHydrated] = useState(false);
+  const hasHydrated = useEstaNoCliente();
   const [charts, setCharts] = useState<AdminChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,20 +29,23 @@ export default function AdminDashboardsPage() {
 
   const isAdmin = user?.perfil?.toLowerCase() === "admin";
 
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
+  // `carregando` deriva de quem realmente carrega: antes do hydrate sempre
+  // mostra esqueleto; depois, so enquanto um admin com token esta buscando.
+  // Era isso que o `else { setLoading(false) }` dentro do efeito fazia — e
+  // derivar remove de vez o caso do visitante nao-admin preso no esqueleto
+  // quando o efeito nao re-roda (ver comentario do efeito abaixo).
+  const carregando = loading && (!hasHydrated || (isAdmin && !!token));
 
+  // Nao toca estado antes do primeiro `await`: este loader e chamado de
+  // dentro de um efeito, onde setState sincrono dispara render em cascata
+  // (react-hooks/set-state-in-effect). Quem chama por evento liga o spinner
+  // no proprio handler.
   const loadData = useCallback(async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setError(null);
+    if (!token) return;
     try {
       const data = await fetchAdminCharts(token);
       setCharts(data);
+      setError(null);
     } catch (err: any) {
       setError(err?.message || "Não foi possível carregar os gráficos.");
     } finally {
@@ -61,21 +65,27 @@ export default function AdminDashboardsPage() {
     // não-admin).
     if (!hasHydrated) return;
     if (isAdmin && token) {
-      loadData();
-    } else {
-      setLoading(false);
+      // Falso positivo: `loadData` so toca estado depois de
+      // `await fetchAdminCharts` (funcao `async` importada), logo nao ha
+      // setState sincrono. A regra nao resolve a assincronia de funcoes
+      // importadas e assume o pior caso.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void loadData();
     }
   }, [hasHydrated, isAdmin, token, loadData]);
 
   useEffect(() => {
     const handleRefresh = () => {
       if (token) {
-        loadData();
+        setLoading(true);
+        setError(null);
+        void loadData();
       }
     };
     const handleVisibility = () => {
       if (document.visibilityState === "visible" && token) {
-        loadData();
+        setLoading(true);
+        void loadData();
       }
     };
 
@@ -154,7 +164,7 @@ export default function AdminDashboardsPage() {
     setCharts((prev) => [newChart, ...prev]);
   };
 
-  if (hasHydrated && !isAdmin && !loading) {
+  if (hasHydrated && !isAdmin && !carregando) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-16 text-center">
         <div className="rounded-2xl border border-red-200 bg-red-50 p-8">
@@ -276,7 +286,7 @@ export default function AdminDashboardsPage() {
       )}
 
       {/* Loading state */}
-      {loading ? (
+      {carregando ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1, 2].map((i) => (
             <div

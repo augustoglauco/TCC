@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
+import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
 import type { AdminProduct, AdminProductStock } from "@/lib/types/adminProducts";
 
 interface StockDetailBadgeProps {
@@ -12,15 +13,11 @@ interface StockDetailBadgeProps {
 
 function StockDetailBadge({ totalEstoque, estoques }: StockDetailBadgeProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useEstaNoCliente();
   const badgeRef = useRef<HTMLSpanElement>(null);
   const [coords, setCoords] = useState<{ top: number; left: number; placeBelow: boolean } | null>(
     null,
   );
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const updatePosition = useCallback(() => {
     if (!badgeRef.current) return;

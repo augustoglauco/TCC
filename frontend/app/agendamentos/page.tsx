@@ -24,17 +24,21 @@ export default function AgendamentosPage() {
   const openVisitChat = useChatStore((state) => state.openVisitChat);
 
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Comeca `true`: o efeito carrega assim que `user.email` existe.
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agendamentoParaCancelar, setAgendamentoParaCancelar] = useState<Agendamento | null>(null);
   const [cancelando, setCancelando] = useState(false);
 
+  // Nao toca estado antes do primeiro `await`: este loader roda a partir de um
+  // efeito, onde setState sincrono dispara render em cascata
+  // (react-hooks/set-state-in-effect). Os caminhos interativos ligam o spinner
+  // no proprio handler.
   const carregarAgendamentos = async (email: string) => {
-    setLoading(true);
-    setError(null);
     try {
       const dados = await fetchMeusAgendamentos(email);
       setAgendamentos(dados);
+      setError(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao carregar agendamentos.";
       setError(msg);
@@ -45,7 +49,11 @@ export default function AgendamentosPage() {
 
   useEffect(() => {
     if (user?.email) {
-      carregarAgendamentos(user.email);
+      // Falso positivo: `carregarAgendamentos` so toca estado depois de `await fetchMeusAgendamentos`
+      // (funcao `async` importada), logo nao ha setState sincrono aqui. A regra
+      // nao resolve a assincronia da chamada e assume o pior caso.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void carregarAgendamentos(user.email);
     }
   }, [user?.email]);
 
@@ -151,7 +159,12 @@ export default function AgendamentosPage() {
           <span>{error}</span>
           <button
             type="button"
-            onClick={() => user?.email && carregarAgendamentos(user.email)}
+            onClick={() => {
+              if (!user?.email) return;
+              setLoading(true);
+              setError(null);
+              void carregarAgendamentos(user.email);
+            }}
             className="text-xs font-bold underline hover:text-red-800 cursor-pointer"
           >
             Tentar novamente

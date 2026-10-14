@@ -1735,6 +1735,43 @@ conversa e classificação do usuário").
       provedor gratuito, já tratado com retry/backoff em
       `OpenRouterClient.describe_image`), não mais 404 (modelo inexistente).
 
+- [x] Zerar `ruff check` em `backend/migrations/` (2026-10-14) — a limpeza de
+      lint de 2026-10-13 (commit `d678118`) rodou `ruff format tests/ src/` e
+      `ruff check src/ tests/`, então `migrations/` nunca foi formatado nem
+      checado e guardava 11 violações de E501. `ruff format migrations/`
+      resolveu todas (6 arquivos). A conclusão registrada na época — "as
+      violações restantes são dados de teste inevitáveis" — era falsa duas
+      vezes: as 12 daquele dia estavam em `tests/` e foram corrigidas na
+      mesma sessão, e estas 11 eram de outro conjunto, invisível por causa do
+      `ruff check` com caminho fixo. Auditoria por AST dos 34 arquivos do
+      commit confirmou que nenhum literal de fixture mudou (só duas
+      docstrings reescritas). Agora o comando é `ruff check .` a partir de
+      `backend/`, sem subconjunto de caminhos, para nenhum diretório se
+      esconder.
+- [x] Zerar `react-hooks/set-state-in-effect` no frontend (2026-10-14) — 15
+      erros em 12 arquivos, metade do checklist de lint de
+      `docs/CONVENTIONS.md` que a limpeza de 2026-10-13 (só backend) não
+      cobriu. Divididos em: 5 flags de hidratação (`hasHydrated`/`mounted`)
+      trocados pelo hook novo `useEstaNoCliente()`; 1 input controlado
+      (`CatalogPriceInput`) migrado para ajuste de estado durante o render;
+      e 9 efeitos de carga de dados, onde o `setState` síncrono real
+      (`setLoading(true)`, `setError(null)`, `else { setLoading(false) }`,
+      `setDetalhes(null)`) saiu para o estado inicial, para valores derivados
+      ou para o handler do evento. Isso inclusive eliminou a classe do bug
+      "fica rendering" para visitante não-admin em `/admin/dashboards`, que
+      antes dependia de o efeito re-rodar. O resíduo em 6 efeitos é falso
+      positivo da regra (o `setState` só ocorre depois de `await` sobre
+      função `async` importada, que a regra não resolve) e ficou com
+      `eslint-disable-next-line` justificado linha a linha. Convenções novas
+      em `docs/FRONTEND.md` §6. Verificado: `tsc --noEmit` limpo (também
+      corrigiu 4 erros de tipo em `tests/lib/utils/exportMetrics.test.ts`,
+      onde a fixture usava `null` num campo `number | undefined` que o
+      `?? undefined` de `chatMetrics.ts` nunca produz), 440 testes Vitest
+      passando, 0 diretivas `eslint-disable` não usadas. Restam no frontend
+      27 erros pré-existentes de outras regras (`no-explicit-any` ×22,
+      `no-unescaped-entities` ×4, `no-this-alias` ×1) e 68 arquivos fora do
+      padrão do Prettier — limpeza separada, fora desta tarefa.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

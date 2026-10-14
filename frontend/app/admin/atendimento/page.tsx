@@ -16,18 +16,20 @@ import {
 import FilaEsperaPanel from "@/components/admin/atendimento/FilaEsperaPanel";
 import MeusChatsTabs from "@/components/admin/atendimento/MeusChatsTabs";
 import ContextoClientePanel from "@/components/admin/atendimento/ContextoClientePanel";
+import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
 
 export default function AdminAtendimentoPage() {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
 
-  const [hasHydrated, setHasHydrated] = useState(false);
+  const hasHydrated = useEstaNoCliente();
   const [fila, setFila] = useState<AtendimentoFilaItem[]>([]);
   const [meusChats, setMeusChats] = useState<AtendimentoFilaItem[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
-  const [detalhes, setDetalhes] = useState<AtendimentoDetalhes | null>(null);
+  const [detalhesCarregados, setDetalhesCarregados] =
+    useState<AtendimentoDetalhes | null>(null);
 
-  const [loadingFila, setLoadingFila] = useState(false);
+  const [loadingFila, setLoadingFila] = useState(true);
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -35,9 +37,12 @@ export default function AdminAtendimentoPage() {
 
   const isAdmin = user?.perfil?.toLowerCase() === "admin";
 
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
+  // Derivados em vez de estado: sem chat ativo nao ha detalhes, e sem
+  // admin/token o efeito da fila nem roda (ficaria preso em "carregando").
+  // Derivar evita o setState sincrono dentro de efeito que a regra
+  // react-hooks/set-state-in-effect proibe.
+  const detalhes = activeChatId ? detalhesCarregados : null;
+
 
   const atendenteId = user?.id ? String(user.id) : "admin_1";
   const atendenteNome = user?.nome || "Atendente Humano";
@@ -62,7 +67,7 @@ export default function AdminAtendimentoPage() {
       // mensagem sem efeito, achando que a conversa "não encerra".
       if (activeChatId && !meusChatsRes.some((c) => c.id === activeChatId)) {
         setActiveChatId(null);
-        setDetalhes(null);
+        setDetalhesCarregados(null);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao atualizar fila";
@@ -74,7 +79,11 @@ export default function AdminAtendimentoPage() {
   useEffect(() => {
     if (!hasHydrated || !isAdmin || !token) return;
 
-    setLoadingFila(true);
+    // Falso positivo: `carregarFilaEMeusChats` so toca estado depois de
+    // `await Promise.all([...])` sobre funcoes `async` importadas, logo nao
+    // ha setState sincrono. A regra nao resolve a assincronia de funcoes
+    // importadas e assume o pior caso.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     carregarFilaEMeusChats().finally(() => setLoadingFila(false));
 
     const interval = setInterval(() => {
@@ -89,7 +98,7 @@ export default function AdminAtendimentoPage() {
     if (!activeChatId || !token) return;
     try {
       const data = await fetchDetalhesConversa(activeChatId, token);
-      setDetalhes(data);
+      setDetalhesCarregados(data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao carregar detalhes";
       console.error("Erro ao carregar detalhes:", message);
@@ -97,10 +106,10 @@ export default function AdminAtendimentoPage() {
   }, [activeChatId, token]);
 
   useEffect(() => {
-    if (!activeChatId) {
-      setDetalhes(null);
-      return;
-    }
+    if (!activeChatId) return;
+    // Falso positivo: `carregarDetalhes` so toca estado depois de
+    // `await fetchDetalhesConversa` (funcao `async` importada).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void carregarDetalhes();
     const interval = setInterval(() => {
       void carregarDetalhes();
@@ -148,7 +157,7 @@ export default function AdminAtendimentoPage() {
     try {
       await fecharAtendimento(activeChatId, "finalizar", motivo, token);
       setActiveChatId(null);
-      setDetalhes(null);
+      setDetalhesCarregados(null);
       await carregarFilaEMeusChats();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao encerrar atendimento.";
@@ -165,7 +174,7 @@ export default function AdminAtendimentoPage() {
     try {
       await fecharAtendimento(activeChatId, "devolver_ia", undefined, token);
       setActiveChatId(null);
-      setDetalhes(null);
+      setDetalhesCarregados(null);
       await carregarFilaEMeusChats();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao devolver para IA.";
@@ -248,7 +257,7 @@ export default function AdminAtendimentoPage() {
         <div className="lg:col-span-3 h-full min-h-0">
           <FilaEsperaPanel
             fila={fila}
-            loading={loadingFila}
+            loading={loadingFila && isAdmin && !!token}
             claimingId={claimingId}
             onClaim={handleClaim}
             onRefresh={() => {

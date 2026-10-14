@@ -87,11 +87,15 @@ export function CatalogPriceInput({
   const [texto, setTexto] = useState(() => formatarMoedaInput(value));
   const [focado, setFocado] = useState(false);
 
-  useEffect(() => {
-    if (!focado) {
-      setTexto(formatarMoedaInput(value));
-    }
-  }, [value, focado]);
+  // Sincroniza `texto` com o `value` do pai ajustando estado durante o render
+  // (padrao "adjusting state when a prop changes" do React) em vez de dentro de
+  // um efeito: setState sincrono em efeito dispara render em cascata
+  // (react-hooks/set-state-in-effect). Com foco, o texto digitado manda.
+  const [valueAnterior, setValueAnterior] = useState(value);
+  if (value !== valueAnterior && !focado) {
+    setValueAnterior(value);
+    setTexto(formatarMoedaInput(value));
+  }
 
   const handleBlur = () => {
     setFocado(false);

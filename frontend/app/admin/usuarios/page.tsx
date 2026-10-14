@@ -16,12 +16,15 @@ export default function AdminUsuariosPage() {
 
   const isCurrentAdmin = currentUser?.perfil?.toLowerCase() === "admin";
 
+  // Nao toca estado antes do primeiro `await`: este loader roda a partir de um
+  // efeito, onde setState sincrono dispara render em cascata
+  // (react-hooks/set-state-in-effect). Os caminhos interativos ligam o spinner
+  // no proprio handler.
   const carregarUsuarios = async () => {
-    setLoading(true);
-    setError(null);
     try {
       const data = await fetchUsers();
       setUsers(data);
+      setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao carregar usuários.");
     } finally {
@@ -31,7 +34,11 @@ export default function AdminUsuariosPage() {
 
   useEffect(() => {
     if (isCurrentAdmin) {
-      carregarUsuarios();
+      // Falso positivo: `carregarUsuarios` so toca estado depois de `await fetchUsers`
+      // (funcao `async` importada), logo nao ha setState sincrono aqui. A regra
+      // nao resolve a assincronia da chamada e assume o pior caso.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void carregarUsuarios();
     }
   }, [isCurrentAdmin]);
 

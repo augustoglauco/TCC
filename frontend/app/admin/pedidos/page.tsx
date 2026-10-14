@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
+import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
 import { fetchPedidos, type PedidoAdminItem } from "@/lib/api/adminPedidos";
 import ModalConversaoPedido from "@/components/admin/ModalConversaoPedido";
 
@@ -10,9 +11,13 @@ export default function AdminPedidosPage() {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
 
-  const [hasHydrated, setHasHydrated] = useState(false);
+  const hasHydrated = useEstaNoCliente();
   const [pedidos, setPedidos] = useState<PedidoAdminItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Comeca `true` porque o efeito abaixo sempre carrega no mount; chamar
+  // setLoading(true) de dentro do efeito dispararia render em cascata
+  // (react-hooks/set-state-in-effect). Os caminhos interativos pedem o
+  // spinner explicitamente via `carregarPedidos(true)`.
+  const [loading, setLoading] = useState(true);
   const [filtroStatus, setFiltroStatus] = useState<string>("todos");
   const [termoBusca, setTermoBusca] = useState<string>("");
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoAdminItem | null>(null);
@@ -21,20 +26,18 @@ export default function AdminPedidosPage() {
 
   const isAdmin = user?.perfil?.toLowerCase() === "admin";
 
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
-
+  // Nao toca estado antes do primeiro `await`: quem chama a partir de um
+  // efeito nao pode disparar setState sincrono (react-hooks/set-state-in-effect).
+  // Os caminhos interativos ligam o spinner no proprio handler.
   const carregarPedidos = useCallback(async () => {
     if (!token || !isAdmin) return;
-    setLoading(true);
-    setErroMsg(null);
     try {
       const data = await fetchPedidos(
         { status: filtroStatus === "todos" ? undefined : filtroStatus },
         token
       );
       setPedidos(data);
+      setErroMsg(null);
     } catch (err: unknown) {
       setErroMsg(err instanceof Error ? err.message : "Erro ao carregar pedidos");
     } finally {
@@ -44,7 +47,12 @@ export default function AdminPedidosPage() {
 
   useEffect(() => {
     if (!hasHydrated || !isAdmin || !token) return;
-    carregarPedidos();
+    // Falso positivo: `carregarPedidos` so toca estado depois de `await
+    // fetchPedidos` (funcao `async` importada), logo nao existe setState
+    // sincrono aqui. A regra nao resolve a assincronia de funcoes importadas
+    // e assume o pior caso; com uma `async function` local ela nao reclama.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void carregarPedidos();
   }, [hasHydrated, isAdmin, token, carregarPedidos]);
 
   if (!hasHydrated) {
@@ -103,7 +111,11 @@ export default function AdminPedidosPage() {
           </p>
         </div>
         <button
-          onClick={carregarPedidos}
+          onClick={() => {
+            setLoading(true);
+            setErroMsg(null);
+            void carregarPedidos();
+          }}
           disabled={loading}
           className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
         >
@@ -300,7 +312,10 @@ export default function AdminPedidosPage() {
           setModalAberto(false);
           setPedidoSelecionado(null);
         }}
-        onSuccess={carregarPedidos}
+        onSuccess={() => {
+          setLoading(true);
+          void carregarPedidos();
+        }}
       />
     </div>
   );

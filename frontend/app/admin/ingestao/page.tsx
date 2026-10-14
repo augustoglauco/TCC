@@ -856,7 +856,12 @@ export default function IngestaoDocumentosPage() {
   }, [showToast, token]);
 
   useEffect(() => {
-    carregarColecoes();
+    // Falso positivo: `carregarColecoes` so toca estado depois de
+    // `await listCollections` (funcao `async` importada), logo nao ha setState
+    // sincrono aqui. A regra nao resolve a assincronia da chamada e assume o
+    // pior caso.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void carregarColecoes();
   }, [carregarColecoes]);
 
   const ativaChat = collections.find((c) => c.is_active && (c.purpose || "chat") === "chat");
