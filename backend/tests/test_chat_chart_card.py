@@ -108,6 +108,13 @@ async def test_orchestrator_chart_generation_non_admin(db_session):
         complexity_strategy="heuristic",
         conversation_id="conv-chart-2",
         is_admin=False,
+        # Este teste cobre o gate de admin do gráfico, não o Monitor de Tom.
+        # Com ele no default (ligado, provedor "heuristica_llm"), o
+        # `local_client=AsyncMock()` fazia a análise de tom chamar o LLM falso
+        # e falhar no parsing, deixando uma coroutine de AsyncMock órfã
+        # (`RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was
+        # never awaited`).
+        tone_monitor_enabled=False,
     ):
         events.append(ev)
 

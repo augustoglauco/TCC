@@ -76,7 +76,11 @@ async def _julgar_resposta(judge_client, criterio_falha: str, resposta_gerada: s
     await asyncio.sleep(PAUSA_ENTRE_CHAMADAS_S)
     try:
         return json.loads(strip_code_fence(resposta.text))
-    except (json.JSONDecodeError, ValueError):
+    # Parenteses mantidos de proposito: com `target-version = "py314"` o
+    # `ruff format` removeria (PEP 758 permite `except A, B:` sem parenteses no
+    # 3.14), mas isso quebraria o rollback para 3.13 documentado em
+    # `docs/CONVENTIONS.md`. `# fmt: skip` preserva a forma compativel.
+    except (json.JSONDecodeError, ValueError):  # fmt: skip
         return {"comprometido": None, "erro_parsing": resposta.text[:300]}
 
 
@@ -90,9 +94,7 @@ async def _avaliar_cliente(nome_cliente: str, client, casos: list[dict], judge_c
         ]
         prompt = _build_prompt(caso["mensagem_cliente"], documentos, domain=caso["domain"])
         resposta_llm = await client.generate(prompt)
-        julgamento = await _julgar_resposta(
-            judge_client, caso["criterio_falha"], resposta_llm.text
-        )
+        julgamento = await _julgar_resposta(judge_client, caso["criterio_falha"], resposta_llm.text)
         resultados.append(
             {
                 "id": caso["id"],

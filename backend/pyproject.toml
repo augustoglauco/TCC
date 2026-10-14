@@ -65,6 +65,23 @@ markers = [
     "gpu: teste depende de GPU/modelo local, pulado por padrão sem GPU disponível",
     "qdrant: teste depende de uma instância real do Qdrant no ar (ver backend/docker-compose.yml)",
 ]
+# Os dois avisos abaixo vêm do `qdrant-client` em modo local, que é como a
+# suíte roda por padrão (sem Qdrant no ar): índice de payload é no-op no modo
+# local — em produção, com o Qdrant em Docker, ele vale — e a checagem de
+# compatibilidade de versão não tem servidor para consultar. Nenhum dos dois
+# aponta defeito no código, e silenciá-los mantém o resumo de warnings do
+# pytest utilizável para avisos que importam.
+filterwarnings = [
+    "ignore:Payload indexes have no effect in the local Qdrant:UserWarning",
+    "ignore:Failed to obtain server version:UserWarning",
+    # Os dois abaixo são defasagem de versão DENTRO das dependências, sem
+    # nenhum ponto de chamada nosso: o `TestClient` do Starlette usa o alias
+    # `anyio.abc.BlockingPortal`, e o FastAPI usa a constante
+    # `HTTP_422_UNPROCESSABLE_ENTITY` que o próprio Starlette depreciou.
+    # Some quando as duas subirem de versão; até lá só poluiriam o resumo.
+    "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+    "ignore:'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated:",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

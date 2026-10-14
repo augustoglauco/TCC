@@ -34,16 +34,10 @@ async def reset_ambiente(sim: bool = False) -> None:
     print("\n[1/2] Limpando tabelas do PostgreSQL...")
     async with engine.begin() as conn:
         # Executa TRUNCATE com CASCADE para zerar produtos e tabelas dependentes
-        await conn.execute(
-            text(
-                "TRUNCATE TABLE produtos, rag_documents RESTART IDENTITY CASCADE;"
-            )
-        )
+        await conn.execute(text("TRUNCATE TABLE produtos, rag_documents RESTART IDENTITY CASCADE;"))
         # Remove coleções residuais de teste no banco relacional
         await conn.execute(
-            text(
-                "DELETE FROM rag_collections WHERE name LIKE 'test_%' OR name = 'xxxx';"
-            )
+            text("DELETE FROM rag_collections WHERE name LIKE 'test_%' OR name = 'xxxx';")
         )
     await engine.dispose()
     print("   ✓ PostgreSQL zerado com sucesso!")

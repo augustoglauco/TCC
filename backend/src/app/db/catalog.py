@@ -232,6 +232,14 @@ async def deletar_produto(session: AsyncSession, produto_id: int) -> bool:
         )
     )
     await session.execute(delete(PedidoItem).where(PedidoItem.produto_id == produto_id))
+    # As coleções carregadas por `selectinload` em `obter_produto` ainda
+    # apontam para as linhas que os `DELETE`s acima acabaram de remover: sem
+    # expirar, o cascade `delete-orphan` do `session.delete(produto)` emite um
+    # `DELETE` por linha já inexistente e o SQLAlchemy avisa
+    # `SAWarning: DELETE statement on table ... expected to delete 1 row(s);
+    # 0 were matched`. Expirado, o cascade recarrega as coleções (agora
+    # vazias) e não emite nada.
+    session.expire(produto, ["estoques", "descontos_volume", "imagens"])
     await session.delete(produto)
     await session.commit()
     return True

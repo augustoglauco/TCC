@@ -83,6 +83,22 @@ def test_detectar_intencao_comprovante():
     assert detectar_intencao_comprovante("Vocês têm estoque em São Paulo?") is False
 
 
+def _cliente_local_sem_llm() -> AsyncMock:
+    """`local_client` falso sem `generate`/`chat`.
+
+    `ComprovanteEvaluator.avaliar_texto` só tenta o LLM quando o cliente expõe
+    um desses métodos; com um `AsyncMock()` cru ele sempre tenta, o parsing da
+    resposta falsa falha, cai no fallback heurístico (que é o caminho que estes
+    testes cobrem) e deixa para trás a coroutine criada por `res.text.strip()`
+    — `RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never
+    awaited`. Sem os dois atributos, o fallback heurístico é explícito.
+    """
+    cliente = AsyncMock()
+    del cliente.generate
+    del cliente.chat
+    return cliente
+
+
 @pytest.mark.asyncio
 async def test_chat_conversao_item_unico_sucesso(db_session):
     # Setup de produto e pedido reservado com 1 item
@@ -122,12 +138,20 @@ async def test_chat_conversao_item_unico_sucesso(db_session):
             "e autenticação: E12345678202610051200"
         ),
         recent_messages=[],
-        local_client=AsyncMock(),
+        local_client=_cliente_local_sem_llm(),
         external_client=AsyncMock(),
         rag_client=AsyncMock(),
         complexity_strategy="heuristic",
         conversation_id="conv-b2c-1",
         db_sessionmaker=sessionmaker,
+        # Estes testes cobrem a conversão de reserva, não o Monitor de Tom.
+        # Com ele no default (ligado, provedor "heuristica_llm"), o
+        # `local_client=AsyncMock()` fazia a análise de tom chamar o LLM
+        # falso e falhar no parsing do mock, deixando uma coroutine de
+        # AsyncMock órfã (`RuntimeWarning: coroutine
+        # 'AsyncMockMixin._execute_mock_call' was never awaited`). O
+        # fixture HTTP deste mesmo arquivo já desliga o monitor.
+        tone_monitor_enabled=False,
         user_email="cliente@gmail.com",
     ):
         events.append(ev)
@@ -214,6 +238,14 @@ async def test_chat_conversao_local_client_none_usa_ambiente_externo(db_session,
         complexity_strategy="heuristic",
         conversation_id="conv-ambiente-externo",
         db_sessionmaker=sessionmaker,
+        # Estes testes cobrem a conversão de reserva, não o Monitor de Tom.
+        # Com ele no default (ligado, provedor "heuristica_llm"), o
+        # `local_client=AsyncMock()` fazia a análise de tom chamar o LLM
+        # falso e falhar no parsing do mock, deixando uma coroutine de
+        # AsyncMock órfã (`RuntimeWarning: coroutine
+        # 'AsyncMockMixin._execute_mock_call' was never awaited`). O
+        # fixture HTTP deste mesmo arquivo já desliga o monitor.
+        tone_monitor_enabled=False,
         user_email="cliente@gmail.com",
     ):
         events.append(ev)
@@ -264,12 +296,20 @@ async def test_chat_conversao_multiplos_itens_sucesso(db_session):
             "Transação: TED998877"
         ),
         recent_messages=[],
-        local_client=AsyncMock(),
+        local_client=_cliente_local_sem_llm(),
         external_client=AsyncMock(),
         rag_client=AsyncMock(),
         complexity_strategy="heuristic",
         conversation_id="conv-multi-1",
         db_sessionmaker=sessionmaker,
+        # Estes testes cobrem a conversão de reserva, não o Monitor de Tom.
+        # Com ele no default (ligado, provedor "heuristica_llm"), o
+        # `local_client=AsyncMock()` fazia a análise de tom chamar o LLM
+        # falso e falhar no parsing do mock, deixando uma coroutine de
+        # AsyncMock órfã (`RuntimeWarning: coroutine
+        # 'AsyncMockMixin._execute_mock_call' was never awaited`). O
+        # fixture HTTP deste mesmo arquivo já desliga o monitor.
+        tone_monitor_enabled=False,
         user_email="compras@industria.com.br",
     ):
         events.append(ev)
@@ -318,12 +358,20 @@ async def test_chat_conversao_pagamento_divergente(db_session):
     async for ev in handle_message(
         message="Segue o comprovante do pagamento PIX de R$ 1.500,00. Transação: E999",
         recent_messages=[],
-        local_client=AsyncMock(),
+        local_client=_cliente_local_sem_llm(),
         external_client=AsyncMock(),
         rag_client=AsyncMock(),
         complexity_strategy="heuristic",
         conversation_id="conv-div-1",
         db_sessionmaker=sessionmaker,
+        # Estes testes cobrem a conversão de reserva, não o Monitor de Tom.
+        # Com ele no default (ligado, provedor "heuristica_llm"), o
+        # `local_client=AsyncMock()` fazia a análise de tom chamar o LLM
+        # falso e falhar no parsing do mock, deixando uma coroutine de
+        # AsyncMock órfã (`RuntimeWarning: coroutine
+        # 'AsyncMockMixin._execute_mock_call' was never awaited`). O
+        # fixture HTTP deste mesmo arquivo já desliga o monitor.
+        tone_monitor_enabled=False,
         user_email="cliente@gmail.com",
     ):
         events.append(ev)
@@ -385,12 +433,20 @@ async def test_chat_conversao_acha_reserva_de_conversa_anterior_pelo_email(db_se
     async for ev in handle_message(
         message="já paguei",
         recent_messages=["olá, eu tenho pagamento de compra pendente?"],
-        local_client=AsyncMock(),
+        local_client=_cliente_local_sem_llm(),
         external_client=AsyncMock(),
         rag_client=AsyncMock(),
         complexity_strategy="heuristic",
         conversation_id="conv-nova-confirmacao",
         db_sessionmaker=sessionmaker,
+        # Estes testes cobrem a conversão de reserva, não o Monitor de Tom.
+        # Com ele no default (ligado, provedor "heuristica_llm"), o
+        # `local_client=AsyncMock()` fazia a análise de tom chamar o LLM
+        # falso e falhar no parsing do mock, deixando uma coroutine de
+        # AsyncMock órfã (`RuntimeWarning: coroutine
+        # 'AsyncMockMixin._execute_mock_call' was never awaited`). O
+        # fixture HTTP deste mesmo arquivo já desliga o monitor.
+        tone_monitor_enabled=False,
         user_email="carla@gmail.com",
     ):
         events.append(ev)
@@ -444,12 +500,20 @@ async def test_chat_conversao_apenas_intencao_sem_conteudo_pede_anexo(db_session
     async for ev in handle_message(
         message="quero enviar o comprovante de pagamento",
         recent_messages=[],
-        local_client=AsyncMock(),
+        local_client=_cliente_local_sem_llm(),
         external_client=AsyncMock(),
         rag_client=AsyncMock(),
         complexity_strategy="heuristic",
         conversation_id="conv-intencao-1",
         db_sessionmaker=sessionmaker,
+        # Estes testes cobrem a conversão de reserva, não o Monitor de Tom.
+        # Com ele no default (ligado, provedor "heuristica_llm"), o
+        # `local_client=AsyncMock()` fazia a análise de tom chamar o LLM
+        # falso e falhar no parsing do mock, deixando uma coroutine de
+        # AsyncMock órfã (`RuntimeWarning: coroutine
+        # 'AsyncMockMixin._execute_mock_call' was never awaited`). O
+        # fixture HTTP deste mesmo arquivo já desliga o monitor.
+        tone_monitor_enabled=False,
         user_email="carla@gmail.com",
     ):
         events.append(ev)
@@ -474,12 +538,20 @@ async def test_chat_conversao_sem_reserva_ativa(db_session):
     async for ev in handle_message(
         message="Segue o comprovante de pagamento PIX de R$ 500,00",
         recent_messages=[],
-        local_client=AsyncMock(),
+        local_client=_cliente_local_sem_llm(),
         external_client=AsyncMock(),
         rag_client=AsyncMock(),
         complexity_strategy="heuristic",
         conversation_id="conv-vazia",
         db_sessionmaker=sessionmaker,
+        # Estes testes cobrem a conversão de reserva, não o Monitor de Tom.
+        # Com ele no default (ligado, provedor "heuristica_llm"), o
+        # `local_client=AsyncMock()` fazia a análise de tom chamar o LLM
+        # falso e falhar no parsing do mock, deixando uma coroutine de
+        # AsyncMock órfã (`RuntimeWarning: coroutine
+        # 'AsyncMockMixin._execute_mock_call' was never awaited`). O
+        # fixture HTTP deste mesmo arquivo já desliga o monitor.
+        tone_monitor_enabled=False,
     ):
         events.append(ev)
 
