@@ -1454,6 +1454,12 @@ conversa e classificação do usuário").
       (caixa de entrada de agentes, marcar como lida, contador no menu ⚙️).
 - [x] Atualizar `docs/FRONTEND.md` (contrato) e `docs/CONVENTIONS.md` se
       surgir convenção nova.
+- [x] Cérebro de IA do agente (`app.agents.estoque_ia`, LLM local ou
+      externo, com fallback para a regra determinística) e configuração
+      persistente do agente ativo (`desativado` | `deterministico` | `ia`)
+      no painel de configurações de execução (`estoque_agent_mode`,
+      `estoque_agent_llm`). Prompt mapeado em
+      `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 

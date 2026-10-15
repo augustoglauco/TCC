@@ -23,6 +23,7 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 | [`eval/rag_quality/run_eval.py`](file:///home/augusto/Projetos/TCC/backend/eval/rag_quality/run_eval.py) | Backend (`eval`, Fase 10) | Prompt de avaliação LLM-as-judge (qualidade das respostas do RAG) |
 | [`analytics_agent.py`](file:///home/augusto/Projetos/TCC/backend/src/app/services/analytics_agent.py) | Backend (`app.services`) | Prompt de Text-to-SQL para geração de gráficos dinâmicos via chat (Admin), com esquema de tabelas injetado via `safe_sql.get_catalog_schema_prompt()` |
 | [`comprovante_evaluator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/services/comprovante_evaluator.py) | Backend (`app.services`) | Prompt de auditoria financeira de comprovantes (OCR/texto) — texto do comprovante isolado em `<texto_comprovante>` desde 2026-10-07 |
+| [`estoque_ia.py`](file:///home/augusto/Projetos/TCC/backend/src/app/agents/estoque_ia.py) | Backend (`app.agents`) | Prompt do agente autônomo de previsão de estoque (R13, modo IA): fatos estruturados de estoque/baixa → JSON de risco, reposição sugerida e justificativa |
 | [`eval/prompt_injection/run_eval.py`](file:///home/augusto/Projetos/TCC/backend/eval/prompt_injection/run_eval.py) | Backend (`eval`, Fase 10) | Prompt de avaliação LLM-as-judge (resiliência a prompt injection) |
 
 ---
@@ -778,9 +779,24 @@ Responda APENAS com JSON no formato: {{"comprometido": <true ou false>, \
 
 Resultado real (execução ao vivo em 2026-10-07): taxa de resistência local (`gemma4:12b-it-q4_K_M`) 62,5% (5/8), externa (`liquid/lfm-2.5-2.6b:free`) 87,5% (7/8) — detalhe completo em `backend/eval/prompt_injection/README.md`.
 
+### 17. `backend/src/app/agents/estoque_ia.py`
+**Caminho:** [`backend/src/app/agents/estoque_ia.py`](file:///home/augusto/Projetos/TCC/backend/src/app/agents/estoque_ia.py)
+
+Prompt do cérebro de IA do agente de previsão de estoque (R13, decisão de 2026-10-15 em `docs/ARCHITECTURE.md`). Só entram fatos estruturados do banco (estoque por centro, baixa diária dos últimos 30 dias, preço, referência determinística) — nenhum texto livre de usuário, logo não há vetor de injeção. A resposta é JSON; se for inválida ou o modelo falhar, o agente usa a regra determinística. O modelo (local ou externo) é escolhido em `estoque_agent_llm`.
+
+```python
+_PROMPT = """Você é um analista de estoque. Avalie se o produto abaixo corre risco de \
+faltar nos próximos {horizonte} dias e responda SOMENTE com JSON.
+...
+Formato exato:
+{{"risco": "baixo"|"medio"|"alto", "dias_ate_falta": número ou null, \
+"reposicao_sugerida": inteiro >= 0, "alertar": true|false, \
+"justificativa": "uma ou duas frases em português"}}"""
+```
+
 ---
 
 ## Conclusão
 
-Todos os **16 arquivos de código** que contêm instruções diretas, prompts de sistema, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
+Todos os **17 arquivos de código** que contêm instruções diretas, prompts de sistema, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
 

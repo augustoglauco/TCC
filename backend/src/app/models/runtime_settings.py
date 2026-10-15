@@ -11,6 +11,13 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from app.agents.runtime import (
+    DEFAULT_ESTOQUE_AGENT_LLM,
+    DEFAULT_ESTOQUE_AGENT_MODE,
+    EstoqueAgentLlm,
+    EstoqueAgentMode,
+)
+
 IntentRouterProvider = Literal["heuristica", "heuristica_llm", "jev_openrouter"]
 # Único ponto de definição do default — reaproveitado em app/router/,
 # app/api/ e app/main.py em vez de repetir a string-mágica "heuristica_llm"
@@ -107,6 +114,17 @@ class RuntimeSettingsResponse(BaseModel):
             "sinal forte."
         ),
     )
+    estoque_agent_mode: EstoqueAgentMode = Field(
+        default=DEFAULT_ESTOQUE_AGENT_MODE,
+        description=(
+            "Agente de previsão de estoque (R13): desativado, deterministico (regra) "
+            "ou ia (LLM decide o risco; cai na regra se falhar)."
+        ),
+    )
+    estoque_agent_llm: EstoqueAgentLlm = Field(
+        default=DEFAULT_ESTOQUE_AGENT_LLM,
+        description="LLM usado pelo agente de estoque no modo ia: local (Ollama) ou externo.",
+    )
     local_llm_keep_alive: str = Field(
         default="-1",
         description="Tempo de retenção na VRAM do Ollama (-1=permanente, 5m=padrão, 0=descarrega)",
@@ -148,5 +166,7 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     intent_router_provider: IntentRouterProvider | None = None
     tone_monitor_enabled: bool | None = None
     tone_monitor_provider: ToneMonitorProvider | None = None
+    estoque_agent_mode: EstoqueAgentMode | None = None
+    estoque_agent_llm: EstoqueAgentLlm | None = None
     local_llm_keep_alive: str | None = None
     local_llm_warmup_on_startup: bool | None = None

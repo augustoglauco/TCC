@@ -27,6 +27,8 @@ export interface RuntimeSettings {
   intent_router_provider?: "heuristica" | "heuristica_llm" | "jev_openrouter";
   tone_monitor_enabled?: boolean;
   tone_monitor_provider?: "heuristica_llm" | "jev_openrouter";
+  estoque_agent_mode?: "desativado" | "deterministico" | "ia";
+  estoque_agent_llm?: "local" | "externo";
   local_llm_keep_alive?: string;
   local_llm_warmup_on_startup?: boolean;
   local_model_loaded?: boolean;

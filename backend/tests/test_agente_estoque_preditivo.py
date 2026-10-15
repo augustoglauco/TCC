@@ -152,3 +152,122 @@ async def test_api_marcar_inexistente_404(mensagens_client, admin_headers):
         headers=admin_headers,
     )
     assert r.status_code == 404
+
+
+# --- modo IA e configuração (R13) -------------------------------------------
+
+
+class _LLMFalso:
+    def __init__(self, texto: str | None = None, erro: Exception | None = None):
+        self.texto, self.erro, self.prompts = texto, erro, []
+
+    async def generate(self, prompt: str):
+        self.prompts.append(prompt)
+        if self.erro:
+            raise self.erro
+        from app.router.llm_client import LLMResponse
+
+        return LLMResponse(
+            text=self.texto,
+            prompt_tokens=10,
+            completion_tokens=5,
+            total_duration_ms=1.0,
+            load_duration_ms=0.0,
+            prompt_eval_duration_ms=0.0,
+            eval_duration_ms=0.0,
+            cost_prompt_usd=0.0,
+            cost_completion_usd=0.0,
+            estimated_cost_usd=0.0,
+            model_name="modelo-falso",
+        )
+
+
+def _ligar_ia(llm: _LLMFalso):
+    from app.agents.runtime import runtime
+
+    runtime.estoque_modo = "ia"
+    runtime.local_client = llm
+
+
+_RESP_ALERTA = (
+    '{"risco": "alto", "dias_ate_falta": 2, "reposicao_sugerida": 40, '
+    '"alertar": true, "justificativa": "Baixa acelerou nos últimos dias."}'
+)
+
+
+async def test_modo_ia_usa_a_decisao_do_llm(db_session):
+    llm = _LLMFalso(_RESP_ALERTA)
+    _ligar_ia(llm)
+    produto = await _produto(db_session, 10)
+
+    await criar_pedido(db_session, [(produto.id, 8, "CD-SP")])
+
+    [msg] = await _mensagens(db_session)
+    assert msg.agente == "estoque_ia"
+    assert msg.severidade == "critico"
+    assert msg.dados["metodo"] == "ia"
+    assert msg.dados["reposicao_sugerida"] == 40
+    assert "Baixa acelerou" in msg.corpo
+    assert "Gerador GD-15" in llm.prompts[0]
+
+
+async def test_modo_ia_pode_decidir_nao_alertar(db_session):
+    _ligar_ia(
+        _LLMFalso(
+            '{"risco": "baixo", "dias_ate_falta": null, "alertar": false, "reposicao_sugerida": 0}'
+        )
+    )
+    produto = await _produto(db_session, 10)
+    await criar_pedido(db_session, [(produto.id, 8, "CD-SP")])
+    assert await _mensagens(db_session) == []
+
+
+@pytest.mark.parametrize("llm", [_LLMFalso("isto não é json"), _LLMFalso(erro=TimeoutError())])
+async def test_modo_ia_cai_na_regra_deterministica_se_o_llm_falha(db_session, llm):
+    _ligar_ia(llm)
+    produto = await _produto(db_session, 10)
+
+    await criar_pedido(db_session, [(produto.id, 8, "CD-SP")])
+
+    [msg] = await _mensagens(db_session)
+    assert msg.agente == "estoque_preditivo"
+
+
+async def test_modo_desativado_nao_avalia_nem_chama_llm(db_session):
+    from app.agents.runtime import runtime
+
+    llm = _LLMFalso(_RESP_ALERTA)
+    _ligar_ia(llm)
+    runtime.estoque_modo = "desativado"
+    produto = await _produto(db_session, 10)
+
+    await criar_pedido(db_session, [(produto.id, 8, "CD-SP")])
+
+    assert await _mensagens(db_session) == []
+    assert llm.prompts == []
+
+
+async def test_sem_baixa_na_janela_nao_gasta_llm(db_session):
+    llm = _LLMFalso(_RESP_ALERTA)
+    _ligar_ia(llm)
+    produto = await _produto(db_session, 3)
+    await avaliar_estoque(db_session, [produto.id])
+    assert llm.prompts == []
+
+
+async def test_configuracao_persistente_via_runtime_settings(db_session, admin_headers):
+    """O modo do agente passa pelo mesmo PUT/GET das outras configurações."""
+    from app.agents.runtime import runtime
+    from tests.test_runtime_settings_api import _build_default_app
+
+    app, *_ = _build_default_app(db_session)
+    with TestClient(app) as c:
+        r = c.put(
+            "/api/admin/runtime-settings",
+            headers=admin_headers,
+            json={"estoque_agent_mode": "ia", "estoque_agent_llm": "externo"},
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["estoque_agent_mode"] == "ia"
+        assert r.json()["estoque_agent_llm"] == "externo"
+    assert runtime.estoque_modo == "ia" and runtime.estoque_llm == "externo"

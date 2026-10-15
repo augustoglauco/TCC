@@ -1941,8 +1941,28 @@ risco de falta e o agente publica uma mensagem. Mensagens ficam na tabela
 futuros), são mostradas em `/admin/mensagens` e, quando o SMTP está
 configurado, enviadas por e-mail ao administrador (`ADMIN_ALERT_EMAIL`).
 Anti-ruído: no máximo um alerta por produto a cada 24h.
-Não usa LLM (previsão determinística), então não entra em
-`docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.
+**Dois "cérebros" selecionáveis (2026-10-15, mesma data, pedido do dono do
+projeto "para fins de aprendizagem e teste"):** o agente tem o cérebro
+determinístico acima e um cérebro de IA (`app.agents.estoque_ia`), e o
+administrador escolhe qual fica ativo em `/admin/modelos` → configurações de
+execução: `estoque_agent_mode` = `desativado` | `deterministico` (padrão) |
+`ia`, e `estoque_agent_llm` = `local` (Ollama) | `externo` (OpenRouter), no
+modo IA. A configuração usa o mesmo mecanismo das demais (`PUT
+/api/admin/runtime-settings`, persistida em `app_settings`, restaurada no
+boot) e fica em `app.agents.runtime`, porque o gancho de `criar_pedido` não
+tem acesso a `request.app`. No modo IA o LLM recebe só fatos estruturados
+(estoque por centro, baixa diária dos 30 dias, preço — nada de texto livre de
+usuário) e devolve JSON com `risco`, `dias_ate_falta`, `reposicao_sugerida`,
+`alertar` e `justificativa`; o alerta usa esse texto. Roda em segundo plano
+com sessão própria (o LLM leva segundos e a reserva não espera) e, se falhar
+ou devolver JSON inválido, cai na regra determinística, então nenhum alerta
+se perde. Produtos sem baixa na janela não consultam o LLM (sem custo à toa).
+A chamada entra no ledger de uso de IA (origem `admin`, operação
+`agente_estoque_ia`). A mensagem traz `agente` = `estoque_ia` ou
+`estoque_preditivo`, mostrando qual decidiu.
+`# MVP:` uma chamada de LLM por produto avaliado; sem cache nem few-shot; o
+modo IA não compara automaticamente seus resultados com os do determinístico
+(isso seria avaliação experimental, Fase 10).
 `# MVP:` taxa constante (média móvel de 30 dias, sem sazonalidade nem
 tendência); estoque somado entre centros (não alerta por centro); sem
 reposição automática nem ordem de compra; e-mail via SMTP simples, sem

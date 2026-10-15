@@ -565,11 +565,22 @@ async def _acionar_agente_estoque(session: AsyncSession, produto_ids: set[int]) 
     """Agente de previsão de estoque (R13), depois do commit do pedido.
 
     Qualquer falha é engolida: o agente nunca desfaz nem derruba a reserva.
+    O modo determinístico roda na própria sessão (é barato); o modo IA vai
+    para segundo plano, porque o LLM leva segundos e a reserva não espera.
     """
     try:
-        from app.agents.estoque_preditivo import avaliar_estoque
+        from app.agents.estoque_preditivo import (
+            avaliar_estoque,
+            avaliar_estoque_em_segundo_plano,
+        )
+        from app.agents.runtime import runtime
+        from app.background_tasks import spawn_background_task
+        from app.services.ai_usage import _global_sessionmaker
 
-        await avaliar_estoque(session, produto_ids)
+        if runtime.estoque_modo == "ia" and _global_sessionmaker is not None:
+            spawn_background_task(avaliar_estoque_em_segundo_plano(produto_ids))
+        else:
+            await avaliar_estoque(session, produto_ids)
     except Exception:  # noqa: BLE001
         logging.getLogger("assistente.catalog").exception("Agente de estoque falhou")
 

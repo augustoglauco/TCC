@@ -11,6 +11,7 @@ import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.agents.runtime import runtime as agent_runtime
 from app.api.admin_atendimento import router as admin_atendimento_router
 from app.api.admin_charts import router as admin_charts_router
 from app.api.admin_ferramentas import router as admin_ferramentas_router
@@ -108,6 +109,10 @@ def _apply_runtime_settings(app: FastAPI, settings_dict: dict[str, Any]) -> None
         app.state.tone_monitor_enabled = settings_dict["tone_monitor_enabled"]
     if "tone_monitor_provider" in settings_dict:
         app.state.tone_monitor_provider = settings_dict["tone_monitor_provider"]
+    if "estoque_agent_mode" in settings_dict:
+        agent_runtime.estoque_modo = settings_dict["estoque_agent_mode"]
+    if "estoque_agent_llm" in settings_dict:
+        agent_runtime.estoque_llm = settings_dict["estoque_agent_llm"]
     if "local_llm_warmup_on_startup" in settings_dict:
         app.state.local_llm_warmup_on_startup = bool(settings_dict["local_llm_warmup_on_startup"])
 
@@ -213,6 +218,10 @@ def create_app() -> FastAPI:
         jev_model=settings.jev_model_name,
         jev_timeout_s=settings.jev_timeout_s,
     )
+    # Agentes autônomos (R13): o gancho de `criar_pedido` não tem `request`,
+    # então os clientes de LLM vão para o runtime dos agentes.
+    agent_runtime.local_client = app.state.local_client
+    agent_runtime.external_client = app.state.external_client
 
     # Gerenciador de modelos locais (além do MVP — ver
     # docs/superpowers/specs/2026-09-16-local-model-manager-design.md).

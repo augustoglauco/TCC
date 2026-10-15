@@ -151,6 +151,8 @@ async def test_get_devolve_valores_atuais_dos_clientes(db_session, admin_headers
         "intent_router_provider": "heuristica_llm",
         "tone_monitor_enabled": True,
         "tone_monitor_provider": "heuristica_llm",
+        "estoque_agent_mode": "deterministico",
+        "estoque_agent_llm": "local",
         "local_llm_keep_alive": "-1",
         "local_llm_warmup_on_startup": True,
         "local_model_loaded": False,

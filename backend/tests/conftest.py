@@ -336,3 +336,13 @@ def app_sqlite(db_session, tmp_path, monkeypatch):
     app.dependency_overrides[_get_clip_store] = lambda: _FakeClipImageStore()
     app.dependency_overrides[_get_clip_embedder] = lambda: object()
     return app
+
+
+@pytest.fixture(autouse=True)
+def _reset_agent_runtime():
+    """O runtime dos agentes (R13) é estado de processo: restaura entre testes."""
+    from app.agents.runtime import AgentRuntime, runtime
+
+    runtime.__dict__.update(AgentRuntime().__dict__)
+    yield
+    runtime.__dict__.update(AgentRuntime().__dict__)

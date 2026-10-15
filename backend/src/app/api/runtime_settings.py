@@ -3,6 +3,7 @@ import logging
 
 from fastapi import APIRouter, Depends, Request
 
+from app.agents.runtime import runtime as agent_runtime
 from app.api.admin_auth import require_admin
 from app.db.settings import save_multiple_app_settings
 from app.models.runtime_settings import (
@@ -77,6 +78,8 @@ async def _build_response(request: Request) -> RuntimeSettingsResponse:
         intent_router_provider=intent_provider,
         tone_monitor_enabled=tone_monitor_enabled,
         tone_monitor_provider=tone_monitor_provider,
+        estoque_agent_mode=agent_runtime.estoque_modo,
+        estoque_agent_llm=agent_runtime.estoque_llm,
         local_llm_keep_alive=keep_alive,
         local_llm_warmup_on_startup=warmup_on_startup,
         local_model_loaded=local_model_loaded,
@@ -141,6 +144,10 @@ async def update_runtime_settings(
         request.app.state.tone_monitor_enabled = campos["tone_monitor_enabled"]
     if "tone_monitor_provider" in campos:
         request.app.state.tone_monitor_provider = campos["tone_monitor_provider"]
+    if "estoque_agent_mode" in campos:
+        agent_runtime.estoque_modo = campos["estoque_agent_mode"]
+    if "estoque_agent_llm" in campos:
+        agent_runtime.estoque_llm = campos["estoque_agent_llm"]
     if "local_llm_keep_alive" in campos:
         local_client.keep_alive = campos["local_llm_keep_alive"]
         if hasattr(local_client, "preload") and inspect.iscoroutinefunction(local_client.preload):
