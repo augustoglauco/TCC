@@ -1909,6 +1909,20 @@ conversa e classificação do usuário").
       não promete rebuild automático, então o painel `/admin/ferramentas`
       segue coerente com o hook desligado.
 
+- [x] Cobrir em Playwright as quatro mudanças de interação do chat
+      (2026-10-14) — elas tinham ido para `master` validadas só em jsdom, e
+      justamente as mais sensíveis a navegador real. Ambiente subido com
+      `./g.sh` (Postgres/Qdrant, backend 8000, frontend 3001, Ollama, os dois
+      MCPs, Caddy): a suíte e2e existente passou 10/10, confirmando que nada
+      quebrou, mas nenhum daqueles testes exercitava as mudanças novas. Criado
+      `frontend/tests/e2e/chat-interacao.spec.ts` com 4 casos — card rico
+      navega e fecha o modal, foco volta à caixa após enviar, abertura salta
+      para a última mensagem (`toBeInViewport`), e foco na abertura em
+      ponteiro preciso. Verificado que os 4 falham com `ChatModal.tsx` e
+      `cards/ProductCard.tsx` revertidos a `028fed7`. Total: 14 testes e2e.
+      Pendência consciente: o caso touch continua só em Vitest (exigiria um
+      projeto `devices["Pixel 5"]` no config, mudança de escopo).
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

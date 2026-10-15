@@ -1266,8 +1266,8 @@
     "semantic_hash": "1182cbd2e362d8e8f634987d156481a4"
   },
   "frontend/components/chat/ChatModal.tsx": {
-    "mtime": 1792023504.503148,
-    "seen": 1792023571.9907134,
+    "mtime": 1792033312.0379846,
+    "seen": 1792033373.1619036,
     "ast_hash": "9759d3dc45c9a3eb7228319dc96a6d24",
     "semantic_hash": ""
   },
@@ -1320,8 +1320,8 @@
     "semantic_hash": "dee91801cb0b94d9099498b40d5dc7ad"
   },
   "frontend/components/chat/cards/ProductCard.tsx": {
-    "mtime": 1792022410.1411817,
-    "seen": 1792022551.016095,
+    "mtime": 1792033312.0379846,
+    "seen": 1792033373.1619153,
     "ast_hash": "f2ac710804be3d0af238ac8185b0ab06",
     "semantic_hash": ""
   },
@@ -1668,9 +1668,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1792029473.9988723,
-    "seen": 1792029498.7455378,
-    "ast_hash": "bcc627bbb25786daec2fb9f0f5510258",
+    "mtime": 1792030424.2740355,
+    "seen": 1792033373.1619897,
+    "ast_hash": "0bd5bd8621f0440d085d4a52e887bdae",
     "semantic_hash": ""
   },
   "README.md": {
@@ -1770,9 +1770,9 @@
     "semantic_hash": "a824b21331368000d3937b125aef8436"
   },
   "docs/FRONTEND.md": {
-    "mtime": 1792023567.0157495,
-    "seen": 1792023571.9908292,
-    "ast_hash": "18a36998fbcfc9e249b83433514b1cb4",
+    "mtime": 1792033348.024035,
+    "seen": 1792033373.162008,
+    "ast_hash": "c99d58f62586efe3873242e1866034e5",
     "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_ADMINISTRADOR.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792029493.981887,
-    "seen": 1792029498.7455635,
-    "ast_hash": "e51f9706754002f24869af92025aefa2",
+    "mtime": 1792033348.0252366,
+    "seen": 1792033373.162017,
+    "ast_hash": "b139a594b7b17e21d72e2b8f02ab7b3f",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {

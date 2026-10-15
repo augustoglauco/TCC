@@ -611,7 +611,22 @@ de componente vivem em `tests/components/` (Vitest + Testing Library).
 - Testes: **Vitest + Testing Library** para componentes (ex.: `MessageBubble`
   renderiza cards corretamente); **Playwright** para os fluxos E2E críticos —
   enviar mensagem de texto, gravar/enviar áudio, enviar imagem, fluxo de
-  pedido, login. Config em `playwright.config.ts` (só Chromium; `webServer`
+  pedido, login, e as interações do widget em
+  `tests/e2e/chat-interacao.spec.ts` (2026-10-14: card rico fecha o modal ao
+  navegar, foco de volta na caixa após enviar, abertura já na última
+  mensagem, foco na abertura em ponteiro preciso).
+  **Por que essas quatro precisam de Playwright e não bastam em Vitest:** o
+  jsdom não tem layout — `scrollIntoView` é mock e não existe "estar visível
+  na área rolável" —, então `toBeInViewport()`, `toBeFocused()` depois de um
+  `requestAnimationFrame` e a navegação real do `next/link` só valem num
+  navegador. Verificado que os quatro falham com os componentes revertidos ao
+  commit anterior. O caso touch (`pointer: coarse`) segue coberto só em
+  Vitest, com stub de `matchMedia`: exigiria um projeto novo com
+  `devices["Pixel 5"]` no `playwright.config.ts`.
+  Nota de autoria de teste: com o modal aberto, o botão flutuante do
+  `ChatWidget` ("Fechar chat") fica fora da árvore de acessibilidade e
+  `getByRole` não o acha — para fechar, use o "Fechar" do
+  `components/ui/Modal.tsx`. Config em `playwright.config.ts` (só Chromium; `webServer`
   reaproveita `npm run dev` se já estiver rodando). `# MVP: os testes E2E do
   chat mockam POST /api/chat/messages via page.route em vez de depender do
   backend e do modelo local (Ollama)/STT reais — cobre o comportamento da UI
