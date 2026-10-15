@@ -117,6 +117,24 @@ describe("ChatModal", () => {
     );
   });
 
+  it("devolve o foco à caixa de mensagem após clicar em Enviar", async () => {
+    const user = userEvent.setup();
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-foco");
+      onToken("Resposta.");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+    });
+
+    renderModal();
+
+    const caixa = screen.getByLabelText("Mensagem");
+    await user.type(caixa, "Olá");
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Resposta.")).toBeInTheDocument();
+    await waitFor(() => expect(caixa).toHaveFocus());
+  });
+
   it("propaga o provedor do roteador para o painel de métricas", async () => {
     const user = userEvent.setup();
     mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {

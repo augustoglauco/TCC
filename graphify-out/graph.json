@@ -1095,19 +1095,6 @@
       "source_location": "L7"
     },
     {
-      "id": "backend_src_app_router_ollama_client_localvisionresult",
-      "label": "LocalVisionResult",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 173,
-      "community_name": "VisionModelIndisponivelError",
-      "file_type": "code",
-      "norm_label": "localvisionresult",
-      "source_file": "backend/src/app/router/ollama_client.py",
-      "source_location": "L14"
-    },
-    {
       "id": "backend_src_app_router_openrouter_client_visionresult",
       "label": "VisionResult",
       "_callable": true,
@@ -1121,13 +1108,26 @@
       "source_location": "L26"
     },
     {
+      "id": "frontend_components_admin_products_categoryfilter_categoryfilterprops",
+      "label": "CategoryFilterProps",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "categoryfilterprops",
+      "source_file": "frontend/components/admin/products/CategoryFilter.tsx",
+      "source_location": "L5"
+    },
+    {
       "id": "frontend_components_admin_products_productformmodal_productformmodalprops",
       "label": "ProductFormModalProps",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "productformmodalprops",
       "source_file": "frontend/components/admin/products/ProductFormModal.tsx",
@@ -1140,7 +1140,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "productlisttableprops",
       "source_file": "frontend/components/admin/products/ProductListTable.tsx",
@@ -1153,7 +1153,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "stockdetailbadgeprops",
       "source_file": "frontend/components/admin/products/ProductListTable.tsx",
@@ -1166,7 +1166,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "adminproduct",
       "source_file": "frontend/lib/types/adminProducts.ts",
@@ -1179,7 +1179,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "adminproductstock",
       "source_file": "frontend/lib/types/adminProducts.ts",
@@ -1355,17 +1355,17 @@
       "source_location": "L53"
     },
     {
-      "id": "frontend_components_admin_products_categoryfilter_categoryfilterprops",
-      "label": "CategoryFilterProps",
+      "id": "backend_src_app_router_ollama_client_localvisionresult",
+      "label": "LocalVisionResult",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 189,
-      "community_name": "CategoryFilter.tsx",
+      "community_name": ".describe_image",
       "file_type": "code",
-      "norm_label": "categoryfilterprops",
-      "source_file": "frontend/components/admin/products/CategoryFilter.tsx",
-      "source_location": "L5"
+      "norm_label": "localvisionresult",
+      "source_file": "backend/src/app/router/ollama_client.py",
+      "source_location": "L14"
     },
     {
       "id": "backend_src_app_services_ai_usage_report_acumulador",
@@ -6939,18 +6939,6 @@
       "source_location": "L510"
     },
     {
-      "id": "frontend_app_admin_produtos_page_adminprodutospage",
-      "label": "AdminProdutosPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "getApiBaseUrl",
-      "file_type": "code",
-      "norm_label": "adminprodutospage()",
-      "source_file": "frontend/app/admin/produtos/page.tsx",
-      "source_location": "L27"
-    },
-    {
       "id": "frontend_components_admin_products_productformmodal_productformmodal",
       "label": "ProductFormModal()",
       "_callable": true,
@@ -6999,6 +6987,18 @@
       "source_location": "L27"
     },
     {
+      "id": "frontend_lib_api_adminproducts_confirmcatalogextraction",
+      "label": "confirmCatalogExtraction()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "getApiBaseUrl",
+      "file_type": "code",
+      "norm_label": "confirmcatalogextraction()",
+      "source_file": "frontend/lib/api/adminProducts.ts",
+      "source_location": "L149"
+    },
+    {
       "id": "frontend_lib_api_adminproducts_createadminproduct",
       "label": "createAdminProduct()",
       "_callable": true,
@@ -7009,18 +7009,6 @@
       "norm_label": "createadminproduct()",
       "source_file": "frontend/lib/api/adminProducts.ts",
       "source_location": "L70"
-    },
-    {
-      "id": "frontend_lib_api_adminproducts_deleteadminproduct",
-      "label": "deleteAdminProduct()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "getApiBaseUrl",
-      "file_type": "code",
-      "norm_label": "deleteadminproduct()",
-      "source_file": "frontend/lib/api/adminProducts.ts",
-      "source_location": "L103"
     },
     {
       "id": "frontend_lib_api_adminproducts_deleteadminproductcompatibility",
@@ -7059,18 +7047,6 @@
       "source_location": "L224"
     },
     {
-      "id": "frontend_lib_api_adminproducts_fetchadmincategories",
-      "label": "fetchAdminCategories()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "getApiBaseUrl",
-      "file_type": "code",
-      "norm_label": "fetchadmincategories()",
-      "source_file": "frontend/lib/api/adminProducts.ts",
-      "source_location": "L50"
-    },
-    {
       "id": "frontend_lib_api_adminproducts_fetchadminproduct",
       "label": "fetchAdminProduct()",
       "_callable": true,
@@ -7093,18 +7069,6 @@
       "norm_label": "fetchadminproductcompatibilities()",
       "source_file": "frontend/lib/api/adminProducts.ts",
       "source_location": "L243"
-    },
-    {
-      "id": "frontend_lib_api_adminproducts_fetchadminproducts",
-      "label": "fetchAdminProducts()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "getApiBaseUrl",
-      "file_type": "code",
-      "norm_label": "fetchadminproducts()",
-      "source_file": "frontend/lib/api/adminProducts.ts",
-      "source_location": "L31"
     },
     {
       "id": "frontend_lib_api_adminproducts_updateadminproduct",
@@ -7141,6 +7105,18 @@
       "norm_label": "uploadadminproductimage()",
       "source_file": "frontend/lib/api/adminProducts.ts",
       "source_location": "L114"
+    },
+    {
+      "id": "frontend_lib_api_adminproducts_uploadtempimage",
+      "label": "uploadTempImage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 15,
+      "community_name": "getApiBaseUrl",
+      "file_type": "code",
+      "norm_label": "uploadtempimage()",
+      "source_file": "frontend/lib/api/adminProducts.ts",
+      "source_location": "L165"
     },
     {
       "id": "frontend_lib_api_apibaseurl_getapibaseurl",
@@ -7767,42 +7743,6 @@
       "source_location": "L87"
     },
     {
-      "id": "backend_src_app_router_ollama_client_localvisionresult_new",
-      "label": ".__new__()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 173,
-      "community_name": "VisionModelIndisponivelError",
-      "file_type": "code",
-      "norm_label": ".__new__()",
-      "source_file": "backend/src/app/router/ollama_client.py",
-      "source_location": "L25"
-    },
-    {
-      "id": "backend_src_app_router_ollama_client_ollamaclient_describe_image",
-      "label": ".describe_image()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 173,
-      "community_name": "VisionModelIndisponivelError",
-      "file_type": "code",
-      "norm_label": ".describe_image()",
-      "source_file": "backend/src/app/router/ollama_client.py",
-      "source_location": "L291"
-    },
-    {
-      "id": "backend_src_app_router_ollama_client_ollamaclient_get_model_details",
-      "label": ".get_model_details()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 173,
-      "community_name": "VisionModelIndisponivelError",
-      "file_type": "code",
-      "norm_label": ".get_model_details()",
-      "source_file": "backend/src/app/router/ollama_client.py",
-      "source_location": "L460"
-    },
-    {
       "id": "backend_src_app_router_openrouter_client_openrouterclient_custo_detalhado_visao",
       "label": "._custo_detalhado_visao()",
       "_callable": true,
@@ -7839,12 +7779,48 @@
       "source_location": "L38"
     },
     {
+      "id": "frontend_app_admin_produtos_page_adminprodutospage",
+      "label": "AdminProdutosPage()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "adminprodutospage()",
+      "source_file": "frontend/app/admin/produtos/page.tsx",
+      "source_location": "L27"
+    },
+    {
+      "id": "frontend_components_admin_products_categoryfilter_categoryfilter",
+      "label": "CategoryFilter()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "categoryfilter()",
+      "source_file": "frontend/components/admin/products/CategoryFilter.tsx",
+      "source_location": "L12"
+    },
+    {
+      "id": "frontend_components_admin_products_categoryfilter_categoryfilter_handleclickoutside",
+      "label": "handleClickOutside()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "handleclickoutside()",
+      "source_file": "frontend/components/admin/products/CategoryFilter.tsx",
+      "source_location": "L24"
+    },
+    {
       "id": "frontend_components_admin_products_productlisttable_productlisttable",
       "label": "ProductListTable()",
       "_callable": true,
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "productlisttable()",
       "source_file": "frontend/components/admin/products/ProductListTable.tsx",
@@ -7856,11 +7832,47 @@
       "_callable": true,
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "stockdetailbadge()",
       "source_file": "frontend/components/admin/products/ProductListTable.tsx",
       "source_location": "L14"
+    },
+    {
+      "id": "frontend_lib_api_adminproducts_deleteadminproduct",
+      "label": "deleteAdminProduct()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "deleteadminproduct()",
+      "source_file": "frontend/lib/api/adminProducts.ts",
+      "source_location": "L103"
+    },
+    {
+      "id": "frontend_lib_api_adminproducts_fetchadmincategories",
+      "label": "fetchAdminCategories()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "fetchadmincategories()",
+      "source_file": "frontend/lib/api/adminProducts.ts",
+      "source_location": "L50"
+    },
+    {
+      "id": "frontend_lib_api_adminproducts_fetchadminproducts",
+      "label": "fetchAdminProducts()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "fetchadminproducts()",
+      "source_file": "frontend/lib/api/adminProducts.ts",
+      "source_location": "L31"
     },
     {
       "id": "frontend_lib_hooks_useestanocliente_subscribenoop",
@@ -7868,7 +7880,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "subscribenoop()",
       "source_file": "frontend/lib/hooks/useEstaNoCliente.ts",
@@ -7880,7 +7892,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "useestanocliente()",
       "source_file": "frontend/lib/hooks/useEstaNoCliente.ts",
@@ -8499,28 +8511,40 @@
       "source_location": "L141"
     },
     {
-      "id": "frontend_components_admin_products_categoryfilter_categoryfilter",
-      "label": "CategoryFilter()",
+      "id": "backend_src_app_router_ollama_client_localvisionresult_new",
+      "label": ".__new__()",
       "_callable": true,
       "_origin": "ast",
       "community": 189,
-      "community_name": "CategoryFilter.tsx",
+      "community_name": ".describe_image",
       "file_type": "code",
-      "norm_label": "categoryfilter()",
-      "source_file": "frontend/components/admin/products/CategoryFilter.tsx",
-      "source_location": "L12"
+      "norm_label": ".__new__()",
+      "source_file": "backend/src/app/router/ollama_client.py",
+      "source_location": "L25"
     },
     {
-      "id": "frontend_components_admin_products_categoryfilter_categoryfilter_handleclickoutside",
-      "label": "handleClickOutside()",
+      "id": "backend_src_app_router_ollama_client_ollamaclient_describe_image",
+      "label": ".describe_image()",
       "_callable": true,
       "_origin": "ast",
       "community": 189,
-      "community_name": "CategoryFilter.tsx",
+      "community_name": ".describe_image",
       "file_type": "code",
-      "norm_label": "handleclickoutside()",
-      "source_file": "frontend/components/admin/products/CategoryFilter.tsx",
-      "source_location": "L24"
+      "norm_label": ".describe_image()",
+      "source_file": "backend/src/app/router/ollama_client.py",
+      "source_location": "L291"
+    },
+    {
+      "id": "backend_src_app_router_ollama_client_ollamaclient_get_model_details",
+      "label": ".get_model_details()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 189,
+      "community_name": ".describe_image",
+      "file_type": "code",
+      "norm_label": ".get_model_details()",
+      "source_file": "backend/src/app/router/ollama_client.py",
+      "source_location": "L460"
     },
     {
       "id": "backend_src_app_api_admin_metrics_dia_local",
@@ -9228,7 +9252,7 @@
       "file_type": "code",
       "norm_label": "handledragleave()",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L408"
+      "source_location": "L414"
     },
     {
       "id": "frontend_components_chat_chatmodal_chatmodal_handledragover",
@@ -9240,7 +9264,7 @@
       "file_type": "code",
       "norm_label": "handledragover()",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L402"
+      "source_location": "L408"
     },
     {
       "id": "frontend_components_chat_chatmodal_chatmodal_handledrop",
@@ -9252,7 +9276,7 @@
       "file_type": "code",
       "norm_label": "handledrop()",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L415"
+      "source_location": "L421"
     },
     {
       "id": "frontend_components_chat_chatmodal_chatmodal_handleretry",
@@ -9264,7 +9288,7 @@
       "file_type": "code",
       "norm_label": "handleretry()",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L384"
+      "source_location": "L390"
     },
     {
       "id": "frontend_components_chat_chatmodal_chatmodal_handlesolicitaratendente",
@@ -9288,7 +9312,7 @@
       "file_type": "code",
       "norm_label": "submitaudio()",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L315"
+      "source_location": "L321"
     },
     {
       "id": "frontend_components_chat_chatmodal_chatmodal_submitaudio_garantirbolha",
@@ -9300,7 +9324,7 @@
       "file_type": "code",
       "norm_label": "garantirbolha()",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L328"
+      "source_location": "L334"
     },
     {
       "id": "frontend_components_chat_chatmodal_chatmodal_submitmessage",
@@ -9312,7 +9336,7 @@
       "file_type": "code",
       "norm_label": "submitmessage()",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L222"
+      "source_location": "L228"
     },
     {
       "id": "frontend_components_chat_chatmodal_chatmodal_submitmessage_garantirbolha",
@@ -9324,7 +9348,7 @@
       "file_type": "code",
       "norm_label": "garantirbolha()",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L251"
+      "source_location": "L257"
     },
     {
       "id": "frontend_components_chat_chatwidget_chatwidget",
@@ -14811,18 +14835,6 @@
       "source_location": "L68"
     },
     {
-      "id": "frontend_lib_api_adminproducts_confirmcatalogextraction",
-      "label": "confirmCatalogExtraction()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "CatalogImportModal.tsx",
-      "file_type": "code",
-      "norm_label": "confirmcatalogextraction()",
-      "source_file": "frontend/lib/api/adminProducts.ts",
-      "source_location": "L149"
-    },
-    {
       "id": "frontend_lib_api_adminproducts_extractcatalogstream",
       "label": "extractCatalogStream()",
       "_callable": true,
@@ -14845,18 +14857,6 @@
       "norm_label": "parsesseblock()",
       "source_file": "frontend/lib/api/adminProducts.ts",
       "source_location": "L14"
-    },
-    {
-      "id": "frontend_lib_api_adminproducts_uploadtempimage",
-      "label": "uploadTempImage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 56,
-      "community_name": "CatalogImportModal.tsx",
-      "file_type": "code",
-      "norm_label": "uploadtempimage()",
-      "source_file": "frontend/lib/api/adminProducts.ts",
-      "source_location": "L165"
     },
     {
       "id": "cliente_b2b_src_client_probe_status_http",
@@ -19537,28 +19537,6 @@
       "source_location": "L1"
     },
     {
-      "id": "frontend_app_admin_produtos_page",
-      "label": "admin/produtos/page.tsx",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "getApiBaseUrl",
-      "file_type": "code",
-      "norm_label": "admin/produtos/page.tsx",
-      "source_file": "frontend/app/admin/produtos/page.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_app_admin_produtos_page_categorias_padrao",
-      "label": "CATEGORIAS_PADRAO",
-      "_origin": "ast",
-      "community": 15,
-      "community_name": "getApiBaseUrl",
-      "file_type": "code",
-      "norm_label": "categorias_padrao",
-      "source_file": "frontend/app/admin/produtos/page.tsx",
-      "source_location": "L16"
-    },
-    {
       "id": "frontend_components_admin_products_productformmodal",
       "label": "ProductFormModal.tsx",
       "_origin": "ast",
@@ -20997,17 +20975,6 @@
       "source_location": ""
     },
     {
-      "id": "backend_src_app_router_ollama_client_py_str",
-      "label": "str",
-      "_origin": "ast",
-      "community": 173,
-      "community_name": "VisionModelIndisponivelError",
-      "file_type": "code",
-      "norm_label": "str",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
       "id": "backend_src_app_router_openrouter_client_py_str",
       "label": "str",
       "_origin": "ast",
@@ -21028,39 +20995,6 @@
       "norm_label": "um cliente de visao (local ou externo) nao esta configurado, nao tem capability...",
       "source_file": "backend/src/app/router/llm_client.py",
       "source_location": "L8"
-    },
-    {
-      "id": "backend_src_app_router_ollama_client_rationale_15",
-      "label": "Subclasse de str que preserva o texto retornado por\u2026",
-      "_origin": "ast",
-      "community": 173,
-      "community_name": "VisionModelIndisponivelError",
-      "file_type": "rationale",
-      "norm_label": "subclasse de str que preserva o texto retornado por...",
-      "source_file": "backend/src/app/router/ollama_client.py",
-      "source_location": "L15"
-    },
-    {
-      "id": "backend_src_app_router_ollama_client_rationale_292",
-      "label": "Envia uma imagem + prompt ao modelo local (Ollama) e devolve o texto cru \u2014\u2026",
-      "_origin": "ast",
-      "community": 173,
-      "community_name": "VisionModelIndisponivelError",
-      "file_type": "rationale",
-      "norm_label": "envia uma imagem + prompt ao modelo local (ollama) e devolve o texto cru \u2014...",
-      "source_file": "backend/src/app/router/ollama_client.py",
-      "source_location": "L292"
-    },
-    {
-      "id": "backend_src_app_router_ollama_client_rationale_461",
-      "label": "Detalhes completos de um modelo j\u00e1 baixado (`POST /api/show`) \u2014 usado pelo\u2026",
-      "_origin": "ast",
-      "community": 173,
-      "community_name": "VisionModelIndisponivelError",
-      "file_type": "rationale",
-      "norm_label": "detalhes completos de um modelo ja baixado (`post /api/show`) \u2014 usado pelo...",
-      "source_file": "backend/src/app/router/ollama_client.py",
-      "source_location": "L461"
     },
     {
       "id": "backend_src_app_router_openrouter_client_rationale_212",
@@ -21085,11 +21019,44 @@
       "source_location": "L27"
     },
     {
+      "id": "frontend_app_admin_produtos_page",
+      "label": "admin/produtos/page.tsx",
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "admin/produtos/page.tsx",
+      "source_file": "frontend/app/admin/produtos/page.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_app_admin_produtos_page_categorias_padrao",
+      "label": "CATEGORIAS_PADRAO",
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "categorias_padrao",
+      "source_file": "frontend/app/admin/produtos/page.tsx",
+      "source_location": "L16"
+    },
+    {
+      "id": "frontend_components_admin_products_categoryfilter",
+      "label": "CategoryFilter.tsx",
+      "_origin": "ast",
+      "community": 174,
+      "community_name": "admin/produtos/page.tsx",
+      "file_type": "code",
+      "norm_label": "categoryfilter.tsx",
+      "source_file": "frontend/components/admin/products/CategoryFilter.tsx",
+      "source_location": "L1"
+    },
+    {
       "id": "frontend_components_admin_products_productlisttable",
       "label": "ProductListTable.tsx",
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "productlisttable.tsx",
       "source_file": "frontend/components/admin/products/ProductListTable.tsx",
@@ -21100,7 +21067,7 @@
       "label": "useEstaNoCliente.ts",
       "_origin": "ast",
       "community": 174,
-      "community_name": "ProductListTable.tsx",
+      "community_name": "admin/produtos/page.tsx",
       "file_type": "code",
       "norm_label": "useestanocliente.ts",
       "source_file": "frontend/lib/hooks/useEstaNoCliente.ts",
@@ -21965,15 +21932,48 @@
       "source_location": "L144"
     },
     {
-      "id": "frontend_components_admin_products_categoryfilter",
-      "label": "CategoryFilter.tsx",
+      "id": "backend_src_app_router_ollama_client_py_str",
+      "label": "str",
       "_origin": "ast",
       "community": 189,
-      "community_name": "CategoryFilter.tsx",
+      "community_name": ".describe_image",
       "file_type": "code",
-      "norm_label": "categoryfilter.tsx",
-      "source_file": "frontend/components/admin/products/CategoryFilter.tsx",
-      "source_location": "L1"
+      "norm_label": "str",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_src_app_router_ollama_client_rationale_15",
+      "label": "Subclasse de str que preserva o texto retornado por\u2026",
+      "_origin": "ast",
+      "community": 189,
+      "community_name": ".describe_image",
+      "file_type": "rationale",
+      "norm_label": "subclasse de str que preserva o texto retornado por...",
+      "source_file": "backend/src/app/router/ollama_client.py",
+      "source_location": "L15"
+    },
+    {
+      "id": "backend_src_app_router_ollama_client_rationale_292",
+      "label": "Envia uma imagem + prompt ao modelo local (Ollama) e devolve o texto cru \u2014\u2026",
+      "_origin": "ast",
+      "community": 189,
+      "community_name": ".describe_image",
+      "file_type": "rationale",
+      "norm_label": "envia uma imagem + prompt ao modelo local (ollama) e devolve o texto cru \u2014...",
+      "source_file": "backend/src/app/router/ollama_client.py",
+      "source_location": "L292"
+    },
+    {
+      "id": "backend_src_app_router_ollama_client_rationale_461",
+      "label": "Detalhes completos de um modelo j\u00e1 baixado (`POST /api/show`) \u2014 usado pelo\u2026",
+      "_origin": "ast",
+      "community": 189,
+      "community_name": ".describe_image",
+      "file_type": "rationale",
+      "norm_label": "detalhes completos de um modelo ja baixado (`post /api/show`) \u2014 usado pelo...",
+      "source_file": "backend/src/app/router/ollama_client.py",
+      "source_location": "L461"
     },
     {
       "id": "aiusagereport",
@@ -47533,7 +47533,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L187",
+      "source_location": "L193",
       "weight": 1.0
     },
     {
@@ -47545,7 +47545,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L192",
+      "source_location": "L198",
       "weight": 1.0
     },
     {
@@ -47557,7 +47557,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L504",
+      "source_location": "L517",
       "weight": 1.0
     },
     {
@@ -47569,7 +47569,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L511",
+      "source_location": "L524",
       "weight": 1.0
     },
     {
@@ -47629,7 +47629,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L431",
+      "source_location": "L437",
       "weight": 1.0
     },
     {
@@ -47641,7 +47641,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L435",
+      "source_location": "L441",
       "weight": 1.0
     },
     {
@@ -47653,7 +47653,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L389",
+      "source_location": "L395",
       "weight": 1.0
     },
     {
@@ -47665,7 +47665,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L398",
+      "source_location": "L404",
       "weight": 1.0
     },
     {
@@ -47701,7 +47701,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L318",
+      "source_location": "L324",
       "weight": 1.0
     },
     {
@@ -47713,7 +47713,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L337",
+      "source_location": "L343",
       "weight": 1.0
     },
     {
@@ -47725,7 +47725,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L349",
+      "source_location": "L355",
       "weight": 1.0
     },
     {
@@ -47737,7 +47737,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L366",
+      "source_location": "L372",
       "weight": 1.0
     },
     {
@@ -47749,7 +47749,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L242",
+      "source_location": "L248",
       "weight": 1.0
     },
     {
@@ -47761,7 +47761,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L260",
+      "source_location": "L266",
       "weight": 1.0
     },
     {
@@ -47773,7 +47773,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L276",
+      "source_location": "L282",
       "weight": 1.0
     },
     {
@@ -47785,7 +47785,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L278",
+      "source_location": "L284",
       "weight": 1.0
     },
     {
@@ -47797,7 +47797,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L293",
+      "source_location": "L299",
       "weight": 1.0
     },
     {
@@ -49681,7 +49681,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L222",
+      "source_location": "L228",
       "weight": 1.0
     },
     {
@@ -49693,7 +49693,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L315",
+      "source_location": "L321",
       "weight": 1.0
     },
     {
@@ -49729,7 +49729,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L328",
+      "source_location": "L334",
       "weight": 1.0
     },
     {
@@ -95189,7 +95189,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L384",
+      "source_location": "L390",
       "weight": 1.0
     },
     {
@@ -95200,7 +95200,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L402",
+      "source_location": "L408",
       "weight": 1.0
     },
     {
@@ -95211,7 +95211,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L408",
+      "source_location": "L414",
       "weight": 1.0
     },
     {
@@ -95222,7 +95222,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L415",
+      "source_location": "L421",
       "weight": 1.0
     },
     {
@@ -95233,7 +95233,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "frontend/components/chat/ChatModal.tsx",
-      "source_location": "L251",
+      "source_location": "L257",
       "weight": 1.0
     },
     {
@@ -116166,5 +116166,5 @@
       "source_file": "docs/superpowers/plans/2026-09-14-registro-documentos-rag.md"
     }
   ],
-  "built_at_commit": "028fed79c342e0b5c8ba1095ee54fae9ada25054"
+  "built_at_commit": "692087b4c9db99e477e2172b2bf7fa3c99313622"
 }

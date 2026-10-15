@@ -1846,6 +1846,17 @@ conversa e classificação do usuário").
       reaproveitando o mock de `next/link` que o teste do `ChatChartCard` já
       usava — 443 testes Vitest passando. Documentado em `docs/FRONTEND.md` §3.
 
+- [x] Devolver o foco à caixa de mensagem do chat após enviar (2026-10-14) —
+      pedido do usuário. O `<input>` é desabilitado durante o envio
+      (`controlsDisabled = isSending || isRecording`) e o clique no botão
+      "Enviar" move o foco para o botão, então o cursor não voltava para a
+      caixa. O `ChatModal` passou a marcar o pedido num `useRef` no `onSubmit`
+      e um efeito chama `inputRef.current?.focus()` quando os controles
+      reabrem — cobre clique e Enter, e também o caminho de erro. Teste de
+      regressão novo em `tests/components/ChatModal.test.tsx` (verificado que
+      falha sem a correção): 444 testes Vitest passando. Documentado em
+      `docs/FRONTEND.md` §3.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

@@ -142,6 +142,12 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   }
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  // O `<input>` fica `disabled` enquanto a mensagem é enviada, e o clique no
+  // botão "Enviar" já tira o foco da caixa — então o cursor não volta sozinho.
+  // Marca o pedido no envio e devolve o foco quando os controles reabrem
+  // (pedido do usuário, 2026-10-14).
+  const deveRefocarInput = useRef(false);
   const pendingInput = useChatStore((state) => state.pendingInput);
 
   useEffect(() => {
@@ -450,6 +456,13 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const controlsDisabled = isSending || isRecording;
   const canSend = !controlsDisabled && (!!input.trim() || !!pendingImage);
 
+  useEffect(() => {
+    if (open && !controlsDisabled && deveRefocarInput.current) {
+      deveRefocarInput.current = false;
+      inputRef.current?.focus();
+    }
+  }, [open, controlsDisabled]);
+
   return (
     <Modal
       open={open}
@@ -558,6 +571,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           <form
             onSubmit={(e) => {
               e.preventDefault();
+              deveRefocarInput.current = true;
               void submitMessage(input);
             }}
             className="flex items-center gap-1.5 sm:gap-2 min-w-0"
@@ -579,6 +593,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
               </div>
             )}
             <input
+              ref={inputRef}
               id="chat-modal-input"
               type="text"
               value={input}

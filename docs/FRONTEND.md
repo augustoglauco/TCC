@@ -129,6 +129,14 @@ com o histórico recarregado.
   `# MVP`: consulta genérica por categoria ou catálogo completo (que lista
   vários produtos, não um item único) ainda não tem card próprio — continua
   só em texto.
+- **Foco de volta na caixa de mensagem após enviar** (2026-10-14, pedido do
+  usuário): o `<input>` fica `disabled` enquanto `controlsDisabled`
+  (`isSending || isRecording`) está ligado, e o clique no botão "Enviar" já
+  move o foco para o botão — então o cursor não voltava sozinho. O `ChatModal`
+  marca o pedido num `useRef` no `onSubmit` do formulário e um efeito devolve
+  `inputRef.current?.focus()` quando os controles reabrem (vale para o clique
+  e para o Enter, e também quando o envio falha). Regressão coberta em
+  `tests/components/ChatModal.test.tsx`.
 - **Indicador de domínio** (opcional, mas recomendado para a demonstração do
   TCC): um rótulo discreto mostrando qual domínio o roteador identificou
   (Vendas / Suporte Técnico / Atendimento ao Usuário / Agendamento) — ajuda a

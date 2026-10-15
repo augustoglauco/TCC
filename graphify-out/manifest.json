@@ -1266,9 +1266,9 @@
     "semantic_hash": "1182cbd2e362d8e8f634987d156481a4"
   },
   "frontend/components/chat/ChatModal.tsx": {
-    "mtime": 1792009001.240632,
-    "seen": 1792009273.6350374,
-    "ast_hash": "7f6902fc2582cd839d73f32db1e88b08",
+    "mtime": 1792022737.3139348,
+    "seen": 1792022783.328298,
+    "ast_hash": "00f71486eefbba62df608525ab5c9629",
     "semantic_hash": ""
   },
   "frontend/components/chat/ChatWidget.tsx": {
@@ -1770,9 +1770,9 @@
     "semantic_hash": "a824b21331368000d3937b125aef8436"
   },
   "docs/FRONTEND.md": {
-    "mtime": 1792022512.166035,
-    "seen": 1792022551.016195,
-    "ast_hash": "bebfb634aee9fcb98b9d30d7c7ee97c6",
+    "mtime": 1792022778.0551984,
+    "seen": 1792022783.328384,
+    "ast_hash": "bb8191bfe7f3f96ef36e85a12599de80",
     "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_ADMINISTRADOR.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792022542.5842392,
-    "seen": 1792022551.016204,
-    "ast_hash": "282313e70ad7412beb452da5dc7fb899",
+    "mtime": 1792022778.0563056,
+    "seen": 1792022783.3283913,
+    "ast_hash": "1a95a7fb77cd8c8b3771fd9a4e9817e9",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
