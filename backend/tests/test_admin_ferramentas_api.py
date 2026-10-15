@@ -232,3 +232,33 @@ async def test_atualizar_graphify_503_sem_cli(
     )
 
     assert resposta.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_atualizar_gitnexus_roda_analyze_index_only(
+    ferramentas_client, admin_headers, graphify_em, monkeypatch
+):
+    chamadas = []
+
+    async def _falso(*args, **kwargs):
+        chamadas.append(args)
+        return _ProcessoFalso(0, b"indexado")
+
+    monkeypatch.setattr(admin_ferramentas.shutil, "which", lambda n: f"/usr/bin/{n}")
+    monkeypatch.setattr(admin_ferramentas.asyncio, "create_subprocess_exec", _falso)
+
+    resposta = ferramentas_client.post(
+        "/api/admin/ferramentas/gitnexus/atualizar", headers=admin_headers
+    )
+
+    assert resposta.status_code == 200
+    assert resposta.json() == {"sucesso": True, "saida": "indexado"}
+    assert chamadas[0][-2:] == ("analyze", "--index-only")
+
+
+@pytest.mark.asyncio
+async def test_atualizar_ferramenta_desconhecida_404(ferramentas_client, admin_headers):
+    resposta = ferramentas_client.post(
+        "/api/admin/ferramentas/repowise/atualizar", headers=admin_headers
+    )
+    assert resposta.status_code == 404

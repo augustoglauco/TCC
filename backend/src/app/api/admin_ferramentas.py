@@ -36,12 +36,15 @@ router = APIRouter(prefix="/api/admin/ferramentas", tags=["Admin Ferramentas"])
 # maior só faria a tela demorar a dizer "offline".
 _TIMEOUT_SONDAGEM_S = 1.5
 
-# MVP: `graphify update .` é AST puro (sem API), leva segundos a poucos
-# minutos; o teto evita processo pendurado e o lock impede duas execuções
+# MVP: `graphify update .` (AST puro, sem API) e `gitnexus analyze` levam
+# segundos a poucos minutos; o teto evita processo pendurado e o lock impede duas execuções
 # simultâneas gravando em `graphify-out/` ao mesmo tempo.
 _TIMEOUT_ATUALIZACAO_S = 300
 _SAIDA_MAX_CHARS = 4000
-_lock_atualizacao = asyncio.Lock()
+_locks_atualizacao: dict[str, asyncio.Lock] = {
+    "graphify": asyncio.Lock(),
+    "gitnexus": asyncio.Lock(),
+}
 
 
 class FerramentaStatus(BaseModel):
@@ -64,7 +67,7 @@ class FerramentaStatus(BaseModel):
     comando: str
 
 
-class AtualizacaoGraphifyResposta(BaseModel):
+class AtualizacaoResposta(BaseModel):
     sucesso: bool
     saida: str
 
@@ -187,35 +190,55 @@ async def obter_grafo_graphify() -> HTMLResponse:
     return HTMLResponse(content=caminho.read_text(encoding="utf-8"))
 
 
+def _comando_atualizacao(ferramenta_id: str, raiz: Path) -> list[str] | None:
+    """Comando que reindexa a ferramenta, ou `None` se não está instalada."""
+    if ferramenta_id == "graphify":
+        exe = shutil.which("graphify")
+        return [exe, "update", "."] if exe else None
+    # GitNexus: prefere o runner do repo (`.gitnexus/run.cjs`, que escolhe
+    # sozinho um runner disponível); cai para a CLI global.
+    runner = raiz / ".gitnexus" / "run.cjs"
+    node = shutil.which("node")
+    if runner.is_file() and node:
+        return [node, str(runner), "analyze", "--index-only"]
+    exe = shutil.which("gitnexus")
+    return [exe, "analyze", "--index-only"] if exe else None
+
+
 @router.post(
-    "/graphify/atualizar",
-    response_model=AtualizacaoGraphifyResposta,
+    "/{ferramenta_id}/atualizar",
+    response_model=AtualizacaoResposta,
     dependencies=[Depends(require_admin)],
 )
-async def atualizar_graphify() -> AtualizacaoGraphifyResposta:
-    """Roda `graphify update .` na raiz do repositório e devolve a saída.
+async def atualizar_ferramenta(ferramenta_id: str) -> AtualizacaoResposta:
+    """Reindexa o Graphify (`graphify update .`) ou o GitNexus
+    (`analyze --index-only`) na raiz do repositório e devolve a saída.
 
     A raiz é o pai de `graphify_out_dir`. Falha do comando não é erro HTTP:
     devolve `200` com `sucesso: false` e a saída, que a tela mostra.
     """
-    executavel = shutil.which("graphify")
-    if executavel is None:
+    lock = _locks_atualizacao.get(ferramenta_id)
+    if lock is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Ferramenta sem atualização por botão: {ferramenta_id}.",
+        )
+    raiz = Path(get_settings().graphify_out_dir).resolve().parent
+    comando = _comando_atualizacao(ferramenta_id, raiz)
+    if comando is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="CLI `graphify` não encontrada no PATH do backend.",
+            detail=f"CLI de {ferramenta_id} não encontrada no PATH do backend.",
         )
-    if _lock_atualizacao.locked():
+    if lock.locked():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Já existe uma atualização do Graphify em andamento.",
+            detail=f"Já existe uma atualização do {ferramenta_id} em andamento.",
         )
 
-    raiz = Path(get_settings().graphify_out_dir).resolve().parent
-    async with _lock_atualizacao:
+    async with lock:
         processo = await asyncio.create_subprocess_exec(
-            executavel,
-            "update",
-            ".",
+            *comando,
             cwd=raiz,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
@@ -227,11 +250,11 @@ async def atualizar_graphify() -> AtualizacaoGraphifyResposta:
         except TimeoutError:
             processo.kill()
             await processo.wait()
-            return AtualizacaoGraphifyResposta(
+            return AtualizacaoResposta(
                 sucesso=False,
                 saida=f"Tempo esgotado após {_TIMEOUT_ATUALIZACAO_S}s.",
             )
 
     saida = bruto.decode("utf-8", errors="replace").strip()[-_SAIDA_MAX_CHARS:]
-    logger.info("graphify update terminou com código %s", processo.returncode)
-    return AtualizacaoGraphifyResposta(sucesso=processo.returncode == 0, saida=saida)
+    logger.info("%s: atualização terminou com código %s", ferramenta_id, processo.returncode)
+    return AtualizacaoResposta(sucesso=processo.returncode == 0, saida=saida)

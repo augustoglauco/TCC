@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  atualizarGraphify,
+  atualizarFerramenta,
   fetchFerramentas,
   urlDeVisualizacao,
   FerramentaStatus,
@@ -48,6 +48,7 @@ export default function AdminFerramentasPage() {
 
   const [atualizando, setAtualizando] = useState(false);
   const [resultadoAtualizacao, setResultadoAtualizacao] = useState<{
+    id: string;
     sucesso: boolean;
     saida: string;
   } | null>(null);
@@ -70,17 +71,18 @@ export default function AdminFerramentasPage() {
     }
   }, [token]);
 
-  const atualizar = async () => {
+  const atualizar = async (id: "graphify" | "gitnexus") => {
     if (!token) return;
     setAtualizando(true);
     setResultadoAtualizacao(null);
     try {
-      setResultadoAtualizacao(await atualizarGraphify(token));
+      setResultadoAtualizacao({ id, ...(await atualizarFerramenta(id, token)) });
       await carregar();
     } catch (err: unknown) {
       setResultadoAtualizacao({
+        id,
         sucesso: false,
-        saida: err instanceof Error ? err.message : "Erro ao atualizar o Graphify.",
+        saida: err instanceof Error ? err.message : "Erro ao atualizar a ferramenta.",
       });
     } finally {
       setAtualizando(false);
@@ -178,14 +180,18 @@ export default function AdminFerramentasPage() {
         <section className="rounded-xl border border-gray-200 bg-white shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-4 py-3">
             <h2 className="font-medium text-gray-900">{ativa.nome}</h2>
-            {ativa.id === "graphify" && (
+            {(ativa.id === "graphify" || ativa.id === "gitnexus") && (
               <button
                 type="button"
-                onClick={() => void atualizar()}
+                onClick={() => void atualizar(ativa.id as "graphify" | "gitnexus")}
                 disabled={atualizando}
                 className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
               >
-                {atualizando ? "Atualizando..." : "Atualizar grafo (graphify update)"}
+                {atualizando
+                  ? "Atualizando..."
+                  : ativa.id === "graphify"
+                    ? "Atualizar grafo (graphify update)"
+                    : "Atualizar índice (gitnexus analyze)"}
               </button>
             )}
             {urlAtiva && (
@@ -199,7 +205,7 @@ export default function AdminFerramentasPage() {
               </a>
             )}
           </div>
-          {ativa.id === "graphify" && resultadoAtualizacao && (
+          {resultadoAtualizacao && resultadoAtualizacao.id === ativa.id && (
             <div
               role="status"
               className={
@@ -217,7 +223,7 @@ export default function AdminFerramentasPage() {
                 ×
               </button>
               <pre className="max-h-48 overflow-auto px-4 py-3 pr-10 text-xs">
-                {resultadoAtualizacao.sucesso ? "Grafo atualizado.\n" : "Falha na atualização.\n"}
+                {resultadoAtualizacao.sucesso ? "Atualizado.\n" : "Falha na atualização.\n"}
                 {resultadoAtualizacao.saida}
               </pre>
             </div>

@@ -61,20 +61,26 @@ export function urlDeVisualizacao(ferramenta: FerramentaStatus, token: string): 
   return ferramenta.url;
 }
 
-export interface AtualizacaoGraphifyResposta {
+export interface AtualizacaoResposta {
   sucesso: boolean;
   saida: string;
 }
 
-/** `POST /api/admin/ferramentas/graphify/atualizar` — roda `graphify update .`. */
-export async function atualizarGraphify(token: string): Promise<AtualizacaoGraphifyResposta> {
-  const response = await fetch(`${getApiBaseUrl()}/api/admin/ferramentas/graphify/atualizar`, {
+/**
+ * `POST /api/admin/ferramentas/{id}/atualizar` — reindexa a ferramenta
+ * (`graphify update .` ou `gitnexus analyze --index-only`).
+ */
+export async function atualizarFerramenta(
+  id: "graphify" | "gitnexus",
+  token: string,
+): Promise<AtualizacaoResposta> {
+  const response = await fetch(`${getApiBaseUrl()}/api/admin/ferramentas/${id}/atualizar`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!response.ok) {
-    let detalhe = `Falha ao atualizar o Graphify (${response.status})`;
+    let detalhe = `Falha ao atualizar (${response.status})`;
     try {
       const corpo = (await response.json()) as { detail?: string };
       if (corpo.detail) detalhe = corpo.detail;
@@ -84,5 +90,5 @@ export async function atualizarGraphify(token: string): Promise<AtualizacaoGraph
     throw new Error(detalhe);
   }
 
-  return (await response.json()) as AtualizacaoGraphifyResposta;
+  return (await response.json()) as AtualizacaoResposta;
 }
