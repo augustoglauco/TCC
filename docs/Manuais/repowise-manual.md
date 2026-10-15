@@ -20,7 +20,9 @@ O ambiente de desenvolvimento deste projeto combina múltiplos serviços e utili
 | **OmniRoute**          | Gateway unificado de roteamento de LLMs                 | `20128` (HTTP)                                     | Sistema                                            |
 
 > [!NOTE]
-> **Isolamento de Portas:** O Repowise opera por padrão via `stdio` ao se comunicar com agentes (sem ocupar portas de rede). Quando levantado em modo servidor de rede (`repowise mcp --transport streamable-http` ou `repowise serve`), utiliza as portas `7338` (MCP) e `3002` (Web UI). **Medido em 2026-10-13 nesta máquina: a Web UI sobe na `3002` (servidor Next.js), não na `7339` — só `3002` e `4747` estavam escutando. A tela `/admin/ferramentas` usa a `3002`; ajuste `REPOWISE_WEB_URL` se mudar.** Livres de qualquer colisão com Strata (`8080`), Headroom (`8787`) ou Ollama (`11434`).
+> **Isolamento de Portas:** O Repowise opera por padrão via `stdio` ao se comunicar com agentes (sem ocupar portas de rede). Quando levantado em modo servidor de rede (`repowise mcp --transport streamable-http` ou `repowise serve`), utiliza as portas `7338` (MCP) e `3002` (Web UI). **Medido em 2026-10-13 nesta máquina: a Web UI sobe na `3002` (servidor Next.js), não na `7339` — só `3002` e `4747` estavam escutando. A tela `/admin/ferramentas` usa a `3002`; ajuste `REPOWISE_WEB_URL` se mudar.**
+>
+> **Atualização 2026-10-15 — proxy na 3002:** a UI real agora sobe na `3012` e a `3002` é um proxy Caddy local (`infra/caddy/Caddyfile.repowise`, subido pelo `./g.sh`) que acrescenta `Access-Control-Allow-Private-Network: true`. Sem isso o Chrome bloqueia o iframe de `/admin/ferramentas` quando o site é aberto por `augustoglauco.duckdns.org:3001` (página pública embutindo `localhost`); o GitNexus já manda esse cabeçalho, o Next.js do Repowise não. Para subir à mão: `repowise serve --ui-port 3012` e `~/.local/bin/caddy run --config infra/caddy/Caddyfile.repowise --adapter caddyfile`. Livres de qualquer colisão com Strata (`8080`), Headroom (`8787`) ou Ollama (`11434`).
 
 ---
 

@@ -114,15 +114,24 @@ main() {
         echo "⚠️  Graphify não encontrado (ver CLAUDE.md, regra 13)."
     fi
 
-    # `--ui-port` fixo: sem ele o Repowise escolhe a primeira porta livre a
-    # partir da 3000, e a tela (REPOWISE_WEB_URL) apontaria para a porta errada.
-    if curl -s -o /dev/null --max-time 3 http://localhost:3002; then
-        echo "Repowise já está no ar (3002)."
+    # A UI real do Repowise sobe na 3012 (`--ui-port` fixo: sem ele ele escolhe
+    # a primeira porta livre a partir da 3000). A 3002 — a que a tela
+    # /admin/ferramentas embute — é um proxy Caddy local que acrescenta
+    # `Access-Control-Allow-Private-Network` (ver infra/caddy/Caddyfile.repowise):
+    # sem ele o Chrome bloqueia o iframe quando o site é aberto pelo DuckDNS.
+    if curl -s -o /dev/null --max-time 3 http://localhost:3012; then
+        echo "Repowise já está no ar (3012)."
     elif command -v repowise >/dev/null 2>&1; then
-        nohup repowise serve --ui-port 3002 > /tmp/tcc-repowise.log 2>&1 & disown
-        echo "Repowise iniciado (log em /tmp/tcc-repowise.log)."
+        nohup repowise serve --ui-port 3012 > /tmp/tcc-repowise.log 2>&1 & disown
+        echo "Repowise iniciado na 3012 (log em /tmp/tcc-repowise.log)."
     else
         echo "⚠️  Repowise não encontrado (ver docs/Manuais/repowise-manual.md)."
+    fi
+    if curl -s -o /dev/null --max-time 3 -X OPTIONS http://localhost:3002; then
+        echo "Proxy do Repowise já está no ar (3002)."
+    elif [ -x ~/.local/bin/caddy ]; then
+        nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile.repowise --adapter caddyfile > /tmp/tcc-caddy-repowise.log 2>&1 & disown
+        echo "Proxy do Repowise iniciado na 3002 (log em /tmp/tcc-caddy-repowise.log)."
     fi
 
     # Binário do PATH primeiro, `.gitnexus/run.cjs` como alternativa — os dois
@@ -164,7 +173,7 @@ main() {
     checar_servico "Frontend (3001)"     "http://localhost:3001"
     checar_servico "Calendar MCP (8090)" "http://localhost:8090/mcp"
     checar_servico "MCP B2B (8100)"      "http://localhost:8100/mcp"
-    checar_servico "Repowise (3002)"     "http://localhost:3002"
+    checar_servico "Repowise (3002→3012)" "http://localhost:3002"
     checar_servico "GitNexus (4747)"     "http://localhost:4747"
     if [ -f graphify-out/graph.html ]; then
         printf "  ✅ %-22s -> artefato presente\n" "Graphify (grafo)"
