@@ -34,20 +34,20 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 
 ## Documentos de referência
 
-| Documento | Quando consultar |
-| --- | --- |
-| `docs/ARCHITECTURE.md` | Antes de implementar qualquer requisito — arquitetura, os 12 requisitos funcionais, escopo do MVP x evolução futura, riscos conhecidos. |
-| `docs/FRONTEND.md` | Antes de trabalhar no site/widget de chat — seções da interface, stack (Next.js), contrato de API com o backend. |
-| `docs/ROADMAP.md` | Para saber a próxima tarefa a implementar e marcar o progresso. |
-| `docs/CONVENTIONS.md` | Antes de escrever código — stack (versões e bibliotecas), estrutura de pastas, estilo, testes, git e rollback do Python 3.14. |
-| `docs/EVALUATION.md` | Ao implementar ou rodar a avaliação experimental (roteador, RAG, latência). |
-| `docs/AGENTIC_WORKFLOW.md` | Para entender a divisão de trabalho entre Antigravity e Claude Code CLI. |
-| `docs/TESTE_LOCAL.md` | Quando o código precisa ser validado na máquina do desenvolvedor (GPU/Ollama/dados reais) — `./testar.sh` roda o teste (`backend/scripts/teste_local.py`, suíte `SUITE_ATUAL`) e dá push do relatório em `testes_locais/`. |
-| `goup.md` (raiz) | Para instalar numa máquina nova (passo 0) ou subir o ambiente à mão; acesso externo, MCP B2B público com o manual do parceiro, solução de problemas. `./g.sh` sobe tudo de uma vez. |
-| `docs/Manuais/` | Manuais de uso do sistema (`HOWTO_USUARIO.md`, `HOWTO_ADMINISTRADOR.md`) e guias de ferramentas locais de desenvolvimento (`strata-manual.md`, `headroom-manual.md`, `repowise-manual.md`, `gitnexus-manual.md`). |
-| `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` | Mapeamento de todos os prompts/instruções de sistema/playbooks/extratores estruturados enviados a um LLM no código. Consulte antes de alterar qualquer prompt existente (para achar todos os pontos relacionados) e atualize sempre que um prompt for alterado ou um novo for criado — ver regra 11. |
-| `graphify-out/` (Knowledge Graph) | **Primeira consulta obrigatória** ao receber perguntas sobre código ou pedidos de alterações. Use a CLI (`graphify query`, `explain`, `path`) ou navegue por `wiki/index.md` e `GRAPH_REPORT.md` para entender arquitetura, dependências e nós centrais antes de ler arquivos brutos. |
-| `README.md` e `README_TCC.md` | Apresentação do projeto; o `README_TCC.md` é a entrega acadêmica no formato do curso. |
+| Documento                                    | Quando consultar                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/ARCHITECTURE.md`                     | Antes de implementar qualquer requisito — arquitetura, os 12 requisitos funcionais, escopo do MVP x evolução futura, riscos conhecidos.                                                                                                                                                                  |
+| `docs/FRONTEND.md`                         | Antes de trabalhar no site/widget de chat — seções da interface, stack (Next.js), contrato de API com o backend.                                                                                                                                                                                         |
+| `docs/ROADMAP.md`                          | Para saber a próxima tarefa a implementar e marcar o progresso.                                                                                                                                                                                                                                            |
+| `docs/CONVENTIONS.md`                      | Antes de escrever código — stack (versões e bibliotecas), estrutura de pastas, estilo, testes, git e rollback do Python 3.14.                                                                                                                                                                            |
+| `docs/EVALUATION.md`                       | Ao implementar ou rodar a avaliação experimental (roteador, RAG, latência).                                                                                                                                                                                                                              |
+| `docs/AGENTIC_WORKFLOW.md`                 | Para entender a divisão de trabalho entre Antigravity, Claude Code CLI e Kiro CLI.                                                                                                                                                                                                                                   |
+| `docs/TESTE_LOCAL.md`                      | Quando o código precisa ser validado na máquina do desenvolvedor (GPU/Ollama/dados reais) — `./testar.sh` roda o teste (`backend/scripts/teste_local.py`, suíte `SUITE_ATUAL`) e dá push do relatório em `testes_locais/`.                                                                    |
+| `goup.md` (raiz)                           | Para instalar numa máquina nova (passo 0) ou subir o ambiente à mão; acesso externo, MCP B2B público com o manual do parceiro, solução de problemas. `./g.sh` sobe tudo de uma vez.                                                                                                                 |
+| `docs/Manuais/`                            | Manuais de uso do sistema (`HOWTO_USUARIO.md`, `HOWTO_ADMINISTRADOR.md`) e guias de ferramentas locais de desenvolvimento (`strata-manual.md`, `headroom-manual.md`, `repowise-manual.md`, `gitnexus-manual.md`).                                                                               |
+| `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` | Mapeamento de todos os prompts/instruções de sistema/playbooks/extratores estruturados enviados a um LLM no código. Consulte antes de alterar qualquer prompt existente (para achar todos os pontos relacionados) e atualize sempre que um prompt for alterado ou um novo for criado — ver regra 11.    |
+| `graphify-out/` (Knowledge Graph)          | **Primeira consulta** ao receber perguntas sobre código ou pedidos de alteração — comandos na seção "Graphify" deste arquivo; ordem de uso com o GitNexus em `docs/CONVENTIONS.md`. |
+| `README.md` e `README_TCC.md`            | Apresentação do projeto; o `README_TCC.md` é a entrega acadêmica no formato do curso.                                                                                                                                                                                                                 |
 
 Não crie documentos novos fora desta lista (resumos, cópias de spec, guias
 paralelos): o conteúdo vai para o documento acima que já cobre o assunto.
@@ -110,24 +110,6 @@ manuais foram incorporados aos documentos acima e apagados.
     mapeado, atualize a entrada correspondente; ao criar um prompt novo,
     adicione uma entrada nova. Trate esse documento como desatualizado (bug a
     corrigir) se um prompt existir no código e não constar nele.
-12. **Sempre checar o Graphify primeiro ao receber perguntas sobre código ou pedir alterações.**
-    Sempre que o usuário fizer perguntas sobre o código/arquitetura ou solicitar
-    alterações/novas implementações, consulte **primeiramente** o knowledge graph
-    em `graphify-out/` antes de inspecionar arquivos brutos ou propor soluções:
-    - Execute `graphify query "<pergunta>"` (ou MCP `query_graph`) para obter um subgrafo enxuto de nós, classes e funções relevantes.
-    - Use `graphify explain "<conceito/símbolo>"` (ou MCP `get_node`) para inspecionar um conceito ou nó focalizado.
-    - Use `graphify path "<A>" "<B>"` (ou MCP `shortest_path`) para rastrear conexões e dependências entre componentes.
-    - Se `graphify-out/wiki/index.md` existir, navegue por ele em vez de ler arquivos brutos.
-    - Consulte `graphify-out/GRAPH_REPORT.md` apenas para visão macro da arquitetura ou se a busca direcionada não for suficiente.
-13. **Atualização automática do Graphify sempre após qualquer alteração no código.**
-    Sempre que houver alteração em arquivos de código (criação, edição, renomeação
-    ou exclusão no backend, frontend, scripts, etc.), execute de maneira **automática**
-    e sem esperar pedido manual:
-    ```bash
-    graphify update .
-    ```
-    Isso mantém o grafo em `graphify-out/` sempre atualizado e sincronizado (atualização
-    via AST, rápida e sem custo de API).
 
 ## Fora de escopo (não implementar sem pedido explícito)
 
@@ -145,9 +127,10 @@ Motivo detalhado de cada exclusão: `docs/ARCHITECTURE.md`, seções "Escopo do
 MVP e Evolução Futura" e "Riscos e Limitações".
 
 <!-- gitnexus:start -->
-# GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **TCC** (9509 symbols, 16710 relationships, 451 execution flows).
+## GitNexus — Code Intelligence
+
+This project is indexed by GitNexus as **TCC** (9706 symbols, 17030 relationships, 453 execution flows).
 
 > Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 
@@ -169,22 +152,49 @@ This project is indexed by GitNexus as **TCC** (9509 symbols, 16710 relationship
 
 ## Resources
 
-| Resource | Use for |
-| --- | --- |
-| `gitnexus://repo/TCC/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/TCC/clusters` | All functional areas |
-| `gitnexus://repo/TCC/processes` | All execution flows |
-| `gitnexus://repo/TCC/process/{name}` | Step-by-step execution trace |
+| Resource                               | Use for                                  |
+| -------------------------------------- | ---------------------------------------- |
+| `gitnexus://repo/TCC/context`        | Codebase overview, check index freshness |
+| `gitnexus://repo/TCC/clusters`       | All functional areas                     |
+| `gitnexus://repo/TCC/processes`      | All execution flows                      |
+| `gitnexus://repo/TCC/process/{name}` | Step-by-step execution trace             |
 
 ## CLI
 
-| Task | Read this skill file |
-| --- | --- |
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus-cli/SKILL.md` |
+| Task                                         | Read this skill file                                 |
+| -------------------------------------------- | ---------------------------------------------------- |
+| Understand architecture / "How does X work?" | `.claude/skills/gitnexus-exploring/SKILL.md`       |
+| Blast radius / "What breaks if I change X?"  | `.claude/skills/gitnexus-impact-analysis/SKILL.md` |
+| Trace bugs / "Why is X failing?"             | `.claude/skills/gitnexus-debugging/SKILL.md`       |
+| Rename / extract / split / refactor          | `.claude/skills/gitnexus-refactoring/SKILL.md`     |
+| Tools, resources, schema reference           | `.claude/skills/gitnexus-guide/SKILL.md`           |
+| Index, status, clean, wiki CLI commands      | `.claude/skills/gitnexus-cli/SKILL.md`             |
 
 <!-- gitnexus:end -->
+
+<!-- graphify:start -->
+
+## Graphify — Knowledge Graph (`graphify-out/`)
+
+Grafo do código (comunidades, nós centrais e relações entre arquivos) gerado
+via AST — rápido e sem custo de API.
+
+- **Consulte o grafo antes de abrir arquivo bruto**, ao responder sobre
+  código ou ao receber um pedido de alteração: `graphify query "<pergunta>"`
+  (subgrafo enxuto), `graphify explain "<símbolo/conceito>"` (nó focalizado),
+  `graphify path "<A>" "<B>"` (dependência entre dois pontos).
+- `graphify-out/wiki/index.md`, se existir, substitui a navegação pelo
+  código-fonte bruto. `graphify-out/GRAPH_REPORT.md` só para visão macro da
+  arquitetura, ou quando `query`/`explain`/`path` não derem contexto
+  suficiente.
+- **Depois de qualquer alteração em código**, sem esperar pedido:
+  `graphify update .`. É o item 9 do checklist de `docs/CONVENTIONS.md`,
+  cobrado pela regra 10.
+- O grafo orienta, não substitui: ler o arquivo bruto continua obrigatório
+  antes de editá-lo.
+
+A ordem de uso em relação ao outro grafo do repositório está em
+`docs/CONVENTIONS.md`, "Ordem de uso dos dois grafos de código" — fonte única
+para as três ferramentas.
+
+<!-- graphify:end -->

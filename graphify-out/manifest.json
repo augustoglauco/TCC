@@ -1662,15 +1662,15 @@
     "semantic_hash": ""
   },
   ".agents/rules/project.md": {
-    "mtime": 1790566164.6635647,
-    "seen": 1791840346.455918,
-    "ast_hash": "505d0018e92c63934006cd7f9f2998e4",
-    "semantic_hash": "505d0018e92c63934006cd7f9f2998e4"
+    "mtime": 1792028463.1524906,
+    "seen": 1792028797.4102366,
+    "ast_hash": "baa746a326ff233d543bfc1d8f0699a8",
+    "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1792023613.1267126,
-    "seen": 1792024209.9300354,
-    "ast_hash": "1b171cd38c3111c72ee37ae61d212238",
+    "mtime": 1792028453.438379,
+    "seen": 1792028797.4102476,
+    "ast_hash": "72bcfd6c7af9ada5918dcc242448df09",
     "semantic_hash": ""
   },
   "README.md": {
@@ -1758,9 +1758,9 @@
     "semantic_hash": ""
   },
   "docs/CONVENTIONS.md": {
-    "mtime": 1792008138.6947873,
-    "seen": 1792008869.799606,
-    "ast_hash": "d66c93f7ea579d424f8386b22050c150",
+    "mtime": 1792028473.6380498,
+    "seen": 1792028797.4102626,
+    "ast_hash": "85eeae13dcbdd4920e8688f0b9397319",
     "semantic_hash": ""
   },
   "docs/EVALUATION.md": {

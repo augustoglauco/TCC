@@ -24,8 +24,8 @@ implementar qualquer mudança:
   e git.
 - `docs/EVALUATION.md` — como implementar a avaliação experimental
   (acerto do roteador, qualidade do RAG, latência local x externo).
-- `docs/AGENTIC_WORKFLOW.md` — divisão de trabalho entre Antigravity e
-  Claude Code CLI, loop de trabalho e boas práticas de revisão.
+- `docs/AGENTIC_WORKFLOW.md` — divisão de trabalho entre Antigravity,
+  Claude Code CLI e Kiro CLI, loop de trabalho e boas práticas de revisão.
 - `docs/TESTE_LOCAL.md`, `goup.md` (instalação e subida do ambiente) e
   `docs/Manuais/` (manuais do usuário e do administrador) — lista completa
   e regra de "não criar documentos paralelos" na tabela do `CLAUDE.md`.
@@ -54,10 +54,17 @@ implementar qualquer mudança:
 6. Se uma tarefa exigir uma decisão de arquitetura não coberta nos
    documentos acima, pare e proponha a atualização de
    `docs/ARCHITECTURE.md` antes de prosseguir.
-8. Documentação sempre reflete o estado atual: ao desenvolver, alterar ou
+7. Documentação sempre reflete o estado atual: ao desenvolver, alterar ou
    evoluir algo que um `.md` acima descreve, atualize esse documento na
    mesma tarefa (não só o `ROADMAP.md` ou decisões novas de arquitetura —
    também `CONVENTIONS.md`, `FRONTEND.md`, `EVALUATION.md` quando o que
    mudou for stack, estrutura de pastas, contrato de API ou avaliação).
-9. Antes de cada commit, siga o checklist de `docs/CONVENTIONS.md`
+8. Antes de cada commit, siga o checklist de `docs/CONVENTIONS.md`
    ("Checklist antes de cada commit").
+9. Consulte o knowledge graph antes de ler código bruto, e atualize-o depois
+   de mexer no código: `graphify query "<pergunta>"`, `explain "<símbolo>"`
+   ou `path "<A>" "<B>"` para se orientar em `graphify-out/`; `graphify
+   update .` logo após qualquer alteração (AST, rápido e sem custo de API).
+   O grafo orienta, não substitui a leitura do trecho que você vai editar.
+   A ordem de uso junto com o GitNexus está em `docs/CONVENTIONS.md`,
+   "Ordem de uso dos dois grafos de código".

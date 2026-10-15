@@ -235,6 +235,15 @@ no backend e 10 no frontend. Antes de commitar, confira:
    spec, guias paralelos): atualize o documento que já cobre o assunto.
 9. Se houve alteração no código, execute `graphify update .` para manter
    o knowledge graph (`graphify-out/`) atualizado e sincronizado.
+10. Se houve alteração no código, rode a análise de mudanças do GitNexus —
+    `detect_changes({scope: "all"})` pelo MCP ou
+    `node .gitnexus/run.cjs detect-changes --scope all --repo .` pela CLI — e
+    confira o resultado antes de commitar. `partial: true` ou
+    `truncated: true` **não** é uma checagem limpa: ali um zero significa
+    "não foi visto", não "não foi afetado"; rode de novo. Esta regra morava
+    só no bloco gerado do `CLAUDE.md` (entre `<!-- gitnexus:start -->` e
+    `<!-- gitnexus:end -->`, reescrito a cada `analyze`), então ficava fora
+    do alcance da regra 10 do `CLAUDE.md` — que manda seguir este checklist.
 - Não commitar arquivos de ambiente com segredos reais (`.env` — apenas
   `.env.example` vai para o repositório).
 
@@ -285,11 +294,34 @@ uv sync --all-extras
 Depois, reinicie backend e MCP B2B (`./testar.sh` já faz isso, ver
 `docs/TESTE_LOCAL.md`, ou os passos do `goup.md`).
 
-## Ao usar Claude Code CLI ou Antigravity para gerar código
+## Ao usar Claude Code CLI, Antigravity ou Kiro CLI para gerar código
 
-- Leia `CLAUDE.md` (Claude Code) ou confirme que a regra de workspace do
-  Antigravity está ativa (ver `.agents/rules/project.md`) antes de começar.
+- Leia `CLAUDE.md` (Claude Code) ou confirme que a regra de workspace está
+  ativa (Antigravity: `.agents/rules/project.md`; Kiro:
+  `.kiro/steering/project.md`) antes de começar.
 - Prefira revisar o diff/plano antes de aceitar mudanças em arquivos de
   `docs/` — esses arquivos são a fonte de verdade para futuras sessões.
 - Ver `docs/AGENTIC_WORKFLOW.md` para a divisão de trabalho recomendada entre
-  Antigravity (Editor View / Manager Surface) e Claude Code CLI.
+  Antigravity (Editor View / Manager Surface), Claude Code CLI e Kiro CLI.
+
+### Ordem de uso dos dois grafos de código
+
+O repositório é indexado por **duas** ferramentas de grafo, e as duas pedem
+para ser consultadas "primeiro". Elas não competem: são etapas em sequência
+de uma mesma tarefa. Registrado aqui (e não nos arquivos de regras) para
+existir uma única descrição, válida para as três ferramentas — o bloco do
+GitNexus no `CLAUDE.md` é gerado por `gitnexus setup` e reescrito a cada
+execução, então não serve de fonte de verdade.
+
+1. **Orientar — Graphify.** `graphify query "<pergunta>"` para um subgrafo
+   enxuto, `graphify explain "<símbolo/conceito>"` para um nó focalizado,
+   `graphify path "<A>" "<B>"` para a dependência entre dois pontos. Serve
+   para descobrir *onde* está o quê antes de abrir arquivo.
+2. **Medir o alcance — GitNexus.** `impact` no símbolo que você vai mexer,
+   antes de editar: quem chama, que fluxos passam ali, qual o risco.
+   `risk: UNKNOWN` não é risco baixo — significa que a varredura não
+   respondeu, e aí vale confirmar por busca textual.
+3. **Ler e editar.** O grafo orienta, não substitui: ler o arquivo bruto
+   continua obrigatório antes de alterá-lo.
+4. **Fechar.** Atualizar os dois grafos antes de commitar — itens 9 e 10
+   do checklist acima, que são a única descrição desses comandos.

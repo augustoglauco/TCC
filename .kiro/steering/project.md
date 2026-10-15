@@ -63,7 +63,7 @@ raiz do workspace) antes de propor ou implementar qualquer mudança:
 10. **Antes de cada commit, siga o checklist** de `docs/CONVENTIONS.md`
     ("Checklist antes de cada commit").
 11. **Sempre checar o Graphify primeiro e atualizar após mudanças de código:**
-    consulte `graphify-out/` antes de responder sobre código ou executar alterações (`graphify query`, `explain`, `path`), e execute de maneira automática `graphify update .` logo após qualquer alteração no código (`CLAUDE.md`, regras 12 e 13).
+    consulte `graphify-out/` antes de responder sobre código ou executar alterações (`graphify query`, `explain`, `path`), e execute de maneira automática `graphify update .` logo após qualquer alteração no código (`docs/CONVENTIONS.md`, "Ordem de uso dos dois grafos de código").
 
 ## Regra de ouro (comum às três ferramentas)
 
