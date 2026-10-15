@@ -22,6 +22,8 @@ O ambiente de desenvolvimento deste projeto combina múltiplos serviços e utili
 | **OmniRoute** | Gateway unificado de roteamento de LLMs | `20128` (HTTP) | Sistema |
 
 > [!NOTE]
+> **Neste projeto (2026-10-15):** o `./g.sh` sobe o GitNexus na `4757`; a `4747` é do Caddy (`infra/caddy/Caddyfile.ferramentas`), com senha, para o acesso de fora da rede à tela `/admin/ferramentas`.
+>
 > **Isolamento de Portas:** O GitNexus utiliza por padrão a porta `4747` para o servidor Web / HTTP. Essa porta não conflita com o Repowise (`7338` MCP / `3002` Web UI), Strata (`8080`), Headroom (`8787`) ou Ollama (`11434`). Caso necessite rodar em outra porta, basta usar o parâmetro `-p <porta>`.
 
 ---

@@ -127,18 +127,17 @@ class Settings(BaseSettings):
 
     # Ferramentas de inteligência de código reunidas em `/admin/ferramentas`
     # (ver `app.api.admin_ferramentas`). O default do Graphify é relativo
-    # ao diretório de onde o backend sobe (`backend/`), e as duas URLs
-    # apontam para as portas documentadas em `docs/Manuais/` — Repowise
-    # GitNexus 4747 (`gitnexus serve`). O Repowise serve a UI num Next.js
-    # na 3002, e não na 7339 que o manual dele anunciava (medido em
-    # 2026-10-13: só 3002 e 4747 escutam) — a URL default aponta direto
+    # ao diretório de onde o backend sobe (`backend/`). As duas URLs são as
+    # PORTAS INTERNAS das UIs (Repowise 3012, GitNexus 4757), usadas para
+    # sondar e para abrir quando o navegador está nesta máquina; de fora da
+    # rede o frontend troca host e porta pelas públicas do Caddy (3002 e
+    # 4747, `infra/caddy/Caddyfile.ferramentas`). A URL do Repowise aponta
     # para a visão geral DESTE repositório, cujo id vem do índice local.
-    # `http://localhost:3002` (sem caminho) lista todos os repos indexados.
     # MVP: sem descoberta de porta dinâmica; se a ferramenta subir em outra
     # porta, ajuste a variável de ambiente correspondente.
     graphify_out_dir: str = "../graphify-out"
-    repowise_web_url: str = "http://localhost:3002/repos/98bf7b208ee54e9a840110278f8d9641/overview"
-    gitnexus_web_url: str = "http://localhost:4747"
+    repowise_web_url: str = "http://localhost:3012/repos/98bf7b208ee54e9a840110278f8d9641/overview"
+    gitnexus_web_url: str = "http://localhost:4757"
 
     # MVP: teto default (não rígido — o form do admin pode pedir mais por
     # execução, ver `app.api.crawler`) de páginas por execução do crawler de

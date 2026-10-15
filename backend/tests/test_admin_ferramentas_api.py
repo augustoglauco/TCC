@@ -1,7 +1,7 @@
 """Testes de `GET /api/admin/ferramentas` e do artefato do Graphify.
 
 A sondagem dos servidores (Repowise/GitNexus) é substituída pelos testes —
-nenhum teste sobe servidor nem depende de `localhost:7339`/`:4747` estarem
+nenhum teste sobe servidor nem depende de `localhost:3012`/`:4757` estarem
 no ar, que é justamente o estado que a tela precisa distinguir.
 """
 

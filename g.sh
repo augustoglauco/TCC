@@ -114,11 +114,11 @@ main() {
         echo "⚠️  Graphify não encontrado (ver CLAUDE.md, regra 13)."
     fi
 
-    # A UI real do Repowise sobe na 3012 (`--ui-port` fixo: sem ele ele escolhe
-    # a primeira porta livre a partir da 3000). A 3002 — a que a tela
-    # /admin/ferramentas embute — é um proxy Caddy local que acrescenta
-    # `Access-Control-Allow-Private-Network` (ver infra/caddy/Caddyfile.repowise):
-    # sem ele o Chrome bloqueia o iframe quando o site é aberto pelo DuckDNS.
+    # As UIs reais sobem em portas internas — Repowise 3012 (`--ui-port` fixo:
+    # sem ele escolhe a primeira livre a partir da 3000) e GitNexus 4757. As
+    # portas públicas 3002 e 4747 são do Caddy (infra/caddy/Caddyfile.ferramentas),
+    # com senha: o `localhost` do iframe é o do navegador, então de fora da
+    # rede só funciona por uma porta pública deste servidor.
     if curl -s -o /dev/null --max-time 3 http://localhost:3012; then
         echo "Repowise já está no ar (3012)."
     elif command -v repowise >/dev/null 2>&1; then
@@ -127,25 +127,30 @@ main() {
     else
         echo "⚠️  Repowise não encontrado (ver docs/Manuais/repowise-manual.md)."
     fi
-    if curl -s -o /dev/null --max-time 3 -X OPTIONS http://localhost:3002; then
-        echo "Proxy do Repowise já está no ar (3002)."
-    elif [ -x ~/.local/bin/caddy ]; then
-        nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile.repowise --adapter caddyfile > /tmp/tcc-caddy-repowise.log 2>&1 & disown
-        echo "Proxy do Repowise iniciado na 3002 (log em /tmp/tcc-caddy-repowise.log)."
-    fi
 
     # Binário do PATH primeiro, `.gitnexus/run.cjs` como alternativa — os dois
     # existem nesta máquina e o CLAUDE.md descreve o runner como intercambiável.
-    if curl -s -o /dev/null --max-time 3 http://localhost:4747; then
-        echo "GitNexus já está no ar (4747)."
+    if curl -s -o /dev/null --max-time 3 http://localhost:4757; then
+        echo "GitNexus já está no ar (4757)."
     elif command -v gitnexus >/dev/null 2>&1; then
-        nohup gitnexus serve -p 4747 > /tmp/tcc-gitnexus.log 2>&1 & disown
-        echo "GitNexus iniciado (log em /tmp/tcc-gitnexus.log)."
+        nohup gitnexus serve -p 4757 > /tmp/tcc-gitnexus.log 2>&1 & disown
+        echo "GitNexus iniciado na 4757 (log em /tmp/tcc-gitnexus.log)."
     elif [ -f .gitnexus/run.cjs ]; then
-        nohup node .gitnexus/run.cjs serve -p 4747 > /tmp/tcc-gitnexus.log 2>&1 & disown
-        echo "GitNexus iniciado via .gitnexus/run.cjs (log em /tmp/tcc-gitnexus.log)."
+        nohup node .gitnexus/run.cjs serve -p 4757 > /tmp/tcc-gitnexus.log 2>&1 & disown
+        echo "GitNexus iniciado na 4757 via .gitnexus/run.cjs (log em /tmp/tcc-gitnexus.log)."
     else
         echo "⚠️  GitNexus não encontrado (ver docs/Manuais/gitnexus-manual.md)."
+    fi
+
+    if [ -f infra/caddy/caddy.env ] && [ -x ~/.local/bin/caddy ]; then
+        if curl -s -o /dev/null --max-time 3 http://localhost:3002; then
+            echo "Proxy das ferramentas já está no ar (3002/4747)."
+        else
+            nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile.ferramentas --adapter caddyfile --envfile infra/caddy/caddy.env > /tmp/tcc-caddy-ferramentas.log 2>&1 & disown
+            echo "Proxy das ferramentas iniciado (3002 Repowise, 4747 GitNexus; log em /tmp/tcc-caddy-ferramentas.log)."
+        fi
+    else
+        echo "⚠️  Sem infra/caddy/caddy.env: ferramentas só acessíveis em localhost (3012/4757)."
     fi
 
     passo "Subindo o Caddy"
@@ -173,8 +178,8 @@ main() {
     checar_servico "Frontend (3001)"     "http://localhost:3001"
     checar_servico "Calendar MCP (8090)" "http://localhost:8090/mcp"
     checar_servico "MCP B2B (8100)"      "http://localhost:8100/mcp"
-    checar_servico "Repowise (3002→3012)" "http://localhost:3002"
-    checar_servico "GitNexus (4747)"     "http://localhost:4747"
+    checar_servico "Repowise (3012)"     "http://localhost:3012"
+    checar_servico "GitNexus (4757)"     "http://localhost:4757"
     if [ -f graphify-out/graph.html ]; then
         printf "  ✅ %-22s -> artefato presente\n" "Graphify (grafo)"
     else

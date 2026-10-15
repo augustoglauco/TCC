@@ -58,7 +58,30 @@ export function urlDeVisualizacao(ferramenta: FerramentaStatus, token: string): 
   if (ferramenta.url.startsWith("/")) {
     return `${getApiBaseUrl()}${ferramenta.url}?token=${encodeURIComponent(token)}`;
   }
-  return ferramenta.url;
+  return urlPublicaDoServidor(ferramenta.url);
+}
+
+/**
+ * Porta interna da UI -> porta pública do Caddy
+ * (`infra/caddy/Caddyfile.ferramentas`), que exige senha. O `localhost` de
+ * uma URL de servidor é o do navegador, então quando o site é aberto de outra
+ * máquina (DuckDNS) o host passa a ser o da própria página.
+ */
+const PORTA_PUBLICA: Record<string, string> = { "3012": "3002", "4757": "4747" };
+
+function urlPublicaDoServidor(url: string): string {
+  if (typeof window === "undefined") return url;
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") return url;
+  try {
+    const u = new URL(url);
+    if (u.hostname !== "localhost" && u.hostname !== "127.0.0.1") return url;
+    u.hostname = host;
+    u.port = PORTA_PUBLICA[u.port] ?? u.port;
+    return u.toString();
+  } catch {
+    return url;
+  }
 }
 
 export interface AtualizacaoResposta {

@@ -1,0 +1,40 @@
+# Acesso externo (internet) às UIs do Repowise e do GitNexus, para a tela
+# /admin/ferramentas quando o site é aberto por augustoglauco.duckdns.org:3001.
+#
+# O `localhost` do iframe seria o computador de quem navega, não este
+# servidor — por isso cada UI ganha uma porta pública própria aqui, protegida
+# por senha (autenticação básica, usuário `admin`, hash em
+# infra/caddy/caddy.env -> FERRAMENTAS_AUTH_HASH). Elas expõem o código-fonte
+# e a análise do projeto: não publique sem a senha.
+#
+#   3002  ->  Repowise UI real (127.0.0.1:3012)
+#   4747  ->  GitNexus real    (127.0.0.1:4757)
+#
+# Portas a liberar no Firewall do Windows e a encaminhar no roteador: 3002 e
+# 4747 (ver goup.md, "Acesso Externo"). HTTP simples, como o site na 3001
+# (o iframe de uma página http não pode ser https).
+#
+# Subir (raiz do repo; o ./g.sh já faz):
+#   ~/.local/bin/caddy run --config infra/caddy/Caddyfile.ferramentas \
+#     --adapter caddyfile --envfile infra/caddy/caddy.env
+
+{
+	admin off
+	auto_https off
+}
+
+(protegido) {
+	basic_auth {
+		admin {$FERRAMENTAS_AUTH_HASH}
+	}
+}
+
+http://:3002 {
+	import protegido
+	reverse_proxy 127.0.0.1:3012
+}
+
+http://:4747 {
+	import protegido
+	reverse_proxy 127.0.0.1:4757
+}
