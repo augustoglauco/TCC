@@ -145,6 +145,7 @@ só o porquê de cada escolha central (conteúdo trazido do antigo
 | R10 | Classificação do usuário ao longo da conversa como Cliente, Lead ou Cliente Esporádico. |
 | R11 | Módulo de agendamento de visita, reconhecido como intenção própria pelo roteador, que aciona um MCP — preferencialmente o do Google Calendar — para criar o evento. |
 | R12 | Exposição de um MCP próprio pela empresa (servidor/provedor), disponibilizando catálogo, estoque, preços e documentação técnica, além de ferramentas de validação de compatibilidade, frete, cotação e reserva/pedido, para uso por IAs de parceiros integradores e, internamente, pelo próprio Roteador/Orquestrador. |
+| R13 | Agente autônomo de previsão de estoque: a cada venda ou reserva, analisa o estoque do produto, estima a frequência de baixa e, se prevê falta nos próximos 10 dias, avisa o administrador por e-mail e numa página de mensagens recebidas de agentes (hoje este agente; futuros agentes usam a mesma caixa de entrada). |
 
 **Assimetria intencional entre domínios:** Vendas e Agendamento de Visita
 contam, desde o MVP, com ferramentas de ação (o MCP B2B da Seção 6 e o MCP do
@@ -1924,6 +1925,29 @@ usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 | Monitor de tom | Classificador de sentimento/urgência (heurística + LLM leve) com alerta, transferência simulada e log dos casos escalonados | Integração real com fila de atendentes humanos, escalonamento por SLA |
 | Memória da conversa | Persistência por ID no Postgres (mensagens do cliente e do assistente) + resumo automático periódico no prompt + retomada do histórico no widget | Perfil de cliente enriquecido a partir do histórico de conversas, memória entre dispositivos (login) |
 | Classificação do usuário | Regras fixas sobre uma base de clientes fictícia: e-mail captado no momento natural da conversa (pós-venda, agendamento) e cruzado com as compras; Cliente/Esporádico por quantidade e recência das compras, Lead por intenção de compra sem cadastro | Modelo preditivo, score de propensão, enriquecimento de dados externos, confirmação de identidade |
+
+**Decisão registrada (Agente autônomo de previsão de estoque, R13,
+2026-10-15):** requisito acrescentado ao MVP por decisão do dono do projeto
+("deveria estar incluído no MVP"). O agente roda em toda venda ou reserva:
+`app.db.catalog.criar_pedido` — ponto único por onde passam o chat, a API
+de pedidos e o MCP B2B — chama `app.agents.estoque_preditivo.avaliar_estoque`
+**depois** do commit do pedido e engolindo qualquer exceção, de modo que uma
+falha do agente nunca desfaz nem atrasa a reserva. Para cada produto do
+pedido: (1) estoque atual = soma dos centros de distribuição; (2) taxa de
+baixa = unidades reservadas nos últimos 30 dias (`pedido_itens`) / 30;
+(3) cobertura = estoque / taxa; (4) se a cobertura for menor que 10 dias, há
+risco de falta e o agente publica uma mensagem. Mensagens ficam na tabela
+`mensagens_agentes` (campo `agente` identifica o autor, para agentes
+futuros), são mostradas em `/admin/mensagens` e, quando o SMTP está
+configurado, enviadas por e-mail ao administrador (`ADMIN_ALERT_EMAIL`).
+Anti-ruído: no máximo um alerta por produto a cada 24h.
+Não usa LLM (previsão determinística), então não entra em
+`docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.
+`# MVP:` taxa constante (média móvel de 30 dias, sem sazonalidade nem
+tendência); estoque somado entre centros (não alerta por centro); sem
+reposição automática nem ordem de compra; e-mail via SMTP simples, sem
+fila/reenvio (falha de envio fica registrada na própria mensagem);
+sem confirmação de leitura por usuário (um único marcador `lida`).
 
 ## 6. MCP de integração com parceiros B2B (recursos e ferramentas)
 

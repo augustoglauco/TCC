@@ -579,3 +579,30 @@ class AiUsageEvent(Base):
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
+
+
+class MensagemAgente(Base):
+    """Caixa de entrada de mensagens de agentes autônomos para o administrador
+    (R13, `docs/ARCHITECTURE.md`, decisão de 2026-10-15). `agente` identifica
+    o autor (hoje só `"estoque_preditivo"`), para agentes futuros usarem a
+    mesma tabela e a mesma página `/admin/mensagens`.
+
+    # MVP: um único marcador `lida` (não por usuário) e `email_status`
+    # registrando só o resultado do envio, sem fila nem reenvio.
+    """
+
+    __tablename__ = "mensagens_agentes"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    agente: Mapped[str] = mapped_column(String(100), index=True)
+    tipo: Mapped[str] = mapped_column(String(50))
+    severidade: Mapped[str] = mapped_column(String(20), default="aviso")
+    titulo: Mapped[str] = mapped_column(String(200))
+    corpo: Mapped[str] = mapped_column(Text)
+    dados: Mapped[dict | None] = mapped_column(_JsonVariant, nullable=True)
+    chave_dedupe: Mapped[str | None] = mapped_column(String(200), index=True, nullable=True)
+    lida: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    email_status: Mapped[str] = mapped_column(String(30), default="nao_enviado")
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )

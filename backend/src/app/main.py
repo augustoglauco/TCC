@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.admin_atendimento import router as admin_atendimento_router
 from app.api.admin_charts import router as admin_charts_router
 from app.api.admin_ferramentas import router as admin_ferramentas_router
+from app.api.admin_mensagens import router as admin_mensagens_router
 from app.api.admin_metrics import router as admin_metrics_router
 from app.api.admin_pedidos_conversao import router as admin_pedidos_router
 from app.api.admin_products import router as admin_products_router
@@ -334,6 +335,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_charts_router)
     app.include_router(admin_metrics_router)
     app.include_router(admin_ferramentas_router)
+    app.include_router(admin_mensagens_router)
     app.include_router(crawler_router)
     app.include_router(image_search_router)
     app.include_router(local_models_router)

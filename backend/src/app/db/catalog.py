@@ -25,6 +25,7 @@ inconsistência *dentro* de uma única chamada com vários itens, ver seu
 docstring — não entre chamadas concorrentes).
 """
 
+import logging
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -556,7 +557,21 @@ async def criar_pedido(
 
     await session.commit()
     await session.refresh(pedido, attribute_names=["itens"])
+    await _acionar_agente_estoque(session, {item[0] for item in itens})
     return pedido
+
+
+async def _acionar_agente_estoque(session: AsyncSession, produto_ids: set[int]) -> None:
+    """Agente de previsão de estoque (R13), depois do commit do pedido.
+
+    Qualquer falha é engolida: o agente nunca desfaz nem derruba a reserva.
+    """
+    try:
+        from app.agents.estoque_preditivo import avaliar_estoque
+
+        await avaliar_estoque(session, produto_ids)
+    except Exception:  # noqa: BLE001
+        logging.getLogger("assistente.catalog").exception("Agente de estoque falhou")
 
 
 async def obter_pedido(session: AsyncSession, pedido_id: object) -> Pedido | None:

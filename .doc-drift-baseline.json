@@ -337,6 +337,18 @@
       "file_path": "goup.md",
       "kind": "path",
       "target": "docs/Manuais/MANUAL_INTEGRACAO_MCP_B2B.md"
+    },
+    {
+      "fingerprint": "9ab4c9f55ce46a9502526e3047e804c9",
+      "file_path": "docs/ARCHITECTURE.md",
+      "kind": "path",
+      "target": "scripts/authorize_google_calendar.py"
+    },
+    {
+      "fingerprint": "e5544509eb02faef0ede81624804358b",
+      "file_path": "docs/superpowers/plans/2026-09-21-agendamento-mcp-calendar.md",
+      "kind": "path",
+      "target": "scripts/authorize_google_calendar.py"
     }
   ]
 }

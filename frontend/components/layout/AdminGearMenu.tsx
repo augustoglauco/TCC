@@ -105,6 +105,15 @@ export default function AdminGearMenu() {
               <span>Métricas &amp; Custos IA</span>
             </Link>
             <Link
+              href="/admin/mensagens"
+              role="menuitem"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <span className="text-base">📬</span>
+              <span>Mensagens de Agentes</span>
+            </Link>
+            <Link
               href="/admin/ferramentas"
               role="menuitem"
               onClick={() => setIsOpen(false)}

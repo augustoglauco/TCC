@@ -1438,6 +1438,23 @@ conversa e classificação do usuário").
          fallback — aceito como limitação de projeto de um único
          desenvolvedor (TCC), não pendência.
 
+## Fase 9b — Agente autônomo de previsão de estoque (R13, 2026-10-15)
+
+> Requisito acrescentado ao MVP pelo dono do projeto — decisão em
+> `docs/ARCHITECTURE.md` §5/§6 ("Agente autônomo de previsão de estoque").
+
+- [x] Tabela `mensagens_agentes` (migração + model) e serviço
+      `app.agents.estoque_preditivo` (taxa de baixa 30d, cobertura < 10 dias,
+      anti-ruído 24h), com testes sem Postgres.
+- [x] Gancho em `criar_pedido` (pós-commit, nunca quebra a reserva) cobrindo
+      chat, API de pedidos e MCP B2B.
+- [x] Envio de e-mail ao administrador (SMTP por variáveis de ambiente,
+      valores de exemplo em `.env.example`).
+- [x] `GET/POST /api/admin/agentes/mensagens` e página `/admin/mensagens`
+      (caixa de entrada de agentes, marcar como lida, contador no menu ⚙️).
+- [x] Atualizar `docs/FRONTEND.md` (contrato) e `docs/CONVENTIONS.md` se
+      surgir convenção nova.
+
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
 - [ ] Rodar a avaliação comparativa entre as 9 configurações de modelo local

@@ -125,6 +125,19 @@ class Settings(BaseSettings):
     rag_uploads_dir: str = "./data/rag_uploads"
     product_images_dir: str = "./data/product_images"
 
+    # Agente autônomo de previsão de estoque (R13, docs/ARCHITECTURE.md).
+    # E-mail por SMTP simples; sem `smtp_host`/`admin_alert_email` o alerta só
+    # vai para a página /admin/mensagens. Valores reais só em `.env`.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_starttls: bool = True
+    admin_alert_email: str = ""
+    estoque_horizonte_dias: int = 10
+    estoque_janela_consumo_dias: int = 30
+
     # Ferramentas de inteligência de código reunidas em `/admin/ferramentas`
     # (ver `app.api.admin_ferramentas`). O default do Graphify é relativo
     # ao diretório de onde o backend sobe (`backend/`). As duas URLs são as
