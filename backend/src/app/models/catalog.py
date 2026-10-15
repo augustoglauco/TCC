@@ -8,7 +8,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ProdutoEstoqueOut(BaseModel):
@@ -54,6 +54,7 @@ class ProdutoOut(BaseModel):
     promocao_valida_ate: datetime | None
     preco_base_fornecedor: Decimal | None = None
     imagem_url: str | None = None
+    dias_alerta_estoque: int | None = Field(default=None, ge=1, le=365)
     estoques: list[ProdutoEstoqueOut] = []
     descontos_volume: list[ProdutoDescontoVolumeOut] = []
     imagens: list[ProdutoImagemOut] = []
@@ -80,6 +81,7 @@ class ProdutoCreate(BaseModel):
     promocao_valida_ate: datetime | None = None
     preco_base_fornecedor: Decimal | None = None
     imagem_url: str | None = None
+    dias_alerta_estoque: int | None = Field(default=None, ge=1, le=365)
 
 
 class ProdutoUpdate(BaseModel):
@@ -97,3 +99,4 @@ class ProdutoUpdate(BaseModel):
     promocao_valida_ate: datetime | None = None
     preco_base_fornecedor: Decimal | None = None
     imagem_url: str | None = None
+    dias_alerta_estoque: int | None = Field(default=None, ge=1, le=365)

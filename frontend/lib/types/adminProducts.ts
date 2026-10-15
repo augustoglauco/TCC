@@ -40,6 +40,8 @@ export interface AdminProduct {
   preco_promocional?: number | null;
   promocao_valida_ate?: string | null;
   preco_base_fornecedor: number | null;
+  /** Dias de cobertura abaixo dos quais o agente de estoque avisa; null = padrão global. */
+  dias_alerta_estoque?: number | null;
   imagem_url: string | null;
   imagens: AdminProductImage[];
   estoques?: AdminProductStock[];

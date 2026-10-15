@@ -117,7 +117,8 @@ async def coletar_fatos(
         janela_dias=janela,
         unidades_janela=sum(diario),
         consumo_diario=diario,
-        horizonte_dias=settings.estoque_horizonte_dias,
+        # Horizonte por produto (prazo de reposição próprio); sem valor, o padrão global.
+        horizonte_dias=produto.dias_alerta_estoque or settings.estoque_horizonte_dias,
     )
 
 

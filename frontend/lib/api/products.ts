@@ -33,6 +33,7 @@ export interface Produto {
   preco_promocional?: number | null;
   promocao_valida_ate?: string | null;
   preco_base_fornecedor?: number | null;
+  dias_alerta_estoque?: number | null;
   imagem_url?: string | null;
   estoques: ProdutoEstoque[];
   imagens: ProdutoImagem[];

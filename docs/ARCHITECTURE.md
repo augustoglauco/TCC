@@ -1963,6 +1963,12 @@ A chamada entra no ledger de uso de IA (origem `admin`, operação
 `# MVP:` uma chamada de LLM por produto avaliado; sem cache nem few-shot; o
 modo IA não compara automaticamente seus resultados com os do determinístico
 (isso seria avaliação experimental, Fase 10).
+**Horizonte por produto (2026-10-15):** o limite de 10 dias é só o padrão
+global (`ESTOQUE_HORIZONTE_DIAS`). Cada produto tem a coluna opcional
+`produtos.dias_alerta_estoque` (migração `0026`; campo "Alertar estoque com
+(dias)" no formulário do produto em `/admin/produtos`), que reflete o prazo
+de reposição/entrega daquele item; quando preenchida, substitui o padrão para
+as duas versões do agente (e vai no prompt do modo IA). Vazia = padrão global.
 `# MVP:` taxa constante (média móvel de 30 dias, sem sazonalidade nem
 tendência); estoque somado entre centros (não alerta por centro); sem
 reposição automática nem ordem de compra; e-mail via SMTP simples, sem

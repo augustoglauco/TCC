@@ -256,6 +256,7 @@ async def post_admin_produto(
         promocao_valida_ate=payload.promocao_valida_ate,
         preco_base_fornecedor=payload.preco_base_fornecedor,
         imagem_url=payload.imagem_url,
+        dias_alerta_estoque=payload.dias_alerta_estoque,
     )
     return ProdutoOut.model_validate(produto)
 

@@ -50,6 +50,7 @@ export default function ProductFormModal({
   const [categoria, setCategoria] = useState("CFTV");
   const [preco, setPreco] = useState<string>("");
   const [precoBaseFornecedor, setPrecoBaseFornecedor] = useState<string>("");
+  const [diasAlertaEstoque, setDiasAlertaEstoque] = useState<string>("");
   const [descricao, setDescricao] = useState("");
   const [especificacoesTecnicas, setEspecificacoesTecnicas] = useState("");
   const [imagemFile, setImagemFile] = useState<File | null>(null);
@@ -102,6 +103,9 @@ export default function ProductFormModal({
           ? String(produtoParaEditar.preco_base_fornecedor)
           : "",
       );
+      setDiasAlertaEstoque(
+        produtoParaEditar.dias_alerta_estoque ? String(produtoParaEditar.dias_alerta_estoque) : "",
+      );
       setDescricao(produtoParaEditar.descricao || "");
       setEspecificacoesTecnicas(produtoParaEditar.especificacoes_tecnicas || "");
       setImagemPreview(
@@ -127,6 +131,7 @@ export default function ProductFormModal({
       setCategoria("CFTV");
       setPreco("");
       setPrecoBaseFornecedor("");
+      setDiasAlertaEstoque("");
       setDescricao("");
       setEspecificacoesTecnicas("");
       setImagemFile(null);
@@ -325,6 +330,7 @@ export default function ProductFormModal({
         categoria: categoria.trim() || "Geral",
         preco: precoNum,
         preco_base_fornecedor: precoBaseFornecedor ? parseFloat(precoBaseFornecedor) : null,
+        dias_alerta_estoque: diasAlertaEstoque ? parseInt(diasAlertaEstoque, 10) : null,
         descricao: descricao.trim(),
         especificacoes_tecnicas: especificacoesTecnicas.trim() || null,
       };
@@ -500,6 +506,29 @@ export default function ProductFormModal({
                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
+              </div>
+              <div>
+                <label
+                  htmlFor="produto-dias-alerta-estoque"
+                  className="block text-xs font-semibold text-gray-700 uppercase tracking-wider"
+                >
+                  Alertar estoque com (dias)
+                </label>
+                <input
+                  id="produto-dias-alerta-estoque"
+                  type="number"
+                  step="1"
+                  min="1"
+                  max="365"
+                  value={diasAlertaEstoque}
+                  onChange={(e) => setDiasAlertaEstoque(e.target.value)}
+                  placeholder="Padrão do sistema (10)"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-[11px] text-gray-500">
+                  O agente avisa quando a previsão de estoque cair abaixo disto. Use o prazo de
+                  reposição/entrega deste produto; vazio usa o padrão.
+                </p>
               </div>
             </div>
 

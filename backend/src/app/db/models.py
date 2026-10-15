@@ -177,6 +177,10 @@ class Produto(Base):
     )
     preco_base_fornecedor: Mapped[Decimal | None] = mapped_column(Numeric(10, 2), nullable=True)
     imagem_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Agente de previsão de estoque (R13): quantos dias de cobertura abaixo dos
+    # quais o administrador é avisado. Reflete o prazo de reposição/entrega
+    # deste produto; `None` usa o padrão global (`estoque_horizonte_dias`).
+    dias_alerta_estoque: Mapped[int | None] = mapped_column(nullable=True)
 
     estoques: Mapped[list[ProdutoEstoque]] = relationship(
         back_populates="produto", cascade="all, delete-orphan"

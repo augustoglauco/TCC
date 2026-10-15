@@ -271,3 +271,31 @@ async def test_configuracao_persistente_via_runtime_settings(db_session, admin_h
         assert r.json()["estoque_agent_mode"] == "ia"
         assert r.json()["estoque_agent_llm"] == "externo"
     assert runtime.estoque_modo == "ia" and runtime.estoque_llm == "externo"
+
+
+async def test_horizonte_por_produto_substitui_o_padrao(db_session):
+    """Mesma baixa e mesmo estoque: com 3 dias de horizonte o produto está
+    seguro; com o padrão global (10) ele alerta."""
+    seguro = await _produto(db_session, 10, nome="Seguro")
+    seguro.dias_alerta_estoque = 3
+    longo = await _produto(db_session, 10, nome="Prazo longo")
+    await db_session.commit()
+
+    # 9 de 10 unidades: sobra 1, taxa 9/30 => ~3,3 dias de cobertura.
+    await criar_pedido(db_session, [(seguro.id, 9, "CD-SP"), (longo.id, 9, "CD-SP")])
+
+    msgs = await _mensagens(db_session)
+    assert [m.dados["produto_id"] for m in msgs] == [longo.id]
+    assert msgs[0].dados["horizonte_dias"] == 10
+
+
+async def test_horizonte_do_produto_maior_que_o_padrao_alerta_antes(db_session):
+    produto = await _produto(db_session, 10)
+    produto.dias_alerta_estoque = 60
+    await db_session.commit()
+
+    # sobram 5, taxa 5/30 => 30 dias: < 60 (alerta) mas > 10 (não alertaria).
+    await criar_pedido(db_session, [(produto.id, 5, "CD-SP")])
+
+    [msg] = await _mensagens(db_session)
+    assert msg.dados["horizonte_dias"] == 60

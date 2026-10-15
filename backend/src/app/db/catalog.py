@@ -86,6 +86,7 @@ async def criar_produto(
     promocao_valida_ate: datetime | None = None,
     preco_base_fornecedor: Decimal | None = None,
     imagem_url: str | None = None,
+    dias_alerta_estoque: int | None = None,
 ) -> Produto:
     produto = Produto(
         nome=nome,
@@ -99,6 +100,7 @@ async def criar_produto(
         promocao_valida_ate=promocao_valida_ate,
         preco_base_fornecedor=preco_base_fornecedor,
         imagem_url=imagem_url,
+        dias_alerta_estoque=dias_alerta_estoque,
     )
     session.add(produto)
     await session.commit()

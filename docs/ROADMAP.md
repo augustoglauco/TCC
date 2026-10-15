@@ -1460,6 +1460,9 @@ conversa e classificação do usuário").
       no painel de configurações de execução (`estoque_agent_mode`,
       `estoque_agent_llm`). Prompt mapeado em
       `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.
+- [x] Horizonte de alerta por produto (`produtos.dias_alerta_estoque`,
+      migração `0026`, campo no formulário de produto): o prazo de
+      reposição/entrega de cada item substitui o padrão global de 10 dias.
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
