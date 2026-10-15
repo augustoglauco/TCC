@@ -1,39 +1,39 @@
-# Graph Report - TCC  (2026-10-14)
+# Graph Report - TCC  (2026-10-15)
 
 ## Corpus Check
-- 367 files · ~450,883 words
+- 368 files · ~452,939 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2951 nodes · 6944 edges · 185 communities (154 shown, 31 thin omitted)
+- 2957 nodes · 6958 edges · 209 communities (174 shown, 35 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 471 edges (avg confidence: 0.94)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4249b4ed`
+- Built from commit: `1d70996a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- types/rag.ts
-- ingestion_metrics.py
-- comprovante_evaluator.py
-- typing
+- PlaygroundPanel.tsx
+- RagDocument
+- .avaliar_texto
+- spawn_background_task
 - b2b.py
 - api/chat.py
 - get_settings
 - db/catalog.py
 - ingest.py
 - sales_catalog.py
-- main.py
+- chunk_size_search.py
 - Manual Didático: GitNexus no Ambiente de Desenvolvimento Agêntico (WSL2, Antigravity IDE, Claude CLI)
-- collections_abc
+- 0002_rag_collections.py
 - mcp_server/auth.py
-- orchestrator.py
-- ChatModal.tsx
-- useAuthStore
+- Document
+- api/chat.ts
+- useAuthStore.ts
 - rag_collections.py
-- models.py
+- chat_closure_service.py
 - ai_usage_report.py
 - metricas/page.tsx
 - Guia Claude Code CLI
@@ -41,49 +41,49 @@
 - image_identification.py
 - types/chat.ts
 - api/rag.py
-- PullModelForm.tsx
-- api/runtime_settings.py
-- orders.ts
-- admin_pedidos_conversao.py
+- OpenRouterModelCard.tsx
+- admin_ferramentas.py
+- ChatModal.tsx
+- post_converter_auto_admin
 - OllamaClient
 - Conversa
 - ingestao/page.tsx
 - agendamentos.py
 - admin_products.py
 - api/crawler.ts
-- LocalModelsTable.tsx
+- modelos/page.tsx
 - api/orders.py
 - B2BMCPClient
 - adminAtendimento.ts
 - OpenRouterClient
 - ClipEmbedder
-- scheduling.py
-- analytics_agent.py
-- ClipImageStore
+- orchestrator.py
+- typing
+- rag/image_search.py
 - models/rag.py
 - dashboards/page.tsx
-- openrouter_client.py
+- LLMClient
 - cliente_mcp_b2b.py
-- api/model_catalog.py
-- products.ts
-- AbaEnviarDocumento
+- characteristics.py
+- orders.ts
+- CollectionsTable.tsx
 - admin_charts.py
 - api/local_models.py
-- adminPedidos.ts
+- useAuthStore
 - useChatStore.ts
 - getApiBaseUrl
 - CatalogImportModal.tsx
-- api/rag.ts
+- types/rag.ts
 - compilerOptions
-- admin_atendimento.py
+- post_close_conversa
 - devDependencies
 - api/image_search.py
 - api/agendamentos.ts
-- CalendarClient
+- GoogleCalendarMCPClient
 - app.py
 - RAGConnectionError
 - whisper_client.py
-- classificacao.py
+- tone_monitor.py
 - RagDocument Model (PostgreSQL)
 - Refactoring with GitNexus
 - Injeção de Dados Estruturados de Catálogo no Prompt
@@ -100,7 +100,7 @@
 - Protocolo Unificado de Streaming SSE no Chat
 - Runtime In-Memory Model Switching
 - dependencies
-- chunk_size_search.py
+- registrar_uso_ia
 - api/crawler.py
 - catalog_extractor.py
 - next.config.ts
@@ -118,7 +118,7 @@
 - Máquina de Estados de Agendamento por Slots
 - SalesCatalogClient (Direct Database Access)
 - Segregated Prompt & Completion Cost Calculation
-- settings.py
+- qdrant_client.py
 - g.sh
 - Gerenciador Assíncrono de Modelos Ollama
 - Serviço registrar_uso_ia e Gerenciamento de Sessão Global
@@ -164,29 +164,37 @@
 - sqlalchemy_ext_asyncio
 - SearchableSelect.tsx
 - api/auth.py
-- rag_client.py
+- TextEmbedder
 - Debugging with GitNexus
 - Exploring Codebases with GitNexus
 - classifier.py
 - ProductListTable.tsx
-- _registrar_troca_segura
+- CalendarClient
 - GitNexus — Code Intelligence
 - Manual Didático: Graphify no Ambiente de Desenvolvimento Agêntico (WSL2, Antigravity IDE, Claude CLI, Kiro CLI)
 - apiBaseUrl.ts
-- require_admin
+- process_dynamic_chart_request
 - image_processor.py
-- layout.tsx
-- admin_metrics.py
-- db_connector.py
-- .async_client
-- store.py
+- .describe_image
+- require_admin
+- sqlalchemy
+- main.py
+- alembic
+- models.py
 - CategoryFilter.tsx
 - .pull_model_streaming
+- collections_abc
+- Tooltip.tsx
+- ._build_payload
+- pull_model_endpoint
+- 0012_conversa_metricas.py
+- detect_chart_request
 - products.py
-- eslint-config-prettier
+- get_ollama_client
+- eslint-config-next
 
 ## God Nodes (most connected - your core abstractions)
-1. `getApiBaseUrl()` - 82 edges
+1. `getApiBaseUrl()` - 83 edges
 2. `useAuthStore` - 78 edges
 3. `QdrantRAGClient` - 58 edges
 4. `OllamaClient` - 46 edges
@@ -226,87 +234,83 @@
 - **Stack de Inferência Local e Otimização de Memória CUDA / MoE** — docs_manuais_strata_manual_strata_cuda_engine, docs_manuais_strata_manual_strata_memory_lifecycle, docs_manuais_headroom_manual_headroom_context_optimization, docs_manuais_howto_administrador_gestao_modelos_ia [INFERRED 0.85]
 - **Evolução do Pipeline e Gestão de Documentos RAG** — docs_superpowers_plans_2026_09_14_registro_documentos_rag_registro_postgres_qdrant, docs_superpowers_plans_2026_09_15_rag_collections_config_perfis_collection, docs_superpowers_plans_2026_09_19_crawler_paginas_crawler_bfs, docs_superpowers_plans_2026_10_04_download_documentos_rag_chat_download_direto_chat [INFERRED 0.85]
 
-## Communities (185 total, 31 thin omitted)
+## Communities (209 total, 35 thin omitted)
 
-### Community 0 - "types/rag.ts"
-Cohesion: 0.07
-Nodes (32): CollectionFormModalProps, CURATED_MODELS, PAYLOAD_INDEXES_PADRAO, SCHEMA_TYPES, TEXT_PARAMS_PADRAO, CollectionsTableProps, CollectionOptionCard(), CollectionOptionCardProps (+24 more)
+### Community 0 - "PlaygroundPanel.tsx"
+Cohesion: 0.10
+Nodes (14): CollectionOptionCard(), CollectionOptionCardProps, ComparisonResultCard(), getScoreBadge(), DOMAIN_OPTIONS, PlaygroundForm(), PlaygroundFormProps, PURPOSE_OPTIONS (+6 more)
 
-### Community 1 - "ingestion_metrics.py"
-Cohesion: 0.29
-Nodes (10): IngestionCostEvent, Eventos de telemetria e custo de processamento com modelos externos fora do…, _get_fallback_sessionmaker(), async_sessionmaker, AsyncSession, Serviço para registro e auditoria de consumo e custos de modelos externos em…, Configura o sessionmaker global utilizado quando nenhuma sessão explícita é…, Registra um evento de telemetria e custo gerado por modelo externo em pipeline… (+2 more)
+### Community 1 - "RagDocument"
+Cohesion: 0.16
+Nodes (22): RagDocument, Registro de um documento ingerido no RAG (R4, além do MVP). `id` também é…, PageClassification, BaseModel, ingest_or_queue(), AsyncSession, Path, RagCollection (+14 more)
 
-### Community 2 - "comprovante_evaluator.py"
-Cohesion: 0.08
-Nodes (28): extract_text_from_pdf(), PdfExtractionError, Exception, Path, Levantado quando o PDF não pode ser aberto ou processado., Extrai o texto de um PDF a partir de bytes ou de um caminho de arquivo. Detecta…, Isolamento por delimitador e detecção log-only de tentativas de prompt…, Envolve `content` nas tags de `label`, escapando qualquer ocorrência literal de… (+20 more)
+### Community 2 - ".avaliar_texto"
+Cohesion: 0.20
+Nodes (9): ParecerComprovante, _parse_decimal(), Decimal, Extração resiliente por regras e expressões regulares para auditoria financeira., Avalia o texto do comprovante contra o valor devido da reserva usando LLM ou…, Resultado estruturado da avaliação do comprovante de pagamento., Executa o pipeline de custo mínimo (decisão registrada em docs/ARCHITECTURE.md…, Converte strings numéricas em formato brasileiro (1.500,00) ou internacional… (+1 more)
 
-### Community 3 - "typing"
-Cohesion: 0.14
-Nodes (24): Any, Fire-and-forget helper para tasks disparadas por um endpoint HTTP sem que a…, spawn_background_task(), classify_page(), Classificação de domínio de páginas crawleadas via LLM externo (R4, Fase 2) —…, Classifica o texto de uma página crawleada. Qualquer falha de parse do JSON…, _strip_code_fence(), LLMClient (+16 more)
+### Community 3 - "spawn_background_task"
+Cohesion: 0.33
+Nodes (9): Any, spawn_background_task(), analyze_tone(), _analyze_with_jev(), _analyze_with_llm(), Any, BaseModel, ToneResult (+1 more)
 
 ### Community 4 - "b2b.py"
-Cohesion: 0.08
-Nodes (48): parceiro_atual(), Nome do parceiro autenticado na requisição em andamento, ou `"sem-…, create_b2b_mcp_server(), host_somente_local(), Any, async_sessionmaker, AsyncSession, AuthSettings (+40 more)
+Cohesion: 0.07
+Nodes (51): parceiro_atual(), Nome do parceiro autenticado na requisição em andamento, ou `"sem-…, create_b2b_mcp_server(), host_somente_local(), Any, async_sessionmaker, AsyncSession, AuthSettings (+43 more)
 
 ### Community 5 - "api/chat.py"
-Cohesion: 0.07
-Nodes (45): _carregar_contexto_anterior_seguro(), _carregar_conversa_db_segura(), deletar_conversa(), _escalar_conversa_em_background(), fechar_conversa_endpoint(), get_calendar_client(), get_clip_embedder(), get_clip_store() (+37 more)
+Cohesion: 0.04
+Nodes (84): _carregar_contexto_anterior_seguro(), _carregar_contexto_seguro(), _carregar_conversa_db_segura(), _carregar_dados_cliente_seguro(), deletar_conversa(), _escalar_conversa_em_background(), fechar_conversa_endpoint(), get_calendar_client() (+76 more)
 
 ### Community 6 - "get_settings"
-Cohesion: 0.10
-Nodes (30): _caminho_grafo_graphify(), FerramentasResposta, FerramentaStatus, listar_ferramentas(), obter_grafo_graphify(), BaseModel, get, Path (+22 more)
+Cohesion: 0.12
+Nodes (24): _get_base_dir(), obter_imagem_produto(), obter_imagem_temporaria(), get, Path, Request, Endpoints de servimento e persistência de imagens de produtos. GET…, _validar_nome_arquivo() (+16 more)
 
 ### Community 7 - "db/catalog.py"
-Cohesion: 0.11
-Nodes (37): adicionar_desconto_volume(), atualizar_estoque(), atualizar_produto(), calcular_item_cotacao(), criar_pedido(), criar_produto(), EstoqueInsuficienteError, listar_categorias_distintas() (+29 more)
+Cohesion: 0.09
+Nodes (46): adicionar_desconto_volume(), atualizar_estoque(), atualizar_produto(), calcular_item_cotacao(), criar_compatibilidade(), criar_pedido(), criar_produto(), listar_categorias_distintas() (+38 more)
 
 ### Community 8 - "ingest.py"
-Cohesion: 0.09
-Nodes (31): RagCollection, Perfil completo e imutável de uma collection do Qdrant (Entregas B+C+D, além do…, chunk_text(), _normalizar_preservando_linhas(), Chunking de texto para ingestão no RAG (R4). # MVP: divisão por tamanho fixo de…, Colapsa espaços/tabs repetidos dentro de cada linha (como antes), mas preserva…, Divide `text` em pedaços de até `chunk_size` caracteres, com overlap.…, SentenceTransformer (+23 more)
+Cohesion: 0.12
+Nodes (27): chunk_text(), _normalizar_preservando_linhas(), Chunking de texto para ingestão no RAG (R4). # MVP: divisão por tamanho fixo de…, Colapsa espaços/tabs repetidos dentro de cada linha (como antes), mas preserva…, Divide `text` em pedaços de até `chunk_size` caracteres, com overlap.…, _ensure_collection_exists(), _extract_text(), ingest_bytes() (+19 more)
 
 ### Community 9 - "sales_catalog.py"
-Cohesion: 0.10
-Nodes (33): normalize(), Minúsculas sem diacríticos — usuário real escreve "nao funciona"/"preco"., strip_code_fence(), _consultar_vendas(), _formatar_bloco_catalogo_vendas(), _formatar_dados_catalogo_categoria(), _formatar_dados_catalogo_vendas(), _logar_consulta_vendas() (+25 more)
+Cohesion: 0.07
+Nodes (40): strip_code_fence(), _construir_card_vendas(), _consultar_vendas(), _formatar_bloco_catalogo_vendas(), _formatar_dados_catalogo_categoria(), _formatar_dados_catalogo_vendas(), _logar_consulta_vendas(), Busca de candidatos + desambiguação por LLM + detalhes do catálogo para uma… (+32 more)
 
-### Community 10 - "main.py"
-Cohesion: 0.05
-Nodes (59): argparse, AsyncEngine, asyncio, do_run_migrations(), run_migrations_online(), main(), _parse_args(), Script de ingestão das linhas de uma tabela do banco relacional no RAG (R4 —… (+51 more)
+### Community 10 - "chunk_size_search.py"
+Cohesion: 0.06
+Nodes (45): argparse, AsyncEngine, asyncio, _apagar_collection(), _avaliar_chunk_size(), _criar_e_popular_collection(), _FixedCollectionRagClient, main() (+37 more)
 
 ### Community 11 - "Manual Didático: GitNexus no Ambiente de Desenvolvimento Agêntico (WSL2, Antigravity IDE, Claude CLI)"
 Cohesion: 0.08
 Nodes (24): 📌 1. Sumário de Recursos, Portas e Convivência no Ecossistema, 🔄 2. Convivência e Papéis: GitNexus vs. Repowise vs. Graphify, 3.1 Inicialização Interativa (Primeiro Plano), 3.2 Inicialização com Porta Customizada ou Acesso em Rede, 3.3 Inicialização em Segundo Plano (Background / Daemon), 3.4 Acesso no Navegador, 🌐 3. Inicialização e Uso da Interface Web (`gitnexus serve`), 4.1 Indexação Completa do Repositório (+16 more)
 
-### Community 12 - "collections_abc"
-Cohesion: 0.04
-Nodes (4): alembic, collections_abc, sqlalchemy_dialects, sqlalchemy_dialects_postgresql
-
 ### Community 13 - "mcp_server/auth.py"
 Cohesion: 0.06
 Nodes (43): AccessToken, AutenticacaoMcpB2B, carregar_chaves_parceiros(), ChaveParceiroVerifier, ChavesParceirosInvalidasError, configuracao_auth(), _origem(), preparar_autenticacao() (+35 more)
 
-### Community 14 - "orchestrator.py"
-Cohesion: 0.05
-Nodes (66): StreamingResponse, send_message(), CardAgendamento, CardCotacao, CardDocumentoDownload, CardGrafico, CardProduto, ChatDoneEventData (+58 more)
+### Community 14 - "Document"
+Cohesion: 0.12
+Nodes (16): buscar_em_varias_collections(), RagCollection, Busca agregada em várias `RagCollection` em paralelo — extraído de…, Busca `query`/`domain` em todas as `collections` ao mesmo tempo…, _buscar_documentos_rag(), _extrair_produtos_do_contexto(), _filtrar_documentos_relevantes_ao_contexto(), Extrai nomes/códigos de produtos citados no histórico recente ou na mensagem… (+8 more)
 
-### Community 15 - "ChatModal.tsx"
-Cohesion: 0.08
-Nodes (43): RFC-4180, ChatModal(), focarCaixaMensagem(), focarCaixaMensagemSePonteiroPreciso(), handleClearHistory(), handleCloseConversation(), handleDrop(), handleRetry() (+35 more)
+### Community 15 - "api/chat.ts"
+Cohesion: 0.10
+Nodes (27): ChatModal(), focarCaixaMensagem(), focarCaixaMensagemSePonteiroPreciso(), handleClearHistory(), handleCloseConversation(), handleDrop(), handleRetry(), handleSolicitarAtendente() (+19 more)
 
-### Community 16 - "useAuthStore"
-Cohesion: 0.16
-Nodes (15): AdminUsuariosPage(), CadastroPage(), DEMO_ACCOUNTS, LoginPage(), AdminGearMenu(), Header(), STATIC_LINKS, fetchCurrentUser() (+7 more)
+### Community 16 - "useAuthStore.ts"
+Cohesion: 0.12
+Nodes (16): AdminUsuariosPage(), frontend_app_globals, geistMono, geistSans, metadata, AdminGearMenu(), Footer(), Header() (+8 more)
 
 ### Community 17 - "rag_collections.py"
 Cohesion: 0.16
-Nodes (27): activate_collection_endpoint(), create_collection_endpoint(), delete_collection_endpoint(), list_collections_endpoint(), AsyncSession, delete, get, post (+19 more)
+Nodes (30): activate_collection_endpoint(), create_collection_endpoint(), delete_collection_endpoint(), list_collections_endpoint(), AsyncSession, delete, get, post (+22 more)
 
-### Community 18 - "models.py"
-Cohesion: 0.10
-Nodes (25): _persistir_escalonamento_em_background(), Roda via `asyncio.create_task` — nunca aguardada pelo stream SSE que a…, Base, PedidoItem, ProdutoEstoque, Modelos SQLAlchemy do backend (primeiro uso real do Postgres — ver…, Caso de escalonamento do Monitor de Tom (R8, Fase 4B) — ver…, Quantidade disponível de um produto por centro de distribuição (R12). # MVP:… (+17 more)
+### Community 18 - "chat_closure_service.py"
+Cohesion: 0.32
+Nodes (7): fechar_conversas_inativas(), inactivity_closure_worker(), async_sessionmaker, AsyncSession, Serviço de encerramento de conversas (manual e automático por inatividade)., Encerra conversas com status='aberta' cuja última atualização foi há mais de…, Worker em background executado periodicamente para fechar conversas inativas.
 
 ### Community 19 - "ai_usage_report.py"
-Cohesion: 0.14
-Nodes (23): _Acumulador, _agrupar(), AiUsageReport, Atendimento, BlocoMetricas, DiaUsoIa, EventoDiario, LinhaAgregada (+15 more)
+Cohesion: 0.10
+Nodes (32): AiUsageReport, _dia_local(), get_ai_usage_metrics(), datetime, get, Request, Uso de IA do período, estratificado por origem × ambiente × modelo × operação,…, Converte o filtro do painel em limites UTC. "Hoje"/`start_date`/`end_date` são… (+24 more)
 
 ### Community 20 - "metricas/page.tsx"
 Cohesion: 0.13
@@ -322,63 +326,63 @@ Nodes (22): RagSearchConfigSection(), carregar(), handleToggle(), OpenRouterMode
 
 ### Community 23 - "image_identification.py"
 Cohesion: 0.13
-Nodes (22): _buscar_detalhes(), _documento_relevante_para_produto(), _ficha_do_banco(), formatar_ficha_produto(), identify_product_by_image(), ImageIdentificationResult, _parse_vision_answer(), _produto_id_pelo_nome() (+14 more)
+Nodes (21): _buscar_detalhes(), _documento_relevante_para_produto(), _ficha_do_banco(), formatar_ficha_produto(), identify_product_by_image(), ImageIdentificationResult, _parse_vision_answer(), _produto_id_pelo_nome() (+13 more)
 
 ### Community 24 - "types/chat.ts"
 Cohesion: 0.09
-Nodes (31): AppointmentCard(), formatarDataHora(), ChatCard(), DocumentDownloadCard(), formatarTamanhoArquivo(), ProductCard(), QuoteCard(), BACKEND_LABELS (+23 more)
+Nodes (29): AppointmentCard(), formatarDataHora(), ChatCard(), ChatChartCard(), DocumentDownloadCard(), formatarTamanhoArquivo(), ProductCard(), QuoteCard() (+21 more)
 
 ### Community 25 - "api/rag.py"
+Cohesion: 0.13
+Nodes (27): delete_document_endpoint(), get_embedder_registry(), get_qdrant_client(), get_uploads_dir(), Path, Request, _document_to_response(), download_document_endpoint() (+19 more)
+
+### Community 26 - "OpenRouterModelCard.tsx"
+Cohesion: 0.11
+Nodes (25): CardComCaracteristicas(), formatarContexto(), formatarDataRelativa(), MODALIDADES_NAO_TEXTO, ModelCharacteristicsPanel(), ModelCharacteristicsPanelProps, NOMES_MODALIDADE, CardComCaracteristicas() (+17 more)
+
+### Community 27 - "admin_ferramentas.py"
+Cohesion: 0.15
+Nodes (20): AtualizacaoGraphifyResposta, atualizar_graphify(), _caminho_grafo_graphify(), FerramentasResposta, FerramentaStatus, listar_ferramentas(), obter_grafo_graphify(), BaseModel (+12 more)
+
+### Community 28 - "ChatModal.tsx"
+Cohesion: 0.16
+Nodes (15): RFC-4180, ChatModalProps, PendingError, PendingRetry, WELCOME_MESSAGE, EscalonamentoBanner(), EscalonamentoBannerProps, ImageUploader() (+7 more)
+
+### Community 29 - "post_converter_auto_admin"
 Cohesion: 0.14
-Nodes (33): delete_document_endpoint(), _document_to_response(), download_document_endpoint(), get_document_content_endpoint(), get_documents(), alias, AsyncSession, delete (+25 more)
-
-### Community 26 - "PullModelForm.tsx"
-Cohesion: 0.09
-Nodes (35): CardComCaracteristicas(), formatarContexto(), formatarDataRelativa(), MODALIDADES_NAO_TEXTO, ModelCharacteristicsPanel(), ModelCharacteristicsPanelProps, NOMES_MODALIDADE, CardComCaracteristicas() (+27 more)
-
-### Community 27 - "api/runtime_settings.py"
-Cohesion: 0.22
-Nodes (18): _build_response(), _get_clients(), get_runtime_settings(), preload_local_model(), get, post, put, Request (+10 more)
-
-### Community 28 - "orders.ts"
-Cohesion: 0.12
-Nodes (20): PerfilPage(), HistoricoPedidosContent(), PedidosPageContent(), calculateFreight(), calculateQuote(), createOrder(), CreateOrderItemPayload, CreateOrderPayload (+12 more)
-
-### Community 29 - "admin_pedidos_conversao.py"
-Cohesion: 0.14
-Nodes (33): _calcular_total_pedido(), ConfirmarConversaoRequest, listar_pedidos_admin(), obter_pedido_admin(), post_analisar_comprovante(), post_confirmar_conversao(), post_converter_auto_admin(), post_converter_manual_simples() (+25 more)
+Nodes (28): _calcular_total_pedido(), ConfirmarConversaoRequest, listar_pedidos_admin(), obter_pedido_admin(), post_analisar_comprovante(), post_confirmar_conversao(), post_converter_auto_admin(), post_converter_manual_simples() (+20 more)
 
 ### Community 30 - "OllamaClient"
-Cohesion: 0.08
-Nodes (15): LocalVisionResult, OllamaClient, Any, AsyncClient, setter, str, Subclasse de str que preserva o texto retornado por…, Carrega o modelo na memória/VRAM com o keep_alive configurado (elimina cold-… (+7 more)
+Cohesion: 0.14
+Nodes (7): OllamaClient, AsyncClient, setter, Descarrega o modelo da VRAM imediatamente (keep_alive: 0)., Consulta GET /api/ps para verificar se o modelo ativo está carregado na VRAM., Checa se `self._model` já está carregado na memória do Ollama (`GET /api/ps` —…, Cliente para o backend local via Ollama (docs/ARCHITECTURE.md §2). Além de…
 
 ### Community 31 - "Conversa"
-Cohesion: 0.15
-Nodes (29): Conversa, ConversaMensagem, Uma conversa do chat (R9, Fase 6) — ver decisão de 2026-09-25 em…, Uma mensagem de uma conversa: do cliente, a resposta do assistente (IA) ou de…, _carregar_clientes_por_email(), claim_conversa(), _com_fuso(), devolver_para_ia() (+21 more)
+Cohesion: 0.16
+Nodes (27): Conversa, Uma conversa do chat (R9, Fase 6) — ver decisão de 2026-09-25 em…, _carregar_clientes_por_email(), claim_conversa(), _com_fuso(), devolver_para_ia(), enviar_mensagem_atendente(), finalizar_atendimento() (+19 more)
 
 ### Community 32 - "ingestao/page.tsx"
-Cohesion: 0.12
-Nodes (23): AbaConfiguracao(), AbaDocumentosIngeridos(), DOMAIN_OPTIONS, IngestaoDocumentosPage(), ModelosPage(), DocumentsTable(), confirmarExclusao(), DOMAIN_OPTIONS (+15 more)
+Cohesion: 0.13
+Nodes (21): AbaConfiguracao(), AbaDocumentosIngeridos(), DOMAIN_OPTIONS, IngestaoDocumentosPage(), CrawlerReviewQueue(), handleReject(), DOMAIN_OPTIONS, DocumentsTable() (+13 more)
 
 ### Community 33 - "agendamentos.py"
 Cohesion: 0.17
 Nodes (21): admin_consultar_eventos_google(), admin_criar_agendamento_manual(), admin_listar_agendamentos(), AgendamentoManualCreate, AgendamentoOut, cancelar_agendamento(), listar_meus_agendamentos(), AsyncSession (+13 more)
 
 ### Community 34 - "admin_products.py"
-Cohesion: 0.09
-Nodes (48): CompatibilidadePayload, delete_admin_produto(), delete_compatividade(), delete_desconto_volume(), delete_imagem_produto(), DescontoVolumePayload, EstoqueUpdatePayload, get_admin_categorias() (+40 more)
+Cohesion: 0.12
+Nodes (41): CompatibilidadePayload, delete_admin_produto(), delete_compatividade(), delete_desconto_volume(), delete_imagem_produto(), DescontoVolumePayload, EstoqueUpdatePayload, get_admin_categorias() (+33 more)
 
 ### Community 35 - "api/crawler.ts"
-Cohesion: 0.11
-Nodes (28): CrawlerPanel(), handleSubmit(), marcarAtividade(), LiveProgress, PROGRESSO_INICIAL, CrawlerReviewQueue(), handleApprove(), handleReject() (+20 more)
-
-### Community 36 - "LocalModelsTable.tsx"
 Cohesion: 0.12
-Nodes (23): formatarDataRelativa(), formatarTamanho(), LocalModelsTable(), handleAtivar(), handleBaixarPreset(), LocalModelsTableProps, POPULAR_LOCAL_PRESETS, PresetLocalModel (+15 more)
+Nodes (24): CrawlerPanel(), handleSubmit(), marcarAtividade(), LiveProgress, PROGRESSO_INICIAL, handleApprove(), API_BASE_URL, approvePendingPage() (+16 more)
+
+### Community 36 - "modelos/page.tsx"
+Cohesion: 0.12
+Nodes (29): ModelosPage(), formatarDataRelativa(), formatarTamanho(), LocalModelsTable(), handleAtivar(), handleBaixarPreset(), LocalModelsTableProps, POPULAR_LOCAL_PRESETS (+21 more)
 
 ### Community 37 - "api/orders.py"
-Cohesion: 0.19
-Nodes (25): calculate_freight_endpoint(), calculate_quote_endpoint(), create_order_endpoint(), get_order_endpoint(), list_orders_endpoint(), _map_order_to_out(), AsyncSession, get (+17 more)
+Cohesion: 0.15
+Nodes (30): calculate_freight_endpoint(), calculate_quote_endpoint(), create_order_endpoint(), get_order_endpoint(), list_orders_endpoint(), _map_order_to_out(), AsyncSession, get (+22 more)
 
 ### Community 38 - "B2BMCPClient"
 Cohesion: 0.16
@@ -389,120 +393,120 @@ Cohesion: 0.17
 Nodes (22): AdminAtendimentoPage(), ContextoClientePanel(), ContextoClientePanelProps, FilaEsperaPanel(), FilaEsperaPanelProps, formatEspera(), MeusChatsTabs(), MeusChatsTabsProps (+14 more)
 
 ### Community 40 - "OpenRouterClient"
-Cohesion: 0.11
-Nodes (13): LLMResponse, LLMStreamChunk, BaseModel, Um fragmento do stream de `generate_stream`. Fragmentos intermediários vêm só…, OpenRouterClient, Any, AsyncClient, setter (+5 more)
+Cohesion: 0.06
+Nodes (40): _build_response(), _get_clients(), get_runtime_settings(), preload_local_model(), get, post, put, Request (+32 more)
 
 ### Community 41 - "ClipEmbedder"
-Cohesion: 0.17
-Nodes (8): ClipEmbedder, InvalidImageError, Exception, SentenceTransformer, Gera um embedding CLIP por texto (mesmo espaço vetorial das imagens)., Bytes fornecidos não são uma imagem decodificável pelo PIL. Erro de entrada…, Wrapper fino sobre CLIP via sentence-transformers, com carga lazy. Mesmo padrão…, Gera um embedding CLIP por imagem (bytes PNG/JPG/WEBP).
+Cohesion: 0.15
+Nodes (9): ClipEmbedder, InvalidImageError, Exception, SentenceTransformer, Embeddings multimodais via CLIP ViT-B/32 (R6) — imagem e texto no mesmo espaço…, Gera um embedding CLIP por texto (mesmo espaço vetorial das imagens)., Bytes fornecidos não são uma imagem decodificável pelo PIL. Erro de entrada…, Wrapper fino sobre CLIP via sentence-transformers, com carga lazy. Mesmo padrão… (+1 more)
 
-### Community 42 - "scheduling.py"
+### Community 42 - "orchestrator.py"
+Cohesion: 0.07
+Nodes (62): GoogleCalendarConnectionError, Exception, Falha de rede/protocolo ao falar com o MCP do Google Calendar, ou a tool…, CardAgendamento, RagChunkMetric, Fonte (arquivo ingerido) e score de um chunk usado no contexto do RAG., Card rico de confirmação de agendamento (Fase 8, R11) — emitido só quando o…, _AgendamentoFalhaValidacao (+54 more)
+
+### Community 43 - "typing"
 Cohesion: 0.11
-Nodes (33): GoogleCalendarConnectionError, Exception, Falha de rede/protocolo ao falar com o MCP do Google Calendar, ou a tool…, _handle_agendamento(), datetime, Valida expediente e disponibilidade de agenda para `slots.data_hora`. Devolve o…, _validar_horario_para_agendamento(), BookingSlots (+25 more)
+Nodes (24): Fire-and-forget helper para tasks disparadas por um endpoint HTTP sem que a…, Isolamento por delimitador e detecção log-only de tentativas de prompt…, Envolve `content` nas tags de `label`, escapando qualquer ocorrência literal de…, wrap_untrusted(), Ledger unificado de uso de IA (origem × ambiente × modelo) — ver…, Agente Analítico para Geração Dinâmica de Gráficos orientado por LLM. Permite…, Serviço de análise, extração e auditoria financeira de comprovantes de…, execute_readonly_sql() (+16 more)
 
-### Community 43 - "analytics_agent.py"
-Cohesion: 0.13
-Nodes (24): _detect_chart_type(), extract_prompt_inline_data(), _generate_sql_with_llm(), process_dynamic_chart_request(), Any, AsyncSession, Agente Analítico para Geração Dinâmica de Gráficos orientado por LLM. Permite…, Solicita ao LLM que gere a consulta Text-to-SQL e a especificação do gráfico.… (+16 more)
-
-### Community 44 - "ClipImageStore"
-Cohesion: 0.18
-Nodes (10): ClipImageStore, ImageSearchResult, AsyncQdrantClient, BaseModel, Busca imagens similares a partir de uma imagem de consulta., Busca imagens similares a partir de uma descrição textual., Reordena resultados de busca por imagem e corta para `top_k`. Reranking básico…, Operações de ingestão e busca sobre a collection CLIP no Qdrant. Cria a… (+2 more)
+### Community 44 - "rag/image_search.py"
+Cohesion: 0.21
+Nodes (8): ImageSearchResult, BaseModel, Busca multimodal por similaridade visual via CLIP (R6) — ingestão e busca sobre…, Busca imagens similares a partir de uma imagem de consulta., Busca imagens similares a partir de uma descrição textual., Reordena resultados de busca por imagem e corta para `top_k`. Reranking básico…, rerank_image_results(), field_validator
 
 ### Community 45 - "models/rag.py"
 Cohesion: 0.13
-Nodes (23): playground_search(), AsyncSession, post, BinaryQuantizationRequest, CollectionCreateRequest, DocumentIngestResponse, HnswConfigRequest, PayloadIndexRequest (+15 more)
+Nodes (24): playground_search(), AsyncSession, post, Playground de busca comparativo entre collections (Entregas B+C+D, além do MVP)…, BinaryQuantizationRequest, CollectionCreateRequest, DocumentIngestResponse, HnswConfigRequest (+16 more)
 
 ### Community 46 - "dashboards/page.tsx"
-Cohesion: 0.14
-Nodes (25): AdminDashboardsPage(), CreateChartModal(), CreateChartModalProps, DataRow, AdminChartData, DynamicChartCard(), DynamicChartCardProps, TIPO_LABELS (+17 more)
+Cohesion: 0.15
+Nodes (24): AdminDashboardsPage(), CreateChartModal(), CreateChartModalProps, DataRow, AdminChartData, DynamicChartCard(), DynamicChartCardProps, TIPO_LABELS (+16 more)
 
-### Community 47 - "openrouter_client.py"
-Cohesion: 0.11
-Nodes (19): _avaliar_cliente(), _carregar_casos(), _julgar_resposta(), main(), Avalia resiliência comportamental a prompt injection (Fase 10, avaliação…, _avaliar_provider(), _carregar_casos(), main() (+11 more)
+### Community 47 - "LLMClient"
+Cohesion: 0.12
+Nodes (21): _avaliar_cliente(), _carregar_casos(), _julgar_resposta(), main(), Avalia resiliência comportamental a prompt injection (Fase 10, avaliação…, _avaliar_provider(), _carregar_casos(), main() (+13 more)
 
 ### Community 48 - "cliente_mcp_b2b.py"
 Cohesion: 0.31
 Nodes (10): _descrever_erro(), main(), Cliente de teste do MCP B2B (R12, Fase 5): faz o que a IA de um revendedor…, Um POST `initialize` cru e devolve só o status HTTP — para conferir o `401` sem…, Sessão MCP completa com a chave: `initialize`, `tools/list` (as 4 ferramentas)…, ResultadoMcp, status_sem_sessao(), _texto() (+2 more)
 
-### Community 49 - "api/model_catalog.py"
-Cohesion: 0.10
-Nodes (36): get_characteristics(), get_model_catalog_http_client(), get_ollama_client(), AsyncClient, AsyncSession, get, ModelCharacteristics, post (+28 more)
+### Community 49 - "characteristics.py"
+Cohesion: 0.13
+Nodes (27): get_characteristics(), AsyncSession, get, ModelCharacteristics, post, refresh_characteristics(), _to_response(), ModelCharacteristics (+19 more)
 
-### Community 50 - "products.ts"
-Cohesion: 0.17
-Nodes (17): ProdutoDetalhePage(), ProdutoPageProps, ProdutosPage(), ImageZoomModal(), ImageZoomModalProps, ProductCard(), ProductCardProps, fetchProductById() (+9 more)
+### Community 50 - "orders.ts"
+Cohesion: 0.09
+Nodes (33): PedidosPageContent(), ProdutoDetalhePage(), ProdutoPageProps, ProdutosPage(), ImageZoomModal(), ImageZoomModalProps, ProductCard(), ProductCardProps (+25 more)
 
-### Community 51 - "AbaEnviarDocumento"
-Cohesion: 0.17
-Nodes (9): AbaEnviarDocumento(), handleCriarCollectionRapida(), handleSelectCollectionChange(), handleSubmit(), CollectionFormModal(), handleSubmit(), resetar(), createCollection() (+1 more)
+### Community 51 - "CollectionsTable.tsx"
+Cohesion: 0.13
+Nodes (15): AbaEnviarDocumento(), handleCriarCollectionRapida(), handleSelectCollectionChange(), handleSubmit(), CollectionFormModal(), handleSubmit(), resetar(), CollectionsTable() (+7 more)
 
 ### Community 52 - "admin_charts.py"
 Cohesion: 0.16
 Nodes (23): AdminChartCreate, AdminChartOut, AdminChartUpdate, create_admin_chart(), delete_admin_chart(), list_admin_charts(), AsyncSession, BaseModel (+15 more)
 
 ### Community 53 - "api/local_models.py"
-Cohesion: 0.16
-Nodes (21): activate_model_endpoint(), _consumir_pull(), get_ollama_client(), get_pull_progress_store(), list_local_models_endpoint(), pull_model_endpoint(), pull_status_endpoint(), get (+13 more)
+Cohesion: 0.26
+Nodes (13): list_local_models_endpoint(), pull_status_endpoint(), get, Endpoints HTTP do gerenciador de modelos locais (Ollama, além do MVP) — listar,…, ActivateModelRequest, LocalModelResponse, LocalModelsListResponse, PullModelRequest (+5 more)
 
-### Community 54 - "adminPedidos.ts"
-Cohesion: 0.20
-Nodes (18): AdminPedidosPage(), ModalConversaoPedido(), handleAuditarIA(), handleConfirmarComIA(), handleConverterAuto(), handleConverterSimples(), ModalConversaoPedidoProps, analisarComprovante() (+10 more)
+### Community 54 - "useAuthStore"
+Cohesion: 0.12
+Nodes (26): AdminPedidosPage(), CadastroPage(), DEMO_ACCOUNTS, LoginPage(), PerfilPage(), HistoricoPedidosContent(), ModalConversaoPedido(), handleAuditarIA() (+18 more)
 
 ### Community 55 - "useChatStore.ts"
 Cohesion: 0.19
-Nodes (8): FAQ_ITEMS, getUserConversationStorageKey(), getVisitPrompt(), HumanAttendanceStatus, LEGACY_STORAGE_KEY, SESSION_STORAGE_KEY, useChatStore, USER_STORAGE_PREFIX
+Nodes (12): FAQ_ITEMS, ChatWidget(), fetchConversationSnapshot(), getOrCreateConversationId(), getUserConversationStorageKey(), getVisitPrompt(), HumanAttendanceStatus, LEGACY_STORAGE_KEY (+4 more)
 
 ### Community 56 - "getApiBaseUrl"
-Cohesion: 0.19
-Nodes (30): AdminProdutosPage(), CATEGORIAS_PADRAO, ProductFormModal(), addAdminProductCompatibility(), addAdminProductVolumeDiscount(), authHeaders(), createAdminProduct(), deleteAdminProduct() (+22 more)
+Cohesion: 0.15
+Nodes (38): AdminProdutosPage(), CATEGORIAS_PADRAO, ProductFormModal(), ProductFormModalProps, ProductListTable(), ProductListTableProps, addAdminProductCompatibility(), addAdminProductVolumeDiscount() (+30 more)
 
 ### Community 57 - "CatalogImportModal.tsx"
-Cohesion: 0.16
-Nodes (17): arquivoAceito(), CatalogImportModal(), CatalogImportModalProps, CatalogPriceInput(), CatalogPriceInputProps, chaveArquivo(), formatarMoedaInput(), ModalStep (+9 more)
+Cohesion: 0.20
+Nodes (13): arquivoAceito(), CatalogImportModal(), CatalogImportModalProps, CatalogPriceInput(), CatalogPriceInputProps, chaveArquivo(), formatarMoedaInput(), ModalStep (+5 more)
 
-### Community 58 - "api/rag.ts"
-Cohesion: 0.09
-Nodes (34): CollectionsTable(), confirmarExclusao(), handleAtivar(), getPurposeLabel(), DocumentsTableProps, detectarTipoArquivo(), DocumentViewModal(), DocumentViewModalProps (+26 more)
+### Community 58 - "types/rag.ts"
+Cohesion: 0.07
+Nodes (50): CollectionFormModalProps, CURATED_MODELS, PAYLOAD_INDEXES_PADRAO, SCHEMA_TYPES, TEXT_PARAMS_PADRAO, DocumentsTableProps, DOMAIN_OPTIONS, detectarTipoArquivo() (+42 more)
 
 ### Community 59 - "compilerOptions"
 Cohesion: 0.07
 Nodes (28): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+20 more)
 
-### Community 60 - "admin_atendimento.py"
-Cohesion: 0.15
-Nodes (22): ClaimRequest, CloseRequest, get_detalhes_conversa(), get_fila_espera(), get_meus_chats(), MensagemAtendenteRequest, post_claim_conversa(), post_close_conversa() (+14 more)
+### Community 60 - "post_close_conversa"
+Cohesion: 0.16
+Nodes (20): ClaimRequest, CloseRequest, get_detalhes_conversa(), get_fila_espera(), get_meus_chats(), MensagemAtendenteRequest, post_claim_conversa(), post_close_conversa() (+12 more)
 
 ### Community 61 - "devDependencies"
 Cohesion: 0.11
-Nodes (19): eslint, eslint-config-next, devDependencies, eslint, eslint-config-next, prettier, @tailwindcss/postcss, @testing-library/jest-dom (+11 more)
+Nodes (19): eslint, eslint-config-prettier, devDependencies, eslint, eslint-config-prettier, prettier, @tailwindcss/postcss, @testing-library/jest-dom (+11 more)
 
 ### Community 62 - "api/image_search.py"
-Cohesion: 0.18
-Nodes (16): _get_clip_embedder(), _get_clip_store(), _get_rag_client(), _get_vision_client(), identify_image(), ingest_image(), post, Request (+8 more)
+Cohesion: 0.23
+Nodes (15): _get_clip_embedder(), _get_clip_store(), _get_rag_client(), _get_vision_client(), identify_image(), ingest_image(), post, Request (+7 more)
 
 ### Community 63 - "api/agendamentos.ts"
 Cohesion: 0.29
 Nodes (13): AdminAgendamentosPage(), formatarDataHora(), AgendamentosPage(), formatarDataHora(), cancelarAgendamento(), criarAgendamentoManual(), fetchAdminAgendamentos(), fetchGoogleCalendarEvents() (+5 more)
 
-### Community 64 - "CalendarClient"
-Cohesion: 0.15
-Nodes (9): get_calendar_client(), Request, CalendarClient, GoogleCalendarMCPClient, is_system_event(), Any, datetime, Protocol (+1 more)
+### Community 64 - "GoogleCalendarMCPClient"
+Cohesion: 0.29
+Nodes (4): GoogleCalendarMCPClient, is_system_event(), Any, Verifica se o evento do Google Calendar pertence ao sistema. Identifica pela…
 
 ### Community 65 - "app.py"
 Cohesion: 0.16
 Nodes (17): calcular_resumo_cotacao(), calcular_total_pedido(), formatar_itens_carrinho(), formatar_itens_pedido(), formatar_moeda(), main(), Aplicação Streamlit do Cliente Independente MCP B2B., Formata valor numérico para o padrão de moeda brasileiro R$ X.XXX,XX. (+9 more)
 
 ### Community 66 - "RAGConnectionError"
-Cohesion: 0.12
-Nodes (9): Embeda e grava uma imagem. Retorna o `image_id` gerado., Exclui um ponto por ID da collection CLIP., Exclui todos os pontos da collection CLIP pertencentes ao produto_id., Exclui pontos da collection CLIP por imagem_url., Remove `collection_name` do Qdrant. Idempotente: se a collection já não existir…, Remove todos os pontos com aquele `document_id` no payload de `collection_name`., Exception, RAGConnectionError (+1 more)
+Cohesion: 0.11
+Nodes (13): ClipImageStore, AsyncQdrantClient, Embeda e grava uma imagem. Retorna o `image_id` gerado., Exclui um ponto por ID da collection CLIP., Exclui todos os pontos da collection CLIP pertencentes ao produto_id., Exclui pontos da collection CLIP por imagem_url., Operações de ingestão e busca sobre a collection CLIP no Qdrant. Cria a…, Remove `collection_name` do Qdrant. Idempotente: se a collection já não existir… (+5 more)
 
 ### Community 67 - "whisper_client.py"
-Cohesion: 0.18
-Nodes (9): Exception, Wrapper de STT (R5) via faster-whisper, rodando na mesma GPU do modelo local.…, Falha de infraestrutura ao carregar o modelo ou transcrever o áudio. Análogo a…, Cliente STT local via faster-whisper. Suporta qualquer formato de áudio que o…, Transcreve `audio_bytes` (ex.: wav, mp3) para texto em português. # MVP: sem…, SttIndisponivelError, WhisperSttClient, faster_whisper (+1 more)
+Cohesion: 0.16
+Nodes (10): Exception, Wrapper de STT (R5) via faster-whisper, rodando na mesma GPU do modelo local.…, Falha de infraestrutura ao carregar o modelo ou transcrever o áudio. Análogo a…, Cliente STT local via faster-whisper. Suporta qualquer formato de áudio que o…, Transcreve `audio_bytes` (ex.: wav, mp3) para texto em português. # MVP: sem…, SttIndisponivelError, WhisperSttClient, faster_whisper (+2 more)
 
-### Community 68 - "classificacao.py"
+### Community 68 - "tone_monitor.py"
 Cohesion: 0.17
-Nodes (19): _carregar_dados_cliente_seguro(), Carrega dados cadastrais e histórico de compras/pedidos do cliente se houver…, ClienteCompra, Compra de um cliente (R10) — quantidade e recência definem se ele é Cliente ou…, atualizar_perfil(), carregar_contexto_cliente(), Classificacao, classificar() (+11 more)
+Nodes (15): _persistir_escalonamento_em_background(), Roda via `asyncio.create_task` — nunca aguardada pelo stream SSE que a…, get_escalonamentos(), AsyncSession, get, Caso de escalonamento do Monitor de Tom (R8, Fase 4B) — ver…, TomEscalonamento, criar_escalonamento() (+7 more)
 
 ### Community 69 - "RagDocument Model (PostgreSQL)"
 Cohesion: 0.23
@@ -568,13 +572,13 @@ Nodes (8): Background Model Pull with Polling, Runtime In-Memory Model Switching
 Cohesion: 0.13
 Nodes (15): dependencies, next, @radix-ui/react-dialog, @radix-ui/react-tabs, react, react-dom, recharts, zustand (+7 more)
 
-### Community 85 - "chunk_size_search.py"
-Cohesion: 0.19
-Nodes (15): _apagar_collection(), _avaliar_chunk_size(), _criar_e_popular_collection(), _FixedCollectionRagClient, main(), Path, Busca por bisseção do `chunk_size` que maximiza a qualidade do RAG (R4, Fase…, Implementa o Protocol `RAGClient` apontando para UMA collection fixa pelo nome,… (+7 more)
+### Community 85 - "registrar_uso_ia"
+Cohesion: 0.24
+Nodes (10): classify_page(), Classificação de domínio de páginas crawleadas via LLM externo (R4, Fase 2) —…, Classifica o texto de uma página crawleada. Qualquer falha de parse do JSON…, _strip_code_fence(), async_sessionmaker, AsyncSession, Configura o sessionmaker global usado quando nenhuma sessão/factory explícita é…, Registra um evento de uso de IA. Nunca lança exceção: falha de banco (ou… (+2 more)
 
 ### Community 86 - "api/crawler.py"
-Cohesion: 0.09
-Nodes (43): ApprovedPageResponse, approve_pending(), get_pending(), AsyncSession, get, Path, post, Request (+35 more)
+Cohesion: 0.14
+Nodes (23): ApprovedPageResponse, approve_pending(), get_pending(), AsyncSession, get, Path, post, Request (+15 more)
 
 ### Community 87 - "catalog_extractor.py"
 Cohesion: 0.23
@@ -636,9 +640,9 @@ Nodes (6): SalesCatalogClient (Direct Database Access), Design — Orquestrador 
 Cohesion: 0.40
 Nodes (6): Chat Inactivity 30-Minute Auto-Closure Worker, Segregated Prompt & Completion Cost Calculation, Design — Contabilizador de Tokens, Custos Segregados e Chats Encerrados, AdminChart PostgreSQL Model, Natural Language Chat Chart Synthesis, Design — Dashboards e Gráficos Dinâmicos Gerados via Chat
 
-### Community 103 - "settings.py"
-Cohesion: 0.28
-Nodes (12): AppSetting, Parâmetros de configuração e execução persistidos no banco., get_all_app_settings(), get_app_setting(), Any, AsyncSession, Persistência de configurações de execução no PostgreSQL., save_multiple_app_settings() (+4 more)
+### Community 103 - "qdrant_client.py"
+Cohesion: 0.24
+Nodes (8): CollectionAlreadyExistsError, _payload_schema_from_index(), Exception, _quantization_from_config(), Cliente RAG real via Qdrant (R4) — ingestão e busca vetorial de texto/PDF.…, Cria a collection com os parâmetros completos do perfil. Levanta…, Levantada por `create_collection` quando já existe uma collection com esse nome., qdrant_client_models
 
 ### Community 104 - "g.sh"
 Cohesion: 0.60
@@ -685,8 +689,8 @@ Cohesion: 0.67
 Nodes (3): Benchmark de Acurácia do Roteador de Intenções, Matriz de Confusão 4x4 do Roteador, Avaliação 1: Acurácia do Roteador
 
 ### Community 118 - "extractor.py"
-Cohesion: 0.09
-Nodes (34): _blocos_de_texto(), extract_catalog_stream(), extract_page_products_local(), extract_page_products_vision(), _extrair_figuras_pagina(), _parse_page_range(), _parse_products_json(), Any (+26 more)
+Cohesion: 0.14
+Nodes (22): _blocos_de_texto(), extract_catalog_stream(), extract_page_products_local(), extract_page_products_vision(), _extrair_figuras_pagina(), _parse_page_range(), _parse_products_json(), Any (+14 more)
 
 ### Community 122 - "Regras de Escopo do MVP"
 Cohesion: 0.67
@@ -701,8 +705,8 @@ Cohesion: 0.20
 Nodes (9): Bind the repository first, Checklist, Example: "What breaks if I change validateUser?", Impact Analysis with GitNexus, Risk Assessment, Tools, Understanding Output, When to Use (+1 more)
 
 ### Community 162 - "sqlalchemy_ext_asyncio"
-Cohesion: 0.15
-Nodes (19): Dependência FastAPI compartilhada para restringir endpoints a administradores…, get_db_session(), get_embedder_registry(), get_qdrant_client(), get_uploads_dir(), AsyncSession, Path, Request (+11 more)
+Cohesion: 0.10
+Nodes (31): Endpoints REST administrativos para a Central de Atendimento Humano e Fila de…, is_admin_request(), alias, AsyncSession, Header, Query, Dependência FastAPI compartilhada para restringir endpoints a administradores…, Extrai o token admin de `Authorization`/`X-Auth-Token`/`?token=` (nessa… (+23 more)
 
 ### Community 163 - "SearchableSelect.tsx"
 Cohesion: 0.40
@@ -712,9 +716,9 @@ Nodes (3): SearchableSelect(), SearchableSelectOption, SearchableSelectProps
 Cohesion: 0.15
 Nodes (27): get_current_user_endpoint(), list_users_endpoint(), login_endpoint(), obter_perfil_cliente(), AsyncSession, get, post, Endpoints REST para autenticação simples e mockada de usuários (R10, Fase 7). #… (+19 more)
 
-### Community 165 - "rag_client.py"
-Cohesion: 0.20
-Nodes (7): Embeddings multimodais via CLIP ViT-B/32 (R6) — imagem e texto no mesmo espaço…, Busca multimodal por similaridade visual via CLIP (R6) — ingestão e busca sobre…, NullRAGClient, Stub que sempre devolve lista vazia — sem RAG de verdade. A implementação real…, io, qdrant_client_models, sentence_transformers
+### Community 165 - "TextEmbedder"
+Cohesion: 0.13
+Nodes (10): Cache de instâncias de `TextEmbedder` por nome de modelo (Entregas B+C+D, além…, SentenceTransformer, Embeddings de texto para o RAG (R4) via sentence-transformers. # MVP: um único…, Wrapper fino sobre `sentence-transformers`, com carga lazy do modelo. A…, Gera um embedding por texto de `texts`, na mesma ordem de entrada., Dimensão dos vetores gerados pelo modelo carregado., TextEmbedder, Embeda e grava `chunks` em `collection_name`, com payload… (+2 more)
 
 ### Community 166 - "Debugging with GitNexus"
 Cohesion: 0.22
@@ -725,16 +729,16 @@ Cohesion: 0.22
 Nodes (8): Bind the repository first, Checklist, Example: "How does payment processing work?", Exploring Codebases with GitNexus, Resources, Tools, When to Use, Workflow
 
 ### Community 168 - "classifier.py"
-Cohesion: 0.25
-Nodes (16): ClassificationResult, classify(), _classify_heuristic_fallback(), _classify_with_jev(), _classify_with_llm(), _contexto_com_ultima_resposta(), _heuristic_complexity(), IntentClassifierClient (+8 more)
+Cohesion: 0.20
+Nodes (19): ClassificationResult, classify(), _classify_heuristic_fallback(), _classify_with_jev(), _classify_with_llm(), _contexto_com_ultima_resposta(), _heuristic_complexity(), IntentClassifierClient (+11 more)
 
 ### Community 169 - "ProductListTable.tsx"
-Cohesion: 0.27
-Nodes (9): ProductFormModalProps, ProductListTable(), ProductListTableProps, StockDetailBadge(), StockDetailBadgeProps, subscribeNoop(), useEstaNoCliente(), AdminProduct (+1 more)
+Cohesion: 0.48
+Nodes (5): StockDetailBadge(), StockDetailBadgeProps, subscribeNoop(), useEstaNoCliente(), AdminProductStock
 
-### Community 170 - "_registrar_troca_segura"
-Cohesion: 0.22
-Nodes (9): Grava a troca antes do `done`: a próxima mensagem sempre encontra esta no…, _registrar_troca_segura(), atualizar_resumo(), precisa_resumir(), async_sessionmaker, AsyncSession, Resumo automático periódico da conversa (R9, Fase 6) — ver decisão de…, Reescreve o resumo com as mensagens ainda não resumidas. Nunca levanta: roda em… (+1 more)
+### Community 170 - "CalendarClient"
+Cohesion: 0.28
+Nodes (5): get_calendar_client(), Request, CalendarClient, datetime, Protocol
 
 ### Community 171 - "GitNexus — Code Intelligence"
 Cohesion: 0.33
@@ -745,60 +749,80 @@ Cohesion: 0.22
 Nodes (8): 📌 1. O que é e o que ele entrega, ⚡ 2. Comandos do dia a dia, 🔁 3. Atualização: hook desligado neste ambiente, 🛠️ 4. Instalação e o cuidado com os arquivos de regras, 🏷️ 5. Rotulagem de comunidades (sem chave de LLM), 🧩 6. Integração com o restante do projeto, 📋 7. Folha de cola, Manual Didático: Graphify no Ambiente de Desenvolvimento Agêntico (WSL2, Antigravity IDE, Claude CLI, Kiro CLI)
 
 ### Community 173 - "apiBaseUrl.ts"
-Cohesion: 0.31
-Nodes (6): AdminFerramentasPage(), ICONES, FerramentasResposta, FerramentaStatus, fetchFerramentas(), urlDeVisualizacao()
+Cohesion: 0.27
+Nodes (8): AdminFerramentasPage(), ICONES, AtualizacaoGraphifyResposta, atualizarGraphify(), FerramentasResposta, FerramentaStatus, fetchFerramentas(), urlDeVisualizacao()
 
-### Community 174 - "require_admin"
+### Community 174 - "process_dynamic_chart_request"
 Cohesion: 0.33
-Nodes (7): is_admin_request(), alias, AsyncSession, Header, Query, Extrai o token admin de `Authorization`/`X-Auth-Token`/`?token=` (nessa…, require_admin()
+Nodes (9): _detect_chart_type(), extract_prompt_inline_data(), _generate_sql_with_llm(), process_dynamic_chart_request(), Any, AsyncSession, Solicita ao LLM que gere a consulta Text-to-SQL e a especificação do gráfico.…, Processa a solicitação de gráfico do usuário, identificando a fonte de dados,… (+1 more)
 
 ### Community 175 - "image_processor.py"
-Cohesion: 0.22
-Nodes (12): _validate_image(), detect_image_format(), extract_text_from_base64(), extract_text_from_bytes(), ImageFormatError, imagem_excede_tamanho_maximo(), ValueError, OCR para imagens dirigidas (R6) — extrai texto de PNG/JPG via pytesseract. #… (+4 more)
+Cohesion: 0.14
+Nodes (16): detect_image_format(), extract_text_from_base64(), extract_text_from_bytes(), ImageFormatError, imagem_excede_tamanho_maximo(), OcrIndisponivelError, ValueError, OCR para imagens dirigidas (R6) — extrai texto de PNG/JPG via pytesseract. #… (+8 more)
 
-### Community 176 - "layout.tsx"
-Cohesion: 0.29
-Nodes (5): frontend_app_globals, geistMono, geistSans, metadata, Footer()
+### Community 176 - ".describe_image"
+Cohesion: 0.25
+Nodes (5): LocalVisionResult, str, Subclasse de str que preserva o texto retornado por…, Envia uma imagem + prompt ao modelo local (Ollama) e devolve o texto cru —…, Detalhes completos de um modelo já baixado (`POST /api/show`) — usado pelo…
 
-### Community 177 - "admin_metrics.py"
-Cohesion: 0.16
-Nodes (15): AiUsageReport, _dia_local(), get_ai_usage_metrics(), alias, AsyncSession, datetime, get, Header (+7 more)
+### Community 177 - "require_admin"
+Cohesion: 0.40
+Nodes (5): alias, AsyncSession, Header, Query, require_admin()
 
-### Community 178 - "db_connector.py"
-Cohesion: 0.33
-Nodes (6): AsyncConnection, Conector de leitura a um banco de dados relacional para o RAG (R4). # MVP:…, Transforma uma linha (dict coluna -> valor) em texto plano, pronto para…, Lê todas as linhas de `table_name` e devolve uma lista de textos (um por linha,…, read_table_as_text(), row_to_text()
+### Community 178 - "sqlalchemy"
+Cohesion: 0.18
+Nodes (15): AsyncConnection, CrawlerPendingPage, Página crawleada com confiança de classificação abaixo do limiar, aguardando…, delete_pending_page(), get_pending_page(), list_pending_pages(), AsyncSession, UUID (+7 more)
 
-### Community 181 - "store.py"
-Cohesion: 0.10
-Nodes (29): _carregar_contexto_seguro(), _gravar_aviso_humano_seguro(), _gravar_mensagem_cliente_segura(), Histórico recente e resumo da conversa, lidos do Postgres (R9, Fase 6). Falha…, carregar_contexto(), contar_mensagens(), ContextoConversa, gravar_aviso_assistente() (+21 more)
+### Community 179 - "main.py"
+Cohesion: 0.13
+Nodes (19): _apply_runtime_settings(), create_app(), lifespan(), Any, Ponto de entrada da API FastAPI do backend (`uvicorn app.main:app`)., ActiveCollectionRagClient, async_sessionmaker, Adapter que implementa o Protocol `RAGClient` (usado pelo orchestrator)… (+11 more)
+
+### Community 181 - "models.py"
+Cohesion: 0.07
+Nodes (53): Grava a troca antes do `done`: a próxima mensagem sempre encontra esta no…, _registrar_troca_segura(), AiUsageEvent, Base, ClienteCompra, ConversaMensagem, Pedido, Modelos SQLAlchemy do backend (primeiro uso real do Postgres — ver… (+45 more)
 
 ### Community 183 - ".pull_model_streaming"
 Cohesion: 0.50
 Nodes (3): PullProgressLine, Baixa `name` (biblioteca do Ollama ou `hf.co/usuario/repo[:tag]` do Hugging…, Uma linha do stream NDJSON de `POST /api/pull` — ver…
 
+### Community 185 - "Tooltip.tsx"
+Cohesion: 0.38
+Nodes (6): subscribeNoop(), Tooltip(), TooltipAlign, TooltipPosition, TooltipProps, useEstaNoCliente()
+
+### Community 187 - "pull_model_endpoint"
+Cohesion: 0.40
+Nodes (5): activate_model_endpoint(), _consumir_pull(), pull_model_endpoint(), post, Roda em background (`asyncio.create_task`) — nunca é aguardada pela requisição…
+
+### Community 189 - "detect_chart_request"
+Cohesion: 0.50
+Nodes (3): detect_chart_request(), Gate de intenção para o Agente Analítico de Gráficos Dinâmicos…, Identifica se o prompt do usuário expressa a intenção explícita de gerar ou…
+
 ### Community 190 - "products.py"
 Cohesion: 0.11
-Nodes (27): get_admin_produtos(), description, ge, le, Query, get_public_categorias(), get_public_produto(), get_public_produtos() (+19 more)
+Nodes (26): get_admin_produtos(), description, ge, le, Query, get_public_categorias(), get_public_produto(), get_public_produtos() (+18 more)
+
+### Community 207 - "get_ollama_client"
+Cohesion: 0.67
+Nodes (3): get_ollama_client(), get_pull_progress_store(), Request
 
 ## Knowledge Gaps
-- **375 isolated node(s):** `assistente-multimodal-backend`, `cliente-mcp-b2b`, `semi`, `singleQuote`, `trailingComma` (+370 more)
+- **376 isolated node(s):** `assistente-multimodal-backend`, `cliente-mcp-b2b`, `semi`, `singleQuote`, `trailingComma` (+371 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **35 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `QdrantRAGClient` connect `main.py` to `sqlalchemy_ext_asyncio`, `RAGConnectionError`, `b2b.py`, `ingest.py`, `models/rag.py`, `rag_collections.py`, `.async_client`, `chunk_size_search.py`, `api/crawler.py`, `api/rag.py`, `api/runtime_settings.py`?**
-  _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `useAuthStore` connect `useAuthStore` to `types/rag.ts`, `ChatModal.tsx`, `metricas/page.tsx`, `RuntimeSettingsForm.tsx`, `PullModelForm.tsx`, `orders.ts`, `ingestao/page.tsx`, `api/crawler.ts`, `LocalModelsTable.tsx`, `adminAtendimento.ts`, `apiBaseUrl.ts`, `dashboards/page.tsx`, `AbaEnviarDocumento`, `adminPedidos.ts`, `useChatStore.ts`, `getApiBaseUrl`, `CatalogImportModal.tsx`, `api/rag.ts`, `api/agendamentos.ts`?**
-  _High betweenness centrality (0.014) - this node is a cross-community bridge._
-- **Why does `OpenRouterClient` connect `OpenRouterClient` to `main.py`, `api/runtime_settings.py`, `chunk_size_search.py`, `openrouter_client.py`?**
+- **Why does `QdrantRAGClient` connect `main.py` to `RagDocument`, `sqlalchemy_ext_asyncio`, `RAGConnectionError`, `b2b.py`, `TextEmbedder`, `qdrant_client.py`, `OpenRouterClient`, `ingest.py`, `chunk_size_search.py`, `models/rag.py`, `Document`, `rag_collections.py`, `api/crawler.py`, `api/rag.py`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Why does `RAGConnectionError` connect `RAGConnectionError` to `api/chat.py`, `TextEmbedder`, `qdrant_client.py`, `ClipEmbedder`, `rag/image_search.py`, `Document`, `rag_collections.py`, `main.py`, `api/crawler.py`, `api/rag.py`, `api/image_search.py`?**
+  _High betweenness centrality (0.013) - this node is a cross-community bridge._
+- **Why does `useAuthStore` connect `useAuthStore` to `PlaygroundPanel.tsx`, `useAuthStore.ts`, `metricas/page.tsx`, `RuntimeSettingsForm.tsx`, `OpenRouterModelCard.tsx`, `ChatModal.tsx`, `ingestao/page.tsx`, `api/crawler.ts`, `modelos/page.tsx`, `adminAtendimento.ts`, `apiBaseUrl.ts`, `dashboards/page.tsx`, `orders.ts`, `CollectionsTable.tsx`, `useChatStore.ts`, `getApiBaseUrl`, `CatalogImportModal.tsx`, `types/rag.ts`, `api/agendamentos.ts`?**
   _High betweenness centrality (0.011) - this node is a cross-community bridge._
 - **Are the 29 inferred relationships involving `QdrantRAGClient` (e.g. with `_FixedCollectionRagClient` and `main()`) actually correct?**
   _`QdrantRAGClient` has 29 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 17 inferred relationships involving `OllamaClient` (e.g. with `main()` and `main()`) actually correct?**
   _`OllamaClient` has 17 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `assistente-multimodal-backend`, `cliente-mcp-b2b`, `semi` to the rest of the system?**
-  _375 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `types/rag.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.06976744186046512 - nodes in this community are weakly interconnected._
+  _376 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `PlaygroundPanel.tsx` be split into smaller, more focused modules?**
+  _Cohesion score 0.1 - nodes in this community are weakly interconnected._

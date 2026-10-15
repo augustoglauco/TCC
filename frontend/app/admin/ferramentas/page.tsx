@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { fetchFerramentas, urlDeVisualizacao, FerramentaStatus } from "@/lib/api/ferramentas";
+import {
+  atualizarGraphify,
+  fetchFerramentas,
+  urlDeVisualizacao,
+  FerramentaStatus,
+} from "@/lib/api/ferramentas";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
 const ICONES: Record<string, string> = {
@@ -41,6 +46,12 @@ export default function AdminFerramentasPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [atualizando, setAtualizando] = useState(false);
+  const [resultadoAtualizacao, setResultadoAtualizacao] = useState<{
+    sucesso: boolean;
+    saida: string;
+  } | null>(null);
+
   const carregar = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -58,6 +69,23 @@ export default function AdminFerramentasPage() {
       setLoading(false);
     }
   }, [token]);
+
+  const atualizar = async () => {
+    if (!token) return;
+    setAtualizando(true);
+    setResultadoAtualizacao(null);
+    try {
+      setResultadoAtualizacao(await atualizarGraphify(token));
+      await carregar();
+    } catch (err: unknown) {
+      setResultadoAtualizacao({
+        sucesso: false,
+        saida: err instanceof Error ? err.message : "Erro ao atualizar o Graphify.",
+      });
+    } finally {
+      setAtualizando(false);
+    }
+  };
 
   useEffect(() => {
     if (isCurrentAdmin && token) {
@@ -150,6 +178,16 @@ export default function AdminFerramentasPage() {
         <section className="rounded-xl border border-gray-200 bg-white shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-4 py-3">
             <h2 className="font-medium text-gray-900">{ativa.nome}</h2>
+            {ativa.id === "graphify" && (
+              <button
+                type="button"
+                onClick={() => void atualizar()}
+                disabled={atualizando}
+                className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {atualizando ? "Atualizando..." : "Atualizar grafo (graphify update)"}
+              </button>
+            )}
             {urlAtiva && (
               <a
                 href={urlAtiva}
@@ -161,6 +199,29 @@ export default function AdminFerramentasPage() {
               </a>
             )}
           </div>
+          {ativa.id === "graphify" && resultadoAtualizacao && (
+            <div
+              role="status"
+              className={
+                resultadoAtualizacao.sucesso
+                  ? "relative border-b border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "relative border-b border-rose-200 bg-rose-50 text-rose-800"
+              }
+            >
+              <button
+                type="button"
+                onClick={() => setResultadoAtualizacao(null)}
+                aria-label="Fechar mensagem"
+                className="absolute right-2 top-2 rounded px-2 text-lg leading-none hover:bg-black/10"
+              >
+                ×
+              </button>
+              <pre className="max-h-48 overflow-auto px-4 py-3 pr-10 text-xs">
+                {resultadoAtualizacao.sucesso ? "Grafo atualizado.\n" : "Falha na atualização.\n"}
+                {resultadoAtualizacao.saida}
+              </pre>
+            </div>
+          )}
           {ativa.online && urlAtiva ? (
             <>
               <iframe

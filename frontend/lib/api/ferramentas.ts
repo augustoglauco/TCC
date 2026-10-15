@@ -60,3 +60,29 @@ export function urlDeVisualizacao(ferramenta: FerramentaStatus, token: string): 
   }
   return ferramenta.url;
 }
+
+export interface AtualizacaoGraphifyResposta {
+  sucesso: boolean;
+  saida: string;
+}
+
+/** `POST /api/admin/ferramentas/graphify/atualizar` — roda `graphify update .`. */
+export async function atualizarGraphify(token: string): Promise<AtualizacaoGraphifyResposta> {
+  const response = await fetch(`${getApiBaseUrl()}/api/admin/ferramentas/graphify/atualizar`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    let detalhe = `Falha ao atualizar o Graphify (${response.status})`;
+    try {
+      const corpo = (await response.json()) as { detail?: string };
+      if (corpo.detail) detalhe = corpo.detail;
+    } catch {
+      // corpo sem JSON: mantém a mensagem genérica
+    }
+    throw new Error(detalhe);
+  }
+
+  return (await response.json()) as AtualizacaoGraphifyResposta;
+}

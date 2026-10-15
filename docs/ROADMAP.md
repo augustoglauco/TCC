@@ -1288,6 +1288,11 @@ conversa e classificação do usuário").
       não responderem — mesma política do Ollama, sem derrubar o que já está
       no ar. Correção do mesmo dia: a porta do Repowise é 3002, não a 7339
       que o manual dele anunciava (medido; só 3002 e 4747 escutavam).
+- [x] **Botão "Atualizar grafo" na aba do Graphify** (2026-10-15).
+      `POST /api/admin/ferramentas/graphify/atualizar` roda
+      `graphify update .` na raiz do repo (timeout 300s, uma execução por
+      vez) e a tela mostra a saída; testes em
+      `backend/tests/test_admin_ferramentas_api.py`.
       Cobertura: 10 testes de backend (`test_admin_ferramentas_api.py`,
       incluindo a sondagem real contra porta fechada) e 7 de frontend
       (`AdminFerramentasPage.test.tsx`). Variáveis novas em `.env.example`:

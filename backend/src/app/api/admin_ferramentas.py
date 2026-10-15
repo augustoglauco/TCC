@@ -14,7 +14,9 @@ para a tela `/admin/ferramentas` não depender do desenvolvedor lembrar
 # do projeto em 2026-10-13.
 """
 
+import asyncio
 import logging
+import shutil
 from pathlib import Path
 
 import httpx
@@ -33,6 +35,13 @@ router = APIRouter(prefix="/api/admin/ferramentas", tags=["Admin Ferramentas"])
 # ferramenta está no ar e responde em milissegundos, ou não está. Um valor
 # maior só faria a tela demorar a dizer "offline".
 _TIMEOUT_SONDAGEM_S = 1.5
+
+# MVP: `graphify update .` é AST puro (sem API), leva segundos a poucos
+# minutos; o teto evita processo pendurado e o lock impede duas execuções
+# simultâneas gravando em `graphify-out/` ao mesmo tempo.
+_TIMEOUT_ATUALIZACAO_S = 300
+_SAIDA_MAX_CHARS = 4000
+_lock_atualizacao = asyncio.Lock()
 
 
 class FerramentaStatus(BaseModel):
@@ -53,6 +62,11 @@ class FerramentaStatus(BaseModel):
     online: bool
     detalhe: str | None
     comando: str
+
+
+class AtualizacaoGraphifyResposta(BaseModel):
+    sucesso: bool
+    saida: str
 
 
 class FerramentasResposta(BaseModel):
@@ -171,3 +185,53 @@ async def obter_grafo_graphify() -> HTMLResponse:
             ),
         )
     return HTMLResponse(content=caminho.read_text(encoding="utf-8"))
+
+
+@router.post(
+    "/graphify/atualizar",
+    response_model=AtualizacaoGraphifyResposta,
+    dependencies=[Depends(require_admin)],
+)
+async def atualizar_graphify() -> AtualizacaoGraphifyResposta:
+    """Roda `graphify update .` na raiz do repositório e devolve a saída.
+
+    A raiz é o pai de `graphify_out_dir`. Falha do comando não é erro HTTP:
+    devolve `200` com `sucesso: false` e a saída, que a tela mostra.
+    """
+    executavel = shutil.which("graphify")
+    if executavel is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="CLI `graphify` não encontrada no PATH do backend.",
+        )
+    if _lock_atualizacao.locked():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Já existe uma atualização do Graphify em andamento.",
+        )
+
+    raiz = Path(get_settings().graphify_out_dir).resolve().parent
+    async with _lock_atualizacao:
+        processo = await asyncio.create_subprocess_exec(
+            executavel,
+            "update",
+            ".",
+            cwd=raiz,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        try:
+            bruto, _ = await asyncio.wait_for(
+                processo.communicate(), timeout=_TIMEOUT_ATUALIZACAO_S
+            )
+        except TimeoutError:
+            processo.kill()
+            await processo.wait()
+            return AtualizacaoGraphifyResposta(
+                sucesso=False,
+                saida=f"Tempo esgotado após {_TIMEOUT_ATUALIZACAO_S}s.",
+            )
+
+    saida = bruto.decode("utf-8", errors="replace").strip()[-_SAIDA_MAX_CHARS:]
+    logger.info("graphify update terminou com código %s", processo.returncode)
+    return AtualizacaoGraphifyResposta(sucesso=processo.returncode == 0, saida=saida)

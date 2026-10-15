@@ -1770,9 +1770,9 @@
     "semantic_hash": "a824b21331368000d3937b125aef8436"
   },
   "docs/FRONTEND.md": {
-    "mtime": 1792033348.024035,
-    "seen": 1792033373.162008,
-    "ast_hash": "c99d58f62586efe3873242e1866034e5",
+    "mtime": 1792058427.9188337,
+    "seen": 1792058433.2699983,
+    "ast_hash": "223264ac8c9c794818432a04fa60b453",
     "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_ADMINISTRADOR.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792038661.5243666,
-    "seen": 1792038710.7625535,
-    "ast_hash": "f119b8a404b8d401a82d5106d547b235",
+    "mtime": 1792058438.0399277,
+    "seen": 1792058582.6611795,
+    "ast_hash": "7ce5cbb53874228bad42957ba93ba669",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
@@ -2196,21 +2196,21 @@
     "semantic_hash": ""
   },
   "backend/src/app/api/admin_ferramentas.py": {
-    "mtime": 1791862823.3131127,
-    "seen": 1791862920.2324,
-    "ast_hash": "3cdad52acbd2f6b11ee96d6e57049a1f",
+    "mtime": 1792058398.6553235,
+    "seen": 1792058433.2697217,
+    "ast_hash": "a015f3e550f5bab9ec790055e24d7d3c",
     "semantic_hash": ""
   },
   "frontend/app/admin/ferramentas/page.tsx": {
-    "mtime": 1791862309.1286438,
-    "seen": 1791862568.8561215,
-    "ast_hash": "768c90d6e544a7ec661da30d2552d29c",
+    "mtime": 1792058663.0499666,
+    "seen": 1792061239.705603,
+    "ast_hash": "87c0344c2815aef37b759d6cad443daa",
     "semantic_hash": ""
   },
   "frontend/lib/api/ferramentas.ts": {
-    "mtime": 1791862198.5970695,
-    "seen": 1791862568.8562021,
-    "ast_hash": "b185329574af35b8dbfb5611eb3b9900",
+    "mtime": 1792058398.6556942,
+    "seen": 1792058433.269936,
+    "ast_hash": "dbab7ccf66532260d3e071b920c89f98",
     "semantic_hash": ""
   },
   "frontend/lib/hooks/useEstaNoCliente.ts": {
@@ -2232,9 +2232,9 @@
     "semantic_hash": ""
   },
   ".doc-drift-baseline.json": {
-    "mtime": 1792038692.1390564,
-    "seen": 1792038710.762221,
-    "ast_hash": "130ff8c1c964b664afa053481fcffbfc",
+    "mtime": 1792038775.471834,
+    "seen": 1792058433.2696588,
+    "ast_hash": "b00bcbb873b3eb89e3cf379c209e6aaf",
     "semantic_hash": ""
   }
 }
