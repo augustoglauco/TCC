@@ -15,6 +15,22 @@ const ICONES: Record<string, string> = {
   gitnexus: "🧭",
 };
 
+function Led({ online }: { online: boolean }) {
+  // Verde piscando suavemente = no ar; vermelho fixo = fora do ar.
+  return (
+    <span
+      role="img"
+      aria-label={online ? "Online" : "Offline"}
+      title={online ? "Online" : "Offline"}
+      className={
+        online
+          ? "inline-block h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-emerald-500 shadow-[0_0_6px_1px_rgba(16,185,129,0.6)]"
+          : "inline-block h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_6px_1px_rgba(239,68,68,0.5)]"
+      }
+    />
+  );
+}
+
 function Selo({ online, tipo }: { online: boolean; tipo: string }) {
   const rotulo = online
     ? tipo === "artefato"
@@ -159,6 +175,7 @@ export default function AdminFerramentasPage() {
               <span className="flex items-center gap-2 font-semibold text-gray-900">
                 <span className="text-lg">{ICONES[f.id] ?? "🔧"}</span>
                 {f.nome}
+                <Led online={f.online} />
               </span>
               <Selo online={f.online} tipo={f.tipo} />
             </div>
@@ -179,13 +196,21 @@ export default function AdminFerramentasPage() {
       {ativa && (
         <section className="rounded-xl border border-gray-200 bg-white shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-4 py-3">
-            <h2 className="font-medium text-gray-900">{ativa.nome}</h2>
+            <h2 className="flex items-center gap-2 font-medium text-gray-900">
+              {ativa.nome}
+              <Led online={ativa.online} />
+            </h2>
             {(ativa.id === "graphify" || ativa.id === "gitnexus") && (
               <button
                 type="button"
                 onClick={() => void atualizar(ativa.id as "graphify" | "gitnexus")}
-                disabled={atualizando}
-                className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                disabled={atualizando || (ativa.id === "gitnexus" && !ativa.online)}
+                title={
+                  ativa.id === "gitnexus" && !ativa.online
+                    ? "Suba o servidor do GitNexus para atualizar"
+                    : undefined
+                }
+                className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {atualizando
                   ? "Atualizando..."
