@@ -217,6 +217,19 @@ Criado na revisão de 2026-09-28: das 34 entregas de 25 a 27/09, só 4
 atualizaram o roadmap, nenhuma marcou `# MVP:` e o lint ficou com 61 erros
 no backend e 10 no frontend. Antes de commitar, confira:
 
+**Atalho (2026-10-15): `scripts/checar_mudanca.py`.** Cobre os itens 5, 6,
+9–11 de forma proporcional à mudança, olhando só o que difere do `HEAD`:
+ruff + pytest só dos testes que importam (direta ou por um importador) os
+módulos alterados; prettier/eslint + `vitest related` só nos arquivos
+alterados do frontend; gate de deriva de docs (`--since HEAD`: só a deriva pela qual a mudança
+responde) e só se há `.md` alterado ou arquivo apagado/renomeado; `gitnexus detect-changes` só se há código
+alterado. `--dry-run` mostra o plano, `--full-backend` força a suíte inteira
+e `--e2e` inclui o smoke do Playwright (fora do padrão: só ao mexer em
+fluxo de chat/widget). **Não rode `graphify update .` à mão antes de
+commitar** (item 9): o hook `post-commit` já reconstrói o grafo. A suíte
+completa e o Playwright ficam para mudança transversal (`config.py`,
+`db/models.py`, contrato de API) ou antes de entregar uma fase.
+
 1. Mensagem diz o que mudou e cita requisito/fase (`(R12, Fase 5)`);
    "últimas mudanças" ou "ajustes" não servem.
 2. Item do `docs/ROADMAP.md` marcado (ou criado, se não existia).
@@ -233,8 +246,9 @@ no backend e 10 no frontend. Antes de commitar, confira:
    nos `.md` e no código.
 8. Nenhum documento novo fora da lista do `CLAUDE.md` (resumos, cópias de
    spec, guias paralelos): atualize o documento que já cobre o assunto.
-9. Se houve alteração no código, execute `graphify update .` para manter
-   o knowledge graph (`graphify-out/`) atualizado e sincronizado.
+9. O knowledge graph (`graphify-out/`) é reconstruído pelo hook `post-commit`
+   do graphify; só rode `graphify update .` à mão para consultar o grafo
+   antes de commitar.
 10. Se houve alteração no código, rode a análise de mudanças do GitNexus —
     `detect_changes({scope: "all"})` pelo MCP ou
     `node .gitnexus/run.cjs detect-changes --scope all --repo .` pela CLI — e
