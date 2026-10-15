@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 import type { ChatCardAgendamento } from "@/lib/types/chat";
 
 function formatarDataHora(dataIso: string): string {
@@ -14,6 +17,9 @@ function formatarDataHora(dataIso: string): string {
 /** Card rico de confirmação de agendamento (Fase 8, R11) — só aparece
  * quando o evento é criado de verdade no Google Calendar. */
 export default function AppointmentCard({ card }: { card: ChatCardAgendamento }) {
+  // Fecha o modal do chat para não cobrir a página de agendamentos após navegar.
+  const fecharChat = () => useChatStore.getState().close();
+
   return (
     <div className="flex w-full max-w-[85%] flex-col gap-2 rounded-xl border border-blue-200 bg-blue-50/60 p-3 shadow-xs">
       <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-700">
@@ -23,7 +29,7 @@ export default function AppointmentCard({ card }: { card: ChatCardAgendamento })
         {formatarDataHora(card.data_hora_inicio)}
       </p>
       <div className="flex flex-wrap gap-3 text-xs font-semibold">
-        <Link href="/agendamentos" className="text-blue-700 hover:underline">
+        <Link href="/agendamentos" onClick={fecharChat} className="text-blue-700 hover:underline">
           Ver meus agendamentos →
         </Link>
       </div>

@@ -1,8 +1,25 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import QuoteCard from "@/components/chat/cards/QuoteCard";
+import { useChatStore } from "@/lib/hooks/useChatStore";
+import type { ComponentProps } from "react";
 import type { ChatCardCotacao } from "@/lib/types/chat";
+
+vi.mock("next/link", () => ({
+  default: ({ children, href, onClick, ...rest }: ComponentProps<"a">) => (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick?.(e);
+      }}
+      {...rest}
+    >
+      {children}
+    </a>
+  ),
+}));
 
 function makeCard(overrides: Partial<ChatCardCotacao> = {}): ChatCardCotacao {
   return {
@@ -42,5 +59,14 @@ describe("QuoteCard", () => {
     render(<QuoteCard card={makeCard({ produto_id: 7 })} />);
 
     expect(screen.getByRole("link")).toHaveAttribute("href", "/produtos/7");
+  });
+
+  it("fecha o modal do chat ao clicar no card", () => {
+    useChatStore.setState({ isOpen: true });
+    render(<QuoteCard card={makeCard()} />);
+
+    fireEvent.click(screen.getByRole("link"));
+
+    expect(useChatStore.getState().isOpen).toBe(false);
   });
 });

@@ -1296,10 +1296,10 @@
     "semantic_hash": ""
   },
   "frontend/components/chat/cards/AppointmentCard.tsx": {
-    "mtime": 1790732636.36716,
-    "seen": 1791840346.4558697,
-    "ast_hash": "bcc2ccd3ec2fd7f31c47c19f11237af1",
-    "semantic_hash": "bcc2ccd3ec2fd7f31c47c19f11237af1"
+    "mtime": 1792022449.00237,
+    "seen": 1792022551.0160892,
+    "ast_hash": "9d8f00641588dc9e4df920b16897f04c",
+    "semantic_hash": ""
   },
   "frontend/components/chat/cards/ChatCard.tsx": {
     "mtime": 1791188314.8395076,
@@ -1320,16 +1320,16 @@
     "semantic_hash": "dee91801cb0b94d9099498b40d5dc7ad"
   },
   "frontend/components/chat/cards/ProductCard.tsx": {
-    "mtime": 1790730230.70496,
-    "seen": 1791840346.4558725,
-    "ast_hash": "e77429880156acc6fa9c03dbeb87ca3a",
-    "semantic_hash": "e77429880156acc6fa9c03dbeb87ca3a"
+    "mtime": 1792022410.1411817,
+    "seen": 1792022551.016095,
+    "ast_hash": "f2ac710804be3d0af238ac8185b0ab06",
+    "semantic_hash": ""
   },
   "frontend/components/chat/cards/QuoteCard.tsx": {
-    "mtime": 1790730239.0561974,
-    "seen": 1791840346.4558733,
-    "ast_hash": "b4205beca3e14ae2c1161721cff104f4",
-    "semantic_hash": "b4205beca3e14ae2c1161721cff104f4"
+    "mtime": 1792022410.1414213,
+    "seen": 1792022551.0160964,
+    "ast_hash": "bbd4db0dbc130c43aa537dbefe1695b8",
+    "semantic_hash": ""
   },
   "frontend/components/layout/AdminGearMenu.tsx": {
     "mtime": 1792009001.2559514,
@@ -1770,9 +1770,9 @@
     "semantic_hash": "a824b21331368000d3937b125aef8436"
   },
   "docs/FRONTEND.md": {
-    "mtime": 1792008179.310764,
-    "seen": 1792008869.799608,
-    "ast_hash": "7ebbb098ba122a921bdd2e023dd55870",
+    "mtime": 1792022512.166035,
+    "seen": 1792022551.016195,
+    "ast_hash": "bebfb634aee9fcb98b9d30d7c7ee97c6",
     "semantic_hash": ""
   },
   "docs/Manuais/HOWTO_ADMINISTRADOR.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792009403.370425,
-    "seen": 1792009514.8561678,
-    "ast_hash": "ff30d8949b1ca8d67db841788aa145b0",
+    "mtime": 1792022542.5842392,
+    "seen": 1792022551.016204,
+    "ast_hash": "282313e70ad7412beb452da5dc7fb899",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {

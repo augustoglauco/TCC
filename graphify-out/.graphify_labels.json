@@ -55,7 +55,7 @@
   "53": "models/local_models.py",
   "54": "adminPedidos.ts",
   "55": "RAGConnectionError",
-  "56": "api/adminProducts.ts",
+  "56": "CatalogImportModal.tsx",
   "57": "google_calendar.py",
   "58": "types/rag.ts",
   "59": "compilerOptions",
@@ -173,10 +173,10 @@
   "171": "GitNexus — Code Intelligence",
   "172": "CalendarClient",
   "173": "VisionModelIndisponivelError",
-  "174": "admin/produtos/page.tsx",
+  "174": "ProductListTable.tsx",
   "175": "LocalBackendIndisponivelError",
   "176": "layout.tsx",
-  "177": ".describe_image",
+  "177": "ImageUploader.tsx",
   "178": "db_connector.py",
   "179": "search_images",
   "180": "apiBaseUrl.ts",
@@ -187,5 +187,7 @@
   "185": "inactivity_closure_worker",
   "186": "save_multiple_app_settings",
   "187": "get_model_catalog_http_client",
-  "188": "_registrar_chamada"
+  "188": "_registrar_chamada",
+  "189": "CategoryFilter.tsx",
+  "190": "_get_clip_embedder"
 }

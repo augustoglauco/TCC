@@ -1,8 +1,25 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import AppointmentCard from "@/components/chat/cards/AppointmentCard";
+import { useChatStore } from "@/lib/hooks/useChatStore";
+import type { ComponentProps } from "react";
 import type { ChatCardAgendamento } from "@/lib/types/chat";
+
+vi.mock("next/link", () => ({
+  default: ({ children, href, onClick, ...rest }: ComponentProps<"a">) => (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick?.(e);
+      }}
+      {...rest}
+    >
+      {children}
+    </a>
+  ),
+}));
 
 function makeCard(overrides: Partial<ChatCardAgendamento> = {}): ChatCardAgendamento {
   return {
@@ -33,5 +50,14 @@ describe("AppointmentCard", () => {
 
     expect(screen.queryByText(/Google Calendar/)).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Google/ })).not.toBeInTheDocument();
+  });
+
+  it("fecha o modal do chat ao clicar no link de agendamentos", () => {
+    useChatStore.setState({ isOpen: true });
+    render(<AppointmentCard card={makeCard()} />);
+
+    fireEvent.click(screen.getByRole("link", { name: /Ver meus agendamentos/i }));
+
+    expect(useChatStore.getState().isOpen).toBe(false);
   });
 });

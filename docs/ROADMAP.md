@@ -1833,6 +1833,19 @@ conversa e classificação do usuário").
       `tsc --noEmit`, `eslint .`, `prettier --check .` limpos, 440 testes
       Vitest passando e `next build` com rc=0.
 
+- [x] Fechar o modal do chat ao clicar num card rico com link (2026-10-14) —
+      bug reportado pelo usuário: ao clicar no card de produto a página
+      `/produtos/[id]` abria corretamente, mas o modal continuava na frente,
+      cobrindo o destino. Causa: o `ChatWidget` é montado no layout raiz, então
+      o `isOpen` do `useChatStore` sobrevive à navegação do `next/link`. O
+      `ChatChartCard` já fechava o modal no `onClick`, mas `ProductCard`,
+      `QuoteCard` e `AppointmentCard` não — passaram a chamar
+      `useChatStore.getState().close()` (e por isso viraram `"use client"`).
+      `DocumentDownloadCard` ficou de fora de propósito: usa `<a download>` e
+      não navega, então o chat segue aberto. 3 testes novos (um por card),
+      reaproveitando o mock de `next/link` que o teste do `ChatChartCard` já
+      usava — 443 testes Vitest passando. Documentado em `docs/FRONTEND.md` §3.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

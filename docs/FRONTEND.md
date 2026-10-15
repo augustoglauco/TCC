@@ -118,6 +118,14 @@ com o histórico recarregado.
     coleção `purpose="chat"`, então o link nunca exige token (endpoint
     público só para essa finalidade; `purpose="admin"` exige token, mas o
     backend nunca emite esse card para esses documentos).
+  - **Fechar o modal ao navegar** (2026-10-14): o `ChatWidget` fica no layout
+    raiz, então o `isOpen` do `useChatStore` sobrevive à navegação do
+    `next/link` e o modal continuaria cobrindo a página de destino. Todo card
+    com link interno (`ProductCard`, `QuoteCard`, `AppointmentCard` e
+    `ChatChartCard`) chama `useChatStore.getState().close()` no `onClick` do
+    `Link` — é por isso que esses cards são `"use client"`. O
+    `DocumentDownloadCard` é a exceção proposital: baixa um arquivo
+    (`<a download>`) sem navegar, então o chat fica aberto.
   `# MVP`: consulta genérica por categoria ou catálogo completo (que lista
   vários produtos, não um item único) ainda não tem card próprio — continua
   só em texto.

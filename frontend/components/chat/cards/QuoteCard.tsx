@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 import type { ChatCardCotacao } from "@/lib/types/chat";
 import { formatarPrecoBRL } from "@/lib/utils/formatCurrency";
 
@@ -7,9 +10,13 @@ import { formatarPrecoBRL } from "@/lib/utils/formatCurrency";
 export default function QuoteCard({ card }: { card: ChatCardCotacao }) {
   const temDesconto = Number(card.percentual_desconto) > 0;
 
+  // Fecha o modal do chat para não cobrir a página do produto após navegar.
+  const fecharChat = () => useChatStore.getState().close();
+
   return (
     <Link
       href={`/produtos/${card.produto_id}`}
+      onClick={fecharChat}
       className="flex w-full max-w-[85%] flex-col gap-2 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 shadow-xs transition-colors hover:border-emerald-300 hover:bg-emerald-50"
     >
       <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">

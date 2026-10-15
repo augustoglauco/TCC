@@ -1,16 +1,16 @@
 # Graph Report - TCC  (2026-10-14)
 
 ## Corpus Check
-- 366 files · ~447,374 words
+- 366 files · ~447,683 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2939 nodes · 6924 edges · 189 communities (160 shown, 29 thin omitted)
+- 2939 nodes · 6930 edges · 191 communities (161 shown, 30 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 471 edges (avg confidence: 0.94)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a92cb0c6`
+- Built from commit: `028fed79`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -71,7 +71,7 @@
 - models/local_models.py
 - adminPedidos.ts
 - RAGConnectionError
-- api/adminProducts.ts
+- CatalogImportModal.tsx
 - google_calendar.py
 - types/rag.ts
 - compilerOptions
@@ -173,10 +173,10 @@
 - GitNexus — Code Intelligence
 - CalendarClient
 - VisionModelIndisponivelError
-- admin/produtos/page.tsx
+- ProductListTable.tsx
 - LocalBackendIndisponivelError
 - layout.tsx
-- .describe_image
+- ImageUploader.tsx
 - db_connector.py
 - search_images
 - apiBaseUrl.ts
@@ -188,6 +188,8 @@
 - save_multiple_app_settings
 - get_model_catalog_http_client
 - _registrar_chamada
+- CategoryFilter.tsx
+- _get_clip_embedder
 
 ## God Nodes (most connected - your core abstractions)
 1. `getApiBaseUrl()` - 82 edges
@@ -230,11 +232,11 @@
 - **Stack de Inferência Local e Otimização de Memória CUDA / MoE** — docs_manuais_strata_manual_strata_cuda_engine, docs_manuais_strata_manual_strata_memory_lifecycle, docs_manuais_headroom_manual_headroom_context_optimization, docs_manuais_howto_administrador_gestao_modelos_ia [INFERRED 0.85]
 - **Evolução do Pipeline e Gestão de Documentos RAG** — docs_superpowers_plans_2026_09_14_registro_documentos_rag_registro_postgres_qdrant, docs_superpowers_plans_2026_09_15_rag_collections_config_perfis_collection, docs_superpowers_plans_2026_09_19_crawler_paginas_crawler_bfs, docs_superpowers_plans_2026_10_04_download_documentos_rag_chat_download_direto_chat [INFERRED 0.85]
 
-## Communities (189 total, 29 thin omitted)
+## Communities (191 total, 30 thin omitted)
 
 ### Community 0 - "useChatStore.ts"
-Cohesion: 0.13
-Nodes (21): FAQ_ITEMS, ChatModal(), handleCloseConversation(), handleDrop(), handleRetry(), handleSolicitarAtendente(), submitAudio(), garantirBolha() (+13 more)
+Cohesion: 0.14
+Nodes (10): FAQ_ITEMS, MessageBubbleProps, ConversationSnapshot, ChatState, getVisitPrompt(), HumanAttendanceStatus, LEGACY_STORAGE_KEY, SESSION_STORAGE_KEY (+2 more)
 
 ### Community 1 - "spawn_background_task"
 Cohesion: 0.23
@@ -293,8 +295,8 @@ Cohesion: 0.08
 Nodes (32): listar_estoque(), Verifica se dois produtos são compatíveis, nos dois sentidos (par cadastrado…, sao_compativeis(), normalize(), Minúsculas sem diacríticos — usuário real escreve "nao funciona"/"preco"., buscar_reserva_ativa(), CandidatoProduto, detectar_intencao_comprovante() (+24 more)
 
 ### Community 15 - "getApiBaseUrl"
-Cohesion: 0.45
-Nodes (14): ProductFormModal(), addAdminProductCompatibility(), addAdminProductVolumeDiscount(), authHeaders(), createAdminProduct(), deleteAdminProductCompatibility(), deleteAdminProductImage(), deleteAdminProductVolumeDiscount() (+6 more)
+Cohesion: 0.19
+Nodes (30): AdminProdutosPage(), CATEGORIAS_PADRAO, ProductFormModal(), addAdminProductCompatibility(), addAdminProductVolumeDiscount(), authHeaders(), createAdminProduct(), deleteAdminProduct() (+22 more)
 
 ### Community 16 - "useAuthStore"
 Cohesion: 0.13
@@ -325,12 +327,12 @@ Cohesion: 0.10
 Nodes (31): RagSearchConfigSection(), carregar(), handleToggle(), CardComCaracteristicas(), CardComCaracteristicas(), FREE_MODELS, OpenRouterModelCard(), init() (+23 more)
 
 ### Community 23 - "ChatModal.tsx"
-Cohesion: 0.10
-Nodes (27): RFC-4180, handleClearHistory(), ChatModalProps, PendingError, PendingRetry, WELCOME_MESSAGE, EscalonamentoBanner(), EscalonamentoBannerProps (+19 more)
+Cohesion: 0.09
+Nodes (38): RFC-4180, ChatModal(), handleClearHistory(), handleCloseConversation(), handleDrop(), handleRetry(), handleSolicitarAtendente(), submitAudio() (+30 more)
 
 ### Community 24 - "types/chat.ts"
-Cohesion: 0.09
-Nodes (29): AppointmentCard(), formatarDataHora(), ChatCard(), DocumentDownloadCard(), formatarTamanhoArquivo(), QuoteCard(), BACKEND_LABELS, DOMAIN_LABELS (+21 more)
+Cohesion: 0.10
+Nodes (27): AppointmentCard(), formatarDataHora(), ChatCard(), DocumentDownloadCard(), formatarTamanhoArquivo(), ProductCard(), QuoteCard(), BACKEND_LABELS (+19 more)
 
 ### Community 25 - "api/rag.py"
 Cohesion: 0.10
@@ -397,8 +399,8 @@ Cohesion: 0.14
 Nodes (9): OpenRouterClient, Any, AsyncClient, setter, `stream: true` no formato OpenAI-compatible — a resposta já vem em SSE (`data:…, Faz uma pergunta tipada via TypeSafe Jev, endpoint dedicado do OpenRouter…, Classifica o domínio via TypeSafe Jev — ver `_perguntar_systemone_jev`., Avalia urgência/insatisfação via TypeSafe Jev (R8, Fase 4B) — mesmo endpoint… (+1 more)
 
 ### Community 41 - "ClipEmbedder"
-Cohesion: 0.14
-Nodes (11): _get_clip_embedder(), _get_clip_store(), Request, ClipEmbedder, InvalidImageError, Exception, SentenceTransformer, Gera um embedding CLIP por texto (mesmo espaço vetorial das imagens). (+3 more)
+Cohesion: 0.17
+Nodes (8): ClipEmbedder, InvalidImageError, Exception, SentenceTransformer, Gera um embedding CLIP por texto (mesmo espaço vetorial das imagens)., Bytes fornecidos não são uma imagem decodificável pelo PIL. Erro de entrada…, Wrapper fino sobre CLIP via sentence-transformers, com carga lazy. Mesmo padrão…, Gera um embedding CLIP por imagem (bytes PNG/JPG/WEBP).
 
 ### Community 42 - "scheduling.py"
 Cohesion: 0.10
@@ -433,8 +435,8 @@ Cohesion: 0.16
 Nodes (19): ModelCharacteristics, Características de um modelo (multimodalidade, contexto, specs), buscadas em…, _buscar_linha(), _context_length_do_model_info(), _esta_fresco(), _fetch_huggingface(), _fetch_ollama(), _fetch_openrouter() (+11 more)
 
 ### Community 50 - "orders.ts"
-Cohesion: 0.08
-Nodes (35): PedidosPageContent(), ProdutoDetalhePage(), ProdutoPageProps, ProdutosPage(), ProductCard(), ImageZoomModal(), ImageZoomModalProps, ProductCard() (+27 more)
+Cohesion: 0.09
+Nodes (33): PedidosPageContent(), ProdutoDetalhePage(), ProdutoPageProps, ProdutosPage(), ImageZoomModal(), ImageZoomModalProps, ProductCard(), ProductCardProps (+25 more)
 
 ### Community 51 - "AbaEnviarDocumento"
 Cohesion: 0.13
@@ -456,9 +458,9 @@ Nodes (18): AdminPedidosPage(), ModalConversaoPedido(), handleAuditarIA(), handl
 Cohesion: 0.12
 Nodes (12): ClipImageStore, AsyncQdrantClient, Embeda e grava uma imagem. Retorna o `image_id` gerado., Exclui um ponto por ID da collection CLIP., Exclui todos os pontos da collection CLIP pertencentes ao produto_id., Exclui pontos da collection CLIP por imagem_url., Operações de ingestão e busca sobre a collection CLIP no Qdrant. Cria a…, Remove `collection_name` do Qdrant. Idempotente: se a collection já não existir… (+4 more)
 
-### Community 56 - "api/adminProducts.ts"
-Cohesion: 0.12
-Nodes (28): arquivoAceito(), CatalogImportModal(), CatalogImportModalProps, CatalogPriceInput(), CatalogPriceInputProps, chaveArquivo(), formatarMoedaInput(), ModalStep (+20 more)
+### Community 56 - "CatalogImportModal.tsx"
+Cohesion: 0.16
+Nodes (17): arquivoAceito(), CatalogImportModal(), CatalogImportModalProps, CatalogPriceInput(), CatalogPriceInputProps, chaveArquivo(), formatarMoedaInput(), ModalStep (+9 more)
 
 ### Community 57 - "google_calendar.py"
 Cohesion: 0.20
@@ -745,12 +747,12 @@ Cohesion: 0.28
 Nodes (5): get_calendar_client(), Request, CalendarClient, datetime, Protocol
 
 ### Community 173 - "VisionModelIndisponivelError"
-Cohesion: 0.20
-Nodes (7): Exception, Um cliente de visão (local ou externo) não está configurado, não tem capability…, VisionModelIndisponivelError, str, Envia uma imagem + prompt a um modelo de visão e devolve o texto cru. Usado…, Subclasse de str que preserva o texto retornado e carrega telemetria de tokens…, VisionResult
+Cohesion: 0.11
+Nodes (12): Exception, Um cliente de visão (local ou externo) não está configurado, não tem capability…, VisionModelIndisponivelError, LocalVisionResult, str, Subclasse de str que preserva o texto retornado por…, Envia uma imagem + prompt ao modelo local (Ollama) e devolve o texto cru —…, Detalhes completos de um modelo já baixado (`POST /api/show`) — usado pelo… (+4 more)
 
-### Community 174 - "admin/produtos/page.tsx"
-Cohesion: 0.15
-Nodes (16): AdminProdutosPage(), CATEGORIAS_PADRAO, CategoryFilter(), CategoryFilterProps, ProductFormModalProps, ProductListTable(), ProductListTableProps, StockDetailBadge() (+8 more)
+### Community 174 - "ProductListTable.tsx"
+Cohesion: 0.27
+Nodes (9): ProductFormModalProps, ProductListTable(), ProductListTableProps, StockDetailBadge(), StockDetailBadgeProps, subscribeNoop(), useEstaNoCliente(), AdminProduct (+1 more)
 
 ### Community 175 - "LocalBackendIndisponivelError"
 Cohesion: 0.25
@@ -760,9 +762,9 @@ Nodes (7): _AgendamentoFalhaValidacao, ExternalBackendIndisponivelError, LocalBa
 Cohesion: 0.29
 Nodes (5): frontend_app_globals, geistMono, geistSans, metadata, Footer()
 
-### Community 177 - ".describe_image"
-Cohesion: 0.25
-Nodes (5): LocalVisionResult, str, Subclasse de str que preserva o texto retornado por…, Envia uma imagem + prompt ao modelo local (Ollama) e devolve o texto cru —…, Detalhes completos de um modelo já baixado (`POST /api/show`) — usado pelo…
+### Community 177 - "ImageUploader.tsx"
+Cohesion: 0.47
+Nodes (4): ImageUploader(), handleChange(), ImageUploaderProps, fileToBase64()
 
 ### Community 178 - "db_connector.py"
 Cohesion: 0.33
@@ -808,19 +810,23 @@ Nodes (4): get_model_catalog_http_client(), get_ollama_client(), AsyncClient, Re
 Cohesion: 0.50
 Nodes (4): Uma linha de log `mcp_b2b_ferramenta` por chamada: parceiro que chamou (da…, _registrar_chamada(), P, R
 
+### Community 190 - "_get_clip_embedder"
+Cohesion: 0.67
+Nodes (3): _get_clip_embedder(), _get_clip_store(), Request
+
 ## Knowledge Gaps
 - **368 isolated node(s):** `assistente-multimodal-backend`, `cliente-mcp-b2b`, `semi`, `singleQuote`, `trailingComma` (+363 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **29 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **30 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `QdrantRAGClient` connect `main.py` to `api/runtime_settings.py`, `b2b.py`, `admin_products.py`, `ingest.py`, `models/rag.py`, `qdrant_client.py`, `rag_collections.py`, `api/crawler.py`, `RAGConnectionError`, `api/rag.py`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `useAuthStore` connect `useAuthStore` to `useChatStore.ts`, `getApiBaseUrl`, `metricas/page.tsx`, `OpenRouterModelCard.tsx`, `ChatModal.tsx`, `PullModelForm.tsx`, `ingestao/page.tsx`, `api/crawler.ts`, `LocalModelsTable.tsx`, `adminAtendimento.ts`, `dashboards/page.tsx`, `admin/produtos/page.tsx`, `orders.ts`, `AbaEnviarDocumento`, `apiBaseUrl.ts`, `adminPedidos.ts`, `api/adminProducts.ts`, `types/rag.ts`, `api/agendamentos.ts`, `DocumentViewModal.tsx`?**
+- **Why does `useAuthStore` connect `useAuthStore` to `ingestao/page.tsx`, `DocumentViewModal.tsx`, `api/crawler.ts`, `LocalModelsTable.tsx`, `PullModelForm.tsx`, `adminAtendimento.ts`, `dashboards/page.tsx`, `getApiBaseUrl`, `orders.ts`, `AbaEnviarDocumento`, `apiBaseUrl.ts`, `metricas/page.tsx`, `OpenRouterModelCard.tsx`, `adminPedidos.ts`, `CatalogImportModal.tsx`, `ChatModal.tsx`, `types/rag.ts`, `api/agendamentos.ts`?**
   _High betweenness centrality (0.014) - this node is a cross-community bridge._
-- **Why does `OllamaClient` connect `OllamaClient` to `api/runtime_settings.py`, `admin_products.py`, `main.py`, `VisionModelIndisponivelError`, `LocalModel`, `qdrant_client.py`, `.describe_image`, `LLMStreamChunk`, `models/local_models.py`, `.pull_model_streaming`, `get_model_catalog_http_client`?**
+- **Why does `OllamaClient` connect `OllamaClient` to `api/runtime_settings.py`, `admin_products.py`, `main.py`, `VisionModelIndisponivelError`, `LocalModel`, `qdrant_client.py`, `LLMStreamChunk`, `models/local_models.py`, `.pull_model_streaming`, `get_model_catalog_http_client`?**
   _High betweenness centrality (0.011) - this node is a cross-community bridge._
 - **Are the 29 inferred relationships involving `QdrantRAGClient` (e.g. with `_FixedCollectionRagClient` and `main()`) actually correct?**
   _`QdrantRAGClient` has 29 INFERRED edges - model-reasoned connections that need verification._
@@ -829,4 +835,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `assistente-multimodal-backend`, `cliente-mcp-b2b`, `semi` to the rest of the system?**
   _368 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `useChatStore.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.12873563218390804 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.14285714285714285 - nodes in this community are weakly interconnected._

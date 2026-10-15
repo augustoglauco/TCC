@@ -1,8 +1,25 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import ProductCard from "@/components/chat/cards/ProductCard";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 import type { ChatCardProduto } from "@/lib/types/chat";
+import type { ComponentProps } from "react";
+
+vi.mock("next/link", () => ({
+  default: ({ children, href, onClick, ...rest }: ComponentProps<"a">) => (
+    <a
+      href={href}
+      onClick={(e) => {
+        e.preventDefault();
+        onClick?.(e);
+      }}
+      {...rest}
+    >
+      {children}
+    </a>
+  ),
+}));
 
 function makeCard(overrides: Partial<ChatCardProduto> = {}): ChatCardProduto {
   return {
@@ -49,5 +66,14 @@ describe("ProductCard (chat)", () => {
 
     const img = screen.getByRole("img", { name: "Gerador Diesel GD-15" });
     expect(img).toHaveAttribute("src", expect.stringContaining("/api/uploads/produtos/gd15.jpg"));
+  });
+
+  it("fecha o modal do chat ao clicar no card", () => {
+    useChatStore.setState({ isOpen: true });
+    render(<ProductCard card={makeCard()} />);
+
+    fireEvent.click(screen.getByRole("link"));
+
+    expect(useChatStore.getState().isOpen).toBe(false);
   });
 });
