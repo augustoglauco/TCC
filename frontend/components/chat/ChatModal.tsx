@@ -143,11 +143,21 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  // O `<input>` fica `disabled` enquanto a mensagem é enviada, e o clique no
-  // botão "Enviar" já tira o foco da caixa — então o cursor não volta sozinho.
-  // Marca o pedido no envio e devolve o foco quando os controles reabrem
-  // (pedido do usuário, 2026-10-14).
-  const deveRefocarInput = useRef(false);
+
+  /** "Qualquer ação deve manter o foco na caixa de digitação" (pedido do
+   * usuário, 2026-10-14). Cada handler do modal chama isto no fim: o clique
+   * num botão move o foco para o botão, e o `<input>` ainda fica `disabled`
+   * enquanto `controlsDisabled` está ligado. O `requestAnimationFrame` espera
+   * o re-render que a ação disparou — focar antes dele não tem efeito. Para o
+   * envio em si, quem devolve o foco é o efeito que observa
+   * `controlsDisabled`, porque aí o `<input>` só reabre depois da resposta. */
+  function focarCaixaMensagem() {
+    if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
+      inputRef.current?.focus();
+      return;
+    }
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }
   const pendingInput = useChatStore((state) => state.pendingInput);
 
   useEffect(() => {
@@ -160,6 +170,29 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
       }
     }
   }, [messages, error, open, pendingInput]);
+
+  // Ao abrir o chat, salta direto para a última mensagem (pedido do usuário,
+  // 2026-10-14). O scroll suave do efeito acima não resolve na abertura: ele
+  // roda no mesmo commit em que o modal monta, quando a lista ainda não tem
+  // altura, e a animação é descartada — a conversa abria no topo. O
+  // `requestAnimationFrame` duplo garante o salto depois do primeiro paint,
+  // com a lista já medida.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    let frameInterno = 0;
+    const frameExterno = requestAnimationFrame(() => {
+      frameInterno = requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView?.({ behavior: "auto", block: "end" });
+        inputRef.current?.focus();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(frameExterno);
+      cancelAnimationFrame(frameInterno);
+    };
+  }, [open]);
 
   // Entrega da mensagem do atendente humano (Fase 4, achado de 2026-10-06):
   // quando um atendente responde pelo painel admin, a mensagem é gravada
@@ -456,9 +489,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const controlsDisabled = isSending || isRecording;
   const canSend = !controlsDisabled && (!!input.trim() || !!pendingImage);
 
+  // Devolve o foco à caixa sempre que os controles reabrem (fim do envio, fim
+  // da gravação de áudio, erro de envio) — ver `focarCaixaMensagem`.
   useEffect(() => {
-    if (open && !controlsDisabled && deveRefocarInput.current) {
-      deveRefocarInput.current = false;
+    if (open && !controlsDisabled) {
       inputRef.current?.focus();
     }
   }, [open, controlsDisabled]);
@@ -514,14 +548,20 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             <div className="flex items-center gap-1.5 sm:gap-2">
               <button
                 type="button"
-                onClick={() => exportMetricsToCsv(messages)}
+                onClick={() => {
+                  exportMetricsToCsv(messages);
+                  focarCaixaMensagem();
+                }}
                 className="rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-white hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
               >
                 <span>📥</span> <span className="hidden xs:inline">Exportar </span>CSV
               </button>
               <button
                 type="button"
-                onClick={() => exportMetricsToJson(messages)}
+                onClick={() => {
+                  exportMetricsToJson(messages);
+                  focarCaixaMensagem();
+                }}
                 className="rounded-lg bg-slate-200/90 border border-slate-300/60 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 hover:bg-slate-300 transition-all active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
               >
                 <span>📥</span> <span className="hidden xs:inline">Exportar </span>JSON
@@ -536,7 +576,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         >
           <EscalonamentoBanner
             escalonamento={escalonamento}
-            onDismiss={() => setEscalonamento(null)}
+            onDismiss={() => {
+              setEscalonamento(null);
+              focarCaixaMensagem();
+            }}
           />
           {messages.length === 0 && (
             // Boas-vindas só de interface (R10): não entra no store nem no
@@ -557,7 +600,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
               <p className="font-semibold">{error.text}</p>
               <button
                 type="button"
-                onClick={handleRetry}
+                onClick={() => {
+                  handleRetry();
+                  focarCaixaMensagem();
+                }}
                 className="mt-1 font-bold underline hover:no-underline"
               >
                 Tentar novamente
@@ -571,7 +617,6 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              deveRefocarInput.current = true;
               void submitMessage(input);
             }}
             className="flex items-center gap-1.5 sm:gap-2 min-w-0"
@@ -584,7 +629,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
                 <span className="truncate">🖼️ {pendingImage.name}</span>
                 <button
                   type="button"
-                  onClick={() => setPendingImage(null)}
+                  onClick={() => {
+                    setPendingImage(null);
+                    focarCaixaMensagem();
+                  }}
                   className="ml-1 font-bold hover:text-blue-900 shrink-0"
                   aria-label="Remover imagem"
                 >
@@ -604,7 +652,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             />
             <ImageUploader
               disabled={controlsDisabled}
-              onImageSelected={(base64, name) => setPendingImage({ base64, name })}
+              onImageSelected={(base64, name) => {
+                setPendingImage({ base64, name });
+                focarCaixaMensagem();
+              }}
             />
             <AudioRecorder
               disabled={isSending}
@@ -625,7 +676,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
-                  onClick={() => void handleSolicitarAtendente()}
+                  onClick={() => {
+                    void handleSolicitarAtendente();
+                    focarCaixaMensagem();
+                  }}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300/80 bg-emerald-50/90 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-100 hover:border-emerald-400 transition-all active:scale-95 cursor-pointer"
                   title="Solicitar transbordo para atendimento humano"
                   aria-label="Falar com atendente humano"
@@ -635,7 +689,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => void handleCloseConversation()}
+                  onClick={() => {
+                    void handleCloseConversation();
+                    focarCaixaMensagem();
+                  }}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300/80 bg-amber-50/90 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-amber-800 shadow-2xs hover:bg-amber-100 hover:border-amber-400 transition-all active:scale-95 cursor-pointer"
                   title="Encerrar atendimento atual e contabilizar métricas"
                   aria-label="Encerrar atendimento"
@@ -647,7 +704,10 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
               </div>
               <button
                 type="button"
-                onClick={() => void handleClearHistory()}
+                onClick={() => {
+                  void handleClearHistory();
+                  focarCaixaMensagem();
+                }}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200/80 bg-rose-50/90 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-rose-700 shadow-2xs hover:bg-rose-100 hover:border-rose-300 transition-all active:scale-95 cursor-pointer shrink-0"
                 title="Apagar mensagens e memória da conversa"
                 aria-label="Limpar histórico da conversa"

@@ -135,6 +135,34 @@ describe("ChatModal", () => {
     await waitFor(() => expect(caixa).toHaveFocus());
   });
 
+  it("ao abrir, salta para a última mensagem e foca a caixa de digitação", async () => {
+    const scrollIntoViewMock = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
+    useChatStore.setState({
+      messages: [
+        { id: "m1", role: "user", text: "primeira" },
+        { id: "m2", role: "assistant", text: "última" },
+      ],
+    });
+
+    renderModal();
+
+    await waitFor(() =>
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: "auto", block: "end" }),
+    );
+    await waitFor(() => expect(screen.getByLabelText("Mensagem")).toHaveFocus());
+  });
+
+  it("mantém o foco na caixa de digitação ao remover a imagem pendente", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    await user.click(screen.getByRole("button", { name: "Simular upload de imagem" }));
+    await user.click(screen.getByRole("button", { name: "Remover imagem" }));
+
+    await waitFor(() => expect(screen.getByLabelText("Mensagem")).toHaveFocus());
+  });
+
   it("propaga o provedor do roteador para o painel de métricas", async () => {
     const user = userEvent.setup();
     mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
@@ -850,7 +878,14 @@ describe("ChatModal", () => {
         }));
 
         renderModal();
+        // Deixa passar o salto único da abertura (requestAnimationFrame, ver
+        // `ChatModal`) antes de medir a linha de base — o que este teste
+        // protege é o scroll repetido a cada poll, não o da abertura.
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(50);
+        });
         const chamadasIniciais = scrollIntoViewMock.mock.calls.length;
+        expect(chamadasIniciais).toBeGreaterThan(0);
 
         await act(async () => {
           await vi.advanceTimersByTimeAsync(12000); // 3 polls de 4s

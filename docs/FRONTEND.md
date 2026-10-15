@@ -129,14 +129,31 @@ com o histórico recarregado.
   `# MVP`: consulta genérica por categoria ou catálogo completo (que lista
   vários produtos, não um item único) ainda não tem card próprio — continua
   só em texto.
-- **Foco de volta na caixa de mensagem após enviar** (2026-10-14, pedido do
-  usuário): o `<input>` fica `disabled` enquanto `controlsDisabled`
-  (`isSending || isRecording`) está ligado, e o clique no botão "Enviar" já
-  move o foco para o botão — então o cursor não voltava sozinho. O `ChatModal`
-  marca o pedido num `useRef` no `onSubmit` do formulário e um efeito devolve
-  `inputRef.current?.focus()` quando os controles reabrem (vale para o clique
-  e para o Enter, e também quando o envio falha). Regressão coberta em
-  `tests/components/ChatModal.test.tsx`.
+- **Foco permanente na caixa de mensagem** (2026-10-14, pedido do usuário):
+  qualquer ação no modal devolve o cursor para a caixa de digitação. Dois
+  mecanismos, porque os casos são diferentes:
+  - o `<input>` fica `disabled` enquanto `controlsDisabled`
+    (`isSending || isRecording`) está ligado, então o foco se perde no envio e
+    na gravação de áudio — um efeito com deps `[open, controlsDisabled]`
+    chama `inputRef.current?.focus()` quando os controles reabrem (vale para
+    o clique em "Enviar", para o Enter, para o fim da gravação e também para
+    o caminho de erro);
+  - os demais botões (exportar CSV/JSON, remover imagem pendente, selecionar
+    imagem, fechar o banner de escalonamento, "Tentar novamente", falar com
+    atendente, encerrar atendimento, limpar histórico) só movem o foco para
+    si mesmos — cada handler chama `focarCaixaMensagem()`, que foca dentro de
+    um `requestAnimationFrame` para esperar o re-render que a ação disparou.
+- **Scroll para a última mensagem ao abrir o chat** (2026-10-14, pedido do
+  usuário): o efeito de scroll suave (`behavior: "smooth"`, disparado por
+  `messages`/`error`) não resolve a abertura — ele roda no mesmo commit em que
+  o modal monta, quando a lista ainda não tem altura, e a animação é
+  descartada, deixando a conversa no topo. Um efeito próprio com dep `[open]`
+  faz o salto instantâneo (`behavior: "auto"`, `block: "end"`) dentro de um
+  `requestAnimationFrame` duplo, já com a lista medida, e foca a caixa.
+  Atenção ao mexer nisso: o teste "não força scroll a cada poll de 4s"
+  (`tests/components/ChatModal.test.tsx`) mede a linha de base **depois** de
+  deixar esse salto único acontecer; o que ele protege é o scroll repetido do
+  polling de atendimento humano, não o da abertura.
 - **Indicador de domínio** (opcional, mas recomendado para a demonstração do
   TCC): um rótulo discreto mostrando qual domínio o roteador identificou
   (Vendas / Suporte Técnico / Atendimento ao Usuário / Agendamento) — ajuda a

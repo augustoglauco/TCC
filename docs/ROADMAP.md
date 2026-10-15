@@ -1857,6 +1857,21 @@ conversa e classificação do usuário").
       falha sem a correção): 444 testes Vitest passando. Documentado em
       `docs/FRONTEND.md` §3.
 
+- [x] Abrir o chat já na última mensagem e manter o foco na caixa em qualquer
+      ação (2026-10-14) — pedido do usuário, estende o item anterior. (1) O
+      scroll suave existente roda no commit em que o modal monta, com a lista
+      ainda sem altura, e a animação é descartada: a conversa abria no topo.
+      Efeito novo com dep `[open]` faz o salto instantâneo (`behavior: "auto"`,
+      `block: "end"`) dentro de um `requestAnimationFrame` duplo. (2) O refoco
+      deixou de depender de uma flag de envio e passou a valer sempre que os
+      controles reabrem; os botões que não desabilitam o `<input>` (exportar
+      CSV/JSON, remover/selecionar imagem, fechar banner, tentar novamente,
+      atendente, encerrar, limpar histórico) chamam `focarCaixaMensagem()`.
+      2 testes novos (verificado que falham sem a correção) e o teste
+      "não força scroll a cada poll de 4s" passou a medir a linha de base
+      depois do salto da abertura: 446 testes Vitest passando. Documentado em
+      `docs/FRONTEND.md` §3.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.
