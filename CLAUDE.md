@@ -138,7 +138,7 @@ MVP e Evolução Futura" e "Riscos e Limitações".
 
 ## GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **TCC** (9706 symbols, 17030 relationships, 453 execution flows).
+This project is indexed by GitNexus as **TCC**. (Contagens de nós/arestas removidas de propósito: nasciam defasadas e ninguém as lê — o índice real está em `.gitnexus/` e o próprio hook avisa quando está atrasado, citando o commit. Um `gitnexus setup` recoloca o número.)
 
 > Index stale? Run `node .gitnexus/run.cjs analyze --index-only` from the project root — it auto-selects an available runner. No `.gitnexus/run.cjs` yet? Bootstrap with `npx`, `bunx`, or `pnpm dlx` — e.g. `bunx gitnexus@latest analyze` (npm 11 npx crash; #1939).
 
