@@ -258,6 +258,9 @@ export default function AdminFerramentasPage() {
               <iframe
                 src={urlAtiva}
                 title={`Visualização do ${ativa.nome}`}
+                // Chrome (LNA): página pública embutindo localhost precisa
+                // delegar a permissão de rede local ao iframe.
+                allow="local-network-access *; local-network *; loopback-network *"
                 className="h-[70vh] w-full rounded-b-xl"
               />
               {/* MVP: se a ferramenta mandar X-Frame-Options/CSP frame-ancestors,
