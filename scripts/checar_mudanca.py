@@ -7,8 +7,8 @@ Olha só o que mudou em relação ao HEAD (staged, unstaged e novos) e roda:
   - frontend: eslint/prettier nos arquivos alterados + `vitest related`;
   - docs:     gate de deriva só quando há .md alterado ou arquivo apagado/
               renomeado;
-  - grafo:    `gitnexus detect-changes` só quando há código alterado.
-O `graphify update` NÃO roda aqui: o hook post-commit já reconstrói o grafo.
+Graphify e GitNexus NÃO rodam aqui: são ferramentas de consulta (o hook
+post-commit já reconstrói o grafo do Graphify).
 
 Uso: scripts/checar_mudanca.py [--dry-run] [--full-backend] [--e2e]
 """
@@ -116,7 +116,6 @@ def main() -> int:
     fe = [c for c in existentes if c.startswith("frontend/")
           and re.search(r"\.(tsx?|jsx?|mjs)$", c)]
     md = [c for c in existentes if c.endswith(".md") and not c.startswith("graphify-out/")]
-    codigo = bool(py or py_cli or fe)
     falhas: list[str] = []
 
     def rodar(rotulo: str, cmd: list[str], cwd: Path = RAIZ) -> None:
@@ -163,11 +162,6 @@ def main() -> int:
                             "--since", "HEAD"])
     else:
         print("\ndocs: nenhum .md alterado nem arquivo removido — gate pulado.")
-
-    if codigo:
-        rodar("gitnexus detect-changes", ["node", ".gitnexus/run.cjs",
-                                          "detect-changes", "--scope", "all",
-                                          "--repo", "."])
 
     print("\n" + ("FALHOU: " + ", ".join(falhas) if falhas else "OK: checagens passaram."))
     return 1 if falhas else 0

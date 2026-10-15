@@ -222,8 +222,8 @@ no backend e 10 no frontend. Antes de commitar, confira:
 ruff + pytest só dos testes que importam (direta ou por um importador) os
 módulos alterados; prettier/eslint + `vitest related` só nos arquivos
 alterados do frontend; gate de deriva de docs (`--since HEAD`: só a deriva pela qual a mudança
-responde) e só se há `.md` alterado ou arquivo apagado/renomeado; `gitnexus detect-changes` só se há código
-alterado. `--dry-run` mostra o plano, `--full-backend` força a suíte inteira
+responde) e só se há `.md` alterado ou arquivo apagado/renomeado. GitNexus e Graphify são ferramentas de
+consulta: o script não os executa e um índice defasado não bloqueia nada. `--dry-run` mostra o plano, `--full-backend` força a suíte inteira
 e `--e2e` inclui o smoke do Playwright (fora do padrão: só ao mexer em
 fluxo de chat/widget). **Não rode `graphify update .` à mão antes de
 commitar** (item 9): o hook `post-commit` já reconstrói o grafo. A suíte
@@ -249,15 +249,8 @@ completa e o Playwright ficam para mudança transversal (`config.py`,
 9. O knowledge graph (`graphify-out/`) é reconstruído pelo hook `post-commit`
    do graphify; só rode `graphify update .` à mão para consultar o grafo
    antes de commitar.
-10. Se houve alteração no código, rode a análise de mudanças do GitNexus —
-    `detect_changes({scope: "all"})` pelo MCP ou
-    `node .gitnexus/run.cjs detect-changes --scope all --repo .` pela CLI — e
-    confira o resultado antes de commitar. `partial: true` ou
-    `truncated: true` **não** é uma checagem limpa: ali um zero significa
-    "não foi visto", não "não foi afetado"; rode de novo. Esta regra morava
-    só no bloco gerado do `CLAUDE.md` (entre `<!-- gitnexus:start -->` e
-    `<!-- gitnexus:end -->`, reescrito a cada `analyze`), então ficava fora
-    do alcance da regra 10 do `CLAUDE.md` — que manda seguir este checklist.
+10. GitNexus é ferramenta de consulta: não há análise obrigatória antes do
+    commit, e índice defasado não bloqueia nada (decisão do dono, 2026-10-15).
 11. Se mexeu em `.md` ou renomeou/apagou arquivo citado por documento, rode
     o gate de deriva de documentação:
 
