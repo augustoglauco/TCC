@@ -65,6 +65,8 @@ repowise init --provider ollama --model gemma4:12b-it-q4_K_M --no-claude-md
 
 Neste repositório de TCC, o arquivo `CLAUDE.md` possui regras rígidas e consolidadas de escopo de MVP, checklist de commit e convenções agênticas. Ao rodar `repowise init`, **sempre utilize a flag `--no-claude-md`** para evitar que o gerador padrão sobrescreva as diretrizes do projeto.
 
+> Isto não é específico do repowise: `graphify` e `gitnexus` também escrevem no `CLAUDE.md` e em `.claude/`. A regra geral — qual flag usar em cada instalador, o que é conteúdo gerado entre marcadores e por que hook com caminho absoluto não vai para arquivo versionado — está em `docs/CONVENTIONS.md`, seção "Ferramentas que escrevem nos arquivos de regras".
+
 ### 3.1 Inicialização Passo a Passo
 
 Execute na raiz do projeto (`/home/augusto/Projetos/TCC`):

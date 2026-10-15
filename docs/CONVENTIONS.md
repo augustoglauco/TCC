@@ -304,6 +304,32 @@ Depois, reinicie backend e MCP B2B (`./testar.sh` já faz isso, ver
 - Ver `docs/AGENTIC_WORKFLOW.md` para a divisão de trabalho recomendada entre
   Antigravity (Editor View / Manager Surface), Claude Code CLI e Kiro CLI.
 
+### Ferramentas que escrevem nos arquivos de regras
+
+`graphify`, `gitnexus` e `repowise` têm instaladores que **escrevem no
+`CLAUDE.md` e em `.claude/`** — bloco de instruções próprio, entradas de MCP,
+skills e hooks de git. Isso já sobrescreveu diretriz do projeto mais de uma
+vez, então, ao (re)instalar qualquer uma delas:
+
+- **`repowise init`**: passe `--no-claude-md`, senão o gerador padrão
+  substitui o `CLAUDE.md` do projeto (ver `docs/Manuais/repowise-manual.md`).
+- **`graphify install --platform claude`**: anexa um bloco de instruções ao
+  `CLAUDE.md` e hooks `PreToolUse` ao `.claude/settings.json`. Em 2026-10-14
+  isso duplicou a seção "Graphify" (em inglês, sem delimitador). A seção agora
+  fica entre `<!-- graphify:start -->` e `<!-- graphify:end -->`; confira se o
+  instalador respeitou o delimitador em vez de anexar de novo.
+- **`gitnexus setup`**: regenera o bloco entre `<!-- gitnexus:start -->` e
+  `<!-- gitnexus:end -->` e reinstala MCP/skills/hooks. Conteúdo dentro desses
+  marcadores é gerado — não edite à mão, que a próxima execução descarta.
+- **Hook com caminho absoluto não vai para arquivo versionado.**
+  `.claude/settings.json` é commitado e lido também pelo Antigravity e pelo
+  Kiro; um `command` com `/home/<usuário>/...` quebra em qualquer outra
+  máquina (ver `goup.md`, passo 0). Esse tipo de hook mora em
+  `.claude/settings.local.json`, que não é versionado.
+- **Depois de instalar, rode `git status`** e reverta o que o instalador
+  mexeu fora do que você pediu. É a mesma regra do item 7 do checklist (nada
+  de caminho absoluto da máquina em arquivo versionado).
+
 ### Ordem de uso dos dois grafos de código
 
 O repositório é indexado por **duas** ferramentas de grafo, e as duas pedem

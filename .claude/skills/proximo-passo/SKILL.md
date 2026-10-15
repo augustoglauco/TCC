@@ -25,7 +25,8 @@ Objetivo: avançar `docs/ROADMAP.md` um item de cada vez, seguindo o loop de
    ele o texto exato do item do roadmap e o requisito `Rn` relacionado.
 5. **Revise o resultado**: leia o diff/resumo do `mvp-task`, confira que os
    testes relevantes rodaram e passaram, que `graphify update .` foi executado
-   se houve alteração no código (`CLAUDE.md`, regra 13), e que
+   se houve alteração no código (item 9 do checklist de
+   `docs/CONVENTIONS.md`), e que
    `docs/ROADMAP.md` foi marcado (`- [x]`) para esse item.
 6. **Rode a skill `code-review`** sobre o diff gerado por este item antes de
    propor o commit. Se o item tocou algo sensível (MCPs, autenticação,

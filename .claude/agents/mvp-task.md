@@ -53,9 +53,12 @@ Depois de implementar:
    convenção de teste em relação ao que `ARCHITECTURE.md`, `FRONTEND.md`,
    `CONVENTIONS.md` ou `EVALUATION.md` descrevem, atualize o documento
    correspondente nesta mesma tarefa — não deixe para uma sessão futura.
-3c. Atualização do Graphify (`CLAUDE.md`, regra 13): execute de maneira
-   automática `graphify update .` para sincronizar o knowledge graph
-   (`graphify-out/`) com qualquer alteração feita no código.
+3c. Atualização do Graphify (item 9 do checklist de `docs/CONVENTIONS.md`):
+   execute de maneira automática `graphify update .` para sincronizar o
+   knowledge graph (`graphify-out/`) com qualquer alteração feita no código.
+   O rebuild por hook de git está desligado neste ambiente
+   (`GRAPHIFY_SKIP_HOOK=1`), então esse comando é o único caminho — ver
+   `docs/Manuais/graphify-manual.md`.
 4. Proponha uma mensagem de commit no formato de `docs/CONVENTIONS.md`
    (ex.: `feat(mcp-b2b): implementa ferramenta de cotação automática (R12,
    Fase 5)`) — não crie o commit sozinho, apenas proponha a mensagem para o

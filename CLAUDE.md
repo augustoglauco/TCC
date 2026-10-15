@@ -14,6 +14,14 @@ como resumos/ponteiros. O trabalho é dividido entre as três ferramentas, entã
 manter `docs/` sempre atualizado (regra 9) é o que garante que todas vejam a
 mesma coisa — ver `docs/AGENTIC_WORKFLOW.md`.
 
+Há ainda um quarto arquivo de escopo restrito: `frontend/CLAUDE.md`, que só
+inclui `frontend/AGENTS.md` com avisos da versão do Next.js em uso. Esse
+`AGENTS.md` é **gerado e reescrito pelo `next dev`** (ver
+`frontend/node_modules/next/dist/server/lib/generate-agent-files.js`), então
+não edite nem apague o bloco dele: a alteração reaparece como diff sujo na
+próxima subida do servidor de desenvolvimento. Regras do projeto para o
+frontend vão em `docs/FRONTEND.md`, não ali.
+
 ## O que é este projeto
 
 Assistente virtual multimodal (texto, imagem e áudio) para uma empresa
@@ -44,7 +52,7 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 | `docs/AGENTIC_WORKFLOW.md`                 | Para entender a divisão de trabalho entre Antigravity, Claude Code CLI e Kiro CLI.                                                                                                                                                                                                                                   |
 | `docs/TESTE_LOCAL.md`                      | Quando o código precisa ser validado na máquina do desenvolvedor (GPU/Ollama/dados reais) — `./testar.sh` roda o teste (`backend/scripts/teste_local.py`, suíte `SUITE_ATUAL`) e dá push do relatório em `testes_locais/`.                                                                    |
 | `goup.md` (raiz)                           | Para instalar numa máquina nova (passo 0) ou subir o ambiente à mão; acesso externo, MCP B2B público com o manual do parceiro, solução de problemas. `./g.sh` sobe tudo de uma vez.                                                                                                                 |
-| `docs/Manuais/`                            | Manuais de uso do sistema (`HOWTO_USUARIO.md`, `HOWTO_ADMINISTRADOR.md`) e guias de ferramentas locais de desenvolvimento (`strata-manual.md`, `headroom-manual.md`, `repowise-manual.md`, `gitnexus-manual.md`).                                                                               |
+| `docs/Manuais/`                            | Manuais de uso do sistema (`HOWTO_USUARIO.md`, `HOWTO_ADMINISTRADOR.md`) e guias de ferramentas locais de desenvolvimento (`strata-manual.md`, `headroom-manual.md`, `repowise-manual.md`, `gitnexus-manual.md`, `graphify-manual.md`).                                                                               |
 | `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` | Mapeamento de todos os prompts/instruções de sistema/playbooks/extratores estruturados enviados a um LLM no código. Consulte antes de alterar qualquer prompt existente (para achar todos os pontos relacionados) e atualize sempre que um prompt for alterado ou um novo for criado — ver regra 11.    |
 | `graphify-out/` (Knowledge Graph)          | **Primeira consulta** ao receber perguntas sobre código ou pedidos de alteração — comandos na seção "Graphify" deste arquivo; ordem de uso com o GitNexus em `docs/CONVENTIONS.md`. |
 | `README.md` e `README_TCC.md`            | Apresentação do projeto; o `README_TCC.md` é a entrega acadêmica no formato do curso.                                                                                                                                                                                                                 |

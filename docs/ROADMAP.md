@@ -1886,6 +1886,29 @@ conversa e classificação do usuário").
       isso os testes de desktop não precisam de stub): 449 testes Vitest
       passando, `next build` rc=0. Documentado em `docs/FRONTEND.md` §3.
 
+- [x] Auditoria de coerência da documentação das ferramentas de grafo
+      (2026-10-14) — a varredura foi feita pelo próprio `graphify query`, que
+      achou dois pontos que os greps anteriores não acharam. Quatro correções:
+      (1) duas referências órfãs à "regra 13" do `CLAUDE.md`, que deixou de
+      existir ao virar seção — `.claude/skills/proximo-passo/SKILL.md` e
+      `.claude/agents/mvp-task.md` agora citam o item 9 do checklist;
+      (2) a regra "preservar o `CLAUDE.md`" existia só no manual do repowise,
+      embora `graphify install` e `gitnexus setup` também escrevam em
+      `CLAUDE.md`/`.claude/` — virou a seção "Ferramentas que escrevem nos
+      arquivos de regras" em `docs/CONVENTIONS.md`, com a flag de cada
+      instalador, a regra dos marcadores de conteúdo gerado e a de não
+      versionar hook com caminho absoluto; o manual do repowise aponta para
+      lá; (3) `docs/Manuais/graphify-manual.md` criado — era a única das
+      quatro ferramentas locais sem manual, e o desligamento do rebuild por
+      hook (`GRAPHIFY_SKIP_HOOK=1`, 2026-10-14) não estava documentado em
+      lugar nenhum; registrado na tabela do `CLAUDE.md`; (4) o `CLAUDE.md`
+      falava de "três arquivos de regras" e existe um quarto,
+      `frontend/CLAUDE.md` → `frontend/AGENTS.md`, gerado pelo `next dev` —
+      documentado como gerado, para ninguém tentar editá-lo.
+      Verificado também que `_status_graphify` (`admin_ferramentas.py:84-107`)
+      não promete rebuild automático, então o painel `/admin/ferramentas`
+      segue coerente com o hook desligado.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

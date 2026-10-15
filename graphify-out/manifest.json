@@ -1668,9 +1668,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1792028453.438379,
-    "seen": 1792028797.4102476,
-    "ast_hash": "72bcfd6c7af9ada5918dcc242448df09",
+    "mtime": 1792029473.9988723,
+    "seen": 1792029498.7455378,
+    "ast_hash": "bcc627bbb25786daec2fb9f0f5510258",
     "semantic_hash": ""
   },
   "README.md": {
@@ -1758,9 +1758,9 @@
     "semantic_hash": ""
   },
   "docs/CONVENTIONS.md": {
-    "mtime": 1792028473.6380498,
-    "seen": 1792028797.4102626,
-    "ast_hash": "85eeae13dcbdd4920e8688f0b9397319",
+    "mtime": 1792029396.2672539,
+    "seen": 1792029498.7455528,
+    "ast_hash": "c5950f9b9c19288a41a03ab272d6aaa0",
     "semantic_hash": ""
   },
   "docs/EVALUATION.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792023567.0173998,
-    "seen": 1792023571.9908378,
-    "ast_hash": "93de3d5ce49dd8327edea089a408d7ab",
+    "mtime": 1792029493.981887,
+    "seen": 1792029498.7455635,
+    "ast_hash": "e51f9706754002f24869af92025aefa2",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
@@ -2142,9 +2142,9 @@
     "semantic_hash": ""
   },
   "docs/Manuais/repowise-manual.md": {
-    "mtime": 1791862863.1684678,
-    "seen": 1791862920.232677,
-    "ast_hash": "d07e720b495f28cb8592ba0817fcf6e7",
+    "mtime": 1792029403.7348285,
+    "seen": 1792029498.7455616,
+    "ast_hash": "7ce9d639530c39337aab36672ed02008",
     "semantic_hash": ""
   },
   ".agents/skills/gitnexus-cli/SKILL.md": {
@@ -2223,6 +2223,12 @@
     "mtime": 1792007346.7990725,
     "seen": 1792008869.7995622,
     "ast_hash": "18ca28d79976c2b788fb2740b96a7036",
+    "semantic_hash": ""
+  },
+  "docs/Manuais/graphify-manual.md": {
+    "mtime": 1792029456.4643936,
+    "seen": 1792029498.7455595,
+    "ast_hash": "3401b403b9109318598f185ea326cf5e",
     "semantic_hash": ""
   }
 }
