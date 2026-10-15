@@ -1872,6 +1872,20 @@ conversa e classificação do usuário").
       depois do salto da abertura: 446 testes Vitest passando. Documentado em
       `docs/FRONTEND.md` §3.
 
+- [x] Condicionar o foco automático do chat ao tipo de ponteiro (2026-10-14) —
+      ajuste do item anterior depois de revisar a prática dos chats de
+      mercado. O critério virou *devolver* foco (o usuário estava compondo)
+      x *tomar* foco (o usuário não pediu para digitar): devolver é
+      incondicional, tomar só acontece em `matchMedia("(pointer: fine)")`,
+      porque em touch o teclado virtual esconde a última mensagem. Na prática:
+      envio/áudio/erro e as ações da própria composição seguem incondicionais;
+      a abertura do chat e as ações secundárias usam
+      `focarCaixaMensagemSePonteiroPreciso()`. O scroll da abertura continua
+      incondicional. Todos os `focus()` ganharam `{ preventScroll: true }`.
+      3 testes novos com stub de `matchMedia` (o `jsdom` não o implementa, por
+      isso os testes de desktop não precisam de stub): 449 testes Vitest
+      passando, `next build` rc=0. Documentado em `docs/FRONTEND.md` §3.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

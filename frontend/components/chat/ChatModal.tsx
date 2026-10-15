@@ -36,6 +36,22 @@ export const WELCOME_MESSAGE =
   "nosso relacionamento com você. É opcional: você pode conversar normalmente " +
   "sem informá-lo. Pode escrever ou gravar um áudio.";
 
+/**
+ * `true` em dispositivos com ponteiro preciso (mouse/trackpad). Em touch,
+ * tomar o foco sem o usuário pedir abre o teclado virtual, que come metade da
+ * viewport e esconde justamente a última mensagem — por isso a abertura do
+ * chat e as ações secundárias só focam a caixa quando isto é verdadeiro
+ * (prática dos chats de mercado, discutido em 2026-10-14; ver
+ * `docs/FRONTEND.md` §3). Capability query, não user-agent. Sem suporte a
+ * `matchMedia` assume desktop, que é o comportamento mais acessível.
+ */
+function temPonteiroPreciso(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return true;
+  }
+  return window.matchMedia("(pointer: fine)").matches;
+}
+
 interface PendingRetry {
   message?: string;
   audioBase64?: string;
@@ -144,19 +160,33 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  /** "Qualquer ação deve manter o foco na caixa de digitação" (pedido do
-   * usuário, 2026-10-14). Cada handler do modal chama isto no fim: o clique
-   * num botão move o foco para o botão, e o `<input>` ainda fica `disabled`
-   * enquanto `controlsDisabled` está ligado. O `requestAnimationFrame` espera
-   * o re-render que a ação disparou — focar antes dele não tem efeito. Para o
-   * envio em si, quem devolve o foco é o efeito que observa
-   * `controlsDisabled`, porque aí o `<input>` só reabre depois da resposta. */
+  /** Devolve o foco à caixa quando o usuário estava compondo e uma ação tirou
+   * o foco dele — clicar num botão move o foco para o botão, e o `<input>`
+   * ainda fica `disabled` enquanto `controlsDisabled` está ligado. Vale em
+   * qualquer dispositivo: o teclado virtual já está aberto nesse momento. O
+   * `requestAnimationFrame` espera o re-render que a ação disparou (focar
+   * antes dele não tem efeito) e o `preventScroll` evita que o foco puxe o
+   * layout e desfaça o scroll da conversa. Para o envio em si, quem devolve o
+   * foco é o efeito que observa `controlsDisabled`, porque aí o `<input>` só
+   * reabre depois da resposta. */
   function focarCaixaMensagem() {
+    const focar = () => inputRef.current?.focus({ preventScroll: true });
     if (typeof window === "undefined" || typeof window.requestAnimationFrame !== "function") {
-      inputRef.current?.focus();
+      focar();
       return;
     }
-    window.requestAnimationFrame(() => inputRef.current?.focus());
+    window.requestAnimationFrame(focar);
+  }
+
+  /** Igual ao anterior, mas só em ponteiro preciso — ver `temPonteiroPreciso`.
+   * Usado nas ações secundárias (exportar, limpar histórico, atendente…), que
+   * não são continuação de uma digitação: em touch, trazer o cursor de volta
+   * abriria o teclado sem o usuário pedir. */
+  function focarCaixaMensagemSePonteiroPreciso() {
+    if (!temPonteiroPreciso()) {
+      return;
+    }
+    focarCaixaMensagem();
   }
   const pendingInput = useChatStore((state) => state.pendingInput);
 
@@ -185,7 +215,9 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     const frameExterno = requestAnimationFrame(() => {
       frameInterno = requestAnimationFrame(() => {
         messagesEndRef.current?.scrollIntoView?.({ behavior: "auto", block: "end" });
-        inputRef.current?.focus();
+        if (temPonteiroPreciso()) {
+          inputRef.current?.focus({ preventScroll: true });
+        }
       });
     });
     return () => {
@@ -493,7 +525,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   // da gravação de áudio, erro de envio) — ver `focarCaixaMensagem`.
   useEffect(() => {
     if (open && !controlsDisabled) {
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   }, [open, controlsDisabled]);
 
@@ -550,7 +582,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
                 type="button"
                 onClick={() => {
                   exportMetricsToCsv(messages);
-                  focarCaixaMensagem();
+                  focarCaixaMensagemSePonteiroPreciso();
                 }}
                 className="rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-white hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
               >
@@ -560,7 +592,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
                 type="button"
                 onClick={() => {
                   exportMetricsToJson(messages);
-                  focarCaixaMensagem();
+                  focarCaixaMensagemSePonteiroPreciso();
                 }}
                 className="rounded-lg bg-slate-200/90 border border-slate-300/60 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 hover:bg-slate-300 transition-all active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
               >
@@ -578,7 +610,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
             escalonamento={escalonamento}
             onDismiss={() => {
               setEscalonamento(null);
-              focarCaixaMensagem();
+              focarCaixaMensagemSePonteiroPreciso();
             }}
           />
           {messages.length === 0 && (
@@ -602,7 +634,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
                 type="button"
                 onClick={() => {
                   handleRetry();
-                  focarCaixaMensagem();
+                  focarCaixaMensagemSePonteiroPreciso();
                 }}
                 className="mt-1 font-bold underline hover:no-underline"
               >
@@ -678,7 +710,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
                   type="button"
                   onClick={() => {
                     void handleSolicitarAtendente();
-                    focarCaixaMensagem();
+                    focarCaixaMensagemSePonteiroPreciso();
                   }}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300/80 bg-emerald-50/90 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-100 hover:border-emerald-400 transition-all active:scale-95 cursor-pointer"
                   title="Solicitar transbordo para atendimento humano"
@@ -691,7 +723,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
                   type="button"
                   onClick={() => {
                     void handleCloseConversation();
-                    focarCaixaMensagem();
+                    focarCaixaMensagemSePonteiroPreciso();
                   }}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300/80 bg-amber-50/90 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-amber-800 shadow-2xs hover:bg-amber-100 hover:border-amber-400 transition-all active:scale-95 cursor-pointer"
                   title="Encerrar atendimento atual e contabilizar métricas"
@@ -706,7 +738,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
                 type="button"
                 onClick={() => {
                   void handleClearHistory();
-                  focarCaixaMensagem();
+                  focarCaixaMensagemSePonteiroPreciso();
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200/80 bg-rose-50/90 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-rose-700 shadow-2xs hover:bg-rose-100 hover:border-rose-300 transition-all active:scale-95 cursor-pointer shrink-0"
                 title="Apagar mensagens e memória da conversa"

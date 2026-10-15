@@ -129,27 +129,38 @@ com o histórico recarregado.
   `# MVP`: consulta genérica por categoria ou catálogo completo (que lista
   vários produtos, não um item único) ainda não tem card próprio — continua
   só em texto.
-- **Foco permanente na caixa de mensagem** (2026-10-14, pedido do usuário):
-  qualquer ação no modal devolve o cursor para a caixa de digitação. Dois
-  mecanismos, porque os casos são diferentes:
-  - o `<input>` fica `disabled` enquanto `controlsDisabled`
-    (`isSending || isRecording`) está ligado, então o foco se perde no envio e
-    na gravação de áudio — um efeito com deps `[open, controlsDisabled]`
-    chama `inputRef.current?.focus()` quando os controles reabrem (vale para
-    o clique em "Enviar", para o Enter, para o fim da gravação e também para
-    o caminho de erro);
-  - os demais botões (exportar CSV/JSON, remover imagem pendente, selecionar
-    imagem, fechar o banner de escalonamento, "Tentar novamente", falar com
-    atendente, encerrar atendimento, limpar histórico) só movem o foco para
-    si mesmos — cada handler chama `focarCaixaMensagem()`, que foca dentro de
-    um `requestAnimationFrame` para esperar o re-render que a ação disparou.
+- **Foco da caixa de mensagem** (2026-10-14, pedido do usuário): o critério
+  é *devolver* foco (o usuário estava compondo e uma ação o tirou dele) x
+  *tomar* foco (o usuário não pediu para digitar). Devolver vale em qualquer
+  dispositivo; tomar só em ponteiro preciso, porque em touch abrir o teclado
+  virtual come metade da viewport e esconde a última mensagem — é a prática
+  dos chats de mercado (WhatsApp Web, Telegram, Slack, Intercom). A checagem é
+  por capability query (`temPonteiroPreciso()` → `matchMedia("(pointer: fine)")`),
+  nunca por user-agent, e sem suporte a `matchMedia` assume desktop. Todos os
+  `focus()` usam `{ preventScroll: true }` para não desfazer o scroll da
+  conversa. Três caminhos:
+  - **envio, fim da gravação de áudio e erro de envio** — o `<input>` fica
+    `disabled` enquanto `controlsDisabled` (`isSending || isRecording`) está
+    ligado, então o foco só pode voltar quando ele reabre: efeito com deps
+    `[open, controlsDisabled]`. Incondicional (o teclado já está aberto);
+  - **ações dentro da composição** (remover a imagem pendente, selecionar
+    imagem) — `focarCaixaMensagem()`, incondicional, pelo mesmo motivo;
+  - **ações secundárias** (exportar CSV/JSON, fechar o banner de
+    escalonamento, "Tentar novamente", falar com atendente, encerrar
+    atendimento, limpar histórico) e **a abertura do chat** —
+    `focarCaixaMensagemSePonteiroPreciso()`, que não faz nada em touch.
+  Os dois helpers focam dentro de um `requestAnimationFrame`, para esperar o
+  re-render que a ação disparou. Testes: o `jsdom` não implementa
+  `matchMedia`, então os testes de desktop não precisam de stub e só os de
+  touch usam o helper `mockPonteiro("coarse")`.
 - **Scroll para a última mensagem ao abrir o chat** (2026-10-14, pedido do
   usuário): o efeito de scroll suave (`behavior: "smooth"`, disparado por
   `messages`/`error`) não resolve a abertura — ele roda no mesmo commit em que
   o modal monta, quando a lista ainda não tem altura, e a animação é
   descartada, deixando a conversa no topo. Um efeito próprio com dep `[open]`
   faz o salto instantâneo (`behavior: "auto"`, `block: "end"`) dentro de um
-  `requestAnimationFrame` duplo, já com a lista medida, e foca a caixa.
+  `requestAnimationFrame` duplo, já com a lista medida. O salto vale em
+  qualquer dispositivo; só o foco que o acompanha é condicionado ao ponteiro.
   Atenção ao mexer nisso: o teste "não força scroll a cada poll de 4s"
   (`tests/components/ChatModal.test.tsx`) mede a linha de base **depois** de
   deixar esse salto único acontecer; o que ele protege é o scroll repetido do

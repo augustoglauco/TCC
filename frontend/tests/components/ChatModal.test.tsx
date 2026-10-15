@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChatModal, WELCOME_MESSAGE } from "@/components/chat/ChatModal";
 import { useChatStore } from "@/lib/hooks/useChatStore";
@@ -65,11 +65,34 @@ function renderModal() {
   return render(<ChatModal open onOpenChange={vi.fn()} />);
 }
 
+/** Simula o tipo de ponteiro do dispositivo. O jsdom não implementa
+ * `matchMedia`, e sem ele o `ChatModal` assume desktop — então só os testes
+ * de touch precisam deste stub. */
+function mockPonteiro(tipo: "fine" | "coarse") {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn((query: string) => ({
+      matches: query.includes(tipo),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  );
+}
+
 describe("ChatModal", () => {
   beforeEach(() => {
     resetStore();
     mockedSendChatMessage.mockReset();
     mockedFetchSnapshot.mockReset();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("conversa vazia mostra a boas-vindas com o convite opcional para o e-mail", () => {
@@ -161,6 +184,61 @@ describe("ChatModal", () => {
     await user.click(screen.getByRole("button", { name: "Remover imagem" }));
 
     await waitFor(() => expect(screen.getByLabelText("Mensagem")).toHaveFocus());
+  });
+
+  it("em touch, abre no fim da conversa mas não foca a caixa (teclado virtual)", async () => {
+    mockPonteiro("coarse");
+    const scrollIntoViewMock = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
+    useChatStore.setState({ messages: [{ id: "m1", role: "assistant", text: "última" }] });
+
+    renderModal();
+
+    await waitFor(() =>
+      expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: "auto", block: "end" }),
+    );
+    expect(screen.getByLabelText("Mensagem")).not.toHaveFocus();
+  });
+
+  it("em touch, o foco ainda volta à caixa depois de enviar (o teclado já está aberto)", async () => {
+    mockPonteiro("coarse");
+    const user = userEvent.setup();
+    mockedSendChatMessage.mockImplementation(async ({ onConversationId, onToken, onDone }) => {
+      onConversationId("conv-touch");
+      onToken("Resposta.");
+      onDone({ domain: "vendas", backend_used: "local", escalation_reason: "nenhum" });
+    });
+
+    renderModal();
+
+    const caixa = screen.getByLabelText("Mensagem");
+    await user.type(caixa, "Olá");
+    await user.click(screen.getByRole("button", { name: "Enviar" }));
+
+    expect(await screen.findByText("Resposta.")).toBeInTheDocument();
+    await waitFor(() => expect(caixa).toHaveFocus());
+  });
+
+  it("em touch, ação secundária não traz o foco de volta para a caixa", async () => {
+    mockPonteiro("coarse");
+    const user = userEvent.setup();
+    useChatStore.setState({
+      messages: [
+        { id: "m1", role: "user", text: "oi" },
+        { id: "m2", role: "assistant", text: "olá", domain: "vendas" },
+      ],
+    });
+
+    renderModal();
+
+    await user.click(screen.getByRole("button", { name: /Exportar.*CSV|CSV/ }));
+    // `focarCaixaMensagem` foca dentro de um requestAnimationFrame, então sem
+    // esperar um frame este teste passaria mesmo sem a checagem de ponteiro.
+    await act(async () => {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    });
+
+    expect(screen.getByLabelText("Mensagem")).not.toHaveFocus();
   });
 
   it("propaga o provedor do roteador para o painel de métricas", async () => {
