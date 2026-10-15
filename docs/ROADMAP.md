@@ -1923,6 +1923,37 @@ conversa e classificação do usuário").
       Pendência consciente: o caso touch continua só em Vitest (exigiria um
       projeto `devices["Pixel 5"]` no config, mudança de escopo).
 
+- [x] Deriva de documentação: resíduo real corrigido e gate no checklist
+      (2026-10-15) — `repowise doc-drift` (ferramenta que existia e nunca
+      havia sido usada) apontou 71 achados em 25 documentos. Triagem: 54 estão
+      em `docs/superpowers/plans|specs/`, documentos datados de design em que
+      citar arquivo renomeado depois é história correta; e boa parte dos 17 em
+      documentos vivos são menções deliberadas ao que a consolidação de
+      2026-09-28 apagou ("do antigo `MANUAL_...`", "na consolidação de…") —
+      falso positivo, a prosa já diz que o arquivo não existe. Resíduo real,
+      corrigido: (1) `docs/ARCHITECTURE.md` descrevia em presente "Novo módulo
+      `app.rag.product_sync`" (`sync_produto_no_rag`/`remover_produto_do_rag`)
+      que a decisão de 2026-10-03 descontinuou e que foi removido do disco em
+      2026-10-04 — a entrada de 2026-09-29 agora está marcada como SUPERADA,
+      apontando para a decisão que a invalidou, e o texto fica como registro;
+      (2) `CLAUDE.md` e `docs/AGENTIC_WORKFLOW.md` mandavam navegar por
+      `graphify-out/wiki/index.md`, que não existe e **nunca vai existir** —
+      o `graphify --help` não tem comando que gere wiki; referência removida
+      dos dois. Gate novo: item 11 do checklist roda `doc-drift --check` com
+      os cinco `--kind` (sem `--kind symbol` ele não checa referência a
+      símbolo, que foi justamente a que achou o módulo fantasma) contra
+      `.doc-drift-baseline.json`, que aceita os 72 achados atuais e falha só
+      em deriva nova. Verificado nos dois sentidos: rc=1 ao inserir uma
+      referência quebrada de propósito, rc=0 depois de revertê-la. Armadilha
+      encontrada e documentada no próprio item 11: `--kind symbol` depende do
+      índice do repowise — com o índice atrasado o comando vê 38 achados em
+      vez de 72 e, se o baseline for gravado assim, as ~34 referências a
+      símbolo voltam como deriva nova na execução seguinte e o gate falha sem
+      nada ter mudado. O índice reflete o último commit, não o disco, então um
+      `repowise update` simples não basta num checklist de pré-commit: o item
+      manda `repowise update --working-tree`, que inclui as edições não
+      commitadas — medido nos dois estados.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

@@ -1673,7 +1673,13 @@ totalmente genérica, sem produto nem categoria) respondia só sobre
    (pergunta totalmente genérica lista o catálogo completo no prompt).
 
 **Decisão registrada (Fase 2/5, sincronização automática do catálogo no RAG,
-R4, 2026-09-29):** o conector de leitura a BD relacional
+R4, 2026-09-29) — ⚠️ SUPERADA pela decisão "Desacoplamento do CRUD de
+produtos do RAG e autoridade única no SQL" (2026-10-03), mais abaixo nesta
+seção: o módulo `app.rag.product_sync` descrito aqui foi descontinuado e
+`backend/src/app/rag/product_sync.py` e `backend/tests/test_product_sync.py`
+foram removidos em 2026-10-04. O texto abaixo fica como registro do que foi
+implementado e por quê; não descreve o estado atual (achado de
+`repowise doc-drift`, 2026-10-15):** o conector de leitura a BD relacional
 (`app.rag.db_connector`, R4) só alimentava o RAG semântico (Qdrant) via
 `backend/scripts/ingest_db_table.py`, um script manual rodado uma única vez
 na Fase 2 sobre o catálogo fixture original (5 produtos) — nunca reexecutado

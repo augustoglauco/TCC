@@ -191,10 +191,10 @@ via AST — rápido e sem custo de API.
   código ou ao receber um pedido de alteração: `graphify query "<pergunta>"`
   (subgrafo enxuto), `graphify explain "<símbolo/conceito>"` (nó focalizado),
   `graphify path "<A>" "<B>"` (dependência entre dois pontos).
-- `graphify-out/wiki/index.md`, se existir, substitui a navegação pelo
-  código-fonte bruto. `graphify-out/GRAPH_REPORT.md` só para visão macro da
-  arquitetura, ou quando `query`/`explain`/`path` não derem contexto
-  suficiente.
+- `graphify-out/GRAPH_REPORT.md` só para visão macro da arquitetura, ou
+  quando `query`/`explain`/`path` não derem contexto suficiente. (Não procure
+  um `graphify-out/wiki/`: esta CLI não tem comando que o gere — a menção a
+  `wiki/index.md` saiu daqui e do `AGENTIC_WORKFLOW.md` em 2026-10-15.)
 - **Depois de qualquer alteração em código**, sem esperar pedido:
   `graphify update .`. É o item 9 do checklist de `docs/CONVENTIONS.md`,
   cobrado pela regra 10.

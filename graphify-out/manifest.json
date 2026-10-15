@@ -1668,9 +1668,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1792030424.2740355,
-    "seen": 1792033373.1619897,
-    "ast_hash": "0bd5bd8621f0440d085d4a52e887bdae",
+    "mtime": 1792038100.6407604,
+    "seen": 1792038249.525393,
+    "ast_hash": "70f2273ed67a3fc85d0f411dfe4c09a5",
     "semantic_hash": ""
   },
   "README.md": {
@@ -1746,21 +1746,21 @@
     "semantic_hash": "c560de78c05a1b5bc3e151d686833305"
   },
   "docs/AGENTIC_WORKFLOW.md": {
-    "mtime": 1791844338.9483898,
-    "seen": 1791844513.5521317,
-    "ast_hash": "6518a6d4642ca9727c4b161bf47c703b",
+    "mtime": 1792034117.4730906,
+    "seen": 1792038249.5254078,
+    "ast_hash": "5b57b274cf58eae83017a5d066d9e1f9",
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE.md": {
-    "mtime": 1791931995.0023038,
-    "seen": 1791932147.471529,
-    "ast_hash": "2075c27f393f52b67ac684383978bee0",
+    "mtime": 1792034117.472552,
+    "seen": 1792038249.5254087,
+    "ast_hash": "3a10606ba9591b51105df2b101c1cb22",
     "semantic_hash": ""
   },
   "docs/CONVENTIONS.md": {
-    "mtime": 1792029396.2672539,
-    "seen": 1792029498.7455528,
-    "ast_hash": "c5950f9b9c19288a41a03ab272d6aaa0",
+    "mtime": 1792038661.5050979,
+    "seen": 1792038710.7625413,
+    "ast_hash": "a99d35fce01f73cfb54d5241af3e27f9",
     "semantic_hash": ""
   },
   "docs/EVALUATION.md": {
@@ -1806,14 +1806,14 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792033348.0252366,
-    "seen": 1792033373.162017,
-    "ast_hash": "b139a594b7b17e21d72e2b8f02ab7b3f",
+    "mtime": 1792038661.5243666,
+    "seen": 1792038710.7625535,
+    "ast_hash": "f119b8a404b8d401a82d5106d547b235",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
-    "mtime": 1790624227.9578757,
-    "seen": 1791840346.4559364,
+    "mtime": 1792038202.049125,
+    "seen": 1792038249.5254223,
     "ast_hash": "b91f3f96db046462eeefcc5bccecbb76",
     "semantic_hash": "b91f3f96db046462eeefcc5bccecbb76"
   },
@@ -2229,6 +2229,12 @@
     "mtime": 1792029456.4643936,
     "seen": 1792029498.7455595,
     "ast_hash": "3401b403b9109318598f185ea326cf5e",
+    "semantic_hash": ""
+  },
+  ".doc-drift-baseline.json": {
+    "mtime": 1792038692.1390564,
+    "seen": 1792038710.762221,
+    "ast_hash": "130ff8c1c964b664afa053481fcffbfc",
     "semantic_hash": ""
   }
 }

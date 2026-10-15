@@ -244,6 +244,40 @@ no backend e 10 no frontend. Antes de commitar, confira:
     só no bloco gerado do `CLAUDE.md` (entre `<!-- gitnexus:start -->` e
     `<!-- gitnexus:end -->`, reescrito a cada `analyze`), então ficava fora
     do alcance da regra 10 do `CLAUDE.md` — que manda seguir este checklist.
+11. Se mexeu em `.md` ou renomeou/apagou arquivo citado por documento, rode
+    o gate de deriva de documentação:
+
+    ```bash
+    repowise update --working-tree    # obrigatório: ver a armadilha abaixo
+    repowise doc-drift --check \
+      --kind path --kind link --kind anchor --kind command --kind symbol \
+      --baseline .doc-drift-baseline.json
+    ```
+
+    Sai 0 quando não há deriva nova e 1 quando há, citando documento e linha.
+    Os `--kind` são necessários: sem eles o detector não checa referência a
+    símbolo, que é a classe que pegou o módulo fantasma `app.rag.product_sync`
+    em `docs/ARCHITECTURE.md` — ver o achado abaixo.
+
+    **Armadilha (medida em 2026-10-15):** `--kind symbol` resolve contra o
+    índice do repowise, e o índice reflete o **último commit** — não o que
+    está no disco. Com edições de `.md` ainda não commitadas (o caso normal
+    ao rodar um checklist de pré-commit), o mesmo comando devolve 38 achados
+    em vez de 72; e se o baseline for gravado nesse estado, as ~34
+    referências a símbolo saem dele e voltam como "deriva nova" na execução
+    seguinte, com o gate falhando sem nada ter mudado nos documentos. Um
+    `repowise update` simples **não** resolve: é preciso
+    `repowise update --working-tree`, que inclui as edições não commitadas.
+    Com isso o resultado é estável (verificado em duas execuções seguidas).
+
+    O `.doc-drift-baseline.json` registra os 72 achados que existiam em
+    2026-10-15 e por isso o gate só reclama de **deriva nova**: 54 deles estão
+    em `docs/superpowers/plans|specs/`, documentos datados de design em que
+    citar um arquivo renomeado depois é história correta, não defeito; e vários
+    dos demais são menções deliberadas ao que foi apagado na consolidação de
+    2026-09-28 ("do antigo `MANUAL_...`"). Para aceitar deriva nova de
+    propósito, regrave o baseline trocando `--baseline` por
+    `--write-baseline` e commite o arquivo junto, explicando no commit.
 - Não commitar arquivos de ambiente com segredos reais (`.env` — apenas
   `.env.example` vai para o repositório).
 

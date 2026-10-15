@@ -1,0 +1,342 @@
+{
+  "version": 1,
+  "basis": "Documentation drift accepted as known. A listed finding does not fail the gate; it is keyed on document, kind and target, not line.",
+  "entries": [
+    {
+      "fingerprint": "eada6530d31a68ef220ade46057c0a7d",
+      "file_path": "CLAUDE.md",
+      "kind": "path",
+      "target": "docs/TECHNOLOGY_STACK.md"
+    },
+    {
+      "fingerprint": "511e5b7689aa8081613e95ea5ec08b7b",
+      "file_path": "docs/ARCHITECTURE.md",
+      "kind": "path",
+      "target": "backend/src/app/rag/product_sync.py"
+    },
+    {
+      "fingerprint": "8e93187b15f8fd289e567f3b343a563b",
+      "file_path": "docs/ARCHITECTURE.md",
+      "kind": "path",
+      "target": "backend/tests/test_product_sync.py"
+    },
+    {
+      "fingerprint": "a3616ade90025c0ed84ddef8086f20fe",
+      "file_path": "docs/ARCHITECTURE.md",
+      "kind": "path",
+      "target": "docs/Manuais/DIAGRAMA_FLUXO_CHAT.md"
+    },
+    {
+      "fingerprint": "5103f9d0d451006a1ec702377048187e",
+      "file_path": "docs/ARCHITECTURE.md",
+      "kind": "path",
+      "target": "docs/TECHNOLOGY_STACK.md"
+    },
+    {
+      "fingerprint": "9b7642511380ea41938850b06ea79dce",
+      "file_path": "docs/ARCHITECTURE.md",
+      "kind": "symbol",
+      "target": "remover_produto_do_rag"
+    },
+    {
+      "fingerprint": "ef829e7174548b40ac1e0a2506916ccb",
+      "file_path": "docs/ARCHITECTURE.md",
+      "kind": "symbol",
+      "target": "sync_produto_no_rag"
+    },
+    {
+      "fingerprint": "f735d9537b99492a1681cd3b54f65e53",
+      "file_path": "docs/CONVENTIONS.md",
+      "kind": "path",
+      "target": "docs/TECHNOLOGY_STACK.md"
+    },
+    {
+      "fingerprint": "e9e59c1e65a08a28221961f5c5d9d725",
+      "file_path": "docs/ROADMAP.md",
+      "kind": "path",
+      "target": "backend/src/app/rag/product_sync.py"
+    },
+    {
+      "fingerprint": "8bbf91a6c518c40f58ce276661f2dd78",
+      "file_path": "docs/ROADMAP.md",
+      "kind": "path",
+      "target": "backend/tests/test_product_sync.py"
+    },
+    {
+      "fingerprint": "730a716eaa732978ee57641d40386b7f",
+      "file_path": "docs/ROADMAP.md",
+      "kind": "path",
+      "target": "graphify-out/wiki/index.md"
+    },
+    {
+      "fingerprint": "748fd6ba2adc1cca46ff4ffc1d1ad1aa",
+      "file_path": "docs/ROADMAP.md",
+      "kind": "symbol",
+      "target": "remover_produto_do_rag"
+    },
+    {
+      "fingerprint": "8c6b97e6846282baf457b44f563f6fd4",
+      "file_path": "docs/ROADMAP.md",
+      "kind": "symbol",
+      "target": "sync_produto_no_rag"
+    },
+    {
+      "fingerprint": "c0be8d67d6917bf726dca080243a323d",
+      "file_path": "docs/TESTE_LOCAL.md",
+      "kind": "path",
+      "target": "docs/Manuais/GUIA_TESTE_AGENDAMENTO.md"
+    },
+    {
+      "fingerprint": "22fd9085a523de7c0f6dc943bce695b2",
+      "file_path": "docs/superpowers/plans/2026-09-14-registro-documentos-rag.md",
+      "kind": "symbol",
+      "target": "ChatMessageResponse"
+    },
+    {
+      "fingerprint": "7396aa514d875670c6b3ad52a768023e",
+      "file_path": "docs/superpowers/plans/2026-09-17-chat-streaming-sse.md",
+      "kind": "symbol",
+      "target": "ChatMessageResponse"
+    },
+    {
+      "fingerprint": "a8e8e421e2638130da607be56d4ca845",
+      "file_path": "docs/superpowers/plans/2026-09-21-agendamento-mcp-calendar.md",
+      "kind": "path",
+      "target": "backend/scripts/authorize_google_calendar.py"
+    },
+    {
+      "fingerprint": "4054edf06ffd442e3b13348fbfb9a588",
+      "file_path": "docs/superpowers/plans/2026-09-21-agendamento-mcp-calendar.md",
+      "kind": "path",
+      "target": "backend/tests/test_authorize_google_calendar.py"
+    },
+    {
+      "fingerprint": "dda04ebcea984452a652f8537f54d5b7",
+      "file_path": "docs/superpowers/plans/2026-09-23-monitor-de-tom.md",
+      "kind": "symbol",
+      "target": "_conversation_history"
+    },
+    {
+      "fingerprint": "c9eb22acfab668333362890a8b4686fb",
+      "file_path": "docs/superpowers/plans/2026-10-03-contabilizador-tokens-custos.md",
+      "kind": "path",
+      "target": "backend/tests/test_admin_metrics_api.py"
+    },
+    {
+      "fingerprint": "db07af3b117833b38fbe76d1ad95a69a",
+      "file_path": "docs/superpowers/plans/2026-10-04-computar-custos-visao-externa.md",
+      "kind": "path",
+      "target": "backend/.venv/bin/pytest backend/tests/test_chat_image_cost_accounting.py backend/tests/test_admin_metrics_api.py"
+    },
+    {
+      "fingerprint": "40a5786e512abfdd02a1036c19935452",
+      "file_path": "docs/superpowers/plans/2026-10-04-dashboards-dinamicos-admin.md",
+      "kind": "path",
+      "target": "docs/ADMIN_MANUAL.md"
+    },
+    {
+      "fingerprint": "1db83526a89afd61186b322ac8e5ac12",
+      "file_path": "docs/superpowers/plans/2026-10-04-dashboards-dinamicos-admin.md",
+      "kind": "path",
+      "target": "docs/MANUAL_USUARIO.md"
+    },
+    {
+      "fingerprint": "5a6d95545a42bb41421104aab058895c",
+      "file_path": "docs/superpowers/plans/2026-10-04-dashboards-dinamicos-admin.md",
+      "kind": "symbol",
+      "target": "generate_and_persist_chart"
+    },
+    {
+      "fingerprint": "21312c0a4311386889a5ea27b4429cdc",
+      "file_path": "docs/superpowers/plans/2026-10-05-conversao-reserva-venda.md",
+      "kind": "path",
+      "target": "backend/migrations/versions/0021_conversao_reserva_venda.py"
+    },
+    {
+      "fingerprint": "86515d00a593057ba608cf88646dc9f3",
+      "file_path": "docs/superpowers/plans/2026-10-05-conversao-reserva-venda.md",
+      "kind": "path",
+      "target": "frontend/app/admin/pedidos/modal_conversao.tsx"
+    },
+    {
+      "fingerprint": "d8997340e9c22a87db6380a2de76135d",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-b-origem-chat.md",
+      "kind": "path",
+      "target": "backend/tests/test_admin_pedidos_conversao.py"
+    },
+    {
+      "fingerprint": "b1baebd9b73e8bb47791514bb163e318",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-b-origem-chat.md",
+      "kind": "path",
+      "target": "backend/tests/test_mcp_b2b.py"
+    },
+    {
+      "fingerprint": "c8cc7c57da082ebed76f20cccf4186e0",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "path",
+      "target": "backend/tests/test_admin_metrics_api.py"
+    },
+    {
+      "fingerprint": "e9ac04f1631b2ca380b967bb659c73d5",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "path",
+      "target": "backend/tests/test_admin_metrics_vision.py"
+    },
+    {
+      "fingerprint": "8d31788bcb611cf9ed6fa85fd9348b48",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "path",
+      "target": "backend/tests/test_ingestion_cost_metrics.py"
+    },
+    {
+      "fingerprint": "2c077be8318b73260228506d276158e4",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "symbol",
+      "target": "DailyMetric"
+    },
+    {
+      "fingerprint": "6b186dd97bbef77c1b1ca7e6aa8c38bb",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "symbol",
+      "target": "MetricSummary"
+    },
+    {
+      "fingerprint": "45a6c4ff31d89a199803414aeb5d5050",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "symbol",
+      "target": "TokenCostMetricsResponse"
+    },
+    {
+      "fingerprint": "35ce39c434cf928061de0d0a389d3de8",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "symbol",
+      "target": "fetchTokenCostMetrics"
+    },
+    {
+      "fingerprint": "78c08ba0d72b420495ea130a68a44b50",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "symbol",
+      "target": "get_token_and_cost_metrics"
+    },
+    {
+      "fingerprint": "418c227327bde38e9978cb44b7ecc7ad",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "symbol",
+      "target": "obterDiaSemanaPtBr"
+    },
+    {
+      "fingerprint": "a42331a4fc599f179e629bf6bd068e3c",
+      "file_path": "docs/superpowers/plans/2026-10-08-ledger-uso-ia-item-e-painel.md",
+      "kind": "symbol",
+      "target": "preencherLinhasDetalhamento"
+    },
+    {
+      "fingerprint": "c6a814f8a068a4dc6e697478fc90aa22",
+      "file_path": "docs/superpowers/specs/2026-09-05-roteador-basico-design.md",
+      "kind": "path",
+      "target": "docs/TECHNOLOGY_STACK.md"
+    },
+    {
+      "fingerprint": "82cc6cf0194af3ca00f90fe4dfa05941",
+      "file_path": "docs/superpowers/specs/2026-09-17-chat-streaming-sse-design.md",
+      "kind": "symbol",
+      "target": "ChatMessageResponse"
+    },
+    {
+      "fingerprint": "95c0e3cdc2d00b6b4cca0fc3e8ddeafb",
+      "file_path": "docs/superpowers/specs/2026-09-17-chat-streaming-sse-design.md",
+      "kind": "symbol",
+      "target": "_conversation_history"
+    },
+    {
+      "fingerprint": "3008af2c2fe77d7f152af2d24a47ef7b",
+      "file_path": "docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md",
+      "kind": "path",
+      "target": "backend/scripts/authorize_google_calendar.py"
+    },
+    {
+      "fingerprint": "44d12340e489de24467d061d838cddcf",
+      "file_path": "docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md",
+      "kind": "symbol",
+      "target": "_conversation_history"
+    },
+    {
+      "fingerprint": "26c6abf7e6312082cdbe3d44ced689be",
+      "file_path": "docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md",
+      "kind": "symbol",
+      "target": "_conversation_history"
+    },
+    {
+      "fingerprint": "cd723aa4431445c03bb3e7afd503fb02",
+      "file_path": "docs/superpowers/specs/2026-10-07-seguranca-prompt-injection-mcp-design.md",
+      "kind": "path",
+      "target": "backend/tests/test_security_anti_ai_attacks.py"
+    },
+    {
+      "fingerprint": "8a5a54d32584f18c92e910dfae250b53",
+      "file_path": "docs/superpowers/specs/2026-10-07-seguranca-prompt-injection-mcp-design.md",
+      "kind": "path",
+      "target": "docs/PLANO_ANTI_AI_ATTACK.md"
+    },
+    {
+      "fingerprint": "574ec681f27aeaffe30a0fe132632f95",
+      "file_path": "docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-d-origem-admin-design.md",
+      "kind": "symbol",
+      "target": "DailyMetric"
+    },
+    {
+      "fingerprint": "2d4fc2dec3c0e76ecb8a65390beb7e7d",
+      "file_path": "docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-d-origem-admin-design.md",
+      "kind": "symbol",
+      "target": "MetricSummary"
+    },
+    {
+      "fingerprint": "49d00f509abf782869e71b45ee986ce3",
+      "file_path": "docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-e-painel-design.md",
+      "kind": "path",
+      "target": "backend/tests/test_admin_metrics_api.py"
+    },
+    {
+      "fingerprint": "46c0a445a162c39140d5e4fc943888a1",
+      "file_path": "docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-e-painel-design.md",
+      "kind": "path",
+      "target": "backend/tests/test_admin_metrics_vision.py"
+    },
+    {
+      "fingerprint": "52dd47b11de4d3500236f0543a460eba",
+      "file_path": "docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-e-painel-design.md",
+      "kind": "path",
+      "target": "backend/tests/test_ingestion_cost_metrics.py"
+    },
+    {
+      "fingerprint": "38ff981a32973d9fbe2c395c995735f0",
+      "file_path": "docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-e-painel-design.md",
+      "kind": "symbol",
+      "target": "DailyMetric"
+    },
+    {
+      "fingerprint": "ca14b7281bbf01762868166f0e616504",
+      "file_path": "docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-e-painel-design.md",
+      "kind": "symbol",
+      "target": "MetricSummary"
+    },
+    {
+      "fingerprint": "c46df52e165eacb970645bd19d124265",
+      "file_path": "docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md",
+      "kind": "symbol",
+      "target": "MetricSummary"
+    },
+    {
+      "fingerprint": "ee195f3de101adcfa3c9cd1fbd962ddc",
+      "file_path": "goup.md",
+      "kind": "path",
+      "target": "docs/Manuais/HOWTO_IMPLANTACAO_INFRA.md"
+    },
+    {
+      "fingerprint": "eeda04410739d5fdbd99b51f6f8984d5",
+      "file_path": "goup.md",
+      "kind": "path",
+      "target": "docs/Manuais/MANUAL_INTEGRACAO_MCP_B2B.md"
+    }
+  ]
+}

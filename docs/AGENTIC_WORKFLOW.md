@@ -89,9 +89,9 @@ a ferramenta, o contexto lido e a documentação atualizada sejam os mesmos.
 ## Loop de trabalho recomendado
 
 1. Escolha o próximo item pendente (`- [ ]`) em `docs/ROADMAP.md`.
-2. Consulte primeiramente o **Graphify** (`graphify query`, `explain`, `path`
-   ou `graphify-out/wiki/index.md`) para mapear dependências e entender o
-   impacto antes de alterar ou escrever código.
+2. Consulte primeiramente o **Graphify** (`graphify query`, `explain`,
+   `path`) para mapear dependências e entender o impacto antes de alterar ou
+   escrever código.
 3. Implemente (Antigravity Editor View, Manager Surface, Claude Code CLI ou
    Kiro CLI).
 4. Após qualquer alteração no código, execute de maneira automática
