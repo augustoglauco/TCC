@@ -243,9 +243,10 @@ export default function AdminFerramentasPage() {
                 type="button"
                 onClick={() => setResultadoAtualizacao(null)}
                 aria-label="Fechar mensagem"
-                className="absolute right-2 top-2 rounded px-2 text-lg leading-none hover:bg-black/10"
+                title="Fechar"
+                className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded border border-current text-sm font-bold leading-none hover:bg-black/10"
               >
-                ×
+                ✕
               </button>
               <pre className="max-h-48 overflow-auto px-4 py-3 pr-10 text-xs">
                 {resultadoAtualizacao.sucesso ? "Atualizado.\n" : "Falha na atualização.\n"}
