@@ -165,7 +165,15 @@ mesmo parse de `app.rag.image_identification`, contra fotos de produto já
 versionadas em `docs/Manuais_fornecedor/`. Pontuação determinística (sem
 LLM-as-judge) e sem exigir o SKU exato: no fluxo real quem identifica com
 precisão é o CLIP contra o catálogo interno, e a visão é o fallback que só
-precisa dizer se é do portfólio e, grosso modo, o que é.
+precisa dizer se é do portfólio e, grosso modo, o que é. O conjunto tem
+casos positivos **e** negativos: sem negativo, um modelo que aprova qualquer
+imagem marcaria 100%.
+
+**Reprodutibilidade:** o benchmark roda com seed fixa (`--seed 42`), embora
+produção rode sem seed. Sem ela, duas execuções do mesmo modelo sobre o
+mesmo caso divergem, e com amostras de 8 a 40 casos esse ruído se confunde
+com a diferença entre candidatos. A seed não torna o número mais verdadeiro
+— torna a comparação entre candidatos reproduzível.
 
 **Saída esperada:** um arquivo por modelo em
 `eval/model_benchmark/results/<id>.json`, no envelope

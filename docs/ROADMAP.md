@@ -1652,15 +1652,24 @@ conversa e classificação do usuário").
       determinística, sem LLM-as-judge, e sem exigir o SKU exato — no fluxo
       real quem identifica com precisão é o CLIP, a visão é o fallback que
       só precisa dizer se é do portfólio e grosso modo o que é. Medido com
-      `gemma4:12b-it-q4_K_M`: JSON válido 8/8, `e_do_portfolio` 8/8,
-      categoria 4/8 (responde "identificador biométrico" para quase tudo,
-      acerta os leitores e erra a impressora e a fonte). `# MVP: dataset só
-      com casos positivos — mede falso negativo em e_do_portfolio, não falso
-      positivo; faltam fotos fora do portfólio (as de
-      backend/uploads/comprovantes/ foram descartadas por serem comprovantes
-      reais).` Armadilha corrigida: o casamento de categoria precisa
-      normalizar acento ("biometri" x "biométrico"), senão 3 acertos contam
-      como erro.
+      `gemma4:12b-it-q4_K_M` e `--seed 42`: JSON válido 9/9,
+      `e_do_portfolio` 9/9, categoria 6/8 (erra a fonte `iDPower` e o
+      relógio de ponto `REP iDClass`, que chama de "identificador
+      biométrico"). Conjunto de 8 positivos + 1 negativo (comprovante de
+      depósito sintético, do próprio fluxo do sistema): sem negativo, um
+      modelo que diz `e_do_portfolio: true` para tudo marcaria 100% — furo
+      da primeira versão, corrigido em 2026-10-16 depois de o dono esclarecer
+      que **todo dado do projeto é fictício** e não havia o que proteger.
+      `categoria` só é cobrada nos positivos: num negativo a resposta certa
+      é "nenhum", e exigir descrição puniria o comportamento desejado.
+      `# MVP: n=1 em casos negativos — flagra o modelo que aprova qualquer
+      imagem, mas não dá precisão na taxa de falso positivo.` Duas
+      armadilhas corrigidas: casamento de categoria precisa normalizar
+      acento ("biometri" x "biométrico"), senão 3 acertos contam como erro;
+      e sem seed fixa as rodadas não são comparáveis — a mesma foto de
+      catraca saiu "catraca", "torneira eletrônica", "lança" e "extintor" em
+      quatro execuções, então o benchmark fixa `--seed 42` (produção segue
+      sem seed).
 - [ ] Decidir se a lista de candidatos deve exigir visão local: das 10 tags
       de `modelos.json`, só as duas de Gemma-4-12B devem ter `vision`; as
       variantes multimodais das outras famílias são tags diferentes

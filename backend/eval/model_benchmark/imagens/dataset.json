@@ -1,7 +1,7 @@
 {
   "_nota": "Conjunto de referência da etapa `imagem` do benchmark (R2/R5). Reproduz o caminho real do chat: o mesmo `_VISION_PROMPT` de `app.rag.image_identification` e o mesmo parse estruturado (`produto`, `e_do_portfolio`, `confianca`). `caminho` é relativo à raiz do repositório. As fotos são as dos manuais do fornecedor, já no repositório — nenhuma imagem nova foi criada.",
   "_sobre_o_gabarito": "A visão NÃO precisa acertar o SKU exato: no fluxo real, quem faz a identificação precisa é o CLIP contra o catálogo interno, e a visão só entra como fallback para dizer 'isto é (ou não) do nosso portfólio e, grosso modo, o que é'. Por isso `aceitos` lista os termos que contam como acerto de categoria, e não um nome único.",
-  "_limitacao": "MVP: só casos positivos (tudo aqui é produto do portfólio). Mede falso negativo em `e_do_portfolio`, não falso positivo. Para medir os dois, acrescente casos com `e_do_portfolio: false` apontando para qualquer foto que não seja equipamento de controle de acesso — o formato já aceita. Não foram usadas as imagens de `backend/uploads/comprovantes/` (candidatas óbvias) porque são comprovantes de pagamento reais, com dados financeiros.",
+  "_limitacao": "8 positivos e 1 negativo: o negativo basta para flagrar um modelo que diz 'é do portfólio' para qualquer imagem, mas com n=1 a taxa de falso positivo não tem precisão. Acrescentar mais negativos é barato — qualquer imagem que não seja equipamento de controle de acesso, com `e_do_portfolio: false`.",
   "casos": [
     {
       "id": "img1",
@@ -58,6 +58,14 @@
       "produto_esperado": "iDBlock Next",
       "e_do_portfolio": true,
       "aceitos": ["catraca", "torniquete", "bloqueio", "idblock", "controle de acesso"]
+    },
+    {
+      "id": "img9",
+      "caminho": "backend/eval/model_benchmark/imagens/negativo-comprovante-bancario.jpg",
+      "produto_esperado": "(nenhum — comprovante de depósito bancário)",
+      "e_do_portfolio": false,
+      "aceitos": ["comprovante", "recibo", "documento", "banc", "depósito", "deposito", "transferência", "transferencia", "captura de tela", "screenshot"],
+      "_nota": "Único caso negativo: pega o modelo que responde `e_do_portfolio: true` para qualquer imagem. Imagem sintética do fluxo de comprovante do próprio sistema (diz 'Teste Banco' e 'EMPRESA FICTÍCIA LTDA'), copiada de `backend/uploads/comprovantes/` — que é gitignored, por isso vive aqui, versionada junto com o dataset."
     }
   ]
 }

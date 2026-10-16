@@ -81,6 +81,16 @@ _DOMINIOS: list[Domain] = ["vendas", "suporte", "atendimento", "agendamento"]
 # por qualidade — o que não é o que este benchmark quer medir.
 TIMEOUT_PADRAO_S = 180.0
 
+# Produção roda sem seed (`LOCAL_LLM_SEED` vazio), e sem ela duas execuções
+# do mesmo modelo sobre o mesmo caso dão respostas diferentes — medido em
+# 2026-10-16: a mesma foto de catraca saiu como "catraca", "torneira
+# eletrônica", "lança de controle de acesso" e "extintor de incêndio" em
+# quatro rodadas. Com amostras de 8 a 40 casos, esse ruído se confunde com a
+# diferença entre candidatos, que é justamente o que se quer medir. A seed
+# fixa não torna o número mais "verdadeiro", só torna a COMPARAÇÃO entre
+# candidatos reproduzível.
+SEED_PADRAO = 42
+
 
 # --------------------------------------------------------------------------
 # Instrumentação
@@ -417,6 +427,7 @@ async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
     json_validos = 0
     portfolio_ok = 0
     categoria_ok = 0
+    positivos = 0
 
     for caso in casos:
         caminho = REPO_DIR / caso["caminho"]
@@ -438,9 +449,19 @@ async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
 
         json_validos += 1
         acerto_portfolio = resposta.e_do_portfolio == caso["e_do_portfolio"]
-        acerto_categoria = _acertou_categoria(resposta.produto, caso["aceitos"])
         portfolio_ok += int(acerto_portfolio)
-        categoria_ok += int(acerto_categoria)
+
+        # Categoria só é cobrada nos casos positivos. Num negativo, a
+        # resposta certa é "nenhum" — exigir que ele ainda descreva o que
+        # está na foto puniria exatamente o comportamento desejado, e é
+        # informação que o fluxo real descarta (`e_do_portfolio: false` já
+        # vira "não identificado" em `identify_product_by_image`).
+        if caso["e_do_portfolio"]:
+            positivos += 1
+            acerto_categoria = _acertou_categoria(resposta.produto, caso["aceitos"])
+            categoria_ok += int(acerto_categoria)
+        else:
+            acerto_categoria = None
         resultados.append(
             {
                 "id": caso["id"],
@@ -455,16 +476,17 @@ async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
         )
         print(
             f"    [{caso['id']}] '{resposta.produto}' "
-            f"portfolio={acerto_portfolio} categoria={acerto_categoria}"
+            f"acertou_portfolio={acerto_portfolio} acertou_categoria={acerto_categoria}"
         )
 
     total = len(casos)
     return {
         "suportado_localmente": True,
         "total": total,
+        "positivos": positivos,
         "json_valido_taxa": round(json_validos / total, 4) if total else None,
         "portfolio_acerto_taxa": round(portfolio_ok / total, 4) if total else None,
-        "categoria_acerto_taxa": round(categoria_ok / total, 4) if total else None,
+        "categoria_acerto_taxa": round(categoria_ok / positivos, 4) if positivos else None,
         "casos": resultados,
         "latencias_s": [round(s, 3) for s in latencias],
     }
@@ -537,6 +559,7 @@ async def rodar_modelo(
         "parametros_b": candidato["parametros_b"],
         "quantizacao": candidato["quantizacao"],
         "timeout_s": inner.timeout_s,
+        "seed": inner.seed,
         "carga_s": carga_s,
         "vram_bytes": vram_bytes,
         "capabilities": capabilities,
@@ -588,6 +611,16 @@ async def main() -> None:
     )
     parser.add_argument("--forcar", action="store_true", help="refaz etapas já gravadas")
     parser.add_argument("--timeout-s", type=float, default=TIMEOUT_PADRAO_S)
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=SEED_PADRAO,
+        help=(
+            "seed de amostragem do Ollama (padrão: %(default)s). "
+            "Produção roda sem seed (LOCAL_LLM_SEED vazio); aqui ela é fixa "
+            "de propósito. Use --seed 0 para rodar sem seed."
+        ),
+    )
     parser.add_argument("--listar", action="store_true", help="só mostra o estado e sai")
     args = parser.parse_args()
 
@@ -618,7 +651,7 @@ async def main() -> None:
         top_p=settings.local_llm_top_p,
         top_k=settings.local_llm_top_k,
         repeat_penalty=settings.local_llm_repeat_penalty,
-        seed=settings.local_llm_seed,
+        seed=args.seed or None,
     )
     external_client = OpenRouterClient(
         base_url=settings.external_model_base_url,

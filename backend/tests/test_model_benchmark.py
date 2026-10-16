@@ -145,6 +145,17 @@ async def test_etapa_imagem_sem_capability_registra_queda_para_visao_externa():
     assert "imagem_portfolio_acerto" not in envelope["metricas"]
 
 
+def test_dataset_de_imagens_tem_pelo_menos_um_caso_negativo():
+    # Sem negativo, um modelo que responde `e_do_portfolio: true` para
+    # qualquer imagem marca 100% — foi o que o conjunto só-positivos da
+    # primeira versão teria reportado.
+    caminho = EVAL_DIR / "model_benchmark" / "imagens" / "dataset.json"
+    casos = json.loads(caminho.read_text(encoding="utf-8"))["casos"]
+
+    assert any(not c["e_do_portfolio"] for c in casos)
+    assert any(c["e_do_portfolio"] for c in casos)
+
+
 def test_dataset_de_imagens_aponta_para_arquivos_que_existem():
     caminho = EVAL_DIR / "model_benchmark" / "imagens" / "dataset.json"
     dados = json.loads(caminho.read_text(encoding="utf-8"))

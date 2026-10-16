@@ -46,17 +46,29 @@ fallback que só precisa dizer se é do portfólio e, grosso modo, o que é.
 Daí as três taxas: formato (`json_valido`), `e_do_portfolio` correto, e
 categoria dentro dos termos aceitos do caso.
 
-Medição de 2026-10-16 com `gemma4:12b-it-q4_K_M`: JSON válido 8/8,
-`e_do_portfolio` 8/8, categoria 4/8 — o modelo responde "identificador
-biométrico" para quase tudo, o que acerta os leitores e erra a impressora
-(`Print iD Touch`) e a fonte de alimentação (`iDPower`). É sinal útil: o
-candidato é confiável para "é do nosso portfólio?" e fraco para distinguir
-famílias de produto.
+O conjunto é de **8 positivos + 1 negativo** (um comprovante de depósito
+sintético, do próprio fluxo de comprovante do sistema). Sem negativo, um
+modelo que responde `e_do_portfolio: true` para qualquer imagem marcaria
+100% — a primeira versão deste dataset tinha esse furo.
 
-Armadilha encontrada nessa primeira execução: o casamento de categoria
-precisa normalizar acento. O modelo escreve "biométrico" e o termo aceito no
-dataset é "biometri" — sem `unicodedata.normalize`, três acertos contavam
-como erro.
+`categoria` só é cobrada nos positivos. Num negativo a resposta certa é
+"nenhum", e exigir que o modelo ainda descreva o que está na foto puniria
+exatamente o comportamento desejado — além de ser informação que o fluxo
+real descarta (`e_do_portfolio: false` já vira "não identificado" em
+`identify_product_by_image`).
+
+Medição de 2026-10-16 com `gemma4:12b-it-q4_K_M` e `--seed 42`: JSON válido
+9/9, `e_do_portfolio` 9/9 (inclusive o negativo), categoria 6/8. Erra a
+fonte de alimentação (`iDPower`, que chama de "controlador de acesso") e o
+`REP iDClass` (relógio de ponto, que chama de "identificador biométrico") —
+acerta todo o resto, inclusive a impressora e a catraca. Sinal útil: o
+candidato é confiável para "é do nosso portfólio?" e erra ao distinguir
+famílias quando o equipamento não é um leitor.
+
+Duas armadilhas encontradas ao rodar pela primeira vez, ambas corrigidas:
+o casamento de categoria precisa normalizar acento ("biometri" não casa com
+"biométrico" — três acertos contavam como erro); e sem seed fixa as rodadas
+não eram comparáveis entre si.
 
 ## Uso
 
@@ -76,6 +88,14 @@ A partir de `backend/`, com o Ollama no ar:
   de produção: candidatos de 14B em Q5/Q8 numa GPU de 16GB levam muito mais
   tempo para carregar, e um timeout curto reprovaria o modelo por tempo de
   carga, não por qualidade.
+- `--seed` tem padrão **42**, enquanto produção roda sem seed
+  (`LOCAL_LLM_SEED` vazio). Sem ela, duas execuções do mesmo modelo sobre o
+  mesmo caso divergem: medido em 2026-10-16, a mesma foto de catraca saiu
+  como "catraca", "torneira eletrônica", "lança de controle de acesso" e
+  "extintor de incêndio" em quatro rodadas. Com 8 a 40 casos por etapa, esse
+  ruído se confunde com a diferença entre candidatos. A seed não torna o
+  número mais "verdadeiro" — torna a **comparação** reproduzível. `--seed 0`
+  roda sem seed, como produção.
 
 **Dependências por etapa:** `roteador` e `imagem` só precisam do Ollama
 (`imagem` usa fotos já versionadas em `docs/Manuais_fornecedor/`). `rag` e
