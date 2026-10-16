@@ -346,3 +346,17 @@ def _reset_agent_runtime():
     runtime.__dict__.update(AgentRuntime().__dict__)
     yield
     runtime.__dict__.update(AgentRuntime().__dict__)
+
+
+@pytest.fixture(autouse=True)
+def _sem_smtp_real(monkeypatch):
+    """Testes nunca enviam e-mail de verdade, mesmo com SMTP no `.env` local.
+
+    Testes de envio que precisam de SMTP configurado definem os campos por
+    conta própria (e trocam o transporte por um falso).
+    """
+    from app.config import get_settings
+
+    settings = get_settings()
+    for campo in ("smtp_host", "smtp_user", "smtp_password", "smtp_from", "admin_alert_email"):
+        monkeypatch.setattr(settings, campo, "", raising=False)

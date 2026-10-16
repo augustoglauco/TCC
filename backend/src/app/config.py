@@ -149,6 +149,9 @@ class Settings(BaseSettings):
     # MVP: sem descoberta de porta dinâmica; se a ferramenta subir em outra
     # porta, ajuste a variável de ambiente correspondente.
     graphify_out_dir: str = "../graphify-out"
+    # Diretório dos resultados da avaliação experimental (Fase 10), lido pela
+    # página pública `/avaliacao` — ver `app.api.avaliacao`.
+    eval_dir: str = "eval"
     repowise_web_url: str = "http://localhost:3012/repos/98bf7b208ee54e9a840110278f8d9641/overview"
     gitnexus_web_url: str = "http://localhost:4757"
 

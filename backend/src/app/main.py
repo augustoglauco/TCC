@@ -21,6 +21,7 @@ from app.api.admin_pedidos_conversao import router as admin_pedidos_router
 from app.api.admin_products import router as admin_products_router
 from app.api.agendamentos import router as agendamentos_router
 from app.api.auth import router as auth_router
+from app.api.avaliacao import router as avaliacao_router
 from app.api.chat import router as chat_router
 from app.api.crawler import router as crawler_router
 from app.api.image_search import router as image_search_router
@@ -344,6 +345,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_charts_router)
     app.include_router(admin_metrics_router)
     app.include_router(admin_ferramentas_router)
+    app.include_router(avaliacao_router)
     app.include_router(admin_mensagens_router)
     app.include_router(crawler_router)
     app.include_router(image_search_router)

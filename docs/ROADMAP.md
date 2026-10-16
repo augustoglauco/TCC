@@ -1578,6 +1578,18 @@ conversa e classificação do usuário").
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto
       para apresentação ao orientador
+- [ ] Pré-requisito do benchmark (decisão de 2026-10-15): ingerir o corpus
+      real e **refazer os datasets** de roteador, RAG e injeção sobre ele
+      (os atuais foram feitos com outros documentos); ampliar amostra com
+      paráfrases revisadas e reportar intervalo de confiança
+- [ ] Orquestrador `eval/model_benchmark/` (loop por modelo, retomável,
+      latência/VRAM/JSON inválido, critério de escolha registrado antes de
+      rodar) e envelope comum de resultados
+- [x] Página pública de resultados `/avaliacao` com gráficos (Recharts) e
+      endpoint `GET /api/avaliacao/resultados` só com agregados (intervalo
+      de Wilson) — ver `docs/ARCHITECTURE.md` §9. Lê os `results.json`
+      atuais; a seção "Comparativo de modelos" aparece quando o
+      orquestrador gravar `eval/model_benchmark/results/*.json`.
 
 ## Fase 11 — Preparação da Entrega
 

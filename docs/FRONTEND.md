@@ -506,6 +506,12 @@ painel por mensagem estar aberto ou fechado, pensados para alimentar a
 avaliação experimental da Fase 10 (`docs/EVALUATION.md`), não como uma
 feature de produto para o usuário final.
 
+`GET /api/avaliacao/resultados` — **público** (sem token), alimenta a página
+`/avaliacao` (Recharts): `{roteador, rag, chunk_size, injecao, modelos}`,
+cada seção `null`/vazia se o `results.json` não existe. Só agregados, com
+intervalo de Wilson (`{acertos, total, taxa, ic_inf, ic_sup}`); tipos em
+`frontend/lib/api/avaliacao.ts`. Link "Resultados da Avaliação" no menu ⚙️.
+
 `GET /api/admin/metrics/ai-usage` — contrato do painel de uso de IA
 (`/admin/metricas`, item E do ledger, 2026-10-08, ver
 `docs/superpowers/specs/2026-10-08-ledger-uso-ia-item-e-painel-design.md`

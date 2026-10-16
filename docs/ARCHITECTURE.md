@@ -2293,6 +2293,26 @@ Ver `docs/EVALUATION.md` para o detalhamento operacional. Resumo das três
 frentes: acerto do roteador na identificação de intenções, qualidade das
 respostas do RAG, e comparação de latência entre modelo local e externo.
 
+**Decisão registrada (2026-10-15 — página pública de resultados e
+benchmark por modelo):**
+
+- **Ordem:** a Fase 10 só roda depois de o corpus real estar ingerido. Os
+  datasets de roteador e RAG existentes foram montados sobre outro conjunto
+  de documentos e precisam ser refeitos; os números antigos não valem para o
+  corpus novo.
+- **Benchmark:** um orquestrador (`eval/model_benchmark/`) repete os
+  harnesses existentes (`router_intents`, `rag_quality`, `prompt_injection`)
+  para cada configuração candidata, retomável por modelo, com aquecimento
+  descartado, latência, VRAM pico e taxa de JSON inválido. Resultados com
+  intervalo de confiança (Wilson); empate estatístico é declarado como tal.
+- **Página de resultados:** `/avaliacao` (frontend) lê
+  `GET /api/avaliacao/resultados`, que normaliza os `results.json` de
+  `eval/` — sem tabela nova. **Pública, sem login**, por decisão do dono
+  (material de apresentação do TCC). Por ser pública, o endpoint devolve
+  **só agregados** (métricas, matrizes, latências); respostas geradas,
+  trechos de documentos recuperados e payloads de injeção ficam fora da
+  resposta pública. `# MVP: sem cache/limite de taxa; dados são estáticos.`
+
 ## 10. Considerações finais
 
 O desenho atende aos doze requisitos de forma modular, permitindo que o

@@ -134,6 +134,18 @@ informação confiável.
 (local/externo), taxa de resistência e o detalhe (resposta gerada,
 julgamento e justificativa do juiz) de cada caso.
 
+## Página pública de resultados
+
+`/avaliacao` (sem login) mostra gráficos das avaliações acima, alimentados
+por `GET /api/avaliacao/resultados` (`backend/src/app/api/avaliacao.py`),
+que lê os `results.json` de `eval/`. Só agregados saem pela API: respostas
+geradas, trechos recuperados e payloads de injeção ficam fora. Percentuais
+trazem intervalo de confiança de 95% (Wilson). Resultados do benchmark por
+modelo entram por `eval/model_benchmark/results/<modelo>.json` no envelope
+`{modelo, gerado_em, config, metricas, itens}`; `metricas` aceita
+`roteador_acuracia`, `rag_nota_media`, `injecao_resistencia`,
+`latencia_p95_s`, entre outras.
+
 ## Consolidação
 
 Ao final das quatro avaliações, gerar um resumo curto (pode ser um novo
