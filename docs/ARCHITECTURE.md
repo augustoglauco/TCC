@@ -940,6 +940,32 @@ comum, não uma falha. # MVP: sem descoberta dinâmica de porta — se uma
 ferramenta subir fora da porta documentada, ajusta-se a variável de ambiente
 correspondente (`REPOWISE_WEB_URL`, `GITNEXUS_WEB_URL`, `GRAPHIFY_OUT_DIR`).
 
+**Atualização de 2026-10-16 — acesso externo às ferramentas sem senha:** as
+portas públicas do Caddy (`infra/caddy/Caddyfile.ferramentas`: 3002 →
+Repowise 3012, 4747 → GitNexus 4757) nasceram em 2026-10-15 protegidas por
+`basic_auth` (usuário `admin`, hash bcrypt em `infra/caddy/caddy.env`). A
+senha se perdeu e o dono do projeto decidiu **remover a autenticação** em vez
+de gerar outra: o quadro embutido da tela não envia cabeçalho
+`Authorization`, então cada abertura exigia autenticar à parte em nova aba.
+`# MVP: as portas 3002 e 4747 expõem o código-fonte e a análise completa do
+projeto sem nenhuma proteção — mitigação é operacional, não técnica: só
+encaminhá-las no roteador enquanto a tela estiver sendo usada de fora da
+rede.` Dentro da rede local nada muda (as UIs reais seguem presas a
+`127.0.0.1`).
+
+Segundo achado do mesmo dia, independente da senha: abrir o GitNexus de fora
+da rede caía em "Start your local server" mesmo com a porta pública
+respondendo. A UI dele é uma SPA com a URL do próprio backend **fixa no
+bundle** (`http://localhost:4747`), e esse `localhost` é o do navegador — de
+fora, a máquina de quem acessa. A SPA aceita sobrescrever esse endereço pelo
+parâmetro de query `?server=`, então `urlDeVisualizacao`
+(`frontend/lib/api/ferramentas.ts`) passou a acrescentá-lo à URL do iframe do
+GitNexus apontando para a origem de onde a página foi servida. Corrige os
+dois casos de uma vez: de fora da rede passa a funcionar, e em `localhost` a
+tela deixa de depender de o Caddy estar no ar — o padrão `:4747` do bundle só
+respondia ali porque é a porta pública do proxy. `# MVP: casado com o nome do
+parâmetro server do GitNexus 1.6.12.`
+
 **Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
 `POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou
 a devolver a resposta como o próprio stream **Server-Sent Events** (SSE),

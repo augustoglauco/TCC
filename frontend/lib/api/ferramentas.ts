@@ -58,12 +58,37 @@ export function urlDeVisualizacao(ferramenta: FerramentaStatus, token: string): 
   if (ferramenta.url.startsWith("/")) {
     return `${getApiBaseUrl()}${ferramenta.url}?token=${encodeURIComponent(token)}`;
   }
-  return urlPublicaDoServidor(ferramenta.url);
+  const url = urlPublicaDoServidor(ferramenta.url);
+  return ferramenta.id === "gitnexus" ? comServerDoGitNexus(url) : url;
+}
+
+/**
+ * A UI do GitNexus é uma SPA que chama o backend dela numa URL fixa de build
+ * (`http://localhost:4747`, constante no bundle) — e esse `localhost` é o do
+ * navegador. De fora da rede ele aponta para a máquina de quem acessa, a
+ * sondagem falha e a tela fica parada em "Start your local server".
+ *
+ * O parâmetro `?server=` que a própria SPA lê sobrescreve essa URL. Apontá-lo
+ * para a origem de onde a página foi servida resolve nos dois casos — e
+ * também em `localhost`, onde a porta `4747` do padrão só respondia por
+ * acidente, porque é a porta pública do Caddy.
+ *
+ * # MVP: casado com o parâmetro `server` do GitNexus 1.6.12; se uma versão
+ * futura renomeá-lo, a tela volta ao "Start your local server".
+ */
+function comServerDoGitNexus(url: string): string {
+  try {
+    const u = new URL(url);
+    u.searchParams.set("server", u.origin);
+    return u.toString();
+  } catch {
+    return url;
+  }
 }
 
 /**
  * Porta interna da UI -> porta pública do Caddy
- * (`infra/caddy/Caddyfile.ferramentas`), que exige senha. O `localhost` de
+ * (`infra/caddy/Caddyfile.ferramentas`), sem senha. O `localhost` de
  * uma URL de servidor é o do navegador, então quando o site é aberto de outra
  * máquina (DuckDNS) o host passa a ser o da própria página.
  */

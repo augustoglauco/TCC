@@ -21,8 +21,8 @@ tudo de novo, limpo. Rode a partir da raiz do repositório
 | Postgres | 5433 | Docker (`backend/docker-compose.yml`) |
 | Qdrant | 6335 / 6336 | Docker (`backend/docker-compose.yml`) |
 | Ollama | 11434 | serviço do sistema (`ollama serve`) |
-| **Repowise (Web UI — tela `/admin/ferramentas`)** | **3012** (UI real; pública pelo Caddy na **3002**, com senha) | `repowise serve --ui-port 3012` |
-| **GitNexus (Web UI — tela `/admin/ferramentas`)** | **4747** | processo solto (`gitnexus serve -p 4747`) |
+| **Repowise (Web UI — tela `/admin/ferramentas`)** | **3012** (UI real; pública pelo Caddy na **3002**, sem senha) | `repowise serve --ui-port 3012` |
+| **GitNexus (Web UI — tela `/admin/ferramentas`)** | **4757** (UI real; pública pelo Caddy na **4747**, sem senha) | `gitnexus serve -p 4757` |
 
 > **Novo desde 2026-09-23:** o agendamento de visita (R11) não fala mais
 > direto com o MCP do Google — fala com um MCP de terceiro self-hosted
@@ -297,7 +297,7 @@ New-NetFirewallRule -DisplayName "TCC WSL2 Repowise (3002)" -Direction Inbound -
 New-NetFirewallRule -DisplayName "TCC WSL2 GitNexus (4747)" -Direction Inbound -LocalPort 4747 -Protocol TCP -Action Allow
 ```
 
-> 🔧 **Ferramentas de código pela internet (`/admin/ferramentas`):** o `localhost` do iframe é o do navegador, então de fora da rede o Repowise e o GitNexus só abrem por portas públicas deste servidor. O Caddy (`infra/caddy/Caddyfile.ferramentas`, subido pelo `./g.sh`) publica a **3002** (Repowise, UI real na 3012) e a **4747** (GitNexus, UI real na 4757), **com senha** (autenticação básica, usuário `admin`, hash em `infra/caddy/caddy.env` → `FERRAMENTAS_AUTH_HASH`; gere com `~/.local/bin/caddy hash-password`). Encaminhe 3002 e 4747 no roteador, como a 3001. O navegador pede usuário/senha na primeira abertura; se o quadro embutido ficar em branco, use "Abrir em nova aba ↗" e autentique ali uma vez.
+> 🔧 **Ferramentas de código pela internet (`/admin/ferramentas`):** o `localhost` do iframe é o do navegador, então de fora da rede o Repowise e o GitNexus só abrem por portas públicas deste servidor. O Caddy (`infra/caddy/Caddyfile.ferramentas`, subido pelo `./g.sh`) publica a **3002** (Repowise, UI real na 3012) e a **4747** (GitNexus, UI real na 4757), **sem senha** (decisão do dono em 2026-10-16 — ver `docs/ARCHITECTURE.md`). Encaminhe 3002 e 4747 no roteador, como a 3001, **e só enquanto estiver usando a tela de fora da rede**: estas duas portas expõem o código-fonte e a análise completa do projeto a qualquer um que alcance o domínio.
 
 > 💡 **Dica de Teste Externo:** Devido à ausência de *NAT Loopback* em muitos roteadores residenciais (ex.: Huawei AX3 Pro), teste o acesso externo desligando o Wi-Fi do celular e abrindo pelo **4G/5G móvel**: `http://augustoglauco.duckdns.org:3001` (utilizando **http://** sem `s`).
 

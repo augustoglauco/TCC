@@ -1298,6 +1298,35 @@ conversa e classificação do usuário").
       incluindo a sondagem real contra porta fechada) e 7 de frontend
       (`AdminFerramentasPage.test.tsx`). Variáveis novas em `.env.example`:
       `GRAPHIFY_OUT_DIR`, `REPOWISE_WEB_URL`, `GITNEXUS_WEB_URL`.
+- [x] **Acesso externo (DuckDNS) ao Repowise e ao GitNexus** (2026-10-15,
+      revisto em 2026-10-16). O `localhost` do iframe é o computador de quem
+      navega, então de fora da rede as duas UIs precisavam de porta pública
+      própria: `infra/caddy/Caddyfile.ferramentas` publica a **3002** →
+      Repowise (UI real presa a `127.0.0.1:3012`) e a **4747** → GitNexus
+      (UI real em `127.0.0.1:4757`); a tela troca host e porta interna pela
+      pública quando o site não é aberto por `localhost`. **Revisão de
+      2026-10-16:** o `basic_auth` (usuário `admin`, hash em
+      `infra/caddy/caddy.env`) foi **removido** por decisão do dono — a
+      senha se perdeu e o quadro embutido, que não manda cabeçalho
+      `Authorization`, obrigava a autenticar à parte em nova aba a cada
+      abertura. `# MVP: 3002 e 4747 ficam sem proteção nenhuma; só
+      encaminhá-las no roteador enquanto a tela estiver em uso de fora da
+      rede.` Diagnóstico do mesmo dia, de por que o DuckDNS não alcançava as
+      duas: faltavam as regras de entrada do Firewall do Windows para 3002 e
+      4747 (só existiam 3001/8000/8443) e o encaminhamento no roteador — o
+      Caddy já respondia certo pelo IP da LAN. Comandos em `goup.md`,
+      "Acesso Externo"; decisão em `docs/ARCHITECTURE.md`.
+- [x] **GitNexus parava em "Start your local server" de fora da rede**
+      (2026-10-16). A UI dele é uma SPA com a URL do backend fixa no bundle
+      (`http://localhost:4747`) — o `localhost` do navegador, que de fora é a
+      máquina de quem acessa. `urlDeVisualizacao`
+      (`frontend/lib/api/ferramentas.ts`) passou a acrescentar `?server=` à
+      URL do iframe do GitNexus, apontando para a origem de onde a página foi
+      servida; a SPA lê esse parâmetro e sobrescreve o endereço. Também
+      conserta o caso local, que só funcionava porque `:4747` é a porta do
+      Caddy. Cobertura: `frontend/tests/lib/api/ferramentas.test.ts`
+      (5 testes novos) e assert atualizado em
+      `frontend/tests/components/AdminFerramentasPage.test.tsx`.
 
 ## Fase 9 — Integração Ponta a Ponta e Robustez
 

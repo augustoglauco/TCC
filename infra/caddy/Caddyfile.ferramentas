@@ -2,13 +2,17 @@
 # /admin/ferramentas quando o site é aberto por augustoglauco.duckdns.org:3001.
 #
 # O `localhost` do iframe seria o computador de quem navega, não este
-# servidor — por isso cada UI ganha uma porta pública própria aqui, protegida
-# por senha (autenticação básica, usuário `admin`, hash em
-# infra/caddy/caddy.env -> FERRAMENTAS_AUTH_HASH). Elas expõem o código-fonte
-# e a análise do projeto: não publique sem a senha.
+# servidor — por isso cada UI ganha uma porta pública própria aqui.
 #
 #   3002  ->  Repowise UI real (127.0.0.1:3012)
 #   4747  ->  GitNexus real    (127.0.0.1:4757)
+#
+# MVP: sem autenticação — decisão do dono do projeto em 2026-10-16, depois de
+# a senha de 2026-10-15 (basic_auth, usuário `admin`) se perder e o quadro
+# embutido da tela exigir autenticar à parte. Estas duas portas expõem o
+# código-fonte e a análise completa do projeto a qualquer um que alcance o
+# domínio: só suba o Caddy e encaminhe as portas no roteador enquanto estiver
+# usando a tela de fora da rede.
 #
 # Portas a liberar no Firewall do Windows e a encaminhar no roteador: 3002 e
 # 4747 (ver goup.md, "Acesso Externo"). HTTP simples, como o site na 3001
@@ -23,18 +27,10 @@
 	auto_https off
 }
 
-(protegido) {
-	basic_auth {
-		admin {$FERRAMENTAS_AUTH_HASH}
-	}
-}
-
 http://:3002 {
-	import protegido
 	reverse_proxy 127.0.0.1:3012
 }
 
 http://:4747 {
-	import protegido
 	reverse_proxy 127.0.0.1:4757
 }

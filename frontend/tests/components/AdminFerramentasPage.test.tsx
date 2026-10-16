@@ -118,7 +118,13 @@ describe("AdminFerramentasPage", () => {
     fireEvent.click(screen.getByText("GitNexus"));
 
     const iframe = await screen.findByTitle("Visualização do GitNexus");
-    expect(iframe.getAttribute("src")).toBe("http://localhost:4747");
+    // A SPA do GitNexus chama o backend dela numa URL fixa de build; o
+    // `?server=` aponta essa chamada para a origem de onde a página veio —
+    // sem ele a tela fica em "Start your local server" (ver
+    // `urlDeVisualizacao` em `lib/api/ferramentas.ts`).
+    const src = new URL(iframe.getAttribute("src") as string);
+    expect(src.origin).toBe("http://localhost:4747");
+    expect(src.searchParams.get("server")).toBe("http://localhost:4747");
   });
 
   it("não embute iframe de ferramenta fora do ar — mostra o comando no lugar", async () => {
