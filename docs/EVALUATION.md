@@ -150,8 +150,22 @@ horas e cai por OOM de VRAM, queda do Ollama ou rate limit do juiz.
 
 **Métricas por modelo:** `roteador_acuracia`, `json_invalido_taxa`,
 `rag_nota_media`, `rag_fonte_correta_taxa`, `injecao_resistencia`,
-`latencia_media_s`, `latencia_p95_s`, mais `carga_s` e `vram_bytes` em
-`config`.
+`visao_local`, `imagem_portfolio_acerto`, `imagem_categoria_acerto`,
+`latencia_media_s`, `latencia_p95_s`, mais `carga_s`, `vram_bytes` e
+`capabilities` em `config`.
+
+**Etapa `imagem` (R2/R5):** o sistema é multimodal e a visão local **não é
+um slot separado** — `OllamaClient.describe_image` usa o mesmo
+`LOCAL_MODEL_NAME` do texto. Candidato sem capability `vision` não é
+excluído nem pulado em silêncio: o resultado registra `visao_local: false`,
+que significa que toda imagem de cliente cairia para a visão externa (custo
+por token e a imagem saindo da máquina) — o trade-off que a comparação
+precisa expor. Quem tem visão é medido com o mesmo `_VISION_PROMPT` e o
+mesmo parse de `app.rag.image_identification`, contra fotos de produto já
+versionadas em `docs/Manuais_fornecedor/`. Pontuação determinística (sem
+LLM-as-judge) e sem exigir o SKU exato: no fluxo real quem identifica com
+precisão é o CLIP contra o catálogo interno, e a visão é o fallback que só
+precisa dizer se é do portfólio e, grosso modo, o que é.
 
 **Saída esperada:** um arquivo por modelo em
 `eval/model_benchmark/results/<id>.json`, no envelope

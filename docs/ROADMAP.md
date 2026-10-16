@@ -1635,8 +1635,38 @@ conversa e classificação do usuário").
       resolvido pelo atalho de cortesia e pela heurística); o arquivo foi
       **apagado em seguida**, porque os datasets ainda serão refeitos sobre o
       corpus real e o número iria para a página pública. Cobertura:
-      `backend/tests/test_model_benchmark.py` (9 testes). Detalhes e
+      `backend/tests/test_model_benchmark.py` (12 testes). Detalhes e
       decisões de medição em `backend/eval/model_benchmark/README.md`.
+- [x] Etapa `imagem` do benchmark (R2/R5, 2026-10-16, a pedido do dono ao
+      notar que o sistema é multimodal). Visão local **não é slot
+      separado**: `OllamaClient.describe_image` usa o mesmo
+      `LOCAL_MODEL_NAME`, então candidato sem capability `vision` manda toda
+      imagem de cliente para a visão externa. A etapa registra
+      `visao_local: false` como **resultado**, não pula em silêncio — omitir
+      faria dois candidatos parecerem empatados quando um resolve imagem em
+      casa e o outro terceiriza. Capabilities lidas do próprio Ollama
+      (`/api/show`), sem tabela manual. Quem tem visão é medido com o mesmo
+      `_VISION_PROMPT` e o mesmo parse de `app.rag.image_identification`,
+      sobre 8 fotos de produto já versionadas em `docs/Manuais_fornecedor/`
+      (`eval/model_benchmark/imagens/dataset.json`); pontuação
+      determinística, sem LLM-as-judge, e sem exigir o SKU exato — no fluxo
+      real quem identifica com precisão é o CLIP, a visão é o fallback que
+      só precisa dizer se é do portfólio e grosso modo o que é. Medido com
+      `gemma4:12b-it-q4_K_M`: JSON válido 8/8, `e_do_portfolio` 8/8,
+      categoria 4/8 (responde "identificador biométrico" para quase tudo,
+      acerta os leitores e erra a impressora e a fonte). `# MVP: dataset só
+      com casos positivos — mede falso negativo em e_do_portfolio, não falso
+      positivo; faltam fotos fora do portfólio (as de
+      backend/uploads/comprovantes/ foram descartadas por serem comprovantes
+      reais).` Armadilha corrigida: o casamento de categoria precisa
+      normalizar acento ("biometri" x "biométrico"), senão 3 acertos contam
+      como erro.
+- [ ] Decidir se a lista de candidatos deve exigir visão local: das 10 tags
+      de `modelos.json`, só as duas de Gemma-4-12B devem ter `vision`; as
+      variantes multimodais das outras famílias são tags diferentes
+      (`qwen2.5-vl`, `qwen3-vl`, `llama3.2-vision`, `phi4-multimodal`). Se
+      R2/R5 exigirem visão local, a lista de `docs/ARCHITECTURE.md` é que
+      precisa mudar.
 - [ ] Acertar a contagem de candidatos: `docs/ARCHITECTURE.md` diz "9
       configurações" mas lista 10 (Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B
       Q4_K_M/Q5_K_M; Qwen3 8B Q5_K_M/Q8_0; Phi-4-mini; Phi-4; Gemma-4-12B

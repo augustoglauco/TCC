@@ -115,6 +115,49 @@ async def test_cliente_instrumentado_so_checa_json_quando_pedido():
     assert len(cliente.latencias_s) == 1
 
 
+def test_acerto_de_categoria_ignora_acento():
+    # Achado ao rodar a etapa `imagem` pela primeira vez (2026-10-16): o
+    # modelo responde "identificador biométrico" e o termo aceito no
+    # dataset é "biometri" — sem normalizar acento, 3 acertos viravam erro.
+    assert bench._acertou_categoria("identificador biométrico", ["biometri"])
+    assert bench._acertou_categoria("CATRACA eletrônica", ["catraca"])
+    assert bench._acertou_categoria("leitor facial", ["reconhecimento", "facial"])
+    assert not bench._acertou_categoria("torneira eletrônica", ["catraca", "impressora"])
+
+
+@pytest.mark.asyncio
+async def test_etapa_imagem_sem_capability_registra_queda_para_visao_externa():
+    # Modelo text-only não é pulado em silêncio: `suportado_localmente:
+    # false` é o resultado, e significa que a imagem do cliente iria para a
+    # visão externa (custo por token e a imagem saindo da máquina).
+    resultado = await bench.etapa_imagem(inner=None, tem_visao=False)
+
+    assert resultado["suportado_localmente"] is False
+    assert "visão externa" in resultado["observacao"]
+    assert resultado["latencias_s"] == []
+
+    envelope = {"metricas": {}, "itens": {"imagem": resultado}}
+    bench.consolidar_metricas(envelope)
+
+    assert envelope["metricas"]["visao_local"] is False
+    # Sem capability não há taxa a reportar — e um 0.0 aqui seria pior que a
+    # ausência: leria como "errou tudo" em vez de "não se aplica".
+    assert "imagem_portfolio_acerto" not in envelope["metricas"]
+
+
+def test_dataset_de_imagens_aponta_para_arquivos_que_existem():
+    caminho = EVAL_DIR / "model_benchmark" / "imagens" / "dataset.json"
+    dados = json.loads(caminho.read_text(encoding="utf-8"))
+    repo = EVAL_DIR.parents[1]
+
+    assert dados["casos"], "dataset de imagens vazio"
+    for caso in dados["casos"]:
+        imagem = repo / caso["caminho"]
+        assert imagem.is_file(), f"{caso['id']}: imagem não encontrada em {imagem}"
+        assert caso["aceitos"], f"{caso['id']}: sem termos aceitos para a categoria"
+        assert isinstance(caso["e_do_portfolio"], bool)
+
+
 def test_consolidar_metricas_agrega_latencia_de_todas_as_etapas():
     # A latência precisa sair do conjunto de etapas presentes no arquivo,
     # não só da última rodada: senão uma execução retomada reportaria um

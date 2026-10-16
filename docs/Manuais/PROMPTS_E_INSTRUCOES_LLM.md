@@ -462,6 +462,11 @@ Mensagens novas:
 
 Prompt de visão computacional enviado aos modelos multimodais de visão para identificar produtos em imagens.
 
+Também consumido, sem alteração, pela etapa `imagem` de
+`backend/eval/model_benchmark/run_benchmark.py` — é de propósito o mesmo
+texto: o benchmark compara candidatos no prompt real de produção, não num
+prompt próprio.
+
 ```python
 # Line 58: Prompt de visão
 _VISION_PROMPT = (

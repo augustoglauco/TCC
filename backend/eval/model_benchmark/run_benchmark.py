@@ -36,6 +36,7 @@ import asyncio
 import json
 import sys
 import time
+import unicodedata
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -46,8 +47,10 @@ from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.embedders_registry import EmbedderRegistry
+from app.rag.image_identification import _VISION_PROMPT, _parse_vision_answer
 from app.rag.qdrant_client import QdrantRAGClient
 from app.router.classifier import Domain, _parse_llm_classification, classify
+from app.router.llm_client import VisionModelIndisponivelError
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
 from app.router.orchestrator import _build_prompt, _buscar_documentos_rag
@@ -66,7 +69,9 @@ from prompt_injection.run_eval import _avaliar_cliente  # noqa: E402
 from rag_quality.run_eval import _fonte_e_correta, _julgar_resposta  # noqa: E402
 
 VERSAO_ENVELOPE = 1
-ETAPAS = ("roteador", "rag", "injecao")
+ETAPAS = ("roteador", "rag", "injecao", "imagem")
+# Raiz do repositório — os caminhos de imagem do dataset são relativos a ela.
+REPO_DIR = EVAL_DIR.parent.parent
 _DOMINIOS: list[Domain] = ["vendas", "suporte", "atendimento", "agendamento"]
 
 # MVP: a primeira chamada depois de trocar de modelo paga a carga na VRAM
@@ -200,6 +205,16 @@ def consolidar_metricas(envelope: dict) -> None:
         metricas["injecao_resistencia"] = injecao["taxa_resistencia"]
         metricas["injecao_comprometidos"] = injecao["comprometidos"]
         metricas["injecao_total"] = injecao["total"]
+    if "imagem" in itens:
+        imagem = itens["imagem"]
+        # `false` é resultado, não ausência de medição: diz que a imagem do
+        # cliente cairia para a visão externa com este candidato.
+        metricas["visao_local"] = imagem["suportado_localmente"]
+        if imagem["suportado_localmente"]:
+            metricas["imagem_portfolio_acerto"] = imagem["portfolio_acerto_taxa"]
+            metricas["imagem_categoria_acerto"] = imagem["categoria_acerto_taxa"]
+            metricas["imagem_json_valido_taxa"] = imagem["json_valido_taxa"]
+            metricas["imagem_total"] = imagem["total"]
 
     latencias = [s for etapa in itens.values() for s in etapa.get("latencias_s", [])]
     if latencias:
@@ -352,6 +367,109 @@ async def etapa_injecao(cliente: ClienteInstrumentado, judge_client) -> dict:
     }
 
 
+def _sem_acento(texto: str) -> str:
+    """Minúsculas e sem acento, para o casamento de categoria.
+
+    Sem isso, `"biometri"` não casa com `"biométrico"` (o modelo escreve em
+    português acentuado e o termo aceito, não) e o acerto vira erro — o que
+    de fato aconteceu na primeira execução desta etapa, em 2026-10-16.
+    """
+    decomposto = unicodedata.normalize("NFKD", texto.casefold())
+    return "".join(c for c in decomposto if not unicodedata.combining(c))
+
+
+def _acertou_categoria(produto_previsto: str, aceitos: list[str]) -> bool:
+    previsto = _sem_acento(produto_previsto)
+    return any(_sem_acento(termo) in previsto for termo in aceitos)
+
+
+async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
+    """Identificação de produto por imagem (R2/R5) com a visão LOCAL deste
+    modelo — mesmo `_VISION_PROMPT` e mesmo parse de `app.rag.image_identification`.
+
+    Modelo sem capability `vision` não é pulado em silêncio: o resultado
+    registra `suportado_localmente: false`. Não é lacuna de medição, é o
+    resultado — significa que toda imagem do cliente cairia para a visão
+    EXTERNA (custo por token e a imagem saindo da máquina), que é justamente
+    o trade-off que esta comparação existe para expor.
+
+    Pontuação determinística, sem LLM-as-judge: o gabarito é objetivo. Não se
+    exige o SKU exato, porque no fluxo real quem identifica com precisão é o
+    CLIP contra o catálogo interno — a visão é o fallback que só precisa
+    dizer se é do portfólio e, grosso modo, o que é.
+    """
+    if not tem_visao:
+        return {
+            "suportado_localmente": False,
+            "observacao": (
+                "Modelo sem capability 'vision' no Ollama: no sistema real "
+                "`describe_image` levanta VisionModelIndisponivelError e a imagem "
+                "cai para a visão externa."
+            ),
+            "latencias_s": [],
+        }
+
+    dados = json.loads((BASE_DIR / "imagens" / "dataset.json").read_text(encoding="utf-8"))
+    casos = dados["casos"]
+
+    resultados: list[dict] = []
+    latencias: list[float] = []
+    json_validos = 0
+    portfolio_ok = 0
+    categoria_ok = 0
+
+    for caso in casos:
+        caminho = REPO_DIR / caso["caminho"]
+        imagem = caminho.read_bytes()
+        inicio = time.perf_counter()
+        try:
+            bruto = await inner.describe_image(imagem, _VISION_PROMPT)
+            texto = bruto.content
+        except VisionModelIndisponivelError as exc:
+            texto = ""
+            print(f"    [{caso['id']}] visão indisponível: {exc}")
+        latencias.append(time.perf_counter() - inicio)
+
+        resposta = _parse_vision_answer(texto) if texto else None
+        if resposta is None:
+            resultados.append({"id": caso["id"], "json_valido": False, "bruto": texto[:300]})
+            print(f"    [{caso['id']}] JSON inválido")
+            continue
+
+        json_validos += 1
+        acerto_portfolio = resposta.e_do_portfolio == caso["e_do_portfolio"]
+        acerto_categoria = _acertou_categoria(resposta.produto, caso["aceitos"])
+        portfolio_ok += int(acerto_portfolio)
+        categoria_ok += int(acerto_categoria)
+        resultados.append(
+            {
+                "id": caso["id"],
+                "json_valido": True,
+                "produto_esperado": caso["produto_esperado"],
+                "produto_previsto": resposta.produto,
+                "e_do_portfolio_previsto": resposta.e_do_portfolio,
+                "confianca": resposta.confianca,
+                "acerto_portfolio": acerto_portfolio,
+                "acerto_categoria": acerto_categoria,
+            }
+        )
+        print(
+            f"    [{caso['id']}] '{resposta.produto}' "
+            f"portfolio={acerto_portfolio} categoria={acerto_categoria}"
+        )
+
+    total = len(casos)
+    return {
+        "suportado_localmente": True,
+        "total": total,
+        "json_valido_taxa": round(json_validos / total, 4) if total else None,
+        "portfolio_acerto_taxa": round(portfolio_ok / total, 4) if total else None,
+        "categoria_acerto_taxa": round(categoria_ok / total, 4) if total else None,
+        "casos": resultados,
+        "latencias_s": [round(s, 3) for s in latencias],
+    }
+
+
 # --------------------------------------------------------------------------
 # Orquestração
 # --------------------------------------------------------------------------
@@ -401,7 +519,17 @@ async def rodar_modelo(
     await inner.generate("Responda apenas: ok")
     status = await inner.get_loaded_status()
     vram_bytes = (status or {}).get("size_vram")
-    print(f"  carga={carga_s}s  vram={_formatar_gb(vram_bytes)}")
+
+    # Capabilities vêm do próprio Ollama (`/api/show`), não de uma tabela
+    # mantida à mão: é a mesma fonte que `describe_image` consulta para
+    # decidir entre visão local e visão externa.
+    detalhes = await inner.get_model_details(candidato["ollama"])
+    capabilities = sorted((detalhes or {}).get("capabilities") or [])
+    tem_visao = "vision" in capabilities
+    print(
+        f"  carga={carga_s}s  vram={_formatar_gb(vram_bytes)}  "
+        f"visão_local={'sim' if tem_visao else 'não (cai para visão externa)'}"
+    )
 
     envelope["config"] = {
         "ollama": candidato["ollama"],
@@ -411,6 +539,8 @@ async def rodar_modelo(
         "timeout_s": inner.timeout_s,
         "carga_s": carga_s,
         "vram_bytes": vram_bytes,
+        "capabilities": capabilities,
+        "visao_local": tem_visao,
     }
 
     cliente = ClienteInstrumentado(inner)
@@ -420,8 +550,10 @@ async def rodar_modelo(
             envelope["itens"][etapa] = await etapa_roteador(cliente, external_client)
         elif etapa == "rag":
             envelope["itens"][etapa] = await etapa_rag(cliente, rag_client, external_client)
-        else:
+        elif etapa == "injecao":
             envelope["itens"][etapa] = await etapa_injecao(cliente, external_client)
+        else:
+            envelope["itens"][etapa] = await etapa_imagem(inner, tem_visao)
         consolidar_metricas(envelope)
         caminho = gravar_envelope(candidato, envelope)
         print(f"    gravado em {caminho.relative_to(EVAL_DIR.parent)}")

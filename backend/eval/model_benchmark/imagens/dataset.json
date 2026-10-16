@@ -1,0 +1,63 @@
+{
+  "_nota": "Conjunto de referência da etapa `imagem` do benchmark (R2/R5). Reproduz o caminho real do chat: o mesmo `_VISION_PROMPT` de `app.rag.image_identification` e o mesmo parse estruturado (`produto`, `e_do_portfolio`, `confianca`). `caminho` é relativo à raiz do repositório. As fotos são as dos manuais do fornecedor, já no repositório — nenhuma imagem nova foi criada.",
+  "_sobre_o_gabarito": "A visão NÃO precisa acertar o SKU exato: no fluxo real, quem faz a identificação precisa é o CLIP contra o catálogo interno, e a visão só entra como fallback para dizer 'isto é (ou não) do nosso portfólio e, grosso modo, o que é'. Por isso `aceitos` lista os termos que contam como acerto de categoria, e não um nome único.",
+  "_limitacao": "MVP: só casos positivos (tudo aqui é produto do portfólio). Mede falso negativo em `e_do_portfolio`, não falso positivo. Para medir os dois, acrescente casos com `e_do_portfolio: false` apontando para qualquer foto que não seja equipamento de controle de acesso — o formato já aceita. Não foram usadas as imagens de `backend/uploads/comprovantes/` (candidatas óbvias) porque são comprovantes de pagamento reais, com dados financeiros.",
+  "casos": [
+    {
+      "id": "img1",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDFace Max/iDFace-Max-Frontal_pt.jpg",
+      "produto_esperado": "iDFace Max",
+      "e_do_portfolio": true,
+      "aceitos": ["facial", "reconhecimento", "biometri", "controle de acesso", "idface"]
+    },
+    {
+      "id": "img2",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDAccess Pro/iDAccess-Pro-Frontal.jpg",
+      "produto_esperado": "iDAccess Pro",
+      "e_do_portfolio": true,
+      "aceitos": ["controle de acesso", "biometri", "leitor", "teclado", "idaccess"]
+    },
+    {
+      "id": "img3",
+      "caminho": "docs/Manuais_fornecedor/ControlId/REP iDClass/REP-iDClass-Frontal.jpg",
+      "produto_esperado": "REP iDClass",
+      "e_do_portfolio": true,
+      "aceitos": ["ponto", "rep", "registrador", "relógio", "relogio", "idclass"]
+    },
+    {
+      "id": "img4",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDBox/iDBox-Frontal.jpg",
+      "produto_esperado": "iDBox",
+      "e_do_portfolio": true,
+      "aceitos": ["controlador", "controle de acesso", "módulo", "modulo", "central", "idbox"]
+    },
+    {
+      "id": "img5",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDAccess Nano/iDAccess-Nano-Frontal.jpg",
+      "produto_esperado": "iDAccess Nano",
+      "e_do_portfolio": true,
+      "aceitos": ["controle de acesso", "leitor", "biometri", "idaccess", "nano"]
+    },
+    {
+      "id": "img6",
+      "caminho": "docs/Manuais_fornecedor/ControlId/IDPower/iDPower-Frontal.jpg",
+      "produto_esperado": "iDPower",
+      "e_do_portfolio": true,
+      "aceitos": ["fonte", "alimentação", "alimentacao", "nobreak", "energia", "idpower"]
+    },
+    {
+      "id": "img7",
+      "caminho": "docs/Manuais_fornecedor/ControlId/Print iD Touch/printid-touch-perspectiva-frontal.jpg",
+      "produto_esperado": "Print iD Touch",
+      "e_do_portfolio": true,
+      "aceitos": ["impressora", "print", "etiqueta", "crachá", "cracha", "terminal"]
+    },
+    {
+      "id": "img8",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDBlock Next/iDBlock-Next.png",
+      "produto_esperado": "iDBlock Next",
+      "e_do_portfolio": true,
+      "aceitos": ["catraca", "torniquete", "bloqueio", "idblock", "controle de acesso"]
+    }
+  ]
+}
