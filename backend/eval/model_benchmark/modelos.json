@@ -1,0 +1,85 @@
+{
+  "_nota": "Candidatos a LOCAL_MODEL_NAME (docs/ARCHITECTURE.md, tabela de escopo, linha 'Modelo local'). `ollama` é a tag exata do `ollama pull`. O orquestrador pula, com aviso, todo modelo que não estiver baixado — não baixa nada sozinho (são dezenas de GB).",
+  "candidatos": [
+    {
+      "id": "llama31-8b",
+      "rotulo": "Llama 3.1 8B",
+      "ollama": "llama3.1:8b",
+      "familia": "llama3.1",
+      "parametros_b": 8,
+      "quantizacao": "Q4_0"
+    },
+    {
+      "id": "qwen25-7b",
+      "rotulo": "Qwen2.5 7B",
+      "ollama": "qwen2.5:7b",
+      "familia": "qwen2.5",
+      "parametros_b": 7,
+      "quantizacao": "Q4_K_M"
+    },
+    {
+      "id": "qwen3-14b-q4",
+      "rotulo": "Qwen3 14B Q4_K_M",
+      "ollama": "qwen3:14b-q4_K_M",
+      "familia": "qwen3",
+      "parametros_b": 14,
+      "quantizacao": "Q4_K_M"
+    },
+    {
+      "id": "qwen3-14b-q5",
+      "rotulo": "Qwen3 14B Q5_K_M",
+      "ollama": "qwen3:14b-q5_K_M",
+      "familia": "qwen3",
+      "parametros_b": 14,
+      "quantizacao": "Q5_K_M"
+    },
+    {
+      "id": "qwen3-8b-q5",
+      "rotulo": "Qwen3 8B Q5_K_M",
+      "ollama": "qwen3:8b-q5_K_M",
+      "familia": "qwen3",
+      "parametros_b": 8,
+      "quantizacao": "Q5_K_M"
+    },
+    {
+      "id": "qwen3-8b-q8",
+      "rotulo": "Qwen3 8B Q8_0",
+      "ollama": "qwen3:8b-q8_0",
+      "familia": "qwen3",
+      "parametros_b": 8,
+      "quantizacao": "Q8_0"
+    },
+    {
+      "id": "phi4-mini",
+      "rotulo": "Phi-4-mini",
+      "ollama": "phi4-mini",
+      "familia": "phi4",
+      "parametros_b": 3.8,
+      "quantizacao": "Q4_K_M"
+    },
+    {
+      "id": "phi4",
+      "rotulo": "Phi-4",
+      "ollama": "phi4",
+      "familia": "phi4",
+      "parametros_b": 14,
+      "quantizacao": "Q4_K_M"
+    },
+    {
+      "id": "gemma4-12b-q4",
+      "rotulo": "Gemma-4-12B 4-bit",
+      "ollama": "gemma4:12b-it-q4_K_M",
+      "familia": "gemma4",
+      "parametros_b": 12,
+      "quantizacao": "Q4_K_M"
+    },
+    {
+      "id": "gemma4-12b-q8",
+      "rotulo": "Gemma-4-12B 8-bit",
+      "ollama": "gemma4:12b-it-q8_0",
+      "familia": "gemma4",
+      "parametros_b": 12,
+      "quantizacao": "Q8_0"
+    }
+  ]
+}

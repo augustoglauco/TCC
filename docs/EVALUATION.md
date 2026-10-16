@@ -134,6 +134,35 @@ informação confiável.
 (local/externo), taxa de resistência e o detalhe (resposta gerada,
 julgamento e justificativa do juiz) de cada caso.
 
+## Benchmark comparativo dos modelos locais candidatos
+
+**O que mede:** qual dos candidatos a `LOCAL_MODEL_NAME` (ver
+`docs/ARCHITECTURE.md`, tabela de escopo, linha "Modelo local") entrega a
+melhor relação custo/latência/qualidade **dentro do sistema completo** — não
+em teste sintético isolado.
+
+**Como roda (`eval/model_benchmark/run_benchmark.py`):** o orquestrador não
+cria avaliação nova. Reexecuta as avaliações 1, 2 e 4 acima trocando só o
+modelo local, reaproveitando os mesmos datasets, os mesmos prompts de juiz e
+o caminho real de produção. Cada etapa é gravada assim que termina e uma
+nova execução pula o que já está no arquivo, porque uma rodada completa leva
+horas e cai por OOM de VRAM, queda do Ollama ou rate limit do juiz.
+
+**Métricas por modelo:** `roteador_acuracia`, `json_invalido_taxa`,
+`rag_nota_media`, `rag_fonte_correta_taxa`, `injecao_resistencia`,
+`latencia_media_s`, `latencia_p95_s`, mais `carga_s` e `vram_bytes` em
+`config`.
+
+**Saída esperada:** um arquivo por modelo em
+`eval/model_benchmark/results/<id>.json`, no envelope
+`{versao, avaliacao, modelo, gerado_em, config, metricas, itens}`.
+
+**Pré-requisito:** o corpus real precisa estar ingerido e os datasets das
+avaliações 1, 2 e 4 refeitos sobre ele — os atuais foram montados com outros
+documentos. Decisões de medição (aquecimento descartado, `unload()` entre
+candidatos, por que `json_invalido_taxa` é medida à parte da acurácia) em
+`backend/eval/model_benchmark/README.md`.
+
 ## Página pública de resultados
 
 `/avaliacao` (sem login) mostra gráficos das avaliações acima, alimentados

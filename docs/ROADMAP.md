@@ -1611,9 +1611,37 @@ conversa e classificação do usuário").
       real e **refazer os datasets** de roteador, RAG e injeção sobre ele
       (os atuais foram feitos com outros documentos); ampliar amostra com
       paráfrases revisadas e reportar intervalo de confiança
-- [ ] Orquestrador `eval/model_benchmark/` (loop por modelo, retomável,
-      latência/VRAM/JSON inválido, critério de escolha registrado antes de
-      rodar) e envelope comum de resultados
+- [x] Orquestrador `eval/model_benchmark/` (2026-10-16). `run_benchmark.py`
+      não cria avaliação nova: reexecuta as três que já existem
+      (`router_intents`, `rag_quality`, `prompt_injection`) trocando só o
+      modelo local, reaproveitando datasets, prompts de juiz e o caminho
+      real de produção (`classify`, `_buscar_documentos_rag`,
+      `_build_prompt`). `--listar`, `--modelos`, `--etapas`, `--forcar`,
+      `--timeout-s` (padrão 180s, acima do `LOCAL_LLM_TIMEOUT_S` de 30s para
+      não reprovar candidato grande por tempo de carga). Retomável: cada
+      etapa é gravada ao terminar e uma nova execução pula o que já está no
+      arquivo; candidato que falha não derruba os seguintes (erro impresso,
+      VRAM liberada, rodada segue). Mede latência média/p95 sobre todas as
+      etapas presentes no arquivo, `carga_s` e `vram_bytes` (via `/api/ps`),
+      com aquecimento descartado e `unload()` entre candidatos (16GB não
+      comporta dois 12–14B residentes). `json_invalido_taxa` é medida por um
+      cliente instrumentado, porque `_classify_with_llm` cai para a
+      heurística mantendo `provider_efetivo="heuristica_llm"` — de fora, o
+      JSON quebrado é indistinguível de um acerto. Envelope
+      `results/<id>.json` no formato que `app.api.avaliacao._modelos` já lê;
+      `itens` (respostas geradas) fica fora da rota pública. Validado ponta a
+      ponta em 2026-10-16 contra `gemma4:12b-it-q4_K_M` (etapa `roteador`:
+      95,0%, 8,1GB de VRAM, 9 chamadas ao LLM em 40 mensagens — o resto é
+      resolvido pelo atalho de cortesia e pela heurística); o arquivo foi
+      **apagado em seguida**, porque os datasets ainda serão refeitos sobre o
+      corpus real e o número iria para a página pública. Cobertura:
+      `backend/tests/test_model_benchmark.py` (9 testes). Detalhes e
+      decisões de medição em `backend/eval/model_benchmark/README.md`.
+- [ ] Acertar a contagem de candidatos: `docs/ARCHITECTURE.md` diz "9
+      configurações" mas lista 10 (Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B
+      Q4_K_M/Q5_K_M; Qwen3 8B Q5_K_M/Q8_0; Phi-4-mini; Phi-4; Gemma-4-12B
+      4-bit/8-bit) — `eval/model_benchmark/modelos.json` tem os 10. Corrigir
+      o número no documento ou retirar um candidato.
 - [x] Página pública de resultados `/avaliacao` com gráficos (Recharts) e
       endpoint `GET /api/avaliacao/resultados` só com agregados (intervalo
       de Wilson) — ver `docs/ARCHITECTURE.md` §9. Lê os `results.json`
