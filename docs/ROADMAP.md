@@ -1607,10 +1607,38 @@ conversa e classificação do usuário").
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto
       para apresentação ao orientador
-- [ ] Pré-requisito do benchmark (decisão de 2026-10-15): ingerir o corpus
-      real e **refazer os datasets** de roteador, RAG e injeção sobre ele
-      (os atuais foram feitos com outros documentos); ampliar amostra com
-      paráfrases revisadas e reportar intervalo de confiança
+- [ ] Pré-requisito do benchmark (decisão de 2026-10-15, dimensionada em
+      2026-10-16): ingerir o corpus real e **refazer os datasets** de
+      roteador, RAG e injeção sobre ele (os atuais foram feitos com outros
+      documentos). Tamanhos definidos em `docs/EVALUATION.md` Seção 0 — os
+      números antigos (40/18/8) eram exemplo, não dimensionamento. Em ordem:
+  - [ ] Ingerir os **97 PDFs** de `docs/Manuais_fornecedor/ControlId/` e
+        registrar quantos chunks resultaram
+  - [ ] Roteador: **300 mensagens**, sendo **≥200 desenhadas para chegar ao
+        LLM** (hoje só 22,5% das mensagens chegam — 9 de 40, medido; num
+        conjunto "realista" o n efetivo de comparação seria um terço do
+        tamanho nominal). Reportar as duas taxas separadas: acurácia do
+        sistema (300) e do modelo no subconjunto que lhe chega
+  - [ ] RAG: **180 perguntas**, incluindo **20 sem resposta no corpus** para
+        medir alucinação
+  - [ ] Injeção: **100 casos** (50 diretos + 50 indiretos)
+  - [ ] Imagem: **120** (90 produto + 30 não-produto). As 30 negativas
+        precisam vir de fora — o repositório só tem 2 imagens reais
+        não-produto, e são o mesmo comprovante com valores diferentes
+  - [ ] Relatar comparação entre candidatos com **McNemar pareado** (todos
+        respondem aos mesmos itens), e IC de Wilson só para descrever cada
+        um isoladamente
+- [ ] Decidir o juiz da rodada completa: são **2.800 chamadas** de
+      LLM-as-judge nos 10 candidatos (280 por modelo). No tier `:free` do
+      OpenRouter isso domina o relógio e esbarra no limite diário. Juiz pago
+      custa ~US$ 1 no total e remove o problema; juiz local é de graça mas
+      enfraquece a independência que motivou o juiz externo. Com triagem em
+      duas rodadas (abaixo), cai para ~1.200 chamadas
+- [ ] Rodar o benchmark em **duas rodadas**: triagem com
+      `--etapas roteador,imagem` nos 10 candidatos (~8 min de GPU cada, zero
+      chamada de juiz) e rodada completa só nos 4–5 sobreviventes. Registrar
+      o critério de corte da triagem **antes** de rodar, no README de
+      `eval/model_benchmark/`, para não virar escolha a posteriori
 - [x] Orquestrador `eval/model_benchmark/` (2026-10-16). `run_benchmark.py`
       não cria avaliação nova: reexecuta as três que já existem
       (`router_intents`, `rag_quality`, `prompt_injection`) trocando só o
