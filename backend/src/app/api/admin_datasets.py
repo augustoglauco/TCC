@@ -254,6 +254,10 @@ class _Tarefa:
 _tarefas: dict[str, _Tarefa] = {}
 
 TAREFAS_DISPONIVEIS: dict[str, tuple[str, list[str]]] = {
+    "gerar_rascunho_rag_docs": (
+        "Gerar rascunho das 180 perguntas de RAG documentos",
+        [".venv/bin/python", "eval/rag_quality/gerar_dataset.py"],
+    ),
     "ingerir_corpus": (
         "Ingerir os 97 PDFs no RAG",
         [".venv/bin/python", "scripts/ingerir_corpus_avaliacao.py"],

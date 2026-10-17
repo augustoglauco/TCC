@@ -114,7 +114,7 @@ export function DatasetsTarefas({ token }: { token: string }) {
     <section className="rounded-lg border border-gray-200 bg-white p-4">
       <h2 className="text-sm font-semibold text-gray-900">Tarefas longas</h2>
 
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {TAREFAS.map((t) => (
           <div key={t.tipo} className="rounded-md border border-gray-200 p-3">
             <p className="text-sm font-medium text-gray-900">{t.rotulo}</p>

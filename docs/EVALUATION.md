@@ -240,6 +240,17 @@ roteador em **1,0 s**; descrição de imagem em **2,0 s**; carga na VRAM de
 | GPU | **8–15 h** (candidatos de 14B em Q5/Q8 levam 2–3× o tempo do Gemma-12B) |
 | Revisão humana | **~4,5 h** |
 
+**Decisão do dono em 2026-10-17: juiz no tier `:free`, nada pago por
+enquanto.** Isso muda o orçamento de dinheiro para **US$ 0** — tanto o juiz
+quanto os rascunhos dos conjuntos — e passa o custo todo para o relógio: a
+pausa de 3 s entre chamadas e o backoff base de 8 s a cada 429 continuam
+valendo, e o limite diário da conta pode espalhar a rodada completa por mais
+de um dia. A independência do juiz é preservada (juiz externo ≠ modelo
+avaliado), mas o modelo configurado hoje é `liquid/lfm-2.5-2.6b:free`, que é
+pequeno para a tarefa. **O que fazer se a concordância entre juiz e revisão
+humana sair baixa na primeira etapa:** trocar o *modelo* free por um maior do
+mesmo tier, não trocar de tier — a decisão de não pagar é anterior.
+
 **Dinheiro não é variável de decisão** nesta escala. **O gargalo de relógio
 não é a GPU, é o LLM-as-judge:** as etapas `rag` e `injecao` pedem uma
 chamada de juiz por item, ~280 por modelo. No tier `:free` do OpenRouter,

@@ -71,6 +71,12 @@ export interface TarefaDetalhe extends TarefaResumo {
  */
 export const TAREFAS: { tipo: string; rotulo: string; descricao: string }[] = [
   {
+    tipo: "gerar_rascunho_rag_docs",
+    rotulo: "Gerar rascunho: 180 perguntas de RAG",
+    descricao:
+      "160 respondíveis sobre os PDFs + 20 sem resposta. Retomável, e no tier :free o rate limit manda no relógio.",
+  },
+  {
     tipo: "ingerir_corpus",
     rotulo: "Ingerir o corpus no RAG",
     descricao: "Os PDFs de docs/Manuais_fornecedor/ControlId na collection ativa. Minutos.",

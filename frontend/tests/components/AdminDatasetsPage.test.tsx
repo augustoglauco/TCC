@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import AdminDatasetsPage from "@/app/admin/datasets/page";
@@ -193,8 +193,14 @@ describe("AdminDatasetsPage", () => {
     render(<AdminDatasetsPage />);
     await waitFor(() => expect(screen.getByText("Tarefas longas")).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText("Triagem: roteador + imagem"));
-    fireEvent.click(screen.getAllByRole("button", { name: "Iniciar" })[1]);
+    // Pelo cartão, não por índice: a ordem da lista de tarefas muda quando
+    // uma nova entra no registro do backend.
+    const cartao = screen.getByText("Triagem: roteador + imagem").closest("div") as HTMLElement;
+    fireEvent.click(within(cartao).getByRole("button", { name: "Iniciar" }));
+
+    await waitFor(() =>
+      expect(datasetsApi.iniciarTarefa).toHaveBeenCalledWith("triagem", "mock-token"),
+    );
 
     await waitFor(() => expect(screen.getByText("candidato 1/10: gemma4:12b")).toBeInTheDocument());
   });

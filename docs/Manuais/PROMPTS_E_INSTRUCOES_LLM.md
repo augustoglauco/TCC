@@ -815,6 +815,84 @@ E5_DOCUMENT_PREFIX = "passage: "
 
 ---
 
+### 19. `backend/eval/rag_quality/gerar_dataset.py`
+**Caminho:** `backend/eval/rag_quality/gerar_dataset.py`
+
+Dois prompts de **geração do conjunto de teste** de RAG documentos (Fase 10,
+R4, Estratégia A). Não são prompts de produção: rodam uma vez para produzir o
+rascunho das 180 perguntas, que nasce todo `pendente` e só vale depois da
+revisão humana em `/admin/datasets`. O modelo é o `EXTERNAL_MODEL_NAME` do
+`.env`, no tier `:free` (decisão do dono em 2026-10-17).
+
+`_PROMPT_PERGUNTAS` recebe o texto de um PDF do corpus — extraído por
+`app.rag.pdf_extract`, **o mesmo extrator da ingestão**, para a pergunta não
+depender de texto que o RAG nunca indexou — e pede N perguntas respondíveis
+só com aquele texto. O campo `trecho_origem` é cobrado como cópia literal, e
+o script confere isso contra o texto do PDF (`trecho_confere`): trecho
+parafraseado faria o revisor comparar a pergunta com um texto que não é o do
+documento, que é justamente o erro que o campo existe para evitar.
+
+```python
+_PROMPT_PERGUNTAS = """Você monta o conjunto de teste de um assistente com RAG \
+sobre manuais e datasheets de controle de acesso e segurança eletrônica.
+
+Documento: {documento}
+
+Texto do documento, exatamente como o sistema o indexa:
+---
+{texto}
+---
+
+Gere {n} pergunta(s) que um cliente real faria e que sejam respondíveis SÓ \
+com o texto acima.
+
+Regras:
+- Nada de inventar: se a informação não está no texto, não pergunte.
+- "resposta_esperada" é curta e factual, com o número/unidade quando houver.
+- "trecho_origem" é a cópia LITERAL do pedaço do texto acima que contém a \
+resposta (no máximo {max_trecho} caracteres). Não reescreva nem resuma.
+- "dificuldade": "facil" quando a resposta está numa linha só, "media" \
+quando exige juntar duas informações do documento, "dificil" quando exige \
+ler tabela ou interpretar.
+- Não cite o nome do arquivo na pergunta.
+
+Responda só com um array JSON, sem comentários:
+[{{"pergunta": "...", "resposta_esperada": "...", "trecho_origem": "...", \
+"dificuldade": "facil"}}]"""
+```
+
+`_PROMPT_SEM_RESPOSTA` produz as **20 perguntas sem resposta no corpus**, que
+são o instrumento de medida de alucinação. Recebe a lista de pastas do corpus
+como "o que existe" e pede perguntas do mesmo ramo fora dela. O gabarito
+dessas não é um fato: é a recusa (`RESPOSTA_SEM_RESPOSTA`), e
+`documento_origem` fica vazio de propósito, porque não existe fonte correta a
+recuperar. São as que mais dependem da revisão humana — o modelo pode propor
+um tema que, na verdade, está no corpus.
+
+```python
+_PROMPT_SEM_RESPOSTA = """Você monta a parte de controle de um conjunto de \
+teste: perguntas que o assistente NÃO tem como responder, para medir se ele \
+admite não saber em vez de alucinar.
+
+O acervo dele cobre exatamente estas linhas de produto, e nada mais:
+{produtos}
+
+Gere {n} perguntas plausíveis de um cliente real do ramo de controle de \
+acesso e segurança eletrônica cuja resposta NÃO está nesse acervo.
+
+Regras:
+- Não mencione nenhum dos produtos da lista acima.
+- A pergunta tem de ser do mesmo ramo (nada de "qual a capital da França").
+- Evite pergunta sobre preço, prazo ou estoque: isso o sistema responde por \
+outro caminho, que não é o RAG de documentos.
+- "motivo_ausencia" explica em uma linha por que o acervo não cobre aquilo.
+
+Responda só com um array JSON, sem comentários:
+[{{"pergunta": "...", "motivo_ausencia": "...", "dificuldade": "media"}}]"""
+```
+
+---
+
 ## Conclusão
 
 Todos os **18 arquivos de código** que contêm instruções diretas, prompts de sistema, prefixos de tarefa, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.

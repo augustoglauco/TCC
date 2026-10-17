@@ -164,3 +164,49 @@ cd backend
 Exige Ollama, Qdrant e Postgres reais no ar (a collection `docs_texto`
 ativa, populada com os manuais) e `EXTERNAL_MODEL_API_KEY` configurada no
 `.env` (LLM-as-judge via OpenRouter).
+
+## Gerar o rascunho das 180 perguntas (`gerar_dataset.py`, 2026-10-17)
+
+O conjunto de 18 perguntas descrito acima foi **invalidado** (montado sobre
+outros documentos, não sobre o corpus `docs/Manuais_fornecedor/ControlId/` —
+ver `docs/EVALUATION.md` Seção 0). O conjunto válido são 180 perguntas: 160
+respondíveis + 20 sem resposta no corpus. O rascunho sai daqui:
+
+```bash
+cd backend
+.venv/bin/python eval/rag_quality/gerar_dataset.py                 # 160 + 20
+.venv/bin/python eval/rag_quality/gerar_dataset.py --limite-docs 2 --total 3 --sem-resposta 2
+```
+
+Exige só `EXTERNAL_MODEL_API_KEY` — nada de Qdrant, Postgres ou Ollama no ar.
+É retomável por documento e grava o arquivo a cada documento, porque no tier
+`:free` uma rodada interrompida custa relógio (pausa de 3 s entre chamadas e
+backoff base de 8 s a cada 429). Pela tela: tarefa "Gerar rascunho: 180
+perguntas de RAG" em `/admin/datasets`.
+
+Três decisões que valem registro:
+
+1. **O texto vem de `app.rag.pdf_extract`, o mesmo extrator da ingestão.** Um
+   extrator diferente aqui geraria perguntas que dependem de texto que o RAG
+   nunca indexou, e o sistema erraria por um motivo que não é o que se quer
+   medir.
+2. **Os documentos elegíveis são os 86 `util` de `auditoria_corpus.json`.**
+   Isso exclui os 11 degenerados e, com eles, os 8 PDFs de imagem pura que
+   ficaram com 0 chunks na ingestão — perguntar sobre documento invisível à
+   busca contaminaria a medida de alucinação, que precisa vir só das 20
+   deliberadas.
+3. **`trecho_origem` é conferido contra o texto do PDF.** Quando o modelo
+   parafraseia em vez de copiar, o caso fica com `trecho_confere: false` em
+   vez de ser descartado em silêncio: o campo existe para a revisão ser
+   leitura lado a lado, e um trecho reescrito faria o revisor comparar a
+   pergunta com um texto que não é o do documento.
+
+Todo item nasce `revisao.status = "pendente"`: o gabarito só vale depois da
+revisão humana em `/admin/datasets` (~2 h para este conjunto). As 20 sem
+resposta são as que mais precisam de conferência — o modelo pode propor um
+tema que, na verdade, está no corpus.
+
+**Pendência conhecida:** `run_eval.py` ainda não sabe pontuar os casos
+`sem_resposta`. Ele compara a fonte recuperada com `documento_origem` (vazio
+nesses casos) e manda a resposta ao juiz como se houvesse gabarito factual.
+Enquanto estiver assim, as 20 perguntas de alucinação não medem nada.

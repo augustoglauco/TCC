@@ -1895,6 +1895,36 @@ conversa e classificação do usuário").
         corpus** para medir alucinação. Cada item carrega o trecho de origem
         extraído com `pdfplumber`, para a revisão ser leitura lado a lado em
         vez de caça ao PDF
+    - [x] **Gerador implementado em 2026-10-17** —
+          `backend/eval/rag_quality/gerar_dataset.py`, 10 testes em
+          `backend/tests/test_rag_quality_gerador.py`, tarefa
+          `gerar_rascunho_rag_docs` disponível em `/admin/datasets`. 160
+          respondíveis distribuídas pelos **86 PDFs `util`** da auditoria da
+          Etapa 0 (no máximo 2 por documento, do maior para o menor em
+          caracteres) + 20 sem resposta geradas a partir da lista de pastas do
+          corpus. Decisões: o texto sai de `app.rag.pdf_extract`, **o mesmo
+          extrator da ingestão** (outro extrator produziria pergunta que
+          depende de texto que o RAG nunca indexou); os degenerados da
+          auditoria ficam fora, e com eles os 8 PDFs de imagem pura; e o
+          `trecho_origem` é conferido contra o texto do PDF, gravando
+          `trecho_confere: false` quando o modelo parafraseou em vez de
+          copiar — trecho parafraseado faz o revisor comparar com um texto
+          que não é o do PDF, que é o erro que o campo existe para evitar.
+          Retomável por documento e grava a cada documento. Validado em
+          2026-10-17 com `--limite-docs 2 --total 3 --sem-resposta 2`: 3
+          respondíveis com `trecho_confere: true` nas três e 2 sem resposta.
+          `# MVP: o rascunho é do LLM e todo item nasce pendente; as 20 sem
+          resposta são as que mais precisam de conferência, porque o modelo
+          pode propor um tema que está no corpus.`
+    - [ ] Rodar o gerador sobre os 86 documentos e revisar as 180 na tela
+          (~2 h). No tier `:free` a rodada leva ~86 chamadas com pausa de 3 s
+          e backoff a cada 429
+    - [ ] `run_eval.py` ainda **não sabe pontuar `sem_resposta`**: hoje ele
+          compara a fonte recuperada com `documento_origem` (vazio nesses
+          casos) e manda a resposta ao juiz como se houvesse gabarito
+          factual. Sem isso, as 20 perguntas de alucinação não medem nada
+    - [ ] Geradores dos outros quatro conjuntos (roteador 300, imagem 103,
+          banco 80, injeção 100) — mesmo padrão, ainda não escritos
   - [ ] RAG imagem: **120** (90 produto + 30 não-produto)
   - [ ] RAG banco: **80 perguntas** geradas a partir das linhas de
         `produtos` — gabarito exato por construção, revisão zero
@@ -1904,16 +1934,23 @@ conversa e classificação do usuário").
         um isoladamente
 - [ ] O dono precisa entregar três coisas, e só estas: **30 fotos
       não-produto** (o repositório só tem 2 imagens reais não-produto, e são
-      o mesmo comprovante com valores diferentes); **autorização para
-      inventar preço/estoque** dos 28 produtos; e a **escolha do juiz**
-      (pago ~US$ 12 com tempo previsível, ou o tier `:free` atual em que o
-      rate limit manda no relógio)
-- [ ] Decidir o juiz da rodada completa: são **2.800 chamadas** de
-      LLM-as-judge nos 10 candidatos (280 por modelo). No tier `:free` do
-      OpenRouter isso domina o relógio e esbarra no limite diário. Juiz pago
-      custa ~US$ 1 no total e remove o problema; juiz local é de graça mas
-      enfraquece a independência que motivou o juiz externo. Com triagem em
-      duas rodadas (abaixo), cai para ~1.200 chamadas
+      o mesmo comprovante com valores diferentes) e **autorização para
+      inventar preço/estoque** dos 28 produtos. A terceira — a escolha do
+      juiz — foi decidida em 2026-10-17: tier `:free`, ver o item abaixo
+- [x] **Juiz da rodada completa: tier `:free` do OpenRouter** (decisão do
+      dono em 2026-10-17 — "use o free, nada de pago por enquanto"). Mantém a
+      independência que motivou o juiz externo (juiz ≠ modelo avaliado) a
+      custo zero, e o que se paga é relógio: são 2.800 chamadas nos 10
+      candidatos (280 por modelo), ou ~1.200 com a triagem em duas rodadas.
+      **Consequências assumidas, não contornadas:** o rate limit do pool
+      `:free` domina o tempo total (pausa de 3 s entre chamadas + backoff
+      base de 8 s a cada 429, já implementados) e o limite diário da conta
+      pode espalhar a rodada completa por mais de um dia. O
+      `EXTERNAL_MODEL_NAME` em uso é `liquid/lfm-2.5-2.6b:free` — modelo
+      pequeno para a tarefa de juiz; se a concordância com a revisão humana
+      sair baixa na primeira etapa, a decisão a revisitar é o *modelo* free,
+      não o tier. Os rascunhos dos conjuntos usam o mesmo tier, então o
+      orçamento de ~US$ 12 da Estratégia A cai para **US$ 0**
 - [ ] Rodar o benchmark em **duas rodadas**: triagem com
       `--etapas roteador,imagem` nos 10 candidatos (~8 min de GPU cada, zero
       chamada de juiz) e rodada completa só nos 4–5 sobreviventes. Registrar
