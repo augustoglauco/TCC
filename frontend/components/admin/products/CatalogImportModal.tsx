@@ -16,6 +16,8 @@ import { CatalogUploadStep } from "./CatalogUploadStep";
 import { CatalogExtractingStep } from "./CatalogExtractingStep";
 import { CatalogReviewStep } from "./CatalogReviewStep";
 import { CatalogPhotoPicker } from "./CatalogPhotoPicker";
+import { CatalogDragDropZone } from "./CatalogDragDropZone";
+import { CatalogFooterActions } from "./CatalogFooterActions";
 
 interface CatalogImportModalProps {
   isOpen: boolean;
@@ -292,36 +294,36 @@ export default function CatalogImportModal({
     );
   };
 
-  const handleUploadPhotoForProduct = async (file: File) => {
-    if (!pickerProduct || !token) return;
-    setUploadingPickerPhoto(true);
-    try {
-      const url = await uploadTempImage(token, file);
-      const updatedFotos = pickerProduct.fotos_pagina
-        ? [...pickerProduct.fotos_pagina, url]
-        : [url];
+  const pickerHandlers = {
+    upload: async (file: File) => {
+      if (!pickerProduct || !token) return;
+      setUploadingPickerPhoto(true);
+      try {
+        const url = await uploadTempImage(token, file);
+        const updatedFotos = pickerProduct.fotos_pagina
+          ? [...pickerProduct.fotos_pagina, url]
+          : [url];
+        handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
+        handleUpdateProduct(pickerProduct.id_temporario, "fotos_pagina", updatedFotos);
+        setPickerProduct((prev) =>
+          prev ? { ...prev, imagem_temp_url: url, fotos_pagina: updatedFotos } : null,
+        );
+      } catch (err) {
+        setError((err instanceof Error && err.message) || "Falha ao enviar foto.");
+      } finally {
+        setUploadingPickerPhoto(false);
+      }
+    },
+    select: (url: string) => {
+      if (!pickerProduct) return;
       handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
-      handleUpdateProduct(pickerProduct.id_temporario, "fotos_pagina", updatedFotos);
-      setPickerProduct((prev) =>
-        prev ? { ...prev, imagem_temp_url: url, fotos_pagina: updatedFotos } : null,
-      );
-    } catch (err) {
-      setError((err instanceof Error && err.message) || "Falha ao enviar foto.");
-    } finally {
-      setUploadingPickerPhoto(false);
-    }
-  };
-
-  const handleSelectPagePhoto = (url: string) => {
-    if (!pickerProduct) return;
-    handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
-    setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: url } : null));
-  };
-
-  const handleRemovePhoto = () => {
-    if (!pickerProduct) return;
-    handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", null);
-    setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: null } : null));
+      setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: url } : null));
+    },
+    remove: () => {
+      if (!pickerProduct) return;
+      handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", null);
+      setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: null } : null));
+    },
   };
 
   const handleConfirmBatch = async () => {
@@ -359,8 +361,8 @@ export default function CatalogImportModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div
-        className="relative w-full max-w-5xl max-h-[92vh] flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden"
+      <CatalogDragDropZone
+        isDraggingOver={isDraggingOver}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -428,71 +430,29 @@ export default function CatalogImportModal({
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-gray-100 bg-gray-50 px-6 py-4">
-          <div>
-            {step === "review" && (
-              <span className="text-xs font-semibold text-gray-700">
-                {selectedCount} de {extractedProducts.length} produto(s) selecionados para gravação
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {step === "upload" && (
-              <>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleStartExtraction}
-                  disabled={files.length === 0}
-                  className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
-                >
-                  Iniciar Extração Inteligente
-                </button>
-              </>
-            )}
-
-            {step === "review" && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setStep("upload")}
-                  disabled={saving}
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
-                >
-                  ← Voltar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmBatch}
-                  disabled={saving || selectedCount === 0}
-                  className="flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {saving
-                    ? "Gravando e Vetorizando no CLIP..."
-                    : `Confirmar e Gravar ${selectedCount} Produto(s)`}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
+        <CatalogFooterActions
+          step={step}
+          filesCount={files.length}
+          selectedCount={selectedCount}
+          totalCount={extractedProducts.length}
+          saving={saving}
+          onClose={onClose}
+          onStartExtraction={handleStartExtraction}
+          onBackToUpload={() => setStep("upload")}
+          onConfirmBatch={handleConfirmBatch}
+        />
 
         {pickerProduct && (
           <CatalogPhotoPicker
             product={pickerProduct}
             uploading={uploadingPickerPhoto}
-            onSelectPhoto={handleSelectPagePhoto}
-            onRemovePhoto={handleRemovePhoto}
-            onUploadPhoto={handleUploadPhotoForProduct}
+            onSelectPhoto={pickerHandlers.select}
+            onRemovePhoto={pickerHandlers.remove}
+            onUploadPhoto={pickerHandlers.upload}
             onClose={() => setPickerProduct(null)}
           />
         )}
-      </div>
+      </CatalogDragDropZone>
     </div>
   );
 }
