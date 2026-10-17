@@ -1739,6 +1739,45 @@ conversa e classificação do usuário").
         × baseline de 2026-10-01, pareado (McNemar para `Recall@5`,
         bootstrap pareado para `nDCG@10`/nota, conforme Seção 0). Relatar a
         grade inteira, não só a vencedora.
+- [ ] **Verificar, depois que a refatoração visual M3 Glass terminar**, as
+    quatro superfícies que ela compartilha com partes que hoje funcionam —
+    estado atual e âncora de rollback registrados em
+    `docs/ARCHITECTURE.md` ("Risco de coordenação registrado",
+    2026-10-17). Âncora: commit `7eebebb` (último antes de qualquer código
+    de frontend); blob de `resolveImageUrl.ts` hoje:
+    `c2707c97139da005c1e78e9cce1e433378467abf`. Itens:
+  - [ ] `resolveImageUrl` ganha um 2º parâmetro opcional `productName`. Pelos
+        testes que o plano especifica, o arquivo local é **fallback para URL
+        nula**, não prioridade — mais seguro que a redação da spec (§5.2 diz
+        "priorizar"). Verificar que `components/chat/cards/ProductCard.tsx`
+        (card rico do chat, **fora** do escopo declarado) continue chamando
+        com um argumento e que
+        `frontend/tests/components/ChatProductCard.test.tsx` passe **sem
+        alteração de asserção**.
+  - [ ] Imagem no site deixa de ser evidência de indexação CLIP: com o
+        fallback por nome, produto **sem imagem cadastrada** passa a exibir
+        foto (hoje exibe nada). `catalogo_imagens` tem 3 vetores; a
+        Estratégia A exige os 29 produtos cadastrados **pelo sistema** para
+        exercitar a indexação que o conjunto de 107 imagens avalia.
+        Conferir o índice por `/admin/produtos` ou contagem de vetores,
+        nunca pela vitrine.
+  - [ ] `/avaliacao` não tem layout próprio e herda `app/layout.tsx`:
+        verificar contraste e legibilidade da página pública de resultados
+        depois da mudança de Header/Footer para tema escuro.
+        `frontend/tests/unit/LayoutHeaderFooter.test.tsx` guarda o
+        comportamento atual, inclusive a ocultação do Footer em `/admin/*`.
+  - [ ] Decidir conscientemente a cópia versionada: `docs/Manuais_fornecedor/`
+        é `gitignored` (`.gitignore:21`) e o plano copia fotos para
+        `frontend/public/images/products/`, que é versionado (regra 6).
+  - [ ] Avisar o outro agente de que 2 dos 7 caminhos de origem do plano não
+        existem (ele mesmo os marcou "ou similar"):
+        `REP iDClass/REP_iDClass.jpg` → `REP-iDClass-Frontal.jpg`;
+        `iDAccess Pro/iDAccess_Pro.jpg` → `iDAccess-Pro-Frontal.jpg`. Os
+        outros 5 existem exatamente como escritos.
+  - [ ] Checklist de regressão: qualquer um de `ChatProductCard`,
+        `ProductCard`, `ProdutoDetalhePage`, `LayoutHeaderFooter`,
+        `apiBaseUrl` ou `ChatModal` que precise ter **asserção** alterada
+        (não só seletor) é sinal de quebra de contrato, não de ajuste visual.
 - [x] Resiliência a prompt injection (direta, indireta via RAG, e via
       comprovante OCR) e abuso das ferramentas MCP B2B — plano de
       segurança anterior fictício (`PLANO_ANTI_AI_ATTACK.md`) descartado e

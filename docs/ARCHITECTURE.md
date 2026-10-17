@@ -497,6 +497,136 @@ grupo em vez de global) fica **fora de escopo**: impede busca cross-domain,
 que o sistema usa no fallback de domínio
 (`Settings.rag_search_domain_fallback`).
 
+**Risco de coordenação registrado (2026-10-17): refatoração visual M3 Glass
+x funções compartilhadas com o chat.** Outro agente conduz uma refatoração
+visual do site (spec em
+`docs/superpowers/specs/2026-10-17-m3glass-visual-refactor-design.md`,
+commit `8f8ec1a`; plano em
+`docs/superpowers/plans/2026-10-17-m3glass-visual-refactor.md`, commit
+`7eebebb`). O escopo declarado é Home, Header, Footer e `/produtos`, mas ele
+toca três superfícies compartilhadas com partes que hoje funcionam. Este
+bloco registra o **estado atual** dessas partes para permitir verificação e
+rollback, não para bloquear a refatoração.
+
+**Âncora de rollback:** commit `7eebebb` — o último **antes** de qualquer
+alteração de código do frontend; os commits da refatoração até ali eram só
+documentação (`8f8ec1a` spec, `7eebebb` plano), e o primeiro de código é
+`4dabe10` (Header e Footer). Blob de `frontend/lib/utils/resolveImageUrl.ts`
+em `7eebebb`:
+`c2707c97139da005c1e78e9cce1e433378467abf` (17 linhas). Restaurar um arquivo
+isolado, sem desfazer o resto da refatoração (verificado em 2026-10-17 —
+as duas formas produzem o mesmo blob):
+
+```bash
+git show 7eebebb:frontend/lib/utils/resolveImageUrl.ts > frontend/lib/utils/resolveImageUrl.ts
+# ou, direto pelo blob:
+git cat-file blob c2707c97139da005c1e78e9cce1e433378467abf > frontend/lib/utils/resolveImageUrl.ts
+```
+
+Reverter a função sozinha quebra quem já a chamar com dois argumentos, então
+o rollback de `resolveImageUrl` é conjunto: a função mais os chamadores que
+passaram a usar `productName`.
+
+### 1. `resolveImageUrl` é compartilhada com o card de produto do chat
+
+Contrato de hoje, que funciona e precisa continuar funcionando:
+
+```
+resolveImageUrl(url: string | null | undefined): string | null
+```
+
+Só reescreve URL relativa do backend para o host do backend
+(`getApiBaseUrl()`); devolve `null` para entrada vazia; preserva `http(s)://`
+e `data:`. **Nenhuma** resolução por nome de produto. Três importadores:
+
+| Importador | Chamada hoje | No escopo da refatoração? |
+| --- | --- | --- |
+| `components/products/ProductCard.tsx` | `resolveImageUrl(product.imagem_url)` | sim |
+| `app/produtos/[id]/page.tsx` | idem | sim |
+| `components/chat/cards/ProductCard.tsx` | `resolveImageUrl(card.imagem_url)` | **não** — é o card rico do chat |
+
+O plano acrescenta um segundo parâmetro **opcional**
+(`productName?: string`) e, pelos testes que ele próprio especifica, o
+arquivo local é **fallback para URL nula**, não prioridade: uma URL informada
+é preservada intacta. Isso é mais seguro do que a redação da spec sugeria
+(§5.2 fala em "priorizar" o arquivo local) e mantém o card do chat
+compatível, desde que ele continue sendo chamado com um argumento. **O que
+verificar:** que `components/chat/cards/ProductCard.tsx` não passe a receber
+resolução por nome sem decisão explícita, e que
+`frontend/tests/components/ChatProductCard.test.tsx` continue passando sem
+alteração de asserção.
+
+### 2. Imagem no site deixa de ser evidência de indexação CLIP
+
+Com o fallback por nome, um produto **sem imagem cadastrada** passa a exibir
+foto. Hoje exibe nada. A coleção `catalogo_imagens` do Qdrant tem **3
+vetores** (medido em 2026-10-16), e a Estratégia A (`docs/EVALUATION.md`
+Seção 0) exige que os 29 produtos sejam cadastrados **pelo sistema**
+justamente para exercitar a indexação CLIP que o conjunto de 107 imagens
+avalia. Consequência: depois da refatoração, ver produtos ilustrados no site
+não diz mais nada sobre o estado do índice — "sem imagem cadastrada" fica
+visualmente idêntico a "cadastrada". No fluxo de identificação por foto (R6),
+se o CLIP identificar um produto sem imagem cadastrada, o card mostra uma
+foto casada por nome. **O que verificar:** o estado do índice continua sendo
+conferido em `/admin/produtos` ou pela contagem de vetores, nunca pela
+vitrine.
+
+### 3. `/avaliacao` herda Header e Footer sem estar no escopo
+
+`frontend/app/avaliacao/page.tsx` **não tem layout próprio**, então usa
+`app/layout.tsx`. A refatoração muda Header e Footer para tema escuro
+(`bg-slate-950`), e essa página é pública, de conteúdo claro com gráficos
+Recharts, e está descrita nesta documentação e em `docs/EVALUATION.md`.
+**O que verificar:** contraste e legibilidade da página de resultados após a
+mudança de layout; `frontend/tests/unit/LayoutHeaderFooter.test.tsx` é o
+teste que guarda o comportamento atual (inclusive a ocultação do Footer em
+`/admin/*`).
+
+### 4. Cópia versionada de material que é `gitignored`
+
+`docs/Manuais_fornecedor/` está em `.gitignore:21` — o corpus do fornecedor
+é deliberadamente não versionado. O plano copia fotos para
+`frontend/public/images/products/`, que **é** versionado. Não é problema de
+tamanho (~5 MB), é reversão implícita de uma decisão. Fica registrado aqui
+para ser decisão consciente, conforme a regra 6 do `CLAUDE.md`.
+
+### 5. Dois caminhos de origem do plano não existem
+
+Conferidos contra o corpus em 2026-10-17 (5 dos 7 existem exatamente como
+escritos; os dois abaixo o próprio plano marcou como "ou similar"):
+
+| Caminho no plano | Real |
+| --- | --- |
+| `REP iDClass/REP_iDClass.jpg` | `REP iDClass/REP-iDClass-Frontal.jpg` (e `-Perspectiva.jpg`) |
+| `iDAccess Pro/iDAccess_Pro.jpg` | `iDAccess Pro/iDAccess-Pro-Frontal.jpg` (e `-Perspectiva.jpg`) |
+
+**Correção de uma análise anterior desta mesma data:** chegou-se a registrar
+que `idblock-pcd` não tinha foto no corpus e que as imagens `idblock-inox` e
+`idblock-preto` só existiam como `.tif`, tendo sido "destravadas" pela
+conversão da Etapa 0. **As duas afirmações estavam erradas**, por omissão da
+pasta `IDBlock` no levantamento: `IDBlock/idblock-pcd-perspectiva.jpg`,
+`IDBlock/iDBlock-BQC-Inox-Perspectiva.jpg` e
+`IDBlock/iDBlock-BQC-Preto-Perspectiva.jpg` sempre existiram como JPEG. Os
+`.tif` convertidos na Etapa 0 são da pasta `IDBlock Facial`, que é **outra
+linha de produto** (iDBlock Facial, não iDBlock BQC); a conversão segue
+valendo para o corpus de imagem do RAG (levou o conjunto de 73 para 77
+imagens válidas), mas **não** era pré-requisito da refatoração visual.
+
+### Checklist de verificação (depois que a refatoração terminar)
+
+Os testes abaixo já existem e guardam o comportamento de hoje. Qualquer um
+deles que precise ter **asserção** alterada (não só seletor) é sinal de
+quebra de contrato, não de ajuste visual:
+
+| Teste | Guarda |
+| --- | --- |
+| `tests/components/ChatProductCard.test.tsx` | card de produto do chat (R6/Fase 8) |
+| `tests/components/ProductCard.test.tsx` | card do catálogo |
+| `tests/components/ProdutoDetalhePage.test.tsx` | `/produtos/[id]` |
+| `tests/unit/LayoutHeaderFooter.test.tsx` | Header/Footer e ocultação do Footer em `/admin/*` |
+| `tests/lib/apiBaseUrl.test.ts` | resolução do host do backend |
+| `tests/components/ChatModal.test.tsx` | streaming SSE e modal do chat |
+
 **Decisão registrada (além do MVP, a pedido explícito, 2026-09-21):**
 collections ganham um campo de **finalidade** (`purpose`): `chat` (default,
 pública, elegível a ser ativada e buscada pelo chat) vs `mcp_b2b` (restrita
