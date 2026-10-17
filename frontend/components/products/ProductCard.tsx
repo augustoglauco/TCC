@@ -95,35 +95,37 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
 
   return (
     <div
-      className={`group flex flex-col justify-between rounded-xl border bg-white p-5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-md ${
+      className={`group flex flex-col justify-between rounded-2xl border bg-white p-5 text-left shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-lg ${
         emEstoque
-          ? "border-slate-200 hover:border-blue-300"
-          : "border-slate-200 bg-slate-50/50 opacity-90"
+          ? "border-slate-200 hover:border-blue-400"
+          : "border-slate-200 bg-slate-50/60 opacity-90"
       }`}
     >
       <div className="text-left">
         {/* Cabeçalho do Card: Categoria e Badge de Estoque */}
         <div className="flex items-center justify-between gap-2 text-left">
-          <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+          <span className="rounded-md bg-slate-100 border border-slate-200/80 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-slate-600">
             {product.categoria}
           </span>
 
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
               emEstoque
                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                 : "bg-amber-50 text-amber-700 border border-amber-200"
             }`}
           >
             <span
-              className={`h-1.5 w-1.5 rounded-full ${emEstoque ? "bg-emerald-500" : "bg-amber-500"}`}
+              className={`h-1.5 w-1.5 rounded-full ${
+                emEstoque ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+              }`}
             />
             {emEstoque ? `Em estoque (${totalEstoque} un)` : "Sem estoque"}
           </span>
         </div>
 
         {/* Área da Imagem do Produto */}
-        <div className="relative mt-4 aspect-4/3 w-full overflow-hidden rounded-lg bg-slate-100 flex items-center justify-center group/img border border-slate-100">
+        <div className="relative mt-4 aspect-4/3 w-full overflow-hidden rounded-xl bg-slate-50 flex items-center justify-center group/img border border-slate-100">
           {activeImageUrl ? (
             // Mesmo padrao de app/pedidos/page.tsx: a URL vem de um host dinamico
             // resolvido em runtime (ver getApiBaseUrl()), entao next/image bloquearia
@@ -132,7 +134,7 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
             <img
               src={activeImageUrl}
               alt={product.nome}
-              className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover/img:scale-105 cursor-pointer"
+              className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover/img:scale-105 cursor-pointer"
               onClick={() => onOpenZoom(activeImageUrl)}
             />
           ) : (
@@ -159,7 +161,7 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
             <button
               type="button"
               onClick={() => onOpenZoom(activeImageUrl)}
-              className="absolute top-2 right-2 rounded-full bg-slate-900/60 p-1.5 text-white opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-slate-900 cursor-pointer"
+              className="absolute top-2 right-2 rounded-full bg-slate-900/70 p-2 text-white opacity-90 sm:opacity-0 sm:group-hover/img:opacity-100 transition-opacity hover:bg-slate-900 cursor-pointer"
               title="Ampliar imagem (Zoom)"
               aria-label="Ampliar imagem"
             >
@@ -218,7 +220,7 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
         </div>
 
         {/* Nome do Produto (alinhado à esquerda) */}
-        <h3 className="mt-3.5 font-bold text-slate-900 text-base line-clamp-2 min-h-12 leading-snug text-left">
+        <h3 className="mt-4 font-bold text-slate-900 text-base line-clamp-2 min-h-12 leading-snug text-left">
           <Link href={`/produtos/${product.id}`} className="hover:text-blue-600 transition-colors">
             {product.nome}
           </Link>
@@ -229,6 +231,13 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
           <p className="mt-1 text-xs text-slate-500 line-clamp-2 min-h-8 text-left">
             {product.descricao}
           </p>
+        )}
+
+        {/* Especificações Técnicas Resumidas */}
+        {product.especificacoes_tecnicas && (
+          <div className="mt-2.5 rounded-lg bg-slate-50 border border-slate-100 px-2.5 py-1.5 text-[11px] font-mono text-slate-600 line-clamp-1">
+            {product.especificacoes_tecnicas}
+          </div>
         )}
 
         {/* Preço de Venda em R$ (alinhado à direita) */}
@@ -256,7 +265,7 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
           type="button"
           onClick={handleBuy}
           disabled={!emEstoque}
-          className={`flex items-center justify-center gap-1.5 rounded-lg py-2.5 px-3 text-xs font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-3 text-xs font-bold transition-all cursor-pointer ${
             emEstoque
               ? "bg-blue-600 text-white hover:bg-blue-700 shadow-xs hover:shadow"
               : "bg-slate-200 text-slate-400 cursor-not-allowed"
@@ -269,7 +278,7 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
         <button
           type="button"
           onClick={handleQuote}
-          className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-slate-50 py-2.5 px-3 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 bg-slate-50 py-2.5 px-3 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300 transition-colors cursor-pointer"
         >
           <span>💬</span>
           <span>Cotar</span>

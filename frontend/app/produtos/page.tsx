@@ -9,7 +9,7 @@ const ITEMS_PER_PAGE = 12;
 
 export default function ProdutosPage() {
   const [products, setProducts] = useState<Produto[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>(["Todas"]);
   const [totalItems, setTotalItems] = useState(0);
 
   const [selectedCategory, setSelectedCategory] = useState("Todas");
@@ -103,7 +103,7 @@ export default function ProdutosPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12 space-y-8">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-8">
       {/* Modal de Zoom de Imagem */}
       {zoomImageUrl && (
         <ImageZoomModal
@@ -113,49 +113,33 @@ export default function ProdutosPage() {
         />
       )}
 
-      {/* Cabeçalho da página */}
-      <div className="border-b border-slate-200 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Produtos Industriais
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Consulte produtos cadastrados no Banco de Dados, verifique disponibilidade de estoque e
-            solicite cotações em tempo real.
-          </p>
-        </div>
-
-        {/* Barra de Filtros e Busca */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          {/* Seletor de Categorias */}
-          <div className="w-full sm:w-48">
-            <select
-              value={selectedCategory}
-              onChange={(e) => {
-                setSelectedCategory(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs cursor-pointer"
-            >
-              {categories.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat === "Todas" ? "Todas as categorias" : cat}
-                </option>
-              ))}
-            </select>
+      {/* Cabeçalho estilo Galeria Técnica M3 Glass */}
+      <div className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-slate-800 p-6 sm:p-10 text-white shadow-xl space-y-6">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+          <div className="space-y-2 max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-0.5 text-[11px] font-bold uppercase tracking-widest text-blue-400">
+              Catálogo Técnico Oficial
+            </span>
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+              Equipamentos &amp; Hardware Industrial
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              Consulte produtos cadastrados no banco de dados, verifique disponibilidade de estoque
+              por Centro de Distribuição e solicite cotações em tempo real via MCP B2B.
+            </p>
           </div>
 
           {/* Campo de Busca por Texto */}
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full lg:w-80 shrink-0">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por nome ou código..."
-              className="w-full rounded-lg border border-slate-300 bg-white pl-9 pr-3 py-2 text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
+              className="w-full rounded-xl border border-slate-700 bg-slate-900/90 pl-10 pr-4 py-3 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
             />
             <svg
-              className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"
+              className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -168,6 +152,30 @@ export default function ProdutosPage() {
               />
             </svg>
           </div>
+        </div>
+
+        {/* Filtros de Categoria em Pílulas com Rolagem Horizontal Touch */}
+        <div className="pt-4 border-t border-slate-800/80 flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+          {categories.map((cat) => {
+            const isActive = selectedCategory === cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  setCurrentPage(1);
+                }}
+                className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                    : "border border-slate-800 bg-slate-900/80 text-slate-300 hover:border-slate-700 hover:bg-slate-800 hover:text-white"
+                }`}
+              >
+                {cat === "Todas" ? "Todas as categorias" : cat}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -212,7 +220,7 @@ export default function ProdutosPage() {
                 </span>
               </div>
 
-              {/* Grid de Cards da Categoria */}
+              {/* Grid de Cards da Categoria (1 col mobile, 2 cols tablet 7'', 3-4 cols desktop) */}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {prodsDaCategoria.map((prod) => (
                   <ProductCard
