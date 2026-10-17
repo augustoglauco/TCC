@@ -10,11 +10,12 @@ import type {
   CollectionCreatePayload,
   CollectionPurpose,
   PayloadIndex,
-  PayloadSchemaType,
   QuantizationType,
   RagCollection,
   TextIndexParams,
 } from "@/lib/types/rag";
+import { CollectionQuantizationSection } from "./CollectionQuantizationSection";
+import { CollectionPayloadIndexesSection } from "./CollectionPayloadIndexesSection";
 
 const CURATED_MODELS = [
   { value: "paraphrase-multilingual-MiniLM-L12-v2", label: "MiniLM multilíngue (384 dim)" },
@@ -23,17 +24,6 @@ const CURATED_MODELS = [
   { value: "intfloat/multilingual-e5-large", label: "E5 large multilíngue (1024 dim)" },
   { value: "__custom__", label: "Outro (digitar nome)" },
 ] as const;
-
-const SCHEMA_TYPES: PayloadSchemaType[] = [
-  "keyword",
-  "integer",
-  "float",
-  "bool",
-  "geo",
-  "datetime",
-  "uuid",
-  "text",
-];
 
 const PAYLOAD_INDEXES_PADRAO: PayloadIndex[] = [
   { field: "domain", schema_type: "keyword" },
@@ -459,258 +449,27 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           </div>
         </fieldset>
 
-        <fieldset className="space-y-2">
-          <legend className="flex items-center text-sm font-medium text-gray-900">
-            Quantização
-            <Tooltip content="Técnica de compressão vetorial para reduzir o uso de RAM e acelerar as buscas no banco de vetores." />
-          </legend>
-          <select
-            value={quantizationType}
-            onChange={(e) => setQuantizationType(e.target.value as QuantizationType)}
-            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-          >
-            <option value="none">Nenhuma</option>
-            <option value="scalar">Scalar (int8)</option>
-            <option value="product">Product</option>
-            <option value="binary">Binary</option>
-          </select>
-          {quantizationType === "scalar" && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center">
-                  <label htmlFor="scalar-quantile" className="text-sm text-gray-700">
-                    quantile
-                  </label>
-                  <Tooltip content="Percentil limite para descarte de valores extremos na quantização escalar (int8), padrão 0.99." />
-                </div>
-                <input
-                  id="scalar-quantile"
-                  type="number"
-                  step="0.01"
-                  value={scalarQuantile}
-                  onChange={(e) => setScalarQuantile(Number(e.target.value))}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  id="scalar-ram"
-                  type="checkbox"
-                  checked={scalarAlwaysRam}
-                  onChange={(e) => setScalarAlwaysRam(e.target.checked)}
-                />
-                <label htmlFor="scalar-ram" className="flex items-center text-sm text-gray-700">
-                  always_ram
-                </label>
-                <Tooltip content="Mantém os vetores quantizados carregados na memória RAM mesmo que a coleção principal esteja configurada em disco." />
-              </div>
-            </div>
-          )}
-          {quantizationType === "product" && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="flex items-center">
-                  <label htmlFor="product-compression" className="text-sm text-gray-700">
-                    compression
-                  </label>
-                  <Tooltip content="Fator de compressão do Product Quantization (ex.: x16 reduz o tamanho dos vetores em 16 vezes)." />
-                </div>
-                <select
-                  id="product-compression"
-                  value={productCompression}
-                  onChange={(e) =>
-                    setProductCompression(e.target.value as typeof productCompression)
-                  }
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                >
-                  {(["x4", "x8", "x16", "x32", "x64"] as const).map((valor) => (
-                    <option key={valor} value={valor}>
-                      {valor}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  id="product-ram"
-                  type="checkbox"
-                  checked={productAlwaysRam}
-                  onChange={(e) => setProductAlwaysRam(e.target.checked)}
-                />
-                <label htmlFor="product-ram" className="flex items-center text-sm text-gray-700">
-                  always_ram
-                </label>
-                <Tooltip content="Mantém os vetores quantizados carregados na memória RAM mesmo que a coleção esteja em disco." />
-              </div>
-            </div>
-          )}
-          {quantizationType === "binary" && (
-            <div className="flex items-center gap-2">
-              <input
-                id="binary-ram"
-                type="checkbox"
-                checked={binaryAlwaysRam}
-                onChange={(e) => setBinaryAlwaysRam(e.target.checked)}
-              />
-              <label htmlFor="binary-ram" className="flex items-center text-sm text-gray-700">
-                always_ram
-              </label>
-              <Tooltip content="Mantém os vetores quantizados carregados na memória RAM." />
-            </div>
-          )}
-        </fieldset>
+        <CollectionQuantizationSection
+          quantizationType={quantizationType}
+          scalarQuantile={scalarQuantile}
+          scalarAlwaysRam={scalarAlwaysRam}
+          productCompression={productCompression}
+          productAlwaysRam={productAlwaysRam}
+          binaryAlwaysRam={binaryAlwaysRam}
+          onType={setQuantizationType}
+          onScalarQuantile={setScalarQuantile}
+          onScalarAlwaysRam={setScalarAlwaysRam}
+          onProductCompression={setProductCompression}
+          onProductAlwaysRam={setProductAlwaysRam}
+          onBinaryAlwaysRam={setBinaryAlwaysRam}
+        />
 
-        <fieldset className="space-y-2">
-          <legend className="flex items-center text-sm font-medium text-gray-900">
-            Payload indexes
-            <Tooltip content="Índices em campos de metadados dos documentos para permitir buscas filtradas extremamente rápidas (ex.: por domínio ou documento ID)." />
-          </legend>
-          {payloadIndexes.map((item, indice) => (
-            <div key={indice} className="space-y-2 rounded-md border border-gray-100 p-2">
-              <div className="flex items-center gap-2">
-                <input
-                  aria-label={`Campo do índice ${indice + 1}`}
-                  value={item.field}
-                  onChange={(e) => atualizarPayloadIndex(indice, { field: e.target.value })}
-                  placeholder="campo"
-                  className="w-1/2 rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-                <select
-                  aria-label={`Tipo do índice ${indice + 1}`}
-                  value={item.schema_type}
-                  onChange={(e) => {
-                    const schema_type = e.target.value as PayloadSchemaType;
-                    atualizarPayloadIndex(indice, {
-                      schema_type,
-                      text_params:
-                        schema_type === "text"
-                          ? (item.text_params ?? TEXT_PARAMS_PADRAO)
-                          : undefined,
-                    });
-                  }}
-                  className="w-1/3 rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                >
-                  {SCHEMA_TYPES.map((tipo) => (
-                    <option key={tipo} value={tipo}>
-                      {tipo}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => removerPayloadIndex(indice)}
-                  className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-red-50/60 px-2.5 py-1.5 text-xs font-semibold text-red-600 shadow-2xs hover:bg-red-100 hover:text-red-700 transition-colors"
-                >
-                  Remover
-                </button>
-              </div>
-              {item.schema_type === "text" && (
-                <div className="grid grid-cols-2 gap-2 pl-1">
-                  <div>
-                    <div className="flex items-center">
-                      <label htmlFor={`tokenizer-${indice}`} className="text-sm text-gray-700">
-                        Tokenizer
-                      </label>
-                      <Tooltip content="Estratégia de divisão do texto do campo: word (palavras), whitespace (espaços), prefix (prefixos) ou multilingual." />
-                    </div>
-                    <select
-                      id={`tokenizer-${indice}`}
-                      aria-label={`Tokenizer do índice ${indice + 1}`}
-                      value={item.text_params?.tokenizer ?? TEXT_PARAMS_PADRAO.tokenizer}
-                      onChange={(e) =>
-                        atualizarPayloadIndex(indice, {
-                          text_params: {
-                            ...(item.text_params ?? TEXT_PARAMS_PADRAO),
-                            tokenizer: e.target.value as TextIndexParams["tokenizer"],
-                          },
-                        })
-                      }
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                    >
-                      <option value="prefix">prefix</option>
-                      <option value="whitespace">whitespace</option>
-                      <option value="word">word</option>
-                      <option value="multilingual">multilingual</option>
-                    </select>
-                  </div>
-                  <div>
-                    <div className="flex items-center">
-                      <label htmlFor={`min-token-${indice}`} className="text-sm text-gray-700">
-                        min_token_len (vazio = padrão)
-                      </label>
-                      <Tooltip content="Comprimento mínimo que um token precisa ter para ser incluído no índice." />
-                    </div>
-                    <input
-                      id={`min-token-${indice}`}
-                      type="number"
-                      aria-label={`min_token_len do índice ${indice + 1}`}
-                      value={item.text_params?.min_token_len ?? ""}
-                      onChange={(e) =>
-                        atualizarPayloadIndex(indice, {
-                          text_params: {
-                            ...(item.text_params ?? TEXT_PARAMS_PADRAO),
-                            min_token_len: e.target.value === "" ? null : Number(e.target.value),
-                          },
-                        })
-                      }
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <div className="flex items-center">
-                      <label htmlFor={`max-token-${indice}`} className="text-sm text-gray-700">
-                        max_token_len (vazio = padrão)
-                      </label>
-                      <Tooltip content="Comprimento máximo que um token pode ter para ser incluído no índice." />
-                    </div>
-                    <input
-                      id={`max-token-${indice}`}
-                      type="number"
-                      aria-label={`max_token_len do índice ${indice + 1}`}
-                      value={item.text_params?.max_token_len ?? ""}
-                      onChange={(e) =>
-                        atualizarPayloadIndex(indice, {
-                          text_params: {
-                            ...(item.text_params ?? TEXT_PARAMS_PADRAO),
-                            max_token_len: e.target.value === "" ? null : Number(e.target.value),
-                          },
-                        })
-                      }
-                      className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id={`lowercase-${indice}`}
-                      type="checkbox"
-                      aria-label={`lowercase do índice ${indice + 1}`}
-                      checked={item.text_params?.lowercase ?? TEXT_PARAMS_PADRAO.lowercase}
-                      onChange={(e) =>
-                        atualizarPayloadIndex(indice, {
-                          text_params: {
-                            ...(item.text_params ?? TEXT_PARAMS_PADRAO),
-                            lowercase: e.target.checked,
-                          },
-                        })
-                      }
-                    />
-                    <label htmlFor={`lowercase-${indice}`} className="text-sm text-gray-700">
-                      lowercase
-                    </label>
-                    <Tooltip content="Converte todo o texto do campo para letras minúsculas antes de indexar." />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={adicionarPayloadIndex}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 transition-all"
-          >
-            + Adicionar índice
-          </button>
-        </fieldset>
+        <CollectionPayloadIndexesSection
+          indexes={payloadIndexes}
+          onUpdate={atualizarPayloadIndex}
+          onRemove={removerPayloadIndex}
+          onAdd={adicionarPayloadIndex}
+        />
 
         {error && <p className="rounded-md bg-red-50 px-4 py-3 text-red-800">{error}</p>}
 
