@@ -7,10 +7,13 @@
 // `docs/FRONTEND.md` §8. Ver
 // docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md e
 // docs/superpowers/specs/2026-09-15-rag-collections-config-design.md.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { CollectionFormModal } from "@/components/admin/CollectionFormModal";
 import { CollectionsTable } from "@/components/admin/CollectionsTable";
+import { CollectionPurposeCard } from "./CollectionPurposeCard";
+import { CollectionSelector } from "./CollectionSelector";
+import { DocumentDropzone } from "./DocumentDropzone";
 import { CrawlerPanel } from "@/components/admin/CrawlerPanel";
 import { CrawlerReviewQueue } from "@/components/admin/CrawlerReviewQueue";
 import { DocumentsTable } from "@/components/admin/DocumentsTable";
@@ -41,8 +44,6 @@ const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
   { value: "atendimento", label: "Atendimento ao Usuário" },
 ];
 
-const ACCEPTED_EXTENSIONS = ".txt,.md,.pdf";
-
 function AbaEnviarDocumento({
   collections,
   onColecoesMudaram,
@@ -54,52 +55,11 @@ function AbaEnviarDocumento({
 }) {
   const token = useAuthStore((s) => s.token);
   const [file, setFile] = useState<File | null>(null);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [domain, setDomain] = useState<RagDomain>("vendas");
   const [collectionId, setCollectionId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<DocumentIngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isDraggingOver) {
-      setIsDraggingOver(true);
-    }
-  }
-
-  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-    setIsDraggingOver(false);
-  }
-
-  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-
-    const droppedFiles = e.dataTransfer.files;
-    if (!droppedFiles || droppedFiles.length === 0) return;
-
-    const droppedFile = droppedFiles[0];
-    const extensao = "." + (droppedFile.name.split(".").pop() || "").toLowerCase();
-    const permitidos = ACCEPTED_EXTENSIONS.split(",").map((ext) => ext.trim().toLowerCase());
-
-    if (!permitidos.includes(extensao)) {
-      setError(
-        `Formato de arquivo não suportado (${extensao}). Formatos aceitos: ${ACCEPTED_EXTENSIONS}`,
-      );
-      return;
-    }
-
-    setFile(droppedFile);
-    setError(null);
-  }
-
   const [criandoCollection, setCriandoCollection] = useState(false);
   const [modalCriarAberto, setModalCriarAberto] = useState(false);
 
@@ -177,15 +137,10 @@ function AbaEnviarDocumento({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!file || isSubmitting || !token) {
-      return;
-    }
-    const form = event.currentTarget;
-
+    if (!file || isSubmitting || !token) return;
     setIsSubmitting(true);
     setError(null);
     setResult(null);
-
     try {
       const response = await uploadDocument(token, {
         file,
@@ -194,10 +149,6 @@ function AbaEnviarDocumento({
       });
       setResult(response);
       setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      form.reset();
       onIngerido();
     } catch (err) {
       setError(err instanceof RagApiError ? err.message : "Erro inesperado ao enviar o documento.");
@@ -206,7 +157,6 @@ function AbaEnviarDocumento({
     }
   }
 
-  const chatCollections = collections.filter((c) => (c.purpose || "chat") === "chat");
   const b2bCollections = collections.filter((c) => c.purpose === "mcp_b2b");
   const adminCollections = collections.filter((c) => c.purpose === "admin");
 
@@ -248,139 +198,22 @@ function AbaEnviarDocumento({
             </select>
           </div>
 
-          {/* Seletor de Collection Destino */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="collection"
-                className="block text-xs font-bold uppercase tracking-wider text-slate-700"
-              >
-                Collection destino
-              </label>
-              <button
-                type="button"
-                onClick={() => setModalCriarAberto(true)}
-                className="text-xs text-blue-600 font-semibold hover:underline cursor-pointer"
-              >
-                + Nova customizada
-              </button>
-            </div>
-            <select
-              id="collection"
-              value={collectionSelecionada}
-              disabled={criandoCollection}
-              onChange={(event) => handleSelectCollectionChange(event.target.value)}
-              className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
-            >
-              <optgroup label="💬 Chat Público (purpose: chat)">
-                {chatCollections.length > 0 ? (
-                  chatCollections.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.is_active ? "★ (ativa no Chat)" : ""}
-                    </option>
-                  ))
-                ) : (
-                  <option value="__create_chat__">
-                    ⚡ Criar coleção inicial para Chat Público (docs_chat)
-                  </option>
-                )}
-              </optgroup>
-
-              <optgroup label="🏢 MCP B2B Restrito (purpose: mcp_b2b)">
-                {b2bCollections.length > 0 ? (
-                  b2bCollections.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.is_active ? "★ (ativa no MCP B2B)" : "[MCP B2B]"}
-                    </option>
-                  ))
-                ) : (
-                  <option value="__create_mcp_b2b__">
-                    ⚡ Criar coleção inicial para MCP B2B (docs_mcp_b2b)
-                  </option>
-                )}
-              </optgroup>
-
-              <optgroup label="🛡️ Admin Exclusivo (purpose: admin)">
-                {adminCollections.length > 0 ? (
-                  adminCollections.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} {c.is_active ? "★ (ativa no Admin)" : "[Admin]"}
-                    </option>
-                  ))
-                ) : (
-                  <option value="__create_admin__">
-                    ⚡ Criar coleção inicial para Admin (docs_admin)
-                  </option>
-                )}
-              </optgroup>
-            </select>
-          </div>
+          <CollectionSelector
+            collections={collections}
+            value={collectionSelecionada}
+            disabled={criandoCollection}
+            onChange={handleSelectCollectionChange}
+            onOpenModal={() => setModalCriarAberto(true)}
+          />
         </div>
 
-        {/* Card Explicativo sobre a Finalidade Escolhida */}
-        <div className="rounded-xl border border-slate-200/80 bg-slate-50/80 p-4 space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-700">
-              Finalidades Previstas no Projeto:
-            </span>
-            {selectedPurpose === "chat" && (
-              <span className="rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold px-2.5 py-0.5">
-                💬 Chat Público
-              </span>
-            )}
-            {selectedPurpose === "mcp_b2b" && (
-              <span className="rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold px-2.5 py-0.5">
-                🏢 MCP B2B Restrito
-              </span>
-            )}
-            {selectedPurpose === "admin" && (
-              <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2.5 py-0.5">
-                🛡️ Admin Exclusivo
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-600 leading-relaxed pt-1">
-            {selectedPurpose === "chat" &&
-              "Os documentos desta collection estarão disponíveis para consulta e resposta no assistente virtual do chat público."}
-            {selectedPurpose === "mcp_b2b" &&
-              "Conteúdo restrito ao canal MCP B2B para parceiros comerciais homologados. Não é pesquisado no chat público."}
-            {selectedPurpose === "admin" &&
-              "Documentação restrita de uso exclusivo da administração. Acessível somente em pesquisas no modo admin seguro."}
-          </p>
-
-          {/* Botões de Ação Rápida caso a Finalidade não possua Collections */}
-          {selectedPurpose === "mcp_b2b" && b2bCollections.length === 0 && (
-            <div className="mt-3 pt-2 border-t border-purple-200/80 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs text-purple-900 font-medium">
-                Nenhuma coleção MCP B2B existente.
-              </span>
-              <button
-                type="button"
-                disabled={criandoCollection}
-                onClick={() => handleCriarCollectionRapida("mcp_b2b")}
-                className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-50 cursor-pointer shadow-2xs transition-all"
-              >
-                {criandoCollection ? "Criando..." : "⚡ Criar coleção docs_mcp_b2b agora"}
-              </button>
-            </div>
-          )}
-
-          {selectedPurpose === "admin" && adminCollections.length === 0 && (
-            <div className="mt-3 pt-2 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs text-amber-900 font-medium">
-                Nenhuma coleção Admin existente.
-              </span>
-              <button
-                type="button"
-                disabled={criandoCollection}
-                onClick={() => handleCriarCollectionRapida("admin")}
-                className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50 cursor-pointer shadow-2xs transition-all"
-              >
-                {criandoCollection ? "Criando..." : "⚡ Criar coleção docs_admin agora"}
-              </button>
-            </div>
-          )}
-        </div>
+        <CollectionPurposeCard
+          purpose={selectedPurpose}
+          b2bCount={b2bCollections.length}
+          adminCount={adminCollections.length}
+          criando={criandoCollection}
+          onCriarRapida={handleCriarCollectionRapida}
+        />
 
         {/* Modal de Criação Customizada */}
         <CollectionFormModal
@@ -393,102 +226,14 @@ function AbaEnviarDocumento({
           }}
         />
 
-        {/* Área de Seleção de Arquivo (File Dropzone Box) */}
-        <div className="space-y-2">
-          <label htmlFor="file" className="block text-sm font-semibold text-slate-900">
-            Arquivo
-          </label>
-          <div
-            data-testid="document-dropzone"
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                fileInputRef.current?.click();
-              }
-            }}
-            tabIndex={0}
-            role="button"
-            aria-label="Selecionar ou soltar arquivo para ingestão"
-            className={`relative border-2 border-dashed transition-all rounded-2xl p-6 text-center space-y-2 group cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
-              isDraggingOver
-                ? "border-blue-500 bg-blue-50/80 scale-[1.01] shadow-md ring-2 ring-blue-500/30"
-                : "border-slate-300 hover:border-blue-500 bg-slate-50/50 hover:bg-blue-50/30"
-            }`}
-          >
-            <input
-              ref={fileInputRef}
-              id="file"
-              type="file"
-              accept={ACCEPTED_EXTENSIONS}
-              onChange={(event) => {
-                const selected = event.target.files?.[0] ?? null;
-                setFile(selected);
-                if (selected) setError(null);
-              }}
-              className="sr-only"
-            />
-            <div
-              className={`mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-2xl transition-transform ${
-                isDraggingOver
-                  ? "bg-blue-200 text-blue-700 scale-110"
-                  : "bg-blue-100 text-blue-600 group-hover:scale-110"
-              }`}
-            >
-              📄
-            </div>
-            {isDraggingOver ? (
-              <div className="space-y-1">
-                <p className="text-sm font-bold text-blue-600">
-                  Solte o arquivo aqui para selecionar
-                </p>
-                <p className="text-xs text-blue-500">Formatos aceitos: .pdf, .txt, .md</p>
-              </div>
-            ) : file ? (
-              <div className="space-y-2">
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-slate-900">{file.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {(file.size / 1024).toFixed(1)} KB — Pronto para envio
-                  </p>
-                </div>
-                <div className="flex items-center justify-center gap-3 pt-1">
-                  <span className="text-xs text-blue-600 font-medium hover:underline">
-                    Clique ou arraste outro arquivo para trocar
-                  </span>
-                  <span className="text-slate-300">|</span>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFile(null);
-                      if (fileInputRef.current) {
-                        fileInputRef.current.value = "";
-                      }
-                    }}
-                    className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
-                  >
-                    ✕ Remover
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div>
-                <p className="text-sm font-semibold text-slate-700">
-                  Clique ou arraste um arquivo para selecionar
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Formatos aceitos: <span className="font-mono text-slate-700">.pdf</span>,{" "}
-                  <span className="font-mono text-slate-700">.txt</span>,{" "}
-                  <span className="font-mono text-slate-700">.md</span>
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        <DocumentDropzone
+          file={file}
+          onFileChange={(f) => {
+            setFile(f);
+            if (f) setError(null);
+          }}
+          onError={setError}
+        />
 
         {/* Botão de Envio */}
         <div className="pt-2">
