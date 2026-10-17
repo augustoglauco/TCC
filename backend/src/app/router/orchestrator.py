@@ -1374,6 +1374,74 @@ async def _gerar_stream_llm(
         raise ExternalBackendIndisponivelError(str(exc)) from exc
 
 
+def _calcular_tps(chunk: LLMStreamChunk) -> float | None:
+    """Tokens por segundo a partir do chunk final do stream."""
+    if chunk.completion_tokens and chunk.eval_duration_ms:
+        return round(chunk.completion_tokens / max(chunk.eval_duration_ms / 1000.0, 0.001), 2)
+    return None
+
+
+async def _construir_decisao(
+    classification: Any,
+    complexity_strategy: str,
+    rag: _RagResult,
+    chunk: LLMStreamChunk,
+    client: LLMClient,
+    resposta_completa: str,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
+    rag_download_threshold: float,
+    conversation_id: str,
+) -> RouterDecision:
+    """Monta RouterDecision, loga e dispara registro de uso em background."""
+    tps = _calcular_tps(chunk)
+    decisao = RouterDecision(
+        domain=classification.domain,
+        complexity=classification.complexity,
+        confidence=classification.confidence,
+        complexity_strategy_usada=complexity_strategy,
+        backend_escolhido=rag.backend_escolhido,
+        motivo_escalonamento=rag.motivo,
+        resposta=resposta_completa,
+        latencia_ms=chunk.total_duration_ms or 0.0,
+        tokens_entrada=chunk.prompt_tokens,
+        tokens_saida=chunk.completion_tokens,
+        cost_prompt_usd=chunk.cost_prompt_usd,
+        cost_completion_usd=chunk.cost_completion_usd,
+        custo_estimado_usd=chunk.estimated_cost_usd,
+        modelo_usado=chunk.model_name or getattr(client, "model", None),
+        ttft_ms=chunk.prompt_eval_duration_ms,
+        tps=tps,
+        rag_retrieval_ms=rag.rag_retrieval_ms,
+        rag_chunks_count=rag.rag_chunks_count,
+        rag_avg_score=rag.rag_avg_score,
+        rag_chunks=rag.rag_chunks,
+        router_provider=classification.provider_efetivo,
+        card=_construir_card_vendas(rag.dados_catalogo_vendas)
+        or await _construir_card_documento_download(
+            db_sessionmaker, rag.documentos, classification.domain, rag_download_threshold
+        ),
+    )
+    logger.info(
+        "router_decision", extra={"router": {"event": "router_decision", **decisao.model_dump()}}
+    )
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="chat",
+            ambiente="interno" if rag.backend_escolhido == "local" else "externo",
+            modelo=decisao.modelo_usado or "desconhecido",
+            operacao="geracao_resposta",
+            tokens_entrada=decisao.tokens_entrada,
+            tokens_saida=decisao.tokens_saida,
+            custo_usd=decisao.custo_estimado_usd,
+            referencia_id=conversation_id or None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
+    )
+    return decisao
+
+
 async def _handle_llm_generation(
     message: str,
     recent_messages: list[str],
@@ -1449,57 +1517,17 @@ async def _handle_llm_generation(
         else:
             chunk_final = evento
 
-    tps: float | None = None
-    if chunk_final.completion_tokens and chunk_final.eval_duration_ms:
-        tps = round(
-            chunk_final.completion_tokens / max(chunk_final.eval_duration_ms / 1000.0, 0.001), 2
-        )
-
     resposta_completa = "".join(texto_partes)
-    decisao = RouterDecision(
-        domain=classification.domain,
-        complexity=classification.complexity,
-        confidence=classification.confidence,
-        complexity_strategy_usada=complexity_strategy,
-        backend_escolhido=rag.backend_escolhido,
-        motivo_escalonamento=rag.motivo,
-        resposta=resposta_completa,
-        latencia_ms=chunk_final.total_duration_ms or 0.0,
-        tokens_entrada=chunk_final.prompt_tokens,
-        tokens_saida=chunk_final.completion_tokens,
-        cost_prompt_usd=chunk_final.cost_prompt_usd,
-        cost_completion_usd=chunk_final.cost_completion_usd,
-        custo_estimado_usd=chunk_final.estimated_cost_usd,
-        modelo_usado=chunk_final.model_name or getattr(client, "model", None),
-        ttft_ms=chunk_final.prompt_eval_duration_ms,
-        tps=tps,
-        rag_retrieval_ms=rag.rag_retrieval_ms,
-        rag_chunks_count=rag.rag_chunks_count,
-        rag_avg_score=rag.rag_avg_score,
-        rag_chunks=rag.rag_chunks,
-        router_provider=classification.provider_efetivo,
-        card=_construir_card_vendas(rag.dados_catalogo_vendas)
-        or await _construir_card_documento_download(
-            db_sessionmaker, rag.documentos, classification.domain, rag_download_threshold
-        ),
-    )
-    logger.info(
-        "router_decision", extra={"router": {"event": "router_decision", **decisao.model_dump()}}
-    )
-    spawn_background_task(
-        registrar_uso_ia(
-            origem="chat",
-            ambiente="interno" if rag.backend_escolhido == "local" else "externo",
-            modelo=decisao.modelo_usado or "desconhecido",
-            operacao="geracao_resposta",
-            tokens_entrada=decisao.tokens_entrada,
-            tokens_saida=decisao.tokens_saida,
-            custo_usd=decisao.custo_estimado_usd,
-            referencia_id=conversation_id or None,
-            session=None,
-            session_factory=None,
-            commit=False,
-        )
+    decisao = await _construir_decisao(
+        classification=classification,
+        complexity_strategy=complexity_strategy,
+        rag=rag,
+        chunk=chunk_final,
+        client=client,
+        resposta_completa=resposta_completa,
+        db_sessionmaker=db_sessionmaker,
+        rag_download_threshold=rag_download_threshold,
+        conversation_id=conversation_id,
     )
     yield decisao
 
