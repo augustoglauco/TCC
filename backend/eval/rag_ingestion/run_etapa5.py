@@ -113,9 +113,7 @@ def comparar_rankings_distancia(por_metrica: dict[str, dict]) -> dict:
         return {"rankings_identicos": None}
     chaves = list(por_metrica.keys())
     ref = por_metrica[chaves[0]]
-    fontes_ref = [
-        [r["fonte"] for r in item["recuperadas"]] for item in ref.get("itens", [])
-    ]
+    fontes_ref = [[r["fonte"] for r in item["recuperadas"]] for item in ref.get("itens", [])]
     identicos = True
     for k in chaves[1:]:
         atual = por_metrica[k]
@@ -231,9 +229,7 @@ async def executar(args) -> int:
 
     embedder = TextEmbedder(model_name=args.embedding_model)
     dimensao = await embedder.get_dimension()
-    vetores_consulta = await embedder.embed(
-        [p["pergunta"] for p in perguntas], is_query=True
-    )
+    vetores_consulta = await embedder.embed([p["pergunta"] for p in perguntas], is_query=True)
 
     por_distancia: dict[str, dict] = {}
     por_payload_index: dict[str, dict] = {}
@@ -306,9 +302,7 @@ async def executar(args) -> int:
                 payload_indexes=payload_indexes,
             )
             try:
-                args_med = SimpleNamespace(
-                    dominio=dominio, top_k=TOP_K_BASE, score_threshold=0.0
-                )
+                args_med = SimpleNamespace(dominio=dominio, top_k=TOP_K_BASE, score_threshold=0.0)
                 t0_busca = time.perf_counter()
                 resultados, _detalhes = await medir(
                     collection, qdrant, embedder, perguntas, args_med
@@ -380,9 +374,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--embedding-model", default=MODELO_PADRAO_ETAPA5)
     parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE_PADRAO_ETAPA5)
     parser.add_argument("--chunk-overlap", type=int, default=CHUNK_OVERLAP_PADRAO_ETAPA5)
-    parser.add_argument(
-        "--repeticoes-latencia", type=int, default=REPETICOES_LATENCIA_PADRAO
-    )
+    parser.add_argument("--repeticoes-latencia", type=int, default=REPETICOES_LATENCIA_PADRAO)
     parser.add_argument("--dominio", default=None, help="padrão: o do dataset")
     args = parser.parse_args(argv[1:])
 

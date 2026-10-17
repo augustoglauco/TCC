@@ -167,9 +167,7 @@ def test_item_descartado_continua_no_arquivo(datasets_client, eval_falso):
 def test_revisar_conjunto_automatico_e_recusado(datasets_client):
     client = _sem_auth(datasets_client)
 
-    resposta = client.patch(
-        "/api/admin/datasets/rag_imagem/itens/0", json={"status": "aprovado"}
-    )
+    resposta = client.patch("/api/admin/datasets/rag_imagem/itens/0", json={"status": "aprovado"})
 
     assert resposta.status_code == 409
 
@@ -177,10 +175,8 @@ def test_revisar_conjunto_automatico_e_recusado(datasets_client):
 def test_revisar_indice_fora_do_conjunto(datasets_client):
     client = _sem_auth(datasets_client)
 
-    assert (
-        client.patch("/api/admin/datasets/roteador/itens/99", json={"status": "aprovado"}).status_code
-        == 404
-    )
+    resposta = client.patch("/api/admin/datasets/roteador/itens/99", json={"status": "aprovado"})
+    assert resposta.status_code == 404
 
 
 def test_tarefa_desconhecida_e_recusada(datasets_client):

@@ -17,7 +17,9 @@ em vez de produzir uma tabela silenciosamente truncada.
 Uso (a partir de `backend/`; não exige nada no ar):
 
     .venv/bin/python eval/rag_ingestion/varrer_threshold.py
-    .venv/bin/python eval/rag_ingestion/varrer_threshold.py --entrada eval/rag_ingestion/resultados_etapa3.json --saida eval/rag_ingestion/varredura_threshold_etapa4.json
+    .venv/bin/python eval/rag_ingestion/varrer_threshold.py \
+        --entrada eval/rag_ingestion/resultados_etapa3.json \
+        --saida eval/rag_ingestion/varredura_threshold_etapa4.json
 """
 
 from __future__ import annotations
@@ -121,9 +123,7 @@ def recomendar_parametros(linhas: list[dict], sep: dict) -> dict:
         vazio_pos = linha.get("taxa_vazio_positivas") or 0.0
         ndcg = linha.get("ndcg@10") or 0.0
         mrr = linha.get("mrr") or 0.0
-        dist_meio = (
-            abs(linha["score_threshold"] - ponto_medio) if ponto_medio is not None else 0.0
-        )
+        dist_meio = abs(linha["score_threshold"] - ponto_medio) if ponto_medio is not None else 0.0
         prefere_top5 = 0 if linha["top_k"] == 5 else 1
         return (
             -round(r5 + an, 6),
@@ -203,7 +203,10 @@ def main(argv: list[str]) -> int:
 
     print(f"Base: {args.entrada.name} ({config_base.get('embedding_model')})")
     if config_base.get("id"):
-        print(f"Ponto: {config_base['id']} (chunk={config_base.get('chunk_size')}/{config_base.get('chunk_overlap')})")
+        print(
+            f"Ponto: {config_base['id']} (chunk={config_base.get('chunk_size')}"
+            f"/{config_base.get('chunk_overlap')})"
+        )
     print(f"n = {len(itens)} perguntas\n")
 
     print("=== Existe threshold que separe positivas de negativas? ===")

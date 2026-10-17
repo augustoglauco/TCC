@@ -605,9 +605,7 @@ def test_varrer_threshold_aceita_formato_etapa3_e_recomenda_corte_separavel(varr
         encoding="utf-8",
     )
 
-    rc = varrer.main(
-        ["varrer_threshold.py", "--entrada", str(entrada), "--saida", str(saida)]
-    )
+    rc = varrer.main(["varrer_threshold.py", "--entrada", str(entrada), "--saida", str(saida)])
     assert rc == 0
     dados = json.loads(saida.read_text(encoding="utf-8"))
     rec = dados["recomendacao"]
@@ -663,5 +661,3 @@ def test_comparar_rankings_distancia_detecta_equivalencia_em_vetores_normalizado
     }
     comp = etapa5.comparar_rankings_distancia(por_metrica)
     assert comp["rankings_identicos"] is True
-
-
