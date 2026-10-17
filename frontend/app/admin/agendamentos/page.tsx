@@ -17,6 +17,9 @@ import type {
 import { AgendamentosSystemTab } from "./AgendamentosSystemTab";
 import { GoogleCalendarTab } from "./GoogleCalendarTab";
 import { AgendamentoManualModal } from "./AgendamentoManualModal";
+import { AgendamentosHeader } from "./AgendamentosHeader";
+import { AgendamentosMetrics } from "./AgendamentosMetrics";
+import { AgendamentosTabs } from "./AgendamentosTabs";
 
 const FORM_VAZIO: AgendamentoManualInput = {
   user_email: "",
@@ -146,71 +149,17 @@ export default function AdminAgendamentosPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-      <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Painel de Agendamentos
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Gerencie visitas de clientes e visualize eventos sincronizados no Google Calendar.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setModalAberto(true)}
-          className="inline-flex items-center justify-center gap-2 rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-purple-500 cursor-pointer transition-colors self-start sm:self-auto"
-        >
-          <span>➕</span> + Agendar Manualmente
-        </button>
-      </div>
+      <AgendamentosHeader onAgendar={() => setModalAberto(true)} />
 
       {/* Métricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-          <span className="text-xs font-semibold uppercase text-slate-500">
-            Total de Agendamentos
-          </span>
-          <p className="mt-2 text-2xl font-bold text-slate-900">{agendamentos.length}</p>
-        </div>
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-5 shadow-xs">
-          <span className="text-xs font-semibold uppercase text-emerald-700">Confirmados</span>
-          <p className="mt-2 text-2xl font-bold text-emerald-800">{totalConfirmados}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-5 shadow-xs">
-          <span className="text-xs font-semibold uppercase text-slate-500">Cancelados</span>
-          <p className="mt-2 text-2xl font-bold text-slate-700">{totalCancelados}</p>
-        </div>
-      </div>
+      <AgendamentosMetrics
+        total={agendamentos.length}
+        confirmados={totalConfirmados}
+        cancelados={totalCancelados}
+      />
 
       {/* Abas */}
-      <div className="border-b border-slate-200">
-        <nav className="flex space-x-8" role="tablist">
-          <button
-            role="tab"
-            aria-selected={activeTab === "sistema"}
-            onClick={() => setActiveTab("sistema")}
-            className={`py-3 px-1 text-sm font-medium border-b-2 cursor-pointer transition-colors ${
-              activeTab === "sistema"
-                ? "border-purple-600 text-purple-600 font-semibold"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-            }`}
-          >
-            📋 Agendamentos do Sistema (Por Usuário)
-          </button>
-          <button
-            role="tab"
-            aria-selected={activeTab === "google"}
-            onClick={() => setActiveTab("google")}
-            className={`py-3 px-1 text-sm font-medium border-b-2 cursor-pointer transition-colors ${
-              activeTab === "google"
-                ? "border-purple-600 text-purple-600 font-semibold"
-                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
-            }`}
-          >
-            📅 Google Calendar (Tempo Real)
-          </button>
-        </nav>
-      </div>
+      <AgendamentosTabs activeTab={activeTab} onChange={setActiveTab} />
 
       {activeTab === "sistema" && (
         <AgendamentosSystemTab
