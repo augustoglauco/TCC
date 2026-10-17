@@ -1746,6 +1746,16 @@ conversa e classificação do usuário").
         (`0,5750 > 0,5208`), todos os 12 pontos de 256–1024 tokens mantêm
         `Recall@5 = 1,000` e `separável = True`, e a única faixa que degrada é
         `128` tokens.)*
+  - [x] **Regressão de unidade de `chunk_size` aberta pela Etapa 3**
+        (achado e correção em 2026-10-17, detalhados em
+        `docs/ARCHITECTURE.md`). `chunk_size`/`chunk_overlap` passam a ser
+        **tokens** em todo o projeto — unidade única, como a UI já mostrava e
+        como a grade da Etapa 3 mede. Defaults de `app/rag/chunking.py` e de
+        `CollectionCreateRequest` foram de `800/100` para `512/51`
+        (provisório: literatura e centro da grade, não o ensaio de `n=15`), e
+        o tooltip que dizia "caracteres/tokens" foi corrigido. O seed
+        `docs_texto` não foi migrado — a ingestão oficial cria e ativa uma
+        collection nova com parâmetros declarados.
   - [ ] Etapa 4 — recalibrar `top_k` e `score_threshold`. **Obrigatória, não
         opcional:** o threshold é um valor absoluto de cosseno e a escala
         muda com o modelo, então trocar o embedding invalida o valor atual.
@@ -1856,11 +1866,26 @@ conversa e classificação do usuário").
       custos e justificativa estatística — em `docs/EVALUATION.md` Seção 0.
       Os números antigos (40/18/8) eram exemplo, não dimensionamento.
       Custos: ~US$ 12, 8–15 h de GPU, **~4,5 h de revisão humana**. Em ordem:
-  - [ ] Ingerir as três mídias do RAG, hoje praticamente vazias
-        (`docs_texto` 0 vetores, `catalogo_imagens` 3, `produtos` 13):
-        **97 PDFs** de `docs/Manuais_fornecedor/ControlId/`, **93 fotos** de
-        produto (CLIP) e **28 produtos** no banco com preço, estoque por CD
-        e prazo. Registrar quantos chunks/vetores resultaram
+  - [ ] Ingerir as três mídias do RAG. Registrar quantos chunks/vetores
+        resultaram.
+    - [x] **Texto — feito em 2026-10-17.** Collection nova
+          `docs_texto_gemma512` (`google/embeddinggemma-300m`, 768 dim,
+          `512/51` tokens, cosine, purpose `chat`), criada e ativada em vez
+          de migrar a `docs_texto` (MiniLM `800/100`, que ficou inativa e
+          vazia). **98 arquivos** de `docs/Manuais_fornecedor/ControlId/`,
+          0 falhas, **493 chunks/vetores**. Provisória: modelo e ponto de
+          chunking definitivos saem das Etapas 2–5 sobre as 180 perguntas;
+          reingerir é barato porque os dados são fictícios.
+          **8 documentos renderam 0 chunks** — são exatamente os 8 PDFs que
+          `backend/eval/rag_ingestion/README.md` §1 já listava como imagem
+          pura ("1 caractere em 2 páginas"): `idaccess`, `idbox-datasheet`,
+          `idclass373`, `idfit`, `idflexlite`, `idflexpro`,
+          `idlock-bio-datasheet`, `rep-idclass-1510`. Ficam registrados em
+          `rag_documents` sem vetor nenhum, logo **invisíveis à busca**: não
+          derivar pergunta das 180 a partir deles, sob pena de contaminar a
+          medida de alucinação (as 20 sem resposta devem ser deliberadas).
+    - [ ] Imagem: **93 fotos** de produto (CLIP) — `catalogo_imagens` tem 3
+    - [ ] Banco: **28 produtos** com preço, estoque por CD e prazo
   - [ ] Roteador: **300 mensagens**, sendo **≥200 desenhadas para chegar ao
         LLM** (hoje só 22,5% chegam — 9 de 40, medido; num conjunto
         "representativo" o n efetivo de comparação seria um terço do tamanho

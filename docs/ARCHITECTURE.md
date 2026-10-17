@@ -666,7 +666,7 @@ do Claude, discriminado abaixo:
    chunking and Etapa 3 5x3 grid benchmark`):**
    - **Código de produção (`app.rag.chunking`, `app.rag.embeddings`,
      `app.rag.ingest`):**
-     - `chunk_text(text, *, chunk_size=800, chunk_overlap=100, tokenizer=None)`
+     - `chunk_text(text, chunk_size=800, overlap=100, *, tokenizer=None)`
        substituiu a janela deslizante cega por corte recursivo hierárquico nos
        separadores `("\n\n", "\n", ". ", " ")` (com fatia dura apenas quando um
        átomo sem espaços excede `chunk_size`) e passou a medir `chunk_size` e
@@ -677,18 +677,51 @@ do Claude, discriminado abaixo:
      - `TextEmbedder.get_tokenizer()` expõe o tokenizer do `SentenceTransformer`
        subjacente; `ingest_bytes` e `reingest_document` (`app.rag.ingest`)
        passam `tokenizer = embedder.get_tokenizer()` para `chunk_text`.
-     - **Ponto de atenção para o Claude avaliar:** a collection default em
-       `app.rag.collection_profiles` / `Settings` ainda declara
-       `chunk_size=800, chunk_overlap=100` (pensados originalmente em
-       caracteres). Com `ingest_bytes` passando `tokenizer` por padrão,
-       qualquer ingestão na collection default passa a interpretar `800` como
-       `800 tokens` (~3.450 chars) até que o perfil vencedor seja ativado.
+     - **Regressão resolvida em 2026-10-17 — `chunk_size` e `chunk_overlap`
+       são contados em TOKENS.** Decisão: em vez de tirar o tokenizer do
+       caminho (o que quebraria a Etapa 3) ou de criar uma coluna
+       `chunk_unit` (modelo + migração + API + tipos do frontend + 9 arquivos
+       de teste, caro demais para um protótipo — regra 8), o projeto assume
+       tokens como unidade única. Já era a intenção: a UI mostra "tokens" em
+       `CollectionOptionCard.tsx`, e a grade da Etapa 3 e o corte de 512 da
+       literatura são em tokens. O que ficou para trás foram os números e um
+       tooltip. Alterados: `DEFAULT_CHUNK_SIZE`/`DEFAULT_CHUNK_OVERLAP`
+       (`app/rag/chunking.py`) e os defaults de `CollectionCreateRequest`
+       (`app/models/rag.py`), de `800/100` para **`512/51`**, e o tooltip de
+       `CollectionChunkingSection.tsx`, que dizia "caracteres/tokens".
+       `512/51` é **provisório** até a execução oficial sobre as 180
+       perguntas; vem da literatura e do centro da grade 5×3, não do ensaio
+       preliminar de `n=15`. O seed `docs_texto` (`800/100`, MiniLM) **não
+       foi migrado**: a ingestão oficial cria e ativa uma collection nova com
+       parâmetros declarados, que é para isso que o cadastro de collections
+       existe. Registro do diagnóstico original abaixo.
+
+       O `800/100` não vinha de `app.rag.collection_profiles` nem de
+       `Settings` — esse módulo não existe e `Settings` não declara
+       `chunk_size`. Os dois lugares reais eram
+       `DEFAULT_CHUNK_SIZE`/`DEFAULT_CHUNK_OVERLAP` em `app/rag/chunking.py`
+       e o seed da collection `docs_texto` em
+       `migrations/versions/0002_rag_collections.py:81-82`, ambos pensados em
+       **caracteres**. Como `ingest_bytes` e `reingest_document` passaram a
+       obter o tokenizer **incondicionalmente**, o mesmo `800` virou `800
+       tokens` (~3.450 chars) sem migração e sem mudança no valor gravado.
+       **Sem efeito nos dados, verificado em 2026-10-17:** `docs_texto`,
+       `docs_admin` e `docs_mcp_b2b` estavam com **0 pontos** no Qdrant, de
+       modo que a troca de semântica não chegou a misturar chunks das duas
+       unidades — era risco para a próxima ingestão, não estrago já feito.
+       Reverter o tokenizer implícito não serve como correção: o
+       caminho de avaliação (`criar_collection_temporaria` → `ingest_file` →
+       `ingest_bytes`, em `run_etapa1.py:133`) depende dele para que a
+       Etapa 3 meça tokens de fato — foi o que levou à decisão por tokens
+       como unidade única, registrada acima.
    - **Script e testes:** `backend/eval/rag_ingestion/run_etapa3.py`,
      `tests/test_rag_chunking.py`, `tests/test_rag_ingest.py` e
      `tests/test_rag_ingestion_eval.py`.
    - **Artefato gerado sobre `dataset_minimo.json` (`n=15`):**
      `backend/eval/rag_ingestion/resultados_etapa3.json`.
-4. **Etapa 4 e Etapa 5 — No working tree (não commitados):**
+4. **Etapa 4 e Etapa 5 — commitadas em `c4efe82`** (a nota original dizia
+   "não commitados"; o mesmo commit que trouxe esta seção já versionou os dois
+   scripts e os JSONs preliminares):
    - `backend/eval/rag_ingestion/varrer_threshold.py`: estendido com
      `--entrada`, `--saida` e `--ponto-id` para aceitar tanto o JSON da Etapa 1
      quanto o JSON de múltiplos pontos da Etapa 3 (`extrair_base_varredura`) e

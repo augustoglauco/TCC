@@ -111,8 +111,9 @@ class CollectionCreateRequest(BaseModel):
     name: str = Field(..., min_length=1)
     embedding_model: str = Field(..., min_length=1)
     distance_metric: DistanceMetric = "cosine"
-    chunk_size: int = 800
-    chunk_overlap: int = 100
+    # Em tokens (ver `app.rag.chunking`, DEFAULT_CHUNK_SIZE).
+    chunk_size: int = 512
+    chunk_overlap: int = 51
     hnsw: HnswConfigRequest = Field(default_factory=HnswConfigRequest)
     quantization: QuantizationRequest = Field(default_factory=QuantizationRequest)
     payload_indexes: list[PayloadIndexRequest] = Field(default_factory=list)

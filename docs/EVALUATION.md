@@ -612,7 +612,7 @@ existe para registrar isso com número, não porque se espera diferença. O
 item de substância é o índice `keyword` em `domain`, hoje ausente
 (`payload_indexes = []`), medido por p95 de latência sob filtro.
 
-> **Estado implementado (2026-10-17, não commitado, para revisão do Claude):**
+> **Estado implementado (2026-10-17, commit `c4efe82`, para revisão do Claude):**
 > `backend/eval/rag_ingestion/run_etapa5.py` implementado com testes em
 > `backend/tests/test_rag_ingestion_eval.py`. Na 1ª execução preliminar sobre
 > `dataset_minimo.json` (`resultados_etapa5.json`), `cosine` e `dot` obtiveram

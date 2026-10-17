@@ -14,8 +14,16 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-DEFAULT_CHUNK_SIZE = 800
-DEFAULT_CHUNK_OVERLAP = 100
+# Em **tokens**, não caracteres: desde a Etapa 3 (commit `e5cf918`)
+# `ingest_bytes`/`reingest_document` sempre passam o tokenizer da collection
+# para `chunk_text`, então todo `chunk_size` que vem de uma collection é
+# contado em tokens — é também o que a UI mostra (`CollectionOptionCard`).
+# Os 800/100 antigos eram da época em que a contagem era por caractere e
+# ficaram para trás; 512/51 é o valor da literatura e o centro da grade 5×3
+# da Etapa 3. **Provisório** até a execução oficial sobre as 180 perguntas
+# escolher o ponto vencedor — ver `docs/ROADMAP.md`, Fase 10.
+DEFAULT_CHUNK_SIZE = 512
+DEFAULT_CHUNK_OVERLAP = 51
 
 SEPARADORES_RECURSIVOS: tuple[str, ...] = ("\n\n", "\n", ". ", " ", "")
 

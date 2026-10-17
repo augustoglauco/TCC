@@ -27,7 +27,7 @@ export function CollectionChunkingSection({
           <label htmlFor="chunk-size" className="text-sm text-gray-700">
             Chunk size
           </label>
-          <Tooltip content="Tamanho máximo (em caracteres/tokens) de cada bloco de texto extraído do documento." />
+          <Tooltip content="Tamanho máximo, em tokens do modelo de embedding da collection, de cada bloco de texto extraído do documento." />
         </div>
         <input
           id="chunk-size"
@@ -42,7 +42,7 @@ export function CollectionChunkingSection({
           <label htmlFor="chunk-overlap" className="text-sm text-gray-700">
             Overlap
           </label>
-          <Tooltip content="Quantidade de caracteres/tokens compartilhados entre chunks consecutivos para preservar o contexto." />
+          <Tooltip content="Quantidade de tokens compartilhados entre chunks consecutivos para preservar o contexto." />
         </div>
         <input
           id="chunk-overlap"
