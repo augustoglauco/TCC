@@ -1,7 +1,7 @@
-# Fluxo de Trabalho Agêntico: Antigravity + Claude Code CLI + Kiro CLI
+# Fluxo de Trabalho Agêntico: Antigravity + Claude Code CLI + Kiro CLI + Amazon Q
 
-Este projeto é desenvolvido combinando três ferramentas agênticas, muitas
-vezes em paralelo (parte em uma, parte em outra):
+Este projeto é desenvolvido combinando **quatro** ferramentas agênticas,
+muitas vezes em paralelo (parte em uma, parte em outra):
 
 - **Antigravity** (IDE): interface visual com **Editor View** (edição
   assistida, completions, comandos inline) e **Manager Surface** (orquestra e
@@ -14,10 +14,13 @@ vezes em paralelo (parte em uma, parte em outra):
   arquitetural mais profundo ou trabalho fora da interface gráfica.
 - **Kiro CLI**: agente de terminal com steering files e agentes customizados
   próprios. Também usado para sessões de codificação/revisão no terminal,
-  com o mesmo contexto de projeto das outras duas ferramentas.
+  com o mesmo contexto de projeto das outras ferramentas.
+- **Amazon Q Developer CLI**: agente de terminal da AWS, usado em
+  refatoração de backend (entrou no projeto em 2026-10-17). Lê regras de
+  `.amazonq/rules/**/*.md`, que o agente padrão inclui automaticamente.
 
-As três ferramentas devem enxergar o **mesmo contexto de projeto**. Isso é
-garantido por três arquivos de regras que apontam para os mesmos documentos
+As quatro ferramentas devem enxergar o **mesmo contexto de projeto**. Isso é
+garantido por quatro arquivos de regras que apontam para os mesmos documentos
 em `docs/`:
 
 | Ferramenta | Arquivo de regras | Onde aponta |
@@ -25,8 +28,17 @@ em `docs/`:
 | Claude Code CLI | `CLAUDE.md` (raiz do repo) | `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/CONVENTIONS.md`, etc. |
 | Antigravity | `.agents/rules/project.md` | os mesmos documentos |
 | Kiro CLI | `.kiro/steering/project.md` (+ agentes em `.kiro/agents/*.json`) | os mesmos documentos |
+| Amazon Q Developer CLI | `.amazonq/rules/project.md` | os mesmos documentos |
 
-Os três arquivos de regras são **ponteiros equivalentes** para `docs/` — eles
+> **`AGENTS.md` na raiz não é arquivo de regras deste projeto.** É artefato
+> gerado pelo GitNexus, removido em 2026-10-17, e nenhuma das quatro
+> ferramentas o lê como fonte de regras — o Amazon Q, em particular, **não**
+> suporta `AGENTS.md` nativamente (feature request
+> `aws/amazon-q-developer-cli#2712`). O arquivo dele é
+> `.amazonq/rules/project.md`. (`frontend/AGENTS.md` é outra coisa: gerado e
+> reescrito pelo `next dev` — ver `CLAUDE.md`.)
+
+Os quatro arquivos de regras são **ponteiros equivalentes** para `docs/` — eles
 resumem as regras de trabalho, mas a fonte de verdade é sempre `docs/`. Ao
 portar um agente/skill de uma ferramenta para outra (ex.: `scope-guardian` e
 `mvp-task` existem tanto em `.claude/agents/` quanto em `.kiro/agents/`),
@@ -39,8 +51,8 @@ regras. Os arquivos de regras devem ficar curtos e estáveis; os documentos em
 
 ## Sincronização: todos veem a mesma coisa
 
-Como o trabalho é dividido entre três ferramentas (e entre sessões humanas e
-agênticas), a consistência da documentação é o que mantém todos sincronizados.
+Como o trabalho é dividido entre quatro ferramentas (e entre sessões humanas
+e agênticas), a consistência da documentação é o que mantém todos sincronizados.
 Regras práticas:
 
 1. **Conhecimento vive em `docs/`, não na memória de uma sessão.** Qualquer
@@ -121,7 +133,7 @@ a ferramenta, o contexto lido e a documentação atualizada sejam os mesmos.
 - Peça explicitamente que o agente rode os testes automatizados antes de
   considerar uma tarefa concluída, especialmente para roteador, RAG e
   handlers do MCP B2B (ver `docs/CONVENTIONS.md`).
-- Se um agente (em qualquer uma das três ferramentas) propuser implementar
+- Se um agente (em qualquer uma das quatro ferramentas) propuser implementar
   algo listado como "fora do MVP" em `CLAUDE.md`/`docs/ROADMAP.md`, rejeite e
   redirecione para o item correto do roadmap.
 - Se uma tarefa exigir uma decisão de arquitetura não coberta em
@@ -129,7 +141,7 @@ a ferramenta, o contexto lido e a documentação atualizada sejam os mesmos.
   documento antes de continuar — não deixe a decisão implícita apenas no
   código.
 
-## Guardrails comuns às três ferramentas
+## Guardrails comuns às quatro ferramentas
 
 - Nunca aceitar credenciais, chaves de API ou tokens reais gerados/inseridos
   por um agente — sempre via variável de ambiente (`.env.example`).

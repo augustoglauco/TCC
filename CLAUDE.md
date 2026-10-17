@@ -5,16 +5,22 @@ repositório. Ele é lido automaticamente no início de cada sessão. Leia-o por
 completo antes de propor ou implementar qualquer mudança.
 
 O projeto também é desenvolvido na IDE **Antigravity**, que lê suas próprias
-regras de workspace em `.agents/rules/project.md`, e no **Kiro CLI**, que lê
-`.kiro/steering/project.md` (+ agentes em `.kiro/agents/*.json`). Esses três
+regras de workspace em `.agents/rules/project.md`; no **Kiro CLI**, que lê
+`.kiro/steering/project.md` (+ agentes em `.kiro/agents/*.json`); e no
+**Amazon Q Developer CLI**, que lê `.amazonq/rules/**/*.md` (entrou no
+projeto em 2026-10-17, usado em refatoração de backend). Esses quatro
 arquivos de regras **apontam para os mesmos documentos em `docs/`** — evite
-duplicar decisões de arquitetura ou escopo diretamente nos arquivos de regras;
-atualize sempre os documentos em `docs/` e deixe os três arquivos de regras
-como resumos/ponteiros. O trabalho é dividido entre as três ferramentas, então
-manter `docs/` sempre atualizado (regra 9) é o que garante que todas vejam a
-mesma coisa — ver `docs/AGENTIC_WORKFLOW.md`.
+duplicar decisões de arquitetura ou escopo diretamente nos arquivos de
+regras; atualize sempre os documentos em `docs/` e deixe os quatro arquivos
+de regras como resumos/ponteiros. O trabalho é dividido entre as quatro
+ferramentas, então manter `docs/` sempre atualizado (regra 9) é o que
+garante que todas vejam a mesma coisa — ver `docs/AGENTIC_WORKFLOW.md`.
 
-Há ainda um quarto arquivo de escopo restrito: `frontend/CLAUDE.md`, que só
+O `AGENTS.md` da raiz **não** é arquivo de regras: era um bloco gerado pelo
+GitNexus (removido em 2026-10-17) e hoje é só um ponteiro para os quatro
+arquivos acima. O Amazon Q, em particular, não lê `AGENTS.md` nativamente.
+
+Há ainda um arquivo de escopo restrito: `frontend/CLAUDE.md`, que só
 inclui `frontend/AGENTS.md` com avisos da versão do Next.js em uso. Esse
 `AGENTS.md` é **gerado e reescrito pelo `next dev`** (ver
 `frontend/node_modules/next/dist/server/lib/generate-agent-files.js`), então
