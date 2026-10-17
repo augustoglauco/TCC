@@ -13,10 +13,11 @@ import {
   type AtendimentoDetalhes,
   type AtendimentoFilaItem,
 } from "@/lib/api/adminAtendimento";
+import ContextoClientePanel from "@/components/admin/atendimento/ContextoClientePanel";
 import FilaEsperaPanel from "@/components/admin/atendimento/FilaEsperaPanel";
 import MeusChatsTabs from "@/components/admin/atendimento/MeusChatsTabs";
-import ContextoClientePanel from "@/components/admin/atendimento/ContextoClientePanel";
 import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
+import { AtendimentoHeader } from "./AtendimentoHeader";
 
 export default function AdminAtendimentoPage() {
   const user = useAuthStore((s) => s.user);
@@ -211,41 +212,12 @@ export default function AdminAtendimentoPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-3.75rem)] sm:h-[calc(100vh-4rem)] p-2.5 sm:p-3 bg-slate-100 overflow-hidden space-y-2.5">
       {/* Top Banner / Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-white rounded-xl border border-slate-200 shadow-2xs shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-100 text-emerald-800 font-bold text-lg">
-            🎧
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-slate-900">Central de Atendimento Humano</h1>
-            <p className="text-[11px] text-slate-500">
-              Fila de transbordo e suporte Human-in-the-Loop em tempo real
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {errorMessage && (
-            <div className="px-3 py-1 bg-red-50 border border-red-200 text-red-700 text-xs rounded-md flex items-center gap-1.5">
-              <span>⚠️</span>
-              <span>{errorMessage}</span>
-              <button
-                type="button"
-                onClick={() => setErrorMessage(null)}
-                className="ml-1 text-red-500 hover:text-red-800 font-bold"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 text-xs bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-700">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="font-semibold">{atendenteNome}</span>
-            <span className="text-[10px] text-slate-400">({atendenteId})</span>
-          </div>
-        </div>
-      </div>
+      <AtendimentoHeader
+        atendenteNome={atendenteNome}
+        atendenteId={atendenteId}
+        errorMessage={errorMessage}
+        onDismissError={() => setErrorMessage(null)}
+      />
 
       {/* Grid 3 Colunas */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-3 min-h-0">
