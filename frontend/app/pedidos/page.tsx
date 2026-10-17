@@ -17,6 +17,7 @@ import { fetchProducts, fetchProductById, Produto } from "@/lib/api/products";
 import { CartTab } from "./CartTab";
 import { B2bQuoteTab } from "./B2bQuoteTab";
 import { OrderSuccessBanner } from "./OrderSuccessBanner";
+import { PedidosTabs } from "./PedidosTabs";
 
 function PedidosPageContent() {
   const searchParams = useSearchParams();
@@ -225,36 +226,7 @@ function PedidosPageContent() {
       </div>
 
       {/* Abas */}
-      <div className="flex border-b border-slate-200 gap-4">
-        <button
-          type="button"
-          onClick={() => setActiveTab("carrinho")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
-            activeTab === "carrinho"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <span>🛒 Meu Carrinho &amp; Checkout</span>
-          {cartItems.length > 0 && (
-            <span className="rounded-full bg-blue-100 text-blue-800 px-2 py-0.5 text-xs font-bold">
-              {cartItems.length}
-            </span>
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("cotacao_b2b")}
-          className={`pb-3 text-sm font-semibold border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
-            activeTab === "cotacao_b2b"
-              ? "border-blue-600 text-blue-600"
-              : "border-transparent text-slate-500 hover:text-slate-800"
-          }`}
-        >
-          <span>🏢 Simulador B2B (Preços por Volume)</span>
-        </button>
-      </div>
+      <PedidosTabs activeTab={activeTab} cartCount={cartItems.length} onChange={setActiveTab} />
 
       {completedOrderId && (
         <OrderSuccessBanner
