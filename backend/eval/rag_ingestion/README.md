@@ -48,6 +48,11 @@ de recuperação virou ganho de resposta.
   janela de tokens de cada modelo e aplicando os prefixos de tarefa
   assimétricos (`query_prefix` vs `document_prefix`). Retomável por
   candidato; grava `resultados_etapa2.json`.
+- `run_etapa3.py` — **Etapa 3**. Varre a grade 5×3 de `chunk_size` ∈ {128,
+  256, 512, 768, 1024} tokens × `overlap` ∈ {10%, 15%, 20%} com o corte
+  recursivo (`\n\n` → `\n` → `. ` → `" "`) e contagem por tokenizer em
+  `app.rag.chunking.chunk_text`. Retomável por ponto; grava
+  `resultados_etapa3.json`.
 - `metricas.py` — as métricas como funções **puras**, testadas em
   `backend/tests/test_rag_ingestion_eval.py` sem nenhuma infraestrutura.
 - `varrer_threshold.py` — **Etapa 4**. Varre `score_threshold` × `top_k`
@@ -250,6 +255,23 @@ com prefixos de tarefa assimétricos aplicados em `app.rag.embeddings`:
 2. **`embeddinggemma-300m` e `bge-m3` empatam em `Recall@5 = 1,000` (12/12 positivas recuperadas)**, mas **`embeddinggemma-300m` é o único modelo separável** (`menor positiva = 0,5670 > maior negativa = 0,4999`): qualquer `score_threshold ∈ [0,50, 0,56]` entrega simultaneamente `Recall@5 = 1,000` e `acerto_negativas = 1,000` (3/3 negativas recusadas), além de ocupar metade do tamanho (308M vs 568M parâmetros, 768 vs 1024 dims).
 3. Mesma ressalva metodológica da Etapa 1: os números em `n=15` validam o pipeline de ponta a ponta e antecipam o comportamento de separabilidade; a confirmação estatística pareada requer o conjunto de 180 perguntas da Estratégia A.
 
+## Resultado da Etapa 3 — grade 5×3 de chunking em tokens (2026-10-17)
+
+Rodada dos 15 pontos (`chunk_size` ∈ {128, 256, 512, 768, 1024} tokens ×
+`overlap` ∈ {10%, 15%, 20%}) sobre `google/embeddinggemma-300m`, com
+`app.rag.chunking.chunk_text` contando tokens pelo tokenizer do modelo e
+cortando recursivamente (`\n\n` → `\n` → `. ` → `" "`):
+
+| # | Ponto | `chunk_size` (tok) | `overlap` (tok / %) | Recall@5 | nDCG@10 | MRR | Separável? | Pos mín | Neg máx |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | **`cs512_ov10`** | **512** | **51 (10%)** | **1,000** | **1,000** | **1,000** | **SIM** | **0,5750** | **0,5208** |
+| 2–13 | `cs{256,512,768,1024}_ov{10,15,20}` | 256–1024 | 10%–20% | **1,000** | 0,969 | 0,958 | **SIM** | 0,5625–0,5860 | 0,5017–0,5454 |
+| 14 | `cs128_ov15` | 128 | 19 (15%) | 1,000 | 0,938 | 0,917 | NÃO | 0,5703 | 0,5869 |
+| 15 | `cs128_ov20` | 128 | 26 (20%) | 0,917 | 0,824 | 0,792 | SIM | 0,5728 | 0,5469 |
+
+1. **`cs512_ov10` (`512` tokens, `overlap = 51` tokens) atinge `1,000` em `Recall@1`, `Recall@5`, `nDCG@10` e `MRR`** (todas as 12 positivas trazem a fonte correta no 1º lugar) mantendo separabilidade (`0,5750 > 0,5208`).
+2. **Todos os 12 pontos entre 256 e 1024 tokens têm `Recall@5 = 1,000`, `nDCG@10 >= 0,969` e `separável = True`.** A única faixa que degrada (`cs128_ov15` perde separabilidade e `cs128_ov20` cai para `Recall@5 = 0,917`) é exatamente **`128` tokens** — o teto da janela do `MiniLM-L12-v2` antigo.
+
 ## Reproduzir
 
 ```bash
@@ -266,6 +288,9 @@ cd backend
 
 # Etapa 2 — compara os 4 modelos candidatos (retomável por candidato)
 .venv/bin/python eval/rag_ingestion/run_etapa2.py
+
+# Etapa 3 — grade 5x3 de chunking em tokens (retomável por ponto)
+.venv/bin/python eval/rag_ingestion/run_etapa3.py
 
 # Etapa 4 — varredura offline, sobre o JSON da Etapa 1
 .venv/bin/python eval/rag_ingestion/varrer_threshold.py

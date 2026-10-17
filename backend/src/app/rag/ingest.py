@@ -92,7 +92,14 @@ async def ingest_bytes(
     no Qdrant, salva o arquivo original em `uploads_dir` e cria o registro
     do documento."""
     text = _extract_text(filename, content)
-    chunks = chunk_text(text, chunk_size=collection.chunk_size, overlap=collection.chunk_overlap)
+    get_tokenizer = getattr(embedder, "get_tokenizer", None)
+    tokenizer = await get_tokenizer() if callable(get_tokenizer) else None
+    chunks = chunk_text(
+        text,
+        chunk_size=collection.chunk_size,
+        overlap=collection.chunk_overlap,
+        tokenizer=tokenizer,
+    )
     document_id = str(uuid.uuid4())
 
     # MVP: recriação idempotente/self-healing da collection no Qdrant se ela não
@@ -231,8 +238,13 @@ async def reingest_document(
         )
     content = Path(source_document.storage_path).read_bytes()
     text = _extract_text(source_document.filename, content)
+    get_tokenizer = getattr(embedder, "get_tokenizer", None)
+    tokenizer = await get_tokenizer() if callable(get_tokenizer) else None
     chunks = chunk_text(
-        text, chunk_size=target_collection.chunk_size, overlap=target_collection.chunk_overlap
+        text,
+        chunk_size=target_collection.chunk_size,
+        overlap=target_collection.chunk_overlap,
+        tokenizer=tokenizer,
     )
     document_id = str(uuid.uuid4())
 

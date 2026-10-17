@@ -63,3 +63,100 @@ def test_corte_prefere_quebra_de_linha_e_nao_trava_em_passos_de_1_caractere():
 def test_chunk_size_menor_ou_igual_a_overlap_levanta_erro():
     with pytest.raises(ValueError):
         chunk_text("qualquer texto", chunk_size=10, overlap=10)
+
+
+def test_corte_recursivo_prefere_paragrafo_antes_de_quebra_de_linha():
+    """Hierarquia recursiva (`\\n\\n` → `\\n` → `. ` → ` `): se cabe cortar na
+    fronteira de parágrafo (`\\n\\n`), não deve invadir a primeira linha do
+    parágrafo seguinte só porque ela ainda caberia na janela."""
+    p1 = "Linha 1A\nLinha 1B"
+    p2 = "Linha 2A\nLinha 2B"
+    texto = f"{p1}\n\n{p2}"
+
+    chunks = chunk_text(texto, chunk_size=28, overlap=4)
+
+    assert chunks[0] == p1
+    assert "Linha 2A" not in chunks[0]
+    assert "Linha 2A" in chunks[1]
+    assert "Linha 2B" in chunks[1]
+
+
+def test_corte_recursivo_prefere_fim_de_frase_antes_de_espaco():
+    """Quando uma linha única excede `chunk_size`, o corte deve preferir `. `
+    (preservando o ponto final na frase) em vez de cortar no meio da frase
+    seguinte em um espaço."""
+    texto = "Primeira frase curta. Segunda frase curta. Terceira frase longa."
+
+    chunks = chunk_text(texto, chunk_size=48, overlap=6)
+
+    assert chunks[0] == "Primeira frase curta. Segunda frase curta."
+    assert chunks[1].endswith("Terceira frase longa.")
+
+
+def test_corte_recursivo_prefere_espaco_antes_de_partir_palavra():
+    """Sem `\\n\\n`, `\\n` nem `. `, corta no espaço entre palavras em vez de
+    partir uma palavra ao meio."""
+    texto = "controlador biometrico facial integrado"
+
+    chunks = chunk_text(texto, chunk_size=25, overlap=5)
+
+    assert chunks[0] == "controlador biometrico"
+    assert all(
+        palavra in " ".join(chunks).split()
+        for palavra in ("controlador", "biometrico", "facial", "integrado")
+    )
+
+
+class _TokenizerPorPalavra:
+    """Dublê de tokenizer estilo HuggingFace onde cada palavra equivale a 1 token."""
+
+    def encode(self, text: str, add_special_tokens: bool = False) -> list[int]:
+        assert add_special_tokens is False
+        palavras = text.split()
+        self._vocab = {i: p for i, p in enumerate(palavras)}
+        return list(range(len(palavras)))
+
+
+def test_chunk_text_conta_tokens_pelo_tokenizer_e_respeita_overlap():
+    """Etapa 3 (`docs/ARCHITECTURE.md` / `docs/EVALUATION.md` Seção 2.1):
+    quando `tokenizer` é passado, `chunk_size` e `overlap` são medidos em
+    tokens (não em caracteres)."""
+    # 6 frases de 3 palavras (tokens) cada = 18 tokens (~130 caracteres).
+    # Com chunk_size=6 tokens e overlap=3 tokens:
+    # - chunk 0: frases 1 e 2 (6 tokens)
+    # - chunk 1: frase 2 (overlap de 3 tokens) + frase 3 (total 6 tokens)
+    frases = [f"frase numero {i}." for i in range(1, 7)]
+    texto = " ".join(frases)
+    tokenizer = _TokenizerPorPalavra()
+
+    chunks = chunk_text(texto, chunk_size=6, overlap=3, tokenizer=tokenizer)
+
+    assert len(chunks) >= 4
+    for c in chunks:
+        assert len(tokenizer.encode(c, add_special_tokens=False)) <= 6
+    # A segunda frase ("frase numero 2.") aparece no fim do primeiro chunk e
+    # no início do segundo por causa do overlap de 3 tokens.
+    assert chunks[0].endswith("frase numero 2.")
+    assert chunks[1].startswith("frase numero 2.")
+
+
+class _TokenizerCaractereIds:
+    """Dublê de tokenizer com `.encode` e `.decode` (para testar fatia dura por
+    IDs de token quando uma sequência sem separadores excede `chunk_size`)."""
+
+    def encode(self, text: str, add_special_tokens: bool = False) -> list[int]:
+        assert add_special_tokens is False
+        return [ord(ch) for ch in text]
+
+    def decode(self, ids: list[int], skip_special_tokens: bool = True) -> str:
+        assert skip_special_tokens is True
+        return "".join(chr(i) for i in ids)
+
+
+def test_chunk_text_com_tokenizer_fatia_sequencia_sem_separador_por_tokens():
+    texto = "x" * 25
+    tokenizer = _TokenizerCaractereIds()
+
+    chunks = chunk_text(texto, chunk_size=10, overlap=2, tokenizer=tokenizer)
+
+    assert chunks == ["x" * 10, "x" * 10, "x" * 9]

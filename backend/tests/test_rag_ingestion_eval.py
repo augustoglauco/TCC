@@ -542,3 +542,33 @@ def test_ranquear_candidatos_ordena_por_ndcg_recall_mrr_e_separabilidade(etapa2)
         "minilm-l12-v2",
     ]
     assert [r["posicao"] for r in ranking] == [1, 2, 3]
+
+
+# --------------------------------------------------------------------------
+# Etapa 3 — grade 5x3 de chunking em tokens (run_etapa3.py)
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def etapa3():
+    return _carregar("run_etapa3")
+
+
+def test_grade_etapa3_tem_15_pontos_canonicos(etapa3):
+    """Grade 5x3 de `docs/EVALUATION.md` Seção 2.1 (Etapa 3):
+    `chunk_size` ∈ {128, 256, 512, 768, 1024} tokens × `overlap` ∈ {10%, 15%, 20%}."""
+    grade = etapa3.gerar_grade()
+    assert len(grade) == 15
+    assert {p.chunk_size for p in grade} == {128, 256, 512, 768, 1024}
+    assert {p.overlap_pct for p in grade} == {10, 15, 20}
+    for p in grade:
+        assert p.chunk_overlap == round(p.chunk_size * (p.overlap_pct / 100))
+        assert 0 < p.chunk_overlap < p.chunk_size
+
+
+def test_filtrar_grade_etapa3_por_chunk_size_ou_id(etapa3):
+    sub = etapa3.filtrar_grade(chunk_sizes=[256, 512], overlaps_pct=[15])
+    assert [(p.chunk_size, p.overlap_pct) for p in sub] == [(256, 15), (512, 15)]
+
+    with pytest.raises(ValueError, match="chunk_size inválido"):
+        etapa3.filtrar_grade(chunk_sizes=[999])

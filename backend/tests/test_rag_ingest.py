@@ -369,3 +369,61 @@ async def test_ingest_bytes_falha_ao_salvar_arquivo_loga_orfao_e_propaga_erro(
 
     assert client.upserts  # os chunks já foram gravados no Qdrant antes da falha
     assert "rag_registro_orfao" in caplog.text
+
+
+async def test_ingest_bytes_conta_chunk_size_em_tokens_via_tokenizer_do_embedder(
+    tmp_path: Path, db_session
+):
+    """Etapa 3 (`docs/ARCHITECTURE.md`): `ingest_bytes` repassa o tokenizer do
+    embedder para `chunk_text`, de modo que `collection.chunk_size` e
+    `collection.chunk_overlap` sejam medidos em tokens e não em caracteres."""
+    from app.rag.collections_registry import create_collection
+
+    class _TokenizerPorPalavra:
+        def encode(self, text: str, add_special_tokens: bool = False) -> list[int]:
+            assert add_special_tokens is False
+            return list(range(len(text.split())))
+
+    class _EmbedderComTokenizer:
+        async def get_tokenizer(self):
+            return _TokenizerPorPalavra()
+
+    collection = await create_collection(
+        db_session,
+        name="col_tokens",
+        embedding_model="fake-embedding-model",
+        vector_dimension=768,
+        distance_metric="cosine",
+        chunk_size=4,
+        chunk_overlap=1,
+        hnsw_m=16,
+        hnsw_ef_construct=100,
+        hnsw_full_scan_threshold=10000,
+        hnsw_max_indexing_threads=0,
+        hnsw_on_disk=False,
+        hnsw_payload_m=None,
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+    )
+    # 8 palavras (~42 caracteres). Se `chunk_size=4` fosse em caracteres,
+    # daria 14 pedaços de 4 letras; como é em tokens (palavras), dá 2 chunks
+    # de 4 palavras cada (uma frase por chunk).
+    texto = "um dois tres quatro. cinco seis sete oito."
+    client = _FakeQdrantRAGClient()
+
+    doc = await ingest_bytes(
+        client,
+        _EmbedderComTokenizer(),
+        collection,
+        tmp_path / "uploads",
+        "tokens.txt",
+        texto.encode("utf-8"),
+        domain="vendas",
+        session=db_session,
+        origin="upload",
+    )
+
+    assert doc.chunk_count == 2
+    _col, chunks, _src, _dom, _doc_id = client.upserts[0]
+    assert chunks == ["um dois tres quatro.", "cinco seis sete oito."]

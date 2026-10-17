@@ -1723,7 +1723,7 @@ conversa e classificação do usuário").
         simultaneamente `Recall@5 = 1,000` e `acerto_negativas = 1,000` para
         `score_threshold ∈ [0,50, 0,56]`; confirmação pareada final aguarda as
         180 perguntas da Estratégia A.)*
-  - [ ] Etapa 3 — `chunk_text` passa a contar **tokens** pelo tokenizer da
+  - [x] Etapa 3 — `chunk_text` passa a contar **tokens** pelo tokenizer da
         collection (não caracteres) e a cortar recursivamente
         (`\n\n` → `\n` → `. ` → espaço); grade 5×3: `chunk_size` ∈ {128,
         256, 512, 768, 1024} tokens × `overlap` ∈ {10%, 15%, 20%}. A
@@ -1732,6 +1732,18 @@ conversa e classificação do usuário").
         o modelo antigo não alcançava essa região. Chunking semântico fica
         fora de escopo (regra 8: fica abaixo do recursivo nas avaliações
         públicas de 2026).
+        *(Implementado em 2026-10-17: `app.rag.chunking.chunk_text` com corte
+        recursivo `\n\n` → `\n` → `. ` → `" "` → fatia dura e contagem de
+        tokens via `tokenizer`, `TextEmbedder.get_tokenizer()` conectado em
+        `ingest_bytes`/`reingest_document`, e grade 5×3 de 15 pontos medida em
+        `backend/eval/rag_ingestion/run_etapa3.py` (`resultados_etapa3.json`).
+        No conjunto mínimo (n=15) sobre `google/embeddinggemma-300m`:
+        `cs512_ov10` (`512` tokens, `overlap=51` tokens) atinge `1,000` em
+        `Recall@1`, `Recall@5`, `nDCG@10` e `MRR` com `separável = True`
+        (`0,5750 > 0,5208`), todos os 12 pontos de 256–1024 tokens mantêm
+        `Recall@5 = 1,000` e `separável = True`, e a única faixa que degrada é
+        `128` tokens — confirmação pareada final aguarda as 180 perguntas da
+        Estratégia A.)*
   - [ ] Etapa 4 — recalibrar `top_k` e `score_threshold`. **Obrigatória, não
         opcional:** o threshold é um valor absoluto de cosseno e a escala
         muda com o modelo, então trocar o embedding invalida o valor atual.

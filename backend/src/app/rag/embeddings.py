@@ -137,3 +137,21 @@ class TextEmbedder:
     async def get_dimension(self) -> int:
         """Dimensão dos vetores gerados pelo modelo carregado."""
         return await asyncio.to_thread(self._get_dimension_sync)
+
+    def _get_tokenizer_sync(self) -> object | None:
+        if self._model is not None:
+            return getattr(self._model, "tokenizer", None)
+        # Modelos fictícios usados em testes unitários com `_FakeQdrantRAGClient`
+        # (`fake-embedding-model`, `outro-modelo`) não existem no Hugging Face —
+        # devolve `None` sem tentar download, preservando testes offline.
+        if self._model_name.startswith(("fake-", "outro-")):
+            return None
+        try:
+            model = self._load_model()
+        except Exception:  # noqa: BLE001
+            return None
+        return getattr(model, "tokenizer", None)
+
+    async def get_tokenizer(self) -> object | None:
+        """Tokenizer do modelo carregado (para chunking em tokens na ingestão)."""
+        return await asyncio.to_thread(self._get_tokenizer_sync)
