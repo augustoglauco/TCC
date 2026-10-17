@@ -160,9 +160,10 @@ ferramentas de grafo de código", válida para as três ferramentas.
   `graphify path "<A>" "<B>"` (dependência entre dois pontos).
 - `graphify-out/GRAPH_REPORT.md` só para visão macro da arquitetura. (Não
   procure um `graphify-out/wiki/`: esta CLI não tem comando que o gere.)
-- **Depois de alterar código**, `graphify update .` — à mão, porque o hook
-  `post-commit` está sem bit de execução (item 9 do checklist de
-  `docs/CONVENTIONS.md`).
+- **Depois de alterar código**, o hook `post-commit` reconstrói o grafo
+  sozinho (o bit de execução foi restaurado em 2026-10-17). Só rode
+  `graphify update .` à mão se o git voltar a ignorar o hook com um `hint:`
+  — item 9 do checklist de `docs/CONVENTIONS.md`.
 - Onde o Graphify ganha de todos, e por isso segue instalado: cruzar código
   com PDF, schema de banco ao vivo ou paper no mesmo grafo
   (`/graphify --update` sobre material não-código). Nunca foi feito aqui — o

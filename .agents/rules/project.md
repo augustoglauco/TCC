@@ -65,8 +65,8 @@ implementar qualquer mudança:
    2026-10-17 (`get_answer`, `search_codebase`, `get_context`, `get_why`).
    O GitNexus foi desativado (a rever). O Graphify continua disponível como CLI
    (`graphify query`/`explain`/`path`) mas **não é obrigatório** e não
-   precede mais o `grep`; depois de alterar código, `graphify update .`
-   reconstrói `graphify-out/` (o hook `post-commit` que fazia isso está sem
-   bit de execução). O grafo orienta, não substitui a leitura do trecho que
+   precede mais o `grep`; depois de alterar código, o hook `post-commit`
+   reconstrói `graphify-out/` sozinho (bit de execução restaurado em
+   2026-10-17). O grafo orienta, não substitui a leitura do trecho que
    você vai editar. Motivo e evidência em `docs/CONVENTIONS.md`, "Ordem de
    uso das ferramentas de grafo de código".

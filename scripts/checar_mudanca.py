@@ -14,6 +14,7 @@ Uso: scripts/checar_mudanca.py [--dry-run] [--full-backend] [--e2e]
 """
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -22,7 +23,13 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent
 BACKEND = RAIZ / "backend"
 FRONTEND = RAIZ / "frontend"
+# Um ruff só para os dois pacotes Python: o `cliente-b2b` configura as mesmas
+# regras no seu pyproject.toml mas não declara o ruff como dependência, então
+# `uv run ruff` falha lá dentro.
+RUFF = str(BACKEND / ".venv/bin/ruff")
 LIMITE_TESTES = 80  # acima disso a seleção não ajuda: roda a suíte inteira
+BASELINE = ".doc-drift-baseline.json"
+LIMITE_CONFIANCA = 0.7  # mesmo default do `--fail-on-confidence` do repowise
 
 
 def sh(cmd: list[str], cwd: Path = RAIZ, dry: bool = False) -> int:
@@ -30,6 +37,55 @@ def sh(cmd: list[str], cwd: Path = RAIZ, dry: bool = False) -> int:
     if dry:
         return 0
     return subprocess.run(cmd, cwd=cwd).returncode
+
+
+def doc_drift(dry: bool = False) -> str | None:
+    """Roda o `doc-drift` e devolve o rótulo da falha, ou None se passou.
+
+    O `--baseline` do repowise impede a falha mas continua imprimindo os
+    achados aceitos (34 hoje), o que afoga um achado novo no meio do ruído.
+    Aqui o baseline é aplicado por nós: só o que é novo aparece.
+    """
+    cmd = ["repowise", "doc-drift", "--check",
+           "--kind", "path", "--kind", "link", "--kind", "anchor",
+           "--kind", "command", "--kind", "symbol",
+           "--since", "HEAD", "--format", "json"]
+    print(f"\n$ (.) {' '.join(cmd)}", flush=True)
+    if dry:
+        return None
+
+    proc = subprocess.run(cmd, cwd=RAIZ, capture_output=True, text=True)
+    try:
+        achados = json.loads(proc.stdout)["findings"]
+    except (ValueError, KeyError):
+        print(proc.stdout or proc.stderr, flush=True)
+        return "doc-drift (saída ilegível)"
+
+    aceitos = {
+        (e["file_path"], e["kind"], e["target"])
+        for e in json.loads((RAIZ / BASELINE).read_text())["entries"]
+    }
+    novos = [a for a in achados
+             if (a["file_path"], a["kind"], a["target"]) not in aceitos
+             and a["confidence"] >= LIMITE_CONFIANCA]
+
+    for a in novos:
+        print(f"  {a['file_path']}:{a['line_number']} {a['confidence']:.2f} "
+              f"{a['kind']}  {a['reason']}", flush=True)
+    print(f"docs: {len(novos)} achado(s) novo(s); "
+          f"{len(achados) - len(novos)} já aceitos em {BASELINE} (omitidos).")
+
+    # O detector de símbolo já pegou um módulo fantasma aqui (ver
+    # docs/ROADMAP.md, revisão de 2026-10-15) e o baseline guarda 24 achados
+    # desse tipo. Se ele volta vazio, parou de rodar — e o item 11 do
+    # checklist estaria dando garantia falsa em silêncio.
+    if any(k == "symbol" for _, k, _ in aceitos) and not any(
+        a["kind"] == "symbol" for a in achados
+    ):
+        print("docs: AVISO — nenhum achado 'symbol', mas o baseline tem 24. "
+              "A checagem de símbolo não está rodando; não pode o baseline.")
+
+    return "doc-drift" if novos else None
 
 
 def alterados() -> tuple[list[str], list[str]]:
@@ -124,9 +180,8 @@ def main() -> int:
 
     if py:
         rel = [str(Path(c).relative_to("backend")) for c in py]
-        ruff = str(BACKEND / ".venv/bin/ruff")
-        rodar("ruff check (backend)", [ruff, "check", *rel], BACKEND)
-        rodar("ruff format (backend)", [ruff, "format", "--check", *rel], BACKEND)
+        rodar("ruff check (backend)", [RUFF, "check", *rel], BACKEND)
+        rodar("ruff format (backend)", [RUFF, "format", "--check", *rel], BACKEND)
         testes = sorted(testes_afetados(py))
         pytest = [str(BACKEND / ".venv/bin/python"), "-m", "pytest", "-q",
                   "-m", "not gpu and not qdrant"]
@@ -141,7 +196,8 @@ def main() -> int:
 
     if py_cli:
         rel = [str(Path(c).relative_to("cliente-b2b")) for c in py_cli]
-        rodar("ruff (cliente-b2b)", ["uv", "run", "ruff", "check", *rel], RAIZ / "cliente-b2b")
+        # Com cwd em cliente-b2b, o ruff do backend lê o [tool.ruff] de lá.
+        rodar("ruff (cliente-b2b)", [RUFF, "check", *rel], RAIZ / "cliente-b2b")
 
     if fe:
         rel = [str(Path(c).relative_to("frontend")) for c in fe]
@@ -155,11 +211,8 @@ def main() -> int:
 
     if md or removidos:
         rodar("repowise update", ["repowise", "update", "--working-tree"])
-        rodar("doc-drift", ["repowise", "doc-drift", "--check",
-                            "--kind", "path", "--kind", "link", "--kind", "anchor",
-                            "--kind", "command", "--kind", "symbol",
-                            "--baseline", ".doc-drift-baseline.json",
-                            "--since", "HEAD"])
+        if (falha := doc_drift(a.dry_run)) is not None:
+            falhas.append(falha)
     else:
         print("\ndocs: nenhum .md alterado nem arquivo removido — gate pulado.")
 

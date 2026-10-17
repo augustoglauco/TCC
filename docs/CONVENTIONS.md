@@ -238,20 +238,24 @@ completa e o Playwright ficam para mudança transversal (`config.py`,
 4. Simplificações marcadas com `# MVP:` (`// MVP:` em TypeScript).
 5. Testes novos rodam sem Postgres/Qdrant reais (seção "Testes" acima) e
    passam.
-6. Lint limpo nos arquivos alterados: `uv run ruff check` e
-   `uv run ruff format` (backend e `cliente-b2b/`, cada um na sua raiz, sem
-   passar caminhos); `npx eslint` e `npx prettier --write` só nos arquivos
-   alterados (frontend).
+6. Lint limpo nos arquivos alterados: em `backend/`, `uv run ruff check` e
+   `uv run ruff format` sem passar caminhos. Em `cliente-b2b/` **não use
+   `uv run ruff`**: o ruff não é dependência desse pacote e o comando falha
+   com `Failed to spawn: ruff`. Rode o binário do backend com o cwd em
+   `cliente-b2b/`, que é onde ele acha o `[tool.ruff]` certo (`py311`):
+   `backend/.venv/bin/ruff check .`. No frontend, `npx eslint` e
+   `npx prettier --write` só nos arquivos alterados.
 7. Nenhum caminho absoluto da máquina (`file:///home/...`) nem credencial
    nos `.md` e no código.
 8. Nenhum documento novo fora da lista do `CLAUDE.md` (resumos, cópias de
    spec, guias paralelos): atualize o documento que já cobre o assunto.
 9. O knowledge graph (`graphify-out/`) é reconstruído pelo hook
-   `post-commit` do graphify — **que está sem o bit de execução**
-   (`.git/hooks/post-commit`, achado de 2026-10-17), então o git o ignora com
-   um `hint:` e nenhum commit reconstrói o grafo. Enquanto estiver assim,
-   rode `graphify update .` à mão depois de alterar código; para voltar ao
-   automático, `chmod +x .git/hooks/post-commit`. O `graphify-out/` é
+   `post-commit` do graphify, que **voltou a funcionar em 2026-10-17**: o bit
+   de execução de `.git/hooks/post-commit` tinha caído (o git o ignorava com
+   um `hint:` e nenhum commit reconstruía o grafo) e foi restaurado com
+   `chmod +x .git/hooks/post-commit`. Se o `hint:` reaparecer, o bit caiu de
+   novo — rode `graphify update .` à mão até refazer o `chmod`. O
+   `graphify-out/` é
    versionado: se o rebuild pegar trabalho não commitado de outra ferramenta,
    não commite o artefato — deixe que quem está no meio da tarefa o
    reconstrua ao fechar.
@@ -273,6 +277,24 @@ completa e o Playwright ficam para mudança transversal (`config.py`,
     Os `--kind` são necessários: sem eles o detector não checa referência a
     símbolo, que é a classe que pegou o módulo fantasma `app.rag.product_sync`
     em `docs/ARCHITECTURE.md` — ver o achado abaixo.
+
+    **A checagem de símbolo está inerte (achado de 2026-10-17).** Com o
+    índice recém-atualizado, `--kind symbol` devolve zero achados, embora
+    `sync_produto_no_rag` e `remover_produto_do_rag` sigam citados em
+    `docs/ARCHITECTURE.md:2036` e `docs/ROADMAP.md:703` sem existir no
+    código — exatamente o caso que o baseline gravou como aceito em
+    2026-10-15 (24 entradas `symbol`). Enquanto estiver assim, o item 11 só
+    cobre referência a **caminho**; não conte com ele para pegar símbolo
+    fantasma, e **não pode as 24 entradas do baseline**, que voltarão a valer
+    quando o detector voltar. `scripts/checar_mudanca.py` imprime um `AVISO`
+    a cada rodada enquanto o sintoma persistir.
+
+    **O gate aplica o baseline por conta própria.** O `--baseline` do
+    repowise impede a falha mas continua imprimindo os 34 achados aceitos, o
+    que afoga um achado novo. Por isso `scripts/checar_mudanca.py` chama o
+    detector com `--format json`, filtra contra o baseline e imprime só o que
+    é novo, mais uma linha de contagem do que foi omitido. O corte de
+    confiança (`0.7`) é o mesmo default do `--fail-on-confidence`.
 
     **Armadilha (medida em 2026-10-15):** `--kind symbol` resolve contra o
     índice do repowise, e o índice reflete o **último commit** — não o que
