@@ -45,9 +45,6 @@ TOP_KS = (3, 5, 10)
 THRESHOLD_MAXIMO_DA_BASE = 0.01
 
 
-class BaseCortadaError(RuntimeError):
-    """A rodada-base usou um `score_threshold` alto demais para varrer."""
-
 
 def varrer(itens: list[dict]) -> list[dict]:
     linhas = []

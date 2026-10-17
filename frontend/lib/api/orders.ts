@@ -104,15 +104,6 @@ export async function fetchOrders(
   return response.json();
 }
 
-export async function fetchOrderById(orderId: string): Promise<Order> {
-  const baseUrl = getApiBaseUrl();
-  const response = await fetch(`${baseUrl}/api/orders/${orderId}`);
-  if (!response.ok) {
-    throw new Error(`Erro ao buscar pedido: ${response.statusText}`);
-  }
-  return response.json();
-}
-
 export async function calculateFreight(payload: FreightQuotePayload): Promise<FreightQuoteResult> {
   const baseUrl = getApiBaseUrl();
   const response = await fetch(`${baseUrl}/api/orders/freight`, {
