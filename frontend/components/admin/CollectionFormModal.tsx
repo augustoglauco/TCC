@@ -16,6 +16,7 @@ import type {
 } from "@/lib/types/rag";
 import { CollectionQuantizationSection } from "./CollectionQuantizationSection";
 import { CollectionPayloadIndexesSection } from "./CollectionPayloadIndexesSection";
+import { CollectionHnswSection } from "./CollectionHnswSection";
 
 const CURATED_MODELS = [
   { value: "paraphrase-multilingual-MiniLM-L12-v2", label: "MiniLM multilíngue (384 dim)" },
@@ -355,99 +356,20 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           )}
         </fieldset>
 
-        <fieldset className="grid grid-cols-2 gap-4">
-          <legend className="col-span-2 flex items-center text-sm font-medium text-gray-900">
-            HNSW
-            <Tooltip content="Grafo de busca aproximada de vizinhos mais próximos (Hierarchical Navigable Small World)." />
-          </legend>
-          <div>
-            <div className="flex items-center">
-              <label htmlFor="hnsw-m" className="text-sm text-gray-700">
-                m
-              </label>
-              <Tooltip content="Número de conexões direcionadas por elemento no grafo HNSW. Maior valor melhora a precisão mas aumenta o uso de RAM." />
-            </div>
-            <input
-              id="hnsw-m"
-              type="number"
-              value={hnswM}
-              onChange={(e) => setHnswM(Number(e.target.value))}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          </div>
-          <div>
-            <div className="flex items-center">
-              <label htmlFor="hnsw-ef-construct" className="text-sm text-gray-700">
-                ef_construct
-              </label>
-              <Tooltip content="Tamanho da lista de candidatos durante a construção do índice HNSW. Valores maiores melhoram a qualidade do índice ao custo de maior tempo de criação." />
-            </div>
-            <input
-              id="hnsw-ef-construct"
-              type="number"
-              value={hnswEfConstruct}
-              onChange={(e) => setHnswEfConstruct(Number(e.target.value))}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          </div>
-          <div>
-            <div className="flex items-center">
-              <label htmlFor="hnsw-full-scan" className="text-sm text-gray-700">
-                full_scan_threshold
-              </label>
-              <Tooltip content="Quantidade mínima de vetores na coleção para ativar o índice HNSW. Coleções menores usam busca exaustiva (brute-force)." />
-            </div>
-            <input
-              id="hnsw-full-scan"
-              type="number"
-              value={hnswFullScanThreshold}
-              onChange={(e) => setHnswFullScanThreshold(Number(e.target.value))}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          </div>
-          <div>
-            <div className="flex items-center">
-              <label htmlFor="hnsw-threads" className="text-sm text-gray-700">
-                max_indexing_threads
-              </label>
-              <Tooltip content="Número de threads em paralelo para construção do índice HNSW. 0 usa a quantidade automática do servidor." />
-            </div>
-            <input
-              id="hnsw-threads"
-              type="number"
-              value={hnswMaxIndexingThreads}
-              onChange={(e) => setHnswMaxIndexingThreads(Number(e.target.value))}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          </div>
-          <div>
-            <div className="flex items-center">
-              <label htmlFor="hnsw-payload-m" className="text-sm text-gray-700">
-                payload_m (vazio = padrão)
-              </label>
-              <Tooltip content="Número de conexões adicionais no grafo dedicadas para navegação rápida em buscas com filtros de payload." />
-            </div>
-            <input
-              id="hnsw-payload-m"
-              type="number"
-              value={hnswPayloadM}
-              onChange={(e) => setHnswPayloadM(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              id="hnsw-on-disk"
-              type="checkbox"
-              checked={hnswOnDisk}
-              onChange={(e) => setHnswOnDisk(e.target.checked)}
-            />
-            <label htmlFor="hnsw-on-disk" className="flex items-center text-sm text-gray-700">
-              on_disk
-            </label>
-            <Tooltip content="Armazena os vetores e o índice HNSW no disco rígido para economizar memória RAM." />
-          </div>
-        </fieldset>
+        <CollectionHnswSection
+          m={hnswM}
+          efConstruct={hnswEfConstruct}
+          fullScanThreshold={hnswFullScanThreshold}
+          maxIndexingThreads={hnswMaxIndexingThreads}
+          payloadM={hnswPayloadM}
+          onDisk={hnswOnDisk}
+          onM={setHnswM}
+          onEfConstruct={setHnswEfConstruct}
+          onFullScanThreshold={setHnswFullScanThreshold}
+          onMaxIndexingThreads={setHnswMaxIndexingThreads}
+          onPayloadM={setHnswPayloadM}
+          onOnDisk={setHnswOnDisk}
+        />
 
         <CollectionQuantizationSection
           quantizationType={quantizationType}
