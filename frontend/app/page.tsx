@@ -2,208 +2,77 @@
 
 import Link from "next/link";
 import { useChatStore } from "@/lib/hooks/useChatStore";
+import HeroSlider from "@/components/home/HeroSlider";
+import TechMarquee from "@/components/home/TechMarquee";
+import CapabilitiesGrid from "@/components/home/CapabilitiesGrid";
+import HardwareReveal from "@/components/home/HardwareReveal";
+import MetricCounters from "@/components/home/MetricCounters";
+import ProcessSteps from "@/components/home/ProcessSteps";
 
 export default function HomePage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:py-14 space-y-12">
-      {/* 🚀 Hero Section */}
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-6 sm:p-10 text-white shadow-xl">
-        <div className="relative z-10 max-w-3xl space-y-5">
-          <h1 className="text-3xl font-extrabold tracking-tight sm:text-5xl leading-tight">
-            Atendimento Inteligente para{" "}
-            <span className="bg-gradient-to-r from-blue-400 via-indigo-300 to-sky-300 bg-clip-text text-transparent">
-              Equipamentos Industriais
-            </span>
-          </h1>
+    <div className="space-y-0">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-8 sm:pt-10 sm:pb-12">
+        <HeroSlider />
+      </div>
 
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
-            Distribuidora de equipamentos e peças industriais. Protótipo de TCC integrado com
-            inferência local em GPU (16GB), RAG vetorial híbrido, entrada multimodal (texto, áudio e
-            imagem) e suporte a protocolo MCP (Google Calendar &amp; Provedor B2B).
-          </p>
+      <TechMarquee />
 
-          <div className="pt-2 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={() => useChatStore.getState().open()}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-all hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
-            >
-              <span>Conversar com o Assistente</span>
-              <span className="text-base">💬</span>
-            </button>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 sm:space-y-16">
+        <CapabilitiesGrid />
 
-            <Link
-              href="/produtos"
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-800/80 px-5 py-3 text-sm font-semibold text-slate-200 backdrop-blur-xs transition-all hover:bg-slate-700 hover:text-white"
-            >
-              <span>Explorar Catálogo</span>
-              <span className="text-base">📦</span>
-            </Link>
-          </div>
-        </div>
+        <HardwareReveal />
 
-        {/* Efeito decorativo sutil de fundo */}
-        <div
-          aria-hidden="true"
-          className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-blue-600/20 blur-3xl"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-indigo-600/20 blur-3xl"
-        />
-      </section>
+        <MetricCounters />
 
-      {/* 🎯 Os 4 Domínios de Atendimento */}
-      <section className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 border-b border-slate-200 pb-3">
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-              Domínios de Atendimento Especiais
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              O Roteador inteligente classifica a intenção da mensagem e aciona a camada
-              especialista adequada.
-            </p>
-          </div>
-        </div>
+        <ProcessSteps />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Card Vendas */}
-          <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-xs transition-all hover:-translate-y-1 hover:border-blue-300 hover:shadow-md">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              🛍️
+        {/* Seção de CTA Final */}
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border border-slate-800 p-8 sm:p-12 text-white shadow-2xl">
+          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+            <div className="space-y-3 max-w-2xl">
+              <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3.5 py-1 text-xs font-bold tracking-widest text-blue-400 uppercase">
+                Atendimento Multimodal Instantâneo
+              </span>
+              <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+                Pronto para especificar ou cotar seu{" "}
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">
+                  projeto de controle de acesso?
+                </span>
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Converse com nosso assistente virtual por texto, áudio ou foto do equipamento para
+                consultar estoque por Centro de Distribuição, validar compatibilidade via MCP B2B ou
+                agendar visita técnica.
+              </p>
             </div>
-            <h3 className="mt-4 font-bold text-slate-900">Vendas &amp; Cotações</h3>
-            <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-              Consulta de estoque em tempo real, especificações técnicas, cotações e reservas via
-              MCP B2B.
-            </p>
-          </div>
 
-          {/* Card Suporte Técnico */}
-          <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-xs transition-all hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-              🔧
+            <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row gap-3.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => useChatStore.getState().open()}
+                className="inline-flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-600/30 hover:shadow-blue-600/50 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all cursor-pointer"
+              >
+                <span>Iniciar Atendimento IA</span>
+                <span>💬</span>
+              </button>
+
+              <Link
+                href="/produtos"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-6 py-3.5 text-sm font-semibold text-slate-200 hover:bg-slate-800 hover:text-white hover:border-slate-600 transition-all"
+              >
+                <span>Ver Catálogo Completo</span>
+                <span>📦</span>
+              </Link>
             </div>
-            <h3 className="mt-4 font-bold text-slate-900">Suporte Técnico</h3>
-            <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-              Resolução de dúvidas sobre instalação, erros e manuais usando busca semântica RAG.
-            </p>
           </div>
 
-          {/* Card Atendimento */}
-          <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-xs transition-all hover:-translate-y-1 hover:border-sky-300 hover:shadow-md">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-sky-50 text-xl text-sky-600 group-hover:bg-sky-600 group-hover:text-white transition-colors">
-              💬
-            </div>
-            <h3 className="mt-4 font-bold text-slate-900">Atendimento Geral</h3>
-            <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-              Informações institucionais, horários de funcionamento, garantia e políticas da
-              empresa.
-            </p>
-          </div>
-
-          {/* Card Agendamento */}
-          <div className="group rounded-xl border border-slate-200 bg-white p-5 shadow-xs transition-all hover:-translate-y-1 hover:border-emerald-300 hover:shadow-md">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
-              📅
-            </div>
-            <h3 className="mt-4 font-bold text-slate-900">Agendamento de Visita</h3>
-            <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-              Marcação e confirmação automatizada de reuniões integradas diretamente ao Google
-              Calendar.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 🛠️ Funcionalidades & Arquitetura */}
-      <section className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 sm:p-8 space-y-6">
-        <h2 className="text-lg sm:text-xl font-bold text-slate-900">
-          Recursos Multimodais &amp; Arquitetura Agêntica
-        </h2>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div className="rounded-lg bg-white p-4 border border-slate-200/80">
-            <div className="text-xl">🎙️ Áudio (Whisper)</div>
-            <p className="mt-1.5 text-xs text-slate-600">
-              Gravação de voz com transcrição automática (Speech-to-Text) enviada diretamente para
-              contextualização do assistente.
-            </p>
-          </div>
-
-          <div className="rounded-lg bg-white p-4 border border-slate-200/80">
-            <div className="text-xl">🖼️ Visão &amp; OCR (CLIP)</div>
-            <p className="mt-1.5 text-xs text-slate-600">
-              Reconhecimento de texto em fotos de placas/comprovantes e busca vetorial por
-              similaridade de imagem.
-            </p>
-          </div>
-
-          <div className="rounded-lg bg-white p-4 border border-slate-200/80">
-            <div className="text-xl">⚡ Roteamento Híbrido</div>
-            <p className="mt-1.5 text-xs text-slate-600">
-              Decisão automática entre inferência em GPU local (16GB), RAG vetorial ou transbordo
-              para modelo externo.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 🔗 Acesso Rápido às Seções */}
-      <section className="space-y-4">
-        <h2 className="text-lg sm:text-xl font-bold text-slate-900">Navegação Rápida</h2>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6 text-sm">
-          <Link
-            href="/produtos"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-700 transition-all"
-          >
-            <span className="text-2xl mb-1">📦</span>
-            <span>Produtos</span>
-          </Link>
-
-          <Link
-            href="/pedidos"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-700 transition-all"
-          >
-            <span className="text-2xl mb-1">🛒</span>
-            <span>Pedidos</span>
-          </Link>
-
-          <Link
-            href="/agendamentos"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-700 transition-all"
-          >
-            <span className="text-2xl mb-1">📅</span>
-            <span>Agendamentos</span>
-          </Link>
-
-          <Link
-            href="/suporte"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-700 transition-all"
-          >
-            <span className="text-2xl mb-1">🔧</span>
-            <span>Suporte</span>
-          </Link>
-
-          <Link
-            href="/admin/ingestao"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-700 transition-all"
-          >
-            <span className="text-2xl mb-1">📄</span>
-            <span>Ingestão RAG</span>
-          </Link>
-
-          <Link
-            href="/admin/modelos"
-            className="flex flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-4 text-center font-medium text-slate-700 hover:border-blue-400 hover:bg-blue-50/50 hover:text-blue-700 transition-all"
-          >
-            <span className="text-2xl mb-1">🤖</span>
-            <span>Modelos IA</span>
-          </Link>
-        </div>
-      </section>
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-24 -bottom-24 h-80 w-80 rounded-full bg-blue-600/15 blur-3xl"
+          />
+        </section>
+      </div>
     </div>
   );
 }
