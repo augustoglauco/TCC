@@ -14,17 +14,11 @@ import type {
   RagCollection,
   TextIndexParams,
 } from "@/lib/types/rag";
-import { CollectionQuantizationSection } from "./CollectionQuantizationSection";
-import { CollectionPayloadIndexesSection } from "./CollectionPayloadIndexesSection";
+import { CollectionChunkingSection } from "./CollectionChunkingSection";
+import { CollectionEmbeddingSection, CURATED_MODELS } from "./CollectionEmbeddingSection";
 import { CollectionHnswSection } from "./CollectionHnswSection";
-
-const CURATED_MODELS = [
-  { value: "paraphrase-multilingual-MiniLM-L12-v2", label: "MiniLM multilíngue (384 dim)" },
-  { value: "paraphrase-multilingual-mpnet-base-v2", label: "MPNet multilíngue (768 dim)" },
-  { value: "intfloat/multilingual-e5-base", label: "E5 base multilíngue (768 dim)" },
-  { value: "intfloat/multilingual-e5-large", label: "E5 large multilíngue (1024 dim)" },
-  { value: "__custom__", label: "Outro (digitar nome)" },
-] as const;
+import { CollectionPayloadIndexesSection } from "./CollectionPayloadIndexesSection";
+import { CollectionQuantizationSection } from "./CollectionQuantizationSection";
 
 const PAYLOAD_INDEXES_PADRAO: PayloadIndex[] = [
   { field: "domain", schema_type: "keyword" },
@@ -263,34 +257,12 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           </div>
         </div>
 
-        <fieldset className="space-y-2">
-          <legend className="flex items-center text-sm font-medium text-gray-900">
-            Modelo de embedding
-            <Tooltip content="Modelo de IA responsável por gerar os vetores densos a partir dos textos dos documentos." />
-          </legend>
-          <select
-            aria-label="Modelo de embedding"
-            value={modelSelecionado}
-            onChange={(e) => setModelSelecionado(e.target.value)}
-            className="block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-          >
-            {CURATED_MODELS.map((modelo) => (
-              <option key={modelo.value} value={modelo.value}>
-                {modelo.label}
-              </option>
-            ))}
-          </select>
-          {modelSelecionado === "__custom__" && (
-            <input
-              aria-label="Nome do modelo"
-              value={modeloCustom}
-              onChange={(e) => setModeloCustom(e.target.value)}
-              placeholder="ex.: intfloat/multilingual-e5-small"
-              required
-              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          )}
-        </fieldset>
+        <CollectionEmbeddingSection
+          modelSelecionado={modelSelecionado}
+          modeloCustom={modeloCustom}
+          onModelSelecionado={setModelSelecionado}
+          onModeloCustom={setModeloCustom}
+        />
 
         <div>
           <div className="flex items-center">
@@ -314,47 +286,12 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           </select>
         </div>
 
-        <fieldset className="grid grid-cols-2 gap-4">
-          <legend className="col-span-2 flex items-center text-sm font-medium text-gray-900">
-            Chunking
-            <Tooltip content="Configuração de divisão e fatiamento de documentos longos em blocos menores (chunks) para vetorização." />
-          </legend>
-          <div>
-            <div className="flex items-center">
-              <label htmlFor="chunk-size" className="text-sm text-gray-700">
-                Chunk size
-              </label>
-              <Tooltip content="Tamanho máximo (em caracteres/tokens) de cada bloco de texto extraído do documento." />
-            </div>
-            <input
-              id="chunk-size"
-              type="number"
-              value={chunkSize}
-              onChange={(e) => setChunkSize(Number(e.target.value))}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          </div>
-          <div>
-            <div className="flex items-center">
-              <label htmlFor="chunk-overlap" className="text-sm text-gray-700">
-                Overlap
-              </label>
-              <Tooltip content="Quantidade de caracteres/tokens compartilhados entre chunks consecutivos para preservar o contexto." />
-            </div>
-            <input
-              id="chunk-overlap"
-              type="number"
-              value={chunkOverlap}
-              onChange={(e) => setChunkOverlap(Number(e.target.value))}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          </div>
-          {chunkingInvalido && (
-            <p className="col-span-2 text-sm text-red-600">
-              Chunk size deve ser maior que o overlap.
-            </p>
-          )}
-        </fieldset>
+        <CollectionChunkingSection
+          chunkSize={chunkSize}
+          chunkOverlap={chunkOverlap}
+          onChunkSize={setChunkSize}
+          onChunkOverlap={setChunkOverlap}
+        />
 
         <CollectionHnswSection
           m={hnswM}
