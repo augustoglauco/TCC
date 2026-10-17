@@ -99,7 +99,8 @@ testes correspondentes.
 ## Ferramentas de inteligência de código
 
 **Repowise é a fonte única** (decisão de 2026-10-17). O GitNexus foi
-removido — ignore qualquer instrução que mande rodar `impact`,
+desativado, com revisão futura prevista — enquanto isso, ignore qualquer
+instrução que mande rodar `impact`,
 `detect-changes` ou `node .gitnexus/run.cjs`, inclusive a do `AGENTS.md` da
 raiz. O Graphify segue disponível como CLI opcional (`graphify query`,
 `explain`, `path`) e **não** precede o `grep`. Motivo e evidência em

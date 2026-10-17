@@ -17,7 +17,7 @@ ferramentas, então manter `docs/` sempre atualizado (regra 9) é o que
 garante que todas vejam a mesma coisa — ver `docs/AGENTIC_WORKFLOW.md`.
 
 O `AGENTS.md` da raiz **não** é arquivo de regras: era um bloco gerado pelo
-GitNexus (removido em 2026-10-17) e hoje é só um ponteiro para os quatro
+GitNexus (desativado em 2026-10-17, a rever) e hoje é só um ponteiro para os
 arquivos acima. O Amazon Q, em particular, não lê `AGENTS.md` nativamente.
 
 Há ainda um arquivo de escopo restrito: `frontend/CLAUDE.md`, que só

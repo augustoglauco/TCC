@@ -255,8 +255,9 @@ completa e o Playwright ficam para mudança transversal (`config.py`,
    versionado: se o rebuild pegar trabalho não commitado de outra ferramenta,
    não commite o artefato — deixe que quem está no meio da tarefa o
    reconstrua ao fechar.
-10. **GitNexus foi removido** em 2026-10-17 (MCP e os dois hooks globais) —
-    não há nada a rodar antes do commit. Motivo e evidência na seção "Ordem
+10. **GitNexus foi desativado** em 2026-10-17 (MCP e os dois hooks globais),
+    **com revisão futura prevista** — por ora não há nada a rodar antes do
+    commit. Motivo e evidência na seção "Ordem
     de uso das ferramentas de grafo de código", no fim deste documento.
 11. Se mexeu em `.md` ou renomeou/apagou arquivo citado por documento, rode
     o gate de deriva de documentação:
@@ -427,7 +428,9 @@ schema de banco ao vivo ou paper no mesmo grafo — continua valendo; para isso
 é preciso rodar `/graphify --update` sobre o material não-código, o que nunca
 foi feito aqui.
 
-**GitNexus: removido.** O MCP saiu de `~/.claude.json`
+**GitNexus: desativado, a rever.** Não é decisão definitiva — o dono pediu
+revisão futura em 2026-10-17, então o que segue descreve por que ele saiu
+agora, não um veredito permanente. O MCP saiu de `~/.claude.json`
 (`claude mcp remove gitnexus -s user`) e os dois hooks globais saíram de
 `~/.claude/settings.json`, em 2026-10-17. Motivo: índice 16 commits defasado,
 zero usos, dois processos no ar (`gitnexus mcp` e `gitnexus serve -p 4757`) e

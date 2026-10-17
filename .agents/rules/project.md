@@ -63,7 +63,7 @@ implementar qualquer mudança:
    ("Checklist antes de cada commit").
 9. Para se orientar no código, use o **Repowise** — fonte única desde
    2026-10-17 (`get_answer`, `search_codebase`, `get_context`, `get_why`).
-   O GitNexus foi removido. O Graphify continua disponível como CLI
+   O GitNexus foi desativado (a rever). O Graphify continua disponível como CLI
    (`graphify query`/`explain`/`path`) mas **não é obrigatório** e não
    precede mais o `grep`; depois de alterar código, `graphify update .`
    reconstrói `graphify-out/` (o hook `post-commit` que fazia isso está sem
