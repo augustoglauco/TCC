@@ -7,6 +7,7 @@ import { Produto } from "@/lib/api/products";
 import { useCartStore } from "@/lib/hooks/useCartStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import { resolveImageUrl } from "@/lib/utils/resolveImageUrl";
+import { ProductCardImage } from "./ProductCardImage";
 
 interface ProductCardProps {
   product: Produto;
@@ -47,7 +48,6 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
 
   const emEstoque = totalEstoque > 0;
 
-  // Formata o preço usando o prefixo R$ e alinhamento correto
   const valorFormatado = (val: number) => {
     const numStr = val.toLocaleString("pt-BR", {
       minimumFractionDigits: 2,
@@ -55,8 +55,6 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
     });
     return `R$ ${numStr}`;
   };
-
-  const activeImageUrl = imageList[currentImgIndex] || null;
 
   const handlePrevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -124,100 +122,14 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
           </span>
         </div>
 
-        {/* Área da Imagem do Produto */}
-        <div className="relative mt-4 aspect-4/3 w-full overflow-hidden rounded-xl bg-slate-50 flex items-center justify-center group/img border border-slate-100">
-          {activeImageUrl ? (
-            // Mesmo padrao de app/pedidos/page.tsx: a URL vem de um host dinamico
-            // resolvido em runtime (ver getApiBaseUrl()), entao next/image bloquearia
-            // por hostname nao configurado em next.config.ts.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={activeImageUrl}
-              alt={product.nome}
-              className="h-full w-full object-contain p-3 transition-transform duration-300 group-hover/img:scale-105 cursor-pointer"
-              onClick={() => onOpenZoom(activeImageUrl)}
-            />
-          ) : (
-            <div className="flex flex-col items-center justify-center text-slate-400 p-4 text-center">
-              <svg
-                className="h-10 w-10 text-slate-300"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <span className="mt-1 text-xs text-slate-400">Sem foto cadastrada</span>
-            </div>
-          )}
-
-          {/* Botão de Zoom na imagem */}
-          {activeImageUrl && (
-            <button
-              type="button"
-              onClick={() => onOpenZoom(activeImageUrl)}
-              className="absolute top-2 right-2 rounded-full bg-slate-900/70 p-2 text-white opacity-90 sm:opacity-0 sm:group-hover/img:opacity-100 transition-opacity hover:bg-slate-900 cursor-pointer"
-              title="Ampliar imagem (Zoom)"
-              aria-label="Ampliar imagem"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"
-                />
-              </svg>
-            </button>
-          )}
-
-          {/* Navegação entre Múltiplas Imagens (Setas Esquerda / Direita) */}
-          {imageList.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={handlePrevImage}
-                className="absolute left-1.5 top-1/2 -translate-y-1/2 rounded-full bg-slate-900/60 p-1 text-white hover:bg-slate-900 transition-all cursor-pointer opacity-80 hover:opacity-100"
-                aria-label="Imagem anterior"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleNextImage}
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full bg-slate-900/60 p-1 text-white hover:bg-slate-900 transition-all cursor-pointer opacity-80 hover:opacity-100"
-                aria-label="Próxima imagem"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-
-              {/* Indicador de fotos (1/3) */}
-              <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 rounded-full bg-slate-900/70 px-2 py-0.5 text-[10px] text-white">
-                {currentImgIndex + 1} / {imageList.length}
-              </div>
-            </>
-          )}
-        </div>
+        <ProductCardImage
+          imageList={imageList}
+          currentImgIndex={currentImgIndex}
+          productName={product.nome}
+          onZoom={onOpenZoom}
+          onPrev={handlePrevImage}
+          onNext={handleNextImage}
+        />
 
         {/* Nome do Produto (alinhado à esquerda) */}
         <h3 className="mt-4 font-bold text-slate-900 text-base line-clamp-2 min-h-12 leading-snug text-left">
