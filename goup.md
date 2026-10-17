@@ -192,6 +192,18 @@ echo 'REPOWISE_SYNTHESIS_MAX_TOKENS=4096' >> .repowise/.env
 
 O servidor MCP só herda a variável depois de reiniciar a sessão.
 
+E o `.claude/CLAUDE.md` (gerado pelo `repowise init`, também **gitignored**,
+`.gitignore:53`) é **mantido à mão** desde 2026-10-14 —
+`.repowise/config.yaml` tem `editor_files.claude_md: false`, então o repowise
+não o regenera. Numa máquina nova ele volta no estado padrão do gerador, que
+traz duas instruções que a verificação de 2026-10-17 contradiz: que
+`search_codebase` seria só full-text (é falso para `mode: "symbol"`, que
+resolve identificador no índice de símbolos) e que `get_answer` seria "low
+confidence by design" (era defeito de orçamento de síntese, corrigido acima).
+Corrija essas duas ao recriar o arquivo — elas desencorajam usar a ferramenta
+que é a fonte única. Detalhe em `docs/CONVENTIONS.md`, "O que foi verificado
+do Repowise, e o que está limitado".
+
 ## 1. Derrubar processos antigos do projeto (portas 8000, 3001, 8090, 8100 e 8443)
 
 ```bash
