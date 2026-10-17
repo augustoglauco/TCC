@@ -176,6 +176,23 @@ nesta máquina:
 repowise init --yes --no-claude-md   # sem --no-claude-md ele sobrescreve o CLAUDE.md do projeto
 ```
 
+**O MCP vem pelo plugin, não por `.mcp.json`** (decisão de 2026-10-17 — ver
+`docs/CONVENTIONS.md`, "Instalado como plugin, não como servidor MCP
+avulso"). No Claude Code, dentro do projeto:
+
+```
+/plugin marketplace add repowise-dev/repowise
+/plugin install repowise@repowise
+```
+
+Depois reinicie a sessão e aprove o servidor MCP quando ele perguntar.
+**Não** declare um servidor `repowise` em `.mcp.json`: dá dois processos e
+duas famílias de ferramenta para a mesma pergunta. O plugin provê três hooks
+(`SessionStart`, `PostToolUse`, `PostToolUseFailure`) — não os copie à mão,
+senão disparam duas vezes. O único que ele **não** traz é o
+`PreToolUse`/`Bash` → `repowise-rewrite`, que dá o `distill`; esse fica
+declarado à mão em `~/.claude/settings.json`.
+
 E o orçamento de síntese, sem o qual `get_answer` volta
 `degraded: "synthesis-failed"` (o modelo local gasta os 1024 tokens padrão em
 raciocínio oculto e não emite resposta):
@@ -186,8 +203,9 @@ echo 'REPOWISE_SYNTHESIS_MAX_TOKENS=4096' >> .repowise/.env
 ```
 
 ```jsonc
-// .mcp.json — bloco env do servidor repowise, para o MCP
-{ "mcpServers": { "repowise": { "env": { "REPOWISE_SYNTHESIS_MAX_TOKENS": "4096" } } } }
+// .claude/settings.local.json — bloco env do projeto; o servidor MCP do
+// plugin herda daqui, porque ele não tem bloco env próprio
+{ "env": { "REPOWISE_SYNTHESIS_MAX_TOKENS": "4096" } }
 ```
 
 O servidor MCP só herda a variável depois de reiniciar a sessão.

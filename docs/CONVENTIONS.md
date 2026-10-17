@@ -496,13 +496,54 @@ em raciocínio oculto e não emitia resposta — `get_answer` voltava
 verificado, a síntese funciona e a confiança sobe para `medium`, citando os
 arquivos certos. Fixado em dois lugares, porque atendem consumidores diferentes:
 
-- `.mcp.json` → bloco `env` do servidor `repowise`, para o MCP. Exige
-  reiniciar a sessão para o servidor herdar a variável.
+- `.claude/settings.local.json` → bloco `env` do projeto, herdado pelos
+  subprocessos da sessão, **inclusive o servidor MCP do plugin** (que não tem
+  bloco `env` próprio). Exige reiniciar a sessão para o servidor herdar.
 - `.repowise/.env` → para o CLI (`repowise ask`).
 
 **Nenhum dos dois é versionado** (`.gitignore:48` cobre `.repowise/` e a
-`:54` cobre `.mcp.json`), então a correção **não** sobrevive a um clone novo
-— é passo manual de máquina nova, registrado no `goup.md` (passo 0.8).
+`:53`/`:54` cobrem `.claude/` e `.mcp.json`), então a correção **não**
+sobrevive a um clone novo — é passo manual de máquina nova, registrado no
+`goup.md` (passo 0.8).
+
+#### Instalado como plugin, não como servidor MCP avulso (2026-10-17)
+
+Até esta data o Repowise entrava por um servidor MCP declarado à mão em
+`.mcp.json`, e os três hooks dele estavam **copiados à mão** em
+`~/.claude/settings.json`. Descobriu-se que esses três hooks eram
+byte-idênticos aos que o plugin oficial provê — alguém os havia copiado de
+lá, ou um instalador antigo o fez. Instalar o plugin **por cima** teria
+disparado os três duas vezes por evento.
+
+A troca feita, em vez de somar: os três hooks copiados saíram de
+`~/.claude/settings.json`, o plugin foi instalado
+(`/plugin marketplace add repowise-dev/repowise` e
+`/plugin install repowise@repowise`), e o servidor duplicado saiu do
+`.mcp.json` (`claude mcp remove repowise`), que ficou com `mcpServers: {}`.
+
+| Depois da troca | |
+| --- | --- |
+| Servidor MCP | um só, `plugin:repowise:repowise` (ferramentas `mcp__plugin_repowise_repowise__*`) |
+| Hooks por chamada de Bash | **1** — `repowise-rewrite`, que o plugin **não** traz e por isso continua declarado à mão |
+| Dono dos outros 3 hooks | o plugin (`SessionStart`, `PostToolUse`, `PostToolUseFailure`) |
+| Versão | 0.57.0 (era 0.56.0) |
+
+**Armadilha encontrada na troca:** o servidor do `.mcp.json` era o que
+carregava o `REPOWISE_SYNTHESIS_MAX_TOKENS`. Removê-lo sem mais faria perder
+o conserto da síntese **em silêncio** — daí a variável ter migrado para o
+`env` do projeto antes da remoção.
+
+**O plugin também traz ~20 skills `repowise:*`**, seis delas de **auto-disparo
+por descrição** (`pre-modification`, `change-review`, `code-health`,
+`codebase-exploration`, `dead-code-cleanup`, `architectural-decisions`) — a
+mais abrangente é a `pre-modification` ("before modifying, refactoring, or
+deleting files"). Skill não roda a cada chamada de ferramenta como hook,
+então é mais barata e mais pertinente; se incomodar, `skillOverrides` em
+`~/.claude/settings.json` aceita `"off"` ou `"user-invocable-only"` por
+skill. O **Lens** (módulo do plugin, com `/lens` e seis toggles, quatro
+`true` por padrão, um deles rodando a cada turno que edita arquivo) foi
+instalado **desligado** via `pluginConfigs`, para a instalação não alterar o
+custo por turno; acender um a um, se e quando for avaliado.
 
 **Fato operacional que vale lembrar:** a síntese do Repowise roda no
 `gemma4:12b-it-q4_K_M` via Ollama (`.repowise/config.yaml`), que é **o mesmo
