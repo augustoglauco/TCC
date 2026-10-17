@@ -510,3 +510,46 @@ sob pena de contaminar a medição de latência.
 Pendências conhecidas, nenhuma bloqueante: o índice está em
 `status: "upgrading"` (`Full upgrade: pending`), e o servidor roda 0.56.0 com
 a 0.57.0 disponível.
+
+#### Ler fonte do repo com `Read`/`Grep`, não com `cat`/`grep`
+
+**Achado de 2026-10-17, e é a diferença entre o Repowise ajudar ou ficar no
+escuro.** A camada automática dele — `read_skeleton` e `search_digest`,
+ligadas em `.repowise/config.yaml` — é servida pelo hook `repowise-augment`,
+cujo matcher é `Grep|Glob|Read|Edit|Write|mcp__.*repowise.*`. **`Bash` não
+está ali, e não deve estar:** medido, um payload de `Bash` não move o estado
+do hook (`seq` parado, arquivo não registrado), porque ele não analisa
+`tool_input.command` para extrair caminho. Pôr `Bash` no matcher dispararia o
+hook em toda chamada e não produziria nada.
+
+Consequência prática, com a evidência da sessão que descobriu isso: ao
+trabalhar lendo com `cat`/`sed -n` e buscando com `grep`, o estado do hook
+terminou com **`reads: {}` e `served: {}` em 19 execuções** — o Repowise
+registrou os 8 arquivos escritos (via `Write`/`Edit`, que casam com o
+matcher) e serviu orientação **zero vez**. Um `Read` de arquivo do repo, no
+mesmo estado, foi registrado na hora com hash, tamanho e `seq`.
+
+**Regra, então:**
+
+- **Fonte do repo que você vai entender ou editar → `Read` e `Grep`.** É o
+  que acende o digest e o skeleton, e é o que faz o Repowise avisar de
+  arquivo defasado ou já lido.
+- **`Bash` para o que é comando de verdade:** git, `pytest`, `ruff`,
+  `scripts/checar_mudanca.py`, `graphify update`, scripts do `eval/`.
+- Para pergunta de how/where/why, `get_answer`; para resolver identificador,
+  `search_codebase` — chamada explícita, que não depende de hook nenhum.
+
+No Claude Code existe um empurrão na direção contrária: com
+`permissions.defaultMode: "auto"` (em `~/.claude/settings.json`), o modo auto
+orienta a ler com `cat`/`head`/`sed -n` e buscar com `grep`/`find` em vez das
+ferramentas dedicadas. Para **fonte do repo**, a augmentação do Repowise é a
+razão de preferir a ferramenta dedicada mesmo assim; a orientação do modo
+auto segue valendo para todo o resto. (O conflito de configuração é
+específico do Claude Code; o princípio — usar o canal que a camada de índice
+escuta — vale para as três ferramentas.)
+
+**Nenhum hook foi adicionado para forçar isto.** A alternativa mecânica
+considerada e descartada por ora era um `PreToolUse` filtrado em
+`Bash(grep:*)` injetando um lembrete; fica registrada como o caminho a seguir
+**se** o hábito não pegar, e não antes, porque reintroduz custo por chamada
+exatamente onde ele foi cortado.
