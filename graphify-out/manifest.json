@@ -1008,9 +1008,9 @@
     "semantic_hash": "6c8fbdb9b6733c3932778869ff10d787"
   },
   "frontend/app/page.tsx": {
-    "mtime": 1792249906.1774025,
-    "seen": 1792249959.4221854,
-    "ast_hash": "ba6a1bfc47d968090c82ba8cc3010409",
+    "mtime": 1792251705.0058095,
+    "seen": 1792251740.5101044,
+    "ast_hash": "c978821175c0402f0c9f12adc76208e9",
     "semantic_hash": ""
   },
   "frontend/app/pedidos/historico/page.tsx": {
@@ -1332,9 +1332,9 @@
     "semantic_hash": ""
   },
   "frontend/components/layout/Footer.tsx": {
-    "mtime": 1792249909.1735392,
-    "seen": 1792249959.4222448,
-    "ast_hash": "6377ae8c6a13c357f9eeef525ba61d0f",
+    "mtime": 1792251732.8815107,
+    "seen": 1792251740.51016,
+    "ast_hash": "1e7aa595da01f654eb5407be20102ef0",
     "semantic_hash": ""
   },
   "frontend/components/layout/Header.tsx": {
@@ -2418,9 +2418,9 @@
     "semantic_hash": ""
   },
   "frontend/components/home/CapabilitiesGrid.tsx": {
-    "mtime": 1792249938.4629073,
-    "seen": 1792249959.4222364,
-    "ast_hash": "4f9a03cffdd26229b0322e60786b7f80",
+    "mtime": 1792251700.646582,
+    "seen": 1792251740.5101507,
+    "ast_hash": "65919b21f7f473df7947df14fb173d0a",
     "semantic_hash": ""
   },
   "frontend/components/home/HardwareReveal.tsx": {
@@ -2430,15 +2430,15 @@
     "semantic_hash": ""
   },
   "frontend/components/home/HeroSlider.tsx": {
-    "mtime": 1792249938.5104098,
-    "seen": 1792249959.422238,
-    "ast_hash": "272a374ab2020fcc63b381dcc6643344",
+    "mtime": 1792251697.38642,
+    "seen": 1792251740.510153,
+    "ast_hash": "7991e54346f017ba6133f356f1799d4b",
     "semantic_hash": ""
   },
   "frontend/components/home/MetricCounters.tsx": {
-    "mtime": 1792249901.3464887,
-    "seen": 1792249959.42224,
-    "ast_hash": "7a0f73277375b26860932a7f4d3ba9a6",
+    "mtime": 1792251702.8026886,
+    "seen": 1792251740.5101552,
+    "ast_hash": "27d65495189823bafa3446e099aa4727",
     "semantic_hash": ""
   },
   "frontend/components/home/ProcessSteps.tsx": {
@@ -2520,15 +2520,15 @@
     "semantic_hash": ""
   },
   "frontend/components/home/M3PageEffects.tsx": {
-    "mtime": 1792249938.5311027,
-    "seen": 1792249959.4222393,
-    "ast_hash": "366fac1a4b18b96a3257dfdd0fef1f13",
+    "mtime": 1792251694.114252,
+    "seen": 1792251740.5101542,
+    "ast_hash": "158a96e4ec4494be570cdb6b8e210137",
     "semantic_hash": ""
   },
   "frontend/components/home/ProductGalleryShowcase.tsx": {
-    "mtime": 1792249904.125309,
-    "seen": 1792249959.4222417,
-    "ast_hash": "3fec17984143efdb652ed42754d3a7ec",
+    "mtime": 1792251703.969758,
+    "seen": 1792251740.510157,
+    "ast_hash": "7837562c025b442039506bd567b13b34",
     "semantic_hash": ""
   },
   "merdinha.md": {

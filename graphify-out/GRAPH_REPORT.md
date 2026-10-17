@@ -1,16 +1,16 @@
 # Graph Report - TCC  (2026-10-17)
 
 ## Corpus Check
-- 417 files · ~589,528 words
+- 417 files · ~589,509 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3467 nodes · 8174 edges · 207 communities (176 shown, 31 thin omitted)
+- 3467 nodes · 8174 edges · 207 communities (175 shown, 32 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 536 edges (avg confidence: 0.94)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e5cf9186`
+- Built from commit: `c4efe820`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -63,7 +63,7 @@
 - models/rag.py
 - dashboards/page.tsx
 - mensagens/page.tsx
-- MensagemAgente
+- layout.tsx
 - api/model_catalog.py
 - orders.ts
 - AbaEnviarDocumento
@@ -73,7 +73,7 @@
 - ChatModal.tsx
 - getApiBaseUrl
 - analytics_agent.py
-- prompt_injection/run_eval.py
+- MensagemAgente
 - compilerOptions
 - ingestion_metrics.py
 - devDependencies
@@ -180,9 +180,9 @@
 - LocalModel
 - get_settings
 - main.py
-- eslint-config-prettier
+- RAGClient
 - .pull_model_streaming
-- layout.tsx
+- resumo.py
 - ImageSearchResult
 - CatalogImportModal.tsx
 - ClipImageStore
@@ -192,21 +192,21 @@
 - Otimização dos parâmetros de ingestão do RAG (R4, Fase 10)
 - models/catalog.py
 - types/rag.ts
-- RAGClient
+- prompt_injection/run_eval.py
 - Review Focus
 - google_calendar.py
-- resumo.py
-- GoogleCalendarMCPClient
+- require_admin
+- CalendarClient
 - 4. O Que Você Deve Fazer (Tarefas Restantes)
 - ExternalBackendIndisponivelError
 - read_table_as_text
-- require_admin
-- CalendarClient
-- CategoryFilter.tsx
 - _handle_tone_e_classify
+- GoogleCalendarConnectionError
+- CategoryFilter.tsx
+- eslint-config-next
 - merdinha.md
 - inactivity_closure_worker
-- GoogleCalendarConnectionError
+- 0012_conversa_metricas.py
 
 ## God Nodes (most connected - your core abstractions)
 1. `getApiBaseUrl()` - 89 edges
@@ -249,7 +249,7 @@
 - **Stack de Inferência Local e Otimização de Memória CUDA / MoE** — docs_manuais_strata_manual_strata_cuda_engine, docs_manuais_strata_manual_strata_memory_lifecycle, docs_manuais_headroom_manual_headroom_context_optimization, docs_manuais_howto_administrador_gestao_modelos_ia [INFERRED 0.85]
 - **Evolução do Pipeline e Gestão de Documentos RAG** — docs_superpowers_plans_2026_09_14_registro_documentos_rag_registro_postgres_qdrant, docs_superpowers_plans_2026_09_15_rag_collections_config_perfis_collection, docs_superpowers_plans_2026_09_19_crawler_paginas_crawler_bfs, docs_superpowers_plans_2026_10_04_download_documentos_rag_chat_download_direto_chat [INFERRED 0.85]
 
-## Communities (207 total, 31 thin omitted)
+## Communities (207 total, 32 thin omitted)
 
 ### Community 0 - "admin_products.py"
 Cohesion: 0.08
@@ -280,8 +280,8 @@ Cohesion: 0.21
 Nodes (15): post_confirmar_catalogo(), _get_base_dir(), obter_imagem_produto(), obter_imagem_temporaria(), get, Path, Request, Endpoints de servimento e persistência de imagens de produtos. GET… (+7 more)
 
 ### Community 7 - "db/catalog.py"
-Cohesion: 0.12
-Nodes (34): adicionar_desconto_volume(), atualizar_estoque(), atualizar_produto(), calcular_item_cotacao(), criar_produto(), listar_categorias_distintas(), listar_descontos_volume(), listar_estoque() (+26 more)
+Cohesion: 0.09
+Nodes (45): _acionar_agente_estoque(), adicionar_desconto_volume(), atualizar_estoque(), atualizar_produto(), calcular_item_cotacao(), criar_compatibilidade(), criar_pedido(), criar_produto() (+37 more)
 
 ### Community 8 - "ingest.py"
 Cohesion: 0.08
@@ -300,8 +300,8 @@ Cohesion: 0.08
 Nodes (24): 📌 1. Sumário de Recursos, Portas e Convivência no Ecossistema, 🔄 2. Convivência e Papéis: GitNexus vs. Repowise vs. Graphify, 3.1 Inicialização Interativa (Primeiro Plano), 3.2 Inicialização com Porta Customizada ou Acesso em Rede, 3.3 Inicialização em Segundo Plano (Background / Daemon), 3.4 Acesso no Navegador, 🌐 3. Inicialização e Uso da Interface Web (`gitnexus serve`), 4.1 Indexação Completa do Repositório (+16 more)
 
 ### Community 12 - "collections_abc"
-Cohesion: 0.03
-Nodes (4): alembic, collections_abc, sqlalchemy_dialects, sqlalchemy_dialects_postgresql
+Cohesion: 0.04
+Nodes (3): alembic, collections_abc, sqlalchemy_dialects_postgresql
 
 ### Community 13 - "mcp_server/auth.py"
 Cohesion: 0.15
@@ -369,7 +369,7 @@ Nodes (10): _descrever_erro(), main(), Cliente de teste do MCP B2B (R12, Fase 5)
 
 ### Community 29 - "estoque_preditivo.py"
 Cohesion: 0.09
-Nodes (39): email_configurado(), enviar_email_admin(), _enviar_sync(), Envio de e-mail ao administrador por SMTP (R13). # MVP: SMTP simples (smtplib…, Devolve o `email_status`: `enviado`, `nao_configurado` ou `falhou`., decidir_com_ia(), interpretar_resposta(), montar_prompt() (+31 more)
+Nodes (37): email_configurado(), enviar_email_admin(), _enviar_sync(), Envio de e-mail ao administrador por SMTP (R13). # MVP: SMTP simples (smtplib…, Devolve o `email_status`: `enviado`, `nao_configurado` ou `falhou`., decidir_com_ia(), interpretar_resposta(), montar_prompt() (+29 more)
 
 ### Community 30 - "OllamaClient"
 Cohesion: 0.08
@@ -388,8 +388,8 @@ Cohesion: 0.16
 Nodes (18): admin_consultar_eventos_google(), admin_criar_agendamento_manual(), admin_listar_agendamentos(), AgendamentoManualCreate, AgendamentoOut, cancelar_agendamento(), listar_meus_agendamentos(), AsyncSession (+10 more)
 
 ### Community 34 - "obter_produto"
-Cohesion: 0.08
-Nodes (43): CompatibilidadePayload, delete_admin_produto(), delete_compatividade(), delete_desconto_volume(), delete_imagem_produto(), DescontoVolumePayload, EstoqueUpdatePayload, get_admin_categorias() (+35 more)
+Cohesion: 0.09
+Nodes (38): CompatibilidadePayload, delete_admin_produto(), delete_compatividade(), delete_desconto_volume(), delete_imagem_produto(), DescontoVolumePayload, EstoqueUpdatePayload, get_admin_categorias() (+30 more)
 
 ### Community 35 - "api/crawler.ts"
 Cohesion: 0.15
@@ -400,8 +400,8 @@ Cohesion: 0.09
 Nodes (36): _acompanhar(), _caminho(), cancelar_tarefa(), _Conjunto, ConjuntoStatus, DatasetsResposta, detalhar_tarefa(), iniciar_tarefa() (+28 more)
 
 ### Community 37 - "api/orders.py"
-Cohesion: 0.13
-Nodes (34): calculate_freight_endpoint(), calculate_quote_endpoint(), create_order_endpoint(), get_order_endpoint(), list_orders_endpoint(), _map_order_to_out(), AsyncSession, get (+26 more)
+Cohesion: 0.15
+Nodes (30): calculate_freight_endpoint(), calculate_quote_endpoint(), create_order_endpoint(), get_order_endpoint(), list_orders_endpoint(), _map_order_to_out(), AsyncSession, get (+22 more)
 
 ### Community 38 - "B2BMCPClient"
 Cohesion: 0.16
@@ -443,9 +443,9 @@ Nodes (21): AdminDashboardsPage(), CreateChartModal(), CreateChartModalProps, Da
 Cohesion: 0.36
 Nodes (9): AdminMensagensPage(), ROTULO_AGENTE, ROTULO_EMAIL, fetchMensagens(), headers(), marcarMensagemLida(), marcarTodasLidas(), MensagemAgente (+1 more)
 
-### Community 48 - "MensagemAgente"
-Cohesion: 0.26
-Nodes (13): listar_mensagens(), marcar_lida(), marcar_todas_lidas(), MensagemAgenteOut, MensagensResposta, _nao_lidas(), AsyncSession, BaseModel (+5 more)
+### Community 48 - "layout.tsx"
+Cohesion: 0.13
+Nodes (11): frontend_app_globals, geistMono, geistSans, metadata, AdminGearMenu(), MENU_GROUPS, MenuGroup, MenuItem (+3 more)
 
 ### Community 49 - "api/model_catalog.py"
 Cohesion: 0.09
@@ -483,9 +483,9 @@ Nodes (36): AdminProdutosPage(), CATEGORIAS_PADRAO, ProductFormModal(), ProductF
 Cohesion: 0.07
 Nodes (46): AdminChartCreate, AdminChartOut, AdminChartUpdate, create_admin_chart(), delete_admin_chart(), list_admin_charts(), AsyncSession, BaseModel (+38 more)
 
-### Community 58 - "prompt_injection/run_eval.py"
-Cohesion: 0.53
-Nodes (5): _avaliar_cliente(), _carregar_casos(), _julgar_resposta(), main(), Avalia resiliência comportamental a prompt injection (Fase 10, avaliação…
+### Community 58 - "MensagemAgente"
+Cohesion: 0.26
+Nodes (13): listar_mensagens(), marcar_lida(), marcar_todas_lidas(), MensagemAgenteOut, MensagensResposta, _nao_lidas(), AsyncSession, BaseModel (+5 more)
 
 ### Community 59 - "compilerOptions"
 Cohesion: 0.07
@@ -497,7 +497,7 @@ Nodes (10): IngestionCostEvent, Eventos de telemetria e custo de processamento c
 
 ### Community 61 - "devDependencies"
 Cohesion: 0.11
-Nodes (19): eslint, eslint-config-next, devDependencies, eslint, eslint-config-next, prettier, @tailwindcss/postcss, @testing-library/jest-dom (+11 more)
+Nodes (19): eslint, eslint-config-prettier, devDependencies, eslint, eslint-config-prettier, prettier, @tailwindcss/postcss, @testing-library/jest-dom (+11 more)
 
 ### Community 62 - "store.py"
 Cohesion: 0.12
@@ -795,13 +795,17 @@ Nodes (70): argparse, AsyncEngine, asyncio, deduplicar_com_score(), Mantém a pr
 Cohesion: 0.06
 Nodes (46): _construir_rag_client(), _apply_runtime_settings(), create_app(), lifespan(), Any, Ponto de entrada da API FastAPI do backend (`uvicorn app.main:app`)., ActiveCollectionRagClient, async_sessionmaker (+38 more)
 
+### Community 180 - "RAGClient"
+Cohesion: 0.29
+Nodes (6): Gerador SSE para o fluxo de identificação de produto por imagem., _sse(), _stream_identificacao_imagem(), Protocol, RAGClient, ChatDoneEventData
+
 ### Community 181 - ".pull_model_streaming"
 Cohesion: 0.50
 Nodes (3): PullProgressLine, Baixa `name` (biblioteca do Ollama ou `hf.co/usuario/repo[:tag]` do Hugging…, Uma linha do stream NDJSON de `POST /api/pull` — ver…
 
-### Community 182 - "layout.tsx"
-Cohesion: 0.13
-Nodes (11): frontend_app_globals, geistMono, geistSans, metadata, AdminGearMenu(), MENU_GROUPS, MenuGroup, MenuItem (+3 more)
+### Community 182 - "resumo.py"
+Cohesion: 0.29
+Nodes (6): atualizar_resumo(), precisa_resumir(), async_sessionmaker, AsyncSession, Resumo automático periódico da conversa (R9, Fase 6) — ver decisão de…, Reescreve o resumo com as mensagens ainda não resumidas. Nunca levanta: roda em…
 
 ### Community 183 - "ImageSearchResult"
 Cohesion: 0.24
@@ -839,9 +843,9 @@ Nodes (21): get_public_categorias(), get_public_produto(), get_public_produtos()
 Cohesion: 0.06
 Nodes (46): CollectionFormModalProps, CURATED_MODELS, PAYLOAD_INDEXES_PADRAO, SCHEMA_TYPES, TEXT_PARAMS_PADRAO, CollectionsTable(), confirmarExclusao(), handleAtivar() (+38 more)
 
-### Community 192 - "RAGClient"
-Cohesion: 0.29
-Nodes (6): Gerador SSE para o fluxo de identificação de produto por imagem., _sse(), _stream_identificacao_imagem(), Protocol, RAGClient, ChatDoneEventData
+### Community 192 - "prompt_injection/run_eval.py"
+Cohesion: 0.53
+Nodes (5): _avaliar_cliente(), _carregar_casos(), _julgar_resposta(), main(), Avalia resiliência comportamental a prompt injection (Fase 10, avaliação…
 
 ### Community 193 - "Review Focus"
 Cohesion: 0.17
@@ -851,13 +855,13 @@ Nodes (11): Global Constraints, Plano de Implementação: Refatoração Visual M
 Cohesion: 0.20
 Nodes (10): Cliente MCP do Google Calendar (R11, Fase 4A) — consome um servidor MCP de…, _probe_status_http(), Cliente assíncrono para o Servidor MCP B2B Corporativo., POST `initialize` cru (sem sessão MCP) só para ler o status HTTP — mesma…, contextlib, httpx2, mcp, mcp_client_session (+2 more)
 
-### Community 195 - "resumo.py"
-Cohesion: 0.29
-Nodes (6): atualizar_resumo(), precisa_resumir(), async_sessionmaker, AsyncSession, Resumo automático periódico da conversa (R9, Fase 6) — ver decisão de…, Reescreve o resumo com as mensagens ainda não resumidas. Nunca levanta: roda em…
+### Community 195 - "require_admin"
+Cohesion: 0.40
+Nodes (5): alias, AsyncSession, Header, Query, require_admin()
 
-### Community 196 - "GoogleCalendarMCPClient"
-Cohesion: 0.29
-Nodes (4): GoogleCalendarMCPClient, is_system_event(), Any, Verifica se o evento do Google Calendar pertence ao sistema. Identifica pela…
+### Community 196 - "CalendarClient"
+Cohesion: 0.15
+Nodes (9): get_calendar_client(), Request, CalendarClient, GoogleCalendarMCPClient, is_system_event(), Any, datetime, Protocol (+1 more)
 
 ### Community 197 - "4. O Que Você Deve Fazer (Tarefas Restantes)"
 Cohesion: 0.20
@@ -871,17 +875,13 @@ Nodes (5): _AgendamentoFalhaValidacao, ExternalBackendIndisponivelError, Excepti
 Cohesion: 0.40
 Nodes (5): AsyncConnection, Transforma uma linha (dict coluna -> valor) em texto plano, pronto para…, Lê todas as linhas de `table_name` e devolve uma lista de textos (um por linha,…, read_table_as_text(), row_to_text()
 
-### Community 200 - "require_admin"
-Cohesion: 0.40
-Nodes (5): alias, AsyncSession, Header, Query, require_admin()
-
-### Community 201 - "CalendarClient"
-Cohesion: 0.28
-Nodes (5): get_calendar_client(), Request, CalendarClient, datetime, Protocol
-
-### Community 203 - "_handle_tone_e_classify"
+### Community 200 - "_handle_tone_e_classify"
 Cohesion: 0.40
 Nodes (5): _handle_tone_e_classify(), Any, Substituto de `analyze_tone()` quando `tone_monitor_enabled=False` — devolve um…, Roda tom e classificação em paralelo. Levanta `LocalBackendIndisponivelError`…, _sem_analise_de_tom()
+
+### Community 201 - "GoogleCalendarConnectionError"
+Cohesion: 0.67
+Nodes (3): GoogleCalendarConnectionError, Exception, Falha de rede/protocolo ao falar com o MCP do Google Calendar, ou a tool…
 
 ### Community 204 - "merdinha.md"
 Cohesion: 0.40
@@ -891,19 +891,15 @@ Nodes (4): 1. Etapa 2 — Modelos de Embedding e Prefixos Assimétricos (Commit 
 Cohesion: 0.40
 Nodes (6): fechar_conversas_inativas(), inactivity_closure_worker(), async_sessionmaker, AsyncSession, Encerra conversas com status='aberta' cuja última atualização foi há mais de…, Worker em background executado periodicamente para fechar conversas inativas.
 
-### Community 206 - "GoogleCalendarConnectionError"
-Cohesion: 0.67
-Nodes (3): GoogleCalendarConnectionError, Exception, Falha de rede/protocolo ao falar com o MCP do Google Calendar, ou a tool…
-
 ## Knowledge Gaps
 - **471 isolated node(s):** `assistente-multimodal-backend`, `cliente-mcp-b2b`, `semi`, `singleQuote`, `trailingComma` (+466 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **32 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `useAuthStore` connect `useAuthStore` to `metricas/page.tsx`, `OpenRouterModelCard.tsx`, `PullModelForm.tsx`, `ingestao/page.tsx`, `api/crawler.ts`, `DocumentsTable.tsx`, `adminAtendimento.ts`, `ferramentas.ts`, `dashboards/page.tsx`, `mensagens/page.tsx`, `LocalModelsTable.tsx`, `useChatStore.ts`, `orders.ts`, `AbaEnviarDocumento`, `adminPedidos.ts`, `ChatModal.tsx`, `getApiBaseUrl`, `CatalogImportModal.tsx`, `layout.tsx`, `types/rag.ts`, `api/agendamentos.ts`?**
+- **Why does `useAuthStore` connect `useAuthStore` to `metricas/page.tsx`, `OpenRouterModelCard.tsx`, `PullModelForm.tsx`, `ingestao/page.tsx`, `api/crawler.ts`, `DocumentsTable.tsx`, `adminAtendimento.ts`, `ferramentas.ts`, `dashboards/page.tsx`, `mensagens/page.tsx`, `LocalModelsTable.tsx`, `useChatStore.ts`, `orders.ts`, `AbaEnviarDocumento`, `layout.tsx`, `adminPedidos.ts`, `ChatModal.tsx`, `getApiBaseUrl`, `CatalogImportModal.tsx`, `types/rag.ts`, `api/agendamentos.ts`?**
   _High betweenness centrality (0.014) - this node is a cross-community bridge._
 - **Why does `QdrantRAGClient` connect `main.py` to `admin_products.py`, `run_etapa2.py`, `b2b.py`, `ingest.py`, `models/rag.py`, `api/runtime_settings.py`, `rag_collections.py`, `get_settings`, `api/crawler.py`?**
   _High betweenness centrality (0.012) - this node is a cross-community bridge._

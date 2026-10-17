@@ -1355,6 +1355,19 @@
       "source_location": "L22"
     },
     {
+      "id": "backend_src_app_router_rag_client_ragclient",
+      "label": "RAGClient",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "RAGClient",
+      "file_type": "code",
+      "norm_label": "ragclient",
+      "source_file": "backend/src/app/router/rag_client.py",
+      "source_location": "L22"
+    },
+    {
       "id": "backend_src_app_router_ollama_client_pullprogressline",
       "label": "PullProgressLine",
       "_callable": true,
@@ -1366,32 +1379,6 @@
       "norm_label": "pullprogressline",
       "source_file": "backend/src/app/router/ollama_client.py",
       "source_location": "L53"
-    },
-    {
-      "id": "frontend_components_layout_admingearmenu_menugroup",
-      "label": "MenuGroup",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "menugroup",
-      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
-      "source_location": "L13"
-    },
-    {
-      "id": "frontend_components_layout_admingearmenu_menuitem",
-      "label": "MenuItem",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "menuitem",
-      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
-      "source_location": "L7"
     },
     {
       "id": "backend_src_app_rag_image_search_imagesearchresult",
@@ -2031,17 +2018,17 @@
       "source_location": "L73"
     },
     {
-      "id": "backend_src_app_router_rag_client_ragclient",
-      "label": "RAGClient",
+      "id": "backend_src_app_mcp_client_google_calendar_calendarclient",
+      "label": "CalendarClient",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
-      "community": 192,
-      "community_name": "RAGClient",
+      "community": 196,
+      "community_name": "CalendarClient",
       "file_type": "code",
-      "norm_label": "ragclient",
-      "source_file": "backend/src/app/router/rag_client.py",
-      "source_location": "L22"
+      "norm_label": "calendarclient",
+      "source_file": "backend/src/app/mcp_client/google_calendar.py",
+      "source_location": "L72"
     },
     {
       "id": "backend_src_app_mcp_client_google_calendar_googlecalendarmcpclient",
@@ -2050,7 +2037,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": "googlecalendarmcpclient",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -2239,17 +2226,17 @@
       "source_location": "L20"
     },
     {
-      "id": "backend_src_app_mcp_client_google_calendar_calendarclient",
-      "label": "CalendarClient",
+      "id": "backend_src_app_mcp_client_google_calendar_googlecalendarconnectionerror",
+      "label": "GoogleCalendarConnectionError",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 201,
-      "community_name": "CalendarClient",
+      "community_name": "GoogleCalendarConnectionError",
       "file_type": "code",
-      "norm_label": "calendarclient",
+      "norm_label": "googlecalendarconnectionerror",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
-      "source_location": "L72"
+      "source_location": "L46"
     },
     {
       "id": "frontend_components_admin_products_categoryfilter_categoryfilterprops",
@@ -2263,19 +2250,6 @@
       "norm_label": "categoryfilterprops",
       "source_file": "frontend/components/admin/products/CategoryFilter.tsx",
       "source_location": "L5"
-    },
-    {
-      "id": "backend_src_app_mcp_client_google_calendar_googlecalendarconnectionerror",
-      "label": "GoogleCalendarConnectionError",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 206,
-      "community_name": "GoogleCalendarConnectionError",
-      "file_type": "code",
-      "norm_label": "googlecalendarconnectionerror",
-      "source_file": "backend/src/app/mcp_client/google_calendar.py",
-      "source_location": "L46"
     },
     {
       "id": "frontend_components_admin_openroutermodelcard_openroutermodelcardprops",
@@ -3017,19 +2991,6 @@
       "norm_label": "estoqueupdatepayload",
       "source_file": "backend/src/app/api/admin_products.py",
       "source_location": "L410"
-    },
-    {
-      "id": "backend_src_app_db_models_produtocompatibilidade",
-      "label": "ProdutoCompatibilidade",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "obter_produto",
-      "file_type": "code",
-      "norm_label": "produtocompatibilidade",
-      "source_file": "backend/src/app/db/models.py",
-      "source_location": "L244"
     },
     {
       "id": "backend_src_app_db_models_produtoimagem",
@@ -4436,43 +4397,30 @@
       "source_location": "L17"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_mensagemagenteout",
-      "label": "MensagemAgenteOut",
+      "id": "frontend_components_layout_admingearmenu_menugroup",
+      "label": "MenuGroup",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "mensagemagenteout",
-      "source_file": "backend/src/app/api/admin_mensagens.py",
-      "source_location": "L24"
+      "norm_label": "menugroup",
+      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
+      "source_location": "L13"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_mensagensresposta",
-      "label": "MensagensResposta",
+      "id": "frontend_components_layout_admingearmenu_menuitem",
+      "label": "MenuItem",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "mensagensresposta",
-      "source_file": "backend/src/app/api/admin_mensagens.py",
-      "source_location": "L37"
-    },
-    {
-      "id": "backend_src_app_db_models_mensagemagente",
-      "label": "MensagemAgente",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 48,
-      "community_name": "MensagemAgente",
-      "file_type": "code",
-      "norm_label": "mensagemagente",
-      "source_file": "backend/src/app/db/models.py",
-      "source_location": "L588"
+      "norm_label": "menuitem",
+      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
+      "source_location": "L7"
     },
     {
       "id": "backend_src_app_db_models_modelcharacteristics",
@@ -5411,6 +5359,45 @@
       "source_location": "L17"
     },
     {
+      "id": "backend_src_app_api_admin_mensagens_mensagemagenteout",
+      "label": "MensagemAgenteOut",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "MensagemAgente",
+      "file_type": "code",
+      "norm_label": "mensagemagenteout",
+      "source_file": "backend/src/app/api/admin_mensagens.py",
+      "source_location": "L24"
+    },
+    {
+      "id": "backend_src_app_api_admin_mensagens_mensagensresposta",
+      "label": "MensagensResposta",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "MensagemAgente",
+      "file_type": "code",
+      "norm_label": "mensagensresposta",
+      "source_file": "backend/src/app/api/admin_mensagens.py",
+      "source_location": "L37"
+    },
+    {
+      "id": "backend_src_app_db_models_mensagemagente",
+      "label": "MensagemAgente",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "MensagemAgente",
+      "file_type": "code",
+      "norm_label": "mensagemagente",
+      "source_file": "backend/src/app/db/models.py",
+      "source_location": "L588"
+    },
+    {
       "id": "backend_src_app_models_catalog_extractor_catalogconfirmresponse",
       "label": "CatalogConfirmResponse",
       "_callable": true,
@@ -5656,6 +5643,19 @@
       "norm_label": "produto",
       "source_file": "backend/src/app/db/models.py",
       "source_location": "L136"
+    },
+    {
+      "id": "backend_src_app_db_models_produtocompatibilidade",
+      "label": "ProdutoCompatibilidade",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "code",
+      "norm_label": "produtocompatibilidade",
+      "source_file": "backend/src/app/db/models.py",
+      "source_location": "L244"
     },
     {
       "id": "backend_src_app_db_models_produtodescontovolume",
@@ -6707,30 +6707,6 @@
       "source_location": "L51"
     },
     {
-      "id": "backend_migrations_versions_0012_conversa_metricas_downgrade",
-      "label": "downgrade()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "collections_abc",
-      "file_type": "code",
-      "norm_label": "downgrade()",
-      "source_file": "backend/migrations/versions/0012_conversa_metricas.py",
-      "source_location": "L34"
-    },
-    {
-      "id": "backend_migrations_versions_0012_conversa_metricas_upgrade",
-      "label": "upgrade()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "collections_abc",
-      "file_type": "code",
-      "norm_label": "upgrade()",
-      "source_file": "backend/migrations/versions/0012_conversa_metricas.py",
-      "source_location": "L25"
-    },
-    {
       "id": "backend_migrations_versions_0013_produto_preco_fornecedor_imagem_downgrade",
       "label": "downgrade()",
       "_callable": true,
@@ -7017,30 +6993,6 @@
       "norm_label": "upgrade()",
       "source_file": "backend/migrations/versions/0024_ai_usage_events.py",
       "source_location": "L20"
-    },
-    {
-      "id": "backend_migrations_versions_0025_mensagens_agentes_downgrade",
-      "label": "downgrade()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "collections_abc",
-      "file_type": "code",
-      "norm_label": "downgrade()",
-      "source_file": "backend/migrations/versions/0025_mensagens_agentes.py",
-      "source_location": "L46"
-    },
-    {
-      "id": "backend_migrations_versions_0025_mensagens_agentes_upgrade",
-      "label": "upgrade()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "collections_abc",
-      "file_type": "code",
-      "norm_label": "upgrade()",
-      "source_file": "backend/migrations/versions/0025_mensagens_agentes.py",
-      "source_location": "L23"
     },
     {
       "id": "backend_migrations_versions_0026_produto_dias_alerta_estoque_downgrade",
@@ -9875,6 +9827,42 @@
       "source_location": "L51"
     },
     {
+      "id": "backend_src_app_api_chat_sse",
+      "label": "_sse()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "RAGClient",
+      "file_type": "code",
+      "norm_label": "_sse()",
+      "source_file": "backend/src/app/api/chat.py",
+      "source_location": "L343"
+    },
+    {
+      "id": "backend_src_app_api_chat_stream_identificacao_imagem",
+      "label": "_stream_identificacao_imagem()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "RAGClient",
+      "file_type": "code",
+      "norm_label": "_stream_identificacao_imagem()",
+      "source_file": "backend/src/app/api/chat.py",
+      "source_location": "L657"
+    },
+    {
+      "id": "backend_src_app_router_rag_client_ragclient_search",
+      "label": ".search()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "RAGClient",
+      "file_type": "code",
+      "norm_label": ".search()",
+      "source_file": "backend/src/app/router/rag_client.py",
+      "source_location": "L23"
+    },
+    {
       "id": "backend_src_app_router_ollama_client_ollamaclient_pull_model_streaming",
       "label": ".pull_model_streaming()",
       "_callable": true,
@@ -9887,76 +9875,28 @@
       "source_location": "L431"
     },
     {
-      "id": "frontend_app_layout_rootlayout",
-      "label": "RootLayout()",
+      "id": "backend_src_app_memory_resumo_atualizar_resumo",
+      "label": "atualizar_resumo()",
       "_callable": true,
       "_origin": "ast",
       "community": 182,
-      "community_name": "layout.tsx",
+      "community_name": "resumo.py",
       "file_type": "code",
-      "norm_label": "rootlayout()",
-      "source_file": "frontend/app/layout.tsx",
-      "source_location": "L25"
+      "norm_label": "atualizar_resumo()",
+      "source_file": "backend/src/app/memory/resumo.py",
+      "source_location": "L50"
     },
     {
-      "id": "frontend_components_layout_admingearmenu_admingearmenu",
-      "label": "AdminGearMenu()",
+      "id": "backend_src_app_memory_resumo_precisa_resumir",
+      "label": "precisa_resumir()",
       "_callable": true,
       "_origin": "ast",
       "community": 182,
-      "community_name": "layout.tsx",
+      "community_name": "resumo.py",
       "file_type": "code",
-      "norm_label": "admingearmenu()",
-      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
-      "source_location": "L47"
-    },
-    {
-      "id": "frontend_components_layout_admingearmenu_admingearmenu_handleclickoutside",
-      "label": "handleClickOutside()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "handleclickoutside()",
-      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
-      "source_location": "L54"
-    },
-    {
-      "id": "frontend_components_layout_admingearmenu_admingearmenu_handlekeydown",
-      "label": "handleKeyDown()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "handlekeydown()",
-      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
-      "source_location": "L59"
-    },
-    {
-      "id": "frontend_components_layout_footer_footer",
-      "label": "Footer()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "footer()",
-      "source_file": "frontend/components/layout/Footer.tsx",
-      "source_location": "L7"
-    },
-    {
-      "id": "frontend_components_layout_header_header",
-      "label": "Header()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "header()",
-      "source_file": "frontend/components/layout/Header.tsx",
-      "source_location": "L18"
+      "norm_label": "precisa_resumir()",
+      "source_file": "backend/src/app/memory/resumo.py",
+      "source_location": "L46"
     },
     {
       "id": "backend_src_app_rag_image_search_clipimagestore_search",
@@ -10691,40 +10631,52 @@
       "source_location": "L243"
     },
     {
-      "id": "backend_src_app_api_chat_sse",
-      "label": "_sse()",
+      "id": "backend_eval_prompt_injection_run_eval_avaliar_cliente",
+      "label": "_avaliar_cliente()",
       "_callable": true,
       "_origin": "ast",
       "community": 192,
-      "community_name": "RAGClient",
+      "community_name": "prompt_injection/run_eval.py",
       "file_type": "code",
-      "norm_label": "_sse()",
-      "source_file": "backend/src/app/api/chat.py",
-      "source_location": "L343"
+      "norm_label": "_avaliar_cliente()",
+      "source_file": "backend/eval/prompt_injection/run_eval.py",
+      "source_location": "L87"
     },
     {
-      "id": "backend_src_app_api_chat_stream_identificacao_imagem",
-      "label": "_stream_identificacao_imagem()",
+      "id": "backend_eval_prompt_injection_run_eval_carregar_casos",
+      "label": "_carregar_casos()",
       "_callable": true,
       "_origin": "ast",
       "community": 192,
-      "community_name": "RAGClient",
+      "community_name": "prompt_injection/run_eval.py",
       "file_type": "code",
-      "norm_label": "_stream_identificacao_imagem()",
-      "source_file": "backend/src/app/api/chat.py",
-      "source_location": "L657"
+      "norm_label": "_carregar_casos()",
+      "source_file": "backend/eval/prompt_injection/run_eval.py",
+      "source_location": "L56"
     },
     {
-      "id": "backend_src_app_router_rag_client_ragclient_search",
-      "label": ".search()",
+      "id": "backend_eval_prompt_injection_run_eval_julgar_resposta",
+      "label": "_julgar_resposta()",
       "_callable": true,
       "_origin": "ast",
       "community": 192,
-      "community_name": "RAGClient",
+      "community_name": "prompt_injection/run_eval.py",
       "file_type": "code",
-      "norm_label": ".search()",
-      "source_file": "backend/src/app/router/rag_client.py",
-      "source_location": "L23"
+      "norm_label": "_julgar_resposta()",
+      "source_file": "backend/eval/prompt_injection/run_eval.py",
+      "source_location": "L61"
+    },
+    {
+      "id": "backend_eval_prompt_injection_run_eval_main",
+      "label": "main()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 192,
+      "community_name": "prompt_injection/run_eval.py",
+      "file_type": "code",
+      "norm_label": "main()",
+      "source_file": "backend/eval/prompt_injection/run_eval.py",
+      "source_location": "L119"
     },
     {
       "id": "cliente_b2b_src_client_probe_status_http",
@@ -10739,28 +10691,76 @@
       "source_location": "L25"
     },
     {
-      "id": "backend_src_app_memory_resumo_atualizar_resumo",
-      "label": "atualizar_resumo()",
+      "id": "backend_src_app_api_admin_metrics_require_admin",
+      "label": "require_admin()",
       "_callable": true,
       "_origin": "ast",
       "community": 195,
-      "community_name": "resumo.py",
+      "community_name": "require_admin",
       "file_type": "code",
-      "norm_label": "atualizar_resumo()",
-      "source_file": "backend/src/app/memory/resumo.py",
-      "source_location": "L50"
+      "norm_label": "require_admin()",
+      "source_file": "backend/src/app/api/admin_metrics.py",
+      "source_location": "L40"
     },
     {
-      "id": "backend_src_app_memory_resumo_precisa_resumir",
-      "label": "precisa_resumir()",
+      "id": "backend_src_app_api_agendamentos_get_calendar_client",
+      "label": "get_calendar_client()",
       "_callable": true,
       "_origin": "ast",
-      "community": 195,
-      "community_name": "resumo.py",
+      "community": 196,
+      "community_name": "CalendarClient",
       "file_type": "code",
-      "norm_label": "precisa_resumir()",
-      "source_file": "backend/src/app/memory/resumo.py",
-      "source_location": "L46"
+      "norm_label": "get_calendar_client()",
+      "source_file": "backend/src/app/api/agendamentos.py",
+      "source_location": "L21"
+    },
+    {
+      "id": "backend_src_app_mcp_client_google_calendar_calendarclient_create_event",
+      "label": ".create_event()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 196,
+      "community_name": "CalendarClient",
+      "file_type": "code",
+      "norm_label": ".create_event()",
+      "source_file": "backend/src/app/mcp_client/google_calendar.py",
+      "source_location": "L75"
+    },
+    {
+      "id": "backend_src_app_mcp_client_google_calendar_calendarclient_delete_event",
+      "label": ".delete_event()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 196,
+      "community_name": "CalendarClient",
+      "file_type": "code",
+      "norm_label": ".delete_event()",
+      "source_file": "backend/src/app/mcp_client/google_calendar.py",
+      "source_location": "L85"
+    },
+    {
+      "id": "backend_src_app_mcp_client_google_calendar_calendarclient_is_time_available",
+      "label": ".is_time_available()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 196,
+      "community_name": "CalendarClient",
+      "file_type": "code",
+      "norm_label": ".is_time_available()",
+      "source_file": "backend/src/app/mcp_client/google_calendar.py",
+      "source_location": "L73"
+    },
+    {
+      "id": "backend_src_app_mcp_client_google_calendar_calendarclient_list_events",
+      "label": ".list_events()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 196,
+      "community_name": "CalendarClient",
+      "file_type": "code",
+      "norm_label": ".list_events()",
+      "source_file": "backend/src/app/mcp_client/google_calendar.py",
+      "source_location": "L87"
     },
     {
       "id": "backend_src_app_mcp_client_google_calendar_googlecalendarmcpclient_call_tool",
@@ -10768,7 +10768,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": "._call_tool()",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -10780,7 +10780,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": ".create_event()",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -10792,7 +10792,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": "._default_session_factory()",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -10804,7 +10804,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": ".delete_event()",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -10816,7 +10816,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": ".__init__()",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -10828,7 +10828,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": ".is_time_available()",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -10840,7 +10840,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": ".list_events()",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -10852,7 +10852,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": "is_system_event()",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -11135,76 +11135,28 @@
       "source_location": "L28"
     },
     {
-      "id": "backend_src_app_api_admin_metrics_require_admin",
-      "label": "require_admin()",
+      "id": "backend_src_app_router_orchestrator_handle_tone_e_classify",
+      "label": "_handle_tone_e_classify()",
       "_callable": true,
       "_origin": "ast",
       "community": 200,
-      "community_name": "require_admin",
+      "community_name": "_handle_tone_e_classify",
       "file_type": "code",
-      "norm_label": "require_admin()",
-      "source_file": "backend/src/app/api/admin_metrics.py",
-      "source_location": "L40"
+      "norm_label": "_handle_tone_e_classify()",
+      "source_file": "backend/src/app/router/orchestrator.py",
+      "source_location": "L975"
     },
     {
-      "id": "backend_src_app_api_agendamentos_get_calendar_client",
-      "label": "get_calendar_client()",
+      "id": "backend_src_app_router_orchestrator_sem_analise_de_tom",
+      "label": "_sem_analise_de_tom()",
       "_callable": true,
       "_origin": "ast",
-      "community": 201,
-      "community_name": "CalendarClient",
+      "community": 200,
+      "community_name": "_handle_tone_e_classify",
       "file_type": "code",
-      "norm_label": "get_calendar_client()",
-      "source_file": "backend/src/app/api/agendamentos.py",
-      "source_location": "L21"
-    },
-    {
-      "id": "backend_src_app_mcp_client_google_calendar_calendarclient_create_event",
-      "label": ".create_event()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 201,
-      "community_name": "CalendarClient",
-      "file_type": "code",
-      "norm_label": ".create_event()",
-      "source_file": "backend/src/app/mcp_client/google_calendar.py",
-      "source_location": "L75"
-    },
-    {
-      "id": "backend_src_app_mcp_client_google_calendar_calendarclient_delete_event",
-      "label": ".delete_event()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 201,
-      "community_name": "CalendarClient",
-      "file_type": "code",
-      "norm_label": ".delete_event()",
-      "source_file": "backend/src/app/mcp_client/google_calendar.py",
-      "source_location": "L85"
-    },
-    {
-      "id": "backend_src_app_mcp_client_google_calendar_calendarclient_is_time_available",
-      "label": ".is_time_available()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 201,
-      "community_name": "CalendarClient",
-      "file_type": "code",
-      "norm_label": ".is_time_available()",
-      "source_file": "backend/src/app/mcp_client/google_calendar.py",
-      "source_location": "L73"
-    },
-    {
-      "id": "backend_src_app_mcp_client_google_calendar_calendarclient_list_events",
-      "label": ".list_events()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 201,
-      "community_name": "CalendarClient",
-      "file_type": "code",
-      "norm_label": ".list_events()",
-      "source_file": "backend/src/app/mcp_client/google_calendar.py",
-      "source_location": "L87"
+      "norm_label": "_sem_analise_de_tom()",
+      "source_file": "backend/src/app/router/orchestrator.py",
+      "source_location": "L1390"
     },
     {
       "id": "frontend_components_admin_products_categoryfilter_categoryfilter",
@@ -11231,30 +11183,6 @@
       "source_location": "L24"
     },
     {
-      "id": "backend_src_app_router_orchestrator_handle_tone_e_classify",
-      "label": "_handle_tone_e_classify()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 203,
-      "community_name": "_handle_tone_e_classify",
-      "file_type": "code",
-      "norm_label": "_handle_tone_e_classify()",
-      "source_file": "backend/src/app/router/orchestrator.py",
-      "source_location": "L975"
-    },
-    {
-      "id": "backend_src_app_router_orchestrator_sem_analise_de_tom",
-      "label": "_sem_analise_de_tom()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 203,
-      "community_name": "_handle_tone_e_classify",
-      "file_type": "code",
-      "norm_label": "_sem_analise_de_tom()",
-      "source_file": "backend/src/app/router/orchestrator.py",
-      "source_location": "L1390"
-    },
-    {
       "id": "backend_src_app_services_chat_closure_service_fechar_conversas_inativas",
       "label": "fechar_conversas_inativas()",
       "_callable": true,
@@ -11277,6 +11205,54 @@
       "norm_label": "inactivity_closure_worker()",
       "source_file": "backend/src/app/services/chat_closure_service.py",
       "source_location": "L68"
+    },
+    {
+      "id": "backend_migrations_versions_0012_conversa_metricas_downgrade",
+      "label": "downgrade()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 214,
+      "community_name": "0012_conversa_metricas.py",
+      "file_type": "code",
+      "norm_label": "downgrade()",
+      "source_file": "backend/migrations/versions/0012_conversa_metricas.py",
+      "source_location": "L34"
+    },
+    {
+      "id": "backend_migrations_versions_0012_conversa_metricas_upgrade",
+      "label": "upgrade()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 214,
+      "community_name": "0012_conversa_metricas.py",
+      "file_type": "code",
+      "norm_label": "upgrade()",
+      "source_file": "backend/migrations/versions/0012_conversa_metricas.py",
+      "source_location": "L25"
+    },
+    {
+      "id": "backend_migrations_versions_0025_mensagens_agentes_downgrade",
+      "label": "downgrade()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 214,
+      "community_name": "0012_conversa_metricas.py",
+      "file_type": "code",
+      "norm_label": "downgrade()",
+      "source_file": "backend/migrations/versions/0025_mensagens_agentes.py",
+      "source_location": "L46"
+    },
+    {
+      "id": "backend_migrations_versions_0025_mensagens_agentes_upgrade",
+      "label": "upgrade()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 214,
+      "community_name": "0012_conversa_metricas.py",
+      "file_type": "code",
+      "norm_label": "upgrade()",
+      "source_file": "backend/migrations/versions/0025_mensagens_agentes.py",
+      "source_location": "L23"
     },
     {
       "id": "frontend_app_admin_ingestao_page_ragsearchconfigsection",
@@ -12345,18 +12321,6 @@
       "norm_label": ".cors_allowed_origins()",
       "source_file": "backend/src/app/config.py",
       "source_location": "L215"
-    },
-    {
-      "id": "backend_src_app_db_catalog_acionar_agente_estoque",
-      "label": "_acionar_agente_estoque()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "estoque_preditivo.py",
-      "file_type": "code",
-      "norm_label": "_acionar_agente_estoque()",
-      "source_file": "backend/src/app/db/catalog.py",
-      "source_location": "L566"
     },
     {
       "id": "backend_eval_rag_ingestion_metricas_aplicar_threshold",
@@ -13727,18 +13691,6 @@
       "source_location": "L216"
     },
     {
-      "id": "backend_src_app_db_catalog_criar_compatibilidade",
-      "label": "criar_compatibilidade()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "obter_produto",
-      "file_type": "code",
-      "norm_label": "criar_compatibilidade()",
-      "source_file": "backend/src/app/db/catalog.py",
-      "source_location": "L333"
-    },
-    {
       "id": "backend_src_app_db_catalog_deletar_produto",
       "label": "deletar_produto()",
       "_callable": true,
@@ -13773,18 +13725,6 @@
       "norm_label": "obter_produto()",
       "source_file": "backend/src/app/db/catalog.py",
       "source_location": "L120"
-    },
-    {
-      "id": "backend_src_app_db_catalog_remover_compatibilidade",
-      "label": "remover_compatibilidade()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "obter_produto",
-      "file_type": "code",
-      "norm_label": "remover_compatibilidade()",
-      "source_file": "backend/src/app/db/catalog.py",
-      "source_location": "L396"
     },
     {
       "id": "frontend_components_admin_crawlerpanel_crawlerpanel",
@@ -14121,30 +14061,6 @@
       "norm_label": "_map_order_to_out()",
       "source_file": "backend/src/app/api/orders.py",
       "source_location": "L35"
-    },
-    {
-      "id": "backend_src_app_db_catalog_criar_pedido",
-      "label": "criar_pedido()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "api/orders.py",
-      "file_type": "code",
-      "norm_label": "criar_pedido()",
-      "source_file": "backend/src/app/db/catalog.py",
-      "source_location": "L481"
-    },
-    {
-      "id": "backend_src_app_db_catalog_listar_pedidos",
-      "label": "listar_pedidos()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "api/orders.py",
-      "file_type": "code",
-      "norm_label": "listar_pedidos()",
-      "source_file": "backend/src/app/db/catalog.py",
-      "source_location": "L598"
     },
     {
       "id": "backend_src_app_db_catalog_obter_pedido",
@@ -15791,52 +15707,76 @@
       "source_location": "L50"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_listar_mensagens",
-      "label": "listar_mensagens()",
+      "id": "frontend_app_layout_rootlayout",
+      "label": "RootLayout()",
       "_callable": true,
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "listar_mensagens()",
-      "source_file": "backend/src/app/api/admin_mensagens.py",
-      "source_location": "L50"
+      "norm_label": "rootlayout()",
+      "source_file": "frontend/app/layout.tsx",
+      "source_location": "L25"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_marcar_lida",
-      "label": "marcar_lida()",
+      "id": "frontend_components_layout_admingearmenu_admingearmenu",
+      "label": "AdminGearMenu()",
       "_callable": true,
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "marcar_lida()",
-      "source_file": "backend/src/app/api/admin_mensagens.py",
-      "source_location": "L80"
+      "norm_label": "admingearmenu()",
+      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
+      "source_location": "L47"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_marcar_todas_lidas",
-      "label": "marcar_todas_lidas()",
+      "id": "frontend_components_layout_admingearmenu_admingearmenu_handleclickoutside",
+      "label": "handleClickOutside()",
       "_callable": true,
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "marcar_todas_lidas()",
-      "source_file": "backend/src/app/api/admin_mensagens.py",
-      "source_location": "L69"
+      "norm_label": "handleclickoutside()",
+      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
+      "source_location": "L54"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_nao_lidas",
-      "label": "_nao_lidas()",
+      "id": "frontend_components_layout_admingearmenu_admingearmenu_handlekeydown",
+      "label": "handleKeyDown()",
       "_callable": true,
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "_nao_lidas()",
-      "source_file": "backend/src/app/api/admin_mensagens.py",
-      "source_location": "L42"
+      "norm_label": "handlekeydown()",
+      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
+      "source_location": "L59"
+    },
+    {
+      "id": "frontend_components_layout_footer_footer",
+      "label": "Footer()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "layout.tsx",
+      "file_type": "code",
+      "norm_label": "footer()",
+      "source_file": "frontend/components/layout/Footer.tsx",
+      "source_location": "L7"
+    },
+    {
+      "id": "frontend_components_layout_header_header",
+      "label": "Header()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "layout.tsx",
+      "file_type": "code",
+      "norm_label": "header()",
+      "source_file": "frontend/components/layout/Header.tsx",
+      "source_location": "L18"
     },
     {
       "id": "backend_src_app_api_model_catalog_get_characteristics",
@@ -17663,52 +17603,52 @@
       "source_location": "L79"
     },
     {
-      "id": "backend_eval_prompt_injection_run_eval_avaliar_cliente",
-      "label": "_avaliar_cliente()",
+      "id": "backend_src_app_api_admin_mensagens_listar_mensagens",
+      "label": "listar_mensagens()",
       "_callable": true,
       "_origin": "ast",
       "community": 58,
-      "community_name": "prompt_injection/run_eval.py",
+      "community_name": "MensagemAgente",
       "file_type": "code",
-      "norm_label": "_avaliar_cliente()",
-      "source_file": "backend/eval/prompt_injection/run_eval.py",
-      "source_location": "L87"
+      "norm_label": "listar_mensagens()",
+      "source_file": "backend/src/app/api/admin_mensagens.py",
+      "source_location": "L50"
     },
     {
-      "id": "backend_eval_prompt_injection_run_eval_carregar_casos",
-      "label": "_carregar_casos()",
+      "id": "backend_src_app_api_admin_mensagens_marcar_lida",
+      "label": "marcar_lida()",
       "_callable": true,
       "_origin": "ast",
       "community": 58,
-      "community_name": "prompt_injection/run_eval.py",
+      "community_name": "MensagemAgente",
       "file_type": "code",
-      "norm_label": "_carregar_casos()",
-      "source_file": "backend/eval/prompt_injection/run_eval.py",
-      "source_location": "L56"
+      "norm_label": "marcar_lida()",
+      "source_file": "backend/src/app/api/admin_mensagens.py",
+      "source_location": "L80"
     },
     {
-      "id": "backend_eval_prompt_injection_run_eval_julgar_resposta",
-      "label": "_julgar_resposta()",
+      "id": "backend_src_app_api_admin_mensagens_marcar_todas_lidas",
+      "label": "marcar_todas_lidas()",
       "_callable": true,
       "_origin": "ast",
       "community": 58,
-      "community_name": "prompt_injection/run_eval.py",
+      "community_name": "MensagemAgente",
       "file_type": "code",
-      "norm_label": "_julgar_resposta()",
-      "source_file": "backend/eval/prompt_injection/run_eval.py",
-      "source_location": "L61"
+      "norm_label": "marcar_todas_lidas()",
+      "source_file": "backend/src/app/api/admin_mensagens.py",
+      "source_location": "L69"
     },
     {
-      "id": "backend_eval_prompt_injection_run_eval_main",
-      "label": "main()",
+      "id": "backend_src_app_api_admin_mensagens_nao_lidas",
+      "label": "_nao_lidas()",
       "_callable": true,
       "_origin": "ast",
       "community": 58,
-      "community_name": "prompt_injection/run_eval.py",
+      "community_name": "MensagemAgente",
       "file_type": "code",
-      "norm_label": "main()",
-      "source_file": "backend/eval/prompt_injection/run_eval.py",
-      "source_location": "L119"
+      "norm_label": "_nao_lidas()",
+      "source_file": "backend/src/app/api/admin_mensagens.py",
+      "source_location": "L42"
     },
     {
       "id": "backend_src_app_api_admin_products_post_confirmar_catalogo",
@@ -18575,6 +18515,18 @@
       "source_location": "L36"
     },
     {
+      "id": "backend_src_app_db_catalog_acionar_agente_estoque",
+      "label": "_acionar_agente_estoque()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "code",
+      "norm_label": "_acionar_agente_estoque()",
+      "source_file": "backend/src/app/db/catalog.py",
+      "source_location": "L566"
+    },
+    {
       "id": "backend_src_app_db_catalog_adicionar_desconto_volume",
       "label": "adicionar_desconto_volume()",
       "_callable": true,
@@ -18621,6 +18573,30 @@
       "norm_label": "calcular_item_cotacao()",
       "source_file": "backend/src/app/db/catalog.py",
       "source_location": "L449"
+    },
+    {
+      "id": "backend_src_app_db_catalog_criar_compatibilidade",
+      "label": "criar_compatibilidade()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "code",
+      "norm_label": "criar_compatibilidade()",
+      "source_file": "backend/src/app/db/catalog.py",
+      "source_location": "L333"
+    },
+    {
+      "id": "backend_src_app_db_catalog_criar_pedido",
+      "label": "criar_pedido()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "code",
+      "norm_label": "criar_pedido()",
+      "source_file": "backend/src/app/db/catalog.py",
+      "source_location": "L481"
     },
     {
       "id": "backend_src_app_db_catalog_criar_produto",
@@ -18671,6 +18647,18 @@
       "source_location": "L281"
     },
     {
+      "id": "backend_src_app_db_catalog_listar_pedidos",
+      "label": "listar_pedidos()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "code",
+      "norm_label": "listar_pedidos()",
+      "source_file": "backend/src/app/db/catalog.py",
+      "source_location": "L598"
+    },
+    {
       "id": "backend_src_app_db_catalog_listar_produtos",
       "label": "listar_produtos()",
       "_callable": true,
@@ -18717,6 +18705,18 @@
       "norm_label": "_produto_query()",
       "source_file": "backend/src/app/db/catalog.py",
       "source_location": "L60"
+    },
+    {
+      "id": "backend_src_app_db_catalog_remover_compatibilidade",
+      "label": "remover_compatibilidade()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "code",
+      "norm_label": "remover_compatibilidade()",
+      "source_file": "backend/src/app/db/catalog.py",
+      "source_location": "L396"
     },
     {
       "id": "backend_src_app_db_catalog_remover_desconto_volume",
@@ -21285,17 +21285,6 @@
       "source_location": "L1"
     },
     {
-      "id": "backend_migrations_versions_0012_conversa_metricas",
-      "label": "0012_conversa_metricas.py",
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "collections_abc",
-      "file_type": "code",
-      "norm_label": "0012_conversa_metricas.py",
-      "source_file": "backend/migrations/versions/0012_conversa_metricas.py",
-      "source_location": "L1"
-    },
-    {
       "id": "backend_migrations_versions_0013_produto_preco_fornecedor_imagem",
       "label": "0013_produto_preco_fornecedor_imagem.py",
       "_origin": "ast",
@@ -21425,17 +21414,6 @@
       "file_type": "code",
       "norm_label": "0024_ai_usage_events.py",
       "source_file": "backend/migrations/versions/0024_ai_usage_events.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "backend_migrations_versions_0025_mensagens_agentes",
-      "label": "0025_mensagens_agentes.py",
-      "_origin": "ast",
-      "community": 12,
-      "community_name": "collections_abc",
-      "file_type": "code",
-      "norm_label": "0025_mensagens_agentes.py",
-      "source_file": "backend/migrations/versions/0025_mensagens_agentes.py",
       "source_location": "L1"
     },
     {
@@ -25399,26 +25377,37 @@
       "source_location": "L93"
     },
     {
-      "id": "frontend_package_devdependencies_eslint_config_prettier",
-      "label": "eslint-config-prettier",
+      "id": "backend_src_app_router_rag_client_py_protocol",
+      "label": "Protocol",
       "_origin": "ast",
       "community": 180,
-      "community_name": "eslint-config-prettier",
+      "community_name": "RAGClient",
       "file_type": "code",
-      "norm_label": "eslint-config-prettier",
-      "source_file": "frontend/package.json",
-      "source_location": "L38"
+      "norm_label": "protocol",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "eslint_config_prettier",
-      "label": "eslint-config-prettier",
+      "id": "chatdoneeventdata",
+      "label": "ChatDoneEventData",
       "_origin": "ast",
       "community": 180,
-      "community_name": "eslint-config-prettier",
-      "file_type": "concept",
-      "norm_label": "eslint-config-prettier",
-      "source_file": "frontend/package.json",
-      "source_location": "L38"
+      "community_name": "RAGClient",
+      "file_type": "code",
+      "norm_label": "chatdoneeventdata",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_src_app_api_chat_rationale_671",
+      "label": "Gerador SSE para o fluxo de identifica\u00e7\u00e3o de produto por imagem.",
+      "_origin": "ast",
+      "community": 180,
+      "community_name": "RAGClient",
+      "file_type": "rationale",
+      "norm_label": "gerador sse para o fluxo de identificacao de produto por imagem.",
+      "source_file": "backend/src/app/api/chat.py",
+      "source_location": "L671"
     },
     {
       "id": "backend_src_app_router_ollama_client_rationale_432",
@@ -25443,103 +25432,59 @@
       "source_location": "L54"
     },
     {
-      "id": "frontend_app_layout",
-      "label": "layout.tsx",
+      "id": "backend_src_app_memory_resumo",
+      "label": "resumo.py",
       "_origin": "ast",
       "community": 182,
-      "community_name": "layout.tsx",
+      "community_name": "resumo.py",
       "file_type": "code",
-      "norm_label": "layout.tsx",
-      "source_file": "frontend/app/layout.tsx",
+      "norm_label": "resumo.py",
+      "source_file": "backend/src/app/memory/resumo.py",
       "source_location": "L1"
     },
     {
-      "id": "frontend_app_layout_geistmono",
-      "label": "geistMono",
+      "id": "backend_src_app_memory_resumo_py_async_sessionmaker",
+      "label": "async_sessionmaker",
       "_origin": "ast",
       "community": 182,
-      "community_name": "layout.tsx",
+      "community_name": "resumo.py",
       "file_type": "code",
-      "norm_label": "geistmono",
-      "source_file": "frontend/app/layout.tsx",
-      "source_location": "L15"
+      "norm_label": "async_sessionmaker",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "frontend_app_layout_geistsans",
-      "label": "geistSans",
+      "id": "backend_src_app_memory_resumo_py_asyncsession",
+      "label": "AsyncSession",
       "_origin": "ast",
       "community": 182,
-      "community_name": "layout.tsx",
+      "community_name": "resumo.py",
       "file_type": "code",
-      "norm_label": "geistsans",
-      "source_file": "frontend/app/layout.tsx",
-      "source_location": "L10"
+      "norm_label": "asyncsession",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "frontend_app_layout_metadata",
-      "label": "metadata",
+      "id": "backend_src_app_memory_resumo_rationale_1",
+      "label": "Resumo autom\u00e1tico peri\u00f3dico da conversa (R9, Fase 6) \u2014 ver decis\u00e3o de\u2026",
       "_origin": "ast",
       "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "metadata",
-      "source_file": "frontend/app/layout.tsx",
-      "source_location": "L20"
-    },
-    {
-      "id": "frontend_components_layout_admingearmenu",
-      "label": "AdminGearMenu.tsx",
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "admingearmenu.tsx",
-      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
+      "community_name": "resumo.py",
+      "file_type": "rationale",
+      "norm_label": "resumo automatico periodico da conversa (r9, fase 6) \u2014 ver decisao de...",
+      "source_file": "backend/src/app/memory/resumo.py",
       "source_location": "L1"
     },
     {
-      "id": "frontend_components_layout_admingearmenu_menu_groups",
-      "label": "MENU_GROUPS",
+      "id": "backend_src_app_memory_resumo_rationale_55",
+      "label": "Reescreve o resumo com as mensagens ainda n\u00e3o resumidas. Nunca levanta: roda em\u2026",
       "_origin": "ast",
       "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "menu_groups",
-      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
-      "source_location": "L18"
-    },
-    {
-      "id": "frontend_components_layout_footer",
-      "label": "Footer.tsx",
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "footer.tsx",
-      "source_file": "frontend/components/layout/Footer.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_components_layout_header",
-      "label": "Header.tsx",
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "header.tsx",
-      "source_file": "frontend/components/layout/Header.tsx",
-      "source_location": "L1"
-    },
-    {
-      "id": "frontend_components_layout_header_static_links",
-      "label": "STATIC_LINKS",
-      "_origin": "ast",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "file_type": "code",
-      "norm_label": "static_links",
-      "source_file": "frontend/components/layout/Header.tsx",
-      "source_location": "L9"
+      "community_name": "resumo.py",
+      "file_type": "rationale",
+      "norm_label": "reescreve o resumo com as mensagens ainda nao resumidas. nunca levanta: roda em...",
+      "source_file": "backend/src/app/memory/resumo.py",
+      "source_location": "L55"
     },
     {
       "id": "backend_src_app_rag_image_search_py_basemodel",
@@ -26627,37 +26572,26 @@
       "source_location": "L1"
     },
     {
-      "id": "backend_src_app_router_rag_client_py_protocol",
-      "label": "Protocol",
+      "id": "backend_eval_prompt_injection_run_eval",
+      "label": "prompt_injection/run_eval.py",
       "_origin": "ast",
       "community": 192,
-      "community_name": "RAGClient",
+      "community_name": "prompt_injection/run_eval.py",
       "file_type": "code",
-      "norm_label": "protocol",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "prompt_injection/run_eval.py",
+      "source_file": "backend/eval/prompt_injection/run_eval.py",
+      "source_location": "L1"
     },
     {
-      "id": "chatdoneeventdata",
-      "label": "ChatDoneEventData",
+      "id": "backend_eval_prompt_injection_run_eval_rationale_1",
+      "label": "Avalia resili\u00eancia comportamental a prompt injection (Fase 10, avalia\u00e7\u00e3o\u2026",
       "_origin": "ast",
       "community": 192,
-      "community_name": "RAGClient",
-      "file_type": "code",
-      "norm_label": "chatdoneeventdata",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "backend_src_app_api_chat_rationale_671",
-      "label": "Gerador SSE para o fluxo de identifica\u00e7\u00e3o de produto por imagem.",
-      "_origin": "ast",
-      "community": 192,
-      "community_name": "RAGClient",
+      "community_name": "prompt_injection/run_eval.py",
       "file_type": "rationale",
-      "norm_label": "gerador sse para o fluxo de identificacao de produto por imagem.",
-      "source_file": "backend/src/app/api/chat.py",
-      "source_location": "L671"
+      "norm_label": "avalia resiliencia comportamental a prompt injection (fase 10, avaliacao...",
+      "source_file": "backend/eval/prompt_injection/run_eval.py",
+      "source_location": "L1"
     },
     {
       "id": "docs_superpowers_plans_2026_10_17_m3glass_visual_refactor",
@@ -26859,68 +26793,90 @@
       "source_location": "L26"
     },
     {
-      "id": "backend_src_app_memory_resumo",
-      "label": "resumo.py",
+      "id": "backend_src_app_api_admin_metrics_py_alias",
+      "label": "alias",
       "_origin": "ast",
       "community": 195,
-      "community_name": "resumo.py",
+      "community_name": "require_admin",
       "file_type": "code",
-      "norm_label": "resumo.py",
-      "source_file": "backend/src/app/memory/resumo.py",
-      "source_location": "L1"
-    },
-    {
-      "id": "backend_src_app_memory_resumo_py_async_sessionmaker",
-      "label": "async_sessionmaker",
-      "_origin": "ast",
-      "community": 195,
-      "community_name": "resumo.py",
-      "file_type": "code",
-      "norm_label": "async_sessionmaker",
+      "norm_label": "alias",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "backend_src_app_memory_resumo_py_asyncsession",
+      "id": "backend_src_app_api_admin_metrics_py_asyncsession",
       "label": "AsyncSession",
       "_origin": "ast",
       "community": 195,
-      "community_name": "resumo.py",
+      "community_name": "require_admin",
       "file_type": "code",
       "norm_label": "asyncsession",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "backend_src_app_memory_resumo_rationale_1",
-      "label": "Resumo autom\u00e1tico peri\u00f3dico da conversa (R9, Fase 6) \u2014 ver decis\u00e3o de\u2026",
+      "id": "backend_src_app_api_admin_metrics_py_header",
+      "label": "Header",
       "_origin": "ast",
       "community": 195,
-      "community_name": "resumo.py",
-      "file_type": "rationale",
-      "norm_label": "resumo automatico periodico da conversa (r9, fase 6) \u2014 ver decisao de...",
-      "source_file": "backend/src/app/memory/resumo.py",
-      "source_location": "L1"
+      "community_name": "require_admin",
+      "file_type": "code",
+      "norm_label": "header",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "backend_src_app_memory_resumo_rationale_55",
-      "label": "Reescreve o resumo com as mensagens ainda n\u00e3o resumidas. Nunca levanta: roda em\u2026",
+      "id": "backend_src_app_api_admin_metrics_py_query",
+      "label": "Query",
       "_origin": "ast",
       "community": 195,
-      "community_name": "resumo.py",
-      "file_type": "rationale",
-      "norm_label": "reescreve o resumo com as mensagens ainda nao resumidas. nunca levanta: roda em...",
-      "source_file": "backend/src/app/memory/resumo.py",
-      "source_location": "L55"
+      "community_name": "require_admin",
+      "file_type": "code",
+      "norm_label": "query",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_src_app_api_agendamentos_py_request",
+      "label": "Request",
+      "_origin": "ast",
+      "community": 196,
+      "community_name": "CalendarClient",
+      "file_type": "code",
+      "norm_label": "request",
+      "source_file": "",
+      "source_location": ""
     },
     {
       "id": "backend_src_app_mcp_client_google_calendar_py_any",
       "label": "Any",
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "code",
       "norm_label": "any",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_src_app_mcp_client_google_calendar_py_datetime",
+      "label": "datetime",
+      "_origin": "ast",
+      "community": 196,
+      "community_name": "CalendarClient",
+      "file_type": "code",
+      "norm_label": "datetime",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_src_app_mcp_client_google_calendar_py_protocol",
+      "label": "Protocol",
+      "_origin": "ast",
+      "community": 196,
+      "community_name": "CalendarClient",
+      "file_type": "code",
+      "norm_label": "protocol",
       "source_file": "",
       "source_location": ""
     },
@@ -26929,7 +26885,7 @@
       "label": "Verifica se o evento do Google Calendar pertence ao sistema. Identifica pela\u2026",
       "_origin": "ast",
       "community": 196,
-      "community_name": "GoogleCalendarMCPClient",
+      "community_name": "CalendarClient",
       "file_type": "rationale",
       "norm_label": "verifica se o evento do google calendar pertence ao sistema. identifica pela...",
       "source_file": "backend/src/app/mcp_client/google_calendar.py",
@@ -27419,81 +27375,59 @@
       "source_location": "L12"
     },
     {
-      "id": "backend_src_app_api_admin_metrics_py_alias",
-      "label": "alias",
+      "id": "backend_src_app_router_orchestrator_py_any",
+      "label": "Any",
       "_origin": "ast",
       "community": 200,
-      "community_name": "require_admin",
+      "community_name": "_handle_tone_e_classify",
       "file_type": "code",
-      "norm_label": "alias",
+      "norm_label": "any",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "backend_src_app_api_admin_metrics_py_asyncsession",
-      "label": "AsyncSession",
+      "id": "backend_src_app_router_orchestrator_rationale_1391",
+      "label": "Substituto de `analyze_tone()` quando `tone_monitor_enabled=False` \u2014 devolve um\u2026",
       "_origin": "ast",
       "community": 200,
-      "community_name": "require_admin",
-      "file_type": "code",
-      "norm_label": "asyncsession",
-      "source_file": "",
-      "source_location": ""
+      "community_name": "_handle_tone_e_classify",
+      "file_type": "rationale",
+      "norm_label": "substituto de `analyze_tone()` quando `tone_monitor_enabled=false` \u2014 devolve um...",
+      "source_file": "backend/src/app/router/orchestrator.py",
+      "source_location": "L1391"
     },
     {
-      "id": "backend_src_app_api_admin_metrics_py_header",
-      "label": "Header",
+      "id": "backend_src_app_router_orchestrator_rationale_986",
+      "label": "Roda tom e classifica\u00e7\u00e3o em paralelo. Levanta `LocalBackendIndisponivelError`\u2026",
       "_origin": "ast",
       "community": 200,
-      "community_name": "require_admin",
-      "file_type": "code",
-      "norm_label": "header",
-      "source_file": "",
-      "source_location": ""
+      "community_name": "_handle_tone_e_classify",
+      "file_type": "rationale",
+      "norm_label": "roda tom e classificacao em paralelo. levanta `localbackendindisponivelerror`...",
+      "source_file": "backend/src/app/router/orchestrator.py",
+      "source_location": "L986"
     },
     {
-      "id": "backend_src_app_api_admin_metrics_py_query",
-      "label": "Query",
-      "_origin": "ast",
-      "community": 200,
-      "community_name": "require_admin",
-      "file_type": "code",
-      "norm_label": "query",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "backend_src_app_api_agendamentos_py_request",
-      "label": "Request",
+      "id": "backend_src_app_mcp_client_google_calendar_py_exception",
+      "label": "Exception",
       "_origin": "ast",
       "community": 201,
-      "community_name": "CalendarClient",
+      "community_name": "GoogleCalendarConnectionError",
       "file_type": "code",
-      "norm_label": "request",
+      "norm_label": "exception",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "backend_src_app_mcp_client_google_calendar_py_datetime",
-      "label": "datetime",
+      "id": "backend_src_app_mcp_client_google_calendar_rationale_47",
+      "label": "Falha de rede/protocolo ao falar com o MCP do Google Calendar, ou a tool\u2026",
       "_origin": "ast",
       "community": 201,
-      "community_name": "CalendarClient",
-      "file_type": "code",
-      "norm_label": "datetime",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "backend_src_app_mcp_client_google_calendar_py_protocol",
-      "label": "Protocol",
-      "_origin": "ast",
-      "community": 201,
-      "community_name": "CalendarClient",
-      "file_type": "code",
-      "norm_label": "protocol",
-      "source_file": "",
-      "source_location": ""
+      "community_name": "GoogleCalendarConnectionError",
+      "file_type": "rationale",
+      "norm_label": "falha de rede/protocolo ao falar com o mcp do google calendar, ou a tool...",
+      "source_file": "backend/src/app/mcp_client/google_calendar.py",
+      "source_location": "L47"
     },
     {
       "id": "frontend_components_admin_products_categoryfilter",
@@ -27507,37 +27441,26 @@
       "source_location": "L1"
     },
     {
-      "id": "backend_src_app_router_orchestrator_py_any",
-      "label": "Any",
+      "id": "frontend_package_devdependencies_eslint_config_next",
+      "label": "eslint-config-next",
       "_origin": "ast",
       "community": 203,
-      "community_name": "_handle_tone_e_classify",
+      "community_name": "eslint-config-next",
       "file_type": "code",
-      "norm_label": "any",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "eslint-config-next",
+      "source_file": "frontend/package.json",
+      "source_location": "L37"
     },
     {
-      "id": "backend_src_app_router_orchestrator_rationale_1391",
-      "label": "Substituto de `analyze_tone()` quando `tone_monitor_enabled=False` \u2014 devolve um\u2026",
+      "id": "eslint_config_next",
+      "label": "eslint-config-next",
       "_origin": "ast",
       "community": 203,
-      "community_name": "_handle_tone_e_classify",
-      "file_type": "rationale",
-      "norm_label": "substituto de `analyze_tone()` quando `tone_monitor_enabled=false` \u2014 devolve um...",
-      "source_file": "backend/src/app/router/orchestrator.py",
-      "source_location": "L1391"
-    },
-    {
-      "id": "backend_src_app_router_orchestrator_rationale_986",
-      "label": "Roda tom e classifica\u00e7\u00e3o em paralelo. Levanta `LocalBackendIndisponivelError`\u2026",
-      "_origin": "ast",
-      "community": 203,
-      "community_name": "_handle_tone_e_classify",
-      "file_type": "rationale",
-      "norm_label": "roda tom e classificacao em paralelo. levanta `localbackendindisponivelerror`...",
-      "source_file": "backend/src/app/router/orchestrator.py",
-      "source_location": "L986"
+      "community_name": "eslint-config-next",
+      "file_type": "concept",
+      "norm_label": "eslint-config-next",
+      "source_file": "frontend/package.json",
+      "source_location": "L37"
     },
     {
       "id": "merdinha",
@@ -27644,26 +27567,26 @@
       "source_location": "L73"
     },
     {
-      "id": "backend_src_app_mcp_client_google_calendar_py_exception",
-      "label": "Exception",
+      "id": "backend_migrations_versions_0012_conversa_metricas",
+      "label": "0012_conversa_metricas.py",
       "_origin": "ast",
-      "community": 206,
-      "community_name": "GoogleCalendarConnectionError",
+      "community": 214,
+      "community_name": "0012_conversa_metricas.py",
       "file_type": "code",
-      "norm_label": "exception",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "0012_conversa_metricas.py",
+      "source_file": "backend/migrations/versions/0012_conversa_metricas.py",
+      "source_location": "L1"
     },
     {
-      "id": "backend_src_app_mcp_client_google_calendar_rationale_47",
-      "label": "Falha de rede/protocolo ao falar com o MCP do Google Calendar, ou a tool\u2026",
+      "id": "backend_migrations_versions_0025_mensagens_agentes",
+      "label": "0025_mensagens_agentes.py",
       "_origin": "ast",
-      "community": 206,
-      "community_name": "GoogleCalendarConnectionError",
-      "file_type": "rationale",
-      "norm_label": "falha de rede/protocolo ao falar com o mcp do google calendar, ou a tool...",
-      "source_file": "backend/src/app/mcp_client/google_calendar.py",
-      "source_location": "L47"
+      "community": 214,
+      "community_name": "0012_conversa_metricas.py",
+      "file_type": "code",
+      "norm_label": "0025_mensagens_agentes.py",
+      "source_file": "backend/migrations/versions/0025_mensagens_agentes.py",
+      "source_location": "L1"
     },
     {
       "id": "frontend_components_admin_openroutermodelcard",
@@ -28588,17 +28511,6 @@
       "norm_label": "dias de cobertura, ou `none` se nao ha baixa na janela (sem previsao).",
       "source_file": "backend/src/app/agents/estoque_preditivo.py",
       "source_location": "L78"
-    },
-    {
-      "id": "backend_src_app_db_catalog_rationale_567",
-      "label": "Agente de previs\u00e3o de estoque (R13), depois do commit do pedido. Qualquer falha\u2026",
-      "_origin": "ast",
-      "community": 29,
-      "community_name": "estoque_preditivo.py",
-      "file_type": "rationale",
-      "norm_label": "agente de previsao de estoque (r13), depois do commit do pedido. qualquer falha...",
-      "source_file": "backend/src/app/db/catalog.py",
-      "source_location": "L567"
     },
     {
       "id": "backend_src_app_db_models_rationale_220",
@@ -29822,17 +29734,6 @@
       "source_location": "L195"
     },
     {
-      "id": "backend_src_app_db_catalog_rationale_336",
-      "label": "Cadastra um par de produtos compat\u00edveis (escrita direcional \u2014 a consulta em\u2026",
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "obter_produto",
-      "file_type": "rationale",
-      "norm_label": "cadastra um par de produtos compativeis (escrita direcional \u2014 a consulta em...",
-      "source_file": "backend/src/app/db/catalog.py",
-      "source_location": "L336"
-    },
-    {
       "id": "backend_src_app_db_catalog_rationale_370",
       "label": "Retorna lista de pares de compatibilidade envolvendo o produto, resolvendo o id\u2026",
       "_origin": "ast",
@@ -29853,17 +29754,6 @@
       "norm_label": "associacao de imagens fisicas e vetoriais ao catalogo de produtos.",
       "source_file": "backend/src/app/db/models.py",
       "source_location": "L200"
-    },
-    {
-      "id": "backend_src_app_db_models_rationale_245",
-      "label": "Par de produtos compat\u00edveis entre si (R12, Fase 5, ferramenta \"valida\u00e7\u00e3o de\u2026",
-      "_origin": "ast",
-      "community": 34,
-      "community_name": "obter_produto",
-      "file_type": "rationale",
-      "norm_label": "par de produtos compativeis entre si (r12, fase 5, ferramenta \"validacao de...",
-      "source_file": "backend/src/app/db/models.py",
-      "source_location": "L245"
     },
     {
       "id": "frontend_components_admin_crawlerpanel",
@@ -30163,17 +30053,6 @@
       "source_location": "L1"
     },
     {
-      "id": "backend_src_app_db_catalog_rationale_488",
-      "label": "Cria um pedido/reserva com os itens informados (`[(produto_id, quantidade,\u2026",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "api/orders.py",
-      "file_type": "rationale",
-      "norm_label": "cria um pedido/reserva com os itens informados (`[(produto_id, quantidade,...",
-      "source_file": "backend/src/app/db/catalog.py",
-      "source_location": "L488"
-    },
-    {
       "id": "backend_src_app_db_catalog_rationale_49",
       "label": "Levantada por `criar_pedido` quando algum item da reserva pede mais quantidade\u2026",
       "_origin": "ast",
@@ -30205,17 +30084,6 @@
       "norm_label": "busca um pedido por id com seus itens pre-carregados.",
       "source_file": "backend/src/app/db/catalog.py",
       "source_location": "L591"
-    },
-    {
-      "id": "backend_src_app_db_catalog_rationale_606",
-      "label": "Lista pedidos filtrados por user_email e/ou conversation_id, ordenados por data.",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "api/orders.py",
-      "file_type": "rationale",
-      "norm_label": "lista pedidos filtrados por user_email e/ou conversation_id, ordenados por data.",
-      "source_file": "backend/src/app/db/catalog.py",
-      "source_location": "L606"
     },
     {
       "id": "backend_src_app_models_orders_rationale_1",
@@ -31615,70 +31483,103 @@
       "source_location": "L1"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_py_asyncsession",
-      "label": "AsyncSession",
+      "id": "frontend_app_layout",
+      "label": "layout.tsx",
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "asyncsession",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "layout.tsx",
+      "source_file": "frontend/app/layout.tsx",
+      "source_location": "L1"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_py_basemodel",
-      "label": "BaseModel",
+      "id": "frontend_app_layout_geistmono",
+      "label": "geistMono",
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "basemodel",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "geistmono",
+      "source_file": "frontend/app/layout.tsx",
+      "source_location": "L15"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_py_get",
-      "label": "get",
+      "id": "frontend_app_layout_geistsans",
+      "label": "geistSans",
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "get",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "geistsans",
+      "source_file": "frontend/app/layout.tsx",
+      "source_location": "L10"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_py_post",
-      "label": "post",
+      "id": "frontend_app_layout_metadata",
+      "label": "metadata",
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "post",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "metadata",
+      "source_file": "frontend/app/layout.tsx",
+      "source_location": "L20"
     },
     {
-      "id": "backend_src_app_api_admin_mensagens_py_uuid",
-      "label": "UUID",
+      "id": "frontend_components_layout_admingearmenu",
+      "label": "AdminGearMenu.tsx",
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
+      "community_name": "layout.tsx",
       "file_type": "code",
-      "norm_label": "uuid",
-      "source_file": "",
-      "source_location": ""
+      "norm_label": "admingearmenu.tsx",
+      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
+      "source_location": "L1"
     },
     {
-      "id": "backend_src_app_db_models_rationale_589",
-      "label": "Caixa de entrada de mensagens de agentes aut\u00f4nomos para o administrador (R13,\u2026",
+      "id": "frontend_components_layout_admingearmenu_menu_groups",
+      "label": "MENU_GROUPS",
       "_origin": "ast",
       "community": 48,
-      "community_name": "MensagemAgente",
-      "file_type": "rationale",
-      "norm_label": "caixa de entrada de mensagens de agentes autonomos para o administrador (r13,...",
-      "source_file": "backend/src/app/db/models.py",
-      "source_location": "L589"
+      "community_name": "layout.tsx",
+      "file_type": "code",
+      "norm_label": "menu_groups",
+      "source_file": "frontend/components/layout/AdminGearMenu.tsx",
+      "source_location": "L18"
+    },
+    {
+      "id": "frontend_components_layout_footer",
+      "label": "Footer.tsx",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "layout.tsx",
+      "file_type": "code",
+      "norm_label": "footer.tsx",
+      "source_file": "frontend/components/layout/Footer.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_components_layout_header",
+      "label": "Header.tsx",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "layout.tsx",
+      "file_type": "code",
+      "norm_label": "header.tsx",
+      "source_file": "frontend/components/layout/Header.tsx",
+      "source_location": "L1"
+    },
+    {
+      "id": "frontend_components_layout_header_static_links",
+      "label": "STATIC_LINKS",
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "layout.tsx",
+      "file_type": "code",
+      "norm_label": "static_links",
+      "source_file": "frontend/components/layout/Header.tsx",
+      "source_location": "L9"
     },
     {
       "id": "backend_src_app_api_model_catalog",
@@ -33089,26 +32990,70 @@
       "source_location": "L80"
     },
     {
-      "id": "backend_eval_prompt_injection_run_eval",
-      "label": "prompt_injection/run_eval.py",
+      "id": "backend_src_app_api_admin_mensagens_py_asyncsession",
+      "label": "AsyncSession",
       "_origin": "ast",
       "community": 58,
-      "community_name": "prompt_injection/run_eval.py",
+      "community_name": "MensagemAgente",
       "file_type": "code",
-      "norm_label": "prompt_injection/run_eval.py",
-      "source_file": "backend/eval/prompt_injection/run_eval.py",
-      "source_location": "L1"
+      "norm_label": "asyncsession",
+      "source_file": "",
+      "source_location": ""
     },
     {
-      "id": "backend_eval_prompt_injection_run_eval_rationale_1",
-      "label": "Avalia resili\u00eancia comportamental a prompt injection (Fase 10, avalia\u00e7\u00e3o\u2026",
+      "id": "backend_src_app_api_admin_mensagens_py_basemodel",
+      "label": "BaseModel",
       "_origin": "ast",
       "community": 58,
-      "community_name": "prompt_injection/run_eval.py",
+      "community_name": "MensagemAgente",
+      "file_type": "code",
+      "norm_label": "basemodel",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_src_app_api_admin_mensagens_py_get",
+      "label": "get",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "MensagemAgente",
+      "file_type": "code",
+      "norm_label": "get",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_src_app_api_admin_mensagens_py_post",
+      "label": "post",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "MensagemAgente",
+      "file_type": "code",
+      "norm_label": "post",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_src_app_api_admin_mensagens_py_uuid",
+      "label": "UUID",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "MensagemAgente",
+      "file_type": "code",
+      "norm_label": "uuid",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "backend_src_app_db_models_rationale_589",
+      "label": "Caixa de entrada de mensagens de agentes aut\u00f4nomos para o administrador (R13,\u2026",
+      "_origin": "ast",
+      "community": 58,
+      "community_name": "MensagemAgente",
       "file_type": "rationale",
-      "norm_label": "avalia resiliencia comportamental a prompt injection (fase 10, avaliacao...",
-      "source_file": "backend/eval/prompt_injection/run_eval.py",
-      "source_location": "L1"
+      "norm_label": "caixa de entrada de mensagens de agentes autonomos para o administrador (r13,...",
+      "source_file": "backend/src/app/db/models.py",
+      "source_location": "L589"
     },
     {
       "id": "frontend_tsconfig",
@@ -33617,15 +33562,15 @@
       "source_location": "L36"
     },
     {
-      "id": "frontend_package_devdependencies_eslint_config_next",
-      "label": "eslint-config-next",
+      "id": "frontend_package_devdependencies_eslint_config_prettier",
+      "label": "eslint-config-prettier",
       "_origin": "ast",
       "community": 61,
       "community_name": "devDependencies",
       "file_type": "code",
-      "norm_label": "eslint-config-next",
+      "norm_label": "eslint-config-prettier",
       "source_file": "frontend/package.json",
-      "source_location": "L37"
+      "source_location": "L38"
     },
     {
       "id": "frontend_package_devdependencies_prettier",
@@ -33716,15 +33661,15 @@
       "source_location": "L36"
     },
     {
-      "id": "eslint_config_next",
-      "label": "eslint-config-next",
+      "id": "eslint_config_prettier",
+      "label": "eslint-config-prettier",
       "_origin": "ast",
       "community": 61,
       "community_name": "devDependencies",
       "file_type": "concept",
-      "norm_label": "eslint-config-next",
+      "norm_label": "eslint-config-prettier",
       "source_file": "frontend/package.json",
-      "source_location": "L37"
+      "source_location": "L38"
     },
     {
       "id": "prettier",
@@ -34618,6 +34563,17 @@
       "source_location": "L257"
     },
     {
+      "id": "backend_src_app_db_catalog_rationale_336",
+      "label": "Cadastra um par de produtos compat\u00edveis (escrita direcional \u2014 a consulta em\u2026",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "rationale",
+      "norm_label": "cadastra um par de produtos compativeis (escrita direcional \u2014 a consulta em...",
+      "source_file": "backend/src/app/db/catalog.py",
+      "source_location": "L336"
+    },
+    {
       "id": "backend_src_app_db_catalog_rationale_350",
       "label": "Verifica se dois produtos s\u00e3o compat\u00edveis, nos dois sentidos (par cadastrado\u2026",
       "_origin": "ast",
@@ -34651,6 +34607,39 @@
       "source_location": "L452"
     },
     {
+      "id": "backend_src_app_db_catalog_rationale_488",
+      "label": "Cria um pedido/reserva com os itens informados (`[(produto_id, quantidade,\u2026",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "rationale",
+      "norm_label": "cria um pedido/reserva com os itens informados (`[(produto_id, quantidade,...",
+      "source_file": "backend/src/app/db/catalog.py",
+      "source_location": "L488"
+    },
+    {
+      "id": "backend_src_app_db_catalog_rationale_567",
+      "label": "Agente de previs\u00e3o de estoque (R13), depois do commit do pedido. Qualquer falha\u2026",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "rationale",
+      "norm_label": "agente de previsao de estoque (r13), depois do commit do pedido. qualquer falha...",
+      "source_file": "backend/src/app/db/catalog.py",
+      "source_location": "L567"
+    },
+    {
+      "id": "backend_src_app_db_catalog_rationale_606",
+      "label": "Lista pedidos filtrados por user_email e/ou conversation_id, ordenados por data.",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "rationale",
+      "norm_label": "lista pedidos filtrados por user_email e/ou conversation_id, ordenados por data.",
+      "source_file": "backend/src/app/db/catalog.py",
+      "source_location": "L606"
+    },
+    {
       "id": "backend_src_app_db_models_rationale_137",
       "label": "Backend \u00fanico de cat\u00e1logo/estoque/pre\u00e7os (R12, Fase 5) \u2014 reaproveitado tanto\u2026",
       "_origin": "ast",
@@ -34660,6 +34649,17 @@
       "norm_label": "backend unico de catalogo/estoque/precos (r12, fase 5) \u2014 reaproveitado tanto...",
       "source_file": "backend/src/app/db/models.py",
       "source_location": "L137"
+    },
+    {
+      "id": "backend_src_app_db_models_rationale_245",
+      "label": "Par de produtos compat\u00edveis entre si (R12, Fase 5, ferramenta \"valida\u00e7\u00e3o de\u2026",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "db/catalog.py",
+      "file_type": "rationale",
+      "norm_label": "par de produtos compativeis entre si (r12, fase 5, ferramenta \"validacao de...",
+      "source_file": "backend/src/app/db/models.py",
+      "source_location": "L245"
     },
     {
       "id": "backend_src_app_db_models_rationale_317",
@@ -41145,18 +41145,6 @@
       "type": "external"
     },
     {
-      "id": "sqlalchemy_dialects",
-      "label": "sqlalchemy_dialects",
-      "_origin": "semantic",
-      "community": 12,
-      "community_name": "collections_abc",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "sqlalchemy_dialects",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "sqlalchemy_dialects_postgresql",
       "label": "sqlalchemy_dialects_postgresql",
       "_origin": "semantic",
@@ -41457,18 +41445,6 @@
       "type": "external"
     },
     {
-      "id": "frontend_app_globals",
-      "label": "frontend_app_globals",
-      "_origin": "semantic",
-      "community": 182,
-      "community_name": "layout.tsx",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "frontend_app_globals",
-      "source_file": "",
-      "type": "external"
-    },
-    {
       "id": "contextlib",
       "label": "contextlib",
       "_origin": "semantic",
@@ -41537,6 +41513,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "mcp_shared_httpx_utils",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "sqlalchemy_dialects",
+      "label": "sqlalchemy_dialects",
+      "_origin": "semantic",
+      "community": 214,
+      "community_name": "0012_conversa_metricas.py",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "sqlalchemy_dialects",
       "source_file": "",
       "type": "external"
     },
@@ -41621,6 +41609,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "time",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "frontend_app_globals",
+      "label": "frontend_app_globals",
+      "_origin": "semantic",
+      "community": 48,
+      "community_name": "layout.tsx",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "frontend_app_globals",
       "source_file": "",
       "type": "external"
     },
@@ -136796,5 +136796,5 @@
       "source_file": "docs/superpowers/plans/2026-09-14-registro-documentos-rag.md"
     }
   ],
-  "built_at_commit": "e5cf9186c0975af045e18f24d64c53b8ac56170e"
+  "built_at_commit": "c4efe820baa4d2eb5f881f909312fbc0356985da"
 }

@@ -171,9 +171,7 @@ export default function Footer() {
 
         {/* Linha Inferior com Selo de TCC e Copyright */}
         <div className="mt-12 border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/55">
-          <p>
-            © 2026 Empresa Fictícia. Todos os direitos reservados. Catálogo Oficial Fictícia.
-          </p>
+          <p>© 2026 Empresa Fictícia. Todos os direitos reservados. Catálogo Oficial Fictícia.</p>
           <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3.5 py-1 text-[11px] text-white/75">
             <span>🎓</span>
             <span>Protótipo TCC IA Generativa — Assistente Virtual Multimodal</span>
