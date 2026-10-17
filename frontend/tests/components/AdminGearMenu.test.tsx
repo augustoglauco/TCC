@@ -98,7 +98,7 @@ describe("AdminGearMenu", () => {
     const menuItems = screen.getAllByRole("menuitem").map((el) => el.textContent?.trim());
 
     // 8 itens de Administração do Negócio em ordem alfabética
-    // 4 itens de Ferramentas IA em ordem alfabética
+    // 5 itens de Ferramentas IA em ordem alfabética
     expect(menuItems).toEqual([
       "📦Catálogo de Produtos",
       "🎧Central de Atendimento",
@@ -111,6 +111,7 @@ describe("AdminGearMenu", () => {
       "⚙️Administração IA",
       "🕸️Ferramentas de Código",
       "📊Métricas & Custos IA",
+      "🧾Preparação da Avaliação",
       "🧪Resultados da Avaliação",
     ]);
   });

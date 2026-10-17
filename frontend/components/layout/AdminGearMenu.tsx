@@ -35,6 +35,7 @@ const MENU_GROUPS: MenuGroup[] = [
       { href: "/admin/modelos", label: "Administração IA", icon: "⚙️" },
       { href: "/admin/ferramentas", label: "Ferramentas de Código", icon: "🕸️" },
       { href: "/admin/metricas", label: "Métricas & Custos IA", icon: "📊" },
+      { href: "/admin/datasets", label: "Preparação da Avaliação", icon: "🧾" },
       { href: "/avaliacao", label: "Resultados da Avaliação", icon: "🧪" },
     ].sort((a, b) => a.label.localeCompare(b.label, "pt-BR")),
   },

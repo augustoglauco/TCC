@@ -1995,6 +1995,58 @@ conversa e classificação do usuário").
       atuais; a seção "Comparativo de modelos" aparece quando o
       orquestrador gravar `eval/model_benchmark/results/*.json`.
 
+## Extra fora do MVP — Painel de Preparação da Avaliação
+
+Tela de apoio à condução do experimento da Fase 10, pedida pelo dono em
+2026-10-16. Não faz parte do assistente: serve para revisar os 763 itens da
+Estratégia A e disparar as tarefas longas sem ficar em terminal. O custo de
+~4,5 h de revisão humana de `docs/EVALUATION.md` Seção 0 pressupõe esta tela —
+revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
+
+- [x] Backend `/api/admin/datasets` (2026-10-16,
+      `backend/src/app/api/admin_datasets.py`, 11 testes em
+      `backend/tests/test_admin_datasets_api.py`). Sete rotas: progresso dos
+      cinco conjuntos, fatia da fila de revisão (`apenas_pendentes`, `offset`,
+      `limite`), `PATCH` da decisão item a item, e o executor de tarefas
+      longas (`POST /tarefas`, lista, detalhe com log incremental por `desde`,
+      cancelar). Decisões registradas no módulo: o item descartado **fica** no
+      arquivo com `revisao.status` (apagar perderia o registro de que o caso
+      foi considerado e rejeitado, que é informação do experimento); os
+      conjuntos de imagem e banco são marcados `revisao_automatica` porque o
+      gabarito é exato por construção; uma tarefa por tipo de cada vez (duas
+      ingestões escreveriam na mesma collection, dois benchmarks disputariam a
+      mesma GPU); e o processo roda solto com log em buffer de 2.000 linhas,
+      porque o padrão de `admin_ferramentas` — bloquear a requisição até o
+      comando terminar — não serve para horas de benchmark.
+- [x] Tela `/admin/datasets` (2026-10-17) — `frontend/app/admin/datasets/page.tsx`
+      com três componentes em `frontend/components/admin/`:
+      `DatasetsConjuntoCards` (duas barras por conjunto, gerado x meta e
+      revisado x gerado — uma só esconderia que "100% revisado" pode ser 18 de
+      180), `DatasetsFilaRevisao` (um item por vez, campos já editáveis, `A`
+      aprova e `D` descarta; editar qualquer campo transforma a decisão em
+      `corrigido` e manda só o que mudou) e `DatasetsTarefas` (polling do log a
+      partir do offset já exibido). Cliente em `frontend/lib/api/datasets.ts`,
+      entrada no `AdminGearMenu`, 13 testes novos em
+      `frontend/tests/lib/api/datasets.test.ts` e
+      `frontend/tests/components/AdminDatasetsPage.test.tsx`. Contrato em
+      `docs/FRONTEND.md`.
+      Simplificação marcada no cliente: a lista de tarefas é espelhada à mão
+      de `TAREFAS_DISPONIVEIS` do backend, que não expõe rota para listar os
+      tipos (`// MVP:` em `frontend/lib/api/datasets.ts`).
+- [ ] **Geradores de rascunho dos conjuntos — não existem.** A tela revisa e
+      dispara, mas nada produz as 300 mensagens, as 180 perguntas, os 103
+      itens de imagem, as 80 do banco e os 100 casos de injeção. Hoje os
+      arquivos no disco são os **conjuntos invalidados** (roteador 40, RAG 18,
+      injeção 8, imagem 9) e `eval/rag_banco/dataset.json` não existe. Falta
+      também a tarefa `gerar_rascunhos` em `TAREFAS_DISPONIVEIS`, citada no
+      docstring do módulo (`"gerar rascunhos"`) mas nunca implementada. É o
+      item que trava a revisão humana e, por consequência, as Etapas 2–5 e o
+      benchmark.
+- [x] Deriva de documentação corrigida em 2026-10-17: o `# MVP:` de
+      `admin_datasets.py` citava esta seção do roadmap desde 2026-10-16, e ela
+      não existia. O gate de `doc-drift` não pega esse caso — a citação é prosa,
+      não link nem caminho.
+
 ## Fase 11 — Preparação da Entrega
 
 - [ ] Revisar todos os 12 requisitos funcionais contra o que foi de fato
