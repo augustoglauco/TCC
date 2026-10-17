@@ -276,6 +276,52 @@ async def _buscar_documentos_rag(
     return _filtrar_documentos_relevantes_ao_contexto(documentos, message, contexto)
 
 
+async def _buscar_candidatos_com_historico(
+    message: str,
+    recent_messages: list[str],
+    sales_catalog_client: SalesCatalogClient,
+) -> tuple[list, list[str], list[str]]:
+    """Retorna (candidatos, termos, termos_historico). Candidatos da mensagem
+    atual vêm primeiro; os do histórico completam até SALES_CANDIDATOS_LIMITE."""
+    termos = extrair_termos_busca(message)
+    termos_historico = [
+        t for t in extrair_termos_busca(" ".join(recent_messages)) if t not in termos
+    ]
+    candidatos = await sales_catalog_client.buscar_candidatos(termos) if termos else []
+    if termos_historico and len(candidatos) < SALES_CANDIDATOS_LIMITE:
+        ids_atuais = {c.id for c in candidatos}
+        candidatos += [
+            c
+            for c in await sales_catalog_client.buscar_candidatos(termos_historico)
+            if c.id not in ids_atuais
+        ]
+        candidatos = candidatos[:SALES_CANDIDATOS_LIMITE]
+    return candidatos, termos, termos_historico
+
+
+async def _resolver_sem_produto_especifico(
+    slots: Any,
+    sales_catalog_client: SalesCatalogClient,
+    diagnostico: dict,
+) -> DadosCatalogoVendas | DadosCatalogoCategoria | None:
+    """Resolve consultas sem produto_id: por categoria ou listagem completa."""
+    if slots.categoria is not None:
+        dados_categoria = await sales_catalog_client.consultar_categoria(slots.categoria)
+        if dados_categoria is None:
+            return _logar_consulta_vendas(diagnostico, "categoria_vazia")
+        diagnostico["bloco"] = _formatar_dados_catalogo_categoria(dados_categoria)
+        _logar_consulta_vendas(diagnostico, "ok_categoria")
+        return dados_categoria
+    if slots.listar_tudo:
+        dados_todos = await sales_catalog_client.listar_todos_produtos()
+        if dados_todos is None:
+            return _logar_consulta_vendas(diagnostico, "catalogo_vazio")
+        diagnostico["bloco"] = _formatar_dados_catalogo_categoria(dados_todos)
+        _logar_consulta_vendas(diagnostico, "ok_listar_tudo")
+        return dados_todos
+    return _logar_consulta_vendas(diagnostico, "llm_sem_produto")
+
+
 async def _consultar_vendas(
     message: str,
     recent_messages: list[str],
@@ -284,87 +330,29 @@ async def _consultar_vendas(
     ultima_resposta: str | None = None,
 ) -> DadosCatalogoVendas | DadosCatalogoCategoria | None:
     """Busca de candidatos + desambiguação por LLM + detalhes do catálogo
-    para uma mensagem de Vendas (spec
-    docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md).
-    Quando a pergunta é genérica por um tipo de produto ("quais geradores
-    vocês têm em estoque?"), o LLM devolve uma `categoria` em vez de um
-    `produto_id` único, e a resposta lista os produtos daquela categoria com
-    estoque (`DadosCatalogoCategoria`). Nunca levanta exceção — qualquer
-    falha (erro de banco, resposta do LLM não-JSON já tratada dentro de
-    `extract_sales_slots`) loga e devolve `None`, mesmo espírito de
-    `analyze_tone` nunca derrubar o turno."""
+    para uma mensagem de Vendas. Nunca levanta exceção — falhas logam e
+    devolvem `None` (mesmo espírito de `analyze_tone`)."""
     diagnostico: dict = {"event": "vendas_catalogo_consulta"}
-    # "possui detalhes?" depois da imagem: o produto está na última resposta
-    # (ex.: "Identifiquei: Rádio … RC 4102g2."), que entra no histórico da
-    # busca e da escolha pelo LLM. Sempre, não só com "acima"/"esse": o
-    # histórico já é só complemento (candidatos da mensagem atual vêm
-    # primeiro) e o LLM escolhe (correções de 2026-09-27/28).
     if ultima_resposta:
         recent_messages = [*recent_messages, ultima_resposta[:_ULTIMA_RESPOSTA_MAX_CHARS]]
     try:
-        termos = extrair_termos_busca(message)
-        # Termos das mensagens anteriores entram só como complemento: numa
-        # mensagem de acompanhamento ("E se eu levar 3 unidades?") o produto
-        # foi citado antes, e sem isso a busca não achava nada — ou achava o
-        # produto errado por coincidência (o "5" de "5 unidades" casando com
-        # "GD-15"; teste local de 2026-09-25, cenário V8). O LLM da etapa 2 já
-        # recebe o histórico e escolhe entre os candidatos das duas buscas.
-        termos_historico = [
-            termo
-            for termo in extrair_termos_busca(" ".join(recent_messages))
-            if termo not in termos
-        ]
+        candidatos, termos, termos_historico = await _buscar_candidatos_com_historico(
+            message, recent_messages, sales_catalog_client
+        )
         diagnostico["termos"] = termos
         diagnostico["termos_historico"] = termos_historico
         if not termos and not termos_historico:
             return _logar_consulta_vendas(diagnostico, "sem_termos")
-        candidatos = await sales_catalog_client.buscar_candidatos(termos) if termos else []
-        if termos_historico and len(candidatos) < SALES_CANDIDATOS_LIMITE:
-            # Candidatos da mensagem atual primeiro; os do histórico
-            # completam a lista até o mesmo teto, sem repetir produto.
-            ids_atuais = {candidato.id for candidato in candidatos}
-            candidatos += [
-                candidato
-                for candidato in await sales_catalog_client.buscar_candidatos(termos_historico)
-                if candidato.id not in ids_atuais
-            ]
-            candidatos = candidatos[:SALES_CANDIDATOS_LIMITE]
-        diagnostico["candidatos"] = [candidato.nome for candidato in candidatos]
-        # Correção de 2026-09-29 (docs/ARCHITECTURE.md §5): antes, nenhum
-        # candidato encontrado por palavra-chave (`buscar_candidatos`)
-        # interrompia a consulta aqui (`sem_candidatos`) sem nunca chamar o
-        # LLM — uma pergunta totalmente genérica ("quais produtos vocês têm
-        # em estoque?") não casa nome/categoria nenhum por ILIKE, então nunca
-        # tinha chance de virar `listar_tudo`. Agora sempre segue para a
-        # etapa 2 (LLM), mesmo com `candidatos` vazio — ele decide entre
-        # produto/categoria/listar_tudo mesmo sem candidatos prontos.
+        diagnostico["candidatos"] = [c.nome for c in candidatos]
+        # Sempre segue para o LLM mesmo sem candidatos — ele decide entre
+        # produto/categoria/listar_tudo (correção de 2026-09-29).
         categorias_disponiveis = await sales_catalog_client.listar_categorias()
         slots = await extract_sales_slots(
             message, recent_messages, candidatos, local_client, categorias_disponiveis
         )
         diagnostico["slots"] = slots.model_dump()
         if slots.produto_id is None:
-            # Sem produto específico, mas com categoria genérica → lista os
-            # produtos daquela categoria com estoque ("quais geradores vocês
-            # têm?"). Corrige o caso em que a busca genérica caía em
-            # `llm_sem_produto` e o chat respondia "não tenho informações".
-            if slots.categoria is not None:
-                dados_categoria = await sales_catalog_client.consultar_categoria(slots.categoria)
-                if dados_categoria is None:
-                    return _logar_consulta_vendas(diagnostico, "categoria_vazia")
-                diagnostico["bloco"] = _formatar_dados_catalogo_categoria(dados_categoria)
-                _logar_consulta_vendas(diagnostico, "ok_categoria")
-                return dados_categoria
-            # Sem produto nem categoria, mas pedido genérico de "ver tudo"
-            # (correção de 2026-09-29) → lista o catálogo completo.
-            if slots.listar_tudo:
-                dados_todos = await sales_catalog_client.listar_todos_produtos()
-                if dados_todos is None:
-                    return _logar_consulta_vendas(diagnostico, "catalogo_vazio")
-                diagnostico["bloco"] = _formatar_dados_catalogo_categoria(dados_todos)
-                _logar_consulta_vendas(diagnostico, "ok_listar_tudo")
-                return dados_todos
-            return _logar_consulta_vendas(diagnostico, "llm_sem_produto")
+            return await _resolver_sem_produto_especifico(slots, sales_catalog_client, diagnostico)
         dados = await sales_catalog_client.consultar_detalhes(
             slots.produto_id, slots.produto_relacionado_id, slots.quantidade
         )
@@ -768,6 +756,120 @@ async def _emitir_resposta_agendamento(
     )
 
 
+async def _persistir_agendamento(
+    slots: BookingSlots,
+    fim: datetime,
+    google_event_id: str | None,
+    google_event_link: str | None,
+    conversation_id: str,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
+) -> None:
+    """Persiste o agendamento confirmado no banco; erros são logados e ignorados."""
+    if db_sessionmaker is None:
+        return
+    try:
+        async with db_sessionmaker() as session:
+            agendamento = Agendamento(
+                user_email=slots.email,
+                nome_cliente=slots.nome,
+                telefone=slots.telefone,
+                data_hora_inicio=slots.data_hora,
+                data_hora_fim=fim,
+                descricao=f"Telefone: {slots.telefone}",
+                status="confirmado",
+                origem="chat",
+                google_event_id=google_event_id or None,
+                google_event_link=google_event_link or None,
+                conversation_id=conversation_id,
+            )
+            session.add(agendamento)
+            await session.commit()
+    except Exception as exc:
+        logger.error(
+            "erro_ao_persistir_agendamento",
+            extra={
+                "router": {
+                    "event": "erro_ao_persistir_agendamento",
+                    "erro": str(exc),
+                    "conversation_id": conversation_id,
+                }
+            },
+        )
+
+
+async def _confirmar_agendamento(
+    slots: BookingSlots,
+    conversation_id: str,
+    calendar_client: CalendarClient,
+    scheduling_config: SchedulingConfig,
+    intent_router_provider: str,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    """Revalida horário, cria evento no Calendar, persiste e emite resposta de sucesso.
+    Yields eventos de falha se a validação ou criação do evento falhar.
+    Retorna True via StopAsyncIteration quando concluído (sucesso ou falha)."""
+    # Fix (revisão final, achado crítico 1): revalida mesmo já confirmado —
+    # merge_slots pode ter mudado data_hora neste mesmo turno.
+    try:
+        slots.data_hora = await _validar_horario_para_agendamento(
+            slots, scheduling_config, calendar_client
+        )
+    except _AgendamentoFalhaValidacao as falha:
+        if falha.motivo == "horario_invalido":
+            slots.data_hora = None
+        slots.awaiting_confirmation = False
+        set_booking_slots(conversation_id, slots)
+        async for evento in _emitir_resposta_agendamento(
+            falha.texto, falha.motivo, intent_router_provider=intent_router_provider
+        ):
+            yield evento
+        return
+
+    fim = slots.data_hora + DURACAO_VISITA
+    try:
+        google_event_id, google_event_link = await calendar_client.create_event(
+            summary=f"Visita — {slots.nome}",
+            start=slots.data_hora,
+            end=fim,
+            attendee_email=slots.email,
+            attendee_name=slots.nome,
+            description=f"Telefone: {slots.telefone}",
+        )
+    except GoogleCalendarConnectionError as exc:
+        logger.error(
+            "google_calendar_indisponivel",
+            extra={
+                "router": {
+                    "event": "google_calendar_indisponivel",
+                    "etapa": "criacao_evento",
+                    "erro": str(exc),
+                }
+            },
+        )
+        slots.awaiting_confirmation = False
+        set_booking_slots(conversation_id, slots)
+        async for evento in _emitir_resposta_agendamento(
+            MSG_ERRO_MCP, "mcp_indisponivel", intent_router_provider=intent_router_provider
+        ):
+            yield evento
+        return
+
+    await _persistir_agendamento(
+        slots, fim, google_event_id, google_event_link, conversation_id, db_sessionmaker
+    )
+    texto = mensagem_sucesso(slots, scheduling_config.timezone)
+    clear_booking_slots(conversation_id)
+    card = CardAgendamento(
+        data_hora_inicio=slots.data_hora,
+        data_hora_fim=fim,
+        google_event_link=google_event_link or None,
+    )
+    async for evento in _emitir_resposta_agendamento(
+        texto, "confirmado", intent_router_provider=intent_router_provider, card=card
+    ):
+        yield evento
+
+
 async def _handle_agendamento(
     conversation_id: str,
     message: str,
@@ -810,116 +912,19 @@ async def _handle_agendamento(
 
     if slots.awaiting_confirmation:
         if extraction.confirmacao:
-            # Fix (revisão final, achado crítico 1): mesmo já confirmado,
-            # revalida expediente/disponibilidade antes de criar o evento de
-            # verdade — `merge_slots` já aplicou qualquer `data_hora` nova
-            # extraída desta mesma mensagem ANTES deste ponto, então uma
-            # mensagem que muda a data e confirma ao mesmo tempo (ou uma
-            # confirmação tardia sobre um horário que ficou stale) não pode
-            # pular a checagem só porque `awaiting_confirmation` já era
-            # `True`.
-            try:
-                slots.data_hora = await _validar_horario_para_agendamento(
-                    slots, scheduling_config, calendar_client
-                )
-            except _AgendamentoFalhaValidacao as falha:
-                if falha.motivo == "horario_invalido":
-                    slots.data_hora = None
-                slots.awaiting_confirmation = False
-                set_booking_slots(conversation_id, slots)
-                async for evento in _emitir_resposta_agendamento(
-                    falha.texto,
-                    falha.motivo,
-                    intent_router_provider=intent_router_provider,
-                ):
-                    yield evento
-                return
-
-            try:
-                fim = slots.data_hora + DURACAO_VISITA
-                google_event_id, google_event_link = await calendar_client.create_event(
-                    summary=f"Visita — {slots.nome}",
-                    start=slots.data_hora,
-                    end=fim,
-                    attendee_email=slots.email,
-                    attendee_name=slots.nome,
-                    description=f"Telefone: {slots.telefone}",
-                )
-            except GoogleCalendarConnectionError as exc:
-                logger.error(
-                    "google_calendar_indisponivel",
-                    extra={
-                        "router": {
-                            "event": "google_calendar_indisponivel",
-                            "etapa": "criacao_evento",
-                            "erro": str(exc),
-                        }
-                    },
-                )
-                slots.awaiting_confirmation = False
-                set_booking_slots(conversation_id, slots)
-                async for evento in _emitir_resposta_agendamento(
-                    MSG_ERRO_MCP,
-                    "mcp_indisponivel",
-                    intent_router_provider=intent_router_provider,
-                ):
-                    yield evento
-                return
-
-            if db_sessionmaker is not None:
-                try:
-                    async with db_sessionmaker() as session:
-                        agendamento = Agendamento(
-                            user_email=slots.email,
-                            nome_cliente=slots.nome,
-                            telefone=slots.telefone,
-                            data_hora_inicio=slots.data_hora,
-                            data_hora_fim=fim,
-                            descricao=f"Telefone: {slots.telefone}",
-                            status="confirmado",
-                            origem="chat",
-                            google_event_id=google_event_id or None,
-                            google_event_link=google_event_link or None,
-                            conversation_id=conversation_id,
-                        )
-                        session.add(agendamento)
-                        await session.commit()
-                except Exception as exc:
-                    logger.error(
-                        "erro_ao_persistir_agendamento",
-                        extra={
-                            "router": {
-                                "event": "erro_ao_persistir_agendamento",
-                                "erro": str(exc),
-                                "conversation_id": conversation_id,
-                            }
-                        },
-                    )
-
-            texto = mensagem_sucesso(slots, scheduling_config.timezone)
-            clear_booking_slots(conversation_id)
-            card = CardAgendamento(
-                data_hora_inicio=slots.data_hora,
-                data_hora_fim=fim,
-                google_event_link=google_event_link or None,
-            )
-            async for evento in _emitir_resposta_agendamento(
-                texto,
-                "confirmado",
-                intent_router_provider=intent_router_provider,
-                card=card,
+            async for evento in _confirmar_agendamento(
+                slots,
+                conversation_id,
+                calendar_client,
+                scheduling_config,
+                intent_router_provider,
+                db_sessionmaker,
             ):
                 yield evento
             return
-
-        # Resposta ambígua durante awaiting_confirmation=True (ex.: o
-        # visitante mudou data/hora em vez de confirmar claramente): volta
-        # a "não confirmado ainda" em vez de só repetir a pergunta, para
-        # cair no bloco de validação abaixo NO MESMO turno — se a
-        # data_hora mudou para algo inválido (fora do expediente/em
-        # conflito), o visitante não recebe "posso confirmar?" de novo
-        # sobre um horário que na verdade não é mais válido (spec §4.1
-        # passo 7).
+        # Resposta ambígua durante awaiting_confirmation=True: volta a
+        # "não confirmado ainda" para cair na validação abaixo NO MESMO turno
+        # (spec §4.1 passo 7).
         slots.awaiting_confirmation = False
 
     try:
@@ -1014,8 +1019,14 @@ async def _handle_tone_e_classify(
         exc = eg.exceptions[0]
         logger.error(
             "backend_indisponivel",
-            extra={"router": {"event": "backend_indisponivel", "backend": "local",
-                              "etapa": "classificacao", "erro": str(exc)}},
+            extra={
+                "router": {
+                    "event": "backend_indisponivel",
+                    "backend": "local",
+                    "etapa": "classificacao",
+                    "erro": str(exc),
+                }
+            },
         )
         raise LocalBackendIndisponivelError(str(exc)) from exc
     return tone_task.result(), classification_task.result()
@@ -1032,9 +1043,12 @@ async def _handle_chart_request(
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     """Processa pedidos de gráfico dinâmico (admin). Yields eventos e retorna
     após o primeiro yield bem-sucedido; não yields nada se não for pedido de gráfico."""
-    from app.services.analytics_agent import extract_prompt_inline_data, process_dynamic_chart_request
-    from app.services.chart_generator import detect_chart_request
     from app.router.sales_catalog import detectar_intencao_comprovante
+    from app.services.analytics_agent import (
+        extract_prompt_inline_data,
+        process_dynamic_chart_request,
+    )
+    from app.services.chart_generator import detect_chart_request
 
     if detectar_intencao_comprovante(message):
         return
@@ -1049,11 +1063,19 @@ async def _handle_chart_request(
         )
         yield TokenEvent(text=msg)
         yield RouterDecision(
-            domain="fora_escopo", complexity="baixa", confidence=1.0,
-            complexity_strategy_usada="regras", backend_escolhido="local",
-            motivo_escalonamento="fora_escopo", resposta=msg, latencia_ms=0.0,
-            tokens_entrada=None, tokens_saida=None, cost_prompt_usd=0.0,
-            cost_completion_usd=0.0, custo_estimado_usd=0.0,
+            domain="fora_escopo",
+            complexity="baixa",
+            confidence=1.0,
+            complexity_strategy_usada="regras",
+            backend_escolhido="local",
+            motivo_escalonamento="fora_escopo",
+            resposta=msg,
+            latencia_ms=0.0,
+            tokens_entrada=None,
+            tokens_saida=None,
+            cost_prompt_usd=0.0,
+            cost_completion_usd=0.0,
+            custo_estimado_usd=0.0,
             router_provider=intent_router_provider,
         )
         return
@@ -1069,12 +1091,17 @@ async def _handle_chart_request(
         analytics_llm = local_client if local_client is not None else external_client
         ambiente = "interno" if analytics_llm is local_client else "externo"
         async with db_sessionmaker() as session:
-            chart, explicacao, chart_prompt_tokens, chart_completion_tokens = (
-                await process_dynamic_chart_request(
-                    session=session, prompt=message,
-                    user_email=user_email or "admin",
-                    llm_client=analytics_llm, ambiente=ambiente,
-                )
+            (
+                chart,
+                explicacao,
+                chart_prompt_tokens,
+                chart_completion_tokens,
+            ) = await process_dynamic_chart_request(
+                session=session,
+                prompt=message,
+                user_email=user_email or "admin",
+                llm_client=analytics_llm,
+                ambiente=ambiente,
             )
     except Exception as exc:
         logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})
@@ -1084,11 +1111,19 @@ async def _handle_chart_request(
         )
 
     _decision_base: dict = dict(
-        complexity="baixa", confidence=1.0, complexity_strategy_usada="regras",
-        backend_escolhido="local", motivo_escalonamento="nenhum", latencia_ms=0.0,
-        cost_prompt_usd=0.0, cost_completion_usd=0.0, custo_estimado_usd=0.0,
-        domain="atendimento", router_provider=intent_router_provider,
-        tokens_entrada=chart_prompt_tokens, tokens_saida=chart_completion_tokens,
+        complexity="baixa",
+        confidence=1.0,
+        complexity_strategy_usada="regras",
+        backend_escolhido="local",
+        motivo_escalonamento="nenhum",
+        latencia_ms=0.0,
+        cost_prompt_usd=0.0,
+        cost_completion_usd=0.0,
+        custo_estimado_usd=0.0,
+        domain="atendimento",
+        router_provider=intent_router_provider,
+        tokens_entrada=chart_prompt_tokens,
+        tokens_saida=chart_completion_tokens,
     )
     if chart:
         texto = explicacao or (
@@ -1097,11 +1132,15 @@ async def _handle_chart_request(
         )
         yield TokenEvent(text=texto)
         yield RouterDecision(
-            **_decision_base, resposta=texto,
+            **_decision_base,
+            resposta=texto,
             card=CardGrafico(
-                chart_id=str(chart.id), titulo=chart.titulo,
-                tipo_grafico=chart.tipo_grafico, config=chart.config_json,
-                dados=chart.dados_json, fixado=chart.fixado,
+                chart_id=str(chart.id),
+                titulo=chart.titulo,
+                tipo_grafico=chart.tipo_grafico,
+                config=chart.config_json,
+                dados=chart.dados_json,
+                fixado=chart.fixado,
             ),
         )
         return
@@ -1123,16 +1162,26 @@ async def _handle_comprovante(
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     """Processa conversão de reserva em venda via comprovante. Yields eventos
     se houver reserva ativa; não yields nada caso contrário."""
-    from app.router.sales_catalog import buscar_reserva_ativa, detectar_intencao_comprovante, processar_conversao_comprovante
+    from app.router.sales_catalog import (
+        buscar_reserva_ativa,
+        detectar_intencao_comprovante,
+        processar_conversao_comprovante,
+    )
 
     if not detectar_intencao_comprovante(message) or not db_sessionmaker:
         return
 
     _decision_base: dict = dict(
-        domain="vendas", complexity="baixa", confidence=1.0,
-        complexity_strategy_usada="regras", backend_escolhido="local",
-        motivo_escalonamento="vendas_comprovante_pagamento", latencia_ms=0.0,
-        cost_prompt_usd=0.0, cost_completion_usd=0.0, custo_estimado_usd=0.0,
+        domain="vendas",
+        complexity="baixa",
+        confidence=1.0,
+        complexity_strategy_usada="regras",
+        backend_escolhido="local",
+        motivo_escalonamento="vendas_comprovante_pagamento",
+        latencia_ms=0.0,
+        cost_prompt_usd=0.0,
+        cost_completion_usd=0.0,
+        custo_estimado_usd=0.0,
         router_provider=intent_router_provider,
     )
     try:
@@ -1145,8 +1194,10 @@ async def _handle_comprovante(
 
         async with db_sessionmaker() as session:
             pedido = await buscar_reserva_ativa(
-                session=session, conversation_id=conversation_id,
-                user_email=user_email, pedido_id=pedido_uuid,
+                session=session,
+                conversation_id=conversation_id,
+                user_email=user_email,
+                pedido_id=pedido_uuid,
             )
             if not pedido:
                 msg = (
@@ -1155,40 +1206,52 @@ async def _handle_comprovante(
                     "verifique o código da sua reserva ou faça seu pedido primeiro."
                 )
                 yield TokenEvent(text=msg)
-                yield RouterDecision(**_decision_base, resposta=msg,
-                                     tokens_entrada=None, tokens_saida=None)
+                yield RouterDecision(
+                    **_decision_base, resposta=msg, tokens_entrada=None, tokens_saida=None
+                )
                 return
             sucesso, texto_resp, parecer_res = await processar_conversao_comprovante(
-                session=session, pedido=pedido, texto_comprovante=message,
-                llm_client=llm_to_use, comprovante_bytes=comprovante_bytes,
-                nome_arquivo=comprovante_filename, vision_client=external_client,
-                local_vision_client=local_client, origem="chat",
+                session=session,
+                pedido=pedido,
+                texto_comprovante=message,
+                llm_client=llm_to_use,
+                comprovante_bytes=comprovante_bytes,
+                nome_arquivo=comprovante_filename,
+                vision_client=external_client,
+                local_vision_client=local_client,
+                origem="chat",
                 llm_ambiente="interno" if llm_to_use is local_client else "externo",
             )
         yield TokenEvent(text=texto_resp)
         yield RouterDecision(
-            **_decision_base, resposta=texto_resp,
+            **_decision_base,
+            resposta=texto_resp,
             tokens_entrada=parecer_res.prompt_tokens if parecer_res else None,
             tokens_saida=parecer_res.completion_tokens if parecer_res else None,
         )
     except Exception as exc:
         logger.warning(
             "falha_processar_comprovante",
-            extra={"router": {"event": "falha_processar_comprovante",
-                              "conversation_id": conversation_id, "erro": str(exc)}},
+            extra={
+                "router": {
+                    "event": "falha_processar_comprovante",
+                    "conversation_id": conversation_id,
+                    "erro": str(exc),
+                }
+            },
         )
 
 
 @dataclass
 class _RagResult:
     documentos: list[Document] = field(default_factory=list)
-    dados_catalogo_vendas: "DadosCatalogoVendas | DadosCatalogoCategoria | None" = None
+    dados_catalogo_vendas: DadosCatalogoVendas | DadosCatalogoCategoria | None = None
     backend_escolhido: str = "local"
     motivo: str = "nenhum"
     rag_retrieval_ms: float | None = None
     rag_chunks_count: int | None = None
     rag_avg_score: float | None = None
-    rag_chunks: "list[RagChunkMetric] | None" = None
+    rag_chunks: list[RagChunkMetric] | None = None
 
 
 async def _buscar_rag_e_rotear(
@@ -1196,9 +1259,9 @@ async def _buscar_rag_e_rotear(
     recent_messages: list[str],
     classification: Any,
     rag_client: RAGClient,
-    sales_catalog_client: "SalesCatalogClient | None",
+    sales_catalog_client: SalesCatalogClient | None,
     local_client: LLMClient,
-    ultima_troca: "tuple[str, str] | None",
+    ultima_troca: tuple[str, str] | None,
     dados_cliente: str | None,
     rag_top_k: int,
     rag_score_threshold: float,
@@ -1216,15 +1279,22 @@ async def _buscar_rag_e_rotear(
         async with asyncio.TaskGroup() as tg:
             rag_task = tg.create_task(
                 _buscar_documentos_rag(
-                    message, recent_messages, classification.domain, rag_client,
+                    message,
+                    recent_messages,
+                    classification.domain,
+                    rag_client,
                     ultima_resposta=ultima_troca[1] if ultima_troca else None,
-                    top_k=rag_top_k, score_threshold=rag_score_threshold,
+                    top_k=rag_top_k,
+                    score_threshold=rag_score_threshold,
                 )
             )
             vendas_task = (
                 tg.create_task(
                     _consultar_vendas(
-                        message, recent_messages, sales_catalog_client, local_client,
+                        message,
+                        recent_messages,
+                        sales_catalog_client,
+                        local_client,
                         ultima_resposta=ultima_troca[1] if ultima_troca else None,
                     )
                 )
@@ -1235,8 +1305,14 @@ async def _buscar_rag_e_rotear(
         exc = eg.exceptions[0]
         logger.error(
             "rag_indisponivel",
-            extra={"router": {"event": "rag_indisponivel", "domain": classification.domain,
-                              "tipo": type(exc).__name__, "erro": str(exc)}},
+            extra={
+                "router": {
+                    "event": "rag_indisponivel",
+                    "domain": classification.domain,
+                    "tipo": type(exc).__name__,
+                    "erro": str(exc),
+                }
+            },
         )
         raise exc from None
 
@@ -1248,7 +1324,9 @@ async def _buscar_rag_e_rotear(
     r.rag_chunks_count = len(r.documentos)
     if r.documentos:
         r.rag_avg_score = round(sum(d.score for d in r.documentos) / len(r.documentos), 4)
-        r.rag_chunks = [RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in r.documentos]
+        r.rag_chunks = [
+            RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in r.documentos
+        ]
 
     if not r.documentos and r.dados_catalogo_vendas is None and dados_cliente is None:
         r.backend_escolhido = "externo"
@@ -1264,7 +1342,7 @@ async def _gerar_stream_llm(
     client: LLMClient,
     backend_escolhido: str,
     domain: str,
-) -> "AsyncIterator[StatusEvent | TokenEvent | LLMStreamChunk]":
+) -> AsyncIterator[StatusEvent | TokenEvent | LLMStreamChunk]:
     """Yields StatusEvent/TokenEvent durante o stream; yield final é o LLMStreamChunk done."""
     try:
         if not await client.is_model_ready():
@@ -1281,8 +1359,15 @@ async def _gerar_stream_llm(
     except Exception as exc:
         logger.error(
             "backend_indisponivel",
-            extra={"router": {"event": "backend_indisponivel", "backend": backend_escolhido,
-                              "domain": domain, "etapa": "geracao", "erro": str(exc)}},
+            extra={
+                "router": {
+                    "event": "backend_indisponivel",
+                    "backend": backend_escolhido,
+                    "domain": domain,
+                    "etapa": "geracao",
+                    "erro": str(exc),
+                }
+            },
         )
         if backend_escolhido == "local":
             raise LocalBackendIndisponivelError(str(exc)) from exc
@@ -1314,22 +1399,39 @@ async def _handle_llm_generation(
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision]:
     """RAG + roteamento local/externo + geração LLM + RouterDecision final."""
     rag = await _buscar_rag_e_rotear(
-        message, recent_messages, classification, rag_client, sales_catalog_client,
-        local_client, ultima_troca, dados_cliente, rag_top_k, rag_score_threshold,
+        message,
+        recent_messages,
+        classification,
+        rag_client,
+        sales_catalog_client,
+        local_client,
+        ultima_troca,
+        dados_cliente,
+        rag_top_k,
+        rag_score_threshold,
     )
 
     if detectar_tentativa_injecao(message):
         logger.warning(
             "tentativa_injecao_detectada",
-            extra={"router": {"event": "tentativa_injecao_detectada",
-                              "conversation_id": conversation_id, "trecho": message[:200]}},
+            extra={
+                "router": {
+                    "event": "tentativa_injecao_detectada",
+                    "conversation_id": conversation_id,
+                    "trecho": message[:200],
+                }
+            },
         )
 
     prompt = _build_prompt(
-        message, rag.documentos, classification.domain,
+        message,
+        rag.documentos,
+        classification.domain,
         dados_catalogo=_formatar_bloco_catalogo_vendas(rag.dados_catalogo_vendas),
-        resumo_conversa=resumo_conversa, pedir_email_pos_venda=pedir_email_pos_venda,
-        ultima_troca=ultima_troca, dados_cliente=dados_cliente,
+        resumo_conversa=resumo_conversa,
+        pedir_email_pos_venda=pedir_email_pos_venda,
+        ultima_troca=ultima_troca,
+        dados_cliente=dados_cliente,
         contexto_conversa_anterior=contexto_conversa_anterior,
         usuario_autenticado=usuario_autenticado,
     )
@@ -1337,7 +1439,9 @@ async def _handle_llm_generation(
     client = local_client if rag.backend_escolhido == "local" else external_client
     texto_partes: list[str] = []
     chunk_final: LLMStreamChunk | None = None
-    async for evento in _gerar_stream_llm(prompt, client, rag.backend_escolhido, classification.domain):
+    async for evento in _gerar_stream_llm(
+        prompt, client, rag.backend_escolhido, classification.domain
+    ):
         if isinstance(evento, (StatusEvent, TokenEvent)):
             if isinstance(evento, TokenEvent):
                 texto_partes.append(evento.text)
@@ -1347,30 +1451,41 @@ async def _handle_llm_generation(
 
     tps: float | None = None
     if chunk_final.completion_tokens and chunk_final.eval_duration_ms:
-        tps = round(chunk_final.completion_tokens / max(chunk_final.eval_duration_ms / 1000.0, 0.001), 2)
+        tps = round(
+            chunk_final.completion_tokens / max(chunk_final.eval_duration_ms / 1000.0, 0.001), 2
+        )
 
     resposta_completa = "".join(texto_partes)
     decisao = RouterDecision(
-        domain=classification.domain, complexity=classification.complexity,
-        confidence=classification.confidence, complexity_strategy_usada=complexity_strategy,
-        backend_escolhido=rag.backend_escolhido, motivo_escalonamento=rag.motivo,
-        resposta=resposta_completa, latencia_ms=chunk_final.total_duration_ms or 0.0,
-        tokens_entrada=chunk_final.prompt_tokens, tokens_saida=chunk_final.completion_tokens,
+        domain=classification.domain,
+        complexity=classification.complexity,
+        confidence=classification.confidence,
+        complexity_strategy_usada=complexity_strategy,
+        backend_escolhido=rag.backend_escolhido,
+        motivo_escalonamento=rag.motivo,
+        resposta=resposta_completa,
+        latencia_ms=chunk_final.total_duration_ms or 0.0,
+        tokens_entrada=chunk_final.prompt_tokens,
+        tokens_saida=chunk_final.completion_tokens,
         cost_prompt_usd=chunk_final.cost_prompt_usd,
         cost_completion_usd=chunk_final.cost_completion_usd,
         custo_estimado_usd=chunk_final.estimated_cost_usd,
         modelo_usado=chunk_final.model_name or getattr(client, "model", None),
-        ttft_ms=chunk_final.prompt_eval_duration_ms, tps=tps,
-        rag_retrieval_ms=rag.rag_retrieval_ms, rag_chunks_count=rag.rag_chunks_count,
-        rag_avg_score=rag.rag_avg_score, rag_chunks=rag.rag_chunks,
+        ttft_ms=chunk_final.prompt_eval_duration_ms,
+        tps=tps,
+        rag_retrieval_ms=rag.rag_retrieval_ms,
+        rag_chunks_count=rag.rag_chunks_count,
+        rag_avg_score=rag.rag_avg_score,
+        rag_chunks=rag.rag_chunks,
         router_provider=classification.provider_efetivo,
         card=_construir_card_vendas(rag.dados_catalogo_vendas)
         or await _construir_card_documento_download(
             db_sessionmaker, rag.documentos, classification.domain, rag_download_threshold
         ),
     )
-    logger.info("router_decision",
-                extra={"router": {"event": "router_decision", **decisao.model_dump()}})
+    logger.info(
+        "router_decision", extra={"router": {"event": "router_decision", **decisao.model_dump()}}
+    )
     spawn_background_task(
         registrar_uso_ia(
             origem="chat",
@@ -1381,7 +1496,9 @@ async def _handle_llm_generation(
             tokens_saida=decisao.tokens_saida,
             custo_usd=decisao.custo_estimado_usd,
             referencia_id=conversation_id or None,
-            session=None, session_factory=None, commit=False,
+            session=None,
+            session_factory=None,
+            commit=False,
         )
     )
     yield decisao
@@ -1453,19 +1570,28 @@ async def handle_message(  # noqa: PLR0913
         )
 
     async for evento in _handle_chart_request(
-        message=message, is_admin=is_admin, user_email=user_email,
-        local_client=local_client, external_client=external_client,
-        db_sessionmaker=db_sessionmaker, intent_router_provider=intent_router_provider,
+        message=message,
+        is_admin=is_admin,
+        user_email=user_email,
+        local_client=local_client,
+        external_client=external_client,
+        db_sessionmaker=db_sessionmaker,
+        intent_router_provider=intent_router_provider,
     ):
         yield evento
         if isinstance(evento, RouterDecision):
             return
 
     async for evento in _handle_comprovante(
-        message=message, conversation_id=conversation_id, user_email=user_email,
-        local_client=local_client, external_client=external_client,
-        db_sessionmaker=db_sessionmaker, intent_router_provider=intent_router_provider,
-        comprovante_bytes=comprovante_bytes, comprovante_filename=comprovante_filename,
+        message=message,
+        conversation_id=conversation_id,
+        user_email=user_email,
+        local_client=local_client,
+        external_client=external_client,
+        db_sessionmaker=db_sessionmaker,
+        intent_router_provider=intent_router_provider,
+        comprovante_bytes=comprovante_bytes,
+        comprovante_filename=comprovante_filename,
     ):
         yield evento
         if isinstance(evento, RouterDecision):

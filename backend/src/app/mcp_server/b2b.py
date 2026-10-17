@@ -172,7 +172,9 @@ def _parse_produto_id(produto_id: str) -> int:
         raise ResourceError(f"produto_id inválido (esperado inteiro): {produto_id!r}") from exc
 
 
-def _decodificar_comprovante(comprovante_base64_ou_texto: str, nome_arquivo: str) -> tuple[bytes | None, str]:
+def _decodificar_comprovante(
+    comprovante_base64_ou_texto: str, nome_arquivo: str
+) -> tuple[bytes | None, str]:
     """Retorna (comprovante_bytes, texto_comprovante). Tenta base64 primeiro;
     se falhar, trata como texto puro."""
     ext = Path(nome_arquivo).suffix.lower()
@@ -205,7 +207,9 @@ async def _converter_reserva_venda_impl(
 
     try:
         async with session_factory() as session:
-            stmt = select(Pedido).options(selectinload(Pedido.itens)).where(Pedido.id == pedido_uuid)
+            stmt = (
+                select(Pedido).options(selectinload(Pedido.itens)).where(Pedido.id == pedido_uuid)
+            )
             result = await session.execute(stmt)
             pedido = result.scalar_one_or_none()
 
@@ -214,10 +218,14 @@ async def _converter_reserva_venda_impl(
 
             if pedido.status == "venda_concluida":
                 return ConversaoReservaOut(
-                    pedido_id=pedido.id, status=pedido.status,
-                    tipo_conversao=pedido.tipo_conversao, convertido_em=pedido.convertido_em,
-                    convertido_por=pedido.convertido_por, comprovante_url=pedido.comprovante_url,
-                    sucesso=True, mensagem="Este pedido já foi convertido em venda anteriormente.",
+                    pedido_id=pedido.id,
+                    status=pedido.status,
+                    tipo_conversao=pedido.tipo_conversao,
+                    convertido_em=pedido.convertido_em,
+                    convertido_por=pedido.convertido_por,
+                    comprovante_url=pedido.comprovante_url,
+                    sucesso=True,
+                    mensagem="Este pedido já foi convertido em venda anteriormente.",
                 )
 
             comprovante_bytes, texto_comprovante = _decodificar_comprovante(
@@ -230,8 +238,10 @@ async def _converter_reserva_venda_impl(
 
             llm_client = local_client if local_client is not None else external_client
             evaluator = ComprovanteEvaluator(
-                llm_client=llm_client, vision_client=external_client,
-                local_vision_client=local_client, origem="b2b",
+                llm_client=llm_client,
+                vision_client=external_client,
+                local_vision_client=local_client,
+                origem="b2b",
                 llm_ambiente="interno" if llm_client is local_client else "externo",
             )
 
@@ -245,13 +255,17 @@ async def _converter_reserva_venda_impl(
 
             if texto_comprovante and texto_comprovante.strip():
                 parecer = await evaluator.avaliar_texto(
-                    texto=texto_comprovante, valor_devido=valor_devido,
-                    reserva_id=str(pedido.id), nome_comprador=pedido.user_email or "Parceiro B2B",
+                    texto=texto_comprovante,
+                    valor_devido=valor_devido,
+                    reserva_id=str(pedido.id),
+                    nome_comprador=pedido.user_email or "Parceiro B2B",
                 )
             elif comprovante_bytes:
                 parecer = await evaluator.avaliar_documento(
-                    conteudo=comprovante_bytes, nome_arquivo=filename_safe or "comprovante.png",
-                    valor_devido=valor_devido, reserva_id=str(pedido.id),
+                    conteudo=comprovante_bytes,
+                    nome_arquivo=filename_safe or "comprovante.png",
+                    valor_devido=valor_devido,
+                    reserva_id=str(pedido.id),
                     nome_comprador=pedido.user_email or "Parceiro B2B",
                 )
             else:
@@ -265,9 +279,12 @@ async def _converter_reserva_venda_impl(
                 pedido.llm_parecer = parecer.to_json()
                 await session.commit()
                 return ConversaoReservaOut(
-                    pedido_id=pedido.id, status=pedido.status,
-                    tipo_conversao=pedido.tipo_conversao, convertido_em=pedido.convertido_em,
-                    convertido_por=pedido.convertido_por, comprovante_url=pedido.comprovante_url,
+                    pedido_id=pedido.id,
+                    status=pedido.status,
+                    tipo_conversao=pedido.tipo_conversao,
+                    convertido_em=pedido.convertido_em,
+                    convertido_por=pedido.convertido_por,
+                    comprovante_url=pedido.comprovante_url,
                     sucesso=True,
                     mensagem=f"Reserva {pedido.id} convertida em venda com sucesso via MCP.",
                     parecer=parecer.raw_json or json.loads(parecer.to_json()),
@@ -550,12 +567,12 @@ def create_b2b_mcp_server(
         custo_base, prazo_dias = _FRETE_CUSTO_BASE_E_PRAZO_POR_REGIAO[regiao]
 
         async with _abrir_sessao_bd("Falha ao consultar o catálogo para o frete") as session:
-                produtos = await _obter_e_validar_produtos(session, itens)
-                peso_total = Decimal("0")
-                for item in itens:
-                    produto = produtos[item.produto_id]
-                    peso_unitario = produto.peso_kg or Decimal("0")
-                    peso_total += peso_unitario * item.quantidade
+            produtos = await _obter_e_validar_produtos(session, itens)
+            peso_total = Decimal("0")
+            for item in itens:
+                produto = produtos[item.produto_id]
+                peso_unitario = produto.peso_kg or Decimal("0")
+                peso_total += peso_unitario * item.quantidade
 
         # Arredondado a centavos (2 casas) — mesmo motivo do arredondamento
         # em `calcular_item_cotacao` (ver docstring lá): a multiplicação por
@@ -585,22 +602,22 @@ def create_b2b_mcp_server(
     async def cotar(itens: list[CotacaoItemIn]) -> CotacaoOut:
         agora = datetime.now(UTC)
         async with _abrir_sessao_bd("Falha ao consultar o catálogo para a cotação") as session:
-                produtos = await _obter_e_validar_produtos(session, itens)
-                itens_saida: list[CotacaoItemOut] = []
-                for item in itens:
-                    produto = produtos[item.produto_id]
-                    preco_unitario, percentual, subtotal = calcular_item_cotacao(
-                        produto, item.quantidade, agora
+            produtos = await _obter_e_validar_produtos(session, itens)
+            itens_saida: list[CotacaoItemOut] = []
+            for item in itens:
+                produto = produtos[item.produto_id]
+                preco_unitario, percentual, subtotal = calcular_item_cotacao(
+                    produto, item.quantidade, agora
+                )
+                itens_saida.append(
+                    CotacaoItemOut(
+                        produto_id=item.produto_id,
+                        quantidade=item.quantidade,
+                        preco_unitario=preco_unitario,
+                        percentual_desconto_aplicado=percentual,
+                        subtotal=subtotal,
                     )
-                    itens_saida.append(
-                        CotacaoItemOut(
-                            produto_id=item.produto_id,
-                            quantidade=item.quantidade,
-                            preco_unitario=preco_unitario,
-                            percentual_desconto_aplicado=percentual,
-                            subtotal=subtotal,
-                        )
-                    )
+                )
 
         total = sum((item.subtotal for item in itens_saida), Decimal("0"))
         return CotacaoOut(itens=itens_saida, total=total)
@@ -623,7 +640,7 @@ def create_b2b_mcp_server(
         ]
         try:
             async with _abrir_sessao_bd("Falha ao gravar a reserva/pedido") as session:
-                    pedido = await criar_pedido(session, itens_tuplas)
+                pedido = await criar_pedido(session, itens_tuplas)
         except ProdutoInexistenteError as exc:
             raise ToolError(str(exc)) from exc
         except EstoqueInsuficienteError as exc:
@@ -647,8 +664,12 @@ def create_b2b_mcp_server(
         nome_arquivo: str = "comprovante.txt",
     ) -> ConversaoReservaOut:
         return await _converter_reserva_venda_impl(
-            pedido_id, comprovante_base64_ou_texto, nome_arquivo,
-            session_factory, local_client, external_client,
+            pedido_id,
+            comprovante_base64_ou_texto,
+            nome_arquivo,
+            session_factory,
+            local_client,
+            external_client,
         )
 
     return server

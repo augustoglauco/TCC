@@ -2433,6 +2433,21 @@ conversa e classificação do usuário").
       Cobertura: 8 suítes unitárias novas em `frontend/tests/unit/` (85
       arquivos de teste / 469 testes Vitest passando, ESLint e Prettier limpos).
 
+- [x] Extração de helpers no backend (2026-10-17, refatoração conduzida no
+      Amazon Q Developer CLI) — quebra de funções longas em `orchestrator.py`
+      (`_buscar_candidatos_com_historico`, `_resolver_sem_produto_especifico`,
+      `_persistir_agendamento`, `_confirmar_agendamento`), `api/chat.py`
+      (`_processar_ocr_documento`, `_decodificar_comprovante`,
+      `_despachar_escalonamento`, `_router_decision_para_done_data`),
+      `api/admin_products.py` (`_processar_imagem_catalogo`), `mcp_server/b2b.py`
+      e `main.py` (`_resolver_email_cliente`). Sem mudança de comportamento: as
+      suítes de `router`, `chat`, `b2b` e `admin_products` passam sem alteração
+      de asserção. **Perda a recuperar:** a extração em `orchestrator.py` levou
+      43 linhas de comentário com o histórico das correções de 25–29/09
+      (cenário V8 do teste local, o caso "possui detalhes?" depois da imagem, o
+      motivo de seguir para o LLM sem candidatos) — os docstrings dos helpers
+      guardam a versão condensada, mas as datas e os cenários medidos saíram.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

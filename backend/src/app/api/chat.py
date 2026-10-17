@@ -536,11 +536,47 @@ async def _preprocessar_audio(
     try:
         transcribed = await stt_client.transcribe(audio_bytes)
     except SttIndisponivelError as exc:
-        logger.error("stt_indisponivel", extra={"router": {"event": "stt_indisponivel", "erro": str(exc)}})
-        raise HTTPException(status_code=503, detail="Serviço de transcrição de áudio indisponível.") from exc
+        logger.error(
+            "stt_indisponivel", extra={"router": {"event": "stt_indisponivel", "erro": str(exc)}}
+        )
+        raise HTTPException(
+            status_code=503, detail="Serviço de transcrição de áudio indisponível."
+        ) from exc
     if transcribed:
         return _AudioPreprocessado(effective_message=transcribed, transcribed_message=transcribed)
     return _AudioPreprocessado(effective_message=payload_message, transcribed_message=None)
+
+
+def _processar_ocr_documento(
+    image_b64: str,
+    effective_message: str | None,
+    forcado_so_por_reserva_pendente: bool,
+) -> tuple[str | None, bool]:
+    """Roda OCR e decide se a imagem continua sendo documento.
+    Devolve (effective_message atualizada, imagem_e_documento).
+    Levanta HTTPException em erros de formato ou OCR sem mensagem de fallback."""
+    try:
+        ocr_text = extract_text_from_base64(image_b64)
+        if forcado_so_por_reserva_pendente and not texto_parece_conteudo_de_comprovante(
+            ocr_text or ""
+        ):
+            return effective_message, False
+        if ocr_text:
+            effective_message = (
+                f"{effective_message}\n\n[Texto extraído da imagem]:\n{ocr_text}"
+                if effective_message
+                else f"[Texto extraído da imagem]:\n{ocr_text}"
+            )
+        return effective_message, True
+    except ImageFormatError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except OcrIndisponivelError as exc:
+        logger.error(
+            "ocr_indisponivel", extra={"router": {"event": "ocr_indisponivel", "erro": str(exc)}}
+        )
+        if not effective_message:
+            raise HTTPException(status_code=503, detail="Serviço de OCR indisponível.") from exc
+        return effective_message, True
 
 
 async def _preprocessar_imagem(
@@ -573,38 +609,27 @@ async def _preprocessar_imagem(
         except Exception as exc:
             _logar_memoria_indisponivel("verificar_reserva_pendente", exc)
 
-    comprovante_por_legenda_ou_intent = image_intent == "documento" or detectar_intencao_comprovante(
-        effective_message or ""
+    comprovante_por_legenda_ou_intent = (
+        image_intent == "documento" or detectar_intencao_comprovante(effective_message or "")
     )
     imagem_e_documento = comprovante_por_legenda_ou_intent or tem_reserva_pendente
     is_identificacao_imagem = not imagem_e_documento
     forcado_so_por_reserva_pendente = tem_reserva_pendente and not comprovante_por_legenda_ou_intent
 
     if imagem_e_documento:
-        try:
-            ocr_text = extract_text_from_base64(image_b64)
-            if forcado_so_por_reserva_pendente and not texto_parece_conteudo_de_comprovante(ocr_text or ""):
-                imagem_e_documento = False
-                is_identificacao_imagem = True
-            elif ocr_text:
-                effective_message = (
-                    f"{effective_message}\n\n[Texto extraído da imagem]:\n{ocr_text}"
-                    if effective_message
-                    else f"[Texto extraído da imagem]:\n{ocr_text}"
-                )
-        except ImageFormatError as exc:
-            raise HTTPException(status_code=400, detail=str(exc)) from exc
-        except OcrIndisponivelError as exc:
-            logger.error("ocr_indisponivel", extra={"router": {"event": "ocr_indisponivel", "erro": str(exc)}})
-            if not effective_message:
-                raise HTTPException(status_code=503, detail="Serviço de OCR indisponível.") from exc
+        effective_message, imagem_e_documento = _processar_ocr_documento(
+            image_b64, effective_message, forcado_so_por_reserva_pendente
+        )
+        is_identificacao_imagem = not imagem_e_documento
 
     identificacao_image_bytes: bytes | None = None
     if is_identificacao_imagem:
         try:
             identificacao_image_bytes = base64.b64decode(image_b64, validate=True)
         except binascii.Error as exc:
-            raise HTTPException(status_code=400, detail="Campo 'image' não é base64 válido.") from exc
+            raise HTTPException(
+                status_code=400, detail="Campo 'image' não é base64 válido."
+            ) from exc
         if detect_image_format(identificacao_image_bytes) is None:
             raise HTTPException(
                 status_code=400, detail="Formato de imagem não suportado. Use PNG, JPG ou WEBP."
@@ -612,7 +637,10 @@ async def _preprocessar_imagem(
         if imagem_excede_tamanho_maximo(identificacao_image_bytes):
             raise HTTPException(
                 status_code=413,
-                detail=f"Imagem excede o tamanho máximo permitido ({MAX_IMAGE_BYTES // (1024 * 1024)}MB).",
+                detail=(
+                    "Imagem excede o tamanho máximo permitido "
+                    f"({MAX_IMAGE_BYTES // (1024 * 1024)}MB)."
+                ),
             )
 
     return _ImagemPreprocessada(
@@ -634,10 +662,11 @@ async def _verificar_atendimento_humano(
     conversation_id: str,
     app_state,
 ) -> Conversa | None:
-    """Retorna a Conversa se estiver (ou acabar de entrar) em atendimento humano; None caso contrário."""
-    pede_humano = bool(
-        effective_message and _RE_PEDE_HUMANO.search(effective_message.lower())
-    )
+    """Retorna a Conversa se estiver (ou acabar de entrar) em atendimento humano.
+
+    Devolve None caso contrário.
+    """
+    pede_humano = bool(effective_message and _RE_PEDE_HUMANO.search(effective_message.lower()))
     conversa_db = await _carregar_conversa_db_segura(app_state, conversation_id)
     if pede_humano and (
         conversa_db is None
@@ -682,7 +711,10 @@ async def _stream_identificacao_imagem(
             sales_catalog_client=sales_catalog_client,
         )
     except RAGConnectionError as exc:
-        logger.error("chat_dependencia_indisponivel", extra={"router": {"event": "chat_dependencia_indisponivel", "erro": str(exc)}})
+        logger.error(
+            "chat_dependencia_indisponivel",
+            extra={"router": {"event": "chat_dependencia_indisponivel", "erro": str(exc)}},
+        )
         yield _sse("error", {"detail": "Serviço temporariamente indisponível, tente novamente."})
         return
 
@@ -719,13 +751,79 @@ async def _stream_identificacao_imagem(
     await _registrar_troca_segura(
         app_state,
         conversation_id,
-        f"[imagem enviada] {effective_message}".strip() if effective_message else "[imagem enviada]",
+        f"[imagem enviada] {effective_message}".strip()
+        if effective_message
+        else "[imagem enviada]",
         texto,
         "vendas",
         local_client,
         done_data,
     )
     yield _sse("done", done_data.model_dump(mode="json"))
+
+
+def _router_decision_para_done_data(event: RouterDecision) -> ChatDoneEventData:
+    return ChatDoneEventData(
+        domain=event.domain,
+        backend_used=event.backend_escolhido,
+        escalation_reason=event.motivo_escalonamento,
+        model_name=event.modelo_usado,
+        prompt_tokens=event.tokens_entrada,
+        completion_tokens=event.tokens_saida,
+        latency_ms=event.latencia_ms,
+        ttft_ms=event.ttft_ms,
+        tps=event.tps,
+        confidence=event.confidence,
+        complexity=event.complexity,
+        cost_prompt_usd=event.cost_prompt_usd,
+        cost_completion_usd=event.cost_completion_usd,
+        estimated_cost_usd=event.custo_estimado_usd,
+        rag_retrieval_ms=event.rag_retrieval_ms,
+        rag_chunks_count=event.rag_chunks_count,
+        rag_avg_score=event.rag_avg_score,
+        rag_chunks=event.rag_chunks,
+        router_provider=event.router_provider,
+        card=event.card,
+    )
+
+
+def _despachar_escalonamento(
+    event: EscalonamentoEvent,
+    app_state,
+    conversation_id: str,
+    effective_message: str | None,
+) -> None:
+    """Loga e agenda tarefas de background para um evento de escalonamento."""
+    logger.info(
+        "tom_escalonado",
+        extra={
+            "router": {
+                "event": "tom_escalonado",
+                "conversation_id": conversation_id,
+                "motivo": event.motivo,
+                "confianca": event.confianca,
+                "provider_efetivo": event.provider_efetivo,
+            }
+        },
+    )
+    spawn_background_task(
+        _persistir_escalonamento_em_background(
+            app_state,
+            conversation_id=conversation_id,
+            mensagem=effective_message,
+            motivo=event.motivo,
+            confianca=event.confianca,
+            provider_efetivo=event.provider_efetivo,
+        )
+    )
+    spawn_background_task(
+        _escalar_conversa_em_background(
+            getattr(app_state, "db_sessionmaker", None),
+            conversation_id=conversation_id,
+            motivo=event.motivo or "tom_frustrado",
+            prioridade=5,
+        )
+    )
 
 
 async def _stream_llm(
@@ -761,15 +859,22 @@ async def _stream_llm(
             domain="atendimento", backend_used="resposta_fixa", escalation_reason="nenhum"
         )
         await _registrar_troca_segura(
-            app_state, conversation_id, effective_message, RESPOSTA_SO_EMAIL,
-            "atendimento", local_client, done_data,
+            app_state,
+            conversation_id,
+            effective_message,
+            RESPOSTA_SO_EMAIL,
+            "atendimento",
+            local_client,
+            done_data,
         )
         yield _sse("done", done_data.model_dump(mode="json"))
         return
 
     efetiva_complexity_strategy = (
-        "llm" if intent_router_provider == "heuristica_llm"
-        else "heuristic" if intent_router_provider == "heuristica"
+        "llm"
+        if intent_router_provider == "heuristica_llm"
+        else "heuristic"
+        if intent_router_provider == "heuristica"
         else complexity_strategy
     )
     comprovante_bytes = None
@@ -817,65 +922,57 @@ async def _stream_llm(
                 yield _sse("token", {"text": event.text})
             elif isinstance(event, EscalonamentoEvent):
                 yield _sse("escalonamento", {"motivo": event.motivo, "confianca": event.confianca})
-                logger.info(
-                    "tom_escalonado",
-                    extra={"router": {
-                        "event": "tom_escalonado",
-                        "conversation_id": conversation_id,
-                        "motivo": event.motivo,
-                        "confianca": event.confianca,
-                        "provider_efetivo": event.provider_efetivo,
-                    }},
-                )
-                spawn_background_task(
-                    _persistir_escalonamento_em_background(
-                        app_state,
-                        conversation_id=conversation_id,
-                        mensagem=effective_message,
-                        motivo=event.motivo,
-                        confianca=event.confianca,
-                        provider_efetivo=event.provider_efetivo,
-                    )
-                )
-                spawn_background_task(
-                    _escalar_conversa_em_background(
-                        getattr(app_state, "db_sessionmaker", None),
-                        conversation_id=conversation_id,
-                        motivo=event.motivo or "tom_frustrado",
-                        prioridade=5,
-                    )
-                )
+                _despachar_escalonamento(event, app_state, conversation_id, effective_message)
             elif isinstance(event, RouterDecision):
-                done_data = ChatDoneEventData(
-                    domain=event.domain,
-                    backend_used=event.backend_escolhido,
-                    escalation_reason=event.motivo_escalonamento,
-                    model_name=event.modelo_usado,
-                    prompt_tokens=event.tokens_entrada,
-                    completion_tokens=event.tokens_saida,
-                    latency_ms=event.latencia_ms,
-                    ttft_ms=event.ttft_ms,
-                    tps=event.tps,
-                    confidence=event.confidence,
-                    complexity=event.complexity,
-                    cost_prompt_usd=event.cost_prompt_usd,
-                    cost_completion_usd=event.cost_completion_usd,
-                    estimated_cost_usd=event.custo_estimado_usd,
-                    rag_retrieval_ms=event.rag_retrieval_ms,
-                    rag_chunks_count=event.rag_chunks_count,
-                    rag_avg_score=event.rag_avg_score,
-                    rag_chunks=event.rag_chunks,
-                    router_provider=event.router_provider,
-                    card=event.card,
-                )
+                done_data = _router_decision_para_done_data(event)
                 await _registrar_troca_segura(
-                    app_state, conversation_id, effective_message,
-                    "".join(partes_resposta), event.domain, local_client, done_data,
+                    app_state,
+                    conversation_id,
+                    effective_message,
+                    "".join(partes_resposta),
+                    event.domain,
+                    local_client,
+                    done_data,
                 )
                 yield _sse("done", done_data.model_dump(mode="json"))
-    except (LocalBackendIndisponivelError, ExternalBackendIndisponivelError, RAGConnectionError) as exc:
-        logger.error("chat_dependencia_indisponivel", extra={"router": {"event": "chat_dependencia_indisponivel", "erro": str(exc)}})
+    except (
+        LocalBackendIndisponivelError,
+        ExternalBackendIndisponivelError,
+        RAGConnectionError,
+    ) as exc:
+        logger.error(
+            "chat_dependencia_indisponivel",
+            extra={"router": {"event": "chat_dependencia_indisponivel", "erro": str(exc)}},
+        )
         yield _sse("error", {"detail": "Serviço temporariamente indisponível, tente novamente."})
+
+
+async def _resolver_email_cliente(
+    app_state,
+    conversation_id: str,
+    user_email_payload: str | None,
+    effective_message: str | None,
+    contexto,
+) -> tuple[bool, str | None]:
+    """R10: resolve (usuario_autenticado, email_cliente).
+    Autenticado → usa email do payload e persiste se mudou.
+    Deslogado → extrai da mensagem ou usa o prévio da conversa.
+    Devolve (usuario_autenticado, email_cliente)."""
+    usuario_autenticado = bool(user_email_payload and user_email_payload.strip())
+    email_autenticado = user_email_payload.strip().lower() if usuario_autenticado else None
+    email_na_mensagem = extrair_email(effective_message) if effective_message else None
+
+    if usuario_autenticado and email_autenticado:
+        if contexto.email != email_autenticado:
+            await _registrar_email_seguro(app_state, conversation_id, email_autenticado)
+            contexto.email = email_autenticado
+        return True, email_autenticado
+
+    email_cliente = email_na_mensagem or contexto.email
+    if email_na_mensagem and contexto.email != email_na_mensagem:
+        await _registrar_email_seguro(app_state, conversation_id, email_na_mensagem)
+        contexto.email = email_na_mensagem
+    return False, email_cliente
 
 
 @router.post("/messages")
@@ -905,8 +1002,12 @@ async def send_message(
     transcribed_message = audio_prep.transcribed_message
 
     img_prep = await _preprocessar_imagem(
-        payload.image, payload.image_intent, effective_message,
-        conversation_id, payload.user_email, request.app.state,
+        payload.image,
+        payload.image_intent,
+        effective_message,
+        conversation_id,
+        payload.user_email,
+        request.app.state,
     )
     effective_message = img_prep.effective_message
     is_identificacao_imagem = img_prep.is_identificacao_imagem
@@ -961,7 +1062,11 @@ async def send_message(
         return StreamingResponse(
             event_stream_humano(),
             media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
         )
 
     contexto = await _carregar_contexto_seguro(request.app.state, conversation_id)
@@ -976,27 +1081,9 @@ async def send_message(
     if is_admin:
         rag_client = rag_client_admin
 
-    # R10: Usuário autenticado vs. Visitante não logado.
-    # O histórico de compras e pedidos detalhado SÓ pode ser carregado se o usuário
-    # estiver formalmente autenticado no frontend (payload.user_email preenchido).
-    # Quando não logado, o sistema no máximo utiliza a informação para saber que
-    # tipo de cliente ele é no chat (classificação de perfil), sem expor compras.
-    usuario_autenticado = bool(payload.user_email and payload.user_email.strip())
-    email_autenticado = payload.user_email.strip().lower() if usuario_autenticado else None
-    email_na_mensagem = extrair_email(effective_message) if effective_message else None
-
-    if usuario_autenticado and email_autenticado:
-        email_cliente = email_autenticado
-        if contexto.email != email_autenticado:
-            await _registrar_email_seguro(request.app.state, conversation_id, email_autenticado)
-            contexto.email = email_autenticado
-    else:
-        # Quando deslogado, e-mail extraído da mensagem atual ou prévio na conversa
-        # é usado unicamente para classificar o tipo de cliente no chat
-        email_cliente = email_na_mensagem or contexto.email
-        if email_na_mensagem and contexto.email != email_na_mensagem:
-            await _registrar_email_seguro(request.app.state, conversation_id, email_na_mensagem)
-            contexto.email = email_na_mensagem
+    usuario_autenticado, email_cliente = await _resolver_email_cliente(
+        request.app.state, conversation_id, payload.user_email, effective_message, contexto
+    )
 
     dados_cliente = await _carregar_dados_cliente_seguro(
         request.app.state,
@@ -1005,9 +1092,9 @@ async def send_message(
     )
 
     contexto_anterior: str | None = None
-    if usuario_autenticado and email_autenticado:
+    if usuario_autenticado and email_cliente:
         contexto_anterior = await _carregar_contexto_anterior_seguro(
-            request.app.state, email_autenticado, conversation_id
+            request.app.state, email_cliente, conversation_id
         )
 
     # Mensagem que é só o e-mail: resposta fixa, sem LLM (ver abaixo).

@@ -137,6 +137,42 @@ async def post_extrair_catalogo_stream(
     )
 
 
+async def _processar_imagem_catalogo(
+    prod_id: int,
+    prod_nome: str,
+    imagem_temp_url: str,
+    temp_dir: Path,
+    clip_store: ClipImageStore,
+    clip_embedder: ClipEmbedder,
+    session: AsyncSession,
+) -> str | None:
+    """Move imagem temporária para definitiva, indexa no CLIP e persiste ProdutoImagem.
+    Devolve a URL definitiva ou None se o arquivo temporário não existir."""
+    img_filename = imagem_temp_url.split("/")[-1]
+    temp_path = temp_dir / img_filename
+    if not temp_path.exists():
+        return None
+    img_bytes = temp_path.read_bytes()
+    def_name = f"prod_{prod_id}_{uuid4().hex[:8]}.jpg"
+    def_url, _ = salvar_imagem_produto(img_bytes, def_name, is_temp=False)
+    clip_id = None
+    try:
+        clip_id = await clip_store.upsert_image(
+            embedder=clip_embedder,
+            image_bytes=img_bytes,
+            filename=prod_nome,
+            domain="vendas",
+            produto_id=prod_id,
+            imagem_url=def_url,
+        )
+    except Exception as exc:
+        logger.warning(
+            "Falha ao indexar imagem de catálogo no CLIP para produto %d: %s", prod_id, exc
+        )
+    session.add(ProdutoImagem(produto_id=prod_id, imagem_url=def_url, clip_image_id=clip_id))
+    return def_url
+
+
 @router.post(
     "/catalogo/confirmar",
     response_model=CatalogConfirmResponse,
@@ -163,53 +199,27 @@ async def post_confirmar_catalogo(
             especificacoes_tecnicas=item.especificacoes_tecnicas,
             preco_base_fornecedor=item.preco_base_fornecedor,
         )
-
         if item.imagem_temp_url:
-            img_filename = item.imagem_temp_url.split("/")[-1]
-            temp_path = temp_dir / img_filename
-            if temp_path.exists():
-                img_bytes = temp_path.read_bytes()
-                def_name = f"prod_{prod.id}_{uuid4().hex[:8]}.jpg"
-                def_url, _ = salvar_imagem_produto(img_bytes, def_name, is_temp=False)
+            def_url = await _processar_imagem_catalogo(
+                prod.id,
+                prod.nome,
+                item.imagem_temp_url,
+                temp_dir,
+                clip_store,
+                clip_embedder,
+                session,
+            )
+            if def_url:
                 prod.imagem_url = def_url
-
-                clip_id = None
-                try:
-                    clip_id = await clip_store.upsert_image(
-                        embedder=clip_embedder,
-                        image_bytes=img_bytes,
-                        filename=prod.nome,
-                        domain="vendas",
-                        produto_id=prod.id,
-                        imagem_url=def_url,
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        "Falha ao indexar imagem de catálogo no CLIP para produto %d: %s",
-                        prod.id,
-                        exc,
-                    )
-
-                nova_imagem = ProdutoImagem(
-                    produto_id=prod.id,
-                    imagem_url=def_url,
-                    clip_image_id=clip_id,
-                )
-                session.add(nova_imagem)
-
         produtos_criados.append(prod)
 
     await session.commit()
-    produtos_finais = []
-    for p in produtos_criados:
-        prod_completo = await obter_produto(session, p.id)
-        if prod_completo:
-            produtos_finais.append(ProdutoOut.model_validate(prod_completo))
-
-    return CatalogConfirmResponse(
-        criados=len(produtos_finais),
-        produtos=produtos_finais,
-    )
+    produtos_finais = [
+        ProdutoOut.model_validate(p)
+        for raw in produtos_criados
+        if (p := await obter_produto(session, raw.id))
+    ]
+    return CatalogConfirmResponse(criados=len(produtos_finais), produtos=produtos_finais)
 
 
 @router.post("/upload-temp")

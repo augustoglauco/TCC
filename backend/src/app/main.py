@@ -63,26 +63,26 @@ logger = logging.getLogger(__name__)
 # respectivos clientes. Evita 20+ if/else em `_apply_runtime_settings`.
 _SETTINGS_MAP: list[tuple[str, str, str]] = [
     # (chave, objeto_alvo, atributo)
-    ("local_llm_temperature",       "local",    "temperature"),
-    ("local_llm_num_ctx",           "local",    "num_ctx"),
-    ("local_llm_top_p",             "local",    "top_p"),
-    ("local_llm_top_k",             "local",    "top_k"),
-    ("local_llm_repeat_penalty",    "local",    "repeat_penalty"),
-    ("local_llm_seed",              "local",    "seed"),
-    ("local_llm_timeout_s",         "local",    "timeout_s"),
-    ("external_llm_timeout_s",      "external", "timeout_s"),
-    ("external_model_name",         "external", "model"),
-    ("external_vision_model_name",  "external", "vision_model"),
-    ("rag_search_domain_fallback",  "qdrant",   "search_domain_fallback"),
-    ("rag_top_k",                   "app",      "rag_top_k"),
-    ("rag_score_threshold",         "app",      "rag_score_threshold"),
-    ("crawler_max_pages_default",   "app",      "crawler_max_pages_default"),
-    ("crawler_confidence_threshold","app",      "crawler_confidence_threshold"),
-    ("image_internal_confidence",   "app",      "image_internal_confidence"),
-    ("image_external_confidence",   "app",      "image_external_confidence"),
-    ("intent_router_provider",      "app",      "intent_router_provider"),
-    ("tone_monitor_enabled",        "app",      "tone_monitor_enabled"),
-    ("tone_monitor_provider",       "app",      "tone_monitor_provider"),
+    ("local_llm_temperature", "local", "temperature"),
+    ("local_llm_num_ctx", "local", "num_ctx"),
+    ("local_llm_top_p", "local", "top_p"),
+    ("local_llm_top_k", "local", "top_k"),
+    ("local_llm_repeat_penalty", "local", "repeat_penalty"),
+    ("local_llm_seed", "local", "seed"),
+    ("local_llm_timeout_s", "local", "timeout_s"),
+    ("external_llm_timeout_s", "external", "timeout_s"),
+    ("external_model_name", "external", "model"),
+    ("external_vision_model_name", "external", "vision_model"),
+    ("rag_search_domain_fallback", "qdrant", "search_domain_fallback"),
+    ("rag_top_k", "app", "rag_top_k"),
+    ("rag_score_threshold", "app", "rag_score_threshold"),
+    ("crawler_max_pages_default", "app", "crawler_max_pages_default"),
+    ("crawler_confidence_threshold", "app", "crawler_confidence_threshold"),
+    ("image_internal_confidence", "app", "image_internal_confidence"),
+    ("image_external_confidence", "app", "image_external_confidence"),
+    ("intent_router_provider", "app", "intent_router_provider"),
+    ("tone_monitor_enabled", "app", "tone_monitor_enabled"),
+    ("tone_monitor_provider", "app", "tone_monitor_provider"),
 ]
 
 
@@ -90,8 +90,12 @@ def _apply_runtime_settings(app: FastAPI, settings_dict: dict[str, Any]) -> None
     local_client = getattr(app.state, "local_client", None)
     external_client = getattr(app.state, "external_client", None)
     qdrant_client = getattr(app.state, "qdrant_client", None)
-    targets = {"local": local_client, "external": external_client,
-               "qdrant": qdrant_client, "app": app.state}
+    targets = {
+        "local": local_client,
+        "external": external_client,
+        "qdrant": qdrant_client,
+        "app": app.state,
+    }
 
     for chave, alvo, atributo in _SETTINGS_MAP:
         if chave not in settings_dict:
