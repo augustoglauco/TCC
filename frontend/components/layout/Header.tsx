@@ -80,7 +80,6 @@ export default function Header() {
           <button
             type="button"
             onClick={() => useChatStore.getState().open()}
-            aria-label="Falar com Assistente IA"
             className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:from-blue-500 hover:to-indigo-500 hover:shadow-lg hover:shadow-blue-500/35 transition-all cursor-pointer shrink-0 border border-blue-400/30"
           >
             <span>💬</span>

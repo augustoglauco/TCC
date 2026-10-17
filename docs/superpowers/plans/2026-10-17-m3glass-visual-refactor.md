@@ -30,77 +30,15 @@
 
 ---
 
-### Task 1: Ingestão de Fotos Control iD e Mapeamento de Ativos Locais
+### Task 1: Ingestão de Fotos Control iD na Vitrine Institucional (Home)
 
-**Files:**
-- Create: `frontend/public/images/products/.gitkeep`
-- Modify: `frontend/lib/utils/resolveImageUrl.ts`
-- Test: `frontend/tests/unit/resolveImageUrl.test.ts`
+> **Decisão arquitetural (2026-10-17):** `frontend/lib/utils/resolveImageUrl.ts` **não é modificado** (mantém assinatura `resolveImageUrl(rawUrl)` de 1 argumento), pois `/produtos` deve refletir fielmente o banco PostgreSQL/Qdrant e exibir `"Sem foto cadastrada"` quando não houver foto no backend. As imagens estáticas locais da pasta public de imagens de produtos são utilizadas exclusivamente na vitrine institucional da Home (`frontend/components/home/HeroSlider.tsx` e `frontend/components/home/HardwareReveal.tsx`).
 
-**Interfaces:**
-- Consumes: Fotos de alta resolução em `docs/Manuais_fornecedor/ControlId/`
-- Produces: `resolveImageUrl(url?: string | null, productName?: string): string | null`
+- [x] **Step 1: Copiar imagens de alta resolução para a vitrine institucional da Home**
+  - Imagens copiadas: idface-frontal, idface-perspectiva, idblock-inox, idblock-preto, idblock-pcd, idblock-facial, idclass-373 e idaccess-pro.
 
-- [ ] **Step 1: Escrever teste unitário para resolução de imagens locais**
-
-Criar `frontend/tests/unit/resolveImageUrl.test.ts`:
-```typescript
-import { describe, expect, it } from "vitest";
-import { resolveImageUrl } from "@/lib/utils/resolveImageUrl";
-
-describe("resolveImageUrl", () => {
-  it("deve retornar a URL relativa local quando o nome do produto bater com equipamento Control iD", () => {
-    const url = resolveImageUrl(null, "iDFace");
-    expect(url).toBe("/images/products/idface-frontal.jpg");
-  });
-
-  it("deve mapear catraca iDBlock para a imagem local correspondente", () => {
-    const url = resolveImageUrl(null, "iDBlock Inox");
-    expect(url).toBe("/images/products/idblock-inox.jpg");
-  });
-
-  it("deve manter URL remota intacta se informada", () => {
-    const url = resolveImageUrl("http://localhost:8000/uploads/foto.jpg", "Qualquer");
-    expect(url).toBe("http://localhost:8000/uploads/foto.jpg");
-  });
-
-  it("deve retornar null quando nao houver imagem nem match de produto", () => {
-    const url = resolveImageUrl(null, "Produto Desconhecido");
-    expect(url).toBeNull();
-  });
-});
-```
-
-- [ ] **Step 2: Rodar teste para verificar falha inicial**
-
-Run: `cd frontend && npx vitest run tests/unit/resolveImageUrl.test.ts`  
-Expected: FAIL (parâmetro `productName` não reconhecido ou mapeamento inexistente)
-
-- [ ] **Step 3: Copiar imagens reais da Control iD e implementar mapeamento**
-
-Copiar as imagens de `docs/Manuais_fornecedor/ControlId/`:
-- `docs/Manuais_fornecedor/ControlId/iDFace/iDFace-Frontal.jpg` -> `frontend/public/images/products/idface-frontal.jpg`
-- `docs/Manuais_fornecedor/ControlId/iDFace/iDFace-Perspectiva.jpg` -> `frontend/public/images/products/idface-perspectiva.jpg`
-- `docs/Manuais_fornecedor/ControlId/IDBlock/iDBlock-BQC-Inox-Perspectiva.jpg` -> `frontend/public/images/products/idblock-inox.jpg`
-- `docs/Manuais_fornecedor/ControlId/IDBlock/iDBlock-BQC-Preto-Perspectiva.jpg` -> `frontend/public/images/products/idblock-preto.jpg`
-- `docs/Manuais_fornecedor/ControlId/IDBlock/idblock-pcd-perspectiva.jpg` -> `frontend/public/images/products/idblock-pcd.jpg`
-- `docs/Manuais_fornecedor/ControlId/REP iDClass/REP_iDClass.jpg` (ou similar) -> `frontend/public/images/products/rep-idclass.jpg`
-- `docs/Manuais_fornecedor/ControlId/iDAccess Pro/iDAccess_Pro.jpg` (ou similar) -> `frontend/public/images/products/idaccess-pro.jpg`
-
-Atualizar `frontend/lib/utils/resolveImageUrl.ts` para receber `productName?: string` opcional e checar correspondência por regex/normalização de texto.
-
-- [ ] **Step 4: Rodar teste e verificar aprovação**
-
-Run: `cd frontend && npx vitest run tests/unit/resolveImageUrl.test.ts`  
-Expected: PASS
-
-- [ ] **Step 5: Formatar e commitar**
-
-```bash
-cd frontend && npx prettier --write lib/utils/resolveImageUrl.ts tests/unit/resolveImageUrl.test.ts
-git add frontend/public/images/products/ frontend/lib/utils/resolveImageUrl.ts frontend/tests/unit/resolveImageUrl.test.ts
-git commit -m "feat(frontend): adiciona fotos oficiais Control iD e resolveImageUrl enriquecido"
-```
+- [x] **Step 2: Preservar `frontend/lib/utils/resolveImageUrl.ts` inalterado**
+  - Confirmar que `frontend/lib/utils/resolveImageUrl.ts` permanece intacto.
 
 ---
 

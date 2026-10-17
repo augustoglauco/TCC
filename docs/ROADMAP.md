@@ -2315,6 +2315,37 @@ conversa e classificação do usuário").
       manda `repowise update --working-tree`, que inclui as edições não
       commitadas — medido nos dois estados.
 
+- [x] Refatoração Visual M3 Glass na Home e Catálogo de Produtos (2026-10-17,
+      pedido explícito do usuário — ver
+      `docs/superpowers/specs/2026-10-17-m3glass-visual-refactor-design.md` e
+      `docs/superpowers/plans/2026-10-17-m3glass-visual-refactor.md`) —
+      elevação visual da Home (`/`) e do Catálogo (`/produtos`) ao padrão
+      corporativo de engenharia industrial inspirado no layout da M3 Glass
+      Technologies (`m3glass.com`), mantendo 100% do domínio de Controle de
+      Acesso, Segurança Eletrônica e Assistente Multimodal com IA:
+      (1) Utilitários CSS em `frontend/app/globals.css` (`animate-marquee`,
+      `bg-grid-pattern`, `glass-panel`); (2) `Header.tsx` com barra sticky
+      glassmórfica (`backdrop-blur-md`), atalho de atendimento e CTA "Falar com
+      Assistente IA", e `Footer.tsx` multi-coluna corporativo escuro;
+      (3) Subcomponentes modulares na Home (`frontend/components/home/`):
+      `HeroSlider.tsx` (carrossel interativo de 4 slides com `next/image` sobre
+      ativos locais de `public/images/produtos/`), `TechMarquee.tsx` (faixa
+      contínua de especificações técnicas), `CapabilitiesGrid.tsx` (bento grid
+      das 4 frentes de engenharia), `HardwareReveal.tsx` (vitrine interativa por
+      abas das 4 linhas de hardware com pré-preenchimento de mensagem no chat),
+      `MetricCounters.tsx` (4 indicadores de autoridade e telemetria) e
+      `ProcessSteps.tsx` (4 etapas numeradas `01` a `04` da jornada de
+      implantação B2B); (4) `frontend/app/page.tsx` reestruturada integrando as
+      6 seções modulares e CTA corporativo final; (5) `ProductCard.tsx` e
+      `frontend/app/produtos/page.tsx` refatorados no estilo galeria técnica M3
+      Glass com pílulas horizontais roláveis por categoria, resumo de
+      especificações técnicas (`especificacoes_tecnicas`), badge de
+      disponibilidade e integração com o Chat IA e Carrinho B2B, preservando
+      intacto o contrato de `resolveImageUrl(rawUrl)` (1 argumento) e o
+      placeholder `"Sem foto cadastrada"` como reflexo fiel do PostgreSQL/Qdrant.
+      Cobertura: 8 suítes unitárias novas em `frontend/tests/unit/` (85
+      arquivos de teste / 469 testes Vitest passando, ESLint e Prettier limpos).
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.
