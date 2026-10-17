@@ -310,7 +310,7 @@ class QdrantRAGClient:
         try:
             if not await self._client.collection_exists(collection_name):
                 return []
-            [query_vector] = await embedder.embed([query])
+            [query_vector] = await embedder.embed([query], is_query=True)
             domain_filter = Filter(
                 must=[FieldCondition(key="domain", match=MatchValue(value=domain))]
             )

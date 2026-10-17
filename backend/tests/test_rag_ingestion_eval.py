@@ -451,3 +451,94 @@ def test_listar_arquivos_corpus_inclui_pdf_md_txt_e_exclui_html_tif(ingerir_corp
 
     encontrados = [p.name for p in ingerir_corpus.listar_arquivos_corpus(tmp_path)]
     assert encontrados == ["api_idclass_latest.md", "manual.pdf", "notas.txt"]
+
+
+# --------------------------------------------------------------------------
+# Etapa 2 — comparação de modelos de embedding (run_etapa2.py)
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def etapa2():
+    return _carregar("run_etapa2")
+
+
+def test_candidatos_etapa2_cobrem_quatro_modelos_do_plano(etapa2):
+    """Os 4 modelos previstos em `docs/EVALUATION.md` Seção 2.1 (Etapa 2)
+    precisam estar declarados na ordem canônica."""
+    modelos = [c.embedding_model for c in etapa2.CANDIDATOS_ETAPA2]
+    assert modelos == [
+        "paraphrase-multilingual-MiniLM-L12-v2",
+        "google/embeddinggemma-300m",
+        "intfloat/multilingual-e5-large-instruct",
+        "BAAI/bge-m3",
+    ]
+
+
+def test_candidatos_etapa2_respeitam_janela_de_tokens(etapa2):
+    """Regra da Etapa 2 (`docs/EVALUATION.md:556-559`): cada modelo tem de ser
+    medido com um `chunk_size` que caiba na sua janela (`MiniLM` truncava ~45%
+    de cada chunk de 800 chars na janela de 128 tokens)."""
+    for c in etapa2.CANDIDATOS_ETAPA2:
+        tokens_estimados = c.chunk_size / 3.5
+        assert tokens_estimados <= c.janela_tokens, (
+            f"{c.id}: chunk_size={c.chunk_size} (~{tokens_estimados:.0f} tokens) "
+            f"excede janela de {c.janela_tokens} tokens"
+        )
+        assert c.chunk_size > c.chunk_overlap > 0
+
+
+def test_filtrar_candidatos_seleciona_subconjunto_ou_falha_em_id_invalido(etapa2):
+    todos = etapa2.filtrar_candidatos(None)
+    assert len(todos) == 4
+
+    apenas_gemma = etapa2.filtrar_candidatos(["embeddinggemma-300m"])
+    assert [c.id for c in apenas_gemma] == ["embeddinggemma-300m"]
+
+    with pytest.raises(ValueError, match="Candidato desconhecido"):
+        etapa2.filtrar_candidatos(["modelo-inexistente"])
+
+
+def test_ranquear_candidatos_ordena_por_ndcg_recall_mrr_e_separabilidade(etapa2):
+    entradas = [
+        {
+            "id": "minilm-l12-v2",
+            "embedding_model": "paraphrase-multilingual-MiniLM-L12-v2",
+            "metricas_sem_corte": {
+                "ndcg@10": 0.386,
+                "recall": {"@5": 0.500},
+                "mrr": 0.347,
+            },
+            "separabilidade": {"separavel": False},
+            "tempo_ingestao_s": 4.2,
+        },
+        {
+            "id": "bge-m3",
+            "embedding_model": "BAAI/bge-m3",
+            "metricas_sem_corte": {
+                "ndcg@10": 0.780,
+                "recall": {"@5": 0.833},
+                "mrr": 0.750,
+            },
+            "separabilidade": {"separavel": True},
+            "tempo_ingestao_s": 14.0,
+        },
+        {
+            "id": "embeddinggemma-300m",
+            "embedding_model": "google/embeddinggemma-300m",
+            "metricas_sem_corte": {
+                "ndcg@10": 0.780,
+                "recall": {"@5": 0.833},
+                "mrr": 0.750,
+            },
+            "separabilidade": {"separavel": True},
+            "tempo_ingestao_s": 9.5,
+        },
+    ]
+    ranking = etapa2.ranquear_candidatos(entradas)
+    assert [r["id"] for r in ranking] == [
+        "embeddinggemma-300m",
+        "bge-m3",
+        "minilm-l12-v2",
+    ]
+    assert [r["posicao"] for r in ranking] == [1, 2, 3]

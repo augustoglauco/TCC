@@ -25,6 +25,8 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 | [`comprovante_evaluator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/services/comprovante_evaluator.py) | Backend (`app.services`) | Prompt de auditoria financeira de comprovantes (OCR/texto) — texto do comprovante isolado em `<texto_comprovante>` desde 2026-10-07 |
 | [`estoque_ia.py`](file:///home/augusto/Projetos/TCC/backend/src/app/agents/estoque_ia.py) | Backend (`app.agents`) | Prompt do agente autônomo de previsão de estoque (R13, modo IA): fatos estruturados de estoque/baixa → JSON de risco, reposição sugerida e justificativa |
 | [`eval/prompt_injection/run_eval.py`](file:///home/augusto/Projetos/TCC/backend/eval/prompt_injection/run_eval.py) | Backend (`eval`, Fase 10) | Prompt de avaliação LLM-as-judge (resiliência a prompt injection) |
+| [`embeddings.py`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/embeddings.py) | Backend (`app.rag`) | Prefixos assimétricos de tarefa (consulta vs. documento) para modelos de embedding instrucionais (`embeddinggemma`, `multilingual-e5`) |
+
 
 ---
 
@@ -799,9 +801,22 @@ Formato exato:
 "justificativa": "uma ou duas frases em português"}}"""
 ```
 
+### 18. `backend/src/app/rag/embeddings.py`
+**Caminho:** [`backend/src/app/rag/embeddings.py`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/embeddings.py)
+
+Prefixos assimétricos de tarefa aplicados por `TextEmbedder` antes de chamar `SentenceTransformer.encode` (Etapa 2 da otimização do RAG, decisão de 2026-10-17 em `docs/ARCHITECTURE.md` §5 e `docs/EVALUATION.md` §2.1). `QdrantRAGClient.upsert_chunks` chama `embedder.embed(chunks)` (modo documento, `is_query=False` por padrão) e `QdrantRAGClient.search` chama `embedder.embed([query], is_query=True)` (modo consulta). Modelos simétricos (`paraphrase-multilingual-MiniLM-L12-v2`, `BAAI/bge-m3`) recebem prefixo vazio `("", "")`.
+
+```python
+EMBEDDINGGEMMA_QUERY_PREFIX = "task: search result | query: "
+EMBEDDINGGEMMA_DOCUMENT_PREFIX = "title: none | text: "
+E5_QUERY_PREFIX = "query: "
+E5_DOCUMENT_PREFIX = "passage: "
+```
+
 ---
 
 ## Conclusão
 
-Todos os **17 arquivos de código** que contêm instruções diretas, prompts de sistema, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
+Todos os **18 arquivos de código** que contêm instruções diretas, prompts de sistema, prefixos de tarefa, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
+
 

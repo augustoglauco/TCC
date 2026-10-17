@@ -42,6 +42,12 @@ de recuperação virou ganho de resposta.
   parâmetros dados, ingere, roda as perguntas e devolve `Recall@k`,
   `nDCG@10`, `MRR` e taxa de vazio. Exige Qdrant e Postgres no ar. Apaga a
   collection no `finally`, sempre.
+- `run_etapa2.py` — **Etapa 2**. Compara os 4 candidatos de embedding
+  (`paraphrase-multilingual-MiniLM-L12-v2`, `google/embeddinggemma-300m`,
+  `intfloat/multilingual-e5-large-instruct` e `BAAI/bge-m3`) respeitando a
+  janela de tokens de cada modelo e aplicando os prefixos de tarefa
+  assimétricos (`query_prefix` vs `document_prefix`). Retomável por
+  candidato; grava `resultados_etapa2.json`.
 - `metricas.py` — as métricas como funções **puras**, testadas em
   `backend/tests/test_rag_ingestion_eval.py` sem nenhuma infraestrutura.
 - `varrer_threshold.py` — **Etapa 4**. Varre `score_threshold` × `top_k`
@@ -227,6 +233,23 @@ escolha das Etapas 2–5 usa as 180 perguntas da Estratégia A, que ainda não
 existem. Os números acima valem como baseline de referência e como prova de
 que o instrumento funciona de ponta a ponta.
 
+## Resultado da Etapa 2 — comparação dos 4 candidatos no conjunto mínimo (2026-10-17)
+
+Rodada de `run_etapa2.py` sobre o mesmo conjunto mínimo (9 arquivos, 15
+perguntas), com cada modelo medido dentro da sua própria janela de tokens e
+com prefixos de tarefa assimétricos aplicados em `app.rag.embeddings`:
+
+| # | Candidato | Dims | Janela | Chunk | Recall@5 | nDCG@10 | MRR | Separável? | Pos mín | Neg máx |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `google/embeddinggemma-300m` | 768 | 2048 | 800/100 | **1,000** | 0,938 | 0,917 | **SIM** | **0,5670** | **0,4999** |
+| 2 | `BAAI/bge-m3` | 1024 | 8192 | 800/100 | **1,000** | **0,969** | **0,958** | NÃO | 0,5638 | 0,6092 |
+| 3 | `intfloat/multilingual-e5-large-instruct` | 1024 | 514 | 800/100 | 0,750 | 0,513 | 0,431 | NÃO | 0,8506 | 0,8730 |
+| 4 | `paraphrase-multilingual-MiniLM-L12-v2` | 384 | 128 | 400/50 | 0,500 | 0,346 | 0,292 | NÃO | 0,5175 | 0,6584 |
+
+1. **Corrigir o truncamento do `MiniLM-L12-v2` (`chunk_size=400` chars ≈ 114 tokens) não salvou o modelo:** o `Recall@5` continuou em `0,500` e as negativas continuaram pontuando acima das positivas (`0,6584` vs `0,5175`).
+2. **`embeddinggemma-300m` e `bge-m3` empatam em `Recall@5 = 1,000` (12/12 positivas recuperadas)**, mas **`embeddinggemma-300m` é o único modelo separável** (`menor positiva = 0,5670 > maior negativa = 0,4999`): qualquer `score_threshold ∈ [0,50, 0,56]` entrega simultaneamente `Recall@5 = 1,000` e `acerto_negativas = 1,000` (3/3 negativas recusadas), além de ocupar metade do tamanho (308M vs 568M parâmetros, 768 vs 1024 dims).
+3. Mesma ressalva metodológica da Etapa 1: os números em `n=15` validam o pipeline de ponta a ponta e antecipam o comportamento de separabilidade; a confirmação estatística pareada requer o conjunto de 180 perguntas da Estratégia A.
+
 ## Reproduzir
 
 ```bash
@@ -240,6 +263,9 @@ cd backend
 
 # Etapa 1 — exige Qdrant e Postgres no ar
 .venv/bin/python eval/rag_ingestion/run_etapa1.py --score-threshold 0.0 --top-k 10
+
+# Etapa 2 — compara os 4 modelos candidatos (retomável por candidato)
+.venv/bin/python eval/rag_ingestion/run_etapa2.py
 
 # Etapa 4 — varredura offline, sobre o JSON da Etapa 1
 .venv/bin/python eval/rag_ingestion/varrer_threshold.py

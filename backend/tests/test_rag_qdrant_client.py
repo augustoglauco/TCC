@@ -195,8 +195,49 @@ class _FailingEmbedder:
     async def get_dimension(self) -> int:
         return 384
 
-    async def embed(self, texts: list[str]) -> list[list[float]]:
+    async def embed(self, texts: list[str], *, is_query: bool = False) -> list[list[float]]:
         raise RuntimeError("falha simulada do modelo de embeddings")
+
+
+class _RecordingEmbedder:
+    """Registra `(texts, is_query)` para confirmar que `upsert_chunks` usa o
+    modo documento e `search` usa o modo consulta (Etapa 2, prefixos de tarefa)."""
+
+    def __init__(self) -> None:
+        self.chamadas: list[tuple[list[str], bool]] = []
+
+    async def get_dimension(self) -> int:
+        return 4
+
+    async def embed(self, texts: list[str], *, is_query: bool = False) -> list[list[float]]:
+        self.chamadas.append((list(texts), is_query))
+        return [[1.0, 0.0, 0.0, 0.0] for _ in texts]
+
+
+async def test_upsert_e_search_distingue_documento_de_consulta_no_embedder(
+    qdrant: QdrantRAGClient,
+):
+    embedder = _RecordingEmbedder()
+    name = await _cria_collection(qdrant, await embedder.get_dimension())
+
+    await qdrant.upsert_chunks(
+        name,
+        embedder,
+        ["conteúdo puro do chunk"],
+        source="manual.pdf",
+        domain="suporte",
+        document_id="doc-1",
+    )
+    resultado = await qdrant.search(
+        name, embedder, "qual a configuração?", domain="suporte", score_threshold=0.0
+    )
+
+    assert embedder.chamadas == [
+        (["conteúdo puro do chunk"], False),
+        (["qual a configuração?"], True),
+    ]
+    assert len(resultado) == 1
+    assert resultado[0].content == "conteúdo puro do chunk"
 
 
 async def test_upsert_chunks_com_falha_no_embedder_vira_rag_connection_error(

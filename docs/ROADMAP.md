@@ -1700,7 +1700,7 @@ conversa e classificação do usuário").
         nenhuma pergunta devolve mais de 3 fontes distintas.
         Ressalva registrada: com n=12 positivas o IC 95% em p=0,5 é ±27 pp —
         o conjunto mínimo valida o instrumento, não escolhe parâmetro.
-  - [ ] Etapa 2 — escolher o modelo de embedding entre
+  - [x] Etapa 2 — escolher o modelo de embedding entre
         `embeddinggemma-300m` (candidato preferido: 308M, 768 dims, ctx
         2048, Mean22 0,649), `multilingual-e5-large-instruct` (0,641),
         `bge-m3` (ctx 8192, dense+sparse) e o baseline atual. Os 8B+ do topo
@@ -1710,6 +1710,19 @@ conversa e classificação do usuário").
         em `app.rag.embeddings` (`task: search result | query:` /
         `title: none | text:`) → atualizar
         `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` (regra 11).
+        *(Implementado em 2026-10-17: prefixos assimétricos de consulta/documento
+        em `app.rag.embeddings.TextEmbedder` + `QdrantRAGClient.search(is_query=True)`,
+        fallback transparente para mirror ungated `unsloth/embeddinggemma-300m`,
+        seção 18 em `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` e
+        `backend/eval/rag_ingestion/run_etapa2.py`. No conjunto mínimo
+        (`resultados_etapa2.json`, n=15): `google/embeddinggemma-300m` e
+        `BAAI/bge-m3` empatam em `Recall@5 = 1,000` (contra `0,750` do `e5-large`
+        e `0,500` do `MiniLM-L12-v2` mesmo em `chunk_size=400`), mas
+        `embeddinggemma-300m` é o **único separável** (`pos_min = 0,5670 >
+        neg_max = 0,4999`, `nDCG@10 = 0,938`, `MRR = 0,917`), entregando
+        simultaneamente `Recall@5 = 1,000` e `acerto_negativas = 1,000` para
+        `score_threshold ∈ [0,50, 0,56]`; confirmação pareada final aguarda as
+        180 perguntas da Estratégia A.)*
   - [ ] Etapa 3 — `chunk_text` passa a contar **tokens** pelo tokenizer da
         collection (não caracteres) e a cortar recursivamente
         (`\n\n` → `\n` → `. ` → espaço); grade 5×3: `chunk_size` ∈ {128,
