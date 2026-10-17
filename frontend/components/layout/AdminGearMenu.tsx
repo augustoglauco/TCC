@@ -4,9 +4,45 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
+interface MenuItem {
+  href: string;
+  label: string;
+  icon: string;
+}
+
+interface MenuGroup {
+  title: string;
+  items: MenuItem[];
+}
+
+const MENU_GROUPS: MenuGroup[] = [
+  {
+    title: "Administração do Negócio",
+    items: [
+      { href: "/admin/produtos", label: "Catálogo de Produtos", icon: "📦" },
+      { href: "/admin/atendimento", label: "Central de Atendimento", icon: "🎧" },
+      { href: "/admin/dashboards", label: "Dashboards & Gráficos", icon: "📈" },
+      { href: "/admin/usuarios", label: "Gerenciar Usuários", icon: "👥" },
+      { href: "/admin/agendamentos", label: "Gestão de Agendamentos", icon: "📅" },
+      { href: "/admin/ingestao", label: "Ingestão de documentos (RAG)", icon: "📄" },
+      { href: "/admin/mensagens", label: "Mensagens de Agentes", icon: "📬" },
+      { href: "/admin/pedidos", label: "Pedidos & Conversão", icon: "💳" },
+    ].sort((a, b) => a.label.localeCompare(b.label, "pt-BR")),
+  },
+  {
+    title: "Ferramentas IA",
+    items: [
+      { href: "/admin/modelos", label: "Administração IA", icon: "⚙️" },
+      { href: "/admin/ferramentas", label: "Ferramentas de Código", icon: "🕸️" },
+      { href: "/admin/metricas", label: "Métricas & Custos IA", icon: "📊" },
+      { href: "/avaliacao", label: "Resultados da Avaliação", icon: "🧪" },
+    ].sort((a, b) => a.label.localeCompare(b.label, "pt-BR")),
+  },
+];
+
 /**
  * Menu dropdown acionado pelo ícone de engrenagem (configurações/administração).
- * Exibe os links de administração (Ingestão de documentos RAG, Catálogo e Modelos).
+ * Exibe os links de administração organizados por grupos de negócio e ferramentas IA.
  */
 export default function AdminGearMenu() {
   const user = useAuthStore((state) => state.user);
@@ -73,7 +109,7 @@ export default function AdminGearMenu() {
           role="menu"
           aria-orientation="vertical"
           aria-labelledby="admin-menu-button"
-          className="absolute right-0 mt-2 w-64 origin-top-right rounded-lg border border-gray-200 bg-white p-2 shadow-lg ring-1 ring-black/5 focus:outline-none z-50"
+          className="absolute right-0 mt-2 w-72 max-h-[calc(100vh-5rem)] overflow-y-auto origin-top-right rounded-lg border border-gray-200 bg-white p-2 shadow-lg ring-1 ring-black/5 focus:outline-none z-50"
         >
           <div className="border-b border-gray-100 px-3 py-2 flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -86,114 +122,30 @@ export default function AdminGearMenu() {
             )}
           </div>
           <div className="py-1">
-            <Link
-              href="/admin/modelos"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">⚙️</span>
-              <span>Administração AI</span>
-            </Link>
-            <Link
-              href="/admin/metricas"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">📊</span>
-              <span>Métricas &amp; Custos IA</span>
-            </Link>
-            <Link
-              href="/admin/mensagens"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">📬</span>
-              <span>Mensagens de Agentes</span>
-            </Link>
-            <Link
-              href="/avaliacao"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">🧪</span>
-              <span>Resultados da Avaliação</span>
-            </Link>
-            <Link
-              href="/admin/ferramentas"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">🕸️</span>
-              <span>Ferramentas de Código</span>
-            </Link>
-            <Link
-              href="/admin/dashboards"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">📈</span>
-              <span>Dashboards &amp; Gráficos</span>
-            </Link>
-            <Link
-              href="/admin/atendimento"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">🎧</span>
-              <span>Central de Atendimento</span>
-            </Link>
-            <Link
-              href="/admin/pedidos"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">💳</span>
-              <span>Pedidos &amp; Conversão</span>
-            </Link>
-            <Link
-              href="/admin/produtos"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">📦</span>
-              <span>Catálogo de Produtos</span>
-            </Link>
-            <Link
-              href="/admin/usuarios"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">👥</span>
-              <span>Gerenciar Usuários</span>
-            </Link>
-            <Link
-              href="/admin/agendamentos"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">📅</span>
-              <span>Gestão de Agendamentos</span>
-            </Link>
-            <Link
-              href="/admin/ingestao"
-              role="menuitem"
-              onClick={() => setIsOpen(false)}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <span className="text-base">📄</span>
-              <span>Ingestão de documentos (RAG)</span>
-            </Link>
+            {MENU_GROUPS.map((group, groupIdx) => (
+              <div
+                key={group.title}
+                className={groupIdx > 0 ? "border-t border-gray-100 pt-2 mt-1" : "pt-1"}
+              >
+                <div className="px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  {group.title}
+                </div>
+                <div className="py-0.5">
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      role="menuitem"
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                    >
+                      <span className="text-base shrink-0">{item.icon}</span>
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

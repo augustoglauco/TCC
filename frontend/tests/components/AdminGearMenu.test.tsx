@@ -52,8 +52,10 @@ describe("AdminGearMenu", () => {
 
     const gerenciarUsuariosLink = screen.getByRole("menuitem", { name: /gerenciar usuários/i });
     const ingestaoLink = screen.getByRole("menuitem", { name: /ingestão de documentos/i });
-    const modelosLink = screen.getByRole("menuitem", { name: /administração ai/i });
+    const modelosLink = screen.getByRole("menuitem", { name: /administração (ia|ai)/i });
 
+    expect(screen.getByText("Administração do Negócio")).toBeInTheDocument();
+    expect(screen.getByText("Ferramentas IA")).toBeInTheDocument();
     expect(gerenciarUsuariosLink).toHaveAttribute("href", "/admin/usuarios");
     expect(ingestaoLink).toHaveAttribute("href", "/admin/ingestao");
     expect(modelosLink).toHaveAttribute("href", "/admin/modelos");
@@ -84,5 +86,32 @@ describe("AdminGearMenu", () => {
 
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("exibe os itens agrupados e ordenados alfabeticamente", async () => {
+    const user = userEvent.setup();
+    render(<AdminGearMenu />);
+
+    const button = screen.getByRole("button", { name: /configurações de administração/i });
+    await user.click(button);
+
+    const menuItems = screen.getAllByRole("menuitem").map((el) => el.textContent?.trim());
+
+    // 8 itens de Administração do Negócio em ordem alfabética
+    // 4 itens de Ferramentas IA em ordem alfabética
+    expect(menuItems).toEqual([
+      "📦Catálogo de Produtos",
+      "🎧Central de Atendimento",
+      "📈Dashboards & Gráficos",
+      "👥Gerenciar Usuários",
+      "📅Gestão de Agendamentos",
+      "📄Ingestão de documentos (RAG)",
+      "📬Mensagens de Agentes",
+      "💳Pedidos & Conversão",
+      "⚙️Administração IA",
+      "🕸️Ferramentas de Código",
+      "📊Métricas & Custos IA",
+      "🧪Resultados da Avaliação",
+    ]);
   });
 });
