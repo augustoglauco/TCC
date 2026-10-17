@@ -572,3 +572,96 @@ def test_filtrar_grade_etapa3_por_chunk_size_ou_id(etapa3):
 
     with pytest.raises(ValueError, match="chunk_size inválido"):
         etapa3.filtrar_grade(chunk_sizes=[999])
+
+
+def test_varrer_threshold_aceita_formato_etapa3_e_recomenda_corte_separavel(varrer, tmp_path):
+    """Etapa 4 (`docs/ROADMAP.md:1746-1750`): `varrer_threshold.py` deve
+    aceitar o JSON da Etapa 3 (`pontos` + `vencedor`) e recomendar o
+    `score_threshold` que separa positivas de negativas mantendo `taxa_vazio_positivas=0.0`."""
+    itens = [
+        _item("p1", False, [("certo.pdf", 0.58)], ["certo.pdf"]),
+        _item("p2", False, [("certo.pdf", 0.72)], ["certo.pdf"]),
+        _item("n1", True, [("x.pdf", 0.52)], []),
+    ]
+    entrada = tmp_path / "resultados_etapa3.json"
+    saida = tmp_path / "varredura_etapa4.json"
+    entrada.write_text(
+        json.dumps(
+            {
+                "dataset": "dataset_minimo.json",
+                "embedding_model": "google/embeddinggemma-300m",
+                "vencedor": {"id": "cs512_ov10"},
+                "pontos": [
+                    {
+                        "id": "cs512_ov10",
+                        "embedding_model": "google/embeddinggemma-300m",
+                        "chunk_size": 512,
+                        "chunk_overlap": 51,
+                        "itens": itens,
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    rc = varrer.main(
+        ["varrer_threshold.py", "--entrada", str(entrada), "--saida", str(saida)]
+    )
+    assert rc == 0
+    dados = json.loads(saida.read_text(encoding="utf-8"))
+    rec = dados["recomendacao"]
+    assert rec["score_threshold"] == 0.55
+    assert rec["recall@5"] == 1.0
+    assert rec["taxa_vazio_positivas"] == 0.0
+    assert rec["acerto_negativas"] == 1.0
+    assert rec["threshold_ponto_medio"] == 0.55
+
+
+# --------------------------------------------------------------------------
+# Etapa 5 — métrica de distância e payload index em domain (run_etapa5.py)
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def etapa5():
+    return _carregar("run_etapa5")
+
+
+def test_etapa5_define_tres_metricas_e_indice_keyword_em_domain(etapa5):
+    assert etapa5.METRICAS_DISTANCIA == ("cosine", "dot", "euclid")
+    assert etapa5.PERFIS_PAYLOAD_INDEX["sem_indice"] == []
+    assert etapa5.PERFIS_PAYLOAD_INDEX["indice_domain_keyword"] == [
+        {"field": "domain", "schema_type": "keyword"}
+    ]
+
+
+def test_resumir_latencias_ms_calcula_media_p50_e_p95(etapa5):
+    amostras = [float(i) for i in range(1, 21)]  # 1.0 a 20.0 ms
+    resumo = etapa5.resumir_latencias_ms(amostras)
+    assert resumo["n"] == 20
+    assert resumo["media_ms"] == 10.5
+    assert resumo["p50_ms"] == 10.5
+    assert 19.0 <= resumo["p95_ms"] <= 20.0
+
+
+def test_comparar_rankings_distancia_detecta_equivalencia_em_vetores_normalizados(etapa5):
+    base_item = [{"id": "q1", "recuperadas": [{"fonte": "a.pdf", "score": 0.8}]}]
+    por_metrica = {
+        "cosine": {
+            "metricas_sem_corte": {"recall": {"@5": 1.0}, "ndcg@10": 1.0, "mrr": 1.0},
+            "itens": base_item,
+        },
+        "dot": {
+            "metricas_sem_corte": {"recall": {"@5": 1.0}, "ndcg@10": 1.0, "mrr": 1.0},
+            "itens": base_item,
+        },
+        "euclid": {
+            "metricas_sem_corte": {"recall": {"@5": 1.0}, "ndcg@10": 1.0, "mrr": 1.0},
+            "itens": base_item,
+        },
+    }
+    comp = etapa5.comparar_rankings_distancia(por_metrica)
+    assert comp["rankings_identicos"] is True
+
+

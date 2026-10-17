@@ -4,6 +4,7 @@ import re
 import time
 import unicodedata
 from collections.abc import AsyncIterator
+from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
@@ -947,6 +948,445 @@ async def _handle_agendamento(
         yield evento
 
 
+async def _checar_modelo_local(
+    local_client: LLMClient,
+    intent_router_provider: str,
+    tone_monitor_enabled: bool,
+    tone_monitor_provider: str,
+) -> AsyncIterator[StatusEvent]:
+    """Emite `carregando_modelo` se o modelo local ainda não está quente."""
+    deve_checar = (intent_router_provider == "heuristica_llm") or (
+        tone_monitor_enabled and tone_monitor_provider == DEFAULT_TONE_MONITOR_PROVIDER
+    )
+    if not deve_checar:
+        return
+    try:
+        modelo_pronto = await local_client.is_model_ready()
+    except Exception as exc:
+        logger.warning(
+            "verificacao_modelo_local_falhou",
+            extra={"router": {"event": "verificacao_modelo_local_falhou", "erro": str(exc)}},
+        )
+        modelo_pronto = True
+    if not modelo_pronto:
+        yield StatusEvent(status="carregando_modelo")
+
+
+async def _handle_tone_e_classify(
+    message: str,
+    recent_messages: list[str],
+    local_client: LLMClient,
+    external_client: LLMClient,
+    complexity_strategy: str,
+    intent_router_provider: str,
+    tone_monitor_enabled: bool,
+    tone_monitor_provider: str,
+    ultima_troca: tuple[str, str] | None,
+) -> tuple[Any, Any]:
+    """Roda tom e classificação em paralelo. Levanta `LocalBackendIndisponivelError` se
+    `classify()` falhar."""
+    tone_coro = (
+        analyze_tone(
+            message=message,
+            recent_messages=recent_messages,
+            strategy_provider=tone_monitor_provider,
+            llm_client=local_client,
+            external_client=external_client,
+        )
+        if tone_monitor_enabled
+        else _sem_analise_de_tom()
+    )
+    try:
+        async with asyncio.TaskGroup() as tg:
+            tone_task = tg.create_task(tone_coro)
+            classification_task = tg.create_task(
+                classify(
+                    message=message,
+                    recent_messages=recent_messages,
+                    strategy=complexity_strategy,
+                    llm_client=local_client,
+                    provider=intent_router_provider,
+                    external_client=external_client,
+                    ultima_resposta=ultima_troca[1] if ultima_troca else None,
+                )
+            )
+    except* Exception as eg:
+        exc = eg.exceptions[0]
+        logger.error(
+            "backend_indisponivel",
+            extra={"router": {"event": "backend_indisponivel", "backend": "local",
+                              "etapa": "classificacao", "erro": str(exc)}},
+        )
+        raise LocalBackendIndisponivelError(str(exc)) from exc
+    return tone_task.result(), classification_task.result()
+
+
+async def _handle_chart_request(
+    message: str,
+    is_admin: bool,
+    user_email: str | None,
+    local_client: LLMClient,
+    external_client: LLMClient,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
+    intent_router_provider: str,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    """Processa pedidos de gráfico dinâmico (admin). Yields eventos e retorna
+    após o primeiro yield bem-sucedido; não yields nada se não for pedido de gráfico."""
+    from app.services.analytics_agent import extract_prompt_inline_data, process_dynamic_chart_request
+    from app.services.chart_generator import detect_chart_request
+    from app.router.sales_catalog import detectar_intencao_comprovante
+
+    if detectar_intencao_comprovante(message):
+        return
+    if not (detect_chart_request(message) or extract_prompt_inline_data(message)):
+        return
+
+    if not is_admin:
+        msg = (
+            "A geração de gráficos e dashboards é um recurso exclusivo para "
+            "administradores autenticados. Faça login como administrador para "
+            "gerar e visualizar gráficos dinâmicos."
+        )
+        yield TokenEvent(text=msg)
+        yield RouterDecision(
+            domain="fora_escopo", complexity="baixa", confidence=1.0,
+            complexity_strategy_usada="regras", backend_escolhido="local",
+            motivo_escalonamento="fora_escopo", resposta=msg, latencia_ms=0.0,
+            tokens_entrada=None, tokens_saida=None, cost_prompt_usd=0.0,
+            cost_completion_usd=0.0, custo_estimado_usd=0.0,
+            router_provider=intent_router_provider,
+        )
+        return
+
+    if not db_sessionmaker:
+        return
+
+    chart = None
+    explicacao = ""
+    chart_prompt_tokens: int | None = None
+    chart_completion_tokens: int | None = None
+    try:
+        analytics_llm = local_client if local_client is not None else external_client
+        ambiente = "interno" if analytics_llm is local_client else "externo"
+        async with db_sessionmaker() as session:
+            chart, explicacao, chart_prompt_tokens, chart_completion_tokens = (
+                await process_dynamic_chart_request(
+                    session=session, prompt=message,
+                    user_email=user_email or "admin",
+                    llm_client=analytics_llm, ambiente=ambiente,
+                )
+            )
+    except Exception as exc:
+        logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})
+        explicacao = (
+            "Não consegui gerar esse gráfico agora por uma falha interna. "
+            "Tente novamente em instantes."
+        )
+
+    _decision_base: dict = dict(
+        complexity="baixa", confidence=1.0, complexity_strategy_usada="regras",
+        backend_escolhido="local", motivo_escalonamento="nenhum", latencia_ms=0.0,
+        cost_prompt_usd=0.0, cost_completion_usd=0.0, custo_estimado_usd=0.0,
+        domain="atendimento", router_provider=intent_router_provider,
+        tokens_entrada=chart_prompt_tokens, tokens_saida=chart_completion_tokens,
+    )
+    if chart:
+        texto = explicacao or (
+            f"Gerei o gráfico '{chart.titulo}' para você com base nos dados mais recentes. "
+            "Ele já está salvo no seu painel de Dashboards."
+        )
+        yield TokenEvent(text=texto)
+        yield RouterDecision(
+            **_decision_base, resposta=texto,
+            card=CardGrafico(
+                chart_id=str(chart.id), titulo=chart.titulo,
+                tipo_grafico=chart.tipo_grafico, config=chart.config_json,
+                dados=chart.dados_json, fixado=chart.fixado,
+            ),
+        )
+        return
+    if explicacao:
+        yield TokenEvent(text=explicacao)
+        yield RouterDecision(**_decision_base, resposta=explicacao)
+
+
+async def _handle_comprovante(
+    message: str,
+    conversation_id: str,
+    user_email: str | None,
+    local_client: LLMClient,
+    external_client: LLMClient,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
+    intent_router_provider: str,
+    comprovante_bytes: bytes | None,
+    comprovante_filename: str | None,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    """Processa conversão de reserva em venda via comprovante. Yields eventos
+    se houver reserva ativa; não yields nada caso contrário."""
+    from app.router.sales_catalog import buscar_reserva_ativa, detectar_intencao_comprovante, processar_conversao_comprovante
+
+    if not detectar_intencao_comprovante(message) or not db_sessionmaker:
+        return
+
+    _decision_base: dict = dict(
+        domain="vendas", complexity="baixa", confidence=1.0,
+        complexity_strategy_usada="regras", backend_escolhido="local",
+        motivo_escalonamento="vendas_comprovante_pagamento", latencia_ms=0.0,
+        cost_prompt_usd=0.0, cost_completion_usd=0.0, custo_estimado_usd=0.0,
+        router_provider=intent_router_provider,
+    )
+    try:
+        pedido_uuid_match = re.search(
+            r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+            message,
+        )
+        pedido_uuid = pedido_uuid_match.group(0) if pedido_uuid_match else None
+        llm_to_use = local_client if local_client is not None else external_client
+
+        async with db_sessionmaker() as session:
+            pedido = await buscar_reserva_ativa(
+                session=session, conversation_id=conversation_id,
+                user_email=user_email, pedido_id=pedido_uuid,
+            )
+            if not pedido:
+                msg = (
+                    "Recebi o envio do comprovante, mas não encontrei nenhuma reserva "
+                    "pendente ativa associada a esta conversa ou conta. Por favor, "
+                    "verifique o código da sua reserva ou faça seu pedido primeiro."
+                )
+                yield TokenEvent(text=msg)
+                yield RouterDecision(**_decision_base, resposta=msg,
+                                     tokens_entrada=None, tokens_saida=None)
+                return
+            sucesso, texto_resp, parecer_res = await processar_conversao_comprovante(
+                session=session, pedido=pedido, texto_comprovante=message,
+                llm_client=llm_to_use, comprovante_bytes=comprovante_bytes,
+                nome_arquivo=comprovante_filename, vision_client=external_client,
+                local_vision_client=local_client, origem="chat",
+                llm_ambiente="interno" if llm_to_use is local_client else "externo",
+            )
+        yield TokenEvent(text=texto_resp)
+        yield RouterDecision(
+            **_decision_base, resposta=texto_resp,
+            tokens_entrada=parecer_res.prompt_tokens if parecer_res else None,
+            tokens_saida=parecer_res.completion_tokens if parecer_res else None,
+        )
+    except Exception as exc:
+        logger.warning(
+            "falha_processar_comprovante",
+            extra={"router": {"event": "falha_processar_comprovante",
+                              "conversation_id": conversation_id, "erro": str(exc)}},
+        )
+
+
+@dataclass
+class _RagResult:
+    documentos: list[Document] = field(default_factory=list)
+    dados_catalogo_vendas: "DadosCatalogoVendas | DadosCatalogoCategoria | None" = None
+    backend_escolhido: str = "local"
+    motivo: str = "nenhum"
+    rag_retrieval_ms: float | None = None
+    rag_chunks_count: int | None = None
+    rag_avg_score: float | None = None
+    rag_chunks: "list[RagChunkMetric] | None" = None
+
+
+async def _buscar_rag_e_rotear(
+    message: str,
+    recent_messages: list[str],
+    classification: Any,
+    rag_client: RAGClient,
+    sales_catalog_client: "SalesCatalogClient | None",
+    local_client: LLMClient,
+    ultima_troca: "tuple[str, str] | None",
+    dados_cliente: str | None,
+    rag_top_k: int,
+    rag_score_threshold: float,
+) -> _RagResult:
+    """Busca RAG + catálogo de vendas em paralelo e decide backend/motivo."""
+    r = _RagResult()
+    if classification.domain == "fora_escopo":
+        if classification.complexity != "baixa":
+            r.backend_escolhido = "externo"
+            r.motivo = "fora_escopo"
+        return r
+
+    t0 = time.perf_counter()
+    try:
+        async with asyncio.TaskGroup() as tg:
+            rag_task = tg.create_task(
+                _buscar_documentos_rag(
+                    message, recent_messages, classification.domain, rag_client,
+                    ultima_resposta=ultima_troca[1] if ultima_troca else None,
+                    top_k=rag_top_k, score_threshold=rag_score_threshold,
+                )
+            )
+            vendas_task = (
+                tg.create_task(
+                    _consultar_vendas(
+                        message, recent_messages, sales_catalog_client, local_client,
+                        ultima_resposta=ultima_troca[1] if ultima_troca else None,
+                    )
+                )
+                if classification.domain == "vendas" and sales_catalog_client is not None
+                else None
+            )
+    except* Exception as eg:
+        exc = eg.exceptions[0]
+        logger.error(
+            "rag_indisponivel",
+            extra={"router": {"event": "rag_indisponivel", "domain": classification.domain,
+                              "tipo": type(exc).__name__, "erro": str(exc)}},
+        )
+        raise exc from None
+
+    r.documentos = rag_task.result()
+    if vendas_task is not None:
+        r.dados_catalogo_vendas = vendas_task.result()
+
+    r.rag_retrieval_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+    r.rag_chunks_count = len(r.documentos)
+    if r.documentos:
+        r.rag_avg_score = round(sum(d.score for d in r.documentos) / len(r.documentos), 4)
+        r.rag_chunks = [RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in r.documentos]
+
+    if not r.documentos and r.dados_catalogo_vendas is None and dados_cliente is None:
+        r.backend_escolhido = "externo"
+        r.motivo = "rag_vazio"
+    elif classification.complexity == "alta":
+        r.backend_escolhido = "externo"
+        r.motivo = "complexidade_alta"
+    return r
+
+
+async def _gerar_stream_llm(
+    prompt: str,
+    client: LLMClient,
+    backend_escolhido: str,
+    domain: str,
+) -> "AsyncIterator[StatusEvent | TokenEvent | LLMStreamChunk]":
+    """Yields StatusEvent/TokenEvent durante o stream; yield final é o LLMStreamChunk done."""
+    try:
+        if not await client.is_model_ready():
+            yield StatusEvent(status="carregando_modelo")
+        chunk_final: LLMStreamChunk | None = None
+        async for chunk in client.generate_stream(prompt):
+            if chunk.text:
+                yield TokenEvent(text=chunk.text)
+            if chunk.done:
+                chunk_final = chunk
+        if chunk_final is None:
+            raise RuntimeError("generate_stream terminou sem chunk final (done=True)")
+        yield chunk_final
+    except Exception as exc:
+        logger.error(
+            "backend_indisponivel",
+            extra={"router": {"event": "backend_indisponivel", "backend": backend_escolhido,
+                              "domain": domain, "etapa": "geracao", "erro": str(exc)}},
+        )
+        if backend_escolhido == "local":
+            raise LocalBackendIndisponivelError(str(exc)) from exc
+        raise ExternalBackendIndisponivelError(str(exc)) from exc
+
+
+async def _handle_llm_generation(
+    message: str,
+    recent_messages: list[str],
+    classification: Any,
+    local_client: LLMClient,
+    external_client: LLMClient,
+    rag_client: RAGClient,
+    sales_catalog_client: SalesCatalogClient | None,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
+    conversation_id: str,
+    intent_router_provider: str,
+    resumo_conversa: str | None,
+    pedir_email_pos_venda: bool,
+    ultima_troca: tuple[str, str] | None,
+    dados_cliente: str | None,
+    contexto_conversa_anterior: str | None,
+    usuario_autenticado: bool,
+    rag_top_k: int,
+    rag_score_threshold: float,
+    rag_download_threshold: float,
+    user_email: str | None,
+    complexity_strategy: str,
+) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision]:
+    """RAG + roteamento local/externo + geração LLM + RouterDecision final."""
+    rag = await _buscar_rag_e_rotear(
+        message, recent_messages, classification, rag_client, sales_catalog_client,
+        local_client, ultima_troca, dados_cliente, rag_top_k, rag_score_threshold,
+    )
+
+    if detectar_tentativa_injecao(message):
+        logger.warning(
+            "tentativa_injecao_detectada",
+            extra={"router": {"event": "tentativa_injecao_detectada",
+                              "conversation_id": conversation_id, "trecho": message[:200]}},
+        )
+
+    prompt = _build_prompt(
+        message, rag.documentos, classification.domain,
+        dados_catalogo=_formatar_bloco_catalogo_vendas(rag.dados_catalogo_vendas),
+        resumo_conversa=resumo_conversa, pedir_email_pos_venda=pedir_email_pos_venda,
+        ultima_troca=ultima_troca, dados_cliente=dados_cliente,
+        contexto_conversa_anterior=contexto_conversa_anterior,
+        usuario_autenticado=usuario_autenticado,
+    )
+
+    client = local_client if rag.backend_escolhido == "local" else external_client
+    texto_partes: list[str] = []
+    chunk_final: LLMStreamChunk | None = None
+    async for evento in _gerar_stream_llm(prompt, client, rag.backend_escolhido, classification.domain):
+        if isinstance(evento, (StatusEvent, TokenEvent)):
+            if isinstance(evento, TokenEvent):
+                texto_partes.append(evento.text)
+            yield evento
+        else:
+            chunk_final = evento
+
+    tps: float | None = None
+    if chunk_final.completion_tokens and chunk_final.eval_duration_ms:
+        tps = round(chunk_final.completion_tokens / max(chunk_final.eval_duration_ms / 1000.0, 0.001), 2)
+
+    resposta_completa = "".join(texto_partes)
+    decisao = RouterDecision(
+        domain=classification.domain, complexity=classification.complexity,
+        confidence=classification.confidence, complexity_strategy_usada=complexity_strategy,
+        backend_escolhido=rag.backend_escolhido, motivo_escalonamento=rag.motivo,
+        resposta=resposta_completa, latencia_ms=chunk_final.total_duration_ms or 0.0,
+        tokens_entrada=chunk_final.prompt_tokens, tokens_saida=chunk_final.completion_tokens,
+        cost_prompt_usd=chunk_final.cost_prompt_usd,
+        cost_completion_usd=chunk_final.cost_completion_usd,
+        custo_estimado_usd=chunk_final.estimated_cost_usd,
+        modelo_usado=chunk_final.model_name or getattr(client, "model", None),
+        ttft_ms=chunk_final.prompt_eval_duration_ms, tps=tps,
+        rag_retrieval_ms=rag.rag_retrieval_ms, rag_chunks_count=rag.rag_chunks_count,
+        rag_avg_score=rag.rag_avg_score, rag_chunks=rag.rag_chunks,
+        router_provider=classification.provider_efetivo,
+        card=_construir_card_vendas(rag.dados_catalogo_vendas)
+        or await _construir_card_documento_download(
+            db_sessionmaker, rag.documentos, classification.domain, rag_download_threshold
+        ),
+    )
+    logger.info("router_decision",
+                extra={"router": {"event": "router_decision", **decisao.model_dump()}})
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="chat",
+            ambiente="interno" if rag.backend_escolhido == "local" else "externo",
+            modelo=decisao.modelo_usado or "desconhecido",
+            operacao="geracao_resposta",
+            tokens_entrada=decisao.tokens_entrada,
+            tokens_saida=decisao.tokens_saida,
+            custo_usd=decisao.custo_estimado_usd,
+            referencia_id=conversation_id or None,
+            session=None, session_factory=None, commit=False,
+        )
+    )
+    yield decisao
+
+
 async def _sem_analise_de_tom() -> ToneResult:
     """Substituto de `analyze_tone()` quando `tone_monitor_enabled=False` —
     devolve um resultado neutro sem nenhuma chamada de rede, só para manter
@@ -958,7 +1398,7 @@ async def _sem_analise_de_tom() -> ToneResult:
     )
 
 
-async def handle_message(
+async def handle_message(  # noqa: PLR0913
     message: str,
     recent_messages: list[str],
     local_client: LLMClient,
@@ -987,133 +1427,22 @@ async def handle_message(
     comprovante_filename: str | None = None,
     usuario_autenticado: bool = False,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
-    # No Ollama real, esta é a primeira chamada bloqueante ao modelo — seja
-    # ela feita por `classify()` com strategy="llm" (logo abaixo) ou pelo
-    # fallback LLM do Monitor de Tom dentro de `analyze_tone()` (bloco
-    # seguinte) — que paga o cold-start, não a geração da resposta em si.
-    # Sem este check aqui (só existia antes de `generate_stream`, mais
-    # abaixo), o cold-start acontecia em silêncio: quando o check de depois
-    # rodava, o modelo já estava carregado e o evento `status` nunca era
-    # emitido, apesar da espera real ter ocorrido (bug relatado pelo
-    # usuário: "a mensagem para aguardar não aparece").
-    #
-    # Achado na revisão final do branch Monitor de Tom (R8): este check
-    # cobria só a condição de classificação e ficava DEPOIS do bloco do
-    # Monitor de Tom — com tone_monitor_enabled=True e
-    # tone_monitor_provider="heuristica_llm" (ambos padrão), a chamada LLM
-    # de `analyze_tone()` passou a ser, com frequência, a primeira chamada
-    # bloqueante de verdade, reintroduzindo o mesmo bug por uma rota
-    # diferente da originalmente corrigida. Por isso o check foi movido para
-    # o topo da função e a condição de disparo foi ampliada para cobrir
-    # também o caminho do Monitor de Tom — mesmo quando a heurística acaba
-    # resolvendo sozinha e o LLM nunca chega a ser chamado: um
-    # `carregando_modelo` a mais quando o modelo já está quente (ou quando a
-    # heurística resolve sozinha) é inofensivo para o frontend; a FALTA dele
-    # quando o modelo está realmente frio é que é o bug real.
-    # Achado no code-review (2026-09-24): com o Monitor de Tom no padrão
-    # (habilitado, provedor "heuristica_llm"), `deve_checar_modelo_local`
-    # fica quase sempre `True` — inclusive para mensagens que a heurística
-    # de tom resolve sozinha (sem chamar o LLM) e que a classificação vai
-    # rotear 100% pro backend externo (ex.: `fora_escopo`). Antes desta
-    # correção, uma falha aqui (Ollama fora do ar) virava
-    # `LocalBackendIndisponivelError` e derrubava a requisição inteira,
-    # mesmo quando o backend local nunca seria de fato necessário para essa
-    # mensagem. Esta checagem é só uma otimização de UX (mostrar
-    # "carregando_modelo" antes de um cold-start real) — não é a fonte de
-    # verdade sobre disponibilidade do backend local; essa fonte de verdade
-    # continua sendo o try/except em volta de `classify()` logo abaixo (que
-    # SÓ dispara quando o backend local é de fato chamado) e a degradação
-    # graciosa já embutida em `analyze_tone()`. Por isso uma falha aqui vira
-    # só um log de aviso, não uma exceção.
-    deve_checar_modelo_local = (intent_router_provider == "heuristica_llm") or (
-        tone_monitor_enabled and tone_monitor_provider == DEFAULT_TONE_MONITOR_PROVIDER
+    async for evento in _checar_modelo_local(
+        local_client, intent_router_provider, tone_monitor_enabled, tone_monitor_provider
+    ):
+        yield evento
+
+    tone_result, classification = await _handle_tone_e_classify(
+        message=message,
+        recent_messages=recent_messages,
+        local_client=local_client,
+        external_client=external_client,
+        complexity_strategy=complexity_strategy,
+        intent_router_provider=intent_router_provider,
+        tone_monitor_enabled=tone_monitor_enabled,
+        tone_monitor_provider=tone_monitor_provider,
+        ultima_troca=ultima_troca,
     )
-    if deve_checar_modelo_local:
-        try:
-            modelo_pronto = await local_client.is_model_ready()
-        except Exception as exc:
-            logger.warning(
-                "verificacao_modelo_local_falhou",
-                extra={
-                    "router": {
-                        "event": "verificacao_modelo_local_falhou",
-                        "erro": str(exc),
-                    }
-                },
-            )
-            modelo_pronto = True  # não emite carregando_modelo; segue o fluxo normal
-        if not modelo_pronto:
-            yield StatusEvent(status="carregando_modelo")
-
-    # Monitor de Tom (R8, Fase 4B) — transversal a todo domínio (ver
-    # docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md §2). Nunca
-    # substitui a resposta normal: só adiciona um evento a mais no stream.
-    #
-    # Achado no code-review (2026-09-24): `analyze_tone()` e `classify()`
-    # são independentes (nenhum usa o resultado do outro) mas eram
-    # `await`ados em sequência — em uma GPU única (16GB), isso dobra a
-    # espera antes do primeiro token em toda mensagem sem sinal heurístico
-    # de tom. `asyncio.gather` roda as duas em paralelo; quando o Monitor de
-    # Tom está desligado, `_sem_analise_de_tom()` só devolve um resultado
-    # neutro sem custo de rede, mantendo um único caminho de código em vez
-    # de duplicar o try/except de `classify()`.
-    if tone_monitor_enabled:
-        tone_coro = analyze_tone(
-            message=message,
-            recent_messages=recent_messages,
-            strategy_provider=tone_monitor_provider,
-            llm_client=local_client,
-            external_client=external_client,
-        )
-    else:
-        tone_coro = _sem_analise_de_tom()
-
-    # Com strategy="llm" a classificação chama o backend local. Falha aqui é
-    # falha de infraestrutura local, não "conteúdo não classificável" — vira
-    # LocalBackendIndisponivelError em vez de degradar em silêncio para
-    # fora_escopo (que rotearia ao backend externo). O wrapping fica aqui, e
-    # não dentro de `classify()`, para não criar import circular.
-    # `analyze_tone()` nunca levanta exceção (degrada sozinha), então só a
-    # falha de `classify()` chega aqui mesmo rodando as duas em paralelo.
-    #
-    # Achado no code-review (2026-09-24): `asyncio.gather` (sem
-    # `return_exceptions=True`) propaga a exceção de `classify()` assim que
-    # ela acontece, mas NÃO cancela `tone_coro` se ainda estiver rodando —
-    # a chamada LLM/Jev do Monitor de Tom ficava órfã, continuando depois
-    # da requisição já ter falhado. `asyncio.TaskGroup` resolve isso: ao
-    # sair do bloco com uma exceção, cancela automaticamente as outras
-    # tasks do grupo (aqui, só há uma tarefa irmã: `tone_task`).
-    try:
-        async with asyncio.TaskGroup() as tg:
-            tone_task = tg.create_task(tone_coro)
-            classification_task = tg.create_task(
-                classify(
-                    message=message,
-                    recent_messages=recent_messages,
-                    strategy=complexity_strategy,
-                    llm_client=local_client,
-                    provider=intent_router_provider,
-                    external_client=external_client,
-                    ultima_resposta=ultima_troca[1] if ultima_troca else None,
-                )
-            )
-    except* Exception as eg:
-        exc = eg.exceptions[0]
-        logger.error(
-            "backend_indisponivel",
-            extra={
-                "router": {
-                    "event": "backend_indisponivel",
-                    "backend": "local",
-                    "etapa": "classificacao",
-                    "erro": str(exc),
-                }
-            },
-        )
-        raise LocalBackendIndisponivelError(str(exc)) from exc
-
-    tone_result = tone_task.result()
-    classification = classification_task.result()
 
     if tone_monitor_enabled and tone_result.escalate and not ja_escalada(conversation_id):
         marcar_escalada(conversation_id)
@@ -1123,318 +1452,32 @@ async def handle_message(
             provider_efetivo=tone_result.provider_efetivo,
         )
 
-    # Conversão Automática de Reserva em Venda via Chat (Modos 4 e 5) —
-    # calculado aqui (antes do bloco de gráficos abaixo) porque
-    # `eh_intencao_comprovante` também guarda o bloco de gráficos: achado de
-    # 2026-10-08, `extract_prompt_inline_data` (sem nenhum gatilho de
-    # palavra-chave, ao contrário de `detect_chart_request`) dispara com
-    # qualquer texto com 2+ padrões "rótulo: número" — exatamente a forma do
-    # texto OCR de um comprovante de pagamento real (ex.: "Valor: R$
-    # 150,00", "Código de autenticação: 123456789"), fazendo uma mensagem de
-    # comprovante virar a mensagem de bloqueio de admin de gráficos antes de
-    # a detecção de comprovante abaixo ter a chance de rodar.
-    from app.router.sales_catalog import detectar_intencao_comprovante
-
-    eh_intencao_comprovante = detectar_intencao_comprovante(message)
-
-    # Dashboards e Gráficos Dinâmicos Gerados via Chat (Admin)
-    from app.services.analytics_agent import (
-        extract_prompt_inline_data,
-        process_dynamic_chart_request,
-    )
-    from app.services.chart_generator import detect_chart_request
-
-    chart_request = not eh_intencao_comprovante and (
-        detect_chart_request(message) or extract_prompt_inline_data(message)
-    )
-    if chart_request:
-        if not is_admin:
-            msg_negada = (
-                "A geração de gráficos e dashboards é um recurso exclusivo para "
-                "administradores autenticados. Faça login como administrador para "
-                "gerar e visualizar gráficos dinâmicos."
-            )
-            yield TokenEvent(text=msg_negada)
-            yield RouterDecision(
-                domain="fora_escopo",
-                complexity="baixa",
-                confidence=1.0,
-                complexity_strategy_usada="regras",
-                backend_escolhido="local",
-                motivo_escalonamento="fora_escopo",
-                resposta=msg_negada,
-                latencia_ms=0.0,
-                tokens_entrada=None,
-                tokens_saida=None,
-                cost_prompt_usd=0.0,
-                cost_completion_usd=0.0,
-                custo_estimado_usd=0.0,
-                router_provider=intent_router_provider,
-            )
+    async for evento in _handle_chart_request(
+        message=message, is_admin=is_admin, user_email=user_email,
+        local_client=local_client, external_client=external_client,
+        db_sessionmaker=db_sessionmaker, intent_router_provider=intent_router_provider,
+    ):
+        yield evento
+        if isinstance(evento, RouterDecision):
             return
 
-        if db_sessionmaker:
-            chart = None
-            explicacao = ""
-            chart_prompt_tokens: int | None = None
-            chart_completion_tokens: int | None = None
-            try:
-                analytics_llm = local_client if local_client is not None else external_client
-                ambiente_grafico = "interno" if analytics_llm is local_client else "externo"
-                session_ctx = db_sessionmaker()
-                if hasattr(session_ctx, "__aenter__"):
-                    async with session_ctx as session:
-                        (
-                            chart,
-                            explicacao,
-                            chart_prompt_tokens,
-                            chart_completion_tokens,
-                        ) = await process_dynamic_chart_request(
-                            session=session,
-                            prompt=message,
-                            user_email=user_email or "admin",
-                            llm_client=analytics_llm,
-                            ambiente=ambiente_grafico,
-                        )
-                else:
-                    (
-                        chart,
-                        explicacao,
-                        chart_prompt_tokens,
-                        chart_completion_tokens,
-                    ) = await process_dynamic_chart_request(
-                        session=session_ctx,
-                        prompt=message,
-                        user_email=user_email or "admin",
-                        llm_client=analytics_llm,
-                        ambiente=ambiente_grafico,
-                    )
-            except Exception as exc:
-                logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})
-                explicacao = (
-                    "Não consegui gerar esse gráfico agora por uma falha interna. "
-                    "Tente novamente em instantes."
-                )
+    async for evento in _handle_comprovante(
+        message=message, conversation_id=conversation_id, user_email=user_email,
+        local_client=local_client, external_client=external_client,
+        db_sessionmaker=db_sessionmaker, intent_router_provider=intent_router_provider,
+        comprovante_bytes=comprovante_bytes, comprovante_filename=comprovante_filename,
+    ):
+        yield evento
+        if isinstance(evento, RouterDecision):
+            return
 
-            if chart:
-                texto_resp = explicacao or (
-                    f"Gerei o gráfico '{chart.titulo}' para você com base nos dados mais recentes. "
-                    "Ele já está salvo no seu painel de Dashboards."
-                )
-                yield TokenEvent(text=texto_resp)
-                card = CardGrafico(
-                    chart_id=str(chart.id),
-                    titulo=chart.titulo,
-                    tipo_grafico=chart.tipo_grafico,
-                    config=chart.config_json,
-                    dados=chart.dados_json,
-                    fixado=chart.fixado,
-                )
-                yield RouterDecision(
-                    domain="atendimento",
-                    complexity="baixa",
-                    confidence=1.0,
-                    complexity_strategy_usada="regras",
-                    backend_escolhido="local",
-                    motivo_escalonamento="nenhum",
-                    resposta=texto_resp,
-                    latencia_ms=0.0,
-                    tokens_entrada=chart_prompt_tokens,
-                    tokens_saida=chart_completion_tokens,
-                    cost_prompt_usd=0.0,
-                    cost_completion_usd=0.0,
-                    custo_estimado_usd=0.0,
-                    card=card,
-                    router_provider=intent_router_provider,
-                )
-                return
-
-            # Achado de 2026-10-06 (docs/ARCHITECTURE.md §5, "Agente
-            # Analítico de Gráficos Dinâmicos"): sem fallback hardcoded,
-            # `chart` pode ser `None` em caminhos normais (não só em
-            # exceção) — antes disso o admin não recebia nenhum aviso,
-            # só caía em silêncio na tentativa de casar outra intenção.
-            if explicacao:
-                yield TokenEvent(text=explicacao)
-                yield RouterDecision(
-                    domain="atendimento",
-                    complexity="baixa",
-                    confidence=1.0,
-                    complexity_strategy_usada="regras",
-                    backend_escolhido="local",
-                    motivo_escalonamento="nenhum",
-                    resposta=explicacao,
-                    latencia_ms=0.0,
-                    tokens_entrada=chart_prompt_tokens,
-                    tokens_saida=chart_completion_tokens,
-                    cost_prompt_usd=0.0,
-                    cost_completion_usd=0.0,
-                    custo_estimado_usd=0.0,
-                    router_provider=intent_router_provider,
-                )
-                return
-
-    # `eh_intencao_comprovante` já foi calculado acima, antes do bloco de
-    # gráficos (achado de 2026-10-08).
-    from app.router.sales_catalog import buscar_reserva_ativa, processar_conversao_comprovante
-
-    if eh_intencao_comprovante and db_sessionmaker:
-        try:
-            pedido_uuid_match = re.search(
-                r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
-                message,
-            )
-            pedido_uuid = pedido_uuid_match.group(0) if pedido_uuid_match else None
-
-            houve_reserva = False
-            texto_resp: str | None = None
-            parecer_res: Any = None
-            llm_to_use = local_client if local_client is not None else external_client
-
-            session_ctx = db_sessionmaker()
-            if hasattr(session_ctx, "__aenter__"):
-                async with session_ctx as session:
-                    pedido = await buscar_reserva_ativa(
-                        session=session,
-                        conversation_id=conversation_id,
-                        user_email=user_email,
-                        pedido_id=pedido_uuid,
-                    )
-                    if pedido:
-                        houve_reserva = True
-                        sucesso, texto_resp, parecer_res = await processar_conversao_comprovante(
-                            session=session,
-                            pedido=pedido,
-                            texto_comprovante=message,
-                            llm_client=llm_to_use,
-                            comprovante_bytes=comprovante_bytes,
-                            nome_arquivo=comprovante_filename,
-                            vision_client=external_client,
-                            local_vision_client=local_client,
-                            origem="chat",
-                            llm_ambiente="interno" if llm_to_use is local_client else "externo",
-                        )
-            else:
-                pedido = await buscar_reserva_ativa(
-                    session=session_ctx,
-                    conversation_id=conversation_id,
-                    user_email=user_email,
-                    pedido_id=pedido_uuid,
-                )
-                if pedido:
-                    houve_reserva = True
-                    sucesso, texto_resp, parecer_res = await processar_conversao_comprovante(
-                        session=session_ctx,
-                        pedido=pedido,
-                        texto_comprovante=message,
-                        llm_client=llm_to_use,
-                        comprovante_bytes=comprovante_bytes,
-                        nome_arquivo=comprovante_filename,
-                        vision_client=external_client,
-                        local_vision_client=local_client,
-                        origem="chat",
-                        llm_ambiente="interno" if llm_to_use is local_client else "externo",
-                    )
-
-            if houve_reserva and texto_resp:
-                yield TokenEvent(text=texto_resp)
-                yield RouterDecision(
-                    domain="vendas",
-                    complexity="baixa",
-                    confidence=1.0,
-                    complexity_strategy_usada="regras",
-                    backend_escolhido="local",
-                    motivo_escalonamento="vendas_comprovante_pagamento",
-                    resposta=texto_resp,
-                    latencia_ms=0.0,
-                    # Achado de 2026-10-05: tokens do LLM local gasto avaliando o
-                    # comprovante (via `ComprovanteEvaluator.avaliar_texto`) eram
-                    # descartados aqui, então essas chamadas nunca contavam em
-                    # Métricas → Tokens Internos. `parecer_res` vem `None` só
-                    # quando nenhuma avaliação de IA rodou (ex.: pedido de anexo).
-                    tokens_entrada=parecer_res.prompt_tokens if parecer_res else None,
-                    tokens_saida=parecer_res.completion_tokens if parecer_res else None,
-                    cost_prompt_usd=0.0,
-                    cost_completion_usd=0.0,
-                    custo_estimado_usd=0.0,
-                    router_provider=intent_router_provider,
-                )
-                return
-            else:
-                msg_sem_reserva = (
-                    "Recebi o envio do comprovante, mas não encontrei nenhuma reserva "
-                    "pendente ativa associada a esta conversa ou conta. Por favor, "
-                    "verifique o código da sua reserva ou faça seu pedido primeiro."
-                )
-                yield TokenEvent(text=msg_sem_reserva)
-                yield RouterDecision(
-                    domain="vendas",
-                    complexity="baixa",
-                    confidence=1.0,
-                    complexity_strategy_usada="regras",
-                    backend_escolhido="local",
-                    motivo_escalonamento="vendas_comprovante_pagamento",
-                    resposta=msg_sem_reserva,
-                    latencia_ms=0.0,
-                    tokens_entrada=None,
-                    tokens_saida=None,
-                    cost_prompt_usd=0.0,
-                    cost_completion_usd=0.0,
-                    custo_estimado_usd=0.0,
-                    router_provider=intent_router_provider,
-                )
-                return
-        except Exception as exc:
-            logger.warning(
-                "falha_processar_comprovante",
-                extra={
-                    "router": {
-                        "event": "falha_processar_comprovante",
-                        "conversation_id": conversation_id,
-                        "erro": str(exc),
-                    }
-                },
-            )
-
-    # MVP: o ramo de agendamento só roda quando (a) o chamador forneceu
-    # `calendar_client`/`scheduling_config` para esta chamada E (b) a
-    # classificação por palavra-chave disse "agendamento" OU já existe
-    # estado parcial de agendamento salvo para `conversation_id`. A
-    # condição (b) sozinha não basta: `classify()` não tem memória de
-    # conversa — mensagens de continuação do fluxo (ex.: "meu nome é
-    # Maria", "sim, pode confirmar") não contêm nenhuma palavra-chave de
-    # domínio, então o estado parcial salvo (b, segunda metade) é quem
-    # mantém a conversa no fluxo depois do primeiro turno. A condição (a)
-    # sozinha também não basta: assim que `app.api.chat` (Task 10/11)
-    # passar a injetar esses dois objetos como singletons de vida da
-    # aplicação em toda chamada, (a) por si só viraria sempre-verdadeiro e
-    # roubaria vendas/suporte/atendimento/fora_escopo para este ramo — por
-    # isso a combinação com (b). Hoje (antes da Task 10/11), `app.api.chat`
-    # ainda não passa `calendar_client`/`scheduling_config`, então (a) é
-    # sempre falso e o comportamento de todo domínio (inclusive mensagens
-    # com palavra-chave de agendamento) permanece o do fluxo genérico até
-    # a integração ser ligada — ver
-    # docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md
-    # §4.1.
+    # MVP: o ramo de agendamento só roda quando (a) calendar_client/scheduling_config
+    # foram fornecidos E (b) a classificação disse "agendamento" OU já existe estado
+    # parcial salvo para conversation_id.
     slots_existentes = get_booking_slots(conversation_id)
     agendamento_em_andamento = (
         classification.domain == "agendamento" or slots_existentes != BookingSlots()
     )
-    # MVP: limitação aceita (ver docs/ARCHITECTURE.md §7) — uma vez que uma
-    # conversa entra no fluxo de agendamento (por palavra-chave OU por já
-    # ter estado parcial salvo, condição `agendamento_em_andamento` acima),
-    # não há como sair dele a não ser completando um agendamento com
-    # sucesso: os ramos de `horario_invalido` e falha de MCP preservam os
-    # slots de propósito (para permitir nova tentativa), o que mantém
-    # `slots_existentes != BookingSlots()` verdadeiro indefinidamente — e o
-    # classificador por palavra-chave (`ROUTER_COMPLEXITY_STRATEGY=heuristic`
-    # em produção) inclui a palavra isolada "horário" entre as palavras-chave
-    # de agendamento, então uma pergunta como "qual o horário de
-    # funcionamento?" pode entrar no fluxo por falso positivo. Sem
-    # mecanismo de abandono/timeout nesta fase — decisão do controlador:
-    # ajuste de palavras-chave do classificador fica para a Fase 10 (ver
-    # docs/ROADMAP.md, Fase 1) e um mecanismo de abandono pertence a uma
-    # futura fase de memória/gestão de sessão, não a esta.
     if calendar_client is not None and scheduling_config is not None and agendamento_em_andamento:
         async for evento in _handle_agendamento(
             conversation_id=conversation_id,
@@ -1449,257 +1492,27 @@ async def handle_message(
             yield evento
         return
 
-    backend_escolhido = "local"
-    motivo = "nenhum"
-    documentos: list[Document] = []
-    dados_catalogo_vendas: DadosCatalogoVendas | DadosCatalogoCategoria | None = None
-    rag_retrieval_ms: float | None = None
-    rag_chunks_count: int | None = None
-    rag_avg_score: float | None = None
-    rag_chunks: list[RagChunkMetric] | None = None
-
-    if classification.domain == "fora_escopo":
-        if classification.complexity == "baixa":
-            backend_escolhido = "local"
-            motivo = "nenhum"
-        else:
-            backend_escolhido = "externo"
-            motivo = "fora_escopo"
-    else:
-        t_rag_start = time.perf_counter()
-        try:
-            async with asyncio.TaskGroup() as tg:
-                rag_task = tg.create_task(
-                    _buscar_documentos_rag(
-                        message,
-                        recent_messages,
-                        classification.domain,
-                        rag_client,
-                        ultima_resposta=ultima_troca[1] if ultima_troca else None,
-                        top_k=rag_top_k,
-                        score_threshold=rag_score_threshold,
-                    )
-                )
-                vendas_task: asyncio.Task[DadosCatalogoVendas | None] | None = None
-                if classification.domain == "vendas" and sales_catalog_client is not None:
-                    # Busca RAG e consulta de vendas são independentes — rodam
-                    # em paralelo (mesmo idioma já usado para tone/classify,
-                    # ver docs/ARCHITECTURE.md §5, correção de 2026-09-24).
-                    # `_consultar_vendas` nunca levanta (ver seu docstring),
-                    # então só `rag_task` pode disparar o `except*` abaixo.
-                    vendas_task = tg.create_task(
-                        _consultar_vendas(
-                            message,
-                            recent_messages,
-                            sales_catalog_client,
-                            local_client,
-                            ultima_resposta=ultima_troca[1] if ultima_troca else None,
-                        )
-                    )
-        except* Exception as eg:
-            exc = eg.exceptions[0]
-            logger.error(
-                "rag_indisponivel",
-                extra={
-                    "router": {
-                        "event": "rag_indisponivel",
-                        "domain": classification.domain,
-                        "tipo": type(exc).__name__,
-                        "erro": str(exc),
-                    }
-                },
-            )
-            # `except* Exception` (não `except* RAGConnectionError`): hoje só
-            # `RAGConnectionError` escapa daqui (`_consultar_vendas` nunca
-            # levanta, ver seu docstring), mas capturar só esse tipo deixaria
-            # uma armadilha silenciosa — qualquer outra exceção que um dia
-            # passe a escapar de `_buscar_documentos_rag`/`rag_client.search`
-            # sairia como `ExceptionGroup` não-encapsulado em vez do tipo
-            # original, quebrando quem espera `except RAGConnectionError` (ou
-            # qualquer outro `except` específico) em volta de
-            # `handle_message`. Por isso o log acima precisa registrar
-            # `tipo`/`erro` explicitamente — sem eles, qualquer exceção que não
-            # seja `RAGConnectionError` ficaria muda no log estruturado.
-            # `raise exc` (não um `raise` nu) para propagar a exceção
-            # original, não um ExceptionGroup — chamadores de handle_message
-            # ainda esperam o tipo original (hoje sempre RAGConnectionError na
-            # prática).
-            # `from None` só suprime o encadeamento implícito do
-            # ExceptionGroup no traceback (B904); não afeta o tipo/identidade
-            # da exceção relançada.
-            raise exc from None
-
-        documentos = rag_task.result()
-        if vendas_task is not None:
-            dados_catalogo_vendas = vendas_task.result()
-
-        t_rag_end = time.perf_counter()
-        rag_retrieval_ms = round((t_rag_end - t_rag_start) * 1000.0, 2)
-        rag_chunks_count = len(documentos)
-        if documentos:
-            rag_avg_score = round(sum(d.score for d in documentos) / len(documentos), 4)
-            rag_chunks = [
-                RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in documentos
-            ]
-
-        # Produto achado no banco (bloco do catálogo) ou dados do cliente
-        # já contam como contexto: sem PDF que fale dele, a resposta sai
-        # baseada no banco, no local.
-        if not documentos and dados_catalogo_vendas is None and dados_cliente is None:
-            backend_escolhido = "externo"
-            motivo = "rag_vazio"
-        elif classification.complexity == "alta":
-            backend_escolhido = "externo"
-            motivo = "complexidade_alta"
-
-    # A decisão de roteamento (backend_escolhido/motivo) usa o sinal vazio x
-    # não-vazio acima (o bloco do catálogo conta como contexto), sem mudar
-    # aqui; o conteúdo dos documentos (quando houver) só entra a partir deste
-    # ponto, no prompt em si.
-    # _build_prompt é sempre chamado para anexar o playbook do domínio (Fase
-    # 3); para `fora_escopo` (sem playbook) e sem documentos, ele reduz a
-    # apenas "Mensagem do cliente: ...".
-    # Log-only (nunca bloqueia — decisão C, spec §2): dá visibilidade ao
-    # admin sobre tentativas de injeção de alta confiança, sem recusar
-    # nenhuma mensagem de cliente legítima.
-    if detectar_tentativa_injecao(message):
-        logger.warning(
-            "tentativa_injecao_detectada",
-            extra={
-                "router": {
-                    "event": "tentativa_injecao_detectada",
-                    "conversation_id": conversation_id,
-                    "trecho": message[:200],
-                }
-            },
-        )
-
-    prompt = _build_prompt(
-        message,
-        documentos,
-        classification.domain,
-        dados_catalogo=_formatar_bloco_catalogo_vendas(dados_catalogo_vendas),
+    async for evento in _handle_llm_generation(
+        message=message,
+        recent_messages=recent_messages,
+        classification=classification,
+        local_client=local_client,
+        external_client=external_client,
+        rag_client=rag_client,
+        sales_catalog_client=sales_catalog_client,
+        db_sessionmaker=db_sessionmaker,
+        conversation_id=conversation_id,
+        intent_router_provider=intent_router_provider,
         resumo_conversa=resumo_conversa,
         pedir_email_pos_venda=pedir_email_pos_venda,
         ultima_troca=ultima_troca,
         dados_cliente=dados_cliente,
         contexto_conversa_anterior=contexto_conversa_anterior,
         usuario_autenticado=usuario_autenticado,
-    )
-
-    client = local_client if backend_escolhido == "local" else external_client
-
-    # `is_model_ready()` faz uma chamada de rede (ex.: GET /api/ps do Ollama)
-    # tão sujeita a falha de infraestrutura quanto `generate_stream` — por
-    # isso fica dentro do mesmo try/except abaixo, em vez de solta antes
-    # dele (correção de revisão: antes, uma falha aqui propagava crua até o
-    # endpoint, sem virar `LocalBackendIndisponivelError`/
-    # `ExternalBackendIndisponivelError` nem o evento SSE `error`).
-    texto_partes: list[str] = []
-    chunk_final: LLMStreamChunk | None = None
-    try:
-        if not await client.is_model_ready():
-            yield StatusEvent(status="carregando_modelo")
-
-        async for chunk in client.generate_stream(prompt):
-            if chunk.text:
-                texto_partes.append(chunk.text)
-                yield TokenEvent(text=chunk.text)
-            if chunk.done:
-                chunk_final = chunk
-
-        if chunk_final is None:
-            # generate_stream terminou (loop `async for` esgotou) sem nunca
-            # emitir um chunk `done=True` — mesma família de falha de
-            # infraestrutura que uma exceção explícita, por isso fica dentro
-            # deste try/except (correção de revisão: antes, um
-            # `assert` fora do try deixava esse caso escapar como
-            # AssertionError cru em vez de virar `LocalBackendIndisponivelError`/
-            # `ExternalBackendIndisponivelError` e o evento SSE `error`).
-            raise RuntimeError("generate_stream terminou sem chunk final (done=True)")
-    except Exception as exc:
-        logger.error(
-            "backend_indisponivel",
-            extra={
-                "router": {
-                    "event": "backend_indisponivel",
-                    "backend": backend_escolhido,
-                    "domain": classification.domain,
-                    "etapa": "geracao",
-                    "erro": str(exc),
-                }
-            },
-        )
-        if backend_escolhido == "local":
-            raise LocalBackendIndisponivelError(str(exc)) from exc
-        raise ExternalBackendIndisponivelError(str(exc)) from exc
-
-    # TPS usa `eval_duration` (tempo de geração pura) — `total_duration`
-    # inclui também `load_duration` (carregar o modelo) e
-    # `prompt_eval_duration` (processar o prompt), então usar o total
-    # subestimaria a taxa de geração de tokens.
-    tps: float | None = None
-    if chunk_final.completion_tokens and chunk_final.eval_duration_ms:
-        gen_duration_s = max(chunk_final.eval_duration_ms / 1000.0, 0.001)
-        tps = round(chunk_final.completion_tokens / gen_duration_s, 2)
-
-    resposta_completa = "".join(texto_partes)
-
-    decisao = RouterDecision(
-        domain=classification.domain,
-        complexity=classification.complexity,
-        confidence=classification.confidence,
-        complexity_strategy_usada=complexity_strategy,
-        backend_escolhido=backend_escolhido,
-        motivo_escalonamento=motivo,
-        resposta=resposta_completa,
-        latencia_ms=chunk_final.total_duration_ms or 0.0,
-        tokens_entrada=chunk_final.prompt_tokens,
-        tokens_saida=chunk_final.completion_tokens,
-        cost_prompt_usd=chunk_final.cost_prompt_usd,
-        cost_completion_usd=chunk_final.cost_completion_usd,
-        custo_estimado_usd=chunk_final.estimated_cost_usd,
-        modelo_usado=chunk_final.model_name or getattr(client, "model", None),
-        ttft_ms=chunk_final.prompt_eval_duration_ms,
-        tps=tps,
-        rag_retrieval_ms=rag_retrieval_ms,
-        rag_chunks_count=rag_chunks_count,
-        rag_avg_score=rag_avg_score,
-        rag_chunks=rag_chunks,
-        # Fix (revisão final, achado importante 1): usa o provedor QUE
-        # REALMENTE classificou (`classification.provider_efetivo`), não o
-        # parâmetro bruto `intent_router_provider` pedido pelo chamador —
-        # senão uma falha silenciosa do Jev (que degrada para a heurística
-        # dentro de `_classify_with_jev`) ficaria atribuída ao Jev na
-        # telemetria, corrompendo a comparação entre provedores (ver
-        # docs/EVALUATION.md). O sub-fluxo de agendamento em
-        # `_emitir_resposta_agendamento` NÃO chama `classify()` (tem sua
-        # própria lógica de extração/estado), então continua usando o
-        # parâmetro bruto — não há `ClassificationResult` de onde tirar um
-        # valor efetivo ali.
-        router_provider=classification.provider_efetivo,
-        card=_construir_card_vendas(dados_catalogo_vendas)
-        or await _construir_card_documento_download(
-            db_sessionmaker, documentos, classification.domain, rag_download_threshold
-        ),
-    )
-    logger.info(
-        "router_decision",
-        extra={"router": {"event": "router_decision", **decisao.model_dump()}},
-    )
-    spawn_background_task(
-        registrar_uso_ia(
-            origem="chat",
-            ambiente="interno" if backend_escolhido == "local" else "externo",
-            modelo=decisao.modelo_usado or "desconhecido",
-            operacao="geracao_resposta",
-            tokens_entrada=decisao.tokens_entrada,
-            tokens_saida=decisao.tokens_saida,
-            custo_usd=decisao.custo_estimado_usd,
-            referencia_id=conversation_id or None,
-            session=None,
-            session_factory=None,
-            commit=False,
-        )
-    )
-    yield decisao
+        rag_top_k=rag_top_k,
+        rag_score_threshold=rag_score_threshold,
+        rag_download_threshold=rag_download_threshold,
+        user_email=user_email,
+        complexity_strategy=complexity_strategy,
+    ):
+        yield evento

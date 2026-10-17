@@ -1,0 +1,1160 @@
+{
+  "gerado_em": "2026-10-17T14:31:13.965759+00:00",
+  "dataset": "dataset_minimo.json",
+  "config_base": {
+    "embedding_model": "google/embeddinggemma-300m",
+    "vector_dimension": 768,
+    "chunk_size": 512,
+    "chunk_overlap": 51,
+    "unidade": "tokens"
+  },
+  "comparacao_distancias": {
+    "metricas_comparadas": [
+      "cosine",
+      "dot",
+      "euclid"
+    ],
+    "rankings_identicos": false
+  },
+  "distancias": {
+    "cosine": {
+      "distance_metric": "cosine",
+      "tempo_ingestao_s": 39.05,
+      "metricas_sem_corte": {
+        "n_total": 15,
+        "n_positivas": 12,
+        "n_negativas": 3,
+        "recall": {
+          "@1": 1.0,
+          "@3": 1.0,
+          "@5": 1.0,
+          "@10": 1.0
+        },
+        "ndcg@10": 1.0,
+        "mrr": 1.0,
+        "taxa_vazio_positivas": 0.0,
+        "acerto_negativas": 0.0
+      },
+      "separabilidade": {
+        "menor_score_maximo_positivas": 0.575,
+        "maior_score_maximo_negativas": 0.5208,
+        "separavel": true,
+        "positivas_abaixo_da_pior_negativa": 0,
+        "n_positivas": 12
+      },
+      "itens": [
+        {
+          "id": "q01",
+          "pergunta": "Quantas faces o iDFace Pro consegue identificar?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.6173
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5076
+            },
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.4916
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4892
+            },
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.4736
+            }
+          ],
+          "score_maximo": 0.6173,
+          "acertou": true
+        },
+        {
+          "id": "q02",
+          "pergunta": "Qual a capacidade de usuários cadastrados do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.6253
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.5722
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5481
+            },
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.5235
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.5118
+            }
+          ],
+          "score_maximo": 0.6253,
+          "acertou": true
+        },
+        {
+          "id": "q03",
+          "pergunta": "Qual o grau de proteção do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.6338
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5713
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.5005
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4865
+            }
+          ],
+          "score_maximo": 0.6338,
+          "acertou": true
+        },
+        {
+          "id": "q04",
+          "pergunta": "Quanto pesa o terminal do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.575
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5177
+            },
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.4834
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4639
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4449
+            }
+          ],
+          "score_maximo": 0.575,
+          "acertou": true
+        },
+        {
+          "id": "q05",
+          "pergunta": "Em que faixa de temperatura o iDFace opera?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.5801
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5417
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4847
+            },
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.4515
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4447
+            }
+          ],
+          "score_maximo": 0.5801,
+          "acertou": true
+        },
+        {
+          "id": "q06",
+          "pergunta": "Qual a capacidade do relé de saída do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.5865
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.523
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.5072
+            },
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.4767
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4759
+            }
+          ],
+          "score_maximo": 0.5865,
+          "acertou": true
+        },
+        {
+          "id": "q07",
+          "pergunta": "Quantas impressões digitais o iDAccess Pro armazena?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.5972
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4868
+            },
+            {
+              "fonte": "idaccess_pro.pdf",
+              "score": 0.4827
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4509
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.4446
+            }
+          ],
+          "score_maximo": 0.5972,
+          "acertou": true
+        },
+        {
+          "id": "q08",
+          "pergunta": "Qual a resolução do leitor biométrico do iDAccess Pro?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.6215
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.5339
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.5148
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.5094
+            }
+          ],
+          "score_maximo": 0.6215,
+          "acertou": true
+        },
+        {
+          "id": "q09",
+          "pergunta": "Qual o consumo nominal do iDAccess Pro?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.5871
+            },
+            {
+              "fonte": "idaccess_pro.pdf",
+              "score": 0.5417
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.4317
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.3821
+            }
+          ],
+          "score_maximo": 0.5871,
+          "acertou": true
+        },
+        {
+          "id": "q10",
+          "pergunta": "Qual a capacidade do relé de saída do iDAccess Pro?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.6087
+            },
+            {
+              "fonte": "idaccess_pro.pdf",
+              "score": 0.5368
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4546
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.4509
+            }
+          ],
+          "score_maximo": 0.6087,
+          "acertou": true
+        },
+        {
+          "id": "q11",
+          "pergunta": "Qual a alimentação do REP iDClass?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "rep-idclass-manual.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.6408
+            },
+            {
+              "fonte": "rep-idclass-671.pdf",
+              "score": 0.6033
+            }
+          ],
+          "score_maximo": 0.6408,
+          "acertou": true
+        },
+        {
+          "id": "q12",
+          "pergunta": "Quais comandos da API do REP iDClass não exigem uma sessão válida?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "api_idclass_latest.md"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.5977
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.5927
+            }
+          ],
+          "score_maximo": 0.5977,
+          "acertou": true
+        },
+        {
+          "id": "q13",
+          "pergunta": "Qual a capacidade de usuários do iDFlex Pro?",
+          "negativa": true,
+          "fontes_aceitas": [],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.5208
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.4601
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4522
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4366
+            }
+          ],
+          "score_maximo": 0.5208,
+          "acertou": false
+        },
+        {
+          "id": "q14",
+          "pergunta": "Qual o grau de proteção do iDClass Portaria 373?",
+          "negativa": true,
+          "fontes_aceitas": [],
+          "recuperadas": [
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4691
+            },
+            {
+              "fonte": "rep-idclass-671.pdf",
+              "score": 0.4201
+            }
+          ],
+          "score_maximo": 0.4691,
+          "acertou": false
+        },
+        {
+          "id": "q15",
+          "pergunta": "Qual a resolução de gravação do Intelbras VIP 5200?",
+          "negativa": true,
+          "fontes_aceitas": [],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.383
+            },
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.3432
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.3402
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.3303
+            }
+          ],
+          "score_maximo": 0.383,
+          "acertou": false
+        }
+      ]
+    },
+    "dot": {
+      "distance_metric": "dot",
+      "tempo_ingestao_s": 37.72,
+      "metricas_sem_corte": {
+        "n_total": 15,
+        "n_positivas": 12,
+        "n_negativas": 3,
+        "recall": {
+          "@1": 1.0,
+          "@3": 1.0,
+          "@5": 1.0,
+          "@10": 1.0
+        },
+        "ndcg@10": 1.0,
+        "mrr": 1.0,
+        "taxa_vazio_positivas": 0.0,
+        "acerto_negativas": 0.0
+      },
+      "separabilidade": {
+        "menor_score_maximo_positivas": 0.575,
+        "maior_score_maximo_negativas": 0.5208,
+        "separavel": true,
+        "positivas_abaixo_da_pior_negativa": 0,
+        "n_positivas": 12
+      },
+      "itens": [
+        {
+          "id": "q01",
+          "pergunta": "Quantas faces o iDFace Pro consegue identificar?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.6173
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5076
+            },
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.4916
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4892
+            },
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.4736
+            }
+          ],
+          "score_maximo": 0.6173,
+          "acertou": true
+        },
+        {
+          "id": "q02",
+          "pergunta": "Qual a capacidade de usuários cadastrados do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.6253
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.5722
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5481
+            },
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.5235
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.5118
+            }
+          ],
+          "score_maximo": 0.6253,
+          "acertou": true
+        },
+        {
+          "id": "q03",
+          "pergunta": "Qual o grau de proteção do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.6338
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5713
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.5005
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4865
+            }
+          ],
+          "score_maximo": 0.6338,
+          "acertou": true
+        },
+        {
+          "id": "q04",
+          "pergunta": "Quanto pesa o terminal do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.575
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5177
+            },
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.4834
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4639
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4449
+            }
+          ],
+          "score_maximo": 0.575,
+          "acertou": true
+        },
+        {
+          "id": "q05",
+          "pergunta": "Em que faixa de temperatura o iDFace opera?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.5801
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.5417
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4847
+            },
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.4515
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4447
+            }
+          ],
+          "score_maximo": 0.5801,
+          "acertou": true
+        },
+        {
+          "id": "q06",
+          "pergunta": "Qual a capacidade do relé de saída do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.5865
+            },
+            {
+              "fonte": "idface.pdf",
+              "score": 0.523
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.5072
+            },
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.4767
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4759
+            }
+          ],
+          "score_maximo": 0.5865,
+          "acertou": true
+        },
+        {
+          "id": "q07",
+          "pergunta": "Quantas impressões digitais o iDAccess Pro armazena?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.5972
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4868
+            },
+            {
+              "fonte": "idaccess_pro.pdf",
+              "score": 0.4827
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4509
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.4446
+            }
+          ],
+          "score_maximo": 0.5972,
+          "acertou": true
+        },
+        {
+          "id": "q08",
+          "pergunta": "Qual a resolução do leitor biométrico do iDAccess Pro?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.6215
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.5339
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.5148
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.5094
+            }
+          ],
+          "score_maximo": 0.6215,
+          "acertou": true
+        },
+        {
+          "id": "q09",
+          "pergunta": "Qual o consumo nominal do iDAccess Pro?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.5871
+            },
+            {
+              "fonte": "idaccess_pro.pdf",
+              "score": 0.5417
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.4317
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.3821
+            }
+          ],
+          "score_maximo": 0.5871,
+          "acertou": true
+        },
+        {
+          "id": "q10",
+          "pergunta": "Qual a capacidade do relé de saída do iDAccess Pro?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.6087
+            },
+            {
+              "fonte": "idaccess_pro.pdf",
+              "score": 0.5368
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4546
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.4509
+            }
+          ],
+          "score_maximo": 0.6087,
+          "acertou": true
+        },
+        {
+          "id": "q11",
+          "pergunta": "Qual a alimentação do REP iDClass?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "rep-idclass-manual.pdf"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.6408
+            },
+            {
+              "fonte": "rep-idclass-671.pdf",
+              "score": 0.6033
+            }
+          ],
+          "score_maximo": 0.6408,
+          "acertou": true
+        },
+        {
+          "id": "q12",
+          "pergunta": "Quais comandos da API do REP iDClass não exigem uma sessão válida?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "api_idclass_latest.md"
+          ],
+          "recuperadas": [
+            {
+              "fonte": "api_idclass_latest.md",
+              "score": 0.5977
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.5927
+            }
+          ],
+          "score_maximo": 0.5977,
+          "acertou": true
+        },
+        {
+          "id": "q13",
+          "pergunta": "Qual a capacidade de usuários do iDFlex Pro?",
+          "negativa": true,
+          "fontes_aceitas": [],
+          "recuperadas": [
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.5208
+            },
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.4601
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4522
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.4366
+            }
+          ],
+          "score_maximo": 0.5208,
+          "acertou": false
+        },
+        {
+          "id": "q14",
+          "pergunta": "Qual o grau de proteção do iDClass Portaria 373?",
+          "negativa": true,
+          "fontes_aceitas": [],
+          "recuperadas": [
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.4691
+            },
+            {
+              "fonte": "rep-idclass-671.pdf",
+              "score": 0.4201
+            }
+          ],
+          "score_maximo": 0.4691,
+          "acertou": false
+        },
+        {
+          "id": "q15",
+          "pergunta": "Qual a resolução de gravação do Intelbras VIP 5200?",
+          "negativa": true,
+          "fontes_aceitas": [],
+          "recuperadas": [
+            {
+              "fonte": "idface-datasheet.pdf",
+              "score": 0.383
+            },
+            {
+              "fonte": "idaccess-pro-datasheet.pdf",
+              "score": 0.3432
+            },
+            {
+              "fonte": "changelog_pt-br.pdf",
+              "score": 0.3402
+            },
+            {
+              "fonte": "rep-idclass-manual.pdf",
+              "score": 0.3303
+            }
+          ],
+          "score_maximo": 0.383,
+          "acertou": false
+        }
+      ]
+    },
+    "euclid": {
+      "distance_metric": "euclid",
+      "tempo_ingestao_s": 39.06,
+      "metricas_sem_corte": {
+        "n_total": 15,
+        "n_positivas": 12,
+        "n_negativas": 3,
+        "recall": {
+          "@1": 0.0,
+          "@3": 0.0,
+          "@5": 0.0,
+          "@10": 0.0
+        },
+        "ndcg@10": 0.0,
+        "mrr": 0.0,
+        "taxa_vazio_positivas": 1.0,
+        "acerto_negativas": 1.0
+      },
+      "separabilidade": {
+        "separavel": null,
+        "motivo": "conjunto sem positivas ou sem negativas"
+      },
+      "itens": [
+        {
+          "id": "q01",
+          "pergunta": "Quantas faces o iDFace Pro consegue identificar?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q02",
+          "pergunta": "Qual a capacidade de usuários cadastrados do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q03",
+          "pergunta": "Qual o grau de proteção do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q04",
+          "pergunta": "Quanto pesa o terminal do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q05",
+          "pergunta": "Em que faixa de temperatura o iDFace opera?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q06",
+          "pergunta": "Qual a capacidade do relé de saída do iDFace?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idface-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q07",
+          "pergunta": "Quantas impressões digitais o iDAccess Pro armazena?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q08",
+          "pergunta": "Qual a resolução do leitor biométrico do iDAccess Pro?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q09",
+          "pergunta": "Qual o consumo nominal do iDAccess Pro?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q10",
+          "pergunta": "Qual a capacidade do relé de saída do iDAccess Pro?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "idaccess-pro-datasheet.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q11",
+          "pergunta": "Qual a alimentação do REP iDClass?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "rep-idclass-manual.pdf"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q12",
+          "pergunta": "Quais comandos da API do REP iDClass não exigem uma sessão válida?",
+          "negativa": false,
+          "fontes_aceitas": [
+            "api_idclass_latest.md"
+          ],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": false
+        },
+        {
+          "id": "q13",
+          "pergunta": "Qual a capacidade de usuários do iDFlex Pro?",
+          "negativa": true,
+          "fontes_aceitas": [],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": true
+        },
+        {
+          "id": "q14",
+          "pergunta": "Qual o grau de proteção do iDClass Portaria 373?",
+          "negativa": true,
+          "fontes_aceitas": [],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": true
+        },
+        {
+          "id": "q15",
+          "pergunta": "Qual a resolução de gravação do Intelbras VIP 5200?",
+          "negativa": true,
+          "fontes_aceitas": [],
+          "recuperadas": [],
+          "score_maximo": null,
+          "acertou": true
+        }
+      ]
+    }
+  },
+  "payload_index_domain": {
+    "sem_indice": {
+      "perfil": "sem_indice",
+      "payload_indexes": [],
+      "latencia_qdrant_puro_ms": {
+        "n": 75,
+        "media_ms": 4.912,
+        "p50_ms": 4.778,
+        "p95_ms": 5.384,
+        "min_ms": 4.342,
+        "max_ms": 8.968
+      },
+      "latencia_media_busca_completa_ms": 54.0,
+      "metricas_sem_corte": {
+        "n_total": 15,
+        "n_positivas": 12,
+        "n_negativas": 3,
+        "recall": {
+          "@1": 1.0,
+          "@3": 1.0,
+          "@5": 1.0,
+          "@10": 1.0
+        },
+        "ndcg@10": 1.0,
+        "mrr": 1.0,
+        "taxa_vazio_positivas": 0.0,
+        "acerto_negativas": 0.0
+      }
+    },
+    "indice_domain_keyword": {
+      "perfil": "indice_domain_keyword",
+      "payload_indexes": [
+        {
+          "field": "domain",
+          "schema_type": "keyword"
+        }
+      ],
+      "latencia_qdrant_puro_ms": {
+        "n": 75,
+        "media_ms": 4.908,
+        "p50_ms": 4.738,
+        "p95_ms": 5.96,
+        "min_ms": 4.338,
+        "max_ms": 8.968
+      },
+      "latencia_media_busca_completa_ms": 53.33,
+      "metricas_sem_corte": {
+        "n_total": 15,
+        "n_positivas": 12,
+        "n_negativas": 3,
+        "recall": {
+          "@1": 1.0,
+          "@3": 1.0,
+          "@5": 1.0,
+          "@10": 1.0
+        },
+        "ndcg@10": 1.0,
+        "mrr": 1.0,
+        "taxa_vazio_positivas": 0.0,
+        "acerto_negativas": 0.0
+      }
+    }
+  }
+}

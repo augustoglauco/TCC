@@ -56,9 +56,15 @@ de recuperação virou ganho de resposta.
 - `metricas.py` — as métricas como funções **puras**, testadas em
   `backend/tests/test_rag_ingestion_eval.py` sem nenhuma infraestrutura.
 - `varrer_threshold.py` — **Etapa 4**. Varre `score_threshold` × `top_k`
-  **offline**, sobre o JSON da Etapa 1, sem reingerir nem consultar o
-  Qdrant. Exige que a rodada-base tenha usado `--score-threshold 0.0`, e
-  recusa rodar sobre uma base já cortada.
+  **offline**, sobre o JSON da Etapa 1 ou da Etapa 3 (`--entrada`, `--saida`,
+  `--ponto-id`), sem reingerir nem consultar o Qdrant. Exige que a rodada-base
+  tenha usado `--score-threshold 0.0`, recusa rodar sobre uma base já cortada
+  e calcula a recomendação de corte (`recomendar_threshold`) no ponto médio
+  quando há separabilidade.
+- `run_etapa5.py` — **Etapa 5**. Compara as 3 métricas de distância
+  (`cosine`, `dot`, `euclid`) e mede o impacto de latência (`media_ms`,
+  `p50_ms`, `p95_ms`) do payload index `keyword` em `domain` (`sem_indice` vs
+  `indice_domain_keyword`). Grava `resultados_etapa5.json`.
 - `auditar_corpus.py` — **Etapa 0**. Audita as três mídias do corpus contra
   as restrições **reais de produção**: PDFs via
   `app.rag.pdf_extract.extract_text_from_pdf` (o extrator de produção, com
@@ -272,6 +278,46 @@ cortando recursivamente (`\n\n` → `\n` → `. ` → `" "`):
 1. **`cs512_ov10` (`512` tokens, `overlap = 51` tokens) atinge `1,000` em `Recall@1`, `Recall@5`, `nDCG@10` e `MRR`** (todas as 12 positivas trazem a fonte correta no 1º lugar) mantendo separabilidade (`0,5750 > 0,5208`).
 2. **Todos os 12 pontos entre 256 e 1024 tokens têm `Recall@5 = 1,000`, `nDCG@10 >= 0,969` e `separável = True`.** A única faixa que degrada (`cs128_ov15` perde separabilidade e `cs128_ov20` cai para `Recall@5 = 0,917`) é exatamente **`128` tokens** — o teto da janela do `MiniLM-L12-v2` antigo.
 
+## Resultado da Etapa 4 — recalibração de `score_threshold` e `top_k` no conjunto mínimo (2026-10-17)
+
+`varrer_threshold.py` foi estendido para aceitar o envelope de saída da Etapa 3
+(`--entrada resultados_etapa3.json --saida varredura_threshold_etapa4.json`,
+selecionando automaticamente o ponto `vencedor` ou `--ponto-id`) e calcular a
+recomendação pelo ponto médio do intervalo separável (`recomendar_threshold`).
+
+Sobre `cs512_ov10` (`google/embeddinggemma-300m`, `512` tokens, `overlap=51`):
+
+- **Intervalo separável:** `menor_score_maximo_positivas = 0,5750` e
+  `maior_score_maximo_negativas = 0,5208` → ponto médio `0,5479`.
+- **Corte recomendado na grade:** `score_threshold = 0,55` com `top_k = 5`,
+  entregando simultaneamente `Recall@5 = 1,000`, `nDCG@10 = 1,000`,
+  `MRR = 1,000`, `taxa_vazio_positivas = 0,000` e `acerto_negativas = 1,000`.
+- **Ressalva:** rodada executada sobre `dataset_minimo.json` (`n=15`); a
+  calibração definitiva depende do conjunto de 180 perguntas da Estratégia A.
+
+## Resultado da Etapa 5 — métrica de distância e payload index em `domain` (2026-10-17)
+
+Implementado `run_etapa5.py` com duas baterias sobre `cs512_ov10`
+(`google/embeddinggemma-300m`, `512` tokens, `overlap=51`):
+
+1. **Métricas de distância (`cosine`, `dot`, `euclid`):** na primeira execução
+   sobre `dataset_minimo.json` (`resultados_etapa5.json`), `cosine` e `dot`
+   produziram rankings e scores idênticos (`Recall@5 = 1,000`, `nDCG@10 = 1,000`,
+   `MRR = 1,000`, `pos_min = 0,5750`, `neg_max = 0,5208`). `euclid` retornou
+   vazio nessa primeira rodada porque o Qdrant interpreta `score_threshold` como
+   limite **superior** (`distancia <= thr`) para métricas de distância
+   (`Order::SmallBetter`), então `score_threshold=0.0` descartou todos os pontos
+   com distância `> 0`. O script `run_etapa5.py` foi corrigido para usar
+   `thr_sem_corte = 10.0` em `euclid`/`manhattan` (não reexecutado até o fim).
+2. **Payload index `keyword` em `domain` (`sem_indice` vs
+   `indice_domain_keyword`):** medido em `n=75` consultas filtradas puras no
+   Qdrant (`query_points` com vetores pré-calculados, isolando o Qdrant da GPU):
+   - `sem_indice`: `media = 4,912 ms`, `p50 = 4,778 ms`, `p95 = 5,384 ms`.
+   - `indice_domain_keyword`: `media = 4,908 ms`, `p50 = 4,738 ms`,
+     `p95 = 5,960 ms`.
+   No volume do conjunto mínimo (e do corpus de ~302 chunks, abaixo do
+   `full_scan_threshold`), a diferença de latência é sub-milissegundo.
+
 ## Reproduzir
 
 ```bash
@@ -292,8 +338,12 @@ cd backend
 # Etapa 3 — grade 5x3 de chunking em tokens (retomável por ponto)
 .venv/bin/python eval/rag_ingestion/run_etapa3.py
 
-# Etapa 4 — varredura offline, sobre o JSON da Etapa 1
+# Etapa 4 — varredura offline, sobre o JSON da Etapa 1 ou da Etapa 3
 .venv/bin/python eval/rag_ingestion/varrer_threshold.py
+.venv/bin/python eval/rag_ingestion/varrer_threshold.py --entrada eval/rag_ingestion/resultados_etapa3.json --saida eval/rag_ingestion/varredura_threshold_etapa4.json
+
+# Etapa 5 — métrica de distância e payload index em domain
+.venv/bin/python eval/rag_ingestion/run_etapa5.py
 
 # Testes (sem Qdrant/Postgres)
 .venv/bin/python -m pytest tests/test_rag_ingestion_eval.py -q

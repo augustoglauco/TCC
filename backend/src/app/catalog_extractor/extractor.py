@@ -360,6 +360,256 @@ def _extrair_figuras_pagina(page: Any, pil_img: Image.Image, temp_dir: Path) -> 
     return figuras_urls
 
 
+def _montar_produto(
+    item: dict[str, Any],
+    *,
+    pagina_origem: int,
+    provider_usado: str,
+    confianca: float,
+    imagem_temp_url: str | None = None,
+    fotos_pagina: list[str] | None = None,
+) -> ExtractedProduct:
+    return ExtractedProduct(
+        nome=str(item.get("nome", "")),
+        descricao=str(item.get("descricao", "") or ""),
+        categoria=str(item.get("categoria", "") or "Geral"),
+        preco_base_fornecedor=float(item["preco_base_fornecedor"])
+        if item.get("preco_base_fornecedor") is not None
+        else None,
+        preco=float(item["preco"]) if item.get("preco") is not None else None,
+        especificacoes_tecnicas=str(item.get("especificacoes_tecnicas", "") or ""),
+        imagem_temp_url=imagem_temp_url,
+        fotos_pagina=fotos_pagina,
+        pagina_origem=pagina_origem,
+        confianca=confianca,
+        provider_usado=provider_usado,
+    )
+
+
+async def _processar_bloco_texto(
+    bloco: str,
+    num_bloco: int,
+    num_blocos_total: int,
+    pagina_global: int,
+    total_paginas: int,
+    filename: str,
+    local_client: Any,
+) -> tuple[str, str]:  # (sse_progresso, sse_pagina_concluida)
+    progresso = {
+        "pagina": pagina_global,
+        "total": total_paginas,
+        "status": f"Extraindo {filename} (trecho {num_bloco}/{num_blocos_total})",
+    }
+    raw_prods: list[dict[str, Any]] = []
+    if local_client:
+        try:
+            raw_prods = await extract_page_products_local(bloco, local_client)
+        except Exception as e:
+            logger.warning(f"Erro na extração local do texto {filename}: {e}")
+    produtos = [
+        _montar_produto(item, pagina_origem=num_bloco, provider_usado="local", confianca=0.85, fotos_pagina=[])
+        for item in raw_prods
+    ]
+    page_result = CatalogPageResult(
+        pagina=num_bloco,
+        total_paginas=total_paginas,
+        produtos=produtos,
+        provider_usado="local",
+    )
+    return (
+        f"event: progresso\ndata: {json.dumps(progresso)}\n\n",
+        f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n",
+    )
+
+
+async def _processar_pagina_pdf(
+    page: Any,
+    idx: int,
+    num_pages: int,
+    pagina_global: int,
+    total_paginas: int,
+    filename: str,
+    provider: str,
+    fallback_external: bool,
+    temp_dir: Path,
+    local_client: Any,
+    vision_client: Any,
+    session_factory: Any,
+) -> tuple[str, str]:  # (sse_progresso, sse_pagina_concluida)
+    num_pagina_pdf = idx + 1
+    progresso = {
+        "pagina": pagina_global,
+        "total": total_paginas,
+        "status": f"Extraindo {filename} (página {num_pagina_pdf}/{num_pages})",
+    }
+
+    texto_pagina = _extrair_texto_pagina(page)
+
+    temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
+    temp_img_path = temp_dir / temp_img_name
+    img_bytes: bytes | None = None
+    pil_img: Image.Image | None = None
+    temp_img_url: str | None = None
+    try:
+        pil_img = page.to_image(resolution=150).original
+        img_buf = io.BytesIO()
+        pil_img.save(img_buf, format="JPEG", quality=85)
+        img_bytes = img_buf.getvalue()
+        temp_img_path.write_bytes(img_bytes)
+        temp_img_url = f"/api/uploads/produtos/temp/{temp_img_name}"
+    except Exception as e:
+        logger.warning(f"Não foi possível renderizar imagem da página {num_pagina_pdf} do PDF: {e}")
+
+    figuras_pagina: list[str] = []
+    if pil_img:
+        try:
+            figuras_pagina = _extrair_figuras_pagina(page, pil_img, temp_dir)
+        except Exception as e:
+            logger.warning(f"Erro ao extrair figuras recortadas da página {num_pagina_pdf}: {e}")
+
+    provider_usado = provider
+    raw_prods: list[dict[str, Any]] = []
+    erro_pagina: str | None = None
+
+    if provider == "external":
+        if img_bytes and vision_client:
+            try:
+                raw_prods = await extract_page_products_vision(
+                    img_bytes, vision_client,
+                    source_identifier=f"{filename}#p{num_pagina_pdf}",
+                    session_factory=session_factory, ambiente="externo",
+                )
+            except Exception as e:
+                logger.error(f"Erro na visão externa: {e}")
+                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
+    else:
+        if len(texto_pagina.strip()) >= 30 and local_client:
+            try:
+                raw_prods = await extract_page_products_local(texto_pagina, local_client)
+                provider_usado = "local"
+            except Exception as e:
+                logger.warning(f"Erro na extração local: {e}")
+        if not raw_prods and fallback_external and img_bytes and vision_client:
+            try:
+                raw_prods = await extract_page_products_vision(
+                    img_bytes, vision_client,
+                    source_identifier=f"{filename}#p{num_pagina_pdf}",
+                    session_factory=session_factory, ambiente="externo",
+                )
+                provider_usado = "external"
+            except Exception as e:
+                logger.error(f"Erro no fallback de visão externa: {e}")
+                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
+
+    produtos: list[ExtractedProduct] = []
+    for i, item in enumerate(raw_prods):
+        foto_produto: str | None = None
+        if figuras_pagina:
+            if i < len(figuras_pagina):
+                foto_produto = figuras_pagina[i]
+            elif len(figuras_pagina) == 1 and len(raw_prods) == 1:
+                foto_produto = figuras_pagina[0]
+        produtos.append(_montar_produto(
+            item, pagina_origem=num_pagina_pdf, provider_usado=provider_usado,
+            confianca=0.95 if provider_usado == "external" else 0.85,
+            imagem_temp_url=foto_produto, fotos_pagina=figuras_pagina,
+        ))
+
+    page_result = CatalogPageResult(
+        pagina=num_pagina_pdf, total_paginas=total_paginas, produtos=produtos,
+        provider_usado=provider_usado, imagem_preview_url=temp_img_url,
+        fotos_pagina=figuras_pagina, erro=erro_pagina if not produtos else None,
+    )
+    return (
+        f"event: progresso\ndata: {json.dumps(progresso)}\n\n",
+        f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n",
+    )
+
+
+async def _processar_imagem_avulsa(
+    filename: str,
+    content: bytes,
+    pagina_global: int,
+    total_paginas: int,
+    provider: str,
+    fallback_external: bool,
+    temp_dir: Path,
+    local_client: Any,
+    vision_client: Any,
+    session_factory: Any,
+) -> tuple[str, str]:  # (sse_progresso, sse_pagina_concluida)
+    progresso = {
+        "pagina": pagina_global,
+        "total": total_paginas,
+        "status": f"Extraindo imagem {filename}",
+    }
+    temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
+    temp_img_path = temp_dir / temp_img_name
+    temp_img_path.write_bytes(content)
+    temp_img_url = f"/api/uploads/produtos/temp/{temp_img_name}"
+
+    provider_usado = "external"
+    raw_prods: list[dict[str, Any]] = []
+    erro_pagina: str | None = None
+
+    if provider != "external":
+        texto_ocr = ""
+        try:
+            texto_ocr = extract_text_from_bytes(content)
+        except (ImageFormatError, OcrIndisponivelError) as e:
+            logger.warning(f"OCR indisponível/falhou para imagem {filename}: {e}")
+        if len(texto_ocr.strip()) >= 30 and local_client:
+            try:
+                raw_prods = await extract_page_products_local(texto_ocr, local_client)
+                provider_usado = "local"
+            except Exception as e:
+                logger.warning(f"Erro na extração local (OCR) da imagem {filename}: {e}")
+        if not raw_prods and local_client:
+            try:
+                raw_prods = await extract_page_products_vision(
+                    content, local_client, source_identifier=filename,
+                    session_factory=session_factory, ambiente="interno",
+                )
+                provider_usado = "local"
+            except Exception as e:
+                logger.warning(f"Erro na visão local da imagem {filename}: {e}")
+
+    if not raw_prods and (provider == "external" or fallback_external) and vision_client:
+        try:
+            raw_prods = await extract_page_products_vision(
+                content, vision_client, source_identifier=filename,
+                session_factory=session_factory, ambiente="externo",
+            )
+            provider_usado = "external"
+        except Exception as e:
+            logger.error(f"Erro na visão externa para imagem {filename}: {e}")
+            erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
+
+    if not raw_prods and not erro_pagina:
+        erro_pagina = (
+            "Nenhum produto detectado (OCR, visão local e visão externa "
+            "indisponíveis ou sem resultado)."
+        )
+
+    produtos = [
+        _montar_produto(
+            item, pagina_origem=pagina_global, provider_usado=provider_usado, confianca=0.95,
+            imagem_temp_url=temp_img_url if (len(raw_prods) == 1 or i == 0) else None,
+            fotos_pagina=[temp_img_url],
+        )
+        for i, item in enumerate(raw_prods)
+    ]
+    page_result = CatalogPageResult(
+        pagina=pagina_global, total_paginas=total_paginas, produtos=produtos,
+        provider_usado=provider_usado, imagem_preview_url=temp_img_url,
+        fotos_pagina=[temp_img_url], erro=erro_pagina if not produtos else None,
+    )
+    return (
+        f"event: progresso\ndata: {json.dumps(progresso)}\n\n",
+        f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n",
+    )
+
+
 async def extract_catalog_stream(
     files: list[tuple[str, bytes]],
     provider: str,
@@ -373,11 +623,9 @@ async def extract_catalog_stream(
     """Itera sobre documentos ou imagens e gera stream de eventos SSE."""
     temp_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Pré-calcula total de páginas / imagens
+    # Pré-calcula total de páginas / imagens
     total_paginas = 0
-    file_pages_plan: list[
-        tuple[str, bytes, str, int, set[int] | None]
-    ] = []  # (nome, bytes, tipo, total_do_arquivo, paginas_filtradas)
+    file_pages_plan: list[tuple[str, bytes, str, int, set[int] | None]] = []
     for filename, content in files:
         lower = filename.lower()
         if lower.endswith(EXTENSOES_TEXTO):
@@ -389,8 +637,8 @@ async def extract_catalog_stream(
                 with pdfplumber.open(io.BytesIO(content)) as pdf:
                     num_pages = len(pdf.pages)
                     paginas_alvo = _parse_page_range(page_range, num_pages)
-                    qtd_processar = len(paginas_alvo) if paginas_alvo is not None else num_pages
-                    total_paginas += qtd_processar
+                    qtd = len(paginas_alvo) if paginas_alvo is not None else num_pages
+                    total_paginas += qtd
                     file_pages_plan.append((filename, content, "pdf", num_pages, paginas_alvo))
             except Exception as e:
                 logger.error(f"Erro ao abrir PDF {filename}: {e}")
@@ -406,287 +654,42 @@ async def extract_catalog_stream(
         if file_type == "text":
             for num_bloco, bloco in enumerate(_blocos_de_texto(content), start=1):
                 pagina_global += 1
-                progresso = {
-                    "pagina": pagina_global,
-                    "total": total_paginas,
-                    "status": f"Extraindo {filename} (trecho {num_bloco}/{num_pages})",
-                }
-                yield f"event: progresso\ndata: {json.dumps(progresso)}\n\n"
-
-                raw_prods: list[dict[str, Any]] = []
-                if local_client:
-                    try:
-                        raw_prods = await extract_page_products_local(bloco, local_client)
-                    except Exception as e:
-                        logger.warning(f"Erro na extração local do texto {filename}: {e}")
-
-                produtos = [
-                    ExtractedProduct(
-                        nome=str(item.get("nome", "")),
-                        descricao=str(item.get("descricao", "") or ""),
-                        categoria=str(item.get("categoria", "") or "Geral"),
-                        preco_base_fornecedor=float(item["preco_base_fornecedor"])
-                        if item.get("preco_base_fornecedor") is not None
-                        else None,
-                        preco=float(item["preco"]) if item.get("preco") is not None else None,
-                        especificacoes_tecnicas=str(item.get("especificacoes_tecnicas", "") or ""),
-                        pagina_origem=num_bloco,
-                        confianca=0.85,
-                        provider_usado="local",
-                    )
-                    for item in raw_prods
-                ]
-                total_produtos_extraidos += len(produtos)
-                page_result = CatalogPageResult(
-                    pagina=num_bloco,
-                    total_paginas=total_paginas,
-                    produtos=produtos,
-                    provider_usado="local",
+                sse_prog, sse_page = await _processar_bloco_texto(
+                    bloco, num_bloco, num_pages, pagina_global, total_paginas, filename, local_client
                 )
-                yield f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n"
+                yield sse_prog
+                page_result = CatalogPageResult.model_validate_json(sse_page.split("data: ", 1)[1].rstrip())
+                total_produtos_extraidos += len(page_result.produtos)
+                yield sse_page
 
         elif file_type == "pdf":
             if num_pages == 0:
                 continue
             with pdfplumber.open(io.BytesIO(content)) as pdf:
                 for idx, page in enumerate(pdf.pages):
-                    num_pagina_pdf = idx + 1
-                    if paginas_alvo is not None and num_pagina_pdf not in paginas_alvo:
+                    if paginas_alvo is not None and (idx + 1) not in paginas_alvo:
                         continue
-
                     pagina_global += 1
-                    # Notifica progresso
-                    progresso = {
-                        "pagina": pagina_global,
-                        "total": total_paginas,
-                        "status": f"Extraindo {filename} (página {num_pagina_pdf}/{num_pages})",
-                    }
-                    yield f"event: progresso\ndata: {json.dumps(progresso)}\n\n"
-
-                    texto_pagina = _extrair_texto_pagina(page)
-
-                    # Renderiza imagem da página para preview e/ou visão
-                    temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
-                    temp_img_path = temp_dir / temp_img_name
-                    img_bytes: bytes | None = None
-                    pil_img: Image.Image | None = None
-                    try:
-                        pil_img = page.to_image(resolution=150).original
-                        img_buf = io.BytesIO()
-                        pil_img.save(img_buf, format="JPEG", quality=85)
-                        img_bytes = img_buf.getvalue()
-                        temp_img_path.write_bytes(img_bytes)
-                        temp_img_url = f"/api/uploads/produtos/temp/{temp_img_name}"
-                    except Exception as e:
-                        logger.warning(
-                            f"Não foi possível renderizar imagem da página {idx + 1} do PDF: {e}"
-                        )
-                        temp_img_url = None
-                        pil_img = None
-
-                    # Extrai figuras/fotos individuais recortadas da página
-                    figuras_pagina: list[str] = []
-                    if pil_img:
-                        try:
-                            figuras_pagina = _extrair_figuras_pagina(page, pil_img, temp_dir)
-                        except Exception as e:
-                            logger.warning(
-                                f"Erro ao extrair figuras recortadas da página {idx + 1}: {e}"
-                            )
-
-                    provider_usado = provider
-                    raw_prods: list[dict[str, Any]] = []
-                    erro_pagina: str | None = None
-
-                    if provider == "external":
-                        if img_bytes and vision_client:
-                            try:
-                                raw_prods = await extract_page_products_vision(
-                                    img_bytes,
-                                    vision_client,
-                                    source_identifier=f"{filename}#p{num_pagina_pdf}",
-                                    session_factory=session_factory,
-                                    ambiente="externo",
-                                )
-                                provider_usado = "external"
-                            except Exception as e:
-                                logger.error(f"Erro na visão externa: {e}")
-                                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
-                    else:
-                        # Tenta local se houver texto
-                        if len(texto_pagina.strip()) >= 30 and local_client:
-                            try:
-                                raw_prods = await extract_page_products_local(
-                                    texto_pagina, local_client
-                                )
-                                provider_usado = "local"
-                            except Exception as e:
-                                logger.warning(f"Erro na extração local: {e}")
-
-                        # Fallback se local não retornou nada
-                        if not raw_prods and fallback_external and img_bytes and vision_client:
-                            try:
-                                raw_prods = await extract_page_products_vision(
-                                    img_bytes,
-                                    vision_client,
-                                    source_identifier=f"{filename}#p{num_pagina_pdf}",
-                                    session_factory=session_factory,
-                                    ambiente="externo",
-                                )
-                                provider_usado = "external"
-                            except Exception as e:
-                                logger.error(f"Erro no fallback de visão externa: {e}")
-                                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
-
-                    # Formata produtos extraídos associando cada um à sua figura
-                    # individual recortada
-                    produtos: list[ExtractedProduct] = []
-                    for i, item in enumerate(raw_prods):
-                        foto_produto: str | None = None
-                        if figuras_pagina:
-                            if i < len(figuras_pagina):
-                                foto_produto = figuras_pagina[i]
-                            elif len(figuras_pagina) == 1 and len(raw_prods) == 1:
-                                foto_produto = figuras_pagina[0]
-
-                        produtos.append(
-                            ExtractedProduct(
-                                nome=str(item.get("nome", "")),
-                                descricao=str(item.get("descricao", "") or ""),
-                                categoria=str(item.get("categoria", "") or "Geral"),
-                                preco_base_fornecedor=float(item["preco_base_fornecedor"])
-                                if item.get("preco_base_fornecedor") is not None
-                                else None,
-                                preco=float(item["preco"])
-                                if item.get("preco") is not None
-                                else None,
-                                especificacoes_tecnicas=str(
-                                    item.get("especificacoes_tecnicas", "") or ""
-                                ),
-                                imagem_temp_url=foto_produto,
-                                fotos_pagina=figuras_pagina,
-                                pagina_origem=num_pagina_pdf,
-                                confianca=0.95 if provider_usado == "external" else 0.85,
-                                provider_usado=provider_usado,
-                            )
-                        )
-
-                    total_produtos_extraidos += len(produtos)
-                    page_result = CatalogPageResult(
-                        pagina=num_pagina_pdf,
-                        total_paginas=total_paginas,
-                        produtos=produtos,
-                        provider_usado=provider_usado,
-                        imagem_preview_url=temp_img_url,
-                        fotos_pagina=figuras_pagina,
-                        erro=erro_pagina if not produtos else None,
+                    sse_prog, sse_page = await _processar_pagina_pdf(
+                        page, idx, num_pages, pagina_global, total_paginas,
+                        filename, provider, fallback_external, temp_dir,
+                        local_client, vision_client, session_factory,
                     )
-                    yield f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n"
+                    yield sse_prog
+                    page_result = CatalogPageResult.model_validate_json(sse_page.split("data: ", 1)[1].rstrip())
+                    total_produtos_extraidos += len(page_result.produtos)
+                    yield sse_page
 
         else:
-            # Imagem única
             pagina_global += 1
-            progresso = {
-                "pagina": pagina_global,
-                "total": total_paginas,
-                "status": f"Extraindo imagem {filename}",
-            }
-            yield f"event: progresso\ndata: {json.dumps(progresso)}\n\n"
-
-            temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
-            temp_img_path = temp_dir / temp_img_name
-            temp_img_path.write_bytes(content)
-            temp_img_url = f"/api/uploads/produtos/temp/{temp_img_name}"
-
-            # Política de custo mínimo (decisão registrada em
-            # docs/ARCHITECTURE.md §4, 2026-10-06): imagem avulsa antes
-            # pulava direto para a visão externa (sempre paga) — achado de
-            # 2026-10-06. Agora, a menos que o admin force `provider=
-            # "external"` explicitamente, tenta OCR + LLM local, depois
-            # visão local, antes do fallback externo.
-            provider_usado = "external"
-            raw_prods: list[dict[str, Any]] = []
-            erro_pagina: str | None = None
-
-            if provider != "external":
-                texto_ocr = ""
-                try:
-                    texto_ocr = extract_text_from_bytes(content)
-                except (ImageFormatError, OcrIndisponivelError) as e:
-                    logger.warning(f"OCR indisponível/falhou para imagem {filename}: {e}")
-
-                if len(texto_ocr.strip()) >= 30 and local_client:
-                    try:
-                        raw_prods = await extract_page_products_local(texto_ocr, local_client)
-                        provider_usado = "local"
-                    except Exception as e:
-                        logger.warning(f"Erro na extração local (OCR) da imagem {filename}: {e}")
-
-                if not raw_prods and local_client:
-                    try:
-                        raw_prods = await extract_page_products_vision(
-                            content,
-                            local_client,
-                            source_identifier=filename,
-                            session_factory=session_factory,
-                            ambiente="interno",
-                        )
-                        provider_usado = "local"
-                    except Exception as e:
-                        logger.warning(f"Erro na visão local da imagem {filename}: {e}")
-
-            if not raw_prods and (provider == "external" or fallback_external) and vision_client:
-                try:
-                    raw_prods = await extract_page_products_vision(
-                        content,
-                        vision_client,
-                        source_identifier=filename,
-                        session_factory=session_factory,
-                        ambiente="externo",
-                    )
-                    provider_usado = "external"
-                except Exception as e:
-                    logger.error(f"Erro na visão externa para imagem {filename}: {e}")
-                    erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
-
-            if not raw_prods and not erro_pagina:
-                erro_pagina = (
-                    "Nenhum produto detectado (OCR, visão local e visão externa "
-                    "indisponíveis ou sem resultado)."
-                )
-
-            produtos = []
-            for i, item in enumerate(raw_prods):
-                produtos.append(
-                    ExtractedProduct(
-                        nome=str(item.get("nome", "")),
-                        descricao=str(item.get("descricao", "") or ""),
-                        categoria=str(item.get("categoria", "") or "Geral"),
-                        preco_base_fornecedor=float(item["preco_base_fornecedor"])
-                        if item.get("preco_base_fornecedor") is not None
-                        else None,
-                        preco=float(item["preco"]) if item.get("preco") is not None else None,
-                        especificacoes_tecnicas=str(item.get("especificacoes_tecnicas", "") or ""),
-                        imagem_temp_url=temp_img_url if (len(raw_prods) == 1 or i == 0) else None,
-                        fotos_pagina=[temp_img_url],
-                        pagina_origem=pagina_global,
-                        confianca=0.95,
-                        provider_usado=provider_usado,
-                    )
-                )
-
-            total_produtos_extraidos += len(produtos)
-            page_result = CatalogPageResult(
-                pagina=pagina_global,
-                total_paginas=total_paginas,
-                produtos=produtos,
-                provider_usado=provider_usado,
-                imagem_preview_url=temp_img_url,
-                fotos_pagina=[temp_img_url],
-                erro=erro_pagina if not produtos else None,
+            sse_prog, sse_page = await _processar_imagem_avulsa(
+                filename, content, pagina_global, total_paginas,
+                provider, fallback_external, temp_dir, local_client, vision_client, session_factory,
             )
-            yield f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n"
+            yield sse_prog
+            page_result = CatalogPageResult.model_validate_json(sse_page.split("data: ", 1)[1].rstrip())
+            total_produtos_extraidos += len(page_result.produtos)
+            yield sse_page
 
-    # Evento final
     final = {"total_produtos": total_produtos_extraidos, "total_paginas": total_paginas}
     yield f"event: done\ndata: {json.dumps(final)}\n\n"

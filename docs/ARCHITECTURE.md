@@ -627,6 +627,86 @@ quebra de contrato, não de ajuste visual:
 | `tests/lib/apiBaseUrl.test.ts` | resolução do host do backend |
 | `tests/components/ChatModal.test.tsx` | streaming SSE e modal do chat |
 
+**Nota de coordenação e auditoria para o Claude (2026-10-17): implementação
+de código e execução preliminar indevida das Etapas 2–5 do RAG.** Após
+concluir a refatoração M3 Glass (commit `7ef9fbf`, âncora limpa antes desta
+frente), outro agente implementou o código de produção e os scripts das
+Etapas 2, 3, 4 e 5 (`docs/EVALUATION.md` Seção 2.1) e **executou-os
+prematuramente sobre `dataset_minimo.json` (`n=15`, 3 pastas)**, quando a
+execução para escolha de parâmetros só deveria ocorrer após a construção das
+180 perguntas da Estratégia A. Tudo foi mantido no repositório para avaliação
+do Claude, discriminado abaixo:
+
+1. **Âncora antes das Etapas 2–5:** commit `7ef9fbf` (`feat(eval): ajusta
+   ingerir_corpus_avaliacao para ControlId e fecha verificacao M3 Glass`).
+2. **Etapa 2 — Commit `6e556ce` (`feat(rag): add asymmetric task prefixes to
+   TextEmbedder and Etapa 2 embedding benchmark`):**
+   - **Código de produção (`app.rag.embeddings`, `app.rag.qdrant_client`):**
+     - `TextEmbedder` ganhou `TASK_PREFIXES` com prefixos assimétricos
+       (`query_prefix` vs `document_prefix`) para `google/embeddinggemma-300m`
+       (`"task: search result | query: "` / `"title: none | text: "`) e
+       `intfloat/multilingual-e5-large-instruct`
+       (`"Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: "`
+       / `""`), aplicados automaticamente em `embed(texts, *, is_query: bool = False)`
+       (default `False` para ingestão; `QdrantRAGClient.search` passa
+       `is_query=True`).
+     - **Achado de infraestrutura:** `google/embeddinggemma-300m` no Hugging
+       Face é repositório *gated* (retorna 401/403 sem `HF_TOKEN`).
+       `TextEmbedder._load_model` ganhou `FALLBACK_MODEL_ALIASES` que redireciona
+       em caso de erro de acesso para o mirror público ungated
+       `unsloth/embeddinggemma-300m` (mesmos pesos, mesmo tokenizer e mesmos
+       prefixos), preservando `self.model_name = "google/embeddinggemma-300m"`.
+     - Documentado na Seção 18 de `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.
+   - **Script e testes:** `backend/eval/rag_ingestion/run_etapa2.py`,
+     `tests/test_rag_embeddings.py`, `tests/test_rag_qdrant_client.py` e
+     `tests/test_rag_ingestion_eval.py`.
+   - **Artefato gerado sobre `dataset_minimo.json` (`n=15`):**
+     `backend/eval/rag_ingestion/resultados_etapa2.json`.
+3. **Etapa 3 — Commit `e5cf918` (`feat(rag): implement recursive token-based
+   chunking and Etapa 3 5x3 grid benchmark`):**
+   - **Código de produção (`app.rag.chunking`, `app.rag.embeddings`,
+     `app.rag.ingest`):**
+     - `chunk_text(text, *, chunk_size=800, chunk_overlap=100, tokenizer=None)`
+       substituiu a janela deslizante cega por corte recursivo hierárquico nos
+       separadores `("\n\n", "\n", ". ", " ")` (com fatia dura apenas quando um
+       átomo sem espaços excede `chunk_size`) e passou a medir `chunk_size` e
+       `chunk_overlap` em **tokens** quando `tokenizer` é fornecido
+       (`encode(text, add_special_tokens=False)`), mantendo contagem em
+       caracteres quando `tokenizer=None` (retrocompatibilidade com testes que
+       não instanciam embedder).
+     - `TextEmbedder.get_tokenizer()` expõe o tokenizer do `SentenceTransformer`
+       subjacente; `ingest_bytes` e `reingest_document` (`app.rag.ingest`)
+       passam `tokenizer = embedder.get_tokenizer()` para `chunk_text`.
+     - **Ponto de atenção para o Claude avaliar:** a collection default em
+       `app.rag.collection_profiles` / `Settings` ainda declara
+       `chunk_size=800, chunk_overlap=100` (pensados originalmente em
+       caracteres). Com `ingest_bytes` passando `tokenizer` por padrão,
+       qualquer ingestão na collection default passa a interpretar `800` como
+       `800 tokens` (~3.450 chars) até que o perfil vencedor seja ativado.
+   - **Script e testes:** `backend/eval/rag_ingestion/run_etapa3.py`,
+     `tests/test_rag_chunking.py`, `tests/test_rag_ingest.py` e
+     `tests/test_rag_ingestion_eval.py`.
+   - **Artefato gerado sobre `dataset_minimo.json` (`n=15`):**
+     `backend/eval/rag_ingestion/resultados_etapa3.json`.
+4. **Etapa 4 e Etapa 5 — No working tree (não commitados):**
+   - `backend/eval/rag_ingestion/varrer_threshold.py`: estendido com
+     `--entrada`, `--saida` e `--ponto-id` para aceitar tanto o JSON da Etapa 1
+     quanto o JSON de múltiplos pontos da Etapa 3 (`extrair_base_varredura`) e
+     calcular `recomendar_threshold` pelo ponto médio do intervalo separável.
+     Artefato preliminar: `varredura_threshold_etapa4.json`.
+   - `backend/eval/rag_ingestion/run_etapa5.py`: implementa a Bateria 1
+     (`cosine`, `dot`, `euclid`) e a Bateria 2 (latência `media_ms`, `p50_ms`,
+     `p95_ms` de `query_points` com e sem payload index `keyword` em `domain`).
+     **Achado técnico no Qdrant:** para `euclid` (`Order::SmallBetter`), o
+     Qdrant trata `score_threshold` como limite **superior** (`distancia <=
+     thr`), de modo que `score_threshold=0.0` descarta qualquer vetor com
+     distância `> 0` (foi o que ocorreu na 1ª rodada gravada em
+     `resultados_etapa5.json`). O código de `run_etapa5.py` já está corrigido
+     com `thr_sem_corte = 10.0` para `euclid`/`manhattan`, mas não foi
+     reexecutado.
+   - `backend/tests/test_rag_ingestion_eval.py`: +4 testes cobrindo as Etapas 4
+     e 5 (total de 54 testes passando em `test_rag_ingestion_eval.py`).
+
 **Decisão registrada (além do MVP, a pedido explícito, 2026-09-21):**
 collections ganham um campo de **finalidade** (`purpose`): `chat` (default,
 pública, elegível a ser ativada e buscada pelo chat) vs `mcp_b2b` (restrita

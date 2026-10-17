@@ -11,12 +11,12 @@ export default function TechMarquee() {
   ];
 
   return (
-    <div className="relative overflow-hidden border-y border-slate-800/80 bg-slate-950 py-3.5 select-none">
-      <div className="flex w-max animate-[marquee_25s_linear_infinite] items-center gap-8">
+    <div className="running-text relative overflow-hidden border-y border-white/10 bg-[#14161b] py-5 select-none shadow-lg">
+      <div className="flex w-max animate-[marquee_28s_linear_infinite] items-center gap-10">
         {[...ITEMS, ...ITEMS].map((item, idx) => (
-          <div key={`${item}-${idx}`} className="flex items-center gap-3">
-            <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shadow-sm shadow-blue-400" />
-            <span className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-200 transition-colors">
+          <div key={`${item}-${idx}`} className="flex items-center gap-4">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#16c0dd] shadow-[0_0_12px_#16c0dd]" />
+            <span className="text-sm sm:text-base font-extrabold uppercase tracking-[0.2em] text-white/85 hover:text-[#16c0dd] transition-colors">
               {item}
             </span>
           </div>

@@ -172,6 +172,121 @@ def _parse_produto_id(produto_id: str) -> int:
         raise ResourceError(f"produto_id inválido (esperado inteiro): {produto_id!r}") from exc
 
 
+def _decodificar_comprovante(comprovante_base64_ou_texto: str, nome_arquivo: str) -> tuple[bytes | None, str]:
+    """Retorna (comprovante_bytes, texto_comprovante). Tenta base64 primeiro;
+    se falhar, trata como texto puro."""
+    ext = Path(nome_arquivo).suffix.lower()
+    try:
+        decoded = base64.b64decode(comprovante_base64_ou_texto, validate=True)
+        if ext in (".pdf", ".png", ".jpg", ".jpeg", ".webp"):
+            return decoded, ""
+        try:
+            return None, decoded.decode("utf-8")
+        except UnicodeDecodeError:
+            return decoded, ""
+    except Exception:
+        return None, comprovante_base64_ou_texto
+
+
+async def _converter_reserva_venda_impl(
+    pedido_id: str,
+    comprovante_base64_ou_texto: str,
+    nome_arquivo: str,
+    session_factory: async_sessionmaker[AsyncSession],
+    local_client: Any,
+    external_client: Any,
+) -> ConversaoReservaOut:
+    """Lógica da ferramenta converter_reserva_venda, extraída do closure para
+    reduzir o CCN de create_b2b_mcp_server e facilitar testes diretos."""
+    try:
+        pedido_uuid = UUID(pedido_id)
+    except (ValueError, TypeError) as exc:
+        raise ToolError(f"ID de pedido inválido: '{pedido_id}'") from exc
+
+    try:
+        async with session_factory() as session:
+            stmt = select(Pedido).options(selectinload(Pedido.itens)).where(Pedido.id == pedido_uuid)
+            result = await session.execute(stmt)
+            pedido = result.scalar_one_or_none()
+
+            if pedido is None:
+                raise ToolError(f"Pedido '{pedido_id}' não encontrado.")
+
+            if pedido.status == "venda_concluida":
+                return ConversaoReservaOut(
+                    pedido_id=pedido.id, status=pedido.status,
+                    tipo_conversao=pedido.tipo_conversao, convertido_em=pedido.convertido_em,
+                    convertido_por=pedido.convertido_por, comprovante_url=pedido.comprovante_url,
+                    sucesso=True, mensagem="Este pedido já foi convertido em venda anteriormente.",
+                )
+
+            comprovante_bytes, texto_comprovante = _decodificar_comprovante(
+                comprovante_base64_ou_texto, nome_arquivo
+            )
+
+            valor_devido = sum(
+                (item.preco_unitario * item.quantidade for item in pedido.itens), Decimal("0.00")
+            )
+
+            llm_client = local_client if local_client is not None else external_client
+            evaluator = ComprovanteEvaluator(
+                llm_client=llm_client, vision_client=external_client,
+                local_vision_client=local_client, origem="b2b",
+                llm_ambiente="interno" if llm_client is local_client else "externo",
+            )
+
+            filename_safe = None
+            if comprovante_bytes:
+                filename_safe = f"{pedido.id}_mcp_{nome_arquivo}"
+                upload_dir = Path("uploads/comprovantes")
+                upload_dir.mkdir(parents=True, exist_ok=True)
+                (upload_dir / filename_safe).write_bytes(comprovante_bytes)
+                pedido.comprovante_url = f"/uploads/comprovantes/{filename_safe}"
+
+            if texto_comprovante and texto_comprovante.strip():
+                parecer = await evaluator.avaliar_texto(
+                    texto=texto_comprovante, valor_devido=valor_devido,
+                    reserva_id=str(pedido.id), nome_comprador=pedido.user_email or "Parceiro B2B",
+                )
+            elif comprovante_bytes:
+                parecer = await evaluator.avaliar_documento(
+                    conteudo=comprovante_bytes, nome_arquivo=filename_safe or "comprovante.png",
+                    valor_devido=valor_devido, reserva_id=str(pedido.id),
+                    nome_comprador=pedido.user_email or "Parceiro B2B",
+                )
+            else:
+                raise ToolError("Nenhum conteúdo de comprovante foi fornecido.")
+
+            if parecer.valido and abs(parecer.divergencia) <= Decimal("0.01"):
+                pedido.status = "venda_concluida"
+                pedido.tipo_conversao = "auto_mcp_b2b"
+                pedido.convertido_em = datetime.now(UTC)
+                pedido.convertido_por = parceiro_atual() or "mcp_partner"
+                pedido.llm_parecer = parecer.to_json()
+                await session.commit()
+                return ConversaoReservaOut(
+                    pedido_id=pedido.id, status=pedido.status,
+                    tipo_conversao=pedido.tipo_conversao, convertido_em=pedido.convertido_em,
+                    convertido_por=pedido.convertido_por, comprovante_url=pedido.comprovante_url,
+                    sucesso=True,
+                    mensagem=f"Reserva {pedido.id} convertida em venda com sucesso via MCP.",
+                    parecer=parecer.raw_json or json.loads(parecer.to_json()),
+                )
+            else:
+                pedido.status = "pagamento_divergente"
+                pedido.llm_parecer = parecer.to_json()
+                await session.commit()
+                raise ToolError(
+                    f"Divergência ou comprovante inválido: {parecer.justificativa} "
+                    f"(Valor devido: R$ {valor_devido:.2f}, "
+                    f"Valor detectado: R$ {parecer.valor_pago:.2f})"
+                )
+    except ToolError:
+        raise
+    except SQLAlchemyError as exc:
+        raise ToolError(f"Falha ao processar a conversão da reserva: {exc}") from exc
+
+
 def create_b2b_mcp_server(
     session_factory: async_sessionmaker[AsyncSession],
     qdrant: QdrantRAGClient,
@@ -366,11 +481,12 @@ def create_b2b_mcp_server(
 
     @asynccontextmanager
     async def _abrir_sessao_bd(mensagem_erro: str):
-        """Context manager utilitário para abrir sessão no BD e traduzir exceções
-        incomuns de SQLAlchemy em ToolError com mensagem contextual."""
+        """Abre sessão e traduz SQLAlchemyError em ToolError."""
         try:
             async with session_factory() as session:
                 yield session
+        except ToolError:
+            raise
         except SQLAlchemyError as exc:
             raise ToolError(f"{mensagem_erro}: {exc}") from exc
 
@@ -400,16 +516,15 @@ def create_b2b_mcp_server(
     async def validar_compatibilidade(
         produto_id: int, produto_relacionado_id: int
     ) -> CompatibilidadeOut:
-        async with _abrir_sessao_bd("Falha ao consultar a compatibilidade"):
-            async with session_factory() as session:
-                await _obter_e_validar_produtos(
-                    session,
-                    [
-                        ItemQuantidadeIn(produto_id=produto_id, quantidade=1),
-                        ItemQuantidadeIn(produto_id=produto_relacionado_id, quantidade=1),
-                    ],
-                )
-                compativel = await sao_compativeis(session, produto_id, produto_relacionado_id)
+        async with _abrir_sessao_bd("Falha ao consultar a compatibilidade") as session:
+            await _obter_e_validar_produtos(
+                session,
+                [
+                    ItemQuantidadeIn(produto_id=produto_id, quantidade=1),
+                    ItemQuantidadeIn(produto_id=produto_relacionado_id, quantidade=1),
+                ],
+            )
+            compativel = await sao_compativeis(session, produto_id, produto_relacionado_id)
         return CompatibilidadeOut(
             produto_id=produto_id,
             produto_relacionado_id=produto_relacionado_id,
@@ -434,15 +549,11 @@ def create_b2b_mcp_server(
         regiao = cep_digitos[0]
         custo_base, prazo_dias = _FRETE_CUSTO_BASE_E_PRAZO_POR_REGIAO[regiao]
 
-        async with _abrir_sessao_bd("Falha ao consultar o catálogo para o frete"):
-            async with session_factory() as session:
+        async with _abrir_sessao_bd("Falha ao consultar o catálogo para o frete") as session:
                 produtos = await _obter_e_validar_produtos(session, itens)
                 peso_total = Decimal("0")
                 for item in itens:
                     produto = produtos[item.produto_id]
-                    # MVP: produto sem peso_kg cadastrado entra como peso zero
-                    # na estimativa (não bloqueia a cotação de frete) — ver
-                    # docs/ARCHITECTURE.md §5, decisão de 2026-09-24.
                     peso_unitario = produto.peso_kg or Decimal("0")
                     peso_total += peso_unitario * item.quantidade
 
@@ -473,8 +584,7 @@ def create_b2b_mcp_server(
     @_registrar_chamada
     async def cotar(itens: list[CotacaoItemIn]) -> CotacaoOut:
         agora = datetime.now(UTC)
-        async with _abrir_sessao_bd("Falha ao consultar o catálogo para a cotação"):
-            async with session_factory() as session:
+        async with _abrir_sessao_bd("Falha ao consultar o catálogo para a cotação") as session:
                 produtos = await _obter_e_validar_produtos(session, itens)
                 itens_saida: list[CotacaoItemOut] = []
                 for item in itens:
@@ -512,8 +622,7 @@ def create_b2b_mcp_server(
             (item.produto_id, item.quantidade, item.centro_distribuicao) for item in itens
         ]
         try:
-            async with _abrir_sessao_bd("Falha ao gravar a reserva/pedido"):
-                async with session_factory() as session:
+            async with _abrir_sessao_bd("Falha ao gravar a reserva/pedido") as session:
                     pedido = await criar_pedido(session, itens_tuplas)
         except ProdutoInexistenteError as exc:
             raise ToolError(str(exc)) from exc
@@ -537,119 +646,9 @@ def create_b2b_mcp_server(
         comprovante_base64_ou_texto: str,
         nome_arquivo: str = "comprovante.txt",
     ) -> ConversaoReservaOut:
-        try:
-            pedido_uuid = UUID(pedido_id)
-        except (ValueError, TypeError) as exc:
-            raise ToolError(f"ID de pedido inválido: '{pedido_id}'") from exc
-
-        async with _abrir_sessao_bd("Falha ao processar a conversão da reserva"):
-            async with session_factory() as session:
-                stmt = (
-                    select(Pedido)
-                    .options(selectinload(Pedido.itens))
-                    .where(Pedido.id == pedido_uuid)
-                )
-                result = await session.execute(stmt)
-                pedido = result.scalar_one_or_none()
-
-                if pedido is None:
-                    raise ToolError(f"Pedido '{pedido_id}' não encontrado.")
-
-                if pedido.status == "venda_concluida":
-                    return ConversaoReservaOut(
-                        pedido_id=pedido.id,
-                        status=pedido.status,
-                        tipo_conversao=pedido.tipo_conversao,
-                        convertido_em=pedido.convertido_em,
-                        convertido_por=pedido.convertido_por,
-                        comprovante_url=pedido.comprovante_url,
-                        sucesso=True,
-                        mensagem="Este pedido já foi convertido em venda anteriormente.",
-                    )
-
-                comprovante_bytes = None
-                texto_comprovante = ""
-                ext = Path(nome_arquivo).suffix.lower()
-
-                try:
-                    decoded = base64.b64decode(comprovante_base64_ou_texto, validate=True)
-                    if ext in (".pdf", ".png", ".jpg", ".jpeg", ".webp"):
-                        comprovante_bytes = decoded
-                    else:
-                        try:
-                            texto_comprovante = decoded.decode("utf-8")
-                        except UnicodeDecodeError:
-                            comprovante_bytes = decoded
-                except Exception:
-                    texto_comprovante = comprovante_base64_ou_texto
-
-                valor_devido = sum(
-                    (item.preco_unitario * item.quantidade for item in pedido.itens),
-                    Decimal("0.00"),
-                )
-
-                llm_client = local_client if local_client is not None else external_client
-                evaluator = ComprovanteEvaluator(
-                    llm_client=llm_client,
-                    vision_client=external_client,
-                    local_vision_client=local_client,
-                    origem="b2b",
-                    llm_ambiente="interno" if llm_client is local_client else "externo",
-                )
-                filename_safe = None
-                if comprovante_bytes:
-                    filename_safe = f"{pedido.id}_mcp_{nome_arquivo}"
-                    upload_dir = Path("uploads/comprovantes")
-                    upload_dir.mkdir(parents=True, exist_ok=True)
-                    (upload_dir / filename_safe).write_bytes(comprovante_bytes)
-                    pedido.comprovante_url = f"/uploads/comprovantes/{filename_safe}"
-
-                if texto_comprovante and texto_comprovante.strip():
-                    parecer = await evaluator.avaliar_texto(
-                        texto=texto_comprovante,
-                        valor_devido=valor_devido,
-                        reserva_id=str(pedido.id),
-                        nome_comprador=pedido.user_email or "Parceiro B2B",
-                    )
-                elif comprovante_bytes:
-                    parecer = await evaluator.avaliar_documento(
-                        conteudo=comprovante_bytes,
-                        nome_arquivo=filename_safe or "comprovante.png",
-                        valor_devido=valor_devido,
-                        reserva_id=str(pedido.id),
-                        nome_comprador=pedido.user_email or "Parceiro B2B",
-                    )
-                else:
-                    raise ToolError("Nenhum conteúdo de comprovante foi fornecido.")
-
-                if parecer.valido and abs(parecer.divergencia) <= Decimal("0.01"):
-                    pedido.status = "venda_concluida"
-                    pedido.tipo_conversao = "auto_mcp_b2b"
-                    pedido.convertido_em = datetime.now(UTC)
-                    pedido.convertido_por = parceiro_atual() or "mcp_partner"
-                    pedido.llm_parecer = parecer.to_json()
-                    await session.commit()
-
-                    return ConversaoReservaOut(
-                        pedido_id=pedido.id,
-                        status=pedido.status,
-                        tipo_conversao=pedido.tipo_conversao,
-                        convertido_em=pedido.convertido_em,
-                        convertido_por=pedido.convertido_por,
-                        comprovante_url=pedido.comprovante_url,
-                        sucesso=True,
-                        mensagem=f"Reserva {pedido.id} convertida em venda com sucesso via MCP.",
-                        parecer=parecer.raw_json or json.loads(parecer.to_json()),
-                    )
-                else:
-                    pedido.status = "pagamento_divergente"
-                    pedido.llm_parecer = parecer.to_json()
-                    await session.commit()
-
-                    raise ToolError(
-                        f"Divergência ou comprovante inválido: {parecer.justificativa} "
-                        f"(Valor devido: R$ {valor_devido:.2f}, "
-                        f"Valor detectado: R$ {parecer.valor_pago:.2f})"
-                    )
+        return await _converter_reserva_venda_impl(
+            pedido_id, comprovante_base64_ou_texto, nome_arquivo,
+            session_factory, local_client, external_client,
+        )
 
     return server

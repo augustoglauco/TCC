@@ -557,6 +557,18 @@ Cada candidato é medido com **o chunking que respeita sua própria janela**
 (não com os 800 chars atuais), senão a comparação premia o modelo de janela
 curta — foi exatamente o viés que distorceu o experimento de 2026-10-01.
 
+> **Estado implementado (2026-10-17, commit `6e556ce`, para revisão do Claude):**
+> prefixos de tarefa assimétricos implementados em `app.rag.embeddings.TextEmbedder`
+> (`is_query: bool = False` em `embed()`; `QdrantRAGClient.search` passa
+> `is_query=True`), com fallback automático para `unsloth/embeddinggemma-300m`
+> quando `google/embeddinggemma-300m` exige autenticação gated no Hugging Face.
+> Script em `backend/eval/rag_ingestion/run_etapa2.py`. Foi gerada uma rodada
+> preliminar sobre `dataset_minimo.json` (`n=15`, `resultados_etapa2.json`):
+> `embeddinggemma-300m` e `bge-m3` empataram em `Recall@5 = 1,000`, mas só o
+> `embeddinggemma-300m` separou 100% das positivas e negativas (`pos_min = 0,5670 >
+> neg_max = 0,4999`, `nDCG@10 = 0,938`). **A escolha oficial aguarda a execução
+> sobre as 180 perguntas.**
+
 ### Etapa 3 — grade de chunking em tokens
 
 O experimento de 2026-10-01 varreu 200–1600 **caracteres** (≈ 50–420
@@ -579,6 +591,19 @@ semântico fica fora de escopo:** as avaliações públicas de 2026 o colocam
 regra 8 do `CLAUDE.md` (preferir a abordagem mais simples que atenda ao MVP)
 decide contra ele.
 
+> **Estado implementado (2026-10-17, commit `e5cf918`, para revisão do Claude):**
+> `app.rag.chunking.chunk_text` implementa corte recursivo (`\n\n` → `\n` →
+> `. ` → `" "` → fatia dura) e contagem em tokens quando recebe `tokenizer`
+> (`TextEmbedder.get_tokenizer()` conectado em `app.rag.ingest`). Script em
+> `backend/eval/rag_ingestion/run_etapa3.py`. Rodada preliminar sobre
+> `dataset_minimo.json` (`n=15`, `resultados_etapa3.json`): `cs512_ov10`
+> (`512` tokens, `overlap = 51`) atingiu `1,000` em `Recall@1`, `Recall@5`,
+> `nDCG@10` e `MRR` com `pos_min = 0,5750 > neg_max = 0,5208`, e a varredura
+> offline da Etapa 4 (`varrer_threshold.py` estendido, saída em
+> `varredura_threshold_etapa4.json`) recomendou `score_threshold = 0,55`
+> (`ponto_medio = 0,5479`). **A escolha oficial aguarda a execução sobre as 180
+> perguntas.**
+
 ### Etapa 5 — métrica de distância e payload index
 
 Para vetores **normalizados** (o caso de todos os candidatos), cosine e dot
@@ -586,6 +611,17 @@ produzem o mesmo ranking — a varredura das três métricas custa minutos e
 existe para registrar isso com número, não porque se espera diferença. O
 item de substância é o índice `keyword` em `domain`, hoje ausente
 (`payload_indexes = []`), medido por p95 de latência sob filtro.
+
+> **Estado implementado (2026-10-17, não commitado, para revisão do Claude):**
+> `backend/eval/rag_ingestion/run_etapa5.py` implementado com testes em
+> `backend/tests/test_rag_ingestion_eval.py`. Na 1ª execução preliminar sobre
+> `dataset_minimo.json` (`resultados_etapa5.json`), `cosine` e `dot` obtiveram
+> resultados idênticos (`1,000`), a latência filtrada pura no Qdrant (`n=75`)
+> mediu `p95 = 5,960 ms` com `indice_domain_keyword` vs `5,384 ms` sem índice, e
+> `euclid` retornou vazio porque o Qdrant trata `score_threshold` como distância
+> máxima (`distancia <= thr`) em métricas `Order::SmallBetter`. O script
+> `run_etapa5.py` foi ajustado para `thr_sem_corte = 10.0` em `euclid`, sem
+> nova execução.
 
 ### Como reportar
 

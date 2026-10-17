@@ -58,59 +58,55 @@ from app.stt.whisper_client import WhisperSttClient
 logger = logging.getLogger(__name__)
 
 
+# Mapeamento declarativo: chave de settings → (objeto_alvo, atributo).
+# "app" resolve para `app.state`; "local", "external", "qdrant" para os
+# respectivos clientes. Evita 20+ if/else em `_apply_runtime_settings`.
+_SETTINGS_MAP: list[tuple[str, str, str]] = [
+    # (chave, objeto_alvo, atributo)
+    ("local_llm_temperature",       "local",    "temperature"),
+    ("local_llm_num_ctx",           "local",    "num_ctx"),
+    ("local_llm_top_p",             "local",    "top_p"),
+    ("local_llm_top_k",             "local",    "top_k"),
+    ("local_llm_repeat_penalty",    "local",    "repeat_penalty"),
+    ("local_llm_seed",              "local",    "seed"),
+    ("local_llm_timeout_s",         "local",    "timeout_s"),
+    ("external_llm_timeout_s",      "external", "timeout_s"),
+    ("external_model_name",         "external", "model"),
+    ("external_vision_model_name",  "external", "vision_model"),
+    ("rag_search_domain_fallback",  "qdrant",   "search_domain_fallback"),
+    ("rag_top_k",                   "app",      "rag_top_k"),
+    ("rag_score_threshold",         "app",      "rag_score_threshold"),
+    ("crawler_max_pages_default",   "app",      "crawler_max_pages_default"),
+    ("crawler_confidence_threshold","app",      "crawler_confidence_threshold"),
+    ("image_internal_confidence",   "app",      "image_internal_confidence"),
+    ("image_external_confidence",   "app",      "image_external_confidence"),
+    ("intent_router_provider",      "app",      "intent_router_provider"),
+    ("tone_monitor_enabled",        "app",      "tone_monitor_enabled"),
+    ("tone_monitor_provider",       "app",      "tone_monitor_provider"),
+]
+
+
 def _apply_runtime_settings(app: FastAPI, settings_dict: dict[str, Any]) -> None:
     local_client = getattr(app.state, "local_client", None)
     external_client = getattr(app.state, "external_client", None)
     qdrant_client = getattr(app.state, "qdrant_client", None)
+    targets = {"local": local_client, "external": external_client,
+               "qdrant": qdrant_client, "app": app.state}
 
-    if local_client is not None:
-        if "local_llm_temperature" in settings_dict:
-            local_client.temperature = settings_dict["local_llm_temperature"]
-        if "local_llm_num_ctx" in settings_dict:
-            local_client.num_ctx = settings_dict["local_llm_num_ctx"]
-        if "local_llm_top_p" in settings_dict:
-            local_client.top_p = settings_dict["local_llm_top_p"]
-        if "local_llm_top_k" in settings_dict:
-            local_client.top_k = settings_dict["local_llm_top_k"]
-        if "local_llm_repeat_penalty" in settings_dict:
-            local_client.repeat_penalty = settings_dict["local_llm_repeat_penalty"]
-        if "local_llm_seed" in settings_dict:
-            local_client.seed = settings_dict["local_llm_seed"]
-        if "local_llm_timeout_s" in settings_dict:
-            local_client.timeout_s = settings_dict["local_llm_timeout_s"]
-        if "local_llm_keep_alive" in settings_dict:
-            local_client.keep_alive = str(settings_dict["local_llm_keep_alive"])
+    for chave, alvo, atributo in _SETTINGS_MAP:
+        if chave not in settings_dict:
+            continue
+        obj = targets[alvo]
+        if obj is None:
+            continue
+        valor = settings_dict[chave]
+        if alvo == "qdrant":
+            valor = bool(valor)
+        setattr(obj, atributo, valor)
 
-    if external_client is not None:
-        if "external_llm_timeout_s" in settings_dict:
-            external_client.timeout_s = settings_dict["external_llm_timeout_s"]
-        if "external_model_name" in settings_dict:
-            external_client.model = settings_dict["external_model_name"]
-        if "external_vision_model_name" in settings_dict:
-            external_client.vision_model = settings_dict["external_vision_model_name"]
-
-    if qdrant_client is not None:
-        if "rag_search_domain_fallback" in settings_dict:
-            qdrant_client.search_domain_fallback = bool(settings_dict["rag_search_domain_fallback"])
-
-    if "rag_top_k" in settings_dict:
-        app.state.rag_top_k = settings_dict["rag_top_k"]
-    if "rag_score_threshold" in settings_dict:
-        app.state.rag_score_threshold = settings_dict["rag_score_threshold"]
-    if "crawler_max_pages_default" in settings_dict:
-        app.state.crawler_max_pages_default = settings_dict["crawler_max_pages_default"]
-    if "crawler_confidence_threshold" in settings_dict:
-        app.state.crawler_confidence_threshold = settings_dict["crawler_confidence_threshold"]
-    if "image_internal_confidence" in settings_dict:
-        app.state.image_internal_confidence = settings_dict["image_internal_confidence"]
-    if "image_external_confidence" in settings_dict:
-        app.state.image_external_confidence = settings_dict["image_external_confidence"]
-    if "intent_router_provider" in settings_dict:
-        app.state.intent_router_provider = settings_dict["intent_router_provider"]
-    if "tone_monitor_enabled" in settings_dict:
-        app.state.tone_monitor_enabled = settings_dict["tone_monitor_enabled"]
-    if "tone_monitor_provider" in settings_dict:
-        app.state.tone_monitor_provider = settings_dict["tone_monitor_provider"]
+    # keep_alive precisa de str(); agentes têm atributos próprios no runtime
+    if "local_llm_keep_alive" in settings_dict and local_client is not None:
+        local_client.keep_alive = str(settings_dict["local_llm_keep_alive"])
     if "estoque_agent_mode" in settings_dict:
         agent_runtime.estoque_modo = settings_dict["estoque_agent_mode"]
     if "estoque_agent_llm" in settings_dict:

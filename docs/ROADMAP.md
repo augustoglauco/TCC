@@ -1700,7 +1700,7 @@ conversa e classificação do usuário").
         nenhuma pergunta devolve mais de 3 fontes distintas.
         Ressalva registrada: com n=12 positivas o IC 95% em p=0,5 é ±27 pp —
         o conjunto mínimo valida o instrumento, não escolhe parâmetro.
-  - [x] Etapa 2 — escolher o modelo de embedding entre
+  - [ ] Etapa 2 — escolher o modelo de embedding entre
         `embeddinggemma-300m` (candidato preferido: 308M, 768 dims, ctx
         2048, Mean22 0,649), `multilingual-e5-large-instruct` (0,641),
         `bge-m3` (ctx 8192, dense+sparse) e o baseline atual. Os 8B+ do topo
@@ -1710,7 +1710,9 @@ conversa e classificação do usuário").
         em `app.rag.embeddings` (`task: search result | query:` /
         `title: none | text:`) → atualizar
         `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` (regra 11).
-        *(Implementado em 2026-10-17: prefixos assimétricos de consulta/documento
+        *(Código implementado e validado sobre `dataset_minimo.json` em
+        2026-10-17, commit `6e556ce` — execução oficial pendente das 180
+        perguntas da Estratégia A: prefixos assimétricos de consulta/documento
         em `app.rag.embeddings.TextEmbedder` + `QdrantRAGClient.search(is_query=True)`,
         fallback transparente para mirror ungated `unsloth/embeddinggemma-300m`,
         seção 18 em `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` e
@@ -1721,9 +1723,8 @@ conversa e classificação do usuário").
         `embeddinggemma-300m` é o **único separável** (`pos_min = 0,5670 >
         neg_max = 0,4999`, `nDCG@10 = 0,938`, `MRR = 0,917`), entregando
         simultaneamente `Recall@5 = 1,000` e `acerto_negativas = 1,000` para
-        `score_threshold ∈ [0,50, 0,56]`; confirmação pareada final aguarda as
-        180 perguntas da Estratégia A.)*
-  - [x] Etapa 3 — `chunk_text` passa a contar **tokens** pelo tokenizer da
+        `score_threshold ∈ [0,50, 0,56]`.)*
+  - [ ] Etapa 3 — `chunk_text` passa a contar **tokens** pelo tokenizer da
         collection (não caracteres) e a cortar recursivamente
         (`\n\n` → `\n` → `. ` → espaço); grade 5×3: `chunk_size` ∈ {128,
         256, 512, 768, 1024} tokens × `overlap` ∈ {10%, 15%, 20%}. A
@@ -1732,23 +1733,31 @@ conversa e classificação do usuário").
         o modelo antigo não alcançava essa região. Chunking semântico fica
         fora de escopo (regra 8: fica abaixo do recursivo nas avaliações
         públicas de 2026).
-        *(Implementado em 2026-10-17: `app.rag.chunking.chunk_text` com corte
+        *(Código implementado e validado sobre `dataset_minimo.json` em
+        2026-10-17, commit `e5cf918` — execução oficial pendente das 180
+        perguntas da Estratégia A: `app.rag.chunking.chunk_text` com corte
         recursivo `\n\n` → `\n` → `. ` → `" "` → fatia dura e contagem de
         tokens via `tokenizer`, `TextEmbedder.get_tokenizer()` conectado em
-        `ingest_bytes`/`reingest_document`, e grade 5×3 de 15 pontos medida em
+        `ingest_bytes`/`reingest_document`, e grade 5×3 de 15 pontos em
         `backend/eval/rag_ingestion/run_etapa3.py` (`resultados_etapa3.json`).
         No conjunto mínimo (n=15) sobre `google/embeddinggemma-300m`:
         `cs512_ov10` (`512` tokens, `overlap=51` tokens) atinge `1,000` em
         `Recall@1`, `Recall@5`, `nDCG@10` e `MRR` com `separável = True`
         (`0,5750 > 0,5208`), todos os 12 pontos de 256–1024 tokens mantêm
         `Recall@5 = 1,000` e `separável = True`, e a única faixa que degrada é
-        `128` tokens — confirmação pareada final aguarda as 180 perguntas da
-        Estratégia A.)*
+        `128` tokens.)*
   - [ ] Etapa 4 — recalibrar `top_k` e `score_threshold`. **Obrigatória, não
         opcional:** o threshold é um valor absoluto de cosseno e a escala
         muda com o modelo, então trocar o embedding invalida o valor atual.
         Reportar a taxa de vazio junto, porque ela é o sinal de
         escalonamento ao modelo externo, não só erro.
+        *(Script estendido em 2026-10-17 em `varrer_threshold.py` para aceitar
+        `--entrada`/`--saida`/`--ponto-id` do formato da Etapa 3 e calcular
+        `recomendar_threshold` pelo ponto médio do intervalo separável;
+        rodada preliminar em `varredura_threshold_etapa4.json` sobre `cs512_ov10`
+        em `dataset_minimo.json` recomendou `score_threshold = 0,55` e
+        `top_k = 5` com `ponto_medio = 0,5479` — execução oficial pendente das
+        180 perguntas da Estratégia A.)*
   - [ ] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores
         normalizados o ranking é o mesmo, a varredura existe para registrar
         isso com número) e **payload index `keyword` em `domain`**, hoje
@@ -1756,6 +1765,17 @@ conversa e classificação do usuário").
         campo; medido por p95 de latência sob filtro, não por recall. A
         combinação multi-tenant do Qdrant (`m=0` + `payload_m=16`) fica fora
         de escopo: impede a busca cross-domain usada no fallback.
+        *(Script implementado em 2026-10-17 em
+        `backend/eval/rag_ingestion/run_etapa5.py` com testes em
+        `tests/test_rag_ingestion_eval.py`. Na primeira execução preliminar
+        (`resultados_etapa5.json` sobre `dataset_minimo.json`), `cosine` e
+        `dot` empataram com scores idênticos (`Recall@5 = 1,000`, `nDCG@10 =
+        1,000`), o payload index `keyword` em `domain` mediu `media = 4,908 ms`
+        / `p95 = 5,960 ms` vs `4,912 ms` / `5,384 ms` sem índice, e `euclid`
+        retornou vazio porque o Qdrant aplica `score_threshold` como limite
+        superior (`distancia <= thr`) em distância euclidiana; `run_etapa5.py`
+        foi corrigido para usar `thr_sem_corte = 10.0` em `euclid`, sem
+        reexecutar.)*
   - [ ] Etapa 6(a) — registrar HNSW/quantização como **resultado negativo**
         com os números da medição (3) acima, em vez de varrer os eixos. O
         teste sintético alternativo (replicar vetores até 100k–500k e forçar

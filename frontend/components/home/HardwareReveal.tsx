@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useChatStore } from "@/lib/hooks/useChatStore";
 
 interface HardwareItem {
   id: string;
@@ -11,7 +12,8 @@ interface HardwareItem {
   headline: string;
   description: string;
   specs: string[];
-  imageSrc?: string;
+  imageSrc: string;
+  altImageSrc: string;
 }
 
 const HARDWARE_ITEMS: HardwareItem[] = [
@@ -29,7 +31,8 @@ const HARDWARE_ITEMS: HardwareItem[] = [
       "Proteção Antifraude",
       "Comunicação TCP/IP",
     ],
-    imageSrc: "/images/showcase/idface-frontal.jpg",
+    imageSrc: "/images/produtos/idface-perspectiva.jpg",
+    altImageSrc: "/images/produtos/idface-frontal.jpg",
   },
   {
     id: "idblock",
@@ -40,7 +43,8 @@ const HARDWARE_ITEMS: HardwareItem[] = [
     description:
       "Desenvolvida em aço inoxidável 304 com acabamento escovado, mecanismo de giro suave e silencioso, e integração completa com leitores faciais, biometria e QR Code.",
     specs: ["Aço Inox 304", "Amortecimento Suave", "Braços Anti-Pânico", "Giro Bidirecional"],
-    imageSrc: "/images/showcase/idblock-inox.jpg",
+    imageSrc: "/images/produtos/idblock-inox.jpg",
+    altImageSrc: "/images/produtos/idblock-facial-inox.jpg",
   },
   {
     id: "rep-idclass",
@@ -51,7 +55,8 @@ const HARDWARE_ITEMS: HardwareItem[] = [
     description:
       "Registrador eletrônico de ponto homologado pelo Ministério do Trabalho e Emprego, com guilhotina automática, impressão rápida e gestão de jornada conectada em nuvem.",
     specs: ["Homologado Portaria 671", "Bobina até 400m", "Display Colorido", "Nuvem RHiD"],
-    imageSrc: "/images/showcase/rep-idclass.jpg",
+    imageSrc: "/images/produtos/rep-idclass.jpg",
+    altImageSrc: "/images/produtos/idclass-373.jpg",
   },
   {
     id: "idaccess-pro",
@@ -67,7 +72,8 @@ const HARDWARE_ITEMS: HardwareItem[] = [
       "Relé Integrado",
       "Web Server Embarcado",
     ],
-    imageSrc: "/images/showcase/idaccess-pro.jpg",
+    imageSrc: "/images/produtos/idaccess-pro.jpg",
+    altImageSrc: "/images/produtos/idaccess.jpg",
   },
   {
     id: "idflex",
@@ -78,7 +84,8 @@ const HARDWARE_ITEMS: HardwareItem[] = [
     description:
       "Gabinete com certificação IP65 desenvolvido especificamente para instalação em ambientes fabris, estacionamentos e áreas abertas sujeitas a chuva e poeira.",
     specs: ["Proteção IP65", "Ambientes Severos", "Biometria + Cartão", "Alta Resistência"],
-    imageSrc: "/images/showcase/idflex-ip65.jpg",
+    imageSrc: "/images/produtos/idflex-ip65.jpg",
+    altImageSrc: "/images/produtos/idpower.jpg",
   },
 ];
 
@@ -87,74 +94,124 @@ export default function HardwareReveal() {
   const activeItem = HARDWARE_ITEMS[activeIndex];
 
   return (
-    <section className="space-y-8 py-6 sm:py-10">
-      {/* Cabeçalho da Seção estilo M3 Glass */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <span className="text-xs font-bold uppercase tracking-widest text-blue-600">
+    <section className="space-y-10 py-8 sm:py-12">
+      {/* Cabeçalho da Seção em 2 Colunas estilo .feature-top do M3 Glass */}
+      <div
+        data-m3-reveal="up"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start border-b border-[#e3e3e8] pb-8"
+      >
+        <div className="lg:col-span-4">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[#191919]/25 bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-[#191919]">
+            <span className="h-2 w-2 rounded-full bg-[#16c0dd]" />
             Destaques de Engenharia
           </span>
-          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-slate-900 mt-1">
-            Hardware de Ponta para{" "}
-            <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-600 bg-clip-text text-transparent">
-              Controle de Acesso
-            </span>
-          </h2>
         </div>
-        <p className="text-xs sm:text-sm text-slate-500 max-w-md">
-          Explore as tecnologias oficiais da Control iD integradas ao nosso assistente inteligente e
-          protocolo MCP.
-        </p>
+
+        <div className="lg:col-span-8 space-y-3">
+          <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-[#191919] leading-[1.1]">
+            Hardware de Ponta para <span className="text-[#16c0dd]">Controle de Acesso</span>
+          </h2>
+          <p className="text-sm sm:text-base text-[#4d4d52] max-w-2xl">
+            Passe o cursor ou toque nas linhas numeradas ao lado para inspecionar a fotografia
+            oficial do equipamento e consultar suas especificações técnicas.
+          </p>
+        </div>
       </div>
 
-      {/* Grid Principal M3 Glass (Display Visual 50% + Lista 01-05 50%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-        {/* Painel Esquerdo: Display Visual de Hardware */}
-        <div className="lg:col-span-6 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-950 to-slate-900 p-6 sm:p-8 text-white flex flex-col justify-between shadow-xl min-h-[420px]">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-bold text-blue-300">
-                {activeItem.category}
-              </span>
-              <span className="font-mono text-sm text-slate-400">{activeItem.number} / 05</span>
-            </div>
+      {/* Grid Principal M3 Glass (.feature-img à esquerda + .feature-item-list 01–05 à direita) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+        {/* Coluna Esquerda: Fotografia Grande do Produto + Card Frosted Glass (.feature-img + .img-content) */}
+        <div
+          key={activeItem.id}
+          className="antra-blurIn lg:col-span-6 m3-photo-card relative min-h-[480px] sm:min-h-[550px] rounded-[24px] border border-[#e3e3e8] bg-gradient-to-b from-white via-slate-50 to-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-[0_20px_55px_rgba(15,23,42,0.1)]"
+        >
+          {/* Topo da vitrine com badge de categoria e miniatura de segundo ângulo */}
+          <div className="relative z-10 flex items-start justify-between gap-4">
+            <span className="inline-flex items-center gap-2 rounded-full bg-slate-950/90 px-4 py-1.5 text-xs font-bold text-[#16c0dd] shadow-md">
+              <span className="h-2 w-2 rounded-full bg-[#16c0dd] animate-pulse" />
+              {activeItem.category}
+            </span>
 
-            <div className="mt-6 space-y-2">
-              <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                {activeItem.name}
-              </h3>
-              <p className="text-sm font-semibold text-blue-400">{activeItem.headline}</p>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed pt-2">
-                {activeItem.description}
-              </p>
+            <div className="flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white/95 p-2 shadow-lg">
+              <div className="h-12 w-12 overflow-hidden rounded-xl bg-slate-50 p-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={activeItem.altImageSrc}
+                  alt={`${activeItem.name} vista alternativa`}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <div className="pr-2 hidden sm:block">
+                <span className="block text-[10px] font-mono uppercase text-slate-400">
+                  Série Oficial
+                </span>
+                <span className="text-xs font-extrabold text-slate-900">
+                  {activeItem.number} / 05
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="pt-6 border-t border-slate-800 space-y-4">
-            <div className="grid grid-cols-2 gap-2 text-xs">
+          {/* Imagem Central de Alta Resolução do Produto */}
+          <div className="relative z-0 my-auto py-4 flex items-center justify-center h-64 sm:h-72">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={activeItem.imageSrc}
+              alt={activeItem.name}
+              className="max-h-full max-w-full object-contain drop-shadow-[0_22px_32px_rgba(15,23,42,0.22)] transition-transform duration-500 hover:scale-105"
+            />
+          </div>
+
+          {/* Caixa Frosted Glass Flutuante na Base (.img-content de m3glass.com: rgba(21,24,31,.78) + blur(29px)) */}
+          <div className="relative z-10 rounded-[24px] border border-white/15 bg-[#15181f]/88 p-5 sm:p-6 text-white backdrop-blur-[29px] shadow-2xl space-y-3.5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
+                  {activeItem.name}
+                </h3>
+                <p className="text-xs sm:text-sm font-bold text-[#16c0dd] mt-0.5">
+                  {activeItem.headline}
+                </p>
+              </div>
+              <span className="font-mono text-xs font-bold text-white/60 shrink-0">
+                #{activeItem.number}
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-200 leading-relaxed">{activeItem.description}</p>
+
+            <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
               {activeItem.specs.map((spec) => (
-                <div key={spec} className="flex items-center gap-2 text-slate-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                <div key={spec} className="flex items-center gap-2 text-slate-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#16c0dd]" />
                   <span>{spec}</span>
                 </div>
               ))}
             </div>
 
-            <div className="pt-2 flex items-center justify-between">
+            <div className="pt-2 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
               <Link
                 href="/produtos"
-                className="inline-flex items-center gap-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-500 px-4 py-2.5 rounded-xl shadow-md transition-all"
+                className="inline-flex items-center gap-2 rounded-full bg-[#16c0dd] hover:bg-cyan-300 px-4 py-2 text-xs font-extrabold text-slate-950 transition-all shadow-md"
               >
                 <span>Ver no Catálogo</span>
-                <span>›</span>
+                <span>→</span>
               </Link>
-              <span className="text-[11px] text-slate-400">Homologação Oficial Control iD</span>
+
+              <button
+                type="button"
+                onClick={() => useChatStore.getState().open()}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-white/90 hover:text-[#16c0dd] transition-colors cursor-pointer"
+              >
+                <span>Consultar estoque via IA</span>
+                <span>↗</span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Painel Direito: Lista Numerada 01 a 05 com seleção por hover e toque */}
-        <div className="lg:col-span-6 flex flex-col justify-center space-y-3">
+        {/* Coluna Direita: Lista Numerada Interativa 01–05 (.feature-item-list de m3glass.com) */}
+        <div className="lg:col-span-6 divide-y divide-[#e3e3e8] border-t border-b border-[#e3e3e8]">
           {HARDWARE_ITEMS.map((item, idx) => {
             const isSelected = idx === activeIndex;
             return (
@@ -162,40 +219,52 @@ export default function HardwareReveal() {
                 key={item.id}
                 onMouseEnter={() => setActiveIndex(idx)}
                 onClick={() => setActiveIndex(idx)}
-                className={`group flex items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+                className={`group flex items-center justify-between gap-4 py-6 px-4 sm:px-5 transition-all duration-300 cursor-pointer ${
                   isSelected
-                    ? "border-blue-500 bg-blue-50/70 shadow-md translate-x-1"
-                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80"
+                    ? "bg-white shadow-[0_8px_30px_rgba(0,0,0,0.05)] rounded-2xl border-transparent"
+                    : "hover:bg-white/60"
                 }`}
               >
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-4 sm:gap-5 min-w-0">
                   <span
-                    className={`text-sm sm:text-base font-mono font-bold px-2.5 py-1 rounded-lg ${
-                      isSelected ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"
+                    className={`font-mono text-base sm:text-lg font-extrabold w-9 shrink-0 transition-colors ${
+                      isSelected ? "text-[#16c0dd]" : "text-[#9f9fa4] group-hover:text-[#191919]"
                     }`}
                   >
                     {item.number}
                   </span>
+
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-xs">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={item.imageSrc}
+                      alt=""
+                      aria-hidden="true"
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+
                   <div className="min-w-0">
                     <h4
-                      className={`text-sm sm:text-base font-bold truncate ${
-                        isSelected ? "text-blue-900" : "text-slate-800 group-hover:text-slate-900"
+                      className={`text-base sm:text-xl font-extrabold truncate transition-colors ${
+                        isSelected ? "text-[#191919]" : "text-[#4d4d52] group-hover:text-[#191919]"
                       }`}
                     >
                       {item.name}
                     </h4>
-                    <p className="text-xs text-slate-500 truncate">{item.category}</p>
+                    <p className="text-xs text-[#9f9fa4] truncate mt-0.5">{item.category}</p>
                   </div>
                 </div>
 
+                {/* Botão Circular .arrow idêntico ao .feature-item .arrow do M3 Glass */}
                 <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-transform ${
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base font-bold transition-all duration-300 ${
                     isSelected
-                      ? "bg-blue-600 text-white translate-x-1"
-                      : "bg-slate-100 text-slate-400 group-hover:bg-slate-200 group-hover:text-slate-600"
+                      ? "bg-[#16c0dd] text-white shadow-md shadow-[#16c0dd]/30 -rotate-45 scale-105"
+                      : "bg-slate-200/80 text-[#191919] group-hover:bg-[#16c0dd] group-hover:text-white group-hover:-rotate-45"
                   }`}
                 >
-                  ›
+                  →
                 </div>
               </div>
             );

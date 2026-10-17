@@ -1,10 +1,11 @@
 """Varredura offline de `score_threshold` e `top_k` (Etapa 4, Fase 10 —
 `docs/EVALUATION.md` Seção 2.1).
 
-Não reingere nada e não consulta o Qdrant: lê `resultados_etapa1.json`, que
-guarda `(fonte, score)` pareado por pergunta, e recalcula as métricas para
-cada threshold candidato. Por isso roda em milissegundos e pode varrer
-quantos pontos se quiser.
+Não reingere nada e não consulta o Qdrant: lê `resultados_etapa1.json` (ou o
+vencedor de `resultados_etapa2.json` / `resultados_etapa3.json`), que guarda
+`(fonte, score)` pareado por pergunta, e recalcula as métricas para cada
+threshold candidato. Por isso roda em milissegundos e pode varrer quantos
+pontos se quiser.
 
 **Exige que a rodada-base tenha usado um threshold baixo.** Não se pode
 recuperar, offline, um documento que a busca original já cortou — então a
@@ -15,8 +16,8 @@ em vez de produzir uma tabela silenciosamente truncada.
 
 Uso (a partir de `backend/`; não exige nada no ar):
 
-    .venv/bin/python eval/rag_ingestion/run_etapa1.py --score-threshold 0.0 --top-k 10
     .venv/bin/python eval/rag_ingestion/varrer_threshold.py
+    .venv/bin/python eval/rag_ingestion/varrer_threshold.py --entrada eval/rag_ingestion/resultados_etapa3.json --saida eval/rag_ingestion/varredura_threshold_etapa4.json
 """
 
 from __future__ import annotations
@@ -100,14 +101,84 @@ def separabilidade(itens: list[dict]) -> dict:
     }
 
 
+def recomendar_parametros(linhas: list[dict], sep: dict) -> dict:
+    """Escolhe `(top_k, score_threshold)` ótimos na grade varrida.
+
+    Prioriza maximizar `recall@5 + acerto_negativas` (equilíbrio entre não
+    perder fonte positiva — evitando falso escalonamento ao modelo externo —
+    e recusar casos sem resposta no corpus), desempatando por `ndcg@10`,
+    `mrr`, `top_k=5` e proximidade ao ponto médio do intervalo separável.
+    """
+    ponto_medio: float | None = None
+    if sep.get("separavel"):
+        menor_pos = sep["menor_score_maximo_positivas"]
+        maior_neg = sep["maior_score_maximo_negativas"]
+        ponto_medio = round((menor_pos + maior_neg) / 2, 4)
+
+    def chave(linha: dict) -> tuple:
+        r5 = linha.get("recall@5") or 0.0
+        an = linha.get("acerto_negativas") or 0.0
+        vazio_pos = linha.get("taxa_vazio_positivas") or 0.0
+        ndcg = linha.get("ndcg@10") or 0.0
+        mrr = linha.get("mrr") or 0.0
+        dist_meio = (
+            abs(linha["score_threshold"] - ponto_medio) if ponto_medio is not None else 0.0
+        )
+        prefere_top5 = 0 if linha["top_k"] == 5 else 1
+        return (
+            -round(r5 + an, 6),
+            round(vazio_pos, 6),
+            -round(ndcg, 6),
+            -round(mrr, 6),
+            prefere_top5,
+            round(dist_meio, 6),
+        )
+
+    melhor = min(linhas, key=chave)
+    return {
+        **melhor,
+        "threshold_ponto_medio": ponto_medio,
+    }
+
+
+def _extrair_base(base: dict, ponto_id: str | None) -> tuple[dict, list[dict]]:
+    """Extrai `(config, itens)` tanto do JSON da Etapa 1 quanto dos JSONs de
+    grade das Etapas 2 e 3 (`candidatos` / `pontos`)."""
+    if "config" in base and "itens" in base:
+        return base["config"], base["itens"]
+
+    colecao = base.get("pontos") or base.get("candidatos") or []
+    if not colecao:
+        raise ValueError("JSON de entrada não contém 'itens', 'pontos' nem 'candidatos'")
+
+    alvo_id = ponto_id or (base.get("vencedor") or {}).get("id")
+    escolhido = next((p for p in colecao if p.get("id") == alvo_id), colecao[0])
+    config = {
+        "id": escolhido.get("id"),
+        "embedding_model": escolhido.get("embedding_model") or base.get("embedding_model"),
+        "chunk_size": escolhido.get("chunk_size"),
+        "chunk_overlap": escolhido.get("chunk_overlap"),
+        "unidade": escolhido.get("unidade", "tokens"),
+        "score_threshold": 0.0,
+        "top_k": 10,
+    }
+    return config, escolhido["itens"]
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Etapa 4 — varredura offline de threshold/top_k")
     parser.add_argument("--entrada", type=Path, default=ENTRADA)
+    parser.add_argument("--saida", type=Path, default=SAIDA)
+    parser.add_argument(
+        "--ponto",
+        default=None,
+        help="ID do ponto/candidato quando a entrada é resultados_etapa2/3.json (padrão: vencedor)",
+    )
     args = parser.parse_args(argv[1:])
 
     if not args.entrada.exists():
         print(
-            f"ERRO: {args.entrada.name} não existe. Rode a Etapa 1 primeiro:\n"
+            f"ERRO: {args.entrada.name} não existe. Rode a Etapa 1 ou Etapa 3 primeiro:\n"
             "  .venv/bin/python eval/rag_ingestion/run_etapa1.py "
             "--score-threshold 0.0 --top-k 10",
             file=sys.stderr,
@@ -115,7 +186,8 @@ def main(argv: list[str]) -> int:
         return 1
 
     base = json.loads(args.entrada.read_text(encoding="utf-8"))
-    threshold_base = base["config"]["score_threshold"]
+    config_base, itens = _extrair_base(base, args.ponto)
+    threshold_base = config_base.get("score_threshold", 0.0)
     if threshold_base > THRESHOLD_MAXIMO_DA_BASE:
         print(
             f"ERRO: a rodada-base usou score_threshold={threshold_base}, acima de "
@@ -125,21 +197,26 @@ def main(argv: list[str]) -> int:
         )
         return 1
 
-    itens = base["itens"]
     linhas = varrer(itens)
     sep = separabilidade(itens)
+    rec = recomendar_parametros(linhas, sep)
 
-    print(f"Base: {args.entrada.name} ({base['config']['embedding_model']})")
+    print(f"Base: {args.entrada.name} ({config_base.get('embedding_model')})")
+    if config_base.get("id"):
+        print(f"Ponto: {config_base['id']} (chunk={config_base.get('chunk_size')}/{config_base.get('chunk_overlap')})")
     print(f"n = {len(itens)} perguntas\n")
 
     print("=== Existe threshold que separe positivas de negativas? ===")
-    print(f"  menor score máximo entre positivas: {sep['menor_score_maximo_positivas']}")
-    print(f"  maior score máximo entre negativas: {sep['maior_score_maximo_negativas']}")
-    if sep["separavel"]:
-        print("  SIM — há um corte que acerta positivas e negativas.")
+    print(f"  menor score máximo entre positivas: {sep.get('menor_score_maximo_positivas')}")
+    print(f"  maior score máximo entre negativas: {sep.get('maior_score_maximo_negativas')}")
+    if sep.get("separavel"):
+        print(
+            f"  SIM — há um corte que acerta positivas e negativas "
+            f"(ponto médio={rec['threshold_ponto_medio']}, recomendado={rec['score_threshold']})."
+        )
     else:
         print(
-            f"  NÃO — {sep['positivas_abaixo_da_pior_negativa']} de {sep['n_positivas']} "
+            f"  NÃO — {sep.get('positivas_abaixo_da_pior_negativa')} de {sep.get('n_positivas')} "
             "positivas pontuam abaixo da pior negativa.\n"
             "  Nenhum score_threshold resolve: o problema está no modelo de embedding\n"
             "  (Etapa 2), não neste parâmetro."
@@ -161,12 +238,13 @@ def main(argv: list[str]) -> int:
             f"{f(linha['taxa_vazio_positivas']):>8} {f(linha['acerto_negativas']):>9}"
         )
 
-    SAIDA.write_text(
+    args.saida.write_text(
         json.dumps(
             {
                 "base": args.entrada.name,
-                "config_base": base["config"],
+                "config_base": config_base,
                 "separabilidade": sep,
+                "recomendacao": rec,
                 "varredura": linhas,
             },
             ensure_ascii=False,
@@ -174,7 +252,7 @@ def main(argv: list[str]) -> int:
         ),
         encoding="utf-8",
     )
-    print(f"\nResultado: {SAIDA}")
+    print(f"\nResultado: {args.saida}")
     return 0
 
 

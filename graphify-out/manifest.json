@@ -408,10 +408,10 @@
     "semantic_hash": "66a915e30589c72fe91bf02d2661026c"
   },
   "backend/src/app/catalog_extractor/extractor.py": {
-    "mtime": 1791496191.0508163,
-    "seen": 1791840346.4557397,
-    "ast_hash": "e132da7de396f44bf62ee147f49a9031",
-    "semantic_hash": "e132da7de396f44bf62ee147f49a9031"
+    "mtime": 1792247015.40198,
+    "seen": 1792249959.4220874,
+    "ast_hash": "979e7a29b56342ce472787927714bdc8",
+    "semantic_hash": ""
   },
   "backend/src/app/config.py": {
     "mtime": 1792112970.3454192,
@@ -456,9 +456,9 @@
     "semantic_hash": "e1d0492dc142221b2de2d8408d41dd84"
   },
   "backend/src/app/main.py": {
-    "mtime": 1792196574.2266061,
-    "seen": 1792227753.412104,
-    "ast_hash": "f338adb54306433757cb05a8e9b5cf17",
+    "mtime": 1792248257.8261464,
+    "seen": 1792249959.4220946,
+    "ast_hash": "51388032068eb8b888f3a9798abce82a",
     "semantic_hash": ""
   },
   "backend/src/app/mcp_client/__init__.py": {
@@ -486,9 +486,9 @@
     "semantic_hash": "7881ddeabca06f3cd5293e7b6ed9913a"
   },
   "backend/src/app/mcp_server/b2b.py": {
-    "mtime": 1791925514.972958,
-    "seen": 1791925683.6553576,
-    "ast_hash": "6efcf4a4f2fa5c18031b2a67122982e9",
+    "mtime": 1792247845.3040917,
+    "seen": 1792249959.4220989,
+    "ast_hash": "30f384ad7ef9bd936df9c34dac764d56",
     "semantic_hash": ""
   },
   "backend/src/app/memory/__init__.py": {
@@ -762,9 +762,9 @@
     "semantic_hash": "cb95aae540082a5e7f456b0e73af3d42"
   },
   "backend/src/app/router/orchestrator.py": {
-    "mtime": 1792245546.6062803,
-    "seen": 1792246883.1347463,
-    "ast_hash": "13f848ba3b08fae189da01669ee856c0",
+    "mtime": 1792248579.2868617,
+    "seen": 1792249959.422144,
+    "ast_hash": "3d5ec71e6ef7461dd417da5bb68fcd17",
     "semantic_hash": ""
   },
   "backend/src/app/router/playbooks.py": {
@@ -1008,9 +1008,9 @@
     "semantic_hash": "6c8fbdb9b6733c3932778869ff10d787"
   },
   "frontend/app/page.tsx": {
-    "mtime": 1792241836.1492124,
-    "seen": 1792242368.8873982,
-    "ast_hash": "51c8e49663bd4ee779555687edac6fa2",
+    "mtime": 1792249906.1774025,
+    "seen": 1792249959.4221854,
+    "ast_hash": "ba6a1bfc47d968090c82ba8cc3010409",
     "semantic_hash": ""
   },
   "frontend/app/pedidos/historico/page.tsx": {
@@ -1032,9 +1032,9 @@
     "semantic_hash": "e0256f89bb218946a8137c37ef1fb8cd"
   },
   "frontend/app/produtos/page.tsx": {
-    "mtime": 1792242029.5194607,
-    "seen": 1792242368.8874044,
-    "ast_hash": "27526ef719a3af00535276095e3d6ae6",
+    "mtime": 1792249907.5094633,
+    "seen": 1792249959.422189,
+    "ast_hash": "cecfc4c884f62989ff0fbab9be818b63",
     "semantic_hash": ""
   },
   "frontend/app/suporte/page.tsx": {
@@ -1332,15 +1332,15 @@
     "semantic_hash": ""
   },
   "frontend/components/layout/Footer.tsx": {
-    "mtime": 1792234860.9926324,
-    "seen": 1792242368.88747,
-    "ast_hash": "cd3d965b1c21cd2edbbc149c1c997540",
+    "mtime": 1792249909.1735392,
+    "seen": 1792249959.4222448,
+    "ast_hash": "6377ae8c6a13c357f9eeef525ba61d0f",
     "semantic_hash": ""
   },
   "frontend/components/layout/Header.tsx": {
-    "mtime": 1792242187.3834815,
-    "seen": 1792242368.8874712,
-    "ast_hash": "c24605bad17e31c0c63c7bafde13532f",
+    "mtime": 1792249845.5403686,
+    "seen": 1792249959.4222457,
+    "ast_hash": "57e7eb8cfd047bc0651a57c0b7a10ab4",
     "semantic_hash": ""
   },
   "frontend/components/products/ImageZoomModal.tsx": {
@@ -1746,9 +1746,9 @@
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE.md": {
-    "mtime": 1792235995.6325884,
-    "seen": 1792242368.8875668,
-    "ast_hash": "81e07443c7c51ca87928a2bcb6e4ce33",
+    "mtime": 1792248405.6704729,
+    "seen": 1792249959.422334,
+    "ast_hash": "7f05d9008f89c5ad4f33388cef12a519",
     "semantic_hash": ""
   },
   "docs/CONVENTIONS.md": {
@@ -1758,9 +1758,9 @@
     "semantic_hash": ""
   },
   "docs/EVALUATION.md": {
-    "mtime": 1792233305.0538876,
-    "seen": 1792242368.8875694,
-    "ast_hash": "72e09d57d4475192952b74513e1cdbb3",
+    "mtime": 1792248443.0516472,
+    "seen": 1792249959.4223354,
+    "ast_hash": "d878de3fb679ad32de25f2ce35fdc801",
     "semantic_hash": ""
   },
   "docs/FRONTEND.md": {
@@ -1800,9 +1800,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792246839.548832,
-    "seen": 1792246883.1350048,
-    "ast_hash": "d530c62425914917d2a33572c202eee7",
+    "mtime": 1792248245.4718764,
+    "seen": 1792249959.4223468,
+    "ast_hash": "ac838d5bee7219792e454d186ca81a40",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
@@ -2412,45 +2412,45 @@
     "semantic_hash": ""
   },
   "backend/eval/rag_ingestion/varrer_threshold.py": {
-    "mtime": 1792233191.0151348,
-    "seen": 1792242368.8871367,
-    "ast_hash": "7b69cbab3600cb28b5fe8d72dbcf3f92",
+    "mtime": 1792247076.0115402,
+    "seen": 1792249959.422004,
+    "ast_hash": "ce512a2867de15fda07c17f55e89ba8d",
     "semantic_hash": ""
   },
   "frontend/components/home/CapabilitiesGrid.tsx": {
-    "mtime": 1792236128.0573063,
-    "seen": 1792242368.8874626,
-    "ast_hash": "362a55a3c43521b11fc5b1a61976fe5e",
+    "mtime": 1792249938.4629073,
+    "seen": 1792249959.4222364,
+    "ast_hash": "4f9a03cffdd26229b0322e60786b7f80",
     "semantic_hash": ""
   },
   "frontend/components/home/HardwareReveal.tsx": {
-    "mtime": 1792236128.0015714,
-    "seen": 1792242368.887464,
-    "ast_hash": "564c94417f4c62addacbea869dd091c6",
+    "mtime": 1792249938.4871535,
+    "seen": 1792249959.4222372,
+    "ast_hash": "2891bcc6f48845de758260876633a2fb",
     "semantic_hash": ""
   },
   "frontend/components/home/HeroSlider.tsx": {
-    "mtime": 1792235337.3728013,
-    "seen": 1792242368.8874648,
-    "ast_hash": "e51ac35e63134cb7131c2dc417fd821c",
+    "mtime": 1792249938.5104098,
+    "seen": 1792249959.422238,
+    "ast_hash": "272a374ab2020fcc63b381dcc6643344",
     "semantic_hash": ""
   },
   "frontend/components/home/MetricCounters.tsx": {
-    "mtime": 1792241750.9578116,
-    "seen": 1792242368.8874657,
-    "ast_hash": "a6d57c44b9185245e441a332233b5e75",
+    "mtime": 1792249901.3464887,
+    "seen": 1792249959.42224,
+    "ast_hash": "7a0f73277375b26860932a7f4d3ba9a6",
     "semantic_hash": ""
   },
   "frontend/components/home/ProcessSteps.tsx": {
-    "mtime": 1792241752.4655232,
-    "seen": 1792242368.8874667,
-    "ast_hash": "46a24f8b2a06c2d3b77667be3b5dd3da",
+    "mtime": 1792249903.2665823,
+    "seen": 1792249959.422241,
+    "ast_hash": "303120e16199ee4c24a8cde9e7a83ed1",
     "semantic_hash": ""
   },
   "frontend/components/home/TechMarquee.tsx": {
-    "mtime": 1792235347.353272,
-    "seen": 1792242368.8874676,
-    "ast_hash": "2204094d8201d3c48159aa9250b9750e",
+    "mtime": 1792249676.3220222,
+    "seen": 1792249959.422243,
+    "ast_hash": "55eb2a0b63fa52dc2088fb28c623e666",
     "semantic_hash": ""
   },
   "AGY_TASK_M3GLASS.md": {
@@ -2460,9 +2460,9 @@
     "semantic_hash": ""
   },
   "backend/eval/rag_ingestion/README.md": {
-    "mtime": 1792246837.6047277,
-    "seen": 1792246883.1349747,
-    "ast_hash": "0db0858db16d160dd4d78efdc37cc7fd",
+    "mtime": 1792248179.3250575,
+    "seen": 1792249959.422325,
+    "ast_hash": "092c63e92168cf7ba0af1561ae0b29a3",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-10-17-m3glass-visual-refactor.md": {
@@ -2499,6 +2499,150 @@
     "mtime": 1792246865.9283273,
     "seen": 1792246883.1345608,
     "ast_hash": "ae5f56695139e0da0d7ca68eedf3842d",
+    "semantic_hash": ""
+  },
+  "backend/eval/rag_ingestion/resultados_etapa5.json": {
+    "mtime": 1792247473.966238,
+    "seen": 1792249959.421995,
+    "ast_hash": "e61aaefad9581a622df98b86c9811321",
+    "semantic_hash": ""
+  },
+  "backend/eval/rag_ingestion/run_etapa5.py": {
+    "mtime": 1792247557.1011314,
+    "seen": 1792249959.422001,
+    "ast_hash": "bbc7b7482d4b85ec6c4313202c4162d1",
+    "semantic_hash": ""
+  },
+  "backend/eval/rag_ingestion/varredura_threshold_etapa4.json": {
+    "mtime": 1792247099.4053667,
+    "seen": 1792249959.4220028,
+    "ast_hash": "c1e921bc0c75256d4f4f14fc30f67038",
+    "semantic_hash": ""
+  },
+  "frontend/components/home/M3PageEffects.tsx": {
+    "mtime": 1792249938.5311027,
+    "seen": 1792249959.4222393,
+    "ast_hash": "366fac1a4b18b96a3257dfdd0fef1f13",
+    "semantic_hash": ""
+  },
+  "frontend/components/home/ProductGalleryShowcase.tsx": {
+    "mtime": 1792249904.125309,
+    "seen": 1792249959.4222417,
+    "ast_hash": "3fec17984143efdb652ed42754d3a7ec",
+    "semantic_hash": ""
+  },
+  "merdinha.md": {
+    "mtime": 1792248638.3776095,
+    "seen": 1792249959.4224203,
+    "ast_hash": "69ec5dd34c3ae6d183a031ca9eeb3abf",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idaccess-pro.jpg": {
+    "mtime": 1792249288.7185397,
+    "seen": 1792249959.4224224,
+    "ast_hash": "a8c6bf1051fef3dd26792caa292271df",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idaccess.jpg": {
+    "mtime": 1792249288.9425507,
+    "seen": 1792249959.4224234,
+    "ast_hash": "970868b8579a69943b7cb161a8dcd6ec",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idbio.jpg": {
+    "mtime": 1792249289.2145638,
+    "seen": 1792249959.4224243,
+    "ast_hash": "5d848131bd4beb097842b5e987a75272",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idblock-facial-inox.jpg": {
+    "mtime": 1792249289.2865674,
+    "seen": 1792249959.422425,
+    "ast_hash": "9341ff7c65e95174f3d1b036b42ec1c4",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idblock-facial-preta.jpg": {
+    "mtime": 1792249289.3385699,
+    "seen": 1792249959.4224257,
+    "ast_hash": "ccee5c5d3eadc11757b9c5a2376cc517",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idblock-inox.jpg": {
+    "mtime": 1792249289.478577,
+    "seen": 1792249959.4224265,
+    "ast_hash": "4eb5cf68827164abd6902178326c8164",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idblock-next-facial.jpg": {
+    "mtime": 1792249289.54258,
+    "seen": 1792249959.4224272,
+    "ast_hash": "d5de65de5c2588984b9352e11b7ab2b5",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idblock-pcd.jpg": {
+    "mtime": 1792249289.8105931,
+    "seen": 1792249959.4224277,
+    "ast_hash": "10b372e5f144510c23b9085edc2df62b",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idblock-preto.jpg": {
+    "mtime": 1792249289.9786012,
+    "seen": 1792249959.4224284,
+    "ast_hash": "936be16e4295c87f5f817cc3e66ef71a",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idbox.jpg": {
+    "mtime": 1792249290.1466095,
+    "seen": 1792249959.4224288,
+    "ast_hash": "76aca976121a0bdb43cb4b04a66d05b7",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idclass-373.jpg": {
+    "mtime": 1792249290.3346186,
+    "seen": 1792249959.42243,
+    "ast_hash": "5619f49824e7459d3b22237a250da892",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idface-frontal.jpg": {
+    "mtime": 1792249290.3906214,
+    "seen": 1792249959.4224308,
+    "ast_hash": "258e7598851001709a19ab9410415460",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idface-max.jpg": {
+    "mtime": 1792249290.4306233,
+    "seen": 1792249959.4224315,
+    "ast_hash": "1d1077354d4a44475153571c22639481",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idface-perspectiva.jpg": {
+    "mtime": 1792249290.482626,
+    "seen": 1792249959.4224322,
+    "ast_hash": "413a16a2c5634d7b2274ffa0409d9fa7",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idflex-ip65.jpg": {
+    "mtime": 1792249290.630633,
+    "seen": 1792249959.4224331,
+    "ast_hash": "f636badbd9872e6e5c4710529af82d92",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/idpower.jpg": {
+    "mtime": 1792249290.8586442,
+    "seen": 1792249959.4224336,
+    "ast_hash": "703688619f97f3fb0f04f17c221d7882",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/printid-touch.jpg": {
+    "mtime": 1792249291.17866,
+    "seen": 1792249959.4224343,
+    "ast_hash": "c3022f226fd119507cb3fd593332671c",
+    "semantic_hash": ""
+  },
+  "frontend/public/images/produtos/rep-idclass.jpg": {
+    "mtime": 1792249291.3746696,
+    "seen": 1792249959.422435,
+    "ast_hash": "5619f49824e7459d3b22237a250da892",
     "semantic_hash": ""
   }
 }
