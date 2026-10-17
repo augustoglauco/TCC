@@ -62,8 +62,7 @@ raiz do workspace) antes de propor ou implementar qualquer mudança:
    `EVALUATION.md`) na mesma tarefa.
 10. **Antes de cada commit, siga o checklist** de `docs/CONVENTIONS.md`
     ("Checklist antes de cada commit").
-11. **Sempre checar o Graphify primeiro e atualizar após mudanças de código:**
-    consulte `graphify-out/` antes de responder sobre código ou executar alterações (`graphify query`, `explain`, `path`), e execute de maneira automática `graphify update .` logo após qualquer alteração no código (`docs/CONVENTIONS.md`, "Ordem de uso dos dois grafos de código").
+11. **Repowise é a fonte única para código** (decisão de 2026-10-17): use `get_answer`, `search_codebase`, `get_context` e `get_why` para se orientar. O GitNexus foi removido. O Graphify segue como CLI opcional (`graphify query`, `explain`, `path`) — **não** é mais obrigatório nem precede o `grep`; depois de alterar código, rode `graphify update .` à mão, porque o hook `post-commit` está sem bit de execução. Motivo e evidência em `docs/CONVENTIONS.md`, "Ordem de uso das ferramentas de grafo de código".
 
 ## Regra de ouro (comum às três ferramentas)
 

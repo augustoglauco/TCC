@@ -54,7 +54,7 @@ Documentação completa da proposta (o "porquê" de cada decisão): veja
 | `goup.md` (raiz)                           | Para instalar numa máquina nova (passo 0) ou subir o ambiente à mão; acesso externo, MCP B2B público com o manual do parceiro, solução de problemas. `./g.sh` sobe tudo de uma vez.                                                                                                                 |
 | `docs/Manuais/`                            | Manuais de uso do sistema (`HOWTO_USUARIO.md`, `HOWTO_ADMINISTRADOR.md`) e guias de ferramentas locais de desenvolvimento (`strata-manual.md`, `headroom-manual.md`, `repowise-manual.md`, `gitnexus-manual.md`, `graphify-manual.md`) e o manual didático do agente de previsão de estoque (`agente-estoque-manual.md`).                                                                               |
 | `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` | Mapeamento de todos os prompts/instruções de sistema/playbooks/extratores estruturados enviados a um LLM no código. Consulte antes de alterar qualquer prompt existente (para achar todos os pontos relacionados) e atualize sempre que um prompt for alterado ou um novo for criado — ver regra 11.    |
-| `graphify-out/` (Knowledge Graph)          | **Primeira consulta** ao receber perguntas sobre código ou pedidos de alteração — comandos na seção "Graphify" deste arquivo. |
+| `graphify-out/` (Knowledge Graph)          | Mapa macro **opcional** do código. A fonte única para código é o Repowise (decisão de 2026-10-17) — ver `docs/CONVENTIONS.md`, "Ordem de uso das ferramentas de grafo de código". |
 | `README.md` e `README_TCC.md`            | Apresentação do projeto; o `README_TCC.md` é a entrega acadêmica no formato do curso.                                                                                                                                                                                                                 |
 
 Não crie documentos novos fora desta lista (resumos, cópias de spec, guias
@@ -136,27 +136,32 @@ MVP e Evolução Futura" e "Riscos e Limitações".
 
 <!-- graphify:start -->
 
-## Graphify — Knowledge Graph (`graphify-out/`)
+## Grafo de código — Graphify (`graphify-out/`)
 
 Grafo do código (comunidades, nós centrais e relações entre arquivos) gerado
-via AST — rápido e sem custo de API.
+via AST — rápido e sem custo de API. **Opcional desde 2026-10-17:** útil para
+um mapa macro rápido, mas o **Repowise é a fonte única para código**, e
+consultar este grafo **não** é pré-requisito de `grep`/`Read` — os dois hooks
+`PreToolUse` que impunham isso foram removidos.
 
-- **Consulte o grafo antes de abrir arquivo bruto**, ao responder sobre
-  código ou ao receber um pedido de alteração: `graphify query "<pergunta>"`
-  (subgrafo enxuto), `graphify explain "<símbolo/conceito>"` (nó focalizado),
+Este bloco fica entre os marcadores do `graphify install` e é **regenerado**
+se o instalador rodar de novo, o que traria de volta o mandato antigo e os
+hooks. A fonte de verdade é `docs/CONVENTIONS.md`, seção "Ordem de uso das
+ferramentas de grafo de código", válida para as três ferramentas.
+
+- Para se orientar: `graphify query "<pergunta>"` (subgrafo enxuto),
+  `graphify explain "<símbolo/conceito>"` (nó focalizado),
   `graphify path "<A>" "<B>"` (dependência entre dois pontos).
-- `graphify-out/GRAPH_REPORT.md` só para visão macro da arquitetura, ou
-  quando `query`/`explain`/`path` não derem contexto suficiente. (Não procure
-  um `graphify-out/wiki/`: esta CLI não tem comando que o gere — a menção a
-  `wiki/index.md` saiu daqui e do `AGENTIC_WORKFLOW.md` em 2026-10-15.)
-- **Depois de qualquer alteração em código**, sem esperar pedido:
-  `graphify update .`. É o item 9 do checklist de `docs/CONVENTIONS.md`,
-  cobrado pela regra 10.
+- `graphify-out/GRAPH_REPORT.md` só para visão macro da arquitetura. (Não
+  procure um `graphify-out/wiki/`: esta CLI não tem comando que o gere.)
+- **Depois de alterar código**, `graphify update .` — à mão, porque o hook
+  `post-commit` está sem bit de execução (item 9 do checklist de
+  `docs/CONVENTIONS.md`).
+- Onde o Graphify ganha de todos, e por isso segue instalado: cruzar código
+  com PDF, schema de banco ao vivo ou paper no mesmo grafo
+  (`/graphify --update` sobre material não-código). Nunca foi feito aqui — o
+  grafo tem 0 nós vindos de PDF, apesar dos 97 PDFs do corpus ControlId.
 - O grafo orienta, não substitui: ler o arquivo bruto continua obrigatório
   antes de editá-lo.
-
-A ordem de uso em relação ao outro grafo do repositório está em
-`docs/CONVENTIONS.md`, "Ordem de uso dos dois grafos de código" — fonte única
-para as três ferramentas.
 
 <!-- graphify:end -->

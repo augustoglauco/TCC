@@ -246,11 +246,18 @@ completa e o Playwright ficam para mudança transversal (`config.py`,
    nos `.md` e no código.
 8. Nenhum documento novo fora da lista do `CLAUDE.md` (resumos, cópias de
    spec, guias paralelos): atualize o documento que já cobre o assunto.
-9. O knowledge graph (`graphify-out/`) é reconstruído pelo hook `post-commit`
-   do graphify; só rode `graphify update .` à mão para consultar o grafo
-   antes de commitar.
-10. GitNexus é ferramenta de consulta: não há análise obrigatória antes do
-    commit, e índice defasado não bloqueia nada (decisão do dono, 2026-10-15).
+9. O knowledge graph (`graphify-out/`) é reconstruído pelo hook
+   `post-commit` do graphify — **que está sem o bit de execução**
+   (`.git/hooks/post-commit`, achado de 2026-10-17), então o git o ignora com
+   um `hint:` e nenhum commit reconstrói o grafo. Enquanto estiver assim,
+   rode `graphify update .` à mão depois de alterar código; para voltar ao
+   automático, `chmod +x .git/hooks/post-commit`. O `graphify-out/` é
+   versionado: se o rebuild pegar trabalho não commitado de outra ferramenta,
+   não commite o artefato — deixe que quem está no meio da tarefa o
+   reconstrua ao fechar.
+10. **GitNexus foi removido** em 2026-10-17 (MCP e os dois hooks globais) —
+    não há nada a rodar antes do commit. Motivo e evidência na seção "Ordem
+    de uso das ferramentas de grafo de código", no fim deste documento.
 11. Se mexeu em `.md` ou renomeou/apagou arquivo citado por documento, rode
     o gate de deriva de documentação:
 
@@ -355,7 +362,10 @@ vez, então, ao (re)instalar qualquer uma delas:
 - **`repowise init`**: passe `--no-claude-md`, senão o gerador padrão
   substitui o `CLAUDE.md` do projeto (ver `docs/Manuais/repowise-manual.md`).
 - **`graphify install --platform claude`**: anexa um bloco de instruções ao
-  `CLAUDE.md` e hooks `PreToolUse` ao `.claude/settings.json`. Em 2026-10-14
+  `CLAUDE.md` e hooks `PreToolUse` ao `.claude/settings.json`. **Não re-rode
+  sem necessidade:** os dois hooks `PreToolUse` e o mandato "consulte o grafo
+  antes de abrir arquivo" foram removidos deliberadamente em 2026-10-17 (ver
+  a última seção deste documento), e o instalador os traz de volta. Em 2026-10-14
   isso duplicou a seção "Graphify" (em inglês, sem delimitador). A seção agora
   fica entre `<!-- graphify:start -->` e `<!-- graphify:end -->`; confira se o
   instalador respeitou o delimitador em vez de anexar de novo.
@@ -371,24 +381,61 @@ vez, então, ao (re)instalar qualquer uma delas:
   mexeu fora do que você pediu. É a mesma regra do item 7 do checklist (nada
   de caminho absoluto da máquina em arquivo versionado).
 
-### Ordem de uso dos dois grafos de código
+### Ordem de uso das ferramentas de grafo de código
 
-O repositório é indexado por **duas** ferramentas de grafo, e as duas pedem
-para ser consultadas "primeiro". Elas não competem: são etapas em sequência
-de uma mesma tarefa. Registrado aqui (e não nos arquivos de regras) para
-existir uma única descrição, válida para as três ferramentas — o bloco do
-GitNexus no `CLAUDE.md` é gerado por `gitnexus setup` e reescrito a cada
-execução, então não serve de fonte de verdade.
+**Decisão de 2026-10-17: consolidado em uma ferramenta.** O repositório
+chegou a ter **quatro** sistemas de inteligência de código ao mesmo tempo —
+Repowise (MCP), GitNexus (MCP), Serena (MCP) e Graphify (CLI + hooks) — todos
+respondendo às mesmas perguntas ("quem chama X", "onde está Y"). O custo não
+era o contexto injetado, eram os **hooks**: uma única chamada de Bash
+disparava quatro (`graphify hook-guard search`, `repowise-rewrite` e o hook do
+GitNexus em `PreToolUse`, mais o do GitNexus em `PostToolUse`), e cada
+resultado vinha com o lembrete "MANDATORY: run graphify query before
+grepping".
 
-1. **Orientar — Graphify.** `graphify query "<pergunta>"` para um subgrafo
-   enxuto, `graphify explain "<símbolo/conceito>"` para um nó focalizado,
-   `graphify path "<A>" "<B>"` para a dependência entre dois pontos. Serve
-   para descobrir *onde* está o quê antes de abrir arquivo.
-2. **Medir o alcance — GitNexus.** `impact` no símbolo que você vai mexer,
-   antes de editar: quem chama, que fluxos passam ali, qual o risco.
-   `risk: UNKNOWN` não é risco baixo — significa que a varredura não
-   respondeu, e aí vale confirmar por busca textual.
-3. **Ler e editar.** O grafo orienta, não substitui: ler o arquivo bruto
-   continua obrigatório antes de alterá-lo.
-4. **Fechar.** Atualizar os dois grafos antes de commitar — itens 9 e 10
-   do checklist acima, que são a única descrição desses comandos.
+O que decidiu: numa sessão longa de trabalho real (Fase 10, 2026-10-17), as
+ferramentas MCP de Repowise, GitNexus e Serena tiveram **zero** chamadas; o
+trabalho saiu de `Bash`, `Read` e meia dúzia de `graphify query` que, em todos
+os casos, ainda exigiram `grep`/`Read` depois. E o diferencial do Graphify —
+indexar fonte que não é código — **nunca foi exercitado**: o grafo tinha 0 nós
+vindos de PDF, apesar dos 97 PDFs do corpus ControlId.
+
+**Fonte única para código: Repowise.** Não por ser melhor em grafo, mas por
+ser o único com mineração de histórico git, `get_why` (decisões registradas),
+código morto e `distill` — e por já estar casado com o projeto (`.claude/CLAUDE.md`
+é gerado por ele, e o gate de deriva de documentação do item 11 do checklist
+é dele).
+
+1. **Orientar e medir — Repowise.** `get_answer` para pergunta de
+   how/where/why; `search_codebase` para identificador ou literal;
+   `get_context(include=["references"])` antes de renomear ou atualizar
+   chamadores; `get_risk` antes de editar arquivo muito importado e
+   `get_change_risk` antes de commitar mudança multi-arquivo; `get_why` antes
+   de divergir de um padrão estabelecido.
+2. **Ler e editar.** O grafo orienta, não substitui: ler o arquivo bruto
+   continua obrigatório antes de alterá-lo, e o Claude Code exige um `Read`
+   do arquivo antes de um `Edit`.
+3. **Fechar.** Item 9 do checklist acima (grafo do Graphify) e item 11
+   (gate de deriva de documentação).
+
+**Graphify: CLI mantida, hooks removidos.** `graphify query`, `explain` e
+`path` continuam disponíveis e são úteis para um mapa macro rápido, mas
+**não são obrigatórios e não precedem mais o `grep`**. Os dois hooks
+`PreToolUse` que impunham isso saíram de `.claude/settings.local.json` em
+2026-10-17. O caso em que o Graphify ganha de todos — cruzar código com PDF,
+schema de banco ao vivo ou paper no mesmo grafo — continua valendo; para isso
+é preciso rodar `/graphify --update` sobre o material não-código, o que nunca
+foi feito aqui.
+
+**GitNexus: removido.** O MCP saiu de `~/.claude.json`
+(`claude mcp remove gitnexus -s user`) e os dois hooks globais saíram de
+`~/.claude/settings.json`, em 2026-10-17. Motivo: índice 16 commits defasado,
+zero usos, dois processos no ar (`gitnexus mcp` e `gitnexus serve -p 4757`) e
+um hook avisando da defasagem em cada chamada de Bash — ruído puro, dado que
+"índice defasado não bloqueia nada" já era a decisão do dono (2026-10-15). Os
+skills `gitnexus-*` continuam instalados e inertes; os manuais em
+`docs/Manuais/gitnexus-manual.md` ficam como referência histórica.
+
+**Serena: pendente de decisão do dono.** É baseada em LSP (rename, find
+references), então sobrepõe pouco os grafos — mas teve zero usos e continua
+subindo dois processos. Fica registrada aqui para não ser esquecida.

@@ -61,10 +61,12 @@ implementar qualquer mudança:
    mudou for stack, estrutura de pastas, contrato de API ou avaliação).
 8. Antes de cada commit, siga o checklist de `docs/CONVENTIONS.md`
    ("Checklist antes de cada commit").
-9. Consulte o knowledge graph antes de ler código bruto, e atualize-o depois
-   de mexer no código: `graphify query "<pergunta>"`, `explain "<símbolo>"`
-   ou `path "<A>" "<B>"` para se orientar em `graphify-out/`; `graphify
-   update .` logo após qualquer alteração (AST, rápido e sem custo de API).
-   O grafo orienta, não substitui a leitura do trecho que você vai editar.
-   A ordem de uso junto com o GitNexus está em `docs/CONVENTIONS.md`,
-   "Ordem de uso dos dois grafos de código".
+9. Para se orientar no código, use o **Repowise** — fonte única desde
+   2026-10-17 (`get_answer`, `search_codebase`, `get_context`, `get_why`).
+   O GitNexus foi removido. O Graphify continua disponível como CLI
+   (`graphify query`/`explain`/`path`) mas **não é obrigatório** e não
+   precede mais o `grep`; depois de alterar código, `graphify update .`
+   reconstrói `graphify-out/` (o hook `post-commit` que fazia isso está sem
+   bit de execução). O grafo orienta, não substitui a leitura do trecho que
+   você vai editar. Motivo e evidência em `docs/CONVENTIONS.md`, "Ordem de
+   uso das ferramentas de grafo de código".
