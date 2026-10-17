@@ -4,18 +4,13 @@ import { useMemo, useState } from "react";
 
 import { DocumentViewModal } from "@/components/admin/DocumentViewModal";
 import { DomainBadge } from "@/components/admin/DomainBadge";
+import { DocumentsFilterBar } from "@/components/admin/DocumentsFilterBar";
 import { ReingestModal } from "@/components/admin/ReingestModal";
 import { Modal } from "@/components/ui/Modal";
 import { ToastStack, useToast } from "@/components/ui/Toast";
 import { RagApiError, deleteDocument } from "@/lib/api/rag";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { DocumentRegistryEntry, RagCollection, RagDomain } from "@/lib/types/rag";
-
-const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
-  { value: "vendas", label: "Vendas" },
-  { value: "suporte", label: "Suporte Técnico" },
-  { value: "atendimento", label: "Atendimento ao Usuário" },
-];
 
 export interface DocumentsTableProps {
   documents: DocumentRegistryEntry[];
@@ -132,139 +127,23 @@ export function DocumentsTable({
 
   return (
     <>
-      {/* Área de Filtros */}
-      <div className="mb-5 rounded-2xl border border-slate-200/80 bg-slate-50/60 p-4 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          {/* 1. Nome do arquivo */}
-          <div className="md:col-span-4 space-y-1">
-            <label
-              htmlFor="filtro-nome"
-              className="block text-xs font-semibold text-slate-700 uppercase tracking-wider"
-            >
-              Nome do arquivo
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">
-                🔍
-              </span>
-              <input
-                id="filtro-nome"
-                type="text"
-                value={filtroNome}
-                onChange={(e) => setFiltroNome(e.target.value)}
-                placeholder="Buscar por nome do arquivo..."
-                className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* 2. Collection */}
-          <div className="md:col-span-3 space-y-1">
-            <label
-              htmlFor="filtro-collection"
-              className="block text-xs font-semibold text-slate-700 uppercase tracking-wider"
-            >
-              Collection
-            </label>
-            <select
-              id="filtro-collection"
-              aria-label="Collection"
-              value={collectionIdSelecionada}
-              onChange={(e) => setCollectionIdSelecionada(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white py-2 px-3 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="">Todas as collections</option>
-              {collections.map((col) => (
-                <option key={col.id} value={col.id}>
-                  {col.name} {col.is_active ? "(Ativa)" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 3. Range de data */}
-          <div className="md:col-span-5 space-y-1">
-            <span className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-              Range de data
-            </span>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-1.5">
-                <label
-                  htmlFor="filtro-data-inicio"
-                  className="text-xs text-slate-500 font-medium shrink-0"
-                >
-                  De:
-                </label>
-                <input
-                  id="filtro-data-inicio"
-                  aria-label="De:"
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-1.5 px-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div className="flex-1 flex items-center gap-1.5">
-                <label
-                  htmlFor="filtro-data-fim"
-                  className="text-xs text-slate-500 font-medium shrink-0"
-                >
-                  Até:
-                </label>
-                <input
-                  id="filtro-data-fim"
-                  aria-label="Até:"
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white py-1.5 px-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Linha inferior: Domínios (pills múltiplos) e Contagem / Limpar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200/60">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-600 mr-1">Domínios:</span>
-            {DOMAIN_OPTIONS.map((opt) => {
-              const isSelected = dominiosSelecionados.includes(opt.value);
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => handleToggleDomain(opt.value)}
-                  className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
-                    isSelected
-                      ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/30"
-                      : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-3 ml-auto">
-            <span className="text-xs text-slate-500">
-              Exibindo{" "}
-              <span className="font-semibold text-slate-800">{documentosFiltrados.length}</span> de{" "}
-              <span className="font-semibold text-slate-800">{documents.length}</span> documentos
-            </span>
-            {temFiltroAtivo && (
-              <button
-                type="button"
-                onClick={limparFiltros}
-                className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline transition-colors"
-              >
-                Limpar filtros
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <DocumentsFilterBar
+        filtroNome={filtroNome}
+        dominiosSelecionados={dominiosSelecionados}
+        collectionIdSelecionada={collectionIdSelecionada}
+        dataInicio={dataInicio}
+        dataFim={dataFim}
+        collections={collections}
+        totalDocumentos={documents.length}
+        totalFiltrados={documentosFiltrados.length}
+        temFiltroAtivo={temFiltroAtivo}
+        onFiltroNome={setFiltroNome}
+        onToggleDomain={handleToggleDomain}
+        onCollectionChange={setCollectionIdSelecionada}
+        onDataInicio={setDataInicio}
+        onDataFim={setDataFim}
+        onLimpar={limparFiltros}
+      />
 
       {documentosFiltrados.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-8 text-center space-y-2">
