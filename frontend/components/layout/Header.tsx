@@ -26,32 +26,32 @@ export default function Header() {
   const navLinks = [...STATIC_LINKS, accountLink];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md transition-all shadow-xs">
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-3 py-3 sm:px-6">
-        {/* Logo / Marca */}
-        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 group shrink-0 min-w-0">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-base shadow-sm group-hover:scale-105 transition-transform">
+    <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/85 backdrop-blur-md text-slate-100 transition-all shadow-lg">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        {/* Logo / Marca estilo Industrial */}
+        <Link href="/" className="flex items-center gap-2.5 group shrink-0 min-w-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-sky-500 text-white font-bold text-lg shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform border border-blue-400/30">
             ⚡
           </div>
           <div className="flex flex-col min-w-0">
-            <span className="text-sm sm:text-base font-bold tracking-tight text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+            <span className="text-base sm:text-lg font-extrabold tracking-tight text-white group-hover:text-blue-400 transition-colors truncate">
               Empresa Fictícia
             </span>
-            <span className="hidden xs:block text-[9px] sm:text-[10px] font-medium text-slate-500 uppercase tracking-wider truncate">
-              Assistente Multimodal
+            <span className="text-[10px] sm:text-[11px] font-semibold text-slate-400 uppercase tracking-widest truncate">
+              Controle de Acesso &amp; Segurança
             </span>
           </div>
         </Link>
 
         {/* Links desktop & Ações */}
-        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-          <nav aria-label="Navegação principal" className="hidden md:block">
-            <ul className="flex items-center gap-1 text-sm font-medium text-slate-700">
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <nav aria-label="Navegação principal" className="hidden lg:block">
+            <ul className="flex items-center gap-1 text-sm font-medium text-slate-300">
               {navLinks.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                    className="rounded-lg px-3 py-2 text-slate-300 hover:bg-slate-900/80 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -60,18 +60,32 @@ export default function Header() {
             </ul>
           </nav>
 
+          {/* Atalho de Atendimento rápido inspirado no M3 Glass */}
+          <div className="hidden xl:flex items-center gap-2 border-l border-slate-800 pl-4 text-xs text-slate-400">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-blue-400">
+              📞
+            </span>
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500">
+                Atendimento
+              </span>
+              <span className="font-semibold text-slate-200">0800 123 4567</span>
+            </div>
+          </div>
+
           {/* Menu de Administração (Engrenagem) */}
           <AdminGearMenu />
 
-          {/* Botão de abrir Chat / Agente */}
+          {/* Botão de abrir Chat / Agente estilo M3 Glass */}
           <button
             type="button"
             onClick={() => useChatStore.getState().open()}
-            className="inline-flex items-center gap-1 rounded-xl bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 transition-colors cursor-pointer shrink-0"
+            aria-label="Falar com Assistente IA"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3.5 py-2 text-xs font-bold text-white shadow-md shadow-blue-500/25 hover:from-blue-500 hover:to-indigo-500 hover:shadow-lg hover:shadow-blue-500/35 transition-all cursor-pointer shrink-0 border border-blue-400/30"
           >
             <span>💬</span>
-            <span className="hidden sm:inline">Chat / Agente</span>
-            <span className="sm:hidden">Chat</span>
+            <span className="hidden sm:inline">Falar com Assistente IA</span>
+            <span className="sm:hidden">Chat IA</span>
           </button>
 
           {/* Botão de Menu Mobile (Hambúrguer) */}
@@ -80,7 +94,7 @@ export default function Header() {
             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
             aria-expanded={isMobileMenuOpen}
             aria-label={isMobileMenuOpen ? "Fechar menu principal" : "Abrir menu principal"}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 md:hidden"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 lg:hidden"
           >
             <svg
               className="h-5 w-5"
@@ -100,11 +114,11 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Drawer do Menu Mobile */}
+      {/* Drawer do Menu Mobile / Tablet */}
       {isMobileMenuOpen && (
-        <div className="border-b border-slate-200 bg-white px-4 py-3 md:hidden shadow-lg transition-all duration-200">
+        <div className="border-b border-slate-800 bg-slate-950/95 px-4 py-4 lg:hidden shadow-2xl backdrop-blur-xl">
           <nav aria-label="Navegação principal móvel">
-            <ul className="flex flex-col space-y-1">
+            <ul className="flex flex-col space-y-2">
               <li>
                 <button
                   type="button"
@@ -112,7 +126,7 @@ export default function Header() {
                     setIsMobileMenuOpen(false);
                     useChatStore.getState().open();
                   }}
-                  className="flex w-full items-center gap-3 rounded-lg bg-blue-50 px-3 py-2.5 text-base font-semibold text-blue-700 hover:bg-blue-100 transition-colors text-left"
+                  className="flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-md hover:brightness-110 transition-all text-left"
                 >
                   <span className="text-lg">💬</span>
                   <span>Abrir Chat / Assistente IA</span>
@@ -123,7 +137,7 @@ export default function Header() {
                   <Link
                     href={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium text-slate-700 hover:bg-slate-100 hover:text-blue-700 transition-colors"
+                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 hover:bg-slate-900 hover:text-white transition-colors"
                   >
                     <span className="text-lg">{link.icon}</span>
                     <span>{link.label}</span>
