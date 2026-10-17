@@ -15,6 +15,7 @@ import { useChatStore } from "@/lib/hooks/useChatStore";
 import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
 import { DashboardsHeader } from "./DashboardsHeader";
 import { DashboardsEmptyState } from "./DashboardsEmptyState";
+import { DashboardsFilterTabs } from "./DashboardsFilterTabs";
 
 export default function AdminDashboardsPage() {
   const user = useAuthStore((s) => s.user);
@@ -213,36 +214,13 @@ export default function AdminDashboardsPage() {
       />
 
       {/* Filter Tabs */}
-      <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-2">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setFilterTab("todos")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-              filterTab === "todos"
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            }`}
-          >
-            Todos ({charts.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setFilterTab("fixados")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-              filterTab === "fixados"
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-            }`}
-          >
-            📌 Apenas Fixados ({charts.filter((c) => c.fixado).length})
-          </button>
-        </div>
-
-        <span className="text-xs text-slate-400">
-          {displayedCharts.length} gráfico(s) exibido(s)
-        </span>
-      </div>
+      <DashboardsFilterTabs
+        filterTab={filterTab}
+        totalCount={charts.length}
+        fixadosCount={charts.filter((c) => c.fixado).length}
+        displayedCount={displayedCharts.length}
+        onChange={setFilterTab}
+      />
 
       {/* Error state */}
       {error && (
