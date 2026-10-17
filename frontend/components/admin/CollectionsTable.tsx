@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { RagApiError, activateCollection, deleteCollection } from "@/lib/api/rag";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { CollectionPurpose, RagCollection } from "@/lib/types/rag";
+import { CollectionsPurposeFilter } from "./CollectionsPurposeFilter";
 
 export interface CollectionsTableProps {
   collections: RagCollection[];
@@ -79,56 +80,14 @@ export function CollectionsTable({
 
   return (
     <>
-      {/* Filtro por Finalidade */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1">
-          Finalidade:
-        </span>
-        <button
-          type="button"
-          onClick={() => setFiltroPurpose("todas")}
-          className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-            filtroPurpose === "todas"
-              ? "bg-slate-900 text-white shadow-2xs"
-              : "bg-slate-100 text-slate-600 hover:bg-slate-200/80"
-          }`}
-        >
-          Todas ({collections.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFiltroPurpose("chat")}
-          className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-            filtroPurpose === "chat"
-              ? "bg-blue-600 text-white shadow-2xs"
-              : "bg-blue-50 text-blue-700 hover:bg-blue-100/80"
-          }`}
-        >
-          💬 Chat ({chatCount})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFiltroPurpose("mcp_b2b")}
-          className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-            filtroPurpose === "mcp_b2b"
-              ? "bg-purple-600 text-white shadow-2xs"
-              : "bg-purple-50 text-purple-700 hover:bg-purple-100/80"
-          }`}
-        >
-          🏢 MCP B2B ({b2bCount})
-        </button>
-        <button
-          type="button"
-          onClick={() => setFiltroPurpose("admin")}
-          className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all ${
-            filtroPurpose === "admin"
-              ? "bg-rose-600 text-white shadow-2xs"
-              : "bg-rose-50 text-rose-700 hover:bg-rose-100/80"
-          }`}
-        >
-          🛡️ Admin ({adminCount})
-        </button>
-      </div>
+      <CollectionsPurposeFilter
+        filtroPurpose={filtroPurpose}
+        totalCount={collections.length}
+        chatCount={chatCount}
+        b2bCount={b2bCount}
+        adminCount={adminCount}
+        onChange={setFiltroPurpose}
+      />
 
       <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         <table className="w-full text-left text-sm">
