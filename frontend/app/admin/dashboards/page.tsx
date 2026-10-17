@@ -13,6 +13,8 @@ import {
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
+import { DashboardsHeader } from "./DashboardsHeader";
+import { DashboardsEmptyState } from "./DashboardsEmptyState";
 
 export default function AdminDashboardsPage() {
   const user = useAuthStore((s) => s.user);
@@ -202,49 +204,13 @@ export default function AdminDashboardsPage() {
       </nav>
 
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">📈</span>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              Dashboards &amp; Gráficos
-            </h1>
-          </div>
-          <p className="mt-1 text-sm text-slate-500">
-            Painel permanente de gráficos e visualizações geradas pelo Administrador no Chat.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleRefreshAll}
-            disabled={isRefreshingAll || charts.length === 0}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-blue-600 disabled:opacity-50 transition-colors"
-          >
-            <span className={isRefreshingAll ? "animate-spin" : ""}>🔄</span>
-            <span>Atualizar Todos</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-semibold text-blue-700 shadow-2xs hover:bg-blue-100 transition-colors"
-          >
-            <span>➕</span>
-            <span>Criar Gráfico</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => openChat()}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-blue-700 transition-colors"
-          >
-            <span>💬</span>
-            <span>Pedir Novo Gráfico</span>
-          </button>
-        </div>
-      </div>
+      <DashboardsHeader
+        chartsCount={charts.length}
+        isRefreshingAll={isRefreshingAll}
+        onRefreshAll={handleRefreshAll}
+        onOpenCreate={() => setIsCreateModalOpen(true)}
+        onOpenChat={openChat}
+      />
 
       {/* Filter Tabs */}
       <div className="mb-6 flex items-center justify-between border-b border-slate-200 pb-2">
@@ -297,37 +263,10 @@ export default function AdminDashboardsPage() {
         </div>
       ) : displayedCharts.length === 0 ? (
         /* Empty State */
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center shadow-2xs">
-          <span className="text-4xl">📊</span>
-          <h2 className="mt-3 text-lg font-bold text-slate-800">Nenhum gráfico disponível</h2>
-          <p className="mt-1 max-w-md text-sm text-slate-500">
-            Você ainda não possui gráficos salvos neste filtro. Peça um gráfico ao assistente
-            diretamente no chat para que ele apareça aqui permanentemente.
-          </p>
-          <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(true)}
-              className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
-            >
-              ➕ Criar Gráfico Manualmente
-            </button>
-            <button
-              type="button"
-              onClick={() => openChat()}
-              className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
-            >
-              &quot;Gere um gráfico de vendas por categoria&quot;
-            </button>
-            <button
-              type="button"
-              onClick={() => openChat()}
-              className="rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
-            >
-              &quot;Mostre o estoque por centro de distribuição&quot;
-            </button>
-          </div>
-        </div>
+        <DashboardsEmptyState
+          onOpenCreate={() => setIsCreateModalOpen(true)}
+          onOpenChat={openChat}
+        />
       ) : (
         /* Charts Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
