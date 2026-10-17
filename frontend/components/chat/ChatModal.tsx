@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 
 import AudioRecorder from "@/components/chat/AudioRecorder";
+import { ChatActionsBar } from "@/components/chat/ChatActionsBar";
+import { ChatMetricsBar } from "@/components/chat/ChatMetricsBar";
 import EscalonamentoBanner from "@/components/chat/EscalonamentoBanner";
 import ImageUploader from "@/components/chat/ImageUploader";
 import MessageBubble from "@/components/chat/MessageBubble";
@@ -571,35 +573,16 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           </div>
         )}
         {hasAssistantMessages && (
-          <div className="flex items-center justify-between border-b border-slate-200/80 bg-slate-100/90 backdrop-blur-xs px-3 sm:px-4 py-1.5 text-xs shrink-0 shadow-2xs">
-            <span className="text-slate-600 font-semibold flex items-center gap-1.5 text-[11px] sm:text-xs">
-              <span className="text-blue-600">📊</span>
-              <span className="hidden sm:inline">Métricas de Desempenho &amp; Telemetria</span>
-              <span className="sm:hidden">Telemetria</span>
-            </span>
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  exportMetricsToCsv(messages);
-                  focarCaixaMensagemSePonteiroPreciso();
-                }}
-                className="rounded-lg bg-slate-900 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-white hover:bg-slate-800 transition-all active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
-              >
-                <span>📥</span> <span className="hidden xs:inline">Exportar </span>CSV
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  exportMetricsToJson(messages);
-                  focarCaixaMensagemSePonteiroPreciso();
-                }}
-                className="rounded-lg bg-slate-200/90 border border-slate-300/60 px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-slate-800 hover:bg-slate-300 transition-all active:scale-95 flex items-center gap-1 shadow-2xs cursor-pointer"
-              >
-                <span>📥</span> <span className="hidden xs:inline">Exportar </span>JSON
-              </button>
-            </div>
-          </div>
+          <ChatMetricsBar
+            onExportCsv={() => {
+              exportMetricsToCsv(messages);
+              focarCaixaMensagemSePonteiroPreciso();
+            }}
+            onExportJson={() => {
+              exportMetricsToJson(messages);
+              focarCaixaMensagemSePonteiroPreciso();
+            }}
+          />
         )}
 
         <div
@@ -704,50 +687,20 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           </form>
 
           {messages.length > 0 && (
-            <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-100 text-xs">
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleSolicitarAtendente();
-                    focarCaixaMensagemSePonteiroPreciso();
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300/80 bg-emerald-50/90 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-emerald-800 shadow-2xs hover:bg-emerald-100 hover:border-emerald-400 transition-all active:scale-95 cursor-pointer"
-                  title="Solicitar transbordo para atendimento humano"
-                  aria-label="Falar com atendente humano"
-                >
-                  <span>👤</span>
-                  <span>Falar com atendente</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleCloseConversation();
-                    focarCaixaMensagemSePonteiroPreciso();
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300/80 bg-amber-50/90 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-amber-800 shadow-2xs hover:bg-amber-100 hover:border-amber-400 transition-all active:scale-95 cursor-pointer"
-                  title="Encerrar atendimento atual e contabilizar métricas"
-                  aria-label="Encerrar atendimento"
-                >
-                  <span>🏁</span>
-                  <span className="hidden xs:inline">Encerrar atendimento</span>
-                  <span className="xs:hidden">Encerrar</span>
-                </button>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  void handleClearHistory();
-                  focarCaixaMensagemSePonteiroPreciso();
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200/80 bg-rose-50/90 px-2.5 py-1 text-[11px] sm:text-xs font-semibold text-rose-700 shadow-2xs hover:bg-rose-100 hover:border-rose-300 transition-all active:scale-95 cursor-pointer shrink-0"
-                title="Apagar mensagens e memória da conversa"
-                aria-label="Limpar histórico da conversa"
-              >
-                <span>🗑️</span>
-                <span>Limpar histórico</span>
-              </button>
-            </div>
+            <ChatActionsBar
+              onSolicitarAtendente={() => {
+                void handleSolicitarAtendente();
+                focarCaixaMensagemSePonteiroPreciso();
+              }}
+              onEncerrar={() => {
+                void handleCloseConversation();
+                focarCaixaMensagemSePonteiroPreciso();
+              }}
+              onLimparHistorico={() => {
+                void handleClearHistory();
+                focarCaixaMensagemSePonteiroPreciso();
+              }}
+            />
           )}
         </div>
       </div>
