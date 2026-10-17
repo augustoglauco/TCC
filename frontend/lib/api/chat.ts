@@ -47,6 +47,72 @@ function parseSseBlock(block: string): { event: string; data: string } | null {
   return data ? { event, data } : null;
 }
 
+type SseCallbacks = Pick<
+  SendChatMessageParams,
+  | "onConversationId"
+  | "onTranscription"
+  | "onStatus"
+  | "onToken"
+  | "onDone"
+  | "onError"
+  | "onEscalonamento"
+>;
+
+/** Despacha um evento SSE já parseado para o callback correspondente. */
+function handleSseEvent(
+  event: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  json: any,
+  callbacks: SseCallbacks,
+  setConcluiu: (v: boolean) => void,
+): void {
+  switch (event) {
+    case "conversation":
+      callbacks.onConversationId(json.conversation_id);
+      break;
+    case "transcription":
+      callbacks.onTranscription(json.transcribed_message);
+      break;
+    case "status":
+      callbacks.onStatus(json.status);
+      break;
+    case "token":
+      callbacks.onToken(json.text);
+      break;
+    case "escalonamento":
+      callbacks.onEscalonamento?.(json as ChatEscalonamentoData);
+      break;
+    case "done":
+      setConcluiu(true);
+      callbacks.onDone(json as ChatDoneEventData);
+      break;
+    case "error":
+      setConcluiu(true);
+      callbacks.onError(json.detail ?? "Erro inesperado. Tente novamente.");
+      break;
+  }
+}
+
+/** Consome todos os blocos SSE completos do buffer, retorna o restante. */
+function processarBuffer(
+  buffer: string,
+  callbacks: SseCallbacks,
+  setConcluiu: (v: boolean) => void,
+): string {
+  let buf = buffer;
+  let sepIndex = buf.indexOf("\n\n");
+  while (sepIndex !== -1) {
+    const block = buf.slice(0, sepIndex);
+    buf = buf.slice(sepIndex + 2);
+    const parsed = parseSseBlock(block);
+    if (parsed) {
+      handleSseEvent(parsed.event, JSON.parse(parsed.data), callbacks, setConcluiu);
+    }
+    sepIndex = buf.indexOf("\n\n");
+  }
+  return buf;
+}
+
 /**
  * Envia uma mensagem (texto, áudio e/ou imagem) ao backend e entrega a resposta
  * incrementalmente via os callbacks (SSE) — nunca lança, erros de
@@ -105,48 +171,25 @@ export async function sendChatMessage({
   // UI ficaria travada sem nenhum feedback — essa flag garante que sempre
   // sobra um `onError` nesse caso.
   let concluiu = false;
+  const setConcluiu = (v: boolean) => {
+    concluiu = v;
+  };
+  const callbacks = {
+    onConversationId,
+    onTranscription,
+    onStatus,
+    onToken,
+    onDone,
+    onError,
+    onEscalonamento,
+  };
 
   try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-
-      let sepIndex = buffer.indexOf("\n\n");
-      while (sepIndex !== -1) {
-        const block = buffer.slice(0, sepIndex);
-        buffer = buffer.slice(sepIndex + 2);
-        const parsed = parseSseBlock(block);
-        if (parsed) {
-          const json = JSON.parse(parsed.data);
-          switch (parsed.event) {
-            case "conversation":
-              onConversationId(json.conversation_id);
-              break;
-            case "transcription":
-              onTranscription(json.transcribed_message);
-              break;
-            case "status":
-              onStatus(json.status);
-              break;
-            case "token":
-              onToken(json.text);
-              break;
-            case "escalonamento":
-              onEscalonamento?.(json as ChatEscalonamentoData);
-              break;
-            case "done":
-              concluiu = true;
-              onDone(json as ChatDoneEventData);
-              break;
-            case "error":
-              concluiu = true;
-              onError(json.detail ?? "Erro inesperado. Tente novamente.");
-              break;
-          }
-        }
-        sepIndex = buffer.indexOf("\n\n");
-      }
+      buffer = processarBuffer(buffer, callbacks, setConcluiu);
     }
   } catch {
     onError("Conexão perdida durante o recebimento da resposta. Tente novamente.");
