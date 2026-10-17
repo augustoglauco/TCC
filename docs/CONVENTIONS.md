@@ -436,6 +436,26 @@ um hook avisando da defasagem em cada chamada de Bash — ruído puro, dado que
 skills `gitnexus-*` continuam instalados e inertes; os manuais em
 `docs/Manuais/gitnexus-manual.md` ficam como referência histórica.
 
-**Serena: pendente de decisão do dono.** É baseada em LSP (rename, find
-references), então sobrepõe pouco os grafos — mas teve zero usos e continua
-subindo dois processos. Fica registrada aqui para não ser esquecida.
+**Serena: removida** em 2026-10-17 (`claude mcp remove serena`), fechando a
+consolidação. Era a mais barata das quatro — nenhum hook, e tools *deferred*,
+que só entram no contexto sob demanda — então o motivo não foi custo:
+
+- Zero usos, e `.serena/memories/` **vazio** depois de 9 dias instalada: nada
+  a perder na remoção.
+- O diferencial real dela são as **edições guiadas por language server**
+  (`rename_symbol`, `replace_symbol_body`, `safe_delete_symbol`), que nunca
+  se encaixaram no fluxo daqui: o Claude Code exige `Read` antes de `Edit`, e
+  o `get_diagnostics_for_file` cobre o que `ruff`/`eslint` do checklist já
+  pegam.
+- O sistema de memória dela seria o **terceiro** do projeto, ao lado do
+  claude-mem e do auto-memory, com risco de registro dividido.
+
+`.serena/project.yml` foi **preservado** (e `.serena/` é gitignored), só o
+cache de LSP de 18 MB foi apagado — reinstalar é um comando, sem
+reconfigurar. **Quando vale trazer de volta:** um rename grande no frontend
+TypeScript, onde o `rename_symbol` segue tipos e é genuinamente melhor que
+grep-and-replace. Para isso, reinstale para a tarefa e remova depois.
+
+**Resultado da consolidação:** sobrou **um** sistema de inteligência de
+código (Repowise) e **um** hook por chamada de Bash (`repowise-rewrite`),
+contra quatro sistemas e quatro hooks antes.
