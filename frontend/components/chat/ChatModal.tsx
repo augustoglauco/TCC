@@ -2,11 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import AudioRecorder from "@/components/chat/AudioRecorder";
-import { ChatActionsBar } from "@/components/chat/ChatActionsBar";
+import { ChatDragOverlay } from "@/components/chat/ChatDragOverlay";
+import { ChatInputArea } from "@/components/chat/ChatInputArea";
 import { ChatMetricsBar } from "@/components/chat/ChatMetricsBar";
 import EscalonamentoBanner from "@/components/chat/EscalonamentoBanner";
-import ImageUploader from "@/components/chat/ImageUploader";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
 import {
@@ -558,20 +557,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         onDrop={handleDrop}
         className="relative flex h-[62vh] sm:h-[68vh] min-h-[380px] max-h-[600px] flex-col rounded-xl border border-slate-200 bg-slate-50/50"
       >
-        {isDraggingOver && (
-          <div
-            data-testid="chat-drag-overlay"
-            className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-blue-500 bg-blue-50/95 p-6 text-center backdrop-blur-xs transition-all"
-          >
-            <div className="rounded-full bg-blue-100 p-4 text-3xl shadow-xs">📥</div>
-            <p className="mt-3 text-sm font-semibold text-blue-900">
-              Solte a imagem ou áudio aqui para enviar
-            </p>
-            <p className="mt-1 text-xs text-blue-600">
-              Suporta imagens (PNG, JPG, WEBP) e arquivos de áudio (MP3, WAV, M4A, etc.)
-            </p>
-          </div>
-        )}
+        <ChatDragOverlay visible={isDraggingOver} />
         {hasAssistantMessages && (
           <ChatMetricsBar
             onExportCsv={() => {
@@ -628,81 +614,42 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           <div ref={messagesEndRef} />
         </div>
 
-        <div className="border-t border-slate-200/80 bg-white p-2 sm:p-3 rounded-b-xl shrink-0 flex flex-col gap-2">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submitMessage(input);
-            }}
-            className="flex items-center gap-1.5 sm:gap-2 min-w-0"
-          >
-            <label htmlFor="chat-modal-input" className="sr-only">
-              Mensagem
-            </label>
-            {pendingImage && (
-              <div className="flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700 max-w-[120px] sm:max-w-none truncate">
-                <span className="truncate">🖼️ {pendingImage.name}</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPendingImage(null);
-                    focarCaixaMensagem();
-                  }}
-                  className="ml-1 font-bold hover:text-blue-900 shrink-0"
-                  aria-label="Remover imagem"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-            <input
-              ref={inputRef}
-              id="chat-modal-input"
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              disabled={controlsDisabled}
-              placeholder="Digite sua mensagem..."
-              className="flex-1 min-w-0 rounded-xl border border-slate-300 bg-slate-50 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-400/20 disabled:opacity-50"
-            />
-            <ImageUploader
-              disabled={controlsDisabled}
-              onImageSelected={(base64, name) => {
-                setPendingImage({ base64, name });
-                focarCaixaMensagem();
-              }}
-            />
-            <AudioRecorder
-              disabled={isSending}
-              onRecordingComplete={(audioBase64) => void submitAudio(audioBase64)}
-              onRecordingStateChange={setIsRecording}
-            />
-            <button
-              type="submit"
-              disabled={!canSend}
-              className="rounded-xl bg-slate-900 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50 transition-all active:scale-95 shadow-2xs shrink-0 cursor-pointer"
-            >
-              Enviar
-            </button>
-          </form>
-
-          {messages.length > 0 && (
-            <ChatActionsBar
-              onSolicitarAtendente={() => {
-                void handleSolicitarAtendente();
-                focarCaixaMensagemSePonteiroPreciso();
-              }}
-              onEncerrar={() => {
-                void handleCloseConversation();
-                focarCaixaMensagemSePonteiroPreciso();
-              }}
-              onLimparHistorico={() => {
-                void handleClearHistory();
-                focarCaixaMensagemSePonteiroPreciso();
-              }}
-            />
-          )}
-        </div>
+        <ChatInputArea
+          input={input}
+          pendingImage={pendingImage}
+          controlsDisabled={controlsDisabled}
+          isSending={isSending}
+          canSend={canSend}
+          showActions={messages.length > 0}
+          onInputChange={setInput}
+          onRemovePendingImage={() => {
+            setPendingImage(null);
+            focarCaixaMensagem();
+          }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            void submitMessage(input);
+          }}
+          onImageSelected={(base64, name) => {
+            setPendingImage({ base64, name });
+            focarCaixaMensagem();
+          }}
+          onRecordingComplete={(audioBase64) => void submitAudio(audioBase64)}
+          onRecordingStateChange={setIsRecording}
+          onSolicitarAtendente={() => {
+            void handleSolicitarAtendente();
+            focarCaixaMensagemSePonteiroPreciso();
+          }}
+          onEncerrar={() => {
+            void handleCloseConversation();
+            focarCaixaMensagemSePonteiroPreciso();
+          }}
+          onLimparHistorico={() => {
+            void handleClearHistory();
+            focarCaixaMensagemSePonteiroPreciso();
+          }}
+          inputRef={inputRef}
+        />
       </div>
     </Modal>
   );
