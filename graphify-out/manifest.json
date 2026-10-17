@@ -456,9 +456,9 @@
     "semantic_hash": "e1d0492dc142221b2de2d8408d41dd84"
   },
   "backend/src/app/main.py": {
-    "mtime": 1792112993.2223296,
-    "seen": 1792186651.7239406,
-    "ast_hash": "f36d448092ca1f2acb8ea8d66cf1b7a2",
+    "mtime": 1792196574.2266061,
+    "seen": 1792227753.412104,
+    "ast_hash": "f338adb54306433757cb05a8e9b5cf17",
     "semantic_hash": ""
   },
   "backend/src/app/mcp_client/__init__.py": {
@@ -1332,9 +1332,9 @@
     "semantic_hash": ""
   },
   "frontend/components/layout/AdminGearMenu.tsx": {
-    "mtime": 1792113044.5932407,
-    "seen": 1792186651.7240834,
-    "ast_hash": "f76fd9d207c10c0daa29859d7e995a8c",
+    "mtime": 1792226607.8275285,
+    "seen": 1792227753.4122348,
+    "ast_hash": "61ff0dcc7e742cce2d2259520c83e1e2",
     "semantic_hash": ""
   },
   "frontend/components/layout/Footer.tsx": {
@@ -1764,9 +1764,9 @@
     "semantic_hash": ""
   },
   "docs/EVALUATION.md": {
-    "mtime": 1792113044.5944076,
-    "seen": 1792186651.7241638,
-    "ast_hash": "a8be0120189d0ff535c54b796e34952f",
+    "mtime": 1792196465.0930657,
+    "seen": 1792227753.412311,
+    "ast_hash": "ecfa034ef136fb96125a7dbeabce94a7",
     "semantic_hash": ""
   },
   "docs/FRONTEND.md": {
@@ -1788,9 +1788,9 @@
     "semantic_hash": "d9abb197a164f873bfb0dd988ac58f1a"
   },
   "docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md": {
-    "mtime": 1792095793.718683,
-    "seen": 1792186651.7241673,
-    "ast_hash": "2b8698f8b7198ac290bd9ebd800e83e0",
+    "mtime": 1792189801.8603516,
+    "seen": 1792227753.4123144,
+    "ast_hash": "7bfdca703718b0132f2683add1cb3a19",
     "semantic_hash": ""
   },
   "docs/Manuais/headroom-manual.md": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792186635.820644,
-    "seen": 1792186651.7241738,
-    "ast_hash": "f972266ebbf07948f8215c0b2f9fb965",
+    "mtime": 1792195953.3924525,
+    "seen": 1792227753.41232,
+    "ast_hash": "50532b11561f5021637db766c63654c9",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
@@ -2325,6 +2325,48 @@
     "mtime": 1792100917.6574771,
     "seen": 1792186651.7241683,
     "ast_hash": "8f25a7f803c8955ab68c19cd52c9df88",
+    "semantic_hash": ""
+  },
+  "backend/eval/model_benchmark/imagens/dataset.json": {
+    "mtime": 1792191879.2242854,
+    "seen": 1792227753.4120057,
+    "ast_hash": "9fd016767caa7b2095bb22a8ff8f549c",
+    "semantic_hash": ""
+  },
+  "backend/eval/model_benchmark/modelos.json": {
+    "mtime": 1792187465.2911036,
+    "seen": 1792227753.4120088,
+    "ast_hash": "fd47eefc7b0fbadcc63dce0d08f34c16",
+    "semantic_hash": ""
+  },
+  "backend/eval/model_benchmark/run_benchmark.py": {
+    "mtime": 1792192034.2709808,
+    "seen": 1792227753.41201,
+    "ast_hash": "2902266ea5cbb8cef8ccae8ffecd49eb",
+    "semantic_hash": ""
+  },
+  "backend/scripts/ingerir_corpus_avaliacao.py": {
+    "mtime": 1792196636.6374342,
+    "seen": 1792227753.4120567,
+    "ast_hash": "79c75e56248869578f26fffa4e4bbee0",
+    "semantic_hash": ""
+  },
+  "backend/src/app/api/admin_datasets.py": {
+    "mtime": 1792196586.704473,
+    "seen": 1792227753.4120715,
+    "ast_hash": "317e7ddba4ab1d08ebf3d51de778d8c7",
+    "semantic_hash": ""
+  },
+  "backend/eval/model_benchmark/README.md": {
+    "mtime": 1792192188.3423085,
+    "seen": 1792227753.4122999,
+    "ast_hash": "8bb952cc756919c26163eb81297355ff",
+    "semantic_hash": ""
+  },
+  "backend/eval/model_benchmark/imagens/negativo-comprovante-bancario.jpg": {
+    "mtime": 1792191862.9694405,
+    "seen": 1792227753.412367,
+    "ast_hash": "ba4f89bafe7e5ea07583c8fa1a2c8fb5",
     "semantic_hash": ""
   }
 }
