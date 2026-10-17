@@ -387,6 +387,27 @@ def _parse_extraction(raw_text: str) -> VendaSlots:
     return VendaSlots(**parsed)
 
 
+def _validar_slots(
+    slots: VendaSlots,
+    candidatos: list[CandidatoProduto],
+    categorias: list[str],
+) -> VendaSlots:
+    """Pós-processamento do JSON do LLM: descarta IDs inventados, normaliza
+    categoria e aplica precedência produto > categoria > listar_tudo."""
+    ids_validos = {c.id for c in candidatos}
+    if slots.produto_id is not None and slots.produto_id not in ids_validos:
+        slots.produto_id = None
+    if slots.produto_relacionado_id is not None and slots.produto_relacionado_id not in ids_validos:
+        slots.produto_relacionado_id = None
+    if slots.categoria is not None:
+        categorias_norm = {normalize(c): c for c in categorias}
+        categoria_real = categorias_norm.get(normalize(slots.categoria))
+        slots.categoria = None if slots.produto_id is not None else categoria_real
+    if slots.produto_id is not None or slots.categoria is not None:
+        slots.listar_tudo = False
+    return slots
+
+
 async def extract_sales_slots(
     message: str,
     recent_messages: list[str],
@@ -439,26 +460,7 @@ async def extract_sales_slots(
         slots = _parse_extraction(response.text)
     except json.JSONDecodeError, ValidationError, TypeError:
         return VendaSlots()
-
-    ids_validos = {candidato.id for candidato in candidatos}
-    if slots.produto_id is not None and slots.produto_id not in ids_validos:
-        slots.produto_id = None
-    if slots.produto_relacionado_id is not None and slots.produto_relacionado_id not in ids_validos:
-        slots.produto_relacionado_id = None
-    # Categoria só vale se for uma das disponíveis (comparação sem acento/
-    # caixa, mesma normalização do resto do módulo) e se nenhum produto
-    # específico foi identificado — produto único tem precedência sobre a
-    # listagem genérica por categoria.
-    if slots.categoria is not None:
-        categorias_norm = {normalize(categoria): categoria for categoria in categorias}
-        categoria_real = categorias_norm.get(normalize(slots.categoria))
-        slots.categoria = None if slots.produto_id is not None else categoria_real
-    # "listar_tudo" só vale quando nem produto nem categoria foram
-    # resolvidos — produto único e categoria específica têm precedência
-    # (mesmo espírito da precedência categoria > produto_id acima).
-    if slots.produto_id is not None or slots.categoria is not None:
-        slots.listar_tudo = False
-    return slots
+    return _validar_slots(slots, candidatos, categorias)
 
 
 def _texto_contem_evidencia_transacional(t: str) -> bool:
@@ -524,6 +526,70 @@ def texto_parece_conteudo_de_comprovante(message: str) -> bool:
     return _texto_contem_evidencia_transacional(t)
 
 
+async def _avaliar_conteudo_comprovante(
+    evaluator: ComprovanteEvaluator,
+    texto_comprovante: str,
+    comprovante_bytes: bytes | None,
+    filename_safe: str | None,
+    valor_devido: Decimal,
+    pedido: Pedido,
+) -> ParecerComprovante | None:
+    """Escolhe o avaliador certo (texto OCR, arquivo ou nenhum) e devolve o
+    parecer, ou `None` quando nenhum conteúdo real foi submetido."""
+    if texto_comprovante and texto_parece_conteudo_de_comprovante(texto_comprovante):
+        return await evaluator.avaliar_texto(
+            texto=texto_comprovante,
+            valor_devido=valor_devido,
+            reserva_id=str(pedido.id),
+            nome_comprador=pedido.user_email or "Cliente",
+        )
+    if comprovante_bytes:
+        return await evaluator.avaliar_documento(
+            conteudo=comprovante_bytes,
+            nome_arquivo=filename_safe or "comprovante.png",
+            valor_devido=valor_devido,
+            reserva_id=str(pedido.id),
+            nome_comprador=pedido.user_email or "Cliente",
+        )
+    return None
+
+
+def _mensagem_resultado_conversao(
+    parecer: ParecerComprovante,
+    pedido: Pedido,
+    valor_devido: Decimal,
+) -> str:
+    if parecer.valido and abs(parecer.divergencia) <= Decimal("0.01"):
+        tx_info = f" (Transação: {parecer.codigo_transacao})" if parecer.codigo_transacao else ""
+        return (
+            f"Seu pagamento foi confirmado com sucesso! O comprovante no valor de "
+            f"R$ {parecer.valor_pago:.2f} foi validado com êxito{tx_info}. Sua reserva "
+            f"({pedido.id}) foi convertida em venda concluída."
+        )
+    if parecer.valor_pago > Decimal("0.00") and abs(parecer.divergencia) > Decimal("0.01"):
+        return (
+            f"Identificamos uma divergência no seu comprovante. O valor devido "
+            f"para a sua reserva é de R$ {valor_devido:.2f}, mas o comprovante "
+            f"aponta R$ {parecer.valor_pago:.2f} "
+            f"(diferença de R$ {abs(parecer.divergencia):.2f}). "
+            f"Por favor, verifique e envie o comprovante com o valor correto "
+            f"para concluirmos sua compra."
+        )
+    return (
+        f"Não foi possível validar o seu comprovante de pagamento: "
+        f"{parecer.justificativa}. Por favor, envie um comprovante legível "
+        f"(PIX, TED ou transferência) com o valor integral da sua reserva "
+        f"(R$ {valor_devido:.2f})."
+    )
+
+
+async def _buscar_por_criterio(
+    session: AsyncSession, base_stmt: Any, criterio: Any
+) -> Pedido | None:
+    result = await session.execute(base_stmt.where(criterio))
+    return result.scalar_one_or_none()
+
+
 async def buscar_reserva_ativa(
     session: AsyncSession,
     conversation_id: str | None = None,
@@ -554,20 +620,19 @@ async def buscar_reserva_ativa(
         except ValueError, TypeError:
             uuid_obj = None
         if uuid_obj is not None:
-            result = await session.execute(base_stmt.where(Pedido.id == uuid_obj))
-            pedido = result.scalar_one_or_none()
+            pedido = await _buscar_por_criterio(session, base_stmt, Pedido.id == uuid_obj)
             if pedido is not None:
                 return pedido
 
     if conversation_id:
-        result = await session.execute(base_stmt.where(Pedido.conversation_id == conversation_id))
-        pedido = result.scalar_one_or_none()
+        pedido = await _buscar_por_criterio(
+            session, base_stmt, Pedido.conversation_id == conversation_id
+        )
         if pedido is not None:
             return pedido
 
     if user_email:
-        result = await session.execute(base_stmt.where(Pedido.user_email == user_email))
-        pedido = result.scalar_one_or_none()
+        pedido = await _buscar_por_criterio(session, base_stmt, Pedido.user_email == user_email)
         if pedido is not None:
             return pedido
 
@@ -621,34 +686,10 @@ async def processar_conversao_comprovante(
         file_path.write_bytes(comprovante_bytes)
         pedido.comprovante_url = f"/uploads/comprovantes/{filename_safe}"
 
-    # Achado de 2026-10-05: a ordem aqui importa. Texto só vai para o
-    # avaliador de IA quando PARECE conter dado real de transação
-    # (`texto_parece_conteudo_de_comprovante`) — cobre tanto o comprovante
-    # colado como texto literal quanto o OCR de imagem já concatenado pelo
-    # `app.api.chat` (marcador `[Texto extraído da imagem]`). Uma frase que
-    # só ANUNCIA a intenção de enviar (ex.: "quero enviar o comprovante",
-    # sem anexo e sem dado real) nunca tinha conteúdo nenhum para validar —
-    # mandá-la para o avaliador sempre reprovava de forma confusa para o
-    # cliente. Se não há texto com conteúdo mas há um arquivo anexado
-    # (`comprovante_bytes`), avalia o arquivo; sem nenhum dos dois, pede o
-    # anexo explicitamente, sem marcar a reserva como divergente (nada foi
-    # de fato submetido para já haver uma divergência a registrar).
-    if texto_comprovante and texto_parece_conteudo_de_comprovante(texto_comprovante):
-        parecer = await evaluator.avaliar_texto(
-            texto=texto_comprovante,
-            valor_devido=valor_devido,
-            reserva_id=str(pedido.id),
-            nome_comprador=pedido.user_email or "Cliente",
-        )
-    elif comprovante_bytes:
-        parecer = await evaluator.avaliar_documento(
-            conteudo=comprovante_bytes,
-            nome_arquivo=filename_safe or "comprovante.png",
-            valor_devido=valor_devido,
-            reserva_id=str(pedido.id),
-            nome_comprador=pedido.user_email or "Cliente",
-        )
-    else:
+    parecer = await _avaliar_conteudo_comprovante(
+        evaluator, texto_comprovante, comprovante_bytes, filename_safe, valor_devido, pedido
+    )
+    if parecer is None:
         mensagem_resposta = (
             f"Para confirmar o pagamento da sua reserva ({pedido.id}), por favor envie uma foto "
             f"ou um arquivo legível do comprovante (PIX, TED ou transferência) no valor de "
@@ -664,9 +705,7 @@ async def processar_conversao_comprovante(
         )
         return False, mensagem_resposta, parecer_vazio
 
-    # Conversão genérica via chat para qualquer reserva emitida
     tipo_conversao = "auto_chat"
-
     if parecer.valido and abs(parecer.divergencia) <= Decimal("0.01"):
         pedido.status = "venda_concluida"
         pedido.tipo_conversao = tipo_conversao
@@ -674,33 +713,10 @@ async def processar_conversao_comprovante(
         pedido.convertido_por = "sistema_llm"
         pedido.llm_parecer = parecer.to_json()
         await session.commit()
-
-        tx_info = f" (Transação: {parecer.codigo_transacao})" if parecer.codigo_transacao else ""
-        mensagem_resposta = (
-            f"Seu pagamento foi confirmado com sucesso! O comprovante no valor de "
-            f"R$ {parecer.valor_pago:.2f} foi validado com êxito{tx_info}. Sua reserva "
-            f"({pedido.id}) foi convertida em venda concluída."
-        )
-        return True, mensagem_resposta, parecer
     else:
         pedido.status = "pagamento_divergente"
         pedido.llm_parecer = parecer.to_json()
         await session.commit()
 
-        if parecer.valor_pago > Decimal("0.00") and abs(parecer.divergencia) > Decimal("0.01"):
-            mensagem_resposta = (
-                f"Identificamos uma divergência no seu comprovante. O valor devido "
-                f"para a sua reserva é de R$ {valor_devido:.2f}, mas o comprovante "
-                f"aponta R$ {parecer.valor_pago:.2f} "
-                f"(diferença de R$ {abs(parecer.divergencia):.2f}). "
-                f"Por favor, verifique e envie o comprovante com o valor correto "
-                f"para concluirmos sua compra."
-            )
-        else:
-            mensagem_resposta = (
-                f"Não foi possível validar o seu comprovante de pagamento: "
-                f"{parecer.justificativa}. Por favor, envie um comprovante legível "
-                f"(PIX, TED ou transferência) com o valor integral da sua reserva "
-                f"(R$ {valor_devido:.2f})."
-            )
-        return False, mensagem_resposta, parecer
+    sucesso = parecer.valido and abs(parecer.divergencia) <= Decimal("0.01")
+    return sucesso, _mensagem_resultado_conversao(parecer, pedido, valor_devido), parecer
