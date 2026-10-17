@@ -165,6 +165,33 @@ A cada sessão, o servidor sobe no passo 4 abaixo. Os casos de teste manuais
 do agendamento estão em `docs/TESTE_LOCAL.md`, "Roteiro manual:
 agendamento".
 
+### 0.8 Ferramentas de código (Repowise)
+
+O Repowise é a fonte única de inteligência de código desde 2026-10-17
+(`docs/CONVENTIONS.md`, "Ordem de uso das ferramentas de grafo de código").
+Duas configurações dele são **gitignored** e precisam ser recriadas à mão
+nesta máquina:
+
+```bash
+repowise init --yes --no-claude-md   # sem --no-claude-md ele sobrescreve o CLAUDE.md do projeto
+```
+
+E o orçamento de síntese, sem o qual `get_answer` volta
+`degraded: "synthesis-failed"` (o modelo local gasta os 1024 tokens padrão em
+raciocínio oculto e não emite resposta):
+
+```bash
+# para o CLI `repowise ask`
+echo 'REPOWISE_SYNTHESIS_MAX_TOKENS=4096' >> .repowise/.env
+```
+
+```jsonc
+// .mcp.json — bloco env do servidor repowise, para o MCP
+{ "mcpServers": { "repowise": { "env": { "REPOWISE_SYNTHESIS_MAX_TOKENS": "4096" } } } }
+```
+
+O servidor MCP só herda a variável depois de reiniciar a sessão.
+
 ## 1. Derrubar processos antigos do projeto (portas 8000, 3001, 8090, 8100 e 8443)
 
 ```bash

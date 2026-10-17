@@ -459,3 +459,54 @@ grep-and-replace. Para isso, reinstale para a tarefa e remova depois.
 **Resultado da consolidação:** sobrou **um** sistema de inteligência de
 código (Repowise) e **um** hook por chamada de Bash (`repowise-rewrite`),
 contra quatro sistemas e quatro hooks antes.
+
+#### O que foi verificado do Repowise, e o que está limitado
+
+A substituição foi **testada** em 2026-10-17, não presumida — a recomendação
+original saiu da lista de recursos, sem uso em sessão real.
+
+**Funciona, com ground truth conferido:**
+
+- `search_codebase` em modo símbolo: achou `ndcg_at_k` em
+  `backend/eval/rag_ingestion/metricas.py:98-119`, com `complete: true` e as
+  três ocorrências (definição, chamada, referência). `exact_match: true`.
+- **O índice se auto-atualiza.** `indexed_commit` igual ao `live_head`,
+  `index_behind: false`, `index_age_days: 0` — sem ninguém rodar
+  `repowise update`. É a diferença prática contra o GitNexus, que ficou 16
+  commits atrás.
+- O gate de deriva de documentação (item 11) e o `repowise distill` foram
+  usados a sessão toda.
+
+**Limitação por configuração: busca semântica desligada.**
+`.repowise/config.yaml` tem `embedder: mock`, então `semantic_search: false`
+e consultas em prosa caem para full-text. Não é defeito nem regressão em
+relação ao Graphify (cuja `query` também não usa embeddings — é travessia
+estrutural sobre AST), mas é bom saber: para pergunta conceitual, o caminho
+que funciona é `get_answer`, que faz recuperação híbrida, e não
+`search_codebase` com texto livre.
+
+**Defeito encontrado e corrigido: síntese do `get_answer`.** Com o orçamento
+padrão de 1024 tokens, o `gemma4:12b-it-q4_K_M` gastava o orçamento inteiro
+em raciocínio oculto e não emitia resposta — `get_answer` voltava
+`degraded: "synthesis-failed"`, `confidence: low`,
+`retrieval_quality: weak`. Com `REPOWISE_SYNTHESIS_MAX_TOKENS=4096`,
+verificado, a síntese funciona e a confiança sobe para `medium`, citando os
+arquivos certos. Fixado em dois lugares, porque atendem consumidores diferentes:
+
+- `.mcp.json` → bloco `env` do servidor `repowise`, para o MCP. Exige
+  reiniciar a sessão para o servidor herdar a variável.
+- `.repowise/.env` → para o CLI (`repowise ask`).
+
+**Nenhum dos dois é versionado** (`.gitignore:48` cobre `.repowise/` e a
+`:54` cobre `.mcp.json`), então a correção **não** sobrevive a um clone novo
+— é passo manual de máquina nova, registrado no `goup.md` (passo 0.8).
+
+**Fato operacional que vale lembrar:** a síntese do Repowise roda no
+`gemma4:12b-it-q4_K_M` via Ollama (`.repowise/config.yaml`), que é **o mesmo
+modelo gerador do próprio assistente**. Ou seja, `get_answer` disputa a GPU
+com o sistema avaliado — não usar durante uma rodada de benchmark da Fase 10,
+sob pena de contaminar a medição de latência.
+
+Pendências conhecidas, nenhuma bloqueante: o índice está em
+`status: "upgrading"` (`Full upgrade: pending`), e o servidor roda 0.56.0 com
+a 0.57.0 disponível.
