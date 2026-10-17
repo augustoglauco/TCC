@@ -14,18 +14,18 @@ import type {
   AgendamentoManualInput,
   GoogleCalendarEvent,
 } from "@/lib/types/agendamentos";
+import { AgendamentosSystemTab } from "./AgendamentosSystemTab";
+import { GoogleCalendarTab } from "./GoogleCalendarTab";
+import { AgendamentoManualModal } from "./AgendamentoManualModal";
 
-function formatarDataHora(dataIso: string): string {
-  try {
-    const d = new Date(dataIso);
-    return new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "short",
-    }).format(d);
-  } catch {
-    return dataIso;
-  }
-}
+const FORM_VAZIO: AgendamentoManualInput = {
+  user_email: "",
+  nome_cliente: "",
+  telefone: "",
+  data_hora_inicio: "",
+  duracao_minutos: 60,
+  descricao: "",
+};
 
 export default function AdminAgendamentosPage() {
   const user = useAuthStore((state) => state.user);
@@ -34,36 +34,20 @@ export default function AdminAgendamentosPage() {
   const [activeTab, setActiveTab] = useState<"sistema" | "google">("sistema");
   const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
   const [googleEvents, setGoogleEvents] = useState<GoogleCalendarEvent[]>([]);
-  // Comeca `true`: o efeito abaixo sempre carrega para um admin, e ligar o
-  // spinner de dentro do efeito seria setState sincrono
-  // (react-hooks/set-state-in-effect). Os caminhos interativos ligam o
-  // spinner no proprio handler.
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtros Aba 1 (Sistema)
   const [filtroEmail, setFiltroEmail] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("");
-  // Os filtros sao aplicados por botao, nao a cada tecla. Os loaders leem o
-  // valor corrente por ref para continuarem estaveis (`useCallback` sem
-  // dependencias) e o efeito de carga nao reagir a digitacao.
   const filtrosRef = useRef({ email: filtroEmail, status: filtroStatus });
   useEffect(() => {
     filtrosRef.current = { email: filtroEmail, status: filtroStatus };
   }, [filtroEmail, filtroStatus]);
 
-  // Modal Agendamento Manual
   const [modalAberto, setModalAberto] = useState(false);
   const [submittingManual, setSubmittingManual] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
-  const [manualForm, setManualForm] = useState<AgendamentoManualInput>({
-    user_email: "",
-    nome_cliente: "",
-    telefone: "",
-    data_hora_inicio: "",
-    duracao_minutos: 60,
-    descricao: "",
-  });
+  const [manualForm, setManualForm] = useState<AgendamentoManualInput>(FORM_VAZIO);
 
   const carregarSistema = useCallback(async () => {
     const { email, status } = filtrosRef.current;
@@ -75,8 +59,7 @@ export default function AdminAgendamentosPage() {
       setAgendamentos(dados);
       setError(null);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao carregar agendamentos.";
-      setError(msg);
+      setError(err instanceof Error ? err.message : "Erro ao carregar agendamentos.");
     } finally {
       setLoading(false);
     }
@@ -88,8 +71,7 @@ export default function AdminAgendamentosPage() {
       setGoogleEvents(eventos);
       setError(null);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao carregar eventos do Google.";
-      setError(msg);
+      setError(err instanceof Error ? err.message : "Erro ao carregar eventos do Google.");
     } finally {
       setLoading(false);
     }
@@ -100,10 +82,6 @@ export default function AdminAgendamentosPage() {
       if (activeTab === "sistema") {
         void carregarSistema();
       } else {
-        // Falso positivo: `carregarGoogle` so toca estado depois de
-        // `await fetchGoogleCalendarEvents`. A regra nao resolve a assincronia
-        // de funcao importada e assume o pior caso — `carregarSistema` logo
-        // acima, identico na forma, passa.
         // eslint-disable-next-line react-hooks/set-state-in-effect
         void carregarGoogle();
       }
@@ -118,8 +96,7 @@ export default function AdminAgendamentosPage() {
         prev.map((a) => (a.id === item.id ? { ...a, status: "cancelado" } : a)),
       );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao cancelar agendamento.";
-      alert(msg);
+      alert(err instanceof Error ? err.message : "Erro ao cancelar agendamento.");
     }
   };
 
@@ -134,20 +111,11 @@ export default function AdminAgendamentosPage() {
         duracao_minutos: manualForm.duracao_minutos ? Number(manualForm.duracao_minutos) : 60,
       });
       setModalAberto(false);
-      setManualForm({
-        user_email: "",
-        nome_cliente: "",
-        telefone: "",
-        data_hora_inicio: "",
-        duracao_minutos: 60,
-        descricao: "",
-      });
-
+      setManualForm(FORM_VAZIO);
       setLoading(true);
       void carregarSistema();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao criar agendamento manual.";
-      setManualError(msg);
+      setManualError(err instanceof Error ? err.message : "Erro ao criar agendamento manual.");
     } finally {
       setSubmittingManual(false);
     }
@@ -178,7 +146,6 @@ export default function AdminAgendamentosPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-      {/* Header */}
       <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
@@ -188,7 +155,6 @@ export default function AdminAgendamentosPage() {
             Gerencie visitas de clientes e visualize eventos sincronizados no Google Calendar.
           </p>
         </div>
-
         <button
           type="button"
           onClick={() => setModalAberto(true)}
@@ -198,7 +164,7 @@ export default function AdminAgendamentosPage() {
         </button>
       </div>
 
-      {/* Cards de Métricas */}
+      {/* Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
           <span className="text-xs font-semibold uppercase text-slate-500">
@@ -216,7 +182,7 @@ export default function AdminAgendamentosPage() {
         </div>
       </div>
 
-      {/* Navegação por Abas */}
+      {/* Abas */}
       <div className="border-b border-slate-200">
         <nav className="flex space-x-8" role="tablist">
           <button
@@ -246,341 +212,46 @@ export default function AdminAgendamentosPage() {
         </nav>
       </div>
 
-      {/* Conteúdo Aba 1: Sistema */}
       {activeTab === "sistema" && (
-        <div className="space-y-4">
-          {/* Barra de Filtros */}
-          <div className="flex flex-col sm:flex-row gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-            <input
-              type="text"
-              placeholder="Filtrar por e-mail ou nome..."
-              value={filtroEmail}
-              onChange={(e) => setFiltroEmail(e.target.value)}
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
-            />
-            <select
-              value={filtroStatus}
-              onChange={(e) => setFiltroStatus(e.target.value)}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none bg-white"
-            >
-              <option value="">Todos os status</option>
-              <option value="confirmado">Confirmados</option>
-              <option value="cancelado">Cancelados</option>
-            </select>
-            <button
-              type="button"
-              onClick={() => {
-                setLoading(true);
-                setError(null);
-                void carregarSistema();
-              }}
-              className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 cursor-pointer"
-            >
-              Filtrar
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="py-12 text-center text-slate-500 text-sm">
-              Carregando agendamentos...
-            </div>
-          ) : error ? (
-            <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
-              {error}
-            </div>
-          ) : agendamentos.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-sm rounded-xl border border-slate-200 bg-white">
-              Nenhum agendamento encontrado para os filtros selecionados.
-            </div>
-          ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
-              <table className="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-600">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Cliente</th>
-                    <th className="px-4 py-3">Horário</th>
-                    <th className="px-4 py-3">Descrição</th>
-                    <th className="px-4 py-3">Origem</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {agendamentos.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50/60">
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-slate-900">{item.nome_cliente}</div>
-                        <div className="text-xs text-slate-500">{item.user_email}</div>
-                        {item.telefone && (
-                          <div className="text-xs text-slate-400">📞 {item.telefone}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-slate-800">
-                        {formatarDataHora(item.data_hora_inicio)}
-                      </td>
-                      <td className="px-4 py-3 text-xs max-w-xs truncate">
-                        {item.descricao || "—"}
-                      </td>
-                      <td className="px-4 py-3 text-xs">
-                        <span className="rounded bg-slate-100 px-2 py-0.5 font-medium text-slate-600">
-                          {item.origem === "chat" ? "Chat IA" : "Manual"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-bold ${
-                            item.status === "confirmado"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-2">
-                        {item.google_event_link && (
-                          <a
-                            href={item.google_event_link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs font-semibold text-purple-600 hover:underline inline-block"
-                          >
-                            Google ↗
-                          </a>
-                        )}
-                        {item.status === "confirmado" && (
-                          <button
-                            type="button"
-                            onClick={() => handleCancelar(item)}
-                            className="text-xs font-semibold text-red-600 hover:text-red-800 cursor-pointer"
-                          >
-                            Desmarcar
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <AgendamentosSystemTab
+          agendamentos={agendamentos}
+          loading={loading}
+          error={error}
+          filtroEmail={filtroEmail}
+          filtroStatus={filtroStatus}
+          onFiltroEmailChange={setFiltroEmail}
+          onFiltroStatusChange={setFiltroStatus}
+          onFiltrar={() => {
+            setLoading(true);
+            setError(null);
+            void carregarSistema();
+          }}
+          onCancelar={handleCancelar}
+        />
       )}
 
-      {/* Conteúdo Aba 2: Google Calendar */}
       {activeTab === "google" && (
-        <div className="space-y-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs flex items-center justify-between">
-            <span className="text-sm text-slate-600">
-              Eventos consultados diretamente da agenda corporativa via protocolo MCP.
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setLoading(true);
-                setError(null);
-                void carregarGoogle();
-              }}
-              className="rounded-lg bg-slate-800 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-700 cursor-pointer"
-            >
-              🔄 Atualizar Agenda
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="py-12 text-center text-slate-500 text-sm">
-              Consultando Google Calendar...
-            </div>
-          ) : error ? (
-            <div className="p-4 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
-              {error}
-            </div>
-          ) : googleEvents.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-sm rounded-xl border border-slate-200 bg-white">
-              Nenhum evento encontrado no período consultado.
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {googleEvents.map((evt) => {
-                const startTime =
-                  evt.start_time ||
-                  (typeof evt.start === "string"
-                    ? evt.start
-                    : evt.start?.dateTime || evt.start?.date) ||
-                  "";
-                return (
-                  <div
-                    key={evt.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs"
-                  >
-                    <div>
-                      <h4 className="font-bold text-slate-900">{evt.summary || "(Sem Título)"}</h4>
-                      {startTime && (
-                        <p className="text-xs text-slate-600 mt-1">
-                          🕒 {formatarDataHora(startTime)}
-                        </p>
-                      )}
-                      {evt.description && (
-                        <p className="text-xs text-slate-500 mt-1 max-w-xl">{evt.description}</p>
-                      )}
-                    </div>
-                    {evt.html_link && (
-                      <a
-                        href={evt.html_link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs font-semibold text-purple-600 hover:underline shrink-0"
-                      >
-                        Ver no Google ↗
-                      </a>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <GoogleCalendarTab
+          googleEvents={googleEvents}
+          loading={loading}
+          error={error}
+          onAtualizar={() => {
+            setLoading(true);
+            setError(null);
+            void carregarGoogle();
+          }}
+        />
       )}
 
-      {/* Modal Agendamento Manual */}
       {modalAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-900">Novo Agendamento Manual</h3>
-            <p className="text-xs text-slate-600">
-              O agendamento manual checará conflitos no Google Calendar e gravará a visita no
-              sistema.
-            </p>
-
-            {manualError && (
-              <div className="p-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-xs">
-                {manualError}
-              </div>
-            )}
-
-            <form onSubmit={handleCriarManual} className="space-y-3">
-              <div>
-                <label htmlFor="user_email" className="block text-xs font-semibold text-slate-700">
-                  E-mail do Cliente
-                </label>
-                <input
-                  id="user_email"
-                  type="email"
-                  required
-                  value={manualForm.user_email}
-                  onChange={(e) => setManualForm({ ...manualForm, user_email: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label
-                  htmlFor="nome_cliente"
-                  className="block text-xs font-semibold text-slate-700"
-                >
-                  Nome do Cliente
-                </label>
-                <input
-                  id="nome_cliente"
-                  type="text"
-                  required
-                  value={manualForm.nome_cliente}
-                  onChange={(e) => setManualForm({ ...manualForm, nome_cliente: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="telefone" className="block text-xs font-semibold text-slate-700">
-                  Telefone
-                </label>
-                <input
-                  id="telefone"
-                  type="text"
-                  value={manualForm.telefone || ""}
-                  onChange={(e) => setManualForm({ ...manualForm, telefone: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label
-                    htmlFor="data_hora_inicio"
-                    className="block text-xs font-semibold text-slate-700"
-                  >
-                    Data e Hora de Início
-                  </label>
-                  <input
-                    id="data_hora_inicio"
-                    type="datetime-local"
-                    required
-                    value={manualForm.data_hora_inicio}
-                    onChange={(e) =>
-                      setManualForm({ ...manualForm, data_hora_inicio: e.target.value })
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="duracao_minutos"
-                    className="block text-xs font-semibold text-slate-700"
-                  >
-                    Duração (minutos)
-                  </label>
-                  <input
-                    id="duracao_minutos"
-                    type="number"
-                    min={15}
-                    step={15}
-                    required
-                    value={manualForm.duracao_minutos ?? 60}
-                    onChange={(e) =>
-                      setManualForm({
-                        ...manualForm,
-                        duracao_minutos: e.target.value === "" ? null : Number(e.target.value),
-                      })
-                    }
-                    className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="descricao" className="block text-xs font-semibold text-slate-700">
-                  Descrição / Motivo da Visita
-                </label>
-                <textarea
-                  id="descricao"
-                  rows={2}
-                  value={manualForm.descricao || ""}
-                  onChange={(e) => setManualForm({ ...manualForm, descricao: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3">
-                <button
-                  type="button"
-                  disabled={submittingManual}
-                  onClick={() => setModalAberto(false)}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingManual}
-                  className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-500 cursor-pointer disabled:opacity-50"
-                >
-                  {submittingManual ? "Salvando..." : "Confirmar Agendamento"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <AgendamentoManualModal
+          form={manualForm}
+          submitting={submittingManual}
+          error={manualError}
+          onFormChange={setManualForm}
+          onSubmit={handleCriarManual}
+          onClose={() => setModalAberto(false)}
+        />
       )}
     </div>
   );
