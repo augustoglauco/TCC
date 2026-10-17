@@ -1,0 +1,148 @@
+{
+  "_sobre": "Conjunto MÍNIMO da Etapa 1 (Fase 10, R4) — serve para validar o harness, NÃO para escolher parâmetros. O conjunto de decisão são as 180 perguntas da Estratégia A (docs/EVALUATION.md Seção 0), que ainda não existem. Ver README desta pasta.",
+  "_corpus": "docs/Manuais_fornecedor/ControlId — só as 3 pastas abaixo, escolhidas por concentrarem 38% do texto do corpus: iDFace (110.874 chars), iDAccess Pro (75.535) e REP iDClass (69.819 + 55.212 do .md convertido).",
+  "_gabarito": "O campo `fontes_aceitas` guarda NOMES DE ARQUIVO, porque `ingest_file` grava só o basename no payload `source` (app/rag/ingest.py:103). Consequência: `changelog_pt-br.pdf` existe em iDFace E em iDAccess Pro e é indistinguível no payload — changelogs nunca são fonte de gabarito (são release notes, material ruim para pergunta de produto de todo modo). Eles continuam ingeridos e podem ser recuperados como distratores, o que é realista.",
+  "_negativas": "fontes_aceitas vazia = pergunta SEM resposta no corpus; o acerto é o sistema devolver nada. As duas primeiras são consequência direta da decisão de 2026-10-17 de deixar os 11 PDFs degenerados de fora: `iDflexpro` e `iDClass Portaria 373` são os únicos dois produtos que perderam a sua única fonte de texto.",
+  "_pastas": ["iDFace", "iDAccess Pro", "REP iDClass"],
+  "dominio": "suporte",
+  "perguntas": [
+    {
+      "id": "q01",
+      "pergunta": "Quantas faces o iDFace Pro consegue identificar?",
+      "resposta_esperada": "Até 30.000 faces na versão Pro (3.000 na versão Lite), com detecção de rosto vivo.",
+      "fontes_aceitas": ["idface-datasheet.pdf"],
+      "pasta": "iDFace",
+      "dificuldade": "facil",
+      "trecho": "Capacidade para até 3.000 (Lite)/30.000 (Pro) faces com detecção de rosto vivo"
+    },
+    {
+      "id": "q02",
+      "pergunta": "Qual a capacidade de usuários cadastrados do iDFace?",
+      "resposta_esperada": "Mais de 200.000 usuários cadastrados.",
+      "fontes_aceitas": ["idface-datasheet.pdf"],
+      "pasta": "iDFace",
+      "dificuldade": "facil",
+      "trecho": "Capacidade para mais de 200.000 usuários cadastrados"
+    },
+    {
+      "id": "q03",
+      "pergunta": "Qual o grau de proteção do iDFace?",
+      "resposta_esperada": "IP65.",
+      "fontes_aceitas": ["idface-datasheet.pdf"],
+      "pasta": "iDFace",
+      "dificuldade": "facil",
+      "trecho": "Grau de proteção IP65"
+    },
+    {
+      "id": "q04",
+      "pergunta": "Quanto pesa o terminal do iDFace?",
+      "resposta_esperada": "240 g o terminal (o módulo de acionamento externo pesa 35 g).",
+      "fontes_aceitas": ["idface-datasheet.pdf"],
+      "pasta": "iDFace",
+      "dificuldade": "media",
+      "trecho": "Peso do equipamento 240g - Terminal / 35g - Módulo de Acionamento Externo"
+    },
+    {
+      "id": "q05",
+      "pergunta": "Em que faixa de temperatura o iDFace opera?",
+      "resposta_esperada": "De -20 °C a 40 °C.",
+      "fontes_aceitas": ["idface-datasheet.pdf"],
+      "pasta": "iDFace",
+      "dificuldade": "media",
+      "trecho": "Temperatura de operação -20 °C a 40 °C"
+    },
+    {
+      "id": "q06",
+      "pergunta": "Qual a capacidade do relé de saída do iDFace?",
+      "resposta_esperada": "1 relé interno ao módulo de acionamento, de até 30VAC/5A.",
+      "fontes_aceitas": ["idface-datasheet.pdf"],
+      "pasta": "iDFace",
+      "dificuldade": "dificil",
+      "trecho": "1 relé interno ao módulo de acionamento de até 30VAC/5A",
+      "nota": "Discriminativa: o iDAccess Pro tem relé de 220VAC/5A (ver q10). Recuperar a fonte errada troca a resposta."
+    },
+    {
+      "id": "q07",
+      "pergunta": "Quantas impressões digitais o iDAccess Pro armazena?",
+      "resposta_esperada": "6.000, 10.000, 50.000 ou 100.000 digitais, conforme o modelo.",
+      "fontes_aceitas": ["idaccess-pro-datasheet.pdf"],
+      "pasta": "iDAccess Pro",
+      "dificuldade": "facil",
+      "trecho": "Capacidade para 6.000 / 10.000 / 50.000 / 100.000 digitais"
+    },
+    {
+      "id": "q08",
+      "pergunta": "Qual a resolução do leitor biométrico do iDAccess Pro?",
+      "resposta_esperada": "Leitor de impressão digital óptico de 500 DPI.",
+      "fontes_aceitas": ["idaccess-pro-datasheet.pdf"],
+      "pasta": "iDAccess Pro",
+      "dificuldade": "facil",
+      "trecho": "Leitor de impressão digital óptico de 500 DPI"
+    },
+    {
+      "id": "q09",
+      "pergunta": "Qual o consumo nominal do iDAccess Pro?",
+      "resposta_esperada": "1,92 W (160 mA) nominal, com fonte externa de 12V.",
+      "fontes_aceitas": ["idaccess-pro-datasheet.pdf"],
+      "pasta": "iDAccess Pro",
+      "dificuldade": "media",
+      "trecho": "Consumo Total 1,92W (160mA) nominal"
+    },
+    {
+      "id": "q10",
+      "pergunta": "Qual a capacidade do relé de saída do iDAccess Pro?",
+      "resposta_esperada": "1 relé interno ao módulo de acionamento, de até 220VAC/5A.",
+      "fontes_aceitas": ["idaccess-pro-datasheet.pdf"],
+      "pasta": "iDAccess Pro",
+      "dificuldade": "dificil",
+      "trecho": "1 relé interno ao módulo de acionamento de até 220VAC/5A",
+      "nota": "Par discriminativo de q06."
+    },
+    {
+      "id": "q11",
+      "pergunta": "Qual a alimentação do REP iDClass?",
+      "resposta_esperada": "Fonte de 9V, 3 W nominal e 27 W máximo.",
+      "fontes_aceitas": ["rep-idclass-manual.pdf"],
+      "pasta": "REP iDClass",
+      "dificuldade": "media",
+      "trecho": "Alimentação Fonte 9V - 3W nom. / 27W max."
+    },
+    {
+      "id": "q12",
+      "pergunta": "Quais comandos da API do REP iDClass não exigem uma sessão válida?",
+      "resposta_esperada": "Todos os comandos exigem sessão válida, exceto session_is_valid e login.",
+      "fontes_aceitas": ["api_idclass_latest.md"],
+      "pasta": "REP iDClass",
+      "dificuldade": "dificil",
+      "trecho": "Todos os comandos requerem uma sessão válida, exceto session_is_valid e login.",
+      "nota": "Só é respondível porque o .html foi convertido para .md (decisão de 2026-10-17). Se a conversão for revertida ou o .md não for ingerido, esta pergunta falha — é o canário dessa decisão."
+    },
+    {
+      "id": "q13",
+      "pergunta": "Qual a capacidade de usuários do iDFlex Pro?",
+      "resposta_esperada": "Não há resposta no corpus — o sistema deve admitir que não sabe.",
+      "fontes_aceitas": [],
+      "pasta": "iDflexpro",
+      "dificuldade": "negativa",
+      "nota": "O único PDF da pasta `iDflexpro` é degenerado (1 caractere em 2 páginas) e ficou de fora por decisão de 2026-10-17. Caso negativo legítimo, não artificial."
+    },
+    {
+      "id": "q14",
+      "pergunta": "Qual o grau de proteção do iDClass Portaria 373?",
+      "resposta_esperada": "Não há resposta no corpus — o sistema deve admitir que não sabe.",
+      "fontes_aceitas": [],
+      "pasta": "iDClass Portaria 373",
+      "dificuldade": "negativa",
+      "nota": "Mesma situação do q13: a pasta tem imagens, mas o único PDF é degenerado."
+    },
+    {
+      "id": "q15",
+      "pergunta": "Qual a resolução de gravação do Intelbras VIP 5200?",
+      "resposta_esperada": "Não há resposta no corpus — é produto de outro fabricante, fora do corpus ControlId.",
+      "fontes_aceitas": [],
+      "pasta": null,
+      "dificuldade": "negativa",
+      "nota": "Negativa mais forte que q13/q14: não depende de nenhuma falha de ingestão, o produto simplesmente não está no corpus (saiu quando o corpus passou a ser ControlId/)."
+    }
+  ]
+}

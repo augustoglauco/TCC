@@ -1,0 +1,1933 @@
+{
+  "corpus": "docs/Manuais_fornecedor/ControlId",
+  "limiar_chars_por_pagina": 200,
+  "max_image_bytes": 10485760,
+  "pdfs": {
+    "total": 97,
+    "por_classificacao": {
+      "util": 86,
+      "degenerado": 11
+    },
+    "chars_total": 667559,
+    "chars_em_uteis": 667291,
+    "chunks_estimados": {
+      "128_tokens": 1210,
+      "256_tokens": 605,
+      "512_tokens": 302,
+      "768_tokens": 202,
+      "1024_tokens": 151
+    }
+  },
+  "imagens": {
+    "total": 81,
+    "por_classificacao": {
+      "valida": 77,
+      "formato_rejeitado": 3,
+      "acima_do_teto": 1
+    },
+    "por_extensao": {
+      ".jpg": 54,
+      ".png": 24,
+      ".tif": 3
+    }
+  },
+  "outros": {
+    "total": 8,
+    "ingeriveis": 2,
+    "por_extensao": {
+      ".url": 6,
+      ".html": 1,
+      ".md": 1
+    }
+  },
+  "pastas": {
+    "total": 37,
+    "por_capacidade": {
+      "documento+imagem": 27,
+      "so_documento": 8,
+      "so_imagem": 1,
+      "nada": 1
+    }
+  },
+  "itens_pdfs": [
+    {
+      "arquivo": "IDBlock/idblock-bqc.pdf",
+      "pasta": "IDBlock",
+      "tamanho_kb": 174,
+      "paginas": 2,
+      "chars": 2492,
+      "chars_por_pagina": 1246,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock/idblock-diagramas.pdf",
+      "pasta": "IDBlock",
+      "tamanho_kb": 908,
+      "paginas": 3,
+      "chars": 1463,
+      "chars_por_pagina": 488,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock/idblock-pcd-datasheet.pdf",
+      "pasta": "IDBlock",
+      "tamanho_kb": 220,
+      "paginas": 2,
+      "chars": 2508,
+      "chars_por_pagina": 1254,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock/idblock.pdf",
+      "pasta": "IDBlock",
+      "tamanho_kb": 268,
+      "paginas": 2,
+      "chars": 2394,
+      "chars_por_pagina": 1197,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-balcao-facial-idface-datasheet-pt.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 72279,
+      "paginas": 2,
+      "chars": 2690,
+      "chars_por_pagina": 1345,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 41780,
+      "paginas": 2,
+      "chars": 2712,
+      "chars_por_pagina": 1356,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-facial-datasheet.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 507,
+      "paginas": 2,
+      "chars": 2754,
+      "chars_por_pagina": 1377,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-facial-mini-datasheet.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 534,
+      "paginas": 2,
+      "chars": 2720,
+      "chars_por_pagina": 1360,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-facial-mini-idface-max-datasheet.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 38760,
+      "paginas": 2,
+      "chars": 2948,
+      "chars_por_pagina": 1474,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-next-bqc-datasheet.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 1457,
+      "paginas": 2,
+      "chars": 2868,
+      "chars_por_pagina": 1434,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-next-bqc-idface-max-datasheet.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 1498,
+      "paginas": 2,
+      "chars": 2884,
+      "chars_por_pagina": 1442,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-next-idface-max-datasheet.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 10546,
+      "paginas": 2,
+      "chars": 2816,
+      "chars_por_pagina": 1408,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-pcd-facial-datasheet-pt.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 11417,
+      "paginas": 2,
+      "chars": 3329,
+      "chars_por_pagina": 1664,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+      "pasta": "IDBlock Facial",
+      "tamanho_kb": 22268,
+      "paginas": 2,
+      "chars": 3376,
+      "chars_por_pagina": 1688,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDFit/idfit-guia.pdf",
+      "pasta": "IDFit",
+      "tamanho_kb": 584,
+      "paginas": 2,
+      "chars": 8424,
+      "chars_por_pagina": 4212,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDFit/idfit.pdf",
+      "pasta": "IDFit",
+      "tamanho_kb": 7018,
+      "paginas": 2,
+      "chars": 1,
+      "chars_por_pagina": 0,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "IDFit/idfit_V2.pdf",
+      "pasta": "IDFit",
+      "tamanho_kb": 1205,
+      "paginas": 2,
+      "chars": 7921,
+      "chars_por_pagina": 3960,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDPower/idpower-datasheet.pdf",
+      "pasta": "IDPower",
+      "tamanho_kb": 392,
+      "paginas": 2,
+      "chars": 1983,
+      "chars_por_pagina": 992,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "IDPower/idpower-guia.pdf",
+      "pasta": "IDPower",
+      "tamanho_kb": 791,
+      "paginas": 2,
+      "chars": 5397,
+      "chars_por_pagina": 2698,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Leitor  QR Code/leitor-qr-code-usb.pdf",
+      "pasta": "Leitor  QR Code",
+      "tamanho_kb": 307,
+      "paginas": 2,
+      "chars": 4018,
+      "chars_por_pagina": 2009,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Leitor  QR Code/leitor-qr-code-usb1.pdf",
+      "pasta": "Leitor  QR Code",
+      "tamanho_kb": 307,
+      "paginas": 2,
+      "chars": 4018,
+      "chars_por_pagina": 2009,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Print iD/printid-folder.pdf",
+      "pasta": "Print iD",
+      "tamanho_kb": 2488,
+      "paginas": 2,
+      "chars": 2837,
+      "chars_por_pagina": 1418,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Print iD/printid-guia-rapido.pdf",
+      "pasta": "Print iD",
+      "tamanho_kb": 2704,
+      "paginas": 2,
+      "chars": 8247,
+      "chars_por_pagina": 4124,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Print iD Touch/printid-touch-folder.pdf",
+      "pasta": "Print iD Touch",
+      "tamanho_kb": 506,
+      "paginas": 2,
+      "chars": 2923,
+      "chars_por_pagina": 1462,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Print iD Touch/printid_touch.pdf",
+      "pasta": "Print iD Touch",
+      "tamanho_kb": 342,
+      "paginas": 2,
+      "chars": 7420,
+      "chars_por_pagina": 3710,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "REP iDClass/rep-idclass-1510.pdf",
+      "pasta": "REP iDClass",
+      "tamanho_kb": 981,
+      "paginas": 2,
+      "chars": 1,
+      "chars_por_pagina": 0,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "REP iDClass/rep-idclass-671.pdf",
+      "pasta": "REP iDClass",
+      "tamanho_kb": 8321,
+      "paginas": 2,
+      "chars": 557,
+      "chars_por_pagina": 278,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "REP iDClass/rep-idclass-manual.pdf",
+      "pasta": "REP iDClass",
+      "tamanho_kb": 4544,
+      "paginas": 79,
+      "chars": 69262,
+      "chars_por_pagina": 877,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "REP iDClass Facial/rep-idclass-facial-datasheet.pdf",
+      "pasta": "REP iDClass Facial",
+      "tamanho_kb": 4515,
+      "paginas": 2,
+      "chars": 1196,
+      "chars_por_pagina": 598,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "RHiD/rhid-datasheet.pdf",
+      "pasta": "RHiD",
+      "tamanho_kb": 403,
+      "paginas": 2,
+      "chars": 2933,
+      "chars_por_pagina": 1466,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "SAT iD/satid-folder.pdf",
+      "pasta": "SAT iD",
+      "tamanho_kb": 466,
+      "paginas": 2,
+      "chars": 3172,
+      "chars_por_pagina": 1586,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "SAT iD/satid-guia-rapido.pdf",
+      "pasta": "SAT iD",
+      "tamanho_kb": 98,
+      "paginas": 1,
+      "chars": 3280,
+      "chars_por_pagina": 3280,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "SAT iD/satid-manual.pdf",
+      "pasta": "SAT iD",
+      "tamanho_kb": 1487,
+      "paginas": 36,
+      "chars": 27095,
+      "chars_por_pagina": 753,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Suporte/suporte-em-cunha-datasheet-pt.pdf",
+      "pasta": "Suporte",
+      "tamanho_kb": 1300,
+      "paginas": 2,
+      "chars": 1091,
+      "chars_por_pagina": 546,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Tags/tag-uhf-abs-datasheet.pdf",
+      "pasta": "Tags",
+      "tamanho_kb": 64,
+      "paginas": 1,
+      "chars": 475,
+      "chars_por_pagina": 475,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Tags/tag-uhf-pet-datasheet.pdf",
+      "pasta": "Tags",
+      "tamanho_kb": 74,
+      "paginas": 1,
+      "chars": 458,
+      "chars_por_pagina": 458,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Torniquetes/torniquete-facial-datasheet.pdf",
+      "pasta": "Torniquetes",
+      "tamanho_kb": 31586,
+      "paginas": 2,
+      "chars": 2807,
+      "chars_por_pagina": 1404,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Torniquetes/torniquete-facial-id-datasheet.pdf",
+      "pasta": "Torniquetes",
+      "tamanho_kb": 31586,
+      "paginas": 2,
+      "chars": 2807,
+      "chars_por_pagina": 1404,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "Torniquetes/torniquetes-datasheet.pdf",
+      "pasta": "Torniquetes",
+      "tamanho_kb": 382,
+      "paginas": 2,
+      "chars": 1976,
+      "chars_por_pagina": 988,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess/idaccess-guia.pdf",
+      "pasta": "iDAccess",
+      "tamanho_kb": 555,
+      "paginas": 2,
+      "chars": 7767,
+      "chars_por_pagina": 3884,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess/idaccess.pdf",
+      "pasta": "iDAccess",
+      "tamanho_kb": 847,
+      "paginas": 2,
+      "chars": 1,
+      "chars_por_pagina": 0,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "iDAccess Nano/idaccess-nano.pdf",
+      "pasta": "iDAccess Nano",
+      "tamanho_kb": 455,
+      "paginas": 2,
+      "chars": 2701,
+      "chars_por_pagina": 1350,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess Nano/idaccess_nano.pdf",
+      "pasta": "iDAccess Nano",
+      "tamanho_kb": 463,
+      "paginas": 2,
+      "chars": 7606,
+      "chars_por_pagina": 3803,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess Nano Prox/idaccess-nano-prox.pdf",
+      "pasta": "iDAccess Nano Prox",
+      "tamanho_kb": 317,
+      "paginas": 2,
+      "chars": 2542,
+      "chars_por_pagina": 1271,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess Nano Prox/idaccess_nano_guia.pdf",
+      "pasta": "iDAccess Nano Prox",
+      "tamanho_kb": 463,
+      "paginas": 2,
+      "chars": 7606,
+      "chars_por_pagina": 3803,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess Pro/changelog_pt-br.pdf",
+      "pasta": "iDAccess Pro",
+      "tamanho_kb": 918,
+      "paginas": 39,
+      "chars": 65309,
+      "chars_por_pagina": 1675,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess Pro/idaccess-pro-datasheet.pdf",
+      "pasta": "iDAccess Pro",
+      "tamanho_kb": 2179,
+      "paginas": 2,
+      "chars": 2657,
+      "chars_por_pagina": 1328,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess Pro/idaccess_pro.pdf",
+      "pasta": "iDAccess Pro",
+      "tamanho_kb": 466,
+      "paginas": 2,
+      "chars": 7569,
+      "chars_por_pagina": 3784,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess Pro Prox/idaccess-pro-prox.pdf",
+      "pasta": "iDAccess Pro Prox",
+      "tamanho_kb": 478,
+      "paginas": 2,
+      "chars": 2455,
+      "chars_por_pagina": 1228,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDAccess Pro Prox/idaccess_pro-guia.pdf",
+      "pasta": "iDAccess Pro Prox",
+      "tamanho_kb": 466,
+      "paginas": 2,
+      "chars": 7569,
+      "chars_por_pagina": 3784,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBell/idbell-datasheet-pt.pdf",
+      "pasta": "iDBell",
+      "tamanho_kb": 1435,
+      "paginas": 2,
+      "chars": 2723,
+      "chars_por_pagina": 1362,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBio/idbio-folder.pdf",
+      "pasta": "iDBio",
+      "tamanho_kb": 141,
+      "paginas": 1,
+      "chars": 674,
+      "chars_por_pagina": 674,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBio/idbio-guia-rapido.pdf",
+      "pasta": "iDBio",
+      "tamanho_kb": 2686,
+      "paginas": 1,
+      "chars": 2367,
+      "chars_por_pagina": 2367,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBio/idbio-montagem-oem.pdf",
+      "pasta": "iDBio",
+      "tamanho_kb": 256,
+      "paginas": 1,
+      "chars": 2406,
+      "chars_por_pagina": 2406,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBio/idbio-rs232.pdf",
+      "pasta": "iDBio",
+      "tamanho_kb": 230,
+      "paginas": 33,
+      "chars": 19277,
+      "chars_por_pagina": 584,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBlock Next/idblock-next-contador-giros-datasheet.pdf",
+      "pasta": "iDBlock Next",
+      "tamanho_kb": 7937,
+      "paginas": 2,
+      "chars": 1708,
+      "chars_por_pagina": 854,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBlock Next/idblock-next-datasheet.pdf",
+      "pasta": "iDBlock Next",
+      "tamanho_kb": 5311,
+      "paginas": 2,
+      "chars": 2776,
+      "chars_por_pagina": 1388,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBlock Next/idblock-next.pdf",
+      "pasta": "iDBlock Next",
+      "tamanho_kb": 12540,
+      "paginas": 8,
+      "chars": 16877,
+      "chars_por_pagina": 2110,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBlockBio/idlock-bio-datasheet.pdf",
+      "pasta": "iDBlockBio",
+      "tamanho_kb": 638,
+      "paginas": 2,
+      "chars": 1,
+      "chars_por_pagina": 0,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "iDBlockBio/idlock-bio-guia.pdf",
+      "pasta": "iDBlockBio",
+      "tamanho_kb": 211,
+      "paginas": 2,
+      "chars": 1890,
+      "chars_por_pagina": 945,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBlockBio/idlock-bio-manual.pdf",
+      "pasta": "iDBlockBio",
+      "tamanho_kb": 880,
+      "paginas": 22,
+      "chars": 28829,
+      "chars_por_pagina": 1310,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBlockBio/idlock_bio_guia_instalação.pdf",
+      "pasta": "iDBlockBio",
+      "tamanho_kb": 580,
+      "paginas": 2,
+      "chars": 6618,
+      "chars_por_pagina": 3309,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBox/idbox-datasheet.pdf",
+      "pasta": "iDBox",
+      "tamanho_kb": 786,
+      "paginas": 2,
+      "chars": 1,
+      "chars_por_pagina": 0,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "iDBox/idbox-v2-datasheet.pdf",
+      "pasta": "iDBox",
+      "tamanho_kb": 5937,
+      "paginas": 2,
+      "chars": 1444,
+      "chars_por_pagina": 722,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBox/idbox-v2-userguide.pdf",
+      "pasta": "iDBox",
+      "tamanho_kb": 1113,
+      "paginas": 2,
+      "chars": 7884,
+      "chars_por_pagina": 3942,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDBox/idbox.pdf",
+      "pasta": "iDBox",
+      "tamanho_kb": 453,
+      "paginas": 2,
+      "chars": 7290,
+      "chars_por_pagina": 3645,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDClass Portaria 373/idclass373.pdf",
+      "pasta": "iDClass Portaria 373",
+      "tamanho_kb": 926,
+      "paginas": 2,
+      "chars": 1,
+      "chars_por_pagina": 0,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "iDConnect/idconnect-datasheet-pt.pdf",
+      "pasta": "iDConnect",
+      "tamanho_kb": 1086,
+      "paginas": 2,
+      "chars": 2415,
+      "chars_por_pagina": 1208,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDConnect/idconnect-userguide-pt.pdf",
+      "pasta": "iDConnect",
+      "tamanho_kb": 403,
+      "paginas": 2,
+      "chars": 9930,
+      "chars_por_pagina": 4965,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDConnect/idconnect-v2-datasheet-pt.pdf",
+      "pasta": "iDConnect",
+      "tamanho_kb": 3760,
+      "paginas": 2,
+      "chars": 2073,
+      "chars_por_pagina": 1036,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDConnect/idconnect-v2-userguide-pt.pdf",
+      "pasta": "iDConnect",
+      "tamanho_kb": 4725,
+      "paginas": 2,
+      "chars": 10148,
+      "chars_por_pagina": 5074,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDFace/changelog_pt-br.pdf",
+      "pasta": "iDFace",
+      "tamanho_kb": 1196,
+      "paginas": 51,
+      "chars": 98443,
+      "chars_por_pagina": 1930,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDFace/idface-datasheet.pdf",
+      "pasta": "iDFace",
+      "tamanho_kb": 1797,
+      "paginas": 2,
+      "chars": 3340,
+      "chars_por_pagina": 1670,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDFace/idface.pdf",
+      "pasta": "iDFace",
+      "tamanho_kb": 620,
+      "paginas": 2,
+      "chars": 9091,
+      "chars_por_pagina": 4546,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDFace Max/idface-cadastramento-de-foto.pdf",
+      "pasta": "iDFace Max",
+      "tamanho_kb": 581,
+      "paginas": 6,
+      "chars": 6379,
+      "chars_por_pagina": 1063,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDFace Max/idface-max-datasheet-pt.pdf",
+      "pasta": "iDFace Max",
+      "tamanho_kb": 1526,
+      "paginas": 2,
+      "chars": 3460,
+      "chars_por_pagina": 1730,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDFace Max/idface-max-userguide.pdf",
+      "pasta": "iDFace Max",
+      "tamanho_kb": 18910,
+      "paginas": 2,
+      "chars": 142,
+      "chars_por_pagina": 71,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "pasta": "iDFlexIp65",
+      "tamanho_kb": 636,
+      "paginas": 2,
+      "chars": 7806,
+      "chars_por_pagina": 3903,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDFlexIp65/idflex_ip65.pdf",
+      "pasta": "iDFlexIp65",
+      "tamanho_kb": 282,
+      "paginas": 2,
+      "chars": 2502,
+      "chars_por_pagina": 1251,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDFlexLite/idflex.pdf",
+      "pasta": "iDFlexLite",
+      "tamanho_kb": 516,
+      "paginas": 2,
+      "chars": 7360,
+      "chars_por_pagina": 3680,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDFlexLite/idflexlite.pdf",
+      "pasta": "iDFlexLite",
+      "tamanho_kb": 1000,
+      "paginas": 2,
+      "chars": 1,
+      "chars_por_pagina": 0,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "iDProx/idprox-datasheet.pdf",
+      "pasta": "iDProx",
+      "tamanho_kb": 4964,
+      "paginas": 2,
+      "chars": 59,
+      "chars_por_pagina": 30,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "iDProx/idprox-guia.pdf",
+      "pasta": "iDProx",
+      "tamanho_kb": 505,
+      "paginas": 2,
+      "chars": 6344,
+      "chars_por_pagina": 3172,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDProx/idprox-slim-datasheet.pdf",
+      "pasta": "iDProx",
+      "tamanho_kb": 4964,
+      "paginas": 2,
+      "chars": 59,
+      "chars_por_pagina": 30,
+      "classificacao": "degenerado"
+    },
+    {
+      "arquivo": "iDProx/idprox-usb-folder.pdf",
+      "pasta": "iDProx",
+      "tamanho_kb": 343,
+      "paginas": 2,
+      "chars": 1852,
+      "chars_por_pagina": 926,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDProx/idprox_usb.pdf",
+      "pasta": "iDProx",
+      "tamanho_kb": 355,
+      "paginas": 2,
+      "chars": 7111,
+      "chars_por_pagina": 3556,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDSecure Cloud/idsecure-cloud.pdf",
+      "pasta": "iDSecure Cloud",
+      "tamanho_kb": 307,
+      "paginas": 2,
+      "chars": 2415,
+      "chars_por_pagina": 1208,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDSecure Cloud/idsecure.pdf",
+      "pasta": "iDSecure Cloud",
+      "tamanho_kb": 474,
+      "paginas": 2,
+      "chars": 2919,
+      "chars_por_pagina": 1460,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDTouch/idtouch-folder.pdf",
+      "pasta": "iDTouch",
+      "tamanho_kb": 3027,
+      "paginas": 2,
+      "chars": 2194,
+      "chars_por_pagina": 1097,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDTouch/idtouch-guia.pdf",
+      "pasta": "iDTouch",
+      "tamanho_kb": 432,
+      "paginas": 2,
+      "chars": 8672,
+      "chars_por_pagina": 4336,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDTouch/idtouch-manual.pdf",
+      "pasta": "iDTouch",
+      "tamanho_kb": 1199,
+      "paginas": 34,
+      "chars": 30004,
+      "chars_por_pagina": 882,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDUHF/iduhf-datasheet.pdf",
+      "pasta": "iDUHF",
+      "tamanho_kb": 170,
+      "paginas": 2,
+      "chars": 2358,
+      "chars_por_pagina": 1179,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDUHF Lite/iduhf-lite-datasheet.pdf",
+      "pasta": "iDUHF Lite",
+      "tamanho_kb": 493,
+      "paginas": 2,
+      "chars": 2496,
+      "chars_por_pagina": 1248,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDUHF Lite/iduhf-lite-guia.pdf",
+      "pasta": "iDUHF Lite",
+      "tamanho_kb": 4157,
+      "paginas": 2,
+      "chars": 9302,
+      "chars_por_pagina": 4651,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDdLock/idlock-datasheet.pdf",
+      "pasta": "iDdLock",
+      "tamanho_kb": 202,
+      "paginas": 2,
+      "chars": 2296,
+      "chars_por_pagina": 1148,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDdLock/idlock-guia.pdf",
+      "pasta": "iDdLock",
+      "tamanho_kb": 196,
+      "paginas": 2,
+      "chars": 1586,
+      "chars_por_pagina": 793,
+      "classificacao": "util"
+    },
+    {
+      "arquivo": "iDflexpro/idflexpro.pdf",
+      "pasta": "iDflexpro",
+      "tamanho_kb": 1027,
+      "paginas": 2,
+      "chars": 1,
+      "chars_por_pagina": 0,
+      "classificacao": "degenerado"
+    }
+  ],
+  "itens_imagens": [
+    {
+      "arquivo": "IDBlock/iDBlock-BQC-Inox-Lateral.jpg",
+      "pasta": "IDBlock",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.4,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock-BQC-Inox-Perspectiva.jpg",
+      "pasta": "IDBlock",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.4,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock-BQC-Preto-Lateral.jpg",
+      "pasta": "IDBlock",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock-BQC-Preto-Perspectiva.jpg",
+      "pasta": "IDBlock",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.5,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock-BQC_QRCODE-Inox-Lateral_flat.png",
+      "pasta": "IDBlock",
+      "extensao": ".png",
+      "tamanho_mb": 3.1,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock-BQC_QRCODE-Inox-Perspectiva_flat.png",
+      "pasta": "IDBlock",
+      "extensao": ".png",
+      "tamanho_mb": 3.5,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock-BQC_QRCODE-Preto-Lateral_flat.png",
+      "pasta": "IDBlock",
+      "extensao": ".png",
+      "tamanho_mb": 4.2,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock-BQC_QRCODE-Preto-Perspectiva_flat.png",
+      "pasta": "IDBlock",
+      "extensao": ".png",
+      "tamanho_mb": 4.1,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock-Balcao-Perspectiva.jpg",
+      "pasta": "IDBlock",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.8,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock-Preta.jpg",
+      "pasta": "IDBlock",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.4,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/iDBlock_QRCODE-Preta_flat.png",
+      "pasta": "IDBlock",
+      "extensao": ".png",
+      "tamanho_mb": 3.7,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/idblock-pcd-lateral.jpg",
+      "pasta": "IDBlock",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/idblock-pcd-perspectiva.jpg",
+      "pasta": "IDBlock",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/idblock-qrcode-pcd-lateral.png",
+      "pasta": "IDBlock",
+      "extensao": ".png",
+      "tamanho_mb": 4.1,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock/idblock-qrcode-pcd-perspectiva.png",
+      "pasta": "IDBlock",
+      "extensao": ".png",
+      "tamanho_mb": 4.6,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock Facial/iDBlock-Facial-Inox.jpg",
+      "pasta": "IDBlock Facial",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.1,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock Facial/iDBlock-Facial-Inox.tif",
+      "pasta": "IDBlock Facial",
+      "extensao": ".tif",
+      "tamanho_mb": 50.8,
+      "formato_detectado": null,
+      "classificacao": "formato_rejeitado"
+    },
+    {
+      "arquivo": "IDBlock Facial/iDBlock-Facial-Mini-Inox.png",
+      "pasta": "IDBlock Facial",
+      "extensao": ".png",
+      "tamanho_mb": 4.9,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock Facial/iDBlock-Facial-Mini-Preta.png",
+      "pasta": "IDBlock Facial",
+      "extensao": ".png",
+      "tamanho_mb": 6.3,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock Facial/iDBlock-Facial-Preta.jpg",
+      "pasta": "IDBlock Facial",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.1,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock Facial/iDBlock-Facial-Preta.tif",
+      "pasta": "IDBlock Facial",
+      "extensao": ".tif",
+      "tamanho_mb": 54.7,
+      "formato_detectado": null,
+      "classificacao": "formato_rejeitado"
+    },
+    {
+      "arquivo": "IDBlock Facial/iDBlock-Next-Facial.jpg",
+      "pasta": "IDBlock Facial",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.1,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDBlock Facial/iDBlock-Next-Facial.png",
+      "pasta": "IDBlock Facial",
+      "extensao": ".png",
+      "tamanho_mb": 10.1,
+      "formato_detectado": "PNG",
+      "classificacao": "acima_do_teto"
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock1.png",
+      "pasta": "IDBlock Facial",
+      "extensao": ".png",
+      "tamanho_mb": 0.2,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDFit/iDAccess-4x2-Frontal.jpg",
+      "pasta": "IDFit",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDFit/iDFitBranco-Frontal.jpg",
+      "pasta": "IDFit",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.8,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDFit/iDFitBranco-Perspectiva.jpg",
+      "pasta": "IDFit",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.7,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDPower/iDPower-Frontal.jpg",
+      "pasta": "IDPower",
+      "extensao": ".jpg",
+      "tamanho_mb": 3.2,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDPower/iDPower-Interno.jpg",
+      "pasta": "IDPower",
+      "extensao": ".jpg",
+      "tamanho_mb": 3.5,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "IDPower/iDPower-Perspectiva.jpg",
+      "pasta": "IDPower",
+      "extensao": ".jpg",
+      "tamanho_mb": 2.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "Print iD/printid-perspectiva-frontal.jpg",
+      "pasta": "Print iD",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.5,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "Print iD/printid-perspectiva-lateral.jpg",
+      "pasta": "Print iD",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.5,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "Print iD Touch/printid-touch-perspectiva-frontal.jpg",
+      "pasta": "Print iD Touch",
+      "extensao": ".jpg",
+      "tamanho_mb": 4.1,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "Print iD Touch/printid-touch-perspectiva-invertida.jpg",
+      "pasta": "Print iD Touch",
+      "extensao": ".jpg",
+      "tamanho_mb": 4.9,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "Print iD Touch/printid-touch-perspectiva-lateral.jpg",
+      "pasta": "Print iD Touch",
+      "extensao": ".jpg",
+      "tamanho_mb": 5.7,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "REP iDClass/REP-iDClass-Frontal.jpg",
+      "pasta": "REP iDClass",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "REP iDClass/REP-iDClass-Perspectiva.jpg",
+      "pasta": "REP iDClass",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "SAT iD/satid-perspectiva.jpg",
+      "pasta": "SAT iD",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.8,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "SAT iD/satid-superior.jpg",
+      "pasta": "SAT iD",
+      "extensao": ".jpg",
+      "tamanho_mb": 1.0,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "Tags/tag1.png",
+      "pasta": "Tags",
+      "extensao": ".png",
+      "tamanho_mb": 0.0,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "Tags/tag2.png",
+      "pasta": "Tags",
+      "extensao": ".png",
+      "tamanho_mb": 0.0,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess/iDAccess-Frontal.jpg",
+      "pasta": "iDAccess",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess/iDAccess-Perspectiva.jpg",
+      "pasta": "iDAccess",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess Nano/iDAccess-Nano-Frontal.jpg",
+      "pasta": "iDAccess Nano",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess Nano/iDAccess-Nano-Perspectiva.jpg",
+      "pasta": "iDAccess Nano",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.7,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess Nano Prox/iDAccess-Nano-Prox-Frontal.png",
+      "pasta": "iDAccess Nano Prox",
+      "extensao": ".png",
+      "tamanho_mb": 6.2,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess Nano Prox/iDAccess-Nano-Prox-Perspectiva.png",
+      "pasta": "iDAccess Nano Prox",
+      "extensao": ".png",
+      "tamanho_mb": 7.4,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess Pro/iDAccess-Pro-Frontal.jpg",
+      "pasta": "iDAccess Pro",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.7,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess Pro/iDAccess-Pro-Perspectiva.jpg",
+      "pasta": "iDAccess Pro",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess Pro Prox/iDAccess-Pro-Prox-Frontal.png",
+      "pasta": "iDAccess Pro Prox",
+      "extensao": ".png",
+      "tamanho_mb": 6.4,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDAccess Pro Prox/iDAccess-Pro-Prox-Perspectiva.png",
+      "pasta": "iDAccess Pro Prox",
+      "extensao": ".png",
+      "tamanho_mb": 7.2,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDBell/idBell.png",
+      "pasta": "iDBell",
+      "extensao": ".png",
+      "tamanho_mb": 0.1,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDBio/idbio-frontal.jpg",
+      "pasta": "iDBio",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.3,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDBio/idbio-perspectiva.jpg",
+      "pasta": "iDBio",
+      "extensao": ".jpg",
+      "tamanho_mb": 1.0,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDBlock Next/iDBlock-Next.png",
+      "pasta": "iDBlock Next",
+      "extensao": ".png",
+      "tamanho_mb": 8.9,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDBox/iDBox-Frontal.jpg",
+      "pasta": "iDBox",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.2,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDBox/iDBox-Perspectiva.jpg",
+      "pasta": "iDBox",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.4,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDClass Portaria 373/iDClass-Frontal.jpg",
+      "pasta": "iDClass Portaria 373",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDClass Portaria 373/iDClass-Perspectiva.jpg",
+      "pasta": "iDClass Portaria 373",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDConnect/Idconnect.png",
+      "pasta": "iDConnect",
+      "extensao": ".png",
+      "tamanho_mb": 0.1,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDConnect/Idconnect2.png",
+      "pasta": "iDConnect",
+      "extensao": ".png",
+      "tamanho_mb": 0.0,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFace/iDFace-Frontal.jpg",
+      "pasta": "iDFace",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.2,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFace/iDFace-Perspectiva.jpg",
+      "pasta": "iDFace",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.2,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFace Max/iDFace-Max-Frontal_pt.jpg",
+      "pasta": "iDFace Max",
+      "extensao": ".jpg",
+      "tamanho_mb": 2.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFace Max/iDFace-Max-Perspectiva_pt.jpg",
+      "pasta": "iDFace Max",
+      "extensao": ".jpg",
+      "tamanho_mb": 2.0,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFace Max/iDFace-Max.jpg",
+      "pasta": "iDFace Max",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.1,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFace Max/iDFace-Max.tif",
+      "pasta": "iDFace Max",
+      "extensao": ".tif",
+      "tamanho_mb": 78.8,
+      "formato_detectado": null,
+      "classificacao": "formato_rejeitado"
+    },
+    {
+      "arquivo": "iDFlexIp65/idflexip65frontal.jpg",
+      "pasta": "iDFlexIp65",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.6,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFlexLite/SecBox-Inferior.jpg",
+      "pasta": "iDFlexLite",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.4,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFlexLite/SecBox-Superior.jpg",
+      "pasta": "iDFlexLite",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.4,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFlexLite/iDFlex-Frontal.jpg",
+      "pasta": "iDFlexLite",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.4,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDFlexLite/iDFlex-Perspectiva.jpg",
+      "pasta": "iDFlexLite",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.5,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDProx/iDProx-Compact-Frontal.jpg",
+      "pasta": "iDProx",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.1,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDProx/iDProx-Compact-Perspectiva.jpg",
+      "pasta": "iDProx",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.2,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDProx/iDProx-Slim-Frontal.jpg",
+      "pasta": "iDProx",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.1,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDProx/iDProx-Slim-Perspectiva.jpg",
+      "pasta": "iDProx",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.3,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDProx/idprox-usb.png",
+      "pasta": "iDProx",
+      "extensao": ".png",
+      "tamanho_mb": 0.1,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDTouch/idtouch-frontal.jpg",
+      "pasta": "iDTouch",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.4,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDTouch/idtouch-perspectiva.jpg",
+      "pasta": "iDTouch",
+      "extensao": ".jpg",
+      "tamanho_mb": 0.3,
+      "formato_detectado": "JPEG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDUHF/Captura de tela 2026-10-02 064905.png",
+      "pasta": "iDUHF",
+      "extensao": ".png",
+      "tamanho_mb": 0.0,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    },
+    {
+      "arquivo": "iDUHF Lite/Captura de tela 2026-10-02 064747.png",
+      "pasta": "iDUHF Lite",
+      "extensao": ".png",
+      "tamanho_mb": 0.0,
+      "formato_detectado": "PNG",
+      "classificacao": "valida"
+    }
+  ],
+  "itens_outros": [
+    {
+      "arquivo": "IDBlock/Principal - iDBlock.url",
+      "pasta": "IDBlock",
+      "extensao": ".url",
+      "tamanho_kb": 0,
+      "ingerivel": false
+    },
+    {
+      "arquivo": "REP iDClass/api_idclass_latest.html",
+      "pasta": "REP iDClass",
+      "extensao": ".html",
+      "tamanho_kb": 601,
+      "ingerivel": true
+    },
+    {
+      "arquivo": "REP iDClass/api_idclass_latest.md",
+      "pasta": "REP iDClass",
+      "extensao": ".md",
+      "tamanho_kb": 55,
+      "ingerivel": true
+    },
+    {
+      "arquivo": "REP iDClass/iDCloud.url",
+      "pasta": "REP iDClass",
+      "extensao": ".url",
+      "tamanho_kb": 0,
+      "ingerivel": false
+    },
+    {
+      "arquivo": "RHiD/Introdução - Manual RHiD.url",
+      "pasta": "RHiD",
+      "extensao": ".url",
+      "tamanho_kb": 0,
+      "ingerivel": false
+    },
+    {
+      "arquivo": "iDBox/iDBox.url",
+      "pasta": "iDBox",
+      "extensao": ".url",
+      "tamanho_kb": 0,
+      "ingerivel": false
+    },
+    {
+      "arquivo": "iDSecure Cloud/Introdução - Manual do iDSecure Cloud.url",
+      "pasta": "iDSecure Cloud",
+      "extensao": ".url",
+      "tamanho_kb": 0,
+      "ingerivel": false
+    },
+    {
+      "arquivo": "iDSecure Cloud/iDSecure.url",
+      "pasta": "iDSecure Cloud",
+      "extensao": ".url",
+      "tamanho_kb": 0,
+      "ingerivel": false
+    }
+  ],
+  "itens_pastas": [
+    {
+      "pasta": "IDBlock",
+      "pdfs_uteis": 4,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 8857,
+      "imagens_validas": 15,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "IDBlock Facial",
+      "pdfs_uteis": 10,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 29097,
+      "imagens_validas": 6,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "IDFit",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 1,
+      "chars_uteis": 16345,
+      "imagens_validas": 3,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "IDPower",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 7380,
+      "imagens_validas": 3,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "Leitor  QR Code",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 8036,
+      "imagens_validas": 0,
+      "sustenta": "so_documento"
+    },
+    {
+      "pasta": "Print iD",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 11084,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "Print iD Touch",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 10343,
+      "imagens_validas": 3,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "REP iDClass",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 1,
+      "chars_uteis": 69819,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "REP iDClass Facial",
+      "pdfs_uteis": 1,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 1196,
+      "imagens_validas": 0,
+      "sustenta": "so_documento"
+    },
+    {
+      "pasta": "RHiD",
+      "pdfs_uteis": 1,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 2933,
+      "imagens_validas": 0,
+      "sustenta": "so_documento"
+    },
+    {
+      "pasta": "SAT iD",
+      "pdfs_uteis": 3,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 33547,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "Suporte",
+      "pdfs_uteis": 1,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 1091,
+      "imagens_validas": 0,
+      "sustenta": "so_documento"
+    },
+    {
+      "pasta": "Tags",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 933,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "Torniquetes",
+      "pdfs_uteis": 3,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 7590,
+      "imagens_validas": 0,
+      "sustenta": "so_documento"
+    },
+    {
+      "pasta": "iDAccess",
+      "pdfs_uteis": 1,
+      "pdfs_degenerados": 1,
+      "chars_uteis": 7767,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDAccess Nano",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 10307,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDAccess Nano Prox",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 10148,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDAccess Pro",
+      "pdfs_uteis": 3,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 75535,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDAccess Pro Prox",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 10024,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDBell",
+      "pdfs_uteis": 1,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 2723,
+      "imagens_validas": 1,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDBio",
+      "pdfs_uteis": 4,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 24724,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDBlock Next",
+      "pdfs_uteis": 3,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 21361,
+      "imagens_validas": 1,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDBlockBio",
+      "pdfs_uteis": 3,
+      "pdfs_degenerados": 1,
+      "chars_uteis": 37337,
+      "imagens_validas": 0,
+      "sustenta": "so_documento"
+    },
+    {
+      "pasta": "iDBox",
+      "pdfs_uteis": 3,
+      "pdfs_degenerados": 1,
+      "chars_uteis": 16618,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDClass Portaria 373",
+      "pdfs_uteis": 0,
+      "pdfs_degenerados": 1,
+      "chars_uteis": 0,
+      "imagens_validas": 2,
+      "sustenta": "so_imagem"
+    },
+    {
+      "pasta": "iDConnect",
+      "pdfs_uteis": 4,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 24566,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDFace",
+      "pdfs_uteis": 3,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 110874,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDFace Max",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 1,
+      "chars_uteis": 9839,
+      "imagens_validas": 3,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDFlexIp65",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 10308,
+      "imagens_validas": 1,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDFlexLite",
+      "pdfs_uteis": 1,
+      "pdfs_degenerados": 1,
+      "chars_uteis": 7360,
+      "imagens_validas": 4,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDProx",
+      "pdfs_uteis": 3,
+      "pdfs_degenerados": 2,
+      "chars_uteis": 15307,
+      "imagens_validas": 5,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDSecure Cloud",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 5334,
+      "imagens_validas": 0,
+      "sustenta": "so_documento"
+    },
+    {
+      "pasta": "iDTouch",
+      "pdfs_uteis": 3,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 40870,
+      "imagens_validas": 2,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDUHF",
+      "pdfs_uteis": 1,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 2358,
+      "imagens_validas": 1,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDUHF Lite",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 11798,
+      "imagens_validas": 1,
+      "sustenta": "documento+imagem"
+    },
+    {
+      "pasta": "iDdLock",
+      "pdfs_uteis": 2,
+      "pdfs_degenerados": 0,
+      "chars_uteis": 3882,
+      "imagens_validas": 0,
+      "sustenta": "so_documento"
+    },
+    {
+      "pasta": "iDflexpro",
+      "pdfs_uteis": 0,
+      "pdfs_degenerados": 1,
+      "chars_uteis": 0,
+      "imagens_validas": 0,
+      "sustenta": "nada"
+    }
+  ]
+}

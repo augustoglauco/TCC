@@ -1,4 +1,13 @@
-# Avaliação 1 — Acurácia do Roteador de Intenção (R3, Fase 1)
+# Avaliação 1 — Acerto do Roteador na Identificação de Intenções (Fase 10)
+
+> **Conjunto invalidado em 2026-10-17.** Mesmo motivo do aviso em
+> `eval/rag_quality/README.md`: o corpus da avaliação passou a ser
+> `docs/Manuais_fornecedor/ControlId/`, e as 40 mensagens de `dataset.json`
+> foram ancoradas no catálogo/RAG anterior. Os 95,0% de `heuristica_llm` são
+> histórico; o conjunto novo tem **300 mensagens, ≥200 desenhadas para
+> chegar ao LLM** (`docs/EVALUATION.md` Seção 0). O achado que **continua
+> valendo** é de código, não de dado: 18 dos 19 erros da heurística pura são
+> `fora_escopo` por sinônimo fora de `_DOMAIN_KEYWORDS`.
 
 Ver `docs/EVALUATION.md` Seção 1 para o desenho completo desta avaliação.
 

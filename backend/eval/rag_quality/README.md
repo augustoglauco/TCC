@@ -1,5 +1,17 @@
 # Avaliação 2 — Qualidade das Respostas do RAG (R4, Fase 10)
 
+> **Conjunto invalidado em 2026-10-17.** O dono definiu
+> `docs/Manuais_fornecedor/ControlId/` como o corpus da avaliação, e todo
+> gabarito passa a sair dele. As 18 perguntas de `dataset.json` e a bateria
+> de `bateria_perguntas_rag.md` foram montadas sobre outros documentos
+> (`docs/Manuais_fornecedor/` em geral, incluindo material Intelbras), então
+> **os resultados abaixo não descrevem mais o sistema avaliado** — valem como
+> histórico do instrumento de medição e das lições sobre ele (fonte correta ×
+> nota, rate limit do juiz, nome de arquivo com espaço duplo). O conjunto
+> novo (180 perguntas, ponderadas por volume de texto) está dimensionado em
+> `docs/EVALUATION.md` Seção 0; a escolha de parâmetros de ingestão migrou
+> para `eval/rag_ingestion/`.
+
 Ver `docs/EVALUATION.md` Seção 2 para o desenho completo desta avaliação.
 
 - `bateria_perguntas_rag.md` — fonte narrativa original das 20 perguntas

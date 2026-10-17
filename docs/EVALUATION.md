@@ -42,35 +42,107 @@ discordância, detecta ~7,2 pp com poder de 80%. **O relatório final usa
 McNemar entre pares de candidatos e reserva o IC de Wilson para descrever
 cada um isoladamente.**
 
-### As três mídias do RAG
+### O corpus: `docs/Manuais_fornecedor/ControlId/`
 
-O RAG tem três caminhos de recuperação distintos, e cada um precisa do seu
-conjunto — medir só o texto deixaria dois terços do sistema sem avaliação:
+**Decisão do dono de 2026-10-17:** este é o corpus da avaliação, e **todo**
+gabarito (documento, imagem e banco) sai dele. Os conjuntos anteriores — 40
+mensagens de roteador, 18 perguntas de RAG, 8 casos de injeção — foram
+montados sobre outros documentos e **não valem mais**; os números que
+produziram (95,0% de roteador, 2,78/5 de RAG) passam a ser histórico de
+instrumento, não resultado do sistema avaliado.
 
-| Mídia | Onde vive | Estado em 2026-10-16 |
-| --- | --- | --- |
-| Documentos | Qdrant, collection `docs_texto` | **0 vetores** |
-| Imagens | Qdrant, collection `catalogo_imagens` (CLIP) | **3 vetores** |
-| Banco | Postgres, tabela `produtos` | **13 linhas** |
+Auditado em 2026-10-17 (Seção 2.1, Etapa 0 — `auditar_corpus.py`): 726 MB,
+**37 pastas**, uma por produto ou linha de produto. A pasta é a unidade
+canônica: é o gabarito das perguntas de imagem, a chave que liga documento a
+linha do banco, e o que garante que as três mídias falem dos mesmos
+produtos.
 
-**Ingerir é de graça** (automático); o que custa é gabarito. Por isso o
-corpus leva *todo* o material disponível — 97 PDFs e 93 imagens — e o que
-foi dimensionado é a quantidade de perguntas.
+Estado depois das três decisões de 2026-10-17, já executadas
+(`backend/eval/rag_ingestion/preparar_corpus.py`):
+
+| Mídia | Arquivos | Aproveitáveis | Situação |
+| --- | --- | --- | --- |
+| PDFs | 97 | **86** (667.291 chars) | os 11 datasheets em imagem ficam de fora (decisão 1) |
+| Imagens | 81 | **77** | as 4 rejeitadas foram convertidas para JPEG (decisão 2); os originais ficaram no lugar, inofensivos |
+| HTML / Markdown | 1 + 1 | **1** (55.212 chars) | o `.html` foi convertido para `.md` (decisão 3), que `SUPPORTED_SUFFIXES` aceita |
+| Atalhos `.url` | 6 | 0 | conteúdo está online, exigiria o crawler |
+
+**O que cada pasta sustenta como gabarito** (cruzamento de texto útil ×
+imagem válida):
+
+| Capacidade | Pastas |
+| --- | --- |
+| documento + imagem | **27** |
+| só documento | 8 |
+| só imagem | 1 (`iDClass Portaria 373`) |
+| nada | 1 (`iDflexpro` — único PDF é degenerado) |
+
+**Ingerir é de graça** (automático); o que custa é gabarito. O que foi
+dimensionado é a quantidade de perguntas — e, como a Etapa 0 mostrou, em
+dois conjuntos o corpus é que limita, não o orçamento de revisão.
+
+### Precedência de gabarito entre documento e banco
+
+O banco guarda `especificacoes_tecnicas`, `dimensoes_cm` e `peso_kg`
+extraídos **destes mesmos documentos** (via `catalog_extractor`), além dos
+dados complementares de venda e estoque que não existem em documento algum.
+Isso cria colisão: *"qual a capacidade de usuários do iDFace Max?"* tem
+resposta no PDF e na linha do banco.
+
+**Regra adotada (A):** especificação técnica → o gabarito é o **documento**;
+preço, estoque, prazo e disponibilidade → o gabarito é o **banco**. Pergunta
+de especificação nunca entra no conjunto de banco, e vice-versa. Mantém os
+três conjuntos disjuntos por *tipo* de pergunta, que é o que torna as três
+taxas interpretáveis em separado, e espelha o que o roteador já faz. A
+alternativa considerada (banco como fonte única de spec, RAG-doc só para
+procedimento/instalação/troubleshooting) foi descartada por tornar o
+conjunto de documentos pequeno demais para medir recuperação.
 
 ### Estratégia A — conjuntos
 
+Tamanhos revistos em 2026-10-17 contra o corpus auditado. Dois conjuntos
+mudaram porque **o corpus é que limita**, não o orçamento de revisão:
+
 | Conjunto | Itens | Precisa de juiz LLM? |
 | --- | --- | --- |
-| Corpus documentos | 97 PDFs de `docs/Manuais_fornecedor/ControlId/` | — |
-| Corpus imagens | 93 fotos das mesmas pastas | — |
-| Corpus banco | 28 produtos com preço, estoque por CD e prazo | — |
+| Corpus documentos | 86 PDFs úteis (de 97) + o HTML, se convertido | — |
+| Corpus imagens | 73 fotos válidas (77 se as 4 rejeitadas forem convertidas) | — |
+| Corpus banco | **29 produtos** (37 pastas − 8 que são software/serviço/categoria) com preço, estoque por CD e prazo | — |
 | Roteador | **300 mensagens**, sendo **≥200 desenhadas para chegar ao LLM** | não |
 | RAG documentos | **180 perguntas**, incluindo **20 sem resposta no corpus** | sim |
-| RAG imagem | **120 imagens** (90 produto + 30 não-produto) | não |
+| RAG imagem | **107 imagens** (77 de produto + 30 não-produto) — era 120 | não |
 | RAG banco | **80 perguntas** (preço / estoque / disponibilidade) | não |
 | Injeção | **100 casos** (50 diretos + 50 indiretos) | sim |
 | Latência | **60 prompts × 3 repetições** (reaproveitados) | não |
-| **Total de gabaritos** | **780** | |
+| **Total de gabaritos** | **763** (era 780) | |
+
+**Por que 107 imagens, e não 120.** O corpus tem 77 imagens de produto
+válidas — 73 originais mais as 4 recuperadas pela conversão de 2026-10-17; as
+90 que o plano pedia **não existem**. Com 107 itens, a meia-largura do IC 95%
+(Wilson) em p=0,90 é ±5,7 pp — bem abaixo dos ±14,8 pp do conjunto antigo de
+18, e suficiente para o teste pareado de McNemar entre candidatos. Subir de
+107 exige fotos novas, que não existem no material do fornecedor.
+
+**Por que as 180 perguntas de documento não se distribuem igualmente.** Os
+667.291 chars úteis são de cauda longa: `iDFace` (110.874), `iDAccess Pro`
+(75.535) e `REP iDClass` (69.819) concentram **38% do corpus**, enquanto seis
+pastas têm menos de 3.000 chars (`Tags` tem 933). Logo o conjunto é
+**ponderado por volume de texto**, não 5 por pasta — uma pasta de 933 chars
+sustenta 1 ou 2 perguntas sem repetir o mesmo trecho, e forçar cota igual
+produziria perguntas artificiais, que é a pior forma de gabarito ruim
+(contamina todos os candidatos igualmente e não aparece em lugar nenhum). As
+**20 sem resposta no corpus** vêm de três fontes, nesta ordem de preferência:
+**(a)** produtos ausentes do corpus (qualquer item Intelbras, que saiu quando
+o corpus passou a ser `ControlId/`) — a negativa mais honesta, porque não
+depende de falha de ingestão; **(b)** especificações que nenhum datasheet
+traz (consumo em standby, MTBF); e **(c)** apenas 2 itens vindos dos PDFs
+degenerados — `iDflexpro` e `iDClass Portaria 373`, os únicos dois produtos
+que perdem a sua única fonte de texto (ver Etapa 0).
+
+**Por que 29 produtos, e não 28.** As 37 pastas incluem 8 que não são um
+produto único — `Suporte`, `RHiD`, `iDSecure Cloud`, `iDConnect`, `SAT iD`
+(software/serviço) e `Tags`, `Torniquetes`, `Leitor QR Code` (categorias de
+acessório). Os 28 do plano anterior eram estimativa; 29 é a contagem.
 
 **Por que 300 no roteador, e não 300 "representativas".** Medido em
 2026-10-16: das 40 mensagens do conjunto atual, só **9 chegam ao LLM** — o
@@ -262,6 +334,267 @@ conteúdo recuperado (catálogo, documentos, manuais).
 
 **Saída esperada:** `eval/rag_quality/results.json` com pergunta, resposta
 gerada, nota manual, nota do LLM avaliador e fonte recuperada.
+
+## 2.1 Otimização dos parâmetros de ingestão (modelo de embedding, chunking, distância, índices)
+
+Decisão de 2026-10-17. A Seção 2 mede a **qualidade da resposta** de uma
+configuração; esta seção define como **escolher** essa configuração entre os
+parâmetros do perfil de collection (modelo de embedding, métrica de
+distância, `chunk_size`, `chunk_overlap`, HNSW, quantização, payload
+indexes). O "porquê" arquitetural das trocas que mexem em produção está em
+`docs/ARCHITECTURE.md` (decisões de 2026-10-17 sobre o modelo de embedding
+e a limitação de escala de HNSW).
+
+### Três medições que definiram a ordem das etapas
+
+Feitas em 2026-10-17, antes de planejar a varredura:
+
+| # | Medição | Consequência |
+| --- | --- | --- |
+| 1 | `max_seq_length = 128` tokens no modelo atual; 4,31 chars/token em pt-BR → teto de ~552 chars | `chunk_size=800` descarta ~31% de cada chunk, sem erro. Explica o experimento de bisseção de 2026-10-01 (375 e 550 "ganham" porque cabem na janela) |
+| 2 | `paraphrase-multilingual-MiniLM-L12-v2` é 93º de 93 no MTEB-BR (Mean22 0,248; baseline aleatório 0,18) | Nenhum ajuste de chunking/HNSW compensa o modelo. Trocar o modelo é a Etapa 2, antes do chunking |
+| 3 | Corpus auditado (Etapa 0): 667.291 chars úteis → ~151–1.210 vetores (0,89–4,73 MB), abaixo de `full_scan_threshold` (10000 KB ≈ 9,8 MB) e `indexing_threshold` (20000 KB/segmento) | Busca é exata; HNSW e quantização têm efeito zero. Não serão varridos (Etapa 6) |
+
+### A mudança metodológica: separar recuperação de geração
+
+O harness atual (`run_eval.py`, `chunk_size_search.py`) acopla as duas
+coisas: cada configuração testada custa 18 chamadas de LLM-as-judge, e o
+experimento de bisseção de 2026-10-01 esbarrou em rate limit (429) do
+OpenRouter. Como as 180 perguntas da Estratégia A (Seção 0) já trazem **PDF
+de origem + trecho** no gabarito, a qualidade de *recuperação* pode ser
+medida de forma determinística, offline e **sem nenhuma chamada de API**:
+
+- **`Recall@k`** (k ∈ {1, 3, 5, 10}) — o chunk do PDF correto está entre os k
+  primeiros?
+- **`nDCG@10`** — métrica principal de comparação entre configurações; é a
+  que o MTEB-BR usa, o que permite comparar nossos números com a literatura.
+- **`MRR`** — posição média do primeiro acerto.
+- **Taxa de vazio** — quantas perguntas não retornam nada acima do
+  `score_threshold`. Não é só erro: é o sinal que o roteador usa para
+  escalar ao modelo externo (`docs/ARCHITECTURE.md`), então sobe e desce
+  junto com o threshold e precisa ser reportada ao lado do recall.
+
+Com isso cada configuração custa ~30 s em vez de 18 chamadas de juiz, e uma
+grade de 15 pontos passa a ser viável. O LLM-as-judge volta **uma vez só**,
+na Etapa 7, para confirmar que o ganho de recuperação virou ganho de
+resposta. Saída: `eval/rag_ingestion/` (novo), com um JSON por etapa.
+
+### As sete etapas
+
+| # | Etapa | O que varia | Métrica de decisão | Custo | Pré-req |
+| --- | --- | --- | --- | --- | --- |
+| 0 | Auditoria do corpus | — | chars/página por PDF; nº de PDFs sem camada de texto útil | 20 min, R$ 0 | — |
+| 1 | Harness de recuperação | — | implementa `Recall@k`/`nDCG@10`/`MRR` | **feito** (2026-10-17); ~30 s por config | 0 |
+| 2 | **Modelo de embedding** | 4 candidatos | `nDCG@10` + VRAM + tempo de ingestão | ~1 h GPU, R$ 0 | 1 |
+| 3 | **Chunking × overlap** | grade 5×3, **em tokens** | `nDCG@10`, `Recall@5` | ~1,5 h GPU, R$ 0 | 2 |
+| 4 | `top_k` + `score_threshold` | varredura offline | `Recall@k` vs. precisão vs. taxa de vazio | minutos (não reingere) | 3 |
+| 5 | Distância + payload index | cosine/dot/euclid; índice `keyword` em `domain` | `nDCG@10` (distância); p95 de latência (índice) | 30 min, R$ 0 | 3 |
+| 6 | HNSW + quantização | — | **resultado negativo documentado** (ver medição 3) | 30 min de redação | — |
+| 7 | Confirmação com juiz | vencedora × baseline 2026-10-01 | nota 1–5 pareada + `fonte_correta` | ~360 chamadas, ~US$ 3 | 2–5 |
+
+### Etapa 0 — auditoria do corpus
+
+Precede tudo porque um PDF sem camada de texto é invisível ao RAG textual
+independente de qualquer parâmetro — o mesmo tipo de contaminação que tirou
+Q8/Q19 do conjunto em 2026-10-01.
+
+**Rodada em 2026-10-17** sobre `docs/Manuais_fornecedor/ControlId/`
+(`backend/eval/rag_ingestion/auditar_corpus.py`, saída em
+`auditoria_corpus.json`). Mede as três mídias contra as restrições **reais
+de produção**, não contra bibliotecas genéricas: PDFs via
+`extract_text_from_pdf` (o extrator de produção, com detecção de 2 colunas);
+imagens via `detect_image_format` e `MAX_IMAGE_BYTES`, que é o que de fato
+barra um upload.
+
+| PDFs (97) | | Imagens (81, após conversão) | |
+| --- | --- | --- | --- |
+| `util` (≥ 200 chars/pág) | **86** | `valida` | **77** |
+| `degenerado` (1–199) | **11** | `formato_rejeitado` (`.tif` original) | 3 |
+| `sem_texto` | 0 | `acima_do_teto` (`.png` original) | 1 |
+
+Na primeira rodada, antes das conversões, eram **73** imagens válidas; os 4
+arquivos originais rejeitados continuam no corpus ao lado dos JPEG, e o
+pipeline simplesmente os ignora.
+
+**667.559 caracteres extraíveis** (667.291 nos 86 úteis). Chunks resultantes,
+por tamanho candidato da Etapa 3: 128 tokens → ~1.210 · 256 → ~605 ·
+512 → ~302 · 768 → ~202 · 1024 → ~151.
+
+### Três coisas que o pipeline descartava em silêncio
+
+Nenhuma das três levantava erro — é por isso que a auditoria existe. As três
+foram decididas pelo dono em 2026-10-17 e as duas últimas já estão
+**resolvidas** por `preparar_corpus.py`.
+
+1. **11 PDFs em imagem** (abaixo). O documento *consta* como ingerido e
+   rende quase nada.
+2. **4 imagens de produto** rejeitadas: `iDFace-Max.tif` (78,8 MB),
+   `iDBlock-Facial-Preta.tif` (54,7 MB), `iDBlock-Facial-Inox.tif`
+   (50,8 MB) e `iDBlock-Next-Facial.png` (10,1 MB, formato válido mas acima
+   do teto). **Resolvido:** convertidas para JPEG com o lado maior em
+   2000 px — 184 MB viraram 0,4 MB no total, e o conjunto de imagens subiu
+   de 73 para 77. O CLIP reduz tudo a 224×224 (`app.rag.clip_embedder`),
+   então sair de 6966 px para 2000 px não custa nada em recuperação.
+3. **55.519 chars de texto** no único `.html` do corpus,
+   `REP iDClass/api_idclass_latest.html` — a documentação da API do REP
+   iDClass, volume de um dos maiores PDFs, e material direto dos domínios
+   Suporte e MCP B2B. `SUPPORTED_SUFFIXES = {".txt", ".md", ".pdf"}`
+   (`app.rag.ingest`) não inclui `.html`, e `ingest_directory` pula o que
+   não reconhece com um `continue` silencioso. **Resolvido:** convertido
+   para `.md` (55.212 chars, 96% do texto limpo), que `SUPPORTED_SUFFIXES`
+   aceita — sem mexer em código de produção. O conversor ganhou uma guarda
+   de proporção depois de uma primeira versão recuperar só 4 mil dos 57 mil
+   caracteres: o arquivo guarda o conteúdo em tags customizadas
+   (`<description>`, `<code>`, `<name>`), não em `<p>`/`<li>`, e nada no
+   resultado indicava a perda.
+
+### Os 11 PDFs degenerados
+
+Todos são datasheets ou guias de produto ControlId inteiramente em imagem —
+exatamente o material que as perguntas de RAG consultam. Oito rendem **1
+caractere em 2 páginas**:
+
+| chars | páginas | arquivo |
+| --- | --- | --- |
+| 1 | 2 | `IDFit/idfit.pdf` |
+| 1 | 2 | `REP iDClass/rep-idclass-1510.pdf` |
+| 1 | 2 | `iDAccess/idaccess.pdf` |
+| 1 | 2 | `iDBlockBio/idlock-bio-datasheet.pdf` |
+| 1 | 2 | `iDBox/idbox-datasheet.pdf` |
+| 1 | 2 | `iDClass Portaria 373/idclass373.pdf` |
+| 1 | 2 | `iDFlexLite/idflexlite.pdf` |
+| 1 | 2 | `iDflexpro/idflexpro.pdf` |
+| 59 | 2 | `iDProx/idprox-datasheet.pdf` |
+| 59 | 2 | `iDProx/idprox-slim-datasheet.pdf` |
+| 142 | 2 | `iDFace Max/idface-max-userguide.pdf` |
+
+**O caminho de OCR já existe, mas só para o banco.** `catalog_extractor`
+manda a página ao modelo de visão externo quando ela tem menos de 30 chars
+de texto (`extractor.py:502` e `:517`), com conferência humana antes de
+gravar — então esses 11 PDFs **alimentam** `produtos.especificacoes_tecnicas`
+sem problema. O caminho de ingestão do RAG textual (`app.rag.ingest`) **não
+tem** esse fallback. Consequência para o gabarito: uma pergunta sobre o
+`iDBox` teria resposta no banco e nenhum documento recuperável.
+
+**Só 2 produtos perdem de fato a fonte.** Dos 10 diretórios com PDF
+degenerado (o `iDProx` tem dois), **8 têm outro PDF legível** e seguem
+cobertos — `REP iDClass` tem 69.819 chars, `iDBlockBio` 37.337, `iDBox`
+16.618. Nesses, o datasheet em imagem é redundante, e passá-lo por OCR
+adicionaria uma segunda fonte a algo já coberto. Os únicos que ficam sem
+nenhum texto são **`iDflexpro`** e **`iDClass Portaria 373`**.
+
+| Situação | Pastas |
+| --- | --- |
+| perdem a única fonte | `iDClass Portaria 373`, `iDflexpro` |
+| têm outro PDF útil | `IDFit`, `REP iDClass`, `iDAccess`, `iDBlockBio`, `iDBox`, `iDFace Max`, `iDFlexLite`, `iDProx` |
+
+**Decisão pendente do dono:** OCR nos 11, OCR só nos 2, ou deixar os 11 de
+fora. A recomendação é **deixar de fora**: os 8 produtos redundantes não
+perdem nada, e `iDflexpro` e `iDClass Portaria 373` rendem 2 casos
+negativos legítimos para o conjunto de 20 perguntas sem resposta. Note que
+são **2**, não 20 — as outras 18 vêm das fontes (a) e (b) da Seção 0.
+
+### Impacto nas pastas
+
+| Capacidade | Pastas | Consequência |
+| --- | --- | --- |
+| documento + imagem | **27** | sustentam pergunta de documento e de imagem |
+| só documento | 8 | sem imagem válida: `Leitor QR Code`, `REP iDClass Facial`, `RHiD`, `Suporte`, `Torniquetes`, `iDBlockBio`, `iDSecure Cloud`, `iDdLock` |
+| só imagem | 1 | `iDClass Portaria 373` — 2 imagens, único PDF degenerado |
+| nada | 1 | `iDflexpro` — fora do gabarito a menos que o PDF vá para OCR |
+
+# MVP: a auditoria só mede e classifica — não dispara OCR, não converte
+# imagem, não reingere nada.
+
+### Etapa 1 — resultado do baseline (2026-10-17)
+
+Harness em `backend/eval/rag_ingestion/`: `run_etapa1.py` (orquestrador),
+`metricas.py` (métricas puras), `varrer_threshold.py` (varredura offline da
+Etapa 4) e 43 testes que rodam sem Qdrant nem Postgres. Validado com um
+**conjunto mínimo de 15 perguntas** sobre 3 pastas (`iDFace`,
+`iDAccess Pro`, `REP iDClass` — 38% do texto do corpus), contra a
+configuração de produção atual:
+
+| Métrica | Valor |
+| --- | --- |
+| Recall@1 | 0,250 |
+| Recall@3 / @5 / @10 | 0,500 |
+| nDCG@10 | **0,386** |
+| MRR | 0,347 |
+| Acerto nas negativas | **0,000** (0 de 3) |
+
+**Achado que antecipa a Etapa 4 e reforça a Etapa 2:** as distribuições de
+score de perguntas com e sem resposta no corpus se **sobrepõem por
+completo** — o menor score máximo entre as positivas é 0,4553 e o maior
+entre as negativas é 0,6098, com **8 das 12 positivas pontuando abaixo da
+pior negativa**. A varredura offline confirma que só se acerta todas as
+negativas a partir de `score_threshold` 0,62, onde o Recall@5 já caiu de
+0,500 para 0,167. **Nenhum corte atende aos dois lados**, o que significa
+que isto não é problema de calibração (Etapa 4) e sim do modelo de embedding
+(Etapa 2) — agora com evidência medida no corpus do próprio TCC, não só com
+o argumento de ranking do MTEB-BR.
+
+Com n=12 positivas o IC 95% em p=0,5 é de ±27 pp, então **estes números não
+escolhem parâmetro nenhum**: servem de baseline e de prova de que o
+instrumento funciona de ponta a ponta. A escolha usa as 180 perguntas.
+
+### Etapa 2 — candidatos de embedding
+
+Restrição: a GPU de 16 GB hospeda o gerador (`gemma4:12b-it-q4_K_M`, ~9 GB),
+o que exclui os líderes de 8B+ do MTEB-BR.
+
+| Modelo | Params | Dims | Contexto | MTEB-BR Mean22 | Observação |
+| --- | --- | --- | --- | --- | --- |
+| `paraphrase-multilingual-MiniLM-L12-v2` | 118M | 384 | **128** | **0,248** (93º/93) | baseline atual |
+| **`google/embeddinggemma-300m`** | 308M | 768 (MRL 128/256/512) | 2048 | **0,649** (13º/93) | exige prefixos de tarefa |
+| `intfloat/multilingual-e5-large-instruct` | 560M | 1024 | 512 | 0,641 | exige prefixos `query:`/`passage:` |
+| `BAAI/bge-m3` | 568M | 1024 | 8192 | — | dense+sparse+multi-vector; habilita híbrido no futuro |
+
+Retrieval em pt-BR do candidato preferido (MTEB-BR, 6 tarefas): MedRt 0,777 ·
+FaQIR 0,846 · Quati 0,607 · FaqBacen 0,695 · JurRt 0,621.
+
+Cada candidato é medido com **o chunking que respeita sua própria janela**
+(não com os 800 chars atuais), senão a comparação premia o modelo de janela
+curta — foi exatamente o viés que distorceu o experimento de 2026-10-01.
+
+### Etapa 3 — grade de chunking em tokens
+
+O experimento de 2026-10-01 varreu 200–1600 **caracteres** (≈ 50–420
+tokens): a varredura inteira ficou **abaixo** dos 512 tokens que a
+literatura aponta como ótimo, porque o modelo antigo não alcançava essa
+região. Com os 2048 tokens do `embeddinggemma`, ela passa a ser alcançável:
+
+| `chunk_size` (tokens) | ≈ chars | `chunk_overlap` | Por quê este ponto |
+| --- | --- | --- | --- |
+| 128 | ~550 | 10% / 15% / 20% | replica o teto do modelo antigo (controle) |
+| 256 | ~1.100 | 10% / 15% / 20% | ótimo relatado para perguntas factoides |
+| **512** | ~2.200 | 10% / **15%** / 20% | default validado em benchmark público |
+| 768 | ~3.300 | 10% / 15% / 20% | — |
+| 1024 | ~4.400 | 10% / 15% / 20% | ótimo relatado para perguntas multi-hop |
+
+15% é o ponto de partida do overlap (abaixo de 10% perde contexto de
+fronteira; acima de 25% adiciona ruído sem recuperar sinal). **Chunking
+semântico fica fora de escopo:** as avaliações públicas de 2026 o colocam
+*abaixo* do split recursivo simples, gerando fragmentos de ~43 tokens — a
+regra 8 do `CLAUDE.md` (preferir a abordagem mais simples que atenda ao MVP)
+decide contra ele.
+
+### Etapa 5 — métrica de distância e payload index
+
+Para vetores **normalizados** (o caso de todos os candidatos), cosine e dot
+produzem o mesmo ranking — a varredura das três métricas custa minutos e
+existe para registrar isso com número, não porque se espera diferença. O
+item de substância é o índice `keyword` em `domain`, hoje ausente
+(`payload_indexes = []`), medido por p95 de latência sob filtro.
+
+### Como reportar
+
+O relatório final traz **a grade inteira**, não só a vencedora — mesma
+política do experimento de 2026-10-01. Comparação entre configurações usa o
+teste pareado da Seção 0 (McNemar para acerto binário tipo `Recall@5`;
+bootstrap pareado para `nDCG@10`), já que todas as configurações respondem
+exatamente às mesmas 180 perguntas. Um delta de `nDCG@10` sem teste pareado
+não é conclusivo nessa escala de amostra.
 
 ## 3. Latência: modelo local x modelo externo
 

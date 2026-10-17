@@ -404,6 +404,99 @@ confundida com item do escopo original nem esquecida na revisão final (Fase
 11). Detalhes de implementação:
 `docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`.
 
+**Decisão registrada (Fase 10, 2026-10-17): troca do modelo de embedding de
+texto e chunking contado em tokens.** Antes de rodar a otimização de
+parâmetros de ingestão (`docs/EVALUATION.md` Seção 2.1), três medições
+feitas no corpus e no próprio modelo mudaram a ordem de prioridade dos
+testes e exigem alterar código de produção:
+
+1. **Truncamento silencioso.** `paraphrase-multilingual-MiniLM-L12-v2`
+   (`app.rag.embeddings.DEFAULT_EMBEDDING_MODEL`) tem
+   `max_seq_length = 128` tokens. Medido no tokenizer do próprio modelo,
+   pt-BR custa **4,31 chars/token** — teto efetivo de **~552 caracteres**.
+   O `chunk_size = 800` de produção portanto descarta ~31% do texto de cada
+   chunk antes de embeddar, sem erro nem aviso. Isso também **explica** o
+   resultado do experimento de bisseção de `chunk_size` (2026-10-01,
+   `backend/eval/rag_quality/chunk_size_search.py`): o "vencedor" 375 e o
+   550 são exatamente os pontos que caberam inteiros na janela do modelo, e
+   a trajetória não-monótona (800→900 cai, 900→550 sobe) é o teto de 128
+   tokens, não uma propriedade do chunking.
+2. **O modelo é o último colocado em português.** O benchmark MTEB-BR
+   (93 modelos avaliados em pt-BR, `arxiv.org/html/2607.04581v2`) coloca
+   `paraphrase-multilingual-MiniLM-L12-v2` em **93º de 93**, Mean22
+   **0,248** — contra 0,18 de um baseline de embeddings aleatórios.
+   Candidato escolhido para a Etapa 2: **`google/embeddinggemma-300m`**
+   (308M params, 768 dims com truncamento Matryoshka, contexto 2048, Mean22
+   **0,649**, 13º de 93), que cabe na GPU de 16GB ao lado do gerador de 12B.
+   Alternativas medidas no mesmo conjunto:
+   `intfloat/multilingual-e5-large-instruct` (560M, 0,641) e `BAAI/bge-m3`
+   (568M, contexto 8192, o único que oferece dense+sparse+multi-vector).
+   Os líderes absolutos do MTEB-BR são modelos de 8B+ e não cabem na VRAM
+   junto do modelo de geração.
+3. **Consequências de código.** `app.rag.chunking.chunk_text` passa a
+   contar **tokens** pelo tokenizer do modelo da collection (não
+   caracteres) e a cortar recursivamente por separador
+   (`\n\n` → `\n` → `. ` → espaço); `chunk_size`/`chunk_overlap` do perfil
+   de collection passam a ser medidos em tokens. `embeddinggemma` exige
+   **prefixos de tarefa** (`task: search result | query:` na consulta,
+   `title: none | text:` no documento) — sem eles o ganho de qualidade não
+   se materializa, então o prefixo é responsabilidade de
+   `app.rag.embeddings`, não do chamador, e entra em
+   `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` (regra 11 do `CLAUDE.md`).
+   Trocar o modelo muda `vector_dimension` (384 → 768) e **invalida o
+   `score_threshold` atual**, que é um valor absoluto de cosseno com escala
+   específica por modelo — daí a recalibração de `top_k`/`score_threshold`
+   (Etapa 4) ser obrigatória, não opcional. Como todo perfil de collection é
+   imutável, a troca acontece criando uma collection nova e ativando-a; a
+   atual permanece para comparação, e os resultados de 2026-10-01 passam a
+   valer como baseline histórico, não como estado do sistema.
+
+**Limitação de escala registrada (Fase 10, 2026-10-17): HNSW e quantização
+de vetores não são mensuráveis neste corpus.** O corpus da avaliação é
+`docs/Manuais_fornecedor/ControlId/` (decisão do dono de 2026-10-17): 726 MB
+e 97 PDFs que rendem **667.291 caracteres úteis** — medido sobre os 97, não
+estimado (`backend/eval/rag_ingestion/auditar_corpus.py`, Etapa 0,
+2026-10-17; o extrator usado é o de produção,
+`app.rag.pdf_extract.extract_text_from_pdf`). Isso dá **~151 a 1.210
+chunks**, conforme o `chunk_size`, ou de **0,89 MB** (512 tokens × 768 dims,
+o caso provável) a **4,73 MB** de vetores (128 tokens × 1024 dims, o pior
+caso para este argumento). Dois limiares do Qdrant garantem, nessa escala,
+que o índice HNSW **nunca é construído nem percorrido**:
+
+| Parâmetro | Default | Unidade | Margem sobre o pior caso (4,73 MB) |
+| --- | --- | --- | --- |
+| `hnsw_config.full_scan_threshold` | 10000 | KB ≈ 9,8 MB (1 KB ≈ 1 vetor de dim 256) | **2,1×** acima |
+| `optimizer_config.indexing_threshold` | 20000 | KB ≈ 19,5 MB, **por segmento** | **4,1×** acima |
+
+Duas coisas alargam essa margem além da tabela: `full_scan_threshold` mede
+"o tamanho total dos vetores contra os quais se consulta", e toda busca
+filtra por `domain` — o conjunto consultado é uma fração da collection, não
+ela inteira; e `indexing_threshold` é **por segmento**, com o Qdrant
+criando aproximadamente um segmento por CPU, o que divide ainda mais o
+volume por segmento.
+
+Abaixo do primeiro, o planejador de consultas prefere busca exata
+(brute-force); abaixo do segundo, o otimizador não chega a construir o
+grafo. Portanto `hnsw_m`, `hnsw_ef_construct`, `hnsw_payload_m` e
+`quantization_type` têm hoje **efeito zero** em recall (que é 1,0 por
+construção, para qualquer `hnsw_ef`) e em latência. Esses parâmetros
+**continuam configuráveis** por perfil de collection (a infra da entrega de
+2026-09-15 não muda); o que fica registrado é que **não serão varridos
+experimentalmente** na Fase 10 — seria uma tabela de ruído. O resultado
+negativo, com os números acima, entra no relatório final como limitação de
+escala. Um teste sintético (replicar os vetores até 100k–500k e forçar o
+build baixando `indexing_threshold`) foi explicitamente considerado e
+**descartado** em 2026-10-17: mediria um sistema que não é o do TCC.
+
+A única exceção é o **payload index em `domain`**: toda busca filtra por
+esse campo (`app.rag.qdrant_client.search`) e a collection de produção foi
+criada com `payload_indexes = []`. O índice `keyword` nesse campo entra na
+Etapa 5 porque seu efeito é corretude e latência sob filtro, não recall. A
+combinação de multi-tenancy do Qdrant (`m=0` + `payload_m=16`, índice por
+grupo em vez de global) fica **fora de escopo**: impede busca cross-domain,
+que o sistema usa no fallback de domínio
+(`Settings.rag_search_domain_fallback`).
+
 **Decisão registrada (além do MVP, a pedido explícito, 2026-09-21):**
 collections ganham um campo de **finalidade** (`purpose`): `chat` (default,
 pública, elegível a ser ativada e buscada pelo chat) vs `mcp_b2b` (restrita
