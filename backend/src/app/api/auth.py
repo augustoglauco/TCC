@@ -4,6 +4,7 @@
 # associada à base de clientes fictícia (ver docs/ARCHITECTURE.md §5).
 """
 
+from collections import defaultdict
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -232,9 +233,29 @@ async def list_users_endpoint(
     resultado = await session.scalars(select(Cliente).order_by(Cliente.id.desc()))
     clientes = resultado.all()
 
+    ids = [c.id for c in clientes]
+    compras_resultado = await session.execute(
+        select(ClienteCompra.cliente_id, ClienteCompra.comprado_em).where(
+            ClienteCompra.cliente_id.in_(ids)
+        )
+    )
+    compras_por_cliente: dict[int, list] = defaultdict(list)
+    for cliente_id, comprado_em in compras_resultado:
+        compras_por_cliente[cliente_id].append(_com_fuso(comprado_em))
+
+    agora = datetime.now(UTC)
     user_list = []
     for c in clientes:
-        perfil, perfil_motivo = await obter_perfil_cliente(session, c)
+        if c.email == "admin@example.com" or c.email.startswith("admin@"):
+            perfil, perfil_motivo = "Admin", "Administrador do Sistema"
+        else:
+            classificacao = classificar(
+                datas_compras=compras_por_cliente[c.id],
+                tem_email=True,
+                teve_intencao_compra=False,
+                agora=agora,
+            )
+            perfil, perfil_motivo = classificacao.perfil, classificacao.motivo
         user_list.append(
             UserOut(
                 id=c.id,
