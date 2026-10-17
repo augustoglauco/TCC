@@ -1607,27 +1607,38 @@ conversa e classificação do usuário").
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto
       para apresentação ao orientador
-- [ ] Pré-requisito do benchmark (decisão de 2026-10-15, dimensionada em
-      2026-10-16): ingerir o corpus real e **refazer os datasets** de
-      roteador, RAG e injeção sobre ele (os atuais foram feitos com outros
-      documentos). Tamanhos definidos em `docs/EVALUATION.md` Seção 0 — os
-      números antigos (40/18/8) eram exemplo, não dimensionamento. Em ordem:
-  - [ ] Ingerir os **97 PDFs** de `docs/Manuais_fornecedor/ControlId/` e
-        registrar quantos chunks resultaram
+- [ ] **Estratégia A de medição** (escolhida pelo dono em 2026-10-16 entre
+      três alternativas). Plano completo — tamanhos, divisão de trabalho,
+      custos e justificativa estatística — em `docs/EVALUATION.md` Seção 0.
+      Os números antigos (40/18/8) eram exemplo, não dimensionamento.
+      Custos: ~US$ 12, 8–15 h de GPU, **~4,5 h de revisão humana**. Em ordem:
+  - [ ] Ingerir as três mídias do RAG, hoje praticamente vazias
+        (`docs_texto` 0 vetores, `catalogo_imagens` 3, `produtos` 13):
+        **97 PDFs** de `docs/Manuais_fornecedor/ControlId/`, **93 fotos** de
+        produto (CLIP) e **28 produtos** no banco com preço, estoque por CD
+        e prazo. Registrar quantos chunks/vetores resultaram
   - [ ] Roteador: **300 mensagens**, sendo **≥200 desenhadas para chegar ao
-        LLM** (hoje só 22,5% das mensagens chegam — 9 de 40, medido; num
-        conjunto "realista" o n efetivo de comparação seria um terço do
-        tamanho nominal). Reportar as duas taxas separadas: acurácia do
-        sistema (300) e do modelo no subconjunto que lhe chega
-  - [ ] RAG: **180 perguntas**, incluindo **20 sem resposta no corpus** para
-        medir alucinação
+        LLM** (hoje só 22,5% chegam — 9 de 40, medido; num conjunto
+        "representativo" o n efetivo de comparação seria um terço do tamanho
+        nominal). Reportar duas taxas separadas: acurácia do sistema (300) e
+        do modelo no subconjunto que lhe chega
+  - [ ] RAG documentos: **180 perguntas**, incluindo **20 sem resposta no
+        corpus** para medir alucinação. Cada item carrega o trecho de origem
+        extraído com `pdfplumber`, para a revisão ser leitura lado a lado em
+        vez de caça ao PDF
+  - [ ] RAG imagem: **120** (90 produto + 30 não-produto)
+  - [ ] RAG banco: **80 perguntas** geradas a partir das linhas de
+        `produtos` — gabarito exato por construção, revisão zero
   - [ ] Injeção: **100 casos** (50 diretos + 50 indiretos)
-  - [ ] Imagem: **120** (90 produto + 30 não-produto). As 30 negativas
-        precisam vir de fora — o repositório só tem 2 imagens reais
-        não-produto, e são o mesmo comprovante com valores diferentes
   - [ ] Relatar comparação entre candidatos com **McNemar pareado** (todos
         respondem aos mesmos itens), e IC de Wilson só para descrever cada
         um isoladamente
+- [ ] O dono precisa entregar três coisas, e só estas: **30 fotos
+      não-produto** (o repositório só tem 2 imagens reais não-produto, e são
+      o mesmo comprovante com valores diferentes); **autorização para
+      inventar preço/estoque** dos 28 produtos; e a **escolha do juiz**
+      (pago ~US$ 12 com tempo previsível, ou o tier `:free` atual em que o
+      rate limit manda no relógio)
 - [ ] Decidir o juiz da rodada completa: são **2.800 chamadas** de
       LLM-as-judge nos 10 candidatos (280 por modelo). No tier `:free` do
       OpenRouter isso domina o relógio e esbarra no limite diário. Juiz pago
