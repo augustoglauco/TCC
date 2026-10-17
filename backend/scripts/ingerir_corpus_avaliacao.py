@@ -32,11 +32,20 @@ from app.db.models import RagDocument
 from app.logging_config import configure_logging
 from app.rag.collections_registry import get_active_collection
 from app.rag.embedders_registry import EmbedderRegistry
-from app.rag.ingest import ingest_file
+from app.rag.ingest import SUPPORTED_SUFFIXES, ingest_file
 from app.rag.qdrant_client import QdrantRAGClient
 
-CORPUS_PADRAO = Path(__file__).resolve().parents[2] / "docs" / "Manuais_fornecedor"
+CORPUS_PADRAO = Path(__file__).resolve().parents[2] / "docs" / "Manuais_fornecedor" / "ControlId"
 DOMINIO = "suporte"
+
+
+def listar_arquivos_corpus(diretorio: Path) -> list[Path]:
+    """Lista os documentos ingeríveis (`SUPPORTED_SUFFIXES`: `.pdf`, `.md`, `.txt`)
+    em `diretorio`, ordenados deterministicamente por nome e caminho."""
+    return sorted(
+        (p for p in diretorio.rglob("*") if p.is_file() and p.suffix.lower() in SUPPORTED_SUFFIXES),
+        key=lambda p: (p.name, str(p)),
+    )
 
 
 async def main() -> None:
@@ -47,11 +56,11 @@ async def main() -> None:
     settings = get_settings()
     configure_logging(settings.log_level)
 
-    pdfs = sorted(p for p in args.dir.rglob("*.pdf") if p.is_file())
-    if not pdfs:
-        print(f"Nenhum PDF em {args.dir}")
+    arquivos = listar_arquivos_corpus(args.dir)
+    if not arquivos:
+        print(f"Nenhum documento suportado em {args.dir}")
         sys.exit(1)
-    print(f"{len(pdfs)} PDF(s) em {args.dir}")
+    print(f"{len(arquivos)} documento(s) em {args.dir}")
 
     qdrant = QdrantRAGClient(
         host=settings.qdrant_host, port=settings.qdrant_port, timeout_s=settings.qdrant_timeout_s
@@ -81,8 +90,8 @@ async def main() -> None:
         )
         print(f"collection ativa: '{collection.name}' ({len(existentes)} documento(s) já dentro)")
 
-        for i, pdf in enumerate(pdfs, start=1):
-            if pdf.name in existentes:
+        for i, doc_path in enumerate(arquivos, start=1):
+            if doc_path.name in existentes:
                 pulados += 1
                 continue
             try:
@@ -91,20 +100,20 @@ async def main() -> None:
                     embedder,
                     collection,
                     uploads_dir,
-                    pdf,
+                    doc_path,
                     DOMINIO,
                     session=session,
                     origin="corpus_avaliacao",
                 )
             except Exception as exc:  # noqa: BLE001
                 # Um PDF escaneado sem camada de texto, ou corrompido, não
-                # pode derrubar a ingestão dos outros 96.
+                # pode derrubar a ingestão dos outros documentos.
                 falhas += 1
-                print(f"[{i}/{len(pdfs)}] FALHOU {pdf.name}: {type(exc).__name__}: {exc}")
+                print(f"[{i}/{len(arquivos)}] FALHOU {doc_path.name}: {type(exc).__name__}: {exc}")
                 continue
             ingeridos += 1
             total_chunks += documento.chunk_count
-            print(f"[{i}/{len(pdfs)}] {pdf.name}: {documento.chunk_count} chunk(s)")
+            print(f"[{i}/{len(arquivos)}] {doc_path.name}: {documento.chunk_count} chunk(s)")
 
     print(
         f"\nIngeridos {ingeridos}, pulados {pulados} (já estavam), falhas {falhas}. "

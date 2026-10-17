@@ -1656,11 +1656,13 @@ conversa e classificação do usuário").
         ganhou uma guarda de proporção (`LIMIAR_RECUPERACAO_HTML`) que
         recusa gravar abaixo de 80%. Detalhes em `docs/EVALUATION.md`
         Seção 2.1, Etapa 0, e no README de `backend/eval/rag_ingestion/`.
-  - [ ] Ajustar `backend/scripts/ingerir_corpus_avaliacao.py`: o
-        `CORPUS_PADRAO` aponta para `docs/Manuais_fornecedor` (a pasta
-        inteira, incluindo `catalago/` e o catálogo da raiz), não para
-        `ControlId/`, que é o corpus decidido em 2026-10-17; e ele filtra
-        `rglob("*.pdf")`, deixando o `.html` de fora.
+  - [x] Ajustar `backend/scripts/ingerir_corpus_avaliacao.py` (2026-10-17): o
+        `CORPUS_PADRAO` passou a apontar para `docs/Manuais_fornecedor/ControlId`
+        (o corpus decidido em 2026-10-17, sem `catalago/` nem o catálogo da
+        raiz), e `listar_arquivos_corpus` coleta todas as extensões de
+        `SUPPORTED_SUFFIXES` (`.pdf`, `.md`, `.txt`), incluindo o
+        `api_idclass_latest.md` convertido do `.html` na Etapa 0. Testes em
+        `tests/test_rag_ingestion_eval.py`.
   - [x] Etapa 1 — harness de recuperação em `backend/eval/rag_ingestion/`
         (2026-10-17): `metricas.py` (`Recall@k`, `nDCG@10`, `MRR`, taxa de
         vazio, como funções **puras**), `run_etapa1.py` (cria collection
@@ -1739,45 +1741,60 @@ conversa e classificação do usuário").
         × baseline de 2026-10-01, pareado (McNemar para `Recall@5`,
         bootstrap pareado para `nDCG@10`/nota, conforme Seção 0). Relatar a
         grade inteira, não só a vencedora.
-- [ ] **Verificar, depois que a refatoração visual M3 Glass terminar**, as
+- [x] **Verificar, depois que a refatoração visual M3 Glass terminar**, as
     quatro superfícies que ela compartilha com partes que hoje funcionam —
     estado atual e âncora de rollback registrados em
     `docs/ARCHITECTURE.md` ("Risco de coordenação registrado",
     2026-10-17). Âncora: commit `7eebebb` (último antes de qualquer código
     de frontend); blob de `resolveImageUrl.ts` hoje:
-    `c2707c97139da005c1e78e9cce1e433378467abf`. Itens:
-  - [ ] `resolveImageUrl` ganha um 2º parâmetro opcional `productName`. Pelos
+    `c2707c97139da005c1e78e9cce1e433378467abf`. Verificado em 2026-10-17:
+  - [x] `resolveImageUrl` ganha um 2º parâmetro opcional `productName`. Pelos
         testes que o plano especifica, o arquivo local é **fallback para URL
         nula**, não prioridade — mais seguro que a redação da spec (§5.2 diz
         "priorizar"). Verificar que `components/chat/cards/ProductCard.tsx`
         (card rico do chat, **fora** do escopo declarado) continue chamando
         com um argumento e que
         `frontend/tests/components/ChatProductCard.test.tsx` passe **sem
-        alteração de asserção**.
-  - [ ] Imagem no site deixa de ser evidência de indexação CLIP: com o
+        alteração de asserção** — **Resolvido de forma ainda mais estrita:**
+        `resolveImageUrl.ts` não foi modificado (permanece no blob original
+        `c2707c97139da005c1e78e9cce1e433378467abf`, com 1 argumento), e
+        `ChatProductCard.test.tsx` passa sem nenhuma alteração.
+  - [x] Imagem no site deixa de ser evidência de indexação CLIP: com o
         fallback por nome, produto **sem imagem cadastrada** passa a exibir
         foto (hoje exibe nada). `catalogo_imagens` tem 3 vetores; a
         Estratégia A exige os 29 produtos cadastrados **pelo sistema** para
         exercitar a indexação que o conjunto de 107 imagens avalia.
         Conferir o índice por `/admin/produtos` ou contagem de vetores,
-        nunca pela vitrine.
-  - [ ] `/avaliacao` não tem layout próprio e herda `app/layout.tsx`:
+        nunca pela vitrine — **Resolvido:** sem fallback por nome em
+        `resolveImageUrl.ts`, `/produtos` continua refletindo fielmente o
+        PostgreSQL/Qdrant e exibindo `"Sem foto cadastrada"` quando o produto
+        não tem foto no backend; as fotos estáticas locais aparecem apenas na
+        vitrine institucional da Home (`HeroSlider.tsx` e
+        `HardwareReveal.tsx`).
+  - [x] `/avaliacao` não tem layout próprio e herda `app/layout.tsx`:
         verificar contraste e legibilidade da página pública de resultados
         depois da mudança de Header/Footer para tema escuro.
         `frontend/tests/unit/LayoutHeaderFooter.test.tsx` guarda o
-        comportamento atual, inclusive a ocultação do Footer em `/admin/*`.
-  - [ ] Decidir conscientemente a cópia versionada: `docs/Manuais_fornecedor/`
+        comportamento atual, inclusive a ocultação do Footer em `/admin/*` —
+        **Verificado:** `app/layout.tsx` mantém `<body className="flex min-h-full flex-col bg-zinc-50 text-gray-900">`, preservando contraste e legibilidade de `/avaliacao` (`bg-white`/`text-gray-900`), e `LayoutHeaderFooter.test.tsx` cobre explicitamente a renderização em `/avaliacao` e a ocultação do `Footer` em `/admin/*`.
+  - [x] Decidir conscientemente a cópia versionada: `docs/Manuais_fornecedor/`
         é `gitignored` (`.gitignore:21`) e o plano copia fotos para
-        `frontend/public/images/products/`, que é versionado (regra 6).
-  - [ ] Avisar o outro agente de que 2 dos 7 caminhos de origem do plano não
+        `frontend/public/images/produtos/`, que é versionado (regra 6) —
+        **Confirmado:** 8 JPEGs (~1 MB total) versionados em
+        `frontend/public/images/produtos/` para a vitrine institucional da Home.
+  - [x] Avisar o outro agente de que 2 dos 7 caminhos de origem do plano não
         existem (ele mesmo os marcou "ou similar"):
         `REP iDClass/REP_iDClass.jpg` → `REP-iDClass-Frontal.jpg`;
         `iDAccess Pro/iDAccess_Pro.jpg` → `iDAccess-Pro-Frontal.jpg`. Os
-        outros 5 existem exatamente como escritos.
-  - [ ] Checklist de regressão: qualquer um de `ChatProductCard`,
+        outros 5 existem exatamente como escritos — **Resolvido:** as imagens
+        corretas foram copiadas na Fase 1 (`idclass-373.jpg` e
+        `idaccess-pro.jpg`) e o plano foi atualizado.
+  - [x] Checklist de regressão: qualquer um de `ChatProductCard`,
         `ProductCard`, `ProdutoDetalhePage`, `LayoutHeaderFooter`,
         `apiBaseUrl` ou `ChatModal` que precise ter **asserção** alterada
-        (não só seletor) é sinal de quebra de contrato, não de ajuste visual.
+        (não só seletor) é sinal de quebra de contrato, não de ajuste visual —
+        **Verificado:** todas as 6 suítes passam sem nenhuma alteração de
+        asserção.
 - [x] Resiliência a prompt injection (direta, indireta via RAG, e via
       comprovante OCR) e abuso das ferramentas MCP B2B — plano de
       segurança anterior fictício (`PLANO_ANTI_AI_ATTACK.md`) descartado e

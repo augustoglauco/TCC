@@ -415,3 +415,39 @@ def test_dataset_fontes_ficam_nas_pastas_declaradas(dataset):
             assert fonte in permitidos, (
                 f"{p['id']}: {fonte} fora das pastas de {dataset['_pastas']}"
             )
+
+
+# --------------------------------------------------------------------------
+# Script de ingestão do corpus de avaliação (ingerir_corpus_avaliacao.py)
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def ingerir_corpus():
+    caminho = Path(__file__).resolve().parents[1] / "scripts" / "ingerir_corpus_avaliacao.py"
+    spec = importlib.util.spec_from_file_location("ingerir_corpus_avaliacao", caminho)
+    modulo = importlib.util.module_from_spec(spec)
+    sys.modules["ingerir_corpus_avaliacao"] = modulo
+    spec.loader.exec_module(modulo)
+    return modulo
+
+
+def test_corpus_padrao_aponta_para_controlid(ingerir_corpus):
+    """O corpus decidido na Etapa 0 (2026-10-17) é `ControlId/`, não a pasta
+    `Manuais_fornecedor` inteira (que inclui `catalago/` e o catálogo da raiz)."""
+    assert ingerir_corpus.CORPUS_PADRAO.name == "ControlId"
+    assert ingerir_corpus.CORPUS_PADRAO.parent.name == "Manuais_fornecedor"
+
+
+def test_listar_arquivos_corpus_inclui_pdf_md_txt_e_exclui_html_tif(ingerir_corpus, tmp_path):
+    """Depois da conversão do `.html` para `.md` na Etapa 0, o script de
+    ingestão deve coletar todas as extensões aceitas por `SUPPORTED_SUFFIXES`
+    (`.pdf`, `.md`, `.txt`) e ignorar `.html`/`.tif`/`.jpg`."""
+    (tmp_path / "manual.pdf").write_bytes(b"%PDF-1.4")
+    (tmp_path / "api_idclass_latest.md").write_text("# API", encoding="utf-8")
+    (tmp_path / "notas.txt").write_text("texto", encoding="utf-8")
+    (tmp_path / "api_idclass_latest.html").write_text("<html></html>", encoding="utf-8")
+    (tmp_path / "foto.tif").write_bytes(b"II*")
+
+    encontrados = [p.name for p in ingerir_corpus.listar_arquivos_corpus(tmp_path)]
+    assert encontrados == ["api_idclass_latest.md", "manual.pdf", "notas.txt"]

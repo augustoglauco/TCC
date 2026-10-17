@@ -875,12 +875,6 @@
     "ast_hash": "1054341896088a34e8f6e8e3e3dfd65b",
     "semantic_hash": "1054341896088a34e8f6e8e3e3dfd65b"
   },
-  "backend/src/app/tone_monitor/__init__.py": {
-    "mtime": 1788641083.359672,
-    "seen": 1791840346.4558,
-    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
-    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
-  },
   "backend/src/app/user_profile/__init__.py": {
     "mtime": 1788641083.359672,
     "seen": 1791840346.4558008,
@@ -1806,9 +1800,9 @@
     "semantic_hash": "b9cacac30cb7c3dc6dd939e9fc33193e"
   },
   "docs/ROADMAP.md": {
-    "mtime": 1792242338.3270237,
-    "seen": 1792242368.8875823,
-    "ast_hash": "5e936dcccd3bf18c01f9b36fe2f47a24",
+    "mtime": 1792243235.1337602,
+    "seen": 1792243249.8442535,
+    "ast_hash": "1965eadc646aa00b3ecf55277d5c53f3",
     "semantic_hash": ""
   },
   "docs/TESTE_LOCAL.md": {
@@ -2346,9 +2340,9 @@
     "semantic_hash": ""
   },
   "backend/scripts/ingerir_corpus_avaliacao.py": {
-    "mtime": 1792196636.6374342,
-    "seen": 1792227753.4120567,
-    "ast_hash": "79c75e56248869578f26fffa4e4bbee0",
+    "mtime": 1792243191.1608999,
+    "seen": 1792243249.8439434,
+    "ast_hash": "50458927f316670f1ce3e133e74c88ff",
     "semantic_hash": ""
   },
   "backend/src/app/api/admin_datasets.py": {
@@ -2472,9 +2466,9 @@
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-10-17-m3glass-visual-refactor.md": {
-    "mtime": 1792233582.2466621,
-    "seen": 1792242368.8876116,
-    "ast_hash": "d6efbf711bd291d75708c68bcf0493f4",
+    "mtime": 1792242599.3346117,
+    "seen": 1792243249.8442798,
+    "ast_hash": "e0027af1b7f48fef88edb0c7a0219979",
     "semantic_hash": ""
   },
   "docs/superpowers/specs/2026-10-17-m3glass-visual-refactor-design.md": {
