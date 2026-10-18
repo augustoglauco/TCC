@@ -20,6 +20,60 @@ const ROTULO_EMAIL: Record<string, string> = {
   nao_enviado: "E-mail não enviado",
 };
 
+function MensagemItem({
+  m,
+  onMarcarLida,
+}: {
+  m: MensagemAgente;
+  onMarcarLida: (id: string) => void;
+}) {
+  return (
+    <li
+      className={
+        m.lida
+          ? "rounded-xl border border-gray-200 bg-white p-4"
+          : "rounded-xl border-2 border-blue-300 bg-blue-50/40 p-4"
+      }
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span
+            className={
+              m.severidade === "critico"
+                ? "rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700"
+                : "rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
+            }
+          >
+            {m.severidade === "critico" ? "Crítico" : "Aviso"}
+          </span>
+          <span className="text-xs font-medium text-gray-500">
+            {ROTULO_AGENTE[m.agente] ?? m.agente}
+          </span>
+        </div>
+        <span className="text-xs text-gray-400">
+          {m.criado_em ? new Date(m.criado_em).toLocaleString("pt-BR") : ""}
+        </span>
+      </div>
+      <h2 className="mt-2 font-semibold text-gray-900">{m.titulo}</h2>
+      <p className="mt-1 text-sm text-gray-700">{m.corpo}</p>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs text-gray-500">
+          {ROTULO_EMAIL[m.email_status] ?? m.email_status}
+        </span>
+        {!m.lida && (
+          <button
+            type="button"
+            onClick={() => onMarcarLida(m.id)}
+            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Marcar como lida
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
 export default function AdminMensagensPage() {
   const currentUser = useAuthStore((state) => state.user);
   const token = useAuthStore((state) => state.token);
@@ -126,50 +180,11 @@ export default function AdminMensagensPage() {
 
       <ul className="space-y-3">
         {mensagens.map((m) => (
-          <li
+          <MensagemItem
             key={m.id}
-            className={
-              m.lida
-                ? "rounded-xl border border-gray-200 bg-white p-4"
-                : "rounded-xl border-2 border-blue-300 bg-blue-50/40 p-4"
-            }
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span
-                  className={
-                    m.severidade === "critico"
-                      ? "rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-700"
-                      : "rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700"
-                  }
-                >
-                  {m.severidade === "critico" ? "Crítico" : "Aviso"}
-                </span>
-                <span className="text-xs font-medium text-gray-500">
-                  {ROTULO_AGENTE[m.agente] ?? m.agente}
-                </span>
-              </div>
-              <span className="text-xs text-gray-400">
-                {m.criado_em ? new Date(m.criado_em).toLocaleString("pt-BR") : ""}
-              </span>
-            </div>
-            <h2 className="mt-2 font-semibold text-gray-900">{m.titulo}</h2>
-            <p className="mt-1 text-sm text-gray-700">{m.corpo}</p>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs text-gray-500">
-                {ROTULO_EMAIL[m.email_status] ?? m.email_status}
-              </span>
-              {!m.lida && (
-                <button
-                  type="button"
-                  onClick={() => void acao(() => marcarMensagemLida(token!, m.id))}
-                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                  Marcar como lida
-                </button>
-              )}
-            </div>
-          </li>
+            m={m}
+            onMarcarLida={(id) => void acao(() => marcarMensagemLida(token!, id))}
+          />
         ))}
       </ul>
     </div>
