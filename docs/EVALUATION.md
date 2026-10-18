@@ -356,6 +356,17 @@ indexes). O "porquê" arquitetural das trocas que mexem em produção está em
 `docs/ARCHITECTURE.md` (decisões de 2026-10-17 sobre o modelo de embedding
 e a limitação de escala de HNSW).
 
+### Escopo: um único perfil de collection de texto
+
+Decisão de 2026-10-18 (`docs/ARCHITECTURE.md`, §5). A otimização **escolhe
+um perfil** e o aplica à collection ativa; não avalia cada LLM contra várias
+collections. Os pontos da grade rodam em collections temporárias
+(`is_active=False`, apagadas ao fim) só para medir recuperação, sem LLM. O
+benchmark de modelos locais usa depois a collection ativa já reingerida com o
+perfil vencedor, e seus resultados valem para esse perfil. Collections de
+texto com outros perfis, e a avaliação cruzada LLM × collection, ficam como
+evolução futura.
+
 ### Três medições que definiram a ordem das etapas
 
 Feitas em 2026-10-17, antes de planejar a varredura:

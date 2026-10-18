@@ -404,6 +404,21 @@ confundida com item do escopo original nem esquecida na revisão final (Fase
 11). Detalhes de implementação:
 `docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`.
 
+**Decisão registrada (Fase 10, 2026-10-18): a avaliação cobre um único perfil
+de collection de texto.** O sistema permite várias collections com perfis
+próprios, mas o chat usa só a ativa, e a Avaliação Experimental
+(`docs/EVALUATION.md` Seção 2.1) escolhe **um** perfil vencedor (embedding,
+`chunk_size`/`overlap`, `score_threshold`, distância) sobre o corpus real e o
+aplica à collection ativa. Os domínios (Vendas, Suporte etc.) se separam pelo
+filtro `domain` no payload, não por collection. Texto e imagem continuam em
+collections distintas por necessidade (CLIP tem outra dimensão e espaço de
+embedding). Motivo: corpus de ~151–1.210 vetores, busca exata, e embeddings
+diferentes por collection obrigariam embedar a consulta várias vezes e
+comparar scores incomparáveis. **Evolução futura:** collections de texto
+simultâneas com perfis próprios (ex.: manuais longos × FAQs curtas) e
+avaliação do LLM contra cada uma. Os resultados do benchmark de modelos
+valem para o perfil da collection ativa no momento da rodada.
+
 **Decisão registrada (Fase 10, 2026-10-17): troca do modelo de embedding de
 texto e chunking contado em tokens.** Antes de rodar a otimização de
 parâmetros de ingestão (`docs/EVALUATION.md` Seção 2.1), três medições
