@@ -3,13 +3,15 @@
 import asyncio
 import inspect
 import logging
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.agents.runtime import runtime as agent_runtime
 from app.api.admin_atendimento import router as admin_atendimento_router
@@ -116,9 +118,11 @@ async def _startup_load_settings(app: FastAPI, session_factory) -> None:
         async with session_factory() as session:
             persisted = await get_all_app_settings(session)
             _apply_runtime_settings(app, persisted)
-    except Exception as exc:
+    except (SQLAlchemyError, OSError) as exc:
         logger.warning(
-            "Falha ao carregar configurações persistidas do banco no startup: %s", exc
+            "Falha ao carregar configurações persistidas do banco no startup: %s",
+            exc,
+            exc_info=True,
         )
 
 

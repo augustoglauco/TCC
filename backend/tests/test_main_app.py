@@ -13,6 +13,7 @@ from app.rag.qdrant_client import QdrantRAGClient
 from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
 
+
 def test_apply_runtime_settings_coerce_e_agent_runtime():
     """Cobre as chaves que antes tinham tratamento especial fora do loop:
     local_llm_keep_alive (coerce str), local_llm_warmup_on_startup (coerce bool),
@@ -48,8 +49,6 @@ def test_apply_runtime_settings_coerce_e_agent_runtime():
     assert app.state.qdrant_client.search_domain_fallback is True
     assert agent_runtime.estoque_modo == "llm"
     assert agent_runtime.estoque_llm == "external"
-
-
 
     app = create_app()
 
@@ -119,6 +118,61 @@ def test_create_app_monta_o_cliente_de_calendario_e_config_de_agendamento():
 def test_create_app_monta_o_sales_catalog_client():
     app = create_app()
     assert isinstance(app.state.sales_catalog_client, SalesCatalogClient)
+
+
+async def test_startup_load_settings_nao_engole_erros_de_programacao(monkeypatch):
+    """_startup_load_settings deve deixar erros de programação (ex.: AttributeError
+    de _apply_runtime_settings) propagarem — só erros de infra (SQLAlchemy/OSError)
+    são tolerados no startup."""
+    import pytest
+    from sqlalchemy.exc import OperationalError
+
+    from app.main import _startup_load_settings
+
+    app = FastAPI()
+    app.state.local_client = None
+    app.state.external_client = None
+    app.state.qdrant_client = None
+
+    # Simula falha de infra (DB fora do ar) — deve ser tolerada
+    class _FakeSessionFactory:
+        def __call__(self):
+            return self
+
+        async def __aenter__(self):
+            raise OperationalError("conn", {}, Exception("db down"))
+
+        async def __aexit__(self, *_):
+            pass
+
+    await _startup_load_settings(app, _FakeSessionFactory())  # não deve levantar
+
+    # Simula erro de programação dentro de _apply_runtime_settings — deve propagar
+    class _FakeSessionFactoryOk:
+        def __call__(self):
+            return self
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_):
+            pass
+
+        async def execute(self, *_):
+            return self
+
+        def scalars(self):
+            return self
+
+        def all(self):
+            return []
+
+    monkeypatch.setattr(
+        "app.main._apply_runtime_settings",
+        lambda *_: (_ for _ in ()).throw(ValueError("bug")),
+    )
+    with pytest.raises(ValueError, match="bug"):
+        await _startup_load_settings(app, _FakeSessionFactoryOk())
 
 
 async def test_lifespan_restaura_settings_e_dispara_warmup(monkeypatch):

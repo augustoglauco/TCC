@@ -62,6 +62,29 @@ except ImportError:
             )
 
 
+def _parse_data_local(
+    valor: str,
+    campo: str,
+    hora: int,
+    minuto: int,
+    segundo: int,
+    microsegundo: int,
+    local_tz: ZoneInfo,
+) -> datetime:
+    """Converte uma string ISO YYYY-MM-DD num datetime UTC no horário indicado
+    do dia LOCAL. Levanta HTTP 400 para datas mal formadas."""
+    try:
+        d = date.fromisoformat(valor)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{campo} inválida ({valor!r}); use o formato YYYY-MM-DD.",
+        ) from exc
+    return datetime(
+        d.year, d.month, d.day, hora, minuto, segundo, microsegundo, tzinfo=local_tz
+    ).astimezone(UTC)
+
+
 def _resolver_janela(
     period: str,
     start_date: str | None,
@@ -80,30 +103,12 @@ def _resolver_janela(
     default — também achado de 2026-10-04: o administrador via um filtro
     aplicado que na verdade era outro, bem diferente.
     """
-    cutoff_start: datetime | None = None
-    cutoff_end: datetime | None = None
-
-    if start_date:
-        try:
-            d = date.fromisoformat(start_date)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"start_date inválida ({start_date!r}); use o formato YYYY-MM-DD.",
-            ) from exc
-        cutoff_start = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=local_tz).astimezone(UTC)
-
-    if end_date:
-        try:
-            d = date.fromisoformat(end_date)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"end_date inválida ({end_date!r}); use o formato YYYY-MM-DD.",
-            ) from exc
-        cutoff_end = datetime(
-            d.year, d.month, d.day, 23, 59, 59, 999999, tzinfo=local_tz
-        ).astimezone(UTC)
+    cutoff_start = (
+        _parse_data_local(start_date, "start_date", 0, 0, 0, 0, local_tz) if start_date else None
+    )
+    cutoff_end = (
+        _parse_data_local(end_date, "end_date", 23, 59, 59, 999999, local_tz) if end_date else None
+    )
 
     if cutoff_start is None and cutoff_end is None:
         now_local = datetime.now(local_tz)
@@ -125,29 +130,24 @@ def _dia_local(dt: datetime, local_tz: ZoneInfo) -> str:
     return dt.astimezone(local_tz).strftime("%Y-%m-%d")
 
 
-@router.get("/ai-usage", response_model=AiUsageReport)
-async def get_ai_usage_metrics(
-    request: Request,
-    period: str = Query("7d", description="Período: 'today', '7d', '30d' ou 'all'"),
-    start_date: str | None = Query(None, description="Data inicial ISO YYYY-MM-DD"),
-    end_date: str | None = Query(None, description="Data final ISO YYYY-MM-DD"),
-    _: None = Depends(require_admin),
-) -> AiUsageReport:
-    """Uso de IA do período, estratificado por origem × ambiente × modelo ×
-    operação, mais o recorte diário e o volume de chats encerrados."""
-    session_factory = getattr(request.app.state, "db_sessionmaker", None)
-    if not session_factory:
-        raise HTTPException(status_code=503, detail="Banco de dados não configurado.")
+def _montar_queries(
+    cutoff_start: datetime | None,
+    cutoff_end: datetime | None,
+):
+    """Monta os três selects e aplica os filtros de janela temporal.
 
-    local_tz = ZoneInfo(get_settings().agendamento_timezone)
-    cutoff_start, cutoff_end = _resolver_janela(period, start_date, end_date, local_tz)
+    Q1 — agregação cross-dimensional. `SUM()` devolve NULL quando TODOS os
+    valores do grupo são NULL (semântica desejada: "não medido"); nenhum
+    COALESCE aqui, de propósito. `COUNT(*) - COUNT(custo_usd)` é a contagem
+    de chamadas sem custo medido.
 
-    # Q1 — agregação cross-dimensional no banco. `SUM()` devolve NULL
-    # quando TODOS os valores do grupo são NULL, que é exatamente a
-    # semântica desejada ("não medido"); nenhum COALESCE aqui, de
-    # propósito. `COUNT(coluna)` ignora NULLs, então
-    # `COUNT(*) - COUNT(custo_usd)` é a contagem de chamadas sem custo
-    # medido.
+    Q2 — recorte diário. Não existe expressão portável entre SQLite (testes)
+    e PostgreSQL (produção) para truncar timestamp num fuso arbitrário, então
+    só cinco colunas vêm do banco e o agrupamento por dia é feito em Python
+    (ver spec §3.1). MVP: sem LIMIT.
+
+    Q3 — chats encerrados: KPI de volume de atendimento, não de uso de IA.
+    """
     stmt_agregado = select(
         AiUsageEvent.origem,
         AiUsageEvent.ambiente,
@@ -164,20 +164,6 @@ async def get_ai_usage_metrics(
         AiUsageEvent.modelo,
         AiUsageEvent.operacao,
     )
-
-    # Q2 — recorte diário. O bucket é o dia do calendário LOCAL do
-    # administrador e não existe expressão portável entre SQLite (testes) e
-    # PostgreSQL (produção) para truncar um timestamp num fuso arbitrário
-    # (`date_trunc(... AT TIME ZONE ...)` é PostgreSQL, `date(x, '-3
-    # hours')` é SQLite), e `CAST(criado_em AS DATE)` reintroduziria o bug
-    # do dia cortado às 21h. Por isso só estas cinco colunas vêm do banco e
-    # o agrupamento por dia é feito em Python — escolha deliberada, não
-    # descuido (ver spec §3.1).
-    # MVP: sem LIMIT — em `period=all` com um ledger grande isto busca a
-    # tabela inteira para o agrupamento diário em Python. Aceitável para o
-    # volume de um TCC; se o ledger crescer muito, precisa paginar ou mover
-    # o truncamento de fuso para o banco (ver comentário acima sobre por
-    # que isso não foi feito agora).
     stmt_eventos = select(
         AiUsageEvent.criado_em,
         AiUsageEvent.origem,
@@ -185,10 +171,6 @@ async def get_ai_usage_metrics(
         AiUsageEvent.tokens_saida,
         AiUsageEvent.custo_usd,
     )
-
-    # Chats encerrados: KPI de volume de atendimento, não de uso de IA —
-    # continua exigindo `status == "encerrada"` e bucketado por
-    # `encerrada_em`, porque é literalmente isso que a métrica mede.
     stmt_closed = (
         select(Conversa.id, Conversa.encerrada_em)
         .where(Conversa.status == "encerrada")
@@ -204,6 +186,17 @@ async def get_ai_usage_metrics(
         stmt_eventos = stmt_eventos.where(AiUsageEvent.criado_em <= cutoff_end)
         stmt_closed = stmt_closed.where(Conversa.encerrada_em <= cutoff_end)
 
+    return stmt_agregado, stmt_eventos, stmt_closed
+
+
+async def _executar_queries(
+    session_factory,
+    stmt_agregado,
+    stmt_eventos,
+    stmt_closed,
+    local_tz: ZoneInfo,
+) -> tuple[list[LinhaAgregada], list[EventoDiario], list]:
+    """Executa as três queries e materializa os resultados em objetos Pydantic."""
     try:
         async with session_factory() as session:
             linhas_res = await session.execute(stmt_agregado)
@@ -234,10 +227,32 @@ async def get_ai_usage_metrics(
                 )
                 for row in eventos_res.all()
             ]
-            closed_rows = closed_res.all()
+            return linhas, eventos_diarios, closed_res.all()
     except Exception as exc:
         logger.error("Erro ao consultar métricas de uso de IA no banco: %s", exc)
         raise HTTPException(status_code=503, detail="Erro ao consultar métricas.") from exc
+
+
+@router.get("/ai-usage", response_model=AiUsageReport)
+async def get_ai_usage_metrics(
+    request: Request,
+    period: str = Query("7d", description="Período: 'today', '7d', '30d' ou 'all'"),
+    start_date: str | None = Query(None, description="Data inicial ISO YYYY-MM-DD"),
+    end_date: str | None = Query(None, description="Data final ISO YYYY-MM-DD"),
+    _: None = Depends(require_admin),
+) -> AiUsageReport:
+    """Uso de IA do período, estratificado por origem × ambiente × modelo ×
+    operação, mais o recorte diário e o volume de chats encerrados."""
+    session_factory = getattr(request.app.state, "db_sessionmaker", None)
+    if not session_factory:
+        raise HTTPException(status_code=503, detail="Banco de dados não configurado.")
+
+    local_tz = ZoneInfo(get_settings().agendamento_timezone)
+    cutoff_start, cutoff_end = _resolver_janela(period, start_date, end_date, local_tz)
+    stmts = _montar_queries(cutoff_start, cutoff_end)
+    linhas, eventos_diarios, closed_rows = await _executar_queries(
+        session_factory, *stmts, local_tz
+    )
 
     chats_por_dia: dict[str, set[str]] = {}
     todos_chats: set[str] = set()
