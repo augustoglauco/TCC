@@ -40,27 +40,21 @@ checar_servico() {
     esac
 }
 
-main() {
-
-    passo "Desligando Serviços"
-    # Mata os processos do projeto nas portas de uma só vez. O Ollama (11434)
-    # fica de fora: é um serviço do sistema, reaproveitado entre sessões.
-    fuser -k 8000/tcp 3001/tcp 8090/tcp 8100/tcp 8443/tcp 2>/dev/null || true
-    sleep 1
-
+_subir_docker_e_migracoes() {
     passo "Subindo o Docker e Migrações"
     if ! command -v docker >/dev/null 2>&1; then
         falha "Comando 'docker' não encontrado! Ative a integração com WSL2 no Docker Desktop (Settings > Resources > WSL integration)."
     elif ! docker info >/dev/null 2>&1; then
         falha "O daemon do Docker não está em execução! Abra o Docker Desktop e aguarde ele iniciar."
     fi
-
     (
         cd backend
         docker compose up -d postgres qdrant
         .venv/bin/alembic upgrade head
     )
+}
 
+_subir_calendar_mcp() {
     passo "Subindo o MCP Calendar"
     local calendar_creds="backend/secrets/google_calendar_credentials.json"
     if [ -f "$calendar_creds" ]; then
@@ -73,13 +67,9 @@ main() {
     else
         echo "⚠️  Credenciais do Calendar não encontradas em $calendar_creds"
     fi
+}
 
-    passo "Subindo o MCP B2B"
-    (
-        cd backend
-        nohup .venv/bin/python scripts/run_mcp_b2b_server.py > /tmp/tcc-mcp-b2b.log 2>&1 & disown
-    )
-
+_subir_ollama() {
     passo "Conferindo o Ollama (11434)"
     # O backend usa o Ollama na porta padrão (LOCAL_MODEL_BASE_URL). Só sobe
     # um `ollama serve` se ninguém responder lá — se ele já roda como serviço
@@ -92,7 +82,9 @@ main() {
     else
         echo "⚠️  Ollama não encontrado — o chat não vai responder sem ele (ver goup.md, passo 0.3)."
     fi
+}
 
+_subir_ferramentas() {
     passo "Conferindo as ferramentas de código (/admin/ferramentas)"
     # Mesma política do Ollama: Graphify, Repowise e GitNexus são ferramentas
     # de desenvolvimento reaproveitadas entre sessões, então este bloco só
@@ -152,7 +144,9 @@ main() {
     else
         echo "⚠️  Sem infra/caddy/caddy.env: ferramentas só acessíveis em localhost (3012/4757)."
     fi
+}
 
+_subir_servicos_principais() {
     passo "Subindo o Caddy"
     [ -f infra/caddy/caddy.env ] && nohup ~/.local/bin/caddy run --config infra/caddy/Caddyfile --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 & disown
 
@@ -167,9 +161,9 @@ main() {
         cd frontend
         PORT=3001 nohup npm run dev > /tmp/tcc-frontend.log 2>&1 & disown
     )
+}
 
-    
-# --- Bloco de Checagem ---
+_checar_status() {
     passo "Checando o status dos serviços"
     sleep 3
 
@@ -185,11 +179,30 @@ main() {
     else
         printf "  ❌ %-22s -> AUSENTE (rode: graphify update .)\n" "Graphify (grafo)"
     fi
-    
+
     if [ -f infra/caddy/caddy.env ]; then
         checar_servico "Caddy (8443)" "https://augustoglauco.duckdns.org:8443/mcp" "-k --resolve augustoglauco.duckdns.org:8443:127.0.0.1"
     fi
     printf "\n✨ Todos os testes de inicialização foram executados!\n"
+}
+
+main() {
+    passo "Desligando Serviços"
+    # Mata os processos do projeto nas portas de uma só vez. O Ollama (11434)
+    # fica de fora: é um serviço do sistema, reaproveitado entre sessões.
+    fuser -k 8000/tcp 3001/tcp 8090/tcp 8100/tcp 8443/tcp 2>/dev/null || true
+    sleep 1
+
+    _subir_docker_e_migracoes
+    _subir_calendar_mcp
+    (
+        cd backend
+        nohup .venv/bin/python scripts/run_mcp_b2b_server.py > /tmp/tcc-mcp-b2b.log 2>&1 & disown
+    )
+    _subir_ollama
+    _subir_ferramentas
+    _subir_servicos_principais
+    _checar_status
 }
 
 main "$@"
