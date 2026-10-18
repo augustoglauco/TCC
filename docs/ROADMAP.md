@@ -1884,18 +1884,38 @@ conversa e classificação do usuário").
           `rag_documents` sem vetor nenhum, logo **invisíveis à busca**: não
           derivar pergunta das 180 a partir deles, sob pena de contaminar a
           medida de alucinação (as 20 sem resposta devem ser deliberadas).
-    - [ ] Imagem: **77 fotos** de produto no CLIP (`catalogo_imagens` tem 3
-          vetores, medido em 2026-10-17). O plano dizia 93; o corpus tem 78
-          arquivos de imagem, 77 válidos depois da conversão para JPEG.
-          **Dependência descoberta em 2026-10-17:** `upsert_image` aceita
-          `produto_id=None`, então dá para ingerir sem produto no banco — mas
-          o fluxo de produção identifica pelo `produto_id` do ponto CLIP e só
-          cai no nome como fallback (`app.rag.image_identification`). Ingerir
-          sem produto mede o fallback, não o caminho principal; para medir o
-          que roda em produção, os produtos (abaixo) vêm primeiro
-    - [ ] Banco: **29 produtos** com preço, estoque por CD e prazo (o plano
-          dizia 28; são 29 pastas de produto no corpus). Hoje o banco tem
-          **13 produtos** e só **2** com linha em `produto_estoque`
+    - [x] **Imagem — feito em 2026-10-17.** As **77 fotos válidas** do corpus
+          indexadas no CLIP com `produto_id`, espelhando o fluxo de
+          `app.api.admin_products` (arquivo salvo no diretório servido, linha
+          em `produto_imagens` com `clip_image_id`, `domain="vendas"`,
+          `filename` = nome do produto). `catalogo_imagens` passou de 3 para
+          **80 vetores**; 30 produtos com foto; 0 falhas; 0 fotos órfãs (toda
+          pasta com foto tem produto no catálogo). Script:
+          `backend/scripts/ingerir_imagens_corpus.py`, idempotente por
+          `imagem_url`. Os produtos vieram primeiro de propósito: `upsert_image`
+          aceita `produto_id=None`, mas o fluxo de produção resolve o produto
+          pelo `produto_id` do ponto CLIP e só cai no nome como fallback
+          (`app.rag.image_identification`) — ingerir sem produto mediria o
+          fallback, não o caminho real. **Para gerar o conjunto de perguntas é preciso
+          reindexar com holdout** — ver o item do conjunto de imagem acima.
+    - [x] **Banco — feito em 2026-10-17**, com a autorização do dono para
+          inventar preço/estoque/prazo. `backend/scripts/popular_produtos_corpus.py`
+          criou **34 produtos** (um por pasta de produto do corpus) e **102
+          linhas de estoque** em 3 CDs (CD-Matriz, CD-SP, CD-RJ): o catálogo
+          passou de 13 para **47 produtos**, 36 com estoque, 34 com prazo de
+          reposição (`dias_alerta_estoque`). Valores **determinísticos** por
+          hash do nome da pasta, não `random`: rodar de novo dá o mesmo
+          catálogo e não invalida conjunto de perguntas já gerado, e o script
+          é idempotente (produto existente não é alterado, nem o preço).
+          **8 produtos ficam com estoque zero nos três CDs de propósito** (1
+          em cada 6), senão o conjunto do banco não teria como cobrir "está
+          disponível?" com resposta negativa. Duas pastas ficaram fora, com
+          motivo no script: `Suporte` (documentação, não é item de catálogo) e
+          `iDflexpro` (sem material); `iDFace` não virou linha nova porque já
+          é coberta pelo SKU `IDFACE/FP/A` — criar uma homônima deixaria duas
+          respostas certas para "qual o preço do iDFace?", a mesma ambiguidade
+          que invalidou perguntas do RAG. Eram "28 produtos" no plano, "29" na
+          revisão de 2026-10-17; o número real derivado do corpus é 34 novos.
   - [ ] Roteador: **300 mensagens**, sendo **≥200 desenhadas para chegar ao
         LLM** (hoje só 22,5% chegam — 9 de 40, medido; num conjunto
         "representativo" o n efetivo de comparação seria um terço do tamanho
@@ -1956,13 +1976,38 @@ conversa e classificação do usuário").
          ficou registrado para o relatório não prometer estrato que o
          conjunto não tem. Guarda nova: `duplicada_de` marca pergunta
          repetida, que numa fila de um item por vez passaria batida.
+
+      **2ª rodada (a que ficou), 2026-10-17:** 180 casos — **160
+      respondíveis + 20 sem resposta**, em 80 documentos, todos `pendente`.
+      Perguntas sem o produto no enunciado caíram de **56% para 14%** (23 de
+      160, que a revisão olha com atenção); trecho não localizado caiu de 26
+      para 19 (12%); duplicatas de 7 para 2. A dificuldade virou **100%
+      `facil`** depois que o prompt passou a pedir honestidade no rótulo, o
+      que confirma o item 3: o campo não serve para quebrar resultado por
+      estrato, a menos que o revisor re-rotule à mão na tela.
     - [ ] `run_eval.py` ainda **não sabe pontuar `sem_resposta`**: hoje ele
           compara a fonte recuperada com `documento_origem` (vazio nesses
           casos) e manda a resposta ao juiz como se houvesse gabarito
           factual. Sem isso, as 20 perguntas de alucinação não medem nada
     - [ ] Geradores dos outros quatro conjuntos (roteador 300, imagem 103,
           banco 80, injeção 100) — mesmo padrão, ainda não escritos
-  - [ ] RAG imagem: **107** (77 produto + 30 não-produto). O plano dizia 120
+  - [ ] RAG imagem: **53** (23 produto + 30 não-produto) — número revisto pela
+        segunda vez em 2026-10-17, agora por um defeito de desenho achado ao
+        validar a ingestão. **Consultar o CLIP com uma foto que está indexada
+        dá score 1,000 e acerto garantido: isso mede identidade, não
+        reconhecimento** (medido: 5 de 5 com score 1,000). O conjunto só vale
+        com *holdout* — indexar N−1 fotos do produto e consultar com a que
+        ficou de fora. As 77 fotos válidas se distribuem em **28 pastas**, das
+        quais **23 têm 2+ fotos** (dão 1 consulta cada) e **5 têm uma só**
+        (`iDBell`, `iDBlock Next`, `iDFlexIp65`, `iDUHF`, `iDUHF Lite`, que
+        ficam fora das positivas: com uma foto, ou ela está no índice ou é a
+        consulta). Com n=23 positivas o IC 95% de Wilson a p=0,80 é ±16 pp —
+        amostra pequena, e é o teto do que este corpus permite sem foto nova.
+        **Alternativa, se quiser n maior:** o dono fotografar 2–3 ângulos dos
+        produtos que têm só um, ou aceitar perturbação da própria foto
+        (recorte/recompressão), que não é identidade mas também não é foto
+        nova de verdade. Decisão pendente antes de gerar o conjunto. O plano
+        original dizia 120
         (90+30): as 90 fotos de produto não existem. As 30 não-produto foram
         entregues em 2026-10-17 por outro agente
         (`eval/model_benchmark/imagens/negativos/`, 15 categorias × 2, com

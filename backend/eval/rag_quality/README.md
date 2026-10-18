@@ -232,9 +232,12 @@ Dois efeitos colaterais daquela rodada viraram campo no conjunto:
 - **`duplicada_de`.** Aponta para o primeiro caso com a mesma pergunta. Numa
   fila que mostra um item por vez, a repetição passaria batida.
 
-A dificuldade saiu sem estratificação (152 `facil`, 10 `media`, 0
-`dificil`). Isso é limite do modelo free de 2.6B, não do instrumento, e fica
-registrado para o relatório não prometer um estrato que o conjunto não tem.
+A dificuldade saiu sem estratificação: 152 `facil`, 10 `media`, 0 `dificil` na
+1ª rodada e **160 `facil`** na 2ª, depois que o prompt passou a pedir honestidade
+no rótulo. Isso é limite do modelo free de 2.6B, não do instrumento. **O campo
+`dificuldade` não serve para quebrar o resultado por estrato** — o relatório não
+deve prometer essa análise, a menos que o revisor re-rotule à mão durante a
+revisão (a tela permite, é um campo editável como os outros).
 
 **Pendência conhecida:** `run_eval.py` ainda não sabe pontuar os casos
 `sem_resposta`. Ele compara a fonte recuperada com `documento_origem` (vazio

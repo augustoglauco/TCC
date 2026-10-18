@@ -1,132 +1,2831 @@
 {
-  "descricao": "Conjunto de referência para qualidade do RAG (R4, Fase 2/10) — ver docs/EVALUATION.md Seção 2. Extraído de eval/rag_quality/bateria_perguntas_rag.md (fonte narrativa original, mantida para leitura humana) para consumo pelo script de avaliação.",
-  "observacao": "18 das 20 perguntas originais de bateria_perguntas_rag.md — Q8 e Q19 foram removidas de propósito (2026-10-01): ambas citam 'Comparativo de funções - Intelbras Defense IA & Lite - V1.pdf' como fonte, documento que existe em docs/Manuais_fornecedor/ mas nunca foi ingerido no RAG. Sem a fonte no corpus, nenhum chunking/retrieval jamais acertaria essas duas — mantê-las contaminaria qualquer comparação de parâmetros com um problema que não é de chunking. Os ids originais (1-20, pulando 8 e 19) foram preservados para rastreabilidade com o documento narrativo.",
+  "duplicadas": 2,
+  "descricao": "Conjunto de RAG documentos da Estratégia A (Fase 10): perguntas sobre os manuais e datasheets do corpus, mais perguntas sem resposta no corpus para medir alucinação.",
+  "observacao": "Rascunho gerado por liquid/lfm-2.5-2.6b:free sobre docs/Manuais_fornecedor/ControlId. Todo item nasce `revisao.status = pendente`: o gabarito só vale depois da revisão humana em /admin/datasets. `trecho_confere = false` marca trecho que não foi localizado no texto do PDF e precisa de atenção redobrada.",
+  "respondiveis": 160,
+  "sem_resposta": 20,
   "casos": [
     {
       "id": 1,
-      "pergunta": "Quantas contas SIP o telefone IP Intelbras V3001 permite registrar?",
+      "pergunta": "Qual é o novo recurso de desistência de acesso introduzido na versão 6.24.0?",
       "dificuldade": "facil",
-      "documento_origem": "Manual_V3001_01-26_site.pdf",
-      "resposta_esperada": "O telefone IP V3001 permite registrar até 2 contas SIP independentes."
+      "documento_origem": "changelog_pt-br.pdf",
+      "arquivo_origem": "iDFace/changelog_pt-br.pdf",
+      "origem_ambigua": true,
+      "resposta_esperada": "Suporte ao recurso de desistência de acesso. Uma vez habilitado, requer uso do sensor de porta, para auxiliar na identificação da abertura de porta após autorização de acesso, e irá gerar logs de acesso similar ao já observado nas catracas - Caso a porta não seja aberta, será registrada uma desistência de acesso.",
+      "trecho_origem": "V6.24.0 (03/03/2026)\nNovas funcionalidades de destaque:\nTodos: Nova interface web do embarcado, a fim de manter a identidade da linha com o layout do iDSecure Cloud.\niDFace: Suporte ao recurso de desistência de acesso. Uma vez habilitado, requer uso do sensor de porta, para auxiliar na identificação da abertura de porta após autorização de acesso, e irá gerar logs de acesso similar ao já observado",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 2,
-      "pergunta": "Qual é a capacidade máxima de canais de vídeo do servidor iNVU 9164 M2 IAX FT?",
+      "pergunta": "Como a nova interface web do embarcado foi projetada em relação ao iDSecure Cloud?",
       "dificuldade": "facil",
-      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
-      "resposta_esperada": "Suporta até 64 canais de vídeo."
+      "documento_origem": "changelog_pt-br.pdf",
+      "arquivo_origem": "iDFace/changelog_pt-br.pdf",
+      "origem_ambigua": true,
+      "resposta_esperada": "A nova interface web do embarcado foi criada para manter a identidade da linha com o layout do iDSecure Cloud.",
+      "trecho_origem": "V6.24.0 (03/03/2026)\nNovas funcionalidades de destaque:\nTodos: Nova interface web do embarcado, a fim de manter a identidade da linha com o layout do iDSecure Cloud.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 3,
-      "pergunta": "Qual é a distância máxima do iluminador infravermelho (IR Inteligente) da câmera VIP 7550 BD Z IA?",
+      "pergunta": "Qual é o nome do modelo que utiliza identificação facial?",
       "dificuldade": "facil",
-      "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
-      "resposta_esperada": "O alcance máximo do IR Inteligente é de 50 metros."
+      "documento_origem": "rep-idclass-manual.pdf",
+      "arquivo_origem": "REP iDClass/rep-idclass-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "REP iDClass Facial",
+      "trecho_origem": "REP iDClass Facial",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 4,
-      "pergunta": "O que é o software IP Utility e para que ele serve?",
+      "pergunta": "Qual é a vida útil da cabeça de impressão do REP iDClass?",
       "dificuldade": "facil",
-      "documento_origem": "Manual_IP_Utility_01-26_site_4.pdf",
-      "resposta_esperada": "O IP Utility é um software utilitário secundário da Intelbras desenvolvido para localizar dispositivos de segurança eletrônica na rede local e auxiliar na configuração de padrões de imagem e rede."
+      "documento_origem": "rep-idclass-manual.pdf",
+      "arquivo_origem": "REP iDClass/rep-idclass-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "100 km de papel impresso",
+      "trecho_origem": "Vida útil da cabeça de impressão 100 km de papel impresso",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 5,
-      "pergunta": "Quantos canais de gravação InSearch simultâneos o iNVU 9164 M2 IAX suporta via servidor?",
+      "pergunta": "O que foi adicionado ao iDBlock Next Tampa com Display na versão V5.19.3?",
       "dificuldade": "facil",
-      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
-      "resposta_esperada": "Suporta busca utilizando InSearch em até 16 canais."
+      "documento_origem": "changelog_pt-br.pdf",
+      "arquivo_origem": "iDAccess Pro/changelog_pt-br.pdf",
+      "origem_ambigua": true,
+      "resposta_esperada": "Nova funcionalidade de “Tipos de Acesso” para Modo Normal",
+      "trecho_origem": "iDAcccess V2, iDFit V2, iDAccess Pro, iDAccess Nano, iDFlex V2, iDBlock Next Tampa com Display, iDBlock V2: Nova funcionalidade de“Tipos de Acesso” para Modo Normal, similar aos “Tipos de Batida” do Modo Ponto.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 6,
-      "pergunta": "Qual é a resolução máxima de gravação suportada pelo iNVU 9164 M2 IAX FT?",
+      "pergunta": "Quais parâmetros foram adicionados ao iDBlock V2 (modelos Mifare) na versão V5.19.3?",
       "dificuldade": "facil",
-      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
-      "resposta_esperada": "A resolução máxima é de 32 Megapixels (32 MP)."
+      "documento_origem": "changelog_pt-br.pdf",
+      "arquivo_origem": "iDAccess Pro/changelog_pt-br.pdf",
+      "origem_ambigua": true,
+      "resposta_esperada": "Adição do parâmetro audit_log_level com quatro níveis: desativado, mínimo, normal (padrão) e detalhado",
+      "trecho_origem": "Todos: Adição do parâmetro audit_log_level para configuração do nível de detalhamento dos logs de auditoria, com quatro níveis: desativado, mínimo, normal (padrão) e detalhado.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 7,
-      "pergunta": "Quantas áreas de Detecção de Movimento Inteligente (DMI 3.0) é possível configurar na VIP 7550 BD Z IA?",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDTouch permite registrar?",
       "dificuldade": "facil",
-      "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
-      "resposta_esperada": "Podem ser configuradas até 4 áreas com agendamento."
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1000 usuários",
+      "trecho_origem": "O iDTouch permite o cadastro de até 1000 usuários por senhas e/ou cartões de proximidade (RFID) dos principais modelos do mercado.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 8,
+      "pergunta": "Quais são as dimensões do equipamento iDTouch?",
+      "dificuldade": "facil",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "15 cm x 8 cm x 3 cm",
+      "trecho_origem": "Dimensões (A X L x P)\n15 cm x 8 cm x 3 cm",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 9,
-      "pergunta": "Quais são as distâncias da tabela DORI da câmera VIP 7550 BD Z IA nas posições de lente Wide (W) e Telephoto (T)?",
-      "dificuldade": "media",
-      "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
-      "resposta_esperada": "Wide (W): Detectar 64m | Observar 26m | Reconhecer 13m | Identificar 6,4m. Telephoto (T): Detectar 212m | Observar 85m | Reconhecer 42m | Identificar 21m."
+      "pergunta": "Qual é a capacidade máxima de usuários na iDLock Bio?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "até 500 usuários",
+      "trecho_origem": "Sua capacidade é de até 500 usuários e a identificação acontece por meio de senha numerica e/ou biometria, dependendo do modelo.",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 10,
-      "pergunta": "Como funciona a função SIP Hotspot no telefone IP V3001 e qual a vantagem do seu uso?",
-      "dificuldade": "media",
-      "documento_origem": "Manual_V3001_01-26_site.pdf",
-      "resposta_esperada": "A função SIP Hotspot permite criar um grupo de toque (ring group) entre diferentes telefones compatíveis utilizando apenas 1 conta SIP registrada no ramal principal (modo Hotspot). Os demais telefones funcionam como clientes Hotspot sem necessidade de conta SIP individual registrada no PABX, expandindo a capacidade de ramais."
+      "pergunta": "Quantos digitais distintos podem ser registrados na iDLock Bio?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "até 110 digitais distintas",
+      "trecho_origem": "para biometria, até 110 digitais distintas",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 11,
-      "pergunta": "Qual a diferença de canais e tecnologia entre os gravadores MHDX 1104-C, MHDX 1108-C e MHDX 1116-C?",
-      "dificuldade": "media",
-      "documento_origem": "Manual_MHDX_1104_1108_1116C_01-26_site.pdf",
-      "resposta_esperada": "Todos pertencem à série de DVRs analógicos/HDCVI da Intelbras, porém variam na quantidade de canais físicos de vídeo: o MHDX 1104-C possui 4 canais, o MHDX 1108-C possui 8 canais e o MHDX 1116-C possui 16 canais."
+      "pergunta": "Qual a memória interna do S@T-iD?",
+      "dificuldade": "facil",
+      "documento_origem": "satid-manual.pdf",
+      "arquivo_origem": "SAT iD/satid-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1GB",
+      "trecho_origem": "Memória Interna 1GB",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 12,
-      "pergunta": "Quais protocolos de transporte e de voz o telefone V3001 suporta para envio de DTMF nas chamadas SIP?",
-      "dificuldade": "media",
-      "documento_origem": "Manual_V3001_01-26_site.pdf",
-      "resposta_esperada": "Suporta 3 tipos de envio de DTMF: In-band, Out-of-band (RFC 2833) e SIP INFO (com envio de caracteres # e *)."
+      "pergunta": "O que indica o LED de suporte constante aceso no S@T-iD?",
+      "dificuldade": "facil",
+      "documento_origem": "satid-manual.pdf",
+      "arquivo_origem": "SAT iD/satid-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "violação pelo tamper/blindagem",
+      "trecho_origem": "Aceso constante, sem piscar: violação pelo tamper/blindagem.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 13,
-      "pergunta": "O que acontece se a conexão do servidor SIP primário falhar no V3001 quando o \"Ativar failback\" estiver habilitado?",
-      "dificuldade": "media",
-      "documento_origem": "Manual_V3001_01-26_site.pdf",
-      "resposta_esperada": "Caso o telefone não obtenha resposta do Servidor SIP 1 (primário), ele tentará enviar automaticamente o pedido de registro ao Servidor SIP 2 (secundário/backup) configurado."
+      "pergunta": "Qual é a capacidade máxima de usuários suportada pelo módulo iDBio?",
+      "dificuldade": "facil",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 1000 usuários",
+      "trecho_origem": "Rápida Identificação Mais de 1000 usuários em menos de 1s",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 14,
-      "pergunta": "Quais são as resoluções de vídeo e codecs de áudio/vídeo suportados no gravador iNVU 9164 M2 IAX FT?",
-      "dificuldade": "media",
-      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
-      "resposta_esperada": "Compressão de Vídeo: H.265+, H.265, H.264+, H.264. Resoluções de Gravação: 32 MP, 24 MP, 16 MP, 12 MP, 8 MP, 6 MP, 5 MP, 4 MP, 3 MP, 1080p, 960p, 720p, D1, CIF, QCIF."
+      "pergunta": "Qual é a configuração padrão do barramento serial do módulo iDBio?",
+      "dificuldade": "facil",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "115200 8N1 (115200 bits/s, 8 bits de dados, sem paridade e 1 bit de parada)",
+      "trecho_origem": "A configuração padrão do barramento serial é 115200 8N1 (115200 bits/s, 8 bits de dados, sem paridade e 1 bit de parada).",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 15,
-      "pergunta": "Uma empresa precisa implantar monitoramento com busca por linguagem natural (Ex: \"encontrar pessoa com camisa vermelha\") para 30 câmeras. O servidor iNVU 9164 M2 IAX FT sozinho atende essa demanda totalmente com InSearch local?",
-      "dificuldade": "dificil",
-      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
-      "resposta_esperada": "Não atende totalmente sozinho. Embora o iNVU 9164 suporte 64 canais de vídeo e a função InSearch (busca por texto em linguagem natural), a capacidade máxima de processamento InSearch no próprio servidor é de até 16 canais. Para atender as 30 câmeras com InSearch, é necessário utilizar câmeras IP que já possuam a inteligência InSearch embarcada ou adicionar servidores adicionais."
+      "pergunta": "Per quanto número de parafusos Allen M5x10mm são fornecidos no kit de instalação do iDBlock Next?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "4",
+      "trecho_origem": "2 - Parafuso Allen M5x10mm (4x)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 16,
-      "pergunta": "O software IP Utility pode ser utilizado como o software principal para gravação contínua de vídeo das câmeras IP da Intelbras?",
-      "dificuldade": "dificil",
-      "documento_origem": "Manual_IP_Utility_01-26_site_4.pdf",
-      "resposta_esperada": "Não. O IP Utility é um software secundário voltado exclusivamente para auxiliar na localização e configuração de rede/imagem dos dispositivos. O manual ressalta que ele não é um VMS/NVR para gerenciamento de gravação contínua. Para gravação, devem ser utilizados VMS como Defense IA ou gravadores NVR/DVR."
+      "pergunta": "Quantos iDFace podem ser instalados no iDBlock Next?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até dois",
+      "trecho_origem": "Ela pode ter até dois iDFaces integrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 17,
-      "pergunta": "Como deve ser configurado o telefone V3001 caso o provedor SIP exija o protocolo TCP apenas para mensagens que ultrapassem 1500 bytes?",
-      "dificuldade": "dificil",
-      "documento_origem": "Manual_V3001_01-26_site.pdf",
-      "resposta_esperada": "Deve-se habilitar a opção \"TCP automático\" nas configurações avançadas do SIP. Essa função faz com que o telefone utilize automaticamente o protocolo TCP para mensagens SIP cujo tamanho seja superior a 1500 bytes, mantendo o padrão para pacotes menores."
+      "pergunta": "Qual a tensão e corrente mínima necessária para alimentar o iDConnect V2?",
+      "dificuldade": "facil",
+      "documento_origem": "idconnect-v2-userguide-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-v2-userguide-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "5V e no mínimo 1A",
+      "trecho_origem": "Realize a alimentação do equipamento utilizando uma fonte de energia de 5V e no mínimo 1A, através da entrada Micro-USB",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 18,
-      "pergunta": "O manual da câmera VIP 7550 BD Z IA especifica suporte nativo a reconhecimento facial com armazenamento de banco de dados de 100.000 faces na própria câmera?",
-      "dificuldade": "dificil",
-      "documento_origem": "Datasheet 7550 BD Z IA FT - V018_0.pdf",
-      "resposta_esperada": "Não. A VIP 7550 realiza detecção de face, contagem de pessoas e inteligência perimetral (DMI 3.0), mas não possui banco de dados embarcado para 100.000 faces na câmera. Bancos de dados de faces desse porte dependem de servidores dedicados ou softwares VMS como o Intelbras Defense IA. O sistema não deve inventar que a câmera guarda esse banco localmente."
+      "pergunta": "Em qual intervalo de IP deve ser configurado o iDConnect V2 para evitar conflitos?",
+      "dificuldade": "facil",
+      "documento_origem": "idconnect-v2-userguide-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-v2-userguide-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "192.168.0.xxx (diferente de 131)",
+      "trecho_origem": "configure um IP fixo em sua máquina na rede 192.168.0.xxx (onde xxx é diferente de 131 para que não haja conflito de IP)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 19,
+      "pergunta": "Qual a potência mínima de alimentação necessária para o iDConnect?",
+      "dificuldade": "facil",
+      "documento_origem": "idconnect-userguide-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-userguide-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "5V de no mínimo 1A",
+      "trecho_origem": "Realize a alimentação do equipamento ulizando uma fonte de energia de 5V e no mínimo 1A, através da entrada Micro-USB",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 20,
-      "pergunta": "Qual a diferença entre a função InSearch e a busca por IA tradicional nos gravadores/servidores Intelbras conforme os manuais?",
-      "dificuldade": "dificil",
-      "documento_origem": "Datasheet - iNVU 9164 M2 IAX FT.pdf",
-      "resposta_esperada": "A busca IA tradicional baseia-se em metadados pré-categorizados (ex: selecionar \"veículo\" ou \"pessoa\" em filtros fixos). Já a função InSearch utiliza Inteligência Artificial por Linguagem Natural, permitindo realizar pesquisas descritivas via texto (ex: pesquisar características específicas de vestuário ou objetos) e criar eventos inteligentes baseados em texto livre."
+      "pergunta": "Qual é o IP fixo recomendado para acessar a interface web do iDConnect?",
+      "dificuldade": "facil",
+      "documento_origem": "idconnect-userguide-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-userguide-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "192.168.0.131",
+      "trecho_origem": "Para acessar a tela de configuração do equipamento, abra um navegador de internet e digite a URL: http://192.168.0.131",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 21,
+      "pergunta": "Quais componentes são necessários para a instalação física do iDUHF Lite?",
+      "dificuldade": "facil",
+      "documento_origem": "iduhf-lite-guia.pdf",
+      "arquivo_origem": "iDUHF Lite/iduhf-lite-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "MAE, fonte DC de 12V/2A, mastro de suporte para antenas, peça de apoio, abraçadeira e parafusos.",
+      "trecho_origem": "Para a instalação física de seu iDUHF Lite, são necessários os seguintes itens: MAE – Módulo de Acionamento Externo[1], kit de instalação (peça de apoio + abraçadeira + parafusos), uma chave fixa de 13mm[2], uma fonte DC de 12V/2A[2] e um mastro de suporte para antenas instalado².",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 22,
+      "pergunta": "Como são definidas as credenciais de login para acessar o iDUHF Lite pela interface web?",
+      "dificuldade": "facil",
+      "documento_origem": "iduhf-lite-guia.pdf",
+      "arquivo_origem": "iDUHF Lite/iduhf-lite-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Usuário: admin, Senha: admin.",
+      "trecho_origem": "Por padrão, as credenciais de acesso são:\n• Nome de usuário: admin\n• Senha: admin",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 23,
+      "pergunta": "Qual a tensão e corrente mínima exigidas para alimentar o iDFace?",
+      "dificuldade": "facil",
+      "documento_origem": "idface.pdf",
+      "arquivo_origem": "iDFace/idface.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "+12V de no mínimo 1A",
+      "trecho_origem": "A ligação a uma fonte de +12V de no mínimo 1A Cadastro e Identificação de Usuário é fundamental para a correta operação do equipamento",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 24,
+      "pergunta": "Qual a altura recomendada para fixar o iDFace no painel de parede?",
+      "dificuldade": "facil",
+      "documento_origem": "idface.pdf",
+      "arquivo_origem": "iDFace/idface.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1,35m do solo para passagem de pessoas ou 1,20m para reconhecimento em veículos",
+      "trecho_origem": "Fixar a parte superior do suporte de parede do iDFace a 1,35m do solo para passagem de pessoas ou 1,20m para o reconhecimento de uma pessoa dentro de um carro.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 25,
+      "pergunta": "Qual a altura mínima e máxima de instalação do iDTouch?",
+      "dificuldade": "facil",
+      "documento_origem": "idtouch-guia.pdf",
+      "arquivo_origem": "iDTouch/idtouch-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1,00 m e 1,40 m",
+      "trecho_origem": "O iDTouch deve estar fixo a uma altura na faixa de 1,00 m e 1,40 m em relação ao chão.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 26,
+      "pergunta": "Quantos dígitos compõem o ID do usuário no cadastro?",
+      "dificuldade": "facil",
+      "documento_origem": "idtouch-guia.pdf",
+      "arquivo_origem": "iDTouch/idtouch-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "4 dígitos",
+      "trecho_origem": "Digite os 4 dígitos do id do usuario e",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 27,
+      "pergunta": "Qual a tensão e corrente mínima necessária para alimentar o iDFit?",
+      "dificuldade": "facil",
+      "documento_origem": "idfit-guia.pdf",
+      "arquivo_origem": "IDFit/idfit-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "+12V >= 1A",
+      "trecho_origem": "para instalação de seu iDFit são necessários os\nseguintes itens: furadeira, buchas com respectivos\nparafusos, chave de fenda ou Philips, fonte de 12V\nde no mínimo 1A e fechadura eletrônica.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 28,
+      "pergunta": "Em qual local deve ser instalado o iDFit para garantir o funcionamento adequado?",
+      "dificuldade": "facil",
+      "documento_origem": "idfit-guia.pdf",
+      "arquivo_origem": "IDFit/idfit-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Lugar sem exposição solar direta e protegido contra chuva e outros fenômenos naturais.",
+      "trecho_origem": "Instalação em lugar sem exposição solar direta\ne ao abrigo de chuva e outros fenômenos naturais.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 29,
+      "pergunta": "Qual é a tensão e corrente máxima da fonte de alimentação da Print iD?",
+      "dificuldade": "facil",
+      "documento_origem": "printid-guia-rapido.pdf",
+      "arquivo_origem": "Print iD/printid-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "24V – 2,5A",
+      "trecho_origem": "Fonte de Alimentação 24V – 2,5A;",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 30,
+      "pergunta": "Quais são os modelos de impressora térmicas aceitos pela Print iD?",
+      "dificuldade": "facil",
+      "documento_origem": "printid-guia-rapido.pdf",
+      "arquivo_origem": "Print iD/printid-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "80mm (padrão) e 58mm (disponível separadamente)",
+      "trecho_origem": "A bobina padrão aceita pela Print iD é a de 80mm. Caso seja necessário colocar um papel azul tolo (Módulos e Licença de Operação, adquiridos separadamente) de 58mm, é necessário colocar a peça fornecida",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 31,
+      "pergunta": "Em qual local deve ser instalado o iDFit para evitar danos?",
+      "dificuldade": "facil",
+      "documento_origem": "idfit_V2.pdf",
+      "arquivo_origem": "IDFit/idfit_V2.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "sem exposição solar direta e ao abrigo de chuva e outros fenômenos naturais",
+      "trecho_origem": "Instalação em lugar sem exposição solar direta e ao abrigo de chuva e outros fenômenos naturais.",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 32,
+      "pergunta": "Quantos pinos possui o conector de expansão do iDFit?",
+      "dificuldade": "facil",
+      "documento_origem": "idfit_V2.pdf",
+      "arquivo_origem": "IDFit/idfit_V2.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "10 pinos",
+      "trecho_origem": "Conector de 10 pinos (Expansão)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 33,
+      "pergunta": "Qual a tensão de alimentação necessária para a iDBox V2?",
+      "dificuldade": "facil",
+      "documento_origem": "idbox-v2-userguide.pdf",
+      "arquivo_origem": "iDBox/idbox-v2-userguide.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "+12V/1A",
+      "trecho_origem": "A alimentação da iDBox V2 será fornecida pela fonte 12V/1A, através do conector de alimentação ao lado (GND / +12V).",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 34,
+      "pergunta": "Quantos pinos são necessários para conectar uma fechadura de eletroímã à iDBox V2?",
+      "dificuldade": "facil",
+      "documento_origem": "idbox-v2-userguide.pdf",
+      "arquivo_origem": "iDBox/idbox-v2-userguide.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "3 pinos",
+      "trecho_origem": "iDBox-Conector de 3pinosSerial Fechadurade Eletroímã (Fail Safe)",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 35,
+      "pergunta": "Qual a tensão e corrente mínima necessária para alimentar o iDFlex IP65?",
+      "dificuldade": "facil",
+      "documento_origem": "idflex_ip65-guia.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "+12V de no mínimo 1A",
+      "trecho_origem": "A ligação a uma fonte de +12V de no mínimo 1A é fundamental para a correta operação do equipamento.",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 36,
+      "pergunta": "A que altura a tampa de vedação do iDFlex IP65 deve ser fixada na parede?",
+      "dificuldade": "facil",
+      "documento_origem": "idflex_ip65-guia.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1,2m do solo",
+      "trecho_origem": "Fixar a parte inferior do suporte de parede do iDFlex IP65 a 1,2m do solo.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 37,
+      "pergunta": "Qual a tensão mínima de alimentação exigida para o iDAccess?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-guia.pdf",
+      "arquivo_origem": "iDAccess/idaccess-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "+12V de no mínimo 1A",
+      "trecho_origem": "A ligação a uma fonte de +12V de no mínimo 1A é Conector de 10 pinos (Expansão)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 38,
+      "pergunta": "Quais portas Wiegand devem ser conectadas à controladora para operação via Ethernet?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-guia.pdf",
+      "arquivo_origem": "iDAccess/idaccess-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "WIN0 e WIN1",
+      "trecho_origem": "Para instalação de seu iDAccess são necessários os ligações às entradas Wiegand WIN0 e WIN1.",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 39,
+      "pergunta": "Quais são os itens necessários para a instalação do iDAccess Nano?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess_nano.pdf",
+      "arquivo_origem": "iDAccess Nano/idaccess_nano.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "furadeira, buchas com respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechadura eletrônica",
+      "trecho_origem": "Para instalação de seu iDAccess Nano são necessários os seguintes itens: furadeira, buchas com respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechadura eletrônica.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 40,
+      "pergunta": "Como acessar a tela de configuração do iDAccess Nano?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess_nano.pdf",
+      "arquivo_origem": "iDAccess Nano/idaccess_nano.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "http://192.168.0.129",
+      "trecho_origem": "abra um navegador de internet e digite a URL: http://192.168.0.129",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 41,
+      "pergunta": "Qual a tensão de alimentação mínima necessária para o iDAccess Nano?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess_nano_guia.pdf",
+      "arquivo_origem": "iDAccess Nano Prox/idaccess_nano_guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "+12VDC, mínimo 1A",
+      "trecho_origem": "A ligação à uma fonte de +12V de no mínimo 1A é ⚠ do equipamento.",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 42,
+      "pergunta": "Como acessar a tela de configuração do iDAccess Nano?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess_nano_guia.pdf",
+      "arquivo_origem": "iDAccess Nano Prox/idaccess_nano_guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Através de um navegador de internet digitando http://192.168.0.129",
+      "trecho_origem": "abra um navegador de internet e digite a URL: http://192.168.0.129",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "duplicada_de": 40
+    },
+    {
+      "id": 43,
+      "pergunta": "Qual a tensão de alimentação do iDAccess Pro?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess_pro.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess_pro.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "+12VDC",
+      "trecho_origem": "+12VDC",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 44,
+      "pergunta": "Qual a altura recomendada para fixar o suporte de parede do iDAccess Pro?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess_pro.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess_pro.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1,2m",
+      "trecho_origem": "Fixar a parte inferior do suporte de parede do iDAccess Pro a 1,2m do solo.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 45,
+      "pergunta": "Como deve ser alimentado o iDAccess Pro?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess_pro-guia.pdf",
+      "arquivo_origem": "iDAccess Pro Prox/idaccess_pro-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Pelo MAE, através do cabo de 4 condutores.",
+      "trecho_origem": "A alimentação do iDAccess Pro será fornecida pelo MAE, através do cabo de 4 condutores.",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 46,
+      "pergunta": "Qual a altura de fixação recomendada para o suporte de parede do iDAccess Pro?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess_pro-guia.pdf",
+      "arquivo_origem": "iDAccess Pro Prox/idaccess_pro-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1,2m do solo.",
+      "trecho_origem": "Fixar a parte inferior do suporte de parede do iDAccess Pro a 1,2m do solo.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 47,
+      "pergunta": "Qual é a especificação da fonte de alimentação da impressora Print iD Touch?",
+      "dificuldade": "facil",
+      "documento_origem": "printid_touch.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "24V – 2,5A",
+      "trecho_origem": "Fonte de Alimentação 24V – 2,5A",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 48,
+      "pergunta": "Qual é o endereço IP da impressora Print iD Touch?",
+      "dificuldade": "facil",
+      "documento_origem": "printid_touch.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "192.168.0.128",
+      "trecho_origem": "3. Acessar o link: http://192.168.0.128",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 49,
+      "pergunta": "Quais materiais e ferramentas são necessários para instalar o iDFlex?",
+      "dificuldade": "facil",
+      "documento_origem": "idflex.pdf",
+      "arquivo_origem": "iDFlexLite/idflex.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "furadeira, buchas com respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechadura eletrônica",
+      "trecho_origem": "Para instalação de seu iDFlex são necessários os seguintes itens: furadeira, buchas com respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechadura eletrônica.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 50,
+      "pergunta": "Quais são as credenciais de login padrão para acessar a tela de configuração do iDFlex?",
+      "dificuldade": "facil",
+      "documento_origem": "idflex.pdf",
+      "arquivo_origem": "iDFlexLite/idflex.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Nome de usuário: admin; Senha: admin",
+      "trecho_origem": "Por padrão, as credenciais de acesso são:\n Nome de usuário: admin\n Senha: admin",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 51,
+      "pergunta": "Quais ferramentas e materiais são necessários para instalar a iDBox?",
+      "dificuldade": "facil",
+      "documento_origem": "idbox.pdf",
+      "arquivo_origem": "iDBox/idbox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "furadeira, quatro buchas de fixação número 5 (diâmetro interno de 3.5mm), chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechaduras eletrônicas",
+      "trecho_origem": "Para instalação da sua iDBox, são necessários os segues itens: furadeira, quatro buchas de fixação número 5 (diâmetro interno de 3.5mm) com seus respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechaduras eletrônicas (conforme seu projeto).",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 52,
+      "pergunta": "Como acessar a interface web de configuração da iDBox?",
+      "dificuldade": "facil",
+      "documento_origem": "idbox.pdf",
+      "arquivo_origem": "iDBox/idbox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "http://192.168.0.129",
+      "trecho_origem": "Para acessar a tela de configuração do equipamento, abra um navegador de internet e digite a URL: http://192.168.0.129",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 53,
+      "pergunta": "De onde posso baixar o driver do iDProx USB?",
+      "dificuldade": "facil",
+      "documento_origem": "idprox_usb.pdf",
+      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "https://www.controlid.com.br/idproxusb/windows_driver.zip",
+      "trecho_origem": "O driver pode ser encontrado em https://www.controlid.com.br/idproxusb/windows_driver.zip",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 54,
+      "pergunta": "Que tipo de funcionalidade o iDProx USB oferece após ser configurado?",
+      "dificuldade": "facil",
+      "documento_origem": "idprox_usb.pdf",
+      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Funciona como um teclado que lê o cartão e insere o número no Registrador Eletrônico de Ponto (REP)",
+      "trecho_origem": "Depois de configurado o leitor com o formato de saída desejado, clique com o cursor do mouse onde deseja inserir o número do cartão e em seguida leia o cartão. O número aparecerá no lugar 6.4 Registrador Eletrônico de Ponto (REP) – Web Embarcado",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 55,
+      "pergunta": "Qual é o nome do produto descrito neste guia?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock_bio_guia_instalação.pdf",
+      "arquivo_origem": "iDBlockBio/idlock_bio_guia_instalação.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "iDLock Bio",
+      "trecho_origem": "As operações com digital estão disponíveis apenas para iDLock Bio.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 56,
+      "pergunta": "Quantos parafusos tipo M5 são necessários para fixar a parte interna?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock_bio_guia_instalação.pdf",
+      "arquivo_origem": "iDBlockBio/idlock_bio_guia_instalação.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "2",
+      "trecho_origem": "utilize 2 parafusos que ambas estão alinhadas\nM5 (modelo D/E/F/G/H) E 27 a 35mm\nconforme a imagem ao lado.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 57,
+      "pergunta": "Qual é a capacidade máxima de usuários suportada pelo sistema iDFace?",
+      "dificuldade": "facil",
+      "documento_origem": "idface-cadastramento-de-foto.pdf",
+      "arquivo_origem": "iDFace Max/idface-cadastramento-de-foto.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1100%",
+      "trecho_origem": "mmááxxiimmoo ppaarraa ddee ssuuaa llaarrgguurraa ddee oorreellhhaa aa oorreellhhaa eemm ttooddaass aass",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 58,
+      "pergunta": "Quais são os parâmetros de distância e centralização descritos para o equipamento iDFace?",
+      "dificuldade": "facil",
+      "documento_origem": "idface-cadastramento-de-foto.pdf",
+      "arquivo_origem": "iDFace Max/idface-cadastramento-de-foto.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "DISTÂNCIA E CENTRALIZAÇÃO / ÂNGULOS / LUMINOSIDADE / FILTROS / QUALIDADE DA IMAGEM / EXPRESSÕES FACIAIS / ACCESSÓRIOS",
+      "trecho_origem": "DISTÂNCIA E CENTRALIZAÇÃO\nÂNGULOS\nExemplos de fotos incorretas\nLUMINOSIDADE\nExemplos de fotos incorretas\nEFEITOS DE FUNDO\nFILTROS\nQUALIDADE DA IMAGEM\nExemplos de fotos incorretas\nEXPRESSÕES FACIAIS\nACESSÓRIOS",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 59,
+      "pergunta": "Qual a potência mínima de alimentação necessária para o iDProx?",
+      "dificuldade": "facil",
+      "documento_origem": "idprox-guia.pdf",
+      "arquivo_origem": "iDProx/idprox-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "12V de no mínimo 1A",
+      "trecho_origem": "A ligação a uma fonte de +12V de no mínimo 1A",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 60,
+      "pergunta": "Quais são as dimensões do modelo Compact do iDProx?",
+      "dificuldade": "facil",
+      "documento_origem": "idprox-guia.pdf",
+      "arquivo_origem": "iDProx/idprox-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "20mm x 95mm x 51mm (P x A x L)",
+      "trecho_origem": "Modelo Slim 20mm x 95mm x 51mm (P x A x L)",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 61,
+      "pergunta": "Qual a capacidade da bateria incluída na iDPower?",
+      "dificuldade": "facil",
+      "documento_origem": "idpower-guia.pdf",
+      "arquivo_origem": "IDPower/idpower-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "12V/7Ah",
+      "trecho_origem": "Bateria de 12V 7Ah (15x10x7cm)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 62,
+      "pergunta": "Qual o tamanho (dimensões) da unidade iDPower?",
+      "dificuldade": "facil",
+      "documento_origem": "idpower-guia.pdf",
+      "arquivo_origem": "IDPower/idpower-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "213 x 261 x 94.5 mm",
+      "trecho_origem": "Dimensões (L x A x P) 213 x 261 x 94.5 mm",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 63,
+      "pergunta": "Qual a tensão de alimentação do modelo USB?",
+      "dificuldade": "facil",
+      "documento_origem": "leitor-qr-code-usb.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "5V",
+      "trecho_origem": "Alimentação: 5V (modelo USB) ou 12V (modelo Wiegand)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 64,
+      "pergunta": "Quais dimensões o leitor Wiegand possui?",
+      "dificuldade": "facil",
+      "documento_origem": "leitor-qr-code-usb.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "65 x 61 x 29 mm",
+      "trecho_origem": "Dimensões: 65 x 61 x 29 mm (A x L x P)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 65,
+      "pergunta": "Qual o tamanho do leitor Control iD?",
+      "dificuldade": "facil",
+      "documento_origem": "leitor-qr-code-usb1.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb1.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "65 x 61 x 29 mm (A x L x P)",
+      "trecho_origem": "Dimensões: 65 x 61 x 29 mm (A x L x P)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 66,
+      "pergunta": "Qual a tensão de alimentação do modelo USB?",
+      "dificuldade": "facil",
+      "documento_origem": "leitor-qr-code-usb1.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb1.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "5V",
+      "trecho_origem": "Alimentação: 5V (modelo USB) ou 12V (modelo Wiegand)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "duplicada_de": 63
+    },
+    {
+      "id": 67,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDFace Max pode registrar?",
+      "dificuldade": "facil",
+      "documento_origem": "idface-max-datasheet-pt.pdf",
+      "arquivo_origem": "iDFace Max/idface-max-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 68,
+      "pergunta": "Até quantas faces o iDFace Max consegue identificar com reconhecimento facial?",
+      "dificuldade": "facil",
+      "documento_origem": "idface-max-datasheet-pt.pdf",
+      "arquivo_origem": "iDFace Max/idface-max-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 100.000 faces (1:N)",
+      "trecho_origem": "identificação de até 100.000 faces (1:N) com detecção de rostos vivos",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 69,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock PcD com iDFace Max suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados*",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 70,
+      "pergunta": "Quantos rostos o iDBlock PcD com iDFace Max consegue identificar?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 100.000 faces",
+      "trecho_origem": "Capacidade para até 100.000* faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 71,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDFace suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idface-datasheet.pdf",
+      "arquivo_origem": "iDFace/idface-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários cadastrados",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 72,
+      "pergunta": "Até quantas faces o iDFace consegue identificar com reconhecimento facial?",
+      "dificuldade": "facil",
+      "documento_origem": "idface-datasheet.pdf",
+      "arquivo_origem": "iDFace/idface-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "30.000 faces (1:N)",
+      "trecho_origem": "Capacidade para até 3.000 (Lite)/30.000 (Pro) faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 73,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock PcD Facial suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-pcd-facial-datasheet-pt.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários cadastrados",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 74,
+      "pergunta": "Qual é a capacidade máxima de faces que o iDBlock PcD Facial pode reconhecer?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-pcd-facial-datasheet-pt.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 3.000 (Lite)/10.000 (Pro) faces com detecção de rosto vivo",
+      "trecho_origem": "Capacidade para até 3.000 (Lite)/10.000 (Pro) faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 75,
+      "pergunta": "Como ativo o meu S@T-iD?",
+      "dificuldade": "facil",
+      "documento_origem": "satid-guia-rapido.pdf",
+      "arquivo_origem": "SAT iD/satid-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A instalação é realizada de forma automática.",
+      "trecho_origem": "A instalação é realizada de forma automática.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 76,
+      "pergunta": "Qual é o identificador do dispositivo S@T-iD no Gerenciador de Dispositivos?",
+      "dificuldade": "facil",
+      "documento_origem": "satid-guia-rapido.pdf",
+      "arquivo_origem": "SAT iD/satid-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "CDC Serial",
+      "trecho_origem": "localize o dispositivo “CDC Serial” reconhecido como “Outros Dispositivos”;",
+      "trecho_confere": false,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 77,
+      "pergunta": "Qual a capacidade de armazenamento do SAT iD?",
+      "dificuldade": "facil",
+      "documento_origem": "satid-folder.pdf",
+      "arquivo_origem": "SAT iD/satid-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1GB",
+      "trecho_origem": "Equipado com memória flash de alta qualidade de 1GB",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 78,
+      "pergunta": "Que tipo de certificado digital é utilizado pelo SAT iD?",
+      "dificuldade": "facil",
+      "documento_origem": "satid-folder.pdf",
+      "arquivo_origem": "SAT iD/satid-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "AC-SAT",
+      "trecho_origem": "Equipamento funciona com certificado digital AC-SAT",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 79,
+      "pergunta": "Qual a capacidade máxima de rostos que o iDBlock Mini com iDFace Max suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-facial-mini-idface-max-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-facial-mini-idface-max-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 100.000 faces",
+      "trecho_origem": "Capacidade para até 100.000 faces com detecção de rosto vivo*",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 80,
+      "pergunta": "Quantos iDFace Max podem ser instalados no equipamento iDBlock Mini com iDFace Max?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-facial-mini-idface-max-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-facial-mini-idface-max-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até dois iDFaces Max",
+      "trecho_origem": "Controla entrada e saída com até 2 iDFaces Max*",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 81,
+      "pergunta": "Que tipo de plataforma é o RHiD?",
+      "dificuldade": "facil",
+      "documento_origem": "rhid-datasheet.pdf",
+      "arquivo_origem": "RHiD/rhid-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Plataforma WEB",
+      "trecho_origem": "Plataforma WEB",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 82,
+      "pergunta": "É possível usar o RHiD em dispositivos móveis?",
+      "dificuldade": "facil",
+      "documento_origem": "rhid-datasheet.pdf",
+      "arquivo_origem": "RHiD/rhid-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Sim, há aplicativo mobile disponível para Android e iOS",
+      "trecho_origem": "Aplicativo mobile disponível para Android e iOS",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 83,
+      "pergunta": "Qual é a velocidade máxima de impressão da impressora Print iD Touch?",
+      "dificuldade": "facil",
+      "documento_origem": "printid-touch-folder.pdf",
+      "arquivo_origem": "Print iD Touch/printid-touch-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "300mm/s",
+      "trecho_origem": "Velocidade máxima de 300mm/s",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 84,
+      "pergunta": "Qual é a resolução da tela LCD da impressora?",
+      "dificuldade": "facil",
+      "documento_origem": "printid-touch-folder.pdf",
+      "arquivo_origem": "Print iD Touch/printid-touch-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "320x240",
+      "trecho_origem": "Tela LCD Touchscreen Display LCD TFT colorido de 2.4” (320x240)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 85,
+      "pergunta": "Qual a quantidade máxima de usuários na versão Enterprise do iDSecure?",
+      "dificuldade": "facil",
+      "documento_origem": "idsecure.pdf",
+      "arquivo_origem": "iDSecure Cloud/idsecure.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Ilimitada",
+      "trecho_origem": "Quantidade de usuários 2000 Ilimitada* *(de acordo com a licença adquirida)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 86,
+      "pergunta": "Quantos cartões são suportados pela versão Enterprise do iDSecure?",
+      "dificuldade": "facil",
+      "documento_origem": "idsecure.pdf",
+      "arquivo_origem": "iDSecure Cloud/idsecure.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "200.000 cartões",
+      "trecho_origem": "200.000 cartões e 200.000 cartões",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 87,
+      "pergunta": "Qual é a capacidade máxima de usuários que a catraca iDBlock Next BQC suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-bqc-idface-max-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-next-bqc-idface-max-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "mais de 200.000 usuários cadastrados",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 88,
+      "pergunta": "Qual é a capacidade máxima de rostos com reconhecimento facial?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-bqc-idface-max-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-next-bqc-idface-max-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "até 100.000* faces com detecção de rosto vivo",
+      "trecho_origem": "Capacidade para até 100.000* faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 89,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock Next BQC pode suportar?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-bqc-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-next-bqc-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 90,
+      "pergunta": "Quantos rostos são suportados pelo iDBlock Next BQC?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-bqc-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-next-bqc-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 3.000 (Lite) / 10.000 (Pro) faces",
+      "trecho_origem": "Capacidade para até 3.000 (Lite)/10.000 (Pro) faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 91,
+      "pergunta": "Qual é a velocidade máxima de impressão do Print iD?",
+      "dificuldade": "facil",
+      "documento_origem": "printid-folder.pdf",
+      "arquivo_origem": "Print iD/printid-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "200mm/s",
+      "trecho_origem": "Alta velocidade de impressão\nVelocidade máxima de 200mm/s",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 92,
+      "pergunta": "Qual é a vida útil da cabeça de impressão do Print iD?",
+      "dificuldade": "facil",
+      "documento_origem": "printid-folder.pdf",
+      "arquivo_origem": "Print iD/printid-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "100km",
+      "trecho_origem": "Vida útil da cabeça de impressão\n100km",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 93,
+      "pergunta": "Qual a capacidade máxima de usuários que o iDBlock Next com iDFace Max suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-idface-max-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-next-idface-max-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 94,
+      "pergunta": "Qual a capacidade de reconhecimento facial do equipamento iDBlock Next com iDFace Max?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-idface-max-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-next-idface-max-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 100.000 faces com detecção de rosto vivo",
+      "trecho_origem": "Capacidade para até 100.000* faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 95,
+      "pergunta": "Qual é a capacidade máxima de usuários do Torniquete com iDFace?",
+      "dificuldade": "facil",
+      "documento_origem": "torniquete-facial-datasheet.pdf",
+      "arquivo_origem": "Torniquetes/torniquete-facial-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 96,
+      "pergunta": "Quantos rostos o Torniquete com iDFace consegue identificar simultaneamente?",
+      "dificuldade": "facil",
+      "documento_origem": "torniquete-facial-datasheet.pdf",
+      "arquivo_origem": "Torniquetes/torniquete-facial-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 30.000 faces (modelo Pro) ou até 3.000 faces (modelo Lite)",
+      "trecho_origem": "Capacidade para até 3.000 (Lite)/30.000 (Pro) faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 97,
+      "pergunta": "Qual é a capacidade máxima de usuários que o torniquete suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "torniquete-facial-id-datasheet.pdf",
+      "arquivo_origem": "Torniquetes/torniquete-facial-id-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários cadastrados",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 98,
+      "pergunta": "Quantos rostos o torniquete consegue identificar simultaneamente?",
+      "dificuldade": "facil",
+      "documento_origem": "torniquete-facial-id-datasheet.pdf",
+      "arquivo_origem": "Torniquetes/torniquete-facial-id-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 30.000 faces com detecção de rosto vivo",
+      "trecho_origem": "Capacidade para até 3.000 (Lite)/30.000 (Pro) faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 99,
+      "pergunta": "Qual a capacidade máxima de usuários que a iDBlock Next suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-datasheet.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 100,
+      "pergunta": "Quantos iDFaces podem ser instalados no equipamento?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-datasheet.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "até dois iDFaces",
+      "trecho_origem": "até dois iDFaces instalados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 101,
+      "pergunta": "Qual a capacidade máxima de usuários que o iDBlock Facial pode registrar?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-facial-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-facial-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 102,
+      "pergunta": "Para o iDBlock Facial, quantos rostos o dispositivo pode identificar dependendo do modelo?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-facial-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-facial-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Lite: até 3.000 faces; Pro: até 10.000 faces",
+      "trecho_origem": "Capacidade para até 3.000 (Lite)/10.000 (Pro) faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 103,
+      "pergunta": "Qual o grau de proteção do equipamento iDBell?",
+      "dificuldade": "facil",
+      "documento_origem": "idbell-datasheet-pt.pdf",
+      "arquivo_origem": "iDBell/idbell-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "IP65",
+      "trecho_origem": "Grau de Proteção\nIP65",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 104,
+      "pergunta": "Qual a resolução do vídeo transmitido pelo iDBell?",
+      "dificuldade": "facil",
+      "documento_origem": "idbell-datasheet-pt.pdf",
+      "arquivo_origem": "iDBell/idbell-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Full-HD 1080p",
+      "trecho_origem": "Vídeo Full-HD 1080p",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 105,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock Facial Mini pode suportar?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-facial-mini-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-facial-mini-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 106,
+      "pergunta": "Qual é a capacidade máxima de faces que o iDBlock Facial Mini pode reconhecer?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-facial-mini-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-facial-mini-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 3.000 (Lite) / 10.000 (Pro) faces",
+      "trecho_origem": "Capacidade para até 3.000 (Lite)/10.000 (Pro) faces com detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 107,
+      "pergunta": "Qual a capacidade de usuários suportados pelo iDBlock Balcão Facial com iDFace Max?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários cadastrados",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 108,
+      "pergunta": "O iDBlock Balcão Facial com iDFace Max possui capacidade para até 100.000* faces com detecção de rosto vivo?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 100.000* faces com detecção de rosto vivo",
+      "trecho_origem": "Capacidade para até 100.000* faces com detecção de rosto vivo (*conforme modelo)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 109,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDAccess Nano suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-nano.pdf",
+      "arquivo_origem": "iDAccess Nano/idaccess-nano.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 110,
+      "pergunta": "Até quantos digitais de identificação biométrica o iDAccess Nano pode registrar?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-nano.pdf",
+      "arquivo_origem": "iDAccess Nano/idaccess-nano.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 100.000 digitais",
+      "trecho_origem": "Identificação biométrica 1:N de até 100.000 digitais",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 111,
+      "pergunta": "Quais portas de comunicação estão disponíveis no iDBlock Balcão Facial?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-balcao-facial-idface-datasheet-pt.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-balcao-facial-idface-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Ethernet 1 porta Ethernet 10/100Mbps nativa; RS-485 1 porta; RS-232 1 porta; GPRS opcional; Wi-Fi opcional",
+      "trecho_origem": "Ethernet\n1 porta Ethernet 10/100Mbps nativa\nRS-485\n1 porta RS-485 nativa com terminação de 120 Ohms\nRS-232\n1 porta RS-232 nativa\nGPRS\nMódulo de conexão via GPRS opcional\nWi-Fi\nMódulo de conexão via Wi-Fi opcional",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 112,
+      "pergunta": "Qual a durabilidade do mecanismo do iDBlock Balcão Facial?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-balcao-facial-idface-datasheet-pt.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-balcao-facial-idface-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Maior que 800.000 giros e de fácil manutenção",
+      "trecho_origem": "Maior que 800.000 giros e de fácil manutenção",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 113,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDAccess Pro suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-pro-datasheet.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess-pro-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 114,
+      "pergunta": "Qual é a resolução do leitor biométrico do iDAccess Pro?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-pro-datasheet.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess-pro-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "500 DPI",
+      "trecho_origem": "Leitor de impressão digital óptico de 500 DPI",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 115,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDAccess Nano Prox suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-nano-prox.pdf",
+      "arquivo_origem": "iDAccess Nano Prox/idaccess-nano-prox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 116,
+      "pergunta": "Qual o tamanho da tela touchscreen do iDAccess Nano Prox?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-nano-prox.pdf",
+      "arquivo_origem": "iDAccess Nano Prox/idaccess-nano-prox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1,77\"",
+      "trecho_origem": "Display touchscreen de 1,77”",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 117,
+      "pergunta": "Qual a capacidade máxima de usuários que a iDBlock PcD suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-pcd-datasheet.pdf",
+      "arquivo_origem": "IDBlock/idblock-pcd-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários cadastrados",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados (cartão/senha)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 118,
+      "pergunta": "Quais dimensões a catraca iDBlock PcD possui?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-pcd-datasheet.pdf",
+      "arquivo_origem": "IDBlock/idblock-pcd-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1112 mm x 1010 mm x 250 mm (P x A x L)",
+      "trecho_origem": "Dimensões gerais 1112 mm x 1010 mm x 250 mm (P x A x L)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 119,
+      "pergunta": "Qual a capacidade de identificação biométrica do iDFlex IP65?",
+      "dificuldade": "facil",
+      "documento_origem": "idflex_ip65.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "até 6.000 digitais",
+      "trecho_origem": "Capacidade para até 6.000 digitais",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 120,
+      "pergunta": "Qual a capacidade de registros de acesso do iDFlex IP65?",
+      "dificuldade": "facil",
+      "documento_origem": "idflex_ip65.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "mais de 200.000 registros",
+      "trecho_origem": "Capacidade para mais de 200.000 registros",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 121,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDUHF Lite suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "iduhf-lite-datasheet.pdf",
+      "arquivo_origem": "iDUHF Lite/iduhf-lite-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "até 200.000 usuários",
+      "trecho_origem": "Sua capacidade de armazenamento é de até 200.000 usuários",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 122,
+      "pergunta": "Qual é a fonte de alimentação do iDUHF Lite?",
+      "dificuldade": "facil",
+      "documento_origem": "iduhf-lite-datasheet.pdf",
+      "arquivo_origem": "iDUHF Lite/iduhf-lite-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Fonte externa de 12V (não inclusa)",
+      "trecho_origem": "Fonte externa de 12V (não inclusa)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 123,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock Braço Articulado suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-bqc.pdf",
+      "arquivo_origem": "IDBlock/idblock-bqc.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "mais de 200.000 usuários cadastrados",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados (cartão/senha)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 124,
+      "pergunta": "Quais são as dimensões gerais do iDBlock Braço Articulado?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-bqc.pdf",
+      "arquivo_origem": "IDBlock/idblock-bqc.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "826 mm x 1069 mm x 250 mm (P x A x L)",
+      "trecho_origem": "Dimensões gerais\n826 mm x 1069 mm x 250 mm (P x A x L)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 125,
+      "pergunta": "Para o iDAccess Pro Prox, qual é a capacidade máxima de usuários que ele suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-pro-prox.pdf",
+      "arquivo_origem": "iDAccess Pro Prox/idaccess-pro-prox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 200.000 usuários",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 126,
+      "pergunta": "O iDAccess Pro Prox possui uma porta Ethernet nativa?",
+      "dificuldade": "facil",
+      "documento_origem": "idaccess-pro-prox.pdf",
+      "arquivo_origem": "iDAccess Pro Prox/idaccess-pro-prox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1 porta Ethernet 10/100Mbps nativa",
+      "trecho_origem": "Ethernet\n1 porta Ethernet 10/100Mbps nativa",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 127,
+      "pergunta": "Qual o tamanho físico do iDConnect?",
+      "dificuldade": "facil",
+      "documento_origem": "idconnect-datasheet-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "57 mm x 74mm x 54 mm (L x P x A – com antena)",
+      "trecho_origem": "Dimensões gerais\n57 mm x 74mm x 54 mm (L x P x A – com antena)\n57 mm x 61mm x 25 mm (L x P x A – sem antena)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 128,
+      "pergunta": "Quais são os três modos de operação do iDConnect?",
+      "dificuldade": "facil",
+      "documento_origem": "idconnect-datasheet-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Ethernet e/ou Wi-Fi (AP) para 4G *, Ethernet para Wi-Fi (Client), Ethernet e Wi-Fi (AP)",
+      "trecho_origem": "MODOS DE OPERAÇÃO\n1- Ethernet e/ou Wi-Fi (AP) para 4G *\n2- Ethernet para Wi-Fi (Client)\n3- Ethernet e Wi-Fi (AP)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 129,
+      "pergunta": "Qual é o nome do software de controle de acesso descrito no documento?",
+      "dificuldade": "facil",
+      "documento_origem": "idsecure-cloud.pdf",
+      "arquivo_origem": "iDSecure Cloud/idsecure-cloud.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "iDSecure Cloud",
+      "trecho_origem": "Software para Controle de Acesso iDSecure Cloud",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 130,
+      "pergunta": "O sistema permite abertura remota de visitantes?",
+      "dificuldade": "facil",
+      "documento_origem": "idsecure-cloud.pdf",
+      "arquivo_origem": "iDSecure Cloud/idsecure-cloud.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Sim",
+      "trecho_origem": "A solução também conta com um exclusivo app para iOS e Android que possibilita o cadastro de visitantes, abertura remota e visualização de logs de acesso.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 131,
+      "pergunta": "Quais são os itens incluídos no Kit OEM iDBio?",
+      "dificuldade": "facil",
+      "documento_origem": "idbio-montagem-oem.pdf",
+      "arquivo_origem": "iDBio/idbio-montagem-oem.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1x Placa Circuito Impresso, 1x Leitor Biométrico, 1x Cabo Adaptador USB",
+      "trecho_origem": "1x Placa Circuito Impresso 1x Leitor Biométrico 1x Cabo Adaptador USB",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 132,
+      "pergunta": "Qual o nível lógico dos sinais RX e TX na comunicação UART TTL do modelo serial?",
+      "dificuldade": "facil",
+      "documento_origem": "idbio-montagem-oem.pdf",
+      "arquivo_origem": "iDBio/idbio-montagem-oem.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "3.3V",
+      "trecho_origem": "X2: Conector JST para interface serial UART TTL (nível lógico para os sinais RX e TX.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 133,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock.pdf",
+      "arquivo_origem": "IDBlock/idblock.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "mais de 200.000 usúarios cadastrados",
+      "trecho_origem": "Capacidade para mais de 200.000 usúarios cadastrados (cartão/senha)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 134,
+      "pergunta": "Quais são as dimensões físicas do iDBlock?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock.pdf",
+      "arquivo_origem": "IDBlock/idblock.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "772 mm x 950 mm x 635 mm",
+      "trecho_origem": "Dimensões gerais 772 mm x 950 mm x 635 mm (P x A x L)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 135,
+      "pergunta": "Qual é a rapidez de processamento do scanner iDBio?",
+      "dificuldade": "facil",
+      "documento_origem": "idbio-guia-rapido.pdf",
+      "arquivo_origem": "iDBio/idbio-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 1000 usuários",
+      "trecho_origem": "Rapidez: Mais de 1000 usuários em menos de 1s",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 136,
+      "pergunta": "Quais são as dimensões do equipamento iDBio?",
+      "dificuldade": "facil",
+      "documento_origem": "idbio-guia-rapido.pdf",
+      "arquivo_origem": "iDBio/idbio-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "58 x 67 x 58 mm (L x A x P)",
+      "trecho_origem": "Dimensões: 58 x 67 x 58 mm (L x A x P)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 137,
+      "pergunta": "Qual a capacidade máxima de usuários que o iDUHF suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "iduhf-datasheet.pdf",
+      "arquivo_origem": "iDUHF/iduhf-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 200.000 usuários",
+      "trecho_origem": "Sua capacidade de armazenamento é de até 200.000 usuários",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 138,
+      "pergunta": "Qual a classificação de proteção IP do iDUHF?",
+      "dificuldade": "facil",
+      "documento_origem": "iduhf-datasheet.pdf",
+      "arquivo_origem": "iDUHF/iduhf-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "IP65",
+      "trecho_origem": "Proteção IP65",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 139,
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDLock suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock-datasheet.pdf",
+      "arquivo_origem": "iDdLock/idlock-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "até 500 usuários",
+      "trecho_origem": "Capacidade para até 500 usuários cadastrados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 140,
+      "pergunta": "O iDLock possui detecção de arromada com aviso visual e sonoro?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock-datasheet.pdf",
+      "arquivo_origem": "iDdLock/idlock-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Sim, com aviso visual e sonoro",
+      "trecho_origem": "Detecção de arromabamento com aviso visual e sonoro",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 141,
+      "pergunta": "Quais são os métodos de identificação disponíveis no iDTouch?",
+      "dificuldade": "facil",
+      "documento_origem": "idtouch-folder.pdf",
+      "arquivo_origem": "iDTouch/idtouch-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Senha, Cartão ou ambos",
+      "trecho_origem": "FORMAS DE IDENTIFICAÇÃO\nCartões de Proximidade (conforme modelo)\nTecnologias MIFARE TM ou 125kHz (ASK)\nSenha\nIdentificação de usuários através de senha numérica de 4 a 6 dígitos",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 142,
+      "pergunta": "Qual a capacidade máxima de usuários que o iDTouch suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idtouch-folder.pdf",
+      "arquivo_origem": "iDTouch/idtouch-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "até 1000 usuários",
+      "trecho_origem": "Quantidade de Usuários\nCapacidade para até 1000 usuários",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 143,
+      "pergunta": "Quais são os três modos de operação do iDConnect V2?",
+      "dificuldade": "facil",
+      "documento_origem": "idconnect-v2-datasheet-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-v2-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1- Ethernet e/ou Wi-Fi (AP) para 4G *, 2- Ethernet para Wi-Fi (Client), 3- Ethernet e Wi-Fi (AP)",
+      "trecho_origem": "MODOS DE OPERAÇÃO\n1- Ethernet e/ou Wi-Fi (AP) para 4G *\n2- Ethernet para Wi-Fi (Client)\n3- Ethernet e Wi-Fi (AP)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 144,
+      "pergunta": "Qual é a potência da fonte de alimentação do iDConnect V2?",
+      "dificuldade": "facil",
+      "documento_origem": "idconnect-v2-datasheet-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-v2-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Fonte externa de 5V 1A (fornecidos via USB)",
+      "trecho_origem": "ALIMENTAÇÃO\nFonte externa de 5V 1A (fornecidos via USB)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 145,
+      "pergunta": "Qual a tensão de saída do iDPower?",
+      "dificuldade": "facil",
+      "documento_origem": "idpower-datasheet.pdf",
+      "arquivo_origem": "IDPower/idpower-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "14 VDC",
+      "trecho_origem": "Saída DC 14V/3A",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 146,
+      "pergunta": "Que tipo de bateria é compatível com o iDPower?",
+      "dificuldade": "facil",
+      "documento_origem": "idpower-datasheet.pdf",
+      "arquivo_origem": "IDPower/idpower-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Bateria de 12V/7Ah",
+      "trecho_origem": "Compatível com Bateria 12V/7Ah",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 147,
+      "pergunta": "Qual a capacidade máxima de usuários do torniquete?",
+      "dificuldade": "facil",
+      "documento_origem": "torniquetes-datasheet.pdf",
+      "arquivo_origem": "Torniquetes/torniquetes-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "mais de 200.000 usuários cadastrados (cartão/senha)",
+      "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados (cartão/senha)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 148,
+      "pergunta": "Quais interfaces de comunicação estão disponíveis no modelo FET-100?",
+      "dificuldade": "facil",
+      "documento_origem": "torniquetes-datasheet.pdf",
+      "arquivo_origem": "Torniquetes/torniquetes-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Ethernet (2 portas 10/100Mbps), USB (2 portas), GPRS (opcional) e Wi-Fi (opcional)",
+      "trecho_origem": "Ethernet\n2 portas Ethernet 10/100Mbps nativa\nUSB\n2 portas USB nativa\nGPRS\nMódulo de conexão via GPRS opcional\nWi-Fi\nMódulo de conexão via Wi-Fi opcional",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 149,
+      "pergunta": "Qual o dedo recomendado para cadastro no leitor biométrico?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock-bio-guia.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "É recomendado utilizar o dedo indicador para cadastro.",
+      "trecho_origem": "É recomendado utilizar o dedo indicador para cadastro.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 150,
+      "pergunta": "O que acontece quando ativa-se o modo Não Perturbe com a porta fechada?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock-bio-guia.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Este modo bloqueia a abertura pelo lado externo.",
+      "trecho_origem": "Este modo bloqueia a abertura pelo lado externo.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 151,
+      "pergunta": "Qual a interface de comunicação do iDProx USB?",
+      "dificuldade": "facil",
+      "documento_origem": "idprox-usb-folder.pdf",
+      "arquivo_origem": "iDProx/idprox-usb-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Interface USB 2.0",
+      "trecho_origem": "Interface USB 2.0",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 152,
+      "pergunta": "Quais tecnologias de cartão são compatíveis com o iDProx USB?",
+      "dificuldade": "facil",
+      "documento_origem": "idprox-usb-folder.pdf",
+      "arquivo_origem": "iDProx/idprox-usb-folder.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "MIFARE™ ou 125kHz ASK*",
+      "trecho_origem": "TECNOLOGIAS COMPATÍVEIS Cartões de Proximidade MIFARE™ ou 125kHz ASK*",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 153,
+      "pergunta": "Qual o tamanho da tela LCD do iDBlock Next com Contador de Giros?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-contador-giros-datasheet.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-contador-giros-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "3.5” (320x480)",
+      "trecho_origem": "Display LCD TFT colorido de 3.5” (320x480) com tela capacitiva sensível ao toque*",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 154,
+      "pergunta": "Quantos ciclos de giro o equipamento suporta?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-next-contador-giros-datasheet.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-contador-giros-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "3.600.000 ciclos",
+      "trecho_origem": "MCBF - 3.600.000 ciclos e de fácil manutenção",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 155,
+      "pergunta": "Como abrir a fechadura iDLock usando a senha cadastrada?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock-guia.pdf",
+      "arquivo_origem": "iDdLock/idlock-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Toque no teclado para acender as luzes de fundo, digite a senha cadastrada e pressione a tecla (#).",
+      "trecho_origem": "Toque no teclado para acender as luzes de fundo, digite a senha cadastrada e pressione a tecla (#).",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 156,
+      "pergunta": "Como desativar o modo Não Perturbe na fechadura iDLock?",
+      "dificuldade": "facil",
+      "documento_origem": "idlock-guia.pdf",
+      "arquivo_origem": "iDdLock/idlock-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Para desabilitá-lo, basta pressionar o botão “Abrir/Fechar”.",
+      "trecho_origem": "Para desabilitá-lo, basta pressionar o botão “Abrir/Fechar”.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 157,
+      "pergunta": "Qual a escala da Tubulação de rede?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-diagramas.pdf",
+      "arquivo_origem": "IDBlock/idblock-diagramas.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Escala (1:8)",
+      "trecho_origem": "Escala (1:8)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 158,
+      "pergunta": "Qual a escala do componente B?",
+      "dificuldade": "facil",
+      "documento_origem": "idblock-diagramas.pdf",
+      "arquivo_origem": "IDBlock/idblock-diagramas.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "B (1 : 4)",
+      "trecho_origem": "B (1 : 4)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 159,
+      "pergunta": "Quantas portas nativas com suporte a OSDP possui o iDBox V2?",
+      "dificuldade": "facil",
+      "documento_origem": "idbox-v2-datasheet.pdf",
+      "arquivo_origem": "iDBox/idbox-v2-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "4 portas nativas com suporte a OSDP*",
+      "trecho_origem": "4 portas nativas com suporte a OSDP*",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 160,
+      "pergunta": "Qual a plataforma de nuvem integrada ao iDBox V2?",
+      "dificuldade": "facil",
+      "documento_origem": "idbox-v2-datasheet.pdf",
+      "arquivo_origem": "iDBox/idbox-v2-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "iDSecure Cloud",
+      "trecho_origem": "Integração com iDSecure Cloud, possibilitando gerenciamento do dispositivo pela nuvem,",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 161,
+      "pergunta": "Qual é o procedimento recomendado para migrar usuários existentes de cartões magnéticos para o novo sistema de identificação biométrica?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 162,
+      "pergunta": "Como garantir a conformidade com as normas de proteção de dados ao armazenar imagens faciais em servidores externos?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 163,
+      "pergunta": "Quais são os requisitos de rede necessários para operar múltiplos pontos de entrada simultaneamente sem latência excessiva?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 164,
+      "pergunta": "De que forma pode-se personalizar políticas de acesso baseadas em horários específicos para diferentes departamentos dentro de um prédio?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 165,
+      "pergunta": "Após a instalação de um dispositivo de leitura de identificação, quais passos asseguram a integridade dos dados de barramento?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 166,
+      "pergunta": "Como realizar a calibração dos sensores infravermelhos utilizados na leitura facial para minimizar falsos positivos?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 167,
+      "pergunta": "Quais são as melhores práticas para manter a disponibilidade contínua do sistema de bloqueio de porta em caso de falha de energia?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 168,
+      "pergunta": "Em que medida o sistema suporta a integração com protocolos de autenticação multifator que combinam chave física e aplicativo móvel?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 169,
+      "pergunta": "Qual é o processo de validação de licenças de software antes da implantação em ambientes industriais críticos?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 170,
+      "pergunta": "Como otimizar o consumo de bateria dos dispositivos portáteis de acesso em ambientes com pouca cobertura elétrica?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 171,
+      "pergunta": "Qual estratégia recomendada permite atualizar firmwares dos equipamentos sem interromper o fluxo de pessoas?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 172,
+      "pergunta": "Como garantir que a cadeia de suprimentos de peças de reposição seja gerenciada de forma eficiente após a implementação?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 173,
+      "pergunta": "Quais indicadores de desempenho devem ser coletados para avaliar a eficiência do sistema de controle de acesso em tempo real?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 174,
+      "pergunta": "Como resolver conflitos entre permissões de acesso definidas pelo administrador e restrições impostas por políticas de segurança?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 175,
+      "pergunta": "De que maneira implementar um sistema de auditoria que registre cada tentativa de acesso, incluindo IP e usuário, para fins de investigação?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 176,
+      "pergunta": "Quais são os passos necessários para obter certificação de conformidade com regulamentações locais de segurança pública?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 177,
+      "pergunta": "Como a arquitetura de rede influencia a latência percebida pelos usuários ao atravessar múltiplos switches?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 178,
+      "pergunta": "Qual é o procedimento correto para desativar temporariamente um ponto de entrada durante obras de manutenção estrutural?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 179,
+      "pergunta": "Como o sistema gerencia a sincronização de credenciais entre diferentes plataformas de acesso remoto sem depender de hardware específico?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 180,
+      "pergunta": "Qual é o procedimento padrão para atualizar os firmwares nos dispositivos de leitura de credenciais quando ocorre falha na comunicação com o servidor central?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "",
+      "sem_resposta": true,
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     }
   ]
 }
