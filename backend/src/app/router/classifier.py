@@ -422,6 +422,66 @@ async def _classify_with_jev(
         )
 
 
+def _classify_por_palavras_chave(
+    message: str, provider_efetivo: str
+) -> ClassificationResult | None:
+    domain = _match_domain_by_keywords(message)
+    if domain is None:
+        return None
+    return ClassificationResult(
+        domain=domain,
+        complexity=_heuristic_complexity(message),
+        confidence=0.6,
+        provider_efetivo=provider_efetivo,
+    )
+
+
+def _avisar_provider_desconhecido(provider: str) -> None:
+    logger.warning(
+        "classify_provider_desconhecido",
+        extra={
+            "router": {
+                "event": "classify_provider_desconhecido",
+                "provider": provider,
+            }
+        },
+    )
+
+
+async def _classify_heuristica_llm(
+    message: str,
+    recent_messages: list[str],
+    strategy: str,
+    llm_client: LLMClient | None,
+    provider: str,
+    ultima_resposta: str | None,
+) -> ClassificationResult:
+    if provider != "heuristica_llm" and strategy != "llm":
+        _avisar_provider_desconhecido(provider)
+
+    # Atalho rápido por palavras-chave
+    atalho = _classify_por_palavras_chave(message, "heuristica_llm")
+    if atalho is not None:
+        return atalho
+
+    # Chamadas legadas que passam explicitamente strategy="heuristic"
+    if strategy == "heuristic":
+        return _classify_heuristic_fallback(
+            message, recent_messages, provider_efetivo="heuristica_llm"
+        )
+
+    if llm_client is None:
+        raise ValueError("llm_client é obrigatório quando strategy='llm'")
+
+    return await _classify_with_llm(
+        message,
+        recent_messages,
+        llm_client,
+        ultima_resposta=ultima_resposta,
+        provider_efetivo="heuristica_llm",
+    )
+
+
 async def classify(
     message: str,
     recent_messages: list[str] | None = None,
@@ -449,51 +509,11 @@ async def classify(
 
     # 1. Modo Heurística Pura (provider="heuristica")
     if provider == "heuristica":
-        domain = _match_domain_by_keywords(message)
-        if domain is not None:
-            return ClassificationResult(
-                domain=domain,
-                complexity=_heuristic_complexity(message),
-                confidence=0.6,
-                provider_efetivo="heuristica",
-            )
-        return _classify_heuristic_fallback(message, recent_messages, provider_efetivo="heuristica")
+        return _classify_por_palavras_chave(message, "heuristica") or _classify_heuristic_fallback(
+            message, recent_messages, provider_efetivo="heuristica"
+        )
 
     # 2. Modo Heurística + LLM Local (provider="heuristica_llm" ou legado com strategy)
-    if provider != "heuristica_llm" and strategy != "llm":
-        logger.warning(
-            "classify_provider_desconhecido",
-            extra={
-                "router": {
-                    "event": "classify_provider_desconhecido",
-                    "provider": provider,
-                }
-            },
-        )
-
-    # Atalho rápido por palavras-chave
-    domain = _match_domain_by_keywords(message)
-    if domain is not None:
-        return ClassificationResult(
-            domain=domain,
-            complexity=_heuristic_complexity(message),
-            confidence=0.6,
-            provider_efetivo="heuristica_llm",
-        )
-
-    # Chamadas legadas que passam explicitamente strategy="heuristic"
-    if strategy == "heuristic":
-        return _classify_heuristic_fallback(
-            message, recent_messages, provider_efetivo="heuristica_llm"
-        )
-
-    if llm_client is None:
-        raise ValueError("llm_client é obrigatório quando strategy='llm'")
-
-    return await _classify_with_llm(
-        message,
-        recent_messages,
-        llm_client,
-        ultima_resposta=ultima_resposta,
-        provider_efetivo="heuristica_llm",
+    return await _classify_heuristica_llm(
+        message, recent_messages, strategy, llm_client, provider, ultima_resposta
     )
