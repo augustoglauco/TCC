@@ -11,6 +11,57 @@ export function getUserConversationStorageKey(email: string): string {
   return `${USER_STORAGE_PREFIX}${email.trim().toLowerCase()}`;
 }
 
+const temTexto = (valor?: string | null): valor is string => Boolean(valor && valor.trim());
+
+/** Executa um acesso a storage; em navegadores com storage bloqueado (modo
+ * privado, quota) devolve o fallback em vez de propagar — único ponto do
+ * arquivo que engole a exceção. */
+function tentarStorage<T>(acao: () => T, fallback: () => T): T {
+  try {
+    return acao();
+  } catch {
+    return fallback();
+  }
+}
+
+/** Grava o id no storage adequado; `limparSessao` descarta o id da sessão antes. */
+function gravarConversationId(id: string, userEmail?: string | null, limparSessao = false): void {
+  tentarStorage(
+    () => {
+      if (limparSessao) window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      if (temTexto(userEmail)) {
+        window.localStorage.setItem(getUserConversationStorageKey(userEmail), id);
+      } else {
+        window.sessionStorage.setItem(SESSION_STORAGE_KEY, id);
+      }
+    },
+    () => undefined,
+  );
+}
+
+function idDoUsuario(userEmail: string): string {
+  const userKey = getUserConversationStorageKey(userEmail);
+  const existente = window.localStorage.getItem(userKey);
+  if (existente) {
+    return existente;
+  }
+  // Se havia uma conversa na sessão antes de logar, vincula ao usuário
+  const convId = window.sessionStorage.getItem(SESSION_STORAGE_KEY) || generateId();
+  window.localStorage.setItem(userKey, convId);
+  window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+  return convId;
+}
+
+function idDoVisitante(): string {
+  const existente = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+  if (existente) {
+    return existente;
+  }
+  const novo = generateId();
+  window.sessionStorage.setItem(SESSION_STORAGE_KEY, novo);
+  return novo;
+}
+
 /**
  * Lê o `conversation_id` adequado ou gera um novo (R9/R10).
  * - Para visitante não autenticado: armazena estritamente em `sessionStorage`
@@ -24,42 +75,21 @@ export function getOrCreateConversationId(userEmail?: string | null): string {
     return "";
   }
   // Limpa chave legada se existir
-  try {
-    window.localStorage.removeItem(LEGACY_STORAGE_KEY);
-  } catch {
-    // ignora restrição de storage
-  }
+  tentarStorage(
+    () => window.localStorage.removeItem(LEGACY_STORAGE_KEY),
+    () => undefined,
+  );
 
-  if (userEmail && userEmail.trim()) {
-    const userKey = getUserConversationStorageKey(userEmail);
-    try {
-      const existingUserConv = window.localStorage.getItem(userKey);
-      if (existingUserConv) {
-        return existingUserConv;
-      }
-      // Se havia uma conversa na sessão antes de logar, vincula ao usuário
-      const sessionConv = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
-      const convId = sessionConv || generateId();
-      window.localStorage.setItem(userKey, convId);
-      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
-      return convId;
-    } catch {
-      // fallback
+  if (temTexto(userEmail)) {
+    const idUsuario = tentarStorage(
+      () => idDoUsuario(userEmail),
+      () => null,
+    );
+    if (idUsuario) {
+      return idUsuario;
     }
   }
-
-  // Visitante não autenticado:
-  try {
-    const existingSession = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (existingSession) {
-      return existingSession;
-    }
-    const newId = generateId();
-    window.sessionStorage.setItem(SESSION_STORAGE_KEY, newId);
-    return newId;
-  } catch {
-    return generateId();
-  }
+  return tentarStorage(idDoVisitante, generateId);
 }
 
 export function getVisitPrompt(
@@ -138,17 +168,7 @@ export const useChatStore = create<ChatState>((set) => ({
       ),
     })),
   setConversationId: (id, userEmail) => {
-    if (typeof window !== "undefined") {
-      try {
-        if (userEmail && userEmail.trim()) {
-          window.localStorage.setItem(getUserConversationStorageKey(userEmail), id);
-        } else {
-          window.sessionStorage.setItem(SESSION_STORAGE_KEY, id);
-        }
-      } catch {
-        // ignora
-      }
-    }
+    if (typeof window !== "undefined") gravarConversationId(id, userEmail);
     set({ conversationId: id });
   },
   // Se o visitante já mandou algo antes da resposta do backend chegar, o
@@ -159,18 +179,7 @@ export const useChatStore = create<ChatState>((set) => ({
   setHumanAttendanceStatus: (status) => set({ humanAttendanceStatus: status }),
   clearChat: (userEmail) => {
     const newId = generateId();
-    if (typeof window !== "undefined") {
-      try {
-        window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        if (userEmail && userEmail.trim()) {
-          window.localStorage.setItem(getUserConversationStorageKey(userEmail), newId);
-        } else {
-          window.sessionStorage.setItem(SESSION_STORAGE_KEY, newId);
-        }
-      } catch {
-        // ignora
-      }
-    }
+    if (typeof window !== "undefined") gravarConversationId(newId, userEmail, true);
     set({ conversationId: newId, messages: [], humanAttendanceStatus: null });
   },
 }));

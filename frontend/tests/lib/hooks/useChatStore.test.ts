@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getOrCreateConversationId,
   getUserConversationStorageKey,
@@ -63,6 +63,39 @@ describe("useChatStore — persistência condicional", () => {
     expect(window.sessionStorage.getItem("tcc_chat_session_conversation_id")).toBe(
       useChatStore.getState().conversationId,
     );
+  });
+
+  describe("storage indisponível", () => {
+    afterEach(() => vi.restoreAllMocks());
+
+    it("usuário autenticado cai para o id de visitante quando o localStorage falha", () => {
+      vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+        throw new Error("bloqueado");
+      });
+      expect(getOrCreateConversationId("ana@empresa.com")).toBeTruthy();
+    });
+
+    it("visitante recebe um id novo quando o sessionStorage falha", () => {
+      vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+        throw new Error("bloqueado");
+      });
+      expect(getOrCreateConversationId()).toBeTruthy();
+    });
+
+    it("setConversationId atualiza o estado mesmo se a gravação falhar", () => {
+      vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw new Error("quota");
+      });
+      useChatStore.getState().setConversationId("conv-x");
+      expect(useChatStore.getState().conversationId).toBe("conv-x");
+    });
+
+    it("setConversationId com e-mail grava na chave do usuário", () => {
+      useChatStore.getState().setConversationId("conv-u", "Ana@Empresa.com");
+      expect(window.localStorage.getItem(getUserConversationStorageKey("ana@empresa.com"))).toBe(
+        "conv-u",
+      );
+    });
   });
 
   describe("openVisitChat / getVisitPrompt", () => {
