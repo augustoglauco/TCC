@@ -27,6 +27,7 @@ import { ProductFormGeralTab } from "./ProductFormGeralTab";
 import { ProductFormEstoqueTab } from "./ProductFormEstoqueTab";
 import { ProductFormDescontosTab } from "./ProductFormDescontosTab";
 import { ProductFormCompatibilidadesTab } from "./ProductFormCompatibilidadesTab";
+import { ProductFormTabs, type ActiveTab } from "./ProductFormTabs";
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -36,7 +37,17 @@ interface ProductFormModalProps {
   allProducts?: AdminProduct[];
 }
 
-type ActiveTab = "geral" | "estoque" | "descontos" | "compatibilidades";
+function resolveImageUrl(url?: string | null): string | null {
+  if (!url) return null;
+  return url.startsWith("http") ? url : `${getApiBaseUrl()}${url}`;
+}
+
+function mensagemDeErro(err: unknown, fallback: string): string {
+  return (err instanceof Error && err.message) || fallback;
+}
+
+const descontoValido = (qtdMin: number, perc: number) =>
+  !isNaN(qtdMin) && qtdMin > 0 && !isNaN(perc) && perc > 0;
 
 export default function ProductFormModal({
   isOpen,
@@ -105,13 +116,7 @@ export default function ProductFormModal({
       );
       setDescricao(produtoParaEditar.descricao || "");
       setEspecificacoesTecnicas(produtoParaEditar.especificacoes_tecnicas || "");
-      setImagemPreview(
-        produtoParaEditar.imagem_url
-          ? produtoParaEditar.imagem_url.startsWith("http")
-            ? produtoParaEditar.imagem_url
-            : `${getApiBaseUrl()}${produtoParaEditar.imagem_url}`
-          : null,
-      );
+      setImagemPreview(resolveImageUrl(produtoParaEditar.imagem_url));
       setImagens(produtoParaEditar.imagens || []);
       setEstoques(produtoParaEditar.estoques || []);
       setDescontosVolume(produtoParaEditar.descontos_volume || []);
@@ -162,33 +167,34 @@ export default function ProductFormModal({
       try {
         produtoAtualizado = await fetchAdminProduct(token, produtoParaEditar.id);
         setImagens(produtoAtualizado.imagens || []);
-        if (!imagemFile) {
-          setImagemPreview(
-            produtoAtualizado.imagem_url
-              ? produtoAtualizado.imagem_url.startsWith("http")
-                ? produtoAtualizado.imagem_url
-                : `${getApiBaseUrl()}${produtoAtualizado.imagem_url}`
-              : null,
-          );
-        }
+        if (!imagemFile) setImagemPreview(resolveImageUrl(produtoAtualizado.imagem_url));
       } catch {
-        if (!imagemFile && imagemRemovida && imagemPreview?.includes(imagemRemovida.imagem_url)) {
-          const proximaImg = imagensRestantes[0];
-          setImagemPreview(
-            proximaImg
-              ? proximaImg.imagem_url.startsWith("http")
-                ? proximaImg.imagem_url
-                : `${getApiBaseUrl()}${proximaImg.imagem_url}`
-              : null,
-          );
-        }
+        const previewRemovido =
+          !imagemFile && imagemRemovida && imagemPreview?.includes(imagemRemovida.imagem_url);
+        if (previewRemovido) setImagemPreview(resolveImageUrl(imagensRestantes[0]?.imagem_url));
       }
       onSuccess(produtoAtualizado || undefined);
     } catch (err) {
       if (imagemRemovida) setImagens((prev) => [...prev, imagemRemovida]);
-      setError((err instanceof Error && err.message) || "Erro ao remover imagem");
+      setError(mensagemDeErro(err, "Erro ao remover imagem"));
     } finally {
       setDeletingImageId(null);
+    }
+  };
+
+  const executarAcao = async (
+    setBusy: (busy: boolean) => void,
+    mensagemFalha: string,
+    acao: () => Promise<void>,
+  ) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await acao();
+    } catch (err) {
+      setError(mensagemDeErro(err, mensagemFalha));
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -199,88 +205,54 @@ export default function ProductFormModal({
       setError("Informe uma quantidade válida de estoque.");
       return;
     }
-    setUpdatingStock(true);
-    setError(null);
-    try {
+    await executarAcao(setUpdatingStock, "Erro ao atualizar estoque", async () => {
       const prod = await updateAdminProductStock(token, produtoParaEditar.id, cdNome.trim(), qtd);
       setEstoques(prod.estoques || []);
       onSuccess(prod);
-    } catch (err) {
-      setError((err instanceof Error && err.message) || "Erro ao atualizar estoque");
-    } finally {
-      setUpdatingStock(false);
-    }
+    });
   };
 
   const handleAdicionarDesconto = async () => {
     if (!produtoParaEditar || !token) return;
     const qtdMin = parseInt(descQtdMin, 10);
     const perc = parseFloat(descPercentual);
-    if (isNaN(qtdMin) || qtdMin <= 0 || isNaN(perc) || perc <= 0) {
+    if (!descontoValido(qtdMin, perc)) {
       setError("Informe quantidade mínima (>0) e percentual válido (>0).");
       return;
     }
-    setUpdatingDiscount(true);
-    setError(null);
-    try {
+    await executarAcao(setUpdatingDiscount, "Erro ao adicionar faixa de desconto", async () => {
       const prod = await addAdminProductVolumeDiscount(token, produtoParaEditar.id, qtdMin, perc);
       setDescontosVolume(prod.descontos_volume || []);
       onSuccess(prod);
-    } catch (err) {
-      setError((err instanceof Error && err.message) || "Erro ao adicionar faixa de desconto");
-    } finally {
-      setUpdatingDiscount(false);
-    }
+    });
   };
 
   const handleRemoverDesconto = async (descontoId: string) => {
     if (!produtoParaEditar || !token) return;
-    setUpdatingDiscount(true);
-    setError(null);
-    try {
+    await executarAcao(setUpdatingDiscount, "Erro ao excluir faixa de desconto", async () => {
       const prod = await deleteAdminProductVolumeDiscount(token, produtoParaEditar.id, descontoId);
       setDescontosVolume(prod.descontos_volume || []);
       onSuccess(prod);
-    } catch (err) {
-      setError((err instanceof Error && err.message) || "Erro ao excluir faixa de desconto");
-    } finally {
-      setUpdatingDiscount(false);
-    }
+    });
   };
 
   const handleAdicionarCompatibilidade = async () => {
     if (!produtoParaEditar || !compativelSelectedId || !token) return;
     const targetId = parseInt(compativelSelectedId, 10);
     if (isNaN(targetId) || targetId === produtoParaEditar.id) return;
-    setUpdatingCompatibility(true);
-    setError(null);
-    try {
-      const list = await addAdminProductCompatibility(token, produtoParaEditar.id, targetId);
-      setCompatividades(list);
+    await executarAcao(setUpdatingCompatibility, "Erro ao adicionar compatibilidade", async () => {
+      setCompatividades(await addAdminProductCompatibility(token, produtoParaEditar.id, targetId));
       setCompativelSelectedId("");
-    } catch (err) {
-      setError((err instanceof Error && err.message) || "Erro ao adicionar compatibilidade");
-    } finally {
-      setUpdatingCompatibility(false);
-    }
+    });
   };
 
   const handleRemoverCompatibilidade = async (compativelComId: number) => {
     if (!produtoParaEditar || !token) return;
-    setUpdatingCompatibility(true);
-    setError(null);
-    try {
-      const list = await deleteAdminProductCompatibility(
-        token,
-        produtoParaEditar.id,
-        compativelComId,
+    await executarAcao(setUpdatingCompatibility, "Erro ao remover compatibilidade", async () => {
+      setCompatividades(
+        await deleteAdminProductCompatibility(token, produtoParaEditar.id, compativelComId),
       );
-      setCompatividades(list);
-    } catch (err) {
-      setError((err instanceof Error && err.message) || "Erro ao remover compatibilidade");
-    } finally {
-      setUpdatingCompatibility(false);
-    }
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -315,20 +287,13 @@ export default function ProductFormModal({
       onSuccess();
       onClose();
     } catch (err) {
-      setError((err instanceof Error && err.message) || "Erro ao salvar produto");
+      setError(mensagemDeErro(err, "Erro ao salvar produto"));
     } finally {
       setSaving(false);
     }
   };
 
   if (!isOpen) return null;
-
-  const tabCls = (tab: ActiveTab) =>
-    `pb-2.5 px-3 text-xs font-bold transition-all cursor-pointer border-b-2 ${
-      activeTab === tab
-        ? "border-blue-600 text-blue-600"
-        : "border-transparent text-slate-500 hover:text-slate-700"
-    }`;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -353,32 +318,13 @@ export default function ProductFormModal({
         </div>
 
         {produtoParaEditar && (
-          <div className="flex border-b border-slate-200 gap-2">
-            <button type="button" onClick={() => setActiveTab("geral")} className={tabCls("geral")}>
-              📝 Informações Gerais &amp; Fotos
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("estoque")}
-              className={tabCls("estoque")}
-            >
-              📦 Estoque por CD ({estoques.reduce((a, b) => a + b.quantidade, 0)})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("descontos")}
-              className={tabCls("descontos")}
-            >
-              🏷️ Descontos Volume ({descontosVolume.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("compatibilidades")}
-              className={tabCls("compatibilidades")}
-            >
-              🔗 Compatibilidade ({compatividades.length})
-            </button>
-          </div>
+          <ProductFormTabs
+            activeTab={activeTab}
+            estoqueTotal={estoques.reduce((a, b) => a + b.quantidade, 0)}
+            descontosCount={descontosVolume.length}
+            compatibilidadesCount={compatividades.length}
+            onChange={setActiveTab}
+          />
         )}
 
         {error && (
