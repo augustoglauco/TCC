@@ -24,6 +24,13 @@ from app.services.safe_sql import (
 
 logger = logging.getLogger("assistente.analytics_agent")
 
+_PALETTE = ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4"]
+_CMD_PREFIXES = ["dados:", "dados", "valores:", "valores", "gráfico:", "grafico:"]
+_INLINE_PATTERN = (
+    r"([A-Za-zÀ-ÖØ-öø-ÿ0-9\s\-_/]+)\s*[:=\-]\s*(?:R\$\s*)?"
+    r"([\d\.,]+)\s*(%|h|unid|unidades|itens)?"
+)
+
 
 def _detect_chart_type(texto: str) -> str:
     t = texto.lower()
@@ -38,80 +45,111 @@ def _detect_chart_type(texto: str) -> str:
     return "bar"
 
 
-def extract_prompt_inline_data(prompt: str) -> dict[str, Any] | None:
-    """Extrai pares de chave-valor numéricos digitados diretamente pelo usuário no texto.
+def _clean_label(label_raw: str) -> str:
+    label = label_raw.strip()
+    for prefix in _CMD_PREFIXES:
+        if label.lower().startswith(prefix):
+            return label[len(prefix) :].strip()
+    return label
 
-    Exemplos aceitos:
-    - 'São Paulo: 150, Rio de Janeiro: 90, Belo Horizonte: 60'
-    - 'Projeto A = 40h\nProjeto B = 65h\nProjeto C = 20h'
-    - 'Jan: R$ 1000, Fev: R$ 1500, Mar: R$ 1200'
-    """
-    if not prompt or len(prompt.strip()) < 8:
+
+def _parse_value(val_raw: str) -> float | None:
+    clean = val_raw.replace(".", "").replace(",", ".") if "," in val_raw else val_raw
+    try:
+        return float(clean)
+    except ValueError:
         return None
 
-    texto = prompt.strip()
-    # Padrão: Nome da categoria seguido por : ou = ou - e o valor numérico
-    # Ex: 'São Paulo: 150', 'Item A: R$ 1.500,50', 'Fev: 30%'
-    pattern = (
-        r"([A-Za-zÀ-ÖØ-öø-ÿ0-9\s\-_/]+)\s*[:=\-]\s*(?:R\$\s*)?"
-        r"([\d\.,]+)\s*(%|h|unid|unidades|itens)?"
-    )
 
-    matches = re.findall(pattern, texto, re.IGNORECASE)
-    if len(matches) < 2:
-        return None
-
-    # Detecta formato dominante
-    tem_moeda = "r$" in texto.lower() or "reais" in texto.lower()
-    tem_pct = "%" in texto
-
-    formato = "currency" if tem_moeda else ("percent" if tem_pct else "number")
-    tipo_grafico = _detect_chart_type(texto)
-
+def _parse_inline_matches(matches: list[tuple[str, str, str]]) -> list[dict[str, Any]]:
     dados: list[dict[str, Any]] = []
     for label_raw, val_raw, _ in matches:
-        label = label_raw.strip()
-        # Remove palavras de comando que possam ter ficado no primeiro label
-        for prefix in ["dados:", "dados", "valores:", "valores", "gráfico:", "grafico:"]:
-            if label.lower().startswith(prefix):
-                label = label[len(prefix) :].strip()
+        label = _clean_label(label_raw)
+        val = _parse_value(val_raw)
+        if val is not None:
+            dados.append({"categoria": label, "valor": val})
+    return dados
 
-        # Converte número considerando formato brasileiro (1.000,50) ou padrão (1000.50)
-        clean_num = val_raw.replace(".", "").replace(",", ".") if "," in val_raw else val_raw
-        try:
-            val_float = float(clean_num)
-        except ValueError:
-            continue
 
-        dados.append({"categoria": label, "valor": val_float})
-
-    if len(dados) < 2:
-        return None
-
+def _build_inline_chart_spec(
+    texto: str, dados: list[dict[str, Any]], formato: str, tipo_grafico: str
+) -> dict[str, Any]:
     titulo = "Gráfico Personalizado"
-    # Tenta extrair um título significativo do início da frase
     primeira_parte = texto.split(":")[0].strip()
     if len(primeira_parte) < 60 and (
         "gráfico" in primeira_parte.lower() or "grafico" in primeira_parte.lower()
     ):
         titulo = primeira_parte.capitalize()
 
-    config = {
-        "x_key": "categoria",
-        "y_keys": ["valor"],
-        "labels": {"valor": "Valor"},
-        "format": formato,
-        "palette": ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4"],
-    }
-
     return {
         "titulo": titulo,
         "descricao": "Dados fornecidos diretamente no chat",
         "tipo_grafico": tipo_grafico,
-        "config": config,
+        "config": {
+            "x_key": "categoria",
+            "y_keys": ["valor"],
+            "labels": {"valor": "Valor"},
+            "format": formato,
+            "palette": _PALETTE,
+        },
         "dados": dados,
         "sql_query": "dynamic_user_data",
     }
+
+
+def extract_prompt_inline_data(prompt: str) -> dict[str, Any] | None:
+    """Extrai pares de chave-valor numéricos digitados diretamente pelo usuário no texto.
+
+    Exemplos aceitos:
+    - 'São Paulo: 150, Rio de Janeiro: 90, Belo Horizonte: 60'
+    - 'Projeto A = 40h\\nProjeto B = 65h\\nProjeto C = 20h'
+    - 'Jan: R$ 1000, Fev: R$ 1500, Mar: R$ 1200'
+    """
+    if not prompt or len(prompt.strip()) < 8:
+        return None
+
+    texto = prompt.strip()
+    matches = re.findall(_INLINE_PATTERN, texto, re.IGNORECASE)
+    if len(matches) < 2:
+        return None
+
+    tem_moeda = "r$" in texto.lower() or "reais" in texto.lower()
+    tem_pct = "%" in texto
+    formato = "currency" if tem_moeda else ("percent" if tem_pct else "number")
+
+    dados = _parse_inline_matches(matches)
+    if len(dados) < 2:
+        return None
+
+    return _build_inline_chart_spec(texto, dados, formato, _detect_chart_type(texto))
+
+
+async def _collect_stream_fields(
+    llm_client: Any, system_instruction: str
+) -> tuple[str, int | None, int | None, float | None, str | None]:
+    """Drena o stream do LLM e devolve (raw_text, prompt_tokens, completion_tokens,
+    estimated_cost_usd, model_name)."""
+    raw_text = ""
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    estimated_cost_usd: float | None = None
+    model_name: str | None = None
+
+    async for chunk in llm_client.generate_stream(system_instruction):
+        if chunk.text:
+            raw_text += chunk.text
+        # Mesmo padrão do stream principal (orchestrator.py): tokens só
+        # vêm populados no chunk final.
+        if getattr(chunk, "prompt_tokens", None) is not None:
+            prompt_tokens = chunk.prompt_tokens
+        if getattr(chunk, "completion_tokens", None) is not None:
+            completion_tokens = chunk.completion_tokens
+        if getattr(chunk, "estimated_cost_usd", None) is not None:
+            estimated_cost_usd = chunk.estimated_cost_usd
+        if getattr(chunk, "model_name", None) is not None:
+            model_name = chunk.model_name
+
+    return raw_text, prompt_tokens, completion_tokens, estimated_cost_usd, model_name
 
 
 async def _generate_sql_with_llm(
@@ -152,55 +190,68 @@ Responda OBRIGATORIAMENTE em formato JSON válido contendo:
 NÃO inclua nada fora do bloco JSON.
 """
     try:
-        raw_text = ""
-        prompt_tokens: int | None = None
-        completion_tokens: int | None = None
-        cost_prompt_usd: float | None = None
-        cost_completion_usd: float | None = None
-        estimated_cost_usd: float | None = None
-        model_name: str | None = None
-        async for chunk in llm_client.generate_stream(system_instruction):
-            if chunk.text:
-                raw_text += chunk.text
-            # Mesmo padrão do stream principal (orchestrator.py): tokens só
-            # vêm populados no chunk final.
-            if getattr(chunk, "prompt_tokens", None) is not None:
-                prompt_tokens = chunk.prompt_tokens
-            if getattr(chunk, "completion_tokens", None) is not None:
-                completion_tokens = chunk.completion_tokens
-            if getattr(chunk, "cost_prompt_usd", None) is not None:
-                cost_prompt_usd = chunk.cost_prompt_usd  # noqa: F841 — mesmo padrão de extração dos outros campos; não usado fora desta função
-            if getattr(chunk, "cost_completion_usd", None) is not None:
-                cost_completion_usd = chunk.cost_completion_usd  # noqa: F841 — idem
-            if getattr(chunk, "estimated_cost_usd", None) is not None:
-                estimated_cost_usd = chunk.estimated_cost_usd
-            if getattr(chunk, "model_name", None) is not None:
-                model_name = chunk.model_name
-
-        spawn_background_task(
-            registrar_uso_ia(
-                origem="admin",
-                ambiente=ambiente,
-                modelo=model_name or "desconhecido",
-                operacao="geracao_grafico_dinamico",
-                tokens_entrada=prompt_tokens,
-                tokens_saida=completion_tokens,
-                custo_usd=estimated_cost_usd,
-                referencia_id=None,
-                session=None,
-                session_factory=None,
-                commit=False,
-            )
-        )
-
-        # Extrai bloco JSON
-        match = re.search(r"\{.*\}", raw_text, re.DOTALL)
-        if match:
-            return json.loads(match.group(0)), prompt_tokens, completion_tokens
+        (
+            raw_text,
+            prompt_tokens,
+            completion_tokens,
+            estimated_cost_usd,
+            model_name,
+        ) = await _collect_stream_fields(llm_client, system_instruction)
     except Exception as exc:
-        logger.warning("falha_llm_text_to_sql", extra={"erro": str(exc)})
+        logger.warning("falha_stream_llm_text_to_sql", extra={"erro": str(exc)})
+        return None, None, None
 
-    return None, None, None
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="admin",
+            ambiente=ambiente,
+            modelo=model_name or "desconhecido",
+            operacao="geracao_grafico_dinamico",
+            tokens_entrada=prompt_tokens,
+            tokens_saida=completion_tokens,
+            custo_usd=estimated_cost_usd,
+            referencia_id=None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
+    )
+
+    match = re.search(r"\{.*\}", raw_text, re.DOTALL)
+    if not match:
+        return None, prompt_tokens, completion_tokens
+    try:
+        return json.loads(match.group(0)), prompt_tokens, completion_tokens
+    except json.JSONDecodeError as exc:
+        logger.warning("falha_parse_json_llm_text_to_sql", extra={"erro": str(exc)})
+        return None, prompt_tokens, completion_tokens
+
+
+async def _persist_chart(
+    session: AsyncSession,
+    titulo: str,
+    descricao: str,
+    tipo_grafico: str,
+    config_json: dict[str, Any],
+    dados_json: list[dict[str, Any]],
+    sql_query: str,
+    criado_por: str,
+) -> AdminChart:
+    chart = AdminChart(
+        titulo=titulo,
+        descricao=descricao,
+        tipo_grafico=tipo_grafico,
+        config_json=config_json,
+        dados_json=dados_json,
+        sql_query=sql_query,
+        fixado=True,
+        ordem=0,
+        criado_por=criado_por,
+    )
+    session.add(chart)
+    await session.commit()
+    await session.refresh(chart)
+    return chart
 
 
 async def process_dynamic_chart_request(
@@ -226,29 +277,26 @@ async def process_dynamic_chart_request(
     # 1. Verifica se o usuário forneceu dados no próprio texto
     inline_spec = extract_prompt_inline_data(prompt)
     if inline_spec:
-        chart = AdminChart(
+        chart = await _persist_chart(
+            session,
             titulo=inline_spec["titulo"],
             descricao=inline_spec["descricao"],
             tipo_grafico=inline_spec["tipo_grafico"],
             config_json=inline_spec["config"],
             dados_json=inline_spec["dados"],
             sql_query="dynamic_user_data",
-            fixado=True,
-            ordem=0,
             criado_por=user_email,
         )
-        session.add(chart)
-        await session.commit()
-        await session.refresh(chart)
-        explicacao = (
+        return (
+            chart,
             "Gerei o gráfico com os dados que você informou no chat. "
-            "Ele já está salvo no seu painel de Dashboards."
+            "Ele já está salvo no seu painel de Dashboards.",
+            None,
+            None,
         )
-        return chart, explicacao, None, None
 
     # 2. Gera via Text-to-SQL dinâmico com o LLM — único caminho de geração
-    # de gráfico novo a partir do banco (sem fallback hardcoded, ver
-    # docstring acima).
+    # de gráfico novo a partir do banco (sem fallback hardcoded, ver docstring acima).
     if not llm_client or not hasattr(llm_client, "generate_stream"):
         return (
             None,
@@ -312,7 +360,8 @@ async def process_dynamic_chart_request(
             completion_tokens,
         )
 
-    chart = AdminChart(
+    chart = await _persist_chart(
+        session,
         titulo=llm_spec.get("titulo", "Gráfico Analítico"),
         descricao=llm_spec.get("descricao", "Gerado dinamicamente com base no banco de dados"),
         tipo_grafico=llm_spec.get("tipo_grafico", _detect_chart_type(prompt)),
@@ -321,17 +370,12 @@ async def process_dynamic_chart_request(
             "y_keys": llm_spec.get("y_keys") or [list(dados[0].keys())[1]],
             "labels": llm_spec.get("labels") or {},
             "format": llm_spec.get("format", "number"),
-            "palette": ["#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4"],
+            "palette": _PALETTE,
         },
         dados_json=dados,
         sql_query=f"dynamic_sql: {sql_query}",
-        fixado=True,
-        ordem=0,
         criado_por=user_email,
     )
-    session.add(chart)
-    await session.commit()
-    await session.refresh(chart)
     explicacao = llm_spec.get("explicacao") or (
         f"Gerei o gráfico '{chart.titulo}' a partir de consulta direta ao banco de dados."
     )
