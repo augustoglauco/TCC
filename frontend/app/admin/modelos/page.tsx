@@ -16,6 +16,98 @@ import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { LocalModelsApiError, listLocalModels } from "@/lib/api/localModels";
 import type { LocalModel } from "@/lib/types/localModels";
 
+// ─── private sub-components ──────────────────────────────────────────────────
+
+function KpiCard({
+  icon,
+  colorClass,
+  label,
+  children,
+}: {
+  icon: string;
+  colorClass: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center gap-3.5">
+      <div
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl font-bold ${colorClass}`}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+          {label}
+        </span>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function RuntimeStatusBadge({ status }: { status: "checking" | "ok" | "error" }) {
+  if (status === "checking") {
+    return (
+      <span className="block text-sm font-bold text-slate-500 flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-slate-400 animate-pulse" />
+        Verificando...
+      </span>
+    );
+  }
+  if (status === "ok") {
+    return (
+      <span className="block text-sm font-bold text-emerald-700 flex items-center gap-1.5">
+        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+        Operacional (Ollama)
+      </span>
+    );
+  }
+  return (
+    <span className="block text-sm font-bold text-red-700 flex items-center gap-1.5">
+      <span className="h-2 w-2 rounded-full bg-red-500" />
+      Indisponível (Ollama)
+    </span>
+  );
+}
+
+function KpiStatsGrid({
+  activeModel,
+  modelos,
+  totalGb,
+  runtimeStatus,
+}: {
+  activeModel: string | null;
+  modelos: LocalModel[] | null;
+  totalGb: string;
+  runtimeStatus: "checking" | "ok" | "error";
+}) {
+  return (
+    <div className="mt-6 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
+      <KpiCard icon="🤖" colorClass="bg-blue-50 text-blue-600" label="Modelo Local Ativo">
+        <span
+          className="block text-sm font-bold text-slate-900 truncate"
+          title={activeModel || "Nenhum"}
+        >
+          {activeModel ? activeModel : "Nenhum selecionado"}
+        </span>
+      </KpiCard>
+
+      <KpiCard icon="📦" colorClass="bg-emerald-50 text-emerald-600" label="Modelos Baixados">
+        <span className="block text-sm font-bold text-slate-900">
+          {modelos === null ? "..." : `${modelos.length} modelo(s) (${totalGb} GB)`}
+        </span>
+      </KpiCard>
+
+      <KpiCard icon="⚡" colorClass="bg-indigo-50 text-indigo-600" label="Status Runtime">
+        <RuntimeStatusBadge status={runtimeStatus} />
+      </KpiCard>
+    </div>
+  );
+}
+
+// ─── page ─────────────────────────────────────────────────────────────────────
+
 export default function ModelosPage() {
   const token = useAuthStore((s) => s.token);
   const [modelos, setModelos] = useState<LocalModel[] | null>(null);
@@ -47,12 +139,10 @@ export default function ModelosPage() {
     carregarModelos();
   }, [carregarModelos]);
 
-  const totalBytes = modelos?.reduce((acc, m) => acc + (m.size_bytes || 0), 0) ?? 0;
-  const totalGb = (totalBytes / 1024 ** 3).toFixed(1);
+  const totalGb = ((modelos?.reduce((acc, m) => acc + (m.size_bytes || 0), 0) ?? 0) / 1024 ** 3).toFixed(1);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
-      {/* Header com badge de contexto */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
@@ -65,70 +155,13 @@ export default function ModelosPage() {
         </div>
       </div>
 
-      {/* KPI Stats Grid */}
-      <div className="mt-6 grid grid-cols-1 gap-3.5 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center gap-3.5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 text-xl font-bold">
-            🤖
-          </div>
-          <div className="min-w-0">
-            <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              Modelo Local Ativo
-            </span>
-            <span
-              className="block text-sm font-bold text-slate-900 truncate"
-              title={activeModel || "Nenhum"}
-            >
-              {activeModel ? activeModel : "Nenhum selecionado"}
-            </span>
-          </div>
-        </div>
+      <KpiStatsGrid
+        activeModel={activeModel}
+        modelos={modelos}
+        totalGb={totalGb}
+        runtimeStatus={runtimeStatus}
+      />
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center gap-3.5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 text-xl font-bold">
-            📦
-          </div>
-          <div>
-            <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              Modelos Baixados
-            </span>
-            <span className="block text-sm font-bold text-slate-900">
-              {modelos === null ? "..." : `${modelos.length} modelo(s) (${totalGb} GB)`}
-            </span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs flex items-center gap-3.5">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 text-xl font-bold">
-            ⚡
-          </div>
-          <div>
-            <span className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              Status Runtime
-            </span>
-            {runtimeStatus === "checking" && (
-              <span className="block text-sm font-bold text-slate-500 flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-slate-400 animate-pulse" />
-                Verificando...
-              </span>
-            )}
-            {runtimeStatus === "ok" && (
-              <span className="block text-sm font-bold text-emerald-700 flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                Operacional (Ollama)
-              </span>
-            )}
-            {runtimeStatus === "error" && (
-              <span className="block text-sm font-bold text-red-700 flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-red-500" />
-                Indisponível (Ollama)
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Conteúdo com Abas */}
       <div className="mt-8">
         <Tabs defaultValue="modelos">
           <TabsList className="p-1 bg-slate-100 rounded-xl border border-slate-200/80 inline-flex flex-wrap">
@@ -137,10 +170,8 @@ export default function ModelosPage() {
             <TabsTrigger value="parametros">⚙️ Parâmetros de Execução</TabsTrigger>
           </TabsList>
 
-          {/* Aba 1: Modelos Locais */}
           <TabsContent value="modelos">
             <div className="space-y-6">
-              {/* Card 1: Modelos Baixados */}
               <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
                   <div>
@@ -151,16 +182,7 @@ export default function ModelosPage() {
                       Modelos armazenados na biblioteca do Ollama e prontos para uso
                     </p>
                   </div>
-                  {/* {activeModel !== null && (
-                    <div className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-1.5 text-xs text-slate-700">
-                      <span>Modelo ativo no chat:</span>
-                      <strong className="font-mono text-slate-900">
-                        {activeModel || "Nenhum"}
-                      </strong>
-                    </div>
-                  )} */}
                 </div>
-
                 <div>
                   {modelos === null ? (
                     <div className="flex items-center justify-center py-8 text-xs text-slate-500">
@@ -177,7 +199,6 @@ export default function ModelosPage() {
                 </div>
               </div>
 
-              {/* Card 2: Baixar Novo Modelo */}
               <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
                 <div className="border-b border-slate-100 pb-4">
                   <h2 className="text-base sm:text-lg font-bold text-slate-900">
@@ -196,7 +217,6 @@ export default function ModelosPage() {
             </div>
           </TabsContent>
 
-          {/* Aba 2: Modelo Externo (OpenRouter) */}
           <TabsContent value="openrouter">
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-6">
               <div className="border-b border-slate-100 pb-4">
@@ -208,7 +228,6 @@ export default function ModelosPage() {
                   ou consulte o histórico de modelos ativados anteriormente.
                 </p>
               </div>
-
               <OpenRouterModelCard
                 onError={(message) => showToast(message, "error")}
                 onSuccess={(message) => showToast(message, "success")}
@@ -216,7 +235,6 @@ export default function ModelosPage() {
             </div>
           </TabsContent>
 
-          {/* Aba 3: Parâmetros de Execução */}
           <TabsContent value="parametros">
             <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
               <div className="border-b border-slate-100 pb-4">
