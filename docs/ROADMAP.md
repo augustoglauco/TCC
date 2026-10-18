@@ -1884,8 +1884,18 @@ conversa e classificação do usuário").
           `rag_documents` sem vetor nenhum, logo **invisíveis à busca**: não
           derivar pergunta das 180 a partir deles, sob pena de contaminar a
           medida de alucinação (as 20 sem resposta devem ser deliberadas).
-    - [ ] Imagem: **93 fotos** de produto (CLIP) — `catalogo_imagens` tem 3
-    - [ ] Banco: **28 produtos** com preço, estoque por CD e prazo
+    - [ ] Imagem: **77 fotos** de produto no CLIP (`catalogo_imagens` tem 3
+          vetores, medido em 2026-10-17). O plano dizia 93; o corpus tem 78
+          arquivos de imagem, 77 válidos depois da conversão para JPEG.
+          **Dependência descoberta em 2026-10-17:** `upsert_image` aceita
+          `produto_id=None`, então dá para ingerir sem produto no banco — mas
+          o fluxo de produção identifica pelo `produto_id` do ponto CLIP e só
+          cai no nome como fallback (`app.rag.image_identification`). Ingerir
+          sem produto mede o fallback, não o caminho principal; para medir o
+          que roda em produção, os produtos (abaixo) vêm primeiro
+    - [ ] Banco: **29 produtos** com preço, estoque por CD e prazo (o plano
+          dizia 28; são 29 pastas de produto no corpus). Hoje o banco tem
+          **13 produtos** e só **2** com linha em `produto_estoque`
   - [ ] Roteador: **300 mensagens**, sendo **≥200 desenhadas para chegar ao
         LLM** (hoje só 22,5% chegam — 9 de 40, medido; num conjunto
         "representativo" o n efetivo de comparação seria um terço do tamanho
@@ -1952,7 +1962,16 @@ conversa e classificação do usuário").
           factual. Sem isso, as 20 perguntas de alucinação não medem nada
     - [ ] Geradores dos outros quatro conjuntos (roteador 300, imagem 103,
           banco 80, injeção 100) — mesmo padrão, ainda não escritos
-  - [ ] RAG imagem: **120** (90 produto + 30 não-produto)
+  - [ ] RAG imagem: **107** (77 produto + 30 não-produto). O plano dizia 120
+        (90+30): as 90 fotos de produto não existem. As 30 não-produto foram
+        entregues em 2026-10-17 por outro agente
+        (`eval/model_benchmark/imagens/negativos/`, 15 categorias × 2, com
+        manifest) — **ressalva registrada:** são miniaturas 300×300 de ~9 KB de
+        catálogo genérico (maquiagem, perfume, sofá), nenhuma do ramo de
+        controle de acesso. Servem para flagrar o modelo que aprova qualquer
+        imagem, mas (a) não testam a discriminação que importa (equipamento de
+        acesso de outra marca) e (b) diferem sistematicamente das positivas em
+        resolução, peso e procedência, o que pode inflar a separação medida
   - [ ] RAG banco: **80 perguntas** geradas a partir das linhas de
         `produtos` — gabarito exato por construção, revisão zero
   - [ ] Injeção: **100 casos** (50 diretos + 50 indiretos)
@@ -1980,9 +1999,18 @@ conversa e classificação do usuário").
       orçamento de ~US$ 12 da Estratégia A cai para **US$ 0**
 - [ ] Rodar o benchmark em **duas rodadas**: triagem com
       `--etapas roteador,imagem` nos 10 candidatos (~8 min de GPU cada, zero
-      chamada de juiz) e rodada completa só nos 4–5 sobreviventes. Registrar
-      o critério de corte da triagem **antes** de rodar, no README de
-      `eval/model_benchmark/`, para não virar escolha a posteriori
+      chamada de juiz) e rodada completa só nos 4–5 sobreviventes.
+  - [x] **Critério de corte registrado em 2026-10-17, antes da primeira
+        triagem** (`eval/model_benchmark/README.md`, seção "Critério de corte
+        da triagem"). Eliminatórios: `vram_bytes` ≤ 15 GB sem OOM;
+        `json_invalido_taxa` ≤ 0,10 no roteador (acima disso o que se mede é a
+        heurística de fallback, não o candidato); `latencia_p95_s` ≤ 30 s, que
+        é o `LOCAL_LLM_TIMEOUT_S` de produção. Comparativo: sobrevive quem
+        ficar dentro de **10 pp** da melhor `roteador_acuracia` — com n=300 o
+        IC 95% de Wilson a p=0,70 é ±5,2 pp, então 10 pp é ~2 IC e não elimina
+        por ruído — com teto de 5 sobreviventes, desempate por `visao_local` e
+        depois por menor `latencia_p95_s`.
+  - [ ] Rodar a triagem (depende dos conjuntos de roteador e imagem)
 - [x] Orquestrador `eval/model_benchmark/` (2026-10-16). `run_benchmark.py`
       não cria avaliação nova: reexecuta as três que já existem
       (`router_intents`, `rag_quality`, `prompt_injection`) trocando só o
@@ -2042,17 +2070,23 @@ conversa e classificação do usuário").
       catraca saiu "catraca", "torneira eletrônica", "lança" e "extintor" em
       quatro execuções, então o benchmark fixa `--seed 42` (produção segue
       sem seed).
-- [ ] Decidir se a lista de candidatos deve exigir visão local: das 10 tags
-      de `modelos.json`, só as duas de Gemma-4-12B devem ter `vision`; as
-      variantes multimodais das outras famílias são tags diferentes
-      (`qwen2.5-vl`, `qwen3-vl`, `llama3.2-vision`, `phi4-multimodal`). Se
-      R2/R5 exigirem visão local, a lista de `docs/ARCHITECTURE.md` é que
-      precisa mudar.
-- [ ] Acertar a contagem de candidatos: `docs/ARCHITECTURE.md` diz "9
-      configurações" mas lista 10 (Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B
+- [x] **Visão local não é requisito do candidato** (decisão de 2026-10-17,
+      registrada em `docs/ARCHITECTURE.md` e no README de
+      `eval/model_benchmark/`). Das 10 tags de `modelos.json`, só as duas de
+      Gemma-4-12B têm `vision` — as variantes multimodais das outras famílias
+      são tags diferentes (`qwen2.5-vl`, `qwen3-vl`, `llama3.2-vision`,
+      `phi4-multimodal`). Exigir visão local cortaria 8 dos 10 por um
+      requisito que o sistema não impõe: `OllamaClient.describe_image` usa o
+      mesmo `LOCAL_MODEL_NAME`, e candidato sem a capability manda a imagem do
+      cliente para a visão externa, que é caminho documentado, não defeito.
+      `visao_local` fica como atributo medido e critério de desempate; se o
+      vencedor não tiver, o relatório precisa dizer que toda imagem de cliente
+      passa a depender do modelo externo.
+- [x] Contagem de candidatos corrigida em 2026-10-17: `docs/ARCHITECTURE.md`
+      dizia "9 configurações" e listava 10 (Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B
       Q4_K_M/Q5_K_M; Qwen3 8B Q5_K_M/Q8_0; Phi-4-mini; Phi-4; Gemma-4-12B
-      4-bit/8-bit) — `eval/model_benchmark/modelos.json` tem os 10. Corrigir
-      o número no documento ou retirar um candidato.
+      4-bit/8-bit), que são os 10 de `eval/model_benchmark/modelos.json`. O
+      número no documento passou a 10 — nenhum candidato foi retirado.
 - [x] Página pública de resultados `/avaliacao` com gráficos (Recharts) e
       endpoint `GET /api/avaliacao/resultados` só com agregados (intervalo
       de Wilson) — ver `docs/ARCHITECTURE.md` §9. Lê os `results.json`

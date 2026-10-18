@@ -176,6 +176,49 @@ daqui vale como teste da ferramenta, não como resultado do TCC — por isso
 `results/` está vazio. Ordem correta: ingerir o corpus → refazer os
 datasets → rodar o benchmark.
 
+## Critério de corte da triagem (registrado em 2026-10-17, ANTES de rodar)
+
+A triagem roda `--etapas roteador,imagem` nos 10 candidatos: ~8 min de GPU
+cada, nenhuma chamada de juiz, custo zero. A rodada completa (as quatro
+etapas, com juiz no tier `:free`) só roda nos sobreviventes. Este critério
+está escrito aqui **antes** da primeira triagem de propósito: decidido
+depois, seria escolha a posteriori, e o número que sobrevive sempre parece
+razoável quando já se sabe quem ele elimina.
+
+Todos os campos citados são os de `metricas` em `results/<id>.json`.
+
+**Eliminatórios** (reprova em qualquer um, sai):
+
+1. **Cabe na VRAM:** o candidato roda até o fim sem OOM e com
+   `vram_bytes` ≤ 15 GB. A placa tem 16 GB e o Qdrant/embedder convivem na
+   máquina.
+2. **Respeita o formato:** `json_invalido_taxa` ≤ 0,10 na etapa roteador. Um
+   candidato que quebra o JSON cai na heurística do `_classify_with_llm`, e aí
+   o que está sendo medido não é mais ele — é o fallback.
+3. **Serve ao produto:** `latencia_p95_s` ≤ 30 s. É o `LOCAL_LLM_TIMEOUT_S` de
+   produção: acima disso o chat corta a resposta de qualquer forma.
+
+**Comparativo** (entre os que passaram nos três):
+
+4. **Fica quem está dentro de 10 pp de `roteador_acuracia` do melhor.** Não é
+   corte absoluto: com 300 mensagens o IC 95% de Wilson a p=0,70 é ±5,2 pp,
+   então 10 pp é cerca de dois intervalos e evita eliminar candidato por
+   ruído de amostra. McNemar pareado, que é o teste do relatório final, entra
+   só na rodada completa.
+5. **Teto de 5 sobreviventes.** Se mais de 5 passarem, ficam os 5 de maior
+   `roteador_acuracia`. Empate se resolve primeiro por `visao_local: true`
+   (resolve imagem de cliente em casa, sem terceirizar para a visão externa)
+   e depois por menor `latencia_p95_s`.
+
+**`visao_local: false` não elimina.** A produção já trata visão local como
+opcional: `OllamaClient.describe_image` usa o mesmo `LOCAL_MODEL_NAME`, e
+candidato sem a capability manda a imagem do cliente para a visão externa —
+caminho documentado, não defeito. Exigir visão local cortaria 8 dos 10
+candidatos por um requisito que o sistema não impõe. Fica como atributo
+medido e critério de desempate; se o vencedor não tiver visão local, o
+relatório precisa dizer que toda imagem de cliente passa a depender do modelo
+externo.
+
 ## Candidatos
 
 `modelos.json` lista os candidatos de `docs/ARCHITECTURE.md` (tabela de
