@@ -1,0 +1,1298 @@
+{
+  "descricao": "Conjunto de banco da Estratégia A (Fase 10): perguntas de preço, estoque, prazo, comparação e categoria montadas a partir das linhas de `produtos`/`produto_estoque`.",
+  "observacao": "Gerado por template, sem LLM: o gabarito é exato por construção e o conjunto não passa por revisão humana. Exercita o caminho de produção do domínio de Vendas (`app.router.sales_catalog`), não o conector de banco do RAG. `gabarito_bruto` guarda o valor cru de cada afirmação. Base: 47 produtos no catálogo.",
+  "total": 80,
+  "por_tipo": {
+    "preco": 22,
+    "estoque_total": 12,
+    "estoque_cd": 12,
+    "prazo": 12,
+    "comparacao_preco": 12,
+    "categoria": 10
+  },
+  "casos": [
+    {
+      "id": 1,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDBlock?",
+      "resposta_esperada": "R$ 9705,90",
+      "gabarito_bruto": {
+        "preco": "9705.90"
+      },
+      "produto": "IDBlock",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 2,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDBlock Facial?",
+      "resposta_esperada": "R$ 17049,90",
+      "gabarito_bruto": {
+        "preco": "17049.90"
+      },
+      "produto": "IDBlock Facial",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 3,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDFACE/FP/A?",
+      "resposta_esperada": "R$ 1541,96",
+      "gabarito_bruto": {
+        "preco": "1541.96"
+      },
+      "produto": "IDFACE/FP/A",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 4,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDFACE/FP/H?",
+      "resposta_esperada": "R$ 1960,00",
+      "gabarito_bruto": {
+        "preco": "1960.00"
+      },
+      "produto": "IDFACE/FP/H",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 5,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDFACE/FP/M?",
+      "resposta_esperada": "R$ 2109,85",
+      "gabarito_bruto": {
+        "preco": "2109.85"
+      },
+      "produto": "IDFACE/FP/M",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 6,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDFACEPRO/FP/A?",
+      "resposta_esperada": "R$ 2061,72",
+      "gabarito_bruto": {
+        "preco": "2061.72"
+      },
+      "produto": "IDFACEPRO/FP/A",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 7,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDFACEPRO/FP/H?",
+      "resposta_esperada": "R$ 2754,00",
+      "gabarito_bruto": {
+        "preco": "2754.00"
+      },
+      "produto": "IDFACEPRO/FP/H",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 8,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDFACEPRO/FP/M?",
+      "resposta_esperada": "R$ 2429,61",
+      "gabarito_bruto": {
+        "preco": "2429.61"
+      },
+      "produto": "IDFACEPRO/FP/M",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 9,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDFit?",
+      "resposta_esperada": "R$ 1369,90",
+      "gabarito_bruto": {
+        "preco": "1369.90"
+      },
+      "produto": "IDFit",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 10,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDMAX/FP/A?",
+      "resposta_esperada": "R$ 1356,30",
+      "gabarito_bruto": {
+        "preco": "1356.30"
+      },
+      "produto": "IDMAX/FP/A",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 11,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDMAX/FP/M?",
+      "resposta_esperada": "R$ 1716,05",
+      "gabarito_bruto": {
+        "preco": "1716.05"
+      },
+      "produto": "IDMAX/FP/M",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 12,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o IDPower?",
+      "resposta_esperada": "R$ 1064,00",
+      "gabarito_bruto": {
+        "preco": "1064.00"
+      },
+      "produto": "IDPower",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 13,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o LIC/IDFACE/100K?",
+      "resposta_esperada": "R$ 2499,00",
+      "gabarito_bruto": {
+        "preco": "2499.00"
+      },
+      "produto": "LIC/IDFACE/100K",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 14,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o LIC/IDFACE/15K?",
+      "resposta_esperada": "R$ 529,00",
+      "gabarito_bruto": {
+        "preco": "529.00"
+      },
+      "produto": "LIC/IDFACE/15K",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 15,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o LIC/IDFACE/30K?",
+      "resposta_esperada": "R$ 899,00",
+      "gabarito_bruto": {
+        "preco": "899.00"
+      },
+      "produto": "LIC/IDFACE/30K",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 16,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o LIC/IDFACE/50K?",
+      "resposta_esperada": "R$ 1199,00",
+      "gabarito_bruto": {
+        "preco": "1199.00"
+      },
+      "produto": "LIC/IDFACE/50K",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 17,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o LIC/IDFACE/PRO?",
+      "resposta_esperada": "R$ 499,00",
+      "gabarito_bruto": {
+        "preco": "499.00"
+      },
+      "produto": "LIC/IDFACE/PRO",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 18,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o Leitor  QR Code?",
+      "resposta_esperada": "R$ 1540,00",
+      "gabarito_bruto": {
+        "preco": "1540.00"
+      },
+      "produto": "Leitor  QR Code",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 19,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o Print iD?",
+      "resposta_esperada": "R$ 7814,00",
+      "gabarito_bruto": {
+        "preco": "7814.00"
+      },
+      "produto": "Print iD",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 20,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o Print iD Touch?",
+      "resposta_esperada": "R$ 9416,00",
+      "gabarito_bruto": {
+        "preco": "9416.00"
+      },
+      "produto": "Print iD Touch",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 21,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm IDFACEPRO/FP/M em estoque?",
+      "resposta_esperada": "Sim, 48 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 48,
+        "por_cd": {
+          "CD-Matriz": 28,
+          "CD-SP": 19,
+          "CD-RJ": 1
+        }
+      },
+      "produto": "IDFACEPRO/FP/M",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 22,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm IDFit em estoque?",
+      "resposta_esperada": "Sim, 45 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 45,
+        "por_cd": {
+          "CD-Matriz": 29,
+          "CD-SP": 1,
+          "CD-RJ": 15
+        }
+      },
+      "produto": "IDFit",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 23,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm IDMAX/FP/A em estoque?",
+      "resposta_esperada": "Sim, 88 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 88,
+        "por_cd": {
+          "CD-Matriz": 23,
+          "CD-SP": 38,
+          "CD-RJ": 27
+        }
+      },
+      "produto": "IDMAX/FP/A",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 24,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm IDMAX/FP/M em estoque?",
+      "resposta_esperada": "Sim, 3 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 3,
+        "por_cd": {
+          "CD-RJ": 2,
+          "CD-SP": 1,
+          "CD-Matriz": 0
+        }
+      },
+      "produto": "IDMAX/FP/M",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 25,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm IDPower em estoque?",
+      "resposta_esperada": "Sim, 82 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 82,
+        "por_cd": {
+          "CD-Matriz": 24,
+          "CD-SP": 36,
+          "CD-RJ": 22
+        }
+      },
+      "produto": "IDPower",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 26,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm LIC/IDFACE/100K em estoque?",
+      "resposta_esperada": "Sim, 65 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 65,
+        "por_cd": {
+          "CD-Matriz": 7,
+          "CD-SP": 20,
+          "CD-RJ": 38
+        }
+      },
+      "produto": "LIC/IDFACE/100K",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 27,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm LIC/IDFACE/15K em estoque?",
+      "resposta_esperada": "Sim, 75 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 75,
+        "por_cd": {
+          "CD-Matriz": 8,
+          "CD-SP": 35,
+          "CD-RJ": 32
+        }
+      },
+      "produto": "LIC/IDFACE/15K",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 28,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm LIC/IDFACE/30K em estoque?",
+      "resposta_esperada": "Sim, 68 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 68,
+        "por_cd": {
+          "CD-Matriz": 23,
+          "CD-SP": 36,
+          "CD-RJ": 9
+        }
+      },
+      "produto": "LIC/IDFACE/30K",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 29,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm LIC/IDFACE/50K em estoque?",
+      "resposta_esperada": "Sim, 90 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 90,
+        "por_cd": {
+          "CD-Matriz": 20,
+          "CD-SP": 33,
+          "CD-RJ": 37
+        }
+      },
+      "produto": "LIC/IDFACE/50K",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 30,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm LIC/IDFACE/PRO em estoque?",
+      "resposta_esperada": "Sim, 64 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 64,
+        "por_cd": {
+          "CD-Matriz": 18,
+          "CD-SP": 18,
+          "CD-RJ": 28
+        }
+      },
+      "produto": "LIC/IDFACE/PRO",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 31,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm Leitor  QR Code em estoque?",
+      "resposta_esperada": "Sim, 44 unidades disponíveis somando os centros de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 44,
+        "por_cd": {
+          "CD-Matriz": 20,
+          "CD-SP": 23,
+          "CD-RJ": 1
+        }
+      },
+      "produto": "Leitor  QR Code",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 32,
+      "tipo": "estoque_total",
+      "pergunta": "Vocês têm Print iD em estoque?",
+      "resposta_esperada": "Não há unidades disponíveis em nenhum centro de distribuição.",
+      "gabarito_bruto": {
+        "estoque_total": 0,
+        "por_cd": {
+          "CD-Matriz": 0,
+          "CD-SP": 0,
+          "CD-RJ": 0
+        }
+      },
+      "produto": "Print iD",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 33,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de Print iD Touch tem no CD-Matriz?",
+      "resposta_esperada": "16 unidades no CD-Matriz.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-Matriz",
+        "quantidade": 16
+      },
+      "produto": "Print iD Touch",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 34,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de REP iDClass tem no CD-RJ?",
+      "resposta_esperada": "0 unidades no CD-RJ.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-RJ",
+        "quantidade": 0
+      },
+      "produto": "REP iDClass",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 35,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de REP iDClass Facial tem no CD-SP?",
+      "resposta_esperada": "9 unidades no CD-SP.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-SP",
+        "quantidade": 9
+      },
+      "produto": "REP iDClass Facial",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 36,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de RHiD tem no CD-Matriz?",
+      "resposta_esperada": "0 unidades no CD-Matriz.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-Matriz",
+        "quantidade": 0
+      },
+      "produto": "RHiD",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 37,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de SAT iD tem no CD-RJ?",
+      "resposta_esperada": "27 unidades no CD-RJ.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-RJ",
+        "quantidade": 27
+      },
+      "produto": "SAT iD",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 38,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de Tags tem no CD-SP?",
+      "resposta_esperada": "3 unidades no CD-SP.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-SP",
+        "quantidade": 3
+      },
+      "produto": "Tags",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 39,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de Torniquetes tem no CD-Matriz?",
+      "resposta_esperada": "33 unidades no CD-Matriz.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-Matriz",
+        "quantidade": 33
+      },
+      "produto": "Torniquetes",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 40,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de iDAccess tem no CD-RJ?",
+      "resposta_esperada": "12 unidades no CD-RJ.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-RJ",
+        "quantidade": 12
+      },
+      "produto": "iDAccess",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 41,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de iDAccess Nano tem no CD-SP?",
+      "resposta_esperada": "29 unidades no CD-SP.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-SP",
+        "quantidade": 29
+      },
+      "produto": "iDAccess Nano",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 42,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de iDAccess Nano Prox tem no CD-Matriz?",
+      "resposta_esperada": "1 unidades no CD-Matriz.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-Matriz",
+        "quantidade": 1
+      },
+      "produto": "iDAccess Nano Prox",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 43,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de iDAccess Pro tem no CD-RJ?",
+      "resposta_esperada": "9 unidades no CD-RJ.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-RJ",
+        "quantidade": 9
+      },
+      "produto": "iDAccess Pro",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 44,
+      "tipo": "estoque_cd",
+      "pergunta": "Quantas unidades de iDAccess Pro Prox tem no CD-SP?",
+      "resposta_esperada": "0 unidades no CD-SP.",
+      "gabarito_bruto": {
+        "centro_distribuicao": "CD-SP",
+        "quantidade": 0
+      },
+      "produto": "iDAccess Pro Prox",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 45,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDBell?",
+      "resposta_esperada": "15 dias.",
+      "gabarito_bruto": {
+        "dias": 15
+      },
+      "produto": "iDBell",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 46,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDBio?",
+      "resposta_esperada": "15 dias.",
+      "gabarito_bruto": {
+        "dias": 15
+      },
+      "produto": "iDBio",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 47,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDBlock Next?",
+      "resposta_esperada": "30 dias.",
+      "gabarito_bruto": {
+        "dias": 30
+      },
+      "produto": "iDBlock Next",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 48,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDBlockBio?",
+      "resposta_esperada": "30 dias.",
+      "gabarito_bruto": {
+        "dias": 30
+      },
+      "produto": "iDBlockBio",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 49,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDBox?",
+      "resposta_esperada": "15 dias.",
+      "gabarito_bruto": {
+        "dias": 15
+      },
+      "produto": "iDBox",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 50,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDClass Portaria 373?",
+      "resposta_esperada": "15 dias.",
+      "gabarito_bruto": {
+        "dias": 15
+      },
+      "produto": "iDClass Portaria 373",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 51,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDConnect?",
+      "resposta_esperada": "15 dias.",
+      "gabarito_bruto": {
+        "dias": 15
+      },
+      "produto": "iDConnect",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 52,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDFace Max?",
+      "resposta_esperada": "15 dias.",
+      "gabarito_bruto": {
+        "dias": 15
+      },
+      "produto": "iDFace Max",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 53,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDFlexIp65?",
+      "resposta_esperada": "15 dias.",
+      "gabarito_bruto": {
+        "dias": 15
+      },
+      "produto": "iDFlexIp65",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 54,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDFlexLite?",
+      "resposta_esperada": "15 dias.",
+      "gabarito_bruto": {
+        "dias": 15
+      },
+      "produto": "iDFlexLite",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 55,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDProx?",
+      "resposta_esperada": "15 dias.",
+      "gabarito_bruto": {
+        "dias": 15
+      },
+      "produto": "iDProx",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 56,
+      "tipo": "prazo",
+      "pergunta": "Qual o prazo de reposição do iDSecure Cloud?",
+      "resposta_esperada": "5 dias.",
+      "gabarito_bruto": {
+        "dias": 5
+      },
+      "produto": "iDSecure Cloud",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 57,
+      "tipo": "comparacao_preco",
+      "pergunta": "O IDFACEPRO/FP/A é mais caro que o iDAccess Nano Prox?",
+      "resposta_esperada": "Sim: IDFACEPRO/FP/A custa R$ 2061,72 e iDAccess Nano Prox custa R$ 2001,90.",
+      "gabarito_bruto": {
+        "preco_a": "2061.72",
+        "preco_b": "2001.90",
+        "mais_caro": "IDFACEPRO/FP/A"
+      },
+      "produto": "IDFACEPRO/FP/A x iDAccess Nano Prox",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 58,
+      "tipo": "comparacao_preco",
+      "pergunta": "O IDFACEPRO/FP/H é mais caro que o iDAccess Pro?",
+      "resposta_esperada": "Sim: IDFACEPRO/FP/H custa R$ 2754,00 e iDAccess Pro custa R$ 906,00.",
+      "gabarito_bruto": {
+        "preco_a": "2754.00",
+        "preco_b": "906.00",
+        "mais_caro": "IDFACEPRO/FP/H"
+      },
+      "produto": "IDFACEPRO/FP/H x iDAccess Pro",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 59,
+      "tipo": "comparacao_preco",
+      "pergunta": "O IDFACEPRO/FP/M é mais caro que o iDAccess Pro Prox?",
+      "resposta_esperada": "Não: IDFACEPRO/FP/M custa R$ 2429,61 e iDAccess Pro Prox custa R$ 2966,00.",
+      "gabarito_bruto": {
+        "preco_a": "2429.61",
+        "preco_b": "2966.00",
+        "mais_caro": "iDAccess Pro Prox"
+      },
+      "produto": "IDFACEPRO/FP/M x iDAccess Pro Prox",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 60,
+      "tipo": "comparacao_preco",
+      "pergunta": "O IDFit é mais caro que o iDBell?",
+      "resposta_esperada": "Não: IDFit custa R$ 1369,90 e iDBell custa R$ 1562,00.",
+      "gabarito_bruto": {
+        "preco_a": "1369.90",
+        "preco_b": "1562.00",
+        "mais_caro": "iDBell"
+      },
+      "produto": "IDFit x iDBell",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 61,
+      "tipo": "comparacao_preco",
+      "pergunta": "O IDMAX/FP/A é mais caro que o iDBio?",
+      "resposta_esperada": "Não: IDMAX/FP/A custa R$ 1356,30 e iDBio custa R$ 1471,90.",
+      "gabarito_bruto": {
+        "preco_a": "1356.30",
+        "preco_b": "1471.90",
+        "mais_caro": "iDBio"
+      },
+      "produto": "IDMAX/FP/A x iDBio",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 62,
+      "tipo": "comparacao_preco",
+      "pergunta": "O IDMAX/FP/M é mais caro que o iDBlock Next?",
+      "resposta_esperada": "Não: IDMAX/FP/M custa R$ 1716,05 e iDBlock Next custa R$ 16950,00.",
+      "gabarito_bruto": {
+        "preco_a": "1716.05",
+        "preco_b": "16950.00",
+        "mais_caro": "iDBlock Next"
+      },
+      "produto": "IDMAX/FP/M x iDBlock Next",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 63,
+      "tipo": "comparacao_preco",
+      "pergunta": "O IDPower é mais caro que o iDBlockBio?",
+      "resposta_esperada": "Não: IDPower custa R$ 1064,00 e iDBlockBio custa R$ 11344,00.",
+      "gabarito_bruto": {
+        "preco_a": "1064.00",
+        "preco_b": "11344.00",
+        "mais_caro": "iDBlockBio"
+      },
+      "produto": "IDPower x iDBlockBio",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 64,
+      "tipo": "comparacao_preco",
+      "pergunta": "O LIC/IDFACE/100K é mais caro que o iDBox?",
+      "resposta_esperada": "Sim: LIC/IDFACE/100K custa R$ 2499,00 e iDBox custa R$ 1551,90.",
+      "gabarito_bruto": {
+        "preco_a": "2499.00",
+        "preco_b": "1551.90",
+        "mais_caro": "LIC/IDFACE/100K"
+      },
+      "produto": "LIC/IDFACE/100K x iDBox",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 65,
+      "tipo": "comparacao_preco",
+      "pergunta": "O LIC/IDFACE/15K é mais caro que o iDClass Portaria 373?",
+      "resposta_esperada": "Não: LIC/IDFACE/15K custa R$ 529,00 e iDClass Portaria 373 custa R$ 1557,90.",
+      "gabarito_bruto": {
+        "preco_a": "529.00",
+        "preco_b": "1557.90",
+        "mais_caro": "iDClass Portaria 373"
+      },
+      "produto": "LIC/IDFACE/15K x iDClass Portaria 373",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 66,
+      "tipo": "comparacao_preco",
+      "pergunta": "O LIC/IDFACE/30K é mais caro que o iDConnect?",
+      "resposta_esperada": "Não: LIC/IDFACE/30K custa R$ 899,00 e iDConnect custa R$ 3029,90.",
+      "gabarito_bruto": {
+        "preco_a": "899.00",
+        "preco_b": "3029.90",
+        "mais_caro": "iDConnect"
+      },
+      "produto": "LIC/IDFACE/30K x iDConnect",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 67,
+      "tipo": "comparacao_preco",
+      "pergunta": "O LIC/IDFACE/50K é mais caro que o iDFace Max?",
+      "resposta_esperada": "Não: LIC/IDFACE/50K custa R$ 1199,00 e iDFace Max custa R$ 2708,00.",
+      "gabarito_bruto": {
+        "preco_a": "1199.00",
+        "preco_b": "2708.00",
+        "mais_caro": "iDFace Max"
+      },
+      "produto": "LIC/IDFACE/50K x iDFace Max",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 68,
+      "tipo": "comparacao_preco",
+      "pergunta": "O LIC/IDFACE/PRO é mais caro que o iDFlexIp65?",
+      "resposta_esperada": "Não: LIC/IDFACE/PRO custa R$ 499,00 e iDFlexIp65 custa R$ 1086,00.",
+      "gabarito_bruto": {
+        "preco_a": "499.00",
+        "preco_b": "1086.00",
+        "mais_caro": "iDFlexIp65"
+      },
+      "produto": "LIC/IDFACE/PRO x iDFlexIp65",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 69,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Acessório?",
+      "resposta_esperada": "1 produto(s): Tags.",
+      "gabarito_bruto": {
+        "categoria": "Acessório",
+        "produtos": [
+          "Tags"
+        ]
+      },
+      "produto": "Acessório",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 70,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Catraca e Torniquete?",
+      "resposta_esperada": "5 produto(s): IDBlock, IDBlock Facial, Torniquetes, iDBlock Next, iDBlockBio.",
+      "gabarito_bruto": {
+        "categoria": "Catraca e Torniquete",
+        "produtos": [
+          "IDBlock",
+          "IDBlock Facial",
+          "Torniquetes",
+          "iDBlock Next",
+          "iDBlockBio"
+        ]
+      },
+      "produto": "Catraca e Torniquete",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 71,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Controle de Acesso?",
+      "resposta_esperada": "27 produto(s): IDFACE/FP/A, IDFACE/FP/H, IDFACE/FP/M, IDFACEPRO/FP/A, IDFACEPRO/FP/H, IDFACEPRO/FP/M, IDFit, IDMAX/FP/A, IDMAX/FP/M, LIC/IDFACE/100K, LIC/IDFACE/15K, LIC/IDFACE/30K, LIC/IDFACE/50K, LIC/IDFACE/PRO, iDAccess, iDAccess Nano, iDAccess Nano Prox, iDAccess Pro, iDAccess Pro Prox, iDBio, iDBox, iDClass Portaria 373, iDConnect, iDFace Max, iDFlexIp65, iDFlexLite, iDTouch.",
+      "gabarito_bruto": {
+        "categoria": "Controle de Acesso",
+        "produtos": [
+          "IDFACE/FP/A",
+          "IDFACE/FP/H",
+          "IDFACE/FP/M",
+          "IDFACEPRO/FP/A",
+          "IDFACEPRO/FP/H",
+          "IDFACEPRO/FP/M",
+          "IDFit",
+          "IDMAX/FP/A",
+          "IDMAX/FP/M",
+          "LIC/IDFACE/100K",
+          "LIC/IDFACE/15K",
+          "LIC/IDFACE/30K",
+          "LIC/IDFACE/50K",
+          "LIC/IDFACE/PRO",
+          "iDAccess",
+          "iDAccess Nano",
+          "iDAccess Nano Prox",
+          "iDAccess Pro",
+          "iDAccess Pro Prox",
+          "iDBio",
+          "iDBox",
+          "iDClass Portaria 373",
+          "iDConnect",
+          "iDFace Max",
+          "iDFlexIp65",
+          "iDFlexLite",
+          "iDTouch"
+        ]
+      },
+      "produto": "Controle de Acesso",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 72,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Fechadura Eletrônica?",
+      "resposta_esperada": "1 produto(s): iDdLock.",
+      "gabarito_bruto": {
+        "categoria": "Fechadura Eletrônica",
+        "produtos": [
+          "iDdLock"
+        ]
+      },
+      "produto": "Fechadura Eletrônica",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 73,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Fonte e Energia?",
+      "resposta_esperada": "1 produto(s): IDPower.",
+      "gabarito_bruto": {
+        "categoria": "Fonte e Energia",
+        "produtos": [
+          "IDPower"
+        ]
+      },
+      "produto": "Fonte e Energia",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 74,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Impressora de Crachá?",
+      "resposta_esperada": "2 produto(s): Print iD, Print iD Touch.",
+      "gabarito_bruto": {
+        "categoria": "Impressora de Crachá",
+        "produtos": [
+          "Print iD",
+          "Print iD Touch"
+        ]
+      },
+      "produto": "Impressora de Crachá",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 75,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Leitor?",
+      "resposta_esperada": "4 produto(s): Leitor  QR Code, iDProx, iDUHF, iDUHF Lite.",
+      "gabarito_bruto": {
+        "categoria": "Leitor",
+        "produtos": [
+          "Leitor  QR Code",
+          "iDProx",
+          "iDUHF",
+          "iDUHF Lite"
+        ]
+      },
+      "produto": "Leitor",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 76,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Relógio de Ponto?",
+      "resposta_esperada": "2 produto(s): REP iDClass, REP iDClass Facial.",
+      "gabarito_bruto": {
+        "categoria": "Relógio de Ponto",
+        "produtos": [
+          "REP iDClass",
+          "REP iDClass Facial"
+        ]
+      },
+      "produto": "Relógio de Ponto",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 77,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Software e Licença?",
+      "resposta_esperada": "3 produto(s): RHiD, SAT iD, iDSecure Cloud.",
+      "gabarito_bruto": {
+        "categoria": "Software e Licença",
+        "produtos": [
+          "RHiD",
+          "SAT iD",
+          "iDSecure Cloud"
+        ]
+      },
+      "produto": "Software e Licença",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 78,
+      "tipo": "categoria",
+      "pergunta": "Quais produtos vocês têm na categoria Vídeo Porteiro?",
+      "resposta_esperada": "1 produto(s): iDBell.",
+      "gabarito_bruto": {
+        "categoria": "Vídeo Porteiro",
+        "produtos": [
+          "iDBell"
+        ]
+      },
+      "produto": "Vídeo Porteiro",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 79,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o REP iDClass?",
+      "resposta_esperada": "R$ 3154,00",
+      "gabarito_bruto": {
+        "preco": "3154.00"
+      },
+      "produto": "REP iDClass",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    },
+    {
+      "id": 80,
+      "tipo": "preco",
+      "pergunta": "Quanto custa o REP iDClass Facial?",
+      "resposta_esperada": "R$ 4524,00",
+      "gabarito_bruto": {
+        "preco": "4524.00"
+      },
+      "produto": "REP iDClass Facial",
+      "revisao": {
+        "status": "aprovado",
+        "em": null
+      }
+    }
+  ]
+}

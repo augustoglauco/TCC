@@ -1,0 +1,145 @@
+{
+  "descricao": "Fotos reservadas como consulta do conjunto de RAG imagem: ficam FORA do índice CLIP, uma por pasta com 2+ fotos.",
+  "observacao": "Sem holdout, consultar com foto indexada dá score 1,000 e acerto garantido — identidade, não reconhecimento. Escolha determinística (última em ordem alfabética da pasta).",
+  "total": 23,
+  "consultas": [
+    {
+      "arquivo": "IDBlock/idblock-qrcode-pcd-perspectiva.png",
+      "pasta": "IDBlock",
+      "produto_esperado": "IDBlock",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "IDBlock Facial/idblock1.png",
+      "pasta": "IDBlock Facial",
+      "produto_esperado": "IDBlock Facial",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "IDFit/iDFitBranco-Perspectiva.jpg",
+      "pasta": "IDFit",
+      "produto_esperado": "IDFit",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "IDPower/iDPower-Perspectiva.jpg",
+      "pasta": "IDPower",
+      "produto_esperado": "IDPower",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "Print iD/printid-perspectiva-lateral.jpg",
+      "pasta": "Print iD",
+      "produto_esperado": "Print iD",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "Print iD Touch/printid-touch-perspectiva-lateral.jpg",
+      "pasta": "Print iD Touch",
+      "produto_esperado": "Print iD Touch",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "REP iDClass/REP-iDClass-Perspectiva.jpg",
+      "pasta": "REP iDClass",
+      "produto_esperado": "REP iDClass",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "SAT iD/satid-superior.jpg",
+      "pasta": "SAT iD",
+      "produto_esperado": "SAT iD",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "Tags/tag2.png",
+      "pasta": "Tags",
+      "produto_esperado": "Tags",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDAccess/iDAccess-Perspectiva.jpg",
+      "pasta": "iDAccess",
+      "produto_esperado": "iDAccess",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDAccess Nano/iDAccess-Nano-Perspectiva.jpg",
+      "pasta": "iDAccess Nano",
+      "produto_esperado": "iDAccess Nano",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDAccess Nano Prox/iDAccess-Nano-Prox-Perspectiva.png",
+      "pasta": "iDAccess Nano Prox",
+      "produto_esperado": "iDAccess Nano Prox",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDAccess Pro/iDAccess-Pro-Perspectiva.jpg",
+      "pasta": "iDAccess Pro",
+      "produto_esperado": "iDAccess Pro",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDAccess Pro Prox/iDAccess-Pro-Prox-Perspectiva.png",
+      "pasta": "iDAccess Pro Prox",
+      "produto_esperado": "iDAccess Pro Prox",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDBio/idbio-perspectiva.jpg",
+      "pasta": "iDBio",
+      "produto_esperado": "iDBio",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDBox/iDBox-Perspectiva.jpg",
+      "pasta": "iDBox",
+      "produto_esperado": "iDBox",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDClass Portaria 373/iDClass-Perspectiva.jpg",
+      "pasta": "iDClass Portaria 373",
+      "produto_esperado": "iDClass Portaria 373",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDConnect/Idconnect2.png",
+      "pasta": "iDConnect",
+      "produto_esperado": "iDConnect",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDFace/iDFace-Perspectiva.jpg",
+      "pasta": "iDFace",
+      "produto_esperado": "IDFACE/FP/A",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDFace Max/iDFace-Max.jpg",
+      "pasta": "iDFace Max",
+      "produto_esperado": "iDFace Max",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDFlexLite/iDFlex-Perspectiva.jpg",
+      "pasta": "iDFlexLite",
+      "produto_esperado": "iDFlexLite",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDProx/idprox-usb.png",
+      "pasta": "iDProx",
+      "produto_esperado": "iDProx",
+      "e_do_portfolio": true
+    },
+    {
+      "arquivo": "iDTouch/idtouch-perspectiva.jpg",
+      "pasta": "iDTouch",
+      "produto_esperado": "iDTouch",
+      "e_do_portfolio": true
+    }
+  ]
+}

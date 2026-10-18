@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -47,8 +48,71 @@ AUDITORIA = BASE_DIR.parent / "eval" / "rag_ingestion" / "auditoria_corpus.json"
 PASTA_PARA_PRODUTO: dict[str, str] = {"iDFace": "IDFACE/FP/A"}
 
 
+HOLDOUT_SAIDA = BASE_DIR.parent / "eval" / "model_benchmark" / "imagens" / "holdout.json"
+
+
 def imagens_validas(auditoria: dict) -> list[dict]:
     return [i for i in auditoria.get("itens_imagens", []) if i.get("classificacao") == "valida"]
+
+
+def escolher_holdout(imagens: list[dict]) -> dict[str, str]:
+    """Uma foto de consulta por pasta com 2+ fotos.
+
+    Consultar o CLIP com uma foto que está indexada devolve score 1,000 e
+    acerto garantido — mede identidade, não reconhecimento (medido em
+    2026-10-17: 5 de 5). A foto escolhida fica **fora** do índice e vira a
+    consulta do conjunto de imagem.
+
+    A escolha é a última em ordem alfabética, não aleatória: rodar de novo dá
+    o mesmo conjunto, e um resultado antigo continua comparável.
+
+    Pasta com uma só foto não entra: ou a foto está no índice (e não há
+    consulta) ou é a consulta (e o produto não está no índice).
+    """
+    por_pasta: dict[str, list[str]] = {}
+    for item in imagens:
+        pasta, _, _ = item["arquivo"].partition("/")
+        por_pasta.setdefault(pasta, []).append(item["arquivo"])
+    return {
+        pasta: sorted(arquivos)[-1] for pasta, arquivos in por_pasta.items() if len(arquivos) >= 2
+    }
+
+
+async def limpar_duplicatas_das_consultas(session, store, holdout, corpus_dir) -> int:
+    """Remove do índice qualquer cópia byte-idêntica de uma foto de consulta.
+
+    Achado de 2026-10-17: o holdout tirou do índice as fotos do `iDFace`, mas
+    `IDFACE/FP/M` guardava **as mesmas duas imagens** de uma ingestão de teste
+    antiga — e a consulta voltou a casar com score 1,000, agora apontando para
+    o produto errado. Tirar a foto de uma pasta não basta se a mesma imagem
+    está indexada em outro lugar: o vazamento de identidade volta por fora.
+
+    A comparação é por SHA-256 do arquivo, não por nome: o upload renomeia
+    tudo para UUID.
+    """
+    alvos = {
+        hashlib.sha256((corpus_dir / arquivo).read_bytes()).hexdigest()
+        for arquivo in holdout.values()
+        if (corpus_dir / arquivo).exists()
+    }
+    if not alvos:
+        return 0
+    base = Path(get_settings().product_images_dir)
+    removidas = 0
+    linhas = (await session.execute(select(ProdutoImagem))).scalars().all()
+    for linha in linhas:
+        caminho = base / Path(linha.imagem_url).name
+        if not caminho.exists():
+            continue
+        if hashlib.sha256(caminho.read_bytes()).hexdigest() not in alvos:
+            continue
+        if linha.clip_image_id:
+            await store.delete_image(linha.clip_image_id)
+        await session.delete(linha)
+        removidas += 1
+    if removidas:
+        await session.commit()
+    return removidas
 
 
 async def executar(args) -> int:
@@ -76,8 +140,61 @@ async def executar(args) -> int:
         }
         ja_indexadas = set((await session.execute(select(ProdutoImagem.imagem_url))).scalars())
 
+        holdout = escolher_holdout(imagens) if args.holdout else {}
+        if args.holdout:
+            print(f"-- holdout: {len(holdout)} pasta(s) com 2+ fotos cedem 1 consulta cada --")
+            alvos = {
+                produtos[PASTA_PARA_PRODUTO.get(pasta, pasta)]
+                for pasta in holdout
+                if PASTA_PARA_PRODUTO.get(pasta, pasta) in produtos
+            }
+            removidos = 0
+            for pid in sorted(alvos):
+                if args.dry_run:
+                    continue
+                await store.delete_images_by_product_id(pid)
+                for linha in (
+                    (
+                        await session.execute(
+                            select(ProdutoImagem).where(ProdutoImagem.produto_id == pid)
+                        )
+                    )
+                    .scalars()
+                    .all()
+                ):
+                    await session.delete(linha)
+                    removidos += 1
+            if not args.dry_run:
+                await session.commit()
+                ja_indexadas = set()
+            print(
+                f"   {removidos} linha(s) de produto_imagens e os pontos CLIP "
+                f"de {len(alvos)} produto(s) removidos para reindexar"
+            )
+
+        if args.holdout and not args.dry_run:
+            removidas = await limpar_duplicatas_das_consultas(
+                session, store, holdout, raiz / corpus
+            )
+            if removidas:
+                print(f"   {removidas} cópia(s) de foto de consulta removida(s) do índice")
+
+        consultas: list[dict] = []
         for item in imagens:
             arquivo = item["arquivo"]
+            pasta_atual, _, _ = arquivo.partition("/")
+            if holdout.get(pasta_atual) == arquivo:
+                # Fica fora do índice de propósito: é a consulta do conjunto.
+                consultas.append(
+                    {
+                        "arquivo": arquivo,
+                        "pasta": pasta_atual,
+                        "produto_esperado": PASTA_PARA_PRODUTO.get(pasta_atual, pasta_atual),
+                        "e_do_portfolio": True,
+                    }
+                )
+                print(f"H {arquivo}: reservada como consulta ({pasta_atual})")
+                continue
             pasta = arquivo.split("/")[0]
             nome_produto = PASTA_PARA_PRODUTO.get(pasta, pasta)
             produto_id = produtos.get(nome_produto)
@@ -126,6 +243,30 @@ async def executar(args) -> int:
         if not args.dry_run:
             await session.commit()
 
+    if args.holdout and not args.dry_run:
+        HOLDOUT_SAIDA.parent.mkdir(parents=True, exist_ok=True)
+        HOLDOUT_SAIDA.write_text(
+            json.dumps(
+                {
+                    "descricao": (
+                        "Fotos reservadas como consulta do conjunto de RAG imagem: "
+                        "ficam FORA do índice CLIP, uma por pasta com 2+ fotos."
+                    ),
+                    "observacao": (
+                        "Sem holdout, consultar com foto indexada dá score 1,000 e "
+                        "acerto garantido — identidade, não reconhecimento. Escolha "
+                        "determinística (última em ordem alfabética da pasta)."
+                    ),
+                    "total": len(consultas),
+                    "consultas": consultas,
+                },
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        print(f"\nmanifesto de consultas: {HOLDOUT_SAIDA} ({len(consultas)} itens)")
+
     await engine.dispose()
     rotulo = "(dry-run) " if args.dry_run else ""
     print(
@@ -138,6 +279,11 @@ async def executar(args) -> int:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--holdout",
+        action="store_true",
+        help="reindexa deixando 1 foto por pasta fora do índice, como consulta do conjunto",
+    )
     args = parser.parse_args(argv[1:])
     return asyncio.run(executar(args))
 

@@ -138,6 +138,58 @@ def descricao(pasta: str, categoria: str) -> str:
     )
 
 
+async def completar_lacunas(session, args) -> tuple[int, int]:
+    """Fecha dois buracos do catálogo herdado, com os mesmos valores
+    determinísticos dos produtos novos.
+
+    Sem isso o conjunto de perguntas do banco não pode sortear qualquer
+    produto: `IDFACE/FP/H` e `IDFACEPRO/FP/H` têm preço `0.00` (gabarito
+    "R$ 0,00" é lixo) e 11 SKUs antigos não têm nenhuma linha de estoque, o
+    que deixa "está disponível?" sem resposta.
+    """
+    precos, estoques = 0, 0
+    sem_preco = (await session.execute(select(Produto).where(Produto.preco == 0))).scalars().all()
+    for produto in sem_preco:
+        _, preco = categoria_e_preco(produto.nome)
+        print(f"~ {produto.nome}: preço 0,00 -> R$ {preco}")
+        if not args.dry_run:
+            produto.preco = preco
+        precos += 1
+
+    todos = (await session.execute(select(Produto))).scalars().all()
+    prazos = 0
+    for produto in todos:
+        if produto.dias_alerta_estoque is not None:
+            continue
+        categoria, _ = categoria_e_preco(produto.nome)
+        prazo = PRAZO_POR_CATEGORIA.get(produto.categoria, PRAZO_PADRAO)
+        print(f"~ {produto.nome}: sem prazo -> {prazo}d (categoria {produto.categoria})")
+        if not args.dry_run:
+            produto.dias_alerta_estoque = prazo
+        prazos += 1
+    if prazos:
+        print(f"  {prazos} prazo(s) preenchido(s)")
+
+    com_estoque = set((await session.execute(select(ProdutoEstoque.produto_id))).scalars())
+    for produto in todos:
+        if produto.id in com_estoque:
+            continue
+        quantidades = estoque_por_cd(produto.nome)
+        print(
+            f"~ {produto.nome}: sem estoque -> "
+            + ", ".join(f"{cd}={q}" for cd, q in quantidades.items())
+        )
+        if not args.dry_run:
+            for cd, quantidade in quantidades.items():
+                session.add(
+                    ProdutoEstoque(
+                        produto_id=produto.id, centro_distribuicao=cd, quantidade=quantidade
+                    )
+                )
+        estoques += 1
+    return precos, estoques
+
+
 async def executar(args) -> int:
     auditoria = json.loads(AUDITORIA.read_text(encoding="utf-8"))
     pastas = produtos_do_corpus(auditoria)
@@ -180,6 +232,10 @@ async def executar(args) -> int:
                     )
                 )
                 estoques += 1
+        precos, estoques = (0, 0)
+        if args.completar_lacunas:
+            print("\n-- completando lacunas do catálogo herdado --")
+            precos, estoques = await completar_lacunas(session, args)
         if not args.dry_run:
             await session.commit()
 
@@ -188,6 +244,10 @@ async def executar(args) -> int:
     print(f"\n{rotulo}{criados} produto(s) a criar, {existentes} já existente(s).")
     if not args.dry_run:
         print(f"{estoques} linha(s) de estoque gravada(s) em {len(CENTROS)} CDs.")
+    if args.completar_lacunas:
+        print(
+            f"lacunas: {precos} preço(s) zerado(s) corrigido(s), {estoques} produto(s) sem estoque."
+        )
     for pasta, motivo in NAO_PRODUTO.items():
         print(f"fora: {pasta} — {motivo}")
     for pasta, sku in JA_NO_CATALOGO.items():
@@ -198,6 +258,11 @@ async def executar(args) -> int:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--completar-lacunas",
+        action="store_true",
+        help="corrige preço 0,00 e cria estoque para os SKUs antigos sem linha",
+    )
     args = parser.parse_args(argv[1:])
     return asyncio.run(executar(args))
 

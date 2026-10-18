@@ -1916,11 +1916,23 @@ conversa e classificação do usuário").
           respostas certas para "qual o preço do iDFace?", a mesma ambiguidade
           que invalidou perguntas do RAG. Eram "28 produtos" no plano, "29" na
           revisão de 2026-10-17; o número real derivado do corpus é 34 novos.
-  - [ ] Roteador: **300 mensagens**, sendo **≥200 desenhadas para chegar ao
-        LLM** (hoje só 22,5% chegam — 9 de 40, medido; num conjunto
-        "representativo" o n efetivo de comparação seria um terço do tamanho
-        nominal). Reportar duas taxas separadas: acurácia do sistema (300) e
-        do modelo no subconjunto que lhe chega
+  - [x] **Roteador — feito em 2026-10-17.** `eval/router_intents/gerar_dataset.py`
+        produziu **299 mensagens com 233 chegando ao LLM (78%)**, contra os
+        22,5% de antes (9 de 40). O requisito de ≥200 é cumprido com folga.
+        São 59–60 por domínio nos cinco rótulos e 79 marcadas `ambiguo`.
+        Quatro prompts: um que **proíbe as palavras da tabela de keywords** do
+        domínio pedido (força "zero domínios casados"), um que pede
+        ambiguidade real casando dois grupos de keywords (força "2+ domínios"),
+        um livre (para a acurácia do sistema refletir o mix real) e um de fora
+        de escopo. `chega_ao_llm` e `motivo_caminho` **não vêm do modelo**:
+        são calculados pelas funções reais do classificador
+        (`_is_cortesia`, `_match_domain_by_keywords`), e a verificação foi
+        validada contra as 40 antigas devolvendo exatamente 9 de 40 — há teste
+        de regressão para isso. Uma mensagem a menos que 300 porque a
+        deduplicação descartou uma repetida. Revisão prevista: por amostra
+        (~140 itens — todas as ambíguas + 40 aleatórias das demais).
+        Reportar duas taxas: acurácia do sistema (299) e do modelo no
+        subconjunto que lhe chega (233).
   - [ ] RAG documentos: **180 perguntas**, incluindo **20 sem resposta no
         corpus** para medir alucinação. Cada item carrega o trecho de origem
         extraído com `pdfplumber`, para a revisão ser leitura lado a lado em
@@ -1985,10 +1997,23 @@ conversa e classificação do usuário").
       `facil`** depois que o prompt passou a pedir honestidade no rótulo, o
       que confirma o item 3: o campo não serve para quebrar resultado por
       estrato, a menos que o revisor re-rotule à mão na tela.
-    - [ ] `run_eval.py` ainda **não sabe pontuar `sem_resposta`**: hoje ele
-          compara a fonte recuperada com `documento_origem` (vazio nesses
-          casos) e manda a resposta ao juiz como se houvesse gabarito
-          factual. Sem isso, as 20 perguntas de alucinação não medem nada
+    - [x] **`run_eval.py` aprendeu a pontuar `sem_resposta`** (2026-10-17).
+          Antes, os 20 casos passavam pelo caminho dos respondíveis:
+          `_fonte_e_correta` devolvia `False` por construção (o
+          `documento_origem` é vazio de propósito) e o juiz comparava a
+          resposta com um gabarito que não é um fato. Agora há um prompt
+          próprio (`_JUDGE_PROMPT_SEM_RESPOSTA`, binário: `recusou` e
+          `alucinou`, que podem ser os dois `true` quando a resposta mistura
+          ressalva com dado inventado), um segundo sinal determinístico por
+          marcadores de recusa (`_parece_recusa`, para a medida não virar
+          buraco se o juiz falhar por rate limit) e gravação em
+          `casos_sem_resposta`, separada dos respondíveis — compartilhar o
+          denominador estragaria as duas medidas e derrubaria a taxa de fonte
+          correta por construção. `app.api.avaliacao._rag` continua lendo
+          `casos` sem mudança.
+    - [ ] Expor a taxa de alucinação na página pública `/avaliacao`: o
+          `results.json` já grava `casos_sem_resposta` e `resumo`, mas o
+          endpoint e o gráfico ainda não mostram
     - [ ] Geradores dos outros quatro conjuntos (roteador 300, imagem 103,
           banco 80, injeção 100) — mesmo padrão, ainda não escritos
   - [ ] RAG imagem: **53** (23 produto + 30 não-produto) — número revisto pela
@@ -2006,8 +2031,21 @@ conversa e classificação do usuário").
         **Alternativa, se quiser n maior:** o dono fotografar 2–3 ângulos dos
         produtos que têm só um, ou aceitar perturbação da própria foto
         (recorte/recompressão), que não é identidade mas também não é foto
-        nova de verdade. Decisão pendente antes de gerar o conjunto. O plano
-        original dizia 120
+        nova de verdade. O plano original dizia 120.
+    - [x] **Holdout aplicado em 2026-10-17**
+          (`scripts/ingerir_imagens_corpus.py --holdout`). O índice ficou com
+          **54 fotos** (62 pontos no total) e **23 consultas** reservadas em
+          `eval/model_benchmark/imagens/holdout.json`, uma por pasta com 2+
+          fotos, escolhidas pela última em ordem alfabética (determinístico,
+          para a rodada ser comparável). Medido antes e depois: com a foto no
+          índice, 5 de 5 acertos com score **1,000**; com holdout, **17 de 23**
+          e score máximo 0,962 — virou medida de reconhecimento.
+          **Segundo achado no caminho:** tirar a foto da pasta não bastou,
+          porque `IDFACE/FP/M` guardava as **mesmas duas imagens** de uma
+          ingestão de teste antiga, e a consulta voltou a casar com score
+          1,000 apontando para o produto errado. O script passou a varrer
+          cópias byte-idênticas das consultas por SHA-256 (o upload renomeia
+          tudo para UUID, então comparar nome não serve) e removeu 1 cópia
         (90+30): as 90 fotos de produto não existem. As 30 não-produto foram
         entregues em 2026-10-17 por outro agente
         (`eval/model_benchmark/imagens/negativos/`, 15 categorias × 2, com
@@ -2017,8 +2055,18 @@ conversa e classificação do usuário").
         imagem, mas (a) não testam a discriminação que importa (equipamento de
         acesso de outra marca) e (b) diferem sistematicamente das positivas em
         resolução, peso e procedência, o que pode inflar a separação medida
-  - [ ] RAG banco: **80 perguntas** geradas a partir das linhas de
-        `produtos` — gabarito exato por construção, revisão zero
+  - [x] **RAG banco — feito em 2026-10-17.** `eval/rag_banco/gerar_dataset.py`
+        monta **80 perguntas** por template a partir das linhas de
+        `produtos`/`produto_estoque`, **sem LLM e sem revisão**: 22 de preço,
+        12 de estoque total (incluindo os 8 produtos zerados, que dão a
+        resposta negativa), 12 de estoque por CD, 12 de prazo, 12 de
+        comparação de preço entre dois produtos e 10 de categoria (limitado
+        pelas 10 categorias distintas do catálogo; o total é completado com
+        preço). Cada caso guarda `gabarito_bruto` com o valor cru, para o caso
+        ficar **detectavelmente** velho se o banco mudar, em vez de
+        silenciosamente errado. Exercita o caminho de produção de **Vendas**
+        (`app.router.sales_catalog`), não o conector de banco do RAG.
+        Determinístico: duas execuções dão o mesmo conjunto.
   - [ ] Injeção: **100 casos** (50 diretos + 50 indiretos)
   - [ ] Relatar comparação entre candidatos com **McNemar pareado** (todos
         respondem aos mesmos itens), e IC de Wilson só para descrever cada

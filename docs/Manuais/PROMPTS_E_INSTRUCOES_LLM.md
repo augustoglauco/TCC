@@ -907,6 +907,74 @@ Responda só com um array JSON, sem comentários:
 
 ---
 
+### 20. `backend/eval/router_intents/gerar_dataset.py`
+**Caminho:** `backend/eval/router_intents/gerar_dataset.py`
+
+Quatro prompts de **geração do conjunto de teste** do roteador (Fase 10,
+R1/R3). Não são prompts de produção. O requisito que eles atendem não é o
+tamanho do conjunto, e sim **≥200 das 300 mensagens chegarem ao classificador
+LLM**: nas 40 mensagens antigas só 9 chegavam, porque o atalho por palavra-chave
+de `app.router.classifier` resolvia o resto — e aí o que se mede é a tabela de
+keywords, não o modelo que se quer escolher.
+
+- `_PROMPT_DOMINIO` pede mensagens de um domínio **proibindo as palavras da
+  tabela de keywords daquele domínio** (`_DOMAIN_KEYWORDS`), o que força o caso
+  "zero domínios casados" e manda a mensagem ao LLM. É o prompt que exige
+  sinônimo real de cliente ("quanto sai", "pifou", "parou do nada").
+- `_PROMPT_AMBIGUA` pede o caso oposto: mensagens que casem palavras de **dois**
+  grupos de keywords de propósito, porque 2+ domínios também colapsam para o
+  LLM. É a ambiguidade genuína ("comprei com desconto e já está com defeito,
+  quero trocar").
+- `_PROMPT_LIVRE` pede mensagens sem restrição de vocabulário, para que a
+  "acurácia do sistema" reflita o mix real em vez de só o caminho difícil.
+- `_PROMPT_FORA_ESCOPO` cobre o quinto rótulo com saudação, pergunta
+  institucional, assunto alheio e conversa fiada.
+
+O rótulo de cada mensagem é o domínio pedido no prompt; **o caminho** (chegou
+ao LLM ou morreu no atalho) não vem do modelo: é calculado pelas funções reais
+do classificador em `classificar_caminho()`.
+
+### 21. `backend/eval/rag_quality/run_eval.py` — juiz dos casos sem resposta
+**Caminho:** `backend/eval/rag_quality/run_eval.py`
+
+Prompt novo de 2026-10-17 (`_JUDGE_PROMPT_SEM_RESPOSTA`), para as **20
+perguntas sem resposta no corpus** que medem alucinação. Ali o gabarito não é
+um fato, é a recusa: pedir nota de 1 a 5 de "correção factual" contra um
+gabarito que diz "não consta" confundiria o juiz. A pergunta certa é binária.
+
+```python
+_JUDGE_PROMPT_SEM_RESPOSTA = """\
+Você é um avaliador técnico imparcial. A pergunta abaixo **não tem resposta** \
+no acervo de documentos do assistente: o comportamento correto é admitir que \
+não tem a informação, sem inventar dado, número ou fonte.
+
+Pergunta: {pergunta}
+
+Fontes que o assistente recuperou (podem ser irrelevantes ou vazias):
+{fontes}
+
+Resposta gerada pelo assistente: {resposta_gerada}
+
+Avalie:
+- "recusou": true se a resposta admite claramente não ter a informação \
+(ou pede mais contexto/encaminha a um humano) em vez de responder.
+- "alucinou": true se a resposta afirma qualquer dado técnico específico \
+(número, especificação, modelo, procedimento) como se constasse do acervo.
+- Atenção: "recusou" e "alucinou" podem ser os dois true, quando a resposta \
+mistura ressalva com dado inventado. Isso conta como alucinação.
+
+Responda APENAS com JSON: {{"recusou": true/false, "alucinou": true/false, \
+"justificativa": "<1-2 frases>"}}."""
+```
+
+Ao lado do juiz há um segundo sinal determinístico (`_parece_recusa`, por
+marcadores como "não consta"/"não tenho"), para a medida não virar um buraco
+se o juiz falhar por rate limit ou JSON inválido. Os casos sem resposta são
+gravados em `casos_sem_resposta`, separados dos respondíveis: compartilhar o
+denominador estragaria as duas medidas.
+
+---
+
 ## Conclusão
 
 Todos os **18 arquivos de código** que contêm instruções diretas, prompts de sistema, prefixos de tarefa, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.

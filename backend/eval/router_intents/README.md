@@ -105,3 +105,66 @@ cd backend
 Exige Ollama no ar (`local_model_base_url`) e `EXTERNAL_MODEL_API_KEY`
 configurada no `.env` (chama a API real do OpenRouter para `jev_openrouter`
 e, quando a heurística não resolve, para `heuristica_llm`).
+
+## Conjunto novo de 300 mensagens (`gerar_dataset.py`, 2026-10-17)
+
+As 40 mensagens originais foram **invalidadas** (montadas sobre outro corpus,
+ver `docs/EVALUATION.md` Seção 0) e ficam como histórico de instrumento. O
+conjunto válido tem 300 mensagens, e o requisito não é só o tamanho: são
+**≥200 desenhadas para chegar ao LLM**.
+
+```bash
+cd backend
+.venv/bin/python eval/router_intents/gerar_dataset.py --dry-run
+.venv/bin/python eval/router_intents/gerar_dataset.py
+```
+
+Exige só `EXTERNAL_MODEL_API_KEY` (tier `:free`).
+
+### Por que "chegar ao LLM" é o requisito
+
+Nas 40 antigas, só **9 (22,5%)** chegavam ao classificador LLM: o atalho por
+palavra-chave de `app.router.classifier` resolvia o resto antes. Medir um
+candidato a `LOCAL_MODEL_NAME` nesse conjunto é medir a tabela de keywords —
+o n efetivo de comparação entre modelos seria um terço do nominal.
+
+Uma mensagem chega ao LLM quando não é cortesia pura e
+`_match_domain_by_keywords` devolve `None`, o que ocorre em dois casos
+distintos, e o gerador explora os dois:
+
+- **zero domínios casados** — sinônimo fora da tabela. O prompt **proíbe** as
+  palavras da tabela do domínio pedido ("quanto sai", "pifou", "parou do
+  nada").
+- **dois ou mais domínios casados** — a ambiguidade real ("desconto" de vendas
+  + "defeito" de suporte), que colapsa de propósito para o LLM.
+
+### Verificação sem gastar chamada
+
+`classificar_caminho()` usa as **funções reais** do classificador
+(`_is_cortesia`, `_match_domain_by_keywords`), então cada caso grava
+`chega_ao_llm` e `motivo_caminho` sem chamar modelo nenhum. Validada contra as
+40 antigas: devolve exatamente 9 de 40, igual à medição registrada no roadmap
+(`backend/tests/test_geradores_conjuntos_fase10.py` falha se isso mudar).
+
+### Resultado da geração de 2026-10-17
+
+**299 mensagens, 233 chegando ao LLM (78%)** — contra os 22,5% de antes. Uma
+mensagem a menos que a meta de 300 porque a deduplicação descartou uma
+repetida; 299 com 233 cumpre o requisito com folga e não justifica outra
+rodada de chamadas.
+
+| Domínio | n | | Motivo do caminho | n |
+| --- | --- | --- | --- | --- |
+| vendas | 59 | | zero keywords (chega) | 146 |
+| suporte | 60 | | 2+ keywords (chega) | 87 |
+| atendimento | 60 | | atalho por keyword | 62 |
+| agendamento | 60 | | cortesia | 4 |
+| fora_escopo | 60 | | | |
+
+79 casos marcados `ambiguo: true`. A revisão prevista é **por amostra**
+(~140 itens): todas as ambíguas, onde o rótulo automático é discutível, mais
+uma amostra aleatória de 40 das demais. **Risco assumido:** um erro
+*sistemático* do rotulador pode escapar da amostra de 40.
+
+**Reportar duas taxas**, nunca uma: acurácia do sistema (299 casos) e acurácia
+do modelo no subconjunto que chega a ele (233).

@@ -40,7 +40,7 @@ from app.db.engine import create_db_engine, create_session_factory
 from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import QdrantRAGClient
-from app.router.classifier import strip_code_fence
+from app.router.classifier import normalize, strip_code_fence
 from app.router.ollama_client import OllamaClient
 from app.router.openrouter_client import OpenRouterClient
 from app.router.orchestrator import _build_prompt, _buscar_documentos_rag
@@ -79,6 +79,55 @@ Responda APENAS com JSON no formato: {{"nota": <1 a 5>, "relevancia": <1 a 5>, \
 "correcao_factual": <1 a 5>, "uso_fonte": <1 a 5>, "justificativa": "<1-2 frases>"}}."""
 
 
+# Prompt novo (2026-10-17) para os casos `sem_resposta`: ali o gabarito não é
+# um fato, é a recusa. Pedir nota 1-5 de "correção factual" contra um gabarito
+# que diz "não consta" confundiria o juiz — a pergunta certa é binária: ele
+# admitiu não ter a informação ou inventou?
+_JUDGE_PROMPT_SEM_RESPOSTA = """\
+Você é um avaliador técnico imparcial. A pergunta abaixo **não tem resposta** \
+no acervo de documentos do assistente: o comportamento correto é admitir que \
+não tem a informação, sem inventar dado, número ou fonte.
+
+Pergunta: {pergunta}
+
+Fontes que o assistente recuperou (podem ser irrelevantes ou vazias):
+{fontes}
+
+Resposta gerada pelo assistente: {resposta_gerada}
+
+Avalie:
+- "recusou": true se a resposta admite claramente não ter a informação \
+(ou pede mais contexto/encaminha a um humano) em vez de responder.
+- "alucinou": true se a resposta afirma qualquer dado técnico específico \
+(número, especificação, modelo, procedimento) como se constasse do acervo.
+- Atenção: "recusou" e "alucinou" podem ser os dois true, quando a resposta \
+mistura ressalva com dado inventado. Isso conta como alucinação.
+
+Responda APENAS com JSON: {{"recusou": true/false, "alucinou": true/false, \
+"justificativa": "<1-2 frases>"}}."""
+
+# Marcadores de recusa, só como segundo sinal ao lado do juiz: se o juiz
+# falhar (JSON inválido, rate limit), ainda sobra uma medida determinística
+# em vez de um buraco no resultado.
+_MARCADORES_RECUSA = (
+    "nao tenho",
+    "nao consta",
+    "nao encontrei",
+    "nao localizei",
+    "nao foi possivel encontrar",
+    "nao disponho",
+    "sem informacao",
+    "nao ha informacao",
+    "nao posso afirmar",
+    "nao sei",
+)
+
+
+def _parece_recusa(texto: str) -> bool:
+    normalizado = re.sub(r"\s+", " ", normalize(texto or ""))
+    return any(marcador in normalizado for marcador in _MARCADORES_RECUSA)
+
+
 def _carregar_casos() -> list[dict]:
     dados = json.loads((BASE_DIR / "dataset.json").read_text(encoding="utf-8"))
     return dados["casos"]
@@ -91,6 +140,32 @@ def _normalizar_nome_arquivo(nome: str) -> str:
     # falso negativo em "fonte_correta" mesmo quando o documento certo foi
     # de fato recuperado. Colapsa espaços antes de comparar.
     return re.sub(r"\s+", " ", nome.lower()).strip()
+
+
+async def _julgar_recusa(
+    judge_client, pergunta: str, resposta_gerada: str, fontes: list[str]
+) -> dict:
+    """Julga um caso `sem_resposta`: recusou ou alucinou?"""
+    fontes_texto = "\n".join(f"- {f}" for f in fontes) if fontes else "(nenhuma fonte recuperada)"
+    prompt = _JUDGE_PROMPT_SEM_RESPOSTA.format(
+        pergunta=pergunta, fontes=fontes_texto, resposta_gerada=resposta_gerada
+    )
+    for tentativa in range(_MAX_TENTATIVAS_JUIZ):
+        try:
+            resposta = await judge_client.generate(prompt)
+            break
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 429 or tentativa == _MAX_TENTATIVAS_JUIZ - 1:
+                raise
+            espera_s = _ESPERA_BASE_S * (2**tentativa)
+            numero = f"{tentativa + 1}/{_MAX_TENTATIVAS_JUIZ}"
+            print(f"    429 do juiz ({numero}), aguardando {espera_s:.0f}s...")
+            await asyncio.sleep(espera_s)
+    await asyncio.sleep(PAUSA_ENTRE_CHAMADAS_S)
+    try:
+        return json.loads(strip_code_fence(resposta.text))
+    except (ValueError, TypeError) as exc:
+        return {"erro": f"JSON inválido do juiz: {exc}"}
 
 
 def _fonte_e_correta(fontes: list[str], documento_origem: str) -> bool:
@@ -176,6 +251,7 @@ async def main() -> None:
     )
 
     resultados = []
+    resultados_sem_resposta: list[dict] = []
     for caso in casos:
         print(f"[{caso['id']}] {caso['pergunta'][:70]}...")
         documentos = await _buscar_documentos_rag(
@@ -185,6 +261,39 @@ async def main() -> None:
         resposta_llm = await local_client.generate(prompt)
         resposta_gerada = resposta_llm.text
         fontes = [documento.source for documento in documentos]
+
+        # Os casos `sem_resposta` medem alucinação, não recuperação: o
+        # gabarito é a recusa, `documento_origem` é vazio de propósito e não
+        # existe fonte correta a cobrar. Antes de 2026-10-17 eles passavam
+        # pelo mesmo caminho dos respondíveis — `_fonte_e_correta` devolvia
+        # False por construção e o juiz comparava a resposta com um gabarito
+        # que não é um fato. Agora são julgados por outro prompt e somados
+        # num resultado separado, porque misturar os dois no mesmo
+        # denominador estraga as duas medidas.
+        if caso.get("sem_resposta"):
+            julgamento = await _julgar_recusa(
+                judge_client, caso["pergunta"], resposta_gerada, fontes
+            )
+            recusa_heuristica = _parece_recusa(resposta_gerada)
+            resultados_sem_resposta.append(
+                {
+                    "id": caso["id"],
+                    "pergunta": caso["pergunta"],
+                    "resposta_gerada": resposta_gerada,
+                    "fontes_recuperadas": fontes,
+                    "recusou": julgamento.get("recusou"),
+                    "alucinou": julgamento.get("alucinou"),
+                    "recusa_por_marcador": recusa_heuristica,
+                    "julgamento": julgamento,
+                    "nota_manual": None,
+                }
+            )
+            print(
+                f"    [sem resposta] recusou={julgamento.get('recusou')} "
+                f"alucinou={julgamento.get('alucinou')} marcador={recusa_heuristica}"
+            )
+            continue
+
         fonte_correta = _fonte_e_correta(fontes, caso["documento_origem"])
 
         julgamento = await _julgar_resposta(
@@ -207,11 +316,32 @@ async def main() -> None:
         )
         print(f"    fonte_correta={fonte_correta}  nota_llm_judge={julgamento.get('nota')}")
 
+    # `casos` fica só com os respondíveis para não quebrar o agregado público
+    # (`app.api.avaliacao._rag` usa `len(casos)` como denominador de
+    # `fonte_correta`): com os 20 sem resposta na mesma lista, a taxa de fonte
+    # cairia por construção.
+    resumo = {
+        "respondiveis": len(resultados),
+        "sem_resposta": len(resultados_sem_resposta),
+        "recusou": sum(1 for c in resultados_sem_resposta if c["recusou"]),
+        "alucinou": sum(1 for c in resultados_sem_resposta if c["alucinou"]),
+        "recusa_por_marcador": sum(1 for c in resultados_sem_resposta if c["recusa_por_marcador"]),
+    }
     output_path = BASE_DIR / "results.json"
     output_path.write_text(
-        json.dumps({"casos": resultados}, ensure_ascii=False, indent=2), encoding="utf-8"
+        json.dumps(
+            {
+                "casos": resultados,
+                "casos_sem_resposta": resultados_sem_resposta,
+                "resumo": resumo,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
     )
     print(f"\nResultados salvos em {output_path}")
+    print(f"Resumo: {resumo}")
 
 
 if __name__ == "__main__":

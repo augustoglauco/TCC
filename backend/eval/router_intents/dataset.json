@@ -1,97 +1,3596 @@
 {
-  "descricao": "Conjunto de teste rotulado para acurácia do roteador (R3, Fase 1) — ver docs/EVALUATION.md, Seção 1. 40 mensagens, 10 por domínio, cobrindo os quatro domínios (Vendas, Suporte Técnico, Atendimento ao Usuário, Agendamento de Visita) de forma equilibrada.",
-  "observacoes": [
-    "Todas as mensagens são sintéticas (não há corpus de conversas reais disponível neste protótipo), mas ancoradas em dados reais do sistema: os 5 produtos do catálogo (geradores diesel GD-15/GD-30/GD-60, Cabine de Insonorização, Quadro de Transferência Automática QTA-100) e o conteúdo real já ingerido no RAG (manuais/datasheets enviados por upload e páginas técnicas de controle de acesso/relógio de ponto/CFTV trazidas pelo crawler em testes anteriores do R4).",
-    "8 mensagens (2 por domínio) são marcadas 'ambiguo: true' de propósito — usam palavras-chave de mais de um domínio ao mesmo tempo (ver docs/EVALUATION.md: 'incluir deliberadamente casos ambíguos... para expor limites do classificador'). 'intencao_esperada' nelas é a intenção correta do ponto de vista de negócio, não necessariamente o que a heurística por palavra-chave vai acertar."
-  ],
+  "descricao": "Conjunto de 300 mensagens do roteador (Estratégia A, Fase 10). Rótulo = domínio esperado; `chega_ao_llm` diz se a mensagem passa do atalho por palavra-chave e chega ao classificador LLM.",
+  "observacoes": "Rascunho gerado por liquid/lfm-2.5-2.6b:free, todo item `revisao.status = pendente`. `chega_ao_llm` e `motivo_caminho` são calculados pelas funções reais de `app.router.classifier` (`_is_cortesia`, `_match_domain_by_keywords`), não pelo modelo. Reportar duas taxas na avaliação: acurácia do sistema (todos os casos) e acurácia do modelo no subconjunto que chega a ele.",
+  "total": 299,
+  "chegam_ao_llm": 233,
   "casos": [
-    {"id": 1, "mensagem": "Quero um orçamento para 5 unidades do Gerador Diesel GD-15", "intencao_esperada": "vendas", "ambiguo": false},
-    {"id": 2, "mensagem": "Qual o preço do Gerador Diesel GD-30?", "intencao_esperada": "vendas", "ambiguo": false},
-    {"id": 3, "mensagem": "Vocês têm o gerador de 60 kVA em estoque?", "intencao_esperada": "vendas", "ambiguo": false},
-    {"id": 4, "mensagem": "Quais produtos vocês têm disponíveis no catálogo?", "intencao_esperada": "vendas", "ambiguo": false},
-    {"id": 5, "mensagem": "Tem desconto para compra de 10 geradores GD-15?", "intencao_esperada": "vendas", "ambiguo": false},
-    {"id": 6, "mensagem": "Vocês vendem relógio de ponto biométrico?", "intencao_esperada": "vendas", "ambiguo": false},
-    {"id": 7, "mensagem": "Qual a diferença de preço entre o GD-15 e o GD-30?", "intencao_esperada": "vendas", "ambiguo": false},
-    {"id": 8, "mensagem": "Estou pensando em comprar um gerador para minha obra, qual modelo é mais indicado?", "intencao_esperada": "vendas", "ambiguo": false},
+    {
+      "id": 1,
+      "mensagem": "Ei, quero saber quanto sai com o IDBlock Facial, já tem modelo novo?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 2,
+      "mensagem": "Tem algum IDFit que dê pifou? Quero ver se funciona com meu sistema.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 3,
+      "mensagem": "Preciso de um Repetidor iDClass pra minha catraca, quantos unidades têm?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 4,
+      "mensagem": "Qual o valor de um Leitor QR Code? É barato?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 5,
+      "mensagem": "Quero trocar por outro leitor QR Code, o que você recomenda?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 6,
+      "mensagem": "SAT iD tem versão facial? Como é o funcionamento?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 7,
+      "mensagem": "RHiD pode ler meus relógios de ponto? Me conta detalhes.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 8,
+      "mensagem": "Tags de identificação funcionam bem com os catracas? Pode confirmar?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
     {
       "id": 9,
-      "mensagem": "O Quadro de Transferência Automática QTA-100 é compatível com o Gerador GD-60?",
+      "mensagem": "Preciso saber se o IDPower é seguro para uso interno.",
       "intencao_esperada": "vendas",
-      "ambiguo": true,
-      "observacao": "Pergunta de compatibilidade técnica soa Suporte, mas é dúvida pré-venda sobre qual produto comprar junto — a intenção correta é Vendas."
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 10,
-      "mensagem": "Quero saber o preço e também se o gerador tem garantia de fábrica",
+      "mensagem": "O Print iD toca música quando imprime? Quanto tempo demora?",
       "intencao_esperada": "vendas",
-      "ambiguo": true,
-      "observacao": "Mistura pergunta comercial (preço, palavra-chave de Vendas) com garantia (palavra-chave de Atendimento) na mesma mensagem."
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
-    {"id": 11, "mensagem": "Meu gerador GD-30 não liga, o que pode ser?", "intencao_esperada": "suporte", "ambiguo": false},
-    {"id": 12, "mensagem": "Está aparecendo um código de erro no painel do gerador, como resolvo?", "intencao_esperada": "suporte", "ambiguo": false},
-    {"id": 13, "mensagem": "O motor do GD-15 está fazendo um barulho estranho, isso é normal?", "intencao_esperada": "suporte", "ambiguo": false},
-    {"id": 14, "mensagem": "Como faço a manutenção preventiva do gerador diesel?", "intencao_esperada": "suporte", "ambiguo": false},
-    {"id": 15, "mensagem": "O relógio de ponto não está reconhecendo a biometria dos funcionários, o que fazer?", "intencao_esperada": "suporte", "ambiguo": false},
-    {"id": 16, "mensagem": "A câmera de segurança parou de gravar, o gravador está com defeito?", "intencao_esperada": "suporte", "ambiguo": false},
-    {"id": 17, "mensagem": "O gerador está vazando óleo, isso é um problema sério?", "intencao_esperada": "suporte", "ambiguo": false},
-    {"id": 18, "mensagem": "Como resetar as configurações de fábrica do controlador do gerador?", "intencao_esperada": "suporte", "ambiguo": false},
+    {
+      "id": 11,
+      "mensagem": "Print iD Touch tem tela sensível ao toque? Qual o custo?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 12,
+      "mensagem": "Quero saber se o REP iDClass pode ser instalado em catraca antiga.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 13,
+      "mensagem": "Qual a diferença entre o IDBlock e o IDBlock Facial? Qual o melhor?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 14,
+      "mensagem": "Estou pensando em adicionar um novo leitor QR Code ao sistema, onde posso encomendar?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 15,
+      "mensagem": "Me diz se o SAT iD suporta leitura de cartões NFC.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 16,
+      "mensagem": "Posso usar o RHiD junto com o Relógio de Ponto? Como integrar?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 17,
+      "mensagem": "Quero saber quanto tempo leva para configurar o Tags antes da instalação.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 18,
+      "mensagem": "Há alguma promoção especial para compras em volume?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
     {
       "id": 19,
-      "mensagem": "Comprei o gerador GD-30 e ele já chegou com defeito, o motor não pega",
-      "intencao_esperada": "suporte",
-      "ambiguo": true,
-      "observacao": "Menciona 'comprei' (palavra-chave de Atendimento), mas o pedido de fundo é diagnóstico técnico de um defeito — a intenção correta é Suporte, antes de qualquer troca/devolução."
+      "mensagem": "Como faço para testar o IDFit antes de adquirir?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 20,
-      "mensagem": "Preciso de ajuda para configurar o Quadro de Transferência Automática que acabei de receber",
-      "intencao_esperada": "suporte",
-      "ambiguo": true,
-      "observacao": "'Acabei de receber' lembra pós-venda/Atendimento, mas o pedido é de suporte técnico de configuração, não de nota fiscal/troca."
+      "mensagem": "Alguém aqui pode mandar uma estimativa rápida?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
-    {"id": 21, "mensagem": "Quero a nota fiscal da minha última compra", "intencao_esperada": "atendimento", "ambiguo": false},
-    {"id": 22, "mensagem": "Comprei um gerador semana passada, quero saber se meus pedidos já foram enviados", "intencao_esperada": "atendimento", "ambiguo": false},
-    {"id": 23, "mensagem": "Qual a política de troca e garantia dos geradores?", "intencao_esperada": "atendimento", "ambiguo": false},
-    {"id": 24, "mensagem": "Quero cancelar meu pedido do Quadro de Transferência Automática", "intencao_esperada": "atendimento", "ambiguo": false},
-    {"id": 25, "mensagem": "Preciso do histórico dos meus pedidos, meu e-mail é joao@empresa.com", "intencao_esperada": "atendimento", "ambiguo": false},
-    {"id": 26, "mensagem": "Quero reclamar do atraso na entrega do meu gerador", "intencao_esperada": "atendimento", "ambiguo": false},
-    {"id": 27, "mensagem": "Posso trocar o gerador GD-15 por um GD-30, já que comprei o modelo errado?", "intencao_esperada": "atendimento", "ambiguo": false},
-    {"id": 28, "mensagem": "Qual o prazo de garantia do Gerador Diesel GD-60?", "intencao_esperada": "atendimento", "ambiguo": false},
+    {
+      "id": 21,
+      "mensagem": "Quero orçamento para o produto IDBlock Facial, mas o sistema não funciona e preciso trocar o pedido.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 22,
+      "mensagem": "O preço do satélite REP iDClass é alto, e eu preciso configurar a biometria antes de comprá-lo.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 23,
+      "mensagem": "Meus pedidos de IDBlock estão com atraso e o preço do produto ainda não foi informado.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 24,
+      "mensagem": "A cotação do IDPower é boa, porém há erro na configuração do sensor biometric.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 25,
+      "mensagem": "Preciso verificar se o produto SAT iD é compatível com meu sistema de controle, e o manual não funciona.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 26,
+      "mensagem": "Quero comprar o Leitor QR Code, mas recebi um dispositivo que não liga e precisa de resetar.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 27,
+      "mensagem": "Minha conta tem nota fiscal pendente e quero cancelar o pedido de IDFit, pois o preço está muito alto.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 28,
+      "mensagem": "O produto IDPower vende bem, mas o sistema de manutenção está quebrado.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
     {
       "id": 29,
-      "mensagem": "Meu pedido chegou com defeito, quero fazer a devolução",
-      "intencao_esperada": "atendimento",
+      "mensagem": "Estou organizando uma visita para instalar o REP iDClass, mas o horário não foi confirmado e o preço ainda não foi informado.",
+      "intencao_esperada": "vendas",
       "ambiguo": true,
-      "observacao": "'Defeito' é palavra-chave de Suporte, mas o pedido central é de devolução (política comercial pós-venda) — a intenção correta é Atendimento."
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 30,
-      "mensagem": "O problema é que não recebi minha nota fiscal depois da compra, pode reenviar?",
-      "intencao_esperada": "atendimento",
+      "mensagem": "O histórico dos pedidos mostra que o produto Tags está fora de estoque, devo solicitar um novo orçamento.",
+      "intencao_esperada": "vendas",
       "ambiguo": true,
-      "observacao": "'Problema' lembra Suporte técnico, mas o pedido é puramente administrativo (nota fiscal) — a intenção correta é Atendimento."
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
-    {"id": 31, "mensagem": "Quero agendar uma visita técnica para avaliar a instalação do gerador", "intencao_esperada": "agendamento", "ambiguo": false},
-    {"id": 32, "mensagem": "Posso marcar um horário para vocês virem instalar o Quadro de Transferência?", "intencao_esperada": "agendamento", "ambiguo": false},
-    {"id": 33, "mensagem": "Vocês têm horário disponível na quinta-feira à tarde para uma visita?", "intencao_esperada": "agendamento", "ambiguo": false},
-    {"id": 34, "mensagem": "Gostaria de marcar uma visita para conhecer os geradores antes de comprar", "intencao_esperada": "agendamento", "ambiguo": false},
-    {"id": 35, "mensagem": "Qual o horário de funcionamento para agendar uma visita técnica?", "intencao_esperada": "agendamento", "ambiguo": false},
-    {"id": 36, "mensagem": "Preciso de um técnico na minha empresa para avaliar qual gerador comprar", "intencao_esperada": "agendamento", "ambiguo": false},
-    {"id": 37, "mensagem": "Marquei uma visita técnica ontem, preciso confirmar o horário", "intencao_esperada": "agendamento", "ambiguo": false},
-    {"id": 38, "mensagem": "Vocês fazem visita técnica gratuita antes da compra do gerador?", "intencao_esperada": "agendamento", "ambiguo": false},
+    {
+      "id": 31,
+      "mensagem": "Não consigo configurar o biometria do SAT iD, e o equipamento não funciona corretamente, então preciso comprar outro modelo.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 32,
+      "mensagem": "Quero ver o desconto no IDFit e também preciso resolver o problema de erro no leitor QR Code.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 33,
+      "mensagem": "O produto IDPower é compatível com minha rede, mas o sistema de backup não funciona.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 34,
+      "mensagem": "Preciso agendar uma visita técnica para testar o REP iDClass, mas o técnico não respondeu ao e-mail e o preço ainda não foi definido.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 35,
+      "mensagem": "O histórico de compras mostra que o produto Tags foi devolvido devido a defeito, agora quero trocar.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 36,
+      "mensagem": "Quero comprar o Leitor QR Code, mas o barulho do motor impede sua instalação.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 37,
+      "mensagem": "O orçamento para o satélite REP iDClass foi enviado, porém o equipamento está quebrado.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 38,
+      "mensagem": "Minha conta tem atraso nas notas fiscais e preciso reprogramar o pagamento para o próximo trimestre, pois o preço do produto mudou.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
     {
       "id": 39,
-      "mensagem": "Preciso agendar uma manutenção presencial para o meu gerador que está com problema",
-      "intencao_esperada": "agendamento",
+      "mensagem": "O produto IDBlock Facial vende rápido, mas o sistema de autenticação biometria está instável.",
+      "intencao_esperada": "vendas",
       "ambiguo": true,
-      "observacao": "Menciona um 'problema' técnico (palavra-chave de Suporte), mas o pedido explícito é 'agendar' uma visita presencial — a intenção correta é Agendamento."
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     },
     {
       "id": 40,
-      "mensagem": "Quero marcar um horário para comprar o gerador pessoalmente na loja",
+      "mensagem": "Ei, quero comprar esse modelo, tem preço baixo?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 41,
+      "mensagem": "Alguém sabe se ainda tem estoque do IDBlock Facial?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 42,
+      "mensagem": "Preciso de um orçamento para o sat iD, qual o valor?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 43,
+      "mensagem": "O Print iD Touch funciona com meu celular Android?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 44,
+      "mensagem": "Tem compatibilidade com o sistema de segurança da empresa?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 45,
+      "mensagem": "Quero saber se o RHiD é compatível com os leitores QR code.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 46,
+      "mensagem": "Como faço para pedir um orçamento rápido?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 47,
+      "mensagem": "Qual o prazo de entrega do IDPower?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 48,
+      "mensagem": "Estou pensando em comprar o IDFit, tem desconto?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 49,
+      "mensagem": "Me avisa se o SAT iD ainda está disponível.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 50,
+      "mensagem": "Posso usar o Tags junto com o IDBlock Facial?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 51,
+      "mensagem": "Preciso de mais informações sobre o REP iDClass.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 52,
+      "mensagem": "Quantos unidades do Leitor QR Code têm em estoque?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 53,
+      "mensagem": "O Print iD é compatível com impressoras laser?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 54,
+      "mensagem": "Quero saber se o RHiD pode ser usado com o REP iDClass.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 55,
+      "mensagem": "Alguém já usou o IDPower e o que achou?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 56,
+      "mensagem": "Preciso de um orçamento para integrar o SAT iD ao nosso sistema.",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 57,
+      "mensagem": "Tem algum desconto para compras acima de R$ 5000?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 58,
+      "mensagem": "Como posso solicitar o orçamento pelo chat?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 59,
+      "mensagem": "Onde posso ver a lista de produtos que são compatíveis com o IDBlock?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 60,
+      "mensagem": "O IDBlock parou de ler os códigos há ontem, agora só dá beep.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 61,
+      "mensagem": "No IDBlock Facial o rosto não é reconhecido, a pessoa entra e nada acontece.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 62,
+      "mensagem": "A impressão digital do IDFit não passa mais, ele fica travado quando eu tento carregar.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 63,
+      "mensagem": "O IDPower está desligado desde a manhã, desliga completamente.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 64,
+      "mensagem": "O Leitor QR Code mostra problemas de leitura toda vez que escaneio um código.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 65,
+      "mensagem": "Print iD não imprime mais, o papel sai em branco e o sistema avisa que está fora de tinta.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 66,
+      "mensagem": "Print iD Touch está travado, não aceita tocar na tela e o app não abre.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 67,
+      "mensagem": "REP iDClass não envia dados corretos, o servidor recebe só texto vazio.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 68,
+      "mensagem": "REP iDClass Facial demora muito pra processar o rosto, a fila está esperando há minutos.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 69,
+      "mensagem": "RHiD está com falhas constantes, às vezes o sensor não dispara mesmo com a chave correta.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 70,
+      "mensagem": "SAT iD não acende a luz verde quando a porta está aberta, parece estar com falha.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 71,
+      "mensagem": "Os tags de identificação estão perdidos, não consigo localizar o equipamento no armazém.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 72,
+      "mensagem": "O IDBlock começa a emitir som alto toda vez que tenta ler um cartão.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 73,
+      "mensagem": "O IDBlock Facial está confundindo rostos, a pessoa entra e o sistema diz 'não reconhecido'.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 74,
+      "mensagem": "O IDFit não registra a impressão digital depois da primeira tentativa, volta ao estado inicial.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 75,
+      "mensagem": "O IDPower gera calor excessivo e o ventilador para de girar, o aparelho esquenta.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 76,
+      "mensagem": "Leitor QR Code está lento, cada scan leva mais de dois minutos e a fila cresce.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 77,
+      "mensagem": "Print iD Touch não responde ao toque, o cursor fica parado na tela.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 78,
+      "mensagem": "REP iDClass está desconectado do cabo, o roteador mostra sinal fraco.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 79,
+      "mensagem": "RHiD está enviando dados corrompidos, o painel exibe caracteres estranhos.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 80,
+      "mensagem": "O IDPower vende rápido, porém o preço é elevado e o dispositivo não funciona corretamente, preciso marcar uma visita para resolver o problema de biometria.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 81,
+      "mensagem": "Comprei o Leitor QR Code com desconto, mas ele não liga e a nota fiscal está atrasada, preciso trocar o equipamento e agendar horário com o técnico.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 82,
+      "mensagem": "A cotação do IDFit é boa, ainda assim há defeito no sensor e o produto não está disponível, devo cancelar meu pedido e solicitar uma troca, precisando agendar uma visita.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 83,
+      "mensagem": "O REP iDClass está em estoque, mas o sistema não funciona corretamente e eu recebi uma reclamação sobre a falta de compatibilidade, então quero agendar uma visita para a manutenção.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 84,
+      "mensagem": "Preciso comprar o Print iD, mas o orçamento está acima do esperado e o produto sofre de defeito de biometria, então vou cancelar o contrato e pedir uma troca, precisando agendar uma visita.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 85,
+      "mensagem": "O IDFit oferece bom desempenho, porém o preço é caro e o equipamento não funciona corretamente, tenho que marcar horário com o técnico para configurar a biometria e agendar uma visita.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 86,
+      "mensagem": "A cotação do SAT iD é alta, mas o produto apresenta erro de configuração e não liga, minha nota fiscal está pendente, devo trocar o aparelho e agendar uma visita.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 87,
+      "mensagem": "Quero vender o leitor QR Code usado, mas o dispositivo tem defeito de biometria e o preço de revenda está baixo, preciso cancelar meu pedido e marcar horário com o técnico.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 88,
+      "mensagem": "O IDBlock Facial está disponível, porém o software não funciona e recebi uma reclamação sobre a falta de compatibilidade, então quero agendar uma visita para resolver.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 89,
+      "mensagem": "Comprei o REP iDClass com desconto, mas o produto falha repetidamente e o histórico mostra erros de biometria, então quero trocar o equipamento e marcar horário com o técnico, agendando uma visita.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 90,
+      "mensagem": "O IDFit vende rapidamente, mas o preço é alto e o dispositivo não funciona corretamente, tenho que cancelar meu pedido e configurar a biometria antes de agendar uma visita.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 91,
+      "mensagem": "Estou procurando um novo Print iD, mas o orçamento está apertado e o produto sofre de defeito de barulho excessivo, preciso trocar o modelo e marcar horário com o técnico.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 92,
+      "mensagem": "A cotação do Leitor QR Code indica disponibilidade, porém o equipamento não liga e a nota fiscal está incorreta, devo cancelar o contrato e agendar uma visita.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 93,
+      "mensagem": "Quero comprar o IDPower, mas o preço é elevado e o produto apresenta problema de manutenção constante, preciso reprogramar a visita técnica e agendar uma sessão de manutenção.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 94,
+      "mensagem": "O REP iDClass está em estoque, mas o sistema não funciona e o usuário relatou defeito de biometria, então quero trocar o aparelho e marcar horário com o técnico.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 95,
+      "mensagem": "Minha conta de pedidos está atrasada e o produto IDFit não funciona corretamente, preciso cancelar a compra e agendar uma visita para resolver.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 96,
+      "mensagem": "O IDFit foi comprado com desconto, mas o dispositivo tem defeito de configuração e o histórico mostra erros recorrentes, devo trocar o equipamento e marcar horário com o técnico.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 97,
+      "mensagem": "Estou avaliando o Leitor QR Code, mas o preço é alto e o produto tem defeito, não está disponível, recebi uma reclamação sobre biometria, preciso agendar uma visita para verificar.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 98,
+      "mensagem": "O IDBlock vende bem, porém o custo é alto e o equipamento não funciona corretamente, tenho que cancelar meu pedido e marcar horário com o técnico para configurar a biometria.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 99,
+      "mensagem": "Quero reembolsar o Print iD, mas o preço foi mal calculado e o produto apresentou defeito de barulho, minha nota fiscal está pendente, devo trocar o aparelho e agendar uma visita.",
+      "intencao_esperada": "suporte",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 100,
+      "mensagem": "O IDBlock não liga quando ligo a tomada, acha que tem problema na placa.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 101,
+      "mensagem": "A impressora Print iD está imprimindo só linhas tortas, não dá para corrigir.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 102,
+      "mensagem": "Leitor QR Code está falhando toda vez que escaneio, dá erro de leitura.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 103,
+      "mensagem": "Reproduzi o erro no REP iDClass Facial, ele não reconhece o rosto.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 104,
+      "mensagem": "IDPower está desligando sozinho, o circuito parece estar com defeito.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 105,
+      "mensagem": "SAT iD não reconhece os cartões, sempre diz 'sem suporte'.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 106,
+      "mensagem": "Os tags estão perdendo a conexão, aparecem como vazios.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 107,
+      "mensagem": "RHiD não carrega a bateria, a carga não avança.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 108,
+      "mensagem": "O IDFit não abre a porta, o motor faz barulho alto.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 109,
+      "mensagem": "Quando uso o Leitor QR Code, o sistema trava e volta para o menu principal.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 110,
+      "mensagem": "Tentar usar o Print iD Touch dá erro de tela preta, nada sai.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 111,
+      "mensagem": "O IDBlock Facial não detecta o rosto, mesmo com luz adequada.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 112,
+      "mensagem": "REP iDClass está enviando dados corrompidos, o servidor recebe bagunça.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 113,
+      "mensagem": "Os tags se soltam da parede, ficam soltos e não voltam ao gerenciamento.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 114,
+      "mensagem": "Não consigo conectar o IDFit à rede Wi‑Fi, aparece desconectado.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 115,
+      "mensagem": "O SAT iD começa a piscar vermelho e para de ler códigos.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 116,
+      "mensagem": "O RHiD mostra falha de comunicação constante, não consegue sincronizar.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 117,
+      "mensagem": "Print iD está travando ao final da página, corta tudo.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 118,
+      "mensagem": "O IDPower não mantém a tensão, a lâmpada pisca e apaga.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 119,
+      "mensagem": "Todos os produtos do catálogo estão com defeitos, preciso de ajuda urgente.",
+      "intencao_esperada": "suporte",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 120,
+      "mensagem": "Ei, a solicitação que eu pedi não chegou ainda, preciso saber quando vai.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 121,
+      "mensagem": "O leitor facial está dando erro ao reconhecer, quer ajuda pra corrigir.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 122,
+      "mensagem": "A impressora iD não imprime o formulário, está travando sempre.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 123,
+      "mensagem": "Quero alterar a data da entrega, mas o sistema não permite.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 124,
+      "mensagem": "Meu cartão foi recusado na catraca, preciso de outra forma de pagamento.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 125,
+      "mensagem": "Não consegui validar minha biometria, o sistema está piscando sem resposta.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 126,
+      "mensagem": "Preciso saber qual é o valor final antes de confirmar a transação.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 127,
+      "mensagem": "O relatório de uso das catracas está incompleto, onde está o dado?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 128,
+      "mensagem": "Alguém pode me ligar sobre o problema da senha da porta principal?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 129,
+      "mensagem": "Minha conta tem um erro de crédito, preciso resolver rápido.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 130,
+      "mensagem": "O leitor QR Code está mostrando apenas um código vazio, não funciona.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 131,
+      "mensagem": "Quero saber se posso fazer a mudança pela catraca, mas não sei como.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 132,
+      "mensagem": "O sistema de alertas não está enviando notificações, preciso de solução.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 133,
+      "mensagem": "Estou com dificuldade para acessar o painel de controle, precisa de ajuda.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 134,
+      "mensagem": "O horário de manutenção programada foi alterado, como agendar nova?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 135,
+      "mensagem": "Encontrei um defeito no relógio de ponto, quero mudar por outro modelo.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 136,
+      "mensagem": "Preciso de um novo cartão de acesso, o anterior expirou.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 137,
+      "mensagem": "Onde posso encontrar o manual de instalação da fechadura digital?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 138,
+      "mensagem": "Tem algum desconto para clientes que usam mais de 10 catracas por mês?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 139,
+      "mensagem": "Eu não recebi a confirmação da alteração do leitor QR Code, por favor esclareça.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 140,
+      "mensagem": "O preço do produto é bom, mas o dispositivo não funciona e eu preciso de troca na minha nota fiscal.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 141,
+      "mensagem": "Quero comprar este item, o preço está alto e há um defeito no sensor, preciso de reembolso via nota fiscal.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 142,
+      "mensagem": "A cotação do equipamento é alta, mas o sistema não liga e eu quero fazer uma troca para evitar atraso no meu pedido.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 143,
+      "mensagem": "Estou satisfeito com o produto, porém o software apresenta erro e a empresa não resolve a reclamação sobre a devolução.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 144,
+      "mensagem": "Posso agendar uma visita técnica para verificar se o equipamento ainda está disponível, mas o preço final não foi confirmado e o sistema não funciona.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 145,
+      "mensagem": "Comprei o produto recentemente, mas o defeito aparece logo após a instalação, preciso de troca e uma nova nota fiscal.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 146,
+      "mensagem": "A cotação do serviço é vantajosa, porém o hardware não funciona corretamente e eu quero cancelar o contrato.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 147,
+      "mensagem": "Gostaria de comprar mais estoque, mas o fornecedor diz que há problema de configuração e não consegue resolver a reclamação.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 148,
+      "mensagem": "Meu pedido está com atraso, o preço estava garantido, mas o produto não está disponível e eu peço troca devido a defeito.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 149,
+      "mensagem": "Este produto vende bem, o preço é alto, o sensor falha frequentemente, é um defeito e preciso de manutenção.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 150,
+      "mensagem": "Quero agendar uma visita para instalar o equipamento, mas o orçamento apresentado está incorreto e o sistema não funciona.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 151,
+      "mensagem": "A nota fiscal está atrasada, o produto não funciona como esperado, o preço é alto e eu quero trocar.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 152,
+      "mensagem": "Comprometemos um preço fixo, mas o dispositivo quebra rapidamente e preciso de troca.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 153,
+      "mensagem": "Minha conta tem um erro de cálculo, o produto está disponível, mas não consigo completar a compra.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 154,
+      "mensagem": "Vamos marcar uma visita técnica para verificar o estado do equipamento, porém o preço final não foi informado e o sistema não funciona.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 155,
+      "mensagem": "Eu comprei o produto com desconto, mas o biometria não está funcionando corretamente.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 156,
+      "mensagem": "A cotação do serviço é boa, mas o hardware apresenta defeito e eu quero devolver o item.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 157,
+      "mensagem": "Preciso de um novo pedido, o estoque está esgotado e o produto não está disponível, então peço troca devido a problema.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 158,
+      "mensagem": "O orçamento prometido não foi cumprido, o equipamento não liga e eu quero cancelar o contrato.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 159,
+      "mensagem": "Quero ver o histórico dos pedidos, mas o sistema não funciona corretamente e o produto está com defeito.",
+      "intencao_esperada": "atendimento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 160,
+      "mensagem": "Olá, minha nota fiscal está atrasada, me ajuda por favor",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 161,
+      "mensagem": "Tem algum problema com a troca da camisa? Quero trocar agora mesmo",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 162,
+      "mensagem": "Eu quero devolver o produto, mas não recebi o comprovante",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 163,
+      "mensagem": "Meu pedido foi cancelado, mas ainda não recebi a confirmação",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 164,
+      "mensagem": "O atendimento está lento, preciso de uma solução rápida",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 165,
+      "mensagem": "Preciso de uma renovação de senha no sistema iD",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 166,
+      "mensagem": "Não consegui imprimir o ticket QR Code, o leitor não reconhece",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 167,
+      "mensagem": "Quero saber se posso fazer uma troca de cartão IDPower",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 168,
+      "mensagem": "A notificação de cancelamento chegou errada, tem erro de data",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 169,
+      "mensagem": "Estou com reclamação sobre a qualidade do produto, quero reembolso",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 170,
+      "mensagem": "Posso alterar o endereço de entrega para outro?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 171,
+      "mensagem": "Meu contato mudou, atualize o telefone no cadastro",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 172,
+      "mensagem": "Preciso de suporte urgente para a troca de impressora iDTouch",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 173,
+      "mensagem": "O app de controle de acesso não abre, está travando",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 174,
+      "mensagem": "Quero confirmar se a renovação do contrato foi feita",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 175,
+      "mensagem": "Não encontrei a nota fiscal na email, onde está o arquivo?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 176,
+      "mensagem": "Tem algum desconto para clientes que cancelam antes do prazo?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 177,
+      "mensagem": "Meu pedido de devolução está estagnado há dias",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 178,
+      "mensagem": "Preciso de ajuda para registrar a reclamação sobre o atraso",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 179,
+      "mensagem": "O canal de atendimento está sempre ocupado, quando posso falar?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 180,
+      "mensagem": "E aí, quero reservar um tempo pra chegar na catraca da empresa, o que fica?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 181,
+      "mensagem": "Pode me mandar alguém aqui para reservar a inspeção dos relógios de ponto?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 182,
+      "mensagem": "Eu não consegui entrar no sistema, queria trocar por outro dia.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 183,
+      "mensagem": "O que sobre quando eu posso vir fazer a verificação das fechaduras?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 184,
+      "mensagem": "Tenho uma dúvida sobre o que fica depois de confirmar a data.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 185,
+      "mensagem": "Meu tempo anterior caiu, preciso mudar a data.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 186,
+      "mensagem": "Quero saber quanto sai se eu escolher o intervalo de 10h a 12h.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 187,
+      "mensagem": "Alguém pode pifar um contato rápido pra confirmar a chegada?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 188,
+      "mensagem": "Estou à espera de um profissional, mas ainda não recebi nada.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 189,
+      "mensagem": "Posso reservar o serviço de leitura QR Code?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 190,
+      "mensagem": "Qual é o preço que vai ficar?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 191,
+      "mensagem": "Não consigo acessar meu painel, preciso de ajuda agora.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 192,
+      "mensagem": "Quero garantir que o relatório seja entregue antes do fim do mês.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 193,
+      "mensagem": "Tem algum slot livre na próxima semana?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 194,
+      "mensagem": "Eu já fiz a reserva, mas o número bateu, pode me reenviar?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 195,
+      "mensagem": "Como faço para cancelar se não der certo?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 196,
+      "mensagem": "Meu celular está sem bater, precisa de alguém aqui?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 197,
+      "mensagem": "Vou conferir os detalhes e te aviso assim que estiver tudo pronto.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 198,
+      "mensagem": "O que acontece se eu não aparecer no momento combinado?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 199,
+      "mensagem": "Gostaria de alterar a data para o dia 15 de março.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 200,
+      "mensagem": "Quero agendar uma visita para instalar o novo produto, mas o preço é alto e o dispositivo não funciona corretamente, e meu pedido está atrasado.",
       "intencao_esperada": "agendamento",
       "ambiguo": true,
-      "observacao": "'Comprar' é palavra-chave de Vendas, mas o pedido central é 'marcar um horário' — a intenção correta é Agendamento."
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 201,
+      "mensagem": "O orçamento para a compra do equipamento está claro, porém o sistema de biometria está quebrado e eu preciso marcar uma visita para resolver o problema, meu pedido ainda não foi processado.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 202,
+      "mensagem": "Vou comprar o produto agora, mas o estoque está limitado e o aparelho apresenta defeito, então preciso agendar uma visita para manutenção, meu pedido ainda não está disponível.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 203,
+      "mensagem": "A cotação do serviço inclui configuração de biometria, mas o equipamento não liga e eu gostaria de marcar uma visita para solucionar o problema, meu pedido ainda não está resolvido.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 204,
+      "mensagem": "Preciso agendar uma visita para testar o produto, pois o preço é bom e o dispositivo tem defeito de barulho, e minha conta de compras está atrasada.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 205,
+      "mensagem": "O produto vende-se rapidamente, mas o estoque está esgotado e o sistema de biometria está quebrado, então vou recomendar outro técnico para marcar uma visita, meu pedido ainda pendente.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 206,
+      "mensagem": "Quero comprar o equipamento, mas o preço é elevado e o dispositivo não funciona corretamente, precisando agendar uma visita para diagnóstico, meu pedido ainda não foi aprovado.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 207,
+      "mensagem": "O produto é compatível com o sistema existente, mas o estoque está limitado e o biometria não funciona, então sugiro marcar uma visita para verificar, meu pedido ainda não foi atendido.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 208,
+      "mensagem": "A cotação para a instalação inclui configuração de biometria, porém o produto está fora de estoque e o sistema de manutenção está quebrado, então posso marcar uma visita, meu pedido aguarda.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 209,
+      "mensagem": "Tenho uma reclamação sobre o defeito do equipamento, o preço era bom, mas não consigo agendar uma visita porque o horário está ocupado, meu histórico de pedidos mostra atrasos.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 210,
+      "mensagem": "O orçamento para a compra do produto é baixo, porém o dispositivo tem defeito e o sistema de biometria está quebrado, então preciso marcar uma visita, meu pedido ainda não foi processado.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 211,
+      "mensagem": "Estou procurando um produto compatível com minha câmera QR Code, mas o estoque está esgotado e o equipamento não funciona, assim que posso agendar uma visita, meu pedido está pendente.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 212,
+      "mensagem": "A cotação para a manutenção inclui resetar o biometria, porém o produto não está disponível e o sistema de manutenção está quebrado, então vou recomendar marcar uma visita, meu pedido aguarda.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 213,
+      "mensagem": "Quero comprar o equipamento, mas o preço é alto e o dispositivo tem defeito de barulho, precisando agendar uma visita para diagnóstico, meu pedido está atrasado.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 214,
+      "mensagem": "O produto é compatível com o sistema existente, mas o estoque está limitado e o biometria não funciona, então sugiro marcar uma visita para verificar, meu pedido ainda não foi confirmado.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 215,
+      "mensagem": "Tenho uma reclamação sobre o não funcionamento da interface, o preço era competitivo, mas não consegui agendar uma visita devido ao horário cheio, meu histórico de pedidos indica atrasos.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 216,
+      "mensagem": "A cotação para a instalação inclui configuração de biometria, porém o produto está fora de estoque e o equipamento não liga, então sugiro marcar uma visita, meu pedido está pendente.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 217,
+      "mensagem": "Vou agendar uma visita para testar o produto, pois o preço é vantajoso e o sistema de biometria tem defeito, meu pedido está em espera.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 218,
+      "mensagem": "O orçamento para o produto IDBlock está bom, mas o dispositivo não funciona corretamente e preciso agendar uma visita para configurar a biometria.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 219,
+      "mensagem": "Tenho um problema com a impressora Print iD que não liga e preciso trocar o equipamento, então quero agendar uma visita para resolver.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 220,
+      "mensagem": "Oi, quero agendar uma visita para limpar os sensores da porta, quando me deixa?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 221,
+      "mensagem": "Tenho disponibilidade hoje à tarde, pode marcar para eu ir lá?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 222,
+      "mensagem": "Preciso remarcar minha visita, agora quero no sábado à tarde.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 223,
+      "mensagem": "Onde posso agendar a inspeção do sistema de alarme? Me avisa.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 224,
+      "mensagem": "Quero confirmar se ainda tem slot para uma revisão do leitor QR Code.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 225,
+      "mensagem": "Me ajuda a agendar uma verificação dos cartões RFID, quando dá?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 226,
+      "mensagem": "Estou à disposição amanhã de 9h às 12h, qual horário você prefere?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 227,
+      "mensagem": "Não consigo na terça, tem outro dia? Preciso de um horário.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 228,
+      "mensagem": "Vou marcar a visita para trocar a bateria do satélite, qual dia?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 229,
+      "mensagem": "Alguém pode me avisar sobre a agenda de manutenção? Quero agendar algo.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 230,
+      "mensagem": "Eu quero agendar uma revisão completa do roteador de intenção, quando é possível?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 231,
+      "mensagem": "Tem algum horário livre na sua agenda para eu chegar às 14h?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 232,
+      "mensagem": "Posso remarcar a visita que fiz ontem? Qual horário novo?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 233,
+      "mensagem": "Preciso confirmar a data da visita de diagnóstico, me avisa.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 234,
+      "mensagem": "Gostaria de agendar uma demonstração do novo iDTouch, quando funciona?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 235,
+      "mensagem": "Qual é o melhor dia para eu fazer a instalação do novo sensor facial?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 236,
+      "mensagem": "Pode me enviar os horários disponíveis para a revisão do sistema de segurança?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 237,
+      "mensagem": "Eu não estou disponível às quintas, tem alguma alternativa?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 238,
+      "mensagem": "Quero garantir minha cota de visitas, quando posso agendar mais uma?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 239,
+      "mensagem": "Por favor, confirme se ainda há vagas para a inspeção do REP iDClass.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 240,
+      "mensagem": "bom dia! tudo bem?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "cortesia",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 241,
+      "mensagem": "obrigado por responder rápido.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 242,
+      "mensagem": "valeu, consegui resolver meu problema.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 243,
+      "mensagem": "E aí, como estão as coisas?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 244,
+      "mensagem": "onde fica a sede da sua empresa?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 245,
+      "mensagem": "as horas de funcionamento são das 9h às 18h?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 246,
+      "mensagem": "tem vaga de emprego para engenheiro de sistemas?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 247,
+      "mensagem": "qual o resultado do jogo de futebol ontem?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 248,
+      "mensagem": "me conta uma piada sobre robôs.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 249,
+      "mensagem": "acabei de ver um artigo sobre IoT e achei muito legal.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 250,
+      "mensagem": "estou aprendendo sobre redes neurais e gostaria de mais dicas.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 251,
+      "mensagem": "a nova versão do Android mudou alguma coisa na interface?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 252,
+      "mensagem": "como é a experiência de usar o aplicativo de controle remoto?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 253,
+      "mensagem": "qual a previsão do tempo para a região?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 254,
+      "mensagem": "me fala um pouco sobre computação quântica.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 255,
+      "mensagem": "sou fã de podcasts de tecnologia, tem algum recomendado?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 256,
+      "mensagem": "o último patch do seu software trouxe novas funcionalidades?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 257,
+      "mensagem": "gosto de programar em Rust, tem alguma dica?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 258,
+      "mensagem": "qual o melhor café para começar o dia?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 259,
+      "mensagem": "qual a diferença entre Wi‑Fi 6 e Wi‑Fi 5?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 260,
+      "mensagem": "Bom dia, tudo bem?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "cortesia",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 261,
+      "mensagem": "Obrigado pela oportunidade!",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 262,
+      "mensagem": "Onde fica o escritório central da empresa?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 263,
+      "mensagem": "Qual o resultado do jogo de basquete de ontem?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 264,
+      "mensagem": "Acabei de testar um novo framework de machine learning e adorei.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 265,
+      "mensagem": "Valeu, como vai?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "cortesia",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 266,
+      "mensagem": "Que horário o sistema de acesso está ativo nos fins de semana?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 267,
+      "mensagem": "Me conta uma piada rápida sobre computadores.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 268,
+      "mensagem": "Já utilizou servidores de nuvem para escalar sua aplicação?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 269,
+      "mensagem": "Boa tarde, estou aqui.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 270,
+      "mensagem": "Existe algum programa de treinamento interno para novos colaboradores?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 271,
+      "mensagem": "O que você acha do último filme de sci‑fi?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 272,
+      "mensagem": "Estou explorando APIs de IoT para automação residencial.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 273,
+      "mensagem": "Obrigado pelo atendimento!",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 274,
+      "mensagem": "Quanto tempo leva para processar um pedido de manutenção?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 275,
+      "mensagem": "Qual a previsão do tempo para a cidade de São Paulo?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 276,
+      "mensagem": "Tenho curiosidade sobre as novidades no mundo de blockchain.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 277,
+      "mensagem": "E aí, tudo certo?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 278,
+      "mensagem": "Há alguma promoção de vagas técnicas disponível agora?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 279,
+      "mensagem": "Você já viu aquele meme engraçado sobre bugs de software?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 280,
+      "mensagem": "Obrigado por chamar!",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 281,
+      "mensagem": "Valeu, que tal um café?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 282,
+      "mensagem": "Fico feliz em ajudar quando precisar!",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 283,
+      "mensagem": "Oi, tudo bem?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "cortesia",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 284,
+      "mensagem": "Onde fica a sua sede?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 285,
+      "mensagem": "Que horas o seu sistema está disponível?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 286,
+      "mensagem": "Tem vaga de emprego na empresa?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 287,
+      "mensagem": "Em quais cidades a empresa possui escritórios?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 288,
+      "mensagem": "Quais são os dias de funcionamento do seu centro de atendimento?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 289,
+      "mensagem": "Qual o resultado do jogo de futebol de ontem?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 290,
+      "mensagem": "Me conta uma piada sobre inteligência artificial.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 291,
+      "mensagem": "Qual a melhor cidade para estudar engenharia?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 292,
+      "mensagem": "Aqui está um truque para aumentar a velocidade de um servidor.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 293,
+      "mensagem": "A nova versão do nosso software trouxe melhorias na interface.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 294,
+      "mensagem": "Você já tentou configurar um firewall DIY?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 295,
+      "mensagem": "Gostei da sua postagem sobre segurança cibernética.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 296,
+      "mensagem": "Aqui está um truque para otimizar o uso de memória em aplicações móveis.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 297,
+      "mensagem": "Meu amigo disse que o Wi‑Fi 6 é mais rápido que o 5G em casa.",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 298,
+      "mensagem": "Bom dia! O resultado do último jogo foi muito emocionante, né?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 299,
+      "mensagem": "Onde fica o escritório central da empresa? Ah, e aí, já experimentou o novo sistema de autenticação por biometria?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
     }
   ]
 }
