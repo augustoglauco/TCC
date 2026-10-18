@@ -127,25 +127,23 @@ def _parse_page_range(range_str: str | None, max_pages: int) -> set[int] | None:
     chunks = [c.strip() for c in range_str.split(",") if c.strip()]
 
     for chunk in chunks:
-        if "-" in chunk:
-            parts = chunk.split("-", 1)
-            start_str, end_str = parts[0].strip(), parts[1].strip()
-
-            start = int(start_str) if start_str.isdigit() else 1
-            end = int(end_str) if end_str.isdigit() else max_pages
-
-            if start > end:
-                start, end = end, start
-
-            for p in range(start, end + 1):
-                if 1 <= p <= max_pages:
-                    pages.add(p)
-        elif chunk.isdigit():
-            p = int(chunk)
-            if 1 <= p <= max_pages:
-                pages.add(p)
-
+        pages |= _expand_chunk(chunk, max_pages)
     return pages
+
+
+def _expand_chunk(chunk: str, max_pages: int) -> set[int]:
+    """Expande um único token ('3-5', '3-', '-4', '7') em páginas válidas."""
+    if "-" in chunk:
+        start_str, end_str = chunk.split("-", 1)
+        start = int(start_str) if start_str.isdigit() else 1
+        end = int(end_str) if end_str.isdigit() else max_pages
+        if start > end:
+            start, end = end, start
+        return {p for p in range(start, end + 1) if 1 <= p <= max_pages}
+    if chunk.isdigit():
+        p = int(chunk)
+        return {p} if 1 <= p <= max_pages else set()
+    return set()
 
 
 def _blocos_de_texto(content: bytes, max_chars: int = TAMANHO_BLOCO_TEXTO) -> list[str]:
@@ -291,17 +289,22 @@ def _figura_valida(
         return False
     if w >= page_w * 0.92 and h >= page_h * 0.92:
         return False
-    if (top < 38 or bottom > page_h - 38) and (w < 160 and h < 65):
+    na_borda = top < 38 or bottom > page_h - 38
+    pequena_demais = w < 160 and h < 65
+    if na_borda and pequena_demais:
         return False
-    for cand in candidates:
-        if (
-            abs(cand["x0"] - x0) < 6
-            and abs(cand["top"] - top) < 6
-            and abs(cand["w"] - w) < 6
-            and abs(cand["h"] - h) < 6
-        ):
-            return False
+    if any(_is_duplicate_figure(c, x0, top, w, h) for c in candidates):
+        return False
     return True
+
+
+def _is_duplicate_figure(cand: dict[str, float], x0: float, top: float, w: float, h: float) -> bool:
+    return (
+        abs(cand["x0"] - x0) < 6
+        and abs(cand["top"] - top) < 6
+        and abs(cand["w"] - w) < 6
+        and abs(cand["h"] - h) < 6
+    )
 
 
 def _extrair_figuras_pagina(page: Any, pil_img: Image.Image, temp_dir: Path) -> list[str]:
@@ -430,6 +433,64 @@ async def _processar_bloco_texto(
     )
 
 
+async def _extrair_produtos_pagina_pdf(
+    *,
+    provider: str,
+    fallback_external: bool,
+    texto_pagina: str,
+    img_bytes: bytes | None,
+    filename: str,
+    num_pagina_pdf: int,
+    local_client: Any,
+    vision_client: Any,
+    session_factory: Any,
+) -> tuple[str, list[dict[str, Any]], str | None]:  # (provider_usado, raw_prods, erro)
+    """Despacha para local ou externo e retorna (provider_usado, raw_prods, erro_pagina)."""
+    provider_usado = provider
+    raw_prods: list[dict[str, Any]] = []
+    erro_pagina: str | None = None
+
+    if provider == "external":
+        if img_bytes and vision_client:
+            try:
+                raw_prods = await extract_page_products_vision(
+                    img_bytes,
+                    vision_client,
+                    source_identifier=f"{filename}#p{num_pagina_pdf}",
+                    session_factory=session_factory,
+                    ambiente="externo",
+                )
+            except Exception as e:
+                logger.error(f"Erro na visão externa: {e}")
+                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
+        return provider_usado, raw_prods, erro_pagina
+
+    texto_suficiente = len(texto_pagina.strip()) >= 30
+    if texto_suficiente and local_client:
+        try:
+            raw_prods = await extract_page_products_local(texto_pagina, local_client)
+            provider_usado = "local"
+        except Exception as e:
+            logger.warning(f"Erro na extração local: {e}")
+
+    pode_usar_fallback = not raw_prods and fallback_external and img_bytes and vision_client
+    if pode_usar_fallback:
+        try:
+            raw_prods = await extract_page_products_vision(
+                img_bytes,  # type: ignore[arg-type]
+                vision_client,
+                source_identifier=f"{filename}#p{num_pagina_pdf}",
+                session_factory=session_factory,
+                ambiente="externo",
+            )
+            provider_usado = "external"
+        except Exception as e:
+            logger.error(f"Erro no fallback de visão externa: {e}")
+            erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
+
+    return provider_usado, raw_prods, erro_pagina
+
+
 async def _processar_pagina_pdf(
     page: Any,
     idx: int,
@@ -475,43 +536,17 @@ async def _processar_pagina_pdf(
         except Exception as e:
             logger.warning(f"Erro ao extrair figuras recortadas da página {num_pagina_pdf}: {e}")
 
-    provider_usado = provider
-    raw_prods: list[dict[str, Any]] = []
-    erro_pagina: str | None = None
-
-    if provider == "external":
-        if img_bytes and vision_client:
-            try:
-                raw_prods = await extract_page_products_vision(
-                    img_bytes,
-                    vision_client,
-                    source_identifier=f"{filename}#p{num_pagina_pdf}",
-                    session_factory=session_factory,
-                    ambiente="externo",
-                )
-            except Exception as e:
-                logger.error(f"Erro na visão externa: {e}")
-                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
-    else:
-        if len(texto_pagina.strip()) >= 30 and local_client:
-            try:
-                raw_prods = await extract_page_products_local(texto_pagina, local_client)
-                provider_usado = "local"
-            except Exception as e:
-                logger.warning(f"Erro na extração local: {e}")
-        if not raw_prods and fallback_external and img_bytes and vision_client:
-            try:
-                raw_prods = await extract_page_products_vision(
-                    img_bytes,
-                    vision_client,
-                    source_identifier=f"{filename}#p{num_pagina_pdf}",
-                    session_factory=session_factory,
-                    ambiente="externo",
-                )
-                provider_usado = "external"
-            except Exception as e:
-                logger.error(f"Erro no fallback de visão externa: {e}")
-                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
+    provider_usado, raw_prods, erro_pagina = await _extrair_produtos_pagina_pdf(
+        provider=provider,
+        fallback_external=fallback_external,
+        texto_pagina=texto_pagina,
+        img_bytes=img_bytes,
+        filename=filename,
+        num_pagina_pdf=num_pagina_pdf,
+        local_client=local_client,
+        vision_client=vision_client,
+        session_factory=session_factory,
+    )
 
     produtos: list[ExtractedProduct] = []
     for i, item in enumerate(raw_prods):
@@ -636,7 +671,8 @@ async def _processar_imagem_avulsa(
             content, filename, local_client, session_factory
         )
 
-    if not raw_prods and (provider == "external" or fallback_external) and vision_client:
+    deve_tentar_externo = not raw_prods and (provider == "external" or fallback_external)
+    if deve_tentar_externo and vision_client:
         raw_prods, provider_usado, erro_pagina = await _tentar_extracao_externa_imagem(
             content, filename, vision_client, session_factory
         )
@@ -676,6 +712,70 @@ async def _processar_imagem_avulsa(
 def _page_result_do_sse(sse_page: str) -> CatalogPageResult:
     """Relê o `CatalogPageResult` que acabou de ser serializado no evento SSE."""
     return CatalogPageResult.model_validate_json(sse_page.split("data: ", 1)[1].rstrip())
+
+
+async def _processar_arquivo_stream(
+    filename: str,
+    content: bytes,
+    file_type: str,
+    num_pages: int,
+    paginas_alvo: set[int] | None,
+    pagina_global_start: int,
+    total_paginas: int,
+    provider: str,
+    fallback_external: bool,
+    temp_dir: Path,
+    local_client: Any,
+    vision_client: Any,
+    session_factory: Any,
+) -> AsyncGenerator[tuple[str, str]]:
+    """Gera pares (sse_progresso, sse_pagina_concluida) para um único arquivo."""
+    pagina_global = pagina_global_start
+
+    if file_type == "text":
+        for num_bloco, bloco in enumerate(_blocos_de_texto(content), start=1):
+            pagina_global += 1
+            yield await _processar_bloco_texto(
+                bloco, num_bloco, num_pages, pagina_global, total_paginas, filename, local_client
+            )
+
+    elif file_type == "pdf":
+        if num_pages == 0:
+            return
+        with pdfplumber.open(io.BytesIO(content)) as pdf:
+            for idx, page in enumerate(pdf.pages):
+                if paginas_alvo is not None and (idx + 1) not in paginas_alvo:
+                    continue
+                pagina_global += 1
+                yield await _processar_pagina_pdf(
+                    page,
+                    idx,
+                    num_pages,
+                    pagina_global,
+                    total_paginas,
+                    filename,
+                    provider,
+                    fallback_external,
+                    temp_dir,
+                    local_client,
+                    vision_client,
+                    session_factory,
+                )
+
+    else:
+        pagina_global += 1
+        yield await _processar_imagem_avulsa(
+            filename,
+            content,
+            pagina_global,
+            total_paginas,
+            provider,
+            fallback_external,
+            temp_dir,
+            local_client,
+            vision_client,
+            session_factory,
+        )
 
 
 async def extract_catalog_stream(
@@ -719,68 +819,27 @@ async def extract_catalog_stream(
     total_produtos_extraidos = 0
 
     for filename, content, file_type, num_pages, paginas_alvo in file_pages_plan:
-        if file_type == "text":
-            for num_bloco, bloco in enumerate(_blocos_de_texto(content), start=1):
-                pagina_global += 1
-                sse_prog, sse_page = await _processar_bloco_texto(
-                    bloco,
-                    num_bloco,
-                    num_pages,
-                    pagina_global,
-                    total_paginas,
-                    filename,
-                    local_client,
-                )
-                yield sse_prog
-                page_result = _page_result_do_sse(sse_page)
-                total_produtos_extraidos += len(page_result.produtos)
-                yield sse_page
-
-        elif file_type == "pdf":
-            if num_pages == 0:
-                continue
-            with pdfplumber.open(io.BytesIO(content)) as pdf:
-                for idx, page in enumerate(pdf.pages):
-                    if paginas_alvo is not None and (idx + 1) not in paginas_alvo:
-                        continue
-                    pagina_global += 1
-                    sse_prog, sse_page = await _processar_pagina_pdf(
-                        page,
-                        idx,
-                        num_pages,
-                        pagina_global,
-                        total_paginas,
-                        filename,
-                        provider,
-                        fallback_external,
-                        temp_dir,
-                        local_client,
-                        vision_client,
-                        session_factory,
-                    )
-                    yield sse_prog
-                    page_result = _page_result_do_sse(sse_page)
-                    total_produtos_extraidos += len(page_result.produtos)
-                    yield sse_page
-
-        else:
-            pagina_global += 1
-            sse_prog, sse_page = await _processar_imagem_avulsa(
-                filename,
-                content,
-                pagina_global,
-                total_paginas,
-                provider,
-                fallback_external,
-                temp_dir,
-                local_client,
-                vision_client,
-                session_factory,
-            )
+        pages_yielded = 0
+        async for sse_prog, sse_page in _processar_arquivo_stream(
+            filename,
+            content,
+            file_type,
+            num_pages,
+            paginas_alvo,
+            pagina_global,
+            total_paginas,
+            provider,
+            fallback_external,
+            temp_dir,
+            local_client,
+            vision_client,
+            session_factory,
+        ):
             yield sse_prog
-            page_result = _page_result_do_sse(sse_page)
-            total_produtos_extraidos += len(page_result.produtos)
+            total_produtos_extraidos += len(_page_result_do_sse(sse_page).produtos)
             yield sse_page
+            pages_yielded += 1
+        pagina_global += pages_yielded
 
     final = {"total_produtos": total_produtos_extraidos, "total_paginas": total_paginas}
     yield f"event: done\ndata: {json.dumps(final)}\n\n"
