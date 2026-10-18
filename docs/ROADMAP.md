@@ -2238,6 +2238,38 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       não existia. O gate de `doc-drift` não pega esse caso — a citação é prosa,
       não link nem caminho.
 
+### Verificações de infraestrutura da Fase 10 (2026-10-17/18)
+
+- [x] **`docs_mcp_b2b` com 0 documentos não é buraco de cobertura** — achado
+      ao inventariar a infraestrutura. O recurso `manuais://busca` do MCP B2B
+      busca nas collections ativas com `purpose` em (`mcp_b2b`, `chat`), então
+      o parceiro **já enxerga os 98 documentos do corpus** pela collection
+      `docs_texto_gemma512`. Verificado ponta a ponta pelo caminho real
+      (`buscar_em_varias_collections` com o mesmo filtro do recurso): consultas
+      sobre tensão do iDFace e instalação do iDBlock devolvem 3 resultados cada,
+      scores 0,55–0,59, todos do corpus. A collection `mcp_b2b` existe para
+      conteúdo **exclusivo** do canal, que hoje não existe — ingerir documento
+      inventado só para preenchê-la criaria conteúdo sem fonte. Fica vazia por
+      ausência de conteúdo exclusivo, não por pendência.
+- [x] **Descrição do recurso `manuais://busca` corrigida.** Ela dizia
+      "restrita ao canal MCP B2B (collections com purpose=mcp_b2b — nunca o RAG
+      do chat público)", o **oposto** do que o código faz desde a decisão de
+      2026-09-30 (`docs/ARCHITECTURE.md` §6). A descrição é o texto que a IA do
+      parceiro lê para decidir como usar o recurso, então era desinformação na
+      interface, não só comentário velho.
+- [x] **`intfloat/multilingual-e5-large-instruct` baixado** (2026-10-18): era o
+      único dos 4 candidatos de embedding da Etapa 2 fora do cache. Os outros
+      três (`paraphrase-multilingual-MiniLM-L12-v2`, `embeddinggemma-300m`,
+      `BAAI/bge-m3`) já estavam.
+- [ ] **9 dos 10 modelos candidatos não estão baixados** (~68 GB): só
+      `gemma4:12b-it-q4_K_M` está no Ollama. O orquestrador **pula com aviso**
+      candidato ausente, então uma triagem hoje mediria 1 de 10 e terminaria
+      dizendo que deu tudo certo. Faltam `llama3.1:8b`, `qwen2.5:7b`,
+      `qwen3:14b-q4_K_M`, `qwen3:14b-q5_K_M`, `qwen3:8b-q5_K_M`,
+      `qwen3:8b-q8_0`, `phi4-mini`, `phi4`, `gemma4:12b-it-q8_0`. Disco tem
+      422 GB livres. **Aguarda autorização do dono**, e as tags precisam ser
+      validadas no `pull` (não há garantia de que todas existam no registry).
+
 ## Fase 11 — Preparação da Entrega
 
 - [ ] Revisar todos os 12 requisitos funcionais contra o que foi de fato
