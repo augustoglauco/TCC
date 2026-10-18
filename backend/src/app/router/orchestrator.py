@@ -3,10 +3,11 @@ import logging
 import re
 import time
 import unicodedata
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from decimal import Decimal
+from functools import partial
 from pathlib import Path
 from typing import Any, Literal
 
@@ -870,19 +871,16 @@ async def _confirmar_agendamento(
         yield evento
 
 
-async def _handle_agendamento(
-    conversation_id: str,
+async def _extrair_slots_agendamento(
     message: str,
     recent_messages: list[str],
+    slots: BookingSlots,
     local_client: LLMClient,
-    calendar_client: CalendarClient,
     scheduling_config: SchedulingConfig,
-    intent_router_provider: str,
-    db_sessionmaker: async_sessionmaker[AsyncSession] | None = None,
-) -> AsyncIterator[TokenEvent | RouterDecision]:
-    slots = get_booking_slots(conversation_id)
+) -> Any:
+    """Extrai slots via LLM local; falha vira `LocalBackendIndisponivelError`."""
     try:
-        extraction = await extract_booking_slots(
+        return await extract_booking_slots(
             message, recent_messages, slots, local_client, scheduling_config.timezone
         )
     except Exception as exc:
@@ -898,6 +896,22 @@ async def _handle_agendamento(
             },
         )
         raise LocalBackendIndisponivelError(str(exc)) from exc
+
+
+async def _handle_agendamento(
+    conversation_id: str,
+    message: str,
+    recent_messages: list[str],
+    local_client: LLMClient,
+    calendar_client: CalendarClient,
+    scheduling_config: SchedulingConfig,
+    intent_router_provider: str,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None = None,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    slots = get_booking_slots(conversation_id)
+    extraction = await _extrair_slots_agendamento(
+        message, recent_messages, slots, local_client, scheduling_config
+    )
     slots = merge_slots(slots, extraction)
 
     if not slots.is_complete():
@@ -910,22 +924,21 @@ async def _handle_agendamento(
             yield evento
         return
 
-    if slots.awaiting_confirmation:
-        if extraction.confirmacao:
-            async for evento in _confirmar_agendamento(
-                slots,
-                conversation_id,
-                calendar_client,
-                scheduling_config,
-                intent_router_provider,
-                db_sessionmaker,
-            ):
-                yield evento
-            return
-        # Resposta ambígua durante awaiting_confirmation=True: volta a
-        # "não confirmado ainda" para cair na validação abaixo NO MESMO turno
-        # (spec §4.1 passo 7).
-        slots.awaiting_confirmation = False
+    if slots.awaiting_confirmation and extraction.confirmacao:
+        async for evento in _confirmar_agendamento(
+            slots,
+            conversation_id,
+            calendar_client,
+            scheduling_config,
+            intent_router_provider,
+            db_sessionmaker,
+        ):
+            yield evento
+        return
+    # Resposta ambígua durante awaiting_confirmation=True: volta a "não
+    # confirmado ainda" para cair na validação abaixo NO MESMO turno
+    # (spec §4.1 passo 7).
+    slots.awaiting_confirmation = False
 
     try:
         slots.data_hora = await _validar_horario_para_agendamento(
@@ -1087,71 +1100,48 @@ async def _emitir_eventos_chart(
         yield RouterDecision(**base, resposta=explicacao)
 
 
-async def _handle_chart_request(
+async def _emitir_chart_somente_admin(
+    intent_router_provider: str,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    msg = (
+        "A geração de gráficos e dashboards é um recurso exclusivo para "
+        "administradores autenticados. Faça login como administrador para "
+        "gerar e visualizar gráficos dinâmicos."
+    )
+    yield TokenEvent(text=msg)
+    yield RouterDecision(
+        domain="fora_escopo",
+        complexity="baixa",
+        confidence=1.0,
+        complexity_strategy_usada="regras",
+        backend_escolhido="local",
+        motivo_escalonamento="fora_escopo",
+        resposta=msg,
+        latencia_ms=0.0,
+        tokens_entrada=None,
+        tokens_saida=None,
+        cost_prompt_usd=0.0,
+        cost_completion_usd=0.0,
+        custo_estimado_usd=0.0,
+        router_provider=intent_router_provider,
+    )
+
+
+async def _gerar_chart(
     message: str,
-    is_admin: bool,
     user_email: str | None,
     local_client: LLMClient,
     external_client: LLMClient,
-    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
-    intent_router_provider: str,
-) -> AsyncIterator[TokenEvent | RouterDecision]:
-    """Processa pedidos de gráfico dinâmico (admin). Yields eventos e retorna
-    após o primeiro yield bem-sucedido; não yields nada se não for pedido de gráfico."""
-    from app.router.sales_catalog import detectar_intencao_comprovante
-    from app.services.analytics_agent import (
-        extract_prompt_inline_data,
-        process_dynamic_chart_request,
-    )
-    from app.services.chart_generator import detect_chart_request
+    db_sessionmaker: async_sessionmaker[AsyncSession],
+) -> tuple[Any, str, int | None, int | None]:
+    """Gera o gráfico; falha interna vira explicação amigável (sem chart)."""
+    from app.services.analytics_agent import process_dynamic_chart_request
 
-    if detectar_intencao_comprovante(message):
-        return
-    if not (detect_chart_request(message) or extract_prompt_inline_data(message)):
-        return
-
-    if not is_admin:
-        msg = (
-            "A geração de gráficos e dashboards é um recurso exclusivo para "
-            "administradores autenticados. Faça login como administrador para "
-            "gerar e visualizar gráficos dinâmicos."
-        )
-        yield TokenEvent(text=msg)
-        yield RouterDecision(
-            domain="fora_escopo",
-            complexity="baixa",
-            confidence=1.0,
-            complexity_strategy_usada="regras",
-            backend_escolhido="local",
-            motivo_escalonamento="fora_escopo",
-            resposta=msg,
-            latencia_ms=0.0,
-            tokens_entrada=None,
-            tokens_saida=None,
-            cost_prompt_usd=0.0,
-            cost_completion_usd=0.0,
-            custo_estimado_usd=0.0,
-            router_provider=intent_router_provider,
-        )
-        return
-
-    if not db_sessionmaker:
-        return
-
-    chart = None
-    explicacao = ""
-    chart_prompt_tokens: int | None = None
-    chart_completion_tokens: int | None = None
     try:
         analytics_llm = local_client if local_client is not None else external_client
         ambiente = "interno" if analytics_llm is local_client else "externo"
         async with db_sessionmaker() as session:
-            (
-                chart,
-                explicacao,
-                chart_prompt_tokens,
-                chart_completion_tokens,
-            ) = await process_dynamic_chart_request(
+            return await process_dynamic_chart_request(
                 session=session,
                 prompt=message,
                 user_email=user_email or "admin",
@@ -1164,11 +1154,62 @@ async def _handle_chart_request(
             "Não consegui gerar esse gráfico agora por uma falha interna. "
             "Tente novamente em instantes."
         )
+        return None, explicacao, None, None
+
+
+async def _handle_chart_request(
+    message: str,
+    is_admin: bool,
+    user_email: str | None,
+    local_client: LLMClient,
+    external_client: LLMClient,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
+    intent_router_provider: str,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    """Processa pedidos de gráfico dinâmico (admin). Yields eventos e retorna
+    após o primeiro yield bem-sucedido; não yields nada se não for pedido de gráfico."""
+    from app.router.sales_catalog import detectar_intencao_comprovante
+    from app.services.analytics_agent import extract_prompt_inline_data
+    from app.services.chart_generator import detect_chart_request
+
+    if detectar_intencao_comprovante(message):
+        return
+    if not (detect_chart_request(message) or extract_prompt_inline_data(message)):
+        return
+
+    if not is_admin:
+        async for evento in _emitir_chart_somente_admin(intent_router_provider):
+            yield evento
+        return
+
+    if not db_sessionmaker:
+        return
+
+    chart, explicacao, chart_prompt_tokens, chart_completion_tokens = await _gerar_chart(
+        message, user_email, local_client, external_client, db_sessionmaker
+    )
 
     async for evento in _emitir_eventos_chart(
         chart, explicacao, intent_router_provider, chart_prompt_tokens, chart_completion_tokens
     ):
         yield evento
+
+
+_PEDIDO_UUID_RE = re.compile(
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+)
+
+
+def _extrair_pedido_uuid(message: str) -> str | None:
+    match = _PEDIDO_UUID_RE.search(message)
+    return match.group(0) if match else None
+
+
+def _tokens_do_parecer(parecer: Any) -> dict[str, int | None]:
+    return {
+        "tokens_entrada": parecer.prompt_tokens if parecer else None,
+        "tokens_saida": parecer.completion_tokens if parecer else None,
+    }
 
 
 async def _handle_comprovante(
@@ -1207,11 +1248,7 @@ async def _handle_comprovante(
         router_provider=intent_router_provider,
     )
     try:
-        pedido_uuid_match = re.search(
-            r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
-            message,
-        )
-        pedido_uuid = pedido_uuid_match.group(0) if pedido_uuid_match else None
+        pedido_uuid = _extrair_pedido_uuid(message)
         llm_to_use = local_client if local_client is not None else external_client
 
         async with db_sessionmaker() as session:
@@ -1241,8 +1278,7 @@ async def _handle_comprovante(
         yield RouterDecision(
             **_decision_base,
             resposta=texto_resp,
-            tokens_entrada=parecer_res.prompt_tokens if parecer_res else None,
-            tokens_saida=parecer_res.completion_tokens if parecer_res else None,
+            **_tokens_do_parecer(parecer_res),
         )
     except Exception as exc:
         logger.warning(
@@ -1286,6 +1322,17 @@ class _RagResult:
     rag_chunks: list[RagChunkMetric] | None = None
 
 
+def _preencher_metricas_rag(r: _RagResult, t0: float) -> None:
+    """Preenche latência e métricas de score/chunks do RAG in-place."""
+    r.rag_retrieval_ms = round((time.perf_counter() - t0) * 1000.0, 2)
+    r.rag_chunks_count = len(r.documentos)
+    if r.documentos:
+        r.rag_avg_score = round(sum(d.score for d in r.documentos) / len(r.documentos), 4)
+        r.rag_chunks = [
+            RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in r.documentos
+        ]
+
+
 async def _buscar_rag_e_rotear(
     message: str,
     recent_messages: list[str],
@@ -1302,9 +1349,9 @@ async def _buscar_rag_e_rotear(
     r = _RagResult()
     if classification.domain == "fora_escopo":
         if classification.complexity != "baixa":
-            r.backend_escolhido = "externo"
-            r.motivo = "fora_escopo"
+            r.backend_escolhido, r.motivo = "externo", "fora_escopo"
         return r
+    ultima_resposta = ultima_troca[1] if ultima_troca else None
 
     t0 = time.perf_counter()
     try:
@@ -1315,7 +1362,7 @@ async def _buscar_rag_e_rotear(
                     recent_messages,
                     classification.domain,
                     rag_client,
-                    ultima_resposta=ultima_troca[1] if ultima_troca else None,
+                    ultima_resposta=ultima_resposta,
                     top_k=rag_top_k,
                     score_threshold=rag_score_threshold,
                 )
@@ -1327,7 +1374,7 @@ async def _buscar_rag_e_rotear(
                         recent_messages,
                         sales_catalog_client,
                         local_client,
-                        ultima_resposta=ultima_troca[1] if ultima_troca else None,
+                        ultima_resposta=ultima_resposta,
                     )
                 )
                 if classification.domain == "vendas" and sales_catalog_client is not None
@@ -1352,14 +1399,7 @@ async def _buscar_rag_e_rotear(
     if vendas_task is not None:
         r.dados_catalogo_vendas = vendas_task.result()
 
-    r.rag_retrieval_ms = round((time.perf_counter() - t0) * 1000.0, 2)
-    r.rag_chunks_count = len(r.documentos)
-    if r.documentos:
-        r.rag_avg_score = round(sum(d.score for d in r.documentos) / len(r.documentos), 4)
-        r.rag_chunks = [
-            RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in r.documentos
-        ]
-
+    _preencher_metricas_rag(r, t0)
     _decidir_backend(r, classification, dados_cliente)
     return r
 
@@ -1600,6 +1640,20 @@ async def _sem_analise_de_tom() -> ToneResult:
     )
 
 
+async def _executar_handlers_curtos(
+    *handlers: Callable[[], AsyncIterator[TokenEvent | RouterDecision]],
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    """Roda os handlers em ordem (criados sob demanda) e para no primeiro que
+    emitir um `RouterDecision` — ele já concluiu o turno."""
+    for criar in handlers:
+        concluido = False
+        async for evento in criar():
+            yield evento
+            concluido = concluido or isinstance(evento, RouterDecision)
+        if concluido:
+            return
+
+
 async def handle_message(  # noqa: PLR0913
     message: str,
     recent_messages: list[str],
@@ -1646,8 +1700,7 @@ async def handle_message(  # noqa: PLR0913
         ultima_troca=ultima_troca,
     )
 
-    deve_escalar = _deve_escalar_tom(tone_monitor_enabled, tone_result, conversation_id)
-    if deve_escalar:
+    if _deve_escalar_tom(tone_monitor_enabled, tone_result, conversation_id):
         marcar_escalada(conversation_id)
         yield EscalonamentoEvent(
             motivo=tone_result.motivo,
@@ -1656,35 +1709,32 @@ async def handle_message(  # noqa: PLR0913
         )
 
     concluido = False
-    async for evento in _handle_chart_request(
-        message=message,
-        is_admin=is_admin,
-        user_email=user_email,
-        local_client=local_client,
-        external_client=external_client,
-        db_sessionmaker=db_sessionmaker,
-        intent_router_provider=intent_router_provider,
+    async for evento in _executar_handlers_curtos(
+        partial(
+            _handle_chart_request,
+            message=message,
+            is_admin=is_admin,
+            user_email=user_email,
+            local_client=local_client,
+            external_client=external_client,
+            db_sessionmaker=db_sessionmaker,
+            intent_router_provider=intent_router_provider,
+        ),
+        partial(
+            _handle_comprovante,
+            message=message,
+            conversation_id=conversation_id,
+            user_email=user_email,
+            local_client=local_client,
+            external_client=external_client,
+            db_sessionmaker=db_sessionmaker,
+            intent_router_provider=intent_router_provider,
+            comprovante_bytes=comprovante_bytes,
+            comprovante_filename=comprovante_filename,
+        ),
     ):
         yield evento
-        if isinstance(evento, RouterDecision):
-            concluido = True
-    if concluido:
-        return
-
-    async for evento in _handle_comprovante(
-        message=message,
-        conversation_id=conversation_id,
-        user_email=user_email,
-        local_client=local_client,
-        external_client=external_client,
-        db_sessionmaker=db_sessionmaker,
-        intent_router_provider=intent_router_provider,
-        comprovante_bytes=comprovante_bytes,
-        comprovante_filename=comprovante_filename,
-    ):
-        yield evento
-        if isinstance(evento, RouterDecision):
-            concluido = True
+        concluido = concluido or isinstance(evento, RouterDecision)
     if concluido:
         return
 
