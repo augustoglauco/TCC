@@ -1032,6 +1032,61 @@ async def _handle_tone_e_classify(
     return tone_task.result(), classification_task.result()
 
 
+def _emitir_chart_decision_base(
+    intent_router_provider: str, tokens_entrada: int | None, tokens_saida: int | None
+) -> dict:
+    return dict(
+        complexity="baixa",
+        confidence=1.0,
+        complexity_strategy_usada="regras",
+        backend_escolhido="local",
+        motivo_escalonamento="nenhum",
+        latencia_ms=0.0,
+        cost_prompt_usd=0.0,
+        cost_completion_usd=0.0,
+        custo_estimado_usd=0.0,
+        domain="atendimento",
+        router_provider=intent_router_provider,
+        tokens_entrada=tokens_entrada,
+        tokens_saida=tokens_saida,
+    )
+
+
+async def _emitir_eventos_chart(
+    chart: Any,
+    explicacao: str,
+    intent_router_provider: str,
+    chart_prompt_tokens: int | None,
+    chart_completion_tokens: int | None,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    """Emite os eventos SSE para um resultado de gráfico já processado."""
+    base = _emitir_chart_decision_base(
+        intent_router_provider, chart_prompt_tokens, chart_completion_tokens
+    )
+    if chart:
+        texto = explicacao or (
+            f"Gerei o gráfico '{chart.titulo}' para você com base nos dados mais recentes. "
+            "Ele já está salvo no seu painel de Dashboards."
+        )
+        yield TokenEvent(text=texto)
+        yield RouterDecision(
+            **base,
+            resposta=texto,
+            card=CardGrafico(
+                chart_id=str(chart.id),
+                titulo=chart.titulo,
+                tipo_grafico=chart.tipo_grafico,
+                config=chart.config_json,
+                dados=chart.dados_json,
+                fixado=chart.fixado,
+            ),
+        )
+        return
+    if explicacao:
+        yield TokenEvent(text=explicacao)
+        yield RouterDecision(**base, resposta=explicacao)
+
+
 async def _handle_chart_request(
     message: str,
     is_admin: bool,
@@ -1110,43 +1165,10 @@ async def _handle_chart_request(
             "Tente novamente em instantes."
         )
 
-    _decision_base: dict = dict(
-        complexity="baixa",
-        confidence=1.0,
-        complexity_strategy_usada="regras",
-        backend_escolhido="local",
-        motivo_escalonamento="nenhum",
-        latencia_ms=0.0,
-        cost_prompt_usd=0.0,
-        cost_completion_usd=0.0,
-        custo_estimado_usd=0.0,
-        domain="atendimento",
-        router_provider=intent_router_provider,
-        tokens_entrada=chart_prompt_tokens,
-        tokens_saida=chart_completion_tokens,
-    )
-    if chart:
-        texto = explicacao or (
-            f"Gerei o gráfico '{chart.titulo}' para você com base nos dados mais recentes. "
-            "Ele já está salvo no seu painel de Dashboards."
-        )
-        yield TokenEvent(text=texto)
-        yield RouterDecision(
-            **_decision_base,
-            resposta=texto,
-            card=CardGrafico(
-                chart_id=str(chart.id),
-                titulo=chart.titulo,
-                tipo_grafico=chart.tipo_grafico,
-                config=chart.config_json,
-                dados=chart.dados_json,
-                fixado=chart.fixado,
-            ),
-        )
-        return
-    if explicacao:
-        yield TokenEvent(text=explicacao)
-        yield RouterDecision(**_decision_base, resposta=explicacao)
+    async for evento in _emitir_eventos_chart(
+        chart, explicacao, intent_router_provider, chart_prompt_tokens, chart_completion_tokens
+    ):
+        yield evento
 
 
 async def _handle_comprovante(
@@ -1200,15 +1222,8 @@ async def _handle_comprovante(
                 pedido_id=pedido_uuid,
             )
             if not pedido:
-                msg = (
-                    "Recebi o envio do comprovante, mas não encontrei nenhuma reserva "
-                    "pendente ativa associada a esta conversa ou conta. Por favor, "
-                    "verifique o código da sua reserva ou faça seu pedido primeiro."
-                )
-                yield TokenEvent(text=msg)
-                yield RouterDecision(
-                    **_decision_base, resposta=msg, tokens_entrada=None, tokens_saida=None
-                )
+                async for ev in _emitir_comprovante_sem_reserva(_decision_base):
+                    yield ev
                 return
             sucesso, texto_resp, parecer_res = await processar_conversao_comprovante(
                 session=session,
@@ -1240,6 +1255,23 @@ async def _handle_comprovante(
                 }
             },
         )
+
+
+def _emitir_comprovante_sem_reserva(
+    decision_base: dict,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    """Yields os dois eventos SSE para o caso de comprovante sem reserva ativa."""
+    msg = (
+        "Recebi o envio do comprovante, mas não encontrei nenhuma reserva "
+        "pendente ativa associada a esta conversa ou conta. Por favor, "
+        "verifique o código da sua reserva ou faça seu pedido primeiro."
+    )
+
+    async def _gen():
+        yield TokenEvent(text=msg)
+        yield RouterDecision(**decision_base, resposta=msg, tokens_entrada=None, tokens_saida=None)
+
+    return _gen()
 
 
 @dataclass
@@ -1328,13 +1360,18 @@ async def _buscar_rag_e_rotear(
             RagChunkMetric(source=d.source, score=round(d.score, 4)) for d in r.documentos
         ]
 
+    _decidir_backend(r, classification, dados_cliente)
+    return r
+
+
+def _decidir_backend(r: _RagResult, classification: Any, dados_cliente: str | None) -> None:
+    """Aplica a regra de roteamento local/externo ao resultado do RAG in-place."""
     if not r.documentos and r.dados_catalogo_vendas is None and dados_cliente is None:
         r.backend_escolhido = "externo"
         r.motivo = "rag_vazio"
     elif classification.complexity == "alta":
         r.backend_escolhido = "externo"
         r.motivo = "complexidade_alta"
-    return r
 
 
 async def _gerar_stream_llm(
@@ -1532,6 +1569,26 @@ async def _handle_llm_generation(
     yield decisao
 
 
+def _deve_escalar_tom(
+    tone_monitor_enabled: bool,
+    tone_result: ToneResult,
+    conversation_id: str,
+) -> bool:
+    return tone_monitor_enabled and tone_result.escalate and not ja_escalada(conversation_id)
+
+
+def _agendamento_ativo(
+    calendar_client: CalendarClient | None,
+    scheduling_config: SchedulingConfig | None,
+    domain: str,
+    conversation_id: str,
+) -> bool:
+    if calendar_client is None or scheduling_config is None:
+        return False
+    slots = get_booking_slots(conversation_id)
+    return domain == "agendamento" or slots != BookingSlots()
+
+
 async def _sem_analise_de_tom() -> ToneResult:
     """Substituto de `analyze_tone()` quando `tone_monitor_enabled=False` —
     devolve um resultado neutro sem nenhuma chamada de rede, só para manter
@@ -1589,7 +1646,8 @@ async def handle_message(  # noqa: PLR0913
         ultima_troca=ultima_troca,
     )
 
-    if tone_monitor_enabled and tone_result.escalate and not ja_escalada(conversation_id):
+    deve_escalar = _deve_escalar_tom(tone_monitor_enabled, tone_result, conversation_id)
+    if deve_escalar:
         marcar_escalada(conversation_id)
         yield EscalonamentoEvent(
             motivo=tone_result.motivo,
@@ -1597,6 +1655,7 @@ async def handle_message(  # noqa: PLR0913
             provider_efetivo=tone_result.provider_efetivo,
         )
 
+    concluido = False
     async for evento in _handle_chart_request(
         message=message,
         is_admin=is_admin,
@@ -1608,7 +1667,9 @@ async def handle_message(  # noqa: PLR0913
     ):
         yield evento
         if isinstance(evento, RouterDecision):
-            return
+            concluido = True
+    if concluido:
+        return
 
     async for evento in _handle_comprovante(
         message=message,
@@ -1623,16 +1684,16 @@ async def handle_message(  # noqa: PLR0913
     ):
         yield evento
         if isinstance(evento, RouterDecision):
-            return
+            concluido = True
+    if concluido:
+        return
 
     # MVP: o ramo de agendamento só roda quando (a) calendar_client/scheduling_config
     # foram fornecidos E (b) a classificação disse "agendamento" OU já existe estado
     # parcial salvo para conversation_id.
-    slots_existentes = get_booking_slots(conversation_id)
-    agendamento_em_andamento = (
-        classification.domain == "agendamento" or slots_existentes != BookingSlots()
-    )
-    if calendar_client is not None and scheduling_config is not None and agendamento_em_andamento:
+    if _agendamento_ativo(
+        calendar_client, scheduling_config, classification.domain, conversation_id
+    ):
         async for evento in _handle_agendamento(
             conversation_id=conversation_id,
             message=message,
