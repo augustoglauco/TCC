@@ -98,6 +98,65 @@ const SLIDES: SlideData[] = [
   },
 ];
 
+function SliderNav({
+  slides,
+  currentSlide,
+  onSelect,
+  onPrev,
+  onNext,
+}: {
+  slides: SlideData[];
+  currentSlide: number;
+  onSelect: (idx: number) => void;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="mt-12 pt-6 border-t border-white/15 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="flex items-center gap-2.5">
+        {slides.map((s, idx) => {
+          const active = idx === currentSlide;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => onSelect(idx)}
+              aria-label={`Ir para slide ${idx + 1}: ${s.productName}`}
+              className={`group flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
+                active
+                  ? "bg-[#16c0dd] text-slate-950 font-extrabold shadow-lg shadow-[#16c0dd]/30"
+                  : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
+              }`}
+            >
+              <span>0{idx + 1}</span>
+              <span className={active ? "inline" : "hidden md:inline"}>{s.watermark}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={onPrev}
+          aria-label="Slide anterior"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white hover:bg-[#16c0dd] hover:border-[#16c0dd] hover:text-slate-950 transition-all cursor-pointer"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          onClick={onNext}
+          aria-label="Próximo slide"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white hover:bg-[#16c0dd] hover:border-[#16c0dd] hover:text-slate-950 transition-all cursor-pointer"
+        >
+          ›
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -272,49 +331,14 @@ export default function HeroSlider() {
           </div>
         </div>
 
-        {/* Barra Inferior de Navegação dos Slides (.slider-navigation & .antra-swiper-pagination) */}
-        <div className="mt-12 pt-6 border-t border-white/15 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            {SLIDES.map((s, idx) => {
-              const active = idx === currentSlide;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => setCurrentSlide(idx)}
-                  aria-label={`Ir para slide ${idx + 1}: ${s.productName}`}
-                  className={`group flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-mono transition-all cursor-pointer ${
-                    active
-                      ? "bg-[#16c0dd] text-slate-950 font-extrabold shadow-lg shadow-[#16c0dd]/30"
-                      : "bg-white/10 text-white/70 hover:bg-white/20 hover:text-white"
-                  }`}
-                >
-                  <span>0{idx + 1}</span>
-                  <span className={active ? "inline" : "hidden md:inline"}>{s.watermark}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handlePrev}
-              aria-label="Slide anterior"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white hover:bg-[#16c0dd] hover:border-[#16c0dd] hover:text-slate-950 transition-all cursor-pointer"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              aria-label="Próximo slide"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-white/25 bg-white/10 text-white hover:bg-[#16c0dd] hover:border-[#16c0dd] hover:text-slate-950 transition-all cursor-pointer"
-            >
-              ›
-            </button>
-          </div>
-        </div>
+        {/* Barra Inferior de Navegação dos Slides */}
+        <SliderNav
+          slides={SLIDES}
+          currentSlide={currentSlide}
+          onSelect={setCurrentSlide}
+          onPrev={handlePrev}
+          onNext={handleNext}
+        />
       </div>
     </section>
   );

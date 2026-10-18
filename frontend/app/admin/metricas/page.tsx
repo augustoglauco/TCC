@@ -5,12 +5,12 @@ import Link from "next/link";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { ToastStack, useToast } from "@/components/ui/Toast";
 import { fetchAiUsageMetrics, AiUsageReport, GetMetricsParams } from "@/lib/api/metrics";
-import { formatarDataPtBr } from "@/lib/format/metricas";
 import { SecaoPorOrigem } from "@/components/admin/metricas/SecaoPorOrigem";
 import { SecaoPorAmbiente } from "@/components/admin/metricas/SecaoPorAmbiente";
 import { TabelaPorModelo } from "@/components/admin/metricas/TabelaPorModelo";
 import { TabelaPorOperacao } from "@/components/admin/metricas/TabelaPorOperacao";
 import { TabelaDiaria } from "@/components/admin/metricas/TabelaDiaria";
+import { PeriodSelector, Period } from "@/components/admin/metricas/PeriodSelector";
 
 function RefreshIcon({ className = "h-4 w-4" }: { className?: string }) {
   return (
@@ -38,7 +38,7 @@ export default function AdminMetricasPage() {
   const token = useAuthStore((state) => state.token);
   const isCurrentAdmin = currentUser?.perfil?.toLowerCase() === "admin";
 
-  const [period, setPeriod] = useState<"today" | "7d" | "30d" | "all" | "custom">("7d");
+  const [period, setPeriod] = useState<Period>("7d");
   const [selectedDate, setSelectedDate] = useState<string>(() =>
     new Date().toLocaleDateString("en-CA"),
   );
@@ -46,7 +46,6 @@ export default function AdminMetricasPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const dateInputRef = useRef<HTMLInputElement | null>(null);
   const { toasts, showToast, dismissToast } = useToast();
   // Achado da revisão de 2026-10-04: sem isto, uma requisição mais antiga
   // (ex.: "Hoje") que demora mais que uma mais nova (ex.: "7 Dias") podia
@@ -56,7 +55,7 @@ export default function AdminMetricasPage() {
   const requestIdRef = useRef(0);
 
   const carregarMetricas = useCallback(
-    async (p: "today" | "7d" | "30d" | "all" | "custom", isManual = false, dateParam?: string) => {
+    async (p: Period, isManual = false, dateParam?: string) => {
       if (!token) return;
       const requestId = ++requestIdRef.current;
       setLoading(true);
@@ -101,15 +100,6 @@ export default function AdminMetricasPage() {
       void carregarMetricas(period, false, selectedDate);
     }
   }, [isCurrentAdmin, token, period, selectedDate, carregarMetricas]);
-
-  const handleDateChange = (newDate: string) => {
-    if (newDate) {
-      setSelectedDate(newDate);
-      if (period !== "custom") {
-        setPeriod("custom");
-      }
-    }
-  };
 
   if (!currentUser || !isCurrentAdmin) {
     return (
@@ -165,102 +155,13 @@ export default function AdminMetricasPage() {
           </p>
         </div>
 
-        {/* Filtros de Período */}
-        <div className="flex flex-col sm:items-end gap-2 self-start sm:self-auto shrink-0">
-          <div className="flex items-center gap-2 flex-nowrap overflow-x-auto max-w-full">
-            <div className="flex items-center gap-1 sm:gap-1.5 rounded-xl border border-slate-200 bg-white p-1 shadow-2xs shrink-0 flex-nowrap">
-              <label
-                className={`relative inline-flex items-center gap-1.5 rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 whitespace-nowrap cursor-pointer select-none focus-within:ring-2 focus-within:ring-blue-500 ${
-                  period === "custom"
-                    ? "bg-blue-600 text-white shadow-2xs"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-                title="Filtrar por data no calendário"
-              >
-                <span aria-hidden="true">📅</span>
-                <span>
-                  {period === "custom" && selectedDate
-                    ? formatarDataPtBr(selectedDate)
-                    : "Calendário"}
-                </span>
-                <input
-                  ref={dateInputRef}
-                  type="date"
-                  max={new Date().toLocaleDateString("en-CA")}
-                  value={selectedDate}
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  onClick={(e) => {
-                    if (period !== "custom") {
-                      setPeriod("custom");
-                    }
-                    try {
-                      (e.target as HTMLInputElement).showPicker?.();
-                    } catch {}
-                  }}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                  aria-label="Escolher data específica"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => setPeriod("today")}
-                className={`rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 whitespace-nowrap ${
-                  period === "today"
-                    ? "bg-blue-600 text-white shadow-2xs"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-              >
-                Hoje
-              </button>
-              <button
-                type="button"
-                onClick={() => setPeriod("7d")}
-                className={`rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 whitespace-nowrap ${
-                  period === "7d"
-                    ? "bg-blue-600 text-white shadow-2xs"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-              >
-                7 Dias
-              </button>
-              <button
-                type="button"
-                onClick={() => setPeriod("30d")}
-                className={`rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 whitespace-nowrap ${
-                  period === "30d"
-                    ? "bg-blue-600 text-white shadow-2xs"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-              >
-                30 Dias
-              </button>
-              <button
-                type="button"
-                onClick={() => setPeriod("all")}
-                className={`rounded-lg px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition-colors shrink-0 whitespace-nowrap ${
-                  period === "all"
-                    ? "bg-blue-600 text-white shadow-2xs"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-              >
-                Tudo
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {period === "custom" && (
-              <span className="text-[11px] text-blue-700 font-semibold bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                Visualizando dia: {formatarDataPtBr(selectedDate)}
-              </span>
-            )}
-            {lastUpdated && (
-              <span className="text-[11px] text-slate-500 font-medium">
-                Última atualização: {lastUpdated.toLocaleTimeString("pt-BR")}
-              </span>
-            )}
-          </div>
-        </div>
+        <PeriodSelector
+          period={period}
+          selectedDate={selectedDate}
+          lastUpdated={lastUpdated}
+          onPeriodChange={setPeriod}
+          onDateChange={setSelectedDate}
+        />
       </div>
 
       {error ? (
