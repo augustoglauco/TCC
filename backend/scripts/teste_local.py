@@ -443,14 +443,8 @@ def _check_historico_resumo(cenario: Cenario, conversa: dict | None) -> list[str
     return problemas
 
 
-def _veredito(
-    cenario: Cenario,
-    logs: list[dict],
-    resposta: str,
-    done: dict | None = None,
-    conversa: dict | None = None,
-) -> tuple[str, list[str]]:
-    verifica_algo = (
+def _tem_verificacao(cenario: Cenario) -> bool:
+    return bool(
         cenario.resultado_vendas is not None
         or cenario.resposta_contem
         or cenario.resposta_nao_contem
@@ -459,7 +453,16 @@ def _veredito(
         or cenario.historico_esperado is not None
         or cenario.esperar_resumo
     )
-    if not verifica_algo:
+
+
+def _veredito(
+    cenario: Cenario,
+    logs: list[dict],
+    resposta: str,
+    done: dict | None = None,
+    conversa: dict | None = None,
+) -> tuple[str, list[str]]:
+    if not _tem_verificacao(cenario):
         return "—", []
     problemas = _problemas_vendas(cenario, logs) if cenario.resultado_vendas is not None else []
     problemas += _check_resposta(cenario, resposta)
@@ -545,30 +548,39 @@ def _enviar_mensagem(
     return MensagemResultado(texto=texto, done=done, erro=erro, duracao=duracao, logs=logs)
 
 
+def _linhas_done(done: dict, duracao: float) -> list[str]:
+    linhas = [
+        f"- domínio `{done.get('domain')}` · backend `{done.get('backend_used')}` · "
+        f"motivo `{done.get('escalation_reason')}` · modelo `{done.get('model_name')}` · "
+        f"classificador `{done.get('router_provider')}` · "
+        f"rag_retrieval_ms `{done.get('rag_retrieval_ms')}` · total {duracao:.1f}s"
+    ]
+    if done.get("perfil_usuario"):
+        linhas.append(f"- perfil `{done.get('perfil_usuario')}` ({done.get('perfil_motivo')})")
+    return linhas
+
+
+def _linhas_logs_backend(logs: list[dict]) -> list[str]:
+    consultas = [reg for reg in logs if reg.get("message") != "router_decision"]
+    if not consultas:
+        return []
+    linhas = ["", "Logs do backend (vendas/memória/erros):", "", "```json"]
+    for registro in consultas:
+        resumo = {k: v for k, v in registro.items() if k not in {"level", "logger"}}
+        linhas.append(json.dumps(resumo, ensure_ascii=False, indent=2))
+    linhas.append("```")
+    return linhas
+
+
 def _linhas_mensagem(indice: int, mensagem: str, r: MensagemResultado) -> list[str]:
     """Gera as linhas de markdown para uma mensagem individual do cenário."""
     linhas = [f"**Mensagem {indice}:** {mensagem}", ""]
     if r.erro:
         linhas.append(f"- ⚠️ erro: `{r.erro}`")
     if r.done:
-        linhas.append(
-            f"- domínio `{r.done.get('domain')}` · backend `{r.done.get('backend_used')}` · "
-            f"motivo `{r.done.get('escalation_reason')}` · modelo `{r.done.get('model_name')}` · "
-            f"classificador `{r.done.get('router_provider')}` · "
-            f"rag_retrieval_ms `{r.done.get('rag_retrieval_ms')}` · total {r.duracao:.1f}s"
-        )
-        if r.done.get("perfil_usuario"):
-            linhas.append(
-                f"- perfil `{r.done.get('perfil_usuario')}` ({r.done.get('perfil_motivo')})"
-            )
+        linhas += _linhas_done(r.done, r.duracao)
     linhas += ["", "Resposta do assistente:", "", "```text", r.texto.strip() or "(vazia)", "```"]
-    consultas = [reg for reg in r.logs if reg.get("message") != "router_decision"]
-    if consultas:
-        linhas += ["", "Logs do backend (vendas/memória/erros):", "", "```json"]
-        for registro in consultas:
-            resumo = {k: v for k, v in registro.items() if k not in {"level", "logger"}}
-            linhas.append(json.dumps(resumo, ensure_ascii=False, indent=2))
-        linhas.append("```")
+    linhas += _linhas_logs_backend(r.logs)
     linhas.append("")
     return linhas
 
@@ -587,27 +599,25 @@ def _buscar_conversa_e_formatar(
     return conversa, linhas
 
 
-def _rodar_cenario(
-    cliente: httpx.Client, base_url: str, log_path: Path, cenario: Cenario
-) -> tuple[str, list[str]]:
-    linhas = [f"### {cenario.nome}", "", f"**Esperado:** {cenario.esperado}", ""]
-    conversation_id = str(uuid.uuid4())
-    ultimo: MensagemResultado = MensagemResultado("", None, None, 0.0, [])
-    erros_cenario: list[str] = []
-    for indice, mensagem in enumerate(cenario.mensagens, start=1):
-        if cenario.esperar_resumo and indice == len(cenario.mensagens):
-            espera = _esperar_resumo(cliente, base_url, conversation_id)
-            linhas.append(
-                f"_Resumo em segundo plano: pronto em {espera:.0f}s._"
-                if espera is not None
-                else "_Resumo em segundo plano: não apareceu em 120 s._"
-            )
-            linhas.append("")
-        ultimo = _enviar_mensagem(cliente, base_url, log_path, mensagem, conversation_id)
-        if ultimo.erro:
-            erros_cenario.append(f"mensagem {indice} terminou com erro: {ultimo.erro}")
-        linhas += _linhas_mensagem(indice, mensagem, ultimo)
+def _linhas_esperar_resumo(cliente: httpx.Client, base_url: str, conversation_id: str) -> list[str]:
+    espera = _esperar_resumo(cliente, base_url, conversation_id)
+    msg = (
+        f"_Resumo em segundo plano: pronto em {espera:.0f}s._"
+        if espera is not None
+        else "_Resumo em segundo plano: não apareceu em 120 s._"
+    )
+    return [msg, ""]
 
+
+def _finalizar_cenario(
+    cenario: Cenario,
+    cliente: httpx.Client,
+    base_url: str,
+    conversation_id: str,
+    ultimo: MensagemResultado,
+    erros_cenario: list[str],
+) -> tuple[str, list[str]]:
+    linhas: list[str] = []
     conversa = None
     if cenario.historico_esperado is not None or cenario.esperar_resumo:
         conversa, linhas_conversa = _buscar_conversa_e_formatar(cliente, base_url, conversation_id)
@@ -621,6 +631,26 @@ def _rodar_cenario(
     linhas += [f"- {problema}" for problema in problemas]
     linhas.append("")
     return veredito, linhas
+
+
+def _rodar_cenario(
+    cliente: httpx.Client, base_url: str, log_path: Path, cenario: Cenario
+) -> tuple[str, list[str]]:
+    linhas = [f"### {cenario.nome}", "", f"**Esperado:** {cenario.esperado}", ""]
+    conversation_id = str(uuid.uuid4())
+    ultimo: MensagemResultado = MensagemResultado("", None, None, 0.0, [])
+    erros_cenario: list[str] = []
+    for indice, mensagem in enumerate(cenario.mensagens, start=1):
+        if cenario.esperar_resumo and indice == len(cenario.mensagens):
+            linhas += _linhas_esperar_resumo(cliente, base_url, conversation_id)
+        ultimo = _enviar_mensagem(cliente, base_url, log_path, mensagem, conversation_id)
+        if ultimo.erro:
+            erros_cenario.append(f"mensagem {indice} terminou com erro: {ultimo.erro}")
+        linhas += _linhas_mensagem(indice, mensagem, ultimo)
+    veredito, linhas_final = _finalizar_cenario(
+        cenario, cliente, base_url, conversation_id, ultimo, erros_cenario
+    )
+    return veredito, linhas + linhas_final
 
 
 def _cabecalho_relatorio(args: argparse.Namespace) -> list[str]:
