@@ -9,6 +9,7 @@ Permite que o Administrador gere gráficos customizados a partir de:
 import json
 import logging
 import re
+from dataclasses import dataclass
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -227,31 +228,136 @@ NÃO inclua nada fora do bloco JSON.
         return None, prompt_tokens, completion_tokens
 
 
-async def _persist_chart(
-    session: AsyncSession,
-    titulo: str,
-    descricao: str,
-    tipo_grafico: str,
-    config_json: dict[str, Any],
-    dados_json: list[dict[str, Any]],
-    sql_query: str,
-    criado_por: str,
-) -> AdminChart:
+@dataclass
+class _NovoGrafico:
+    titulo: str
+    descricao: str
+    tipo_grafico: str
+    config_json: dict[str, Any]
+    dados_json: list[dict[str, Any]]
+    sql_query: str
+    criado_por: str
+
+
+async def _persist_chart(session: AsyncSession, novo: _NovoGrafico) -> AdminChart:
     chart = AdminChart(
-        titulo=titulo,
-        descricao=descricao,
-        tipo_grafico=tipo_grafico,
-        config_json=config_json,
-        dados_json=dados_json,
-        sql_query=sql_query,
+        titulo=novo.titulo,
+        descricao=novo.descricao,
+        tipo_grafico=novo.tipo_grafico,
+        config_json=novo.config_json,
+        dados_json=novo.dados_json,
+        sql_query=novo.sql_query,
         fixado=True,
         ordem=0,
-        criado_por=criado_por,
+        criado_por=novo.criado_por,
     )
     session.add(chart)
     await session.commit()
     await session.refresh(chart)
     return chart
+
+
+_MSG_INLINE_OK = (
+    "Gerei o gráfico com os dados que você informou no chat. "
+    "Ele já está salvo no seu painel de Dashboards."
+)
+_MSG_LLM_INDISPONIVEL = (
+    "Não consegui gerar esse gráfico agora: o modelo de análise não "
+    "está disponível no momento. Tente novamente em instantes."
+)
+_MSG_PEDIDO_NAO_INTERPRETADO = (
+    "Não consegui interpretar esse pedido de gráfico. Tente "
+    "descrever de forma mais específica o que você quer visualizar "
+    "(ex.: 'gráfico de vendas por categoria nos últimos 30 dias')."
+)
+_MSG_SQL_BLOQUEADO = (
+    "O modelo tentou gerar uma consulta que não é permitida por "
+    "segurança. Tente reformular o pedido."
+)
+_MSG_SQL_FALHOU = (
+    "Houve uma falha ao consultar o banco de dados para gerar esse gráfico. Tente novamente."
+)
+_MSG_SEM_DADOS = (
+    "Não encontrei dados para esse pedido com os filtros atuais do "
+    "sistema. Tente um período ou critério diferente."
+)
+
+
+async def _executar_sql_do_llm(
+    session: AsyncSession, llm_spec: dict[str, Any]
+) -> tuple[list[dict[str, Any]] | None, str | None]:
+    """Executa o SQL gerado pelo LLM. Devolve (dados, None) ou (None, mensagem de erro)."""
+    try:
+        return await execute_readonly_sql(session, llm_spec["sql"]), None
+    except SQLSecurityError as exc:
+        # Achado da revisão de 2026-10-04: antes caía no mesmo `except
+        # Exception` genérico de baixo (falha de infraestrutura) — um sinal
+        # de segurança (o LLM gerou SQL que tenta ler fora do esquema
+        # permitido ou fazer escrita) ficava indistinguível de uma falha
+        # transitória de banco no log, e a sessão nunca era revertida.
+        await session.rollback()
+        logger.warning(
+            "sql_dinamico_bloqueado_por_seguranca",
+            extra={"erro": str(exc), "sql": llm_spec.get("sql")},
+        )
+        return None, _MSG_SQL_BLOQUEADO
+    except Exception as exc:
+        # Intencional: qualquer falha de execução (banco, driver) vira mensagem
+        # amigável ao admin, com rollback e log — nunca derruba o chat.
+        await session.rollback()
+        logger.warning("falha_execucao_sql_dinamico", extra={"erro": str(exc)})
+        return None, _MSG_SQL_FALHOU
+
+
+async def _persistir_grafico_do_llm(
+    session: AsyncSession,
+    llm_spec: dict[str, Any],
+    dados: list[dict[str, Any]],
+    prompt: str,
+    user_email: str,
+) -> AdminChart:
+    colunas = list(dados[0].keys())
+    return await _persist_chart(
+        session,
+        _NovoGrafico(
+            titulo=llm_spec.get("titulo", "Gráfico Analítico"),
+            descricao=llm_spec.get("descricao", "Gerado dinamicamente com base no banco de dados"),
+            tipo_grafico=llm_spec.get("tipo_grafico", _detect_chart_type(prompt)),
+            config_json={
+                "x_key": llm_spec.get("x_key") or colunas[0],
+                "y_keys": llm_spec.get("y_keys") or [colunas[1]],
+                "labels": llm_spec.get("labels") or {},
+                "format": llm_spec.get("format", "number"),
+                "palette": _PALETTE,
+            },
+            dados_json=dados,
+            sql_query=f"dynamic_sql: {llm_spec['sql']}",
+            criado_por=user_email,
+        ),
+    )
+
+
+async def _gerar_grafico_via_llm(
+    session: AsyncSession, prompt: str, user_email: str, llm_client: Any, ambiente: str
+) -> tuple[AdminChart | None, str, int | None, int | None]:
+    """Trilha Text-to-SQL: LLM gera o SQL, executa read-only e persiste o gráfico."""
+    llm_spec, prompt_tokens, completion_tokens = await _generate_sql_with_llm(
+        llm_client, prompt, session, ambiente
+    )
+    if not llm_spec or "sql" not in llm_spec:
+        return None, _MSG_PEDIDO_NAO_INTERPRETADO, prompt_tokens, completion_tokens
+
+    dados, erro = await _executar_sql_do_llm(session, llm_spec)
+    if erro:
+        return None, erro, prompt_tokens, completion_tokens
+    if not dados:
+        return None, _MSG_SEM_DADOS, prompt_tokens, completion_tokens
+
+    chart = await _persistir_grafico_do_llm(session, llm_spec, dados, prompt, user_email)
+    explicacao = llm_spec.get("explicacao") or (
+        f"Gerei o gráfico '{chart.titulo}' a partir de consulta direta ao banco de dados."
+    )
+    return chart, explicacao, prompt_tokens, completion_tokens
 
 
 async def process_dynamic_chart_request(
@@ -279,104 +385,20 @@ async def process_dynamic_chart_request(
     if inline_spec:
         chart = await _persist_chart(
             session,
-            titulo=inline_spec["titulo"],
-            descricao=inline_spec["descricao"],
-            tipo_grafico=inline_spec["tipo_grafico"],
-            config_json=inline_spec["config"],
-            dados_json=inline_spec["dados"],
-            sql_query="dynamic_user_data",
-            criado_por=user_email,
+            _NovoGrafico(
+                titulo=inline_spec["titulo"],
+                descricao=inline_spec["descricao"],
+                tipo_grafico=inline_spec["tipo_grafico"],
+                config_json=inline_spec["config"],
+                dados_json=inline_spec["dados"],
+                sql_query="dynamic_user_data",
+                criado_por=user_email,
+            ),
         )
-        return (
-            chart,
-            "Gerei o gráfico com os dados que você informou no chat. "
-            "Ele já está salvo no seu painel de Dashboards.",
-            None,
-            None,
-        )
+        return chart, _MSG_INLINE_OK, None, None
 
     # 2. Gera via Text-to-SQL dinâmico com o LLM — único caminho de geração
     # de gráfico novo a partir do banco (sem fallback hardcoded, ver docstring acima).
     if not llm_client or not hasattr(llm_client, "generate_stream"):
-        return (
-            None,
-            "Não consegui gerar esse gráfico agora: o modelo de análise não "
-            "está disponível no momento. Tente novamente em instantes.",
-            None,
-            None,
-        )
-
-    llm_spec, prompt_tokens, completion_tokens = await _generate_sql_with_llm(
-        llm_client, prompt, session, ambiente
-    )
-    if not llm_spec or "sql" not in llm_spec:
-        return (
-            None,
-            "Não consegui interpretar esse pedido de gráfico. Tente "
-            "descrever de forma mais específica o que você quer visualizar "
-            "(ex.: 'gráfico de vendas por categoria nos últimos 30 dias').",
-            prompt_tokens,
-            completion_tokens,
-        )
-
-    try:
-        sql_query = llm_spec["sql"]
-        dados = await execute_readonly_sql(session, sql_query)
-    except SQLSecurityError as exc:
-        # Achado da revisão de 2026-10-04: antes caía no mesmo `except
-        # Exception` genérico de baixo (falha de infraestrutura) — um sinal
-        # de segurança (o LLM gerou SQL que tenta ler fora do esquema
-        # permitido ou fazer escrita) ficava indistinguível de uma falha
-        # transitória de banco no log, e a sessão nunca era revertida.
-        await session.rollback()
-        logger.warning(
-            "sql_dinamico_bloqueado_por_seguranca",
-            extra={"erro": str(exc), "sql": llm_spec.get("sql")},
-        )
-        return (
-            None,
-            "O modelo tentou gerar uma consulta que não é permitida por "
-            "segurança. Tente reformular o pedido.",
-            prompt_tokens,
-            completion_tokens,
-        )
-    except Exception as exc:
-        await session.rollback()
-        logger.warning("falha_execucao_sql_dinamico", extra={"erro": str(exc)})
-        return (
-            None,
-            "Houve uma falha ao consultar o banco de dados para gerar esse "
-            "gráfico. Tente novamente.",
-            prompt_tokens,
-            completion_tokens,
-        )
-
-    if not dados:
-        return (
-            None,
-            "Não encontrei dados para esse pedido com os filtros atuais do "
-            "sistema. Tente um período ou critério diferente.",
-            prompt_tokens,
-            completion_tokens,
-        )
-
-    chart = await _persist_chart(
-        session,
-        titulo=llm_spec.get("titulo", "Gráfico Analítico"),
-        descricao=llm_spec.get("descricao", "Gerado dinamicamente com base no banco de dados"),
-        tipo_grafico=llm_spec.get("tipo_grafico", _detect_chart_type(prompt)),
-        config_json={
-            "x_key": llm_spec.get("x_key") or list(dados[0].keys())[0],
-            "y_keys": llm_spec.get("y_keys") or [list(dados[0].keys())[1]],
-            "labels": llm_spec.get("labels") or {},
-            "format": llm_spec.get("format", "number"),
-            "palette": _PALETTE,
-        },
-        dados_json=dados,
-        sql_query=f"dynamic_sql: {sql_query}",
-        criado_por=user_email,
-    )
-    explicacao = llm_spec.get("explicacao") or (
-        f"Gerei o gráfico '{chart.titulo}' a partir de consulta direta ao banco de dados."
-    )
-    return chart, explicacao, prompt_tokens, completion_tokens
+        return None, _MSG_LLM_INDISPONIVEL, None, None
+    return await _gerar_grafico_via_llm(session, prompt, user_email, llm_client, ambiente)
