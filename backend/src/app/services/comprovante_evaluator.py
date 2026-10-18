@@ -276,7 +276,9 @@ class ComprovanteEvaluator:
                     )
                 )
                 return self._parse_vision_response(raw_text, valor_devido, res)
-            except (json.JSONDecodeError, KeyError, ValueError, AttributeError) as exc:
+            except Exception as exc:
+                # Qualquer falha do LLM (rede, timeout, resposta inválida) cai no
+                # fallback heurístico; estreitar a captura quebrava esse degrau.
                 logger.warning(
                     "Falha na interpretação via LLM (%s), acionando fallback heurístico.", exc
                 )
