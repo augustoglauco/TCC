@@ -148,6 +148,35 @@ def _decompor_parte(parte: str, sep_peca: str, ctx: _CtxDecomp) -> list[_Peca]:
     return _decompor_recursivo(parte, ctx, sep_entrada=sep_peca)
 
 
+def _processar_separador(
+    bloco: str,
+    sep: str,
+    indice: int,
+    ctx: _CtxDecomp,
+    sep_entrada: str,
+) -> list[_Peca] | None:
+    """Tenta decompor `bloco` usando `sep`. Devolve as peças ou `None` se o
+    separador não se aplica (ausente ou produz apenas uma parte)."""
+    if sep == "":
+        fatias = _fatiar_duro(bloco, ctx.chunk_size, ctx.overlap, ctx.tokenizer)
+        if fatias and sep_entrada:
+            fatias[0] = _Peca(
+                fatias[0].texto, sep_antes=sep_entrada, ja_com_overlap=fatias[0].ja_com_overlap
+            )
+        return fatias
+    if sep not in bloco:
+        return None
+    partes, joiner = _dividir_por_separador(bloco, sep)
+    if len(partes) <= 1:
+        return None
+    sub_ctx = _CtxDecomp(ctx.chunk_size, ctx.overlap, ctx.tokenizer, ctx.separadores[indice + 1 :])
+    pecas: list[_Peca] = []
+    for i, parte in enumerate(partes):
+        sep_peca = sep_entrada if i == 0 else joiner
+        pecas.extend(_decompor_parte(parte, sep_peca, sub_ctx))
+    return pecas
+
+
 def _decompor_recursivo(
     bloco: str,
     ctx: _CtxDecomp,
@@ -159,26 +188,9 @@ def _decompor_recursivo(
         return [_Peca(_emitir_chunk(bloco), sep_antes=sep_entrada)]
 
     for indice, sep in enumerate(ctx.separadores):
-        if sep == "":
-            fatias = _fatiar_duro(bloco, ctx.chunk_size, ctx.overlap, ctx.tokenizer)
-            if fatias and sep_entrada:
-                fatias[0] = _Peca(
-                    fatias[0].texto, sep_antes=sep_entrada, ja_com_overlap=fatias[0].ja_com_overlap
-                )
-            return fatias
-        if sep not in bloco:
-            continue
-        partes, joiner = _dividir_por_separador(bloco, sep)
-        if len(partes) <= 1:
-            continue
-        sub_ctx = _CtxDecomp(
-            ctx.chunk_size, ctx.overlap, ctx.tokenizer, ctx.separadores[indice + 1 :]
-        )
-        pecas: list[_Peca] = []
-        for i, parte in enumerate(partes):
-            sep_peca = sep_entrada if i == 0 else joiner
-            pecas.extend(_decompor_parte(parte, sep_peca, sub_ctx))
-        return pecas
+        resultado = _processar_separador(bloco, sep, indice, ctx, sep_entrada)
+        if resultado is not None:
+            return resultado
 
     return _fatiar_duro(bloco, ctx.chunk_size, ctx.overlap, ctx.tokenizer)
 
@@ -197,13 +209,12 @@ def _unidades_subnivel_para_overlap(texto: str) -> list[_Peca]:
     `. `, `" "`) para extrair um sufixo de overlap quando a peça inteira é
     maior que `overlap`."""
     for sep in ("\n", ". ", " "):
-        if sep in texto:
-            partes, joiner = _dividir_por_separador(texto, sep)
-            if len(partes) > 1:
-                return [
-                    _Peca(_emitir_chunk(p), sep_antes="" if i == 0 else joiner)
-                    for i, p in enumerate(partes)
-                ]
+        partes, joiner = _dividir_por_separador(texto, sep)
+        if sep in texto and len(partes) > 1:
+            return [
+                _Peca(_emitir_chunk(p), sep_antes="" if i == 0 else joiner)
+                for i, p in enumerate(partes)
+            ]
     return []
 
 
@@ -253,6 +264,29 @@ def _calcular_sufixo_overlap(
     return _scan_sufixo_reverso(subpecas, proxima, chunk_size, overlap, tokenizer)
 
 
+def _acumular_peca(
+    peca: _Peca,
+    atuais: list[_Peca],
+    chunks: list[str],
+    chunk_size: int,
+    overlap: int,
+    tokenizer: Any,
+) -> list[_Peca]:
+    """Processa uma peça no loop de montagem de chunks; devolve o novo `atuais`."""
+    if peca.ja_com_overlap:
+        if atuais:
+            chunks.append(_juntar_pecas(atuais))
+        chunks.append(peca.texto)
+        return []
+    if not atuais:
+        return [peca]
+    if contar_unidades(_juntar_pecas([*atuais, peca]), tokenizer) <= chunk_size:
+        return [*atuais, peca]
+    chunks.append(_juntar_pecas(atuais))
+    sufixo = _calcular_sufixo_overlap(atuais, peca, chunk_size, overlap, tokenizer)
+    return [*sufixo, peca]
+
+
 def chunk_text(
     text: str,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
@@ -283,24 +317,7 @@ def chunk_text(
     atuais: list[_Peca] = []
 
     for peca in pecas:
-        if peca.ja_com_overlap:
-            if atuais:
-                chunks.append(_juntar_pecas(atuais))
-                atuais = []
-            chunks.append(peca.texto)
-            continue
-
-        if not atuais:
-            atuais = [peca]
-            continue
-
-        if contar_unidades(_juntar_pecas([*atuais, peca]), tokenizer) <= chunk_size:
-            atuais.append(peca)
-            continue
-
-        chunks.append(_juntar_pecas(atuais))
-        sufixo = _calcular_sufixo_overlap(atuais, peca, chunk_size, overlap, tokenizer)
-        atuais = [*sufixo, peca]
+        atuais = _acumular_peca(peca, atuais, chunks, chunk_size, overlap, tokenizer)
 
     if atuais:
         chunks.append(_juntar_pecas(atuais))
