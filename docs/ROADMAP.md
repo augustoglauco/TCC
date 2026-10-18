@@ -2723,6 +2723,16 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       motivo de seguir para o LLM sem candidatos) — os docstrings dos helpers
       guardam a versão condensada, mas as datas e os cenários medidos saíram.
 
+- [x] Extração de helpers no frontend guiada pelo `get_health` do Repowise
+      (2026-10-18) — `app/admin/metricas/page.tsx` (`useMetricas`,
+      `AcessoRestrito`, `CabecalhoMetricas`, `ResumoAtendimento`,
+      `SecoesMetricas`; preserva o descarte de respostas fora de ordem por
+      `requestIdRef`), além de `ProductCard`/`ProdutoDetalhePage`
+      (`productCardHelpers`, `useProduto`). Sem mudança de comportamento. No
+      mesmo passo, `tsc --noEmit` voltou a passar limpo: `Tooltip.tsx`
+      (`RefObject<HTMLElement | null>`) e mocks desatualizados em quatro
+      testes. 714 testes Vitest passando.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

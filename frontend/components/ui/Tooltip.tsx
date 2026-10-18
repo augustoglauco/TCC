@@ -59,7 +59,7 @@ function isZeroRect(rect: DOMRect): boolean {
 
 function useTooltipCoords(
   isVisible: boolean,
-  triggerRef: React.RefObject<HTMLElement>,
+  triggerRef: React.RefObject<HTMLElement | null>,
   position: TooltipPosition,
   align: TooltipAlign,
   tooltipWidth: number,
@@ -211,7 +211,7 @@ function TooltipBody({ isVisible, coords, classeCorpo, tooltipBody, mostrar, age
 
 function cloneTriggerWithHandlers(
   trigger: ReactElement,
-  triggerRef: React.RefObject<HTMLElement>,
+  triggerRef: React.RefObject<HTMLElement | null>,
   mostrar: () => void,
   esconder: () => void,
   agendarEsconder: () => void,

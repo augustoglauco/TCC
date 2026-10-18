@@ -33,13 +33,12 @@ const PRODUTO: AdminProduct = {
   id: 1,
   nome: "Câmera IP HD",
   categoria: "CFTV",
-  preco: "450.00",
-  preco_base_fornecedor: "300.00",
+  preco: 450,
+  preco_base_fornecedor: 300,
   dias_alerta_estoque: 10,
   descricao: "Câmera de segurança HD",
   especificacoes_tecnicas: "2MP, IR 30m",
   imagem_url: null,
-  estoque_total: 5,
   imagens: [],
 };
 
@@ -47,7 +46,7 @@ const IMAGEM: AdminProductImage = {
   id: 10,
   produto_id: 1,
   imagem_url: "/media/cam.jpg",
-  ordem: 0,
+  clip_image_id: null,
   criado_em: "2026-10-01T00:00:00Z",
 };
 

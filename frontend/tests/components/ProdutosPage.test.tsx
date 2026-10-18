@@ -32,12 +32,9 @@ const makeProduto = (overrides: Partial<Produto> = {}): Produto => ({
   descricao: "Desc",
   categoria: "Controle de Acesso",
   preco: 1000,
-  preco_custo: 600,
-  sku: "SKU-001",
   imagens: [],
-  estoque: [],
+  estoques: [],
   descontos_volume: [],
-  ativo: true,
   ...overrides,
 });
 
@@ -100,8 +97,8 @@ describe("ProdutosPage — catálogo público", () => {
     await waitFor(() =>
       expect(vi.mocked(productsApi.fetchProducts).mock.calls.length).toBeGreaterThan(callsBefore),
     );
-    const lastCall = vi.mocked(productsApi.fetchProducts).mock.calls.at(-1)![0];
-    expect(lastCall.categoria).toBe("Controle de Acesso");
+    const lastCall = vi.mocked(productsApi.fetchProducts).mock.calls.at(-1)?.[0];
+    expect(lastCall?.categoria).toBe("Controle de Acesso");
   });
 
   it("abre e fecha modal de zoom ao clicar em miniatura do banner", async () => {

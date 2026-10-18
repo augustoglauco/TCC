@@ -136,6 +136,8 @@ describe("ModalConversaoPedido", () => {
 
     it("exibe resultado da auditoria após analisarComprovante", async () => {
       vi.mocked(adminPedidosApi.analisarComprovante).mockResolvedValue({
+        pedido_id: "pedido-uuid-abc",
+        valor_devido: 1500.0,
         comprovante_url: "https://cdn.example.com/comp.pdf",
         parecer: {
           valido: true,
