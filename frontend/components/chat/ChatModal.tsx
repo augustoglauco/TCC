@@ -8,20 +8,12 @@ import { ChatMetricsBar } from "@/components/chat/ChatMetricsBar";
 import EscalonamentoBanner from "@/components/chat/EscalonamentoBanner";
 import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
-import {
-  closeConversation,
-  deleteConversation,
-  fetchConversationSnapshot,
-  sendChatMessage,
-} from "@/lib/api/chat";
-import { solicitarTransbordo } from "@/lib/api/adminAtendimento";
-import { useAuthStore } from "@/lib/hooks/useAuthStore";
-import { paraStatusAtendimento, useChatStore } from "@/lib/hooks/useChatStore";
-import type { ChatEscalonamentoData } from "@/lib/types/chat";
-import { metricsFromDone } from "@/lib/utils/chatMetrics";
+import { useChatAcoes } from "@/lib/hooks/useChatAcoes";
+import { useChatDropZone } from "@/lib/hooks/useChatDropZone";
+import { type PendingImage, useChatEnvio } from "@/lib/hooks/useChatEnvio";
+import { useChatStore } from "@/lib/hooks/useChatStore";
+import { useConversaHumanaPolling } from "@/lib/hooks/useConversaHumanaPolling";
 import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetrics";
-import { fileToBase64 } from "@/lib/utils/fileToBase64";
-import { generateId } from "@/lib/utils/generateId";
 
 /**
  * Mensagem de boas-vindas mostrada com a conversa vazia. Convida a informar o
@@ -53,23 +45,6 @@ function temPonteiroPreciso(): boolean {
   return window.matchMedia("(pointer: fine)").matches;
 }
 
-interface PendingRetry {
-  message?: string;
-  audioBase64?: string;
-  imageBase64?: string;
-  imageName?: string;
-}
-
-interface PendingError {
-  text: string;
-  retry: PendingRetry;
-}
-
-const AUDIO_FALLBACK_TEXT = "(áudio sem fala reconhecível)";
-const AUDIO_PENDING_TEXT = "🎤 Transcrevendo áudio...";
-const AUDIO_FAILED_TEXT = "🎤 (não foi possível processar o áudio)";
-const NO_RESPONSE_TEXT = "(sem resposta do modelo, tente novamente)";
-
 export interface ChatModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -78,85 +53,43 @@ export interface ChatModalProps {
 export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const messages = useChatStore((state) => state.messages);
   const conversationId = useChatStore((state) => state.conversationId);
-  const addMessage = useChatStore((state) => state.addMessage);
-  const updateMessage = useChatStore((state) => state.updateMessage);
-  const replaceMessages = useChatStore((state) => state.replaceMessages);
-  const setConversationId = useChatStore((state) => state.setConversationId);
-  const clearChat = useChatStore((state) => state.clearChat);
-  const setHumanAttendanceStatus = useChatStore((state) => state.setHumanAttendanceStatus);
+  const pendingInput = useChatStore((state) => state.pendingInput);
 
   const [input, setInput] = useState("");
-  const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [pendingImage, setPendingImage] = useState<{ base64: string; name: string } | null>(null);
-  const [error, setError] = useState<PendingError | null>(null);
-  const [escalonamento, setEscalonamento] = useState<ChatEscalonamentoData | null>(null);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
 
-  async function handleClearHistory() {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm("Deseja apagar todo o histórico e a memória desta conversa no servidor?")
-    ) {
-      return;
-    }
-    const ok = await deleteConversation(conversationId);
-    if (!ok) {
-      window.alert("Não foi possível apagar o histórico agora. Tente novamente em instantes.");
-      return;
-    }
-    const userEmail = useAuthStore.getState().user?.email;
-    clearChat(userEmail);
-    setError(null);
-    setEscalonamento(null);
-  }
+  const {
+    isSending,
+    error,
+    setError,
+    escalonamento,
+    setEscalonamento,
+    submitMessage,
+    submitAudio,
+    handleRetry,
+  } = useChatEnvio({ conversationId, pendingImage, setPendingImage, setInput });
 
-  async function handleCloseConversation() {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm("Deseja finalizar este atendimento? A sessão será registrada como encerrada.")
-    ) {
-      return;
-    }
-    const ok = await closeConversation(conversationId, "manual_usuario");
-    if (!ok) {
-      // Achado da revisão de 2026-10-04: sem checar o retorno, a UI
-      // sempre mostrava "atendimento encerrado" e trocava o conversationId
-      // local mesmo quando o POST de encerramento falhava no servidor — a
-      // conversa antiga ficava órfã (nunca marcada como encerrada) e o
-      // reload resgatava o id antigo do localStorage como se nada tivesse
-      // acontecido.
-      window.alert("Não foi possível encerrar o atendimento agora. Tente novamente em instantes.");
-      return;
-    }
-    addMessage({
-      id: generateId(),
-      role: "assistant",
-      text: "🏁 Atendimento encerrado. Obrigado pelo contato!",
-    });
-    const userEmail = useAuthStore.getState().user?.email;
-    setConversationId(generateId(), userEmail);
-    onOpenChange(false);
-  }
+  const { handleClearHistory, handleCloseConversation, handleSolicitarAtendente } = useChatAcoes({
+    conversationId,
+    onOpenChange,
+    onHistoricoApagado: () => {
+      setError(null);
+      setEscalonamento(null);
+    },
+  });
 
-  async function handleSolicitarAtendente() {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm("Deseja falar com um atendente humano? A IA será pausada nesta conversa.")
-    ) {
-      return;
-    }
-    try {
-      await solicitarTransbordo(conversationId, "solicitacao_cliente");
-      addMessage({
-        id: generateId(),
-        role: "assistant",
-        text: "⏳ Solicitação de atendimento humano enviada! Um atendente assumirá este chat em breve. Enquanto isso, o assistente automático está pausado.",
-      });
-    } catch {
-      window.alert("Não foi possível solicitar atendimento humano no momento. Tente novamente.");
-    }
-  }
+  const controlsDisabled = isSending || isRecording;
+  const canSend = !controlsDisabled && (!!input.trim() || !!pendingImage);
+
+  const { isDraggingOver, handleDragOver, handleDragLeave, handleDrop } = useChatDropZone({
+    disabled: controlsDisabled,
+    onImage: (base64, name) => setPendingImage({ base64, name }),
+    onAudio: (base64) => void submitAudio(base64),
+    onError: (text) => setError({ text, retry: {} }),
+  });
+
+  useConversaHumanaPolling(open, conversationId);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -189,7 +122,6 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     }
     focarCaixaMensagem();
   }
-  const pendingInput = useChatStore((state) => state.pendingInput);
 
   useEffect(() => {
     if (open) {
@@ -227,300 +159,7 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
     };
   }, [open]);
 
-  // Entrega da mensagem do atendente humano (Fase 4, achado de 2026-10-06):
-  // quando um atendente responde pelo painel admin, a mensagem é gravada
-  // direto no banco — não existe WebSocket nem SSE do servidor para esse
-  // evento chegar ao widget do cliente enquanto ele já está com o chat
-  // aberto. Sem isso, "atendente responde mas a mensagem não aparece no
-  // chat do cliente" (só reapareceria se o cliente recarregasse a página).
-  // Com o widget aberto, repolla o histórico periodicamente e substitui as
-  // mensagens em tela pelas do servidor quando a conversa está sob
-  // atendimento humano. Também é assim que detectamos quando o atendente
-  // encerra/devolve a conversa para a IA (o status deixa de ser humano).
-  //
-  // Achado de 2026-10-07: gatear o início do polling em
-  // `humanAttendanceStatus` já verdadeiro quebrava o caso mais comum —
-  // `humanAttendanceStatus` só vira verdadeiro via evento SSE `status` (que
-  // só chega numa resposta a uma mensagem DO CLIENTE) ou na checagem única
-  // ao montar o `ChatWidget`. Se o atendente assume a conversa enquanto o
-  // cliente já está com o chat aberto e parado (sem mandar nada), nada
-  // nunca ligava o polling — a mensagem só "chegava" se o cliente mandasse
-  // outra mensagem primeiro (o que então disparava o `status` e, por
-  // tabela, o polling). Agora o polling roda sempre que o widget está
-  // aberto, não só quando já sabemos que está em atendimento humano — é
-  // o próprio polling que detecta a entrada nesse modo. MVP: sem
-  // WebSocket/SSE do servidor, isso significa uma requisição leve a cada
-  // 4s por widget aberto, mesmo em conversas que nunca escalam.
-  useEffect(() => {
-    if (!open || !conversationId) {
-      return;
-    }
-    const intervalo = setInterval(async () => {
-      const snapshot = await fetchConversationSnapshot(conversationId);
-      if (!snapshot) {
-        return;
-      }
-      const statusAnterior = useChatStore.getState().humanAttendanceStatus;
-      const novoStatus = paraStatusAtendimento(snapshot.status);
-      setHumanAttendanceStatus(novoStatus);
-      // Só substitui (e, por tabela, dispara o scroll-to-bottom do efeito
-      // acima, que depende de `messages`) quando o servidor tem conteúdo
-      // novo de fato — sem este guard, cada tick de 4s trocava `messages`
-      // por uma lista nova idêntica e prendia a tela sempre no fundo,
-      // impedindo o cliente de rolar para cima durante a espera.
-      //
-      // `novoStatus || statusAnterior` (não só `novoStatus`): achado de
-      // 2026-10-07 — `devolver_para_ia`/`finalizar_atendimento` gravam uma
-      // mensagem de despedida ("Redirecionado para atendente virtual"/"O
-      // Atendente encerrou o atendimento.") no mesmo instante em que o
-      // status deixa de ser humano. Guardar só por `novoStatus` perdia essa
-      // última mensagem: no tick em que a transição é detectada, `novoStatus`
-      // já veio `null`, então o `if` nunca chegava a rodar. Com
-      // `statusAnterior` também valendo, esse tick de transição ainda
-      // processa o replace; os ticks seguintes (os dois `null`) voltam a
-      // ficar fora do caminho de uma conversa normal de IA.
-      if (
-        (novoStatus || statusAnterior) &&
-        snapshot.messages.length !== useChatStore.getState().messages.length
-      ) {
-        replaceMessages(snapshot.messages);
-      }
-    }, 4000);
-    return () => clearInterval(intervalo);
-  }, [open, conversationId, replaceMessages, setHumanAttendanceStatus]);
-
   const hasAssistantMessages = messages.some((m) => m.role === "assistant");
-
-  async function submitMessage(
-    text: string,
-    overrideImage?: { base64: string; name: string } | null,
-  ) {
-    const trimmed = text.trim();
-    // `overrideImage` é usado pelo retry para passar a imagem diretamente,
-    // sem depender do estado React (que ainda não teria sido atualizado pelo
-    // setPendingImage chamado logo antes no handleRetry).
-    const imageToSend = overrideImage !== undefined ? overrideImage : pendingImage;
-    if (!trimmed && !imageToSend) return;
-    if (isSending) return;
-
-    setPendingImage(null);
-
-    const userText = trimmed
-      ? imageToSend
-        ? `${trimmed} [🖼️ ${imageToSend.name}]`
-        : trimmed
-      : `[🖼️ ${imageToSend!.name}]`;
-
-    addMessage({ id: generateId(), role: "user", text: userText });
-    setInput("");
-    setIsSending(true);
-    setError(null);
-
-    const assistantId = generateId();
-    let bolhaCriada = false;
-    let textoAcumulado = "";
-
-    function garantirBolha(textoInicial: string) {
-      if (!bolhaCriada) {
-        bolhaCriada = true;
-        addMessage({ id: assistantId, role: "assistant", text: textoInicial });
-      } else {
-        updateMessage(assistantId, { text: textoInicial });
-      }
-    }
-
-    await sendChatMessage({
-      message: trimmed || undefined,
-      imageBase64: imageToSend?.base64,
-      userEmail: useAuthStore.getState().user?.email,
-      authToken: useAuthStore.getState().token,
-      conversationId: conversationId || undefined,
-      onConversationId: (id) => setConversationId(id),
-      onTranscription: () => {},
-      onEscalonamento: (data) => setEscalonamento(data),
-      onStatus: (status) => {
-        // Acompanha se a conversa está (ou deixou de estar) sob atendimento
-        // humano — liga/desliga o polling de novas mensagens do atendente
-        // (ver efeito mais abaixo). Os dois fluxos não se misturam: enquanto
-        // pausada para atendimento humano, o backend nunca consulta o LLM
-        // (`app.api.chat.event_stream_humano`), então "carregando_modelo"
-        // só ocorre fora desse modo.
-        setHumanAttendanceStatus(paraStatusAtendimento(status));
-        if (status === "carregando_modelo") {
-          garantirBolha("🤖 Aguarde, consultando documentos internos...");
-        }
-      },
-      onToken: (chunk) => {
-        textoAcumulado += chunk;
-        garantirBolha(textoAcumulado);
-      },
-      onDone: (data) => {
-        // MVP: garante que a bolha nunca fique travada mostrando o
-        // placeholder de status (ou vazia) quando a geração produz zero
-        // tokens — ex. logo após um cold-start do modelo local.
-        garantirBolha(textoAcumulado || NO_RESPONSE_TEXT);
-        updateMessage(assistantId, {
-          domain: data.domain,
-          backendUsed: data.backend_used,
-          metrics: metricsFromDone(data),
-          card: data.card ?? undefined,
-        });
-        if (data.card?.tipo === "grafico" && typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("refresh_admin_charts"));
-        }
-      },
-      onError: (msg) => {
-        setError({
-          text: msg,
-          retry: {
-            message: trimmed,
-            imageBase64: imageToSend?.base64,
-            imageName: imageToSend?.name,
-          },
-        });
-      },
-    });
-
-    setIsSending(false);
-  }
-
-  async function submitAudio(audioBase64: string) {
-    if (isSending) return;
-
-    const pendingId = generateId();
-    addMessage({ id: pendingId, role: "user", text: AUDIO_PENDING_TEXT });
-    setIsSending(true);
-    setError(null);
-
-    const assistantId = generateId();
-    let bolhaCriada = false;
-    let textoAcumulado = "";
-    let transcricaoRecebida = false;
-
-    function garantirBolha(textoInicial: string) {
-      if (!bolhaCriada) {
-        bolhaCriada = true;
-        addMessage({ id: assistantId, role: "assistant", text: textoInicial });
-      } else {
-        updateMessage(assistantId, { text: textoInicial });
-      }
-    }
-
-    await sendChatMessage({
-      audioBase64,
-      userEmail: useAuthStore.getState().user?.email,
-      authToken: useAuthStore.getState().token,
-      conversationId: conversationId || undefined,
-      onConversationId: (id) => setConversationId(id),
-      onTranscription: (text) => {
-        transcricaoRecebida = true;
-        updateMessage(pendingId, { text: text || AUDIO_FALLBACK_TEXT });
-      },
-      onEscalonamento: (data) => setEscalonamento(data),
-      onStatus: (status) => {
-        setHumanAttendanceStatus(paraStatusAtendimento(status));
-        if (status === "carregando_modelo") {
-          garantirBolha("🤖 Aguarde, consultando documentos internos...");
-        }
-      },
-      onToken: (chunk) => {
-        textoAcumulado += chunk;
-        garantirBolha(textoAcumulado);
-      },
-      onDone: (data) => {
-        // MVP: mesma garantia do fluxo de texto — nunca deixa a bolha do
-        // assistente travada no placeholder de status (ou vazia) quando a
-        // geração produz zero tokens.
-        garantirBolha(textoAcumulado || NO_RESPONSE_TEXT);
-        updateMessage(assistantId, {
-          domain: data.domain,
-          backendUsed: data.backend_used,
-          metrics: metricsFromDone(data),
-          card: data.card ?? undefined,
-        });
-        if (data.card?.tipo === "grafico" && typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("refresh_admin_charts"));
-        }
-      },
-      onError: (msg) => {
-        if (!transcricaoRecebida) {
-          updateMessage(pendingId, { text: AUDIO_FAILED_TEXT });
-        }
-        setError({ text: msg, retry: { audioBase64 } });
-      },
-    });
-
-    setIsSending(false);
-  }
-
-  function handleRetry() {
-    if (!error) return;
-    const { retry } = error;
-    setError(null);
-    if (retry.audioBase64) {
-      void submitAudio(retry.audioBase64);
-    } else {
-      // Passa a imagem diretamente para submitMessage em vez de chamar
-      // setPendingImage antes — setState é assíncrono e o estado ainda seria
-      // null quando submitMessage lesse pendingImage no mesmo ciclo de render.
-      const img =
-        retry.imageBase64 && retry.imageName
-          ? { base64: retry.imageBase64, name: retry.imageName }
-          : null;
-      void submitMessage(retry.message ?? "", img);
-    }
-  }
-
-  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!isDraggingOver) setIsDraggingOver(true);
-  }
-
-  function handleDragLeave(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-    setIsDraggingOver(false);
-  }
-
-  async function handleDrop(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-
-    if (controlsDisabled) return;
-
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-
-    const isImage = file.type.startsWith("image/");
-    const isAudio =
-      file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|webm|aac|flac)$/i.test(file.name);
-
-    try {
-      if (isImage) {
-        const base64 = await fileToBase64(file);
-        setPendingImage({ base64, name: file.name });
-      } else if (isAudio) {
-        const base64 = await fileToBase64(file);
-        void submitAudio(base64);
-      } else {
-        setError({
-          text: "Formato de arquivo não suportado. Por favor, envie imagens (PNG, JPG, WEBP) ou áudios.",
-          retry: {},
-        });
-      }
-    } catch {
-      setError({
-        text: "Erro ao processar o arquivo arrastado. Tente novamente.",
-        retry: {},
-      });
-    }
-  }
-
-  const controlsDisabled = isSending || isRecording;
-  const canSend = !controlsDisabled && (!!input.trim() || !!pendingImage);
 
   // Devolve o foco à caixa sempre que os controles reabrem (fim do envio, fim
   // da gravação de áudio, erro de envio) — ver `focarCaixaMensagem`.
