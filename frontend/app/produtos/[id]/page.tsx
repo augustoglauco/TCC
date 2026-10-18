@@ -1,24 +1,15 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ImageZoomModal } from "@/components/products/ImageZoomModal";
-import { useCartStore } from "@/lib/hooks/useCartStore";
-import { useChatStore } from "@/lib/hooks/useChatStore";
-import {
-  calcularEstoqueTotal,
-  escolherCentroDistribuicao,
-  montarListaImagens,
-  precoEfetivo,
-} from "@/components/products/productCardHelpers";
-import { resolveImageUrl } from "@/lib/utils/resolveImageUrl";
 import { ProdutoImageGallery } from "./ProdutoImageGallery";
 import { ProdutoInfoPanel } from "./ProdutoInfoPanel";
 import { ProdutoFichaTecnica } from "./ProdutoFichaTecnica";
 import { ProdutoLoadingSkeleton } from "./ProdutoLoadingSkeleton";
 import { ProdutoErrorState } from "./ProdutoErrorState";
 import { useProduto } from "./useProduto";
+import { useProdutoAcoes } from "./useProdutoAcoes";
 
 interface ProdutoPageProps {
   params: Promise<{ id: string }> | { id: string };
@@ -27,35 +18,13 @@ interface ProdutoPageProps {
 export default function ProdutoDetalhePage({ params }: ProdutoPageProps) {
   const resolvedParams = "then" in params ? use(params) : params;
   const { id } = resolvedParams;
-  const router = useRouter();
-
   const { product, loading, error } = useProduto(id);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
   // Estado para modal de zoom de imagem
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
 
-  const imageList = useMemo(() => (product ? montarListaImagens(product) : []), [product]);
-  const totalEstoque = useMemo(() => product ? calcularEstoqueTotal(product.estoques) : 0, [product]);
-  const emEstoque = totalEstoque > 0;
-
-  const handleBuy = () => {
-    if (!product) return;
-    useCartStore.getState().addItem({
-      produtoId: product.id,
-      nome: product.nome,
-      preco: precoEfetivo(product),
-      imagemUrl: resolveImageUrl(product.imagem_url),
-      quantidade: 1,
-      centroDistribuicao: escolherCentroDistribuicao(product.estoques),
-    });
-
-    router.push("/pedidos");
-  };
-
-  const handleQuote = () => {
-    useChatStore.getState().open();
-  };
+  const { imageList, totalEstoque, emEstoque, handleBuy, handleQuote } = useProdutoAcoes(product);
 
   if (loading) return <ProdutoLoadingSkeleton />;
 
