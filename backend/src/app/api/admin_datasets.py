@@ -347,6 +347,20 @@ async def _acompanhar(tarefa: _Tarefa, raiz: Path) -> None:
         logger.info("tarefa %s (%s) terminou: %s", tarefa.id, tarefa.tipo, tarefa.estado)
 
 
+# Tarefas que reescrevem o dataset.json inteiro, e o conjunto que sobrescrevem.
+_TAREFA_REESCREVE: dict[str, str] = {
+    "gerar_rascunho_roteador": "roteador",
+    "gerar_rascunho_rag_docs": "rag_docs",
+    "gerar_rascunho_injecao": "injecao",
+}
+
+
+def _revisados(conjunto_id: str) -> int:
+    conjunto = _POR_ID[conjunto_id]
+    _, casos = _ler_casos(conjunto)
+    return sum(1 for c in casos if _status_do_caso(c, conjunto) != "pendente")
+
+
 class IniciarTarefaPedido(BaseModel):
     tipo: str
 
@@ -362,6 +376,15 @@ async def iniciar_tarefa(pedido: IniciarTarefaPedido) -> TarefaResumo:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Tarefa desconhecida: {pedido.tipo}.")
     if any(t.tipo == pedido.tipo and t.estado == "rodando" for t in _tarefas.values()):
         raise HTTPException(status.HTTP_409_CONFLICT, f"{pedido.tipo} já está rodando.")
+
+    alvo = _TAREFA_REESCREVE.get(pedido.tipo)
+    if alvo and (revisados := _revisados(alvo)):
+        # Regerar recomeça do zero e perderia a revisão humana (horas de trabalho).
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"{revisados} item(ns) de '{alvo}' já foram revisados; regerar apagaria a revisão. "
+            "Mova o dataset.json de lado se a intenção for refazer.",
+        )
 
     rotulo, comando = TAREFAS_DISPONIVEIS[pedido.tipo]
     raiz = Path(get_settings().eval_dir).resolve().parent

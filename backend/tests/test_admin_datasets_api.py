@@ -254,3 +254,13 @@ async def test_nao_dispara_duas_tarefas_do_mesmo_tipo(datasets_client, monkeypat
         client.post("/api/admin/datasets/tarefas", json={"tipo": "ingerir_corpus"}).status_code
         == 200
     )
+
+
+def test_gerar_rascunho_recusa_quando_ha_item_revisado(datasets_client):
+    # No fixture o roteador tem 1 item aprovado: regerar apagaria a revisão.
+    client = _sem_auth(datasets_client)
+
+    resposta = client.post("/api/admin/datasets/tarefas", json={"tipo": "gerar_rascunho_roteador"})
+
+    assert resposta.status_code == 409
+    assert "revisados" in resposta.json()["detail"]
