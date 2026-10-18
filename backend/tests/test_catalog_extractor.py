@@ -709,3 +709,44 @@ async def test_extrair_produtos_imagem_sem_clientes_devolve_erro_generico(tmp_pa
 
     assert raw == [] and provider == "external"
     assert erro and "Nenhum produto detectado" in erro
+
+
+@pytest.mark.parametrize(
+    ("im", "candidatos", "esperado"),
+    [
+        ({"x0": 50, "top": 150, "width": 120, "height": 100}, [], True),
+        # muito pequena (largura, altura ou área)
+        ({"x0": 50, "top": 150, "width": 31, "height": 100}, [], False),
+        ({"x0": 50, "top": 150, "width": 100, "height": 31}, [], False),
+        ({"x0": 50, "top": 150, "width": 39, "height": 40}, [], False),
+        # alongada (divisor): razão > 5.5 nos dois sentidos
+        ({"x0": 50, "top": 150, "width": 500, "height": 60}, [], False),
+        ({"x0": 50, "top": 150, "width": 60, "height": 500}, [], False),
+        # fundo: >= 92% da página (600x800) nas duas dimensões
+        ({"x0": 0, "top": 0, "width": 560, "height": 740}, [], False),
+        ({"x0": 0, "top": 100, "width": 560, "height": 600}, [], True),
+        # logo/ícone pequeno na borda superior e inferior
+        ({"x0": 20, "top": 10, "width": 120, "height": 30}, [], False),
+        ({"x0": 20, "top": 760, "width": 120, "height": 30}, [], False),
+        # pequena mas fora da borda, ou na borda mas grande: válidas
+        ({"x0": 20, "top": 300, "width": 120, "height": 60}, [], True),
+        ({"x0": 20, "top": 10, "width": 200, "height": 100}, [], True),
+        # duplicata de candidato já aceito (tolerância < 6pt)
+        (
+            {"x0": 53, "top": 152, "width": 122, "height": 98},
+            [{"x0": 50.0, "top": 150.0, "w": 120.0, "h": 100.0}],
+            False,
+        ),
+        (
+            {"x0": 60, "top": 150, "width": 120, "height": 100},
+            [{"x0": 50.0, "top": 150.0, "w": 120.0, "h": 100.0}],
+            True,
+        ),
+        # valores ausentes/None viram 0 e a figura é descartada sem erro
+        ({"x0": None, "top": None, "width": None, "height": None}, [], False),
+    ],
+)
+def test_figura_valida_criterios(im, candidatos, esperado):
+    from app.catalog_extractor.extractor import _figura_valida
+
+    assert _figura_valida(im, 600.0, 800.0, candidatos) is esperado

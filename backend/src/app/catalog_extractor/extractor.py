@@ -283,6 +283,24 @@ async def extract_page_products_vision(
     return _parse_products_json(raw_response)
 
 
+def _figura_pequena_ou_alongada(w: float, h: float) -> bool:
+    """Ícone/bullet (pequeno demais) ou divisor/filete (proporção > 5.5:1)."""
+    if w < 32 or h < 32 or (w * h) < 1600:
+        return True
+    return (w / max(h, 1) > 5.5) or (h / max(w, 1) > 5.5)
+
+
+def _figura_de_fundo(w: float, h: float, page_w: float, page_h: float) -> bool:
+    """Imagem que cobre quase a página inteira (plano de fundo)."""
+    return w >= page_w * 0.92 and h >= page_h * 0.92
+
+
+def _logo_na_borda(w: float, h: float, top: float, bottom: float, page_h: float) -> bool:
+    """Figura pequena encostada no topo/rodapé da página (logo, selo, numeração)."""
+    na_borda = top < 38 or bottom > page_h - 38
+    return na_borda and w < 160 and h < 65
+
+
 def _figura_valida(
     im: dict[str, Any], page_w: float, page_h: float, candidates: list[dict[str, float]]
 ) -> bool:
@@ -293,19 +311,13 @@ def _figura_valida(
     top = float(im.get("top", 0) or 0)
     bottom = float(im.get("bottom", top + h) or (top + h))
 
-    if w < 32 or h < 32 or (w * h) < 1600:
-        return False
-    if (w / max(h, 1) > 5.5) or (h / max(w, 1) > 5.5):
-        return False
-    if w >= page_w * 0.92 and h >= page_h * 0.92:
-        return False
-    na_borda = top < 38 or bottom > page_h - 38
-    pequena_demais = w < 160 and h < 65
-    if na_borda and pequena_demais:
-        return False
-    if any(_is_duplicate_figure(c, x0, top, w, h) for c in candidates):
-        return False
-    return True
+    descartada = (
+        _figura_pequena_ou_alongada(w, h)
+        or _figura_de_fundo(w, h, page_w, page_h)
+        or _logo_na_borda(w, h, top, bottom, page_h)
+        or any(_is_duplicate_figure(c, x0, top, w, h) for c in candidates)
+    )
+    return not descartada
 
 
 def _is_duplicate_figure(cand: dict[str, float], x0: float, top: float, w: float, h: float) -> bool:
@@ -685,6 +697,16 @@ def _salvar_imagem_temp(content: bytes, temp_dir: Path) -> str:
     return f"/api/uploads/produtos/temp/{temp_img_name}"
 
 
+def _erro_sem_resultado(raw_prods: list[dict[str, Any]]) -> str | None:
+    """Mensagem de erro genérica quando nenhuma etapa da cascata achou produtos."""
+    if raw_prods:
+        return None
+    return (
+        "Nenhum produto detectado (OCR, visão local e visão externa "
+        "indisponíveis ou sem resultado)."
+    )
+
+
 async def _extrair_produtos_imagem(
     filename: str, content: bytes, cfg: _ExtractionConfig
 ) -> tuple[list[dict[str, Any]], str, str | None]:
@@ -704,12 +726,7 @@ async def _extrair_produtos_imagem(
             content, filename, cfg.vision_client, cfg.session_factory
         )
 
-    if not raw_prods and not erro_pagina:
-        erro_pagina = (
-            "Nenhum produto detectado (OCR, visão local e visão externa "
-            "indisponíveis ou sem resultado)."
-        )
-    return raw_prods, provider_usado, erro_pagina
+    return raw_prods, provider_usado, erro_pagina or _erro_sem_resultado(raw_prods)
 
 
 async def _processar_imagem_avulsa(
