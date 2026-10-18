@@ -42,10 +42,15 @@ BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR.parents[1] / "src"))
 sys.path.insert(0, str(BASE_DIR))
 
+from dataset import (  # noqa: E402
+    adicionar_argumentos,
+    carregar_dataset,
+    descrever,
+    rotulo_dataset,
+)
 from metricas import avaliar_conjunto  # noqa: E402
 from run_etapa1 import (  # noqa: E402
     CORPUS,
-    DATASET,
     RAIZ_REPO,
     AuditoriaAusenteError,
     apagar_collection,
@@ -183,7 +188,8 @@ def _imprimir_ranking(ranking: list[dict]) -> None:
 
 async def executar(args) -> int:
     pontos = filtrar_grade(chunk_sizes=args.chunk_sizes, overlaps_pct=args.overlaps_pct)
-    dataset = json.loads(args.dataset.read_text(encoding="utf-8"))
+    dataset = carregar_dataset(args.dataset, incluir_pendentes=args.incluir_pendentes)
+    print(descrever(dataset))
     perguntas = dataset["perguntas"]
     pastas = dataset["_pastas"]
     dominio = args.dominio or dataset["dominio"]
@@ -196,7 +202,10 @@ async def executar(args) -> int:
     )
 
     por_id = _carregar_existentes(
-        args.saida, args.dataset.name, args.embedding_model, args.recalcular
+        args.saida,
+        rotulo_dataset(args.dataset, args.incluir_pendentes),
+        args.embedding_model,
+        args.recalcular,
     )
 
     settings = get_settings()
@@ -271,12 +280,22 @@ async def executar(args) -> int:
                 "separabilidade": sep,
                 "itens": detalhes,
             }
-            _salvar_progresso(args.saida, args.dataset.name, args.embedding_model, arquivos, por_id)
+            _salvar_progresso(
+                args.saida,
+                rotulo_dataset(args.dataset, args.incluir_pendentes),
+                args.embedding_model,
+                arquivos,
+                por_id,
+            )
     finally:
         await engine.dispose()
 
     ranking = _salvar_progresso(
-        args.saida, args.dataset.name, args.embedding_model, arquivos, por_id
+        args.saida,
+        rotulo_dataset(args.dataset, args.incluir_pendentes),
+        args.embedding_model,
+        arquivos,
+        por_id,
     )
     _imprimir_ranking(ranking)
     print(f"\nResultado salvo em: {args.saida}")
@@ -285,7 +304,7 @@ async def executar(args) -> int:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Etapa 3 — grade 5×3 de chunking em tokens")
-    parser.add_argument("--dataset", type=Path, default=DATASET)
+    adicionar_argumentos(parser)
     parser.add_argument("--saida", type=Path, default=SAIDA)
     parser.add_argument("--embedding-model", default=MODELO_ETAPA3_PADRAO)
     parser.add_argument(

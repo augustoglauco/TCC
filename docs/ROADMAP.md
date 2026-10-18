@@ -1681,6 +1681,10 @@ conversa e classificação do usuário").
         (`dataset_minimo.json`) sobre 3 pastas — `iDFace`, `iDAccess Pro`,
         `REP iDClass`, 38% do texto do corpus — ancoradas em fatos reais
         extraídos dos PDFs, com trecho de gabarito ao lado.
+        *(2026-10-18: `dataset_minimo.json` aposentado; os runners das Etapas
+        1–5 leem o conjunto canônico de 180 perguntas por
+        `eval/rag_ingestion/dataset.py`, só com itens revisados — item 12 do
+        pendências da Fase 10.)*
         **Baseline medido** (config de produção:
         `paraphrase-multilingual-MiniLM-L12-v2`, `chunk_size=800`):
         Recall@1 0,250, Recall@5 **0,500**, nDCG@10 **0,386**, MRR 0,347, e
@@ -2732,6 +2736,14 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       mesmo passo, `tsc --noEmit` voltou a passar limpo: `Tooltip.tsx`
       (`RefObject<HTMLElement | null>`) e mocks desatualizados em quatro
       testes. 714 testes Vitest passando.
+
+- [x] `ChatModal.tsx` decomposto em hooks (2026-10-18, achados do `get_health`:
+      `ChatModal` 453 linhas/CCN 19, `submitMessage`, `submitAudio`) —
+      `useChatEnvio` (envio de texto/áudio com os callbacks de streaming
+      compartilhados, erro/retry e escalonamento), `useConversaHumanaPolling`,
+      `useChatAcoes` (apagar histórico, encerrar, chamar atendente) e
+      `useChatDropZone`, todos em `frontend/lib/hooks/`. Sem mudança de
+      comportamento nem de API pública. 718 testes Vitest passando.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 

@@ -45,10 +45,15 @@ BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR.parents[1] / "src"))
 sys.path.insert(0, str(BASE_DIR))
 
+from dataset import (  # noqa: E402
+    adicionar_argumentos,
+    carregar_dataset,
+    descrever,
+    rotulo_dataset,
+)
 from metricas import avaliar_conjunto  # noqa: E402
 from run_etapa1 import (  # noqa: E402
     CORPUS,
-    DATASET,
     HNSW_PADRAO,
     RAIZ_REPO,
     AuditoriaAusenteError,
@@ -205,7 +210,8 @@ async def _medir_latencia_qdrant_puro(
 
 
 async def executar(args) -> int:
-    dataset = json.loads(args.dataset.read_text(encoding="utf-8"))
+    dataset = carregar_dataset(args.dataset, incluir_pendentes=args.incluir_pendentes)
+    print(descrever(dataset))
     perguntas = dataset["perguntas"]
     pastas = dataset["_pastas"]
     dominio = args.dominio or dataset["dominio"]
@@ -344,7 +350,7 @@ async def executar(args) -> int:
         json.dumps(
             {
                 "gerado_em": datetime.now(UTC).isoformat(),
-                "dataset": args.dataset.name,
+                "dataset": rotulo_dataset(args.dataset, args.incluir_pendentes),
                 "config_base": {
                     "embedding_model": args.embedding_model,
                     "vector_dimension": dimensao,
@@ -369,7 +375,7 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(
         description="Etapa 5 — métrica de distância e payload index keyword em domain"
     )
-    parser.add_argument("--dataset", type=Path, default=DATASET)
+    adicionar_argumentos(parser)
     parser.add_argument("--saida", type=Path, default=SAIDA)
     parser.add_argument("--embedding-model", default=MODELO_PADRAO_ETAPA5)
     parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE_PADRAO_ETAPA5)

@@ -39,6 +39,13 @@ def metricas():
     return _carregar("metricas")
 
 
+_dataset_mod = _carregar("dataset")
+carregar_dataset = _dataset_mod.carregar_dataset
+descrever = _dataset_mod.descrever
+rotulo_dataset = _dataset_mod.rotulo_dataset
+DatasetVazioError = _dataset_mod.DatasetVazioError
+
+
 @pytest.fixture(scope="module")
 def preparar():
     return _carregar("preparar_corpus")
@@ -347,74 +354,114 @@ def test_varredura_recusa_base_com_threshold_alto(varrer, tmp_path):
 
 
 # --------------------------------------------------------------------------
-# Integridade do conjunto mínimo
+# Carregador do gabarito canônico (`eval/rag_ingestion/dataset.py`)
 # --------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="module")
-def dataset():
-    return json.loads((PASTA / "dataset_minimo.json").read_text(encoding="utf-8"))
+def _caso(id_, **extra):
+    base = {
+        "id": id_,
+        "pergunta": f"pergunta {id_}?",
+        "dificuldade": "facil",
+        "documento_origem": f"doc{id_}.pdf",
+        "arquivo_origem": f"iDFace/doc{id_}.pdf",
+        "origem_ambigua": False,
+        "resposta_esperada": "r",
+        "trecho_origem": "t",
+        "trecho_confere": True,
+        "sem_resposta": False,
+        "revisao": {"status": "aprovado", "em": None},
+    }
+    base.update(extra)
+    return base
 
 
-def test_dataset_tem_positivas_e_negativas(dataset):
-    """Sem caso negativo não se mede alucinação; sem positivo não se mede
-    recuperação. Mesma garantia do dataset de visão (Fase 10)."""
-    perguntas = dataset["perguntas"]
-    positivas = [p for p in perguntas if p["fontes_aceitas"]]
-    negativas = [p for p in perguntas if not p["fontes_aceitas"]]
-    assert positivas, "conjunto sem pergunta positiva"
-    assert negativas, "conjunto sem pergunta negativa"
-    assert len(negativas) >= 3
+@pytest.fixture
+def conjunto(tmp_path):
+    casos = [
+        _caso(1),
+        _caso(2, revisao={"status": "corrigido", "em": None}),
+        _caso(3, revisao={"status": "pendente", "em": None}),
+        _caso(4, revisao={"status": "descartado", "em": None}),
+        _caso(5, trecho_confere=False),
+        _caso(6, origem_ambigua=True),
+        _caso(7, duplicada_de=1),
+        {
+            "id": 8,
+            "pergunta": "algo que o corpus não diz?",
+            "documento_origem": "",
+            "sem_resposta": True,
+            "revisao": {"status": "aprovado", "em": None},
+        },
+    ]
+    dataset = tmp_path / "dataset.json"
+    dataset.write_text(json.dumps({"casos": casos}), encoding="utf-8")
+    auditoria = tmp_path / "auditoria.json"
+    auditoria.write_text(
+        json.dumps({"itens_pastas": [{"pasta": "iDFace"}, {"pasta": "iDBio"}]}),
+        encoding="utf-8",
+    )
+    return dataset, auditoria
 
 
-def test_dataset_ids_unicos(dataset):
-    ids = [p["id"] for p in dataset["perguntas"]]
-    assert len(ids) == len(set(ids))
+def test_carregador_so_passa_itens_revisados_e_converte_negativas(conjunto):
+    dataset, auditoria = conjunto
+    d = carregar_dataset(dataset, auditoria=auditoria)
+    ids = [p["id"] for p in d["perguntas"]]
+    assert ids == ["q001", "q002", "q008"]
+    negativa = d["perguntas"][-1]
+    assert negativa["fontes_aceitas"] == []
+    assert d["perguntas"][0]["fontes_aceitas"] == ["doc1.pdf"]
+    assert d["perguntas"][0]["pasta"] == "iDFace"
+    assert d["relatorio"]["positivas"] == 2 and d["relatorio"]["negativas"] == 1
 
 
-def test_dataset_positivas_tem_trecho_de_gabarito(dataset):
-    """O trecho ao lado da pergunta é o que faz a revisão humana custar ~10 s
-    em vez de ~1,5 min por item (`docs/EVALUATION.md` Seção 0)."""
-    for p in dataset["perguntas"]:
-        if p["fontes_aceitas"]:
-            assert p.get("trecho"), f"{p['id']} sem trecho de gabarito"
-            assert p.get("resposta_esperada")
+def test_carregador_conta_cada_corte(conjunto):
+    dataset, auditoria = conjunto
+    cortes = carregar_dataset(dataset, auditoria=auditoria)["relatorio"]["cortes"]
+    assert cortes == {
+        "pendente": 1,
+        "descartado": 1,
+        "trecho_nao_confere": 1,
+        "origem_ambigua": 1,
+        "duplicada": 1,
+    }
 
 
-def test_dataset_nao_usa_changelog_como_fonte(dataset):
-    """`ingest_file` grava só o basename em `source`, e `changelog_pt-br.pdf`
-    existe em iDFace E em iDAccess Pro — seria gabarito ambíguo."""
-    for p in dataset["perguntas"]:
-        for fonte in p["fontes_aceitas"]:
-            assert "changelog" not in fonte.lower(), f"{p['id']} usa changelog como fonte"
+def test_carregador_ensaio_inclui_pendentes_e_avisa(conjunto):
+    dataset, auditoria = conjunto
+    d = carregar_dataset(dataset, incluir_pendentes=True, auditoria=auditoria)
+    assert "q003" in [p["id"] for p in d["perguntas"]]
+    assert "ensaio" in descrever(d)
+    assert rotulo_dataset(dataset, True).endswith("+pendentes")
+    assert rotulo_dataset(dataset, False) == "dataset.json"
 
 
-def test_dataset_fontes_existem_no_corpus(dataset):
-    """Protege contra o erro que tirou Q8/Q19 do conjunto antigo: gabarito
-    apontando para arquivo que não está no corpus."""
+def test_carregador_pastas_sao_o_corpus_inteiro(conjunto):
+    dataset, auditoria = conjunto
+    assert carregar_dataset(dataset, auditoria=auditoria)["_pastas"] == ["iDBio", "iDFace"]
+
+
+def test_carregador_falha_alto_quando_nada_passa(tmp_path):
+    dataset = tmp_path / "d.json"
+    dataset.write_text(
+        json.dumps({"casos": [_caso(1, revisao={"status": "pendente", "em": None})]}),
+        encoding="utf-8",
+    )
+    with pytest.raises(DatasetVazioError, match="pendente"):
+        carregar_dataset(dataset, auditoria=tmp_path / "x.json")
+
+
+def test_dataset_canonico_aponta_para_arquivos_do_corpus():
+    """Protege contra gabarito apontando para arquivo que não está no corpus."""
     corpus = Path(__file__).resolve().parents[2] / "docs" / "Manuais_fornecedor" / "ControlId"
     if not corpus.is_dir():
         pytest.skip("corpus não disponível neste ambiente")
+    d = carregar_dataset(incluir_pendentes=True)
     existentes = {c.name for c in corpus.rglob("*") if c.is_file()}
-    for p in dataset["perguntas"]:
+    for p in d["perguntas"]:
         for fonte in p["fontes_aceitas"]:
             assert fonte in existentes, f"{p['id']}: {fonte} não existe no corpus"
-
-
-def test_dataset_fontes_ficam_nas_pastas_declaradas(dataset):
-    """Cada fonte do gabarito tem de viver numa das pastas que o harness
-    ingere — senão a pergunta é insolúvel por construção."""
-    corpus = Path(__file__).resolve().parents[2] / "docs" / "Manuais_fornecedor" / "ControlId"
-    if not corpus.is_dir():
-        pytest.skip("corpus não disponível neste ambiente")
-    permitidos: set[str] = set()
-    for pasta in dataset["_pastas"]:
-        permitidos |= {c.name for c in (corpus / pasta).rglob("*") if c.is_file()}
-    for p in dataset["perguntas"]:
-        for fonte in p["fontes_aceitas"]:
-            assert fonte in permitidos, (
-                f"{p['id']}: {fonte} fora das pastas de {dataset['_pastas']}"
-            )
 
 
 # --------------------------------------------------------------------------
@@ -588,7 +635,7 @@ def test_varrer_threshold_aceita_formato_etapa3_e_recomenda_corte_separavel(varr
     entrada.write_text(
         json.dumps(
             {
-                "dataset": "dataset_minimo.json",
+                "dataset": "dataset.json",
                 "embedding_model": "google/embeddinggemma-300m",
                 "vencedor": {"id": "cs512_ov10"},
                 "pontos": [

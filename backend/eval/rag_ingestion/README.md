@@ -53,6 +53,18 @@ de recuperação virou ganho de resposta.
   recursivo (`\n\n` → `\n` → `. ` → `" "`) e contagem por tokenizer em
   `app.rag.chunking.chunk_text`. Retomável por ponto; grava
   `resultados_etapa3.json`.
+- `dataset.py` — **carregador único do gabarito** (2026-10-18). Lê o conjunto
+  canônico `eval/rag_quality/dataset.json` (o mesmo que `/admin/datasets`
+  revisa) e entrega aos runners das Etapas 1–5 `{dominio, _pastas, perguntas}`.
+  Só passam itens `aprovado`/`corrigido`; `descartado`, duplicada,
+  `trecho_confere=false` e `origem_ambigua` ficam de fora (cada corte é contado
+  e impresso); `sem_resposta` vira caso **negativo** (`fontes_aceitas` vazia);
+  `_pastas` é o corpus inteiro da auditoria. `--incluir-pendentes` (em todos os
+  runners) permite um **ensaio** antes da revisão, gravado com o rótulo
+  `dataset.json+pendentes` — não vale como decisão. O antigo
+  `dataset_minimo.json` (n=15) foi removido: os `resultados_etapa*.json`
+  existentes são dele, ficam como histórico e são recalculados na próxima
+  rodada.
 - `metricas.py` — as métricas como funções **puras**, testadas em
   `backend/tests/test_rag_ingestion_eval.py` sem nenhuma infraestrutura.
 - `varrer_threshold.py` — **Etapa 4**. Varre `score_threshold` × `top_k`

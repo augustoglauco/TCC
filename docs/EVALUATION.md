@@ -367,6 +367,12 @@ perfil vencedor, e seus resultados valem para esse perfil. Collections de
 texto com outros perfis, e a avaliação cruzada LLM × collection, ficam como
 evolução futura.
 
+**Gabarito das etapas 1–5 (2026-10-18).** Os runners leem direto o conjunto
+canônico de 180 perguntas por `backend/eval/rag_ingestion/dataset.py`; o
+`dataset_minimo.json` (n=15) foi aposentado. A grade só vale como decisão
+depois da revisão humana (item 11): sem ela o carregador recusa rodar, e o
+ensaio com `--incluir-pendentes` fica marcado no resultado.
+
 ### Três medições que definiram a ordem das etapas
 
 Feitas em 2026-10-17, antes de planejar a varredura:

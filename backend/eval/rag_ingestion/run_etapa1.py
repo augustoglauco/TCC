@@ -52,6 +52,12 @@ BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR.parents[1] / "src"))
 sys.path.insert(0, str(BASE_DIR))
 
+from dataset import (  # noqa: E402
+    adicionar_argumentos,
+    carregar_dataset,
+    descrever,
+    rotulo_dataset,
+)
 from metricas import ResultadoPergunta, avaliar_conjunto, deduplicar_com_score  # noqa: E402
 
 from app.config import get_settings  # noqa: E402
@@ -67,7 +73,6 @@ logger = logging.getLogger(__name__)
 RAIZ_REPO = BASE_DIR.parents[2]
 CORPUS = RAIZ_REPO / "docs" / "Manuais_fornecedor" / "ControlId"
 AUDITORIA = BASE_DIR / "auditoria_corpus.json"
-DATASET = BASE_DIR / "dataset_minimo.json"
 SAIDA = BASE_DIR / "resultados_etapa1.json"
 
 # Baseline de produção, para a primeira rodada do harness ser comparável ao
@@ -250,7 +255,8 @@ def _imprimir(metricas: dict, detalhes: list[dict], config: dict) -> None:
 
 
 async def executar(args) -> int:
-    dataset = json.loads(args.dataset.read_text(encoding="utf-8"))
+    dataset = carregar_dataset(args.dataset, incluir_pendentes=args.incluir_pendentes)
+    print(descrever(dataset))
     perguntas = dataset["perguntas"]
     pastas = dataset["_pastas"]
     args.dominio = args.dominio or dataset["dominio"]
@@ -319,7 +325,7 @@ async def executar(args) -> int:
         json.dumps(
             {
                 "gerado_em": datetime.now(UTC).isoformat(),
-                "dataset": args.dataset.name,
+                "dataset": rotulo_dataset(args.dataset, args.incluir_pendentes),
                 "config": config,
                 "metricas": metricas,
                 "itens": detalhes,
@@ -335,7 +341,7 @@ async def executar(args) -> int:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Etapa 1 — métricas de recuperação do RAG")
-    parser.add_argument("--dataset", type=Path, default=DATASET)
+    adicionar_argumentos(parser)
     parser.add_argument("--embedding-model", default=MODELO_PADRAO)
     parser.add_argument("--chunk-size", type=int, default=CHUNK_SIZE_PADRAO)
     parser.add_argument("--chunk-overlap", type=int, default=CHUNK_OVERLAP_PADRAO)

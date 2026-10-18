@@ -49,10 +49,15 @@ BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR.parents[1] / "src"))
 sys.path.insert(0, str(BASE_DIR))
 
+from dataset import (  # noqa: E402
+    adicionar_argumentos,
+    carregar_dataset,
+    descrever,
+    rotulo_dataset,
+)
 from metricas import ResultadoPergunta, aplicar_threshold, avaliar_conjunto  # noqa: E402
 from run_etapa1 import (  # noqa: E402
     CORPUS,
-    DATASET,
     RAIZ_REPO,
     AuditoriaAusenteError,
     apagar_collection,
@@ -375,7 +380,8 @@ def _salvar_progresso(
 
 async def executar(args) -> int:
     candidatos = filtrar_candidatos(args.candidatos)
-    dataset = json.loads(args.dataset.read_text(encoding="utf-8"))
+    dataset = carregar_dataset(args.dataset, incluir_pendentes=args.incluir_pendentes)
+    print(descrever(dataset))
     perguntas = dataset["perguntas"]
     pastas = dataset["_pastas"]
     dominio = args.dominio or dataset["dominio"]
@@ -384,7 +390,9 @@ async def executar(args) -> int:
     print(f"Corpus: {CORPUS.relative_to(RAIZ_REPO)}")
     print(f"Arquivos a ingerir: {len(arquivos)} | Perguntas: {len(perguntas)}")
 
-    por_id = _carregar_existentes(args.saida, args.dataset.name, args.recalcular)
+    por_id = _carregar_existentes(
+        args.saida, rotulo_dataset(args.dataset, args.incluir_pendentes), args.recalcular
+    )
 
     settings = get_settings()
     engine = create_db_engine(settings.postgres_dsn)
@@ -411,11 +419,15 @@ async def executar(args) -> int:
                 distance=args.distance,
             )
             por_id[candidato.id] = resultado
-            _salvar_progresso(args.saida, args.dataset.name, arquivos, por_id)
+            _salvar_progresso(
+                args.saida, rotulo_dataset(args.dataset, args.incluir_pendentes), arquivos, por_id
+            )
     finally:
         await engine.dispose()
 
-    ranking = _salvar_progresso(args.saida, args.dataset.name, arquivos, por_id)
+    ranking = _salvar_progresso(
+        args.saida, rotulo_dataset(args.dataset, args.incluir_pendentes), arquivos, por_id
+    )
     _imprimir_ranking(ranking)
     print(f"\nResultado salvo em: {args.saida}")
     return 0
@@ -423,7 +435,7 @@ async def executar(args) -> int:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="Etapa 2 — escolha do modelo de embedding")
-    parser.add_argument("--dataset", type=Path, default=DATASET)
+    adicionar_argumentos(parser)
     parser.add_argument("--saida", type=Path, default=SAIDA)
     parser.add_argument(
         "--candidatos",
