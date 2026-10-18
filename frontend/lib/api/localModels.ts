@@ -77,6 +77,24 @@ export async function pullModel(token: string, name: string): Promise<void> {
   }
 }
 
+/** Remove um modelo instalado via `DELETE /api/admin/local-models/delete`. */
+export async function deleteModel(token: string, name: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/admin/local-models/delete`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ name }),
+    });
+  } catch {
+    throw new LocalModelsApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");
+  }
+
+  if (!response.ok) {
+    await _lancarErroComDetalhe(response, "Não foi possível remover o modelo. Tente novamente.");
+  }
+}
+
 /**
  * Consulta o progresso de um download via
  * `GET /api/admin/local-models/pull-status?name=...` — usado em polling

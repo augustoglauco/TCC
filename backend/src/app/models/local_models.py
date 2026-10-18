@@ -23,6 +23,10 @@ class ActivateModelRequest(BaseModel):
     name: str = Field(..., min_length=1)
 
 
+class DeleteModelRequest(BaseModel):
+    name: str = Field(..., min_length=1)
+
+
 class PullModelRequest(BaseModel):
     name: str = Field(..., min_length=1)
 

@@ -415,6 +415,16 @@ class OllamaClient:
             for item in data.get("models", [])
         ]
 
+    async def delete_model(self, name: str) -> None:
+        """Remove um modelo da biblioteca local do Ollama (`DELETE /api/delete`)."""
+        response = await self._client.request(
+            "DELETE",
+            f"{self._base_url}/api/delete",
+            json={"name": name},
+            timeout=self._timeout_s,
+        )
+        response.raise_for_status()
+
     async def is_model_ready(self) -> bool:
         """Checa se `self._model` já está carregado na memória do Ollama
         (`GET /api/ps` — modelos rodando agora, diferente de `/api/tags`

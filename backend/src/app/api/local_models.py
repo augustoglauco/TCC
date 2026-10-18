@@ -30,6 +30,7 @@ from app.api.admin_auth import require_admin
 from app.background_tasks import spawn_background_task
 from app.models.local_models import (
     ActivateModelRequest,
+    DeleteModelRequest,
     LocalModelResponse,
     LocalModelsListResponse,
     PullModelRequest,
@@ -151,3 +152,27 @@ async def pull_status_endpoint(
     if estado is None:
         raise HTTPException(status_code=404, detail="Nenhum download iniciado para esse modelo.")
     return PullStatusResponse(**estado)
+
+
+@router.delete("/delete", status_code=204)
+async def delete_model_endpoint(
+    body: DeleteModelRequest,
+    ollama: OllamaClient = Depends(get_ollama_client),
+    _: None = Depends(require_admin),
+) -> None:
+    modelos = await ollama.list_local_models()
+    if body.name not in {m.name for m in modelos}:
+        raise HTTPException(status_code=404, detail="Modelo não encontrado entre os já baixados.")
+    if body.name == ollama.model:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Não é possível remover o modelo ativo. "
+                "Ative outro modelo antes de desinstalar este."
+            ),
+        )
+    try:
+        await ollama.delete_model(body.name)
+    except Exception as exc:
+        logger.warning("local_model_delete_erro nome=%s erro=%s", body.name, exc)
+        raise HTTPException(status_code=502, detail="Erro ao remover o modelo no Ollama.") from exc

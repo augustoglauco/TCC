@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { LocalModelsApiError, activateModel, pullModel } from "@/lib/api/localModels";
+import { LocalModelsApiError, activateModel, deleteModel, pullModel } from "@/lib/api/localModels";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { LocalModel } from "@/lib/types/localModels";
 import { Tooltip } from "@/components/ui/Tooltip";
@@ -98,11 +98,15 @@ function formatarDataRelativa(iso: string): string {
 function LocalModelCard({
   modelo,
   isActivating,
+  isDeleting,
   onAtivar,
+  onDesinstalar,
 }: {
   modelo: LocalModel;
   isActivating: boolean;
+  isDeleting: boolean;
   onAtivar: (m: LocalModel) => void;
+  onDesinstalar: (m: LocalModel) => void;
 }) {
   const isSelected = modelo.is_active;
   return (
@@ -126,21 +130,26 @@ function LocalModelCard({
               </span>
             )}
           </div>
-          <h4 className="mt-2 font-bold text-slate-900 text-sm font-mono truncate" title={modelo.name}>
+          <h4
+            className="mt-2 font-bold text-slate-900 text-sm font-mono truncate"
+            title={modelo.name}
+          >
             {modelo.name}
           </h4>
           <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-            <span className="font-mono font-semibold text-slate-700">{formatarTamanho(modelo.size_bytes)}</span>
+            <span className="font-mono font-semibold text-slate-700">
+              {formatarTamanho(modelo.size_bytes)}
+            </span>
             <span>•</span>
             <span title={modelo.modified_at}>{formatarDataRelativa(modelo.modified_at)}</span>
           </div>
         </div>
-        <div className="mt-4 pt-3 border-t border-slate-100">
+        <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col gap-2">
           {!isSelected && (
             <button
               type="button"
               onClick={() => onAtivar(modelo)}
-              disabled={isActivating}
+              disabled={isActivating || isDeleting}
               className="w-full rounded-lg bg-blue-600 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors cursor-pointer shadow-2xs"
             >
               {isActivating ? "Ativando..." : "Ativar"}
@@ -151,6 +160,17 @@ function LocalModelCard({
               Modelo Ativo
             </div>
           )}
+          <button
+            type="button"
+            onClick={() => onDesinstalar(modelo)}
+            disabled={isDeleting || isActivating || isSelected}
+            title={
+              isSelected ? "Ative outro modelo antes de desinstalar este" : "Desinstalar modelo"
+            }
+            className="w-full rounded-lg border border-red-200 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          >
+            {isDeleting ? "Removendo..." : "🗑 Desinstalar"}
+          </button>
         </div>
       </div>
     </CardComCaracteristicas>
@@ -190,17 +210,23 @@ function LocalPresetCard({
               {preset.provider}
             </span>
             {isSelected && (
-              <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">Ativo</span>
+              <span className="rounded bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                Ativo
+              </span>
             )}
             {!isSelected && instalado && (
-              <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">Instalado</span>
+              <span className="rounded bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                Instalado
+              </span>
             )}
           </div>
           <h4 className="mt-2 font-bold text-slate-900 text-sm">{preset.name}</h4>
           <p className="mt-1 text-[11px] text-slate-500 leading-relaxed">{preset.description}</p>
           <div className="mt-2 flex items-center justify-between text-[10px]">
             <code className="font-mono text-slate-400">ollama pull {preset.tag}</code>
-            <span className="font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">~{preset.sizeEstimate}</span>
+            <span className="font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+              ~{preset.sizeEstimate}
+            </span>
           </div>
         </div>
         <div className="mt-4 pt-3 border-t border-slate-100">
@@ -244,6 +270,8 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
   const token = useAuthStore((s) => s.token);
   const [processandoTag, setProcessandoTag] = useState<string | null>(null);
   const [baixandoPreset, setBaixandoPreset] = useState<string | null>(null);
+  const [deletandoTag, setDeletandoTag] = useState<string | null>(null);
+  const [confirmarDelete, setConfirmarDelete] = useState<LocalModel | null>(null);
 
   const activeModel = models.find((m) => m.is_active);
 
@@ -260,6 +288,23 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
       );
     } finally {
       setProcessandoTag(null);
+    }
+  }
+
+  async function handleDesinstalar(modelo: LocalModel) {
+    if (!token) return;
+    setConfirmarDelete(null);
+    setDeletandoTag(modelo.name);
+    try {
+      await deleteModel(token, modelo.name);
+      onSuccess(`Modelo "${modelo.name}" removido com sucesso.`);
+      onChanged();
+    } catch (err) {
+      onError(
+        err instanceof LocalModelsApiError ? err.message : "Erro inesperado ao remover o modelo.",
+      );
+    } finally {
+      setDeletandoTag(null);
     }
   }
 
@@ -282,6 +327,36 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
 
   return (
     <div className="space-y-8">
+      {/* Modal de confirmação de desinstalação */}
+      {confirmarDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xl max-w-sm w-full mx-4">
+            <h3 className="text-base font-bold text-slate-900">🗑 Desinstalar modelo?</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Tem certeza que deseja remover{" "}
+              <span className="font-mono font-bold text-slate-900">{confirmarDelete.name}</span> (
+              {formatarTamanho(confirmarDelete.size_bytes)}) do Ollama? Esta ação não pode ser
+              desfeita.
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmarDelete(null)}
+                className="flex-1 rounded-lg border border-slate-200 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDesinstalar(confirmarDelete)}
+                className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-bold text-white hover:bg-red-700 transition-colors cursor-pointer"
+              >
+                Sim, remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Banner Destaque do Modelo Local Ativo */}
       <div className="rounded-2xl border border-blue-200/80 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
@@ -337,7 +412,9 @@ export function LocalModelsTable({ models, onChanged, onError, onSuccess }: Loca
                 key={modelo.name}
                 modelo={modelo}
                 isActivating={processandoTag === modelo.name}
+                isDeleting={deletandoTag === modelo.name}
                 onAtivar={handleAtivar}
+                onDesinstalar={(m) => setConfirmarDelete(m)}
               />
             ))}
           </div>

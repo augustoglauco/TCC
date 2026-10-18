@@ -17,10 +17,17 @@ class _FakeOllamaClient:
         self._models = models
         self.model = model_ativo
         self.pull_calls: list[str] = []
+        self.delete_calls: list[str] = []
+        self.delete_erro: Exception | None = None
         self._pull_lines: dict[str, list[PullProgressLine]] = {}
 
     async def list_local_models(self) -> list[LocalModel]:
         return self._models
+
+    async def delete_model(self, name: str) -> None:
+        if self.delete_erro:
+            raise self.delete_erro
+        self.delete_calls.append(name)
 
     def programar_pull(self, name: str, linhas: list[PullProgressLine]) -> None:
         self._pull_lines[name] = linhas
@@ -285,3 +292,72 @@ def test_status_com_nome_contendo_barra_e_dois_pontos_funciona(db_session, admin
 
     assert response.status_code == 200
     assert response.json()["status"] == "done"
+
+
+def _ollama_dois_modelos() -> _FakeOllamaClient:
+    return _FakeOllamaClient(
+        models=[
+            LocalModel(name="llama3.1:8b", size_bytes=100, modified_at="2026-01-01"),
+            LocalModel(name="qwen2.5:7b", size_bytes=200, modified_at="2026-01-02"),
+        ],
+        model_ativo="qwen2.5:7b",
+    )
+
+
+def test_desinstalar_modelo_inativo_remove(db_session, admin_headers):
+    ollama = _ollama_dois_modelos()
+    client = TestClient(_build_app(ollama, db_session=db_session))
+
+    response = client.request(
+        "DELETE",
+        "/api/admin/local-models/delete",
+        json={"name": "llama3.1:8b"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 204
+    assert ollama.delete_calls == ["llama3.1:8b"]
+
+
+def test_desinstalar_modelo_ativo_retorna_409(db_session, admin_headers):
+    ollama = _ollama_dois_modelos()
+    client = TestClient(_build_app(ollama, db_session=db_session))
+
+    response = client.request(
+        "DELETE",
+        "/api/admin/local-models/delete",
+        json={"name": "qwen2.5:7b"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 409
+    assert ollama.delete_calls == []
+
+
+def test_desinstalar_modelo_inexistente_retorna_404(db_session, admin_headers):
+    ollama = _ollama_dois_modelos()
+    client = TestClient(_build_app(ollama, db_session=db_session))
+
+    response = client.request(
+        "DELETE",
+        "/api/admin/local-models/delete",
+        json={"name": "nao-existe:1b"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+
+def test_desinstalar_erro_do_ollama_retorna_502(db_session, admin_headers):
+    ollama = _ollama_dois_modelos()
+    ollama.delete_erro = RuntimeError("falhou")
+    client = TestClient(_build_app(ollama, db_session=db_session))
+
+    response = client.request(
+        "DELETE",
+        "/api/admin/local-models/delete",
+        json={"name": "llama3.1:8b"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 502
