@@ -49,40 +49,29 @@ export interface TooltipProps {
   renderContent?: () => ReactNode;
 }
 
-/**
- * Componente de Tooltip acessível e inteligente para formulários, modais e
- * cards administrativos. Utiliza Portal do React e posicionamento fixo
- * dinâmico para garantir que o tooltip NUNCA seja cortado por contêineres
- * com scroll (`overflow-y-auto`) ou bordas de modais, ajustando seu
- * alinhamento à esquerda/direita.
- */
-export function Tooltip({
-  content,
-  ariaLabel,
-  position = "auto",
-  align = "auto",
-  trigger,
-  renderContent,
-}: TooltipProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const mounted = useEstaNoCliente();
-  const triggerRef = useRef<HTMLElement>(null);
-  const tooltipRef = useRef<HTMLSpanElement>(null);
+// ─── named predicate (finding 4) ────────────────────────────────────────────
+
+function isZeroRect(rect: DOMRect): boolean {
+  return rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0;
+}
+
+// ─── hook: coordinate calculation ───────────────────────────────────────────
+
+function useTooltipCoords(
+  isVisible: boolean,
+  triggerRef: React.RefObject<HTMLElement>,
+  position: TooltipPosition,
+  align: TooltipAlign,
+  tooltipWidth: number,
+) {
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
-  const tooltipWidth = renderContent ? 288 : 240; // w-72 vs w-60
-  // Timeout de ocultar com um pequeno atraso (ver `agendarEsconder` abaixo)
-  // — permite o cursor atravessar o gap de 6px entre o gatilho e o corpo do
-  // tooltip (posicionado `rect.bottom + 6`) sem fechar o painel no meio do
-  // caminho (achado #2 da revisão final: o botão de refresh dentro do
-  // painel ficava inalcançável nos cards com `trigger`/hover).
-  const esconderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateCoords = useCallback(() => {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
 
     // Em ambientes sem layout (como jsdom), rect pode retornar zeros
-    if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0) {
+    if (isZeroRect(rect)) {
       setCoords(null);
       return;
     }
@@ -101,14 +90,11 @@ export function Tooltip({
       left = rect.left;
     } else {
       // align === "auto"
-      // Se o gatilho estiver próximo da borda esquerda, alinha à esquerda do gatilho
       if (rect.left < 200) {
         left = Math.max(16, rect.left - 4);
       } else if (rect.left > viewportWidth - tooltipWidth - 20) {
-        // Se estiver próximo da borda direita, alinha à direita
         left = rect.right - tooltipWidth;
       } else {
-        // Caso intermediário: levemente recuado à esquerda em relação ao gatilho
         left = rect.left - 16;
       }
     }
@@ -117,15 +103,12 @@ export function Tooltip({
     left = Math.max(16, Math.min(left, viewportWidth - tooltipWidth - 16));
 
     let top = rect.bottom + 6;
-    if (
-      position === "top" ||
-      (position === "auto" && rect.bottom + tooltipEstimatedHeight > viewportHeight)
-    ) {
+    if (position === "top" || (position === "auto" && rect.bottom + tooltipEstimatedHeight > viewportHeight)) {
       top = Math.max(12, rect.top - tooltipEstimatedHeight - 6);
     }
 
     setCoords({ top, left });
-  }, [align, position, tooltipWidth]);
+  }, [align, position, tooltipWidth, triggerRef]);
 
   useEffect(() => {
     if (isVisible) {
@@ -139,6 +122,20 @@ export function Tooltip({
     }
   }, [isVisible, updateCoords]);
 
+  return coords;
+}
+
+// ─── hook: visibility + timeout management ──────────────────────────────────
+
+function useTooltipVisibility() {
+  const [isVisible, setIsVisible] = useState(false);
+  // Timeout de ocultar com um pequeno atraso (ver `agendarEsconder` abaixo)
+  // — permite o cursor atravessar o gap de 6px entre o gatilho e o corpo do
+  // tooltip (posicionado `rect.bottom + 6`) sem fechar o painel no meio do
+  // caminho (achado #2 da revisão final: o botão de refresh dentro do
+  // painel ficava inalcançável nos cards com `trigger`/hover).
+  const esconderTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const mostrar = useCallback(() => {
     if (esconderTimeoutRef.current) {
       clearTimeout(esconderTimeoutRef.current);
@@ -146,15 +143,14 @@ export function Tooltip({
     }
     setIsVisible(true);
   }, []);
+
   // Esconde imediatamente (sem atraso) — usado no `onBlur`, que não tem o
   // problema do gap de mouse a atravessar.
   const esconder = useCallback(() => setIsVisible(false), []);
-  // Atraso curto antes de esconder (em vez de síncrono) — dá tempo do
-  // cursor atravessar o gap de 6px entre o gatilho e o corpo do tooltip
-  // (posicionado `rect.bottom + 6`) sem que o `onMouseLeave` do gatilho já
-  // tenha desmontado o painel no caminho (achado #2 da revisão final: o
-  // botão de refresh dentro do painel ficava inalcançável nos cards com
-  // `trigger`/hover).
+
+  // Atraso curto antes de esconder — dá tempo do cursor atravessar o gap de
+  // 6px entre o gatilho e o corpo do tooltip sem que o `onMouseLeave` do
+  // gatilho já tenha desmontado o painel no caminho.
   const agendarEsconder = useCallback(() => {
     esconderTimeoutRef.current = setTimeout(() => {
       setIsVisible(false);
@@ -162,14 +158,26 @@ export function Tooltip({
     }, 150);
   }, []);
 
-  const tooltipBody = renderContent ? renderContent() : content;
-  const classeCorpo = renderContent
-    ? "w-72 rounded-xl border border-slate-200 bg-white p-3 text-xs font-normal leading-relaxed text-slate-900 shadow-2xl pointer-events-auto text-left animate-in fade-in-50 duration-150"
-    : "w-60 rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs font-normal leading-relaxed text-slate-100 shadow-2xl pointer-events-none text-left animate-in fade-in-50 duration-150";
+  return { isVisible, setIsVisible, mostrar, esconder, agendarEsconder };
+}
 
-  const tooltipElement = isVisible ? (
+// ─── helper: tooltip body element + portal ──────────────────────────────────
+
+interface TooltipBodyProps {
+  isVisible: boolean;
+  coords: { top: number; left: number } | null;
+  classeCorpo: string;
+  tooltipBody: ReactNode;
+  mostrar: () => void;
+  agendarEsconder: () => void;
+  mounted: boolean;
+}
+
+function TooltipBody({ isVisible, coords, classeCorpo, tooltipBody, mostrar, agendarEsconder, mounted }: TooltipBodyProps) {
+  if (!isVisible) return null;
+
+  const element = (
     <span
-      ref={tooltipRef}
       role="tooltip"
       // Também dispara mostrar/agendar-esconder ao entrar/sair do próprio
       // corpo do tooltip — sem isso, mover o cursor do gatilho até o painel
@@ -181,11 +189,7 @@ export function Tooltip({
       onMouseLeave={agendarEsconder}
       style={
         coords
-          ? {
-              position: "fixed",
-              top: `${coords.top}px`,
-              left: `${coords.left}px`,
-            }
+          ? { position: "fixed", top: `${coords.top}px`, left: `${coords.left}px` }
           : undefined
       }
       className={
@@ -196,44 +200,89 @@ export function Tooltip({
     >
       {tooltipBody}
     </span>
-  ) : null;
+  );
 
-  const tooltipPortal =
-    mounted && typeof document !== "undefined"
-      ? createPortal(tooltipElement, document.body)
-      : tooltipElement;
+  return mounted && typeof document !== "undefined"
+    ? createPortal(element, document.body)
+    : element;
+}
+
+// ─── helper: clone trigger with merged event handlers ───────────────────────
+
+function cloneTriggerWithHandlers(
+  trigger: ReactElement,
+  triggerRef: React.RefObject<HTMLElement>,
+  mostrar: () => void,
+  esconder: () => void,
+  agendarEsconder: () => void,
+): ReactElement {
+  if (!isValidElement(trigger)) return trigger;
+
+  type TriggerProps = {
+    onMouseEnter?: (e: React.MouseEvent) => void;
+    onMouseLeave?: (e: React.MouseEvent) => void;
+    onFocus?: (e: React.FocusEvent) => void;
+    onBlur?: (e: React.FocusEvent) => void;
+  };
+  const p = trigger.props as TriggerProps;
+
+  // cloneElement repassando `ref` pro elemento host é o padrão
+  // intencional de forwarding aqui (falso positivo da regra react-hooks/refs).
+  return cloneElement(trigger, {
+    ref: triggerRef,
+    onMouseEnter: (e: React.MouseEvent) => { p.onMouseEnter?.(e); mostrar(); },
+    onMouseLeave: (e: React.MouseEvent) => { p.onMouseLeave?.(e); agendarEsconder(); },
+    onFocus: (e: React.FocusEvent) => { p.onFocus?.(e); mostrar(); },
+    onBlur: (e: React.FocusEvent) => { p.onBlur?.(e); esconder(); },
+  } as Partial<unknown>);
+}
+
+// ─── public component ────────────────────────────────────────────────────────
+
+/**
+ * Componente de Tooltip acessível e inteligente para formulários, modais e
+ * cards administrativos. Utiliza Portal do React e posicionamento fixo
+ * dinâmico para garantir que o tooltip NUNCA seja cortado por contêineres
+ * com scroll (`overflow-y-auto`) ou bordas de modais, ajustando seu
+ * alinhamento à esquerda/direita.
+ */
+export function Tooltip({
+  content,
+  ariaLabel,
+  position = "auto",
+  align = "auto",
+  trigger,
+  renderContent,
+}: TooltipProps) {
+  const mounted = useEstaNoCliente();
+  const triggerRef = useRef<HTMLElement>(null);
+  const tooltipWidth = renderContent ? 288 : 240; // w-72 vs w-60
+
+  const { isVisible, setIsVisible, mostrar, esconder, agendarEsconder } = useTooltipVisibility();
+  const coords = useTooltipCoords(isVisible, triggerRef, position, align, tooltipWidth);
+
+  const tooltipBody = renderContent ? renderContent() : content;
+  const classeCorpo = renderContent
+    ? "w-72 rounded-xl border border-slate-200 bg-white p-3 text-xs font-normal leading-relaxed text-slate-900 shadow-2xl pointer-events-auto text-left animate-in fade-in-50 duration-150"
+    : "w-60 rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-xs font-normal leading-relaxed text-slate-100 shadow-2xl pointer-events-none text-left animate-in fade-in-50 duration-150";
+
+  const portal = (
+    <TooltipBody
+      isVisible={isVisible}
+      coords={coords}
+      classeCorpo={classeCorpo}
+      tooltipBody={tooltipBody}
+      mostrar={mostrar}
+      agendarEsconder={agendarEsconder}
+      mounted={mounted}
+    />
+  );
 
   if (trigger) {
-    const triggerClonado = isValidElement(trigger)
-      ? // cloneElement repassando `ref` pro elemento host é o padrão
-        // intencional de forwarding aqui, não um acesso a ref durante o
-        // render que a regra deveria pegar (falso positivo).
-        // eslint-disable-next-line react-hooks/refs
-        cloneElement(trigger, {
-          ref: triggerRef,
-          onMouseEnter: (e: React.MouseEvent) => {
-            (trigger.props as { onMouseEnter?: (e: React.MouseEvent) => void }).onMouseEnter?.(e);
-            mostrar();
-          },
-          onMouseLeave: (e: React.MouseEvent) => {
-            (trigger.props as { onMouseLeave?: (e: React.MouseEvent) => void }).onMouseLeave?.(e);
-            agendarEsconder();
-          },
-          onFocus: (e: React.FocusEvent) => {
-            (trigger.props as { onFocus?: (e: React.FocusEvent) => void }).onFocus?.(e);
-            mostrar();
-          },
-          onBlur: (e: React.FocusEvent) => {
-            (trigger.props as { onBlur?: (e: React.FocusEvent) => void }).onBlur?.(e);
-            esconder();
-          },
-        } as Partial<unknown>)
-      : trigger;
-
     return (
       <>
-        {triggerClonado}
-        {tooltipPortal}
+        {cloneTriggerWithHandlers(trigger, triggerRef, mostrar, esconder, agendarEsconder)}
+        {portal}
       </>
     );
   }
@@ -253,7 +302,7 @@ export function Tooltip({
       >
         ?
       </button>
-      {tooltipPortal}
+      {portal}
     </span>
   );
 }
