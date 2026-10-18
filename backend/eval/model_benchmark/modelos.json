@@ -10,10 +10,10 @@
       "quantizacao": "Q4_0"
     },
     {
-      "id": "qwen25-7b",
-      "rotulo": "Qwen2.5 7B",
-      "ollama": "qwen2.5:7b",
-      "familia": "qwen2.5",
+      "id": "qwen25-vl-7b",
+      "rotulo": "Qwen2.5-VL 7B Instruct",
+      "ollama": "qwen2.5-vl:7b",
+      "familia": "qwen2.5-vl",
       "parametros_b": 7,
       "quantizacao": "Q4_K_M"
     },
@@ -74,12 +74,12 @@
       "quantizacao": "Q4_K_M"
     },
     {
-      "id": "gemma4-12b-q8",
-      "rotulo": "Gemma-4-12B 8-bit",
-      "ollama": "gemma4:12b-it-q8_0",
+      "id": "gemma4-e4b-q8",
+      "rotulo": "Gemma-4-E4B-it UD-Q8_K_XL",
+      "ollama": "gemma-4-E4B-it-GGUF:UD-Q8_K_XL",
       "familia": "gemma4",
-      "parametros_b": 12,
-      "quantizacao": "Q8_0"
+      "parametros_b": 26,
+      "quantizacao": "UD-Q8_K_XL"
     }
   ]
 }

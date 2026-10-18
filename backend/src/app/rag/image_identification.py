@@ -356,7 +356,18 @@ def _remover_acentos(texto: str) -> str:
 
 
 _STOP_WORDS = {
-    "de", "para", "com", "sem", "em", "do", "da", "dos", "das", "um", "uma", "produto",
+    "de",
+    "para",
+    "com",
+    "sem",
+    "em",
+    "do",
+    "da",
+    "dos",
+    "das",
+    "um",
+    "uma",
+    "produto",
 }
 
 

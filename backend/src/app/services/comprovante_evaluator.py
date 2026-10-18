@@ -58,7 +58,7 @@ def _parse_decimal(valor_str: str) -> Decimal | None:
             return Decimal(s_clean)
         # Se contiver apenas ponto decimal (ex: 1500.50)
         return Decimal(s)
-    except (InvalidOperation, ValueError):
+    except InvalidOperation, ValueError:
         return None
 
 
@@ -160,9 +160,19 @@ class ComprovanteEvaluator:
     def _extrair_heuristica(self, texto: str, valor_devido: Decimal) -> ParecerComprovante:
         """Extração resiliente por regras e expressões regulares para auditoria financeira."""
         _PALAVRAS_CHAVE = (
-            "comprovante", "pagamento", "pix", "ted", "doc",
-            "transferência", "transferencia", "favorecido",
-            "transação", "transacao", "autenticação", "autenticacao", "banco",
+            "comprovante",
+            "pagamento",
+            "pix",
+            "ted",
+            "doc",
+            "transferência",
+            "transferencia",
+            "favorecido",
+            "transação",
+            "transacao",
+            "autenticação",
+            "autenticacao",
+            "banco",
         )
         if not any(p in texto.lower() for p in _PALAVRAS_CHAVE):
             return ParecerComprovante(
@@ -212,6 +222,87 @@ class ComprovanteEvaluator:
             codigo_transacao=codigo_transacao,
         )
 
+    async def _chamar_llm(self, prompt: str, valor_devido: Decimal) -> ParecerComprovante | None:
+        """Chama o LLM configurado e retorna o parecer, ou None em caso de falha."""
+        try:
+            res = None
+            if hasattr(self.llm_client, "generate"):
+                res = await self.llm_client.generate(prompt)
+            elif hasattr(self.llm_client, "chat"):
+                res = await self.llm_client.chat(prompt)
+
+            raw_text = res.text if hasattr(res, "text") else str(res)
+            spawn_background_task(
+                registrar_uso_ia(
+                    origem=self.origem,
+                    ambiente=self.llm_ambiente,
+                    modelo=getattr(res, "model_name", None) or "desconhecido",
+                    operacao="comprovante_texto_llm",
+                    tokens_entrada=getattr(res, "prompt_tokens", None),
+                    tokens_saida=getattr(res, "completion_tokens", None),
+                    custo_usd=getattr(res, "estimated_cost_usd", None),
+                    referencia_id=None,
+                    session=None,
+                    session_factory=None,
+                    commit=False,
+                )
+            )
+            return self._parse_vision_response(raw_text, valor_devido, res)
+        except Exception as exc:
+            # Qualquer falha do LLM (rede, timeout, resposta inválida) cai no
+            # fallback heurístico; estreitar a captura quebrava esse degrau.
+            logger.warning(
+                "Falha na interpretação via LLM (%s), acionando fallback heurístico.", exc
+            )
+            return None
+
+    async def _tentar_visao(
+        self, conteudo: bytes, prompt: str, valor_devido: Decimal
+    ) -> ParecerComprovante | None:
+        """Tenta visão local e depois externa (política de custo mínimo).
+        Retorna o primeiro parecer bem-sucedido, ou None se ambos falharem."""
+        for vision_client in (self.local_vision_client, self.vision_client):
+            if not vision_client:
+                continue
+            try:
+                raw_vision = await vision_client.describe_image(conteudo, prompt)
+                ambiente_vision = (
+                    "interno" if vision_client is self.local_vision_client else "externo"
+                )
+                # `custo_usd` com fallback `0.0` (e não `None`, como nos
+                # outros pontos do ledger): `LocalVisionResult`
+                # genuinamente não tem custo — visão local é sempre
+                # grátis, um "não existe" que já sabemos valer zero —
+                # enquanto nos outros pontos um atributo ausente
+                # significaria "não foi possível capturar".
+                spawn_background_task(
+                    registrar_uso_ia(
+                        origem=self.origem,
+                        ambiente=ambiente_vision,
+                        modelo=getattr(raw_vision, "model_name", None) or "desconhecido",
+                        operacao=(
+                            "comprovante_visao_interna"
+                            if ambiente_vision == "interno"
+                            else "comprovante_visao_externa"
+                        ),
+                        tokens_entrada=getattr(raw_vision, "prompt_tokens", None),
+                        tokens_saida=getattr(raw_vision, "completion_tokens", None),
+                        custo_usd=(
+                            getattr(raw_vision, "cost_prompt_usd", 0.0)
+                            + getattr(raw_vision, "cost_completion_usd", 0.0)
+                        ),
+                        referencia_id=None,
+                        session=None,
+                        session_factory=None,
+                        commit=False,
+                    )
+                )
+                raw_text = raw_vision.content if hasattr(raw_vision, "content") else str(raw_vision)
+                return self._parse_vision_response(raw_text, valor_devido, raw_vision)
+            except Exception as exc:
+                logger.warning("Falha na visão (%s), tentando próximo nível do fallback.", exc)
+        return None
+
     async def avaliar_texto(
         self,
         texto: str,
@@ -251,37 +342,9 @@ class ComprovanteEvaluator:
                 "Responda EXCLUSIVAMENTE o bloco JSON, sem blocos de markdown adicionais.\n\n"
                 f"Texto do Comprovante:\n{wrap_untrusted('texto_comprovante', texto)}\n"
             )
-
-            try:
-                res = None
-                if hasattr(self.llm_client, "generate"):
-                    res = await self.llm_client.generate(prompt)
-                elif hasattr(self.llm_client, "chat"):
-                    res = await self.llm_client.chat(prompt)
-
-                raw_text = res.text if hasattr(res, "text") else str(res)
-                spawn_background_task(
-                    registrar_uso_ia(
-                        origem=self.origem,
-                        ambiente=self.llm_ambiente,
-                        modelo=getattr(res, "model_name", None) or "desconhecido",
-                        operacao="comprovante_texto_llm",
-                        tokens_entrada=getattr(res, "prompt_tokens", None),
-                        tokens_saida=getattr(res, "completion_tokens", None),
-                        custo_usd=getattr(res, "estimated_cost_usd", None),
-                        referencia_id=None,
-                        session=None,
-                        session_factory=None,
-                        commit=False,
-                    )
-                )
-                return self._parse_vision_response(raw_text, valor_devido, res)
-            except Exception as exc:
-                # Qualquer falha do LLM (rede, timeout, resposta inválida) cai no
-                # fallback heurístico; estreitar a captura quebrava esse degrau.
-                logger.warning(
-                    "Falha na interpretação via LLM (%s), acionando fallback heurístico.", exc
-                )
+            resultado = await self._chamar_llm(prompt, valor_devido)
+            if resultado is not None:
+                return resultado
 
         return self._extrair_heuristica(texto, valor_devido)
 
@@ -319,52 +382,13 @@ class ComprovanteEvaluator:
                 '{"comprovante_valido": true/false, "valor_pago": 1500.00, '
                 '"codigo_transacao": "string ou null", "justificativa": "detalhes"}'
             )
-            for vision_client in (self.local_vision_client, self.vision_client):
-                if not vision_client:
-                    continue
-                try:
-                    raw_vision = await vision_client.describe_image(conteudo, prompt_vision)
-                    ambiente_vision = (
-                        "interno" if vision_client is self.local_vision_client else "externo"
-                    )
-                    # `custo_usd` com fallback `0.0` (e não `None`, como nos
-                    # outros pontos do ledger): `LocalVisionResult`
-                    # genuinamente não tem custo — visão local é sempre
-                    # grátis, um "não existe" que já sabemos valer zero —
-                    # enquanto nos outros pontos um atributo ausente
-                    # significaria "não foi possível capturar".
-                    spawn_background_task(
-                        registrar_uso_ia(
-                            origem=self.origem,
-                            ambiente=ambiente_vision,
-                            modelo=getattr(raw_vision, "model_name", None) or "desconhecido",
-                            operacao=(
-                                "comprovante_visao_interna"
-                                if ambiente_vision == "interno"
-                                else "comprovante_visao_externa"
-                            ),
-                            tokens_entrada=getattr(raw_vision, "prompt_tokens", None),
-                            tokens_saida=getattr(raw_vision, "completion_tokens", None),
-                            custo_usd=(
-                                getattr(raw_vision, "cost_prompt_usd", 0.0)
-                                + getattr(raw_vision, "cost_completion_usd", 0.0)
-                            ),
-                            referencia_id=None,
-                            session=None,
-                            session_factory=None,
-                            commit=False,
-                        )
-                    )
-                    raw_text = (
-                        raw_vision.content if hasattr(raw_vision, "content") else str(raw_vision)
-                    )
-                    return self._parse_vision_response(raw_text, valor_devido, raw_vision)
-                except Exception as exc:
-                    logger.warning("Falha na visão (%s), tentando próximo nível do fallback.", exc)
+            resultado = await self._tentar_visao(conteudo, prompt_vision, valor_devido)
+            if resultado is not None:
+                return resultado
 
         # Sem texto do OCR e sem visão disponível/bem-sucedida: cai no
-        # tratamento padrão de `avaliar_texto` para texto vazio ("não
-        # contém texto legível").
+        # tratamento padrão de `avaliar_texto` para texto vazio
+        # ("não contém texto legível").
         return await self.avaliar_texto(
             texto=texto,
             valor_devido=valor_devido,

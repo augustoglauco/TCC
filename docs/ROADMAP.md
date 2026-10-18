@@ -285,7 +285,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
 > `docs/superpowers/specs/2026-09-16-local-model-manager-design.md`).
 
 - [x] **Gerenciador de modelos locais** — tela `/admin/modelos` para
-      listar/ativar em runtime/baixar (Ollama ou Hugging Face GGUF) modelos
+      listar/ativar em runtime/baixar/desinstalar (Ollama ou Hugging Face GGUF) modelos
       locais de chat, sem bloquear o backend durante o download. Não
       substitui a escolha formal de produção da Fase 10. Seção "Parâmetros
       de execução" na mesma tela ajusta em runtime a temperatura do modelo
@@ -1495,9 +1495,9 @@ conversa e classificação do usuário").
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
-- [ ] Rodar a avaliação comparativa entre as 9 configurações de modelo local
-      candidatas (Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B Q4_K_M/Q5_K_M; Qwen3 8B
-      Q5_K_M/Q8_0; Phi-4-mini/Phi-4; Gemma-4-12B 4-bit/8-bit — ver
+- [ ] Rodar a avaliação comparativa entre as 10 configurações de modelo local
+      candidatas (Llama 3.1 8B; Qwen2.5-VL 7B Instruct; Qwen3 14B Q4_K_M/Q5_K_M; Qwen3 8B
+      Q5_K_M/Q8_0; Phi-4-mini/Phi-4; Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL — ver
       `docs/ARCHITECTURE.md` tabela de escopo), medindo custo/latência e
       qualidade de resposta **contra o sistema completo** (RAG real da Fase 2,
       playbooks de domínio da Fase 3), não isoladamente — decidida
@@ -2165,10 +2165,10 @@ conversa e classificação do usuário").
       sem seed).
 - [x] **Visão local não é requisito do candidato** (decisão de 2026-10-17,
       registrada em `docs/ARCHITECTURE.md` e no README de
-      `eval/model_benchmark/`). Das 10 tags de `modelos.json`, só as duas de
-      Gemma-4-12B têm `vision` — as variantes multimodais das outras famílias
-      são tags diferentes (`qwen2.5-vl`, `qwen3-vl`, `llama3.2-vision`,
-      `phi4-multimodal`). Exigir visão local cortaria 8 dos 10 por um
+      `eval/model_benchmark/`). Das 10 tags de `modelos.json`, as duas de
+      Gemma-4-12B e a tag de Qwen2.5-VL 7B têm `vision` — as variantes multimodais das outras famílias
+      são tags diferentes (`qwen3-vl`, `llama3.2-vision`,
+      `phi4-multimodal`). Exigir visão local cortaria 7 dos 10 por um
       requisito que o sistema não impõe: `OllamaClient.describe_image` usa o
       mesmo `LOCAL_MODEL_NAME`, e candidato sem a capability manda a imagem do
       cliente para a visão externa, que é caminho documentado, não defeito.
@@ -2176,9 +2176,9 @@ conversa e classificação do usuário").
       vencedor não tiver, o relatório precisa dizer que toda imagem de cliente
       passa a depender do modelo externo.
 - [x] Contagem de candidatos corrigida em 2026-10-17: `docs/ARCHITECTURE.md`
-      dizia "9 configurações" e listava 10 (Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B
+      dizia "9 configurações" e listava 10 (Llama 3.1 8B; Qwen2.5-VL 7B Instruct; Qwen3 14B
       Q4_K_M/Q5_K_M; Qwen3 8B Q5_K_M/Q8_0; Phi-4-mini; Phi-4; Gemma-4-12B
-      4-bit/8-bit), que são os 10 de `eval/model_benchmark/modelos.json`. O
+      4-bit e Gemma-4-E4B-it UD-Q8_K_XL), que são os 10 de `eval/model_benchmark/modelos.json`. O
       número no documento passou a 10 — nenhum candidato foi retirado.
 - [x] Página pública de resultados `/avaliacao` com gráficos (Recharts) e
       endpoint `GET /api/avaliacao/resultados` só com agregados (intervalo
@@ -2224,16 +2224,15 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       Simplificação marcada no cliente: a lista de tarefas é espelhada à mão
       de `TAREFAS_DISPONIVEIS` do backend, que não expõe rota para listar os
       tipos (`// MVP:` em `frontend/lib/api/datasets.ts`).
-- [x] **Geradores de rascunho dos conjuntos** (2026-10-18). Os scripts
-      existem (`eval/router_intents`, `rag_banco`, `prompt_injection`,
-      `rag_quality` `/gerar_dataset.py`) e agora há uma tarefa para cada um em
-      `TAREFAS_DISPONIVEIS` (`gerar_rascunho_roteador`, `gerar_conjunto_banco`,
-      `gerar_rascunho_injecao`; a de RAG docs já existia). Nome único `gerar_rascunhos`
-      do docstring antigo foi abandonado: cada conjunto tem comando e custo
-      próprios. O cartão de imagem passou a ler `imagens/holdout.json` (chave
-      `consultas`, meta 53). Roteador fechado em 300 (234 chegam ao LLM, 78%)
-      com `gerar_dataset.py --completar`. Pendente: mesclar as 30 negativas ao
-      conjunto de imagem (hoje o cartão mostra 23 de 53).
+- [ ] **Geradores de rascunho dos conjuntos — não existem.** A tela revisa e
+      dispara, mas nada produz as 300 mensagens, as 180 perguntas, os 103
+      itens de imagem, as 80 do banco e os 100 casos de injeção. Hoje os
+      arquivos no disco são os **conjuntos invalidados** (roteador 40, RAG 18,
+      injeção 8, imagem 9) e `eval/rag_banco/dataset.json` não existe. Falta
+      também a tarefa `gerar_rascunhos` em `TAREFAS_DISPONIVEIS`, citada no
+      docstring do módulo (`"gerar rascunhos"`) mas nunca implementada. É o
+      item que trava a revisão humana e, por consequência, as Etapas 2–5 e o
+      benchmark.
 - [x] Deriva de documentação corrigida em 2026-10-17: o `# MVP:` de
       `admin_datasets.py` citava esta seção do roadmap desde 2026-10-16, e ela
       não existia. O gate de `doc-drift` não pega esse caso — a citação é prosa,

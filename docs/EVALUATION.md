@@ -789,3 +789,114 @@ arquivo `eval/RESUMO.md` ou uma seção no relatório final do TCC) com:
 Esse resumo é o insumo direto para a Seção 9 do documento de proposta
 (`Documento_Projeto_Assistente_Multimodal_com_avaliacao.docx`) e para a
 apresentação final ao orientador.
+
+## Roteiro do dono (passo a passo, retomável)
+
+Criado em 2026-10-18. Lista, **em ordem de dependência**, o que só o dono
+(humano) pode fazer para a Fase 10 sair do papel, e o que o agente faz entre
+um passo e outro. O progresso fica no work state `roteiro-dono-fase10`
+(chave `passo_atual`); para retomar numa nova sessão, diga "continuar o
+roteiro" e o agente lê a lista, mostra o passo atual e repete as instruções
+daqui. Tempos são estimativas do plano da Estratégia A (revisão humana total
+~4,5 h), não medições.
+
+**Regra de ouro:** a ordem importa porque cada revisão destrava uma etapa
+diferente. Revisar antes o conjunto que bloqueia mais coisa mantém o agente
+trabalhando enquanto você revisa o seguinte.
+
+### Passo 0 — Preparar o ambiente (~10 min)
+- **Por quê:** a tela de revisão só funciona com o sistema no ar e login admin.
+- **Como:** suba tudo com `./g.sh` (veja `goup.md`), entre como administrador
+  e abra `/admin/datasets`.
+- **Pronto quando:** aparecem cinco cartões (Roteador, RAG documentos,
+  Injeção, RAG imagem, RAG banco).
+
+### Passo 1 — Três decisões rápidas (~20 min)
+Elas não exigem trabalho, só uma resposta, e destravam o agente para
+trabalhar em paralelo enquanto você revisa. Responda no chat no formato
+`1a=..., 1b=..., 1c=...`.
+- **1a. Visão local é obrigatória?** Só as duas tags Gemma-4-12B enxergam
+  imagem. *Sim*: só elas concorrem na etapa de imagem e as outras 8 competem
+  em roteador, RAG e injeção. *Não*: todas concorrem e a imagem usa o
+  externo como apoio. Recomendado: **sim**, medir imagem só em quem tem visão
+  (não muda a lista de 10 candidatos).
+- **1b. Holdout de imagem:** 5 produtos têm uma foto só (iDBell, iDBlock
+  Next, iDFlexIp65, iDUHF, iDUHF Lite) e não dão consulta. Opções: aceitar
+  n=23 (IC 95% ±16 pp, registrado como limitação), fotografar 2–3 ângulos
+  deles, ou perturbar a própria foto (recorte/recompressão). Recomendado:
+  **aceitar n=23** (regra 8: o mais simples que atende o MVP).
+- **1c. Baixar ~68 GB de modelos** (9 dos 10 candidatos não estão no
+  Ollama; o disco tem 422 GB livres). Autorizando, o agente baixa em segundo
+  plano e valida cada tag.
+
+### Passo 2 — Trabalho do agente (você não faz nada)
+Baixar os modelos, mesclar as negativas de imagem ao conjunto (hoje o painel
+mostra 23 de 53; a pasta tem 48 arquivos, não 30 — o agente confere),
+confirmar o critério de corte da triagem no README do benchmark (item 14) e
+sincronizar os números dos documentos (item 18). Você pode ir direto ao
+passo 3.
+
+### Passo 3 — Revisar o Roteador (300 itens, ~1,5 h)
+- **Por quê primeiro:** é o que a triagem consome; sem ele nada roda.
+- **Como:** `/admin/datasets` → cartão Roteador → fila. Atalhos `A`
+  aprovar, `D` descartar; editar qualquer campo grava como `corrigido`.
+- **O que conferir em cada item:** (1) a mensagem soa como um cliente real,
+  em português; (2) `intencao_esperada` está certa (vendas, suporte,
+  atendimento, agendamento ou fora_escopo) — se não, corrija o campo;
+  (3) se `ambiguo` for verdadeiro, só aprove quando houver um rótulo
+  defensável.
+- **Descarte quando:** duas intenções são igualmente plausíveis sem estar
+  marcado como ambíguo, a mensagem repete outra, ou cita produto que não
+  existe no catálogo.
+- **Não mexa em** `chega_ao_llm` e `motivo_caminho`: são calculados pelo
+  código do classificador, não pelo modelo.
+- **Pronto quando:** pendentes = 0. Avise o agente: ele confere que ainda
+  sobram ao menos 200 itens que chegam ao LLM depois dos descartes.
+
+### Passo 4 — Revisar o RAG documentos (180 itens, ~2 h)
+- **Por quê agora:** destrava as Etapas 2–5 (escolha de embedding, chunking,
+  limiar e distância) e, depois, a reingestão.
+- **O que conferir:** (1) a pergunta faz sentido sozinha — cerca de 14%
+  não dizem o produto: corrija acrescentando-o, ou descarte; (2) a
+  `resposta_esperada` é sustentada pelo `trecho_origem` mostrado ao lado;
+  (3) nas 20 perguntas `sem_resposta`, **confirme que o corpus realmente
+  não responde** — se responder, descarte, porque o gabarito estaria
+  errado; (4) `origem_ambigua` verdadeiro significa o mesmo texto em vários
+  PDFs: tudo bem manter.
+- **Dica:** pode parar quando cansar. Cada ação é salva na hora e a fila só
+  mostra o que falta.
+
+### Passo 5 — Revisar a Injeção de prompt (100 itens, ~1 h)
+- **Por quê por último:** só a rodada completa usa este conjunto.
+- **O que conferir:** (1) `categoria` certa — *direta* é o ataque na mensagem
+  do cliente, *indireta* vem escondido em `documentos_rag`; (2)
+  `criterio_falha` é objetivo (dá para dizer sim/não olhando a resposta);
+  (3) é de fato um ataque, não uma pergunta legítima. Dados e credenciais
+  nos casos são fictícios.
+
+### Passo 6 — Triagem dos 10 modelos (agente roda, você espera, ~1,5 h+)
+Depois dos passos 3 e 2 concluídos, o agente roda a triagem (roteador e
+imagem, ~8 min de GPU por candidato). **Você só precisa** deixar a máquina
+ligada e a GPU livre (não abra outros modelos). Não use o `get_answer` do
+Repowise durante a rodada: ele usa o mesmo gemma4:12b.
+
+### Passo 7 — Escolher os sobreviventes (~20 min)
+O agente aplica o critério de corte já registrado e mostra a tabela. Você
+confirma os 4–5 que seguem. É decisão sua porque define o custo da rodada
+completa.
+
+### Passo 8 — Fechar os parâmetros do RAG (~30 min)
+Com o passo 4 feito, o agente roda as Etapas 2–5 nas 180 perguntas e
+apresenta o ponto vencedor (embedding, chunk_size/overlap, limiar, distância)
+com o intervalo de confiança. Você aprova antes de reingerir o corpus.
+
+### Passo 9 — Rodada completa e conferência do juiz (horas de relógio)
+Roda no tier gratuito do OpenRouter, então o limite diário da conta manda no
+tempo. Você revisa uma amostra de julgamentos do juiz contra o seu próprio
+critério; se a concordância sair baixa, a regra já decidida é trocar o
+**modelo** free por um maior do mesmo tier, não de tier.
+
+### Passo 10 — Relatório e Fase 11
+Ler o relatório consolidado (McNemar pareado entre candidatos), percorrer o
+checklist dos 12 requisitos, ensaiar a demonstração (quatro domínios,
+agendamento e MCP B2B) e enviar ao orientador.

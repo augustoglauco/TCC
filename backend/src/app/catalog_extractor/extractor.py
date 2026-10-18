@@ -76,33 +76,29 @@ Regras:
 """  # noqa: E501 — prompt: quebrar as linhas mudaria o texto enviado ao LLM
 
 
-def _parse_products_json(raw_text: str) -> list[dict[str, Any]]:
-    stripped = raw_text.strip()
+def _extrair_json_bruto(text: str) -> str:
+    """Isola o fragmento JSON de `text`, removendo cercas de código e texto extra."""
+    stripped = text.strip()
     match = _CODE_FENCE_RE.match(stripped)
     if match:
-        stripped = match.group(1).strip()
-    else:
-        # Se contiver ```json em qualquer parte do texto, extrai bloco
-        sub_match = re.search(r"```(?:json)?\s*(\[.*?\])\s*```", stripped, re.DOTALL)
-        if sub_match:
-            stripped = sub_match.group(1).strip()
-        else:
-            # Tenta encontrar primeiro '[' e último ']'
-            start = stripped.find("[")
-            end = stripped.rfind("]")
-            if start != -1 and end != -1 and end > start:
-                stripped = stripped[start : end + 1]
+        return match.group(1).strip()
+    sub_match = re.search(r"```(?:json)?\s*(\[.*?\])\s*```", stripped, re.DOTALL)
+    if sub_match:
+        return sub_match.group(1).strip()
+    start = stripped.find("[")
+    end = stripped.rfind("]")
+    if start != -1 and end != -1 and end > start:
+        return stripped[start : end + 1]
+    return stripped
 
+
+def _parse_products_json(raw_text: str) -> list[dict[str, Any]]:
     try:
-        data = json.loads(stripped)
-        if isinstance(data, list):
-            valid_items = []
-            for item in data:
-                if isinstance(item, dict) and item.get("nome"):
-                    valid_items.append(item)
-            return valid_items
-        elif isinstance(data, dict) and data.get("nome"):
+        data = json.loads(_extrair_json_bruto(raw_text))
+        if isinstance(data, dict) and data.get("nome"):
             return [data]
+        if isinstance(data, list):
+            return [item for item in data if isinstance(item, dict) and item.get("nome")]
         return []
     except Exception as exc:
         logger.warning(f"Falha ao decodificar JSON de produtos extraídos: {exc}")
@@ -307,16 +303,25 @@ def _is_duplicate_figure(cand: dict[str, float], x0: float, top: float, w: float
     )
 
 
-def _extrair_figuras_pagina(page: Any, pil_img: Image.Image, temp_dir: Path) -> list[str]:
-    """Detecta, filtra e recorta figuras individuais da página do catálogo."""
-    page_w = float(getattr(page, "width", 0) or 1)
-    page_h = float(getattr(page, "height", 0) or 1)
-    scale_x = pil_img.width / page_w
-    scale_y = pil_img.height / page_h
+def _normalizar_modo_imagem(crop: Image.Image) -> Image.Image:
+    """Converte crop para RGB com fundo branco, se necessário."""
+    if crop.mode in ("RGBA", "LA", "P"):
+        bg = Image.new("RGB", crop.size, (255, 255, 255))
+        if crop.mode == "P":
+            crop = crop.convert("RGBA")
+        mask = crop.split()[-1] if len(crop.split()) > 3 else None
+        bg.paste(crop, mask=mask)
+        return bg
+    if crop.mode != "RGB":
+        return crop.convert("RGB")
+    return crop
 
+
+def _filtrar_candidatos(
+    raw_images: list[Any], page_w: float, page_h: float
+) -> list[dict[str, float]]:
+    """Filtra e ordena as imagens brutas da página em candidatos válidos."""
     candidates: list[dict[str, float]] = []
-    raw_images = getattr(page, "images", []) or []
-
     for im in raw_images:
         w = float(im.get("width", 0) or 0)
         h = float(im.get("height", 0) or 0)
@@ -324,15 +329,23 @@ def _extrair_figuras_pagina(page: Any, pil_img: Image.Image, temp_dir: Path) -> 
         top = float(im.get("top", 0) or 0)
         x1 = float(im.get("x1", x0 + w) or (x0 + w))
         bottom = float(im.get("bottom", top + h) or (top + h))
-
         if not _figura_valida(im, page_w, page_h, candidates):
             continue
-
         candidates.append({"x0": x0, "top": top, "x1": x1, "bottom": bottom, "w": w, "h": h})
-
     # Ordena espacialmente por linha visual (top agrupado a cada ~35pt) e
     # depois da esquerda para a direita (x0)
     candidates.sort(key=lambda c: (round(c["top"] / 35.0), c["x0"]))
+    return candidates
+
+
+def _extrair_figuras_pagina(page: Any, pil_img: Image.Image, temp_dir: Path) -> list[str]:
+    """Detecta, filtra e recorta figuras individuais da página do catálogo."""
+    page_w = float(getattr(page, "width", 0) or 1)
+    page_h = float(getattr(page, "height", 0) or 1)
+    scale_x = pil_img.width / page_w
+    scale_y = pil_img.height / page_h
+
+    candidates = _filtrar_candidatos(getattr(page, "images", []) or [], page_w, page_h)
 
     figuras_urls: list[str] = []
     for c in candidates:
@@ -345,18 +358,7 @@ def _extrair_figuras_pagina(page: Any, pil_img: Image.Image, temp_dir: Path) -> 
         if (px_x1 - px_x0) < 24 or (px_y1 - px_y0) < 24:
             continue
 
-        crop = pil_img.crop((px_x0, px_y0, px_x1, px_y1))
-
-        if crop.mode in ("RGBA", "LA", "P"):
-            bg = Image.new("RGB", crop.size, (255, 255, 255))
-            if crop.mode == "P":
-                crop = crop.convert("RGBA")
-            mask = crop.split()[-1] if len(crop.split()) > 3 else None
-            bg.paste(crop, mask=mask)
-            crop = bg
-        elif crop.mode != "RGB":
-            crop = crop.convert("RGB")
-
+        crop = _normalizar_modo_imagem(pil_img.crop((px_x0, px_y0, px_x1, px_y1)))
         crop_name = f"crop_{uuid.uuid4().hex[:12]}.jpg"
         crop_path = temp_dir / crop_name
         crop.save(crop_path, format="JPEG", quality=90)
@@ -433,48 +435,32 @@ async def _processar_bloco_texto(
     )
 
 
-async def _extrair_produtos_pagina_pdf(
+async def _extrair_pdf_local_com_fallback(
     *,
-    provider: str,
-    fallback_external: bool,
     texto_pagina: str,
     img_bytes: bytes | None,
+    fallback_external: bool,
     filename: str,
     num_pagina_pdf: int,
     local_client: Any,
     vision_client: Any,
     session_factory: Any,
-) -> tuple[str, list[dict[str, Any]], str | None]:  # (provider_usado, raw_prods, erro)
-    """Despacha para local ou externo e retorna (provider_usado, raw_prods, erro_pagina)."""
-    provider_usado = provider
+) -> tuple[str, list[dict[str, Any]], str | None]:
+    """Tenta extração local por texto e, se vazio, fallback externo por visão."""
+    provider_usado = "local"
     raw_prods: list[dict[str, Any]] = []
     erro_pagina: str | None = None
 
-    if provider == "external":
-        if img_bytes and vision_client:
-            try:
-                raw_prods = await extract_page_products_vision(
-                    img_bytes,
-                    vision_client,
-                    source_identifier=f"{filename}#p{num_pagina_pdf}",
-                    session_factory=session_factory,
-                    ambiente="externo",
-                )
-            except Exception as e:
-                logger.error(f"Erro na visão externa: {e}")
-                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
-        return provider_usado, raw_prods, erro_pagina
-
-    texto_suficiente = len(texto_pagina.strip()) >= 30
-    if texto_suficiente and local_client:
+    if len(texto_pagina.strip()) >= 30 and local_client:
         try:
             raw_prods = await extract_page_products_local(texto_pagina, local_client)
-            provider_usado = "local"
         except Exception as e:
             logger.warning(f"Erro na extração local: {e}")
 
-    pode_usar_fallback = not raw_prods and fallback_external and img_bytes and vision_client
-    if pode_usar_fallback:
+    pode_usar_fallback_externo = (
+        not raw_prods and fallback_external and bool(img_bytes) and bool(vision_client)
+    )
+    if pode_usar_fallback_externo:
         try:
             raw_prods = await extract_page_products_vision(
                 img_bytes,  # type: ignore[arg-type]
@@ -489,6 +475,77 @@ async def _extrair_produtos_pagina_pdf(
             erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
 
     return provider_usado, raw_prods, erro_pagina
+
+
+async def _extrair_produtos_pagina_pdf(
+    *,
+    provider: str,
+    fallback_external: bool,
+    texto_pagina: str,
+    img_bytes: bytes | None,
+    filename: str,
+    num_pagina_pdf: int,
+    local_client: Any,
+    vision_client: Any,
+    session_factory: Any,
+) -> tuple[str, list[dict[str, Any]], str | None]:  # (provider_usado, raw_prods, erro)
+    """Despacha para local ou externo e retorna (provider_usado, raw_prods, erro_pagina)."""
+    if provider == "external":
+        raw_prods: list[dict[str, Any]] = []
+        erro_pagina: str | None = None
+        if img_bytes and vision_client:
+            try:
+                raw_prods = await extract_page_products_vision(
+                    img_bytes,
+                    vision_client,
+                    source_identifier=f"{filename}#p{num_pagina_pdf}",
+                    session_factory=session_factory,
+                    ambiente="externo",
+                )
+            except Exception as e:
+                logger.error(f"Erro na visão externa: {e}")
+                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
+        return provider, raw_prods, erro_pagina
+
+    return await _extrair_pdf_local_com_fallback(
+        texto_pagina=texto_pagina,
+        img_bytes=img_bytes,
+        fallback_external=fallback_external,
+        filename=filename,
+        num_pagina_pdf=num_pagina_pdf,
+        local_client=local_client,
+        vision_client=vision_client,
+        session_factory=session_factory,
+    )
+
+
+def _atribuir_foto_produto(idx: int, figuras: list[str], total_prods: int) -> str | None:
+    """Retorna a URL da figura a associar ao produto de índice `idx`."""
+    if not figuras:
+        return None
+    if idx < len(figuras):
+        return figuras[idx]
+    if len(figuras) == 1 and total_prods == 1:
+        return figuras[0]
+    return None
+
+
+def _renderizar_pagina_pdf(
+    page: Any, num_pagina_pdf: int, temp_dir: Path
+) -> tuple[bytes | None, Image.Image | None, str | None]:
+    """Renderiza a página como JPEG. Retorna (img_bytes, pil_img, temp_img_url)."""
+    temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
+    temp_img_path = temp_dir / temp_img_name
+    try:
+        pil_img = page.to_image(resolution=150).original
+        img_buf = io.BytesIO()
+        pil_img.save(img_buf, format="JPEG", quality=85)
+        img_bytes = img_buf.getvalue()
+        temp_img_path.write_bytes(img_bytes)
+        return img_bytes, pil_img, f"/api/uploads/produtos/temp/{temp_img_name}"
+    except Exception as e:
+        logger.warning(f"Não foi possível renderizar imagem da página {num_pagina_pdf} do PDF: {e}")
+        return None, None, None
 
 
 async def _processar_pagina_pdf(
@@ -513,21 +570,7 @@ async def _processar_pagina_pdf(
     }
 
     texto_pagina = _extrair_texto_pagina(page)
-
-    temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
-    temp_img_path = temp_dir / temp_img_name
-    img_bytes: bytes | None = None
-    pil_img: Image.Image | None = None
-    temp_img_url: str | None = None
-    try:
-        pil_img = page.to_image(resolution=150).original
-        img_buf = io.BytesIO()
-        pil_img.save(img_buf, format="JPEG", quality=85)
-        img_bytes = img_buf.getvalue()
-        temp_img_path.write_bytes(img_bytes)
-        temp_img_url = f"/api/uploads/produtos/temp/{temp_img_name}"
-    except Exception as e:
-        logger.warning(f"Não foi possível renderizar imagem da página {num_pagina_pdf} do PDF: {e}")
+    img_bytes, pil_img, temp_img_url = _renderizar_pagina_pdf(page, num_pagina_pdf, temp_dir)
 
     figuras_pagina: list[str] = []
     if pil_img:
@@ -548,24 +591,17 @@ async def _processar_pagina_pdf(
         session_factory=session_factory,
     )
 
-    produtos: list[ExtractedProduct] = []
-    for i, item in enumerate(raw_prods):
-        foto_produto: str | None = None
-        if figuras_pagina:
-            if i < len(figuras_pagina):
-                foto_produto = figuras_pagina[i]
-            elif len(figuras_pagina) == 1 and len(raw_prods) == 1:
-                foto_produto = figuras_pagina[0]
-        produtos.append(
-            _montar_produto(
-                item,
-                pagina_origem=num_pagina_pdf,
-                provider_usado=provider_usado,
-                confianca=0.95 if provider_usado == "external" else 0.85,
-                imagem_temp_url=foto_produto,
-                fotos_pagina=figuras_pagina,
-            )
+    produtos: list[ExtractedProduct] = [
+        _montar_produto(
+            item,
+            pagina_origem=num_pagina_pdf,
+            provider_usado=provider_usado,
+            confianca=0.95 if provider_usado == "external" else 0.85,
+            imagem_temp_url=_atribuir_foto_produto(i, figuras_pagina, len(raw_prods)),
+            fotos_pagina=figuras_pagina,
         )
+        for i, item in enumerate(raw_prods)
+    ]
 
     page_result = CatalogPageResult(
         pagina=num_pagina_pdf,

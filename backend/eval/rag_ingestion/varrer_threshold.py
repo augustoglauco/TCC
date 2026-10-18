@@ -45,7 +45,6 @@ TOP_KS = (3, 5, 10)
 THRESHOLD_MAXIMO_DA_BASE = 0.01
 
 
-
 def varrer(itens: list[dict]) -> list[dict]:
     linhas = []
     for top_k in TOP_KS:

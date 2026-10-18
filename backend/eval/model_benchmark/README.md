@@ -222,22 +222,18 @@ externo.
 ## Candidatos
 
 `modelos.json` lista os candidatos de `docs/ARCHITECTURE.md` (tabela de
-escopo, linha "Modelo local"). São **10 configurações**, embora o texto do
-documento diga "9": Llama 3.1 8B; Qwen2.5 7B; Qwen3 14B (Q4_K_M, Q5_K_M);
-Qwen3 8B (Q5_K_M, Q8_0); Phi-4-mini; Phi-4; Gemma-4-12B (4-bit, 8-bit).
-A contagem precisa ser acertada em `ARCHITECTURE.md` ou um candidato
-retirado daqui.
+escopo, linha "Modelo local"). São **10 configurações**: Llama 3.1 8B; Qwen2.5-VL 7B Instruct; Qwen3 14B (Q4_K_M, Q5_K_M);
+Qwen3 8B (Q5_K_M, Q8_0); Phi-4-mini; Phi-4; Gemma-4-12B 4-bit; Gemma-4-E4B-it UD-Q8_K_XL.
 
-**Ponto em aberto para a escolha final:** dessas 10 tags, só as duas de
-Gemma-4-12B devem ter `vision` — as demais são variantes text-only, e as
-multimodais das mesmas famílias são outras tags (`qwen2.5-vl`, `qwen3-vl`,
+**Ponto em aberto para a escolha final:** dessas 10 tags, Gemma-4-12B 4-bit, Gemma-4-E4B-it e Qwen2.5-VL 7B Instruct têm `vision` — as demais são variantes text-only, e as
+multimodais das mesmas famílias são outras tags (`qwen3-vl`,
 `llama3.2-vision`, `phi4-multimodal`). Confirmado pelo Ollama apenas para o
 que está baixado; para o resto, é pela família. Se visão local for
 requisito, a lista de candidatos é que precisa ser revista — o benchmark vai
 reportar o fato, não escondê-lo.
 
 Só `gemma4:12b-it-q4_K_M` está baixado nesta máquina. Sugestão para a
-primeira rodada, se não quiser baixar tudo: os dois Gemma-4-12B, o Qwen3 8B
+primeira rodada, se não quiser baixar tudo: os dois Gemma-4, o Qwen3 8B
 Q5_K_M, o Phi-4-mini e o Llama 3.1 8B — cobre as quatro famílias e os dois
 extremos de tamanho. O `generate()` do `OllamaClient` já manda
 `think=False`, então o Qwen3 roda sem *thinking* sem configuração extra.
