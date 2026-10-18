@@ -322,28 +322,43 @@ SUITES: dict[str, list[Cenario]] = {
 }
 
 
+@dataclass
+class MensagemResultado:
+    texto: str
+    done: dict | None
+    erro: str | None
+    duracao: float
+    logs: list[dict]
+
+
 def _rodar(cmd: list[str]) -> tuple[int, str]:
     proc = subprocess.run(cmd, cwd=BACKEND_DIR, capture_output=True, text=True)
     return proc.returncode, proc.stdout + proc.stderr
 
 
-def _checks_automaticos() -> list[str]:
-    linhas = ["## 1. Checks automáticos", ""]
+def _rodar_ruff() -> list[str]:
     codigo, saida = _rodar([sys.executable, "-m", "ruff", "check", "src", "tests"])
-    linhas.append(f"- `ruff check`: {'OK' if codigo == 0 else 'FALHOU'}")
+    linhas = [f"- `ruff check`: {'OK' if codigo == 0 else 'FALHOU'}"]
     if codigo != 0:
         linhas += ["", "```", saida.strip()[-3000:], "```", ""]
+    return linhas
 
+
+def _rodar_pytest() -> list[str]:
     codigo, saida = _rodar([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider"])
     resumo = next(
         (linha for linha in reversed(saida.splitlines()) if " in " in linha and "passed" in linha),
         saida.strip().splitlines()[-1] if saida.strip() else "(sem saída)",
     )
-    linhas.append(f"- `pytest`: {'OK' if codigo == 0 else 'FALHOU'} — {resumo.strip()}")
+    linhas = [f"- `pytest`: {'OK' if codigo == 0 else 'FALHOU'} — {resumo.strip()}"]
     falhas = [linha for linha in saida.splitlines() if linha.startswith(("FAILED", "ERROR"))]
     if falhas:
         linhas += ["", "```", *falhas[:50], "```"]
-    return [*linhas, ""]
+    return linhas
+
+
+def _checks_automaticos() -> list[str]:
+    return ["## 1. Checks automáticos", "", *_rodar_ruff(), *_rodar_pytest(), ""]
 
 
 def _ler_sse(resposta: httpx.Response) -> tuple[str | None, str, dict | None, str | None]:
@@ -453,33 +468,33 @@ def _veredito(
     return ("PASSOU" if not problemas else "FALHOU"), problemas
 
 
+def _check_bloco(cenario: Cenario, bloco: str) -> list[str]:
+    problemas = [f"bloco sem {t!r}" for t in cenario.bloco_contem if t not in bloco]
+    problemas += [f"bloco com {t!r}" for t in cenario.bloco_nao_contem if t in bloco]
+    return problemas
+
+
 def _problemas_vendas(cenario: Cenario, logs: list[dict]) -> list[str]:
     consultas = [r for r in logs if r.get("message") == "vendas_catalogo_consulta"]
-    problemas = []
     if cenario.resultado_vendas == "nenhum":
-        if consultas:
-            problemas.append("log vendas_catalogo_consulta apareceu, mas não deveria")
-    else:
-        esperados = (
-            cenario.resultado_vendas
-            if isinstance(cenario.resultado_vendas, tuple)
-            else (cenario.resultado_vendas,)
+        return ["log vendas_catalogo_consulta apareceu, mas não deveria"] if consultas else []
+    esperados = (
+        cenario.resultado_vendas
+        if isinstance(cenario.resultado_vendas, tuple)
+        else (cenario.resultado_vendas,)
+    )
+    if not consultas:
+        return [
+            "nenhum log vendas_catalogo_consulta (domínio não foi vendas? "
+            "log do backend não está em --log?)"
+        ]
+    ultimo = consultas[-1]
+    problemas = []
+    if ultimo.get("resultado") not in esperados:
+        problemas.append(
+            f"resultado={ultimo.get('resultado')!r}, esperado {' ou '.join(esperados)}"
         )
-        if not consultas:
-            problemas.append(
-                "nenhum log vendas_catalogo_consulta (domínio não foi vendas? "
-                "log do backend não está em --log?)"
-            )
-        else:
-            ultimo = consultas[-1]
-            if ultimo.get("resultado") not in esperados:
-                problemas.append(
-                    f"resultado={ultimo.get('resultado')!r}, esperado {' ou '.join(esperados)}"
-                )
-            bloco = ultimo.get("bloco") or ""
-            problemas += [f"bloco sem {t!r}" for t in cenario.bloco_contem if t not in bloco]
-            problemas += [f"bloco com {t!r}" for t in cenario.bloco_nao_contem if t in bloco]
-    return problemas
+    return problemas + _check_bloco(cenario, ultimo.get("bloco") or "")
 
 
 def _obter_conversa(cliente: httpx.Client, base_url: str, conversation_id: str) -> dict | None:
@@ -510,8 +525,8 @@ def _enviar_mensagem(
     log_path: Path,
     mensagem: str,
     conversation_id: str,
-) -> tuple[str, dict | None, str | None, float, list[dict]]:
-    """Envia uma mensagem via SSE e devolve (texto, done, erro, duracao, logs)."""
+) -> MensagemResultado:
+    """Envia uma mensagem via SSE e devolve um MensagemResultado."""
     offset = log_path.stat().st_size if log_path.exists() else 0
     inicio = time.perf_counter()
     try:
@@ -527,33 +542,27 @@ def _enviar_mensagem(
     duracao = time.perf_counter() - inicio
     time.sleep(0.3)  # dá tempo do handler de log gravar as últimas linhas
     logs = _novas_linhas_de_log(log_path, offset, conversation_id)
-    return texto, done, erro, duracao, logs
+    return MensagemResultado(texto=texto, done=done, erro=erro, duracao=duracao, logs=logs)
 
 
-def _linhas_mensagem(
-    indice: int,
-    mensagem: str,
-    texto: str,
-    done: dict | None,
-    erro: str | None,
-    duracao: float,
-    logs: list[dict],
-) -> list[str]:
+def _linhas_mensagem(indice: int, mensagem: str, r: MensagemResultado) -> list[str]:
     """Gera as linhas de markdown para uma mensagem individual do cenário."""
     linhas = [f"**Mensagem {indice}:** {mensagem}", ""]
-    if erro:
-        linhas.append(f"- ⚠️ erro: `{erro}`")
-    if done:
+    if r.erro:
+        linhas.append(f"- ⚠️ erro: `{r.erro}`")
+    if r.done:
         linhas.append(
-            f"- domínio `{done.get('domain')}` · backend `{done.get('backend_used')}` · "
-            f"motivo `{done.get('escalation_reason')}` · modelo `{done.get('model_name')}` · "
-            f"classificador `{done.get('router_provider')}` · "
-            f"rag_retrieval_ms `{done.get('rag_retrieval_ms')}` · total {duracao:.1f}s"
+            f"- domínio `{r.done.get('domain')}` · backend `{r.done.get('backend_used')}` · "
+            f"motivo `{r.done.get('escalation_reason')}` · modelo `{r.done.get('model_name')}` · "
+            f"classificador `{r.done.get('router_provider')}` · "
+            f"rag_retrieval_ms `{r.done.get('rag_retrieval_ms')}` · total {r.duracao:.1f}s"
         )
-        if done.get("perfil_usuario"):
-            linhas.append(f"- perfil `{done.get('perfil_usuario')}` ({done.get('perfil_motivo')})")
-    linhas += ["", "Resposta do assistente:", "", "```text", texto.strip() or "(vazia)", "```"]
-    consultas = [r for r in logs if r.get("message") != "router_decision"]
+        if r.done.get("perfil_usuario"):
+            linhas.append(
+                f"- perfil `{r.done.get('perfil_usuario')}` ({r.done.get('perfil_motivo')})"
+            )
+    linhas += ["", "Resposta do assistente:", "", "```text", r.texto.strip() or "(vazia)", "```"]
+    consultas = [reg for reg in r.logs if reg.get("message") != "router_decision"]
     if consultas:
         linhas += ["", "Logs do backend (vendas/memória/erros):", "", "```json"]
         for registro in consultas:
@@ -564,17 +573,27 @@ def _linhas_mensagem(
     return linhas
 
 
+def _buscar_conversa_e_formatar(
+    cliente: httpx.Client, base_url: str, conversation_id: str
+) -> tuple[dict | None, list[str]]:
+    conversa = _obter_conversa(cliente, base_url, conversation_id)
+    if conversa is None:
+        return None, []
+    linhas = [
+        f"- Conversa gravada: {len(conversa.get('mensagens', []))} mensagens · "
+        f"resumo: {conversa.get('resumo') or '(nenhum)'}",
+        "",
+    ]
+    return conversa, linhas
+
+
 def _rodar_cenario(
     cliente: httpx.Client, base_url: str, log_path: Path, cenario: Cenario
 ) -> tuple[str, list[str]]:
     linhas = [f"### {cenario.nome}", "", f"**Esperado:** {cenario.esperado}", ""]
-    # Cada cenário numa conversa nova (UUID próprio) para o histórico curto
-    # do roteador não vazar de um cenário para o outro.
     conversation_id = str(uuid.uuid4())
-    logs_ultima: list[dict] = []
-    texto_ultima = ""
+    ultimo: MensagemResultado = MensagemResultado("", None, None, 0.0, [])
     erros_cenario: list[str] = []
-    done_ultima: dict | None = None
     for indice, mensagem in enumerate(cenario.mensagens, start=1):
         if cenario.esperar_resumo and indice == len(cenario.mensagens):
             espera = _esperar_resumo(cliente, base_url, conversation_id)
@@ -584,28 +603,17 @@ def _rodar_cenario(
                 else "_Resumo em segundo plano: não apareceu em 120 s._"
             )
             linhas.append("")
-        texto, done, erro, duracao, logs = _enviar_mensagem(
-            cliente, base_url, log_path, mensagem, conversation_id
-        )
-        logs_ultima, texto_ultima, done_ultima = logs, texto, done
-        if erro:
-            erros_cenario.append(f"mensagem {indice} terminou com erro: {erro}")
-        linhas += _linhas_mensagem(indice, mensagem, texto, done, erro, duracao, logs)
+        ultimo = _enviar_mensagem(cliente, base_url, log_path, mensagem, conversation_id)
+        if ultimo.erro:
+            erros_cenario.append(f"mensagem {indice} terminou com erro: {ultimo.erro}")
+        linhas += _linhas_mensagem(indice, mensagem, ultimo)
 
     conversa = None
     if cenario.historico_esperado is not None or cenario.esperar_resumo:
-        conversa = _obter_conversa(cliente, base_url, conversation_id)
-        if conversa is not None:
-            linhas.append(
-                f"- Conversa gravada: {len(conversa.get('mensagens', []))} mensagens · "
-                f"resumo: {conversa.get('resumo') or '(nenhum)'}"
-            )
-            linhas.append("")
-    veredito, problemas = _veredito(cenario, logs_ultima, texto_ultima, done_ultima, conversa)
+        conversa, linhas_conversa = _buscar_conversa_e_formatar(cliente, base_url, conversation_id)
+        linhas += linhas_conversa
+    veredito, problemas = _veredito(cenario, ultimo.logs, ultimo.texto, ultimo.done, conversa)
     if erros_cenario:
-        # Resposta que terminou em erro (ex.: 429 do OpenRouter) não conta
-        # como PASSOU só porque os logs do catálogo estavam certos (V1/V6 do
-        # teste de 2026-09-27).
         if veredito in ("PASSOU", "—"):
             veredito = "INCONCLUSIVO"
         problemas += erros_cenario
@@ -645,6 +653,25 @@ def _rodape_relatorio(args: argparse.Namespace) -> list[str]:
     ]
 
 
+def _rodar_cenarios(
+    cliente: httpx.Client, args: argparse.Namespace, cenarios: list[Cenario]
+) -> tuple[dict[str, int], list[str]]:
+    relatorio: list[str] = ["## 2. Cenários de chat", ""]
+    placar: dict[str, int] = {}
+    try:
+        if cenarios:
+            cliente.get(f"{args.base_url}/docs").raise_for_status()
+    except httpx.HTTPError as exc:
+        relatorio += [f"⚠️ Backend inacessível em {args.base_url}: `{exc}`", ""]
+        return placar, relatorio
+    for cenario in cenarios:
+        print(f"Cenário: {cenario.nome}", flush=True)
+        veredito, linhas = _rodar_cenario(cliente, args.base_url, args.log, cenario)
+        placar[veredito] = placar.get(veredito, 0) + 1
+        relatorio += linhas
+    return placar, relatorio
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--suite", choices=sorted([*SUITES, "mcp_b2b"]), default=SUITE_ATUAL)
@@ -663,26 +690,15 @@ def main() -> int:
         relatorio += _checks_automaticos()
 
     placar: dict[str, int] = {}
-    if args.suite == "mcp_b2b":
-        from teste_local_mcp_b2b import rodar_verificacoes
-
-        placar, linhas = rodar_verificacoes()
-        relatorio += linhas
-        cenarios = []
-    else:
-        relatorio += ["## 2. Cenários de chat", ""]
-        cenarios = [c for c in SUITES[args.suite] if not args.so or c.nome.startswith(args.so)]
     with httpx.Client(timeout=httpx.Timeout(180.0, connect=5.0)) as cliente:
-        try:
-            if cenarios:
-                cliente.get(f"{args.base_url}/docs").raise_for_status()
-        except httpx.HTTPError as exc:
-            relatorio += [f"⚠️ Backend inacessível em {args.base_url}: `{exc}`", ""]
-            cenarios = []
-        for cenario in cenarios:
-            print(f"Cenário: {cenario.nome}", flush=True)
-            veredito, linhas = _rodar_cenario(cliente, args.base_url, args.log, cenario)
-            placar[veredito] = placar.get(veredito, 0) + 1
+        if args.suite == "mcp_b2b":
+            from teste_local_mcp_b2b import rodar_verificacoes
+
+            placar, linhas = rodar_verificacoes()
+            relatorio += linhas
+        else:
+            cenarios = [c for c in SUITES[args.suite] if not args.so or c.nome.startswith(args.so)]
+            placar, linhas = _rodar_cenarios(cliente, args, cenarios)
             relatorio += linhas
 
     relatorio[6:6] = [
