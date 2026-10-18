@@ -162,14 +162,18 @@ def _decompor_recursivo(
         if sep == "":
             fatias = _fatiar_duro(bloco, ctx.chunk_size, ctx.overlap, ctx.tokenizer)
             if fatias and sep_entrada:
-                fatias[0] = _Peca(fatias[0].texto, sep_antes=sep_entrada, ja_com_overlap=fatias[0].ja_com_overlap)
+                fatias[0] = _Peca(
+                    fatias[0].texto, sep_antes=sep_entrada, ja_com_overlap=fatias[0].ja_com_overlap
+                )
             return fatias
         if sep not in bloco:
             continue
         partes, joiner = _dividir_por_separador(bloco, sep)
         if len(partes) <= 1:
             continue
-        sub_ctx = _CtxDecomp(ctx.chunk_size, ctx.overlap, ctx.tokenizer, ctx.separadores[indice + 1 :])
+        sub_ctx = _CtxDecomp(
+            ctx.chunk_size, ctx.overlap, ctx.tokenizer, ctx.separadores[indice + 1 :]
+        )
         pecas: list[_Peca] = []
         for i, parte in enumerate(partes):
             sep_peca = sep_entrada if i == 0 else joiner
