@@ -14,6 +14,7 @@ import { CollectionsTable } from "@/components/admin/CollectionsTable";
 import { CollectionPurposeCard } from "./CollectionPurposeCard";
 import { CollectionSelector } from "./CollectionSelector";
 import { DocumentDropzone } from "./DocumentDropzone";
+import { useCollectionActions } from "./useCollectionActions";
 import { CrawlerPanel } from "@/components/admin/CrawlerPanel";
 import { CrawlerReviewQueue } from "@/components/admin/CrawlerReviewQueue";
 import { DocumentsTable } from "@/components/admin/DocumentsTable";
@@ -23,15 +24,12 @@ import { ToastStack, useToast } from "@/components/ui/Toast";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import {
   RagApiError,
-  activateCollection,
-  createCollection,
   listCollections,
   listDocuments,
   uploadDocument,
 } from "@/lib/api/rag";
 import { getRuntimeSettings, updateRuntimeSettings } from "@/lib/api/runtimeSettings";
 import type {
-  CollectionPurpose,
   DocumentIngestResponse,
   DocumentRegistryEntry,
   RagCollection,
@@ -43,6 +41,39 @@ const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
   { value: "suporte", label: "Suporte Técnico" },
   { value: "atendimento", label: "Atendimento ao Usuário" },
 ];
+
+function IngestaoAlertas({
+  result,
+  error,
+}: {
+  result: DocumentIngestResponse | null;
+  error: string | null;
+}) {
+  return (
+    <>
+      {result && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 space-y-1">
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <span>✅ Ingestão concluída com sucesso!</span>
+          </div>
+          <p>
+            Arquivo <strong>&ldquo;{result.filename}&rdquo;</strong> ingerido no domínio{" "}
+            <strong>&ldquo;{result.domain}&rdquo;</strong> —{" "}
+            <strong>{result.chunks} chunk(s) gravado(s).</strong>
+          </p>
+        </div>
+      )}
+      {error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 space-y-1">
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <span>❌ Falha no Envio</span>
+          </div>
+          <p>{error}</p>
+        </div>
+      )}
+    </>
+  );
+}
 
 function AbaEnviarDocumento({
   collections,
@@ -60,8 +91,6 @@ function AbaEnviarDocumento({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<DocumentIngestResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [criandoCollection, setCriandoCollection] = useState(false);
-  const [modalCriarAberto, setModalCriarAberto] = useState(false);
 
   const collectionAtiva = collections.find((collection) => collection.is_active);
   const collectionSelecionadaObj =
@@ -70,70 +99,17 @@ function AbaEnviarDocumento({
     ? collectionId
     : collectionAtiva?.id || collections[0]?.id || "";
 
-  async function handleCriarCollectionRapida(purpose: CollectionPurpose) {
-    if (!token) return;
-    setCriandoCollection(true);
-    setError(null);
-    const nomePadrao =
-      purpose === "mcp_b2b" ? "docs_mcp_b2b" : purpose === "admin" ? "docs_admin" : "docs_chat";
-
-    try {
-      const novaCol = await createCollection(token, {
-        name: nomePadrao,
-        purpose,
-        embedding_model: "paraphrase-multilingual-MiniLM-L12-v2",
-        distance_metric: "cosine",
-        chunk_size: 800,
-        chunk_overlap: 100,
-        hnsw: {
-          m: 16,
-          ef_construct: 100,
-          full_scan_threshold: 10000,
-          max_indexing_threads: 0,
-          on_disk: false,
-          payload_m: null,
-        },
-        quantization: { type: "none" },
-        payload_indexes: [
-          { field: "domain", schema_type: "keyword" },
-          { field: "document_id", schema_type: "keyword" },
-        ],
-      });
-      try {
-        await activateCollection(token, novaCol.id);
-      } catch {
-        // Ativação não impeditiva
-      }
-      await onColecoesMudaram();
-      setCollectionId(novaCol.id);
-    } catch (err) {
-      // Se a coleção já foi criada anteriormente, recarrega do banco e seleciona automaticamente!
-      const novalista = await onColecoesMudaram();
-      const colExistente = novalista?.find((c) => c.name === nomePadrao || c.purpose === purpose);
-      if (colExistente) {
-        setCollectionId(colExistente.id);
-        setError(null);
-      } else {
-        setError(err instanceof RagApiError ? err.message : "Erro ao criar a collection.");
-      }
-    } finally {
-      setCriandoCollection(false);
-    }
-  }
-
-  function handleSelectCollectionChange(val: string) {
-    if (val === "__create_mcp_b2b__") {
-      handleCriarCollectionRapida("mcp_b2b");
-    } else if (val === "__create_admin__") {
-      handleCriarCollectionRapida("admin");
-    } else if (val === "__create_chat__") {
-      handleCriarCollectionRapida("chat");
-    } else if (val === "__open_modal__") {
-      setModalCriarAberto(true);
-    } else {
-      setCollectionId(val);
-    }
-  }
+  const {
+    criandoCollection,
+    modalCriarAberto,
+    setModalCriarAberto,
+    criarCollectionRapida,
+    handleSelectCollectionChange,
+  } = useCollectionActions({
+    onColecoesMudaram,
+    onCollectionIdChange: setCollectionId,
+    onError: (msg) => setError(msg || null),
+  });
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -159,7 +135,6 @@ function AbaEnviarDocumento({
 
   const b2bCollections = collections.filter((c) => c.purpose === "mcp_b2b");
   const adminCollections = collections.filter((c) => c.purpose === "admin");
-
   const selectedPurpose = collectionSelecionadaObj?.purpose || "chat";
 
   return (
@@ -212,7 +187,7 @@ function AbaEnviarDocumento({
           b2bCount={b2bCollections.length}
           adminCount={adminCollections.length}
           criando={criandoCollection}
-          onCriarRapida={handleCriarCollectionRapida}
+          onCriarRapida={criarCollectionRapida}
         />
 
         {/* Modal de Criação Customizada */}
@@ -257,26 +232,7 @@ function AbaEnviarDocumento({
       </form>
 
       {/* Alertas de Resultado / Erro */}
-      {result && (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800 space-y-1">
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <span>✅ Ingestão concluída com sucesso!</span>
-          </div>
-          <p>
-            Arquivo <strong>&ldquo;{result.filename}&rdquo;</strong> ingerido no domínio{" "}
-            <strong>&ldquo;{result.domain}&rdquo;</strong> —{" "}
-            <strong>{result.chunks} chunk(s) gravado(s).</strong>
-          </p>
-        </div>
-      )}
-      {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800 space-y-1">
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <span>❌ Falha no Envio</span>
-          </div>
-          <p>{error}</p>
-        </div>
-      )}
+      <IngestaoAlertas result={result} error={error} />
     </div>
   );
 }
