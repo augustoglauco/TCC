@@ -156,6 +156,54 @@ def _com_fuso(data: datetime) -> datetime:
     return data if data.tzinfo else data.replace(tzinfo=UTC)
 
 
+# ---------------------------------------------------------------------------
+# Helpers internos
+# ---------------------------------------------------------------------------
+
+
+def _formatar_brl(valor: Decimal) -> str:
+    return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def _linhas_compras_historicas(rows_compras: list[tuple[ClienteCompra, str | None]]) -> list[str]:
+    linhas = []
+    for compra, nome_prod in rows_compras:
+        data_str = _com_fuso(compra.comprado_em).strftime("%d/%m/%Y")
+        prod_str = nome_prod or f"Produto #{compra.produto_id}"
+        valor = _formatar_brl(compra.valor_total)
+        linhas.append(f"  * {compra.quantidade}x {prod_str} ({valor}) comprado em {data_str}")
+    return linhas
+
+
+async def _linhas_pedidos(
+    session: AsyncSession,
+    pedidos: list[Pedido],
+) -> list[str]:
+    # Batch-load all products referenced by any item across all pedidos.
+    todos_ids = {it.produto_id for pedido in pedidos for it in pedido.itens}
+    produtos: dict[int, str] = {}
+    if todos_ids:
+        res = await session.execute(
+            select(Produto.id, Produto.nome).where(Produto.id.in_(todos_ids))
+        )
+        produtos = {row.id: row.nome for row in res}
+
+    linhas = []
+    for pedido in pedidos:
+        data_str = _com_fuso(pedido.criado_em).strftime("%d/%m/%Y")
+        total_pedido = sum(Decimal(str(it.preco_unitario)) * it.quantidade for it in pedido.itens)
+        itens_desc = [
+            f"{it.quantidade}x {produtos.get(it.produto_id) or f'Produto #{it.produto_id}'}"
+            for it in pedido.itens
+        ]
+        resumo_itens = ", ".join(itens_desc) if itens_desc else "itens do pedido"
+        linhas.append(
+            f"  * Pedido #{str(pedido.id)[:8]} (Status: {pedido.status}) - "
+            f"{resumo_itens} ({_formatar_brl(total_pedido)}) em {data_str}"
+        )
+    return linhas
+
+
 async def carregar_contexto_cliente(
     session: AsyncSession,
     email: str,
@@ -172,26 +220,22 @@ async def carregar_contexto_cliente(
     email_clean = email.strip().lower()
     cliente = await session.scalar(select(Cliente).where(Cliente.email == email_clean))
 
-    # Compras históricas (tabela cliente_compras semeada na migração 0011)
     rows_compras: list[tuple[ClienteCompra, str | None]] = []
     if cliente is not None:
-        stmt_compras = (
+        res_compras = await session.execute(
             select(ClienteCompra, Produto.nome)
             .outerjoin(Produto, ClienteCompra.produto_id == Produto.id)
             .where(ClienteCompra.cliente_id == cliente.id)
             .order_by(ClienteCompra.comprado_em.desc())
         )
-        res_compras = await session.execute(stmt_compras)
         rows_compras = list(res_compras.all())
 
-    # Pedidos da plataforma/chat (tabela pedidos)
-    stmt_pedidos = (
+    pedidos_res = await session.execute(
         select(Pedido)
         .options(selectinload(Pedido.itens))
         .where(Pedido.user_email == email_clean)
         .order_by(Pedido.criado_em.desc())
     )
-    pedidos_res = await session.execute(stmt_pedidos)
     pedidos_usuario = list(pedidos_res.scalars().all())
 
     if cliente is None and not pedidos_usuario:
@@ -200,13 +244,11 @@ async def carregar_contexto_cliente(
     datas_compras = [_com_fuso(compra.comprado_em) for compra, _ in rows_compras] + [
         _com_fuso(pedido.criado_em) for pedido in pedidos_usuario
     ]
-
-    agora = datetime.now(UTC)
     classificacao = classificar(
         datas_compras=datas_compras if (cliente or pedidos_usuario) else None,
         tem_email=True,
         teve_intencao_compra=False,
-        agora=agora,
+        agora=datetime.now(UTC),
     )
 
     if apenas_tipo_cliente:
@@ -224,7 +266,6 @@ async def carregar_contexto_cliente(
         )
 
     nome_cliente = cliente.nome if cliente else email_clean.split("@")[0].title()
-
     linhas = [
         "[Dados do Cliente e Histórico de Compras]:",
         f"- Nome do cliente: {nome_cliente}",
@@ -232,39 +273,10 @@ async def carregar_contexto_cliente(
         f"- Perfil de relacionamento: {classificacao.perfil} ({classificacao.motivo})",
     ]
 
-    tem_compras = bool(rows_compras or pedidos_usuario)
-    if tem_compras:
+    if rows_compras or pedidos_usuario:
         linhas.append("- Histórico de Compras e Pedidos Realizados:")
-        for compra, nome_prod in rows_compras:
-            data_str = _com_fuso(compra.comprado_em).strftime("%d/%m/%Y")
-            prod_str = nome_prod or f"Produto #{compra.produto_id}"
-            valor_fmt = (
-                f"R$ {compra.valor_total:,.2f}".replace(",", "X")
-                .replace(".", ",")
-                .replace("X", ".")
-            )
-            linhas.append(
-                f"  * {compra.quantidade}x {prod_str} ({valor_fmt}) comprado em {data_str}"
-            )
-
-        for pedido in pedidos_usuario:
-            data_str = _com_fuso(pedido.criado_em).strftime("%d/%m/%Y")
-            total_pedido = sum(
-                Decimal(str(it.preco_unitario)) * it.quantidade for it in pedido.itens
-            )
-            valor_fmt = (
-                f"R$ {total_pedido:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-            )
-            itens_desc = []
-            for it in pedido.itens:
-                prod = await session.get(Produto, it.produto_id)
-                prod_nome = prod.nome if prod else f"Produto #{it.produto_id}"
-                itens_desc.append(f"{it.quantidade}x {prod_nome}")
-            resumo_itens = ", ".join(itens_desc) if itens_desc else "itens do pedido"
-            linhas.append(
-                f"  * Pedido #{str(pedido.id)[:8]} (Status: {pedido.status}) - "
-                f"{resumo_itens} ({valor_fmt}) em {data_str}"
-            )
+        linhas.extend(_linhas_compras_historicas(rows_compras))
+        linhas.extend(await _linhas_pedidos(session, pedidos_usuario))
     else:
         linhas.append(
             "- Histórico: Nenhuma compra anterior registrada no sistema para este e-mail."
