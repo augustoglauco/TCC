@@ -18,6 +18,202 @@ interface ModalConversaoPedidoProps {
   onSuccess: () => void;
 }
 
+function ModoSimples({
+  operador,
+  loading,
+  onOperadorChange,
+  onArquivoChange,
+  onClose,
+  onConverter,
+}: {
+  operador: string;
+  loading: boolean;
+  onOperadorChange: (v: string) => void;
+  onArquivoChange: (f: File | null) => void;
+  onClose: () => void;
+  onConverter: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-gray-600">
+        Converte a reserva em venda diretamente, sem validação automatizada de IA (para
+        pagamentos já conferidos no banco ou via extrato).
+      </p>
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">Operador Responsável:</label>
+        <input
+          type="text"
+          value={operador}
+          onChange={(e) => onOperadorChange(e.target.value)}
+          className="w-full rounded border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Anexar Comprovante (opcional):
+        </label>
+        <input
+          type="file"
+          onChange={(e) => onArquivoChange(e.target.files?.[0] || null)}
+          className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+        />
+      </div>
+      <div className="pt-2 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={onConverter}
+          className="rounded bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? "Convertendo..." : "Confirmar Conversão Simples"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ModoPadrao({
+  loading,
+  analiseResultado,
+  arquivoSelecionado,
+  onArquivoChange,
+  onAuditar,
+  onConfirmar,
+}: {
+  loading: boolean;
+  analiseResultado: AnaliseComprovanteResponse | null;
+  arquivoSelecionado: boolean;
+  onArquivoChange: (f: File | null) => void;
+  onAuditar: () => void;
+  onConfirmar: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-gray-600">
+        Auditoria com IA: O comprovante é processado pelo modelo de Visão/LLM e o parecer
+        financeiro é apresentado para sua validação humana antes de concluir a venda.
+      </p>
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Selecionar Comprovante (PDF, Imagem):
+        </label>
+        <input
+          type="file"
+          data-testid="input-file-analise"
+          onChange={(e) => onArquivoChange(e.target.files?.[0] || null)}
+          className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+        />
+      </div>
+      <button
+        type="button"
+        disabled={loading || !arquivoSelecionado}
+        onClick={onAuditar}
+        className="w-full rounded bg-indigo-600 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+      >
+        {loading ? "Auditando com IA..." : "🔍 Auditar com IA"}
+      </button>
+      {analiseResultado && (
+        <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-xs space-y-1.5">
+          <div className="flex justify-between items-center font-semibold text-indigo-900">
+            <span>Resultado da Auditoria da IA:</span>
+            <span
+              className={`px-2 py-0.5 rounded text-[11px] ${
+                analiseResultado.parecer.valido
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              {analiseResultado.parecer.valido ? "Válido" : "Divergente"}
+            </span>
+          </div>
+          <p className="text-gray-700">
+            <strong>Valor Detectado:</strong> R${" "}
+            {analiseResultado.parecer.valor_pago.toFixed(2)} | <strong>Divergência:</strong>{" "}
+            R$ {analiseResultado.parecer.divergencia.toFixed(2)}
+          </p>
+          {analiseResultado.parecer.codigo_transacao && (
+            <p className="text-gray-700">
+              <strong>Código/Autenticação:</strong> {analiseResultado.parecer.codigo_transacao}
+            </p>
+          )}
+          <p className="text-gray-700">
+            <strong>Justificativa:</strong> {analiseResultado.parecer.justificativa}
+          </p>
+          <div className="pt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={loading}
+              onClick={onConfirmar}
+              className="rounded bg-green-600 px-4 py-2 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              {loading ? "Aprovando..." : "✅ Aprovar e Concluir Venda"}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ModoAuto({
+  loading,
+  arquivoSelecionado,
+  onArquivoChange,
+  onClose,
+  onConverter,
+}: {
+  loading: boolean;
+  arquivoSelecionado: boolean;
+  onArquivoChange: (f: File | null) => void;
+  onClose: () => void;
+  onConverter: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-gray-600">
+        Conversão Automática via Upload: Se a IA validar o valor integral sem divergências,
+        o status é alterado para <strong>venda_concluida</strong> imediatamente. Caso
+        contrário, o pedido será marcado como <strong>pagamento_divergente</strong>.
+      </p>
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">
+          Comprovante para Validação Automática:
+        </label>
+        <input
+          type="file"
+          data-testid="input-file-auto"
+          onChange={(e) => onArquivoChange(e.target.files?.[0] || null)}
+          className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
+        />
+      </div>
+      <div className="pt-2 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          disabled={loading || !arquivoSelecionado}
+          onClick={onConverter}
+          className="rounded bg-emerald-600 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+        >
+          {loading ? "Processando..." : "⚡ Validar e Converter Automaticamente via IA"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ModalConversaoPedido({
   pedido,
   isOpen,
@@ -238,160 +434,33 @@ export default function ModalConversaoPedido({
         {/* Conteúdo da Modalidade Selecionada */}
         <div className="mt-4">
           {modo === "simples" && (
-            <div className="space-y-4">
-              <p className="text-xs text-gray-600">
-                Converte a reserva em venda diretamente, sem validação automatizada de IA (para
-                pagamentos já conferidos no banco ou via extrato).
-              </p>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Operador Responsável:
-                </label>
-                <input
-                  type="text"
-                  value={operadorSimples}
-                  onChange={(e) => setOperadorSimples(e.target.value)}
-                  className="w-full rounded border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Anexar Comprovante (opcional):
-                </label>
-                <input
-                  type="file"
-                  onChange={(e) => setArquivoSimples(e.target.files?.[0] || null)}
-                  className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                />
-              </div>
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  disabled={loading}
-                  onClick={handleConverterSimples}
-                  className="rounded bg-blue-600 px-4 py-2 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? "Convertendo..." : "Confirmar Conversão Simples"}
-                </button>
-              </div>
-            </div>
+            <ModoSimples
+              operador={operadorSimples}
+              loading={loading}
+              onOperadorChange={setOperadorSimples}
+              onArquivoChange={setArquivoSimples}
+              onClose={onClose}
+              onConverter={handleConverterSimples}
+            />
           )}
-
           {modo === "padrao" && (
-            <div className="space-y-4">
-              <p className="text-xs text-gray-600">
-                Auditoria com IA: O comprovante é processado pelo modelo de Visão/LLM e o parecer
-                financeiro é apresentado para sua validação humana antes de concluir a venda.
-              </p>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Selecionar Comprovante (PDF, Imagem):
-                </label>
-                <input
-                  type="file"
-                  data-testid="input-file-analise"
-                  onChange={(e) => setArquivoAnalise(e.target.files?.[0] || null)}
-                  className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                />
-              </div>
-
-              <button
-                type="button"
-                disabled={loading || !arquivoAnalise}
-                onClick={handleAuditarIA}
-                className="w-full rounded bg-indigo-600 py-2 text-xs font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-              >
-                {loading ? "Auditando com IA..." : "🔍 Auditar com IA"}
-              </button>
-
-              {analiseResultado && (
-                <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-xs space-y-1.5">
-                  <div className="flex justify-between items-center font-semibold text-indigo-900">
-                    <span>Resultado da Auditoria da IA:</span>
-                    <span
-                      className={`px-2 py-0.5 rounded text-[11px] ${
-                        analiseResultado.parecer.valido
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {analiseResultado.parecer.valido ? "Válido" : "Divergente"}
-                    </span>
-                  </div>
-                  <p className="text-gray-700">
-                    <strong>Valor Detectado:</strong> R${" "}
-                    {analiseResultado.parecer.valor_pago.toFixed(2)} | <strong>Divergência:</strong>{" "}
-                    R$ {analiseResultado.parecer.divergencia.toFixed(2)}
-                  </p>
-                  {analiseResultado.parecer.codigo_transacao && (
-                    <p className="text-gray-700">
-                      <strong>Código/Autenticação:</strong>{" "}
-                      {analiseResultado.parecer.codigo_transacao}
-                    </p>
-                  )}
-                  <p className="text-gray-700">
-                    <strong>Justificativa:</strong> {analiseResultado.parecer.justificativa}
-                  </p>
-
-                  <div className="pt-2 flex justify-end gap-2">
-                    <button
-                      type="button"
-                      disabled={loading}
-                      onClick={handleConfirmarComIA}
-                      className="rounded bg-green-600 px-4 py-2 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {loading ? "Aprovando..." : "✅ Aprovar e Concluir Venda"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <ModoPadrao
+              loading={loading}
+              analiseResultado={analiseResultado}
+              arquivoSelecionado={!!arquivoAnalise}
+              onArquivoChange={setArquivoAnalise}
+              onAuditar={handleAuditarIA}
+              onConfirmar={handleConfirmarComIA}
+            />
           )}
-
           {modo === "auto" && (
-            <div className="space-y-4">
-              <p className="text-xs text-gray-600">
-                Conversão Automática via Upload: Se a IA validar o valor integral sem divergências,
-                o status é alterado para <strong>venda_concluida</strong> imediatamente. Caso
-                contrário, o pedido será marcado como <strong>pagamento_divergente</strong>.
-              </p>
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Comprovante para Validação Automática:
-                </label>
-                <input
-                  type="file"
-                  data-testid="input-file-auto"
-                  onChange={(e) => setArquivoAuto(e.target.files?.[0] || null)}
-                  className="w-full text-xs text-gray-500 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  disabled={loading || !arquivoAuto}
-                  onClick={handleConverterAuto}
-                  className="rounded bg-emerald-600 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {loading ? "Processando..." : "⚡ Validar e Converter Automaticamente via IA"}
-                </button>
-              </div>
-            </div>
+            <ModoAuto
+              loading={loading}
+              arquivoSelecionado={!!arquivoAuto}
+              onArquivoChange={setArquivoAuto}
+              onClose={onClose}
+              onConverter={handleConverterAuto}
+            />
           )}
         </div>
       </div>
