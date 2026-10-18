@@ -42,6 +42,7 @@ import asyncio
 import json
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 import httpx
@@ -81,13 +82,20 @@ Gere {n} pergunta(s) que um cliente real faria e que sejam respondíveis SÓ \
 com o texto acima.
 
 Regras:
+- **A pergunta tem de dizer de qual produto ou modelo ela fala** (o nome \
+está no texto acima). O assistente recebe a pergunta sem contexto nenhum e o \
+acervo cobre 37 linhas de produto: "qual a capacidade máxima de usuários?" \
+não tem resposta única e não serve como item de teste.
+- Pergunte sobre o produto, não sobre o documento: nada de data de revisão \
+do manual, número de página ou versão do PDF.
 - Nada de inventar: se a informação não está no texto, não pergunte.
 - "resposta_esperada" é curta e factual, com o número/unidade quando houver.
 - "trecho_origem" é a cópia LITERAL do pedaço do texto acima que contém a \
 resposta (no máximo {max_trecho} caracteres). Não reescreva nem resuma.
 - "dificuldade": "facil" quando a resposta está numa linha só, "media" \
 quando exige juntar duas informações do documento, "dificil" quando exige \
-ler tabela ou interpretar.
+ler tabela ou interpretar. Seja honesto: a maioria é "facil".
+- Se gerar mais de uma pergunta, que sejam sobre informações diferentes.
 - Não cite o nome do arquivo na pergunta.
 
 Responda só com um array JSON, sem comentários:
@@ -160,8 +168,24 @@ def trecho_confere(trecho: str, texto: str) -> bool:
     return _normalizar(trecho) in _normalizar(texto)
 
 
-def montar_casos(brutos: list[dict], documento: str, texto: str, proximo_id: int) -> list[dict]:
-    """Converte a saída do LLM nos casos do `dataset.json`."""
+def montar_casos(
+    brutos: list[dict],
+    documento: str,
+    texto: str,
+    proximo_id: int,
+    arquivo_origem: str = "",
+    origem_ambigua: bool = False,
+) -> list[dict]:
+    """Converte a saída do LLM nos casos do `dataset.json`.
+
+    `documento_origem` é o nome do arquivo porque é isso que o RAG guarda em
+    `source` e é o que `run_eval._fonte_e_correta` compara. Mas o corpus tem
+    basename repetido (`changelog_pt-br.pdf` em `iDAccess Pro/` e em
+    `iDFace/`, ambos ingeridos com o mesmo `filename`), então o nome sozinho
+    não identifica o documento: `arquivo_origem` guarda o caminho relativo,
+    que é inequívoco, e `origem_ambigua` marca o caso em que a pontuação de
+    fonte do `run_eval` não consegue distinguir os dois.
+    """
     casos = []
     for i, bruto in enumerate(brutos):
         pergunta = (bruto.get("pergunta") or "").strip()
@@ -178,6 +202,8 @@ def montar_casos(brutos: list[dict], documento: str, texto: str, proximo_id: int
                 if dificuldade in {"facil", "media", "dificil"}
                 else "media",
                 "documento_origem": documento,
+                "arquivo_origem": arquivo_origem or documento,
+                "origem_ambigua": origem_ambigua,
                 "resposta_esperada": resposta,
                 "trecho_origem": trecho,
                 "trecho_confere": trecho_confere(trecho, texto),
@@ -251,10 +277,31 @@ def carregar_existente(saida: Path) -> dict:
         return {}
 
 
+def marcar_duplicadas(casos: list[dict]) -> list[dict]:
+    """Aponta a pergunta repetida para o primeiro caso com o mesmo texto.
+
+    Duas perguntas idênticas sobre documentos diferentes não são só
+    redundância: sem o produto no enunciado, a resposta certa depende de qual
+    documento o RAG trouxer, e a pontuação de fonte reprova uma das duas por
+    construção. Na fila de revisão, que mostra um item por vez, a repetição
+    passaria batida.
+    """
+    visto: dict[str, int] = {}
+    for caso in casos:
+        chave = _normalizar(caso.get("pergunta", ""))
+        if chave in visto:
+            caso["duplicada_de"] = visto[chave]
+        else:
+            visto[chave] = caso["id"]
+            caso.pop("duplicada_de", None)
+    return casos
+
+
 def envelope(casos: list[dict], modelo: str, corpus: str) -> dict:
     respondiveis = [c for c in casos if not c.get("sem_resposta")]
     sem_resposta = [c for c in casos if c.get("sem_resposta")]
     return {
+        "duplicadas": sum(1 for c in casos if c.get("duplicada_de")),
         "descricao": (
             "Conjunto de RAG documentos da Estratégia A (Fase 10): perguntas "
             "sobre os manuais e datasheets do corpus, mais perguntas sem "
@@ -274,6 +321,7 @@ def envelope(casos: list[dict], modelo: str, corpus: str) -> dict:
 
 
 def salvar(saida: Path, casos: list[dict], modelo: str, corpus: str) -> None:
+    marcar_duplicadas(casos)
     saida.write_text(
         json.dumps(envelope(casos, modelo, corpus), ensure_ascii=False, indent=2),
         encoding="utf-8",
@@ -305,8 +353,16 @@ async def executar(args) -> int:
         )
         return 1
 
-    cobertos = {c.get("documento_origem") for c in casos if not c.get("sem_resposta")}
+    # Chave de retomada é o caminho relativo, não o basename: com basename
+    # repetido, o segundo arquivo era pulado (ou, na primeira rodada, o mesmo
+    # `documento_origem` acumulava perguntas de dois PDFs diferentes).
+    cobertos = {
+        c.get("arquivo_origem") or c.get("documento_origem")
+        for c in casos
+        if not c.get("sem_resposta")
+    }
     docs = documentos_elegiveis(auditoria)
+    basenames = Counter(Path(d["arquivo"]).name for d in docs)
     if args.limite_docs:
         docs = docs[: args.limite_docs]
     plano = cota_por_documento(docs, args.total, args.por_documento)
@@ -331,7 +387,7 @@ async def executar(args) -> int:
         for indice, (doc, n) in enumerate(plano, start=1):
             arquivo = doc["arquivo"]
             nome = Path(arquivo).name
-            if nome in cobertos:
+            if arquivo in cobertos:
                 continue
             caminho = raiz / corpus / arquivo
             if not caminho.exists():
@@ -351,7 +407,14 @@ async def executar(args) -> int:
                 ),
             )
             proximo_id = max((c["id"] for c in casos), default=0) + 1
-            novos = montar_casos(brutos[:n], nome, texto, proximo_id)
+            novos = montar_casos(
+                brutos[:n],
+                nome,
+                texto,
+                proximo_id,
+                arquivo_origem=arquivo,
+                origem_ambigua=basenames[nome] > 1,
+            )
             sem_trecho = sum(1 for c in novos if not c["trecho_confere"])
             casos.extend(novos)
             salvar(saida, casos, modelo, str(corpus))

@@ -163,3 +163,28 @@ def test_carregar_existente_tolera_arquivo_invalido(gerador, tmp_path):
     assert gerador.carregar_existente(bom)["casos"] == [{"id": 1}]
     assert gerador.carregar_existente(ruim) == {}
     assert gerador.carregar_existente(tmp_path / "ausente.json") == {}
+
+
+def test_marcar_duplicadas_aponta_para_o_primeiro(gerador):
+    # Sem o produto no enunciado, a mesma pergunta em dois documentos faz a
+    # pontuação de fonte reprovar uma das duas por construção — e numa fila
+    # de um item por vez a repetição passaria batida.
+    casos = [
+        {"id": 1, "pergunta": "Qual a capacidade de usuários?"},
+        {"id": 2, "pergunta": "Qual o consumo?"},
+        {"id": 3, "pergunta": "qual a  capacidade de USUÁRIOS?"},
+    ]
+
+    gerador.marcar_duplicadas(casos)
+
+    assert "duplicada_de" not in casos[0]
+    assert "duplicada_de" not in casos[1]
+    assert casos[2]["duplicada_de"] == 1
+
+
+def test_prompt_exige_o_produto_na_pergunta(gerador):
+    # Regressão da rodada de 2026-10-17: 56% das perguntas saíram sem dizer
+    # de qual produto falavam ("qual a capacidade máxima de usuários?"), num
+    # acervo de 37 linhas de produto. A regra no prompt é o que impede isso.
+    assert "de qual produto ou modelo ela fala" in gerador._PROMPT_PERGUNTAS
+    assert "data de revisão" in gerador._PROMPT_PERGUNTAS

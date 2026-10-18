@@ -847,19 +847,33 @@ Gere {n} pergunta(s) que um cliente real faria e que sejam respondíveis SÓ \
 com o texto acima.
 
 Regras:
+- **A pergunta tem de dizer de qual produto ou modelo ela fala** (o nome \
+está no texto acima). O assistente recebe a pergunta sem contexto nenhum e o \
+acervo cobre 37 linhas de produto: "qual a capacidade máxima de usuários?" \
+não tem resposta única e não serve como item de teste.
+- Pergunte sobre o produto, não sobre o documento: nada de data de revisão \
+do manual, número de página ou versão do PDF.
 - Nada de inventar: se a informação não está no texto, não pergunte.
 - "resposta_esperada" é curta e factual, com o número/unidade quando houver.
 - "trecho_origem" é a cópia LITERAL do pedaço do texto acima que contém a \
 resposta (no máximo {max_trecho} caracteres). Não reescreva nem resuma.
 - "dificuldade": "facil" quando a resposta está numa linha só, "media" \
 quando exige juntar duas informações do documento, "dificil" quando exige \
-ler tabela ou interpretar.
+ler tabela ou interpretar. Seja honesto: a maioria é "facil".
+- Se gerar mais de uma pergunta, que sejam sobre informações diferentes.
 - Não cite o nome do arquivo na pergunta.
 
 Responda só com um array JSON, sem comentários:
 [{{"pergunta": "...", "resposta_esperada": "...", "trecho_origem": "...", \
 "dificuldade": "facil"}}]"""
 ```
+
+A regra do produto no enunciado é correção de 2026-10-17: sem ela, 56% das
+perguntas da primeira rodada completa (90 de 162) saíram sem dizer de qual
+produto falavam, num acervo de 37 linhas de produto — o modelo havia
+generalizado `Não cite o nome do arquivo na pergunta` para omitir também o
+produto, e a pontuação de fonte reprovaria essas perguntas por construção.
+A rodada foi descartada e regerada.
 
 `_PROMPT_SEM_RESPOSTA` produz as **20 perguntas sem resposta no corpus**, que
 são o instrumento de medida de alucinação. Recebe a lista de pastas do corpus

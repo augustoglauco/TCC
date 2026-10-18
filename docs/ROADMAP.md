@@ -1918,7 +1918,34 @@ conversa e classificação do usuário").
           pode propor um tema que está no corpus.`
     - [ ] Rodar o gerador sobre os 86 documentos e revisar as 180 na tela
           (~2 h). No tier `:free` a rodada leva ~86 chamadas com pausa de 3 s
-          e backoff a cada 429
+          e backoff a cada 429.
+      **1ª rodada completa (2026-10-17) foi descartada e o prompt corrigido.**
+      Saíram 182 casos (162 respondíveis + 20 sem resposta), e a medição
+      mostrou três defeitos — vale registrar porque dois eram do instrumento,
+      não do modelo:
+      1. **56% das perguntas (90 de 162) não diziam de qual produto falavam**
+         ("Qual a capacidade máxima de usuários que podem ser cadastrados?",
+         repetida em 3 documentos). Num acervo de 37 linhas de produto isso
+         não tem resposta única: o assistente recebe a pergunta sem contexto
+         nenhum, e a pontuação de fonte reprovaria todas menos uma **por
+         construção**. A causa era a regra `Não cite o nome do arquivo na
+         pergunta`, que o modelo generalizou para omitir também o produto.
+         Corrigido com uma regra que exige o produto/modelo no enunciado e
+         proíbe pergunta sobre o documento (data de revisão, página, versão).
+         Revalidado em 3 documentos: 6 de 6 nomeiam o produto.
+      2. **Basename repetido no corpus.** `changelog_pt-br.pdf` existe em
+         `iDAccess Pro/` e em `iDFace/`, e os dois estão em `rag_documents`
+         com o **mesmo `filename`** (42 e 56 chunks). Como
+         `run_eval._fonte_e_correta` compara pelo nome do arquivo, acerto na
+         fonte errada contaria como acerto. Os casos passaram a carregar
+         `arquivo_origem` (caminho relativo, inequívoco) e `origem_ambigua`,
+         e a retomada do gerador passou a ser por caminho — antes, dois
+         arquivos de mesmo nome eram tratados como um.
+      3. **Dificuldade sem estratificação:** 152 `facil`, 10 `media`, 0
+         `dificil`. É limite do modelo free de 2.6B, não do instrumento;
+         ficou registrado para o relatório não prometer estrato que o
+         conjunto não tem. Guarda nova: `duplicada_de` marca pergunta
+         repetida, que numa fila de um item por vez passaria batida.
     - [ ] `run_eval.py` ainda **não sabe pontuar `sem_resposta`**: hoje ele
           compara a fonte recuperada com `documento_origem` (vazio nesses
           casos) e manda a resposta ao juiz como se houvesse gabarito

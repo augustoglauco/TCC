@@ -206,6 +206,36 @@ revisão humana em `/admin/datasets` (~2 h para este conjunto). As 20 sem
 resposta são as que mais precisam de conferência — o modelo pode propor um
 tema que, na verdade, está no corpus.
 
+### O que a 1ª rodada completa ensinou (2026-10-17, descartada)
+
+A primeira rodada produziu 182 casos e foi jogada fora depois da medição:
+**90 das 162 perguntas respondíveis (56%) não diziam de qual produto
+falavam**. Num acervo de 37 linhas de produto, "qual a capacidade máxima de
+usuários que podem ser cadastrados?" — que apareceu em três documentos
+diferentes — não tem resposta única: o assistente recebe a pergunta sem
+contexto nenhum e a pontuação de fonte reprovaria duas das três por
+construção. A causa era a própria regra do prompt (`Não cite o nome do
+arquivo na pergunta`), que o modelo generalizou para omitir também o produto.
+O prompt passou a exigir o produto no enunciado e a proibir pergunta sobre o
+documento (data de revisão, página, versão do PDF).
+
+Dois efeitos colaterais daquela rodada viraram campo no conjunto:
+
+- **`arquivo_origem` e `origem_ambigua`.** `changelog_pt-br.pdf` existe em
+  `iDAccess Pro/` e em `iDFace/`, e os dois estão em `rag_documents` com o
+  mesmo `filename` (42 e 56 chunks). Como `run_eval._fonte_e_correta`
+  compara pelo nome do arquivo, um acerto na fonte errada contaria como
+  acerto. `documento_origem` continua sendo o nome (é o que o RAG guarda),
+  mas `arquivo_origem` guarda o caminho relativo, que é inequívoco. A
+  retomada do gerador também passou a ser por caminho: antes, dois arquivos
+  de mesmo nome eram tratados como um só.
+- **`duplicada_de`.** Aponta para o primeiro caso com a mesma pergunta. Numa
+  fila que mostra um item por vez, a repetição passaria batida.
+
+A dificuldade saiu sem estratificação (152 `facil`, 10 `media`, 0
+`dificil`). Isso é limite do modelo free de 2.6B, não do instrumento, e fica
+registrado para o relatório não prometer um estrato que o conjunto não tem.
+
 **Pendência conhecida:** `run_eval.py` ainda não sabe pontuar os casos
 `sem_resposta`. Ele compara a fonte recuperada com `documento_origem` (vazio
 nesses casos) e manda a resposta ao juiz como se houvesse gabarito factual.
