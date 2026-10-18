@@ -787,6 +787,25 @@ def _router_decision_para_done_data(event: RouterDecision) -> ChatDoneEventData:
     )
 
 
+def _resolver_complexity_strategy(intent_router_provider: str, complexity_strategy: str) -> str:
+    """Mapeia o provider do roteador para a estratégia de complexidade efetiva."""
+    if intent_router_provider == "heuristica_llm":
+        return "llm"
+    if intent_router_provider == "heuristica":
+        return "heuristic"
+    return complexity_strategy
+
+
+def _decodificar_comprovante(payload_image: str | None, imagem_e_documento: bool) -> bytes | None:
+    """Decodifica o base64 do comprovante; retorna None se ausente ou inválido."""
+    if not (payload_image and imagem_e_documento):
+        return None
+    try:
+        return base64.b64decode(payload_image, validate=True)
+    except Exception:
+        return None
+
+
 def _despachar_escalonamento(
     event: EscalonamentoEvent,
     app_state,
@@ -870,19 +889,10 @@ async def _stream_llm(
         yield _sse("done", done_data.model_dump(mode="json"))
         return
 
-    efetiva_complexity_strategy = (
-        "llm"
-        if intent_router_provider == "heuristica_llm"
-        else "heuristic"
-        if intent_router_provider == "heuristica"
-        else complexity_strategy
+    efetiva_complexity_strategy = _resolver_complexity_strategy(
+        intent_router_provider, complexity_strategy
     )
-    comprovante_bytes = None
-    if payload_image and imagem_e_documento:
-        try:
-            comprovante_bytes = base64.b64decode(payload_image, validate=True)
-        except Exception:
-            comprovante_bytes = None
+    comprovante_bytes = _decodificar_comprovante(payload_image, imagem_e_documento)
 
     partes_resposta: list[str] = []
     try:
