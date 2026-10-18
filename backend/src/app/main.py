@@ -119,18 +119,56 @@ def _apply_runtime_settings(app: FastAPI, settings_dict: dict[str, Any]) -> None
         app.state.local_llm_warmup_on_startup = bool(settings_dict["local_llm_warmup_on_startup"])
 
 
+async def _startup_load_settings(app: FastAPI, session_factory) -> None:
+    """Carrega configurações persistidas do banco e aplica ao estado da app."""
+    try:
+        async with session_factory() as session:
+            persisted = await get_all_app_settings(session)
+            _apply_runtime_settings(app, persisted)
+    except Exception as exc:
+        logger.warning(
+            "Falha ao carregar configurações persistidas do banco no startup: %s", exc
+        )
+
+
+def _can_warmup(local_client) -> bool:
+    """Retorna True se o cliente local está pronto para pré-aquecimento."""
+    return (
+        local_client is not None
+        and hasattr(local_client, "preload")
+        and inspect.iscoroutinefunction(local_client.preload)
+        and str(getattr(local_client, "keep_alive", "-1")) != "0"
+    )
+
+
+def _startup_warmup(app: FastAPI) -> None:
+    """Dispara o pré-aquecimento do modelo local na VRAM, se configurado."""
+    if not getattr(app.state, "local_llm_warmup_on_startup", True):
+        return
+    local_client = getattr(app.state, "local_client", None)
+    if _can_warmup(local_client):
+        logger.info(
+            "Disparando warmup do modelo local (%s) na VRAM...",
+            getattr(local_client, "model", ""),
+        )
+        asyncio.create_task(local_client.preload())
+
+
+async def _shutdown_cleanup(app: FastAPI) -> None:
+    """Fecha clientes HTTP dedicados ao encerrar a aplicação."""
+    crawler_http_client = getattr(app.state, "crawler_http_client", None)
+    if crawler_http_client and not crawler_http_client.is_closed:
+        await crawler_http_client.aclose()
+    catalog_client = getattr(app.state, "model_catalog_http_client", None)
+    if catalog_client and not catalog_client.is_closed:
+        await catalog_client.aclose()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     session_factory = getattr(app.state, "db_sessionmaker", None)
     if session_factory is not None:
-        try:
-            async with session_factory() as session:
-                persisted = await get_all_app_settings(session)
-                _apply_runtime_settings(app, persisted)
-        except Exception as exc:
-            logger.warning(
-                "Falha ao carregar configurações persistidas do banco no startup: %s", exc
-            )
+        await _startup_load_settings(app, session_factory)
 
     closure_worker_task = None
     if session_factory is not None:
@@ -138,19 +176,7 @@ async def lifespan(app: FastAPI):
             inactivity_closure_worker(session_factory, interval_seconds=300, timeout_minutes=30)
         )
 
-    if getattr(app.state, "local_llm_warmup_on_startup", True):
-        local_client = getattr(app.state, "local_client", None)
-        if (
-            local_client
-            and hasattr(local_client, "preload")
-            and inspect.iscoroutinefunction(local_client.preload)
-            and str(getattr(local_client, "keep_alive", "-1")) != "0"
-        ):
-            logger.info(
-                "Disparando warmup do modelo local (%s) na VRAM...",
-                getattr(local_client, "model", ""),
-            )
-            asyncio.create_task(local_client.preload())
+    _startup_warmup(app)
 
     yield
 
@@ -161,12 +187,7 @@ async def lifespan(app: FastAPI):
         except asyncio.CancelledError:
             pass
 
-    crawler_http_client = getattr(app.state, "crawler_http_client", None)
-    if crawler_http_client and not crawler_http_client.is_closed:
-        await crawler_http_client.aclose()
-    catalog_client = getattr(app.state, "model_catalog_http_client", None)
-    if catalog_client and not catalog_client.is_closed:
-        await catalog_client.aclose()
+    await _shutdown_cleanup(app)
 
 
 def create_app() -> FastAPI:
