@@ -7,6 +7,70 @@ import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
 import { fetchPedidos, type PedidoAdminItem } from "@/lib/api/adminPedidos";
 import ModalConversaoPedido from "@/components/admin/ModalConversaoPedido";
 
+function statusClass(status: string) {
+  if (status === "venda_concluida") return "bg-green-100 text-green-800";
+  if (status === "pagamento_divergente") return "bg-red-100 text-red-800";
+  return "bg-amber-100 text-amber-800";
+}
+
+function PedidoTableRow({
+  pedido,
+  onAbrirModal,
+}: {
+  pedido: PedidoAdminItem;
+  onAbrirModal: (p: PedidoAdminItem) => void;
+}) {
+  return (
+    <tr className="hover:bg-gray-50/50">
+      <td className="px-4 py-3 font-mono text-xs">
+        <span className="font-semibold text-gray-900 block" title={pedido.id}>
+          {pedido.id.substring(0, 8)}...
+        </span>
+        <span className="text-[11px] text-gray-400">
+          {pedido.criado_em ? new Date(pedido.criado_em).toLocaleDateString("pt-BR") : "-"}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-xs text-gray-700">
+        {pedido.user_email || "Anônimo / Visitante"}
+      </td>
+      <td className="px-4 py-3 text-xs text-gray-500">
+        {pedido.itens.length} {pedido.itens.length === 1 ? "item" : "itens"}
+      </td>
+      <td className="px-4 py-3 font-semibold text-gray-900 text-xs">
+        R$ {pedido.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+      </td>
+      <td className="px-4 py-3">
+        <span className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${statusClass(pedido.status)}`}>
+          {pedido.status}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-xs text-gray-500">
+        {pedido.tipo_conversao ? (
+          <div>
+            <span className="font-medium text-gray-800 block">{pedido.tipo_conversao}</span>
+            <span className="text-[10px] text-gray-400">por {pedido.convertido_por || "sistema"}</span>
+          </div>
+        ) : (
+          <span className="text-gray-400">-</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-right">
+        <button
+          type="button"
+          onClick={() => onAbrirModal(pedido)}
+          className={`rounded px-3 py-1 text-xs font-semibold transition-colors ${
+            pedido.status === "venda_concluida"
+              ? "border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
+              : "bg-blue-600 text-white hover:bg-blue-700"
+          }`}
+        >
+          {pedido.status === "venda_concluida" ? "Ver Detalhes" : "Converter / Tratar"}
+        </button>
+      </td>
+    </tr>
+  );
+}
+
 export default function AdminPedidosPage() {
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
@@ -242,72 +306,14 @@ export default function AdminPedidosPage() {
                 </tr>
               ) : (
                 pedidosFiltrados.map((pedido) => (
-                  <tr key={pedido.id} className="hover:bg-gray-50/50">
-                    <td className="px-4 py-3 font-mono text-xs">
-                      <span className="font-semibold text-gray-900 block" title={pedido.id}>
-                        {pedido.id.substring(0, 8)}...
-                      </span>
-                      <span className="text-[11px] text-gray-400">
-                        {pedido.criado_em
-                          ? new Date(pedido.criado_em).toLocaleDateString("pt-BR")
-                          : "-"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-700">
-                      {pedido.user_email || "Anônimo / Visitante"}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
-                      {pedido.itens.length} {pedido.itens.length === 1 ? "item" : "itens"}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-gray-900 text-xs">
-                      R$ {pedido.valor_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-block rounded px-2 py-0.5 text-xs font-semibold ${
-                          pedido.status === "venda_concluida"
-                            ? "bg-green-100 text-green-800"
-                            : pedido.status === "pagamento_divergente"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-amber-100 text-amber-800"
-                        }`}
-                      >
-                        {pedido.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
-                      {pedido.tipo_conversao ? (
-                        <div>
-                          <span className="font-medium text-gray-800 block">
-                            {pedido.tipo_conversao}
-                          </span>
-                          <span className="text-[10px] text-gray-400">
-                            por {pedido.convertido_por || "sistema"}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400">-</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPedidoSelecionado(pedido);
-                          setModalAberto(true);
-                        }}
-                        className={`rounded px-3 py-1 text-xs font-semibold transition-colors ${
-                          pedido.status === "venda_concluida"
-                            ? "border border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100"
-                            : "bg-blue-600 text-white hover:bg-blue-700"
-                        }`}
-                      >
-                        {pedido.status === "venda_concluida"
-                          ? "Ver Detalhes"
-                          : "Converter / Tratar"}
-                      </button>
-                    </td>
-                  </tr>
+                  <PedidoTableRow
+                    key={pedido.id}
+                    pedido={pedido}
+                    onAbrirModal={(p) => {
+                      setPedidoSelecionado(p);
+                      setModalAberto(true);
+                    }}
+                  />
                 ))
               )}
             </tbody>
