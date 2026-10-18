@@ -376,6 +376,47 @@ function RagSearchConfigSection({
   );
 }
 
+function CollectionPurposeStatusCard({
+  icon,
+  label,
+  colorClass,
+  ativa,
+  descricao,
+}: {
+  icon: string;
+  label: string;
+  colorClass: { border: string; bg: string; text: string };
+  ativa: RagCollection | undefined;
+  descricao: string;
+}) {
+  return (
+    <div className={`rounded-xl border ${colorClass.border} ${colorClass.bg} p-4 space-y-2`}>
+      <div className="flex items-center justify-between">
+        <span className={`text-xs font-bold uppercase tracking-wider ${colorClass.text} flex items-center gap-1.5`}>
+          <span>{icon}</span> {label}
+        </span>
+        {ativa ? (
+          <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
+            Ativa
+          </span>
+        ) : (
+          <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
+            Sem ativa
+          </span>
+        )}
+      </div>
+      <div className="text-sm font-bold text-slate-900 truncate">
+        {ativa ? (
+          <span>Coleção ativa: {ativa.name}</span>
+        ) : (
+          <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
+        )}
+      </div>
+      <p className="text-[11px] text-slate-600 leading-tight">{descricao}</p>
+    </div>
+  );
+}
+
 function AbaConfiguracao({
   collections,
   onChanged,
@@ -413,89 +454,27 @@ function AbaConfiguracao({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Card Chat */}
-            <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-blue-800 flex items-center gap-1.5">
-                  <span>💬</span> Chat Público
-                </span>
-                {ativaChat ? (
-                  <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
-                    Ativa
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
-                    Sem ativa
-                  </span>
-                )}
-              </div>
-              <div className="text-sm font-bold text-slate-900 truncate">
-                {ativaChat ? (
-                  <span>Coleção ativa: {ativaChat.name}</span>
-                ) : (
-                  <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-600 leading-tight">
-                Consultada pelo assistente nas conversas do chat público com clientes.
-              </p>
-            </div>
-
-            {/* Card MCP B2B */}
-            <div className="rounded-xl border border-purple-200/80 bg-purple-50/40 p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-purple-800 flex items-center gap-1.5">
-                  <span>🏢</span> MCP B2B Restrito
-                </span>
-                {ativaB2B ? (
-                  <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
-                    Ativa
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
-                    Sem ativa
-                  </span>
-                )}
-              </div>
-              <div className="text-sm font-bold text-slate-900 truncate">
-                {ativaB2B ? (
-                  <span>Coleção ativa: {ativaB2B.name}</span>
-                ) : (
-                  <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-600 leading-tight">
-                Consultada pelos revendedores parceiros no canal de integração MCP B2B.
-              </p>
-            </div>
-
-            {/* Card Admin */}
-            <div className="rounded-xl border border-rose-200/80 bg-rose-50/40 p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-rose-800 flex items-center gap-1.5">
-                  <span>🛡️</span> Admin Exclusivo
-                </span>
-                {ativaAdmin ? (
-                  <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-300">
-                    Ativa
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 border border-amber-300">
-                    Sem ativa
-                  </span>
-                )}
-              </div>
-              <div className="text-sm font-bold text-slate-900 truncate">
-                {ativaAdmin ? (
-                  <span>Coleção ativa: {ativaAdmin.name}</span>
-                ) : (
-                  <span className="text-slate-400 font-normal italic">Nenhuma ativa</span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-600 leading-tight">
-                Consultada pelo administrador no modo seguro do chat do painel.
-              </p>
-            </div>
+            <CollectionPurposeStatusCard
+              icon="💬"
+              label="Chat Público"
+              colorClass={{ border: "border-blue-200/80", bg: "bg-blue-50/40", text: "text-blue-800" }}
+              ativa={ativaChat}
+              descricao="Consultada pelo assistente nas conversas do chat público com clientes."
+            />
+            <CollectionPurposeStatusCard
+              icon="🏢"
+              label="MCP B2B Restrito"
+              colorClass={{ border: "border-purple-200/80", bg: "bg-purple-50/40", text: "text-purple-800" }}
+              ativa={ativaB2B}
+              descricao="Consultada pelos revendedores parceiros no canal de integração MCP B2B."
+            />
+            <CollectionPurposeStatusCard
+              icon="🛡️"
+              label="Admin Exclusivo"
+              colorClass={{ border: "border-rose-200/80", bg: "bg-rose-50/40", text: "text-rose-800" }}
+              ativa={ativaAdmin}
+              descricao="Consultada pelo administrador no modo seguro do chat do painel."
+            />
           </div>
         </div>
 
