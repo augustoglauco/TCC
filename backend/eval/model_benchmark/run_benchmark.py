@@ -427,6 +427,7 @@ async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
     json_validos = 0
     portfolio_ok = 0
     categoria_ok = 0
+    com_categoria = 0
     positivos = 0
 
     for caso in casos:
@@ -458,8 +459,13 @@ async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
         # vira "não identificado" em `identify_product_by_image`).
         if caso["e_do_portfolio"]:
             positivos += 1
-            acerto_categoria = _acertou_categoria(resposta.produto, caso["aceitos"])
-            categoria_ok += int(acerto_categoria)
+            if caso.get("aceitos"):
+                # Positiva sem `aceitos` só entra no acerto de portfólio.
+                com_categoria += 1
+                acerto_categoria = _acertou_categoria(resposta.produto, caso["aceitos"])
+                categoria_ok += int(acerto_categoria)
+            else:
+                acerto_categoria = None
         else:
             acerto_categoria = None
         resultados.append(
@@ -486,7 +492,7 @@ async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
         "positivos": positivos,
         "json_valido_taxa": round(json_validos / total, 4) if total else None,
         "portfolio_acerto_taxa": round(portfolio_ok / total, 4) if total else None,
-        "categoria_acerto_taxa": round(categoria_ok / positivos, 4) if positivos else None,
+        "categoria_acerto_taxa": round(categoria_ok / com_categoria, 4) if com_categoria else None,
         "casos": resultados,
         "latencias_s": [round(s, 3) for s in latencias],
     }

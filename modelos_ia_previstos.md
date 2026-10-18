@@ -10,16 +10,16 @@ Este arquivo consolida a relação de todos os modelos de Inteligência Artifici
 
 | ID | Nome / Rótulo | Tag Ollama | Família | Parâmetros | Quantização | Visão Local (`vision`) | Papel / Critério no Teste |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :--- |
-| `llama31-8b` | Llama 3.1 8B | `llama3.1:8b` | llama3.1 | 8B | Q4_0 | Não | Baseline de mercado / eficiência geral |
-| `qwen25-vl-7b` | Qwen2.5-VL 7B Instruct | `qwen2.5-vl:7b` | qwen2.5-vl | 7B | Q4_K_M | **Sim** | Multimodal nativo (visão local) e alta qualidade lógica |
-| `qwen3-14b-q4` | Qwen3 14B Q4_K_M | `qwen3:14b-q4_K_M` | qwen3 | 14B | Q4_K_M | Não | Teste de teto de capacidade em 16GB VRAM |
-| `qwen3-14b-q5` | Qwen3 14B Q5_K_M | `qwen3:14b-q5_K_M` | qwen3 | 14B | Q5_K_M | Não | Teste de precisão x risco de contenção de VRAM |
-| `qwen3-8b-q5` | Qwen3 8B Q5_K_M | `qwen3:8b-q5_K_M` | qwen3 | 8B | Q5_K_M | Não | Equilíbrio entre latência e fidelidade |
-| `qwen3-8b-q8` | Qwen3 8B Q8_0 | `qwen3:8b-q8_0` | qwen3 | 8B | Q8_0 | Não | Teste de alta precisão de quantização (8-bit) |
-| `phi4-mini` | Phi-4-mini | `phi4-mini` | phi4 | 3.8B | Q4_K_M | Não | Candidato ultra-rápido de baixa latência |
-| `phi4` | Phi-4 | `phi4` | phi4 | 14B | Q4_K_M | Não | Modelo compacto com forte capacidade lógica |
+| `llama32-11b-vision` | Llama 3.2 11B Vision Instruct | `hf.co/leafspark/Llama-3.2-11B-Vision-Instruct-GGUF:Q8_0` | llama3.2-vision | 11B | Q8_0 | **Sim** | Multimodal nativo (visão local) e alta capacidade de síntese |
+| `qwen25-vl-7b` | Qwen2.5-VL 7B Instruct | `hf.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF:UD-Q8_K_XL` | qwen2.5-vl | 7B | UD-Q8_K_XL | **Sim** | Multimodal nativo (visão local) e alta qualidade lógica |
+| `qwen35-9b` | Qwen3.5 9B Q4_K_M | `qwen3.5:9b` | qwen3.5 | 9.7B | Q4_K_M | **Sim** | Modelo denso moderno com raciocínio thinking nativo e visão local |
+| `qwen25-vl-3b` | Qwen2.5-VL 3B Instruct | `hf.co/unsloth/Qwen2.5-VL-3B-Instruct-GGUF:BF16` | qwen2.5-vl | 3B | BF16 | **Sim** | Multimodal leve de altíssima velocidade e visão local |
+| `deepseek-r1-distill-llama-8b-q8` | DeepSeek-R1-Distill-Llama-8B Q8_0 | `hf.co/bartowski/DeepSeek-R1-Distill-Llama-8B-GGUF:Q8_0` | llama | 8B | Q8_0 | Não | Raciocínio profundo (reasoning) destilado do DeepSeek-R1 em alta precisão Q8_0 |
+| `qwen35-9b-defiant-fable-mtp` | Qwen3.5-9B-The-Defiant-Fable-Uncensored-Heretic-NEO-IMATRIX-MAX-MTP | `hf.co/DavidAU/Qwen3.5-9B-The-Defiant-Fable-Uncensored-Heretic-NEO-IMATRIX-MAX-MTP-GGUF:Q8_0` | qwen3.5 | 9B | Q8_0 | Não | Raciocínio avançado com suporte a speculative decoding MTP |
+| `phi4-mini-bf16` | Phi-4-mini-instruct BF16 | `hf.co/unsloth/Phi-4-mini-instruct-GGUF:BF16` | phi4 | 3.8B | BF16 | Não | Candidato leve em máxima precisão BF16 sem quantização |
+| `gemma3-gaia-4b-f16` | Gemma-3-Gaia-PT-BR-4b-it F16 | `hf.co/mradermacher/Gemma-3-Gaia-PT-BR-4b-it-GGUF:F16` | gemma3 | 4B | F16 | **Sim** | Especializado em PT-BR com visão local nativa em alta precisão F16 |
 | `gemma4-12b-q4` | Gemma-4-12B 4-bit | `gemma4:12b-it-q4_K_M` | gemma4 | 12B | Q4_K_M | **Sim** | Multimodal nativo (visão local sem custo de API) |
-| `gemma4-e4b-q8` | Gemma-4-E4B-it UD-Q8_K_XL | `gemma-4-E4B-it-GGUF:UD-Q8_K_XL` | gemma4 | 26B (E4B) | UD-Q8_K_XL | **Sim** | Multimodal nativo MoE em alta precisão quantizada |
+| `gemma4-e4b-q8` | Gemma-4-E4B-it UD-Q8_K_XL | `hf.co/unsloth/gemma-4-E4B-it-GGUF:UD-Q8_K_XL` | gemma4 | 26B (E4B) | UD-Q8_K_XL | **Sim** | Multimodal nativo MoE em alta precisão quantizada |
 
 ---
 
@@ -42,8 +42,12 @@ Este arquivo consolida a relação de todos os modelos de Inteligência Artifici
 
 | Tecnologia / Modelo | Provedor / Runtime | Tipo / Função | Papel no Projeto |
 | :--- | :--- | :--- | :--- |
-| `gemma4:12b-it` (Q4 / Q8) | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware |
-| `qwen2.5-vl:7b` (Instruct) | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware |
+| `gemma4:12b-it-q4_K_M` / `gemma-4-E4B-it` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware |
+| `hf.co/mradermacher/Gemma-3-Gaia-PT-BR-4b-it-GGUF:F16` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware em PT-BR |
+| `hf.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF:UD-Q8_K_XL` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware |
+| `qwen3.5:9b` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware com thinking |
+| `hf.co/unsloth/Qwen2.5-VL-3B-Instruct-GGUF:BF16` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware |
+| `hf.co/leafspark/Llama-3.2-11B-Vision-Instruct-GGUF:Q8_0` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware |
 | `google/gemma-4-31b-it:free` | Externo (OpenRouter) | Visão Multimodal | Fallback externo (`EXTERNAL_VISION_MODEL_NAME`) para imagens |
 | `CLIP` (Sentence Transformers) | Local (Qdrant) | Embedding de Imagem | Busca vetorial direta de similaridade visual no catálogo de produtos |
 

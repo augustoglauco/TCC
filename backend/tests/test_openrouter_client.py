@@ -188,6 +188,42 @@ async def test_describe_image_ok_retorna_conteudo():
     assert texto == '{"produto":"X"}'
 
 
+async def test_describe_image_usa_usage_do_provedor_e_deriva_total():
+    mock_response = {
+        "choices": [{"message": {"content": "abcd"}}],
+        "usage": {"prompt_tokens": 100, "completion_tokens": 20},
+    }
+    client = OpenRouterClient(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="chave-fake",
+        model="m",
+        client=httpx.AsyncClient(transport=_mock_transport(mock_response)),
+        vision_model="openai/gpt-4o-mini",
+        price_per_1k_vision_input_tokens=1.0,
+        price_per_1k_vision_output_tokens=2.0,
+    )
+    r = await client.describe_image(_png_bytes(), "identifique")
+    assert (r.prompt_tokens, r.completion_tokens, r.total_tokens) == (100, 20, 120)
+    assert r.estimated_cost_usd == pytest.approx(0.1 + 0.04)
+    assert r.model_name == "openai/gpt-4o-mini"
+
+
+async def test_describe_image_estima_tokens_quando_provedor_omite_usage():
+    mock_response = {"choices": [{"message": {"content": "x" * 40}}]}
+    client = OpenRouterClient(
+        base_url="https://openrouter.ai/api/v1",
+        api_key="chave-fake",
+        model="m",
+        client=httpx.AsyncClient(transport=_mock_transport(mock_response)),
+        vision_model="openai/gpt-4o-mini:free",
+    )
+    r = await client.describe_image(_png_bytes(), "a" * 40)
+    assert r.prompt_tokens == 10 + 500
+    assert r.completion_tokens == 10
+    assert r.total_tokens == 520
+    assert r.estimated_cost_usd == 0.0
+
+
 async def test_describe_image_erro_http_vira_indisponivel():
     from app.router.openrouter_client import VisionModelIndisponivelError
 

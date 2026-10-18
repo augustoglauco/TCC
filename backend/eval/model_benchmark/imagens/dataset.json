@@ -1,71 +1,628 @@
 {
-  "_nota": "Conjunto de referência da etapa `imagem` do benchmark (R2/R5). Reproduz o caminho real do chat: o mesmo `_VISION_PROMPT` de `app.rag.image_identification` e o mesmo parse estruturado (`produto`, `e_do_portfolio`, `confianca`). `caminho` é relativo à raiz do repositório. As fotos são as dos manuais do fornecedor, já no repositório — nenhuma imagem nova foi criada.",
-  "_sobre_o_gabarito": "A visão NÃO precisa acertar o SKU exato: no fluxo real, quem faz a identificação precisa é o CLIP contra o catálogo interno, e a visão só entra como fallback para dizer 'isto é (ou não) do nosso portfólio e, grosso modo, o que é'. Por isso `aceitos` lista os termos que contam como acerto de categoria, e não um nome único.",
-  "_limitacao": "8 positivos e 1 negativo: o negativo basta para flagrar um modelo que diz 'é do portfólio' para qualquer imagem, mas com n=1 a taxa de falso positivo não tem precisão. Acrescentar mais negativos é barato — qualquer imagem que não seja equipamento de controle de acesso, com `e_do_portfolio: false`.",
+  "_nota": "Conjunto de imagem do benchmark (R2/R5), montado por montar_dataset_imagem.py. Gabarito exato por construção (pasta do fornecedor / manifesto de negativas): não passa por revisão humana.",
+  "_limitacao": "23 positivas -> IC 95% de ~±16 pp a p=0,80 (decisão do dono, 2026-10-18). As 5 pastas com uma foto só ficam fora. Categoria só é cobrada nas positivas com `aceitos` (7); nas outras, só e_do_portfolio. As negativas genéricas são miniaturas de ~9 KB e as positivas fotos de ~0,4 MB: a diferença de resolução pode inflar a separação.",
   "casos": [
     {
-      "id": "img1",
-      "caminho": "docs/Manuais_fornecedor/ControlId/iDFace Max/iDFace-Max-Frontal_pt.jpg",
-      "produto_esperado": "iDFace Max",
+      "id": "pos_01",
+      "caminho": "docs/Manuais_fornecedor/ControlId/IDBlock/idblock-qrcode-pcd-perspectiva.png",
+      "produto_esperado": "IDBlock",
       "e_do_portfolio": true,
-      "aceitos": ["facial", "reconhecimento", "biometri", "controle de acesso", "idface"]
+      "aceitos": [],
+      "origem": "holdout"
     },
     {
-      "id": "img2",
-      "caminho": "docs/Manuais_fornecedor/ControlId/iDAccess Pro/iDAccess-Pro-Frontal.jpg",
-      "produto_esperado": "iDAccess Pro",
+      "id": "pos_02",
+      "caminho": "docs/Manuais_fornecedor/ControlId/IDBlock Facial/idblock1.png",
+      "produto_esperado": "IDBlock Facial",
       "e_do_portfolio": true,
-      "aceitos": ["controle de acesso", "biometri", "leitor", "teclado", "idaccess"]
+      "aceitos": [],
+      "origem": "holdout"
     },
     {
-      "id": "img3",
-      "caminho": "docs/Manuais_fornecedor/ControlId/REP iDClass/REP-iDClass-Frontal.jpg",
-      "produto_esperado": "REP iDClass",
+      "id": "pos_03",
+      "caminho": "docs/Manuais_fornecedor/ControlId/IDFit/iDFitBranco-Perspectiva.jpg",
+      "produto_esperado": "IDFit",
       "e_do_portfolio": true,
-      "aceitos": ["ponto", "rep", "registrador", "relógio", "relogio", "idclass"]
+      "aceitos": [],
+      "origem": "holdout"
     },
     {
-      "id": "img4",
-      "caminho": "docs/Manuais_fornecedor/ControlId/iDBox/iDBox-Frontal.jpg",
-      "produto_esperado": "iDBox",
+      "id": "pos_04",
+      "caminho": "docs/Manuais_fornecedor/ControlId/IDPower/iDPower-Perspectiva.jpg",
+      "produto_esperado": "IDPower",
       "e_do_portfolio": true,
-      "aceitos": ["controlador", "controle de acesso", "módulo", "modulo", "central", "idbox"]
+      "aceitos": [
+        "fonte",
+        "alimentação",
+        "alimentacao",
+        "nobreak",
+        "energia",
+        "idpower"
+      ],
+      "origem": "holdout"
     },
     {
-      "id": "img5",
-      "caminho": "docs/Manuais_fornecedor/ControlId/iDAccess Nano/iDAccess-Nano-Frontal.jpg",
-      "produto_esperado": "iDAccess Nano",
+      "id": "pos_05",
+      "caminho": "docs/Manuais_fornecedor/ControlId/Print iD/printid-perspectiva-lateral.jpg",
+      "produto_esperado": "Print iD",
       "e_do_portfolio": true,
-      "aceitos": ["controle de acesso", "leitor", "biometri", "idaccess", "nano"]
+      "aceitos": [],
+      "origem": "holdout"
     },
     {
-      "id": "img6",
-      "caminho": "docs/Manuais_fornecedor/ControlId/IDPower/iDPower-Frontal.jpg",
-      "produto_esperado": "iDPower",
-      "e_do_portfolio": true,
-      "aceitos": ["fonte", "alimentação", "alimentacao", "nobreak", "energia", "idpower"]
-    },
-    {
-      "id": "img7",
-      "caminho": "docs/Manuais_fornecedor/ControlId/Print iD Touch/printid-touch-perspectiva-frontal.jpg",
+      "id": "pos_06",
+      "caminho": "docs/Manuais_fornecedor/ControlId/Print iD Touch/printid-touch-perspectiva-lateral.jpg",
       "produto_esperado": "Print iD Touch",
       "e_do_portfolio": true,
-      "aceitos": ["impressora", "print", "etiqueta", "crachá", "cracha", "terminal"]
+      "aceitos": [
+        "impressora",
+        "print",
+        "etiqueta",
+        "crachá",
+        "cracha",
+        "terminal"
+      ],
+      "origem": "holdout"
     },
     {
-      "id": "img8",
-      "caminho": "docs/Manuais_fornecedor/ControlId/iDBlock Next/iDBlock-Next.png",
-      "produto_esperado": "iDBlock Next",
+      "id": "pos_07",
+      "caminho": "docs/Manuais_fornecedor/ControlId/REP iDClass/REP-iDClass-Perspectiva.jpg",
+      "produto_esperado": "REP iDClass",
       "e_do_portfolio": true,
-      "aceitos": ["catraca", "torniquete", "bloqueio", "idblock", "controle de acesso"]
+      "aceitos": [
+        "ponto",
+        "rep",
+        "registrador",
+        "relógio",
+        "relogio",
+        "idclass"
+      ],
+      "origem": "holdout"
     },
     {
-      "id": "img9",
+      "id": "pos_08",
+      "caminho": "docs/Manuais_fornecedor/ControlId/SAT iD/satid-superior.jpg",
+      "produto_esperado": "SAT iD",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_09",
+      "caminho": "docs/Manuais_fornecedor/ControlId/Tags/tag2.png",
+      "produto_esperado": "Tags",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_10",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDAccess/iDAccess-Perspectiva.jpg",
+      "produto_esperado": "iDAccess",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_11",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDAccess Nano/iDAccess-Nano-Perspectiva.jpg",
+      "produto_esperado": "iDAccess Nano",
+      "e_do_portfolio": true,
+      "aceitos": [
+        "controle de acesso",
+        "leitor",
+        "biometri",
+        "idaccess",
+        "nano"
+      ],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_12",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDAccess Nano Prox/iDAccess-Nano-Prox-Perspectiva.png",
+      "produto_esperado": "iDAccess Nano Prox",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_13",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDAccess Pro/iDAccess-Pro-Perspectiva.jpg",
+      "produto_esperado": "iDAccess Pro",
+      "e_do_portfolio": true,
+      "aceitos": [
+        "controle de acesso",
+        "biometri",
+        "leitor",
+        "teclado",
+        "idaccess"
+      ],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_14",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDAccess Pro Prox/iDAccess-Pro-Prox-Perspectiva.png",
+      "produto_esperado": "iDAccess Pro Prox",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_15",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDBio/idbio-perspectiva.jpg",
+      "produto_esperado": "iDBio",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_16",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDBox/iDBox-Perspectiva.jpg",
+      "produto_esperado": "iDBox",
+      "e_do_portfolio": true,
+      "aceitos": [
+        "controlador",
+        "controle de acesso",
+        "módulo",
+        "modulo",
+        "central",
+        "idbox"
+      ],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_17",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDClass Portaria 373/iDClass-Perspectiva.jpg",
+      "produto_esperado": "iDClass Portaria 373",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_18",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDConnect/Idconnect2.png",
+      "produto_esperado": "iDConnect",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_19",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDFace/iDFace-Perspectiva.jpg",
+      "produto_esperado": "IDFACE/FP/A",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_20",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDFace Max/iDFace-Max.jpg",
+      "produto_esperado": "iDFace Max",
+      "e_do_portfolio": true,
+      "aceitos": [
+        "facial",
+        "reconhecimento",
+        "biometri",
+        "controle de acesso",
+        "idface"
+      ],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_21",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDFlexLite/iDFlex-Perspectiva.jpg",
+      "produto_esperado": "iDFlexLite",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_22",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDProx/idprox-usb.png",
+      "produto_esperado": "iDProx",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "pos_23",
+      "caminho": "docs/Manuais_fornecedor/ControlId/iDTouch/idtouch-perspectiva.jpg",
+      "produto_esperado": "iDTouch",
+      "e_do_portfolio": true,
+      "aceitos": [],
+      "origem": "holdout"
+    },
+    {
+      "id": "neg_01",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_01_essence-mascara-lash-princess.jpg",
+      "produto_esperado": "(nenhum — Essence Mascara Lash Princess)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "beauty"
+    },
+    {
+      "id": "neg_02",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_02_eyeshadow-palette-with-mirror.jpg",
+      "produto_esperado": "(nenhum — Eyeshadow Palette with Mirror)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "beauty"
+    },
+    {
+      "id": "neg_03",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_03_calvin-klein-ck-one.jpg",
+      "produto_esperado": "(nenhum — Calvin Klein CK One)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "fragrances"
+    },
+    {
+      "id": "neg_04",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_04_chanel-coco-noir-eau-de.jpg",
+      "produto_esperado": "(nenhum — Chanel Coco Noir Eau De)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "fragrances"
+    },
+    {
+      "id": "neg_05",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_05_annibale-colombo-bed.jpg",
+      "produto_esperado": "(nenhum — Annibale Colombo Bed)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "furniture"
+    },
+    {
+      "id": "neg_06",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_06_annibale-colombo-sofa.jpg",
+      "produto_esperado": "(nenhum — Annibale Colombo Sofa)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "furniture"
+    },
+    {
+      "id": "neg_07",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_07_apple.jpg",
+      "produto_esperado": "(nenhum — Apple)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "groceries"
+    },
+    {
+      "id": "neg_08",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_08_beef-steak.jpg",
+      "produto_esperado": "(nenhum — Beef Steak)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "groceries"
+    },
+    {
+      "id": "neg_09",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_09_decoration-swing.jpg",
+      "produto_esperado": "(nenhum — Decoration Swing)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "home-decoration"
+    },
+    {
+      "id": "neg_10",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_10_family-tree-photo-frame.jpg",
+      "produto_esperado": "(nenhum — Family Tree Photo Frame)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "home-decoration"
+    },
+    {
+      "id": "neg_11",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_11_apple-macbook-pro-14-inch-spac.jpg",
+      "produto_esperado": "(nenhum — Apple MacBook Pro 14 Inch Space Grey)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "laptops"
+    },
+    {
+      "id": "neg_12",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_12_asus-zenbook-pro-dual-screen-l.jpg",
+      "produto_esperado": "(nenhum — Asus Zenbook Pro Dual Screen Laptop)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "laptops"
+    },
+    {
+      "id": "neg_13",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_13_blue--black-check-shirt.jpg",
+      "produto_esperado": "(nenhum — Blue & Black Check Shirt)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "mens-shirts"
+    },
+    {
+      "id": "neg_14",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_14_gigabyte-aorus-men-tshirt.jpg",
+      "produto_esperado": "(nenhum — Gigabyte Aorus Men Tshirt)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "mens-shirts"
+    },
+    {
+      "id": "neg_15",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_15_nike-air-jordan-1-red-and-blac.jpg",
+      "produto_esperado": "(nenhum — Nike Air Jordan 1 Red And Black)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "mens-shoes"
+    },
+    {
+      "id": "neg_16",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_16_nike-baseball-cleats.jpg",
+      "produto_esperado": "(nenhum — Nike Baseball Cleats)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "mens-shoes"
+    },
+    {
+      "id": "neg_17",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_17_brown-leather-belt-watch.jpg",
+      "produto_esperado": "(nenhum — Brown Leather Belt Watch)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "mens-watches"
+    },
+    {
+      "id": "neg_18",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_18_longines-master-collection.jpg",
+      "produto_esperado": "(nenhum — Longines Master Collection)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "mens-watches"
+    },
+    {
+      "id": "neg_19",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_19_generic-motorcycle.jpg",
+      "produto_esperado": "(nenhum — Generic Motorcycle)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "motorcycle"
+    },
+    {
+      "id": "neg_20",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_20_kawasaki-z800.jpg",
+      "produto_esperado": "(nenhum — Kawasaki Z800)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "motorcycle"
+    },
+    {
+      "id": "neg_21",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_21_attitude-super-leaves-hand-soa.jpg",
+      "produto_esperado": "(nenhum — Attitude Super Leaves Hand Soap)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "skin-care"
+    },
+    {
+      "id": "neg_22",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_22_olay-ultra-moisture-shea-butte.jpg",
+      "produto_esperado": "(nenhum — Olay Ultra Moisture Shea Butter Body Wash)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "skin-care"
+    },
+    {
+      "id": "neg_23",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_23_iphone-5s.jpg",
+      "produto_esperado": "(nenhum — iPhone 5s)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "smartphones"
+    },
+    {
+      "id": "neg_24",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_24_iphone-6.jpg",
+      "produto_esperado": "(nenhum — iPhone 6)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "smartphones"
+    },
+    {
+      "id": "neg_25",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_25_black-sun-glasses.jpg",
+      "produto_esperado": "(nenhum — Black Sun Glasses)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "sunglasses"
+    },
+    {
+      "id": "neg_26",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_26_classic-sun-glasses.jpg",
+      "produto_esperado": "(nenhum — Classic Sun Glasses)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "sunglasses"
+    },
+    {
+      "id": "neg_27",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_27_ipad-mini-2021-starlight.jpg",
+      "produto_esperado": "(nenhum — iPad Mini 2021 Starlight)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "tablets"
+    },
+    {
+      "id": "neg_28",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_28_samsung-galaxy-tab-s8-plus-gre.jpg",
+      "produto_esperado": "(nenhum — Samsung Galaxy Tab S8 Plus Grey)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "tablets"
+    },
+    {
+      "id": "neg_29",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_29_blue-frock.jpg",
+      "produto_esperado": "(nenhum — Blue Frock)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "tops"
+    },
+    {
+      "id": "neg_30",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_30_girl-summer-dress.jpg",
+      "produto_esperado": "(nenhum — Girl Summer Dress)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "tops"
+    },
+    {
+      "id": "neg_31",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_31_intelbras-ss-3542-mf-facial-bio.jpg",
+      "produto_esperado": "(nenhum — Controlador de Acesso Facial com Biometria Digital Intelbras SS 3542 MF)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_32",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_32_intelbras-ss-3532-mf-w-facial.jpg",
+      "produto_esperado": "(nenhum — Controlador de Acesso Facial Bio-T Wi-Fi Intelbras SS 3532 MF W)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_33",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_35_intelbras-ss-1540-mf-w-facial.jpg",
+      "produto_esperado": "(nenhum — Controlador de Acesso Facial Intelbras SS 1540 MF W)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_34",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_36_intelbras-le-1110-leitor-rfid.jpg",
+      "produto_esperado": "(nenhum — Leitor e Controlador de Proximidade RFID Intelbras LE 1110)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_35",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_37_intelbras-le-1110-security-rfid.jpg",
+      "produto_esperado": "(nenhum — Leitor e Controlador RFID Security Intelbras LE 1110 Security)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_36",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_38_intelbras-ss-420-mf-touch.jpg",
+      "produto_esperado": "(nenhum — Controlador de Acesso Biométrico Touch Intelbras SS 420 MF)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_37",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_39_intelbras-ss-3542-mf-frontal.jpg",
+      "produto_esperado": "(nenhum — Controlador de Acesso Facial com Biometria Intelbras SS 3542 MF)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_38",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_40_henry-terminal-prisma-facil.jpg",
+      "produto_esperado": "(nenhum — Terminal Biométrico de Ponto e Acesso Henry Prisma Super Fácil)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_39",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_41_henry-face-terminal-reconhecimento.jpg",
+      "produto_esperado": "(nenhum — Terminal de Controle de Acesso Facial Henry Face)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_40",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_42_henry-pedestal-facial.jpg",
+      "produto_esperado": "(nenhum — Pedestal com Terminal de Reconhecimento Facial Henry)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_41",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_43_henry-tln-omni.jpg",
+      "produto_esperado": "(nenhum — Controlador de Acesso Henry TLN Omni)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_42",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_44_henry-totem-mini.jpg",
+      "produto_esperado": "(nenhum — Totem Mini de Controle de Acesso Henry)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "controlador_de_acesso"
+    },
+    {
+      "id": "neg_43",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_45_henry-catraca-lumen-advance.jpg",
+      "produto_esperado": "(nenhum — Catraca de Acesso Pedestal Henry Lumen Advance)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "catraca_de_acesso"
+    },
+    {
+      "id": "neg_44",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_46_henry-catraca-lumen-comanda.jpg",
+      "produto_esperado": "(nenhum — Catraca de Acesso Coletora de Comanda Henry Lumen)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "catraca_de_acesso"
+    },
+    {
+      "id": "neg_45",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_47_henry-cancela-acesso-inca.jpg",
+      "produto_esperado": "(nenhum — Cancela Automática de Controle de Acesso Henry Inca)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "catraca_de_acesso"
+    },
+    {
+      "id": "neg_46",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_48_henry-catraca-lumen-facial-duplo.jpg",
+      "produto_esperado": "(nenhum — Catraca Henry Lumen com Suporte Facial Duplo)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "catraca_de_acesso"
+    },
+    {
+      "id": "neg_47",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_49_henry-catraca-inox.jpg",
+      "produto_esperado": "(nenhum — Catraca Pedestal em Aço Inox Escovado Henry)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "catraca_de_acesso"
+    },
+    {
+      "id": "neg_48",
+      "caminho": "backend/eval/model_benchmark/imagens/negativos/negativo_50_henry-catraca-lumen-park.jpg",
+      "produto_esperado": "(nenhum — Catraca de Acesso Henry Lumen Park)",
+      "e_do_portfolio": false,
+      "aceitos": [],
+      "origem": "catraca_de_acesso"
+    },
+    {
+      "id": "neg_comprovante",
       "caminho": "backend/eval/model_benchmark/imagens/negativo-comprovante-bancario.jpg",
       "produto_esperado": "(nenhum — comprovante de depósito bancário)",
       "e_do_portfolio": false,
-      "aceitos": ["comprovante", "recibo", "documento", "banc", "depósito", "deposito", "transferência", "transferencia", "captura de tela", "screenshot"],
-      "_nota": "Único caso negativo: pega o modelo que responde `e_do_portfolio: true` para qualquer imagem. Imagem sintética do fluxo de comprovante do próprio sistema (diz 'Teste Banco' e 'EMPRESA FICTÍCIA LTDA'), copiada de `backend/uploads/comprovantes/` — que é gitignored, por isso vive aqui, versionada junto com o dataset."
+      "aceitos": [],
+      "origem": "comprovante"
     }
   ]
 }

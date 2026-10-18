@@ -815,8 +815,8 @@ trabalhando enquanto você revisa o seguinte.
 Elas não exigem trabalho, só uma resposta, e destravam o agente para
 trabalhar em paralelo enquanto você revisa. Responda no chat no formato
 `1a=..., 1b=..., 1c=...`.
-- **1a. Visão local é obrigatória?** Só as duas tags Gemma-4-12B enxergam
-  imagem. *Sim*: só elas concorrem na etapa de imagem e as outras 8 competem
+- **1a. Visão local é obrigatória?** Sete candidatos enxergam
+  imagem (Llama 3.2 11B Vision Instruct, Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit, Gemma-4-E4B-it UD-Q8_K_XL, Qwen2.5-VL 7B Instruct, Qwen2.5-VL 3B Instruct e Qwen3.5 9B). *Sim*: só elas concorrem na etapa de imagem e as outras 3 competem
   em roteador, RAG e injeção. *Não*: todas concorrem e a imagem usa o
   externo como apoio. Recomendado: **sim**, medir imagem só em quem tem visão
   (não muda a lista de 10 candidatos).
@@ -825,13 +825,13 @@ trabalhar em paralelo enquanto você revisa. Responda no chat no formato
   n=23 (IC 95% ±16 pp, registrado como limitação), fotografar 2–3 ângulos
   deles, ou perturbar a própria foto (recorte/recompressão). Recomendado:
   **aceitar n=23** (regra 8: o mais simples que atende o MVP).
-- **1c. Baixar ~68 GB de modelos** (9 dos 10 candidatos não estão no
-  Ollama; o disco tem 422 GB livres). Autorizando, o agente baixa em segundo
-  plano e valida cada tag.
+- **1c. Baixar modelos** (Concluído: todos os 10 modelos candidatos estão
+  baixados e validados no Ollama local).
 
 ### Passo 2 — Trabalho do agente (você não faz nada)
-Baixar os modelos, mesclar as negativas de imagem ao conjunto (hoje o painel
-mostra 23 de 53; a pasta tem 48 arquivos, não 30 — o agente confere),
+Baixar os modelos, mesclar as negativas de imagem ao conjunto (feito em 2026-10-18 por
+`eval/model_benchmark/montar_dataset_imagem.py`: 23 positivas + 48
+negativas + 1 comprovante = 72 casos),
 confirmar o critério de corte da triagem no README do benchmark (item 14) e
 sincronizar os números dos documentos (item 18). Você pode ir direto ao
 passo 3.

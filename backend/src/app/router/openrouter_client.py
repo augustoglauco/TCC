@@ -227,18 +227,7 @@ class OpenRouterClient:
         b64 = base64.b64encode(image_bytes).decode("ascii")
         data_uri = f"data:{mime};base64,{b64}"
 
-        payload = {
-            "model": self._vision_model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {"type": "image_url", "image_url": {"url": data_uri}},
-                    ],
-                }
-            ],
-        }
+        payload = self._payload_visao(prompt, data_uri)
 
         last_exc: Exception = VisionModelIndisponivelError("Falha desconhecida na visão externa.")
         for delay in (0.0, *_VISION_RETRY_DELAYS_S):
@@ -252,38 +241,7 @@ class OpenRouterClient:
                     timeout=self._timeout_s,
                 )
                 response.raise_for_status()
-                data = response.json()
-                content = data["choices"][0]["message"]["content"]
-                usage = data.get("usage", {}) if isinstance(data, dict) else {}
-                prompt_tokens = usage.get("prompt_tokens") if usage else None
-                completion_tokens = usage.get("completion_tokens") if usage else None
-                total_tokens = usage.get("total_tokens") if usage else None
-                if total_tokens is None and (
-                    prompt_tokens is not None or completion_tokens is not None
-                ):
-                    total_tokens = (prompt_tokens or 0) + (completion_tokens or 0)
-
-                # Fallback de estimativa caso o provedor omita usage (ex.: certos modelos gratuitos)
-                if not prompt_tokens:
-                    prompt_tokens = max(1, len(prompt) // 4) + 500
-                if not completion_tokens:
-                    completion_tokens = max(1, len(content) // 4)
-                if not total_tokens:
-                    total_tokens = prompt_tokens + completion_tokens
-
-                cost_prompt, cost_completion, cost_total = self._custo_detalhado_visao(
-                    prompt_tokens, completion_tokens
-                )
-                return VisionResult(
-                    content=content,
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens,
-                    total_tokens=total_tokens,
-                    cost_prompt_usd=cost_prompt,
-                    cost_completion_usd=cost_completion,
-                    estimated_cost_usd=cost_total,
-                    model_name=self._vision_model,
-                )
+                return self._resultado_visao(response.json(), prompt)
             except httpx.HTTPStatusError as exc:
                 last_exc = exc
                 if exc.response.status_code not in _VISION_RETRY_STATUS:
@@ -293,6 +251,56 @@ class OpenRouterClient:
                 raise VisionModelIndisponivelError(str(exc)) from exc
 
         raise VisionModelIndisponivelError(str(last_exc)) from last_exc
+
+    def _payload_visao(self, prompt: str, data_uri: str) -> dict[str, Any]:
+        return {
+            "model": self._vision_model,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {"type": "image_url", "image_url": {"url": data_uri}},
+                    ],
+                }
+            ],
+        }
+
+    @staticmethod
+    def _tokens_visao(usage: dict[str, Any], prompt: str, content: str) -> tuple[int, int, int]:
+        prompt_tokens = usage.get("prompt_tokens") if usage else None
+        completion_tokens = usage.get("completion_tokens") if usage else None
+        total_tokens = usage.get("total_tokens") if usage else None
+        if total_tokens is None and (prompt_tokens is not None or completion_tokens is not None):
+            total_tokens = (prompt_tokens or 0) + (completion_tokens or 0)
+
+        # Fallback de estimativa caso o provedor omita usage (ex.: certos modelos gratuitos)
+        if not prompt_tokens:
+            prompt_tokens = max(1, len(prompt) // 4) + 500
+        if not completion_tokens:
+            completion_tokens = max(1, len(content) // 4)
+        if not total_tokens:
+            total_tokens = prompt_tokens + completion_tokens
+        return prompt_tokens, completion_tokens, total_tokens
+
+    def _resultado_visao(self, data: Any, prompt: str) -> VisionResult:
+        content = data["choices"][0]["message"]["content"]
+        usage = data.get("usage", {}) if isinstance(data, dict) else {}
+        prompt_tokens, completion_tokens, total_tokens = self._tokens_visao(usage, prompt, content)
+
+        cost_prompt, cost_completion, cost_total = self._custo_detalhado_visao(
+            prompt_tokens, completion_tokens
+        )
+        return VisionResult(
+            content=content,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            cost_prompt_usd=cost_prompt,
+            cost_completion_usd=cost_completion,
+            estimated_cost_usd=cost_total,
+            model_name=self._vision_model,
+        )
 
     async def generate_stream(self, prompt: str) -> AsyncIterator[LLMStreamChunk]:
         """`stream: true` no formato OpenAI-compatible — a resposta já vem
@@ -330,35 +338,13 @@ class OpenRouterClient:
                 if raw == "[DONE]":
                     break
                 data = json.loads(raw)
-                # MVP: `choices` pode vir PRESENTE mas VAZIO (ex.: o chunk de
-                # `usage` com `stream_options.include_usage=true` costuma vir
-                # como `{"choices": [], "usage": {...}}`) — `.get("choices",
-                # [{}])` só cobre a chave ausente, não a lista vazia, então
-                # `or [{}]` é necessário para não estourar IndexError.
-                choices = data.get("choices") or [{}]
-                delta = choices[0].get("delta") or {}
-                texto = delta.get("content") or ""
+                texto = self._texto_do_delta(data)
                 if texto:
                     yield LLMStreamChunk(text=texto)
                 usage = data.get("usage")
                 if usage:
-                    elapsed_ms = (time.monotonic() - started_at) * 1000
-                    prompt_tokens = usage.get("prompt_tokens")
-                    completion_tokens = usage.get("completion_tokens")
                     chunk_final_emitido = True
-                    cost_prompt, cost_completion, cost_total = self._custo_detalhado(
-                        prompt_tokens, completion_tokens
-                    )
-                    yield LLMStreamChunk(
-                        done=True,
-                        prompt_tokens=prompt_tokens,
-                        completion_tokens=completion_tokens,
-                        total_duration_ms=elapsed_ms,
-                        cost_prompt_usd=cost_prompt,
-                        cost_completion_usd=cost_completion,
-                        estimated_cost_usd=cost_total,
-                        model_name=self._model,
-                    )
+                    yield self._chunk_final(usage, started_at)
 
         if not chunk_final_emitido:
             yield LLMStreamChunk(
@@ -369,6 +355,35 @@ class OpenRouterClient:
                 estimated_cost_usd=0.0,
                 model_name=self._model,
             )
+
+    @staticmethod
+    def _texto_do_delta(data: dict[str, Any]) -> str:
+        # MVP: `choices` pode vir PRESENTE mas VAZIO (ex.: o chunk de
+        # `usage` com `stream_options.include_usage=true` costuma vir
+        # como `{"choices": [], "usage": {...}}`) — `.get("choices",
+        # [{}])` só cobre a chave ausente, não a lista vazia, então
+        # `or [{}]` é necessário para não estourar IndexError.
+        choices = data.get("choices") or [{}]
+        delta = choices[0].get("delta") or {}
+        return delta.get("content") or ""
+
+    def _chunk_final(self, usage: dict[str, Any], started_at: float) -> LLMStreamChunk:
+        elapsed_ms = (time.monotonic() - started_at) * 1000
+        prompt_tokens = usage.get("prompt_tokens")
+        completion_tokens = usage.get("completion_tokens")
+        cost_prompt, cost_completion, cost_total = self._custo_detalhado(
+            prompt_tokens, completion_tokens
+        )
+        return LLMStreamChunk(
+            done=True,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_duration_ms=elapsed_ms,
+            cost_prompt_usd=cost_prompt,
+            cost_completion_usd=cost_completion,
+            estimated_cost_usd=cost_total,
+            model_name=self._model,
+        )
 
     async def _perguntar_systemone_jev(
         self,

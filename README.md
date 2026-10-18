@@ -94,7 +94,7 @@ Este projeto consiste em um **Assistente Virtual Multimodal** projetado para aut
 
 ### Backend (Python + FastAPI)
 - **Linguagem & Framework**: Python 3.14, [FastAPI](https://fastapi.tiangolo.com/) (Async-first, suporte a Server-Sent Events), Uvicorn, Pydantic v2.
-- **Inferência Local**: [Ollama](https://ollama.com/) servindo modelos quantizados GGUF (ex.: `gemma4:12b-it-q4_K_M`, Llama 3.1 8B, Qwen2.5/3, Phi-4 — ver avaliação comparativa em `docs/EVALUATION.md`).
+- **Inferência Local**: [Ollama](https://ollama.com/) servindo modelos quantizados GGUF (ex.: `gemma4:12b-it-q4_K_M`, Llama 3.2 11B Vision, Qwen2.5-VL, Gemma-3-Gaia — ver avaliação comparativa em `docs/EVALUATION.md`).
 - **Inferência Externa**: [OpenRouter API](https://openrouter.ai/) via `httpx` (texto, visão e classificador estruturado Jev).
 - **Banco Relacional & ORM**: PostgreSQL 15 via [SQLAlchemy 2.0](https://www.sqlalchemy.org/) (`asyncpg`) e Alembic para migrações.
 - **Banco Vetorial**: [Qdrant](https://qdrant.tech/) rodando em container Docker, com collections segregadas por finalidade (`chat`, `mcp_b2b`, `admin`) e por domínio de imagem.
@@ -189,8 +189,8 @@ Como requisito metodológico do TCC, o protótipo é submetido a três baterias 
 3. **⚡ Latência e Custo: Modelo Local vs. Modelo Externo (`eval/latency/`)**:
    - Medição do tempo de resposta ponta a ponta (média e percentil $p_{95}$) e consumo de tokens.
    - Comparação empírica entre inferência local em GPU (Ollama) e chamada externa (OpenRouter).
-4. **🔬 Benchmark Comparativo entre 9 Modelos Locais**:
-   - Avaliação comparativa de 9 configurações de modelos em GPU de 16GB (Llama 3.1 8B, Qwen2.5 7B, Qwen3 14B Q4/Q5, Qwen3 8B Q5/Q8, Phi-4-mini/Phi-4, Gemma-4-12B 4-bit/8-bit) contra o sistema completo (com RAG e playbooks reais).
+4. **🔬 Benchmark Comparativo entre 10 Modelos Locais**:
+   - Avaliação comparativa de 10 configurações de modelos em GPU de 16GB (Llama 3.2 11B Vision, Qwen2.5-VL 7B/3B, Qwen3.5 9B, DeepSeek-R1-Distill-Llama-8B, Qwen3.5 9B Defiant Fable MTP, Phi-4-mini BF16, Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit/E4B) contra o sistema completo (com RAG e playbooks reais).
 
 ---
 

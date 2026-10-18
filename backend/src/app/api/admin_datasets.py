@@ -54,8 +54,6 @@ class _Conjunto:
     caminho_relativo: str
     meta: int
     revisao_automatica: bool = False
-    # Chave do JSON onde ficam os itens: o holdout de imagem guarda "consultas".
-    chave_casos: str = "casos"
 
 
 CONJUNTOS: tuple[_Conjunto, ...] = (
@@ -65,12 +63,9 @@ CONJUNTOS: tuple[_Conjunto, ...] = (
     _Conjunto(
         "rag_imagem",
         "RAG imagem",
-        "model_benchmark/imagens/holdout.json",
-        53,
+        "model_benchmark/imagens/dataset.json",
+        72,
         revisao_automatica=True,
-        # MVP: só as 23 positivas (fotos reservadas) existem como arquivo; as
-        # 30 negativas ainda não foram mescladas ao conjunto.
-        chave_casos="consultas",
     ),
     _Conjunto("rag_banco", "RAG banco", "rag_banco/dataset.json", 80, revisao_automatica=True),
 )
@@ -88,7 +83,7 @@ def _ler_casos(conjunto: _Conjunto) -> tuple[dict, list[dict]]:
     if not caminho.exists():
         return {}, []
     dados = json.loads(caminho.read_text(encoding="utf-8"))
-    return dados, dados.get(conjunto.chave_casos, [])
+    return dados, dados.get("casos", [])
 
 
 def _status_do_caso(caso: dict, conjunto: _Conjunto) -> str:

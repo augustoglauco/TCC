@@ -165,7 +165,9 @@ def test_dataset_de_imagens_aponta_para_arquivos_que_existem():
     for caso in dados["casos"]:
         imagem = repo / caso["caminho"]
         assert imagem.is_file(), f"{caso['id']}: imagem não encontrada em {imagem}"
-        assert caso["aceitos"], f"{caso['id']}: sem termos aceitos para a categoria"
+        # Vazio é válido: a categoria só é cobrada onde há `aceitos` (ver
+        # `montar_dataset_imagem.py`); nos demais vale só `e_do_portfolio`.
+        assert isinstance(caso["aceitos"], list), f"{caso['id']}: `aceitos` não é lista"
         assert isinstance(caso["e_do_portfolio"], bool)
 
 

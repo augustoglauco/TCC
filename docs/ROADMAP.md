@@ -1496,8 +1496,7 @@ conversa e classificação do usuário").
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
 - [ ] Rodar a avaliação comparativa entre as 10 configurações de modelo local
-      candidatas (Llama 3.1 8B; Qwen2.5-VL 7B Instruct; Qwen3 14B Q4_K_M/Q5_K_M; Qwen3 8B
-      Q5_K_M/Q8_0; Phi-4-mini/Phi-4; Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL — ver
+      candidatas (Llama 3.2 11B Vision Instruct; Qwen2.5-VL 7B/3B Instruct; Qwen3.5 9B Q4_K_M; DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16; Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL — ver
       `docs/ARCHITECTURE.md` tabela de escopo), medindo custo/latência e
       qualidade de resposta **contra o sistema completo** (RAG real da Fase 2,
       playbooks de domínio da Fase 3), não isoladamente — decidida
@@ -1505,9 +1504,8 @@ conversa e classificação do usuário").
       medição precoce sem RAG/playbooks reais não reflete a qualidade real de
       cada candidato e arriscaria descartar/escolher um modelo com base em
       sinal incompleto. Resultado: escolha do `LOCAL_MODEL_NAME` final.
-      `Gemma-4-12B` (4-bit) já confirmado disponível localmente
-      (`gemma4:12b-it-q4_K_M`); os demais 8 ainda precisam ser baixados
-      (`ollama pull`). `# MVP: primeira chamada após trocar de modelo tem
+      Todos os 10 modelos candidatos já estão baixados e disponíveis localmente
+      no Ollama (`ollama list` / `api/tags`). `# MVP: primeira chamada após trocar de modelo tem
       custo de carga (cold start) bem maior que chamadas subsequentes —
       verificado empiricamente (~13s incluindo load vs. resposta quase
       imediata com modelo já quente); o script de benchmark deve descartar
@@ -2176,8 +2174,8 @@ conversa e classificação do usuário").
       vencedor não tiver, o relatório precisa dizer que toda imagem de cliente
       passa a depender do modelo externo.
 - [x] Contagem de candidatos corrigida em 2026-10-17: `docs/ARCHITECTURE.md`
-      dizia "9 configurações" e listava 10 (Llama 3.1 8B; Qwen2.5-VL 7B Instruct; Qwen3 14B
-      Q4_K_M/Q5_K_M; Qwen3 8B Q5_K_M/Q8_0; Phi-4-mini; Phi-4; Gemma-4-12B
+      dizia "9 configurações" e listava 10 (Llama 3.2 11B Vision Instruct; Qwen2.5-VL 7B/3B Instruct; Qwen3.5 9B
+      Q4_K_M; DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16; Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B
       4-bit e Gemma-4-E4B-it UD-Q8_K_XL), que são os 10 de `eval/model_benchmark/modelos.json`. O
       número no documento passou a 10 — nenhum candidato foi retirado.
 - [x] Página pública de resultados `/avaliacao` com gráficos (Recharts) e
@@ -2224,15 +2222,22 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       Simplificação marcada no cliente: a lista de tarefas é espelhada à mão
       de `TAREFAS_DISPONIVEIS` do backend, que não expõe rota para listar os
       tipos (`// MVP:` em `frontend/lib/api/datasets.ts`).
-- [ ] **Geradores de rascunho dos conjuntos — não existem.** A tela revisa e
-      dispara, mas nada produz as 300 mensagens, as 180 perguntas, os 103
-      itens de imagem, as 80 do banco e os 100 casos de injeção. Hoje os
-      arquivos no disco são os **conjuntos invalidados** (roteador 40, RAG 18,
-      injeção 8, imagem 9) e `eval/rag_banco/dataset.json` não existe. Falta
-      também a tarefa `gerar_rascunhos` em `TAREFAS_DISPONIVEIS`, citada no
-      docstring do módulo (`"gerar rascunhos"`) mas nunca implementada. É o
-      item que trava a revisão humana e, por consequência, as Etapas 2–5 e o
-      benchmark.
+- [x] **Geradores de rascunho dos conjuntos** (2026-10-18). Os scripts
+      existem (`eval/router_intents`, `rag_banco`, `prompt_injection` e
+      `rag_quality`, todos `/gerar_dataset.py`) e cada um tem uma tarefa em
+      `TAREFAS_DISPONIVEIS` (`gerar_rascunho_roteador`, `gerar_conjunto_banco`,
+      `gerar_rascunho_injecao`; a de RAG docs já existia). O `gerar_rascunhos`
+      único do docstring antigo foi abandonado: cada conjunto tem comando e
+      custo próprios. Regerar roteador/RAG docs/injeção é recusado (409) se o
+      conjunto já tem item revisado. Roteador fechado em 300 (234 chegam ao
+      LLM, 78%) com `gerar_dataset.py --completar`.
+- [x] **Conjunto de imagem montado** (2026-10-18, decisão do dono: aceitar
+      n=23). `eval/model_benchmark/montar_dataset_imagem.py` gera
+      `imagens/dataset.json` com 72 casos: 23 positivas (consultas do
+      holdout) + 48 negativas (30 genéricas + 18 de controle de acesso de
+      outras marcas) + 1 comprovante. Só 7 positivas têm `aceitos`; nas
+      outras 16 o benchmark cobra apenas `e_do_portfolio`. Meta do painel:
+      72 (era 120, depois 103, depois 53).
 - [x] Deriva de documentação corrigida em 2026-10-17: o `# MVP:` de
       `admin_datasets.py` citava esta seção do roadmap desde 2026-10-16, e ela
       não existia. O gate de `doc-drift` não pega esse caso — a citação é prosa,
@@ -2261,14 +2266,11 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       único dos 4 candidatos de embedding da Etapa 2 fora do cache. Os outros
       três (`paraphrase-multilingual-MiniLM-L12-v2`, `embeddinggemma-300m`,
       `BAAI/bge-m3`) já estavam.
-- [ ] **9 dos 10 modelos candidatos não estão baixados** (~68 GB): só
-      `gemma4:12b-it-q4_K_M` está no Ollama. O orquestrador **pula com aviso**
-      candidato ausente, então uma triagem hoje mediria 1 de 10 e terminaria
-      dizendo que deu tudo certo. Faltam `llama3.1:8b`, `qwen2.5:7b`,
-      `qwen3:14b-q4_K_M`, `qwen3:14b-q5_K_M`, `qwen3:8b-q5_K_M`,
-      `qwen3:8b-q8_0`, `phi4-mini`, `phi4`, `gemma4:12b-it-q8_0`. Disco tem
-      422 GB livres. **Aguarda autorização do dono**, e as tags precisam ser
-      validadas no `pull` (não há garantia de que todas existam no registry).
+- [x] **Todos os 10 modelos candidatos baixados no Ollama local** (100% prontos):
+      todos os 10 modelos já estão baixados e disponíveis no Ollama (`gemma4:12b-it-q4_K_M`,
+      `Gemma-4-E4B-it`, `Gemma-3-Gaia 4B F16`, `Llama 3.2 11B Vision`, `Qwen2.5-VL 7B`,
+      `Qwen2.5-VL 3B`, `Qwen3.5 9B Defiant Fable MTP`, `qwen3.5:9b`, `Phi-4-mini-instruct BF16`
+      e `DeepSeek-R1-Distill-Llama-8B Q8_0`). O pool está completo para o benchmark da Fase 10.
 
 ## Fase 11 — Preparação da Entrega
 

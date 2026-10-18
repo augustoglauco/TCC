@@ -39,8 +39,8 @@ def eval_falso(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     (tmp_path / "model_benchmark" / "imagens").mkdir(parents=True)
-    (tmp_path / "model_benchmark" / "imagens" / "holdout.json").write_text(
-        json.dumps({"consultas": [{"arquivo": "img1.png", "e_do_portfolio": True}]}),
+    (tmp_path / "model_benchmark" / "imagens" / "dataset.json").write_text(
+        json.dumps({"casos": [{"id": "pos_01", "e_do_portfolio": True}]}),
         encoding="utf-8",
     )
     monkeypatch.setattr(get_settings(), "eval_dir", str(tmp_path))
@@ -91,13 +91,13 @@ def test_conjunto_automatico_vem_todo_aprovado(datasets_client):
     assert por_id["rag_imagem"]["aprovados"] == 1
 
 
-def test_imagem_conta_as_consultas_do_holdout_contra_a_meta_de_53(datasets_client):
+def test_imagem_conta_os_casos_contra_a_meta_de_72(datasets_client):
     client = _sem_auth(datasets_client)
 
     por_id = {c["id"]: c for c in client.get("/api/admin/datasets").json()["conjuntos"]}
 
     assert por_id["rag_imagem"]["total"] == 1
-    assert por_id["rag_imagem"]["meta"] == 53
+    assert por_id["rag_imagem"]["meta"] == 72
 
 
 def test_geradores_dos_conjuntos_novos_estao_registrados():
