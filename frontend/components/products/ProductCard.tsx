@@ -7,6 +7,12 @@ import { Produto } from "@/lib/api/products";
 import { useCartStore } from "@/lib/hooks/useCartStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import { resolveImageUrl } from "@/lib/utils/resolveImageUrl";
+import {
+  calcularEstoqueTotal,
+  escolherCentroDistribuicao,
+  montarListaImagens,
+  precoEfetivo,
+} from "./productCardHelpers";
 import { ProductCardImage } from "./ProductCardImage";
 import { ProductCardHeader } from "./ProductCardHeader";
 import { ProductCardPrice } from "./ProductCardPrice";
@@ -20,34 +26,11 @@ interface ProductCardProps {
 export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
   const router = useRouter();
 
-  // Lista consolidada de URLs de imagem completas
-  const imageList = useMemo(() => {
-    const urls: string[] = [];
-    if (product.imagens && product.imagens.length > 0) {
-      product.imagens.forEach((img) => {
-        const full = resolveImageUrl(img.imagem_url);
-        if (full && !urls.includes(full)) {
-          urls.push(full);
-        }
-      });
-    }
-    const mainFull = resolveImageUrl(product.imagem_url);
-    if (mainFull && !urls.includes(mainFull)) {
-      urls.unshift(mainFull); // Coloca imagem principal como primeira
-    }
-    return urls;
-  }, [product]);
+  const imageList = useMemo(() => montarListaImagens(product), [product]);
 
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
-  // Calcula estoque total
-  const totalEstoque = useMemo(() => {
-    if (!product.estoques || product.estoques.length === 0) return 0;
-    return product.estoques.reduce(
-      (acc, est) => acc + (est.quantidade > 0 ? est.quantidade : 0),
-      0,
-    );
-  }, [product.estoques]);
+  const totalEstoque = useMemo(() => calcularEstoqueTotal(product.estoques), [product.estoques]);
 
   const emEstoque = totalEstoque > 0;
 
@@ -62,21 +45,13 @@ export function ProductCard({ product, onOpenZoom }: ProductCardProps) {
   };
 
   const handleBuy = () => {
-    const cd =
-      product.estoques && product.estoques.length > 0
-        ? product.estoques.find((e) => e.quantidade > 0)?.centro_distribuicao ||
-          product.estoques[0].centro_distribuicao
-        : "CD-SP";
-
-    const precoEfetivo = product.preco_promocional || product.preco;
-
     useCartStore.getState().addItem({
       produtoId: product.id,
       nome: product.nome,
-      preco: Number(precoEfetivo),
+      preco: precoEfetivo(product),
       imagemUrl: resolveImageUrl(product.imagem_url),
       quantidade: 1,
-      centroDistribuicao: cd,
+      centroDistribuicao: escolherCentroDistribuicao(product.estoques),
     });
 
     router.push("/pedidos");
