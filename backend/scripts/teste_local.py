@@ -393,6 +393,41 @@ def _novas_linhas_de_log(log_path: Path, offset: int, conversation_id: str) -> l
     return registros
 
 
+def _check_resposta(cenario: Cenario, resposta: str) -> list[str]:
+    problemas = [f"resposta sem {t!r}" for t in cenario.resposta_contem if t not in resposta]
+    problemas += [f"resposta com {t!r}" for t in cenario.resposta_nao_contem if t in resposta]
+    if cenario.resposta_contem_algum and not any(
+        t.lower() in resposta.lower() for t in cenario.resposta_contem_algum
+    ):
+        problemas.append(f"resposta sem nenhum de {cenario.resposta_contem_algum}")
+    return problemas
+
+
+def _check_perfil(cenario: Cenario, done: dict | None) -> list[str]:
+    if not cenario.perfil_esperado:
+        return []
+    obtido = (done or {}).get("perfil_usuario")
+    if obtido != cenario.perfil_esperado:
+        return [f"perfil={obtido!r}, esperado {cenario.perfil_esperado!r}"]
+    return []
+
+
+def _check_historico_resumo(cenario: Cenario, conversa: dict | None) -> list[str]:
+    if cenario.historico_esperado is None and not cenario.esperar_resumo:
+        return []
+    if conversa is None:
+        return ["GET /api/chat/conversations/{id} não devolveu a conversa"]
+    problemas = []
+    total = len(conversa.get("mensagens", []))
+    if cenario.historico_esperado is not None and total != cenario.historico_esperado:
+        problemas.append(f"{total} mensagens gravadas, esperado {cenario.historico_esperado}")
+    resumo = conversa.get("resumo") or ""
+    if cenario.esperar_resumo and not resumo:
+        problemas.append("resumo não foi gerado")
+    problemas += [f"resumo sem {t!r}" for t in cenario.resumo_contem if t not in resumo]
+    return problemas
+
+
 def _veredito(
     cenario: Cenario,
     logs: list[dict],
@@ -412,29 +447,9 @@ def _veredito(
     if not verifica_algo:
         return "—", []
     problemas = _problemas_vendas(cenario, logs) if cenario.resultado_vendas is not None else []
-    problemas += [f"resposta sem {t!r}" for t in cenario.resposta_contem if t not in resposta]
-    problemas += [f"resposta com {t!r}" for t in cenario.resposta_nao_contem if t in resposta]
-    if cenario.resposta_contem_algum and not any(
-        t.lower() in resposta.lower() for t in cenario.resposta_contem_algum
-    ):
-        problemas.append(f"resposta sem nenhum de {cenario.resposta_contem_algum}")
-    if cenario.perfil_esperado:
-        obtido = (done or {}).get("perfil_usuario")
-        if obtido != cenario.perfil_esperado:
-            problemas.append(f"perfil={obtido!r}, esperado {cenario.perfil_esperado!r}")
-    if cenario.historico_esperado is not None or cenario.esperar_resumo:
-        if conversa is None:
-            problemas.append("GET /api/chat/conversations/{id} não devolveu a conversa")
-        else:
-            total = len(conversa.get("mensagens", []))
-            if cenario.historico_esperado is not None and total != cenario.historico_esperado:
-                problemas.append(
-                    f"{total} mensagens gravadas, esperado {cenario.historico_esperado}"
-                )
-            resumo = conversa.get("resumo") or ""
-            if cenario.esperar_resumo and not resumo:
-                problemas.append("resumo não foi gerado")
-            problemas += [f"resumo sem {t!r}" for t in cenario.resumo_contem if t not in resumo]
+    problemas += _check_resposta(cenario, resposta)
+    problemas += _check_perfil(cenario, done)
+    problemas += _check_historico_resumo(cenario, conversa)
     return ("PASSOU" if not problemas else "FALHOU"), problemas
 
 
@@ -489,6 +504,66 @@ def _esperar_resumo(
     return None
 
 
+def _enviar_mensagem(
+    cliente: httpx.Client,
+    base_url: str,
+    log_path: Path,
+    mensagem: str,
+    conversation_id: str,
+) -> tuple[str, dict | None, str | None, float, list[dict]]:
+    """Envia uma mensagem via SSE e devolve (texto, done, erro, duracao, logs)."""
+    offset = log_path.stat().st_size if log_path.exists() else 0
+    inicio = time.perf_counter()
+    try:
+        with cliente.stream(
+            "POST",
+            f"{base_url}/api/chat/messages",
+            json={"message": mensagem, "conversation_id": conversation_id},
+        ) as resposta:
+            resposta.raise_for_status()
+            _, texto, done, erro = _ler_sse(resposta)
+    except httpx.HTTPError as exc:
+        texto, done, erro = "", None, f"{type(exc).__name__}: {exc}"
+    duracao = time.perf_counter() - inicio
+    time.sleep(0.3)  # dá tempo do handler de log gravar as últimas linhas
+    logs = _novas_linhas_de_log(log_path, offset, conversation_id)
+    return texto, done, erro, duracao, logs
+
+
+def _linhas_mensagem(
+    indice: int,
+    mensagem: str,
+    texto: str,
+    done: dict | None,
+    erro: str | None,
+    duracao: float,
+    logs: list[dict],
+) -> list[str]:
+    """Gera as linhas de markdown para uma mensagem individual do cenário."""
+    linhas = [f"**Mensagem {indice}:** {mensagem}", ""]
+    if erro:
+        linhas.append(f"- ⚠️ erro: `{erro}`")
+    if done:
+        linhas.append(
+            f"- domínio `{done.get('domain')}` · backend `{done.get('backend_used')}` · "
+            f"motivo `{done.get('escalation_reason')}` · modelo `{done.get('model_name')}` · "
+            f"classificador `{done.get('router_provider')}` · "
+            f"rag_retrieval_ms `{done.get('rag_retrieval_ms')}` · total {duracao:.1f}s"
+        )
+        if done.get("perfil_usuario"):
+            linhas.append(f"- perfil `{done.get('perfil_usuario')}` ({done.get('perfil_motivo')})")
+    linhas += ["", "Resposta do assistente:", "", "```text", texto.strip() or "(vazia)", "```"]
+    consultas = [r for r in logs if r.get("message") != "router_decision"]
+    if consultas:
+        linhas += ["", "Logs do backend (vendas/memória/erros):", "", "```json"]
+        for registro in consultas:
+            resumo = {k: v for k, v in registro.items() if k not in {"level", "logger"}}
+            linhas.append(json.dumps(resumo, ensure_ascii=False, indent=2))
+        linhas.append("```")
+    linhas.append("")
+    return linhas
+
+
 def _rodar_cenario(
     cliente: httpx.Client, base_url: str, log_path: Path, cenario: Cenario
 ) -> tuple[str, list[str]]:
@@ -509,50 +584,13 @@ def _rodar_cenario(
                 else "_Resumo em segundo plano: não apareceu em 120 s._"
             )
             linhas.append("")
-        offset = log_path.stat().st_size if log_path.exists() else 0
-        inicio = time.perf_counter()
-        try:
-            with cliente.stream(
-                "POST",
-                f"{base_url}/api/chat/messages",
-                json={"message": mensagem, "conversation_id": conversation_id},
-            ) as resposta:
-                resposta.raise_for_status()
-                _, texto, done, erro = _ler_sse(resposta)
-        except httpx.HTTPError as exc:
-            texto, done, erro = "", None, f"{type(exc).__name__}: {exc}"
-        duracao = time.perf_counter() - inicio
-        time.sleep(0.3)  # dá tempo do handler de log gravar as últimas linhas
-        logs = _novas_linhas_de_log(log_path, offset, conversation_id)
-        logs_ultima = logs
-        texto_ultima = texto
-        done_ultima = done
-
-        linhas.append(f"**Mensagem {indice}:** {mensagem}")
-        linhas.append("")
+        texto, done, erro, duracao, logs = _enviar_mensagem(
+            cliente, base_url, log_path, mensagem, conversation_id
+        )
+        logs_ultima, texto_ultima, done_ultima = logs, texto, done
         if erro:
-            linhas.append(f"- ⚠️ erro: `{erro}`")
             erros_cenario.append(f"mensagem {indice} terminou com erro: {erro}")
-        if done:
-            linhas.append(
-                f"- domínio `{done.get('domain')}` · backend `{done.get('backend_used')}` · "
-                f"motivo `{done.get('escalation_reason')}` · modelo `{done.get('model_name')}` · "
-                f"classificador `{done.get('router_provider')}` · "
-                f"rag_retrieval_ms `{done.get('rag_retrieval_ms')}` · total {duracao:.1f}s"
-            )
-            if done.get("perfil_usuario"):
-                linhas.append(
-                    f"- perfil `{done.get('perfil_usuario')}` ({done.get('perfil_motivo')})"
-                )
-        linhas += ["", "Resposta do assistente:", "", "```text", texto.strip() or "(vazia)", "```"]
-        consultas = [r for r in logs if r.get("message") != "router_decision"]
-        if consultas:
-            linhas += ["", "Logs do backend (vendas/memória/erros):", "", "```json"]
-            for registro in consultas:
-                resumo = {k: v for k, v in registro.items() if k not in {"level", "logger"}}
-                linhas.append(json.dumps(resumo, ensure_ascii=False, indent=2))
-            linhas.append("```")
-        linhas.append("")
+        linhas += _linhas_mensagem(indice, mensagem, texto, done, erro, duracao, logs)
 
     conversa = None
     if cenario.historico_esperado is not None or cenario.esperar_resumo:
@@ -577,6 +615,36 @@ def _rodar_cenario(
     return veredito, linhas
 
 
+def _cabecalho_relatorio(args: argparse.Namespace) -> list[str]:
+    commit = _rodar(["git", "rev-parse", "--short", "HEAD"])[1].strip()
+    branch = _rodar(["git", "rev-parse", "--abbrev-ref", "HEAD"])[1].strip()
+    agora = datetime.now()
+    return [
+        f"# Resultado do teste local — suíte `{args.suite}`",
+        "",
+        f"- Data: {agora:%Y-%m-%d %H:%M}",
+        f"- Branch/commit: `{branch}` @ `{commit}`",
+        f"- Backend: {args.base_url} · log: `{args.log}`",
+        "",
+    ], agora
+
+
+def _rodape_relatorio(args: argparse.Namespace) -> list[str]:
+    return [
+        "## 3. Observações do testador",
+        "",
+        (
+            "<!-- Suíte memoria: teste também no navegador — converse no chat, feche e "
+            "reabra a página: as mensagens anteriores devem reaparecer (R9). No painel de "
+            "métricas (⚙️) de cada resposta aparece o Perfil (R10). -->"
+            if args.suite == "memoria"
+            else "<!-- Opcional: o que você viu no chat do navegador, algo estranho na "
+            "resposta, etc. -->"
+        ),
+        "",
+    ]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--suite", choices=sorted([*SUITES, "mcp_b2b"]), default=SUITE_ATUAL)
@@ -588,17 +656,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    commit = _rodar(["git", "rev-parse", "--short", "HEAD"])[1].strip()
-    branch = _rodar(["git", "rev-parse", "--abbrev-ref", "HEAD"])[1].strip()
-    agora = datetime.now()
-    relatorio = [
-        f"# Resultado do teste local — suíte `{args.suite}`",
-        "",
-        f"- Data: {agora:%Y-%m-%d %H:%M}",
-        f"- Branch/commit: `{branch}` @ `{commit}`",
-        f"- Backend: {args.base_url} · log: `{args.log}`",
-        "",
-    ]
+    relatorio, agora = _cabecalho_relatorio(args)
 
     if not args.sem_pytest:
         print("Rodando ruff + pytest...", flush=True)
@@ -606,8 +664,6 @@ def main() -> int:
 
     placar: dict[str, int] = {}
     if args.suite == "mcp_b2b":
-        # Não é chat: verificações de autenticação/HTTPS do MCP B2B, em
-        # módulo próprio (scripts/teste_local_mcp_b2b.py).
         from teste_local_mcp_b2b import rodar_verificacoes
 
         placar, linhas = rodar_verificacoes()
@@ -634,19 +690,7 @@ def main() -> int:
         + (", ".join(f"{k}: {v}" for k, v in sorted(placar.items())) or "nenhum rodou"),
         "",
     ]
-    relatorio += [
-        "## 3. Observações do testador",
-        "",
-        (
-            "<!-- Suíte memoria: teste também no navegador — converse no chat, feche e "
-            "reabra a página: as mensagens anteriores devem reaparecer (R9). No painel de "
-            "métricas (⚙️) de cada resposta aparece o Perfil (R10). -->"
-            if args.suite == "memoria"
-            else "<!-- Opcional: o que você viu no chat do navegador, algo estranho na "
-            "resposta, etc. -->"
-        ),
-        "",
-    ]
+    relatorio += _rodape_relatorio(args)
 
     if not args.log.exists():
         relatorio[4] += " ⚠️ (arquivo não encontrado — relatório sem logs do backend)"
