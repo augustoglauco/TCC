@@ -15,6 +15,7 @@ import logging
 import re
 import uuid
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,19 @@ EXTENSOES_TEXTO = (".txt", ".md", ".csv")
 TAMANHO_BLOCO_TEXTO = 6000
 
 _CODE_FENCE_RE = re.compile(r"^```(?:\w+)?\s*\n?(.*?)\n?```$", re.DOTALL)
+
+
+@dataclass(frozen=True)
+class _ExtractionConfig:
+    """Parâmetros de sessão invariantes durante toda a extração de um catálogo."""
+
+    provider: str
+    fallback_external: bool
+    temp_dir: Path
+    local_client: Any
+    vision_client: Any
+    session_factory: Any
+
 
 LOCAL_EXTRACTION_PROMPT = """Você é um assistente especialista em extração de produtos de catálogos e tabelas de fornecedores.
 Analise o texto a seguir extraído de uma página de catálogo comercial e extraia todos os produtos identificados.
@@ -100,7 +114,7 @@ def _parse_products_json(raw_text: str) -> list[dict[str, Any]]:
         if isinstance(data, list):
             return [item for item in data if isinstance(item, dict) and item.get("nome")]
         return []
-    except Exception as exc:
+    except json.JSONDecodeError as exc:
         logger.warning(f"Falha ao decodificar JSON de produtos extraídos: {exc}")
         return []
 
@@ -317,18 +331,23 @@ def _normalizar_modo_imagem(crop: Image.Image) -> Image.Image:
     return crop
 
 
+def _coord(im: dict[str, Any], key: str, fallback: float) -> float:
+    """Lê coordenada de um dict de imagem pdfplumber, tratando None/0 como `fallback`."""
+    return float(im.get(key, fallback) or fallback)
+
+
 def _filtrar_candidatos(
     raw_images: list[Any], page_w: float, page_h: float
 ) -> list[dict[str, float]]:
     """Filtra e ordena as imagens brutas da página em candidatos válidos."""
     candidates: list[dict[str, float]] = []
     for im in raw_images:
-        w = float(im.get("width", 0) or 0)
-        h = float(im.get("height", 0) or 0)
-        x0 = float(im.get("x0", 0) or 0)
-        top = float(im.get("top", 0) or 0)
-        x1 = float(im.get("x1", x0 + w) or (x0 + w))
-        bottom = float(im.get("bottom", top + h) or (top + h))
+        w = _coord(im, "width", 0.0)
+        h = _coord(im, "height", 0.0)
+        x0 = _coord(im, "x0", 0.0)
+        top = _coord(im, "top", 0.0)
+        x1 = _coord(im, "x1", x0 + w)
+        bottom = _coord(im, "bottom", top + h)
         if not _figura_valida(im, page_w, page_h, candidates):
             continue
         candidates.append({"x0": x0, "top": top, "x1": x1, "bottom": bottom, "w": w, "h": h})
@@ -439,34 +458,31 @@ async def _extrair_pdf_local_com_fallback(
     *,
     texto_pagina: str,
     img_bytes: bytes | None,
-    fallback_external: bool,
     filename: str,
     num_pagina_pdf: int,
-    local_client: Any,
-    vision_client: Any,
-    session_factory: Any,
+    cfg: _ExtractionConfig,
 ) -> tuple[str, list[dict[str, Any]], str | None]:
     """Tenta extração local por texto e, se vazio, fallback externo por visão."""
     provider_usado = "local"
     raw_prods: list[dict[str, Any]] = []
     erro_pagina: str | None = None
 
-    if len(texto_pagina.strip()) >= 30 and local_client:
+    if len(texto_pagina.strip()) >= 30 and cfg.local_client:
         try:
-            raw_prods = await extract_page_products_local(texto_pagina, local_client)
+            raw_prods = await extract_page_products_local(texto_pagina, cfg.local_client)
         except Exception as e:
             logger.warning(f"Erro na extração local: {e}")
 
     pode_usar_fallback_externo = (
-        not raw_prods and fallback_external and bool(img_bytes) and bool(vision_client)
+        not raw_prods and cfg.fallback_external and bool(img_bytes) and bool(cfg.vision_client)
     )
     if pode_usar_fallback_externo:
         try:
             raw_prods = await extract_page_products_vision(
                 img_bytes,  # type: ignore[arg-type]
-                vision_client,
+                cfg.vision_client,
                 source_identifier=f"{filename}#p{num_pagina_pdf}",
-                session_factory=session_factory,
+                session_factory=cfg.session_factory,
                 ambiente="externo",
             )
             provider_usado = "external"
@@ -479,43 +495,36 @@ async def _extrair_pdf_local_com_fallback(
 
 async def _extrair_produtos_pagina_pdf(
     *,
-    provider: str,
-    fallback_external: bool,
     texto_pagina: str,
     img_bytes: bytes | None,
     filename: str,
     num_pagina_pdf: int,
-    local_client: Any,
-    vision_client: Any,
-    session_factory: Any,
+    cfg: _ExtractionConfig,
 ) -> tuple[str, list[dict[str, Any]], str | None]:  # (provider_usado, raw_prods, erro)
     """Despacha para local ou externo e retorna (provider_usado, raw_prods, erro_pagina)."""
-    if provider == "external":
+    if cfg.provider == "external":
         raw_prods: list[dict[str, Any]] = []
         erro_pagina: str | None = None
-        if img_bytes and vision_client:
+        if img_bytes and cfg.vision_client:
             try:
                 raw_prods = await extract_page_products_vision(
                     img_bytes,
-                    vision_client,
+                    cfg.vision_client,
                     source_identifier=f"{filename}#p{num_pagina_pdf}",
-                    session_factory=session_factory,
+                    session_factory=cfg.session_factory,
                     ambiente="externo",
                 )
             except Exception as e:
                 logger.error(f"Erro na visão externa: {e}")
                 erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
-        return provider, raw_prods, erro_pagina
+        return cfg.provider, raw_prods, erro_pagina
 
     return await _extrair_pdf_local_com_fallback(
         texto_pagina=texto_pagina,
         img_bytes=img_bytes,
-        fallback_external=fallback_external,
         filename=filename,
         num_pagina_pdf=num_pagina_pdf,
-        local_client=local_client,
-        vision_client=vision_client,
-        session_factory=session_factory,
+        cfg=cfg,
     )
 
 
@@ -555,12 +564,7 @@ async def _processar_pagina_pdf(
     pagina_global: int,
     total_paginas: int,
     filename: str,
-    provider: str,
-    fallback_external: bool,
-    temp_dir: Path,
-    local_client: Any,
-    vision_client: Any,
-    session_factory: Any,
+    cfg: _ExtractionConfig,
 ) -> tuple[str, str]:  # (sse_progresso, sse_pagina_concluida)
     num_pagina_pdf = idx + 1
     progresso = {
@@ -570,25 +574,21 @@ async def _processar_pagina_pdf(
     }
 
     texto_pagina = _extrair_texto_pagina(page)
-    img_bytes, pil_img, temp_img_url = _renderizar_pagina_pdf(page, num_pagina_pdf, temp_dir)
+    img_bytes, pil_img, temp_img_url = _renderizar_pagina_pdf(page, num_pagina_pdf, cfg.temp_dir)
 
     figuras_pagina: list[str] = []
     if pil_img:
         try:
-            figuras_pagina = _extrair_figuras_pagina(page, pil_img, temp_dir)
+            figuras_pagina = _extrair_figuras_pagina(page, pil_img, cfg.temp_dir)
         except Exception as e:
             logger.warning(f"Erro ao extrair figuras recortadas da página {num_pagina_pdf}: {e}")
 
     provider_usado, raw_prods, erro_pagina = await _extrair_produtos_pagina_pdf(
-        provider=provider,
-        fallback_external=fallback_external,
         texto_pagina=texto_pagina,
         img_bytes=img_bytes,
         filename=filename,
         num_pagina_pdf=num_pagina_pdf,
-        local_client=local_client,
-        vision_client=vision_client,
-        session_factory=session_factory,
+        cfg=cfg,
     )
 
     produtos: list[ExtractedProduct] = [
@@ -681,12 +681,7 @@ async def _processar_imagem_avulsa(
     content: bytes,
     pagina_global: int,
     total_paginas: int,
-    provider: str,
-    fallback_external: bool,
-    temp_dir: Path,
-    local_client: Any,
-    vision_client: Any,
-    session_factory: Any,
+    cfg: _ExtractionConfig,
 ) -> tuple[str, str]:  # (sse_progresso, sse_pagina_concluida)
     progresso = {
         "pagina": pagina_global,
@@ -694,7 +689,7 @@ async def _processar_imagem_avulsa(
         "status": f"Extraindo imagem {filename}",
     }
     temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
-    temp_img_path = temp_dir / temp_img_name
+    temp_img_path = cfg.temp_dir / temp_img_name
     temp_img_path.write_bytes(content)
     temp_img_url = f"/api/uploads/produtos/temp/{temp_img_name}"
 
@@ -702,15 +697,15 @@ async def _processar_imagem_avulsa(
     raw_prods: list[dict[str, Any]] = []
     erro_pagina: str | None = None
 
-    if provider != "external" and local_client:
+    if cfg.provider != "external" and cfg.local_client:
         raw_prods, provider_usado = await _tentar_extracao_local_imagem(
-            content, filename, local_client, session_factory
+            content, filename, cfg.local_client, cfg.session_factory
         )
 
-    deve_tentar_externo = not raw_prods and (provider == "external" or fallback_external)
-    if deve_tentar_externo and vision_client:
+    deve_tentar_externo = not raw_prods and (cfg.provider == "external" or cfg.fallback_external)
+    if deve_tentar_externo and cfg.vision_client:
         raw_prods, provider_usado, erro_pagina = await _tentar_extracao_externa_imagem(
-            content, filename, vision_client, session_factory
+            content, filename, cfg.vision_client, cfg.session_factory
         )
 
     if not raw_prods and not erro_pagina:
@@ -758,12 +753,7 @@ async def _processar_arquivo_stream(
     paginas_alvo: set[int] | None,
     pagina_global_start: int,
     total_paginas: int,
-    provider: str,
-    fallback_external: bool,
-    temp_dir: Path,
-    local_client: Any,
-    vision_client: Any,
-    session_factory: Any,
+    cfg: _ExtractionConfig,
 ) -> AsyncGenerator[tuple[str, str]]:
     """Gera pares (sse_progresso, sse_pagina_concluida) para um único arquivo."""
     pagina_global = pagina_global_start
@@ -772,7 +762,13 @@ async def _processar_arquivo_stream(
         for num_bloco, bloco in enumerate(_blocos_de_texto(content), start=1):
             pagina_global += 1
             yield await _processar_bloco_texto(
-                bloco, num_bloco, num_pages, pagina_global, total_paginas, filename, local_client
+                bloco,
+                num_bloco,
+                num_pages,
+                pagina_global,
+                total_paginas,
+                filename,
+                cfg.local_client,
             )
 
     elif file_type == "pdf":
@@ -784,34 +780,12 @@ async def _processar_arquivo_stream(
                     continue
                 pagina_global += 1
                 yield await _processar_pagina_pdf(
-                    page,
-                    idx,
-                    num_pages,
-                    pagina_global,
-                    total_paginas,
-                    filename,
-                    provider,
-                    fallback_external,
-                    temp_dir,
-                    local_client,
-                    vision_client,
-                    session_factory,
+                    page, idx, num_pages, pagina_global, total_paginas, filename, cfg
                 )
 
     else:
         pagina_global += 1
-        yield await _processar_imagem_avulsa(
-            filename,
-            content,
-            pagina_global,
-            total_paginas,
-            provider,
-            fallback_external,
-            temp_dir,
-            local_client,
-            vision_client,
-            session_factory,
-        )
+        yield await _processar_imagem_avulsa(filename, content, pagina_global, total_paginas, cfg)
 
 
 async def extract_catalog_stream(
@@ -826,6 +800,14 @@ async def extract_catalog_stream(
 ) -> AsyncGenerator[str]:
     """Itera sobre documentos ou imagens e gera stream de eventos SSE."""
     temp_dir.mkdir(parents=True, exist_ok=True)
+    cfg = _ExtractionConfig(
+        provider=provider,
+        fallback_external=fallback_external,
+        temp_dir=temp_dir,
+        local_client=local_client,
+        vision_client=vision_client,
+        session_factory=session_factory,
+    )
 
     # Pré-calcula total de páginas / imagens
     total_paginas = 0
@@ -864,12 +846,7 @@ async def extract_catalog_stream(
             paginas_alvo,
             pagina_global,
             total_paginas,
-            provider,
-            fallback_external,
-            temp_dir,
-            local_client,
-            vision_client,
-            session_factory,
+            cfg,
         ):
             yield sse_prog
             total_produtos_extraidos += len(_page_result_do_sse(sse_page).produtos)
