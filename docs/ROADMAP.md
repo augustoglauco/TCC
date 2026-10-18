@@ -2163,10 +2163,8 @@ conversa e classificação do usuário").
       sem seed).
 - [x] **Visão local não é requisito do candidato** (decisão de 2026-10-17,
       registrada em `docs/ARCHITECTURE.md` e no README de
-      `eval/model_benchmark/`). Das 10 tags de `modelos.json`, as duas de
-      Gemma-4-12B e a tag de Qwen2.5-VL 7B têm `vision` — as variantes multimodais das outras famílias
-      são tags diferentes (`qwen3-vl`, `llama3.2-vision`,
-      `phi4-multimodal`). Exigir visão local cortaria 7 dos 10 por um
+      `eval/model_benchmark/`). Das 10 tags de `modelos.json` (lista revista em 2026-10-18), 8 têm
+      `vision`; só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini não têm. Exigir visão local cortaria 2 dos 10 (8 têm `vision`, conferido em 2026-10-18) por um
       requisito que o sistema não impõe: `OllamaClient.describe_image` usa o
       mesmo `LOCAL_MODEL_NAME`, e candidato sem a capability manda a imagem do
       cliente para a visão externa, que é caminho documentado, não defeito.

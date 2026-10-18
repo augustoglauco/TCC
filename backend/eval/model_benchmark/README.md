@@ -213,8 +213,8 @@ Todos os campos citados são os de `metricas` em `results/<id>.json`.
 **`visao_local: false` não elimina.** A produção já trata visão local como
 opcional: `OllamaClient.describe_image` usa o mesmo `LOCAL_MODEL_NAME`, e
 candidato sem a capability manda a imagem do cliente para a visão externa —
-caminho documentado, não defeito. Exigir visão local cortaria 8 dos 10
-candidatos por um requisito que o sistema não impõe. Fica como atributo
+caminho documentado, não defeito. Exigir visão local cortaria 2 dos 10
+candidatos (DeepSeek-R1-Distill e Phi-4-mini) por um requisito que o sistema não impõe. Fica como atributo
 medido e critério de desempate; se o vencedor não tiver visão local, o
 relatório precisa dizer que toda imagem de cliente passa a depender do modelo
 externo.
@@ -225,9 +225,7 @@ externo.
 escopo, linha "Modelo local"). São **10 configurações**: Llama 3.2 11B Vision Instruct; Qwen2.5-VL 7B Instruct; Qwen2.5-VL 3B Instruct; Qwen3.5 9B Q4_K_M;
 DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16; Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B 4-bit; Gemma-4-E4B-it UD-Q8_K_XL.
 
-**Ponto em aberto para a escolha final:** dessas 10 tags, Llama 3.2 11B Vision Instruct, Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit, Gemma-4-E4B-it, Qwen2.5-VL 7B Instruct, Qwen2.5-VL 3B Instruct e Qwen3.5 9B têm `vision` (7 dos 10 candidatos com visão local nativa) — as demais são variantes text-only, e as
-multimodais das mesmas famílias são outras tags (`qwen3-vl`,
-`phi4-multimodal`). Confirmado pelo Ollama para os que estão baixados; para o resto, é pela família. Se visão local for
+**Ponto em aberto para a escolha final:** dessas 10 tags, Llama 3.2 11B Vision Instruct, Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit, Gemma-4-E4B-it, Qwen2.5-VL 7B Instruct, Qwen2.5-VL 3B Instruct, Qwen3.5 9B Q4_K_M e Qwen3.5 9B Defiant Fable MTP têm `vision` (8 dos 10 candidatos com visão local nativa) — só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini são text-only. Confirmado pelo Ollama (`/api/show`, capabilities) em 2026-10-18 para os 10. Se visão local for
 requisito, a lista de candidatos é que precisa ser revista — o benchmark vai
 reportar o fato, não escondê-lo.
 
