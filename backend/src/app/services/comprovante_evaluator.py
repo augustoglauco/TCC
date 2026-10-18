@@ -58,7 +58,7 @@ def _parse_decimal(valor_str: str) -> Decimal | None:
             return Decimal(s_clean)
         # Se contiver apenas ponto decimal (ex: 1500.50)
         return Decimal(s)
-    except InvalidOperation, ValueError:
+    except (InvalidOperation, ValueError):
         return None
 
 
@@ -116,28 +116,55 @@ class ComprovanteEvaluator:
         except UnicodeDecodeError:
             return conteudo.decode("latin-1", errors="replace")
 
+    @staticmethod
+    def _extrair_valor(texto: str) -> Decimal | None:
+        """Extrai o primeiro valor monetário encontrado no texto (dois estágios)."""
+        padrao_valor = re.search(
+            r"(?:valor(?:[\s\w]*pago)?|quantia|total)[\s:]*(?:r\$\s*)?([\d\.,]+)",
+            texto,
+            re.IGNORECASE,
+        )
+        if padrao_valor:
+            v = _parse_decimal(padrao_valor.group(1))
+            if v is not None:
+                return v
+        padrao_cifrao = re.search(r"r\$\s*([\d\.,]+)", texto, re.IGNORECASE)
+        if padrao_cifrao:
+            return _parse_decimal(padrao_cifrao.group(1))
+        return None
+
+    @staticmethod
+    def _parse_vision_response(
+        raw_text: str,
+        valor_devido: Decimal,
+        res: Any,
+    ) -> ParecerComprovante:
+        """Converte a resposta JSON de um LLM/visão em ParecerComprovante."""
+        cleaned = re.sub(r"^```(?:json)?\s*", "", raw_text.strip(), flags=re.MULTILINE)
+        cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE).strip()
+        parsed = json.loads(cleaned)
+        valor_pago = Decimal(str(parsed.get("valor_pago", 0.0)))
+        divergencia = valor_pago - valor_devido
+        valido = bool(parsed.get("comprovante_valido")) and abs(divergencia) <= Decimal("0.01")
+        return ParecerComprovante(
+            valido=valido,
+            valor_pago=valor_pago,
+            divergencia=divergencia,
+            justificativa=parsed.get("justificativa", ""),
+            codigo_transacao=parsed.get("codigo_transacao"),
+            raw_json=parsed,
+            prompt_tokens=getattr(res, "prompt_tokens", None),
+            completion_tokens=getattr(res, "completion_tokens", None),
+        )
+
     def _extrair_heuristica(self, texto: str, valor_devido: Decimal) -> ParecerComprovante:
         """Extração resiliente por regras e expressões regulares para auditoria financeira."""
-        t_lower = texto.lower()
-
-        palavras_chave_comprovante = (
-            "comprovante",
-            "pagamento",
-            "pix",
-            "ted",
-            "doc",
-            "transferência",
-            "transferencia",
-            "favorecido",
-            "transação",
-            "transacao",
-            "autenticação",
-            "autenticacao",
-            "banco",
+        _PALAVRAS_CHAVE = (
+            "comprovante", "pagamento", "pix", "ted", "doc",
+            "transferência", "transferencia", "favorecido",
+            "transação", "transacao", "autenticação", "autenticacao", "banco",
         )
-        tem_palavra_chave = any(p in t_lower for p in palavras_chave_comprovante)
-
-        if not tem_palavra_chave:
+        if not any(p in texto.lower() for p in _PALAVRAS_CHAVE):
             return ParecerComprovante(
                 valido=False,
                 valor_pago=Decimal("0.00"),
@@ -147,23 +174,7 @@ class ComprovanteEvaluator:
                 ),
             )
 
-        # 1. Procura valor pago
-        # Padrões: 'Valor: R$ 1.500,00', 'Valor Pago: 1500,00', 'R$ 1.500,00'
-        padrao_valor = re.search(
-            r"(?:valor(?:[\s\w]*pago)?|quantia|total)[\s:]*(?:r\$\s*)?([\d\.,]+)",
-            texto,
-            re.IGNORECASE,
-        )
-        valor_detectado: Decimal | None = None
-        if padrao_valor:
-            valor_detectado = _parse_decimal(padrao_valor.group(1))
-
-        if valor_detectado is None:
-            # Fallback: procura qualquer ocorrência explícita de R$ <numero>
-            padrao_cifrao = re.search(r"r\$\s*([\d\.,]+)", texto, re.IGNORECASE)
-            if padrao_cifrao:
-                valor_detectado = _parse_decimal(padrao_cifrao.group(1))
-
+        valor_detectado = self._extrair_valor(texto)
         if valor_detectado is None or valor_detectado <= 0:
             return ParecerComprovante(
                 valido=False,
@@ -174,7 +185,6 @@ class ComprovanteEvaluator:
                 ),
             )
 
-        # 2. Procura código / ID de transação
         padrao_tx = re.search(
             r"(?:id\s*(?:da\s*)?transa[çc][ãa]o|c[óo]digo\s*(?:de\s*)?autentica[çc][ãa]o|autentica[çc][ãa]o|nsu|transa[çc][ãa]o)[\s:]*([A-Za-z0-9\-_]+)",
             texto,
@@ -184,19 +194,16 @@ class ComprovanteEvaluator:
 
         divergencia = valor_detectado - valor_devido
         eh_valido = abs(divergencia) <= Decimal("0.01")
-
-        if eh_valido:
-            justificativa = (
-                f"Comprovante válido. Valor pago de R$ {valor_detectado:.2f} coincide "
-                f"com o valor devido de R$ {valor_devido:.2f}."
-            )
-        else:
-            justificativa = (
+        justificativa = (
+            f"Comprovante válido. Valor pago de R$ {valor_detectado:.2f} coincide "
+            f"com o valor devido de R$ {valor_devido:.2f}."
+            if eh_valido
+            else (
                 f"Valor divergente. Valor detectado no comprovante foi "
                 f"R$ {valor_detectado:.2f}, enquanto o valor devido é "
                 f"R$ {valor_devido:.2f} (divergência: R$ {divergencia:.2f})."
             )
-
+        )
         return ParecerComprovante(
             valido=eh_valido,
             valor_pago=valor_detectado,
@@ -268,29 +275,8 @@ class ComprovanteEvaluator:
                         commit=False,
                     )
                 )
-                # Remove cercas de markdown
-                cleaned = re.sub(r"^```(?:json)?\s*", "", raw_text.strip(), flags=re.MULTILINE)
-                cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE).strip()
-
-                parsed = json.loads(cleaned)
-                valor_pago = Decimal(str(parsed.get("valor_pago", 0.0)))
-                codigo_transacao = parsed.get("codigo_transacao")
-                divergencia = valor_pago - valor_devido
-                valido = bool(parsed.get("comprovante_valido")) and (
-                    abs(divergencia) <= Decimal("0.01")
-                )
-
-                return ParecerComprovante(
-                    valido=valido,
-                    valor_pago=valor_pago,
-                    divergencia=divergencia,
-                    justificativa=parsed.get("justificativa", ""),
-                    codigo_transacao=codigo_transacao,
-                    raw_json=parsed,
-                    prompt_tokens=getattr(res, "prompt_tokens", None),
-                    completion_tokens=getattr(res, "completion_tokens", None),
-                )
-            except Exception as exc:
+                return self._parse_vision_response(raw_text, valor_devido, res)
+            except (json.JSONDecodeError, KeyError, ValueError, AttributeError) as exc:
                 logger.warning(
                     "Falha na interpretação via LLM (%s), acionando fallback heurístico.", exc
                 )
@@ -367,28 +353,10 @@ class ComprovanteEvaluator:
                             commit=False,
                         )
                     )
-                    cleaned = re.sub(
-                        r"^```(?:json)?\s*", "", raw_vision.strip(), flags=re.MULTILINE
+                    raw_text = (
+                        raw_vision.content if hasattr(raw_vision, "content") else str(raw_vision)
                     )
-                    cleaned = re.sub(r"\s*```$", "", cleaned, flags=re.MULTILINE).strip()
-                    parsed = json.loads(cleaned)
-                    valor_pago = Decimal(str(parsed.get("valor_pago", 0.0)))
-                    codigo = parsed.get("codigo_transacao")
-                    divergencia = valor_pago - valor_devido
-                    valido = bool(parsed.get("comprovante_valido")) and (
-                        abs(divergencia) <= Decimal("0.01")
-                    )
-
-                    return ParecerComprovante(
-                        valido=valido,
-                        valor_pago=valor_pago,
-                        divergencia=divergencia,
-                        justificativa=parsed.get("justificativa", ""),
-                        codigo_transacao=codigo,
-                        raw_json=parsed,
-                        prompt_tokens=getattr(raw_vision, "prompt_tokens", None),
-                        completion_tokens=getattr(raw_vision, "completion_tokens", None),
-                    )
+                    return self._parse_vision_response(raw_text, valor_devido, raw_vision)
                 except Exception as exc:
                     logger.warning("Falha na visão (%s), tentando próximo nível do fallback.", exc)
 
