@@ -1,12 +1,15 @@
 import asyncio
 import json
+import logging
 from decimal import Decimal
 
 import pytest
 from sqlalchemy import select
 
 from app.db.models import AdminChart, Produto
+from app.services import analytics_agent
 from app.services.analytics_agent import (
+    _generate_sql_with_llm,
     extract_prompt_inline_data,
     process_dynamic_chart_request,
 )
@@ -356,3 +359,53 @@ async def test_process_dynamic_chart_request_sql_sem_resultado_nao_gera_grafico(
 
     assert chart is None
     assert "não encontrei dados" in explicacao.lower()
+
+
+class _FakeLLMTextoFixo:
+    def __init__(self, texto: str) -> None:
+        self._texto = texto
+
+    async def generate_stream(self, _prompt: str):
+        yield _FakeChunk(self._texto, prompt_tokens=7, completion_tokens=3)
+
+
+class _FakeLLMStreamQuebrado:
+    async def generate_stream(self, _prompt: str):
+        raise RuntimeError("stream caiu")
+        yield  # pragma: no cover
+
+
+@pytest.fixture
+def _sem_registro_de_uso(monkeypatch):
+    def _descarta(coro):
+        coro.close()
+
+    monkeypatch.setattr(analytics_agent, "spawn_background_task", _descarta)
+
+
+@pytest.mark.asyncio
+async def test_generate_sql_falha_de_stream_loga_mensagem_propria(db_session, caplog):
+    with caplog.at_level(logging.WARNING):
+        resultado = await _generate_sql_with_llm(
+            _FakeLLMStreamQuebrado(), "gráfico", db_session, "interno"
+        )
+
+    assert resultado == (None, None, None)
+    mensagens = [r.getMessage() for r in caplog.records]
+    assert "falha_stream_llm_text_to_sql" in mensagens
+    assert "falha_parse_json_llm_text_to_sql" not in mensagens
+
+
+@pytest.mark.asyncio
+async def test_generate_sql_json_invalido_loga_parse_e_preserva_tokens(
+    db_session, caplog, _sem_registro_de_uso
+):
+    with caplog.at_level(logging.WARNING):
+        resultado = await _generate_sql_with_llm(
+            _FakeLLMTextoFixo("{sql: sem aspas}"), "gráfico", db_session, "interno"
+        )
+
+    assert resultado == (None, 7, 3)
+    mensagens = [r.getMessage() for r in caplog.records]
+    assert "falha_parse_json_llm_text_to_sql" in mensagens
+    assert "falha_stream_llm_text_to_sql" not in mensagens
