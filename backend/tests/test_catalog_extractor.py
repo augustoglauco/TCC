@@ -668,3 +668,44 @@ async def test_extract_catalog_stream_com_arquivo_de_texto(tmp_path):
     assert dados["produtos"][0]["imagem_temp_url"] is None
     assert any("event: done" in e for e in events)
     vision_client.describe_image.assert_not_called()
+
+
+def test_eventos_sse_serializa_progresso_e_pagina():
+    from app.catalog_extractor.extractor import _eventos_sse
+    from app.models.catalog_extractor import CatalogPageResult
+
+    page = CatalogPageResult(pagina=2, total_paginas=3, produtos=[], provider_usado="local")
+    prog, pag = _eventos_sse({"pagina": 2, "total": 3, "status": "x"}, page)
+
+    assert prog.startswith("event: progresso\ndata: ") and prog.endswith("\n\n")
+    assert json.loads(prog.split("data: ", 1)[1])["pagina"] == 2
+    assert pag.startswith("event: pagina_concluida\ndata: ")
+    assert json.loads(pag.split("data: ", 1)[1])["total_paginas"] == 3
+
+
+def test_salvar_imagem_temp_grava_arquivo_e_devolve_url(tmp_path):
+    from app.catalog_extractor.extractor import _salvar_imagem_temp
+
+    url = _salvar_imagem_temp(b"abc", tmp_path)
+
+    nome = url.rsplit("/", 1)[1]
+    assert url.startswith("/api/uploads/produtos/temp/cat_")
+    assert (tmp_path / nome).read_bytes() == b"abc"
+
+
+@pytest.mark.asyncio
+async def test_extrair_produtos_imagem_sem_clientes_devolve_erro_generico(tmp_path):
+    from app.catalog_extractor.extractor import _ExtractionConfig, _extrair_produtos_imagem
+
+    cfg = _ExtractionConfig(
+        provider="local",
+        fallback_external=False,
+        temp_dir=tmp_path,
+        local_client=None,
+        vision_client=None,
+        session_factory=None,
+    )
+    raw, provider, erro = await _extrair_produtos_imagem("a.png", b"x", cfg)
+
+    assert raw == [] and provider == "external"
+    assert erro and "Nenhum produto detectado" in erro

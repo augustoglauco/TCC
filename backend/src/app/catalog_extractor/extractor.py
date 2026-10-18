@@ -412,6 +412,14 @@ def _montar_produto(
     )
 
 
+def _eventos_sse(progresso: dict[str, Any], page_result: CatalogPageResult) -> tuple[str, str]:
+    """Serializa o par de eventos SSE (progresso, pagina_concluida) de uma página."""
+    return (
+        f"event: progresso\ndata: {json.dumps(progresso)}\n\n",
+        f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n",
+    )
+
+
 async def _processar_bloco_texto(
     bloco: str,
     num_bloco: int,
@@ -448,10 +456,7 @@ async def _processar_bloco_texto(
         produtos=produtos,
         provider_usado="local",
     )
-    return (
-        f"event: progresso\ndata: {json.dumps(progresso)}\n\n",
-        f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n",
-    )
+    return _eventos_sse(progresso, page_result)
 
 
 async def _extrair_pdf_local_com_fallback(
@@ -612,10 +617,7 @@ async def _processar_pagina_pdf(
         fotos_pagina=figuras_pagina,
         erro=erro_pagina if not produtos else None,
     )
-    return (
-        f"event: progresso\ndata: {json.dumps(progresso)}\n\n",
-        f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n",
-    )
+    return _eventos_sse(progresso, page_result)
 
 
 async def _tentar_extracao_local_imagem(
@@ -676,23 +678,17 @@ async def _tentar_extracao_externa_imagem(
         return [], "external", f"Falha ao consultar modelo de visão externo: {e}"
 
 
-async def _processar_imagem_avulsa(
-    filename: str,
-    content: bytes,
-    pagina_global: int,
-    total_paginas: int,
-    cfg: _ExtractionConfig,
-) -> tuple[str, str]:  # (sse_progresso, sse_pagina_concluida)
-    progresso = {
-        "pagina": pagina_global,
-        "total": total_paginas,
-        "status": f"Extraindo imagem {filename}",
-    }
+def _salvar_imagem_temp(content: bytes, temp_dir: Path) -> str:
+    """Grava a imagem enviada em `temp_dir` e devolve a URL temporária pública."""
     temp_img_name = f"cat_{uuid.uuid4().hex[:12]}.jpg"
-    temp_img_path = cfg.temp_dir / temp_img_name
-    temp_img_path.write_bytes(content)
-    temp_img_url = f"/api/uploads/produtos/temp/{temp_img_name}"
+    (temp_dir / temp_img_name).write_bytes(content)
+    return f"/api/uploads/produtos/temp/{temp_img_name}"
 
+
+async def _extrair_produtos_imagem(
+    filename: str, content: bytes, cfg: _ExtractionConfig
+) -> tuple[list[dict[str, Any]], str, str | None]:
+    """Cascata local (OCR→visão) → externo. Retorna (raw_prods, provider_usado, erro)."""
     provider_usado = "external"
     raw_prods: list[dict[str, Any]] = []
     erro_pagina: str | None = None
@@ -713,6 +709,23 @@ async def _processar_imagem_avulsa(
             "Nenhum produto detectado (OCR, visão local e visão externa "
             "indisponíveis ou sem resultado)."
         )
+    return raw_prods, provider_usado, erro_pagina
+
+
+async def _processar_imagem_avulsa(
+    filename: str,
+    content: bytes,
+    pagina_global: int,
+    total_paginas: int,
+    cfg: _ExtractionConfig,
+) -> tuple[str, str]:  # (sse_progresso, sse_pagina_concluida)
+    progresso = {
+        "pagina": pagina_global,
+        "total": total_paginas,
+        "status": f"Extraindo imagem {filename}",
+    }
+    temp_img_url = _salvar_imagem_temp(content, cfg.temp_dir)
+    raw_prods, provider_usado, erro_pagina = await _extrair_produtos_imagem(filename, content, cfg)
 
     produtos = [
         _montar_produto(
@@ -734,10 +747,7 @@ async def _processar_imagem_avulsa(
         fotos_pagina=[temp_img_url],
         erro=erro_pagina if not produtos else None,
     )
-    return (
-        f"event: progresso\ndata: {json.dumps(progresso)}\n\n",
-        f"event: pagina_concluida\ndata: {page_result.model_dump_json()}\n\n",
-    )
+    return _eventos_sse(progresso, page_result)
 
 
 def _page_result_do_sse(sse_page: str) -> CatalogPageResult:
@@ -745,17 +755,26 @@ def _page_result_do_sse(sse_page: str) -> CatalogPageResult:
     return CatalogPageResult.model_validate_json(sse_page.split("data: ", 1)[1].rstrip())
 
 
+@dataclass(frozen=True)
+class _ArquivoPlano:
+    """Um arquivo do lote já classificado, com o que a extração precisa saber dele."""
+
+    filename: str
+    content: bytes
+    file_type: str  # "text" | "pdf" | "image"
+    num_pages: int
+    paginas_alvo: set[int] | None
+
+
 async def _processar_arquivo_stream(
-    filename: str,
-    content: bytes,
-    file_type: str,
-    num_pages: int,
-    paginas_alvo: set[int] | None,
+    arquivo: _ArquivoPlano,
     pagina_global_start: int,
     total_paginas: int,
     cfg: _ExtractionConfig,
 ) -> AsyncGenerator[tuple[str, str]]:
     """Gera pares (sse_progresso, sse_pagina_concluida) para um único arquivo."""
+    filename, content, num_pages = arquivo.filename, arquivo.content, arquivo.num_pages
+    file_type, paginas_alvo = arquivo.file_type, arquivo.paginas_alvo
     pagina_global = pagina_global_start
 
     if file_type == "text":
@@ -811,13 +830,13 @@ async def extract_catalog_stream(
 
     # Pré-calcula total de páginas / imagens
     total_paginas = 0
-    file_pages_plan: list[tuple[str, bytes, str, int, set[int] | None]] = []
+    file_pages_plan: list[_ArquivoPlano] = []
     for filename, content in files:
         lower = filename.lower()
         if lower.endswith(EXTENSOES_TEXTO):
             blocos = _blocos_de_texto(content)
             total_paginas += len(blocos)
-            file_pages_plan.append((filename, content, "text", len(blocos), None))
+            file_pages_plan.append(_ArquivoPlano(filename, content, "text", len(blocos), None))
         elif lower.endswith(".pdf"):
             try:
                 with pdfplumber.open(io.BytesIO(content)) as pdf:
@@ -825,28 +844,23 @@ async def extract_catalog_stream(
                     paginas_alvo = _parse_page_range(page_range, num_pages)
                     qtd = len(paginas_alvo) if paginas_alvo is not None else num_pages
                     total_paginas += qtd
-                    file_pages_plan.append((filename, content, "pdf", num_pages, paginas_alvo))
+                    file_pages_plan.append(
+                        _ArquivoPlano(filename, content, "pdf", num_pages, paginas_alvo)
+                    )
             except Exception as e:
                 logger.error(f"Erro ao abrir PDF {filename}: {e}")
-                file_pages_plan.append((filename, content, "pdf", 0, None))
+                file_pages_plan.append(_ArquivoPlano(filename, content, "pdf", 0, None))
         else:
             total_paginas += 1
-            file_pages_plan.append((filename, content, "image", 1, None))
+            file_pages_plan.append(_ArquivoPlano(filename, content, "image", 1, None))
 
     pagina_global = 0
     total_produtos_extraidos = 0
 
-    for filename, content, file_type, num_pages, paginas_alvo in file_pages_plan:
+    for arquivo in file_pages_plan:
         pages_yielded = 0
         async for sse_prog, sse_page in _processar_arquivo_stream(
-            filename,
-            content,
-            file_type,
-            num_pages,
-            paginas_alvo,
-            pagina_global,
-            total_paginas,
-            cfg,
+            arquivo, pagina_global, total_paginas, cfg
         ):
             yield sse_prog
             total_produtos_extraidos += len(_page_result_do_sse(sse_page).produtos)
