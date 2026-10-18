@@ -7,6 +7,94 @@ import type { AdminProduct, AdminProductImage } from "@/lib/types/adminProducts"
 const inputCls =
   "mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
+function ProductImageSection({
+  produtoParaEditar,
+  imagemPreview,
+  imagens,
+  deletingImageId,
+  saving,
+  onImageChange,
+  onRemoverImagem,
+}: Pick<
+  ProductFormGeralTabProps,
+  | "produtoParaEditar"
+  | "imagemPreview"
+  | "imagens"
+  | "deletingImageId"
+  | "saving"
+  | "onImageChange"
+  | "onRemoverImagem"
+>) {
+  return (
+    <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">
+            Foto do Produto &amp; Catálogo Visual CLIP
+          </h4>
+          <p className="text-xs text-blue-700">
+            A imagem é vetorizada automaticamente no Qdrant para reconhecimento por foto no chat.
+          </p>
+        </div>
+        {imagemPreview && (
+          <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200 bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={imagemPreview} alt="Preview" className="h-full w-full object-cover" />
+          </div>
+        )}
+      </div>
+      <div className="mt-3">
+        <input
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={onImageChange}
+          className="block w-full text-xs text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-blue-700 cursor-pointer"
+        />
+      </div>
+      {produtoParaEditar && imagens.length > 0 && (
+        <div className="mt-3">
+          <span className="text-xs font-semibold text-gray-700">
+            Imagens associadas ({imagens.length}):
+          </span>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {imagens.map((img) => {
+              const isDeleting = deletingImageId === img.id;
+              return (
+                <div
+                  key={img.id}
+                  className={`group relative h-14 w-14 overflow-hidden rounded border border-gray-200 bg-white ${
+                    isDeleting ? "opacity-40" : ""
+                  }`}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={
+                      img.imagem_url.startsWith("http")
+                        ? img.imagem_url
+                        : `${getApiBaseUrl()}${img.imagem_url}`
+                    }
+                    alt="Foto cadastrada"
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    disabled={deletingImageId !== null || saving}
+                    onClick={() => onRemoverImagem(img.id)}
+                    title="Remover imagem do produto e do CLIP"
+                    className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {isDeleting ? "⏳" : "🗑️"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface ProductFormGeralTabProps {
   produtoParaEditar?: AdminProduct | null;
   nome: string;
@@ -180,72 +268,15 @@ export function ProductFormGeralTab({
         />
       </div>
 
-      <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">
-              Foto do Produto &amp; Catálogo Visual CLIP
-            </h4>
-            <p className="text-xs text-blue-700">
-              A imagem é vetorizada automaticamente no Qdrant para reconhecimento por foto no chat.
-            </p>
-          </div>
-          {imagemPreview && (
-            <div className="relative h-16 w-16 overflow-hidden rounded-lg border border-gray-200 bg-white">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imagemPreview} alt="Preview" className="h-full w-full object-cover" />
-            </div>
-          )}
-        </div>
-
-        <div className="mt-3">
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            onChange={onImageChange}
-            className="block w-full text-xs text-gray-500 file:mr-4 file:rounded-md file:border-0 file:bg-blue-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-blue-700 cursor-pointer"
-          />
-        </div>
-
-        {produtoParaEditar && imagens.length > 0 && (
-          <div className="mt-3">
-            <span className="text-xs font-semibold text-gray-700">
-              Imagens associadas ({imagens.length}):
-            </span>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {imagens.map((img) => {
-                const isDeleting = deletingImageId === img.id;
-                return (
-                  <div
-                    key={img.id}
-                    className={`group relative h-14 w-14 overflow-hidden rounded border border-gray-200 bg-white ${isDeleting ? "opacity-40" : ""}`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={
-                        img.imagem_url.startsWith("http")
-                          ? img.imagem_url
-                          : `${getApiBaseUrl()}${img.imagem_url}`
-                      }
-                      alt="Foto cadastrada"
-                      className="h-full w-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      disabled={deletingImageId !== null}
-                      onClick={() => onRemoverImagem(img.id)}
-                      title="Remover imagem do produto e do CLIP"
-                      className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      {isDeleting ? "⏳" : "🗑️"}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
+      <ProductImageSection
+        produtoParaEditar={produtoParaEditar}
+        imagemPreview={imagemPreview}
+        imagens={imagens}
+        deletingImageId={deletingImageId}
+        saving={saving}
+        onImageChange={onImageChange}
+        onRemoverImagem={onRemoverImagem}
+      />
 
       <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
         <button
