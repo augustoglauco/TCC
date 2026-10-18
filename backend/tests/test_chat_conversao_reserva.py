@@ -52,16 +52,16 @@ class _SingleSessionMaker:
 
 def _parse_sse(texto: str) -> list[tuple[str, dict]]:
     eventos = []
-    for bloco in texto.strip().split("\n\n"):
-        tipo = dados = None
+    for bloco in texto.split("\n\n"):
+        if not bloco.strip():
+            continue
+        tipo = None
+        dados = None
         for linha in bloco.split("\n"):
             if linha.startswith("event:"):
                 tipo = linha[len("event:") :].strip()
             elif linha.startswith("data:"):
-                try:
-                    dados = json.loads(linha[len("data:") :].strip())
-                except Exception:
-                    dados = linha[len("data:") :].strip()
+                dados = json.loads(linha[len("data:") :].strip())
         if tipo and dados is not None:
             eventos.append((tipo, dados))
     return eventos
