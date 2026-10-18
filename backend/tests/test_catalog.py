@@ -240,6 +240,26 @@ async def test_sao_compativeis_retorna_falso_para_par_nao_cadastrado(db_session)
     assert await sao_compativeis(db_session, a.id, b.id) is False
 
 
+async def test_listar_compatividades_do_produto_usa_batch_sem_n_mais_1(db_session):
+    """listar_compatividades_do_produto deve resolver nomes em uma única
+    query batch (obter_produtos_por_ids), não uma query por linha."""
+    from app.db.catalog import listar_compatividades_do_produto
+
+    a = await _cria_produto(db_session, nome="A")
+    b = await _cria_produto(db_session, nome="B")
+    c = await _cria_produto(db_session, nome="C")
+    await criar_compatibilidade(db_session, a.id, b.id)
+    await criar_compatibilidade(db_session, a.id, c.id)
+
+    pares = await listar_compatividades_do_produto(db_session, a.id)
+
+    assert len(pares) == 2
+    nomes = {p["compativel_nome"] for p in pares}
+    assert nomes == {"B", "C"}
+    ids = {p["compativel_com_id"] for p in pares}
+    assert ids == {b.id, c.id}
+
+
 # --- Ferramenta 3: cotação automática ---------------------------------------
 
 

@@ -377,10 +377,12 @@ async def listar_compatividades_do_produto(session: AsyncSession, produto_id: in
     )
     result = await session.execute(stmt)
     rows = result.scalars().all()
+    outros_ids = [r.compativel_com_id if r.produto_id == produto_id else r.produto_id for r in rows]
+    outros = await obter_produtos_por_ids(session, outros_ids)
     out = []
     for r in rows:
         outro_id = r.compativel_com_id if r.produto_id == produto_id else r.produto_id
-        outro_prod = await obter_produto(session, outro_id)
+        outro_prod = outros.get(outro_id)
         out.append(
             {
                 "id": str(r.id),
@@ -478,6 +480,40 @@ def calcular_item_cotacao(
 # --- Ferramenta 4: reserva/pedido --------------------------------------------
 
 
+def _validar_quantidades(itens: list[tuple[int, int, str]]) -> None:
+    for produto_id, quantidade, _ in itens:
+        if quantidade <= 0:
+            raise ValueError(
+                f"Quantidade inválida para o produto {produto_id}: {quantidade} (deve ser > 0)."
+            )
+
+
+async def _carregar_estoques(
+    session: AsyncSession, produto_ids: list[int]
+) -> dict[tuple[int, str], ProdutoEstoque]:
+    stock_results = await session.execute(
+        select(ProdutoEstoque).where(ProdutoEstoque.produto_id.in_(list(set(produto_ids))))
+    )
+    return {(e.produto_id, e.centro_distribuicao): e for e in stock_results.scalars().all()}
+
+
+def _verificar_disponibilidade(
+    itens: list[tuple[int, int, str]],
+    estoques: dict[tuple[int, str], ProdutoEstoque],
+) -> None:
+    reservado: dict[tuple[int, str], int] = {}
+    for produto_id, quantidade, centro_distribuicao in itens:
+        chave = (produto_id, centro_distribuicao)
+        disponivel = estoques[chave].quantidade if chave in estoques else 0
+        reservado[chave] = reservado.get(chave, 0) + quantidade
+        if reservado[chave] > disponivel:
+            raise EstoqueInsuficienteError(
+                f"Estoque insuficiente do produto {produto_id} em "
+                f"{centro_distribuicao}: disponível {disponivel}, "
+                f"pedido {reservado[chave]}."
+            )
+
+
 async def criar_pedido(
     session: AsyncSession,
     itens: list[tuple[int, int, str]],
@@ -503,47 +539,21 @@ async def criar_pedido(
     mesmo par (produto, centro de distribuição) — mesmo em itens separados
     da lista — exceder o disponível.
     """
-    for produto_id, quantidade, _ in itens:
-        if quantidade <= 0:
-            raise ValueError(
-                f"Quantidade inválida para o produto {produto_id}: {quantidade} (deve ser > 0)."
-            )
+    _validar_quantidades(itens)
 
     produto_ids = [item[0] for item in itens]
     produtos = await obter_produtos_por_ids(session, produto_ids)
-
-    # Validar que todos os produtos existem no catálogo
     for p_id in produto_ids:
         if p_id not in produtos:
             raise ProdutoInexistenteError(f"Produto {p_id} não encontrado no catálogo.")
 
-    # Buscar estoques dos centros de distribuição em batch
-    stock_results = await session.execute(
-        select(ProdutoEstoque).where(ProdutoEstoque.produto_id.in_(list(set(produto_ids))))
-    )
-    estoques_db = stock_results.scalars().all()
-    estoques: dict[tuple[int, str], ProdutoEstoque] = {
-        (e.produto_id, e.centro_distribuicao): e for e in estoques_db
-    }
-
-    reservado_no_pedido: dict[tuple[int, str], int] = {}
-    for produto_id, quantidade, centro_distribuicao in itens:
-        chave = (produto_id, centro_distribuicao)
-        estoque = estoques.get(chave)
-        disponivel = estoque.quantidade if estoque is not None else 0
-        reservado_no_pedido[chave] = reservado_no_pedido.get(chave, 0) + quantidade
-        if reservado_no_pedido[chave] > disponivel:
-            raise EstoqueInsuficienteError(
-                f"Estoque insuficiente do produto {produto_id} em "
-                f"{centro_distribuicao}: disponível {disponivel}, "
-                f"pedido {reservado_no_pedido[chave]}."
-            )
+    estoques = await _carregar_estoques(session, produto_ids)
+    _verificar_disponibilidade(itens, estoques)
 
     pedido = Pedido(user_email=user_email, conversation_id=conversation_id)
     session.add(pedido)
     for produto_id, quantidade, centro_distribuicao in itens:
-        produto = produtos[produto_id]
-        preco_unitario = preco_vigente(produto)
+        preco_unitario = preco_vigente(produtos[produto_id])
         session.add(
             PedidoItem(
                 pedido=pedido,
@@ -553,9 +563,7 @@ async def criar_pedido(
                 preco_unitario=preco_unitario,
             )
         )
-        estoque = estoques[(produto_id, centro_distribuicao)]
-        assert estoque is not None  # garantido pela checagem de disponibilidade acima
-        estoque.quantidade -= quantidade
+        estoques[(produto_id, centro_distribuicao)].quantidade -= quantidade
 
     await session.commit()
     await session.refresh(pedido, attribute_names=["itens"])
