@@ -51,8 +51,8 @@ async def _build_response(request: Request) -> RuntimeSettingsResponse:
     ):
         try:
             loaded_info = await local_client.get_loaded_status()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Falha ao obter status do modelo local: %s", exc)
 
     local_model_loaded = loaded_info is not None
     local_model_vram_bytes = loaded_info.get("size_vram") if loaded_info else None

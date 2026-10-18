@@ -1,8 +1,8 @@
 {
   "descricao": "Conjunto de 300 mensagens do roteador (Estratégia A, Fase 10). Rótulo = domínio esperado; `chega_ao_llm` diz se a mensagem passa do atalho por palavra-chave e chega ao classificador LLM.",
   "observacoes": "Rascunho gerado por liquid/lfm-2.5-2.6b:free, todo item `revisao.status = pendente`. `chega_ao_llm` e `motivo_caminho` são calculados pelas funções reais de `app.router.classifier` (`_is_cortesia`, `_match_domain_by_keywords`), não pelo modelo. Reportar duas taxas na avaliação: acurácia do sistema (todos os casos) e acurácia do modelo no subconjunto que chega a ele.",
-  "total": 299,
-  "chegam_ao_llm": 233,
+  "total": 300,
+  "chegam_ao_llm": 234,
   "casos": [
     {
       "id": 1,
@@ -3587,6 +3587,18 @@
       "ambiguo": false,
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 300,
+      "mensagem": "Oi, eu preciso de um IDPower, tem disponibilidade e quanto custa?",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
       "revisao": {
         "status": "pendente",
         "em": null

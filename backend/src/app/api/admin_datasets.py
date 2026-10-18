@@ -54,6 +54,8 @@ class _Conjunto:
     caminho_relativo: str
     meta: int
     revisao_automatica: bool = False
+    # Chave do JSON onde ficam os itens: o holdout de imagem guarda "consultas".
+    chave_casos: str = "casos"
 
 
 CONJUNTOS: tuple[_Conjunto, ...] = (
@@ -63,9 +65,12 @@ CONJUNTOS: tuple[_Conjunto, ...] = (
     _Conjunto(
         "rag_imagem",
         "RAG imagem",
-        "model_benchmark/imagens/dataset.json",
-        120,
+        "model_benchmark/imagens/holdout.json",
+        53,
         revisao_automatica=True,
+        # MVP: só as 23 positivas (fotos reservadas) existem como arquivo; as
+        # 30 negativas ainda não foram mescladas ao conjunto.
+        chave_casos="consultas",
     ),
     _Conjunto("rag_banco", "RAG banco", "rag_banco/dataset.json", 80, revisao_automatica=True),
 )
@@ -83,7 +88,7 @@ def _ler_casos(conjunto: _Conjunto) -> tuple[dict, list[dict]]:
     if not caminho.exists():
         return {}, []
     dados = json.loads(caminho.read_text(encoding="utf-8"))
-    return dados, dados.get("casos", [])
+    return dados, dados.get(conjunto.chave_casos, [])
 
 
 def _status_do_caso(caso: dict, conjunto: _Conjunto) -> str:
@@ -254,6 +259,18 @@ class _Tarefa:
 _tarefas: dict[str, _Tarefa] = {}
 
 TAREFAS_DISPONIVEIS: dict[str, tuple[str, list[str]]] = {
+    "gerar_rascunho_roteador": (
+        "Gerar rascunho das 300 mensagens do roteador",
+        [".venv/bin/python", "eval/router_intents/gerar_dataset.py"],
+    ),
+    "gerar_conjunto_banco": (
+        "Gerar as 80 perguntas de RAG banco",
+        [".venv/bin/python", "eval/rag_banco/gerar_dataset.py"],
+    ),
+    "gerar_rascunho_injecao": (
+        "Gerar rascunho dos 100 casos de injeção de prompt",
+        [".venv/bin/python", "eval/prompt_injection/gerar_dataset.py"],
+    ),
     "gerar_rascunho_rag_docs": (
         "Gerar rascunho das 180 perguntas de RAG documentos",
         [".venv/bin/python", "eval/rag_quality/gerar_dataset.py"],

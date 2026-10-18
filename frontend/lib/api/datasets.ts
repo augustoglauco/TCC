@@ -71,6 +71,22 @@ export interface TarefaDetalhe extends TarefaResumo {
  */
 export const TAREFAS: { tipo: string; rotulo: string; descricao: string }[] = [
   {
+    tipo: "gerar_rascunho_roteador",
+    rotulo: "Gerar rascunho: 300 mensagens do roteador",
+    descricao:
+      "Meta: ao menos 200 desenhadas para chegar ao LLM. Rascunho por modelo free; sobrescreve o dataset.json.",
+  },
+  {
+    tipo: "gerar_conjunto_banco",
+    rotulo: "Gerar conjunto: 80 perguntas de RAG banco",
+    descricao: "Determinístico, a partir das linhas de produtos. Sem LLM e sem revisão humana.",
+  },
+  {
+    tipo: "gerar_rascunho_injecao",
+    rotulo: "Gerar rascunho: 100 casos de injeção",
+    descricao: "50 diretos + 50 indiretos. Sobrescreve o dataset.json.",
+  },
+  {
     tipo: "gerar_rascunho_rag_docs",
     rotulo: "Gerar rascunho: 180 perguntas de RAG",
     descricao:

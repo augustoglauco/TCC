@@ -2,9 +2,10 @@
 registro de routers não quebram (ver
 docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §4.1)."""
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.main import create_app
+from app.main import _apply_runtime_settings, create_app
 from app.mcp_client.google_calendar import GoogleCalendarMCPClient
 from app.rag.active_collection_client import ActiveCollectionRagClient
 from app.rag.embedders_registry import EmbedderRegistry
@@ -12,8 +13,44 @@ from app.rag.qdrant_client import QdrantRAGClient
 from app.router.sales_catalog import SalesCatalogClient
 from app.router.scheduling import SchedulingConfig
 
+def test_apply_runtime_settings_coerce_e_agent_runtime():
+    """Cobre as chaves que antes tinham tratamento especial fora do loop:
+    local_llm_keep_alive (coerce str), local_llm_warmup_on_startup (coerce bool),
+    estoque_agent_mode e estoque_agent_llm (target agent_runtime)."""
+    from app.agents.runtime import runtime as agent_runtime
 
-def test_create_app_monta_o_estado_do_rag_corretamente():
+    class _FakeLocal:
+        keep_alive = "-1"
+        warmup = True
+
+    class _FakeQdrant:
+        search_domain_fallback = False
+
+    app = FastAPI()
+    app.state.local_client = _FakeLocal()
+    app.state.external_client = None
+    app.state.qdrant_client = _FakeQdrant()
+    app.state.local_llm_warmup_on_startup = True
+
+    _apply_runtime_settings(
+        app,
+        {
+            "local_llm_keep_alive": 30,  # int → deve virar str "30"
+            "local_llm_warmup_on_startup": 0,  # falsy int → deve virar bool False
+            "rag_search_domain_fallback": 1,  # truthy int → deve virar bool True
+            "estoque_agent_mode": "llm",
+            "estoque_agent_llm": "external",
+        },
+    )
+
+    assert app.state.local_client.keep_alive == "30"
+    assert app.state.local_llm_warmup_on_startup is False
+    assert app.state.qdrant_client.search_domain_fallback is True
+    assert agent_runtime.estoque_modo == "llm"
+    assert agent_runtime.estoque_llm == "external"
+
+
+
     app = create_app()
 
     assert isinstance(app.state.qdrant_client, QdrantRAGClient)

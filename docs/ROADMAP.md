@@ -2224,15 +2224,16 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       Simplificação marcada no cliente: a lista de tarefas é espelhada à mão
       de `TAREFAS_DISPONIVEIS` do backend, que não expõe rota para listar os
       tipos (`// MVP:` em `frontend/lib/api/datasets.ts`).
-- [ ] **Geradores de rascunho dos conjuntos — não existem.** A tela revisa e
-      dispara, mas nada produz as 300 mensagens, as 180 perguntas, os 103
-      itens de imagem, as 80 do banco e os 100 casos de injeção. Hoje os
-      arquivos no disco são os **conjuntos invalidados** (roteador 40, RAG 18,
-      injeção 8, imagem 9) e `eval/rag_banco/dataset.json` não existe. Falta
-      também a tarefa `gerar_rascunhos` em `TAREFAS_DISPONIVEIS`, citada no
-      docstring do módulo (`"gerar rascunhos"`) mas nunca implementada. É o
-      item que trava a revisão humana e, por consequência, as Etapas 2–5 e o
-      benchmark.
+- [x] **Geradores de rascunho dos conjuntos** (2026-10-18). Os scripts
+      existem (`eval/router_intents`, `rag_banco`, `prompt_injection`,
+      `rag_quality` `/gerar_dataset.py`) e agora há uma tarefa para cada um em
+      `TAREFAS_DISPONIVEIS` (`gerar_rascunho_roteador`, `gerar_conjunto_banco`,
+      `gerar_rascunho_injecao`; a de RAG docs já existia). Nome único `gerar_rascunhos`
+      do docstring antigo foi abandonado: cada conjunto tem comando e custo
+      próprios. O cartão de imagem passou a ler `imagens/holdout.json` (chave
+      `consultas`, meta 53). Roteador fechado em 300 (234 chegam ao LLM, 78%)
+      com `gerar_dataset.py --completar`. Pendente: mesclar as 30 negativas ao
+      conjunto de imagem (hoje o cartão mostra 23 de 53).
 - [x] Deriva de documentação corrigida em 2026-10-17: o `# MVP:` de
       `admin_datasets.py` citava esta seção do roadmap desde 2026-10-16, e ela
       não existia. O gate de `doc-drift` não pega esse caso — a citação é prosa,

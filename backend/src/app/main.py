@@ -5,7 +5,7 @@ import inspect
 import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import httpx
 from fastapi import FastAPI
@@ -58,65 +58,56 @@ from app.stt.whisper_client import WhisperSttClient
 logger = logging.getLogger(__name__)
 
 
-# Mapeamento declarativo: chave de settings → (objeto_alvo, atributo).
+# Mapeamento declarativo: chave de settings → (objeto_alvo, atributo, coerce).
 # "app" resolve para `app.state`; "local", "external", "qdrant" para os
-# respectivos clientes. Evita 20+ if/else em `_apply_runtime_settings`.
-_SETTINGS_MAP: list[tuple[str, str, str]] = [
-    # (chave, objeto_alvo, atributo)
-    ("local_llm_temperature", "local", "temperature"),
-    ("local_llm_num_ctx", "local", "num_ctx"),
-    ("local_llm_top_p", "local", "top_p"),
-    ("local_llm_top_k", "local", "top_k"),
-    ("local_llm_repeat_penalty", "local", "repeat_penalty"),
-    ("local_llm_seed", "local", "seed"),
-    ("local_llm_timeout_s", "local", "timeout_s"),
-    ("external_llm_timeout_s", "external", "timeout_s"),
-    ("external_model_name", "external", "model"),
-    ("external_vision_model_name", "external", "vision_model"),
-    ("rag_search_domain_fallback", "qdrant", "search_domain_fallback"),
-    ("rag_top_k", "app", "rag_top_k"),
-    ("rag_score_threshold", "app", "rag_score_threshold"),
-    ("crawler_max_pages_default", "app", "crawler_max_pages_default"),
-    ("crawler_confidence_threshold", "app", "crawler_confidence_threshold"),
-    ("image_internal_confidence", "app", "image_internal_confidence"),
-    ("image_external_confidence", "app", "image_external_confidence"),
-    ("intent_router_provider", "app", "intent_router_provider"),
-    ("tone_monitor_enabled", "app", "tone_monitor_enabled"),
-    ("tone_monitor_provider", "app", "tone_monitor_provider"),
+# respectivos clientes; "agent" para agent_runtime.
+# `coerce` é uma função de conversão opcional aplicada ao valor antes do setattr.
+_SETTINGS_MAP: list[tuple[str, str, str, Callable | None]] = [
+    # (chave, objeto_alvo, atributo, coerce)
+    ("local_llm_temperature", "local", "temperature", None),
+    ("local_llm_num_ctx", "local", "num_ctx", None),
+    ("local_llm_top_p", "local", "top_p", None),
+    ("local_llm_top_k", "local", "top_k", None),
+    ("local_llm_repeat_penalty", "local", "repeat_penalty", None),
+    ("local_llm_seed", "local", "seed", None),
+    ("local_llm_timeout_s", "local", "timeout_s", None),
+    ("local_llm_keep_alive", "local", "keep_alive", str),
+    ("external_llm_timeout_s", "external", "timeout_s", None),
+    ("external_model_name", "external", "model", None),
+    ("external_vision_model_name", "external", "vision_model", None),
+    ("rag_search_domain_fallback", "qdrant", "search_domain_fallback", bool),
+    ("rag_top_k", "app", "rag_top_k", None),
+    ("rag_score_threshold", "app", "rag_score_threshold", None),
+    ("crawler_max_pages_default", "app", "crawler_max_pages_default", None),
+    ("crawler_confidence_threshold", "app", "crawler_confidence_threshold", None),
+    ("image_internal_confidence", "app", "image_internal_confidence", None),
+    ("image_external_confidence", "app", "image_external_confidence", None),
+    ("intent_router_provider", "app", "intent_router_provider", None),
+    ("tone_monitor_enabled", "app", "tone_monitor_enabled", None),
+    ("tone_monitor_provider", "app", "tone_monitor_provider", None),
+    ("local_llm_warmup_on_startup", "app", "local_llm_warmup_on_startup", bool),
+    ("estoque_agent_mode", "agent", "estoque_modo", None),
+    ("estoque_agent_llm", "agent", "estoque_llm", None),
 ]
 
 
 def _apply_runtime_settings(app: FastAPI, settings_dict: dict[str, Any]) -> None:
-    local_client = getattr(app.state, "local_client", None)
-    external_client = getattr(app.state, "external_client", None)
-    qdrant_client = getattr(app.state, "qdrant_client", None)
-    targets = {
-        "local": local_client,
-        "external": external_client,
-        "qdrant": qdrant_client,
+    targets: dict[str, Any] = {
+        "local": getattr(app.state, "local_client", None),
+        "external": getattr(app.state, "external_client", None),
+        "qdrant": getattr(app.state, "qdrant_client", None),
         "app": app.state,
+        "agent": agent_runtime,
     }
 
-    for chave, alvo, atributo in _SETTINGS_MAP:
+    for chave, alvo, atributo, coerce in _SETTINGS_MAP:
         if chave not in settings_dict:
             continue
         obj = targets[alvo]
         if obj is None:
             continue
         valor = settings_dict[chave]
-        if alvo == "qdrant":
-            valor = bool(valor)
-        setattr(obj, atributo, valor)
-
-    # keep_alive precisa de str(); agentes têm atributos próprios no runtime
-    if "local_llm_keep_alive" in settings_dict and local_client is not None:
-        local_client.keep_alive = str(settings_dict["local_llm_keep_alive"])
-    if "estoque_agent_mode" in settings_dict:
-        agent_runtime.estoque_modo = settings_dict["estoque_agent_mode"]
-    if "estoque_agent_llm" in settings_dict:
-        agent_runtime.estoque_llm = settings_dict["estoque_agent_llm"]
-    if "local_llm_warmup_on_startup" in settings_dict:
-        app.state.local_llm_warmup_on_startup = bool(settings_dict["local_llm_warmup_on_startup"])
+        setattr(obj, atributo, coerce(valor) if coerce is not None else valor)
 
 
 async def _startup_load_settings(app: FastAPI, session_factory) -> None:

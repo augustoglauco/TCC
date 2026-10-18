@@ -282,6 +282,9 @@ async def executar(args) -> int:
 
     casos: list[dict] = []
     vistos: set[str] = set()
+    if args.completar and saida.exists():
+        casos = json.loads(saida.read_text(encoding="utf-8"))["casos"]
+        vistos = {c["mensagem"].lower() for c in casos}
 
     async def pedir(prompt: str, dominio: str, ambiguo: bool, quantos: int, rotulo: str) -> None:
         restante = quantos
@@ -311,6 +314,17 @@ async def executar(args) -> int:
             "proibidas": _proibidas(dominio) if dominio in _DOMAIN_KEYWORDS else "",
             "grupos": _grupos_de_keywords(),
         }
+
+    # Dedup descarta repetidas e o total pode fechar abaixo da meta: sem
+    # `--completar` a rodada recomeça do zero, então o resto vem aqui.
+    meta_total = len(DOMINIOS) * (POR_DOMINIO_DIFICIL + POR_DOMINIO_LIVRE) + FORA_ESCOPO
+    if args.completar and casos:
+        faltam = meta_total - len(casos)
+        if faltam > 0:
+            await pedir(_PROMPT_LIVRE, DOMINIOS[0], False, faltam, "completar")
+        salvar(saida, casos, modelo)
+        print(f"\n{saida}: {len(casos)} mensagem(ns) após completar.")
+        return 0
 
     for dominio in DOMINIOS:
         # Metade das difíceis por "sinônimo fora da tabela" e metade por
@@ -352,6 +366,11 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--saida", default=str(SAIDA_PADRAO))
     parser.add_argument("--modelo", default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--completar",
+        action="store_true",
+        help="parte do dataset existente e pede só o que falta para chegar a 300",
+    )
     args = parser.parse_args(argv[1:])
     return asyncio.run(executar(args))
 

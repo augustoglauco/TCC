@@ -80,6 +80,19 @@ def contar_unidades(texto: str, tokenizer: Any = None) -> int:
     return len(tokenizer.encode(limpo, add_special_tokens=False))
 
 
+def _intervalos(n: int, chunk_size: int, passo: int) -> list[tuple[int, int]]:
+    """Devolve pares `(inicio, fim)` para janelas de `chunk_size` sobre `n` itens."""
+    resultado = []
+    inicio = 0
+    while inicio < n:
+        fim = min(n, inicio + chunk_size)
+        resultado.append((inicio, fim))
+        if fim >= n:
+            break
+        inicio += passo
+    return resultado
+
+
 def _fatiar_duro(bloco: str, chunk_size: int, overlap: int, tokenizer: Any = None) -> list[_Peca]:
     """Fatia uma sequência sem separadores naturais em janelas de `chunk_size`
     com passo `chunk_size - overlap`."""
@@ -93,28 +106,16 @@ def _fatiar_duro(bloco: str, chunk_size: int, overlap: int, tokenizer: Any = Non
         if len(ids) <= chunk_size:
             return [_Peca(limpo, ja_com_overlap=True)]
         fatias: list[_Peca] = []
-        inicio = 0
-        n = len(ids)
-        while inicio < n:
-            fim = min(n, inicio + chunk_size)
-            decodificado = tokenizer.decode(ids[inicio:fim], skip_special_tokens=True).strip()
+        for ini, fim in _intervalos(len(ids), chunk_size, passo):
+            decodificado = tokenizer.decode(ids[ini:fim], skip_special_tokens=True).strip()
             if decodificado:
                 fatias.append(_Peca(decodificado, ja_com_overlap=True))
-            if fim >= n:
-                break
-            inicio += passo
         return fatias
 
-    fatias_char: list[_Peca] = []
-    inicio = 0
-    n = len(limpo)
-    while inicio < n:
-        fim = min(n, inicio + chunk_size)
-        fatias_char.append(_Peca(limpo[inicio:fim], ja_com_overlap=True))
-        if fim >= n:
-            break
-        inicio += passo
-    return fatias_char
+    return [
+        _Peca(limpo[ini:fim], ja_com_overlap=True)
+        for ini, fim in _intervalos(len(limpo), chunk_size, passo)
+    ]
 
 
 def _dividir_por_separador(bloco: str, sep: str) -> tuple[list[str], str]:
@@ -132,53 +133,50 @@ def _dividir_por_separador(bloco: str, sep: str) -> tuple[list[str], str]:
     return [bloco], ""
 
 
+@dataclass(frozen=True)
+class _CtxDecomp:
+    chunk_size: int
+    overlap: int
+    tokenizer: Any
+    separadores: tuple[str, ...]
+
+
+def _decompor_parte(parte: str, sep_peca: str, ctx: _CtxDecomp) -> list[_Peca]:
+    """Decompõe uma parte individual: retorna peça atômica ou recursão."""
+    if contar_unidades(parte, ctx.tokenizer) <= ctx.chunk_size:
+        return [_Peca(_emitir_chunk(parte), sep_antes=sep_peca)]
+    return _decompor_recursivo(parte, ctx, sep_entrada=sep_peca)
+
+
 def _decompor_recursivo(
     bloco: str,
-    chunk_size: int,
-    overlap: int,
-    tokenizer: Any,
-    separadores: tuple[str, ...],
+    ctx: _CtxDecomp,
     sep_entrada: str = "",
 ) -> list[_Peca]:
     """Decompõe `bloco` em peças atômicas de tamanho `<= chunk_size` seguindo
     a hierarquia `separadores`."""
-    if contar_unidades(bloco, tokenizer) <= chunk_size:
+    if contar_unidades(bloco, ctx.tokenizer) <= ctx.chunk_size:
         return [_Peca(_emitir_chunk(bloco), sep_antes=sep_entrada)]
 
-    for indice, sep in enumerate(separadores):
+    for indice, sep in enumerate(ctx.separadores):
         if sep == "":
-            fatias = _fatiar_duro(bloco, chunk_size, overlap, tokenizer)
+            fatias = _fatiar_duro(bloco, ctx.chunk_size, ctx.overlap, ctx.tokenizer)
             if fatias and sep_entrada:
-                fatias[0] = _Peca(
-                    fatias[0].texto,
-                    sep_antes=sep_entrada,
-                    ja_com_overlap=fatias[0].ja_com_overlap,
-                )
+                fatias[0] = _Peca(fatias[0].texto, sep_antes=sep_entrada, ja_com_overlap=fatias[0].ja_com_overlap)
             return fatias
-        if sep in bloco:
-            partes, joiner = _dividir_por_separador(bloco, sep)
-            if len(partes) <= 1:
-                continue
-            restantes = separadores[indice + 1 :]
-            pecas: list[_Peca] = []
-            for i, parte in enumerate(partes):
-                sep_peca = sep_entrada if i == 0 else joiner
-                if contar_unidades(parte, tokenizer) <= chunk_size:
-                    pecas.append(_Peca(_emitir_chunk(parte), sep_antes=sep_peca))
-                else:
-                    pecas.extend(
-                        _decompor_recursivo(
-                            parte,
-                            chunk_size,
-                            overlap,
-                            tokenizer,
-                            restantes,
-                            sep_entrada=sep_peca,
-                        )
-                    )
-            return pecas
+        if sep not in bloco:
+            continue
+        partes, joiner = _dividir_por_separador(bloco, sep)
+        if len(partes) <= 1:
+            continue
+        sub_ctx = _CtxDecomp(ctx.chunk_size, ctx.overlap, ctx.tokenizer, ctx.separadores[indice + 1 :])
+        pecas: list[_Peca] = []
+        for i, parte in enumerate(partes):
+            sep_peca = sep_entrada if i == 0 else joiner
+            pecas.extend(_decompor_parte(parte, sep_peca, sub_ctx))
+        return pecas
 
-    return _fatiar_duro(bloco, chunk_size, overlap, tokenizer)
+    return _fatiar_duro(bloco, ctx.chunk_size, ctx.overlap, ctx.tokenizer)
 
 
 def _juntar_pecas(pecas: list[_Peca]) -> str:
@@ -205,6 +203,27 @@ def _unidades_subnivel_para_overlap(texto: str) -> list[_Peca]:
     return []
 
 
+def _scan_sufixo_reverso(
+    pecas: list[_Peca],
+    proxima: _Peca,
+    chunk_size: int,
+    overlap: int,
+    tokenizer: Any,
+) -> list[_Peca]:
+    """Varre `pecas` de trás para frente e devolve o maior sufixo que cabe em
+    `overlap` e ainda permite acomodar `proxima` dentro de `chunk_size`."""
+    melhor: list[_Peca] = []
+    for i in range(len(pecas) - 1, -1, -1):
+        candidato = pecas[i:]
+        if contar_unidades(_juntar_pecas(candidato), tokenizer) > overlap:
+            break
+        if contar_unidades(_juntar_pecas([*candidato, proxima]), tokenizer) <= chunk_size:
+            melhor = candidato
+        else:
+            break
+    return melhor
+
+
 def _calcular_sufixo_overlap(
     atuais: list[_Peca],
     proxima: _Peca,
@@ -217,17 +236,7 @@ def _calcular_sufixo_overlap(
     if overlap <= 0 or not atuais:
         return []
 
-    melhor: list[_Peca] = []
-    for i in range(len(atuais) - 1, -1, -1):
-        candidato = atuais[i:]
-        texto_cand = _juntar_pecas(candidato)
-        if contar_unidades(texto_cand, tokenizer) > overlap:
-            break
-        if contar_unidades(_juntar_pecas([*candidato, proxima]), tokenizer) <= chunk_size:
-            melhor = candidato
-        else:
-            break
-
+    melhor = _scan_sufixo_reverso(atuais, proxima, chunk_size, overlap, tokenizer)
     if melhor:
         return melhor
 
@@ -237,16 +246,7 @@ def _calcular_sufixo_overlap(
     subpecas = _unidades_subnivel_para_overlap(atuais[-1].texto)
     if not subpecas:
         return []
-    for i in range(len(subpecas) - 1, -1, -1):
-        candidato = subpecas[i:]
-        texto_cand = _juntar_pecas(candidato)
-        if contar_unidades(texto_cand, tokenizer) > overlap:
-            break
-        if contar_unidades(_juntar_pecas([*candidato, proxima]), tokenizer) <= chunk_size:
-            melhor = candidato
-        else:
-            break
-    return melhor
+    return _scan_sufixo_reverso(subpecas, proxima, chunk_size, overlap, tokenizer)
 
 
 def chunk_text(
@@ -270,7 +270,8 @@ def chunk_text(
     if not normalizado:
         return []
 
-    pecas = _decompor_recursivo(normalizado, chunk_size, overlap, tokenizer, SEPARADORES_RECURSIVOS)
+    ctx = _CtxDecomp(chunk_size, overlap, tokenizer, SEPARADORES_RECURSIVOS)
+    pecas = _decompor_recursivo(normalizado, ctx)
     if not pecas:
         return []
 
@@ -289,13 +290,13 @@ def chunk_text(
             atuais = [peca]
             continue
 
-        candidato = _juntar_pecas([*atuais, peca])
-        if contar_unidades(candidato, tokenizer) <= chunk_size:
+        if contar_unidades(_juntar_pecas([*atuais, peca]), tokenizer) <= chunk_size:
             atuais.append(peca)
-        else:
-            chunks.append(_juntar_pecas(atuais))
-            sufixo = _calcular_sufixo_overlap(atuais, peca, chunk_size, overlap, tokenizer)
-            atuais = [*sufixo, peca]
+            continue
+
+        chunks.append(_juntar_pecas(atuais))
+        sufixo = _calcular_sufixo_overlap(atuais, peca, chunk_size, overlap, tokenizer)
+        atuais = [*sufixo, peca]
 
     if atuais:
         chunks.append(_juntar_pecas(atuais))
