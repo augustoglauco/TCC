@@ -26,6 +26,7 @@ import json
 import logging
 import re
 import unicodedata
+from typing import NamedTuple
 
 from pydantic import BaseModel, ValidationError
 
@@ -121,6 +122,111 @@ def _parse_vision_answer(raw_text: str) -> _VisionAnswer | None:
 _NAO_IDENTIFICADO_MSG = "Não consegui identificar este produto no nosso portfólio."
 
 
+class _VisionUsage(NamedTuple):
+    prompt_tokens: int | None
+    completion_tokens: int | None
+    total_tokens: int | None
+    cost_prompt_usd: float | None
+    cost_completion_usd: float | None
+    estimated_cost_usd: float | None
+    model_name: str | None
+
+
+def _extract_vision_usage(raw) -> _VisionUsage:
+    return _VisionUsage(
+        prompt_tokens=getattr(raw, "prompt_tokens", None),
+        completion_tokens=getattr(raw, "completion_tokens", None),
+        total_tokens=getattr(raw, "total_tokens", None),
+        cost_prompt_usd=getattr(raw, "cost_prompt_usd", None),
+        cost_completion_usd=getattr(raw, "cost_completion_usd", None),
+        estimated_cost_usd=getattr(raw, "estimated_cost_usd", None),
+        model_name=getattr(raw, "model_name", None),
+    )
+
+
+async def _handle_internal_hit(
+    melhor,
+    rag_client: RAGClient,
+    recent_messages: list[str],
+    sales_catalog_client: SalesCatalogClient | None,
+) -> ImageIdentificationResult:
+    produto_id = melhor.produto_id
+    ficha = await _ficha_do_banco(sales_catalog_client, melhor.filename, produto_id)
+    if ficha is not None:
+        produto_id, nome, detalhes = ficha
+    else:
+        nome = melhor.filename
+        detalhes = await _buscar_detalhes(
+            rag_client, melhor.filename, recent_messages, produto_id=melhor.produto_id
+        )
+    spawn_background_task(
+        registrar_uso_ia(
+            origem="chat",
+            ambiente="interno",
+            modelo="clip",
+            operacao="identificacao_imagem_clip",
+            tokens_entrada=None,
+            tokens_saida=None,
+            custo_usd=0.0,
+            referencia_id=None,
+            session=None,
+            session_factory=None,
+            commit=False,
+        )
+    )
+    return ImageIdentificationResult(
+        status="encontrado_interno",
+        produto=nome,
+        produto_id=produto_id,
+        imagem_url=melhor.imagem_url,
+        fonte="catalogo_imagens",
+        detalhes=detalhes,
+        confianca_interna=melhor.score,
+    )
+
+
+async def _handle_external_answer(
+    answer: _VisionAnswer,
+    usage: _VisionUsage,
+    rag_client: RAGClient,
+    recent_messages: list[str],
+    sales_catalog_client: SalesCatalogClient | None,
+    external_confidence: float,
+) -> ImageIdentificationResult:
+    """Decide e monta o resultado a partir da resposta do modelo de visão."""
+    usage_fields = dict(
+        prompt_tokens=usage.prompt_tokens,
+        completion_tokens=usage.completion_tokens,
+        total_tokens=usage.total_tokens,
+        cost_prompt_usd=usage.cost_prompt_usd,
+        cost_completion_usd=usage.cost_completion_usd,
+        estimated_cost_usd=usage.estimated_cost_usd,
+        model_name=usage.model_name,
+    )
+    if not answer.e_do_portfolio or answer.confianca < external_confidence:
+        return ImageIdentificationResult(
+            status="nao_identificado", mensagem=_NAO_IDENTIFICADO_MSG, **usage_fields
+        )
+
+    ficha = await _ficha_do_banco(sales_catalog_client, answer.produto, None)
+    if ficha is not None:
+        produto_id, nome, detalhes = ficha
+        fonte = "visao_externa+catalogo"
+    else:
+        produto_id, nome = None, answer.produto
+        detalhes = await _buscar_detalhes(rag_client, answer.produto, recent_messages)
+        fonte = "visao_externa+rag_texto"
+    return ImageIdentificationResult(
+        status="encontrado_externo",
+        produto=nome,
+        produto_id=produto_id,
+        fonte=fonte,
+        detalhes=detalhes,
+        confianca_externa=answer.confianca,
+        **usage_fields,
+    )
+
+
 async def identify_product_by_image(
     image_bytes: bytes,
     *,
@@ -145,39 +251,8 @@ async def identify_product_by_image(
     # 1) Catálogo interno (CLIP).
     internos = await clip_store.search_by_image(clip_embedder, image_bytes, domain=_RAG_DOMAIN)
     if internos and internos[0].score >= internal_confidence:
-        melhor = internos[0]
-        produto_id = melhor.produto_id
-        ficha = await _ficha_do_banco(sales_catalog_client, melhor.filename, produto_id)
-        if ficha is not None:
-            produto_id, nome, detalhes = ficha
-        else:
-            nome = melhor.filename
-            detalhes = await _buscar_detalhes(
-                rag_client, melhor.filename, recent_messages, produto_id=melhor.produto_id
-            )
-        spawn_background_task(
-            registrar_uso_ia(
-                origem="chat",
-                ambiente="interno",
-                modelo="clip",
-                operacao="identificacao_imagem_clip",
-                tokens_entrada=None,
-                tokens_saida=None,
-                custo_usd=0.0,
-                referencia_id=None,
-                session=None,
-                session_factory=None,
-                commit=False,
-            )
-        )
-        return ImageIdentificationResult(
-            status="encontrado_interno",
-            produto=nome,
-            produto_id=produto_id,
-            imagem_url=melhor.imagem_url,
-            fonte="catalogo_imagens",
-            detalhes=detalhes,
-            confianca_interna=melhor.score,
+        return await _handle_internal_hit(
+            internos[0], rag_client, recent_messages, sales_catalog_client
         )
 
     # 2) Visão externa (fallback).
@@ -187,23 +262,16 @@ async def identify_product_by_image(
         logger.info("identify_image vision_indisponivel -> nao_identificado")
         return ImageIdentificationResult(status="nao_identificado", mensagem=_NAO_IDENTIFICADO_MSG)
 
-    v_prompt_tokens = getattr(raw, "prompt_tokens", None)
-    v_comp_tokens = getattr(raw, "completion_tokens", None)
-    v_total_tokens = getattr(raw, "total_tokens", None)
-    v_cost_prompt = getattr(raw, "cost_prompt_usd", None)
-    v_cost_comp = getattr(raw, "cost_completion_usd", None)
-    v_cost_total = getattr(raw, "estimated_cost_usd", None)
-    v_model_name = getattr(raw, "model_name", None)
-
+    usage = _extract_vision_usage(raw)
     spawn_background_task(
         registrar_uso_ia(
             origem="chat",
             ambiente="externo",
-            modelo=v_model_name or "desconhecido",
+            modelo=usage.model_name or "desconhecido",
             operacao="identificacao_imagem_visao_externa",
-            tokens_entrada=v_prompt_tokens,
-            tokens_saida=v_comp_tokens,
-            custo_usd=v_cost_total,
+            tokens_entrada=usage.prompt_tokens,
+            tokens_saida=usage.completion_tokens,
+            custo_usd=usage.estimated_cost_usd,
             referencia_id=None,
             session=None,
             session_factory=None,
@@ -211,43 +279,16 @@ async def identify_product_by_image(
         )
     )
 
-    answer = _parse_vision_answer(raw)
     # 3) Decisão sobre a resposta do externo.
-    if answer is None or not answer.e_do_portfolio or answer.confianca < external_confidence:
+    answer = _parse_vision_answer(raw)
+    if answer is None:
         return ImageIdentificationResult(
             status="nao_identificado",
             mensagem=_NAO_IDENTIFICADO_MSG,
-            prompt_tokens=v_prompt_tokens,
-            completion_tokens=v_comp_tokens,
-            total_tokens=v_total_tokens,
-            cost_prompt_usd=v_cost_prompt,
-            cost_completion_usd=v_cost_comp,
-            estimated_cost_usd=v_cost_total,
-            model_name=v_model_name,
+            **usage._asdict(),
         )
-
-    ficha = await _ficha_do_banco(sales_catalog_client, answer.produto, None)
-    if ficha is not None:
-        produto_id, nome, detalhes = ficha
-        fonte = "visao_externa+catalogo"
-    else:
-        produto_id, nome = None, answer.produto
-        detalhes = await _buscar_detalhes(rag_client, answer.produto, recent_messages)
-        fonte = "visao_externa+rag_texto"
-    return ImageIdentificationResult(
-        status="encontrado_externo",
-        produto=nome,
-        produto_id=produto_id,
-        fonte=fonte,
-        detalhes=detalhes,
-        confianca_externa=answer.confianca,
-        prompt_tokens=v_prompt_tokens,
-        completion_tokens=v_comp_tokens,
-        total_tokens=v_total_tokens,
-        cost_prompt_usd=v_cost_prompt,
-        cost_completion_usd=v_cost_comp,
-        estimated_cost_usd=v_cost_total,
-        model_name=v_model_name,
+    return await _handle_external_answer(
+        answer, usage, rag_client, recent_messages, sales_catalog_client, external_confidence
     )
 
 
@@ -267,7 +308,7 @@ async def _ficha_do_banco(
             if produto_id is None:
                 return None
         dados = await sales_catalog_client.consultar_detalhes(produto_id, None, None)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — qualquer falha do banco/rede cai no RAG
         logger.warning("identify_image ficha_do_banco_falhou erro=%s", exc)
         return None
     if dados is None:
@@ -314,6 +355,11 @@ def _remover_acentos(texto: str) -> str:
     )
 
 
+_STOP_WORDS = {
+    "de", "para", "com", "sem", "em", "do", "da", "dos", "das", "um", "uma", "produto",
+}
+
+
 def _documento_relevante_para_produto(
     doc: Document, nome_produto: str, produto_id: int | None = None
 ) -> bool:
@@ -337,27 +383,10 @@ def _documento_relevante_para_produto(
     if nome_clean in content_clean:
         return True
 
-    stop_words = {
-        "de",
-        "para",
-        "com",
-        "sem",
-        "em",
-        "do",
-        "da",
-        "dos",
-        "das",
-        "um",
-        "uma",
-        "produto",
-    }
     tokens_nome = [
-        t for t in re.split(r"[\s\-_,\.]+", nome_clean) if len(t) >= 3 and t not in stop_words
+        t for t in re.split(r"[\s\-_,\.]+", nome_clean) if len(t) >= 3 and t not in _STOP_WORDS
     ]
-    if tokens_nome and any(t in content_clean for t in tokens_nome):
-        return True
-
-    return False
+    return bool(tokens_nome) and any(t in content_clean for t in tokens_nome)
 
 
 async def _buscar_detalhes(
