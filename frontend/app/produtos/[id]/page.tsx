@@ -1,18 +1,24 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { fetchProductById, Produto } from "@/lib/api/products";
 import { ImageZoomModal } from "@/components/products/ImageZoomModal";
 import { useCartStore } from "@/lib/hooks/useCartStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
+import {
+  calcularEstoqueTotal,
+  escolherCentroDistribuicao,
+  montarListaImagens,
+  precoEfetivo,
+} from "@/components/products/productCardHelpers";
 import { resolveImageUrl } from "@/lib/utils/resolveImageUrl";
 import { ProdutoImageGallery } from "./ProdutoImageGallery";
 import { ProdutoInfoPanel } from "./ProdutoInfoPanel";
 import { ProdutoFichaTecnica } from "./ProdutoFichaTecnica";
 import { ProdutoLoadingSkeleton } from "./ProdutoLoadingSkeleton";
 import { ProdutoErrorState } from "./ProdutoErrorState";
+import { useProduto } from "./useProduto";
 
 interface ProdutoPageProps {
   params: Promise<{ id: string }> | { id: string };
@@ -23,97 +29,25 @@ export default function ProdutoDetalhePage({ params }: ProdutoPageProps) {
   const { id } = resolvedParams;
   const router = useRouter();
 
-  const [product, setProduct] = useState<Produto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { product, loading, error } = useProduto(id);
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
 
   // Estado para modal de zoom de imagem
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    setError(null);
-
-    const produtoId = Number.parseInt(id, 10);
-    if (Number.isNaN(produtoId)) {
-      setError("Identificador de produto inválido.");
-      setLoading(false);
-      return;
-    }
-
-    fetchProductById(produtoId)
-      .then((data) => {
-        if (isMounted) {
-          setProduct(data);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : "Não foi possível carregar os detalhes do produto.",
-          );
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [id]);
-
-  // Lista consolidada de imagens do produto
-  const imageList = useMemo(() => {
-    if (!product) return [];
-    const urls: string[] = [];
-    if (product.imagens && product.imagens.length > 0) {
-      product.imagens.forEach((img) => {
-        const full = resolveImageUrl(img.imagem_url);
-        if (full && !urls.includes(full)) {
-          urls.push(full);
-        }
-      });
-    }
-    const mainFull = resolveImageUrl(product.imagem_url);
-    if (mainFull && !urls.includes(mainFull)) {
-      urls.unshift(mainFull);
-    }
-    return urls;
-  }, [product]);
-
-  // Estoque total somado
-  const totalEstoque = useMemo(() => {
-    if (!product || !product.estoques || product.estoques.length === 0) return 0;
-    return product.estoques.reduce(
-      (acc, est) => acc + (est.quantidade > 0 ? est.quantidade : 0),
-      0,
-    );
-  }, [product]);
-
+  const imageList = useMemo(() => (product ? montarListaImagens(product) : []), [product]);
+  const totalEstoque = useMemo(() => product ? calcularEstoqueTotal(product.estoques) : 0, [product]);
   const emEstoque = totalEstoque > 0;
 
   const handleBuy = () => {
     if (!product) return;
-    const cd =
-      product.estoques && product.estoques.length > 0
-        ? product.estoques.find((e) => e.quantidade > 0)?.centro_distribuicao ||
-          product.estoques[0].centro_distribuicao
-        : "CD-SP";
-
-    const precoEfetivo = product.preco_promocional || product.preco;
-
     useCartStore.getState().addItem({
       produtoId: product.id,
       nome: product.nome,
-      preco: Number(precoEfetivo),
+      preco: precoEfetivo(product),
       imagemUrl: resolveImageUrl(product.imagem_url),
       quantidade: 1,
-      centroDistribuicao: cd,
+      centroDistribuicao: escolherCentroDistribuicao(product.estoques),
     });
 
     router.push("/pedidos");
