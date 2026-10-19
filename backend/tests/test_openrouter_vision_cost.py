@@ -98,3 +98,19 @@ async def test_describe_image_handles_missing_usage():
         assert res.cost_prompt_usd == 0.0
         assert res.cost_completion_usd == 0.0
         assert res.estimated_cost_usd == 0.0
+
+
+@pytest.mark.parametrize(
+    ("usage", "esperado"),
+    [
+        (None, (502, 5, 507)),
+        ({}, (502, 5, 507)),
+        ({"prompt_tokens": 10, "completion_tokens": 4}, (10, 4, 14)),
+        ({"prompt_tokens": 10}, (10, 5, 10)),
+        ({"prompt_tokens": 10, "completion_tokens": 4, "total_tokens": 99}, (10, 4, 99)),
+        ({"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}, (502, 5, 507)),
+    ],
+)
+def test_tokens_visao_preserva_regras_de_fallback(usage, esperado):
+    # prompt "Identifique" = 11 chars -> 502; content de 20 chars -> 5
+    assert OpenRouterClient._tokens_visao(usage, "Identifique", "x" * 20) == esperado

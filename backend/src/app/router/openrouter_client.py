@@ -268,19 +268,17 @@ class OpenRouterClient:
 
     @staticmethod
     def _tokens_visao(usage: dict[str, Any], prompt: str, content: str) -> tuple[int, int, int]:
-        prompt_tokens = usage.get("prompt_tokens") if usage else None
-        completion_tokens = usage.get("completion_tokens") if usage else None
-        total_tokens = usage.get("total_tokens") if usage else None
-        if total_tokens is None and (prompt_tokens is not None or completion_tokens is not None):
-            total_tokens = (prompt_tokens or 0) + (completion_tokens or 0)
+        usage = usage or {}
+        reported_prompt = usage.get("prompt_tokens")
+        reported_completion = usage.get("completion_tokens")
+        total_tokens = usage.get("total_tokens")
+        if total_tokens is None:
+            total_tokens = (reported_prompt or 0) + (reported_completion or 0)
 
         # Fallback de estimativa caso o provedor omita usage (ex.: certos modelos gratuitos)
-        if not prompt_tokens:
-            prompt_tokens = max(1, len(prompt) // 4) + 500
-        if not completion_tokens:
-            completion_tokens = max(1, len(content) // 4)
-        if not total_tokens:
-            total_tokens = prompt_tokens + completion_tokens
+        prompt_tokens = reported_prompt or max(1, len(prompt) // 4) + 500
+        completion_tokens = reported_completion or max(1, len(content) // 4)
+        total_tokens = total_tokens or prompt_tokens + completion_tokens
         return prompt_tokens, completion_tokens, total_tokens
 
     def _resultado_visao(self, data: Any, prompt: str) -> VisionResult:
