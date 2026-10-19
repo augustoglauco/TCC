@@ -10,16 +10,13 @@ ledger, então a heurística foi removida — não portada.
 """
 
 import logging
-from datetime import UTC, date, datetime, timedelta
-from typing import Annotated
+from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import verificar_admin_por_token
-from app.api.rag_dependencies import get_db_session
+from app.api.admin_auth import require_admin
 from app.config import get_settings
 from app.db.models import AiUsageEvent, Conversa
 from app.services.ai_usage_report import (
@@ -33,42 +30,14 @@ logger = logging.getLogger("assistente.admin_metrics")
 
 router = APIRouter(prefix="/api/admin/metrics", tags=["Admin Metricas"])
 
-try:
-    from app.api.admin_auth import require_admin
-except ImportError:
-
-    async def require_admin(
-        session: AsyncSession = Depends(get_db_session),
-        authorization: Annotated[str | None, Header()] = None,
-        x_auth_token: Annotated[str | None, Header(alias="X-Auth-Token")] = None,
-        token_param: Annotated[str | None, Query(alias="token")] = None,
-    ) -> None:
-        token: str | None = None
-        if authorization:
-            parts = authorization.split()
-            if len(parts) == 2 and parts[0].lower() == "bearer":
-                token = parts[1]
-            elif len(parts) == 1:
-                token = parts[0]
-        elif x_auth_token:
-            token = x_auth_token
-        elif token_param:
-            token = token_param
-
-        if not token or not await verificar_admin_por_token(session, token):
-            raise HTTPException(
-                status_code=403,
-                detail="Acesso restrito a administradores autenticados.",
-            )
+_INICIO_DO_DIA = time(0, 0, 0, 0)
+_FIM_DO_DIA = time(23, 59, 59, 999999)
 
 
 def _parse_data_local(
     valor: str,
     campo: str,
-    hora: int,
-    minuto: int,
-    segundo: int,
-    microsegundo: int,
+    horario: time,
     local_tz: ZoneInfo,
 ) -> datetime:
     """Converte uma string ISO YYYY-MM-DD num datetime UTC no horário indicado
@@ -80,9 +49,7 @@ def _parse_data_local(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"{campo} inválida ({valor!r}); use o formato YYYY-MM-DD.",
         ) from exc
-    return datetime(
-        d.year, d.month, d.day, hora, minuto, segundo, microsegundo, tzinfo=local_tz
-    ).astimezone(UTC)
+    return datetime.combine(d, horario, tzinfo=local_tz).astimezone(UTC)
 
 
 def _resolver_janela(
@@ -104,10 +71,12 @@ def _resolver_janela(
     aplicado que na verdade era outro, bem diferente.
     """
     cutoff_start = (
-        _parse_data_local(start_date, "start_date", 0, 0, 0, 0, local_tz) if start_date else None
+        _parse_data_local(start_date, "start_date", _INICIO_DO_DIA, local_tz)
+        if start_date
+        else None
     )
     cutoff_end = (
-        _parse_data_local(end_date, "end_date", 23, 59, 59, 999999, local_tz) if end_date else None
+        _parse_data_local(end_date, "end_date", _FIM_DO_DIA, local_tz) if end_date else None
     )
 
     if cutoff_start is None and cutoff_end is None:
