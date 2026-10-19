@@ -2732,7 +2732,10 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `AcessoRestrito`, `CabecalhoMetricas`, `ResumoAtendimento`,
       `SecoesMetricas`; preserva o descarte de respostas fora de ordem por
       `requestIdRef`), além de `ProductCard`/`ProdutoDetalhePage`
-      (`productCardHelpers`, `useProduto`). Sem mudança de comportamento. No
+      (`productCardHelpers`, `useProduto`) e `app/agendamentos/page.tsx`
+      (`AgendamentosDeslogado`, `CabecalhoAgendamentos`, `ErroAgendamentos`,
+      `ListaVazia`, `AgendamentoCard`, `DialogoDesmarcar`; componente principal
+      de 245 para ~114 linhas, markup idêntico). Sem mudança de comportamento. No
       mesmo passo, `tsc --noEmit` voltou a passar limpo: `Tooltip.tsx`
       (`RefObject<HTMLElement | null>`) e mocks desatualizados em quatro
       testes. 714 testes Vitest passando.
