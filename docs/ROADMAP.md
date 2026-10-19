@@ -2745,6 +2745,14 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       (`RefObject<HTMLElement | null>`) e mocks desatualizados em quatro
       testes. 714 testes Vitest passando.
 
+- [x] `app/produtos/page.tsx` (achados `get_health`: método grande, 285
+      linhas, e complexo, CC 17) — estado e efeitos (debounce, categorias,
+      busca paginada com guarda `isMounted`) foram para
+      `useProdutosCatalogo.ts`; o markup virou `CatalogoHeader`,
+      `CatalogoConteudo` e `PaginacaoProdutos`, na mesma pasta. `ProdutosPage`
+      ficou só com o zoom e a composição. Markup e comportamento idênticos;
+      `tsc`, `eslint` e Vitest (28 testes das páginas de produtos) limpos.
+
 - [x] `ChatModal.tsx` (achado `get_health`: método grande, 134 linhas) —
       área de mensagens extraída para `components/chat/ChatMensagens.tsx`
       (banner de escalonamento, mensagens, boas-vindas e erro; `WELCOME_MESSAGE`
