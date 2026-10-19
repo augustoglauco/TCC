@@ -2810,6 +2810,12 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       para `CatalogStepBody.tsx`; o modal consome o hook como um único objeto.
       Comportamento idêntico; 14 testes do modal, `tsc`, `eslint` e `prettier`
       limpos.
+- [x] `app/conta/perfil/page.tsx` (achados `get_health`: 254 linhas e CC 18 em
+      `PerfilPage`) — busca de pedidos foi para `lib/hooks/useRecentOrders.ts`;
+      `OrderCard` e as seções (acesso restrito, cabeçalho, cartão do usuário,
+      painel admin, cartão do chat, pedidos) para `components/perfil/`. A página
+      ficou com a composição (38 linhas). Comportamento idêntico; 4 testes da
+      página, suíte completa (726), `tsc`, `eslint` e `prettier` limpos.
 
 - [x] `components/admin/RuntimeSettingsForm.tsx` (achados `get_health`: 295
       linhas em `RuntimeSettingsForm`, CC 16 em `handleSubmit`, CC 10 em
