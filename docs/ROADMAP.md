@@ -2744,6 +2744,9 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `useChatAcoes` (apagar histórico, encerrar, chamar atendente) e
       `useChatDropZone`, todos em `frontend/lib/hooks/`. Sem mudança de
       comportamento nem de API pública. 718 testes Vitest passando.
+      Segunda passada (achados residuais `ChatModal` 203 linhas/CCN 13):
+      `useChatFoco` (rolagem, salto inicial e devolução do foco),
+      `ChatModalTitulo` e `ChatErroAlerta`; o componente caiu para 186 linhas.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
