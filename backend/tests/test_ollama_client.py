@@ -618,3 +618,53 @@ async def test_describe_image_levanta_erro_em_falha_http():
 
     with pytest.raises(VisionModelIndisponivelError):
         await client.describe_image(b"fake-image-bytes", "descreva a imagem")
+
+
+def test_build_payload_so_inclui_options_definidas():
+    client = OllamaClient(
+        base_url="http://x", model="m", timeout_s=1.0, temperature=0.0, seed=0, top_k=None
+    )
+
+    payload = client._build_payload("oi", stream=False)
+
+    assert payload["options"] == {"temperature": 0.0, "seed": 0}
+    assert "think" not in payload
+
+
+def test_build_payload_sem_options_omite_chave():
+    client = OllamaClient(base_url="http://x", model="m", timeout_s=1.0, keep_alive=None)
+
+    payload = client._build_payload("oi", stream=True, think=False)
+
+    assert "options" not in payload
+    assert "keep_alive" not in payload
+    assert payload["think"] is False
+
+
+async def test_stream_final_sem_duracoes_devolve_none():
+    linhas = json.dumps({"response": "a", "done": True}) + "\n"
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, text=linhas))
+    client = OllamaClient(
+        base_url="http://x", model="m", timeout_s=1.0, client=httpx.AsyncClient(transport=transport)
+    )
+
+    chunks = [c async for c in client.generate_stream("oi")]
+
+    assert chunks[-1].done is True
+    assert chunks[-1].total_duration_ms is None
+    assert chunks[-1].load_duration_ms is None
+
+
+@pytest.mark.parametrize("metodo", ["preload", "unload", "get_loaded_status"])
+async def test_operacoes_best_effort_devolvem_none_em_falha_de_rede(metodo):
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("sem rede")
+
+    client = OllamaClient(
+        base_url="http://x",
+        model="m",
+        timeout_s=1.0,
+        client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+
+    assert await getattr(client, metodo)() is None

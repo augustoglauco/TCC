@@ -172,6 +172,11 @@ class OllamaClient:
     def seed(self, value: int | None) -> None:
         self._seed = value
 
+    @staticmethod
+    def _ns_para_ms(data: dict, campo: str) -> float | None:
+        """Campo de duração do Ollama (nanossegundos) em ms; `None` se ausente."""
+        return data[campo] / _NS_PER_MS if campo in data else None
+
     def _normalize_keep_alive(self, value: str | int | None) -> Any:
         if value is None:
             return None
@@ -184,19 +189,18 @@ class OllamaClient:
         payload: dict = {"model": self._model, "prompt": prompt, "stream": stream}
         if self._keep_alive is not None:
             payload["keep_alive"] = self._normalize_keep_alive(self._keep_alive)
-        options: dict = {}
-        if self._temperature is not None:
-            options["temperature"] = self._temperature
-        if self._num_ctx is not None:
-            options["num_ctx"] = self._num_ctx
-        if self._top_p is not None:
-            options["top_p"] = self._top_p
-        if self._top_k is not None:
-            options["top_k"] = self._top_k
-        if self._repeat_penalty is not None:
-            options["repeat_penalty"] = self._repeat_penalty
-        if self._seed is not None:
-            options["seed"] = self._seed
+        options = {
+            nome: valor
+            for nome, valor in (
+                ("temperature", self._temperature),
+                ("num_ctx", self._num_ctx),
+                ("top_p", self._top_p),
+                ("top_k", self._top_k),
+                ("repeat_penalty", self._repeat_penalty),
+                ("seed", self._seed),
+            )
+            if valor is not None
+        }
         if options:
             payload["options"] = options
         if think is not None:
@@ -217,7 +221,7 @@ class OllamaClient:
             )
             response.raise_for_status()
             return response.json()
-        except Exception:
+        except httpx.HTTPError, ValueError:
             return None
 
     async def unload(self) -> dict | None:
@@ -231,7 +235,7 @@ class OllamaClient:
             )
             response.raise_for_status()
             return response.json()
-        except Exception:
+        except httpx.HTTPError, ValueError:
             return None
 
     async def get_loaded_status(self) -> dict | None:
@@ -244,7 +248,7 @@ class OllamaClient:
                     if m.get("name") == self._model or m.get("model") == self._model:
                         return m
             return None
-        except Exception:
+        except httpx.HTTPError, ValueError:
             return None
 
     async def generate(self, prompt: str) -> LLMResponse:
@@ -271,17 +275,9 @@ class OllamaClient:
             prompt_tokens=data.get("prompt_eval_count"),
             completion_tokens=data.get("eval_count"),
             total_duration_ms=data.get("total_duration", 0) / _NS_PER_MS,
-            load_duration_ms=(
-                data["load_duration"] / _NS_PER_MS if "load_duration" in data else None
-            ),
-            prompt_eval_duration_ms=(
-                data["prompt_eval_duration"] / _NS_PER_MS
-                if "prompt_eval_duration" in data
-                else None
-            ),
-            eval_duration_ms=(
-                data["eval_duration"] / _NS_PER_MS if "eval_duration" in data else None
-            ),
+            load_duration_ms=self._ns_para_ms(data, "load_duration"),
+            prompt_eval_duration_ms=self._ns_para_ms(data, "prompt_eval_duration"),
+            eval_duration_ms=self._ns_para_ms(data, "eval_duration"),
             cost_prompt_usd=0.0,
             cost_completion_usd=0.0,
             estimated_cost_usd=0.0,
@@ -383,22 +379,10 @@ class OllamaClient:
                         done=True,
                         prompt_tokens=data.get("prompt_eval_count"),
                         completion_tokens=data.get("eval_count"),
-                        total_duration_ms=(
-                            data["total_duration"] / _NS_PER_MS
-                            if "total_duration" in data
-                            else None
-                        ),
-                        load_duration_ms=(
-                            data["load_duration"] / _NS_PER_MS if "load_duration" in data else None
-                        ),
-                        prompt_eval_duration_ms=(
-                            data["prompt_eval_duration"] / _NS_PER_MS
-                            if "prompt_eval_duration" in data
-                            else None
-                        ),
-                        eval_duration_ms=(
-                            data["eval_duration"] / _NS_PER_MS if "eval_duration" in data else None
-                        ),
+                        total_duration_ms=self._ns_para_ms(data, "total_duration"),
+                        load_duration_ms=self._ns_para_ms(data, "load_duration"),
+                        prompt_eval_duration_ms=self._ns_para_ms(data, "prompt_eval_duration"),
+                        eval_duration_ms=self._ns_para_ms(data, "eval_duration"),
                         cost_prompt_usd=0.0,
                         cost_completion_usd=0.0,
                         estimated_cost_usd=0.0,
