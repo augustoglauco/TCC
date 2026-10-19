@@ -2818,12 +2818,31 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       ficou só com a composição. Removido o bloco de breadcrumb comentado.
       Comportamento idêntico; 28 testes das páginas de produtos, `tsc`,
       `eslint` e `prettier` limpos.
+- [x] `components/admin/CollectionFormModal.tsx` (achados `get_health`: 293
+      linhas e CC 13 em `CollectionFormModal`; CC 14, 62 linhas e condição com 3
+      operadores em `handleSubmit`; exceção engolida) — os 21 `useState` viraram
+      um objeto de valores em `lib/hooks/useCollectionForm.ts` (estado, reset,
+      índices de payload, envio); a montagem do payload e as regras
+      (`montarPayload`, `chunkingInvalido`) foram para
+      `components/admin/collectionFormPayload.ts`; nome, finalidade e métrica
+      para `CollectionBasicFields.tsx`. A falha de ativação pós-criação, antes
+      silenciosa, agora faz `console.warn` (continua não crítica). Comportamento
+      idêntico; testes de `tests/components` (570), `tsc`, `eslint` e `prettier`
+      limpos.
 - [x] `app/conta/perfil/page.tsx` (achados `get_health`: 254 linhas e CC 18 em
       `PerfilPage`) — busca de pedidos foi para `lib/hooks/useRecentOrders.ts`;
       `OrderCard` e as seções (acesso restrito, cabeçalho, cartão do usuário,
       painel admin, cartão do chat, pedidos) para `components/perfil/`. A página
       ficou com a composição (38 linhas). Comportamento idêntico; 4 testes da
       página, suíte completa (726), `tsc`, `eslint` e `prettier` limpos.
+- [x] `app/admin/atendimento/page.tsx` (achados `get_health`: CC 37, 190 linhas
+      e bumpy road em `AdminAtendimentoPage`) — fila, chats, detalhes e os dois
+      pollings (5s/3s) foram para `lib/hooks/useAtendimentoDados.ts`; claim,
+      envio, finalizar e devolver à IA para `lib/hooks/useAtendimentoAcoes.ts`
+      (finalizar/devolver compartilham `encerrar`). Telas de carregamento e
+      acesso restrito viraram componentes no arquivo; a página ficou com a
+      composição (109 linhas). Comportamento idêntico; 5 testes da página,
+      `tsc`, `eslint` e `prettier` limpos.
 
 - [x] `components/admin/RuntimeSettingsForm.tsx` (achados `get_health`: 295
       linhas em `RuntimeSettingsForm`, CC 16 em `handleSubmit`, CC 10 em

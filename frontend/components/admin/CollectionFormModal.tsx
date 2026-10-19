@@ -1,36 +1,18 @@
 "use client";
 
-import { useState } from "react";
-
 import { Modal } from "@/components/ui/Modal";
-import { Tooltip } from "@/components/ui/Tooltip";
-import { RagApiError, activateCollection, createCollection } from "@/lib/api/rag";
-import { useAuthStore } from "@/lib/hooks/useAuthStore";
-import type {
-  CollectionCreatePayload,
-  CollectionPurpose,
-  PayloadIndex,
-  QuantizationType,
-  RagCollection,
-  TextIndexParams,
-} from "@/lib/types/rag";
+import { useCollectionForm } from "@/lib/hooks/useCollectionForm";
+import type { RagCollection } from "@/lib/types/rag";
+import {
+  CollectionDistanceField,
+  CollectionNameField,
+  CollectionPurposeField,
+} from "./CollectionBasicFields";
 import { CollectionChunkingSection } from "./CollectionChunkingSection";
-import { CollectionEmbeddingSection, CURATED_MODELS } from "./CollectionEmbeddingSection";
+import { CollectionEmbeddingSection } from "./CollectionEmbeddingSection";
 import { CollectionHnswSection } from "./CollectionHnswSection";
 import { CollectionPayloadIndexesSection } from "./CollectionPayloadIndexesSection";
 import { CollectionQuantizationSection } from "./CollectionQuantizationSection";
-
-const PAYLOAD_INDEXES_PADRAO: PayloadIndex[] = [
-  { field: "domain", schema_type: "keyword" },
-  { field: "document_id", schema_type: "keyword" },
-];
-
-const TEXT_PARAMS_PADRAO: TextIndexParams = {
-  tokenizer: "word",
-  min_token_len: null,
-  max_token_len: null,
-  lowercase: true,
-};
 
 export interface CollectionFormModalProps {
   open: boolean;
@@ -39,298 +21,90 @@ export interface CollectionFormModalProps {
 }
 
 export function CollectionFormModal({ open, onOpenChange, onCreated }: CollectionFormModalProps) {
-  const token = useAuthStore((s) => s.token);
-  const [name, setName] = useState("");
-  const [purpose, setPurpose] = useState<CollectionPurpose>("chat");
-  const [modelSelecionado, setModelSelecionado] = useState<string>(CURATED_MODELS[0].value);
-  const [modeloCustom, setModeloCustom] = useState("");
-  const [distanceMetric, setDistanceMetric] =
-    useState<CollectionCreatePayload["distance_metric"]>("cosine");
-  const [chunkSize, setChunkSize] = useState(800);
-  const [chunkOverlap, setChunkOverlap] = useState(100);
-  const [hnswM, setHnswM] = useState(16);
-  const [hnswEfConstruct, setHnswEfConstruct] = useState(100);
-  const [hnswFullScanThreshold, setHnswFullScanThreshold] = useState(10000);
-  const [hnswMaxIndexingThreads, setHnswMaxIndexingThreads] = useState(0);
-  const [hnswOnDisk, setHnswOnDisk] = useState(false);
-  const [hnswPayloadM, setHnswPayloadM] = useState("");
-  const [quantizationType, setQuantizationType] = useState<QuantizationType>("none");
-  const [scalarQuantile, setScalarQuantile] = useState(0.99);
-  const [scalarAlwaysRam, setScalarAlwaysRam] = useState(false);
-  const [productCompression, setProductCompression] = useState<"x4" | "x8" | "x16" | "x32" | "x64">(
-    "x16",
-  );
-  const [productAlwaysRam, setProductAlwaysRam] = useState(false);
-  const [binaryAlwaysRam, setBinaryAlwaysRam] = useState(false);
-  const [payloadIndexes, setPayloadIndexes] = useState<PayloadIndex[]>(PAYLOAD_INDEXES_PADRAO);
-  const [ativarAposCriar, setAtivarAposCriar] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const embeddingModel = modelSelecionado === "__custom__" ? modeloCustom : modelSelecionado;
-  const chunkingInvalido = chunkSize <= chunkOverlap;
-
-  function resetar() {
-    setName("");
-    setPurpose("chat");
-    setAtivarAposCriar(false);
-    setModelSelecionado(CURATED_MODELS[0].value);
-    setModeloCustom("");
-    setDistanceMetric("cosine");
-    setChunkSize(800);
-    setChunkOverlap(100);
-    setHnswM(16);
-    setHnswEfConstruct(100);
-    setHnswFullScanThreshold(10000);
-    setHnswMaxIndexingThreads(0);
-    setHnswOnDisk(false);
-    setHnswPayloadM("");
-    setQuantizationType("none");
-    setScalarQuantile(0.99);
-    setScalarAlwaysRam(false);
-    setProductCompression("x16");
-    setProductAlwaysRam(false);
-    setBinaryAlwaysRam(false);
-    setPayloadIndexes(PAYLOAD_INDEXES_PADRAO);
-    setError(null);
-  }
-
-  function atualizarPayloadIndex(indice: number, campo: Partial<PayloadIndex>) {
-    setPayloadIndexes((atual) =>
-      atual.map((item, i) => (i === indice ? { ...item, ...campo } : item)),
-    );
-  }
-
-  function removerPayloadIndex(indice: number) {
-    setPayloadIndexes((atual) => atual.filter((_, i) => i !== indice));
-  }
-
-  function adicionarPayloadIndex() {
-    setPayloadIndexes((atual) => [...atual, { field: "", schema_type: "keyword" }]);
-  }
+  const f = useCollectionForm(onCreated);
+  const v = f.valores;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmitting || chunkingInvalido || !embeddingModel || !token) return;
-
-    setIsSubmitting(true);
-    setError(null);
-
-    const payload: CollectionCreatePayload = {
-      name,
-      embedding_model: embeddingModel,
-      distance_metric: distanceMetric,
-      chunk_size: chunkSize,
-      chunk_overlap: chunkOverlap,
-      hnsw: {
-        m: hnswM,
-        ef_construct: hnswEfConstruct,
-        full_scan_threshold: hnswFullScanThreshold,
-        max_indexing_threads: hnswMaxIndexingThreads,
-        on_disk: hnswOnDisk,
-        payload_m: hnswPayloadM === "" ? null : Number(hnswPayloadM),
-      },
-      quantization: {
-        type: quantizationType,
-        scalar:
-          quantizationType === "scalar"
-            ? { quantile: scalarQuantile, always_ram: scalarAlwaysRam }
-            : null,
-        product:
-          quantizationType === "product"
-            ? { compression: productCompression, always_ram: productAlwaysRam }
-            : null,
-        binary: quantizationType === "binary" ? { always_ram: binaryAlwaysRam } : null,
-      },
-      payload_indexes: payloadIndexes
-        .filter((item) => item.field.trim() !== "")
-        .map((item) =>
-          item.schema_type === "text"
-            ? {
-                field: item.field,
-                schema_type: item.schema_type,
-                text_params: item.text_params ?? TEXT_PARAMS_PADRAO,
-              }
-            : { field: item.field, schema_type: item.schema_type },
-        ),
-      purpose,
-    };
-
-    try {
-      const collection = await createCollection(token, payload);
-      if (ativarAposCriar) {
-        try {
-          await activateCollection(token, collection.id);
-          collection.is_active = true;
-        } catch {
-          // Ativação não crítica pós-criação
-        }
-      }
-      onCreated(collection);
-      resetar();
-      onOpenChange(false);
-    } catch (err) {
-      setError(err instanceof RagApiError ? err.message : "Erro inesperado ao criar a collection.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    if (await f.enviar()) onOpenChange(false);
   }
 
   return (
     <Modal
       open={open}
       onOpenChange={(novoOpen) => {
-        if (!novoOpen) resetar();
+        if (!novoOpen) f.resetar();
         onOpenChange(novoOpen);
       }}
       title="Nova collection"
       size="3xl"
     >
       <form onSubmit={handleSubmit} className="max-h-[70vh] space-y-6 overflow-y-auto pr-2">
-        <div>
-          <div className="flex items-center">
-            <label htmlFor="collection-name" className="text-sm font-medium text-gray-900">
-              Nome
-            </label>
-            <Tooltip content="Nome único identificador da collection no Qdrant (ex.: vendas_docs, suporte_manuais)." />
-          </div>
-          <input
-            id="collection-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-          />
-        </div>
-
-        <div>
-          <div className="flex items-center">
-            <label htmlFor="collection-purpose" className="text-sm font-medium text-gray-900">
-              Finalidade
-            </label>
-            <Tooltip content="Cada canal possui sua própria collection ativa independente. Chat (pública) para o assistente aberto; MCP B2B para integração com revendedores; Admin para o painel seguro." />
-          </div>
-          <select
-            id="collection-purpose"
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value as CollectionPurpose)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-          >
-            <option value="chat">Chat (pública)</option>
-            <option value="mcp_b2b">Restrita ao MCP B2B</option>
-            <option value="admin">Exclusiva do Admin</option>
-          </select>
-          {purpose === "mcp_b2b" && (
-            <p className="mt-1 text-xs text-amber-700">
-              Conteúdo restrito aos revendedores parceiros; consultado pelo canal MCP B2B e pelo
-              Admin no modo admin. Pode ser definida como a collection ativa para MCP B2B.
-            </p>
-          )}
-          {purpose === "admin" && (
-            <p className="mt-1 text-xs text-amber-700">
-              Conteúdo exclusivo do painel de administração — só o Admin o vê quando autenticado.
-              Pode ser definida como a collection ativa para Admin.
-            </p>
-          )}
-          {purpose === "chat" && (
-            <p className="mt-1 text-xs text-blue-700">
-              Conteúdo público consultado pelo assistente do chat aberto aos clientes. Pode ser
-              definida como a collection ativa para o Chat.
-            </p>
-          )}
-
-          <div className="mt-2.5 flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-2.5">
-            <input
-              id="ativar-apos-criar"
-              type="checkbox"
-              checked={ativarAposCriar}
-              onChange={(e) => setAtivarAposCriar(e.target.checked)}
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-            />
-            <label
-              htmlFor="ativar-apos-criar"
-              className="text-xs font-semibold text-slate-800 cursor-pointer"
-            >
-              Tornar esta collection a ativa imediata para{" "}
-              {purpose === "mcp_b2b" ? "MCP B2B" : purpose === "admin" ? "Admin" : "Chat"}
-            </label>
-          </div>
-        </div>
-
-        <CollectionEmbeddingSection
-          modelSelecionado={modelSelecionado}
-          modeloCustom={modeloCustom}
-          onModelSelecionado={setModelSelecionado}
-          onModeloCustom={setModeloCustom}
+        <CollectionNameField name={v.name} onName={(x) => f.set("name", x)} />
+        <CollectionPurposeField
+          purpose={v.purpose}
+          ativarAposCriar={v.ativarAposCriar}
+          onPurpose={(x) => f.set("purpose", x)}
+          onAtivarAposCriar={(x) => f.set("ativarAposCriar", x)}
         />
 
-        <div>
-          <div className="flex items-center">
-            <label htmlFor="distance-metric" className="text-sm font-medium text-gray-900">
-              Métrica de distância
-            </label>
-            <Tooltip content="Métrica matemática para calcular a similaridade entre vetores. Cosine (cosseno) é ideal para busca semântica em texto." />
-          </div>
-          <select
-            id="distance-metric"
-            value={distanceMetric}
-            onChange={(e) =>
-              setDistanceMetric(e.target.value as CollectionCreatePayload["distance_metric"])
-            }
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-          >
-            <option value="cosine">Cosine</option>
-            <option value="euclid">Euclid</option>
-            <option value="dot">Dot</option>
-            <option value="manhattan">Manhattan</option>
-          </select>
-        </div>
+        <CollectionEmbeddingSection
+          modelSelecionado={v.modelSelecionado}
+          modeloCustom={v.modeloCustom}
+          onModelSelecionado={(x) => f.set("modelSelecionado", x)}
+          onModeloCustom={(x) => f.set("modeloCustom", x)}
+        />
+
+        <CollectionDistanceField
+          value={v.distanceMetric}
+          onChange={(x) => f.set("distanceMetric", x)}
+        />
 
         <CollectionChunkingSection
-          chunkSize={chunkSize}
-          chunkOverlap={chunkOverlap}
-          onChunkSize={setChunkSize}
-          onChunkOverlap={setChunkOverlap}
+          chunkSize={v.chunkSize}
+          chunkOverlap={v.chunkOverlap}
+          onChunkSize={(x) => f.set("chunkSize", x)}
+          onChunkOverlap={(x) => f.set("chunkOverlap", x)}
         />
 
         <CollectionHnswSection
-          m={hnswM}
-          efConstruct={hnswEfConstruct}
-          fullScanThreshold={hnswFullScanThreshold}
-          maxIndexingThreads={hnswMaxIndexingThreads}
-          payloadM={hnswPayloadM}
-          onDisk={hnswOnDisk}
-          onM={setHnswM}
-          onEfConstruct={setHnswEfConstruct}
-          onFullScanThreshold={setHnswFullScanThreshold}
-          onMaxIndexingThreads={setHnswMaxIndexingThreads}
-          onPayloadM={setHnswPayloadM}
-          onOnDisk={setHnswOnDisk}
+          m={v.hnswM}
+          efConstruct={v.hnswEfConstruct}
+          fullScanThreshold={v.hnswFullScanThreshold}
+          maxIndexingThreads={v.hnswMaxIndexingThreads}
+          payloadM={v.hnswPayloadM}
+          onDisk={v.hnswOnDisk}
+          onM={(x) => f.set("hnswM", x)}
+          onEfConstruct={(x) => f.set("hnswEfConstruct", x)}
+          onFullScanThreshold={(x) => f.set("hnswFullScanThreshold", x)}
+          onMaxIndexingThreads={(x) => f.set("hnswMaxIndexingThreads", x)}
+          onPayloadM={(x) => f.set("hnswPayloadM", x)}
+          onOnDisk={(x) => f.set("hnswOnDisk", x)}
         />
 
         <CollectionQuantizationSection
-          quantizationType={quantizationType}
-          scalarQuantile={scalarQuantile}
-          scalarAlwaysRam={scalarAlwaysRam}
-          productCompression={productCompression}
-          productAlwaysRam={productAlwaysRam}
-          binaryAlwaysRam={binaryAlwaysRam}
-          onType={setQuantizationType}
-          onScalarQuantile={setScalarQuantile}
-          onScalarAlwaysRam={setScalarAlwaysRam}
-          onProductCompression={setProductCompression}
-          onProductAlwaysRam={setProductAlwaysRam}
-          onBinaryAlwaysRam={setBinaryAlwaysRam}
+          quantizationType={v.quantizationType}
+          scalarQuantile={v.scalarQuantile}
+          scalarAlwaysRam={v.scalarAlwaysRam}
+          productCompression={v.productCompression}
+          productAlwaysRam={v.productAlwaysRam}
+          binaryAlwaysRam={v.binaryAlwaysRam}
+          onType={(x) => f.set("quantizationType", x)}
+          onScalarQuantile={(x) => f.set("scalarQuantile", x)}
+          onScalarAlwaysRam={(x) => f.set("scalarAlwaysRam", x)}
+          onProductCompression={(x) => f.set("productCompression", x)}
+          onProductAlwaysRam={(x) => f.set("productAlwaysRam", x)}
+          onBinaryAlwaysRam={(x) => f.set("binaryAlwaysRam", x)}
         />
 
         <CollectionPayloadIndexesSection
-          indexes={payloadIndexes}
-          onUpdate={atualizarPayloadIndex}
-          onRemove={removerPayloadIndex}
-          onAdd={adicionarPayloadIndex}
+          indexes={v.payloadIndexes}
+          onUpdate={f.atualizarPayloadIndex}
+          onRemove={f.removerPayloadIndex}
+          onAdd={f.adicionarPayloadIndex}
         />
 
-        {error && <p className="rounded-md bg-red-50 px-4 py-3 text-red-800">{error}</p>}
+        {f.error && <p className="rounded-md bg-red-50 px-4 py-3 text-red-800">{f.error}</p>}
 
         <div className="flex justify-end gap-3 border-t border-gray-200 pt-4">
           <button
@@ -342,10 +116,10 @@ export function CollectionFormModal({ open, onOpenChange, onCreated }: Collectio
           </button>
           <button
             type="submit"
-            disabled={isSubmitting || chunkingInvalido || !name || !embeddingModel}
+            disabled={f.isSubmitting || f.chunkingInvalido || !v.name || !f.embeddingModel}
             className="rounded-md bg-gray-900 px-4 py-2 text-sm text-white disabled:opacity-50"
           >
-            {isSubmitting ? "Criando..." : "Criar collection"}
+            {f.isSubmitting ? "Criando..." : "Criar collection"}
           </button>
         </div>
       </form>
