@@ -2810,6 +2810,14 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       para `CatalogStepBody.tsx`; o modal consome o hook como um único objeto.
       Comportamento idêntico; 14 testes do modal, `tsc`, `eslint` e `prettier`
       limpos.
+- [x] `app/admin/produtos/page.tsx` (achados `get_health`: 243 linhas e CC 19
+      em `AdminProdutosPage`) — estado, carga, exclusão e modais foram para
+      `lib/hooks/useAdminProdutos.ts` (junto com `calcularMetricas`,
+      `contarPorCategoria` e `CATEGORIAS_PADRAO`); cabeçalho, cartões de métricas
+      e filtros para `components/admin/products/ProdutosPageParts.tsx`. A página
+      ficou só com a composição. Removido o bloco de breadcrumb comentado.
+      Comportamento idêntico; 28 testes das páginas de produtos, `tsc`,
+      `eslint` e `prettier` limpos.
 - [x] `app/conta/perfil/page.tsx` (achados `get_health`: 254 linhas e CC 18 em
       `PerfilPage`) — busca de pedidos foi para `lib/hooks/useRecentOrders.ts`;
       `OrderCard` e as seções (acesso restrito, cabeçalho, cartão do usuário,
