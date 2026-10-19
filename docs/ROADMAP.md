@@ -2814,6 +2814,14 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       só com a composição das seções. Comportamento idêntico; Vitest (13
       testes), `tsc`, `eslint` e `prettier` limpos.
 
+- [x] `components/admin/DocumentsTable.tsx` (achados `get_health`:
+      `DocumentsTable` com 224 linhas e CC 24) — filtros, exclusão e estado
+      dos modais foram para `lib/hooks/useDocumentsTable.ts` (o filtro virou
+      a função `passaNoFiltro`, com early returns); tabela e estado vazio
+      para `DocumentsTableRows.tsx`; o modal de exclusão virou
+      `ExcluirDocumentoModal`. Comportamento idêntico; Vitest (10 testes),
+      `tsc`, `eslint` e `prettier` limpos.
+
 - [x] `components/admin/PullModelForm.tsx` (achados `get_health`:
       `PullModelForm` com 220 linhas e CC 15, `retomarSeNecessario` CC 9) —
       download, polling e retomada foram para `lib/hooks/usePullModel.ts`
