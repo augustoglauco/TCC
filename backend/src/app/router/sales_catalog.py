@@ -387,6 +387,20 @@ def _parse_extraction(raw_text: str) -> VendaSlots:
     return VendaSlots(**parsed)
 
 
+def _id_se_valido(valor: int | None, ids_validos: set[int]) -> int | None:
+    return valor if valor in ids_validos else None
+
+
+def _normalizar_categoria(
+    categoria: str | None, produto_id: int | None, categorias: list[str]
+) -> str | None:
+    """Casa a categoria do LLM com a lista real; produto específico tem precedência."""
+    if categoria is None or produto_id is not None:
+        return None
+    categorias_norm = {normalize(c): c for c in categorias}
+    return categorias_norm.get(normalize(categoria))
+
+
 def _validar_slots(
     slots: VendaSlots,
     candidatos: list[CandidatoProduto],
@@ -395,14 +409,9 @@ def _validar_slots(
     """Pós-processamento do JSON do LLM: descarta IDs inventados, normaliza
     categoria e aplica precedência produto > categoria > listar_tudo."""
     ids_validos = {c.id for c in candidatos}
-    if slots.produto_id is not None and slots.produto_id not in ids_validos:
-        slots.produto_id = None
-    if slots.produto_relacionado_id is not None and slots.produto_relacionado_id not in ids_validos:
-        slots.produto_relacionado_id = None
-    if slots.categoria is not None:
-        categorias_norm = {normalize(c): c for c in categorias}
-        categoria_real = categorias_norm.get(normalize(slots.categoria))
-        slots.categoria = None if slots.produto_id is not None else categoria_real
+    slots.produto_id = _id_se_valido(slots.produto_id, ids_validos)
+    slots.produto_relacionado_id = _id_se_valido(slots.produto_relacionado_id, ids_validos)
+    slots.categoria = _normalizar_categoria(slots.categoria, slots.produto_id, categorias)
     if slots.produto_id is not None or slots.categoria is not None:
         slots.listar_tudo = False
     return slots
@@ -590,6 +599,24 @@ async def _buscar_por_criterio(
     return result.scalar_one_or_none()
 
 
+def _criterios_reserva(
+    conversation_id: str | None, user_email: str | None, pedido_id: str | None
+) -> list[Any]:
+    """Critérios de busca na ordem de prioridade pedido_id -> conversation_id
+    -> user_email, só os que foram informados (pedido_id inválido é ignorado)."""
+    criterios: list[Any] = []
+    if pedido_id:
+        try:
+            criterios.append(Pedido.id == UUID(pedido_id))
+        except ValueError, TypeError:
+            pass
+    if conversation_id:
+        criterios.append(Pedido.conversation_id == conversation_id)
+    if user_email:
+        criterios.append(Pedido.user_email == user_email)
+    return criterios
+
+
 async def buscar_reserva_ativa(
     session: AsyncSession,
     conversation_id: str | None = None,
@@ -614,28 +641,10 @@ async def buscar_reserva_ativa(
         .limit(1)
     )
 
-    if pedido_id:
-        try:
-            uuid_obj = UUID(pedido_id)
-        except ValueError, TypeError:
-            uuid_obj = None
-        if uuid_obj is not None:
-            pedido = await _buscar_por_criterio(session, base_stmt, Pedido.id == uuid_obj)
-            if pedido is not None:
-                return pedido
-
-    if conversation_id:
-        pedido = await _buscar_por_criterio(
-            session, base_stmt, Pedido.conversation_id == conversation_id
-        )
+    for criterio in _criterios_reserva(conversation_id, user_email, pedido_id):
+        pedido = await _buscar_por_criterio(session, base_stmt, criterio)
         if pedido is not None:
             return pedido
-
-    if user_email:
-        pedido = await _buscar_por_criterio(session, base_stmt, Pedido.user_email == user_email)
-        if pedido is not None:
-            return pedido
-
     return None
 
 
