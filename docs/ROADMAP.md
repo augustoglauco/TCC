@@ -2753,6 +2753,13 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       ficou só com o zoom e a composição. Markup e comportamento idênticos;
       `tsc`, `eslint` e Vitest (28 testes das páginas de produtos) limpos.
 
+- [x] `app/agendamentos/page.tsx` (2ª passada; achados `get_health`: CC 19 e
+      91 linhas em `AgendamentosPage`) — estado, loader, efeito e cancelamento
+      foram para `useAgendamentos.ts`; o banner e a escolha
+      carregando/erro/vazio/lista viraram `BannerAgendamento` e
+      `ListaAgendamentos`. Markup e comportamento idênticos; `tsc`, `eslint` e
+      Vitest (8 testes das páginas de agendamentos) limpos.
+
 - [x] `ChatModal.tsx` (achado `get_health`: método grande, 134 linhas) —
       área de mensagens extraída para `components/chat/ChatMensagens.tsx`
       (banner de escalonamento, mensagens, boas-vindas e erro; `WELCOME_MESSAGE`

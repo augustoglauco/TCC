@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { cancelarAgendamento, fetchMeusAgendamentos } from "@/lib/api/agendamentos";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { useChatStore } from "@/lib/hooks/useChatStore";
 import type { Agendamento } from "@/lib/types/agendamentos";
+import { useAgendamentos } from "./useAgendamentos";
 
 function formatarDataHora(dataIso: string): string {
   try {
@@ -226,115 +225,80 @@ function DialogoDesmarcar({
   );
 }
 
+function BannerAgendamento() {
+  return (
+    <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900 flex items-start gap-3">
+      <span className="text-xl">💡</span>
+      <p>
+        Precisa de um novo horário? O agendamento é realizado automaticamente pelo nosso{" "}
+        <strong className="font-semibold">Assistente Virtual no Chat</strong>. Ele consulta os
+        horários disponíveis em tempo real na agenda corporativa e confirma na hora!
+      </p>
+    </div>
+  );
+}
+
+function ListaAgendamentos({
+  agendamentos,
+  loading,
+  error,
+  onRetry,
+  onSolicitar,
+  onDesmarcar,
+}: {
+  agendamentos: Agendamento[];
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+  onSolicitar: () => void;
+  onDesmarcar: (item: Agendamento) => void;
+}) {
+  if (loading) {
+    return (
+      <div className="py-12 text-center text-slate-500">
+        <p className="text-sm">Carregando seus agendamentos...</p>
+      </div>
+    );
+  }
+  if (error) return <ErroAgendamentos message={error} onRetry={onRetry} />;
+  if (agendamentos.length === 0) return <ListaVazia onSolicitar={onSolicitar} />;
+  return (
+    <div className="space-y-4">
+      {agendamentos.map((item) => (
+        <AgendamentoCard key={item.id} item={item} onDesmarcar={onDesmarcar} />
+      ))}
+    </div>
+  );
+}
+
 export default function AgendamentosPage() {
   const user = useAuthStore((state) => state.user);
   const openVisitChat = useChatStore((state) => state.openVisitChat);
-
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
-  // Comeca `true`: o efeito carrega assim que `user.email` existe.
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [agendamentoParaCancelar, setAgendamentoParaCancelar] = useState<Agendamento | null>(null);
-  const [cancelando, setCancelando] = useState(false);
-
-  // Nao toca estado antes do primeiro `await`: este loader roda a partir de um
-  // efeito, onde setState sincrono dispara render em cascata
-  // (react-hooks/set-state-in-effect). Os caminhos interativos ligam o spinner
-  // no proprio handler.
-  const carregarAgendamentos = async (email: string) => {
-    try {
-      const dados = await fetchMeusAgendamentos(email);
-      setAgendamentos(dados);
-      setError(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao carregar agendamentos.";
-      setError(msg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user?.email) {
-      // Falso positivo: `carregarAgendamentos` so toca estado depois de `await fetchMeusAgendamentos`
-      // (funcao `async` importada), logo nao ha setState sincrono aqui. A regra
-      // nao resolve a assincronia da chamada e assume o pior caso.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      void carregarAgendamentos(user.email);
-    }
-  }, [user?.email]);
-
-  const handleConfirmarCancelamento = async () => {
-    if (!agendamentoParaCancelar || !user?.email) return;
-    setCancelando(true);
-    try {
-      const atualizado = await cancelarAgendamento(agendamentoParaCancelar.id, user.email);
-      setAgendamentos((prev) =>
-        prev.map((item) => (item.id === atualizado.id ? { ...item, status: "cancelado" } : item)),
-      );
-      setAgendamentoParaCancelar(null);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao desmarcar agendamento.";
-      alert(msg);
-    } finally {
-      setCancelando(false);
-    }
-  };
-
-  const recarregar = () => {
-    if (!user?.email) return;
-    setLoading(true);
-    setError(null);
-    void carregarAgendamentos(user.email);
-  };
+  const ag = useAgendamentos(user?.email);
 
   if (!user) {
     return <AgendamentosDeslogado onAgendar={() => openVisitChat(null)} />;
   }
 
   const agendarPeloChat = () => openVisitChat(user);
-  const semErro = !loading && !error;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12 space-y-8">
       <CabecalhoAgendamentos email={user.email} onAgendar={agendarPeloChat} />
-
-      {/* Banner explicativo */}
-      <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-emerald-900 flex items-start gap-3">
-        <span className="text-xl">💡</span>
-        <p>
-          Precisa de um novo horário? O agendamento é realizado automaticamente pelo nosso{" "}
-          <strong className="font-semibold">Assistente Virtual no Chat</strong>. Ele consulta os
-          horários disponíveis em tempo real na agenda corporativa e confirma na hora!
-        </p>
-      </div>
-
-      {/* Estados de Carregamento e Erro */}
-      {loading && (
-        <div className="py-12 text-center text-slate-500">
-          <p className="text-sm">Carregando seus agendamentos...</p>
-        </div>
-      )}
-
-      {error && <ErroAgendamentos message={error} onRetry={recarregar} />}
-
-      {/* Lista de Agendamentos */}
-      {semErro && agendamentos.length === 0 && <ListaVazia onSolicitar={agendarPeloChat} />}
-
-      {semErro && agendamentos.length > 0 && (
-        <div className="space-y-4">
-          {agendamentos.map((item) => (
-            <AgendamentoCard key={item.id} item={item} onDesmarcar={setAgendamentoParaCancelar} />
-          ))}
-        </div>
-      )}
-
-      {/* Diálogo de Confirmação para Desmarcar */}
-      {agendamentoParaCancelar && (
+      <BannerAgendamento />
+      <ListaAgendamentos
+        agendamentos={ag.agendamentos}
+        loading={ag.loading}
+        error={ag.error}
+        onRetry={ag.recarregar}
+        onSolicitar={agendarPeloChat}
+        onDesmarcar={ag.setAgendamentoParaCancelar}
+      />
+      {ag.agendamentoParaCancelar && (
         <DialogoDesmarcar
-          cancelando={cancelando}
-          onManter={() => setAgendamentoParaCancelar(null)}
-          onConfirmar={handleConfirmarCancelamento}
+          cancelando={ag.cancelando}
+          onManter={() => ag.setAgendamentoParaCancelar(null)}
+          onConfirmar={ag.confirmarCancelamento}
         />
       )}
     </div>
