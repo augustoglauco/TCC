@@ -2965,3 +2965,14 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       atravessa `$(...)`). Comportamento idêntico, `bash -n` limpo; não foi
       rodado de ponta a ponta (sobe Docker/GPU/push) — validar no próximo
       `./testar.sh`.
+- [x] `app/admin/ingestao/page.tsx` (achados `get_health`: `AbaEnviarDocumento`
+      141 linhas/CC 11, `IngestaoDocumentosPage` 119 linhas/CC 12,
+      `AbaConfiguracao` 90 linhas, `RagSearchConfigSection` 77 linhas) — a
+      página ficou só com as tabs; `AbaEnviarDocumento.tsx` (+ `DomainSelect`,
+      `BotaoEnviar`, `IngestaoAlertas`) usa `useEnviarDocumento.ts`;
+      `AbaConfiguracao.tsx` foi dividida em `ColecoesAtivasSection` e
+      `PerfisColecoesSection`, e a regra de busca foi para
+      `useRagSearchConfig.ts`; `IngestaoCabecalho.tsx` (chips por `ChipAtiva`),
+      `useColecoesRag.ts` e `colecoesAtivas.ts` (antes triplicado no
+      arquivo). Comportamento idêntico; Vitest (26 testes), `tsc`, `eslint` e
+      `prettier` limpos.
