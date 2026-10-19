@@ -2785,6 +2785,13 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       composição. Comportamento idêntico; Vitest (7 testes da página), `tsc`,
       `eslint` e `prettier` limpos.
 
+- [x] `app/pedidos/historico/page.tsx` (achados `get_health`: CC 12 e 69
+      linhas em `HistoricoPedidosContent`) — email alvo, carga dos pedidos e
+      efeito foram para `app/pedidos/historico/useHistoricoPedidos.ts`; o
+      cabeçalho virou `CabecalhoHistorico`. O componente ficou só com a guarda
+      de login e a composição. Comportamento idêntico; Vitest (3 testes da
+      página), `tsc`, `eslint` e `prettier` limpos.
+
 - [x] `app/admin/agendamentos/page.tsx` (achados `get_health`: CC 21, 158
       linhas e bumpy road em `AdminAgendamentosPage`) — estado, cargas,
       cancelamento e efeito foram para `useAdminAgendamentos`; o estado do

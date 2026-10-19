@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { fetchOrders, Order } from "@/lib/api/orders";
+import { Order } from "@/lib/api/orders";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
+import { useHistoricoPedidos } from "./useHistoricoPedidos";
 
 type Usuario = NonNullable<ReturnType<typeof useAuthStore.getState>["user"]>;
 
@@ -197,79 +197,40 @@ function ListaPedidos({
   );
 }
 
+function CabecalhoHistorico() {
+  return (
+    <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          Histórico de Pedidos
+        </h1>
+        <p className="mt-2 text-sm text-slate-600">
+          Consulte seus pedidos realizados pelo site, simulações B2B ou reservadas via assistente no
+          Chat.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Link
+          href="/pedidos"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
+        >
+          <span>🛒 Ir para o Carrinho</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function HistoricoPedidosContent() {
-  const searchParams = useSearchParams();
-  const targetEmailParam = searchParams.get("email");
-
-  const currentUser = useAuthStore((state) => state.user);
-  const isAdmin = currentUser?.perfil?.toLowerCase() === "admin";
-
-  const targetEmail =
-    isAdmin && targetEmailParam ? targetEmailParam.trim() : (currentUser?.email ?? "");
-  const isAdminInspectingCustomer =
-    isAdmin && Boolean(targetEmailParam) && targetEmailParam !== currentUser?.email;
-
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Nao toca estado antes do primeiro `await`: este loader roda a partir de um
-  // efeito, onde setState sincrono dispara render em cascata
-  // (react-hooks/set-state-in-effect). Os caminhos interativos ligam o spinner
-  // no proprio handler.
-  const loadOrders = async (userEmail: string) => {
-    try {
-      const res = await fetchOrders({
-        userEmail: userEmail.trim(),
-        limit: 50,
-      });
-      setOrders(res.items);
-      setError(null);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erro ao carregar histórico de pedidos.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Sem email alvo nao existe carga em curso: derivar substitui o
-  // `else { setIsLoading(false) }` que rodava dentro do efeito.
-  const carregando = isLoading && Boolean(targetEmail);
-
-  useEffect(() => {
-    if (!targetEmail) return;
-    // Falso positivo: `loadOrders` so toca estado depois de `await fetchOrders`
-    // (funcao `async` importada), logo nao ha setState sincrono aqui. A regra
-    // nao resolve a assincronia da chamada e assume o pior caso.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void loadOrders(targetEmail);
-  }, [targetEmail]);
+  const { currentUser, targetEmail, isAdminInspectingCustomer, orders, carregando, error } =
+    useHistoricoPedidos();
 
   if (!currentUser) return <HistoricoRestrito />;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12 space-y-8">
-      {/* Cabeçalho */}
-      <div className="border-b border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            Histórico de Pedidos
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Consulte seus pedidos realizados pelo site, simulações B2B ou reservadas via assistente
-            no Chat.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link
-            href="/pedidos"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
-          >
-            <span>🛒 Ir para o Carrinho</span>
-          </Link>
-        </div>
-      </div>
+      <CabecalhoHistorico />
 
       {/* Banner de Inspeção Administrativa ou Identificação de Usuário */}
       {isAdminInspectingCustomer ? (
