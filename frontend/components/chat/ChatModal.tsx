@@ -3,12 +3,10 @@
 import { useState } from "react";
 
 import { ChatDragOverlay } from "@/components/chat/ChatDragOverlay";
-import { ChatErroAlerta } from "@/components/chat/ChatErroAlerta";
 import { ChatInputArea } from "@/components/chat/ChatInputArea";
+import { ChatMensagens, WELCOME_MESSAGE } from "@/components/chat/ChatMensagens";
 import { ChatMetricsBar } from "@/components/chat/ChatMetricsBar";
 import { ChatModalTitulo } from "@/components/chat/ChatModalTitulo";
-import EscalonamentoBanner from "@/components/chat/EscalonamentoBanner";
-import MessageBubble from "@/components/chat/MessageBubble";
 import { Modal } from "@/components/ui/Modal";
 import { useChatAcoes } from "@/lib/hooks/useChatAcoes";
 import { useChatDropZone } from "@/lib/hooks/useChatDropZone";
@@ -18,19 +16,7 @@ import { useChatStore } from "@/lib/hooks/useChatStore";
 import { useConversaHumanaPolling } from "@/lib/hooks/useConversaHumanaPolling";
 import { exportMetricsToCsv, exportMetricsToJson } from "@/lib/utils/exportMetrics";
 
-/**
- * Mensagem de boas-vindas mostrada com a conversa vazia. Convida a informar o
- * e-mail junto com a pergunta (opcional): com ele o backend identifica o
- * cadastro e as compras do visitante (R10, classificação do usuário).
- */
-export const WELCOME_MESSAGE =
-  "Olá! 👋 Sou o assistente virtual da empresa. Posso ajudar com produtos e " +
-  "orçamentos, suporte técnico, atendimento (nota fiscal, trocas) e agendamento " +
-  "de visitas.\n\n" +
-  "Se quiser, informe seu e-mail junto com a sua pergunta. Com ele identificamos " +
-  "o seu cadastro e o seu histórico de compras, o que facilita o atendimento e o " +
-  "nosso relacionamento com você. É opcional: você pode conversar normalmente " +
-  "sem informá-lo. Pode escrever ou gravar um áudio.";
+export { WELCOME_MESSAGE };
 
 export interface ChatModalProps {
   open: boolean;
@@ -81,6 +67,12 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
   const { messagesEndRef, inputRef, focarCaixaMensagem, focarCaixaMensagemSePonteiroPreciso } =
     useChatFoco({ open, controlsDisabled, messages, error, pendingInput, setInput });
 
+  // Executa a ação e devolve o foco à caixa de mensagem (só com ponteiro preciso).
+  const comFoco = (acao: () => void) => () => {
+    acao();
+    focarCaixaMensagemSePonteiroPreciso();
+  };
+
   const hasAssistantMessages = messages.some((m) => m.role === "assistant");
 
   return (
@@ -100,49 +92,19 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
         <ChatDragOverlay visible={isDraggingOver} />
         {hasAssistantMessages && (
           <ChatMetricsBar
-            onExportCsv={() => {
-              exportMetricsToCsv(messages);
-              focarCaixaMensagemSePonteiroPreciso();
-            }}
-            onExportJson={() => {
-              exportMetricsToJson(messages);
-              focarCaixaMensagemSePonteiroPreciso();
-            }}
+            onExportCsv={comFoco(() => exportMetricsToCsv(messages))}
+            onExportJson={comFoco(() => exportMetricsToJson(messages))}
           />
         )}
 
-        <div
-          aria-live="polite"
-          className="flex-1 space-y-3 sm:space-y-4 overflow-y-auto p-2.5 sm:p-4"
-        >
-          <EscalonamentoBanner
-            escalonamento={escalonamento}
-            onDismiss={() => {
-              setEscalonamento(null);
-              focarCaixaMensagemSePonteiroPreciso();
-            }}
-          />
-          {messages.length === 0 && (
-            // Boas-vindas só de interface (R10): não entra no store nem no
-            // banco, e some quando chega a primeira mensagem ou o histórico.
-            <MessageBubble
-              message={{ id: "boas-vindas", role: "assistant", text: WELCOME_MESSAGE }}
-            />
-          )}
-          {messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
-          ))}
-          {error && (
-            <ChatErroAlerta
-              texto={error.text}
-              onRetry={() => {
-                handleRetry();
-                focarCaixaMensagemSePonteiroPreciso();
-              }}
-            />
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+        <ChatMensagens
+          messages={messages}
+          escalonamento={escalonamento}
+          erroTexto={error ? error.text : null}
+          messagesEndRef={messagesEndRef}
+          onDismissEscalonamento={comFoco(() => setEscalonamento(null))}
+          onRetry={comFoco(handleRetry)}
+        />
 
         <ChatInputArea
           input={input}
@@ -166,18 +128,9 @@ export function ChatModal({ open, onOpenChange }: ChatModalProps) {
           }}
           onRecordingComplete={(audioBase64) => void submitAudio(audioBase64)}
           onRecordingStateChange={setIsRecording}
-          onSolicitarAtendente={() => {
-            void handleSolicitarAtendente();
-            focarCaixaMensagemSePonteiroPreciso();
-          }}
-          onEncerrar={() => {
-            void handleCloseConversation();
-            focarCaixaMensagemSePonteiroPreciso();
-          }}
-          onLimparHistorico={() => {
-            void handleClearHistory();
-            focarCaixaMensagemSePonteiroPreciso();
-          }}
+          onSolicitarAtendente={comFoco(() => void handleSolicitarAtendente())}
+          onEncerrar={comFoco(() => void handleCloseConversation())}
+          onLimparHistorico={comFoco(() => void handleClearHistory())}
           inputRef={inputRef}
         />
       </div>

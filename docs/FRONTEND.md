@@ -66,7 +66,7 @@ para visitantes não autenticados (mantendo o contexto apenas durante a
 sessão de navegação na aba) ou persistido no `localStorage` vinculado à conta
 do usuário logado (`tcc_chat_user_conversation_id_{email}`). Com a conversa
 vazia, o modal mostra uma bolha de boas-vindas do assistente
-(`WELCOME_MESSAGE` em `ChatModal.tsx`): apresenta o que o assistente faz e
+(`WELCOME_MESSAGE`, definida em `ChatMensagens.tsx` e reexportada por `ChatModal.tsx`): apresenta o que o assistente faz e
 convida, de forma opcional, a informar o e-mail ou fazer login para
 identificar o cadastro e as compras (R10). A bolha é só de
 interface: não entra no store nem no banco e some com a primeira mensagem ou

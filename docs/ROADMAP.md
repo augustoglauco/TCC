@@ -2745,6 +2745,14 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       (`RefObject<HTMLElement | null>`) e mocks desatualizados em quatro
       testes. 714 testes Vitest passando.
 
+- [x] `ChatModal.tsx` (achado `get_health`: método grande, 134 linhas) —
+      área de mensagens extraída para `components/chat/ChatMensagens.tsx`
+      (banner de escalonamento, mensagens, boas-vindas e erro; `WELCOME_MESSAGE`
+      passou para lá e segue reexportada por `ChatModal.tsx`) e os handlers que
+      repetiam "executa + devolve foco" viraram o helper local `comFoco`.
+      `ChatModal` de 134 para ~85 linhas, markup e comportamento idênticos.
+      Vitest (570 testes de componentes), `tsc` e `eslint` limpos.
+
 - [x] `ChatModal.tsx` decomposto em hooks (2026-10-18, achados do `get_health`:
       `ChatModal` 453 linhas/CCN 19, `submitMessage`, `submitAudio`) —
       `useChatEnvio` (envio de texto/áudio com os callbacks de streaming
