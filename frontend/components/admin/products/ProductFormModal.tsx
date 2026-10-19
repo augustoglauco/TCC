@@ -1,19 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  createAdminProduct,
-  updateAdminProduct,
-  uploadAdminProductImage,
-} from "@/lib/api/adminProducts";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
-import { mensagemDeErro, useProductFormCampos } from "@/lib/hooks/useProductFormCampos";
+import { useProductFormCampos } from "@/lib/hooks/useProductFormCampos";
 import { useProductFormExtras } from "@/lib/hooks/useProductFormExtras";
+import { useProductFormSubmit } from "@/lib/hooks/useProductFormSubmit";
 import type { AdminProduct } from "@/lib/types/adminProducts";
-import { ProductFormGeralTab } from "./ProductFormGeralTab";
-import { ProductFormEstoqueTab } from "./ProductFormEstoqueTab";
-import { ProductFormDescontosTab } from "./ProductFormDescontosTab";
-import { ProductFormCompatibilidadesTab } from "./ProductFormCompatibilidadesTab";
+import { ProductFormPainel } from "./ProductFormPainel";
 import { ProductFormTabs, type ActiveTab } from "./ProductFormTabs";
 
 interface ProductFormModalProps {
@@ -62,7 +55,6 @@ export default function ProductFormModal({
 }: ProductFormModalProps) {
   const token = useAuthStore((s) => s.token);
   const [activeTab, setActiveTab] = useState<ActiveTab>("geral");
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const campos = useProductFormCampos({ token, produtoParaEditar, onSuccess, setError });
@@ -100,47 +92,14 @@ export default function ProductFormModal({
   ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!campos.nome.trim()) {
-      setError("O nome do produto é obrigatório.");
-      return;
-    }
-    const precoNum = parseFloat(campos.preco);
-    if (isNaN(precoNum) || precoNum < 0) {
-      setError("Informe um preço de venda válido.");
-      return;
-    }
-    if (!token) return;
-
-    setSaving(true);
-    setError(null);
-    try {
-      const payload: Partial<AdminProduct> = {
-        nome: campos.nome.trim(),
-        categoria: campos.categoria.trim() || "Geral",
-        preco: precoNum,
-        preco_base_fornecedor: campos.precoBaseFornecedor
-          ? parseFloat(campos.precoBaseFornecedor)
-          : null,
-        dias_alerta_estoque: campos.diasAlertaEstoque
-          ? parseInt(campos.diasAlertaEstoque, 10)
-          : null,
-        descricao: campos.descricao.trim(),
-        especificacoes_tecnicas: campos.especificacoesTecnicas.trim() || null,
-      };
-      const produtoSalvo = produtoParaEditar
-        ? await updateAdminProduct(token, produtoParaEditar.id, payload)
-        : await createAdminProduct(token, payload);
-      if (campos.imagemFile) await uploadAdminProductImage(token, produtoSalvo.id, campos.imagemFile);
-      onSuccess();
-      onClose();
-    } catch (err) {
-      setError(mensagemDeErro(err, "Erro ao salvar produto"));
-    } finally {
-      setSaving(false);
-    }
-  };
+  const { saving, handleSubmit } = useProductFormSubmit({
+    token,
+    produtoParaEditar,
+    campos,
+    onSuccess,
+    onClose,
+    setError,
+  });
 
   if (!isOpen) return null;
 
@@ -165,71 +124,16 @@ export default function ProductFormModal({
           </div>
         )}
 
-        {(activeTab === "geral" || !produtoParaEditar) && (
-          <ProductFormGeralTab
-            produtoParaEditar={produtoParaEditar}
-            nome={campos.nome}
-            categoria={campos.categoria}
-            preco={campos.preco}
-            precoBaseFornecedor={campos.precoBaseFornecedor}
-            diasAlertaEstoque={campos.diasAlertaEstoque}
-            descricao={campos.descricao}
-            especificacoesTecnicas={campos.especificacoesTecnicas}
-            imagemPreview={campos.imagemPreview}
-            imagens={campos.imagens}
-            deletingImageId={campos.deletingImageId}
-            saving={saving}
-            onNome={campos.setNome}
-            onCategoria={campos.setCategoria}
-            onPreco={campos.setPreco}
-            onPrecoBase={campos.setPrecoBaseFornecedor}
-            onDiasAlerta={campos.setDiasAlertaEstoque}
-            onDescricao={campos.setDescricao}
-            onEspecificacoes={campos.setEspecificacoesTecnicas}
-            onImageChange={campos.handleImageChange}
-            onRemoverImagem={campos.handleRemoverImagemExistente}
-            onClose={onClose}
-            onSubmit={handleSubmit}
-          />
-        )}
-
-        {activeTab === "estoque" && produtoParaEditar && (
-          <ProductFormEstoqueTab
-            estoques={extras.estoques}
-            cdNome={extras.cdNome}
-            cdQtd={extras.cdQtd}
-            updatingStock={extras.updatingStock}
-            onCdNome={extras.setCdNome}
-            onCdQtd={extras.setCdQtd}
-            onSalvar={extras.handleSalvarEstoque}
-          />
-        )}
-
-        {activeTab === "descontos" && produtoParaEditar && (
-          <ProductFormDescontosTab
-            descontos={extras.descontosVolume}
-            descQtdMin={extras.descQtdMin}
-            descPercentual={extras.descPercentual}
-            updatingDiscount={extras.updatingDiscount}
-            onQtdMin={extras.setDescQtdMin}
-            onPercentual={extras.setDescPercentual}
-            onAdicionar={extras.handleAdicionarDesconto}
-            onRemover={extras.handleRemoverDesconto}
-          />
-        )}
-
-        {activeTab === "compatibilidades" && produtoParaEditar && (
-          <ProductFormCompatibilidadesTab
-            produtoId={produtoParaEditar.id}
-            compatividades={extras.compatividades}
-            compativelSelectedId={extras.compativelSelectedId}
-            updatingCompatibility={extras.updatingCompatibility}
-            allProducts={allProducts}
-            onSelectCompativel={extras.setCompativelSelectedId}
-            onAdicionar={extras.handleAdicionarCompatibilidade}
-            onRemover={extras.handleRemoverCompatibilidade}
-          />
-        )}
+        <ProductFormPainel
+          activeTab={activeTab}
+          produtoParaEditar={produtoParaEditar}
+          allProducts={allProducts}
+          campos={campos}
+          extras={extras}
+          saving={saving}
+          onClose={onClose}
+          onSubmit={handleSubmit}
+        />
       </div>
     </div>
   );
