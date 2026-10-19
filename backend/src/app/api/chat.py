@@ -1192,6 +1192,48 @@ async def _stream_mensagem(
         yield chunk
 
 
+_HEADERS_SSE = {"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+
+
+async def _preprocessar_entrada(
+    payload: ChatMessageRequest,
+    conversation_id: str,
+    stt_client: SttClient,
+    app_state,
+) -> tuple[_AudioPreprocessado, _ImagemPreprocessada]:
+    """Áudio → texto e imagem → intenção/OCR; 422 se não sobrou nada para responder."""
+    audio_prep = await _preprocessar_audio(payload.message, payload.audio, stt_client)
+    img_prep = await _preprocessar_imagem(
+        payload.image,
+        payload.image_intent,
+        audio_prep.effective_message,
+        conversation_id,
+        payload.user_email,
+        app_state,
+    )
+    if not img_prep.effective_message and not img_prep.is_identificacao_imagem:
+        raise HTTPException(
+            status_code=422,
+            detail="Não foi possível entender o áudio. Tente novamente ou digite sua mensagem.",
+        )
+    return audio_prep, img_prep
+
+
+async def _responder_atendimento_humano(
+    conversa_db: Conversa,
+    conversation_id: str,
+    effective_message: str | None,
+    app_state,
+) -> StreamingResponse:
+    """Grava a mensagem do cliente e devolve o stream do aviso de atendimento humano."""
+    await _gravar_mensagem_cliente_segura(app_state, conversation_id, effective_message)
+    return StreamingResponse(
+        _stream_atendimento_humano(conversa_db, conversation_id, app_state),
+        media_type="text/event-stream",
+        headers={**_HEADERS_SSE, "Connection": "keep-alive"},
+    )
+
+
 @router.post("/messages")
 async def send_message(
     payload: ChatMessageRequest,
@@ -1215,34 +1257,15 @@ async def send_message(
     conversation_id_ctx.set(conversation_id)
     app_state = request.app.state
 
-    audio_prep = await _preprocessar_audio(payload.message, payload.audio, stt_client)
-    img_prep = await _preprocessar_imagem(
-        payload.image,
-        payload.image_intent,
-        audio_prep.effective_message,
-        conversation_id,
-        payload.user_email,
-        app_state,
+    audio_prep, img_prep = await _preprocessar_entrada(
+        payload, conversation_id, stt_client, app_state
     )
     effective_message = img_prep.effective_message
 
-    if not effective_message and not img_prep.is_identificacao_imagem:
-        raise HTTPException(
-            status_code=422,
-            detail="Não foi possível entender o áudio. Tente novamente ou digite sua mensagem.",
-        )
-
     conversa_db = await _verificar_atendimento_humano(effective_message, conversation_id, app_state)
     if conversa_db is not None:
-        await _gravar_mensagem_cliente_segura(app_state, conversation_id, effective_message)
-        return StreamingResponse(
-            _stream_atendimento_humano(conversa_db, conversation_id, app_state),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no",
-            },
+        return await _responder_atendimento_humano(
+            conversa_db, conversation_id, effective_message, app_state
         )
 
     contexto = await _carregar_contexto_seguro(app_state, conversation_id)
@@ -1280,5 +1303,5 @@ async def send_message(
             app_state=app_state,
         ),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        headers=_HEADERS_SSE,
     )
