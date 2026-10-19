@@ -2760,6 +2760,15 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `ListaAgendamentos`. Markup e comportamento idênticos; `tsc`, `eslint` e
       Vitest (8 testes das páginas de agendamentos) limpos.
 
+- [x] `components/admin/products/ProductFormModal.tsx` (achados `get_health`:
+      `ProductFormModal` com 319 linhas e CC 71) — os campos gerais e as
+      imagens foram para `lib/hooks/useProductFormCampos.ts`; estoque por CD,
+      descontos e compatibilidades (estado + handlers + `executarAcao`) para
+      `lib/hooks/useProductFormExtras.ts`; o cabeçalho virou
+      `ProductFormHeader`. O modal ficou com o efeito de carga/reset, o submit
+      e a composição das abas. Comportamento idêntico; Vitest (570 testes de
+      componentes), `tsc` e `eslint` limpos.
+
 - [x] `components/admin/products/ProductListTable.tsx` (achados `get_health`:
       CC 24 em `ProductTableRow`, CC 20 e 112 linhas em `StockDetailBadge`,
       condicional com 3 operadores) — `StockDetailBadge` foi para arquivo
