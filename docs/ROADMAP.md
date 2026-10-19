@@ -2814,6 +2814,16 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       só com a composição das seções. Comportamento idêntico; Vitest (13
       testes), `tsc`, `eslint` e `prettier` limpos.
 
+- [x] `components/admin/PullModelForm.tsx` (achados `get_health`:
+      `PullModelForm` com 220 linhas e CC 15, `retomarSeNecessario` CC 9) —
+      download, polling e retomada foram para `lib/hooks/usePullModel.ts`
+      (`aplicarStatus`, `tratarFalhaDePolling` e `encerrarPull` separam os
+      ramos); o preview `hf.co/...` para `lib/hooks/useHfPreview.ts`; campo,
+      progresso e erro para `PullModelParts.tsx`. O componente ficou na
+      composição. Os dois `catch` de `localStorage` seguem sem tratamento de
+      propósito (falso positivo: o download não depende dele). Comportamento
+      idêntico; Vitest (13 testes), `tsc` e `eslint` limpos.
+
 - [x] `app/pedidos/historico/page.tsx` (achados `get_health`: CC 12 e 69
       linhas em `HistoricoPedidosContent`) — email alvo, carga dos pedidos e
       efeito foram para `app/pedidos/historico/useHistoricoPedidos.ts`; o
