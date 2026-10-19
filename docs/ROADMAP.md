@@ -2843,6 +2843,17 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       acesso restrito viraram componentes no arquivo; a página ficou com a
       composição (109 linhas). Comportamento idêntico; 5 testes da página,
       `tsc`, `eslint` e `prettier` limpos.
+- [x] `backend/src/app/api/chat.py` (achado `get_health`: 66 linhas em
+      `send_message`) — pré-processamento de áudio/imagem + 422 foi para
+      `_preprocessar_entrada` e o ramo de atendimento humano para
+      `_responder_atendimento_humano`; os cabeçalhos SSE viraram `_HEADERS_SSE`.
+      Comportamento idêntico (mesma ordem, mesmos cabeçalhos); `test_chat_api.py`
+      (49), `ruff check` e `ruff format` limpos. Não alterados de propósito:
+      os 13 `except Exception` são a fronteira "_seguro" (falha de memória/BD
+      não derruba o chat; falso positivo) e as 4 listas longas de parâmetros
+      (`_resolver_*`, `_finalizar_troca`, `_preprocessar_imagem`) são sinais de
+      design de baixo impacto cuja troca por objeto de parâmetros só geraria
+      churn num arquivo bug magnet.
 
 - [x] `components/admin/RuntimeSettingsForm.tsx` (achados `get_health`: 295
       linhas em `RuntimeSettingsForm`, CC 16 em `handleSubmit`, CC 10 em
@@ -2976,3 +2987,15 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `useColecoesRag.ts` e `colecoesAtivas.ts` (antes triplicado no
       arquivo). Comportamento idêntico; Vitest (26 testes), `tsc`, `eslint` e
       `prettier` limpos.
+- [x] `backend/src/app/router/orchestrator.py` (achados `get_health`: CC 10 em
+      `_formatar_dados_catalogo_vendas`, lista de 21 parâmetros em
+      `_handle_llm_generation`, `handle_message` com 91 linhas) — o bloco de
+      estoque por CD e a cotação viraram `_linhas_estoque_por_cd` e
+      `_linhas_cotacao`; `_handle_llm_generation` passou a receber
+      `_ContextoConversa` e `_LimitesRag` (dataclasses privadas, 21 → 12
+      parâmetros; `intent_router_provider` e `user_email` eram ignorados) e
+      ganhou `_logar_tentativa_injecao`; o escalonamento por tom de
+      `handle_message` foi para `_escalar_conversa`. Assinatura pública de
+      `handle_message` e de `_build_prompt` intactas (chat.py e evals as
+      chamam); `except Exception` mantidos (bordas de degradação). Pytest
+      (1225 passados), `ruff check` e `ruff format` limpos.

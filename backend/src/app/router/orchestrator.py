@@ -396,6 +396,39 @@ def _truncar_ficha(texto: str) -> str:
     return texto[:_FICHA_MAX_CHARS].rstrip() + "…"
 
 
+def _linhas_estoque_por_cd(dados: DadosCatalogoVendas) -> list[str]:
+    if not dados.estoque_por_cd:
+        return []
+    # Correção de 2026-09-29: sem o detalhe por CD aqui, "quanto tem no
+    # CD-SP?"/"estoque por centro de distribuição?" não tinha como ser
+    # respondido — o LLM só via o total e o repetia como se fosse de um
+    # único centro.
+    detalhamento = ", ".join(
+        f"{item.centro_distribuicao}: {item.quantidade} unidade(s)" for item in dados.estoque_por_cd
+    )
+    return [f"- Estoque por centro de distribuição: {detalhamento}"]
+
+
+def _linhas_cotacao(dados: DadosCatalogoVendas) -> list[str]:
+    if dados.cotacao is None:
+        return []
+    preco_unitario, percentual, subtotal = dados.cotacao
+    linha_cotacao = f"- Cotação para {dados.quantidade} unidade(s): R$ {subtotal}"
+    if percentual > Decimal("0"):
+        linha_cotacao += f" ({percentual}% de desconto aplicado sobre R$ {preco_unitario}/unidade)"
+    # Achado de 2026-10-13: com o estoque "CD-RJ: 2 unidades" no mesmo
+    # bloco, o modelo local trocou a quantidade pedida (1) pelo estoque
+    # do CD (2) no texto, enquanto o card mostrava 1. Como o prompt final
+    # não leva o histórico, esta linha é a única fonte da quantidade.
+    linha_quantidade = (
+        f"- Quantidade do pedido do cliente: {dados.quantidade} unidade(s). "
+        "Esta é a quantidade que ele quer comprar; os números de estoque "
+        "(total ou por centro de distribuição) são só disponibilidade e "
+        "nunca a quantidade do pedido."
+    )
+    return [linha_cotacao, linha_quantidade]
+
+
 def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
     # O cabeçalho diz ao LLM que estes dados valem mais que os trechos do RAG:
     # sem ele, no teste local de 2026-09-25 (cenário V8, "E se eu levar 5
@@ -428,34 +461,8 @@ def _formatar_dados_catalogo_vendas(dados: DadosCatalogoVendas) -> str:
     if dados.peso_kg is not None:
         linhas.append(f"- Peso: {dados.peso_kg} kg")
     linhas.append(f"- Estoque disponível: {dados.estoque_total} unidade(s)")
-    if dados.estoque_por_cd:
-        # Correção de 2026-09-29: sem o detalhe por CD aqui, "quanto tem no
-        # CD-SP?"/"estoque por centro de distribuição?" não tinha como ser
-        # respondido — o LLM só via o total e o repetia como se fosse de um
-        # único centro.
-        detalhamento = ", ".join(
-            f"{item.centro_distribuicao}: {item.quantidade} unidade(s)"
-            for item in dados.estoque_por_cd
-        )
-        linhas.append(f"- Estoque por centro de distribuição: {detalhamento}")
-    if dados.cotacao is not None:
-        preco_unitario, percentual, subtotal = dados.cotacao
-        linha_cotacao = f"- Cotação para {dados.quantidade} unidade(s): R$ {subtotal}"
-        if percentual > Decimal("0"):
-            linha_cotacao += (
-                f" ({percentual}% de desconto aplicado sobre R$ {preco_unitario}/unidade)"
-            )
-        linhas.append(linha_cotacao)
-        # Achado de 2026-10-13: com o estoque "CD-RJ: 2 unidades" no mesmo
-        # bloco, o modelo local trocou a quantidade pedida (1) pelo estoque
-        # do CD (2) no texto, enquanto o card mostrava 1. Como o prompt final
-        # não leva o histórico, esta linha é a única fonte da quantidade.
-        linhas.append(
-            f"- Quantidade do pedido do cliente: {dados.quantidade} unidade(s). "
-            "Esta é a quantidade que ele quer comprar; os números de estoque "
-            "(total ou por centro de distribuição) são só disponibilidade e "
-            "nunca a quantidade do pedido."
-        )
+    linhas.extend(_linhas_estoque_por_cd(dados))
+    linhas.extend(_linhas_cotacao(dados))
     if dados.compativel is not None:
         compat_texto = "sim" if dados.compativel else "não"
         linhas.append(f"- Compatível com {dados.produto_relacionado_nome}: {compat_texto}")
@@ -1535,6 +1542,40 @@ async def _construir_decisao(
     return decisao
 
 
+@dataclass(frozen=True)
+class _ContextoConversa:
+    """Contexto da conversa que vai para o prompt final."""
+
+    resumo_conversa: str | None
+    pedir_email_pos_venda: bool
+    ultima_troca: tuple[str, str] | None
+    dados_cliente: str | None
+    contexto_conversa_anterior: str | None
+    usuario_autenticado: bool
+
+
+@dataclass(frozen=True)
+class _LimitesRag:
+    top_k: int
+    score_threshold: float
+    download_threshold: float
+
+
+def _logar_tentativa_injecao(message: str, conversation_id: str) -> None:
+    if not detectar_tentativa_injecao(message):
+        return
+    logger.warning(
+        "tentativa_injecao_detectada",
+        extra={
+            "router": {
+                "event": "tentativa_injecao_detectada",
+                "conversation_id": conversation_id,
+                "trecho": message[:200],
+            }
+        },
+    )
+
+
 async def _handle_llm_generation(
     message: str,
     recent_messages: list[str],
@@ -1545,18 +1586,9 @@ async def _handle_llm_generation(
     sales_catalog_client: SalesCatalogClient | None,
     db_sessionmaker: async_sessionmaker[AsyncSession] | None,
     conversation_id: str,
-    intent_router_provider: str,
-    resumo_conversa: str | None,
-    pedir_email_pos_venda: bool,
-    ultima_troca: tuple[str, str] | None,
-    dados_cliente: str | None,
-    contexto_conversa_anterior: str | None,
-    usuario_autenticado: bool,
-    rag_top_k: int,
-    rag_score_threshold: float,
-    rag_download_threshold: float,
-    user_email: str | None,
     complexity_strategy: str,
+    contexto: _ContextoConversa,
+    limites_rag: _LimitesRag,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision]:
     """RAG + roteamento local/externo + geração LLM + RouterDecision final."""
     rag = await _buscar_rag_e_rotear(
@@ -1566,35 +1598,25 @@ async def _handle_llm_generation(
         rag_client,
         sales_catalog_client,
         local_client,
-        ultima_troca,
-        dados_cliente,
-        rag_top_k,
-        rag_score_threshold,
+        contexto.ultima_troca,
+        contexto.dados_cliente,
+        limites_rag.top_k,
+        limites_rag.score_threshold,
     )
 
-    if detectar_tentativa_injecao(message):
-        logger.warning(
-            "tentativa_injecao_detectada",
-            extra={
-                "router": {
-                    "event": "tentativa_injecao_detectada",
-                    "conversation_id": conversation_id,
-                    "trecho": message[:200],
-                }
-            },
-        )
+    _logar_tentativa_injecao(message, conversation_id)
 
     prompt = _build_prompt(
         message,
         rag.documentos,
         classification.domain,
         dados_catalogo=_formatar_bloco_catalogo_vendas(rag.dados_catalogo_vendas),
-        resumo_conversa=resumo_conversa,
-        pedir_email_pos_venda=pedir_email_pos_venda,
-        ultima_troca=ultima_troca,
-        dados_cliente=dados_cliente,
-        contexto_conversa_anterior=contexto_conversa_anterior,
-        usuario_autenticado=usuario_autenticado,
+        resumo_conversa=contexto.resumo_conversa,
+        pedir_email_pos_venda=contexto.pedir_email_pos_venda,
+        ultima_troca=contexto.ultima_troca,
+        dados_cliente=contexto.dados_cliente,
+        contexto_conversa_anterior=contexto.contexto_conversa_anterior,
+        usuario_autenticado=contexto.usuario_autenticado,
     )
 
     client = local_client if rag.backend_escolhido == "local" else external_client
@@ -1619,7 +1641,7 @@ async def _handle_llm_generation(
         client=client,
         resposta_completa=resposta_completa,
         db_sessionmaker=db_sessionmaker,
-        rag_download_threshold=rag_download_threshold,
+        rag_download_threshold=limites_rag.download_threshold,
         conversation_id=conversation_id,
     )
     yield decisao
@@ -1631,6 +1653,15 @@ def _deve_escalar_tom(
     conversation_id: str,
 ) -> bool:
     return tone_monitor_enabled and tone_result.escalate and not ja_escalada(conversation_id)
+
+
+def _escalar_conversa(conversation_id: str, tone_result: ToneResult) -> EscalonamentoEvent:
+    marcar_escalada(conversation_id)
+    return EscalonamentoEvent(
+        motivo=tone_result.motivo,
+        confianca=tone_result.confidence,
+        provider_efetivo=tone_result.provider_efetivo,
+    )
 
 
 def _agendamento_ativo(
@@ -1717,12 +1748,7 @@ async def handle_message(  # noqa: PLR0913
     )
 
     if _deve_escalar_tom(tone_monitor_enabled, tone_result, conversation_id):
-        marcar_escalada(conversation_id)
-        yield EscalonamentoEvent(
-            motivo=tone_result.motivo,
-            confianca=tone_result.confidence,
-            provider_efetivo=tone_result.provider_efetivo,
-        )
+        yield _escalar_conversa(conversation_id, tone_result)
 
     concluido = False
     async for evento in _executar_handlers_curtos(
@@ -1782,18 +1808,20 @@ async def handle_message(  # noqa: PLR0913
             sales_catalog_client=sales_catalog_client,
             db_sessionmaker=db_sessionmaker,
             conversation_id=conversation_id,
-            intent_router_provider=intent_router_provider,
-            resumo_conversa=resumo_conversa,
-            pedir_email_pos_venda=pedir_email_pos_venda,
-            ultima_troca=ultima_troca,
-            dados_cliente=dados_cliente,
-            contexto_conversa_anterior=contexto_conversa_anterior,
-            usuario_autenticado=usuario_autenticado,
-            rag_top_k=rag_top_k,
-            rag_score_threshold=rag_score_threshold,
-            rag_download_threshold=rag_download_threshold,
-            user_email=user_email,
             complexity_strategy=complexity_strategy,
+            contexto=_ContextoConversa(
+                resumo_conversa=resumo_conversa,
+                pedir_email_pos_venda=pedir_email_pos_venda,
+                ultima_troca=ultima_troca,
+                dados_cliente=dados_cliente,
+                contexto_conversa_anterior=contexto_conversa_anterior,
+                usuario_autenticado=usuario_autenticado,
+            ),
+            limites_rag=_LimitesRag(
+                top_k=rag_top_k,
+                score_threshold=rag_score_threshold,
+                download_threshold=rag_download_threshold,
+            ),
         )
     async for evento in geracao:
         yield evento
