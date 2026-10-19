@@ -2785,6 +2785,15 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       composição. Comportamento idêntico; Vitest (7 testes da página), `tsc`,
       `eslint` e `prettier` limpos.
 
+- [x] `components/admin/RuntimeSettingsForm.tsx` (achados `get_health`: 295
+      linhas em `RuntimeSettingsForm`, CC 16 em `handleSubmit`, CC 10 em
+      `carregar`) — estado, carga, envio e ações de VRAM foram para
+      `lib/hooks/useRuntimeSettingsForm.ts` (campos agrupados num objeto, com
+      `camposDeSettings` e `montarPayload` puras); banner, rodapé e tela de
+      carregamento viraram componentes no próprio arquivo. O formulário ficou
+      só com a composição das seções. Comportamento idêntico; Vitest (13
+      testes), `tsc`, `eslint` e `prettier` limpos.
+
 - [x] `app/pedidos/historico/page.tsx` (achados `get_health`: CC 12 e 69
       linhas em `HistoricoPedidosContent`) — email alvo, carga dos pedidos e
       efeito foram para `app/pedidos/historico/useHistoricoPedidos.ts`; o
