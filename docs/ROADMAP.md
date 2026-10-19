@@ -2891,3 +2891,12 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
   e Central /admin/atendimento foi implementada em 2026-10-05).
 - Reagendamento/cancelamento de visita e checagem de disponibilidade em
   múltiplas agendas.
+
+- [x] `components/admin/CollectionsTable.tsx` (achados `get_health`: 217
+      linhas e CC 12 em `CollectionsTable`) — estado, contagens/filtro por
+      finalidade e ações de ativar/excluir (com `executar` comum de
+      try/catch) foram para `lib/hooks/useCollectionsTable.ts`; a linha da
+      tabela (badge de finalidade por mapa, célula de nome, célula de ações)
+      para `CollectionRow.tsx`; o modal de exclusão virou `ModalExclusao` no
+      próprio arquivo. Comportamento idêntico; Vitest (9 testes), `tsc`,
+      `eslint` e `prettier` limpos.
