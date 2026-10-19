@@ -1112,6 +1112,86 @@ async def _stream_atendimento_humano(conversa_db: Conversa, conversation_id: str
     )
 
 
+@dataclass
+class _ClientesChat:
+    """Clientes/serviços injetados via `Depends` em `send_message` e usados pelo stream."""
+
+    local_client: LLMClient
+    external_client: LLMClient
+    rag_client: RAGClient
+    clip_store: ClipImageStore
+    clip_embedder: ClipEmbedder
+    calendar_client: CalendarClient
+    scheduling_config: SchedulingConfig
+    sales_catalog_client: SalesCatalogClient
+
+
+async def _stream_mensagem(
+    *,
+    conversation_id: str,
+    transcribed_message: str | None,
+    img_prep: _ImagemPreprocessada,
+    payload_image: str | None,
+    effective_message: str | None,
+    clientes: _ClientesChat,
+    config: _ConfigRoteador,
+    contexto,
+    cliente: _ContextoCliente,
+    app_state,
+):
+    """Gerador SSE de `send_message`: escolhe o fluxo (imagem, resposta fixa ou LLM)."""
+    conversation_id_ctx.set(conversation_id)
+    yield _sse("conversation", {"conversation_id": conversation_id})
+    if transcribed_message is not None:
+        yield _sse("transcription", {"transcribed_message": transcribed_message})
+
+    # Mensagem que é só o e-mail: resposta fixa, sem LLM.
+    so_email = (
+        not img_prep.is_identificacao_imagem
+        and bool(effective_message)
+        and e_mensagem_so_de_email(effective_message)
+    )
+    if img_prep.is_identificacao_imagem:
+        fluxo = _stream_identificacao_imagem(
+            identificacao_image_bytes=img_prep.identificacao_image_bytes,
+            effective_message=effective_message,
+            clip_store=clientes.clip_store,
+            clip_embedder=clientes.clip_embedder,
+            external_client=clientes.external_client,
+            rag_client=clientes.rag_client,
+            app_state=app_state,
+            recent_messages=contexto.mensagens_recentes,
+            sales_catalog_client=clientes.sales_catalog_client,
+            conversation_id=conversation_id,
+            local_client=clientes.local_client,
+        )
+    elif so_email:
+        fluxo = _stream_resposta_fixa_email(
+            effective_message=effective_message,
+            conversation_id=conversation_id,
+            local_client=clientes.local_client,
+            app_state=app_state,
+        )
+    else:
+        fluxo = _stream_llm(
+            comprovante_bytes=_decodificar_comprovante(payload_image, img_prep.imagem_e_documento),
+            effective_message=effective_message,
+            local_client=clientes.local_client,
+            external_client=clientes.external_client,
+            rag_client=clientes.rag_client,
+            config=config,
+            conversation_id=conversation_id,
+            calendar_client=clientes.calendar_client,
+            scheduling_config=clientes.scheduling_config,
+            sales_catalog_client=clientes.sales_catalog_client,
+            contexto=contexto,
+            cliente=cliente,
+            app_state=app_state,
+        )
+    async for chunk in fluxo:
+        yield chunk
+
+
 @router.post("/messages")
 async def send_message(
     payload: ChatMessageRequest,
@@ -1172,68 +1252,33 @@ async def send_message(
     if cliente.is_admin:
         rag_client = rag_client_admin
 
-    # Mensagem que é só o e-mail: resposta fixa, sem LLM.
-    so_email = (
-        not img_prep.is_identificacao_imagem
-        and bool(effective_message)
-        and e_mensagem_so_de_email(effective_message)
-    )
-    transcribed_message = audio_prep.transcribed_message
-
-    async def event_stream():
-        conversation_id_ctx.set(conversation_id)
-        yield _sse("conversation", {"conversation_id": conversation_id})
-        if transcribed_message is not None:
-            yield _sse("transcription", {"transcribed_message": transcribed_message})
-        if img_prep.is_identificacao_imagem:
-            fluxo = _stream_identificacao_imagem(
-                identificacao_image_bytes=img_prep.identificacao_image_bytes,
-                effective_message=effective_message,
+    return StreamingResponse(
+        _stream_mensagem(
+            conversation_id=conversation_id,
+            transcribed_message=audio_prep.transcribed_message,
+            img_prep=img_prep,
+            payload_image=payload.image,
+            effective_message=effective_message,
+            clientes=_ClientesChat(
+                local_client=local_client,
+                external_client=external_client,
+                rag_client=rag_client,
                 clip_store=clip_store,
                 clip_embedder=clip_embedder,
-                external_client=external_client,
-                rag_client=rag_client,
-                app_state=app_state,
-                recent_messages=contexto.mensagens_recentes,
-                sales_catalog_client=sales_catalog_client,
-                conversation_id=conversation_id,
-                local_client=local_client,
-            )
-        elif so_email:
-            fluxo = _stream_resposta_fixa_email(
-                effective_message=effective_message,
-                conversation_id=conversation_id,
-                local_client=local_client,
-                app_state=app_state,
-            )
-        else:
-            fluxo = _stream_llm(
-                comprovante_bytes=_decodificar_comprovante(
-                    payload.image, img_prep.imagem_e_documento
-                ),
-                effective_message=effective_message,
-                local_client=local_client,
-                external_client=external_client,
-                rag_client=rag_client,
-                config=_ConfigRoteador(
-                    complexity_strategy=complexity_strategy,
-                    intent_router_provider=intent_router_provider,
-                    tone_monitor_enabled=tone_monitor_enabled,
-                    tone_monitor_provider=tone_monitor_provider,
-                ),
-                conversation_id=conversation_id,
                 calendar_client=calendar_client,
                 scheduling_config=scheduling_config,
                 sales_catalog_client=sales_catalog_client,
-                contexto=contexto,
-                cliente=cliente,
-                app_state=app_state,
-            )
-        async for chunk in fluxo:
-            yield chunk
-
-    return StreamingResponse(
-        event_stream(),
+            ),
+            config=_ConfigRoteador(
+                complexity_strategy=complexity_strategy,
+                intent_router_provider=intent_router_provider,
+                tone_monitor_enabled=tone_monitor_enabled,
+                tone_monitor_provider=tone_monitor_provider,
+            ),
+            contexto=contexto,
+            cliente=cliente,
+            app_state=app_state,
+        ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
