@@ -69,6 +69,70 @@ def _to_response(collection, document_count: int) -> CollectionResponse:
     )
 
 
+_DETALHE_REGISTRO_INDISPONIVEL = (
+    "Serviço de registro de collections temporariamente indisponível, tente novamente."
+)
+_DETALHE_RAG_INDISPONIVEL = "Serviço de RAG temporariamente indisponível, tente novamente."
+
+
+def _registro_indisponivel(exc: SQLAlchemyError) -> HTTPException:
+    """Loga a falha do Postgres e devolve o 503 padrão do registro de collections."""
+    logger.error(
+        "rag_collections_indisponivel",
+        extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},
+    )
+    return HTTPException(status_code=503, detail=_DETALHE_REGISTRO_INDISPONIVEL)
+
+
+async def _desfazer_criacao_no_qdrant(qdrant: QdrantRAGClient, nome: str) -> None:
+    try:
+        await qdrant.drop_collection(nome)
+    except RAGConnectionError:
+        logger.warning(
+            "rag_collection_orfa nome=%s — collection criada no Qdrant sem registro "
+            "correspondente no Postgres, e o rollback (exclusão da collection no Qdrant) "
+            "também falhou; limpeza manual necessária",
+            nome,
+        )
+    else:
+        logger.warning(
+            "rag_collection_orfa nome=%s — collection criada no Qdrant sem registro "
+            "correspondente no Postgres; rollback (exclusão da collection no Qdrant) "
+            "executado com sucesso",
+            nome,
+        )
+
+
+async def _criar_no_qdrant(
+    qdrant: QdrantRAGClient,
+    body: CollectionCreateRequest,
+    dimension: int,
+    payload_indexes: list[dict],
+    quantization_config: dict,
+) -> None:
+    try:
+        await qdrant.create_collection(
+            name=body.name,
+            vector_dimension=dimension,
+            distance_metric=body.distance_metric,
+            hnsw_m=body.hnsw.m,
+            hnsw_ef_construct=body.hnsw.ef_construct,
+            hnsw_full_scan_threshold=body.hnsw.full_scan_threshold,
+            hnsw_max_indexing_threads=body.hnsw.max_indexing_threads,
+            hnsw_on_disk=body.hnsw.on_disk,
+            hnsw_payload_m=body.hnsw.payload_m,
+            quantization_type=body.quantization.type,
+            quantization_config=quantization_config,
+            payload_indexes=payload_indexes,
+        )
+    except CollectionAlreadyExistsError as exc:
+        raise HTTPException(
+            status_code=409, detail=f"Já existe uma collection chamada '{body.name}'."
+        ) from exc
+    except RAGConnectionError as exc:
+        raise HTTPException(status_code=503, detail=_DETALHE_RAG_INDISPONIVEL) from exc
+
+
 @router.post("", response_model=CollectionResponse)
 async def create_collection_endpoint(
     body: CollectionCreateRequest,
@@ -97,29 +161,7 @@ async def create_collection_endpoint(
     payload_indexes = [item.model_dump() for item in body.payload_indexes]
     quantization_config = _quantization_config_dict(body.quantization)
 
-    try:
-        await qdrant.create_collection(
-            name=body.name,
-            vector_dimension=dimension,
-            distance_metric=body.distance_metric,
-            hnsw_m=body.hnsw.m,
-            hnsw_ef_construct=body.hnsw.ef_construct,
-            hnsw_full_scan_threshold=body.hnsw.full_scan_threshold,
-            hnsw_max_indexing_threads=body.hnsw.max_indexing_threads,
-            hnsw_on_disk=body.hnsw.on_disk,
-            hnsw_payload_m=body.hnsw.payload_m,
-            quantization_type=body.quantization.type,
-            quantization_config=quantization_config,
-            payload_indexes=payload_indexes,
-        )
-    except CollectionAlreadyExistsError as exc:
-        raise HTTPException(
-            status_code=409, detail=f"Já existe uma collection chamada '{body.name}'."
-        ) from exc
-    except RAGConnectionError as exc:
-        raise HTTPException(
-            status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
-        ) from exc
+    await _criar_no_qdrant(qdrant, body, dimension, payload_indexes, quantization_config)
 
     try:
         collection = await create_collection(
@@ -147,28 +189,8 @@ async def create_collection_endpoint(
         # órfã (existe no Qdrant, invisível via `list_collections`, e um
         # retry com o mesmo nome esbarraria num 409 permanente). Tenta
         # desfazer a criação no Qdrant antes de propagar o erro.
-        try:
-            await qdrant.drop_collection(body.name)
-        except RAGConnectionError:
-            logger.warning(
-                "rag_collection_orfa nome=%s — collection criada no Qdrant sem registro "
-                "correspondente no Postgres, e o rollback (exclusão da collection no Qdrant) "
-                "também falhou; limpeza manual necessária",
-                body.name,
-            )
-        else:
-            logger.warning(
-                "rag_collection_orfa nome=%s — collection criada no Qdrant sem registro "
-                "correspondente no Postgres; rollback (exclusão da collection no Qdrant) "
-                "executado com sucesso",
-                body.name,
-            )
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Serviço de registro de collections temporariamente indisponível, tente novamente."
-            ),
-        ) from exc
+        await _desfazer_criacao_no_qdrant(qdrant, body.name)
+        raise HTTPException(status_code=503, detail=_DETALHE_REGISTRO_INDISPONIVEL) from exc
 
     return _to_response(collection, document_count=0)
 
@@ -182,16 +204,7 @@ async def list_collections_endpoint(
         collections = await list_collections(session)
         counts = await count_documents_by_collection(session)
     except SQLAlchemyError as exc:
-        logger.error(
-            "rag_collections_indisponivel",
-            extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},
-        )
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Serviço de registro de collections temporariamente indisponível, tente novamente."
-            ),
-        ) from exc
+        raise _registro_indisponivel(exc) from exc
     return [_to_response(collection, counts.get(collection.id, 0)) for collection in collections]
 
 
@@ -204,27 +217,13 @@ async def activate_collection_endpoint(
     try:
         ativado = await activate_collection(session, collection_id)
     except SQLAlchemyError as exc:
-        logger.error(
-            "rag_collections_indisponivel",
-            extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},
-        )
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Serviço de registro de collections temporariamente indisponível, tente novamente."
-            ),
-        ) from exc
+        raise _registro_indisponivel(exc) from exc
     if not ativado:
         raise HTTPException(status_code=404, detail="Collection não encontrada.")
 
 
-@router.delete("/{collection_id}", status_code=204)
-async def delete_collection_endpoint(
-    collection_id: UUID,
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    session: AsyncSession = Depends(get_db_session),
-    _: None = Depends(require_admin),
-) -> None:
+async def _carregar_para_exclusao(session: AsyncSession, collection_id: UUID):
+    """Valida que a collection existe e não está ativa; devolve (collection, documentos)."""
     try:
         # Limpeza da revisão final: `get_collection` (busca O(1) por chave
         # primária) substitui a varredura O(n) em Python sobre
@@ -240,30 +239,13 @@ async def delete_collection_endpoint(
 
         documentos = await list_documents_by_collection(session, collection_id)
     except SQLAlchemyError as exc:
-        logger.error(
-            "rag_collections_indisponivel",
-            extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},
-        )
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Serviço de registro de collections temporariamente indisponível, tente novamente."
-            ),
-        ) from exc
+        raise _registro_indisponivel(exc) from exc
+    return collection, documentos
 
+
+async def _excluir_registro(session: AsyncSession, collection) -> None:
     try:
-        await qdrant.drop_collection(collection.name)
-    except RAGConnectionError as exc:
-        raise HTTPException(
-            status_code=503, detail="Serviço de RAG temporariamente indisponível, tente novamente."
-        ) from exc
-
-    for documento in documentos:
-        if documento.storage_path is not None:
-            Path(documento.storage_path).unlink(missing_ok=True)
-
-    try:
-        await delete_collection(session, collection_id)
+        await delete_collection(session, collection.id)
     except CollectionActiveError as exc:
         raise HTTPException(
             status_code=409, detail="Não é possível excluir a collection ativa."
@@ -281,13 +263,25 @@ async def delete_collection_endpoint(
             collection.id,
             collection.name,
         )
-        logger.error(
-            "rag_collections_indisponivel",
-            extra={"rag": {"event": "rag_collections_indisponivel", "erro": str(exc)}},
-        )
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Serviço de registro de collections temporariamente indisponível, tente novamente."
-            ),
-        ) from exc
+        raise _registro_indisponivel(exc) from exc
+
+
+@router.delete("/{collection_id}", status_code=204)
+async def delete_collection_endpoint(
+    collection_id: UUID,
+    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
+    session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
+) -> None:
+    collection, documentos = await _carregar_para_exclusao(session, collection_id)
+
+    try:
+        await qdrant.drop_collection(collection.name)
+    except RAGConnectionError as exc:
+        raise HTTPException(status_code=503, detail=_DETALHE_RAG_INDISPONIVEL) from exc
+
+    for documento in documentos:
+        if documento.storage_path is not None:
+            Path(documento.storage_path).unlink(missing_ok=True)
+
+    await _excluir_registro(session, collection)
