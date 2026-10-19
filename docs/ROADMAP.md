@@ -2769,6 +2769,13 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       e a composição das abas. Comportamento idêntico; Vitest (570 testes de
       componentes), `tsc` e `eslint` limpos.
 
+- [x] `app/admin/ferramentas/page.tsx` (achados `get_health`: CC 17 e 112
+      linhas em `AdminFerramentasPage`) — estado, carga, atualização e efeito
+      foram para `lib/hooks/useFerramentas.ts`; o bloco de acesso negado virou
+      `AcessoRestrito`. A página ficou só com a guarda de perfil e a
+      composição. Comportamento idêntico; Vitest (7 testes da página), `tsc`,
+      `eslint` e `prettier` limpos.
+
 - [x] `components/admin/products/ProductListTable.tsx` (achados `get_health`:
       CC 24 em `ProductTableRow`, CC 20 e 112 linhas em `StockDetailBadge`,
       condicional com 3 operadores) — `StockDetailBadge` foi para arquivo
