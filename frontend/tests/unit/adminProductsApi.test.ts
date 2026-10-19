@@ -154,4 +154,47 @@ describe("adminProducts API client", () => {
     expect(capturedBody?.get("page_range")).toBe("1-5, 8");
     vi.unstubAllGlobals();
   });
+
+  it("despacha eventos SSE de extractCatalogStream para os callbacks e ignora blocos inválidos", async () => {
+    const enc = new TextEncoder();
+    const chunks = [
+      'event: progresso\ndata: {"a":1}\n\nevent: pagina_concluida\ndata: {"p":2}\n\n',
+      'event: done\ndata: {"total_produtos":3,"total_paginas":4}\n\nevent: done\ndata: {x\n\n',
+    ];
+    let n = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: async () =>
+              n < chunks.length
+                ? { done: false, value: enc.encode(chunks[n++]) }
+                : { done: true, value: undefined },
+          }),
+        },
+      }),
+    );
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const cb = { onProgress: vi.fn(), onPageComplete: vi.fn(), onDone: vi.fn(), onError: vi.fn() };
+
+    await extractCatalogStream("t", [], {}, cb);
+
+    expect(cb.onProgress).toHaveBeenCalledWith({ a: 1 });
+    expect(cb.onPageComplete).toHaveBeenCalledWith({ p: 2 });
+    expect(cb.onDone).toHaveBeenCalledWith({ total_produtos: 3, total_paginas: 4 });
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(cb.onError).not.toHaveBeenCalled();
+    warn.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it("chama onError em extractCatalogStream quando a resposta falha", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500, body: null }));
+    const onError = vi.fn();
+    await extractCatalogStream("t", [], {}, { onError });
+    expect(onError).toHaveBeenCalledWith("Erro ao iniciar extração (500)");
+    vi.unstubAllGlobals();
+  });
 });

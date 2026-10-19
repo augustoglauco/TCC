@@ -2735,7 +2735,10 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       (`productCardHelpers`, `useProduto`) e `app/agendamentos/page.tsx`
       (`AgendamentosDeslogado`, `CabecalhoAgendamentos`, `ErroAgendamentos`,
       `ListaVazia`, `AgendamentoCard`, `DialogoDesmarcar`; componente principal
-      de 245 para ~114 linhas, markup idêntico). Sem mudança de comportamento. No
+      de 245 para ~114 linhas, markup idêntico) e `extractCatalogStream` em
+      `lib/api/adminProducts.ts` (`buildCatalogFormData`,
+      `dispatchCatalogEvent`, `readCatalogStream`; CC 17 → função só com
+      requisição e erros). Sem mudança de comportamento. No
       mesmo passo, `tsc --noEmit` voltou a passar limpo: `Tooltip.tsx`
       (`RefObject<HTMLElement | null>`) e mocks desatualizados em quatro
       testes. 714 testes Vitest passando.

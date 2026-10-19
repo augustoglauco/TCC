@@ -303,6 +303,62 @@ export interface ExtractCatalogCallbacks {
   onError?: (error: string) => void;
 }
 
+function buildCatalogFormData(files: File[], options: ExtractCatalogStreamOptions): FormData {
+  const formData = new FormData();
+  for (const file of files) {
+    formData.append("files", file);
+  }
+  formData.append("provider", options.provider ?? "local");
+  formData.append("fallback_external", String(options.fallbackExternal ?? true));
+  const pageRange = options.pageRange?.trim();
+  if (pageRange) {
+    formData.append("page_range", pageRange);
+  }
+  return formData;
+}
+
+function dispatchCatalogEvent(
+  block: string,
+  callbacks: ExtractCatalogCallbacks,
+): void {
+  const sse = parseSseBlock(block);
+  if (!sse) return;
+  try {
+    const parsed = JSON.parse(sse.data);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handlers: Record<string, ((data: any) => void) | undefined> = {
+      progresso: callbacks.onProgress,
+      pagina_concluida: callbacks.onPageComplete,
+      done: callbacks.onDone,
+    };
+    handlers[sse.event]?.(parsed);
+  } catch (err) {
+    console.warn("Erro ao fazer parse de evento SSE:", err);
+  }
+}
+
+async function readCatalogStream(
+  body: ReadableStream<Uint8Array>,
+  callbacks: ExtractCatalogCallbacks,
+): Promise<void> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
+
+    for (const part of parts) {
+      if (part.trim()) dispatchCatalogEvent(part, callbacks);
+    }
+  }
+}
+
 export async function extractCatalogStream(
   token: string,
   files: File[],
@@ -310,15 +366,7 @@ export async function extractCatalogStream(
   callbacks: ExtractCatalogCallbacks,
 ): Promise<void> {
   const baseUrl = getApiBaseUrl();
-  const formData = new FormData();
-  for (const file of files) {
-    formData.append("files", file);
-  }
-  formData.append("provider", options.provider ?? "local");
-  formData.append("fallback_external", String(options.fallbackExternal ?? true));
-  if (options.pageRange && options.pageRange.trim()) {
-    formData.append("page_range", options.pageRange.trim());
-  }
+  const formData = buildCatalogFormData(files, options);
 
   let res: Response;
   try {
@@ -339,35 +387,5 @@ export async function extractCatalogStream(
     return;
   }
 
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const parts = buffer.split("\n\n");
-    buffer = parts.pop() ?? "";
-
-    for (const part of parts) {
-      if (!part.trim()) continue;
-      const sse = parseSseBlock(part);
-      if (!sse) continue;
-
-      try {
-        const parsed = JSON.parse(sse.data);
-        if (sse.event === "progresso") {
-          callbacks.onProgress?.(parsed);
-        } else if (sse.event === "pagina_concluida") {
-          callbacks.onPageComplete?.(parsed);
-        } else if (sse.event === "done") {
-          callbacks.onDone?.(parsed);
-        }
-      } catch (err) {
-        console.warn("Erro ao fazer parse de evento SSE:", err);
-      }
-    }
-  }
+  await readCatalogStream(res.body, callbacks);
 }
