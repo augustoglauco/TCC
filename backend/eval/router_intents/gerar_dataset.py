@@ -112,22 +112,49 @@ Linguagem real: curta, informal, erro de digitação ocasional.
 Responda só com um array JSON de strings:
 ["mensagem 1", "mensagem 2"]"""
 
+# Cada domínio só se mistura com um parceiro com quem a mistura acontece de
+# verdade: vendas+suporte/atendimento não ocorre em mensagem real (quem tem
+# defeito não está comprando), e forçar essa mistura gerava frases sem sentido.
+PAR_AMBIGUO = {
+    "vendas": (
+        "agendamento",
+        "quero comprar a catraca, dá pra marcar uma visita pra ver o local antes?",
+    ),
+    "suporte": (
+        "agendamento",
+        "o leitor facial está com defeito, dá pra marcar um técnico aí?",
+    ),
+    "atendimento": (
+        "suporte",
+        "comprei a catraca e veio com defeito, quero a troca",
+    ),
+    "agendamento": (
+        "suporte",
+        "preciso marcar uma visita, o relógio de ponto está com problema de novo",
+    ),
+}
+
 _PROMPT_AMBIGUA = """Você monta a parte difícil do conjunto de teste do roteador \
 de intenção de um assistente de controle de acesso e segurança eletrônica.
 
 Produtos do catálogo:
 {produtos}
 
-Escreva {n} mensagens de cliente que **misturem dois assuntos de propósito**, \
-de modo que fique genuinamente discutível em qual domínio classificar — mas em \
-que o domínio **{dominio}** ({descricao}) seja a leitura mais defensável.
+Escreva {n} mensagens de cliente que **misturem dois assuntos de propósito**: \
+o domínio **{dominio}** ({descricao}) e o domínio **{outro}** ({descricao_outro}). \
+O domínio **{dominio}** deve ser a leitura mais defensável, mas a mensagem tem \
+de tocar nos dois.
 
-Cada mensagem deve conter ao menos uma palavra de dois destes grupos:
+Regras:
+- A mensagem tem de **fazer sentido como situação real de um cliente**, escrita \
+por uma pessoa só, com um único objetivo. Se os dois assuntos não puderem \
+acontecer juntos na vida real, não force: escolha outra situação.
+- Cada mensagem deve conter ao menos uma palavra de cada um destes dois grupos:
 {grupos}
+- Linguagem de cliente real: curta, informal, erro de digitação ocasional.
+- Não misture um terceiro domínio.
 
-Exemplo do tipo de mistura (não copie): "comprei a catraca com desconto mês \
-passado e ela já está com defeito, quero trocar" — tem vendas, suporte e \
-atendimento ao mesmo tempo.
+Exemplo do tipo de mistura (não copie): "{exemplo}".
 
 Responda só com um array JSON de strings:
 ["mensagem 1", "mensagem 2"]"""
@@ -155,10 +182,11 @@ def _proibidas(dominio: str) -> str:
     return ", ".join(f'"{k}"' for k in _DOMAIN_KEYWORDS[dominio])
 
 
-def _grupos_de_keywords() -> str:
+def _grupos_de_keywords(dominios: tuple[str, ...] | None = None) -> str:
     return "\n".join(
         f"- {dominio}: " + ", ".join(f'"{k}"' for k in keywords)
         for dominio, keywords in _DOMAIN_KEYWORDS.items()
+        if dominios is None or dominio in dominios
     )
 
 
@@ -181,6 +209,32 @@ def classificar_caminho(mensagem: str) -> tuple[bool, str]:
         if any(k.lower() in normalizado for k in keywords)
     )
     return True, "duas_ou_mais_keywords" if casados >= 2 else "zero_keywords"
+
+
+def faltantes(casos: list[dict]) -> list[tuple[str, bool, int]]:
+    """(domínio, ambígua?, quantas faltam) para fechar a meta por categoria.
+
+    Itens descartados na revisão não contam: o `--completar` repõe o que a
+    revisão tirou, na mesma categoria, em vez de só fechar o total.
+    """
+    vivos = [c for c in casos if (c.get("revisao") or {}).get("status") != "descartado"]
+    faltas: list[tuple[str, bool, int]] = []
+    for dominio in DOMINIOS:
+        for ambiguo, meta in (
+            (True, POR_DOMINIO_DIFICIL // 2),
+            (False, POR_DOMINIO_DIFICIL // 2 + POR_DOMINIO_LIVRE),
+        ):
+            tem = sum(
+                1
+                for c in vivos
+                if c["intencao_esperada"] == dominio and bool(c["ambiguo"]) == ambiguo
+            )
+            if meta > tem:
+                faltas.append((dominio, ambiguo, meta - tem))
+    tem_fora = sum(1 for c in vivos if c["intencao_esperada"] == "fora_escopo")
+    if FORA_ESCOPO > tem_fora:
+        faltas.append(("fora_escopo", False, FORA_ESCOPO - tem_fora))
+    return faltas
 
 
 def produtos_do_corpus(limite: int = 12) -> list[str]:
@@ -308,20 +362,42 @@ async def executar(args) -> int:
             restante -= len(novos)
 
     def _extra(dominio: str) -> dict:
+        outro, exemplo = PAR_AMBIGUO.get(dominio, (dominio, ""))
         return {
             "dominio": dominio,
             "descricao": DESCRICAO_DOMINIO.get(dominio, ""),
             "proibidas": _proibidas(dominio) if dominio in _DOMAIN_KEYWORDS else "",
-            "grupos": _grupos_de_keywords(),
+            "outro": outro,
+            "descricao_outro": DESCRICAO_DOMINIO.get(outro, ""),
+            "exemplo": exemplo,
+            "grupos": _grupos_de_keywords((dominio, outro)),
         }
+
+    async def pedir_fora_escopo(quantos: int) -> None:
+        restante = quantos
+        while restante > 0 and not args.dry_run:
+            n = min(LOTE, restante)
+            print(f"[fora_escopo] pedindo {n}...")
+            mensagens = await _gerar(client, _PROMPT_FORA_ESCOPO.format(n=n))
+            proximo = max((c["id"] for c in casos), default=0) + 1
+            novos = montar_casos(mensagens[:n], "fora_escopo", False, proximo, vistos)
+            casos.extend(novos)
+            print(f"    {len(novos)} caso(s)")
+            salvar(saida, casos, modelo)
+            if not novos:
+                break
+            restante -= len(novos)
 
     # Dedup descarta repetidas e o total pode fechar abaixo da meta: sem
     # `--completar` a rodada recomeça do zero, então o resto vem aqui.
-    meta_total = len(DOMINIOS) * (POR_DOMINIO_DIFICIL + POR_DOMINIO_LIVRE) + FORA_ESCOPO
     if args.completar and casos:
-        faltam = meta_total - len(casos)
-        if faltam > 0:
-            await pedir(_PROMPT_LIVRE, DOMINIOS[0], False, faltam, "completar")
+        for dominio, ambiguo, faltam in faltantes(casos):
+            if ambiguo:
+                await pedir(_PROMPT_AMBIGUA, dominio, True, faltam, "completar-ambígua")
+            elif dominio == "fora_escopo":
+                await pedir_fora_escopo(faltam)
+            else:
+                await pedir(_PROMPT_LIVRE, dominio, False, faltam, "completar")
         salvar(saida, casos, modelo)
         print(f"\n{saida}: {len(casos)} mensagem(ns) após completar.")
         return 0
@@ -334,19 +410,7 @@ async def executar(args) -> int:
         await pedir(_PROMPT_AMBIGUA, dominio, True, POR_DOMINIO_DIFICIL // 2, "ambígua")
         await pedir(_PROMPT_LIVRE, dominio, False, POR_DOMINIO_LIVRE, "livre")
 
-    restante = FORA_ESCOPO
-    while restante > 0 and not args.dry_run:
-        n = min(LOTE, restante)
-        print(f"[fora_escopo] pedindo {n}...")
-        mensagens = await _gerar(client, _PROMPT_FORA_ESCOPO.format(n=n))
-        proximo = max((c["id"] for c in casos), default=0) + 1
-        novos = montar_casos(mensagens[:n], "fora_escopo", False, proximo, vistos)
-        casos.extend(novos)
-        print(f"    {len(novos)} caso(s)")
-        salvar(saida, casos, modelo)
-        if not novos:
-            break
-        restante -= len(novos)
+    await pedir_fora_escopo(FORA_ESCOPO)
 
     if args.dry_run:
         print("\n(dry-run) nenhuma chamada feita.")

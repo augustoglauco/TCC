@@ -923,8 +923,13 @@ keywords, não o modelo que se quer escolher.
   sinônimo real de cliente ("quanto sai", "pifou", "parou do nada").
 - `_PROMPT_AMBIGUA` pede o caso oposto: mensagens que casem palavras de **dois**
   grupos de keywords de propósito, porque 2+ domínios também colapsam para o
-  LLM. É a ambiguidade genuína ("comprei com desconto e já está com defeito,
-  quero trocar").
+  LLM. Revisado em 2026-10-18: cada domínio só se mistura com um parceiro que
+  existe na vida real (`PAR_AMBIGUO`: vendas+agendamento, suporte+agendamento,
+  atendimento+suporte, agendamento+suporte) e o prompt exige que a mensagem
+  faça sentido como situação real de um cliente. A versão anterior misturava
+  vendas com suporte/atendimento e produzia frases sem sentido ("o preço é alto
+  e preciso configurar a biometria antes de comprar"), que a revisão humana
+  descartava.
 - `_PROMPT_LIVRE` pede mensagens sem restrição de vocabulário, para que a
   "acurácia do sistema" reflita o mix real em vez de só o caminho difícil.
 - `_PROMPT_FORA_ESCOPO` cobre o quinto rótulo com saudação, pergunta
