@@ -188,6 +188,26 @@ def _extrair_produtos_do_contexto(message: str, recent_messages: list[str]) -> l
     return produtos
 
 
+def _sem_acentos(texto: str) -> str:
+    """Minúsculas e sem diacríticos, para comparar nomes de produto com o texto do manual."""
+    return "".join(
+        c for c in unicodedata.normalize("NFD", texto.lower()) if unicodedata.category(c) != "Mn"
+    )
+
+
+def _menciona_produto(content_clean: str, produto: str) -> bool:
+    """O texto (já normalizado) cita o produto inteiro ou algum token distintivo dele."""
+    prod_clean = _sem_acentos(produto)
+    if prod_clean in content_clean:
+        return True
+    tokens = [
+        t
+        for t in re.split(r"[\s\-_,\.]+", prod_clean)
+        if len(t) >= 3 and t not in _STOP_WORDS_PRODUTO
+    ]
+    return any(t in content_clean for t in tokens)
+
+
 def _filtrar_documentos_relevantes_ao_contexto(
     documentos: list[Document], message: str, recent_messages: list[str]
 ) -> list[Document]:
@@ -197,29 +217,9 @@ def _filtrar_documentos_relevantes_ao_contexto(
 
     relevantes = []
     for doc in documentos:
-        content_lower = doc.content.lower()
-        content_clean = "".join(
-            c
-            for c in unicodedata.normalize("NFD", content_lower)
-            if unicodedata.category(c) != "Mn"
-        )
-        for prod in produtos_contexto:
-            prod_clean = "".join(
-                c
-                for c in unicodedata.normalize("NFD", prod.lower())
-                if unicodedata.category(c) != "Mn"
-            )
-            if prod_clean in content_clean:
-                relevantes.append(doc)
-                break
-            tokens = [
-                t
-                for t in re.split(r"[\s\-_,\.]+", prod_clean)
-                if len(t) >= 3 and t not in _STOP_WORDS_PRODUTO
-            ]
-            if tokens and any(t in content_clean for t in tokens):
-                relevantes.append(doc)
-                break
+        content_clean = _sem_acentos(doc.content)
+        if any(_menciona_produto(content_clean, prod) for prod in produtos_contexto):
+            relevantes.append(doc)
 
     return relevantes
 
@@ -242,6 +242,16 @@ def e_referencia_anterior(message: str) -> bool:
     return _REFERENCIA_ANTERIOR_RE.search(message) is not None
 
 
+def _texto_busca_rag(message: str, recent_messages: list[str], ultima_resposta: str | None) -> str:
+    if ultima_resposta and e_referencia_anterior(message):
+        # "possui detalhes do produto acima?": o produto está na resposta
+        # anterior (ex.: "Identifiquei: Rádio … RC 4102g2."), não na frase.
+        return f"{ultima_resposta[:_ULTIMA_RESPOSTA_MAX_CHARS]}\n{message}"
+    if not extrair_termos_busca(message) and recent_messages:
+        return "\n".join([*recent_messages, message])
+    return message
+
+
 async def _buscar_documentos_rag(
     message: str,
     recent_messages: list[str],
@@ -251,15 +261,7 @@ async def _buscar_documentos_rag(
     top_k: int = 3,
     score_threshold: float = 0.35,
 ) -> list[Document]:
-    termos = extrair_termos_busca(message)
-    if ultima_resposta and e_referencia_anterior(message):
-        # "possui detalhes do produto acima?": o produto está na resposta
-        # anterior (ex.: "Identifiquei: Rádio … RC 4102g2."), não na frase.
-        texto_busca = f"{ultima_resposta[:_ULTIMA_RESPOSTA_MAX_CHARS]}\n{message}"
-    elif not termos and recent_messages:
-        texto_busca = "\n".join([*recent_messages, message])
-    else:
-        texto_busca = message
+    texto_busca = _texto_busca_rag(message, recent_messages, ultima_resposta)
 
     documentos = await rag_client.search(
         texto_busca, domain, top_k=top_k, score_threshold=score_threshold
@@ -940,6 +942,20 @@ async def _handle_agendamento(
     # (spec §4.1 passo 7).
     slots.awaiting_confirmation = False
 
+    async for evento in _validar_e_pedir_confirmacao(
+        slots, conversation_id, calendar_client, scheduling_config, intent_router_provider
+    ):
+        yield evento
+
+
+async def _validar_e_pedir_confirmacao(
+    slots: BookingSlots,
+    conversation_id: str,
+    calendar_client: CalendarClient,
+    scheduling_config: SchedulingConfig,
+    intent_router_provider: str,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    """Valida o horário e, se válido, pede a confirmação do cliente (spec §4.1 passo 7)."""
     try:
         slots.data_hora = await _validar_horario_para_agendamento(
             slots, scheduling_config, calendar_client
@@ -1741,10 +1757,11 @@ async def handle_message(  # noqa: PLR0913
     # MVP: o ramo de agendamento só roda quando (a) calendar_client/scheduling_config
     # foram fornecidos E (b) a classificação disse "agendamento" OU já existe estado
     # parcial salvo para conversation_id.
+    geracao: AsyncIterator[TokenEvent | RouterDecision]
     if _agendamento_ativo(
         calendar_client, scheduling_config, classification.domain, conversation_id
     ):
-        async for evento in _handle_agendamento(
+        geracao = _handle_agendamento(
             conversation_id=conversation_id,
             message=message,
             recent_messages=recent_messages,
@@ -1753,31 +1770,30 @@ async def handle_message(  # noqa: PLR0913
             scheduling_config=scheduling_config,
             intent_router_provider=intent_router_provider,
             db_sessionmaker=db_sessionmaker,
-        ):
-            yield evento
-        return
-
-    async for evento in _handle_llm_generation(
-        message=message,
-        recent_messages=recent_messages,
-        classification=classification,
-        local_client=local_client,
-        external_client=external_client,
-        rag_client=rag_client,
-        sales_catalog_client=sales_catalog_client,
-        db_sessionmaker=db_sessionmaker,
-        conversation_id=conversation_id,
-        intent_router_provider=intent_router_provider,
-        resumo_conversa=resumo_conversa,
-        pedir_email_pos_venda=pedir_email_pos_venda,
-        ultima_troca=ultima_troca,
-        dados_cliente=dados_cliente,
-        contexto_conversa_anterior=contexto_conversa_anterior,
-        usuario_autenticado=usuario_autenticado,
-        rag_top_k=rag_top_k,
-        rag_score_threshold=rag_score_threshold,
-        rag_download_threshold=rag_download_threshold,
-        user_email=user_email,
-        complexity_strategy=complexity_strategy,
-    ):
+        )
+    else:
+        geracao = _handle_llm_generation(
+            message=message,
+            recent_messages=recent_messages,
+            classification=classification,
+            local_client=local_client,
+            external_client=external_client,
+            rag_client=rag_client,
+            sales_catalog_client=sales_catalog_client,
+            db_sessionmaker=db_sessionmaker,
+            conversation_id=conversation_id,
+            intent_router_provider=intent_router_provider,
+            resumo_conversa=resumo_conversa,
+            pedir_email_pos_venda=pedir_email_pos_venda,
+            ultima_troca=ultima_troca,
+            dados_cliente=dados_cliente,
+            contexto_conversa_anterior=contexto_conversa_anterior,
+            usuario_autenticado=usuario_autenticado,
+            rag_top_k=rag_top_k,
+            rag_score_threshold=rag_score_threshold,
+            rag_download_threshold=rag_download_threshold,
+            user_email=user_email,
+            complexity_strategy=complexity_strategy,
+        )
+    async for evento in geracao:
         yield evento
