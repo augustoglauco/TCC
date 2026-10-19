@@ -1,11 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { chaveArquivo } from "./catalogArquivos";
 import { useCatalogImport } from "./useCatalogImport";
-import { CatalogUploadStep } from "./CatalogUploadStep";
-import { CatalogExtractingStep } from "./CatalogExtractingStep";
-import { CatalogReviewStep } from "./CatalogReviewStep";
+import { CatalogModalHeader } from "./CatalogModalHeader";
+import { CatalogStepBody } from "./CatalogStepBody";
 import { CatalogPhotoPicker } from "./CatalogPhotoPicker";
 import { CatalogDragDropZone } from "./CatalogDragDropZone";
 import { CatalogFooterActions } from "./CatalogFooterActions";
@@ -104,131 +102,51 @@ export default function CatalogImportModal({
   onClose,
   onSuccess,
 }: CatalogImportModalProps) {
-  const {
-    step,
-    setStep,
-    files,
-    setFiles,
-    pageRange,
-    setPageRange,
-    provider,
-    setProvider,
-    fallbackExternal,
-    setFallbackExternal,
-    isDraggingOver,
-    progress,
-    extractedProducts,
-    setExtractedProducts,
-    saving,
-    error,
-    pageErrors,
-    pickerProduct,
-    setPickerProduct,
-    uploadingPickerPhoto,
-    selectedCount,
-    handleFileChange,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    handleStartExtraction,
-    handleUpdateProduct,
-    handleConfirmBatch,
-    pickerHandlers,
-  } = useCatalogImport({ isOpen, onClose, onSuccess });
+  const catalog = useCatalogImport({ isOpen, onClose, onSuccess });
+  const { pickerProduct, pickerHandlers } = catalog;
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <CatalogDragDropZone
-        isDraggingOver={isDraggingOver}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
+        isDraggingOver={catalog.isDraggingOver}
+        onDragOver={catalog.handleDragOver}
+        onDragLeave={catalog.handleDragLeave}
+        onDrop={catalog.handleDrop}
       >
-        <div className="flex items-center justify-between border-b border-gray-100 p-6 pb-4">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <span>📥</span> Importação Inteligente de Catálogos
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Leitura página a página de PDF multipáginas, imagens ou arquivos de texto com extração
-              via IA e revisão antes de salvar.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-          >
-            ✕
-          </button>
-        </div>
+        <CatalogModalHeader onClose={onClose} />
 
-        {error && (
-          <div className="mx-6 mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</div>
+        {catalog.error && (
+          <div className="mx-6 mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            {catalog.error}
+          </div>
         )}
 
         <div className="flex-1 overflow-y-auto p-6 pt-2">
-          {step === "upload" && (
-            <CatalogUploadStep
-              files={files}
-              pageRange={pageRange}
-              provider={provider}
-              fallbackExternal={fallbackExternal}
-              isDraggingOver={isDraggingOver}
-              onFileChange={handleFileChange}
-              onRemoveFile={(chave) =>
-                setFiles((prev) => prev.filter((f) => chaveArquivo(f) !== chave))
-              }
-              onPageRangeChange={setPageRange}
-              onProviderChange={setProvider}
-              onFallbackChange={setFallbackExternal}
-            />
-          )}
-
-          {step === "extracting" && (
-            <CatalogExtractingStep progress={progress} extractedCount={extractedProducts.length} />
-          )}
-
-          {step === "review" && (
-            <CatalogReviewStep
-              products={extractedProducts}
-              pageErrors={pageErrors}
-              onToggleSelectAll={(checked) =>
-                setExtractedProducts((prev) =>
-                  prev.map((item) => ({ ...item, selecionado: checked })),
-                )
-              }
-              onUpdateProduct={handleUpdateProduct}
-              onRemoveProduct={(idTemp) =>
-                setExtractedProducts((prev) => prev.filter((item) => item.id_temporario !== idTemp))
-              }
-              onOpenPhotoPicker={setPickerProduct}
-            />
-          )}
+          <CatalogStepBody catalog={catalog} />
         </div>
 
         <CatalogFooterActions
-          step={step}
-          filesCount={files.length}
-          selectedCount={selectedCount}
-          totalCount={extractedProducts.length}
-          saving={saving}
+          step={catalog.step}
+          filesCount={catalog.files.length}
+          selectedCount={catalog.selectedCount}
+          totalCount={catalog.extractedProducts.length}
+          saving={catalog.saving}
           onClose={onClose}
-          onStartExtraction={handleStartExtraction}
-          onBackToUpload={() => setStep("upload")}
-          onConfirmBatch={handleConfirmBatch}
+          onStartExtraction={catalog.handleStartExtraction}
+          onBackToUpload={() => catalog.setStep("upload")}
+          onConfirmBatch={catalog.handleConfirmBatch}
         />
 
         {pickerProduct && (
           <CatalogPhotoPicker
             product={pickerProduct}
-            uploading={uploadingPickerPhoto}
+            uploading={catalog.uploadingPickerPhoto}
             onSelectPhoto={pickerHandlers.select}
             onRemovePhoto={pickerHandlers.remove}
             onUploadPhoto={pickerHandlers.upload}
-            onClose={() => setPickerProduct(null)}
+            onClose={() => catalog.setPickerProduct(null)}
           />
         )}
       </CatalogDragDropZone>

@@ -2804,6 +2804,12 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       ficou com a composição; `CatalogPriceInput`, `formatarMoedaInput` e
       `parseMoedaInput` seguem exportados dele. Comportamento idêntico; 33
       testes (modal + página de produtos), `tsc`, `eslint` e `prettier` limpos.
+- [x] `CatalogImportModal.tsx`, segunda passada (achado residual `get_health`:
+      124 linhas em `CatalogImportModal`, só JSX) — cabeçalho foi para
+      `CatalogModalHeader.tsx` e a escolha da etapa (upload/extração/revisão)
+      para `CatalogStepBody.tsx`; o modal consome o hook como um único objeto.
+      Comportamento idêntico; 14 testes do modal, `tsc`, `eslint` e `prettier`
+      limpos.
 
 - [x] `components/admin/RuntimeSettingsForm.tsx` (achados `get_health`: 295
       linhas em `RuntimeSettingsForm`, CC 16 em `handleSubmit`, CC 10 em
