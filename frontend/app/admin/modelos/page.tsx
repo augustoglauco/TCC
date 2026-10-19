@@ -108,12 +108,14 @@ function KpiStatsGrid({
 
 // ─── page ─────────────────────────────────────────────────────────────────────
 
-export default function ModelosPage() {
+type RuntimeStatus = "checking" | "ok" | "error";
+type Notificar = (message: string) => void;
+
+function useModelosLocais(showToast: (message: string, tipo: "error" | "success") => void) {
   const token = useAuthStore((s) => s.token);
   const [modelos, setModelos] = useState<LocalModel[] | null>(null);
   const [activeModel, setActiveModel] = useState<string | null>(null);
-  const [runtimeStatus, setRuntimeStatus] = useState<"checking" | "ok" | "error">("checking");
-  const { toasts, showToast, dismissToast } = useToast();
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>("checking");
 
   const carregarModelos = useCallback(async () => {
     if (!token) return;
@@ -139,7 +141,92 @@ export default function ModelosPage() {
     carregarModelos();
   }, [carregarModelos]);
 
-  const totalGb = ((modelos?.reduce((acc, m) => acc + (m.size_bytes || 0), 0) ?? 0) / 1024 ** 3).toFixed(1);
+  return { modelos, activeModel, runtimeStatus, carregarModelos };
+}
+
+function PainelCard({
+  titulo,
+  descricao,
+  espacamento = "space-y-4",
+  children,
+}: {
+  titulo: string;
+  descricao: React.ReactNode;
+  espacamento?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs ${espacamento}`}
+    >
+      <div className="border-b border-slate-100 pb-4">
+        <h2 className="text-base sm:text-lg font-bold text-slate-900">{titulo}</h2>
+        <p className="mt-1 text-xs text-slate-500">{descricao}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function PainelModelosLocais({
+  modelos,
+  onChanged,
+  onError,
+  onSuccess,
+}: {
+  modelos: LocalModel[] | null;
+  onChanged: () => void;
+  onError: Notificar;
+  onSuccess: Notificar;
+}) {
+  return (
+    <div className="space-y-6">
+      <PainelCard
+        titulo="Modelos Locais Instalados"
+        descricao="Modelos armazenados na biblioteca do Ollama e prontos para uso"
+      >
+        {modelos === null ? (
+          <div className="flex items-center justify-center py-8 text-xs text-slate-500">
+            Carregando repositório de modelos...
+          </div>
+        ) : (
+          <LocalModelsTable
+            models={modelos}
+            onChanged={onChanged}
+            onError={onError}
+            onSuccess={onSuccess}
+          />
+        )}
+      </PainelCard>
+
+      <PainelCard
+        titulo="Baixar Novo Modelo LLM"
+        descricao={
+          <>
+            Insira a tag da biblioteca do Ollama (ex.:{" "}
+            <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-slate-800">
+              llama3.1:8b
+            </code>
+            ) ou URL GGUF do Hugging Face.
+          </>
+        }
+      >
+        <PullModelForm onPulled={onChanged} />
+      </PainelCard>
+    </div>
+  );
+}
+
+export default function ModelosPage() {
+  const { toasts, showToast, dismissToast } = useToast();
+  const { modelos, activeModel, runtimeStatus, carregarModelos } = useModelosLocais(showToast);
+  const onError: Notificar = (message) => showToast(message, "error");
+  const onSuccess: Notificar = (message) => showToast(message, "success");
+
+  const totalGb = (
+    (modelos?.reduce((acc, m) => acc + (m.size_bytes || 0), 0) ?? 0) /
+    1024 ** 3
+  ).toFixed(1);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
@@ -171,86 +258,31 @@ export default function ModelosPage() {
           </TabsList>
 
           <TabsContent value="modelos">
-            <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
-                  <div>
-                    <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                      Modelos Locais Instalados
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      Modelos armazenados na biblioteca do Ollama e prontos para uso
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  {modelos === null ? (
-                    <div className="flex items-center justify-center py-8 text-xs text-slate-500">
-                      Carregando repositório de modelos...
-                    </div>
-                  ) : (
-                    <LocalModelsTable
-                      models={modelos}
-                      onChanged={carregarModelos}
-                      onError={(message) => showToast(message, "error")}
-                      onSuccess={(message) => showToast(message, "success")}
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
-                <div className="border-b border-slate-100 pb-4">
-                  <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                    Baixar Novo Modelo LLM
-                  </h2>
-                  <p className="mt-1 text-xs text-slate-500">
-                    Insira a tag da biblioteca do Ollama (ex.:{" "}
-                    <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-slate-800">
-                      llama3.1:8b
-                    </code>
-                    ) ou URL GGUF do Hugging Face.
-                  </p>
-                </div>
-                <PullModelForm onPulled={carregarModelos} />
-              </div>
-            </div>
+            <PainelModelosLocais
+              modelos={modelos}
+              onChanged={carregarModelos}
+              onError={onError}
+              onSuccess={onSuccess}
+            />
           </TabsContent>
 
           <TabsContent value="openrouter">
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-6">
-              <div className="border-b border-slate-100 pb-4">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  Gerenciamento de Modelo Externo (OpenRouter)
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Selecione entre modelos comerciais populares, modelos 100% gratuitos (Free Tier)
-                  ou consulte o histórico de modelos ativados anteriormente.
-                </p>
-              </div>
-              <OpenRouterModelCard
-                onError={(message) => showToast(message, "error")}
-                onSuccess={(message) => showToast(message, "success")}
-              />
-            </div>
+            <PainelCard
+              titulo="Gerenciamento de Modelo Externo (OpenRouter)"
+              descricao="Selecione entre modelos comerciais populares, modelos 100% gratuitos (Free Tier) ou consulte o histórico de modelos ativados anteriormente."
+              espacamento="space-y-6"
+            >
+              <OpenRouterModelCard onError={onError} onSuccess={onSuccess} />
+            </PainelCard>
           </TabsContent>
 
           <TabsContent value="parametros">
-            <div className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
-              <div className="border-b border-slate-100 pb-4">
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  Parâmetros de Execução em Runtime
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Configurações de inferência, timeouts e mecanismo de roteamento mantidos em
-                  memória no backend.
-                </p>
-              </div>
-              <RuntimeSettingsForm
-                onError={(message) => showToast(message, "error")}
-                onSuccess={(message) => showToast(message, "success")}
-              />
-            </div>
+            <PainelCard
+              titulo="Parâmetros de Execução em Runtime"
+              descricao="Configurações de inferência, timeouts e mecanismo de roteamento mantidos em memória no backend."
+            >
+              <RuntimeSettingsForm onError={onError} onSuccess={onSuccess} />
+            </PainelCard>
           </TabsContent>
         </Tabs>
       </div>

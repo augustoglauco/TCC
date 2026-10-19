@@ -2814,6 +2814,13 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       só com a composição das seções. Comportamento idêntico; Vitest (13
       testes), `tsc`, `eslint` e `prettier` limpos.
 
+- [x] `app/admin/modelos/page.tsx` (achado `get_health`: 139 linhas em
+      `ModelosPage`) — estado e carga dos modelos locais foram para o hook
+      `useModelosLocais` no próprio arquivo; o cartão com título/descrição
+      repetido nas abas virou `PainelCard` e a aba de modelos locais
+      `PainelModelosLocais`. A página ficou com a composição. Comportamento
+      idêntico; Vitest (5 testes da página), `tsc` e `eslint` limpos.
+
 - [x] `components/admin/DocumentsTable.tsx` (achados `get_health`:
       `DocumentsTable` com 224 linhas e CC 24) — filtros, exclusão e estado
       dos modais foram para `lib/hooks/useDocumentsTable.ts` (o filtro virou
@@ -2877,6 +2884,17 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       Segunda passada (achados residuais `ChatModal` 203 linhas/CCN 13):
       `useChatFoco` (rolagem, salto inicial e devolução do foco),
       `ChatModalTitulo` e `ChatErroAlerta`; o componente caiu para 186 linhas.
+
+- [x] `components/admin/OpenRouterModelCard.tsx` (achados `get_health`:
+      `OpenRouterModelCard` com 212 linhas e CC 9, `init` CC 11 e
+      `ModelPresetCard` CC 13) — estado, carga (`init`, agora com
+      `lerHistorico`/`salvarHistorico`), ativação e remoção do histórico
+      foram para `lib/hooks/useOpenRouterModelo.ts`; as listas de sugestões
+      para `OpenRouterPresets.ts`; os cards para `OpenRouterCards.tsx`, onde
+      `ModelPresetCard` troca os ternários por uma tabela `ACENTO`. O
+      componente ficou na composição (banner, grupos, histórico, formulário).
+      Comportamento idêntico; os 3 testes do componente, a suíte de
+      `tests/components`, `tsc` e `eslint` limpos.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
