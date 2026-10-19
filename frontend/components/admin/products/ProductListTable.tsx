@@ -1,142 +1,160 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import React from "react";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
-import { useEstaNoCliente } from "@/lib/hooks/useEstaNoCliente";
-import type { AdminProduct, AdminProductStock } from "@/lib/types/adminProducts";
-
-interface StockDetailBadgeProps {
-  totalEstoque: number;
-  estoques?: AdminProductStock[];
-}
-
-function StockDetailBadge({ totalEstoque, estoques }: StockDetailBadgeProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const mounted = useEstaNoCliente();
-  const badgeRef = useRef<HTMLSpanElement>(null);
-  const [coords, setCoords] = useState<{ top: number; left: number; placeBelow: boolean } | null>(
-    null,
-  );
-
-  const updatePosition = useCallback(() => {
-    if (!badgeRef.current) return;
-    const rect = badgeRef.current.getBoundingClientRect();
-    if (rect.width === 0 && rect.height === 0 && rect.top === 0 && rect.left === 0) {
-      setCoords(null);
-      return;
-    }
-    const spaceAbove = rect.top;
-    const bubbleEstimatedHeight = 130;
-    const placeBelow = spaceAbove < bubbleEstimatedHeight;
-
-    setCoords({
-      top: placeBelow ? rect.bottom + 8 : rect.top - 8,
-      left: rect.left + rect.width / 2,
-      placeBelow,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (isOpen) {
-      updatePosition();
-      window.addEventListener("scroll", updatePosition, true);
-      window.addEventListener("resize", updatePosition);
-      return () => {
-        window.removeEventListener("scroll", updatePosition, true);
-        window.removeEventListener("resize", updatePosition);
-      };
-    }
-  }, [isOpen, updatePosition]);
-
-  const handleMouseEnter = () => {
-    updatePosition();
-    setIsOpen(true);
-  };
-
-  const handleMouseLeave = () => {
-    setIsOpen(false);
-  };
-
-  const bubbleElement = isOpen ? (
-    <div
-      role="tooltip"
-      style={
-        coords
-          ? {
-              position: "fixed",
-              top: coords.placeBelow ? `${coords.top}px` : undefined,
-              bottom: !coords.placeBelow ? `${window.innerHeight - coords.top}px` : undefined,
-              left: `${coords.left}px`,
-              transform: "translateX(-50%)",
-            }
-          : undefined
-      }
-      className={`${
-        coords ? "z-[9999]" : "absolute top-full left-0 z-[100]"
-      } pointer-events-none w-56 rounded-xl border border-slate-700 bg-slate-900 p-3 text-xs text-slate-100 shadow-2xl animate-in fade-in-50 duration-150`}
-    >
-      <div className="flex items-center gap-1.5 border-b border-slate-800 pb-2 mb-2 font-semibold text-slate-200">
-        <span>📦</span>
-        <span>Detalhamento por CD</span>
-      </div>
-
-      {estoques && estoques.length > 0 ? (
-        <div className="space-y-1.5">
-          {estoques.map((est, idx) => (
-            <div
-              key={est.id || `${est.centro_distribuicao}-${idx}`}
-              className="flex items-center justify-between"
-            >
-              <span
-                className="text-slate-300 font-medium truncate max-w-[130px]"
-                title={est.centro_distribuicao}
-              >
-                {est.centro_distribuicao}
-              </span>
-              <span className="font-semibold text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
-                {est.quantidade} un
-              </span>
-            </div>
-          ))}
-          <div className="border-t border-slate-800 pt-1.5 mt-2 flex items-center justify-between font-semibold text-slate-200">
-            <span>Total no estoque:</span>
-            <span className="text-emerald-300">{totalEstoque} un</span>
-          </div>
-        </div>
-      ) : (
-        <p className="text-slate-400 italic">Nenhum CD com estoque registrado.</p>
-      )}
-    </div>
-  ) : null;
-
-  return (
-    <>
-      <span
-        ref={badgeRef}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium cursor-help transition-all ${
-          totalEstoque > 0
-            ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
-            : "bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200"
-        }`}
-      >
-        <span>📦</span>
-        <span>{totalEstoque} un</span>
-      </span>
-      {mounted && typeof document !== "undefined" && bubbleElement
-        ? createPortal(bubbleElement, document.body)
-        : bubbleElement}
-    </>
-  );
-}
+import type { AdminProduct } from "@/lib/types/adminProducts";
+import StockDetailBadge from "./StockDetailBadge";
 
 interface ProductListTableProps {
   produtos: AdminProduct[];
   loading: boolean;
   onEdit: (produto: AdminProduct) => void;
   onDelete: (id: number) => void;
+}
+
+function getFullImageUrl(url: string | null) {
+  if (!url) return null;
+  if (url.startsWith("http://") || url.startsWith("https://")) return url;
+  return `${getApiBaseUrl()}${url}`;
+}
+
+function formatCurrency(val: number | null | undefined) {
+  if (val === null || val === undefined || isNaN(val)) return "-";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+}
+
+function calculateMargin(venda: number | null, base: number | null) {
+  if (!venda || !base || base <= 0) return null;
+  return (((venda - base) / base) * 100).toFixed(1);
+}
+
+function temImagemVetorizada(p: AdminProduct): boolean {
+  const algumaComClip = Boolean(p.imagens?.some((img) => img.clip_image_id));
+  return algumaComClip || Boolean(p.imagem_url);
+}
+
+function somaEstoque(p: AdminProduct): number {
+  return (p.estoques || []).reduce((acc, est) => acc + (est.quantidade || 0), 0);
+}
+
+function classeMargem(margin: string): string {
+  const valor = Number(margin);
+  if (valor >= 30) return "bg-green-100 text-green-800";
+  if (valor > 0) return "bg-amber-100 text-amber-800";
+  return "bg-red-100 text-red-800";
+}
+
+function CelulaFoto({ p }: { p: AdminProduct }) {
+  const fullImg = getFullImageUrl(p.imagem_url);
+  return (
+    <td className="py-3.5 pl-4 pr-3 whitespace-nowrap">
+      <div className="relative h-14 w-14 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 flex items-center justify-center">
+        {fullImg ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={fullImg} alt={p.nome} className="h-full w-full object-cover" />
+        ) : (
+          <span className="text-2xl text-gray-400">📷</span>
+        )}
+        {temImagemVetorizada(p) && (
+          <span
+            title="Vetorizado no catálogo visual CLIP (busca por foto no chat)"
+            className="absolute bottom-0.5 right-0.5 rounded bg-emerald-600 px-1 py-0.2 text-[9px] font-bold text-white shadow-sm"
+          >
+            CLIP
+          </span>
+        )}
+      </div>
+    </td>
+  );
+}
+
+function CelulaNome({ p }: { p: AdminProduct }) {
+  return (
+    <td className="px-3 py-3.5 max-w-xs">
+      <div className="font-medium text-gray-900 line-clamp-1">{p.nome}</div>
+      {p.descricao && <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{p.descricao}</p>}
+      {p.especificacoes_tecnicas && (
+        <span className="inline-block mt-1 text-[11px] text-gray-400 truncate max-w-full">
+          {p.especificacoes_tecnicas}
+        </span>
+      )}
+    </td>
+  );
+}
+
+function CelulaPrecos({ p }: { p: AdminProduct }) {
+  return (
+    <td className="px-3 py-3.5 whitespace-nowrap">
+      <div className="flex flex-col gap-0.5">
+        <div className="text-xs text-gray-600 font-medium flex items-center gap-1">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Rev.:</span>
+          <span>{formatCurrency(p.preco_base_fornecedor)}</span>
+        </div>
+        <div className="text-sm font-semibold text-gray-900 flex items-center gap-1">
+          <span className="text-[11px] font-normal uppercase tracking-wider text-gray-400">Venda:</span>
+          <span>{formatCurrency(p.preco)}</span>
+        </div>
+      </div>
+    </td>
+  );
+}
+
+function CelulaMargem({ margin }: { margin: string | null }) {
+  return (
+    <td className="px-3 py-3.5 whitespace-nowrap">
+      {margin !== null ? (
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${classeMargem(margin)}`}
+        >
+          +{margin}%
+        </span>
+      ) : (
+        <span className="text-xs text-gray-400">-</span>
+      )}
+    </td>
+  );
+}
+
+function CelulaAcoes({
+  p,
+  onEdit,
+  onDelete,
+}: {
+  p: AdminProduct;
+  onEdit: (produto: AdminProduct) => void;
+  onDelete: (id: number) => void;
+}) {
+  const confirmarExclusao = () => {
+    if (
+      confirm(
+        `Deseja realmente excluir "${p.nome}"? A exclusão removerá o produto e suas fotos do catálogo visual.`,
+      )
+    ) {
+      onDelete(p.id);
+    }
+  };
+  return (
+    <td className="py-3.5 pl-3 pr-4 text-right whitespace-nowrap">
+      <div className="flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={() => onEdit(p)}
+          className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-blue-600 transition-colors"
+          title="Editar produto"
+        >
+          ✏️
+        </button>
+        <button
+          type="button"
+          onClick={confirmarExclusao}
+          className="rounded p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+          title="Excluir produto"
+        >
+          🗑️
+        </button>
+      </div>
+    </td>
+  );
 }
 
 function ProductTableRow({
@@ -148,119 +166,21 @@ function ProductTableRow({
   onEdit: (produto: AdminProduct) => void;
   onDelete: (id: number) => void;
 }) {
-  const getFullImageUrl = (url: string | null) => {
-    if (!url) return null;
-    if (url.startsWith("http://") || url.startsWith("https://")) return url;
-    return `${getApiBaseUrl()}${url}`;
-  };
-  const formatCurrency = (val: number | null | undefined) => {
-    if (val === null || val === undefined || isNaN(val)) return "-";
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
-  };
-  const calculateMargin = (venda: number | null, base: number | null) => {
-    if (!venda || !base || base <= 0) return null;
-    return (((venda - base) / base) * 100).toFixed(1);
-  };
-
-  const fullImg = getFullImageUrl(p.imagem_url);
-  const margin = calculateMargin(p.preco, p.preco_base_fornecedor);
-  const temClip =
-    (p.imagens && p.imagens.length > 0 && p.imagens.some((img) => img.clip_image_id)) ||
-    Boolean(p.imagem_url);
-  const totalEstoque = (p.estoques || []).reduce((acc, est) => acc + (est.quantidade || 0), 0);
-
   return (
-    <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
-      <td className="py-3.5 pl-4 pr-3 whitespace-nowrap">
-        <div className="relative h-14 w-14 overflow-hidden rounded-lg border border-gray-200 bg-gray-100 flex items-center justify-center">
-          {fullImg ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={fullImg} alt={p.nome} className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-2xl text-gray-400">📷</span>
-          )}
-          {temClip && (
-            <span
-              title="Vetorizado no catálogo visual CLIP (busca por foto no chat)"
-              className="absolute bottom-0.5 right-0.5 rounded bg-emerald-600 px-1 py-0.2 text-[9px] font-bold text-white shadow-sm"
-            >
-              CLIP
-            </span>
-          )}
-        </div>
-      </td>
-      <td className="px-3 py-3.5 max-w-xs">
-        <div className="font-medium text-gray-900 line-clamp-1">{p.nome}</div>
-        {p.descricao && (
-          <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{p.descricao}</p>
-        )}
-        {p.especificacoes_tecnicas && (
-          <span className="inline-block mt-1 text-[11px] text-gray-400 truncate max-w-full">
-            {p.especificacoes_tecnicas}
-          </span>
-        )}
-      </td>
+    <tr className="hover:bg-gray-50/60 transition-colors">
+      <CelulaFoto p={p} />
+      <CelulaNome p={p} />
       <td className="px-3 py-3.5 whitespace-nowrap">
         <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
           {p.categoria || "Geral"}
         </span>
       </td>
       <td className="px-3 py-3.5 whitespace-nowrap">
-        <StockDetailBadge totalEstoque={totalEstoque} estoques={p.estoques} />
+        <StockDetailBadge totalEstoque={somaEstoque(p)} estoques={p.estoques} />
       </td>
-      <td className="px-3 py-3.5 whitespace-nowrap">
-        <div className="flex flex-col gap-0.5">
-          <div className="text-xs text-gray-600 font-medium flex items-center gap-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Rev.:</span>
-            <span>{formatCurrency(p.preco_base_fornecedor)}</span>
-          </div>
-          <div className="text-sm font-semibold text-gray-900 flex items-center gap-1">
-            <span className="text-[11px] font-normal uppercase tracking-wider text-gray-400">Venda:</span>
-            <span>{formatCurrency(p.preco)}</span>
-          </div>
-        </div>
-      </td>
-      <td className="px-3 py-3.5 whitespace-nowrap">
-        {margin !== null ? (
-          <span
-            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${
-              Number(margin) >= 30
-                ? "bg-green-100 text-green-800"
-                : Number(margin) > 0
-                  ? "bg-amber-100 text-amber-800"
-                  : "bg-red-100 text-red-800"
-            }`}
-          >
-            +{margin}%
-          </span>
-        ) : (
-          <span className="text-xs text-gray-400">-</span>
-        )}
-      </td>
-      <td className="py-3.5 pl-3 pr-4 text-right whitespace-nowrap">
-        <div className="flex items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => onEdit(p)}
-            className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-blue-600 transition-colors"
-            title="Editar produto"
-          >
-            ✏️
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm(`Deseja realmente excluir "${p.nome}"? A exclusão removerá o produto e suas fotos do catálogo visual.`)) {
-                onDelete(p.id);
-              }
-            }}
-            className="rounded p-1.5 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
-            title="Excluir produto"
-          >
-            🗑️
-          </button>
-        </div>
-      </td>
+      <CelulaPrecos p={p} />
+      <CelulaMargem margin={calculateMargin(p.preco, p.preco_base_fornecedor)} />
+      <CelulaAcoes p={p} onEdit={onEdit} onDelete={onDelete} />
     </tr>
   );
 }

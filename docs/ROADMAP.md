@@ -2760,6 +2760,16 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `ListaAgendamentos`. Markup e comportamento idênticos; `tsc`, `eslint` e
       Vitest (8 testes das páginas de agendamentos) limpos.
 
+- [x] `components/admin/products/ProductListTable.tsx` (achados `get_health`:
+      CC 24 em `ProductTableRow`, CC 20 e 112 linhas em `StockDetailBadge`,
+      condicional com 3 operadores) — `StockDetailBadge` foi para arquivo
+      próprio (`StockDetailBadge.tsx`) com `calcularCoords`, `StockTooltip` e o
+      hook `useTooltipCoords`; a linha da tabela virou células
+      (`CelulaFoto`, `CelulaNome`, `CelulaPrecos`, `CelulaMargem`,
+      `CelulaAcoes`) e helpers puros (`classeMargem`, `somaEstoque`,
+      `temImagemVetorizada`). Markup e comportamento idênticos; Vitest
+      (570 testes de componentes), `tsc` e `eslint` limpos.
+
 - [x] `ChatModal.tsx` (achado `get_health`: método grande, 134 linhas) —
       área de mensagens extraída para `components/chat/ChatMensagens.tsx`
       (banner de escalonamento, mensagens, boas-vindas e erro; `WELCOME_MESSAGE`
