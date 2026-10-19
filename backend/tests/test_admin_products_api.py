@@ -165,3 +165,49 @@ async def test_admin_produto_estoque_desconto_compatibilidade(app_sqlite, admin_
         finally:
             await client.delete(f"/api/admin/produtos/{p1['id']}", headers=admin_headers)
             await client.delete(f"/api/admin/produtos/{p2['id']}", headers=admin_headers)
+
+
+@pytest.mark.asyncio
+async def test_delete_imagem_principal_reatribui_outra(app_sqlite, admin_headers):
+    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as c:
+        resp = await c.post(
+            "/api/admin/produtos",
+            json={
+                "nome": "Roteador AX",
+                "descricao": "Wi-Fi 6",
+                "preco": "300.00",
+                "categoria": "Redes",
+            },
+            headers=admin_headers,
+        )
+        prod_id = resp.json()["id"]
+        urls = []
+        ids = []
+        for nome in ("a.png", "b.png"):
+            files = {"file": (nome, b"\x89PNG\r\n\x1a\n" + nome.encode(), "image/png")}
+            r = await c.post(
+                f"/api/admin/produtos/{prod_id}/imagens", files=files, headers=admin_headers
+            )
+            urls.append(r.json()["imagem_url"])
+            ids.append(r.json()["id"])
+
+        assert (await c.get(f"/api/admin/produtos/{prod_id}", headers=admin_headers)).json()[
+            "imagem_url"
+        ] == urls[1]
+
+        # Remove a principal (b): produto passa a apontar para a outra (a)
+        r = await c.delete(f"/api/admin/produtos/{prod_id}/imagens/{ids[1]}", headers=admin_headers)
+        assert r.status_code == 204
+        prod = (await c.get(f"/api/admin/produtos/{prod_id}", headers=admin_headers)).json()
+        assert prod["imagem_url"] == urls[0]
+
+        # Remove a última: imagem_url fica None
+        await c.delete(f"/api/admin/produtos/{prod_id}/imagens/{ids[0]}", headers=admin_headers)
+        prod = (await c.get(f"/api/admin/produtos/{prod_id}", headers=admin_headers)).json()
+        assert prod["imagem_url"] is None
+
+        # Imagem inexistente: 404
+        r = await c.delete(f"/api/admin/produtos/{prod_id}/imagens/999999", headers=admin_headers)
+        assert r.status_code == 404
+
+        await c.delete(f"/api/admin/produtos/{prod_id}", headers=admin_headers)

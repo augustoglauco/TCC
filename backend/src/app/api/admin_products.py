@@ -49,7 +49,7 @@ from app.db.catalog import (
     remover_compatibilidade,
     remover_desconto_volume,
 )
-from app.db.models import ProdutoImagem
+from app.db.models import Produto, ProdutoImagem
 from app.models.catalog import (
     PaginatedProdutosOut,
     ProdutoCreate,
@@ -285,6 +285,39 @@ async def put_admin_produto(
     return ProdutoOut.model_validate(produto)
 
 
+async def _expurgar_vetores_imagem(clip_store: ClipImageStore, img: ProdutoImagem) -> None:
+    """Remove do CLIP os vetores de uma imagem (por id e por URL).
+
+    MVP: best-effort — o índice CLIP é secundário ao Postgres, então falha ao
+    expurgar só gera aviso e não impede a exclusão.
+    """
+    if img.clip_image_id:
+        try:
+            await clip_store.delete_image(img.clip_image_id)
+        except Exception as exc:
+            logger.warning("Falha ao expurgar vetor CLIP %s: %s", img.clip_image_id, exc)
+    if img.imagem_url:
+        try:
+            await clip_store.delete_images_by_url(img.imagem_url)
+        except Exception as exc:
+            logger.warning("Falha ao expurgar vetor CLIP por URL %s: %s", img.imagem_url, exc)
+
+
+async def _reatribuir_imagem_principal(
+    session: AsyncSession, produto: Produto, removida: ProdutoImagem
+) -> None:
+    """Se a imagem removida era a principal, aponta o produto para outra (ou None)."""
+    if produto.imagem_url != removida.imagem_url:
+        return
+    res = await session.execute(
+        select(ProdutoImagem)
+        .where(ProdutoImagem.produto_id == produto.id, ProdutoImagem.id != removida.id)
+        .limit(1)
+    )
+    outra_img = res.scalar_one_or_none()
+    produto.imagem_url = outra_img.imagem_url if outra_img else None
+
+
 @router.delete("/{produto_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_admin_produto(
     produto_id: int,
@@ -305,16 +338,7 @@ async def delete_admin_produto(
         )
 
     for img in produto.imagens:
-        if img.clip_image_id:
-            try:
-                await clip_store.delete_image(img.clip_image_id)
-            except Exception as exc:
-                logger.warning("Falha ao expurgar vetor CLIP %s: %s", img.clip_image_id, exc)
-        if img.imagem_url:
-            try:
-                await clip_store.delete_images_by_url(img.imagem_url)
-            except Exception as exc:
-                logger.warning("Falha ao expurgar vetor CLIP por URL %s: %s", img.imagem_url, exc)
+        await _expurgar_vetores_imagem(clip_store, img)
 
     await deletar_produto(session, produto_id)
     return None
@@ -386,32 +410,12 @@ async def delete_imagem_produto(
     if not imagem:
         raise HTTPException(status_code=404, detail="Imagem não encontrada.")
 
-    if imagem.clip_image_id:
-        try:
-            await clip_store.delete_image(imagem.clip_image_id)
-        except Exception as exc:
-            logger.warning("Falha ao expurgar vetor CLIP %s: %s", imagem.clip_image_id, exc)
-
-    if imagem.imagem_url:
-        try:
-            await clip_store.delete_images_by_url(imagem.imagem_url)
-        except Exception as exc:
-            logger.warning("Falha ao expurgar vetor CLIP por URL %s: %s", imagem.imagem_url, exc)
-
+    await _expurgar_vetores_imagem(clip_store, imagem)
     await session.execute(delete(ProdutoImagem).where(ProdutoImagem.id == img_id))
 
-    # Se era a imagem principal, atualiza produto.imagem_url
     produto = await obter_produto(session, produto_id)
-    if produto and produto.imagem_url == imagem.imagem_url:
-        # Pega outra imagem se houver
-        outro_stmt = (
-            select(ProdutoImagem)
-            .where(ProdutoImagem.produto_id == produto_id, ProdutoImagem.id != img_id)
-            .limit(1)
-        )
-        outro_res = await session.execute(outro_stmt)
-        outra_img = outro_res.scalar_one_or_none()
-        produto.imagem_url = outra_img.imagem_url if outra_img else None
+    if produto:
+        await _reatribuir_imagem_principal(session, produto, imagem)
 
     await session.commit()
     return None
