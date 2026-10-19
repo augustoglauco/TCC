@@ -2924,3 +2924,11 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       para `CollectionRow.tsx`; o modal de exclusão virou `ModalExclusao` no
       próprio arquivo. Comportamento idêntico; Vitest (9 testes), `tsc`,
       `eslint` e `prettier` limpos.
+- [x] `testar.sh` (achados `get_health`: CC 17 em `main`, CC 10 em
+      `_passo_caddy`) — `main` virou uma sequência de `_passo_git_pull`,
+      `_passo_dependencias`, `_passo_ollama`, `_passo_servicos`, `_passo_teste`
+      e `_passo_enviar_relatorio`; o Caddy ganhou `_caddy_subir` e
+      `_caddy_status_https` (o PID passa por `PID_CADDY`, pois `$!` não
+      atravessa `$(...)`). Comportamento idêntico, `bash -n` limpo; não foi
+      rodado de ponta a ponta (sobe Docker/GPU/push) — validar no próximo
+      `./testar.sh`.

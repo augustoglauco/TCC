@@ -70,33 +70,46 @@ _passo_frontend() {
   fi
 }
 
+# Sobe o Caddy se a porta 8443 estiver livre; deixa o PID em PID_CADDY (vazio
+# se ele já estava rodando). Global porque `$!` não atravessa `$(...)`.
+_caddy_subir() {
+  local caddy_bin=$1
+  PID_CADDY=""
+  if ss -ltnH 'sport = :8443' 2>/dev/null | grep -q .; then
+    echo "Caddy já está rodando (porta 8443 ocupada)"
+    return
+  fi
+  echo "Iniciando o Caddy (porta 8443, log em /tmp/tcc-caddy.log)"
+  nohup "$caddy_bin" run --config infra/caddy/Caddyfile \
+    --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 &
+  PID_CADDY=$!
+  disown
+}
+
+# Imprime o código HTTP do /mcp via HTTPS (000 se não respondeu). Até 2 min: na
+# primeira vez o Caddy obtém o certificado pelo DuckDNS.
+_caddy_status_https() {
+  local dominio=$1 status=000
+  for _ in $(seq 1 120); do
+    status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 \
+      --resolve "$dominio:8443:127.0.0.1" "https://$dominio:8443/mcp")
+    [ "$status" != "000" ] && break
+    if [ -n "$PID_CADDY" ] && ! kill -0 "$PID_CADDY" 2>/dev/null; then break; fi
+    sleep 1
+  done
+  echo "$status"
+}
+
 _passo_caddy() {
-  local caddy_bin dominio pid_caddy status_caddy
+  local caddy_bin dominio status_caddy
   caddy_bin=$(command -v caddy || echo "$HOME/.local/bin/caddy")
   if [ ! -f infra/caddy/caddy.env ] || [ ! -x "$caddy_bin" ]; then
     echo "Caddy não configurado (falta infra/caddy/caddy.env ou o binário) — pulando."
     return
   fi
   dominio=$(sed -n 's/^DUCKDNS_DOMAIN=//p' infra/caddy/caddy.env | tr -d '[:space:]')
-  pid_caddy=""
-  if ss -ltnH 'sport = :8443' 2>/dev/null | grep -q .; then
-    echo "Caddy já está rodando (porta 8443 ocupada)"
-  else
-    echo "Iniciando o Caddy (porta 8443, log em /tmp/tcc-caddy.log)"
-    nohup "$caddy_bin" run --config infra/caddy/Caddyfile \
-      --envfile infra/caddy/caddy.env > /tmp/tcc-caddy.log 2>&1 &
-    pid_caddy=$!
-    disown
-  fi
-  # Até 2 min: na primeira vez o Caddy obtém o certificado pelo DuckDNS.
-  status_caddy=000
-  for _ in $(seq 1 120); do
-    status_caddy=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 \
-      --resolve "$dominio:8443:127.0.0.1" "https://$dominio:8443/mcp")
-    [ "$status_caddy" != "000" ] && break
-    if [ -n "$pid_caddy" ] && ! kill -0 "$pid_caddy" 2>/dev/null; then break; fi
-    sleep 1
-  done
+  _caddy_subir "$caddy_bin"
+  status_caddy=$(_caddy_status_https "$dominio")
   if [ "$status_caddy" = "000" ]; then
     tail -15 /tmp/tcc-caddy.log
     echo "⚠️  Caddy sem HTTPS em $dominio:8443 (log acima) — as verificações M5/M6 vão falhar; o resto segue."
@@ -105,11 +118,7 @@ _passo_caddy() {
   fi
 }
 
-# Tudo dentro de main(): o `git pull` do passo 1 pode reescrever este próprio
-# arquivo, e o bash lê scripts aos poucos — com a função, ele já carregou o
-# corpo inteiro antes de executar.
-
-main() {
+_passo_git_pull() {
   passo "1/6 Atualizando o código (git pull)"
   if [ -n "$(git status --porcelain --untracked-files=no -- . ':!testes_locais')" ]; then
     git status --short --untracked-files=no -- . ':!testes_locais'
@@ -117,42 +126,68 @@ main() {
   fi
   git pull --rebase || falha "git pull falhou."
   echo "Branch $(git rev-parse --abbrev-ref HEAD) @ $(git rev-parse --short HEAD)"
+}
 
+_passo_dependencias() {
   passo "2/6 Dependências e migrações do banco"
   docker compose -f backend/docker-compose.yml up -d >/dev/null || falha "docker compose falhou (Docker está rodando?)."
   (cd backend && uv sync --all-extras -q) || falha "uv sync falhou."
   (cd backend && uv run alembic upgrade head) || falha "Migração do banco falhou."
+}
 
+_passo_ollama() {
   passo "3/6 Conferindo o Ollama"
   if curl -s --max-time 5 http://localhost:11434/api/tags >/dev/null; then
     echo "Ollama OK"
   else
     echo "⚠️  Ollama não respondeu em localhost:11434 — os cenários de chat vão falhar."
   fi
+}
 
+_passo_servicos() {
   passo "4/6 Backend (8000), MCP B2B (8100), frontend (3001) e Caddy (8443)"
   _passo_backend
   _passo_mcp_b2b
   _passo_frontend
   _passo_caddy
+}
 
+# Deixa o caminho do relatório mais recente em RELATORIO (usado pelo passo 6).
+_passo_teste() {
   passo "5/6 Rodando o teste"
   (cd backend && .venv/bin/python scripts/teste_local.py "$@") || falha "O roteiro de teste quebrou — copie o erro acima e mande para o agente."
-  relatorio=$(ls -t testes_locais/*.md 2>/dev/null | head -1)
-  [ -n "$relatorio" ] || falha "Nenhum relatório foi gerado."
+  RELATORIO=$(ls -t testes_locais/*.md 2>/dev/null | head -1)
+  [ -n "$RELATORIO" ] || falha "Nenhum relatório foi gerado."
+}
 
-  passo "6/6 Enviando o relatório ($relatorio)"
-  git add "$relatorio"
-  git commit -q -m "test: resultado do teste local ($(basename "$relatorio" .md))" || falha "git commit falhou."
+_passo_enviar_relatorio() {
+  local branch espera
+  passo "6/6 Enviando o relatório ($RELATORIO)"
+  git add "$RELATORIO"
+  git commit -q -m "test: resultado do teste local ($(basename "$RELATORIO" .md))" || falha "git commit falhou."
+  branch=$(git rev-parse --abbrev-ref HEAD)
   for espera in 0 2 4 8; do
     sleep "$espera"
-    if git push -q -u origin "$(git rev-parse --abbrev-ref HEAD)" \
-      || { git pull -q --rebase && git push -q -u origin "$(git rev-parse --abbrev-ref HEAD)"; }; then
-      printf '\n✅ Pronto. Relatório enviado: %s\n   Avise o agente: "rodei o teste".\n' "$relatorio"
+    if git push -q -u origin "$branch" \
+      || { git pull -q --rebase && git push -q -u origin "$branch"; }; then
+      printf '\n✅ Pronto. Relatório enviado: %s\n   Avise o agente: "rodei o teste".\n' "$RELATORIO"
       exit 0
     fi
   done
-  falha "git push falhou. O relatório está em $relatorio — rode 'git push' à mão ou cole o conteúdo no chat."
+  falha "git push falhou. O relatório está em $RELATORIO — rode 'git push' à mão ou cole o conteúdo no chat."
+}
+
+# Tudo dentro de main(): o `git pull` do passo 1 pode reescrever este próprio
+# arquivo, e o bash lê scripts aos poucos — com a função, ele já carregou o
+# corpo inteiro antes de executar.
+
+main() {
+  _passo_git_pull
+  _passo_dependencias
+  _passo_ollama
+  _passo_servicos
+  _passo_teste "$@"
+  _passo_enviar_relatorio
 }
 
 main "$@"
