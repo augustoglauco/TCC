@@ -40,7 +40,7 @@ from app.api.rag_dependencies import (
     get_qdrant_client,
     get_uploads_dir,
 )
-from app.db.models import RagDocument
+from app.db.models import RagCollection, RagDocument
 from app.models.rag import (
     DocumentIngestResponse,
     DocumentRegistryResponse,
@@ -73,6 +73,57 @@ def _document_to_response(document: RagDocument, collection_name: str) -> Docume
     )
 
 
+_MEDIA_TYPES = {
+    ".pdf": "application/pdf",
+    ".txt": "text/plain; charset=utf-8",
+    ".md": "text/markdown; charset=utf-8",
+    ".csv": "text/csv; charset=utf-8",
+}
+
+
+def _validar_formato(filename: str) -> None:
+    suffix = Path(filename).suffix.lower()
+    if suffix not in SUPPORTED_SUFFIXES:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Formato não suportado: '{suffix or filename}'. "
+                f"Use um destes: {sorted(SUPPORTED_SUFFIXES)}."
+            ),
+        )
+
+
+async def _resolver_collection_upload(
+    session: AsyncSession, collection_id: UUID | None
+) -> RagCollection:
+    if collection_id is not None:
+        collection = await get_collection(session, collection_id)
+        if collection is None:
+            raise HTTPException(status_code=404, detail="Collection não encontrada.")
+        return collection
+    collection = await get_active_collection(session)
+    if collection is None:
+        raise HTTPException(status_code=503, detail="Nenhuma collection ativa configurada.")
+    return collection
+
+
+def _resolver_arquivo_original(document: RagDocument, uploads_dir: Path) -> Path:
+    """Acha o arquivo original em disco (storage_path, depois uploads_dir) ou levanta 404."""
+    if document.storage_path:
+        p = Path(document.storage_path)
+        if p.exists():
+            return p
+        if (uploads_dir / p.name).exists():
+            return uploads_dir / p.name
+    candidate = uploads_dir / f"{document.id}_{document.filename}"
+    if candidate.exists():
+        return candidate
+    raise HTTPException(
+        status_code=404,
+        detail="Arquivo original do documento não encontrado em disco.",
+    )
+
+
 @router.post("/documents", response_model=DocumentIngestResponse)
 async def upload_document(
     domain: RagDomain = Form(...),
@@ -85,24 +136,8 @@ async def upload_document(
     _: None = Depends(require_admin),
 ) -> DocumentIngestResponse:
     filename = file.filename or ""
-    suffix = Path(filename).suffix.lower()
-    if suffix not in SUPPORTED_SUFFIXES:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Formato não suportado: '{suffix or filename}'. "
-                f"Use um destes: {sorted(SUPPORTED_SUFFIXES)}."
-            ),
-        )
-
-    if collection_id is not None:
-        collection = await get_collection(session, collection_id)
-        if collection is None:
-            raise HTTPException(status_code=404, detail="Collection não encontrada.")
-    else:
-        collection = await get_active_collection(session)
-        if collection is None:
-            raise HTTPException(status_code=503, detail="Nenhuma collection ativa configurada.")
+    _validar_formato(filename)
+    collection = await _resolver_collection_upload(session, collection_id)
 
     embedder = embedders.get(collection.embedding_model)
     content = await file.read()
@@ -182,35 +217,8 @@ async def get_document_content_endpoint(
     if document is None:
         raise HTTPException(status_code=404, detail="Documento não encontrado.")
 
-    file_path: Path | None = None
-
-    if document.storage_path:
-        p = Path(document.storage_path)
-        if p.exists():
-            file_path = p
-        elif (uploads_dir / p.name).exists():
-            file_path = uploads_dir / p.name
-
-    if file_path is None:
-        candidate = uploads_dir / f"{document.id}_{document.filename}"
-        if candidate.exists():
-            file_path = candidate
-
-    if file_path is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Arquivo original do documento não encontrado em disco.",
-        )
-
-    suffix = file_path.suffix.lower()
-
-    media_type_map = {
-        ".pdf": "application/pdf",
-        ".txt": "text/plain; charset=utf-8",
-        ".md": "text/markdown; charset=utf-8",
-        ".csv": "text/csv; charset=utf-8",
-    }
-    media_type = media_type_map.get(suffix, "application/octet-stream")
+    file_path = _resolver_arquivo_original(document, uploads_dir)
+    media_type = _MEDIA_TYPES.get(file_path.suffix.lower(), "application/octet-stream")
 
     return FileResponse(
         path=file_path,
@@ -248,42 +256,17 @@ async def download_document_endpoint(
         raise HTTPException(status_code=404, detail="Documento não encontrado.")
 
     collection = await get_collection(session, document.collection_id)
-    if collection is None or collection.purpose != "chat":
-        if not await is_admin_request(session, authorization, x_auth_token, token_param):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Acesso restrito a administradores autenticados.",
-            )
-
-    file_path: Path | None = None
-
-    if document.storage_path:
-        p = Path(document.storage_path)
-        if p.exists():
-            file_path = p
-        elif (uploads_dir / p.name).exists():
-            file_path = uploads_dir / p.name
-
-    if file_path is None:
-        candidate = uploads_dir / f"{document.id}_{document.filename}"
-        if candidate.exists():
-            file_path = candidate
-
-    if file_path is None:
+    publico = collection is not None and collection.purpose == "chat"
+    if not publico and not await is_admin_request(
+        session, authorization, x_auth_token, token_param
+    ):
         raise HTTPException(
-            status_code=404,
-            detail="Arquivo original do documento não encontrado em disco.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito a administradores autenticados.",
         )
 
-    suffix = file_path.suffix.lower()
-
-    media_type_map = {
-        ".pdf": "application/pdf",
-        ".txt": "text/plain; charset=utf-8",
-        ".md": "text/markdown; charset=utf-8",
-        ".csv": "text/csv; charset=utf-8",
-    }
-    media_type = media_type_map.get(suffix, "application/octet-stream")
+    file_path = _resolver_arquivo_original(document, uploads_dir)
+    media_type = _MEDIA_TYPES.get(file_path.suffix.lower(), "application/octet-stream")
 
     return FileResponse(
         path=file_path,
