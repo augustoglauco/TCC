@@ -2778,6 +2778,16 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       a composição. Comportamento idêntico; 4 testes novos da função pura
       (`tests/lib/useProductFormSubmit.test.ts`), `tsc` e `eslint` limpos.
 
+- [x] `components/admin/LocalModelsTable.tsx` (achados `get_health`:
+      `LocalModelsTable` com 171 linhas, `LocalPresetCard` CC 12 e
+      `LocalModelCard` CC 11) — estado e ações (ativar, desinstalar, baixar
+      preset) foram para `lib/hooks/useLocalModelsAcoes.ts`; os cards e os
+      presets para `LocalModelCards.tsx` (com `AcoesModeloInstalado`,
+      `AcaoPreset`, `SeloAtivoInstalado` e helpers de classe/rótulo); o banner
+      e o modal de confirmação para `LocalModelsPartes.tsx`. A tabela ficou só
+      na composição. Comportamento idêntico; os 7 testes do componente, `tsc`
+      e `eslint` nos arquivos tocados limpos.
+
 - [x] `app/admin/ferramentas/page.tsx` (achados `get_health`: CC 17 e 112
       linhas em `AdminFerramentasPage`) — estado, carga, atualização e efeito
       foram para `lib/hooks/useFerramentas.ts`; o bloco de acesso negado virou
