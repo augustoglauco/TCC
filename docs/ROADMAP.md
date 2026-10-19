@@ -2795,6 +2795,16 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       composição. Comportamento idêntico; Vitest (7 testes da página), `tsc`,
       `eslint` e `prettier` limpos.
 
+- [x] `components/admin/products/CatalogImportModal.tsx` (achados
+      `get_health`: 291 linhas e CC 54 em `CatalogImportModal`) — estado,
+      colagem/arrastar de arquivos, extração em stream, seletor de foto e
+      confirmação do lote foram para `useCatalogImport.ts`; os helpers puros
+      (aceite de arquivo, chave, nome de colado, mapeamento de produtos da
+      página e payload de confirmação) para `catalogArquivos.ts`. O modal
+      ficou com a composição; `CatalogPriceInput`, `formatarMoedaInput` e
+      `parseMoedaInput` seguem exportados dele. Comportamento idêntico; 33
+      testes (modal + página de produtos), `tsc`, `eslint` e `prettier` limpos.
+
 - [x] `components/admin/RuntimeSettingsForm.tsx` (achados `get_health`: 295
       linhas em `RuntimeSettingsForm`, CC 16 em `handleSubmit`, CC 10 em
       `carregar`) — estado, carga, envio e ações de VRAM foram para
