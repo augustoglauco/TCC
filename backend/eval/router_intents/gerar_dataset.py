@@ -74,7 +74,11 @@ DESCRICAO_DOMINIO = {
         "quer comprar, pedir orçamento, saber preço, estoque ou compatibilidade antes da compra"
     ),
     "suporte": "produto já adquirido com defeito, erro ou problema técnico",
-    "atendimento": "nota fiscal, troca, devolução, cancelamento, reclamação ou pedido já feito",
+    "atendimento": (
+        "pós-compra (nota fiscal, troca, devolução, cancelamento, reclamação, pedido já "
+        "feito) ou dúvida genérica sobre a empresa (localização, horário de funcionamento, "
+        "acesso ao site)"
+    ),
     "agendamento": "quer marcar uma visita técnica nova (nunca remarcar, adiar ou confirmar)",
 }
 
@@ -176,9 +180,9 @@ visita).
 
 Misture estes tipos, em proporções parecidas:
 - saudação ou agradecimento solto ("bom dia", "obrigado", "valeu");
-- pergunta institucional sem relação com localização ou horário da empresa \
-("tem vaga de emprego?", "vocês patrocinam eventos?") — localização e horário \
-da empresa são atendimento, não fora de escopo;
+- pergunta institucional que não seja dúvida genérica sobre a empresa ("tem \
+vaga de emprego?", "vocês patrocinam eventos?") — localização, horário de \
+funcionamento e acesso ao site são atendimento, não fora de escopo;
 - assunto completamente alheio ("qual o resultado do jogo?", "me conta uma \
 piada");
 - conversa fiada sobre tecnologia em geral, sem pedir nada da empresa.
