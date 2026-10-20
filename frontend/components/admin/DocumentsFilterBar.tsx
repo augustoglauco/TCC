@@ -27,6 +27,114 @@ interface DocumentsFilterBarProps {
   onLimpar: () => void;
 }
 
+function RangeDatas({
+  dataInicio,
+  dataFim,
+  onDataInicio,
+  onDataFim,
+}: {
+  dataInicio: string;
+  dataFim: string;
+  onDataInicio: (v: string) => void;
+  onDataFim: (v: string) => void;
+}) {
+  return (
+    <div className="md:col-span-5 space-y-1">
+      <span className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+        Range de data
+      </span>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-1.5">
+          <label
+            htmlFor="filtro-data-inicio"
+            className="text-xs text-slate-500 font-medium shrink-0"
+          >
+            De:
+          </label>
+          <input
+            id="filtro-data-inicio"
+            aria-label="De:"
+            type="date"
+            value={dataInicio}
+            onChange={(e) => onDataInicio(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white py-1.5 px-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        <div className="flex-1 flex items-center gap-1.5">
+          <label htmlFor="filtro-data-fim" className="text-xs text-slate-500 font-medium shrink-0">
+            Até:
+          </label>
+          <input
+            id="filtro-data-fim"
+            aria-label="Até:"
+            type="date"
+            value={dataFim}
+            onChange={(e) => onDataFim(e.target.value)}
+            className="w-full rounded-xl border border-slate-200 bg-white py-1.5 px-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LinhaInferior({
+  dominiosSelecionados,
+  totalDocumentos,
+  totalFiltrados,
+  temFiltroAtivo,
+  onToggleDomain,
+  onLimpar,
+}: {
+  dominiosSelecionados: RagDomain[];
+  totalDocumentos: number;
+  totalFiltrados: number;
+  temFiltroAtivo: boolean;
+  onToggleDomain: (d: RagDomain) => void;
+  onLimpar: () => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200/60">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs font-semibold text-slate-600 mr-1">Domínios:</span>
+        {DOMAIN_OPTIONS.map((opt) => {
+          const isSelected = dominiosSelecionados.includes(opt.value);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onToggleDomain(opt.value)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                isSelected
+                  ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/30"
+                  : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-3 ml-auto">
+        <span className="text-xs text-slate-500">
+          Exibindo <span className="font-semibold text-slate-800">{totalFiltrados}</span> de{" "}
+          <span className="font-semibold text-slate-800">{totalDocumentos}</span> documentos
+        </span>
+        {temFiltroAtivo && (
+          <button
+            type="button"
+            onClick={onLimpar}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline transition-colors"
+          >
+            Limpar filtros
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function DocumentsFilterBar({
   filtroNome,
   dominiosSelecionados,
@@ -95,86 +203,22 @@ export function DocumentsFilterBar({
         </div>
 
         {/* Range de data */}
-        <div className="md:col-span-5 space-y-1">
-          <span className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-            Range de data
-          </span>
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex items-center gap-1.5">
-              <label
-                htmlFor="filtro-data-inicio"
-                className="text-xs text-slate-500 font-medium shrink-0"
-              >
-                De:
-              </label>
-              <input
-                id="filtro-data-inicio"
-                aria-label="De:"
-                type="date"
-                value={dataInicio}
-                onChange={(e) => onDataInicio(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-1.5 px-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div className="flex-1 flex items-center gap-1.5">
-              <label
-                htmlFor="filtro-data-fim"
-                className="text-xs text-slate-500 font-medium shrink-0"
-              >
-                Até:
-              </label>
-              <input
-                id="filtro-data-fim"
-                aria-label="Até:"
-                type="date"
-                value={dataFim}
-                onChange={(e) => onDataFim(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white py-1.5 px-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
+        <RangeDatas
+          dataInicio={dataInicio}
+          dataFim={dataFim}
+          onDataInicio={onDataInicio}
+          onDataFim={onDataFim}
+        />
       </div>
 
-      {/* Linha inferior: Domínios e Contagem / Limpar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-200/60">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-semibold text-slate-600 mr-1">Domínios:</span>
-          {DOMAIN_OPTIONS.map((opt) => {
-            const isSelected = dominiosSelecionados.includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onToggleDomain(opt.value)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-all ${
-                  isSelected
-                    ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/30"
-                    : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-3 ml-auto">
-          <span className="text-xs text-slate-500">
-            Exibindo <span className="font-semibold text-slate-800">{totalFiltrados}</span> de{" "}
-            <span className="font-semibold text-slate-800">{totalDocumentos}</span> documentos
-          </span>
-          {temFiltroAtivo && (
-            <button
-              type="button"
-              onClick={onLimpar}
-              className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline transition-colors"
-            >
-              Limpar filtros
-            </button>
-          )}
-        </div>
-      </div>
+      <LinhaInferior
+        dominiosSelecionados={dominiosSelecionados}
+        totalDocumentos={totalDocumentos}
+        totalFiltrados={totalFiltrados}
+        temFiltroAtivo={temFiltroAtivo}
+        onToggleDomain={onToggleDomain}
+        onLimpar={onLimpar}
+      />
     </div>
   );
 }

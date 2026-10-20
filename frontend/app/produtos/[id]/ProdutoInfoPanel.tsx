@@ -15,6 +15,64 @@ function valorFormatado(val: number): string {
   return `R$ ${val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function EstoquePorCd({ estoques }: { estoques: Produto["estoques"] }) {
+  return (
+    <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-2.5">
+      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+        <span>📍</span> Disponibilidade por Centro de Distribuição
+      </h2>
+      {estoques && estoques.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {estoques.map((est) => (
+            <div
+              key={est.id}
+              className="rounded-xl border border-slate-200 bg-white p-2.5 text-xs shadow-2xs"
+            >
+              <span className="block font-semibold text-slate-700 truncate">
+                {est.centro_distribuicao}
+              </span>
+              <span
+                className={`block font-bold mt-0.5 ${
+                  est.quantidade > 0 ? "text-emerald-700" : "text-slate-400"
+                }`}
+              >
+                {est.quantidade > 0 ? `${est.quantidade} un` : "Esgotado"}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-slate-500">Nenhum estoque registrado para este item.</p>
+      )}
+    </div>
+  );
+}
+
+function DescontosVolume({ descontos }: { descontos: Produto["descontos_volume"] }) {
+  return (
+    <>
+      {descontos && descontos.length > 0 && (
+        <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 space-y-2">
+          <h2 className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-2">
+            <span>🏷️</span> Tabela de Descontos Progressivos
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {descontos.map((desc) => (
+              <span
+                key={desc.id}
+                className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-800"
+              >
+                A partir de {desc.quantidade_minima} un:{" "}
+                <strong className="text-blue-600">{Number(desc.percentual_desconto)}% OFF</strong>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function ProdutoInfoPanel({
   product,
   emEstoque,
@@ -105,55 +163,9 @@ export function ProdutoInfoPanel({
         </div>
       </div>
 
-      {/* Estoque por CD */}
-      <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-2.5">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
-          <span>📍</span> Disponibilidade por Centro de Distribuição
-        </h2>
-        {product.estoques && product.estoques.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {product.estoques.map((est) => (
-              <div
-                key={est.id}
-                className="rounded-xl border border-slate-200 bg-white p-2.5 text-xs shadow-2xs"
-              >
-                <span className="block font-semibold text-slate-700 truncate">
-                  {est.centro_distribuicao}
-                </span>
-                <span
-                  className={`block font-bold mt-0.5 ${
-                    est.quantidade > 0 ? "text-emerald-700" : "text-slate-400"
-                  }`}
-                >
-                  {est.quantidade > 0 ? `${est.quantidade} un` : "Esgotado"}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-xs text-slate-500">Nenhum estoque registrado para este item.</p>
-        )}
-      </div>
+      <EstoquePorCd estoques={product.estoques} />
 
-      {/* Descontos por Volume */}
-      {product.descontos_volume && product.descontos_volume.length > 0 && (
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 space-y-2">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-blue-900 flex items-center gap-2">
-            <span>🏷️</span> Tabela de Descontos Progressivos
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            {product.descontos_volume.map((desc) => (
-              <span
-                key={desc.id}
-                className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-800"
-              >
-                A partir de {desc.quantidade_minima} un:{" "}
-                <strong className="text-blue-600">{Number(desc.percentual_desconto)}% OFF</strong>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
+      <DescontosVolume descontos={product.descontos_volume} />
     </div>
   );
 }

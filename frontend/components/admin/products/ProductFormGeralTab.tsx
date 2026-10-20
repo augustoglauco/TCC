@@ -121,6 +121,109 @@ interface ProductFormGeralTabProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
+function CampoAreaTexto({
+  rotulo,
+  value,
+  onChange,
+  placeholder,
+}: {
+  rotulo: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+        {rotulo}
+      </label>
+      <textarea
+        rows={2}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={inputCls}
+      />
+    </div>
+  );
+}
+
+function RodapeAcoes({
+  saving,
+  editando,
+  onClose,
+}: {
+  saving: boolean;
+  editando: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
+      <button
+        type="button"
+        onClick={onClose}
+        disabled={saving}
+        className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        disabled={saving}
+        className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+      >
+        {saving ? "Salvando..." : editando ? "Atualizar Dados" : "Salvar Produto"}
+      </button>
+    </div>
+  );
+}
+
+function CamposPreco({
+  precoBaseFornecedor,
+  preco,
+  onPrecoBase,
+  onPreco,
+}: {
+  precoBaseFornecedor: string;
+  preco: string;
+  onPrecoBase: (v: string) => void;
+  onPreco: (v: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      <div>
+        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+          Preço Revendedor
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          value={precoBaseFornecedor}
+          onChange={(e) => onPrecoBase(e.target.value)}
+          placeholder="R$ 0,00"
+          className={inputCls}
+        />
+      </div>
+      <div>
+        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+          Preço Venda *
+        </label>
+        <input
+          type="number"
+          step="0.01"
+          min="0"
+          required
+          value={preco}
+          onChange={(e) => onPreco(e.target.value)}
+          placeholder="R$ 0,00"
+          className={`${inputCls} font-semibold text-gray-900`}
+        />
+      </div>
+    </div>
+  );
+}
+
 export function ProductFormGeralTab({
   produtoParaEditar,
   nome,
@@ -185,37 +288,12 @@ export function ProductFormGeralTab({
           </datalist>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-              Preço Revendedor
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={precoBaseFornecedor}
-              onChange={(e) => onPrecoBase(e.target.value)}
-              placeholder="R$ 0,00"
-              className={inputCls}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-              Preço Venda *
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              value={preco}
-              onChange={(e) => onPreco(e.target.value)}
-              placeholder="R$ 0,00"
-              className={`${inputCls} font-semibold text-gray-900`}
-            />
-          </div>
-        </div>
+        <CamposPreco
+          precoBaseFornecedor={precoBaseFornecedor}
+          preco={preco}
+          onPrecoBase={onPrecoBase}
+          onPreco={onPreco}
+        />
 
         <div>
           <label
@@ -242,31 +320,19 @@ export function ProductFormGeralTab({
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-          Descrição Comercial
-        </label>
-        <textarea
-          rows={2}
-          value={descricao}
-          onChange={(e) => onDescricao(e.target.value)}
-          placeholder="Descrição do produto para o catálogo e assistente de vendas..."
-          className={inputCls}
-        />
-      </div>
+      <CampoAreaTexto
+        rotulo="Descrição Comercial"
+        value={descricao}
+        onChange={onDescricao}
+        placeholder="Descrição do produto para o catálogo e assistente de vendas..."
+      />
 
-      <div>
-        <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
-          Especificações Técnicas
-        </label>
-        <textarea
-          rows={2}
-          value={especificacoesTecnicas}
-          onChange={(e) => onEspecificacoes(e.target.value)}
-          placeholder="Canais, resolução, alcance IR, voltagem, portas..."
-          className={inputCls}
-        />
-      </div>
+      <CampoAreaTexto
+        rotulo="Especificações Técnicas"
+        value={especificacoesTecnicas}
+        onChange={onEspecificacoes}
+        placeholder="Canais, resolução, alcance IR, voltagem, portas..."
+      />
 
       <ProductImageSection
         produtoParaEditar={produtoParaEditar}
@@ -278,23 +344,7 @@ export function ProductFormGeralTab({
         onRemoverImagem={onRemoverImagem}
       />
 
-      <div className="flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
-        <button
-          type="button"
-          onClick={onClose}
-          disabled={saving}
-          className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 cursor-pointer"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
-        >
-          {saving ? "Salvando..." : produtoParaEditar ? "Atualizar Dados" : "Salvar Produto"}
-        </button>
-      </div>
+      <RodapeAcoes saving={saving} editando={Boolean(produtoParaEditar)} onClose={onClose} />
     </form>
   );
 }

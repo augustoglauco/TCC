@@ -10,6 +10,63 @@ interface Props {
   onError: (msg: string) => void;
 }
 
+function ConteudoDropzone({
+  isDraggingOver,
+  file,
+  onRemover,
+}: {
+  isDraggingOver: boolean;
+  file: File | null;
+  onRemover: () => void;
+}) {
+  return (
+    <>
+      {isDraggingOver ? (
+        <div className="space-y-1">
+          <p className="text-sm font-bold text-blue-600">Solte o arquivo aqui para selecionar</p>
+          <p className="text-xs text-blue-500">Formatos aceitos: .pdf, .txt, .md</p>
+        </div>
+      ) : file ? (
+        <div className="space-y-2">
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-slate-900">{file.name}</p>
+            <p className="text-xs text-slate-500">
+              {(file.size / 1024).toFixed(1)} KB — Pronto para envio
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-3 pt-1">
+            <span className="text-xs text-blue-600 font-medium hover:underline">
+              Clique ou arraste outro arquivo para trocar
+            </span>
+            <span className="text-slate-300">|</span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemover();
+              }}
+              className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
+            >
+              ✕ Remover
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p className="text-sm font-semibold text-slate-700">
+            Clique ou arraste um arquivo para selecionar
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            Formatos aceitos: <span className="font-mono text-slate-700">.pdf</span>,{" "}
+            <span className="font-mono text-slate-700">.txt</span>,{" "}
+            <span className="font-mono text-slate-700">.md</span>
+          </p>
+        </div>
+      )}
+    </>
+  );
+}
+
 export function DocumentDropzone({ file, onFileChange, onError }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -91,49 +148,14 @@ export function DocumentDropzone({ file, onFileChange, onError }: Props) {
         >
           📄
         </div>
-        {isDraggingOver ? (
-          <div className="space-y-1">
-            <p className="text-sm font-bold text-blue-600">Solte o arquivo aqui para selecionar</p>
-            <p className="text-xs text-blue-500">Formatos aceitos: .pdf, .txt, .md</p>
-          </div>
-        ) : file ? (
-          <div className="space-y-2">
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-slate-900">{file.name}</p>
-              <p className="text-xs text-slate-500">
-                {(file.size / 1024).toFixed(1)} KB — Pronto para envio
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-1">
-              <span className="text-xs text-blue-600 font-medium hover:underline">
-                Clique ou arraste outro arquivo para trocar
-              </span>
-              <span className="text-slate-300">|</span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFileChange(null);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }}
-                className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline cursor-pointer"
-              >
-                ✕ Remover
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <p className="text-sm font-semibold text-slate-700">
-              Clique ou arraste um arquivo para selecionar
-            </p>
-            <p className="text-xs text-slate-500 mt-1">
-              Formatos aceitos: <span className="font-mono text-slate-700">.pdf</span>,{" "}
-              <span className="font-mono text-slate-700">.txt</span>,{" "}
-              <span className="font-mono text-slate-700">.md</span>
-            </p>
-          </div>
-        )}
+        <ConteudoDropzone
+          isDraggingOver={isDraggingOver}
+          file={file}
+          onRemover={() => {
+            onFileChange(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          }}
+        />
       </div>
     </div>
   );

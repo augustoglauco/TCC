@@ -18,6 +18,110 @@ interface CatalogUploadStepProps {
   onFallbackChange: (v: boolean) => void;
 }
 
+function OpcaoProvider({
+  valor,
+  selecionado,
+  titulo,
+  descricao,
+  onChange,
+}: {
+  valor: "local" | "external";
+  selecionado: boolean;
+  titulo: string;
+  descricao: string;
+  onChange: (v: "local" | "external") => void;
+}) {
+  return (
+    <label
+      className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-all ${
+        selecionado
+          ? "border-blue-600 bg-blue-50/40 ring-1 ring-blue-600"
+          : "border-gray-200 hover:bg-gray-50"
+      }`}
+    >
+      <input
+        type="radio"
+        name="provider"
+        value={valor}
+        checked={selecionado}
+        onChange={() => onChange(valor)}
+        className="mt-1 text-blue-600"
+      />
+      <div>
+        <span className="block text-sm font-semibold text-gray-900">{titulo}</span>
+        <span className="block text-xs text-gray-500 mt-0.5">{descricao}</span>
+      </div>
+    </label>
+  );
+}
+
+function IntervaloPaginas({
+  pageRange,
+  onChange,
+}: {
+  pageRange: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <label
+          htmlFor="page-range-input"
+          className="block text-xs font-bold uppercase tracking-wider text-gray-700"
+        >
+          Intervalo de Páginas do PDF (opcional)
+        </label>
+        <span className="text-[11px] text-gray-400">
+          Deixe em branco para extrair todas as páginas
+        </span>
+      </div>
+      <input
+        id="page-range-input"
+        type="text"
+        value={pageRange}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Ex: 1-5, 8, 12-20 (ou 3- para página 3 até o final)"
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      />
+      <p className="text-xs text-gray-500">
+        Indique as páginas que deseja processar. Aceita intervalos (ex: <code>1-5</code>), páginas
+        avulsas (ex: <code>2, 4, 8</code>) ou combinações.
+      </p>
+    </div>
+  );
+}
+
+function ListaArquivos({
+  files,
+  onRemoveFile,
+}: {
+  files: File[];
+  onRemoveFile: (chave: string) => void;
+}) {
+  if (files.length === 0) return null;
+  return (
+    <ul className="mt-4 mx-auto max-w-md space-y-1 text-left">
+      {files.map((f) => (
+        <li
+          key={chaveArquivo(f)}
+          className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700"
+        >
+          <span className="truncate">{f.name}</span>
+          <button
+            type="button"
+            onClick={() => onRemoveFile(chaveArquivo(f))}
+            title="Remover arquivo"
+            aria-label={`Remover ${f.name}`}
+            className="text-gray-400 hover:text-red-600"
+          >
+            ✕
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function CatalogUploadStep({
   files,
   pageRange,
@@ -68,111 +172,31 @@ export function CatalogUploadStep({
             Procurar Arquivos no Computador
           </label>
         </div>
-        {files.length > 0 && (
-          <ul className="mt-4 mx-auto max-w-md space-y-1 text-left">
-            {files.map((f) => (
-              <li
-                key={chaveArquivo(f)}
-                className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700"
-              >
-                <span className="truncate">{f.name}</span>
-                <button
-                  type="button"
-                  onClick={() => onRemoveFile(chaveArquivo(f))}
-                  title="Remover arquivo"
-                  aria-label={`Remover ${f.name}`}
-                  className="text-gray-400 hover:text-red-600"
-                >
-                  ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+        <ListaArquivos files={files} onRemoveFile={onRemoveFile} />
       </div>
 
-      {hasPdf && (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-2">
-          <div className="flex items-center justify-between">
-            <label
-              htmlFor="page-range-input"
-              className="block text-xs font-bold uppercase tracking-wider text-gray-700"
-            >
-              Intervalo de Páginas do PDF (opcional)
-            </label>
-            <span className="text-[11px] text-gray-400">
-              Deixe em branco para extrair todas as páginas
-            </span>
-          </div>
-          <input
-            id="page-range-input"
-            type="text"
-            value={pageRange}
-            onChange={(e) => onPageRangeChange(e.target.value)}
-            placeholder="Ex: 1-5, 8, 12-20 (ou 3- para página 3 até o final)"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <p className="text-xs text-gray-500">
-            Indique as páginas que deseja processar. Aceita intervalos (ex: <code>1-5</code>),
-            páginas avulsas (ex: <code>2, 4, 8</code>) ou combinações.
-          </p>
-        </div>
-      )}
+      {hasPdf && <IntervaloPaginas pageRange={pageRange} onChange={onPageRangeChange} />}
 
       <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
         <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700">
           Modo de Extração de IA
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <label
-            className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-all ${
-              provider === "local"
-                ? "border-blue-600 bg-blue-50/40 ring-1 ring-blue-600"
-                : "border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            <input
-              type="radio"
-              name="provider"
-              value="local"
-              checked={provider === "local"}
-              onChange={() => onProviderChange("local")}
-              className="mt-1 text-blue-600"
-            />
-            <div>
-              <span className="block text-sm font-semibold text-gray-900">
-                Híbrido Local (Ollama + pdfplumber)
-              </span>
-              <span className="block text-xs text-gray-500 mt-0.5">
-                Rápido, sem custos de API externa para páginas com tabelas e texto legível.
-              </span>
-            </div>
-          </label>
+          <OpcaoProvider
+            valor="local"
+            selecionado={provider === "local"}
+            titulo="Híbrido Local (Ollama + pdfplumber)"
+            descricao="Rápido, sem custos de API externa para páginas com tabelas e texto legível."
+            onChange={onProviderChange}
+          />
 
-          <label
-            className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition-all ${
-              provider === "external"
-                ? "border-blue-600 bg-blue-50/40 ring-1 ring-blue-600"
-                : "border-gray-200 hover:bg-gray-50"
-            }`}
-          >
-            <input
-              type="radio"
-              name="provider"
-              value="external"
-              checked={provider === "external"}
-              onChange={() => onProviderChange("external")}
-              className="mt-1 text-blue-600"
-            />
-            <div>
-              <span className="block text-sm font-semibold text-gray-900">
-                Visão Multimodal Externa (OpenRouter)
-              </span>
-              <span className="block text-xs text-gray-500 mt-0.5">
-                Lê fotos complexas de encartes, folhetos gráficos e PDFs escaneados.
-              </span>
-            </div>
-          </label>
+          <OpcaoProvider
+            valor="external"
+            selecionado={provider === "external"}
+            titulo="Visão Multimodal Externa (OpenRouter)"
+            descricao="Lê fotos complexas de encartes, folhetos gráficos e PDFs escaneados."
+            onChange={onProviderChange}
+          />
         </div>
 
         <div className="pt-2">

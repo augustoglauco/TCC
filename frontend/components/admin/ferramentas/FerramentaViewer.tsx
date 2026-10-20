@@ -30,6 +30,68 @@ interface FerramentaViewerProps {
   onFecharResultado: () => void;
 }
 
+function BotaoAtualizar({
+  id,
+  online,
+  atualizando,
+  onAtualizar,
+}: {
+  id: "graphify" | "gitnexus";
+  online: boolean;
+  atualizando: boolean;
+  onAtualizar: (id: "graphify" | "gitnexus") => void;
+}) {
+  const semServidor = id === "gitnexus" && !online;
+  return (
+    <button
+      type="button"
+      onClick={() => onAtualizar(id)}
+      disabled={atualizando || semServidor}
+      title={semServidor ? "Suba o servidor do GitNexus para atualizar" : undefined}
+      className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {atualizando
+        ? "Atualizando..."
+        : id === "graphify"
+          ? "Atualizar grafo (graphify update)"
+          : "Atualizar índice (gitnexus analyze)"}
+    </button>
+  );
+}
+
+function ResultadoBanner({
+  resultado,
+  onFechar,
+}: {
+  resultado: ResultadoAtualizacao;
+  onFechar: () => void;
+}) {
+  return (
+    <div
+      role="status"
+      className={
+        resultado.sucesso
+          ? "relative border-b border-emerald-200 bg-emerald-50 text-emerald-800"
+          : "relative border-b border-rose-200 bg-rose-50 text-rose-800"
+      }
+    >
+      <button
+        type="button"
+        onClick={onFechar}
+        aria-label="Fechar mensagem"
+        title="Fechar"
+        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded border border-current text-sm font-bold leading-none hover:bg-black/10"
+      >
+        ✕
+      </button>
+      <pre className="max-h-48 overflow-auto px-4 py-3 pr-10 text-xs">
+        {resultado.sucesso ? "Atualizado.\n" : "Falha na atualização.\n"}
+        {resultado.saida}
+      </pre>
+    </div>
+  );
+}
+
 export function FerramentaViewer({
   ativa,
   urlAtiva,
@@ -46,23 +108,12 @@ export function FerramentaViewer({
           <Led online={ativa.online} />
         </h2>
         {(ativa.id === "graphify" || ativa.id === "gitnexus") && (
-          <button
-            type="button"
-            onClick={() => onAtualizar(ativa.id as "graphify" | "gitnexus")}
-            disabled={atualizando || (ativa.id === "gitnexus" && !ativa.online)}
-            title={
-              ativa.id === "gitnexus" && !ativa.online
-                ? "Suba o servidor do GitNexus para atualizar"
-                : undefined
-            }
-            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {atualizando
-              ? "Atualizando..."
-              : ativa.id === "graphify"
-                ? "Atualizar grafo (graphify update)"
-                : "Atualizar índice (gitnexus analyze)"}
-          </button>
+          <BotaoAtualizar
+            id={ativa.id}
+            online={ativa.online}
+            atualizando={atualizando}
+            onAtualizar={onAtualizar}
+          />
         )}
         {urlAtiva && (
           <a
@@ -77,28 +128,7 @@ export function FerramentaViewer({
       </div>
 
       {resultadoAtualizacao && resultadoAtualizacao.id === ativa.id && (
-        <div
-          role="status"
-          className={
-            resultadoAtualizacao.sucesso
-              ? "relative border-b border-emerald-200 bg-emerald-50 text-emerald-800"
-              : "relative border-b border-rose-200 bg-rose-50 text-rose-800"
-          }
-        >
-          <button
-            type="button"
-            onClick={onFecharResultado}
-            aria-label="Fechar mensagem"
-            title="Fechar"
-            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded border border-current text-sm font-bold leading-none hover:bg-black/10"
-          >
-            ✕
-          </button>
-          <pre className="max-h-48 overflow-auto px-4 py-3 pr-10 text-xs">
-            {resultadoAtualizacao.sucesso ? "Atualizado.\n" : "Falha na atualização.\n"}
-            {resultadoAtualizacao.saida}
-          </pre>
-        </div>
+        <ResultadoBanner resultado={resultadoAtualizacao} onFechar={onFecharResultado} />
       )}
 
       {ativa.online && urlAtiva ? (

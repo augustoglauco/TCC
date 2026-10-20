@@ -9,6 +9,31 @@ const VISION_PRESETS = [
   { tag: "qwen/qwen-2.5-vl-72b-instruct:free", label: "Qwen 2.5 VL (Free)" },
 ];
 
+type CaracteristicasModelo = NonNullable<ReturnType<typeof useModelCharacteristics>["data"]>;
+
+function SeloGratuito() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+      🎁 Gratuito (:free)
+    </span>
+  );
+}
+
+function PrecoModelo({ data, tag }: { data: CaracteristicasModelo; tag: string }) {
+  const { pricing_prompt_per_1k: entrada, pricing_completion_per_1k: saida } = data;
+  if (entrada !== null && saida !== null) {
+    if (entrada === 0 && saida === 0) return <SeloGratuito />;
+    return (
+      <span>
+        💰 Preço: <strong>${entrada.toFixed(5)}</strong>/1K in ·{" "}
+        <strong>${saida.toFixed(5)}</strong>/1K out
+      </span>
+    );
+  }
+  if (tag.includes(":free")) return <SeloGratuito />;
+  return <span className="text-slate-500">Preço dinâmico via OpenRouter</span>;
+}
+
 function VisionModelPreview({ tag }: { tag: string }) {
   const trimmed = tag.trim();
   const { data, loading, error, refresh } = useModelCharacteristics("openrouter", trimmed);
@@ -62,24 +87,7 @@ function VisionModelPreview({ tag }: { tag: string }) {
             ))}
           </div>
           <div className="text-purple-950 font-mono">
-            {data.pricing_prompt_per_1k !== null && data.pricing_completion_per_1k !== null ? (
-              data.pricing_prompt_per_1k === 0 && data.pricing_completion_per_1k === 0 ? (
-                <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                  🎁 Gratuito (:free)
-                </span>
-              ) : (
-                <span>
-                  💰 Preço: <strong>${data.pricing_prompt_per_1k.toFixed(5)}</strong>/1K in ·{" "}
-                  <strong>${data.pricing_completion_per_1k.toFixed(5)}</strong>/1K out
-                </span>
-              )
-            ) : trimmed.includes(":free") ? (
-              <span className="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                🎁 Gratuito (:free)
-              </span>
-            ) : (
-              <span className="text-slate-500">Preço dinâmico via OpenRouter</span>
-            )}
+            <PrecoModelo data={data} tag={trimmed} />
           </div>
         </div>
       )}

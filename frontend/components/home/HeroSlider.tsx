@@ -157,6 +157,133 @@ function SliderNav({
   );
 }
 
+type Slide = (typeof SLIDES)[number];
+
+function TextoSlide({ slide }: { slide: Slide }) {
+  return (
+    <div className="lg:col-span-7 space-y-7">
+      <div
+        className="antra-fadeInDown inline-flex items-center gap-2.5 rounded-full border border-white/45 bg-white/5 backdrop-blur-md px-4 py-1.5 text-xs font-bold tracking-[0.2em] text-white uppercase"
+        style={{ animationDelay: "80ms" }}
+      >
+        <span className="h-2 w-2 rounded-full bg-[#16c0dd] animate-pulse" />
+        {slide.badge}
+      </div>
+
+      <h1
+        className="antra-fadeInDown text-3xl sm:text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.08] text-white"
+        style={{ animationDelay: "200ms" }}
+      >
+        {slide.title}{" "}
+        <span className="block mt-1 bg-gradient-to-r from-[#16c0dd] via-cyan-300 to-white bg-clip-text text-transparent">
+          {slide.highlight}
+        </span>
+      </h1>
+
+      <div
+        className="antra-fadeInUp pt-2 flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-t border-white/15"
+        style={{ animationDelay: "340ms" }}
+      >
+        <p className="text-sm sm:text-base text-slate-200/90 leading-relaxed max-w-xl pt-4">
+          {slide.description}
+        </p>
+      </div>
+
+      {/* Botões Pílula Interativos (.tl-primary-btn.white-btn de m3glass.com) */}
+      <div
+        className="antra-fadeInUp flex flex-wrap items-center gap-4 pt-2"
+        style={{ animationDelay: "460ms" }}
+      >
+        <button
+          type="button"
+          onClick={() => useChatStore.getState().open()}
+          className="tl-primary-btn white-btn"
+        >
+          <span>Conversar com o Assistente</span>
+          <span className="icon" aria-hidden="true">
+            →
+          </span>
+        </button>
+
+        <Link href="/produtos" className="tl-primary-btn white-btn">
+          <span>Explorar Catálogo</span>
+          <span className="icon" aria-hidden="true">
+            ↗
+          </span>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function VitrineSlide({ slide, posicao, total }: { slide: Slide; posicao: number; total: number }) {
+  return (
+    <div
+      className="antra-fadeInRight lg:col-span-5 relative flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center justify-end gap-5"
+      style={{ animationDelay: "280ms" }}
+    >
+      {/* Moldura Fotográfica Principal do Produto com Brilho e Flutuação */}
+      <div className="m3-photo-card relative w-full max-w-[330px] aspect-4/5 rounded-[24px] bg-gradient-to-b from-white/95 via-slate-50 to-slate-200 p-5 shadow-[0_25px_70px_rgba(0,0,0,0.55)] border border-white/30 flex flex-col justify-between group">
+        <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500">
+          <span className="inline-flex items-center gap-1.5 font-bold text-slate-900">
+            <span className="h-2 w-2 rounded-full bg-[#16c0dd]" />
+            Fictícia Oficial
+          </span>
+          <span>
+            0{posicao + 1} / 0{total}
+          </span>
+        </div>
+
+        <div className="relative my-auto py-3 flex items-center justify-center h-56 sm:h-64">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={slide.mainImage}
+            alt={slide.productName}
+            className="max-h-full max-w-full object-contain drop-shadow-[0_18px_28px_rgba(15,23,42,0.25)] transition-transform duration-500 group-hover:scale-108"
+          />
+        </div>
+
+        {/* Miniatura Secundária Flutuante + Nome */}
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-950/90 px-3.5 py-2.5 text-white backdrop-blur-md">
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-widest text-[#16c0dd] font-bold">
+              Hardware em Destaque
+            </p>
+            <p className="text-xs font-bold truncate">{slide.productName}</p>
+          </div>
+          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white p-1 border border-white/20">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={slide.secondaryImage}
+              alt={`${slide.productName} vista complementar`}
+              className="h-full w-full object-contain"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Card Frosted Glass autêntico do M3 Glass (.slider-element: backdrop-filter: blur(29px)) */}
+      <div className="w-full sm:w-64 rounded-[24px] border border-white/20 bg-white/16 p-7 backdrop-blur-[29px] shadow-2xl text-white">
+        <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
+          {slide.metricNumber}
+        </div>
+        <span className="mt-1.5 block text-xs font-semibold uppercase tracking-wider text-[#16c0dd]">
+          {slide.metricLabel}
+        </span>
+
+        <div className="mt-7 pt-5 border-t border-white/20 space-y-2 text-xs text-white/90">
+          {slide.metricSpecs.map((spec) => (
+            <p key={spec} className="flex items-center gap-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#16c0dd]" />
+              <span>{spec}</span>
+            </p>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HeroSlider() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -210,125 +337,14 @@ export default function HeroSlider() {
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-14 sm:py-20 lg:py-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          {/* Coluna Esquerda: Tipografia Arquitetônica com Entrada Animada (.slider-content) */}
-          <div key={`content-${slide.id}`} className="lg:col-span-7 space-y-7">
-            <div
-              className="antra-fadeInDown inline-flex items-center gap-2.5 rounded-full border border-white/45 bg-white/5 backdrop-blur-md px-4 py-1.5 text-xs font-bold tracking-[0.2em] text-white uppercase"
-              style={{ animationDelay: "80ms" }}
-            >
-              <span className="h-2 w-2 rounded-full bg-[#16c0dd] animate-pulse" />
-              {slide.badge}
-            </div>
+          <TextoSlide key={`content-${slide.id}`} slide={slide} />
 
-            <h1
-              className="antra-fadeInDown text-3xl sm:text-5xl xl:text-6xl font-extrabold tracking-tight leading-[1.08] text-white"
-              style={{ animationDelay: "200ms" }}
-            >
-              {slide.title}{" "}
-              <span className="block mt-1 bg-gradient-to-r from-[#16c0dd] via-cyan-300 to-white bg-clip-text text-transparent">
-                {slide.highlight}
-              </span>
-            </h1>
-
-            <div
-              className="antra-fadeInUp pt-2 flex flex-col sm:flex-row sm:items-end justify-between gap-6 border-t border-white/15"
-              style={{ animationDelay: "340ms" }}
-            >
-              <p className="text-sm sm:text-base text-slate-200/90 leading-relaxed max-w-xl pt-4">
-                {slide.description}
-              </p>
-            </div>
-
-            {/* Botões Pílula Interativos (.tl-primary-btn.white-btn de m3glass.com) */}
-            <div
-              className="antra-fadeInUp flex flex-wrap items-center gap-4 pt-2"
-              style={{ animationDelay: "460ms" }}
-            >
-              <button
-                type="button"
-                onClick={() => useChatStore.getState().open()}
-                className="tl-primary-btn white-btn"
-              >
-                <span>Conversar com o Assistente</span>
-                <span className="icon" aria-hidden="true">
-                  →
-                </span>
-              </button>
-
-              <Link href="/produtos" className="tl-primary-btn white-btn">
-                <span>Explorar Catálogo</span>
-                <span className="icon" aria-hidden="true">
-                  ↗
-                </span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Coluna Direita: Vitrine Fotográfica do Equipamento + Card Frosted Glass (.slider-element-wrap) */}
-          <div
+          <VitrineSlide
             key={`visual-${slide.id}`}
-            className="antra-fadeInRight lg:col-span-5 relative flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center justify-end gap-5"
-            style={{ animationDelay: "280ms" }}
-          >
-            {/* Moldura Fotográfica Principal do Produto com Brilho e Flutuação */}
-            <div className="m3-photo-card relative w-full max-w-[330px] aspect-4/5 rounded-[24px] bg-gradient-to-b from-white/95 via-slate-50 to-slate-200 p-5 shadow-[0_25px_70px_rgba(0,0,0,0.55)] border border-white/30 flex flex-col justify-between group">
-              <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-slate-500">
-                <span className="inline-flex items-center gap-1.5 font-bold text-slate-900">
-                  <span className="h-2 w-2 rounded-full bg-[#16c0dd]" />
-                  Fictícia Oficial
-                </span>
-                <span>
-                  0{currentSlide + 1} / 0{SLIDES.length}
-                </span>
-              </div>
-
-              <div className="relative my-auto py-3 flex items-center justify-center h-56 sm:h-64">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={slide.mainImage}
-                  alt={slide.productName}
-                  className="max-h-full max-w-full object-contain drop-shadow-[0_18px_28px_rgba(15,23,42,0.25)] transition-transform duration-500 group-hover:scale-108"
-                />
-              </div>
-
-              {/* Miniatura Secundária Flutuante + Nome */}
-              <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-950/90 px-3.5 py-2.5 text-white backdrop-blur-md">
-                <div className="min-w-0">
-                  <p className="text-[10px] uppercase tracking-widest text-[#16c0dd] font-bold">
-                    Hardware em Destaque
-                  </p>
-                  <p className="text-xs font-bold truncate">{slide.productName}</p>
-                </div>
-                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white p-1 border border-white/20">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={slide.secondaryImage}
-                    alt={`${slide.productName} vista complementar`}
-                    className="h-full w-full object-contain"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Card Frosted Glass autêntico do M3 Glass (.slider-element: backdrop-filter: blur(29px)) */}
-            <div className="w-full sm:w-64 rounded-[24px] border border-white/20 bg-white/16 p-7 backdrop-blur-[29px] shadow-2xl text-white">
-              <div className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white">
-                {slide.metricNumber}
-              </div>
-              <span className="mt-1.5 block text-xs font-semibold uppercase tracking-wider text-[#16c0dd]">
-                {slide.metricLabel}
-              </span>
-
-              <div className="mt-7 pt-5 border-t border-white/20 space-y-2 text-xs text-white/90">
-                {slide.metricSpecs.map((spec) => (
-                  <p key={spec} className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#16c0dd]" />
-                    <span>{spec}</span>
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
+            slide={slide}
+            posicao={currentSlide}
+            total={SLIDES.length}
+          />
         </div>
 
         {/* Barra Inferior de Navegação dos Slides */}

@@ -31,46 +31,9 @@ function mensagemErro(err: unknown, padrao: string): string {
   return (err instanceof Error && err.message) || padrao;
 }
 
-export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImportParams) {
-  const token = useAuthStore((s) => s.token);
-  const [step, setStep] = useState<ModalStep>("upload");
-  const [files, setFiles] = useState<File[]>([]);
-  const [pageRange, setPageRange] = useState("");
-  const [provider, setProvider] = useState<"local" | "external">("local");
-  const [fallbackExternal, setFallbackExternal] = useState(true);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [progress, setProgress] = useState<CatalogExtractionProgress>({
-    pagina: 0,
-    total: 0,
-    status: "",
-  });
-  const [extractedProducts, setExtractedProducts] = useState<ExtractedProductItem[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [pageErrors, setPageErrors] = useState<string[]>([]);
-  const [pickerProduct, setPickerProduct] = useState<ExtractedProductItem | null>(null);
-  const [uploadingPickerPhoto, setUploadingPickerPhoto] = useState(false);
-
-  const adicionarArquivos = useCallback((novos: File[]) => {
-    if (novos.length === 0) return;
-    const aceitos = novos.filter(arquivoAceito);
-    const rejeitados = novos.filter((f) => !arquivoAceito(f));
-    setError(
-      rejeitados.length > 0
-        ? `Tipo não suportado: ${rejeitados.map((f) => f.name).join(", ")}. Use PDF, imagem (PNG, JPG, WEBP) ou texto (TXT, MD, CSV).`
-        : null,
-    );
-    if (aceitos.length === 0) return;
-    setFiles((prev) => {
-      const existentes = new Set(prev.map(chaveArquivo));
-      return [...prev, ...aceitos.filter((f) => !existentes.has(chaveArquivo(f)))];
-    });
-  }, []);
-
-  const uploadAtivo = isOpen && step === "upload";
-
+function useColarArquivos(ativo: boolean, adicionarArquivos: (novos: File[]) => void) {
   useEffect(() => {
-    if (!uploadAtivo) return;
+    if (!ativo) return;
     const onPaste = (e: ClipboardEvent) => {
       const alvo = e.target as HTMLElement | null;
       if (alvo && (alvo.tagName === "INPUT" || alvo.tagName === "TEXTAREA")) return;
@@ -94,7 +57,11 @@ export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImpor
     };
     document.addEventListener("paste", onPaste);
     return () => document.removeEventListener("paste", onPaste);
-  }, [uploadAtivo, adicionarArquivos]);
+  }, [ativo, adicionarArquivos]);
+}
+
+function useDragDropArquivos(uploadStep: boolean, adicionarArquivos: (novos: File[]) => void) {
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     adicionarArquivos(Array.from(e.target.files ?? []));
@@ -103,7 +70,7 @@ export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImpor
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (step === "upload" && !isDraggingOver) setIsDraggingOver(true);
+    if (uploadStep && !isDraggingOver) setIsDraggingOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
@@ -115,9 +82,117 @@ export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImpor
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDraggingOver(false);
-    if (step !== "upload") return;
+    if (!uploadStep) return;
     adicionarArquivos(Array.from(e.dataTransfer.files));
   };
+
+  return { isDraggingOver, handleFileChange, handleDragOver, handleDragLeave, handleDrop };
+}
+
+type SetError = (msg: string | null) => void;
+
+function useSelecaoArquivos(isOpen: boolean, step: ModalStep, setError: SetError) {
+  const [files, setFiles] = useState<File[]>([]);
+
+  const adicionarArquivos = useCallback(
+    (novos: File[]) => {
+      if (novos.length === 0) return;
+      const aceitos = novos.filter(arquivoAceito);
+      const rejeitados = novos.filter((f) => !arquivoAceito(f));
+      setError(
+        rejeitados.length > 0
+          ? `Tipo não suportado: ${rejeitados.map((f) => f.name).join(", ")}. Use PDF, imagem (PNG, JPG, WEBP) ou texto (TXT, MD, CSV).`
+          : null,
+      );
+      if (aceitos.length === 0) return;
+      setFiles((prev) => {
+        const existentes = new Set(prev.map(chaveArquivo));
+        return [...prev, ...aceitos.filter((f) => !existentes.has(chaveArquivo(f)))];
+      });
+    },
+    [setError],
+  );
+
+  useColarArquivos(isOpen && step === "upload", adicionarArquivos);
+  const drag = useDragDropArquivos(step === "upload", adicionarArquivos);
+
+  return { files, setFiles, ...drag };
+}
+
+type AtualizarProduto = (
+  idTemp: string | undefined,
+  field: keyof ExtractedProductItem,
+  value: ExtractedProductItem[keyof ExtractedProductItem],
+) => void;
+
+function usePickerFoto(
+  token: string | null,
+  handleUpdateProduct: AtualizarProduto,
+  setError: SetError,
+) {
+  const [pickerProduct, setPickerProduct] = useState<ExtractedProductItem | null>(null);
+  const [uploadingPickerPhoto, setUploadingPickerPhoto] = useState(false);
+
+  const pickerHandlers = {
+    upload: async (file: File) => {
+      if (!pickerProduct || !token) return;
+      setUploadingPickerPhoto(true);
+      try {
+        const url = await uploadTempImage(token, file);
+        const updatedFotos = pickerProduct.fotos_pagina
+          ? [...pickerProduct.fotos_pagina, url]
+          : [url];
+        handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
+        handleUpdateProduct(pickerProduct.id_temporario, "fotos_pagina", updatedFotos);
+        setPickerProduct((prev) =>
+          prev ? { ...prev, imagem_temp_url: url, fotos_pagina: updatedFotos } : null,
+        );
+      } catch (err) {
+        setError(mensagemErro(err, "Falha ao enviar foto."));
+      } finally {
+        setUploadingPickerPhoto(false);
+      }
+    },
+    select: (url: string) => {
+      if (!pickerProduct) return;
+      handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
+      setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: url } : null));
+    },
+    remove: () => {
+      if (!pickerProduct) return;
+      handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", null);
+      setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: null } : null));
+    },
+  };
+
+  return { pickerProduct, setPickerProduct, uploadingPickerPhoto, pickerHandlers };
+}
+
+export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImportParams) {
+  const token = useAuthStore((s) => s.token);
+  const [step, setStep] = useState<ModalStep>("upload");
+  const [pageRange, setPageRange] = useState("");
+  const [provider, setProvider] = useState<"local" | "external">("local");
+  const [fallbackExternal, setFallbackExternal] = useState(true);
+  const [progress, setProgress] = useState<CatalogExtractionProgress>({
+    pagina: 0,
+    total: 0,
+    status: "",
+  });
+  const [extractedProducts, setExtractedProducts] = useState<ExtractedProductItem[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pageErrors, setPageErrors] = useState<string[]>([]);
+
+  const {
+    files,
+    setFiles,
+    isDraggingOver,
+    handleFileChange,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  } = useSelecaoArquivos(isOpen, step, setError);
 
   const handlePageComplete = (pageRes: CatalogPageResult) => {
     if (pageRes.erro) {
@@ -166,37 +241,11 @@ export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImpor
     );
   };
 
-  const pickerHandlers = {
-    upload: async (file: File) => {
-      if (!pickerProduct || !token) return;
-      setUploadingPickerPhoto(true);
-      try {
-        const url = await uploadTempImage(token, file);
-        const updatedFotos = pickerProduct.fotos_pagina
-          ? [...pickerProduct.fotos_pagina, url]
-          : [url];
-        handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
-        handleUpdateProduct(pickerProduct.id_temporario, "fotos_pagina", updatedFotos);
-        setPickerProduct((prev) =>
-          prev ? { ...prev, imagem_temp_url: url, fotos_pagina: updatedFotos } : null,
-        );
-      } catch (err) {
-        setError(mensagemErro(err, "Falha ao enviar foto."));
-      } finally {
-        setUploadingPickerPhoto(false);
-      }
-    },
-    select: (url: string) => {
-      if (!pickerProduct) return;
-      handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
-      setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: url } : null));
-    },
-    remove: () => {
-      if (!pickerProduct) return;
-      handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", null);
-      setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: null } : null));
-    },
-  };
+  const { pickerProduct, setPickerProduct, uploadingPickerPhoto, pickerHandlers } = usePickerFoto(
+    token,
+    handleUpdateProduct,
+    setError,
+  );
 
   const handleConfirmBatch = async () => {
     const selected = extractedProducts.filter((p) => p.selecionado);

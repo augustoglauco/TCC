@@ -10,23 +10,7 @@ import {
   type StatusRevisao,
 } from "@/lib/api/datasets";
 
-/**
- * Fila de revisão item a item de um conjunto.
- *
- * O desenho vem do orçamento de ~4,5 h da Estratégia A: um item por vez, os
- * campos já editáveis (corrigir é mais comum que descartar) e atalhos de
- * teclado, porque a meta é ~10 s por item do RAG de documentos — com o
- * trecho de origem ao lado, não caçado no PDF.
- */
-export function DatasetsFilaRevisao({
-  conjunto,
-  token,
-  onRevisado,
-}: {
-  conjunto: ConjuntoStatus;
-  token: string;
-  onRevisado: () => void;
-}) {
+function useFilaRevisao(conjunto: ConjuntoStatus, token: string, onRevisado: () => void) {
   const [itens, setItens] = useState<ItemRevisao[] | null>(null);
   const [posicao, setPosicao] = useState(0);
   const [edicoes, setEdicoes] = useState<Record<string, string>>({});
@@ -89,6 +73,50 @@ export function DatasetsFilaRevisao({
     window.addEventListener("keydown", aoTeclar);
     return () => window.removeEventListener("keydown", aoTeclar);
   }, [decidir]);
+
+  return {
+    itens,
+    posicao,
+    setPosicao,
+    edicoes,
+    setEdicoes,
+    erro,
+    salvando,
+    atual,
+    carregar,
+    decidir,
+  };
+}
+
+/**
+ * Fila de revisão item a item de um conjunto.
+ *
+ * O desenho vem do orçamento de ~4,5 h da Estratégia A: um item por vez, os
+ * campos já editáveis (corrigir é mais comum que descartar) e atalhos de
+ * teclado, porque a meta é ~10 s por item do RAG de documentos — com o
+ * trecho de origem ao lado, não caçado no PDF.
+ */
+export function DatasetsFilaRevisao({
+  conjunto,
+  token,
+  onRevisado,
+}: {
+  conjunto: ConjuntoStatus;
+  token: string;
+  onRevisado: () => void;
+}) {
+  const {
+    itens,
+    posicao,
+    setPosicao,
+    edicoes,
+    setEdicoes,
+    erro,
+    salvando,
+    atual,
+    carregar,
+    decidir,
+  } = useFilaRevisao(conjunto, token, onRevisado);
 
   if (conjunto.revisao_automatica) {
     return (
@@ -167,43 +195,67 @@ export function DatasetsFilaRevisao({
 
       {erro ? <p className="mt-3 text-sm text-red-600">{erro}</p> : null}
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          disabled={salvando}
-          onClick={() => void decidir("aprovado")}
-          className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-        >
-          {Object.keys(edicoes).length > 0 ? "Salvar correção" : "Aprovar"}
-          <kbd className="ml-2 rounded bg-emerald-700/40 px-1 text-[11px]">A</kbd>
-        </button>
-        <button
-          type="button"
-          disabled={salvando}
-          onClick={() => void decidir("descartado")}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-        >
-          Descartar
-          <kbd className="ml-2 rounded bg-gray-100 px-1 text-[11px]">D</kbd>
-        </button>
-        <button
-          type="button"
-          disabled={salvando || posicao === 0}
-          onClick={() => {
-            setPosicao((p) => Math.max(0, p - 1));
-            setEdicoes({});
-          }}
-          className="rounded-md px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40"
-        >
-          ← anterior
-        </button>
-        <span className="text-xs text-gray-500">
-          O item descartado fica no arquivo com{" "}
-          <code className="rounded bg-gray-100 px-1">revisao.status</code>; os scripts filtram por
-          status.
-        </span>
-      </div>
+      <AcoesRevisao
+        salvando={salvando}
+        temEdicoes={Object.keys(edicoes).length > 0}
+        podeVoltar={posicao > 0}
+        onDecidir={(status) => void decidir(status)}
+        onVoltar={() => {
+          setPosicao((p) => Math.max(0, p - 1));
+          setEdicoes({});
+        }}
+      />
     </Moldura>
+  );
+}
+
+function AcoesRevisao({
+  salvando,
+  temEdicoes,
+  podeVoltar,
+  onDecidir,
+  onVoltar,
+}: {
+  salvando: boolean;
+  temEdicoes: boolean;
+  podeVoltar: boolean;
+  onDecidir: (status: StatusRevisao) => void;
+  onVoltar: () => void;
+}) {
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        disabled={salvando}
+        onClick={() => onDecidir("aprovado")}
+        className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+      >
+        {temEdicoes ? "Salvar correção" : "Aprovar"}
+        <kbd className="ml-2 rounded bg-emerald-700/40 px-1 text-[11px]">A</kbd>
+      </button>
+      <button
+        type="button"
+        disabled={salvando}
+        onClick={() => onDecidir("descartado")}
+        className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+      >
+        Descartar
+        <kbd className="ml-2 rounded bg-gray-100 px-1 text-[11px]">D</kbd>
+      </button>
+      <button
+        type="button"
+        disabled={salvando || !podeVoltar}
+        onClick={onVoltar}
+        className="rounded-md px-2 py-1.5 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+      >
+        ← anterior
+      </button>
+      <span className="text-xs text-gray-500">
+        O item descartado fica no arquivo com{" "}
+        <code className="rounded bg-gray-100 px-1">revisao.status</code>; os scripts filtram por
+        status.
+      </span>
+    </div>
   );
 }
 

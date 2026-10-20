@@ -18,6 +18,75 @@ interface B2bQuoteTabProps {
   onAddToCart: () => void;
 }
 
+function ResultadoCotacao({
+  simResult,
+  onAddToCart,
+}: {
+  simResult: QuoteSimulationResult;
+  onAddToCart: () => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-6 shadow-xs">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+        <div>
+          <h4 className="font-bold text-slate-900 text-base">Resultado da Cotação B2B</h4>
+          <p className="text-xs text-slate-500">
+            Calculado via motor de precificação e desconto por volume.
+          </p>
+        </div>
+        <span className="rounded-full bg-blue-100 text-blue-800 px-3 py-1 text-xs font-bold">
+          {simResult.itens[0].percentual_desconto_aplicado}% de Desconto Aplicado
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+        <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+          <span className="text-xs text-slate-500 block">Preço Unitário Base</span>
+          <span className="text-base font-bold text-slate-800">
+            R${" "}
+            {Number(simResult.itens[0].preco_unitario_base).toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+            })}
+          </span>
+        </div>
+
+        <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+          <span className="text-xs text-blue-700 font-medium block">
+            Preço com Desconto de Volume
+          </span>
+          <span className="text-base font-bold text-blue-900">
+            R${" "}
+            {(
+              Number(simResult.itens[0].preco_unitario_base) *
+              (1 - Number(simResult.itens[0].percentual_desconto_aplicado) / 100)
+            ).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </span>
+        </div>
+
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+          <span className="text-xs text-emerald-700 font-medium block">Valor Total Cotado</span>
+          <span className="text-lg font-bold text-emerald-900">
+            R${" "}
+            {Number(simResult.valor_total).toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+            })}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button
+          type="button"
+          onClick={onAddToCart}
+          className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors cursor-pointer"
+        >
+          <span>Adicionar Cotação ao Carrinho</span> &rarr;
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function B2bQuoteTab({
   catalogProducts,
   selectedProdId,
@@ -104,64 +173,7 @@ export function B2bQuoteTab({
       )}
 
       {simResult && simResult.itens.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-6 shadow-xs">
-          <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-            <div>
-              <h4 className="font-bold text-slate-900 text-base">Resultado da Cotação B2B</h4>
-              <p className="text-xs text-slate-500">
-                Calculado via motor de precificação e desconto por volume.
-              </p>
-            </div>
-            <span className="rounded-full bg-blue-100 text-blue-800 px-3 py-1 text-xs font-bold">
-              {simResult.itens[0].percentual_desconto_aplicado}% de Desconto Aplicado
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-              <span className="text-xs text-slate-500 block">Preço Unitário Base</span>
-              <span className="text-base font-bold text-slate-800">
-                R${" "}
-                {Number(simResult.itens[0].preco_unitario_base).toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            </div>
-
-            <div className="rounded-xl border border-blue-100 bg-blue-50/50 p-4">
-              <span className="text-xs text-blue-700 font-medium block">
-                Preço com Desconto de Volume
-              </span>
-              <span className="text-base font-bold text-blue-900">
-                R${" "}
-                {(
-                  Number(simResult.itens[0].preco_unitario_base) *
-                  (1 - Number(simResult.itens[0].percentual_desconto_aplicado) / 100)
-                ).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
-              <span className="text-xs text-emerald-700 font-medium block">Valor Total Cotado</span>
-              <span className="text-lg font-bold text-emerald-900">
-                R${" "}
-                {Number(simResult.valor_total).toLocaleString("pt-BR", {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <button
-              type="button"
-              onClick={onAddToCart}
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 transition-colors cursor-pointer"
-            >
-              <span>Adicionar Cotação ao Carrinho</span> &rarr;
-            </button>
-          </div>
-        </div>
+        <ResultadoCotacao simResult={simResult} onAddToCart={onAddToCart} />
       )}
     </div>
   );

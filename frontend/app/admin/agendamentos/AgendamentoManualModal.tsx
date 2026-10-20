@@ -11,6 +11,28 @@ interface Props {
   onClose: () => void;
 }
 
+const CLASSE_CAMPO =
+  "mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none";
+
+function CampoForm({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={id} className="block text-xs font-semibold text-slate-700">
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
 export function AgendamentoManualModal({
   form,
   submitting,
@@ -36,72 +58,51 @@ export function AgendamentoManualModal({
         )}
 
         <form onSubmit={onSubmit} className="space-y-3">
-          <div>
-            <label htmlFor="user_email" className="block text-xs font-semibold text-slate-700">
-              E-mail do Cliente
-            </label>
+          <CampoForm label="E-mail do Cliente" id="user_email">
             <input
               id="user_email"
               type="email"
               required
               value={form.user_email}
               onChange={(e) => set({ user_email: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className={CLASSE_CAMPO}
             />
-          </div>
+          </CampoForm>
 
-          <div>
-            <label htmlFor="nome_cliente" className="block text-xs font-semibold text-slate-700">
-              Nome do Cliente
-            </label>
+          <CampoForm label="Nome do Cliente" id="nome_cliente">
             <input
               id="nome_cliente"
               type="text"
               required
               value={form.nome_cliente}
               onChange={(e) => set({ nome_cliente: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className={CLASSE_CAMPO}
             />
-          </div>
+          </CampoForm>
 
-          <div>
-            <label htmlFor="telefone" className="block text-xs font-semibold text-slate-700">
-              Telefone
-            </label>
+          <CampoForm label="Telefone" id="telefone">
             <input
               id="telefone"
               type="text"
               value={form.telefone || ""}
               onChange={(e) => set({ telefone: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className={CLASSE_CAMPO}
             />
-          </div>
+          </CampoForm>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label
-                htmlFor="data_hora_inicio"
-                className="block text-xs font-semibold text-slate-700"
-              >
-                Data e Hora de Início
-              </label>
+            <CampoForm label="Data e Hora de Início" id="data_hora_inicio">
               <input
                 id="data_hora_inicio"
                 type="datetime-local"
                 required
                 value={form.data_hora_inicio}
                 onChange={(e) => set({ data_hora_inicio: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+                className={CLASSE_CAMPO}
               />
-            </div>
+            </CampoForm>
 
-            <div>
-              <label
-                htmlFor="duracao_minutos"
-                className="block text-xs font-semibold text-slate-700"
-              >
-                Duração (minutos)
-              </label>
+            <CampoForm label="Duração (minutos)" id="duracao_minutos">
               <input
                 id="duracao_minutos"
                 type="number"
@@ -112,23 +113,20 @@ export function AgendamentoManualModal({
                 onChange={(e) =>
                   set({ duracao_minutos: e.target.value === "" ? null : Number(e.target.value) })
                 }
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+                className={CLASSE_CAMPO}
               />
-            </div>
+            </CampoForm>
           </div>
 
-          <div>
-            <label htmlFor="descricao" className="block text-xs font-semibold text-slate-700">
-              Descrição / Motivo da Visita
-            </label>
+          <CampoForm label="Descrição / Motivo da Visita" id="descricao">
             <textarea
               id="descricao"
               rows={2}
               value={form.descricao || ""}
               onChange={(e) => set({ descricao: e.target.value })}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-purple-500 focus:outline-none"
+              className={CLASSE_CAMPO}
             />
-          </div>
+          </CampoForm>
 
           <div className="flex justify-end gap-3 pt-3">
             <button

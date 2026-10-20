@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { AdminChartData } from "@/components/admin/DynamicChartCard";
 import {
   deleteAdminChart,
@@ -15,64 +15,13 @@ function mensagemDe(err: unknown, fallback: string): string {
   return err instanceof Error ? err.message : fallback;
 }
 
-/** Estado, carga e ações (CRUD) dos gráficos do painel admin. */
-export function useAdminCharts() {
-  const user = useAuthStore((s) => s.user);
-  const token = useAuthStore((s) => s.token);
-
-  const hasHydrated = useEstaNoCliente();
-  const [charts, setCharts] = useState<AdminChartData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
-
-  const isAdmin = user?.perfil?.toLowerCase() === "admin";
-
-  // `carregando` deriva de quem realmente carrega: antes do hydrate sempre
-  // mostra esqueleto; depois, so enquanto um admin com token esta buscando.
-  // Era isso que o `else { setLoading(false) }` dentro do efeito fazia — e
-  // derivar remove de vez o caso do visitante nao-admin preso no esqueleto
-  // quando o efeito nao re-roda (ver comentario do efeito abaixo).
-  const carregando = loading && (!hasHydrated || (isAdmin && !!token));
-
-  // Nao toca estado antes do primeiro `await`: este loader e chamado de
-  // dentro de um efeito, onde setState sincrono dispara render em cascata
-  // (react-hooks/set-state-in-effect). Quem chama por evento liga o spinner
-  // no proprio handler.
-  const loadData = useCallback(async () => {
-    if (!token) return;
-    try {
-      const data = await fetchAdminCharts(token);
-      setCharts(data);
-      setError(null);
-    } catch (err) {
-      setError(mensagemDe(err, "Não foi possível carregar os gráficos."));
-    } finally {
-      setLoading(false);
-    }
-  }, [token]);
-
-  useEffect(() => {
-    // Antes do hydrate do zustand persist, `user`/`token` ainda são os
-    // valores iniciais (null) independente de haver sessão salva — decidir
-    // aqui destravaria a tela cedo demais para um admin de verdade. Mas uma
-    // vez hidratado, se o visitante não é admin (ou não está logado),
-    // `isAdmin`/`token` nunca mais mudam sozinhos — sem `hasHydrated` na
-    // lista de dependências, este efeito nunca rodava de novo pra aplicar
-    // esse caso, e a página ficava presa no esqueleto de carregamento pra
-    // sempre (achado ao vivo: "fica rendering" pra qualquer visitante
-    // não-admin).
-    if (!hasHydrated) return;
-    if (isAdmin && token) {
-      // Falso positivo: `loadData` so toca estado depois de
-      // `await fetchAdminCharts` (funcao `async` importada), logo nao ha
-      // setState sincrono. A regra nao resolve a assincronia de funcoes
-      // importadas e assume o pior caso.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      void loadData();
-    }
-  }, [hasHydrated, isAdmin, token, loadData]);
-
+/** Recarrega os gráficos por evento customizado, foco da janela e volta da aba. */
+function useRecarregarGraficos(
+  token: string | null,
+  loadData: () => Promise<void>,
+  setLoading: (v: boolean) => void,
+  setError: (v: string | null) => void,
+) {
   useEffect(() => {
     const handleRefresh = () => {
       if (token) {
@@ -97,8 +46,15 @@ export function useAdminCharts() {
       window.removeEventListener("focus", handleRefresh);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [token, loadData]);
+  }, [token, loadData, setLoading, setError]);
+}
 
+function useAcoesGraficos(
+  token: string | null,
+  charts: AdminChartData[],
+  setCharts: Dispatch<SetStateAction<AdminChartData[]>>,
+  setIsRefreshingAll: (v: boolean) => void,
+) {
   const substituir = (id: string, updated: AdminChartData) =>
     setCharts((prev) => prev.map((c) => (c.id === id ? updated : c)));
 
@@ -162,6 +118,72 @@ export function useAdminCharts() {
       setCharts((prev) => prev.filter((c) => c.id !== id));
     }, "Erro ao excluir gráfico.");
   };
+
+  return { handleRefresh, handleRefreshAll, handleTogglePin, handleEditTitle, handleDelete };
+}
+
+/** Estado, carga e ações (CRUD) dos gráficos do painel admin. */
+export function useAdminCharts() {
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+
+  const hasHydrated = useEstaNoCliente();
+  const [charts, setCharts] = useState<AdminChartData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
+
+  const isAdmin = user?.perfil?.toLowerCase() === "admin";
+
+  // `carregando` deriva de quem realmente carrega: antes do hydrate sempre
+  // mostra esqueleto; depois, so enquanto um admin com token esta buscando.
+  // Era isso que o `else { setLoading(false) }` dentro do efeito fazia — e
+  // derivar remove de vez o caso do visitante nao-admin preso no esqueleto
+  // quando o efeito nao re-roda (ver comentario do efeito abaixo).
+  const carregando = loading && (!hasHydrated || (isAdmin && !!token));
+
+  // Nao toca estado antes do primeiro `await`: este loader e chamado de
+  // dentro de um efeito, onde setState sincrono dispara render em cascata
+  // (react-hooks/set-state-in-effect). Quem chama por evento liga o spinner
+  // no proprio handler.
+  const loadData = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await fetchAdminCharts(token);
+      setCharts(data);
+      setError(null);
+    } catch (err) {
+      setError(mensagemDe(err, "Não foi possível carregar os gráficos."));
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    // Antes do hydrate do zustand persist, `user`/`token` ainda são os
+    // valores iniciais (null) independente de haver sessão salva — decidir
+    // aqui destravaria a tela cedo demais para um admin de verdade. Mas uma
+    // vez hidratado, se o visitante não é admin (ou não está logado),
+    // `isAdmin`/`token` nunca mais mudam sozinhos — sem `hasHydrated` na
+    // lista de dependências, este efeito nunca rodava de novo pra aplicar
+    // esse caso, e a página ficava presa no esqueleto de carregamento pra
+    // sempre (achado ao vivo: "fica rendering" pra qualquer visitante
+    // não-admin).
+    if (!hasHydrated) return;
+    if (isAdmin && token) {
+      // Falso positivo: `loadData` so toca estado depois de
+      // `await fetchAdminCharts` (funcao `async` importada), logo nao ha
+      // setState sincrono. A regra nao resolve a assincronia de funcoes
+      // importadas e assume o pior caso.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void loadData();
+    }
+  }, [hasHydrated, isAdmin, token, loadData]);
+
+  useRecarregarGraficos(token, loadData, setLoading, setError);
+
+  const { handleRefresh, handleRefreshAll, handleTogglePin, handleEditTitle, handleDelete } =
+    useAcoesGraficos(token, charts, setCharts, setIsRefreshingAll);
 
   const handleChartCreated = (newChart: AdminChartData) => {
     setCharts((prev) => [newChart, ...prev]);

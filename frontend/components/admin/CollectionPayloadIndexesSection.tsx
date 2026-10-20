@@ -28,6 +28,114 @@ interface CollectionPayloadIndexesSectionProps {
   onAdd: () => void;
 }
 
+function ParamsTexto({
+  item,
+  indice,
+  onUpdate,
+}: {
+  item: PayloadIndex;
+  indice: number;
+  onUpdate: (indice: number, campo: Partial<PayloadIndex>) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2 pl-1">
+      <div>
+        <div className="flex items-center">
+          <label htmlFor={`tokenizer-${indice}`} className="text-sm text-gray-700">
+            Tokenizer
+          </label>
+          <Tooltip content="Estratégia de divisão do texto do campo: word (palavras), whitespace (espaços), prefix (prefixos) ou multilingual." />
+        </div>
+        <select
+          id={`tokenizer-${indice}`}
+          aria-label={`Tokenizer do índice ${indice + 1}`}
+          value={item.text_params?.tokenizer ?? TEXT_PARAMS_PADRAO.tokenizer}
+          onChange={(e) =>
+            onUpdate(indice, {
+              text_params: {
+                ...(item.text_params ?? TEXT_PARAMS_PADRAO),
+                tokenizer: e.target.value as TextIndexParams["tokenizer"],
+              },
+            })
+          }
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+        >
+          <option value="prefix">prefix</option>
+          <option value="whitespace">whitespace</option>
+          <option value="word">word</option>
+          <option value="multilingual">multilingual</option>
+        </select>
+      </div>
+      <div>
+        <div className="flex items-center">
+          <label htmlFor={`min-token-${indice}`} className="text-sm text-gray-700">
+            min_token_len (vazio = padrão)
+          </label>
+          <Tooltip content="Comprimento mínimo que um token precisa ter para ser incluído no índice." />
+        </div>
+        <input
+          id={`min-token-${indice}`}
+          type="number"
+          aria-label={`min_token_len do índice ${indice + 1}`}
+          value={item.text_params?.min_token_len ?? ""}
+          onChange={(e) =>
+            onUpdate(indice, {
+              text_params: {
+                ...(item.text_params ?? TEXT_PARAMS_PADRAO),
+                min_token_len: e.target.value === "" ? null : Number(e.target.value),
+              },
+            })
+          }
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+        />
+      </div>
+      <div>
+        <div className="flex items-center">
+          <label htmlFor={`max-token-${indice}`} className="text-sm text-gray-700">
+            max_token_len (vazio = padrão)
+          </label>
+          <Tooltip content="Comprimento máximo que um token pode ter para ser incluído no índice." />
+        </div>
+        <input
+          id={`max-token-${indice}`}
+          type="number"
+          aria-label={`max_token_len do índice ${indice + 1}`}
+          value={item.text_params?.max_token_len ?? ""}
+          onChange={(e) =>
+            onUpdate(indice, {
+              text_params: {
+                ...(item.text_params ?? TEXT_PARAMS_PADRAO),
+                max_token_len: e.target.value === "" ? null : Number(e.target.value),
+              },
+            })
+          }
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          id={`lowercase-${indice}`}
+          type="checkbox"
+          aria-label={`lowercase do índice ${indice + 1}`}
+          checked={item.text_params?.lowercase ?? TEXT_PARAMS_PADRAO.lowercase}
+          onChange={(e) =>
+            onUpdate(indice, {
+              text_params: {
+                ...(item.text_params ?? TEXT_PARAMS_PADRAO),
+                lowercase: e.target.checked,
+              },
+            })
+          }
+        />
+        <label htmlFor={`lowercase-${indice}`} className="text-sm text-gray-700">
+          lowercase
+        </label>
+        <Tooltip content="Converte todo o texto do campo para letras minúsculas antes de indexar." />
+      </div>
+    </div>
+  );
+}
+
 export function CollectionPayloadIndexesSection({
   indexes,
   onUpdate,
@@ -80,101 +188,7 @@ export function CollectionPayloadIndexesSection({
           </div>
 
           {item.schema_type === "text" && (
-            <div className="grid grid-cols-2 gap-2 pl-1">
-              <div>
-                <div className="flex items-center">
-                  <label htmlFor={`tokenizer-${indice}`} className="text-sm text-gray-700">
-                    Tokenizer
-                  </label>
-                  <Tooltip content="Estratégia de divisão do texto do campo: word (palavras), whitespace (espaços), prefix (prefixos) ou multilingual." />
-                </div>
-                <select
-                  id={`tokenizer-${indice}`}
-                  aria-label={`Tokenizer do índice ${indice + 1}`}
-                  value={item.text_params?.tokenizer ?? TEXT_PARAMS_PADRAO.tokenizer}
-                  onChange={(e) =>
-                    onUpdate(indice, {
-                      text_params: {
-                        ...(item.text_params ?? TEXT_PARAMS_PADRAO),
-                        tokenizer: e.target.value as TextIndexParams["tokenizer"],
-                      },
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                >
-                  <option value="prefix">prefix</option>
-                  <option value="whitespace">whitespace</option>
-                  <option value="word">word</option>
-                  <option value="multilingual">multilingual</option>
-                </select>
-              </div>
-              <div>
-                <div className="flex items-center">
-                  <label htmlFor={`min-token-${indice}`} className="text-sm text-gray-700">
-                    min_token_len (vazio = padrão)
-                  </label>
-                  <Tooltip content="Comprimento mínimo que um token precisa ter para ser incluído no índice." />
-                </div>
-                <input
-                  id={`min-token-${indice}`}
-                  type="number"
-                  aria-label={`min_token_len do índice ${indice + 1}`}
-                  value={item.text_params?.min_token_len ?? ""}
-                  onChange={(e) =>
-                    onUpdate(indice, {
-                      text_params: {
-                        ...(item.text_params ?? TEXT_PARAMS_PADRAO),
-                        min_token_len: e.target.value === "" ? null : Number(e.target.value),
-                      },
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </div>
-              <div>
-                <div className="flex items-center">
-                  <label htmlFor={`max-token-${indice}`} className="text-sm text-gray-700">
-                    max_token_len (vazio = padrão)
-                  </label>
-                  <Tooltip content="Comprimento máximo que um token pode ter para ser incluído no índice." />
-                </div>
-                <input
-                  id={`max-token-${indice}`}
-                  type="number"
-                  aria-label={`max_token_len do índice ${indice + 1}`}
-                  value={item.text_params?.max_token_len ?? ""}
-                  onChange={(e) =>
-                    onUpdate(indice, {
-                      text_params: {
-                        ...(item.text_params ?? TEXT_PARAMS_PADRAO),
-                        max_token_len: e.target.value === "" ? null : Number(e.target.value),
-                      },
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  id={`lowercase-${indice}`}
-                  type="checkbox"
-                  aria-label={`lowercase do índice ${indice + 1}`}
-                  checked={item.text_params?.lowercase ?? TEXT_PARAMS_PADRAO.lowercase}
-                  onChange={(e) =>
-                    onUpdate(indice, {
-                      text_params: {
-                        ...(item.text_params ?? TEXT_PARAMS_PADRAO),
-                        lowercase: e.target.checked,
-                      },
-                    })
-                  }
-                />
-                <label htmlFor={`lowercase-${indice}`} className="text-sm text-gray-700">
-                  lowercase
-                </label>
-                <Tooltip content="Converte todo o texto do campo para letras minúsculas antes de indexar." />
-              </div>
-            </div>
+            <ParamsTexto item={item} indice={indice} onUpdate={onUpdate} />
           )}
         </div>
       ))}

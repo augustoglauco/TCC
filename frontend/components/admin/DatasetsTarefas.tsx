@@ -22,7 +22,7 @@ const INTERVALO_POLLING_MS = 2000;
  * (`desde`/`proximo_offset`), em vez de rebaixar o buffer inteiro a cada
  * volta.
  */
-export function DatasetsTarefas({ token }: { token: string }) {
+function useTarefas(token: string) {
   const [tarefas, setTarefas] = useState<TarefaResumo[]>([]);
   // O log guarda o id junto: trocar de tarefa troca o par inteiro, em vez
   // de precisar de um efeito que zere as linhas da anterior.
@@ -110,6 +110,13 @@ export function DatasetsTarefas({ token }: { token: string }) {
 
   const detalheSelecionado = tarefas.find((t) => t.id === log.id) ?? null;
 
+  return { tarefas, log, erro, detalheSelecionado, selecionar, iniciar, cancelar };
+}
+
+export function DatasetsTarefas({ token }: { token: string }) {
+  const { tarefas, log, erro, detalheSelecionado, selecionar, iniciar, cancelar } =
+    useTarefas(token);
+
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-4">
       <h2 className="text-sm font-semibold text-gray-900">Tarefas longas</h2>
@@ -132,42 +139,12 @@ export function DatasetsTarefas({ token }: { token: string }) {
 
       {erro ? <p className="mt-3 text-sm text-red-600">{erro}</p> : null}
 
-      {tarefas.length > 0 ? (
-        <ul className="mt-4 divide-y divide-gray-100">
-          {tarefas.map((t) => (
-            <li key={t.id} className="flex flex-wrap items-center gap-2 py-2">
-              <EstadoSelo estado={t.estado} />
-              <button
-                type="button"
-                onClick={() => selecionar(t.id)}
-                className={`text-sm ${
-                  t.id === log.id ? "font-semibold text-gray-900" : "text-gray-700 hover:underline"
-                }`}
-              >
-                {t.rotulo}
-              </button>
-              <span className="text-xs text-gray-400 tabular-nums">
-                {new Date(t.iniciada_em * 1000).toLocaleTimeString("pt-BR")} · {t.total_linhas}{" "}
-                linhas
-                {t.codigo !== null ? ` · código ${t.codigo}` : ""}
-              </span>
-              {t.estado === "rodando" ? (
-                <button
-                  type="button"
-                  onClick={() => void cancelar(t.id)}
-                  className="ml-auto rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="mt-4 text-sm text-gray-500">
-          Nenhuma tarefa iniciada nesta sessão do backend.
-        </p>
-      )}
+      <ListaTarefas
+        tarefas={tarefas}
+        idSelecionado={log.id}
+        onSelecionar={selecionar}
+        onCancelar={(id) => void cancelar(id)}
+      />
 
       {log.id ? (
         <div className="mt-3">
@@ -181,6 +158,61 @@ export function DatasetsTarefas({ token }: { token: string }) {
         </div>
       ) : null}
     </section>
+  );
+}
+
+function ListaTarefas({
+  tarefas,
+  idSelecionado,
+  onSelecionar,
+  onCancelar,
+}: {
+  tarefas: TarefaResumo[];
+  idSelecionado: string | null;
+  onSelecionar: (id: string) => void;
+  onCancelar: (id: string) => void;
+}) {
+  return (
+    <>
+      {tarefas.length > 0 ? (
+        <ul className="mt-4 divide-y divide-gray-100">
+          {tarefas.map((t) => (
+            <li key={t.id} className="flex flex-wrap items-center gap-2 py-2">
+              <EstadoSelo estado={t.estado} />
+              <button
+                type="button"
+                onClick={() => onSelecionar(t.id)}
+                className={`text-sm ${
+                  t.id === idSelecionado
+                    ? "font-semibold text-gray-900"
+                    : "text-gray-700 hover:underline"
+                }`}
+              >
+                {t.rotulo}
+              </button>
+              <span className="text-xs text-gray-400 tabular-nums">
+                {new Date(t.iniciada_em * 1000).toLocaleTimeString("pt-BR")} · {t.total_linhas}{" "}
+                linhas
+                {t.codigo !== null ? ` · código ${t.codigo}` : ""}
+              </span>
+              {t.estado === "rodando" ? (
+                <button
+                  type="button"
+                  onClick={() => onCancelar(t.id)}
+                  className="ml-auto rounded-md border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm text-gray-500">
+          Nenhuma tarefa iniciada nesta sessão do backend.
+        </p>
+      )}
+    </>
   );
 }
 

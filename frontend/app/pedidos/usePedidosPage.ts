@@ -14,32 +14,7 @@ import {
 } from "@/lib/api/orders";
 import { fetchProducts, fetchProductById, Produto } from "@/lib/api/products";
 
-export function usePedidosPage() {
-  const searchParams = useSearchParams();
-  const produtoParam = searchParams.get("produto");
-
-  const currentUser = useAuthStore((state) => state.user);
-  const cartItems = useCartStore((state) => state.items);
-
-  const [activeTab, setActiveTab] = useState<"carrinho" | "cotacao_b2b">("carrinho");
-
-  // Checkout state
-  const [cep, setCep] = useState("");
-  const [freightResult, setFreightResult] = useState<FreightQuoteResult | null>(null);
-  const [isCalculatingFreight, setIsCalculatingFreight] = useState(false);
-  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
-
-  // B2B quote state
-  const [catalogProducts, setCatalogProducts] = useState<Produto[]>([]);
-  const [selectedProdId, setSelectedProdId] = useState<number | null>(null);
-  const [simQuantity, setSimQuantity] = useState<number>(10);
-  const [simCd, setSimCd] = useState<string>("CD-SP");
-  const [simResult, setSimResult] = useState<QuoteSimulationResult | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [simError, setSimError] = useState<string | null>(null);
-
+function useProdutoDaUrl(produtoParam: string | null) {
   useEffect(() => {
     if (!produtoParam) return;
     const pId = Number.parseInt(produtoParam, 10);
@@ -62,15 +37,18 @@ export function usePedidosPage() {
       })
       .catch(() => {});
   }, [produtoParam]);
+}
 
-  useEffect(() => {
-    fetchProducts({ limit: 50 })
-      .then((res) => {
-        setCatalogProducts(res.items);
-        if (res.items.length > 0) setSelectedProdId(res.items[0].id);
-      })
-      .catch(() => {});
-  }, []);
+function useCheckout() {
+  const currentUser = useAuthStore((state) => state.user);
+  const cartItems = useCartStore((state) => state.items);
+
+  const [cep, setCep] = useState("");
+  const [freightResult, setFreightResult] = useState<FreightQuoteResult | null>(null);
+  const [isCalculatingFreight, setIsCalculatingFreight] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
 
   const handleCalcFreight = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +99,40 @@ export function usePedidosPage() {
     }
   };
 
+  return {
+    currentUser,
+    cartItems,
+    cep,
+    setCep,
+    freightResult,
+    isCalculatingFreight,
+    isSubmittingOrder,
+    checkoutError,
+    completedOrderId,
+    setCompletedOrderId,
+    handleCalcFreight,
+    handleCheckout,
+  };
+}
+
+function useCotacaoB2b(onAddedToCart: () => void) {
+  const [catalogProducts, setCatalogProducts] = useState<Produto[]>([]);
+  const [selectedProdId, setSelectedProdId] = useState<number | null>(null);
+  const [simQuantity, setSimQuantity] = useState<number>(10);
+  const [simCd, setSimCd] = useState<string>("CD-SP");
+  const [simResult, setSimResult] = useState<QuoteSimulationResult | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simError, setSimError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchProducts({ limit: 50 })
+      .then((res) => {
+        setCatalogProducts(res.items);
+        if (res.items.length > 0) setSelectedProdId(res.items[0].id);
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSimulateQuote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProdId || simQuantity <= 0) return;
@@ -150,22 +162,10 @@ export function usePedidosPage() {
       quantidade: simQuantity,
       centroDistribuicao: simCd,
     });
-    setActiveTab("carrinho");
+    onAddedToCart();
   };
 
   return {
-    currentUser,
-    cartItems,
-    activeTab,
-    setActiveTab,
-    cep,
-    setCep,
-    freightResult,
-    isCalculatingFreight,
-    isSubmittingOrder,
-    checkoutError,
-    completedOrderId,
-    setCompletedOrderId,
     catalogProducts,
     selectedProdId,
     setSelectedProdId,
@@ -176,9 +176,18 @@ export function usePedidosPage() {
     simResult,
     isSimulating,
     simError,
-    handleCalcFreight,
-    handleCheckout,
     handleSimulateQuote,
     handleAddQuotedToCart,
   };
+}
+
+export function usePedidosPage() {
+  const searchParams = useSearchParams();
+  useProdutoDaUrl(searchParams.get("produto"));
+
+  const [activeTab, setActiveTab] = useState<"carrinho" | "cotacao_b2b">("carrinho");
+  const checkout = useCheckout();
+  const cotacao = useCotacaoB2b(() => setActiveTab("carrinho"));
+
+  return { ...checkout, ...cotacao, activeTab, setActiveTab };
 }
