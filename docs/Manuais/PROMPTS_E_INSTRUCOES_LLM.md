@@ -942,7 +942,8 @@ keywords, não o modelo que se quer escolher.
 - `_PROMPT_LIVRE` pede mensagens sem restrição de vocabulário, para que a
   "acurácia do sistema" reflita o mix real em vez de só o caminho difícil.
 - `_PROMPT_FORA_ESCOPO` cobre o quinto rótulo com saudação, pergunta
-  institucional, assunto alheio e conversa fiada.
+  institucional (exceto localização/horário da empresa, que é atendimento —
+  decisão do dono, 2026-10-20), assunto alheio e conversa fiada.
 
 `DESCRICAO_DOMINIO["agendamento"]` passou a dizer "visita técnica nova (nunca remarcar, adiar ou confirmar)" em 2026-10-20: a versão anterior listava "remarcar" e gerava casos de reagendamento, que o projeto exclui.
 

@@ -176,8 +176,9 @@ visita).
 
 Misture estes tipos, em proporções parecidas:
 - saudação ou agradecimento solto ("bom dia", "obrigado", "valeu");
-- pergunta institucional ("vocês ficam onde?", "que horas abre?", "tem vaga de \
-emprego?");
+- pergunta institucional sem relação com localização ou horário da empresa \
+("tem vaga de emprego?", "vocês patrocinam eventos?") — localização e horário \
+da empresa são atendimento, não fora de escopo;
 - assunto completamente alheio ("qual o resultado do jogo?", "me conta uma \
 piada");
 - conversa fiada sobre tecnologia em geral, sem pedir nada da empresa.

@@ -5164,13 +5164,14 @@
     {
       "id": 587,
       "mensagem": "Vocês ficam onde?",
-      "intencao_esperada": "fora_escopo",
+      "intencao_esperada": "atendimento",
       "ambiguo": false,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "corrigido",
+        "em": "2026-10-20T07:09:27-0300",
+        "nota": "localização da empresa é atendimento (dono)"
       }
     },
     {
