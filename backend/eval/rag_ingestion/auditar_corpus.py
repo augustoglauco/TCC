@@ -251,10 +251,7 @@ def auditar(corpus: Path) -> dict:
     }
 
 
-def _imprimir(rel: dict) -> None:
-    print(f"Corpus: {rel['corpus']}\n")
-
-    p = rel["pdfs"]
+def _imprimir_pdfs(p: dict) -> None:
     print(f"PDFs ({p['total']}):")
     for classe in ("util", "degenerado", "sem_texto", "erro"):
         if classe in p["por_classificacao"]:
@@ -265,7 +262,8 @@ def _imprimir(rel: dict) -> None:
         + " · ".join(f"{k.split('_')[0]}t→~{v}" for k, v in p["chunks_estimados"].items())
     )
 
-    i = rel["imagens"]
+
+def _imprimir_imagens(i: dict) -> None:
     print(f"\nImagens ({i['total']}):")
     for classe, qtd in sorted(i["por_classificacao"].items()):
         print(f"  {classe:18s}: {qtd}")
@@ -274,6 +272,8 @@ def _imprimir(rel: dict) -> None:
         + " · ".join(f"{k}={v}" for k, v in sorted(i["por_extensao"].items()))
     )
 
+
+def _imprimir_outros_e_pastas(rel: dict) -> None:
     o = rel["outros"]
     print(f"\nOutros arquivos ({o['total']}, {o['ingeriveis']} ingerível(is)):")
     print("  " + " · ".join(f"{k}={v}" for k, v in sorted(o["por_extensao"].items())))
@@ -284,32 +284,36 @@ def _imprimir(rel: dict) -> None:
     for capacidade, qtd in sorted(rel["pastas"]["por_capacidade"].items()):
         print(f"  {capacidade:18s}: {qtd}")
 
-    problemas = [
-        x for x in rel["itens_pdfs"] if x["classificacao"] in ("degenerado", "sem_texto", "erro")
-    ]
-    if problemas:
-        print(f"\n{len(problemas)} PDFs exigem decisão (OCR ou sair do gabarito):")
-        for x in sorted(problemas, key=lambda y: y.get("chars", -1)):
-            print(
-                f"  {x.get('chars', '?'):>6} chars /{x.get('paginas', '?'):>3} pág | {x['arquivo']}"
-            )
 
-    ruins = [x for x in rel["itens_imagens"] if x["classificacao"] != "valida"]
-    if ruins:
-        print(f"\n{len(ruins)} imagens o pipeline rejeita hoje:")
-        for x in sorted(ruins, key=lambda y: -y["tamanho_mb"]):
-            print(
-                f"  [{x['classificacao']:18s}] {x['tamanho_mb']:6.1f} MB "
-                f"fmt={x['formato_detectado']} | {x['arquivo']}"
-            )
+def _imprimir_problemas_pdf(itens_pdfs: list[dict]) -> None:
+    problemas = [x for x in itens_pdfs if x["classificacao"] in ("degenerado", "sem_texto", "erro")]
+    if not problemas:
+        return
+    print(f"\n{len(problemas)} PDFs exigem decisão (OCR ou sair do gabarito):")
+    for x in sorted(problemas, key=lambda y: y.get("chars", -1)):
+        print(f"  {x.get('chars', '?'):>6} chars /{x.get('paginas', '?'):>3} pág | {x['arquivo']}")
 
-    vazias = [x for x in rel["itens_pastas"] if x["sustenta"] == "nada"]
+
+def _imprimir_imagens_rejeitadas(itens_imagens: list[dict]) -> None:
+    ruins = [x for x in itens_imagens if x["classificacao"] != "valida"]
+    if not ruins:
+        return
+    print(f"\n{len(ruins)} imagens o pipeline rejeita hoje:")
+    for x in sorted(ruins, key=lambda y: -y["tamanho_mb"]):
+        print(
+            f"  [{x['classificacao']:18s}] {x['tamanho_mb']:6.1f} MB "
+            f"fmt={x['formato_detectado']} | {x['arquivo']}"
+        )
+
+
+def _imprimir_pastas_fracas(itens_pastas: list[dict]) -> None:
+    vazias = [x for x in itens_pastas if x["sustenta"] == "nada"]
     if vazias:
         print(f"\n{len(vazias)} pastas não sustentam gabarito nenhum:")
         for x in vazias:
             print(f"  {x['pasta']} (degenerados: {x['pdfs_degenerados']})")
 
-    so_imagem = [x for x in rel["itens_pastas"] if x["sustenta"] == "so_imagem"]
+    so_imagem = [x for x in itens_pastas if x["sustenta"] == "so_imagem"]
     if so_imagem:
         print(
             f"\n{len(so_imagem)} pastas só sustentam pergunta de IMAGEM (sem texto aproveitável):"
@@ -319,6 +323,16 @@ def _imprimir(rel: dict) -> None:
                 f"  {x['pasta']} (imagens: {x['imagens_validas']}, "
                 f"degenerados: {x['pdfs_degenerados']})"
             )
+
+
+def _imprimir(rel: dict) -> None:
+    print(f"Corpus: {rel['corpus']}\n")
+    _imprimir_pdfs(rel["pdfs"])
+    _imprimir_imagens(rel["imagens"])
+    _imprimir_outros_e_pastas(rel)
+    _imprimir_problemas_pdf(rel["itens_pdfs"])
+    _imprimir_imagens_rejeitadas(rel["itens_imagens"])
+    _imprimir_pastas_fracas(rel["itens_pastas"])
 
 
 def main(argv: list[str]) -> int:

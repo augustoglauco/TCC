@@ -71,59 +71,50 @@ def caso(indice: int, tipo: str, pergunta: str, resposta: str, bruto: dict, prod
     }
 
 
-def montar(produtos: list[dict], estoques: dict[int, dict[str, int]]) -> list[dict]:
-    """Monta os casos de forma determinística: a ordem é a do nome do produto,
-    e cada cota consome a lista em rodízio. Rodar duas vezes dá o mesmo
-    conjunto."""
-    ordenados = sorted(produtos, key=lambda p: p["nome"])
-    casos: list[dict] = []
-    proximo = 1
+Especificacao = tuple[str, str, str, dict, str]  # tipo, pergunta, resposta, bruto, produto
 
-    def girar(n: int, offset: int) -> list[dict]:
-        if not ordenados:
-            return []
-        return [ordenados[(offset + i) % len(ordenados)] for i in range(n)]
 
-    for p in girar(COTAS["preco"], 0):
-        casos.append(
-            caso(
-                proximo,
-                "preco",
-                f"Quanto custa o {p['nome']}?",
-                _brl(p["preco"]),
-                {"preco": str(p["preco"])},
-                p["nome"],
-            )
-        )
-        proximo += 1
+def _girar(ordenados: list[dict], n: int, offset: int) -> list[dict]:
+    if not ordenados:
+        return []
+    return [ordenados[(offset + i) % len(ordenados)] for i in range(n)]
 
-    for p in girar(COTAS["estoque_total"], 7):
+
+def _spec_preco(p: dict) -> Especificacao:
+    return (
+        "preco",
+        f"Quanto custa o {p['nome']}?",
+        _brl(p["preco"]),
+        {"preco": str(p["preco"])},
+        p["nome"],
+    )
+
+
+def _specs_estoque_total(ordenados: list[dict], estoques: dict[int, dict[str, int]]):
+    specs: list[Especificacao] = []
+    for p in _girar(ordenados, COTAS["estoque_total"], 7):
         total = sum(estoques.get(p["id"], {}).values())
         resposta = (
             f"Sim, {total} unidades disponíveis somando os centros de distribuição."
             if total > 0
             else "Não há unidades disponíveis em nenhum centro de distribuição."
         )
-        casos.append(
-            caso(
-                proximo,
-                "estoque_total",
-                f"Vocês têm {p['nome']} em estoque?",
-                resposta,
-                {"estoque_total": total, "por_cd": estoques.get(p["id"], {})},
-                p["nome"],
-            )
+        bruto = {"estoque_total": total, "por_cd": estoques.get(p["id"], {})}
+        specs.append(
+            ("estoque_total", f"Vocês têm {p['nome']} em estoque?", resposta, bruto, p["nome"])
         )
-        proximo += 1
+    return specs
 
-    for i, p in enumerate(girar(COTAS["estoque_cd"], 19)):
+
+def _specs_estoque_cd(ordenados: list[dict], estoques: dict[int, dict[str, int]]):
+    specs: list[Especificacao] = []
+    for i, p in enumerate(_girar(ordenados, COTAS["estoque_cd"], 19)):
         por_cd = estoques.get(p["id"], {})
         if not por_cd:
             continue
         cd = sorted(por_cd)[i % len(por_cd)]
-        casos.append(
-            caso(
-                proximo,
+        specs.append(
+            (
                 "estoque_cd",
                 f"Quantas unidades de {p['nome']} tem no {cd}?",
                 f"{por_cd[cd]} unidades no {cd}.",
@@ -131,31 +122,33 @@ def montar(produtos: list[dict], estoques: dict[int, dict[str, int]]) -> list[di
                 p["nome"],
             )
         )
-        proximo += 1
+    return specs
 
-    for p in girar(COTAS["prazo"], 31):
-        casos.append(
-            caso(
-                proximo,
-                "prazo",
-                f"Qual o prazo de reposição do {p['nome']}?",
-                f"{p['dias_alerta_estoque']} dias.",
-                {"dias": p["dias_alerta_estoque"]},
-                p["nome"],
-            )
+
+def _specs_prazo(ordenados: list[dict]) -> list[Especificacao]:
+    return [
+        (
+            "prazo",
+            f"Qual o prazo de reposição do {p['nome']}?",
+            f"{p['dias_alerta_estoque']} dias.",
+            {"dias": p["dias_alerta_estoque"]},
+            p["nome"],
         )
-        proximo += 1
+        for p in _girar(ordenados, COTAS["prazo"], 31)
+    ]
 
-    # Comparação: exige o LLM trazer dois produtos e comparar, não só repetir
-    # um campo. O gabarito continua exato, porque sai de dois números.
-    for i, p in enumerate(girar(COTAS["comparacao_preco"], 5)):
+
+def _specs_comparacao(ordenados: list[dict]) -> list[Especificacao]:
+    """Exige o LLM trazer dois produtos e comparar, não só repetir um campo. O
+    gabarito continua exato, porque sai de dois números."""
+    specs: list[Especificacao] = []
+    for i, p in enumerate(_girar(ordenados, COTAS["comparacao_preco"], 5)):
         outro = ordenados[(5 + i + len(ordenados) // 2) % len(ordenados)]
         if outro["nome"] == p["nome"]:
             continue
         mais_caro = p if p["preco"] >= outro["preco"] else outro
-        casos.append(
-            caso(
-                proximo,
+        specs.append(
+            (
                 "comparacao_preco",
                 f"O {p['nome']} é mais caro que o {outro['nome']}?",
                 f"{'Sim' if mais_caro['nome'] == p['nome'] else 'Não'}: "
@@ -169,49 +162,53 @@ def montar(produtos: list[dict], estoques: dict[int, dict[str, int]]) -> list[di
                 f"{p['nome']} x {outro['nome']}",
             )
         )
-        proximo += 1
+    return specs
 
+
+def _specs_categoria(ordenados: list[dict]) -> list[Especificacao]:
     categorias: dict[str, list[str]] = {}
     for p in ordenados:
         categorias.setdefault(p["categoria"], []).append(p["nome"])
-    for categoria in sorted(categorias)[: COTAS["categoria"]]:
-        nomes = categorias[categoria]
-        casos.append(
-            caso(
-                proximo,
-                "categoria",
-                f"Quais produtos vocês têm na categoria {categoria}?",
-                f"{len(nomes)} produto(s): " + ", ".join(nomes) + ".",
-                {"categoria": categoria, "produtos": nomes},
-                categoria,
-            )
+    return [
+        (
+            "categoria",
+            f"Quais produtos vocês têm na categoria {categoria}?",
+            f"{len(categorias[categoria])} produto(s): " + ", ".join(categorias[categoria]) + ".",
+            {"categoria": categoria, "produtos": categorias[categoria]},
+            categoria,
         )
-        proximo += 1
+        for categoria in sorted(categorias)[: COTAS["categoria"]]
+    ]
 
-    # As categorias distintas são finitas (10 hoje): se a cota de categoria não
-    # fecha, o total é completado com perguntas de preço sobre os produtos que
-    # ainda não entraram, para o conjunto ter exatamente TOTAL_ALVO itens.
+
+def _completar_com_preco(ordenados: list[dict], specs: list[Especificacao]) -> None:
+    """As categorias distintas são finitas (10 hoje): se a cota de categoria não
+    fecha, o total é completado com perguntas de preço sobre os produtos que
+    ainda não entraram, para o conjunto ter exatamente TOTAL_ALVO itens."""
     offset = COTAS["preco"]
-    while len(casos) < TOTAL_ALVO and ordenados:
+    while len(specs) < TOTAL_ALVO and ordenados:
         p = ordenados[offset % len(ordenados)]
         offset += 1
-        if any(c["tipo"] == "preco" and c["produto"] == p["nome"] for c in casos):
+        if any(s[0] == "preco" and s[4] == p["nome"] for s in specs):
             if offset > COTAS["preco"] + 2 * len(ordenados):
                 break
             continue
-        casos.append(
-            caso(
-                proximo,
-                "preco",
-                f"Quanto custa o {p['nome']}?",
-                _brl(p["preco"]),
-                {"preco": str(p["preco"])},
-                p["nome"],
-            )
-        )
-        proximo += 1
+        specs.append(_spec_preco(p))
 
-    return casos
+
+def montar(produtos: list[dict], estoques: dict[int, dict[str, int]]) -> list[dict]:
+    """Monta os casos de forma determinística: a ordem é a do nome do produto,
+    e cada cota consome a lista em rodízio. Rodar duas vezes dá o mesmo
+    conjunto."""
+    ordenados = sorted(produtos, key=lambda p: p["nome"])
+    specs: list[Especificacao] = [_spec_preco(p) for p in _girar(ordenados, COTAS["preco"], 0)]
+    specs += _specs_estoque_total(ordenados, estoques)
+    specs += _specs_estoque_cd(ordenados, estoques)
+    specs += _specs_prazo(ordenados)
+    specs += _specs_comparacao(ordenados)
+    specs += _specs_categoria(ordenados)
+    _completar_com_preco(ordenados, specs)
+    return [caso(i, *spec) for i, spec in enumerate(specs, start=1)]
 
 
 def envelope(casos: list[dict], total_produtos: int) -> dict:

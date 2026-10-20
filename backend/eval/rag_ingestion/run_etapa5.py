@@ -35,6 +35,7 @@ import statistics
 import sys
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -134,30 +135,34 @@ def comparar_rankings_distancia(por_metrica: dict[str, dict]) -> dict:
     }
 
 
+@dataclass
+class ContextoEtapa5:
+    """O que as duas baterias compartilham: infraestrutura e configuração base."""
+
+    session_factory: object
+    qdrant: QdrantRAGClient
+    embedder: TextEmbedder
+    arquivos: list[Path]
+    embedding_model: str
+    dimensao: int
+    chunk_size: int
+    chunk_overlap: int
+    dominio: str
+
+
 async def _criar_collection_etapa5(
-    *,
-    session_factory,
-    qdrant: QdrantRAGClient,
-    embedder: TextEmbedder,
-    arquivos: list[Path],
-    embedding_model: str,
-    dimensao: int,
-    distance: str,
-    chunk_size: int,
-    chunk_overlap: int,
-    dominio: str,
-    payload_indexes: list[dict],
+    ctx: ContextoEtapa5, *, distance: str, payload_indexes: list[dict]
 ):
     nome = f"eval_etapa5_{uuid.uuid4().hex[:8]}"
-    async with session_factory() as session:
+    async with ctx.session_factory() as session:
         collection = await create_collection(
             session,
             name=nome,
-            embedding_model=embedding_model,
-            vector_dimension=dimensao,
+            embedding_model=ctx.embedding_model,
+            vector_dimension=ctx.dimensao,
             distance_metric=distance,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+            chunk_size=ctx.chunk_size,
+            chunk_overlap=ctx.chunk_overlap,
             quantization_type="none",
             quantization_config={},
             payload_indexes=payload_indexes,
@@ -165,14 +170,14 @@ async def _criar_collection_etapa5(
             is_active=False,
             **HNSW_PADRAO,
         )
-        for caminho in arquivos:
+        for caminho in ctx.arquivos:
             await ingest_file(
-                qdrant,
-                embedder,
+                ctx.qdrant,
+                ctx.embedder,
                 collection,
                 Path(get_settings().rag_uploads_dir),
                 caminho,
-                domain=dominio,
+                domain=ctx.dominio,
                 session=session,
                 origin="eval_etapa5",
             )
@@ -209,6 +214,132 @@ async def _medir_latencia_qdrant_puro(
     return amostras_ms
 
 
+async def _bateria_distancia(ctx: ContextoEtapa5, perguntas: list[dict]) -> dict[str, dict]:
+    por_distancia: dict[str, dict] = {}
+    print("\n=== Bateria 1: Métricas de distância (cosine / dot / euclid) ===")
+    for dist in METRICAS_DISTANCIA:
+        t0 = time.perf_counter()
+        collection = await _criar_collection_etapa5(
+            ctx, distance=dist, payload_indexes=PERFIS_PAYLOAD_INDEX["indice_domain_keyword"]
+        )
+        tempo_ing = round(time.perf_counter() - t0, 2)
+        try:
+            # No Qdrant, `score_threshold` é limite inferior (`score >= thr`)
+            # para métricas de similaridade (`cosine`/`dot`), mas limite
+            # SUPERIOR (`distancia <= thr`) para métricas de distância
+            # (`euclid`/`manhattan`). Para vetores unitários (`||u - v|| <= 2`),
+            # `thr=0.0` em `euclid` descartaria tudo que não tivesse distância 0;
+            # `thr=10.0` desliga o corte em `euclid` da mesma forma que `0.0` em `cosine`.
+            thr_sem_corte = 10.0 if dist in {"euclid", "manhattan"} else 0.0
+            args_med = SimpleNamespace(
+                dominio=ctx.dominio, top_k=TOP_K_BASE, score_threshold=thr_sem_corte
+            )
+            resultados, detalhes = await medir(
+                collection, ctx.qdrant, ctx.embedder, perguntas, args_med
+            )
+            metricas = avaliar_conjunto(resultados)
+            sep = separabilidade(detalhes)
+        finally:
+            await apagar_collection(collection, ctx.qdrant, ctx.session_factory)
+
+        print(
+            f"  [{dist:6s}] R@5={metricas['recall']['@5']:.3f} | "
+            f"nDCG@10={metricas['ndcg@10']:.3f} | MRR={metricas['mrr']:.3f} | "
+            f"sep={sep['separavel']} "
+            f"({sep.get('menor_score_maximo_positivas')}/"
+            f"{sep.get('maior_score_maximo_negativas')})"
+        )
+        por_distancia[dist] = {
+            "distance_metric": dist,
+            "tempo_ingestao_s": tempo_ing,
+            "metricas_sem_corte": metricas,
+            "separabilidade": sep,
+            "itens": detalhes,
+        }
+    return por_distancia
+
+
+async def _medir_perfil_payload_index(
+    ctx: ContextoEtapa5,
+    nome_perfil: str,
+    payload_indexes: list[dict],
+    perguntas: list[dict],
+    vetores_consulta: list[list[float]],
+    repeticoes: int,
+) -> dict:
+    collection = await _criar_collection_etapa5(
+        ctx, distance="cosine", payload_indexes=payload_indexes
+    )
+    try:
+        args_med = SimpleNamespace(dominio=ctx.dominio, top_k=TOP_K_BASE, score_threshold=0.0)
+        t0_busca = time.perf_counter()
+        resultados, _detalhes = await medir(
+            collection, ctx.qdrant, ctx.embedder, perguntas, args_med
+        )
+        tempo_busca_completa_ms = (time.perf_counter() - t0_busca) * 1000.0 / max(1, len(perguntas))
+        metricas = avaliar_conjunto(resultados)
+        amostras_qdrant = await _medir_latencia_qdrant_puro(
+            ctx.qdrant, collection.name, vetores_consulta, ctx.dominio, repeticoes
+        )
+        resumo_lat = resumir_latencias_ms(amostras_qdrant)
+    finally:
+        await apagar_collection(collection, ctx.qdrant, ctx.session_factory)
+
+    print(
+        f"  [{nome_perfil:22s}] Qdrant puro: média={resumo_lat['media_ms']:.2f}ms "
+        f"p50={resumo_lat['p50_ms']:.2f}ms p95={resumo_lat['p95_ms']:.2f}ms "
+        f"(n={resumo_lat['n']}) | R@5={metricas['recall']['@5']:.3f}"
+    )
+    return {
+        "perfil": nome_perfil,
+        "payload_indexes": payload_indexes,
+        "latencia_qdrant_puro_ms": resumo_lat,
+        "latencia_media_busca_completa_ms": round(tempo_busca_completa_ms, 2),
+        "metricas_sem_corte": metricas,
+    }
+
+
+async def _bateria_payload_index(
+    ctx: ContextoEtapa5,
+    perguntas: list[dict],
+    vetores_consulta: list[list[float]],
+    repeticoes: int,
+) -> dict[str, dict]:
+    print("\n=== Bateria 2: Payload index keyword em domain (latência sob filtro) ===")
+    return {
+        nome_perfil: await _medir_perfil_payload_index(
+            ctx, nome_perfil, payload_indexes, perguntas, vetores_consulta, repeticoes
+        )
+        for nome_perfil, payload_indexes in PERFIS_PAYLOAD_INDEX.items()
+    }
+
+
+def _gravar_resultado(
+    args, dimensao: int, comp_dist: dict, por_distancia: dict, por_payload_index: dict
+) -> None:
+    args.saida.write_text(
+        json.dumps(
+            {
+                "gerado_em": datetime.now(UTC).isoformat(),
+                "dataset": rotulo_dataset(args.dataset, args.incluir_pendentes),
+                "config_base": {
+                    "embedding_model": args.embedding_model,
+                    "vector_dimension": dimensao,
+                    "chunk_size": args.chunk_size,
+                    "chunk_overlap": args.chunk_overlap,
+                    "unidade": "tokens",
+                },
+                "comparacao_distancias": comp_dist,
+                "distancias": por_distancia,
+                "payload_index_domain": por_payload_index,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+
 async def executar(args) -> int:
     dataset = carregar_dataset(args.dataset, incluir_pendentes=args.incluir_pendentes)
     print(descrever(dataset))
@@ -236,137 +367,30 @@ async def executar(args) -> int:
     embedder = TextEmbedder(model_name=args.embedding_model)
     dimensao = await embedder.get_dimension()
     vetores_consulta = await embedder.embed([p["pergunta"] for p in perguntas], is_query=True)
-
-    por_distancia: dict[str, dict] = {}
-    por_payload_index: dict[str, dict] = {}
+    ctx = ContextoEtapa5(
+        session_factory=session_factory,
+        qdrant=qdrant,
+        embedder=embedder,
+        arquivos=arquivos,
+        embedding_model=args.embedding_model,
+        dimensao=dimensao,
+        chunk_size=args.chunk_size,
+        chunk_overlap=args.chunk_overlap,
+        dominio=dominio,
+    )
 
     try:
-        print("\n=== Bateria 1: Métricas de distância (cosine / dot / euclid) ===")
-        for dist in METRICAS_DISTANCIA:
-            t0 = time.perf_counter()
-            collection = await _criar_collection_etapa5(
-                session_factory=session_factory,
-                qdrant=qdrant,
-                embedder=embedder,
-                arquivos=arquivos,
-                embedding_model=args.embedding_model,
-                dimensao=dimensao,
-                distance=dist,
-                chunk_size=args.chunk_size,
-                chunk_overlap=args.chunk_overlap,
-                dominio=dominio,
-                payload_indexes=PERFIS_PAYLOAD_INDEX["indice_domain_keyword"],
-            )
-            tempo_ing = round(time.perf_counter() - t0, 2)
-            try:
-                # No Qdrant, `score_threshold` é limite inferior (`score >= thr`)
-                # para métricas de similaridade (`cosine`/`dot`), mas limite
-                # SUPERIOR (`distancia <= thr`) para métricas de distância
-                # (`euclid`/`manhattan`). Para vetores unitários (`||u - v|| <= 2`),
-                # `thr=0.0` em `euclid` descartaria tudo que não tivesse distância 0;
-                # `thr=10.0` desliga o corte em `euclid` da mesma forma que `0.0` em `cosine`.
-                thr_sem_corte = 10.0 if dist in {"euclid", "manhattan"} else 0.0
-                args_med = SimpleNamespace(
-                    dominio=dominio, top_k=TOP_K_BASE, score_threshold=thr_sem_corte
-                )
-                resultados, detalhes = await medir(
-                    collection, qdrant, embedder, perguntas, args_med
-                )
-                metricas = avaliar_conjunto(resultados)
-                sep = separabilidade(detalhes)
-            finally:
-                await apagar_collection(collection, qdrant, session_factory)
-
-            print(
-                f"  [{dist:6s}] R@5={metricas['recall']['@5']:.3f} | "
-                f"nDCG@10={metricas['ndcg@10']:.3f} | MRR={metricas['mrr']:.3f} | "
-                f"sep={sep['separavel']} "
-                f"({sep.get('menor_score_maximo_positivas')}/"
-                f"{sep.get('maior_score_maximo_negativas')})"
-            )
-            por_distancia[dist] = {
-                "distance_metric": dist,
-                "tempo_ingestao_s": tempo_ing,
-                "metricas_sem_corte": metricas,
-                "separabilidade": sep,
-                "itens": detalhes,
-            }
-
-        print("\n=== Bateria 2: Payload index keyword em domain (latência sob filtro) ===")
-        for nome_perfil, payload_indexes in PERFIS_PAYLOAD_INDEX.items():
-            collection = await _criar_collection_etapa5(
-                session_factory=session_factory,
-                qdrant=qdrant,
-                embedder=embedder,
-                arquivos=arquivos,
-                embedding_model=args.embedding_model,
-                dimensao=dimensao,
-                distance="cosine",
-                chunk_size=args.chunk_size,
-                chunk_overlap=args.chunk_overlap,
-                dominio=dominio,
-                payload_indexes=payload_indexes,
-            )
-            try:
-                args_med = SimpleNamespace(dominio=dominio, top_k=TOP_K_BASE, score_threshold=0.0)
-                t0_busca = time.perf_counter()
-                resultados, _detalhes = await medir(
-                    collection, qdrant, embedder, perguntas, args_med
-                )
-                tempo_busca_completa_ms = (
-                    (time.perf_counter() - t0_busca) * 1000.0 / max(1, len(perguntas))
-                )
-                metricas = avaliar_conjunto(resultados)
-                amostras_qdrant = await _medir_latencia_qdrant_puro(
-                    qdrant,
-                    collection.name,
-                    vetores_consulta,
-                    dominio,
-                    args.repeticoes_latencia,
-                )
-                resumo_lat = resumir_latencias_ms(amostras_qdrant)
-            finally:
-                await apagar_collection(collection, qdrant, session_factory)
-
-            print(
-                f"  [{nome_perfil:22s}] Qdrant puro: média={resumo_lat['media_ms']:.2f}ms "
-                f"p50={resumo_lat['p50_ms']:.2f}ms p95={resumo_lat['p95_ms']:.2f}ms "
-                f"(n={resumo_lat['n']}) | R@5={metricas['recall']['@5']:.3f}"
-            )
-            por_payload_index[nome_perfil] = {
-                "perfil": nome_perfil,
-                "payload_indexes": payload_indexes,
-                "latencia_qdrant_puro_ms": resumo_lat,
-                "latencia_media_busca_completa_ms": round(tempo_busca_completa_ms, 2),
-                "metricas_sem_corte": metricas,
-            }
+        por_distancia = await _bateria_distancia(ctx, perguntas)
+        por_payload_index = await _bateria_payload_index(
+            ctx, perguntas, vetores_consulta, args.repeticoes_latencia
+        )
     finally:
         await engine.dispose()
 
     comp_dist = comparar_rankings_distancia(por_distancia)
     print(f"\nRankings idênticos entre cosine/dot/euclid? {comp_dist['rankings_identicos']}")
 
-    args.saida.write_text(
-        json.dumps(
-            {
-                "gerado_em": datetime.now(UTC).isoformat(),
-                "dataset": rotulo_dataset(args.dataset, args.incluir_pendentes),
-                "config_base": {
-                    "embedding_model": args.embedding_model,
-                    "vector_dimension": dimensao,
-                    "chunk_size": args.chunk_size,
-                    "chunk_overlap": args.chunk_overlap,
-                    "unidade": "tokens",
-                },
-                "comparacao_distancias": comp_dist,
-                "distancias": por_distancia,
-                "payload_index_domain": por_payload_index,
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+    _gravar_resultado(args, dimensao, comp_dist, por_distancia, por_payload_index)
     print(f"Resultado salvo em: {args.saida}")
     return 0
 
