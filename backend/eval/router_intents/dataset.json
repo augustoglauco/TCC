@@ -80,13 +80,14 @@
     {
       "id": 7,
       "mensagem": "RHiD pode ler meus relógios de ponto? Me conta detalhes.",
-      "intencao_esperada": "vendas",
+      "intencao_esperada": "suporte",
       "ambiguo": false,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
       "revisao": {
-        "status": "aprovado",
-        "em": "2026-10-18T19:00:10-0300"
+        "status": "corrigido",
+        "em": "2026-10-20T07:44:36-0300",
+        "nota": "compatibilidade isolada é suporte (dono)"
       }
     },
     {
@@ -2835,13 +2836,14 @@
     {
       "id": 333,
       "mensagem": "Estou pensando em comprar o Leitor QR Code, mas não sei se combina com o meu equipamento.",
-      "intencao_esperada": "suporte",
+      "intencao_esperada": "vendas",
       "ambiguo": false,
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_vendas",
       "revisao": {
         "status": "corrigido",
-        "em": "2026-10-18T20:22:48-0300"
+        "em": "2026-10-20T07:44:36-0300",
+        "nota": "compatibilidade acoplada a intenção de compra é vendas (dono)"
       }
     },
     {

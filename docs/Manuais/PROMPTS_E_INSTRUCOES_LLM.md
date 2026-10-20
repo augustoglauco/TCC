@@ -159,15 +159,24 @@ Define os critérios descritivos dos domínios e o template de prompt do classif
 DOMAIN_CRITERIA: dict[Domain, str] = {
     "vendas": (
         "Interesse em comprar, orçamento, preço, cotação, estoque/disponibilidade, "
-        "catálogo de produtos ou compatibilidade entre produtos antes da compra."
+        "catálogo de produtos ou compatibilidade entre produtos quando o cliente "
+        "já demonstra intenção de compra."
     ),
-    "suporte": "Produto com defeito, erro ou problema técnico já adquirido.",
+    "suporte": (
+        "Produto com defeito, erro ou problema técnico já adquirido; também dúvida "
+        "isolada de compatibilidade entre produtos, sem intenção de compra."
+    ),
     "atendimento": (
         "Nota fiscal, troca, devolução, cancelamento, reclamação, "
         "compras já realizadas ou histórico de pedidos; também dúvidas genéricas "
         "sobre a empresa, como localização, horário de funcionamento e acesso ao site."
     ),
-    "agendamento": "Quer marcar, remarcar ou confirmar uma visita/horário.",
+    "agendamento": (
+        "Quer marcar uma visita/horário para conhecer o produto, conhecer a empresa, "
+        "fazer manutenção no ambiente do cliente, receber um vendedor no ambiente do "
+        "cliente ou comprar em uma unidade da empresa; remarcar, cancelar ou confirmar "
+        "só se o cliente já tem visita agendada em seu nome."
+    ),
     "fora_escopo": "Não se encaixa claramente em nenhuma opção acima.",
 }
 
@@ -946,7 +955,7 @@ keywords, não o modelo que se quer escolher.
   institucional (exceto localização, horário e acesso ao site, que são atendimento —
   decisão do dono, 2026-10-20: atendimento = pós-compra ou dúvida genérica sobre a empresa), assunto alheio e conversa fiada.
 
-`DESCRICAO_DOMINIO["agendamento"]` (2026-10-20, definição do dono) lista os motivos de visita: conhecer o produto, conhecer a empresa, manutenção no ambiente do cliente, vendedor no ambiente do cliente ou compra em uma unidade; remarcar, cancelar e confirmar existem como intenção de agendamento, desde que a mensagem deixe claro de qual visita se trata.
+`DESCRICAO_DOMINIO["agendamento"]` (2026-10-20, definição do dono) lista os motivos de visita: conhecer o produto, conhecer a empresa, manutenção no ambiente do cliente, vendedor no ambiente do cliente ou compra em uma unidade; remarcar, cancelar e confirmar existem como intenção de agendamento, mas só se o cliente já tem visita agendada em seu nome. Compatibilidade entre produtos: dúvida isolada é suporte; acoplada a intenção de compra é vendas.
 
 O rótulo de cada mensagem é o domínio pedido no prompt; **o caminho** (chegou
 ao LLM ou morreu no atalho) não vem do modelo: é calculado pelas funções reais

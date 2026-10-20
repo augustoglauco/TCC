@@ -71,18 +71,23 @@ ESPERA_BASE_S = 8.0
 
 DESCRICAO_DOMINIO = {
     "vendas": (
-        "quer comprar, pedir orçamento, saber preço, estoque ou compatibilidade antes da compra"
+        "quer comprar, pedir orçamento, saber preço, estoque ou tirar dúvida de "
+        "compatibilidade já no meio de uma intenção de compra"
     ),
-    "suporte": "produto já adquirido com defeito, erro ou problema técnico",
+    "suporte": (
+        "produto já adquirido com defeito, erro ou problema técnico; ou dúvida isolada de "
+        "compatibilidade entre produtos, sem intenção de compra"
+    ),
     "atendimento": (
         "pós-compra (nota fiscal, troca, devolução, cancelamento, reclamação, pedido já "
         "feito) ou dúvida genérica sobre a empresa (localização, horário de funcionamento, "
         "acesso ao site)"
     ),
     "agendamento": (
-        "quer marcar, remarcar, cancelar ou confirmar uma visita: para conhecer o produto, "
-        "conhecer a empresa, fazer manutenção no ambiente do cliente, receber um vendedor "
-        "no ambiente do cliente ou comprar em uma unidade da empresa"
+        "quer marcar uma visita para conhecer o produto, conhecer a empresa, fazer "
+        "manutenção no ambiente do cliente, receber um vendedor no ambiente do cliente "
+        "ou comprar em uma unidade da empresa (remarcar, cancelar ou confirmar só se já "
+        "tem visita em seu nome)"
     ),
 }
 
@@ -256,8 +261,8 @@ fiscal, atraso) só se a pessoa já comprou antes: diga "meu pedido anterior", \
 "o que comprei". Quem ainda quer comprar não tem pedido para atrasar ou trocar.
 - Visita só por um destes motivos: conhecer o produto, conhecer a empresa, \
 manutenção no ambiente do cliente, vendedor no ambiente do cliente ou compra \
-em uma unidade da empresa. Remarcar/cancelar/confirmar só se a mensagem deixar \
-claro de qual visita se trata.
+em uma unidade da empresa. Remarcar/cancelar/confirmar só se o cliente já tem visita \
+agendada em seu nome e a mensagem deixa isso claro.
 - Não misture um terceiro domínio. Varie o começo e o jeito de pedir.
 
 Exemplo do tipo de mistura (não copie): "{exemplo}".
