@@ -944,6 +944,8 @@ keywords, não o modelo que se quer escolher.
 - `_PROMPT_FORA_ESCOPO` cobre o quinto rótulo com saudação, pergunta
   institucional, assunto alheio e conversa fiada.
 
+`DESCRICAO_DOMINIO["agendamento"]` passou a dizer "visita técnica nova (nunca remarcar, adiar ou confirmar)" em 2026-10-20: a versão anterior listava "remarcar" e gerava casos de reagendamento, que o projeto exclui.
+
 O rótulo de cada mensagem é o domínio pedido no prompt; **o caminho** (chegou
 ao LLM ou morreu no atalho) não vem do modelo: é calculado pelas funções reais
 do classificador em `classificar_caminho()`.

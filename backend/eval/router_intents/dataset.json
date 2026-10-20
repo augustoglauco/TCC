@@ -1,8 +1,8 @@
 {
   "descricao": "Conjunto de 300 mensagens do roteador (Estratégia A, Fase 10). Rótulo = domínio esperado; `chega_ao_llm` diz se a mensagem passa do atalho por palavra-chave e chega ao classificador LLM.",
   "observacoes": "Rascunho gerado por liquid/lfm-2.5-2.6b:free, todo item `revisao.status = pendente`. `chega_ao_llm` e `motivo_caminho` são calculados pelas funções reais de `app.router.classifier` (`_is_cortesia`, `_match_domain_by_keywords`), não pelo modelo. Reportar duas taxas na avaliação: acurácia do sistema (todos os casos) e acurácia do modelo no subconjunto que chega a ele. Em 2026-10-20 as ambíguas foram regeradas por deepseek/deepseek-v4.1-flash com `intencoes_aceitas` (par de domínios fixo; acerta quem cair em qualquer um) e as 137 antigas de rótulo único saíram; ambíguas ficam fora do placar principal.",
-  "total": 386,
-  "chegam_ao_llm": 289,
+  "total": 395,
+  "chegam_ao_llm": 296,
   "casos": [
     {
       "id": 1,
@@ -5048,6 +5048,114 @@
       "ambiguo": false,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 578,
+      "mensagem": "oi, o leitor facial aqui parou do nada. consegue mandar alguém pra ver isso? qual dia fica bom?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 579,
+      "mensagem": "boa, preciso de alguem pra olhar a catraca da recepção, ela ta travando. quando vcs podem vir?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 580,
+      "mensagem": "e ai, o relogio de ponto nao ta registrando. da pra vim alguem aqui essa semana?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 581,
+      "mensagem": "o IDBlock do portao principal pifou. queria que passassem aqui pra resolver. tem como?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 582,
+      "mensagem": "oi, a fechadura eletronica ta bipando do nada. manda uma equipe aqui? qual o proximo dia livre?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 583,
+      "mensagem": "preciso que venham ver o REP iDClass novo na loja. qdo consegue?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 584,
+      "mensagem": "oi, preciso agendar uma visita tecnica pra instalar o IDBlock, como faço?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 585,
+      "mensagem": "bom dia, qro marcar um tecnico pra dar uma olhada no IDFit aqui na empresa",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 586,
+      "mensagem": "e ai, consigo agendar uma visita nova pra configurar o REP iDClass Facial? preciso de um tecnico",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
       "revisao": {
         "status": "pendente",
         "em": null

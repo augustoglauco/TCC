@@ -75,7 +75,7 @@ DESCRICAO_DOMINIO = {
     ),
     "suporte": "produto já adquirido com defeito, erro ou problema técnico",
     "atendimento": "nota fiscal, troca, devolução, cancelamento, reclamação ou pedido já feito",
-    "agendamento": "quer marcar, remarcar ou confirmar uma visita técnica",
+    "agendamento": "quer marcar uma visita técnica nova (nunca remarcar, adiar ou confirmar)",
 }
 
 _PROMPT_DOMINIO = """Você monta o conjunto de teste do roteador de intenção de \
@@ -483,10 +483,17 @@ async def executar(args) -> int:
             restante -= len(novos)
 
     if args.extra_nao_ambiguas:
-        # Só as "difíceis" (sem palavra da tabela), que chegam ao LLM.
+        # "DOM:N" = difíceis (sem palavra da tabela, chegam ao LLM); "DOM:N:livre" = livres.
         for item in args.extra_nao_ambiguas.split(","):
-            dominio, quantos = item.split(":")
-            await pedir(_PROMPT_DOMINIO, dominio, False, int(quantos), "extra-sem-keyword")
+            dominio, quantos, *modo = item.split(":")
+            livre = modo == ["livre"]
+            await pedir(
+                _PROMPT_LIVRE if livre else _PROMPT_DOMINIO,
+                dominio,
+                False,
+                int(quantos),
+                "extra-livre" if livre else "extra-sem-keyword",
+            )
         salvar(saida, casos, modelo)
         print(f"\n{saida}: {len(casos)} não ambígua(s) extras.")
         return 0
@@ -599,7 +606,7 @@ def main(argv: list[str]) -> int:
         "--extra-nao-ambiguas",
         default="",
         metavar="DOM:N,...",
-        help='gera N não ambíguas difíceis por domínio, ex.: "agendamento:12,atendimento:3"',
+        help='gera N não ambíguas por domínio, ex.: "agendamento:6,agendamento:3:livre"',
     )
     parser.add_argument(
         "--evitar", nargs="*", default=[], help="datasets cujas mensagens não podem repetir"
