@@ -151,8 +151,16 @@ por uma pessoa só, com um único objetivo. Se os dois assuntos não puderem \
 acontecer juntos na vida real, não force: escolha outra situação.
 - Cada mensagem deve conter ao menos uma palavra de cada um destes dois grupos:
 {grupos}
-- Linguagem de cliente real: curta, informal, erro de digitação ocasional.
-- Não misture um terceiro domínio.
+- **Curta**: de 8 a 20 palavras, uma ou duas frases no máximo, no tom de um \
+WhatsApp. Nada de texto longo nem de lista de pedidos.
+- Português correto e coerente: releia cada frase e descarte a que tiver trecho \
+sem sentido ou palavra solta. **Sem erro de digitação proposital.**
+- Cite o produto pelo nome em, no máximo, metade das mensagens; nas outras, \
+diga só "o leitor", "a catraca", "o relógio".
+- Cada mensagem pede **uma única coisa principal** e menciona o outro assunto \
+como contexto, nunca como segundo pedido independente.
+- Não misture um terceiro domínio. Não repita a estrutura das mensagens \
+anteriores: varie o começo e o jeito de pedir.
 
 Exemplo do tipo de mistura (não copie): "{exemplo}".
 
@@ -176,6 +184,16 @@ piada");
 
 Responda só com um array JSON de strings:
 ["mensagem 1", "mensagem 2"]"""
+
+
+class _ClienteSemRaciocinio(httpx.AsyncClient):
+    """Desliga o raciocínio oculto (Qwen3.5 etc.) no Ollama: com o prompt longo
+    ele gasta a saída pensando e devolve `content` vazio."""
+
+    async def post(self, url, **kwargs):  # type: ignore[override]
+        if isinstance(kwargs.get("json"), dict):
+            kwargs["json"] = {**kwargs["json"], "reasoning_effort": "none"}
+        return await super().post(url, **kwargs)
 
 
 def _proibidas(dominio: str) -> str:
@@ -326,11 +344,14 @@ async def executar(args) -> int:
 
     settings = get_settings()
     modelo = args.modelo or settings.external_model_name
+    # Ollama expõe /v1/chat/completions compatível com OpenAI: basta apontar
+    # `--base-url http://localhost:11434/v1` (a chave é ignorada).
     client = OpenRouterClient(
-        base_url=settings.external_model_base_url,
-        api_key=settings.external_model_api_key,
+        base_url=args.base_url or settings.external_model_base_url,
+        api_key="ollama" if args.base_url else settings.external_model_api_key,
         model=modelo,
-        timeout_s=settings.external_llm_timeout_s,
+        timeout_s=args.timeout_s or settings.external_llm_timeout_s,
+        client=_ClienteSemRaciocinio() if args.base_url else None,
     )
     print(f"Modelo do rascunho: {modelo}\n")
 
@@ -388,6 +409,14 @@ async def executar(args) -> int:
                 break
             restante -= len(novos)
 
+    if args.piloto:
+        # Só ambíguas, para medir a qualidade do gerador antes da rodada toda.
+        for dominio in DOMINIOS:
+            await pedir(_PROMPT_AMBIGUA, dominio, True, args.piloto, "piloto-ambígua")
+        salvar(saida, casos, modelo)
+        print(f"\n{saida}: {len(casos)} ambígua(s) de piloto.")
+        return 0
+
     # Dedup descarta repetidas e o total pode fechar abaixo da meta: sem
     # `--completar` a rodada recomeça do zero, então o resto vem aqui.
     if args.completar and casos:
@@ -429,6 +458,15 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--saida", default=str(SAIDA_PADRAO))
     parser.add_argument("--modelo", default=None)
+    parser.add_argument("--base-url", default=None, help="ex.: http://localhost:11434/v1 (Ollama)")
+    parser.add_argument("--timeout-s", type=float, default=None)
+    parser.add_argument(
+        "--piloto",
+        type=int,
+        default=0,
+        metavar="N",
+        help="gera só N ambíguas por domínio (use com --saida fora de dataset.json)",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--completar",
