@@ -4701,8 +4701,9 @@
       "chega_ao_llm": true,
       "motivo_caminho": "duas_ou_mais_keywords",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "descartado",
+        "em": "2026-10-20T07:13:00-0300",
+        "nota": "pedido em atraso/troca sem ter comprado: incoerente (dono)"
       },
       "intencoes_aceitas": [
         "vendas",
@@ -4853,8 +4854,9 @@
       "chega_ao_llm": true,
       "motivo_caminho": "duas_ou_mais_keywords",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "descartado",
+        "em": "2026-10-20T07:13:00-0300",
+        "nota": "pedido em atraso/troca sem ter comprado: incoerente (dono)"
       },
       "intencoes_aceitas": [
         "vendas",
