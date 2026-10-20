@@ -133,66 +133,63 @@ function usePickerFoto(
   const [pickerProduct, setPickerProduct] = useState<ExtractedProductItem | null>(null);
   const [uploadingPickerPhoto, setUploadingPickerPhoto] = useState(false);
 
-  const pickerHandlers = {
-    upload: async (file: File) => {
-      if (!pickerProduct || !token) return;
-      setUploadingPickerPhoto(true);
-      try {
-        const url = await uploadTempImage(token, file);
-        const updatedFotos = pickerProduct.fotos_pagina
-          ? [...pickerProduct.fotos_pagina, url]
-          : [url];
-        handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
-        handleUpdateProduct(pickerProduct.id_temporario, "fotos_pagina", updatedFotos);
-        setPickerProduct((prev) =>
-          prev ? { ...prev, imagem_temp_url: url, fotos_pagina: updatedFotos } : null,
-        );
-      } catch (err) {
-        setError(mensagemErro(err, "Falha ao enviar foto."));
-      } finally {
-        setUploadingPickerPhoto(false);
-      }
-    },
-    select: (url: string) => {
-      if (!pickerProduct) return;
+  const atualizarPicker = (patch: Partial<ExtractedProductItem>) =>
+    setPickerProduct((prev) => (prev ? { ...prev, ...patch } : null));
+
+  const definirFoto = (url: string | null) => {
+    if (!pickerProduct) return;
+    handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
+    atualizarPicker({ imagem_temp_url: url });
+  };
+
+  const enviarFoto = async (file: File) => {
+    if (!pickerProduct || !token) return;
+    setUploadingPickerPhoto(true);
+    try {
+      const url = await uploadTempImage(token, file);
+      const fotos = [...(pickerProduct.fotos_pagina ?? []), url];
       handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", url);
-      setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: url } : null));
-    },
-    remove: () => {
-      if (!pickerProduct) return;
-      handleUpdateProduct(pickerProduct.id_temporario, "imagem_temp_url", null);
-      setPickerProduct((prev) => (prev ? { ...prev, imagem_temp_url: null } : null));
-    },
+      handleUpdateProduct(pickerProduct.id_temporario, "fotos_pagina", fotos);
+      atualizarPicker({ imagem_temp_url: url, fotos_pagina: fotos });
+    } catch (err) {
+      setError(mensagemErro(err, "Falha ao enviar foto."));
+    } finally {
+      setUploadingPickerPhoto(false);
+    }
+  };
+
+  const pickerHandlers = {
+    upload: enviarFoto,
+    select: (url: string) => definirFoto(url),
+    remove: () => definirFoto(null),
   };
 
   return { pickerProduct, setPickerProduct, uploadingPickerPhoto, pickerHandlers };
 }
 
-export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImportParams) {
-  const token = useAuthStore((s) => s.token);
-  const [step, setStep] = useState<ModalStep>("upload");
+function useOpcoesExtracao() {
   const [pageRange, setPageRange] = useState("");
   const [provider, setProvider] = useState<"local" | "external">("local");
   const [fallbackExternal, setFallbackExternal] = useState(true);
+  return { pageRange, setPageRange, provider, setProvider, fallbackExternal, setFallbackExternal };
+}
+
+interface ExtracaoDeps {
+  token: string | null;
+  files: File[];
+  opcoes: ReturnType<typeof useOpcoesExtracao>;
+  setStep: (s: ModalStep) => void;
+  setError: SetError;
+}
+
+function useExtracaoCatalogo({ token, files, opcoes, setStep, setError }: ExtracaoDeps) {
   const [progress, setProgress] = useState<CatalogExtractionProgress>({
     pagina: 0,
     total: 0,
     status: "",
   });
   const [extractedProducts, setExtractedProducts] = useState<ExtractedProductItem[]>([]);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [pageErrors, setPageErrors] = useState<string[]>([]);
-
-  const {
-    files,
-    setFiles,
-    isDraggingOver,
-    handleFileChange,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-  } = useSelecaoArquivos(isOpen, step, setError);
 
   const handlePageComplete = (pageRes: CatalogPageResult) => {
     if (pageRes.erro) {
@@ -215,6 +212,7 @@ export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImpor
     setPageErrors([]);
     setProgress({ pagina: 0, total: 0, status: "Iniciando processamento..." });
 
+    const { provider, fallbackExternal, pageRange } = opcoes;
     await extractCatalogStream(
       token,
       files,
@@ -231,21 +229,29 @@ export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImpor
     );
   };
 
-  const handleUpdateProduct = (
-    idTemp: string | undefined,
-    field: keyof ExtractedProductItem,
-    value: ExtractedProductItem[keyof ExtractedProductItem],
-  ) => {
+  const handleUpdateProduct: AtualizarProduto = (idTemp, field, value) => {
     setExtractedProducts((prev) =>
       prev.map((item) => (item.id_temporario === idTemp ? { ...item, [field]: value } : item)),
     );
   };
 
-  const { pickerProduct, setPickerProduct, uploadingPickerPhoto, pickerHandlers } = usePickerFoto(
-    token,
+  return {
+    progress,
+    extractedProducts,
+    setExtractedProducts,
+    pageErrors,
+    handleStartExtraction,
     handleUpdateProduct,
-    setError,
-  );
+  };
+}
+
+function useConfirmarLote(
+  token: string | null,
+  extractedProducts: ExtractedProductItem[],
+  setError: SetError,
+  onConcluido: () => void,
+) {
+  const [saving, setSaving] = useState(false);
 
   const handleConfirmBatch = async () => {
     const selected = extractedProducts.filter((p) => p.selecionado);
@@ -259,8 +265,7 @@ export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImpor
     setError(null);
     try {
       await confirmCatalogExtraction(token, payloadConfirmacao(selected));
-      onSuccess();
-      onClose();
+      onConcluido();
     } catch (err) {
       setError(mensagemErro(err, "Erro ao gravar lote de produtos"));
     } finally {
@@ -268,35 +273,41 @@ export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImpor
     }
   };
 
+  return { saving, handleConfirmBatch };
+}
+
+export function useCatalogImport({ isOpen, onClose, onSuccess }: UseCatalogImportParams) {
+  const token = useAuthStore((s) => s.token);
+  const [step, setStep] = useState<ModalStep>("upload");
+  const [error, setError] = useState<string | null>(null);
+
+  const selecao = useSelecaoArquivos(isOpen, step, setError);
+  const opcoes = useOpcoesExtracao();
+  const extracao = useExtracaoCatalogo({ token, files: selecao.files, opcoes, setStep, setError });
+  const picker = usePickerFoto(token, extracao.handleUpdateProduct, setError);
+  const { saving, handleConfirmBatch } = useConfirmarLote(
+    token,
+    extracao.extractedProducts,
+    setError,
+    () => {
+      onSuccess();
+      onClose();
+    },
+  );
+
   return {
     step,
     setStep,
-    files,
-    setFiles,
-    pageRange,
-    setPageRange,
-    provider,
-    setProvider,
-    fallbackExternal,
-    setFallbackExternal,
-    isDraggingOver,
-    progress,
-    extractedProducts,
-    setExtractedProducts,
+    ...selecao,
+    ...opcoes,
+    ...extracao,
     saving,
     error,
-    pageErrors,
-    pickerProduct,
-    setPickerProduct,
-    uploadingPickerPhoto,
-    selectedCount: extractedProducts.filter((p) => p.selecionado).length,
-    handleFileChange,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    handleStartExtraction,
-    handleUpdateProduct,
+    pickerProduct: picker.pickerProduct,
+    setPickerProduct: picker.setPickerProduct,
+    uploadingPickerPhoto: picker.uploadingPickerPhoto,
+    pickerHandlers: picker.pickerHandlers,
+    selectedCount: extracao.extractedProducts.filter((p) => p.selecionado).length,
     handleConfirmBatch,
-    pickerHandlers,
   };
 }

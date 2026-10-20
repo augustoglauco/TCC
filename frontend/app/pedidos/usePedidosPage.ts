@@ -39,16 +39,23 @@ function useProdutoDaUrl(produtoParam: string | null) {
   }, [produtoParam]);
 }
 
-function useCheckout() {
-  const currentUser = useAuthStore((state) => state.user);
-  const cartItems = useCartStore((state) => state.items);
+type ItemCarrinho = ReturnType<typeof useCartStore.getState>["items"][number];
+type UsuarioLogado = ReturnType<typeof useAuthStore.getState>["user"];
+type DefinirErro = (msg: string | null) => void;
 
+const itensDoPedido = (cartItems: ItemCarrinho[]) =>
+  cartItems.map((item) => ({
+    produto_id: item.produtoId,
+    quantidade: item.quantidade,
+    centro_distribuicao: item.centroDistribuicao,
+  }));
+
+const mensagemDe = (err: unknown, padrao: string) => (err instanceof Error ? err.message : padrao);
+
+function useFrete(cartItems: ItemCarrinho[], setCheckoutError: DefinirErro) {
   const [cep, setCep] = useState("");
   const [freightResult, setFreightResult] = useState<FreightQuoteResult | null>(null);
   const [isCalculatingFreight, setIsCalculatingFreight] = useState(false);
-  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
 
   const handleCalcFreight = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,21 +63,24 @@ function useCheckout() {
     setIsCalculatingFreight(true);
     setCheckoutError(null);
     try {
-      const res = await calculateFreight({
-        cep,
-        itens: cartItems.map((item) => ({
-          produto_id: item.produtoId,
-          quantidade: item.quantidade,
-          centro_distribuicao: item.centroDistribuicao,
-        })),
-      });
-      setFreightResult(res);
+      setFreightResult(await calculateFreight({ cep, itens: itensDoPedido(cartItems) }));
     } catch (err: unknown) {
-      setCheckoutError(err instanceof Error ? err.message : "Erro ao calcular frete.");
+      setCheckoutError(mensagemDe(err, "Erro ao calcular frete."));
     } finally {
       setIsCalculatingFreight(false);
     }
   };
+
+  return { cep, setCep, freightResult, isCalculatingFreight, handleCalcFreight };
+}
+
+function useFinalizarPedido(
+  currentUser: UsuarioLogado,
+  cartItems: ItemCarrinho[],
+  setCheckoutError: DefinirErro,
+) {
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const [completedOrderId, setCompletedOrderId] = useState<string | null>(null);
 
   const handleCheckout = async () => {
     if (!currentUser?.email) {
@@ -84,45 +94,34 @@ function useCheckout() {
       const order = await createOrder({
         user_email: currentUser.email,
         conversation_id: useChatStore.getState().conversationId || undefined,
-        itens: cartItems.map((item) => ({
-          produto_id: item.produtoId,
-          quantidade: item.quantidade,
-          centro_distribuicao: item.centroDistribuicao,
-        })),
+        itens: itensDoPedido(cartItems),
       });
       setCompletedOrderId(order.id);
       useCartStore.getState().clearCart();
     } catch (err: unknown) {
-      setCheckoutError(err instanceof Error ? err.message : "Falha ao processar pedido.");
+      setCheckoutError(mensagemDe(err, "Falha ao processar pedido."));
     } finally {
       setIsSubmittingOrder(false);
     }
   };
 
-  return {
-    currentUser,
-    cartItems,
-    cep,
-    setCep,
-    freightResult,
-    isCalculatingFreight,
-    isSubmittingOrder,
-    checkoutError,
-    completedOrderId,
-    setCompletedOrderId,
-    handleCalcFreight,
-    handleCheckout,
-  };
+  return { isSubmittingOrder, completedOrderId, setCompletedOrderId, handleCheckout };
 }
 
-function useCotacaoB2b(onAddedToCart: () => void) {
+function useCheckout() {
+  const currentUser = useAuthStore((state) => state.user);
+  const cartItems = useCartStore((state) => state.items);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
+
+  const frete = useFrete(cartItems, setCheckoutError);
+  const pedido = useFinalizarPedido(currentUser, cartItems, setCheckoutError);
+
+  return { currentUser, cartItems, checkoutError, ...frete, ...pedido };
+}
+
+function useCatalogoCotavel() {
   const [catalogProducts, setCatalogProducts] = useState<Produto[]>([]);
   const [selectedProdId, setSelectedProdId] = useState<number | null>(null);
-  const [simQuantity, setSimQuantity] = useState<number>(10);
-  const [simCd, setSimCd] = useState<string>("CD-SP");
-  const [simResult, setSimResult] = useState<QuoteSimulationResult | null>(null);
-  const [isSimulating, setIsSimulating] = useState(false);
-  const [simError, setSimError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProducts({ limit: 50 })
@@ -133,22 +132,50 @@ function useCotacaoB2b(onAddedToCart: () => void) {
       .catch(() => {});
   }, []);
 
+  return { catalogProducts, selectedProdId, setSelectedProdId };
+}
+
+function useSimulacaoCotacao(selectedProdId: number | null) {
+  const [simQuantity, setSimQuantity] = useState<number>(10);
+  const [simCd, setSimCd] = useState<string>("CD-SP");
+  const [simResult, setSimResult] = useState<QuoteSimulationResult | null>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [simError, setSimError] = useState<string | null>(null);
+
   const handleSimulateQuote = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedProdId || simQuantity <= 0) return;
     setIsSimulating(true);
     setSimError(null);
     try {
-      const res = await calculateQuote({
-        itens: [{ produto_id: selectedProdId, quantidade: simQuantity, centro_distribuicao: simCd }],
-      });
-      setSimResult(res);
+      const itens = [
+        { produto_id: selectedProdId, quantidade: simQuantity, centro_distribuicao: simCd },
+      ];
+      setSimResult(await calculateQuote({ itens }));
     } catch (err: unknown) {
-      setSimError(err instanceof Error ? err.message : "Erro ao simular cotação.");
+      setSimError(mensagemDe(err, "Erro ao simular cotação."));
     } finally {
       setIsSimulating(false);
     }
   };
+
+  return {
+    simQuantity,
+    setSimQuantity,
+    simCd,
+    setSimCd,
+    simResult,
+    isSimulating,
+    simError,
+    handleSimulateQuote,
+  };
+}
+
+function useCotacaoB2b(onAddedToCart: () => void) {
+  const catalogo = useCatalogoCotavel();
+  const simulacao = useSimulacaoCotacao(catalogo.selectedProdId);
+  const { catalogProducts, selectedProdId } = catalogo;
+  const { simResult, simQuantity, simCd } = simulacao;
 
   const handleAddQuotedToCart = () => {
     if (!selectedProdId || !simResult || simResult.itens.length === 0) return;
@@ -165,20 +192,7 @@ function useCotacaoB2b(onAddedToCart: () => void) {
     onAddedToCart();
   };
 
-  return {
-    catalogProducts,
-    selectedProdId,
-    setSelectedProdId,
-    simQuantity,
-    setSimQuantity,
-    simCd,
-    setSimCd,
-    simResult,
-    isSimulating,
-    simError,
-    handleSimulateQuote,
-    handleAddQuotedToCart,
-  };
+  return { ...catalogo, ...simulacao, handleAddQuotedToCart };
 }
 
 export function usePedidosPage() {

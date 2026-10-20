@@ -49,23 +49,48 @@ function useRecarregarGraficos(
   }, [token, loadData, setLoading, setError]);
 }
 
+// Executa a ação e avisa o usuário se falhar.
+async function comAviso(acao: () => Promise<void>, fallback: string) {
+  try {
+    await acao();
+  } catch (err) {
+    alert(mensagemDe(err, fallback));
+  }
+}
+
+type Substituir = (id: string, updated: AdminChartData) => void;
+
+async function atualizarTodos(
+  token: string,
+  charts: AdminChartData[],
+  substituir: Substituir,
+  setIsRefreshingAll: (v: boolean) => void,
+) {
+  setIsRefreshingAll(true);
+  try {
+    await Promise.all(
+      charts.map(async (c) => {
+        try {
+          substituir(c.id, await refreshAdminChart(c.id, token));
+        } catch {
+          // MVP: falha individual e ignorada de proposito — os demais
+          // graficos continuam sendo atualizados, sem alerta por grafico.
+        }
+      }),
+    );
+  } finally {
+    setIsRefreshingAll(false);
+  }
+}
+
 function useAcoesGraficos(
   token: string | null,
   charts: AdminChartData[],
   setCharts: Dispatch<SetStateAction<AdminChartData[]>>,
   setIsRefreshingAll: (v: boolean) => void,
 ) {
-  const substituir = (id: string, updated: AdminChartData) =>
+  const substituir: Substituir = (id, updated) =>
     setCharts((prev) => prev.map((c) => (c.id === id ? updated : c)));
-
-  // Executa a ação e avisa o usuário se falhar.
-  const comAviso = async (acao: () => Promise<void>, fallback: string) => {
-    try {
-      await acao();
-    } catch (err) {
-      alert(mensagemDe(err, fallback));
-    }
-  };
 
   const handleRefresh = async (id: string) => {
     if (!token) return;
@@ -77,38 +102,23 @@ function useAcoesGraficos(
 
   const handleRefreshAll = async () => {
     if (!token || charts.length === 0) return;
-    setIsRefreshingAll(true);
-    try {
-      await Promise.all(
-        charts.map(async (c) => {
-          try {
-            substituir(c.id, await refreshAdminChart(c.id, token));
-          } catch {
-            // MVP: falha individual e ignorada de proposito — os demais
-            // graficos continuam sendo atualizados, sem alerta por grafico.
-          }
-        }),
-      );
-    } finally {
-      setIsRefreshingAll(false);
-    }
+    await atualizarTodos(token, charts, substituir, setIsRefreshingAll);
   };
 
-  const handleTogglePin = async (id: string, fixado: boolean) => {
+  const atualizar = async (
+    id: string,
+    campos: Parameters<typeof updateAdminChart>[1],
+    erro: string,
+  ) => {
     if (!token) return;
-    await comAviso(
-      async () => substituir(id, await updateAdminChart(id, { fixado }, token)),
-      "Erro ao alternar fixação.",
-    );
+    await comAviso(async () => substituir(id, await updateAdminChart(id, campos, token)), erro);
   };
 
-  const handleEditTitle = async (id: string, novoTitulo: string) => {
-    if (!token) return;
-    await comAviso(
-      async () => substituir(id, await updateAdminChart(id, { titulo: novoTitulo }, token)),
-      "Erro ao renomear gráfico.",
-    );
-  };
+  const handleTogglePin = (id: string, fixado: boolean) =>
+    atualizar(id, { fixado }, "Erro ao alternar fixação.");
+
+  const handleEditTitle = (id: string, novoTitulo: string) =>
+    atualizar(id, { titulo: novoTitulo }, "Erro ao renomear gráfico.");
 
   const handleDelete = async (id: string) => {
     if (!token) return;
@@ -123,24 +133,10 @@ function useAcoesGraficos(
 }
 
 /** Estado, carga e ações (CRUD) dos gráficos do painel admin. */
-export function useAdminCharts() {
-  const user = useAuthStore((s) => s.user);
-  const token = useAuthStore((s) => s.token);
-
-  const hasHydrated = useEstaNoCliente();
+function useCarregarGraficos(token: string | null, isAdmin: boolean, hasHydrated: boolean) {
   const [charts, setCharts] = useState<AdminChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
-
-  const isAdmin = user?.perfil?.toLowerCase() === "admin";
-
-  // `carregando` deriva de quem realmente carrega: antes do hydrate sempre
-  // mostra esqueleto; depois, so enquanto um admin com token esta buscando.
-  // Era isso que o `else { setLoading(false) }` dentro do efeito fazia — e
-  // derivar remove de vez o caso do visitante nao-admin preso no esqueleto
-  // quando o efeito nao re-roda (ver comentario do efeito abaixo).
-  const carregando = loading && (!hasHydrated || (isAdmin && !!token));
 
   // Nao toca estado antes do primeiro `await`: este loader e chamado de
   // dentro de um efeito, onde setState sincrono dispara render em cascata
@@ -179,6 +175,29 @@ export function useAdminCharts() {
       void loadData();
     }
   }, [hasHydrated, isAdmin, token, loadData]);
+
+  return { charts, setCharts, loading, setLoading, error, setError, loadData };
+}
+
+export function useAdminCharts() {
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+
+  const hasHydrated = useEstaNoCliente();
+  const isAdmin = user?.perfil?.toLowerCase() === "admin";
+  const { charts, setCharts, loading, setLoading, error, setError, loadData } = useCarregarGraficos(
+    token,
+    isAdmin,
+    hasHydrated,
+  );
+  const [isRefreshingAll, setIsRefreshingAll] = useState(false);
+
+  // `carregando` deriva de quem realmente carrega: antes do hydrate sempre
+  // mostra esqueleto; depois, so enquanto um admin com token esta buscando.
+  // Era isso que o `else { setLoading(false) }` dentro do efeito fazia — e
+  // derivar remove de vez o caso do visitante nao-admin preso no esqueleto
+  // quando o efeito nao re-roda (ver comentario do efeito abaixo).
+  const carregando = loading && (!hasHydrated || (isAdmin && !!token));
 
   useRecarregarGraficos(token, loadData, setLoading, setError);
 

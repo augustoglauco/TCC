@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type MutableRefObject,
+  type SetStateAction,
+} from "react";
 
 import {
   cancelarTarefa,
@@ -12,6 +20,62 @@ import {
 } from "@/lib/api/datasets";
 
 const INTERVALO_POLLING_MS = 2000;
+
+type LogTarefa = { id: string | null; linhas: string[] };
+type DetalheTarefa = Awaited<ReturnType<typeof fetchTarefa>>;
+
+const mensagemDe = (err: unknown, padrao: string) => (err instanceof Error ? err.message : padrao);
+
+function anexarLinhas(
+  setLog: Dispatch<SetStateAction<LogTarefa>>,
+  offset: MutableRefObject<number>,
+  detalhe: DetalheTarefa,
+) {
+  if (detalhe.linhas.length === 0) return;
+  offset.current = detalhe.proximo_offset;
+  setLog((atual) =>
+    atual.id === detalhe.id
+      ? { id: atual.id, linhas: [...atual.linhas, ...detalhe.linhas] }
+      : atual,
+  );
+}
+
+function useLogPolling(
+  token: string,
+  logId: string | null,
+  offset: MutableRefObject<number>,
+  setLog: Dispatch<SetStateAction<LogTarefa>>,
+  setTarefas: Dispatch<SetStateAction<TarefaResumo[]>>,
+  setErro: (msg: string | null) => void,
+) {
+  useEffect(() => {
+    if (!logId) return;
+    let vivo = true;
+
+    // `id` entra por parâmetro: dentro de uma declaração de função o
+    // TypeScript não mantém o estreitamento do `if (!logId) return` acima.
+    async function puxar(idTarefa: string) {
+      try {
+        const detalhe = await fetchTarefa(idTarefa, offset.current, token);
+        if (!vivo) return;
+        anexarLinhas(setLog, offset, detalhe);
+        setTarefas((atuais) => atuais.map((t) => (t.id === detalhe.id ? { ...t, ...detalhe } : t)));
+        if (detalhe.estado === "rodando") {
+          setTimeout(() => void puxar(idTarefa), INTERVALO_POLLING_MS);
+        }
+      } catch (err: unknown) {
+        if (vivo) setErro(mensagemDe(err, "Erro ao ler o log."));
+      }
+    }
+
+    void puxar(logId);
+    return () => {
+      vivo = false;
+    };
+    // Só o id entra nas dependências: reagir a `log.linhas` reiniciaria o
+    // polling a cada linha que ele mesmo acrescenta.
+  }, [logId, token, offset, setLog, setTarefas, setErro]);
+}
 
 /**
  * Disparo e acompanhamento das tarefas longas da Fase 10.
@@ -26,10 +90,7 @@ function useTarefas(token: string) {
   const [tarefas, setTarefas] = useState<TarefaResumo[]>([]);
   // O log guarda o id junto: trocar de tarefa troca o par inteiro, em vez
   // de precisar de um efeito que zere as linhas da anterior.
-  const [log, setLog] = useState<{ id: string | null; linhas: string[] }>({
-    id: null,
-    linhas: [],
-  });
+  const [log, setLog] = useState<LogTarefa>({ id: null, linhas: [] });
   const [erro, setErro] = useState<string | null>(null);
   const offset = useRef(0);
 
@@ -37,7 +98,7 @@ function useTarefas(token: string) {
     try {
       setTarefas(await fetchTarefas(token));
     } catch (err: unknown) {
-      setErro(err instanceof Error ? err.message : "Erro ao listar as tarefas.");
+      setErro(mensagemDe(err, "Erro ao listar as tarefas."));
     }
   }, [token]);
 
@@ -51,41 +112,7 @@ function useTarefas(token: string) {
     setLog({ id, linhas: [] });
   }, []);
 
-  useEffect(() => {
-    const id = log.id;
-    if (!id) return;
-    let vivo = true;
-
-    // `id` entra por parâmetro: dentro de uma declaração de função o
-    // TypeScript não mantém o estreitamento do `if (!id) return` acima.
-    async function puxar(idTarefa: string) {
-      try {
-        const detalhe = await fetchTarefa(idTarefa, offset.current, token);
-        if (!vivo) return;
-        if (detalhe.linhas.length > 0) {
-          offset.current = detalhe.proximo_offset;
-          setLog((atual) =>
-            atual.id === detalhe.id
-              ? { id: atual.id, linhas: [...atual.linhas, ...detalhe.linhas] }
-              : atual,
-          );
-        }
-        setTarefas((atuais) => atuais.map((t) => (t.id === detalhe.id ? { ...t, ...detalhe } : t)));
-        if (detalhe.estado === "rodando" && vivo) {
-          setTimeout(() => void puxar(idTarefa), INTERVALO_POLLING_MS);
-        }
-      } catch (err: unknown) {
-        if (vivo) setErro(err instanceof Error ? err.message : "Erro ao ler o log.");
-      }
-    }
-
-    void puxar(id);
-    return () => {
-      vivo = false;
-    };
-    // Só o id entra nas dependências: reagir a `log.linhas` reiniciaria o
-    // polling a cada linha que ele mesmo acrescenta.
-  }, [log.id, token]);
+  useLogPolling(token, log.id, offset, setLog, setTarefas, setErro);
 
   const iniciar = async (tipo: string) => {
     setErro(null);
@@ -94,7 +121,7 @@ function useTarefas(token: string) {
       await carregarTarefas();
       selecionar(tarefa.id);
     } catch (err: unknown) {
-      setErro(err instanceof Error ? err.message : "Erro ao iniciar a tarefa.");
+      setErro(mensagemDe(err, "Erro ao iniciar a tarefa."));
     }
   };
 
@@ -104,7 +131,7 @@ function useTarefas(token: string) {
       await cancelarTarefa(id, token);
       await carregarTarefas();
     } catch (err: unknown) {
-      setErro(err instanceof Error ? err.message : "Erro ao cancelar a tarefa.");
+      setErro(mensagemDe(err, "Erro ao cancelar a tarefa."));
     }
   };
 

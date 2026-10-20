@@ -127,6 +127,7 @@ class Contagem:
 @dataclass
 class ContextoIngestao:
     dry_run: bool
+    holdout: bool
     session: object
     store: ClipImageStore
     embedder: ClipEmbedder
@@ -136,7 +137,7 @@ class ContextoIngestao:
     corpus: Path
 
 
-async def _liberar_produtos_do_holdout(args, ctx: ContextoIngestao, holdout: dict[str, str]):
+async def _liberar_produtos_do_holdout(ctx: ContextoIngestao, holdout: dict[str, str]):
     """Tira do índice as fotos dos produtos com holdout, para reindexar sem a
     foto de consulta. Devolve o novo conjunto de `ja_indexadas`."""
     print(f"-- holdout: {len(holdout)} pasta(s) com 2+ fotos cedem 1 consulta cada --")
@@ -147,7 +148,7 @@ async def _liberar_produtos_do_holdout(args, ctx: ContextoIngestao, holdout: dic
     }
     removidos = 0
     for pid in sorted(alvos):
-        if args.dry_run:
+        if ctx.dry_run:
             continue
         await ctx.store.delete_images_by_product_id(pid)
         for linha in (
@@ -162,7 +163,7 @@ async def _liberar_produtos_do_holdout(args, ctx: ContextoIngestao, holdout: dic
             await ctx.session.delete(linha)
             removidos += 1
     ja_indexadas = ctx.ja_indexadas
-    if not args.dry_run:
+    if not ctx.dry_run:
         await ctx.session.commit()
         ja_indexadas = set()
     print(
@@ -172,27 +173,35 @@ async def _liberar_produtos_do_holdout(args, ctx: ContextoIngestao, holdout: dic
     return ja_indexadas
 
 
-async def _indexar_imagem(
-    ctx: ContextoIngestao, arquivo: str, caminho: Path, nome_produto: str, produto_id: int
-) -> str:
+@dataclass
+class Alvo:
+    arquivo: str
+    caminho: Path
+    nome_produto: str
+    produto_id: int
+
+
+async def _indexar_imagem(ctx: ContextoIngestao, alvo: Alvo) -> str:
     """Salva e indexa uma foto. Devolve "indexada", "ja_tinha" ou "falha"."""
-    conteudo = caminho.read_bytes()
-    url, _ = salvar_imagem_produto(conteudo, f"corpus_{produto_id}_{caminho.name}")
+    conteudo = alvo.caminho.read_bytes()
+    url, _ = salvar_imagem_produto(conteudo, f"corpus_{alvo.produto_id}_{alvo.caminho.name}")
     if url in ctx.ja_indexadas:
         return "ja_tinha"
     try:
         clip_id = await ctx.store.upsert_image(
             embedder=ctx.embedder,
             image_bytes=conteudo,
-            filename=nome_produto,
+            filename=alvo.nome_produto,
             domain="vendas",
-            produto_id=produto_id,
+            produto_id=alvo.produto_id,
             imagem_url=url,
         )
     except Exception as exc:  # noqa: BLE001
-        print(f"! {arquivo}: falha ao indexar no CLIP: {exc}")
+        print(f"! {alvo.arquivo}: falha ao indexar no CLIP: {exc}")
         return "falha"
-    ctx.session.add(ProdutoImagem(produto_id=produto_id, imagem_url=url, clip_image_id=clip_id))
+    ctx.session.add(
+        ProdutoImagem(produto_id=alvo.produto_id, imagem_url=url, clip_image_id=clip_id)
+    )
     return "indexada"
 
 
@@ -237,7 +246,7 @@ async def _processar_imagem(
         cont.indexadas += 1
         return
 
-    resultado = await _indexar_imagem(ctx, arquivo, caminho, nome_produto, produto_id)
+    resultado = await _indexar_imagem(ctx, Alvo(arquivo, caminho, nome_produto, produto_id))
     if resultado == "ja_tinha":
         cont.ja_tinham += 1
     elif resultado == "falha":
@@ -274,6 +283,21 @@ def _gravar_manifesto_holdout(consultas: list[dict]) -> None:
     print(f"\nmanifesto de consultas: {HOLDOUT_SAIDA} ({len(consultas)} itens)")
 
 
+async def _preparar_holdout(ctx: ContextoIngestao, imagens: list[dict]) -> dict[str, str]:
+    """Escolhe as fotos de consulta e tira do índice o que as vazaria."""
+    if not ctx.holdout:
+        return {}
+    holdout = escolher_holdout(imagens)
+    ctx.ja_indexadas = await _liberar_produtos_do_holdout(ctx, holdout)
+    if not ctx.dry_run:
+        removidas = await limpar_duplicatas_das_consultas(
+            ctx.session, ctx.store, holdout, ctx.raiz / ctx.corpus
+        )
+        if removidas:
+            print(f"   {removidas} cópia(s) de foto de consulta removida(s) do índice")
+    return holdout
+
+
 async def executar(args) -> int:
     auditoria = json.loads(AUDITORIA.read_text(encoding="utf-8"))
     corpus = Path(auditoria["corpus"])
@@ -296,6 +320,7 @@ async def executar(args) -> int:
     async with Session() as session:
         ctx = ContextoIngestao(
             dry_run=args.dry_run,
+            holdout=args.holdout,
             session=session,
             store=store,
             embedder=embedder,
@@ -308,16 +333,7 @@ async def executar(args) -> int:
             corpus=corpus,
         )
 
-        holdout = escolher_holdout(imagens) if args.holdout else {}
-        if args.holdout:
-            ctx.ja_indexadas = await _liberar_produtos_do_holdout(args, ctx, holdout)
-
-        if args.holdout and not args.dry_run:
-            removidas = await limpar_duplicatas_das_consultas(
-                session, store, holdout, raiz / corpus
-            )
-            if removidas:
-                print(f"   {removidas} cópia(s) de foto de consulta removida(s) do índice")
+        holdout = await _preparar_holdout(ctx, imagens)
 
         for item in imagens:
             await _processar_imagem(ctx, item, holdout, consultas, cont)

@@ -10,12 +10,11 @@ import {
   type StatusRevisao,
 } from "@/lib/api/datasets";
 
-function useFilaRevisao(conjunto: ConjuntoStatus, token: string, onRevisado: () => void) {
+function useFilaItens(conjunto: ConjuntoStatus, token: string) {
   const [itens, setItens] = useState<ItemRevisao[] | null>(null);
   const [posicao, setPosicao] = useState(0);
   const [edicoes, setEdicoes] = useState<Record<string, string>>({});
   const [erro, setErro] = useState<string | null>(null);
-  const [salvando, setSalvando] = useState(false);
 
   const carregar = useCallback(async () => {
     setErro(null);
@@ -39,6 +38,29 @@ function useFilaRevisao(conjunto: ConjuntoStatus, token: string, onRevisado: () 
 
   const atual = itens?.[posicao] ?? null;
 
+  return { itens, posicao, setPosicao, edicoes, setEdicoes, erro, setErro, atual, carregar };
+}
+
+function useAtalhosDeDecisao(decidir: (status: StatusRevisao) => Promise<void>) {
+  // Atalhos: A aprova, D descarta. Ignorados enquanto o foco está num campo,
+  // senão digitar uma correção dispararia a decisão.
+  useEffect(() => {
+    function aoTeclar(evento: KeyboardEvent) {
+      const alvo = evento.target as HTMLElement | null;
+      if (alvo && ["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName)) return;
+      if (evento.key === "a" || evento.key === "A") void decidir("aprovado");
+      if (evento.key === "d" || evento.key === "D") void decidir("descartado");
+    }
+    window.addEventListener("keydown", aoTeclar);
+    return () => window.removeEventListener("keydown", aoTeclar);
+  }, [decidir]);
+}
+
+function useFilaRevisao(conjunto: ConjuntoStatus, token: string, onRevisado: () => void) {
+  const fila = useFilaItens(conjunto, token);
+  const { atual, edicoes, setEdicoes, setPosicao, setErro } = fila;
+  const [salvando, setSalvando] = useState(false);
+
   const decidir = useCallback(
     async (status: StatusRevisao) => {
       if (!atual || salvando) return;
@@ -58,122 +80,65 @@ function useFilaRevisao(conjunto: ConjuntoStatus, token: string, onRevisado: () 
         setSalvando(false);
       }
     },
-    [atual, conjunto.id, edicoes, onRevisado, salvando, token],
+    [atual, conjunto.id, edicoes, onRevisado, salvando, token, setEdicoes, setPosicao, setErro],
   );
 
-  // Atalhos: A aprova, D descarta. Ignorados enquanto o foco está num campo,
-  // senão digitar uma correção dispararia a decisão.
-  useEffect(() => {
-    function aoTeclar(evento: KeyboardEvent) {
-      const alvo = evento.target as HTMLElement | null;
-      if (alvo && ["INPUT", "TEXTAREA", "SELECT"].includes(alvo.tagName)) return;
-      if (evento.key === "a" || evento.key === "A") void decidir("aprovado");
-      if (evento.key === "d" || evento.key === "D") void decidir("descartado");
-    }
-    window.addEventListener("keydown", aoTeclar);
-    return () => window.removeEventListener("keydown", aoTeclar);
-  }, [decidir]);
+  useAtalhosDeDecisao(decidir);
 
-  return {
-    itens,
-    posicao,
-    setPosicao,
-    edicoes,
-    setEdicoes,
-    erro,
-    salvando,
-    atual,
-    carregar,
-    decidir,
-  };
+  return { ...fila, salvando, decidir };
 }
 
-/**
- * Fila de revisão item a item de um conjunto.
- *
- * O desenho vem do orçamento de ~4,5 h da Estratégia A: um item por vez, os
- * campos já editáveis (corrigir é mais comum que descartar) e atalhos de
- * teclado, porque a meta é ~10 s por item do RAG de documentos — com o
- * trecho de origem ao lado, não caçado no PDF.
- */
-export function DatasetsFilaRevisao({
+function MensagemFila({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <Moldura titulo={titulo}>
+      <p className="text-sm text-gray-600">{children}</p>
+    </Moldura>
+  );
+}
+
+function FatiaRevisada({
+  titulo,
+  vazia,
+  onCarregar,
+}: {
+  titulo: string;
+  vazia: boolean;
+  onCarregar: () => void;
+}) {
+  return (
+    <Moldura titulo={titulo}>
+      <p className="text-sm text-gray-600">
+        {vazia ? "Nenhum item pendente." : "Fatia revisada. Carregue a próxima para seguir."}
+      </p>
+      <button
+        type="button"
+        onClick={onCarregar}
+        className="mt-3 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+      >
+        Carregar próximos
+      </button>
+    </Moldura>
+  );
+}
+
+function ItemEmRevisao({
   conjunto,
-  token,
-  onRevisado,
+  fila,
+  atual,
+  total,
 }: {
   conjunto: ConjuntoStatus;
-  token: string;
-  onRevisado: () => void;
+  fila: ReturnType<typeof useFilaRevisao>;
+  atual: ItemRevisao;
+  total: number;
 }) {
-  const {
-    itens,
-    posicao,
-    setPosicao,
-    edicoes,
-    setEdicoes,
-    erro,
-    salvando,
-    atual,
-    carregar,
-    decidir,
-  } = useFilaRevisao(conjunto, token, onRevisado);
-
-  if (conjunto.revisao_automatica) {
-    return (
-      <Moldura titulo={`${conjunto.nome} — sem fila`}>
-        <p className="text-sm text-gray-600">
-          Gabarito exato por construção, sem revisão humana: no conjunto de imagem ele é o nome da
-          pasta do fornecedor, e no de banco as perguntas saem das próprias linhas de{" "}
-          <code className="rounded bg-gray-100 px-1">produtos</code>.
-        </p>
-      </Moldura>
-    );
-  }
-
-  if (!conjunto.existe) {
-    return (
-      <Moldura titulo={`${conjunto.nome} — não gerado`}>
-        <p className="text-sm text-gray-600">
-          O <code className="rounded bg-gray-100 px-1">dataset.json</code> deste conjunto ainda não
-          existe. Gere o rascunho antes de revisar.
-        </p>
-      </Moldura>
-    );
-  }
-
-  if (itens === null) {
-    return (
-      <Moldura titulo={`${conjunto.nome} — fila de revisão`}>
-        <p className="text-sm text-gray-500">Carregando…</p>
-      </Moldura>
-    );
-  }
-
-  if (!atual) {
-    return (
-      <Moldura titulo={`${conjunto.nome} — fila de revisão`}>
-        <p className="text-sm text-gray-600">
-          {itens.length === 0
-            ? "Nenhum item pendente."
-            : "Fatia revisada. Carregue a próxima para seguir."}
-        </p>
-        <button
-          type="button"
-          onClick={() => void carregar()}
-          className="mt-3 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          Carregar próximos
-        </button>
-      </Moldura>
-    );
-  }
-
+  const { posicao, setPosicao, edicoes, setEdicoes, erro, salvando, decidir } = fila;
   return (
     <Moldura
       titulo={`${conjunto.nome} — fila de revisão`}
       direita={
         <span className="text-xs text-gray-500 tabular-nums">
-          item {posicao + 1} de {itens.length} nesta fatia · {conjunto.pendentes} pendentes no total
+          item {posicao + 1} de {total} nesta fatia · {conjunto.pendentes} pendentes no total
         </span>
       }
     >
@@ -207,6 +172,63 @@ export function DatasetsFilaRevisao({
       />
     </Moldura>
   );
+}
+
+/**
+ * Fila de revisão item a item de um conjunto.
+ *
+ * O desenho vem do orçamento de ~4,5 h da Estratégia A: um item por vez, os
+ * campos já editáveis (corrigir é mais comum que descartar) e atalhos de
+ * teclado, porque a meta é ~10 s por item do RAG de documentos — com o
+ * trecho de origem ao lado, não caçado no PDF.
+ */
+export function DatasetsFilaRevisao({
+  conjunto,
+  token,
+  onRevisado,
+}: {
+  conjunto: ConjuntoStatus;
+  token: string;
+  onRevisado: () => void;
+}) {
+  const fila = useFilaRevisao(conjunto, token, onRevisado);
+  const { itens, atual, carregar } = fila;
+  const titulo = `${conjunto.nome} — fila de revisão`;
+
+  if (conjunto.revisao_automatica) {
+    return (
+      <MensagemFila titulo={`${conjunto.nome} — sem fila`}>
+        Gabarito exato por construção, sem revisão humana: no conjunto de imagem ele é o nome da
+        pasta do fornecedor, e no de banco as perguntas saem das próprias linhas de{" "}
+        <code className="rounded bg-gray-100 px-1">produtos</code>.
+      </MensagemFila>
+    );
+  }
+  if (!conjunto.existe) {
+    return (
+      <MensagemFila titulo={`${conjunto.nome} — não gerado`}>
+        O <code className="rounded bg-gray-100 px-1">dataset.json</code> deste conjunto ainda não
+        existe. Gere o rascunho antes de revisar.
+      </MensagemFila>
+    );
+  }
+  if (itens === null) {
+    return (
+      <Moldura titulo={titulo}>
+        <p className="text-sm text-gray-500">Carregando…</p>
+      </Moldura>
+    );
+  }
+  if (!atual) {
+    return (
+      <FatiaRevisada
+        titulo={titulo}
+        vazia={itens.length === 0}
+        onCarregar={() => void carregar()}
+      />
+    );
+  }
+  return <ItemEmRevisao conjunto={conjunto} fila={fila} atual={atual} total={itens.length} />;
 }
 
 function AcoesRevisao({

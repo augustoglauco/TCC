@@ -439,6 +439,25 @@ def _imprimir_resumo(saida: Path, casos: list[dict]) -> None:
     print("Todos nascem pendentes: revise em /admin/datasets antes de rodar a avaliação.")
 
 
+def _planejar(args, auditoria: dict, casos: list[dict]):
+    """Devolve (plano de cotas por documento, documentos já cobertos, contagem
+    de basenames)."""
+    # Chave de retomada é o caminho relativo, não o basename: com basename
+    # repetido, o segundo arquivo era pulado (ou, na primeira rodada, o mesmo
+    # `documento_origem` acumulava perguntas de dois PDFs diferentes).
+    cobertos = {
+        c.get("arquivo_origem") or c.get("documento_origem")
+        for c in casos
+        if not c.get("sem_resposta")
+    }
+    docs = documentos_elegiveis(auditoria)
+    basenames = Counter(Path(d["arquivo"]).name for d in docs)
+    if args.limite_docs:
+        docs = docs[: args.limite_docs]
+    plano = cota_por_documento(docs, args.total, args.por_documento)
+    return plano, cobertos, basenames
+
+
 def _criar_client(modelo_arg: str | None) -> tuple[OpenRouterClient, str] | None:
     settings = get_settings()
     modelo = modelo_arg or settings.external_model_name
@@ -468,19 +487,7 @@ async def executar(args) -> int:
     if abortar:
         return 1
 
-    # Chave de retomada é o caminho relativo, não o basename: com basename
-    # repetido, o segundo arquivo era pulado (ou, na primeira rodada, o mesmo
-    # `documento_origem` acumulava perguntas de dois PDFs diferentes).
-    cobertos = {
-        c.get("arquivo_origem") or c.get("documento_origem")
-        for c in casos
-        if not c.get("sem_resposta")
-    }
-    docs = documentos_elegiveis(auditoria)
-    basenames = Counter(Path(d["arquivo"]).name for d in docs)
-    if args.limite_docs:
-        docs = docs[: args.limite_docs]
-    plano = cota_por_documento(docs, args.total, args.por_documento)
+    plano, cobertos, basenames = _planejar(args, auditoria, casos)
 
     criado = _criar_client(args.modelo)
     if criado is None:
