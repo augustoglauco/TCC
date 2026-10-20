@@ -208,7 +208,9 @@ igualmente e não aparece em lugar nenhum. Por isso a revisão não é opcional
 - **RAG documentos: o trecho de origem vem junto do item.** O desenvolvedor
   lê pergunta + resposta + trecho lado a lado, em vez de caçar no PDF —
   diferença entre ~10 s e ~1,5 min por item.
-- **Roteador: revisão por amostra.** O agente rotula tudo; o desenvolvedor
+- **Roteador: revisão por amostra.** (Estado de 2026-10-20: as ambíguas
+  foram regeradas como multi-rótulo e a lista de pendentes está no Passo 3.)
+  O agente rotula tudo; o desenvolvedor
   revisa as ~100 deliberadamente ambíguas (onde o rótulo automático é
   discutível) e uma amostra aleatória de 40 das demais. **Risco assumido:**
   um erro *sistemático* do rotulador automático (ex.: tratar "atraso na
@@ -853,22 +855,54 @@ confirmar o critério de corte da triagem no README do benchmark (item 14) e
 sincronizar os números dos documentos (item 18). Você pode ir direto ao
 passo 3.
 
-### Passo 3 — Revisar o Roteador (300 itens, ~1,5 h)
-- **Por quê primeiro:** é o que a triagem consome; sem ele nada roda.
+### Passo 3 — Revisar o Roteador (329 itens válidos, 146 pendentes)
+- **Estado em 2026-10-20:** `dataset.json` tem 452 casos; 329 válidos
+  (141 aprovados, 42 corrigidos, **146 pendentes**) e 249 chegam ao LLM
+  (meta ≥200 atingida). Dos pendentes, 99 são ambíguas e 47 não ambíguas.
+  Os 123 `descartado` ficam no arquivo e são ignorados pelos avaliadores.
+- **Ambíguas multi-rótulo.** As 100 ambíguas válidas nascem de um par fixo de
+  domínios (vendas/agendamento, vendas/suporte, vendas/atendimento,
+  suporte/agendamento, atendimento/suporte) e trazem `intencoes_aceitas`:
+  acerta quem cair em qualquer um. Ficam **fora do placar principal**;
+  `run_eval.py` e `run_benchmark.py` reportam `acuracia_ambiguas` à parte.
+  Geradas por `deepseek/deepseek-v4.1-flash`
+  (`gerar_dataset.py --ambiguas-por-par`); as 137 antigas, de rótulo único,
+  saíram.
+- **Placar principal (não ambíguas), meta de 40 por domínio:** fora_escopo
+  59, suporte 48, agendamento 43, vendas 40, atendimento 39.
+- **Definições dos domínios (do dono, 2026-10-20), já no classificador e no
+  gerador:**
+  - *atendimento*: pós-compra (nota fiscal, troca, devolução, cancelamento,
+    reclamação, pedido) **ou** dúvida genérica sobre a empresa (localização,
+    horário, acesso ao site). Quem ainda não comprou não tem pedido para
+    atrasar ou trocar.
+  - *agendamento*: visita para conhecer o produto, conhecer a empresa,
+    manutenção no ambiente do cliente, vendedor no ambiente do cliente ou
+    compra em unidade. Remarcar, cancelar e confirmar só se o cliente já tem
+    visita agendada em seu nome.
+  - *compatibilidade entre produtos*: dúvida isolada é **suporte**; acoplada
+    a intenção de compra é **vendas**.
+  - *fora_escopo*: o resto (cortesia, assuntos alheios, vaga de emprego,
+    patrocínio).
 - **Como:** `/admin/datasets` → cartão Roteador → fila. Atalhos `A`
   aprovar, `D` descartar; editar qualquer campo grava como `corrigido`.
 - **O que conferir em cada item:** (1) a mensagem soa como um cliente real,
-  em português; (2) `intencao_esperada` está certa (vendas, suporte,
-  atendimento, agendamento ou fora_escopo) — se não, corrija o campo;
-  (3) se `ambiguo` for verdadeiro, só aprove quando houver um rótulo
-  defensável.
+  em português; (2) `intencao_esperada` está certa, pelas definições acima;
+  (3) nas ambíguas, as duas frases formam **um único pedido coerente** (não
+  duas frases soltas) e os dois domínios de `intencoes_aceitas` são
+  defensáveis.
 - **Descarte quando:** duas intenções são igualmente plausíveis sem estar
-  marcado como ambíguo, a mensagem repete outra, ou cita produto que não
-  existe no catálogo.
+  marcado como ambíguo, a mensagem repete outra, cita produto que não existe
+  no catálogo, ou tem frases soltas sem relação.
 - **Não mexa em** `chega_ao_llm` e `motivo_caminho`: são calculados pelo
   código do classificador, não pelo modelo.
 - **Pronto quando:** pendentes = 0. Avise o agente: ele confere que ainda
   sobram ao menos 200 itens que chegam ao LLM depois dos descartes.
+- **Já reavaliado pelo agente em 2026-10-20** (a pedido do dono, que pode ter
+  sido induzido nas aprovações anteriores): 60 casos fracos ou mal rotulados
+  foram marcados `descartado`, depois restaurados os de compatibilidade e de
+  remarcar/cancelar/confirmar com visita implícita. O motivo está em
+  `revisao.nota` de cada caso e qualquer um pode ser revertido na tela.
 
 ### Passo 4 — Revisar o RAG documentos (180 itens, ~2 h)
 - **Por quê agora:** destrava as Etapas 2–5 (escolha de embedding, chunking,
