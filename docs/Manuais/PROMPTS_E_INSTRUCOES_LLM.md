@@ -164,7 +164,8 @@ DOMAIN_CRITERIA: dict[Domain, str] = {
     "suporte": "Produto com defeito, erro ou problema técnico já adquirido.",
     "atendimento": (
         "Nota fiscal, troca, devolução, cancelamento, reclamação, "
-        "compras já realizadas ou histórico de pedidos."
+        "compras já realizadas ou histórico de pedidos; também dúvidas genéricas "
+        "sobre a empresa, como localização, horário de funcionamento e acesso ao site."
     ),
     "agendamento": "Quer marcar, remarcar ou confirmar uma visita/horário.",
     "fora_escopo": "Não se encaixa claramente em nenhuma opção acima.",
