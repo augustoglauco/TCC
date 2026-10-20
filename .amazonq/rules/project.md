@@ -95,6 +95,7 @@ testes correspondentes.
     `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.** Vale para qualquer texto
     enviado a um LLM: prompts de sistema, playbooks por domínio, templates de
     extração estruturada, prompts de visão.
+12. **Escreva dentro dos limites de saúde do Repowise** (complexidade ciclomática ≤ 9 por função, ≤ ~50 linhas por função, `main`/handlers só orquestram) — números, origem e falsos positivos de "I/O in loop" em `docs/CONVENTIONS.md`, "Saúde de código — limites do Repowise ao escrever".
 
 ## Ferramentas de inteligência de código
 

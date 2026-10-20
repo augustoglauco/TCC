@@ -125,6 +125,29 @@ def test_acerto_de_categoria_ignora_acento():
     assert not bench._acertou_categoria("torneira eletrônica", ["catraca", "impressora"])
 
 
+class _VisaoFalsa(BaseModel):
+    e_do_portfolio: bool
+    produto: str
+
+
+def test_pontuar_imagem_cobra_categoria_so_em_positivo_com_aceitos():
+    positivo = {"e_do_portfolio": True, "aceitos": ["catraca"]}
+    assert bench._pontuar_imagem(positivo, _VisaoFalsa(e_do_portfolio=True, produto="Catraca")) == (
+        True,
+        True,
+    )
+    sem_aceitos = {"e_do_portfolio": True}
+    assert bench._pontuar_imagem(sem_aceitos, _VisaoFalsa(e_do_portfolio=True, produto="x")) == (
+        True,
+        None,
+    )
+    negativo = {"e_do_portfolio": False, "aceitos": ["catraca"]}
+    assert bench._pontuar_imagem(negativo, _VisaoFalsa(e_do_portfolio=True, produto="x")) == (
+        False,
+        None,
+    )
+
+
 @pytest.mark.asyncio
 async def test_etapa_imagem_sem_capability_registra_queda_para_visao_externa():
     # Modelo text-only não é pulado em silêncio: `suportado_localmente:

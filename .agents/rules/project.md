@@ -70,3 +70,4 @@ implementar qualquer mudança:
    2026-10-17). O grafo orienta, não substitui a leitura do trecho que
    você vai editar. Motivo e evidência em `docs/CONVENTIONS.md`, "Ordem de
    uso das ferramentas de grafo de código".
+10. **Escreva dentro dos limites de saúde do Repowise** (complexidade ciclomática ≤ 9 por função, ≤ ~50 linhas por função, `main`/handlers só orquestram) — números, origem e falsos positivos de "I/O in loop" em `docs/CONVENTIONS.md`, "Saúde de código — limites do Repowise ao escrever".

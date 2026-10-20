@@ -135,6 +135,32 @@ O frontend segue sua própria estrutura, detalhada em `docs/FRONTEND.md`.
 - Nunca hardcode chaves de API, tokens ou credenciais — usar variáveis de
   ambiente documentadas em `.env.example`.
 
+### Saúde de código — limites do Repowise ao escrever (2026-10-20)
+
+O `get_health` do Repowise pontua cada arquivo por categoria (Size &
+complexity, Organizational, Performance), com teto de dedução por categoria.
+Escreva já dentro destes limites em vez de refatorar depois:
+
+- **Complexidade ciclomática por função: no máximo 9.** Observado em
+  `backend/eval/model_benchmark/run_benchmark.py`: 10, 11 e 14 foram
+  sinalizados como "Complex method". Cada `if`/`elif`/`for`/`except`/`and`/`or`
+  conta. Despacho por tipo vira tabela (`dict` de funções), não `if/elif`.
+- **Função com no máximo ~50 linhas de código** (sem comentários e brancas).
+  Observado: 69 e 75 sinalizados; 50–64 não. Cada bloco com comentário
+  próprio é candidato a helper com nome.
+- **Função `main`/handler/hook só orquestra**: parser de argumentos, montagem
+  de clientes, listagem e laço principal são funções separadas.
+- **Estes números são observados, não documentados pelo Repowise** — o limiar
+  exato não está publicado. Na dúvida, confira com `get_health([arquivo])`
+  depois de editar, e ajuste esta seção com o que medir.
+- **"I/O in loop" cruzando funções é heurística estática** (precisão alta,
+  recall baixo). É falso positivo quando o laço é o checkpoint por design
+  (ex.: gravar o envelope por candidato/etapa para permitir retomada) ou
+  quando o dataset é lido uma vez por etapa. Não "conserte" quebrando a
+  retomada; registre o motivo em comentário curto.
+- Refatoração por saúde não muda comportamento nem assinatura pública, e a
+  lógica extraída ganha teste (regra 7 do `CLAUDE.md`).
+
 ## Comentários de escopo do MVP
 
 Sempre que uma implementação for uma versão simplificada por decisão de
