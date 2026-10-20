@@ -1920,8 +1920,9 @@
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_vendas",
       "revisao": {
-        "status": "aprovado",
-        "em": "2026-10-18T20:10:56-0300"
+        "status": "descartado",
+        "em": "2026-10-20T07:53:19-0300",
+        "nota": "reavaliação de agendamento 2026-10-20: sem contexto de visita em nome do cliente"
       }
     },
     {
@@ -3083,8 +3084,9 @@
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_agendamento",
       "revisao": {
-        "status": "aprovado",
-        "em": "2026-10-18T20:41:57-0300"
+        "status": "descartado",
+        "em": "2026-10-20T07:53:19-0300",
+        "nota": "reavaliação de agendamento 2026-10-20: duplica o 193"
       }
     },
     {
@@ -3156,8 +3158,9 @@
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_agendamento",
       "revisao": {
-        "status": "aprovado",
-        "em": "2026-10-18T20:42:22-0300"
+        "status": "descartado",
+        "em": "2026-10-20T07:53:19-0300",
+        "nota": "reavaliação de agendamento 2026-10-20: sem contexto: confirma horário que ninguém propôs"
       }
     },
     {
@@ -5051,37 +5054,52 @@
       "id": 572,
       "mensagem": "O REP iDClass tá reiniciando sozinho, dá pra passar aqui depois de amanhã?",
       "intencao_esperada": "agendamento",
-      "ambiguo": false,
+      "ambiguo": true,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
       "revisao": {
         "status": "pendente",
-        "em": null
-      }
+        "em": null,
+        "nota": "defeito + pedido de visita: agendamento ou suporte (2026-10-20)"
+      },
+      "intencoes_aceitas": [
+        "agendamento",
+        "suporte"
+      ]
     },
     {
       "id": 573,
       "mensagem": "O leitor QR Code tá com problema, tem como vocês aparecerem aqui na terça?",
       "intencao_esperada": "agendamento",
-      "ambiguo": false,
+      "ambiguo": true,
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_suporte",
       "revisao": {
         "status": "pendente",
-        "em": null
-      }
+        "em": null,
+        "nota": "defeito + pedido de visita: agendamento ou suporte (2026-10-20)"
+      },
+      "intencoes_aceitas": [
+        "agendamento",
+        "suporte"
+      ]
     },
     {
       "id": 574,
       "mensagem": "O relógio de ponto SAT iD parou do nada, manda alguém aqui na parte da tarde?",
       "intencao_esperada": "agendamento",
-      "ambiguo": false,
+      "ambiguo": true,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
       "revisao": {
         "status": "pendente",
-        "em": null
-      }
+        "em": null,
+        "nota": "defeito + pedido de visita: agendamento ou suporte (2026-10-20)"
+      },
+      "intencoes_aceitas": [
+        "agendamento",
+        "suporte"
+      ]
     },
     {
       "id": 575,
@@ -5123,61 +5141,86 @@
       "id": 578,
       "mensagem": "oi, o leitor facial aqui parou do nada. consegue mandar alguém pra ver isso? qual dia fica bom?",
       "intencao_esperada": "agendamento",
-      "ambiguo": false,
+      "ambiguo": true,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
       "revisao": {
         "status": "pendente",
-        "em": null
-      }
+        "em": null,
+        "nota": "defeito + pedido de visita: agendamento ou suporte (2026-10-20)"
+      },
+      "intencoes_aceitas": [
+        "agendamento",
+        "suporte"
+      ]
     },
     {
       "id": 579,
       "mensagem": "boa, preciso de alguem pra olhar a catraca da recepção, ela ta travando. quando vcs podem vir?",
       "intencao_esperada": "agendamento",
-      "ambiguo": false,
+      "ambiguo": true,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
       "revisao": {
         "status": "pendente",
-        "em": null
-      }
+        "em": null,
+        "nota": "defeito + pedido de visita: agendamento ou suporte (2026-10-20)"
+      },
+      "intencoes_aceitas": [
+        "agendamento",
+        "suporte"
+      ]
     },
     {
       "id": 580,
       "mensagem": "e ai, o relogio de ponto nao ta registrando. da pra vim alguem aqui essa semana?",
       "intencao_esperada": "agendamento",
-      "ambiguo": false,
+      "ambiguo": true,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
       "revisao": {
         "status": "pendente",
-        "em": null
-      }
+        "em": null,
+        "nota": "defeito + pedido de visita: agendamento ou suporte (2026-10-20)"
+      },
+      "intencoes_aceitas": [
+        "agendamento",
+        "suporte"
+      ]
     },
     {
       "id": 581,
       "mensagem": "o IDBlock do portao principal pifou. queria que passassem aqui pra resolver. tem como?",
       "intencao_esperada": "agendamento",
-      "ambiguo": false,
+      "ambiguo": true,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
       "revisao": {
         "status": "pendente",
-        "em": null
-      }
+        "em": null,
+        "nota": "defeito + pedido de visita: agendamento ou suporte (2026-10-20)"
+      },
+      "intencoes_aceitas": [
+        "agendamento",
+        "suporte"
+      ]
     },
     {
       "id": 582,
       "mensagem": "oi, a fechadura eletronica ta bipando do nada. manda uma equipe aqui? qual o proximo dia livre?",
       "intencao_esperada": "agendamento",
-      "ambiguo": false,
+      "ambiguo": true,
       "chega_ao_llm": true,
       "motivo_caminho": "zero_keywords",
       "revisao": {
         "status": "pendente",
-        "em": null
-      }
+        "em": null,
+        "nota": "defeito + pedido de visita: agendamento ou suporte (2026-10-20)"
+      },
+      "intencoes_aceitas": [
+        "agendamento",
+        "suporte"
+      ]
     },
     {
       "id": 583,
