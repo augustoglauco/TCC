@@ -53,7 +53,7 @@ nunca usou). O porquê das escolhas centrais está em `docs/ARCHITECTURE.md`
 | Documentos e imagem | `pdfplumber` (PDF), `beautifulsoup4` (crawler), Pillow, `pytesseract` (OCR) |
 | Áudio | `faster-whisper` local (`STT_MODEL_SIZE`, default `small`) |
 | MCP | SDK oficial `mcp` (cliente do `calendar-mcp-server` e servidor B2B); Caddy + DuckDNS para o HTTPS público do B2B |
-| Testes e lint (backend) | `pytest`, `pytest-asyncio`, `aiosqlite` (SQLite dos testes), `ruff` (lint e format) |
+| Testes e lint (backend) | `pytest`, `pytest-asyncio`, `pytest-cov` (cobertura, ingerida no Repowise), `aiosqlite` (SQLite dos testes), `ruff` (lint e format) |
 | Frontend | Next.js 16 (App Router), React 19, TypeScript 5, Tailwind CSS 4, Zustand 5, Radix UI (dialog, tabs); SSE lido com `fetch` + `ReadableStream` |
 | Testes e lint (frontend) | Vitest 4 + Testing Library, Playwright, ESLint 9 (`eslint-config-next`), Prettier 3 |
 | Versões mínimas do ambiente | Python 3.14, Node.js 20, Docker com Compose v2, GPU NVIDIA com 16 GB de VRAM e driver com CUDA para o Ollama |
@@ -386,6 +386,14 @@ uv venv --python 3.13 .venv --clear
 uv sync --all-extras
 .venv/bin/python --version                   # Python 3.13.x
 .venv/bin/pytest -m "not gpu and not qdrant"
+```
+
+**Cobertura para o Repowise** (relatório + mapa teste→código; 2026-10-20: 91,3 %
+de linhas, 1226 testes). A partir da raiz, depois de rodar na pasta `backend`:
+
+```bash
+cd backend && .venv/bin/pytest -q --cov=src/app --cov-context=test
+cd .. && repowise coverage add backend/.coverage && rm backend/.coverage
 ```
 
 Depois, reinicie backend e MCP B2B (`./testar.sh` já faz isso, ver
