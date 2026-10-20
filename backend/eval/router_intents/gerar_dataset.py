@@ -79,7 +79,11 @@ DESCRICAO_DOMINIO = {
         "feito) ou dúvida genérica sobre a empresa (localização, horário de funcionamento, "
         "acesso ao site)"
     ),
-    "agendamento": "quer marcar uma visita técnica nova (nunca remarcar, adiar ou confirmar)",
+    "agendamento": (
+        "quer marcar, remarcar, cancelar ou confirmar uma visita: para conhecer o produto, "
+        "conhecer a empresa, fazer manutenção no ambiente do cliente, receber um vendedor "
+        "no ambiente do cliente ou comprar em uma unidade da empresa"
+    ),
 }
 
 _PROMPT_DOMINIO = """Você monta o conjunto de teste do roteador de intenção de \
@@ -250,7 +254,10 @@ pedido coerente, nunca duas perguntas soltas sem relação.
 horário de funcionamento, acesso ao site). Pós-compra (pedido, troca, nota \
 fiscal, atraso) só se a pessoa já comprou antes: diga "meu pedido anterior", \
 "o que comprei". Quem ainda quer comprar não tem pedido para atrasar ou trocar.
-- **Só visita nova**: nunca peça remarcar, reagendar nem cancelar visita.
+- Visita só por um destes motivos: conhecer o produto, conhecer a empresa, \
+manutenção no ambiente do cliente, vendedor no ambiente do cliente ou compra \
+em uma unidade da empresa. Remarcar/cancelar/confirmar só se a mensagem deixar \
+claro de qual visita se trata.
 - Não misture um terceiro domínio. Varie o começo e o jeito de pedir.
 
 Exemplo do tipo de mistura (não copie): "{exemplo}".

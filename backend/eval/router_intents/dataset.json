@@ -1737,9 +1737,8 @@
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_agendamento",
       "revisao": {
-        "status": "descartado",
-        "em": "2026-10-20T07:31:08-0300",
-        "nota": "reavaliação 2026-10-20 (dono): fora do escopo do MVP (remarcar/cancelar/confirmar visita)"
+        "status": "aprovado",
+        "em": "2026-10-18T20:09:25-0300"
       }
     },
     {
@@ -1799,9 +1798,8 @@
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_agendamento",
       "revisao": {
-        "status": "descartado",
-        "em": "2026-10-20T07:31:08-0300",
-        "nota": "reavaliação 2026-10-20 (dono): fora do escopo do MVP (remarcar/cancelar/confirmar visita)"
+        "status": "aprovado",
+        "em": "2026-10-18T20:10:02-0300"
       }
     },
     {
@@ -1873,9 +1871,8 @@
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_agendamento",
       "revisao": {
-        "status": "descartado",
-        "em": "2026-10-20T07:31:08-0300",
-        "nota": "reavaliação 2026-10-20 (dono): fora do escopo do MVP (remarcar/cancelar/confirmar visita)"
+        "status": "aprovado",
+        "em": "2026-10-18T20:10:38-0300"
       }
     },
     {
@@ -1922,9 +1919,8 @@
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_vendas",
       "revisao": {
-        "status": "descartado",
-        "em": "2026-10-20T07:31:08-0300",
-        "nota": "reavaliação 2026-10-20 (dono): fora do escopo do MVP (remarcar/cancelar/confirmar visita)"
+        "status": "aprovado",
+        "em": "2026-10-18T20:10:56-0300"
       }
     },
     {
@@ -3232,9 +3228,8 @@
       "chega_ao_llm": false,
       "motivo_caminho": "atalho_agendamento",
       "revisao": {
-        "status": "descartado",
-        "em": "2026-10-20T07:31:08-0300",
-        "nota": "reavaliação 2026-10-20 (dono): fora do escopo do MVP (remarcar/cancelar/confirmar visita)"
+        "status": "aprovado",
+        "em": "2026-10-18T20:43:08-0300"
       }
     },
     {

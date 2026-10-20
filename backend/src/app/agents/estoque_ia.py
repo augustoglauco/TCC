@@ -72,15 +72,7 @@ def interpretar_resposta(texto: str) -> dict[str, Any] | None:
     return dados
 
 
-async def decidir_com_ia(f: FatosEstoque, client: Any, llm: str) -> Decisao | None:
-    if client is None:
-        return None
-    try:
-        resposta = await client.generate(montar_prompt(f))
-    except Exception:  # noqa: BLE001 - IA fora do ar => regra determinística
-        logger.exception("Falha ao chamar o LLM do agente de estoque")
-        return None
-
+async def _registrar_uso(f: FatosEstoque, resposta: Any, llm: str) -> None:
     try:
         await registrar_uso_ia(
             origem="admin",
@@ -96,34 +88,32 @@ async def decidir_com_ia(f: FatosEstoque, client: Any, llm: str) -> Decisao | No
     except Exception:  # noqa: BLE001 - telemetria nunca derruba o agente
         logger.warning("Falha ao registrar uso de IA do agente de estoque", exc_info=True)
 
-    dados = interpretar_resposta(getattr(resposta, "text", "") or "")
-    if dados is None:
-        return None
 
-    risco = dados["risco"]
-    modelo = getattr(resposta, "model_name", None)
-    meta = {
+def _montar_meta(f: FatosEstoque, dados: dict[str, Any], modelo: str | None) -> dict[str, Any]:
+    return {
         "produto_id": f.produto_id,
         "metodo": "ia",
         "modelo": modelo,
-        "risco": risco,
+        "risco": dados["risco"],
         "dias_ate_falta": dados.get("dias_ate_falta"),
         "reposicao_sugerida": dados.get("reposicao_sugerida"),
         "estoque_atual": f.estoque_total,
         "taxa_diaria": float(round(f.taxa_diaria, 3)),
         "horizonte_dias": f.horizonte_dias,
     }
-    if not dados["alertar"] or risco == "baixo":
-        return Decisao(False, AGENTE_IA, "aviso", "", "", meta)
 
+
+def _texto_sugestao(reposicao: Any) -> str:
+    if isinstance(reposicao, (int, float)) and reposicao > 0:
+        return f" Reposição sugerida: {int(reposicao)} unidade(s)."
+    return ""
+
+
+def _decisao_de_alerta(f: FatosEstoque, dados: dict[str, Any], meta: dict[str, Any]) -> Decisao:
+    risco = dados["risco"]
     dias = dados.get("dias_ate_falta")
     quando = f"~{round(float(dias))} dias" if isinstance(dias, (int, float)) else "em breve"
-    reposicao = dados.get("reposicao_sugerida")
-    sugestao = (
-        f" Reposição sugerida: {int(reposicao)} unidade(s)."
-        if isinstance(reposicao, (int, float)) and reposicao > 0
-        else ""
-    )
+    sugestao = _texto_sugestao(dados.get("reposicao_sugerida"))
     justificativa = str(dados.get("justificativa") or "").strip()
     return Decisao(
         True,
@@ -134,3 +124,24 @@ async def decidir_com_ia(f: FatosEstoque, client: Any, llm: str) -> Decisao | No
         f"{justificativa}{sugestao}",
         meta,
     )
+
+
+async def decidir_com_ia(f: FatosEstoque, client: Any, llm: str) -> Decisao | None:
+    if client is None:
+        return None
+    try:
+        resposta = await client.generate(montar_prompt(f))
+    except Exception:  # noqa: BLE001 - IA fora do ar => regra determinística
+        logger.exception("Falha ao chamar o LLM do agente de estoque")
+        return None
+
+    await _registrar_uso(f, resposta, llm)
+
+    dados = interpretar_resposta(getattr(resposta, "text", "") or "")
+    if dados is None:
+        return None
+
+    meta = _montar_meta(f, dados, getattr(resposta, "model_name", None))
+    if not dados["alertar"] or dados["risco"] == "baixo":
+        return Decisao(False, AGENTE_IA, "aviso", "", "", meta)
+    return _decisao_de_alerta(f, dados, meta)

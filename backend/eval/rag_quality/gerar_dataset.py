@@ -43,6 +43,7 @@ import json
 import re
 import sys
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
@@ -328,6 +329,102 @@ def salvar(saida: Path, casos: list[dict], modelo: str, corpus: str) -> None:
     )
 
 
+@dataclass
+class ContextoGeracao:
+    client: object
+    saida: Path
+    modelo: str
+    corpus: Path
+    raiz: Path
+    casos: list[dict]
+
+    def salvar(self) -> None:
+        salvar(self.saida, self.casos, self.modelo, str(self.corpus))
+
+
+def _carregar_casos_anteriores(args, saida: Path) -> tuple[list[dict], bool]:
+    """Devolve (casos já gravados, abortar). `abortar` quando o arquivo existe
+    no formato antigo e `--forcar` não foi passado."""
+    anterior = carregar_existente(saida)
+    if anterior.get("respondiveis") is not None and not args.forcar:
+        # Retomada: o que já foi gerado fica, e os documentos já cobertos
+        # são pulados. Sem isso, um 429 no documento 70 jogaria fora 69
+        # documentos de chamadas pagas em tempo de rate limit.
+        casos = list(anterior.get("casos", []))
+        print(f"Retomando: {len(casos)} caso(s) já no arquivo.")
+        return casos, False
+    if anterior and not args.forcar:
+        print(
+            f"{saida.name} existe no formato antigo ({len(anterior.get('casos', []))} casos "
+            "do conjunto invalidado). Use --forcar para sobrescrever."
+        )
+        return [], True
+    return [], False
+
+
+async def _gerar_documento(
+    ctx: ContextoGeracao, indice: int, total: int, doc: dict, n: int, origem_ambigua: bool
+) -> None:
+    arquivo = doc["arquivo"]
+    nome = Path(arquivo).name
+    caminho = ctx.raiz / ctx.corpus / arquivo
+    if not caminho.exists():
+        print(f"[{indice}/{total}] {nome}: arquivo ausente, pulando.")
+        return
+
+    texto = extract_text_from_pdf(caminho)[:MAX_CHARS_PROMPT]
+    if len(texto) < 200:
+        print(f"[{indice}/{total}] {nome}: texto curto demais, pulando.")
+        return
+
+    print(f"[{indice}/{total}] {nome} ({len(texto)} chars) -> {n} pergunta(s)")
+    brutos = await _gerar(
+        ctx.client,
+        _PROMPT_PERGUNTAS.format(documento=nome, texto=texto, n=n, max_trecho=MAX_CHARS_TRECHO),
+    )
+    proximo_id = max((c["id"] for c in ctx.casos), default=0) + 1
+    novos = montar_casos(
+        brutos[:n],
+        nome,
+        texto,
+        proximo_id,
+        arquivo_origem=arquivo,
+        origem_ambigua=origem_ambigua,
+    )
+    sem_trecho = sum(1 for c in novos if not c["trecho_confere"])
+    ctx.casos.extend(novos)
+    ctx.salvar()
+    print(
+        f"    {len(novos)} caso(s) gravado(s)"
+        + (f", {sem_trecho} com trecho não localizado" if sem_trecho else "")
+    )
+
+
+async def _gerar_sem_resposta(ctx: ContextoGeracao, auditoria: dict, meta: int) -> None:
+    faltam = meta - sum(1 for c in ctx.casos if c.get("sem_resposta"))
+    if faltam <= 0:
+        return
+    pastas = sorted({Path(d["arquivo"]).parts[0] for d in documentos_elegiveis(auditoria)})
+    print(f"\nPerguntas sem resposta no corpus: {faltam} a gerar")
+    brutos = await _gerar(
+        ctx.client,
+        _PROMPT_SEM_RESPOSTA.format(produtos="\n".join(f"- {p}" for p in pastas), n=faltam),
+    )
+    proximo_id = max((c["id"] for c in ctx.casos), default=0) + 1
+    ctx.casos.extend(montar_casos_sem_resposta(brutos[:faltam], proximo_id))
+    ctx.salvar()
+
+
+def _imprimir_resumo(saida: Path, casos: list[dict]) -> None:
+    respondiveis = sum(1 for c in casos if not c.get("sem_resposta"))
+    sem_resp = sum(1 for c in casos if c.get("sem_resposta"))
+    sem_trecho = sum(1 for c in casos if not c.get("sem_resposta") and not c.get("trecho_confere"))
+    print(f"\n{saida}: {respondiveis} respondível(is) + {sem_resp} sem resposta")
+    if sem_trecho:
+        print(f"Atenção: {sem_trecho} caso(s) com `trecho_confere = false`.")
+    print("Todos nascem pendentes: revise em /admin/datasets antes de rodar a avaliação.")
+
+
 async def executar(args) -> int:
     auditoria_path = Path(args.auditoria)
     if not auditoria_path.exists():
@@ -338,19 +435,8 @@ async def executar(args) -> int:
     raiz = BASE_DIR.parent.parent.parent
 
     saida = Path(args.saida)
-    anterior = carregar_existente(saida)
-    casos: list[dict] = []
-    if anterior.get("respondiveis") is not None and not args.forcar:
-        # Retomada: o que já foi gerado fica, e os documentos já cobertos
-        # são pulados. Sem isso, um 429 no documento 70 jogaria fora 69
-        # documentos de chamadas pagas em tempo de rate limit.
-        casos = list(anterior.get("casos", []))
-        print(f"Retomando: {len(casos)} caso(s) já no arquivo.")
-    elif anterior and not args.forcar:
-        print(
-            f"{saida.name} existe no formato antigo ({len(anterior.get('casos', []))} casos "
-            "do conjunto invalidado). Use --forcar para sobrescrever."
-        )
+    casos, abortar = _carregar_casos_anteriores(args, saida)
+    if abortar:
         return 1
 
     # Chave de retomada é o caminho relativo, não o basename: com basename
@@ -383,70 +469,23 @@ async def executar(args) -> int:
         f"{len(plano)} documento(s) no plano, meta de {args.total} pergunta(s) respondível(is).\n"
     )
 
+    ctx = ContextoGeracao(
+        client=client, saida=saida, modelo=modelo, corpus=corpus, raiz=raiz, casos=casos
+    )
     try:
         for indice, (doc, n) in enumerate(plano, start=1):
-            arquivo = doc["arquivo"]
-            nome = Path(arquivo).name
-            if arquivo in cobertos:
+            if doc["arquivo"] in cobertos:
                 continue
-            caminho = raiz / corpus / arquivo
-            if not caminho.exists():
-                print(f"[{indice}/{len(plano)}] {nome}: arquivo ausente, pulando.")
-                continue
-
-            texto = extract_text_from_pdf(caminho)[:MAX_CHARS_PROMPT]
-            if len(texto) < 200:
-                print(f"[{indice}/{len(plano)}] {nome}: texto curto demais, pulando.")
-                continue
-
-            print(f"[{indice}/{len(plano)}] {nome} ({len(texto)} chars) -> {n} pergunta(s)")
-            brutos = await _gerar(
-                client,
-                _PROMPT_PERGUNTAS.format(
-                    documento=nome, texto=texto, n=n, max_trecho=MAX_CHARS_TRECHO
-                ),
-            )
-            proximo_id = max((c["id"] for c in casos), default=0) + 1
-            novos = montar_casos(
-                brutos[:n],
-                nome,
-                texto,
-                proximo_id,
-                arquivo_origem=arquivo,
-                origem_ambigua=basenames[nome] > 1,
-            )
-            sem_trecho = sum(1 for c in novos if not c["trecho_confere"])
-            casos.extend(novos)
-            salvar(saida, casos, modelo, str(corpus))
-            print(
-                f"    {len(novos)} caso(s) gravado(s)"
-                + (f", {sem_trecho} com trecho não localizado" if sem_trecho else "")
-            )
-
-        faltam = args.sem_resposta - sum(1 for c in casos if c.get("sem_resposta"))
-        if faltam > 0:
-            pastas = sorted({Path(d["arquivo"]).parts[0] for d in documentos_elegiveis(auditoria)})
-            print(f"\nPerguntas sem resposta no corpus: {faltam} a gerar")
-            brutos = await _gerar(
-                client,
-                _PROMPT_SEM_RESPOSTA.format(produtos="\n".join(f"- {p}" for p in pastas), n=faltam),
-            )
-            proximo_id = max((c["id"] for c in casos), default=0) + 1
-            casos.extend(montar_casos_sem_resposta(brutos[:faltam], proximo_id))
-            salvar(saida, casos, modelo, str(corpus))
+            ambigua = basenames[Path(doc["arquivo"]).name] > 1
+            await _gerar_documento(ctx, indice, len(plano), doc, n, ambigua)
+        await _gerar_sem_resposta(ctx, auditoria, args.sem_resposta)
     finally:
         # Mesmo com erro no meio, o que já foi gerado fica no arquivo: no
         # tier `:free` uma rodada interrompida custa relógio, não dinheiro,
         # mas refazer tudo custaria as duas coisas.
-        salvar(saida, casos, modelo, str(corpus))
+        ctx.salvar()
 
-    respondiveis = sum(1 for c in casos if not c.get("sem_resposta"))
-    sem_resp = sum(1 for c in casos if c.get("sem_resposta"))
-    sem_trecho = sum(1 for c in casos if not c.get("sem_resposta") and not c.get("trecho_confere"))
-    print(f"\n{saida}: {respondiveis} respondível(is) + {sem_resp} sem resposta")
-    if sem_trecho:
-        print(f"Atenção: {sem_trecho} caso(s) com `trecho_confere = false`.")
-    print("Todos nascem pendentes: revise em /admin/datasets antes de rodar a avaliação.")
+    _imprimir_resumo(saida, casos)
     return 0
 
 

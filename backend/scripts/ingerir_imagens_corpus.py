@@ -27,6 +27,7 @@ import asyncio
 import hashlib
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -115,6 +116,164 @@ async def limpar_duplicatas_das_consultas(session, store, holdout, corpus_dir) -
     return removidas
 
 
+@dataclass
+class Contagem:
+    indexadas: int = 0
+    sem_produto: int = 0
+    ja_tinham: int = 0
+    falhas: int = 0
+
+
+@dataclass
+class ContextoIngestao:
+    dry_run: bool
+    session: object
+    store: ClipImageStore
+    embedder: ClipEmbedder
+    produtos: dict[str, int]
+    ja_indexadas: set[str]
+    raiz: Path
+    corpus: Path
+
+
+async def _liberar_produtos_do_holdout(args, ctx: ContextoIngestao, holdout: dict[str, str]):
+    """Tira do índice as fotos dos produtos com holdout, para reindexar sem a
+    foto de consulta. Devolve o novo conjunto de `ja_indexadas`."""
+    print(f"-- holdout: {len(holdout)} pasta(s) com 2+ fotos cedem 1 consulta cada --")
+    alvos = {
+        ctx.produtos[PASTA_PARA_PRODUTO.get(pasta, pasta)]
+        for pasta in holdout
+        if PASTA_PARA_PRODUTO.get(pasta, pasta) in ctx.produtos
+    }
+    removidos = 0
+    for pid in sorted(alvos):
+        if args.dry_run:
+            continue
+        await ctx.store.delete_images_by_product_id(pid)
+        for linha in (
+            (
+                await ctx.session.execute(
+                    select(ProdutoImagem).where(ProdutoImagem.produto_id == pid)
+                )
+            )
+            .scalars()
+            .all()
+        ):
+            await ctx.session.delete(linha)
+            removidos += 1
+    ja_indexadas = ctx.ja_indexadas
+    if not args.dry_run:
+        await ctx.session.commit()
+        ja_indexadas = set()
+    print(
+        f"   {removidos} linha(s) de produto_imagens e os pontos CLIP "
+        f"de {len(alvos)} produto(s) removidos para reindexar"
+    )
+    return ja_indexadas
+
+
+async def _indexar_imagem(
+    ctx: ContextoIngestao, arquivo: str, caminho: Path, nome_produto: str, produto_id: int
+) -> str:
+    """Salva e indexa uma foto. Devolve "indexada", "ja_tinha" ou "falha"."""
+    conteudo = caminho.read_bytes()
+    url, _ = salvar_imagem_produto(conteudo, f"corpus_{produto_id}_{caminho.name}")
+    if url in ctx.ja_indexadas:
+        return "ja_tinha"
+    try:
+        clip_id = await ctx.store.upsert_image(
+            embedder=ctx.embedder,
+            image_bytes=conteudo,
+            filename=nome_produto,
+            domain="vendas",
+            produto_id=produto_id,
+            imagem_url=url,
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"! {arquivo}: falha ao indexar no CLIP: {exc}")
+        return "falha"
+    ctx.session.add(ProdutoImagem(produto_id=produto_id, imagem_url=url, clip_image_id=clip_id))
+    return "indexada"
+
+
+async def _processar_imagem(
+    ctx: ContextoIngestao,
+    item: dict,
+    holdout: dict[str, str],
+    consultas: list[dict],
+    cont: Contagem,
+) -> None:
+    arquivo = item["arquivo"]
+    pasta = arquivo.partition("/")[0]
+    if holdout.get(pasta) == arquivo:
+        # Fica fora do índice de propósito: é a consulta do conjunto.
+        consultas.append(
+            {
+                "arquivo": arquivo,
+                "pasta": pasta,
+                "produto_esperado": PASTA_PARA_PRODUTO.get(pasta, pasta),
+                "e_do_portfolio": True,
+            }
+        )
+        print(f"H {arquivo}: reservada como consulta ({pasta})")
+        return
+    nome_produto = PASTA_PARA_PRODUTO.get(pasta, pasta)
+    produto_id = ctx.produtos.get(nome_produto)
+    if produto_id is None:
+        # Pasta sem produto no catálogo (`Suporte`, por exemplo): a
+        # foto não entra, senão o gabarito aponta para nada.
+        cont.sem_produto += 1
+        print(f"- {arquivo}: pasta '{pasta}' sem produto no catálogo, fora")
+        return
+
+    caminho = ctx.raiz / ctx.corpus / arquivo
+    if not caminho.exists():
+        cont.falhas += 1
+        print(f"! {arquivo}: arquivo ausente")
+        return
+
+    print(f"+ {arquivo} -> {nome_produto} (produto {produto_id})")
+    if ctx.dry_run:
+        cont.indexadas += 1
+        return
+
+    resultado = await _indexar_imagem(ctx, arquivo, caminho, nome_produto, produto_id)
+    if resultado == "ja_tinha":
+        cont.ja_tinham += 1
+    elif resultado == "falha":
+        cont.falhas += 1
+    else:
+        cont.indexadas += 1
+        if cont.indexadas % 10 == 0:
+            await ctx.session.commit()
+            print(f"    ... {cont.indexadas} indexada(s)")
+
+
+def _gravar_manifesto_holdout(consultas: list[dict]) -> None:
+    HOLDOUT_SAIDA.parent.mkdir(parents=True, exist_ok=True)
+    HOLDOUT_SAIDA.write_text(
+        json.dumps(
+            {
+                "descricao": (
+                    "Fotos reservadas como consulta do conjunto de RAG imagem: "
+                    "ficam FORA do índice CLIP, uma por pasta com 2+ fotos."
+                ),
+                "observacao": (
+                    "Sem holdout, consultar com foto indexada dá score 1,000 e "
+                    "acerto garantido — identidade, não reconhecimento. Escolha "
+                    "determinística (última em ordem alfabética da pasta)."
+                ),
+                "total": len(consultas),
+                "consultas": consultas,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(f"\nmanifesto de consultas: {HOLDOUT_SAIDA} ({len(consultas)} itens)")
+
+
 async def executar(args) -> int:
     auditoria = json.loads(AUDITORIA.read_text(encoding="utf-8"))
     corpus = Path(auditoria["corpus"])
@@ -132,45 +291,26 @@ async def executar(args) -> int:
     store = ClipImageStore(qdrant.async_client)
     embedder = ClipEmbedder(timeout_s=settings.clip_timeout_s)
 
-    indexadas, sem_produto, ja_tinham, falhas = 0, 0, 0, 0
+    cont = Contagem()
+    consultas: list[dict] = []
     async with Session() as session:
-        produtos = {
-            nome: pid
-            for pid, nome in (await session.execute(select(Produto.id, Produto.nome))).all()
-        }
-        ja_indexadas = set((await session.execute(select(ProdutoImagem.imagem_url))).scalars())
+        ctx = ContextoIngestao(
+            dry_run=args.dry_run,
+            session=session,
+            store=store,
+            embedder=embedder,
+            produtos={
+                nome: pid
+                for pid, nome in (await session.execute(select(Produto.id, Produto.nome))).all()
+            },
+            ja_indexadas=set((await session.execute(select(ProdutoImagem.imagem_url))).scalars()),
+            raiz=raiz,
+            corpus=corpus,
+        )
 
         holdout = escolher_holdout(imagens) if args.holdout else {}
         if args.holdout:
-            print(f"-- holdout: {len(holdout)} pasta(s) com 2+ fotos cedem 1 consulta cada --")
-            alvos = {
-                produtos[PASTA_PARA_PRODUTO.get(pasta, pasta)]
-                for pasta in holdout
-                if PASTA_PARA_PRODUTO.get(pasta, pasta) in produtos
-            }
-            removidos = 0
-            for pid in sorted(alvos):
-                if args.dry_run:
-                    continue
-                await store.delete_images_by_product_id(pid)
-                for linha in (
-                    (
-                        await session.execute(
-                            select(ProdutoImagem).where(ProdutoImagem.produto_id == pid)
-                        )
-                    )
-                    .scalars()
-                    .all()
-                ):
-                    await session.delete(linha)
-                    removidos += 1
-            if not args.dry_run:
-                await session.commit()
-                ja_indexadas = set()
-            print(
-                f"   {removidos} linha(s) de produto_imagens e os pontos CLIP "
-                f"de {len(alvos)} produto(s) removidos para reindexar"
-            )
+            ctx.ja_indexadas = await _liberar_produtos_do_holdout(args, ctx, holdout)
 
         if args.holdout and not args.dry_run:
             removidas = await limpar_duplicatas_das_consultas(
@@ -179,101 +319,22 @@ async def executar(args) -> int:
             if removidas:
                 print(f"   {removidas} cópia(s) de foto de consulta removida(s) do índice")
 
-        consultas: list[dict] = []
         for item in imagens:
-            arquivo = item["arquivo"]
-            pasta_atual, _, _ = arquivo.partition("/")
-            if holdout.get(pasta_atual) == arquivo:
-                # Fica fora do índice de propósito: é a consulta do conjunto.
-                consultas.append(
-                    {
-                        "arquivo": arquivo,
-                        "pasta": pasta_atual,
-                        "produto_esperado": PASTA_PARA_PRODUTO.get(pasta_atual, pasta_atual),
-                        "e_do_portfolio": True,
-                    }
-                )
-                print(f"H {arquivo}: reservada como consulta ({pasta_atual})")
-                continue
-            pasta = arquivo.split("/")[0]
-            nome_produto = PASTA_PARA_PRODUTO.get(pasta, pasta)
-            produto_id = produtos.get(nome_produto)
-            if produto_id is None:
-                # Pasta sem produto no catálogo (`Suporte`, por exemplo): a
-                # foto não entra, senão o gabarito aponta para nada.
-                sem_produto += 1
-                print(f"- {arquivo}: pasta '{pasta}' sem produto no catálogo, fora")
-                continue
-
-            caminho = raiz / corpus / arquivo
-            if not caminho.exists():
-                falhas += 1
-                print(f"! {arquivo}: arquivo ausente")
-                continue
-
-            print(f"+ {arquivo} -> {nome_produto} (produto {produto_id})")
-            if args.dry_run:
-                indexadas += 1
-                continue
-
-            conteudo = caminho.read_bytes()
-            url, _ = salvar_imagem_produto(conteudo, f"corpus_{produto_id}_{caminho.name}")
-            if url in ja_indexadas:
-                ja_tinham += 1
-                continue
-            try:
-                clip_id = await store.upsert_image(
-                    embedder=embedder,
-                    image_bytes=conteudo,
-                    filename=nome_produto,
-                    domain="vendas",
-                    produto_id=produto_id,
-                    imagem_url=url,
-                )
-            except Exception as exc:  # noqa: BLE001
-                falhas += 1
-                print(f"! {arquivo}: falha ao indexar no CLIP: {exc}")
-                continue
-            session.add(ProdutoImagem(produto_id=produto_id, imagem_url=url, clip_image_id=clip_id))
-            indexadas += 1
-            if indexadas % 10 == 0:
-                await session.commit()
-                print(f"    ... {indexadas} indexada(s)")
+            await _processar_imagem(ctx, item, holdout, consultas, cont)
 
         if not args.dry_run:
             await session.commit()
 
     if args.holdout and not args.dry_run:
-        HOLDOUT_SAIDA.parent.mkdir(parents=True, exist_ok=True)
-        HOLDOUT_SAIDA.write_text(
-            json.dumps(
-                {
-                    "descricao": (
-                        "Fotos reservadas como consulta do conjunto de RAG imagem: "
-                        "ficam FORA do índice CLIP, uma por pasta com 2+ fotos."
-                    ),
-                    "observacao": (
-                        "Sem holdout, consultar com foto indexada dá score 1,000 e "
-                        "acerto garantido — identidade, não reconhecimento. Escolha "
-                        "determinística (última em ordem alfabética da pasta)."
-                    ),
-                    "total": len(consultas),
-                    "consultas": consultas,
-                },
-                ensure_ascii=False,
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
-        print(f"\nmanifesto de consultas: {HOLDOUT_SAIDA} ({len(consultas)} itens)")
+        _gravar_manifesto_holdout(consultas)
 
     await engine.dispose()
     rotulo = "(dry-run) " if args.dry_run else ""
     print(
-        f"\n{rotulo}{indexadas} imagem(ns) indexada(s), {sem_produto} sem produto, "
-        f"{ja_tinham} já estavam, {falhas} falha(s). Total de válidas: {len(imagens)}."
+        f"\n{rotulo}{cont.indexadas} imagem(ns) indexada(s), {cont.sem_produto} sem produto, "
+        f"{cont.ja_tinham} já estavam, {cont.falhas} falha(s). Total de válidas: {len(imagens)}."
     )
-    return 1 if falhas else 0
+    return 1 if cont.falhas else 0
 
 
 def main(argv: list[str]) -> int:

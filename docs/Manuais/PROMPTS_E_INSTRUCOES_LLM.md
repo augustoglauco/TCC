@@ -946,7 +946,7 @@ keywords, não o modelo que se quer escolher.
   institucional (exceto localização, horário e acesso ao site, que são atendimento —
   decisão do dono, 2026-10-20: atendimento = pós-compra ou dúvida genérica sobre a empresa), assunto alheio e conversa fiada.
 
-`DESCRICAO_DOMINIO["agendamento"]` passou a dizer "visita técnica nova (nunca remarcar, adiar ou confirmar)" em 2026-10-20: a versão anterior listava "remarcar" e gerava casos de reagendamento, que o projeto exclui.
+`DESCRICAO_DOMINIO["agendamento"]` (2026-10-20, definição do dono) lista os motivos de visita: conhecer o produto, conhecer a empresa, manutenção no ambiente do cliente, vendedor no ambiente do cliente ou compra em uma unidade; remarcar, cancelar e confirmar existem como intenção de agendamento, desde que a mensagem deixe claro de qual visita se trata.
 
 O rótulo de cada mensagem é o domínio pedido no prompt; **o caminho** (chegou
 ao LLM ou morreu no atalho) não vem do modelo: é calculado pelas funções reais
