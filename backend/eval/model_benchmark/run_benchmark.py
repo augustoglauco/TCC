@@ -404,6 +404,34 @@ def _acertou_categoria(produto_previsto: str, aceitos: list[str]) -> bool:
     return any(_sem_acento(termo) in previsto for termo in aceitos)
 
 
+async def _descrever_caso_imagem(inner: OllamaClient, caso: dict, latencias: list[float]) -> str:
+    """Chama a visão local para um caso e registra a latência; devolve o texto
+    bruto ('' quando a visão local está indisponível)."""
+    imagem = (REPO_DIR / caso["caminho"]).read_bytes()
+    inicio = time.perf_counter()
+    try:
+        texto = (await inner.describe_image(imagem, _VISION_PROMPT)).content
+    except VisionModelIndisponivelError as exc:
+        texto = ""
+        print(f"    [{caso['id']}] visão indisponível: {exc}")
+    latencias.append(time.perf_counter() - inicio)
+    return texto
+
+
+def _pontuar_imagem(caso: dict, resposta) -> tuple[bool, bool | None]:
+    """(acerto de portfólio, acerto de categoria ou None quando não cobrado)."""
+    acerto_portfolio = resposta.e_do_portfolio == caso["e_do_portfolio"]
+    # Categoria só é cobrada nos casos positivos. Num negativo, a
+    # resposta certa é "nenhum" — exigir que ele ainda descreva o que
+    # está na foto puniria exatamente o comportamento desejado, e é
+    # informação que o fluxo real descarta (`e_do_portfolio: false` já
+    # vira "não identificado" em `identify_product_by_image`).
+    # Positiva sem `aceitos` só entra no acerto de portfólio.
+    if caso["e_do_portfolio"] and caso.get("aceitos"):
+        return acerto_portfolio, _acertou_categoria(resposta.produto, caso["aceitos"])
+    return acerto_portfolio, None
+
+
 async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
     """Identificação de produto por imagem (R2/R5) com a visão LOCAL deste
     modelo — mesmo `_VISION_PROMPT` e mesmo parse de `app.rag.image_identification`.
@@ -442,17 +470,7 @@ async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
     positivos = 0
 
     for caso in casos:
-        caminho = REPO_DIR / caso["caminho"]
-        imagem = caminho.read_bytes()
-        inicio = time.perf_counter()
-        try:
-            bruto = await inner.describe_image(imagem, _VISION_PROMPT)
-            texto = bruto.content
-        except VisionModelIndisponivelError as exc:
-            texto = ""
-            print(f"    [{caso['id']}] visão indisponível: {exc}")
-        latencias.append(time.perf_counter() - inicio)
-
+        texto = await _descrever_caso_imagem(inner, caso, latencias)
         resposta = _parse_vision_answer(texto) if texto else None
         if resposta is None:
             resultados.append({"id": caso["id"], "json_valido": False, "bruto": texto[:300]})
@@ -460,25 +478,12 @@ async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
             continue
 
         json_validos += 1
-        acerto_portfolio = resposta.e_do_portfolio == caso["e_do_portfolio"]
+        acerto_portfolio, acerto_categoria = _pontuar_imagem(caso, resposta)
         portfolio_ok += int(acerto_portfolio)
-
-        # Categoria só é cobrada nos casos positivos. Num negativo, a
-        # resposta certa é "nenhum" — exigir que ele ainda descreva o que
-        # está na foto puniria exatamente o comportamento desejado, e é
-        # informação que o fluxo real descarta (`e_do_portfolio: false` já
-        # vira "não identificado" em `identify_product_by_image`).
-        if caso["e_do_portfolio"]:
-            positivos += 1
-            if caso.get("aceitos"):
-                # Positiva sem `aceitos` só entra no acerto de portfólio.
-                com_categoria += 1
-                acerto_categoria = _acertou_categoria(resposta.produto, caso["aceitos"])
-                categoria_ok += int(acerto_categoria)
-            else:
-                acerto_categoria = None
-        else:
-            acerto_categoria = None
+        positivos += int(caso["e_do_portfolio"])
+        if acerto_categoria is not None:
+            com_categoria += 1
+            categoria_ok += int(acerto_categoria)
         resultados.append(
             {
                 "id": caso["id"],
@@ -533,6 +538,28 @@ def carregar_candidatos(ids: list[str] | None) -> list[dict]:
     return [por_id[i] for i in ids]
 
 
+def _config_do_modelo(
+    candidato: dict,
+    inner: OllamaClient,
+    carga_s: float,
+    vram_bytes: int | None,
+    capabilities: list[str],
+    tem_visao: bool,
+) -> dict:
+    return {
+        "ollama": candidato["ollama"],
+        "familia": candidato["familia"],
+        "parametros_b": candidato["parametros_b"],
+        "quantizacao": candidato["quantizacao"],
+        "timeout_s": inner.timeout_s,
+        "seed": inner.seed,
+        "carga_s": carga_s,
+        "vram_bytes": vram_bytes,
+        "capabilities": capabilities,
+        "visao_local": tem_visao,
+    }
+
+
 async def rodar_modelo(
     candidato: dict,
     etapas: list[str],
@@ -570,30 +597,20 @@ async def rodar_modelo(
         f"visão_local={'sim' if tem_visao else 'não (cai para visão externa)'}"
     )
 
-    envelope["config"] = {
-        "ollama": candidato["ollama"],
-        "familia": candidato["familia"],
-        "parametros_b": candidato["parametros_b"],
-        "quantizacao": candidato["quantizacao"],
-        "timeout_s": inner.timeout_s,
-        "seed": inner.seed,
-        "carga_s": carga_s,
-        "vram_bytes": vram_bytes,
-        "capabilities": capabilities,
-        "visao_local": tem_visao,
-    }
+    envelope["config"] = _config_do_modelo(
+        candidato, inner, carga_s, vram_bytes, capabilities, tem_visao
+    )
 
     cliente = ClienteInstrumentado(inner)
+    executores = {
+        "roteador": lambda: etapa_roteador(cliente, external_client),
+        "rag": lambda: etapa_rag(cliente, rag_client, external_client),
+        "injecao": lambda: etapa_injecao(cliente, external_client),
+        "imagem": lambda: etapa_imagem(inner, tem_visao),
+    }
     for etapa in pendentes:
         print(f"  etapa {etapa}...")
-        if etapa == "roteador":
-            envelope["itens"][etapa] = await etapa_roteador(cliente, external_client)
-        elif etapa == "rag":
-            envelope["itens"][etapa] = await etapa_rag(cliente, rag_client, external_client)
-        elif etapa == "injecao":
-            envelope["itens"][etapa] = await etapa_injecao(cliente, external_client)
-        else:
-            envelope["itens"][etapa] = await etapa_imagem(inner, tem_visao)
+        envelope["itens"][etapa] = await executores[etapa]()
         consolidar_metricas(envelope)
         caminho = gravar_envelope(candidato, envelope)
         print(f"    gravado em {caminho.relative_to(EVAL_DIR.parent)}")
@@ -618,7 +635,7 @@ def _construir_rag_client(settings):
     return ActiveCollectionRagClient(qdrant, session_factory, EmbedderRegistry())
 
 
-async def main() -> None:
+def _criar_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--modelos", help="ids separados por vírgula (padrão: todos)")
     parser.add_argument(
@@ -639,36 +656,28 @@ async def main() -> None:
         ),
     )
     parser.add_argument("--listar", action="store_true", help="só mostra o estado e sai")
-    args = parser.parse_args()
+    return parser
 
-    etapas = [e.strip() for e in args.etapas.split(",") if e.strip()]
-    invalidas = [e for e in etapas if e not in ETAPAS]
-    if invalidas:
-        raise SystemExit(f"etapa(s) inválida(s): {', '.join(invalidas)}. Use: {', '.join(ETAPAS)}")
 
-    ids = [i.strip() for i in args.modelos.split(",")] if args.modelos else None
-    candidatos = carregar_candidatos(ids)
-    settings = get_settings()
-    baixados = await modelos_baixados(settings.local_model_base_url)
+def _listar_estado(candidatos: list[dict], baixados: set[str]) -> None:
+    for candidato in candidatos:
+        envelope = carregar_envelope(candidato)
+        prontas = sorted(envelope["itens"]) or ["-"]
+        disponivel = "baixado" if candidato["ollama"] in baixados else "FALTA BAIXAR"
+        print(f"{candidato['id']:<16} {disponivel:<12} etapas: {', '.join(prontas)}")
 
-    if args.listar:
-        for candidato in candidatos:
-            envelope = carregar_envelope(candidato)
-            prontas = sorted(envelope["itens"]) or ["-"]
-            disponivel = "baixado" if candidato["ollama"] in baixados else "FALTA BAIXAR"
-            print(f"{candidato['id']:<16} {disponivel:<12} etapas: {', '.join(prontas)}")
-        return
 
+def _criar_clientes(settings, timeout_s: float, seed: int) -> tuple[OllamaClient, OpenRouterClient]:
     inner = OllamaClient(
         base_url=settings.local_model_base_url,
         model=settings.local_model_name,
-        timeout_s=args.timeout_s,
+        timeout_s=timeout_s,
         temperature=settings.local_llm_temperature,
         num_ctx=settings.local_llm_num_ctx,
         top_p=settings.local_llm_top_p,
         top_k=settings.local_llm_top_k,
         repeat_penalty=settings.local_llm_repeat_penalty,
-        seed=args.seed or None,
+        seed=seed or None,
     )
     external_client = OpenRouterClient(
         base_url=settings.external_model_base_url,
@@ -681,6 +690,27 @@ async def main() -> None:
         jev_model=settings.jev_model_name,
         jev_timeout_s=settings.jev_timeout_s,
     )
+    return inner, external_client
+
+
+async def main() -> None:
+    args = _criar_parser().parse_args()
+
+    etapas = [e.strip() for e in args.etapas.split(",") if e.strip()]
+    invalidas = [e for e in etapas if e not in ETAPAS]
+    if invalidas:
+        raise SystemExit(f"etapa(s) inválida(s): {', '.join(invalidas)}. Use: {', '.join(ETAPAS)}")
+
+    ids = [i.strip() for i in args.modelos.split(",")] if args.modelos else None
+    candidatos = carregar_candidatos(ids)
+    settings = get_settings()
+    baixados = await modelos_baixados(settings.local_model_base_url)
+
+    if args.listar:
+        _listar_estado(candidatos, baixados)
+        return
+
+    inner, external_client = _criar_clientes(settings, args.timeout_s, args.seed)
     # Qdrant/Postgres só são necessários para a etapa `rag`; construir sempre
     # faria `--etapas roteador` falhar com o banco fora do ar.
     rag_client = _construir_rag_client(settings) if "rag" in etapas else None
