@@ -486,6 +486,9 @@ async def executar(args) -> int:
         # "DOM:N" = difíceis (sem palavra da tabela, chegam ao LLM); "DOM:N:livre" = livres.
         for item in args.extra_nao_ambiguas.split(","):
             dominio, quantos, *modo = item.split(":")
+            if dominio == "fora_escopo":
+                await pedir_fora_escopo(int(quantos))
+                continue
             livre = modo == ["livre"]
             await pedir(
                 _PROMPT_LIVRE if livre else _PROMPT_DOMINIO,
