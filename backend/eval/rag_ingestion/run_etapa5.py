@@ -185,13 +185,13 @@ async def _criar_collection_etapa5(
 
 
 async def _medir_latencia_qdrant_puro(
-    qdrant: QdrantRAGClient,
+    ctx: ContextoEtapa5,
     collection_name: str,
     vetores_consulta: list[list[float]],
-    dominio: str,
     repeticoes: int,
 ) -> list[float]:
-    filtro = Filter(must=[FieldCondition(key="domain", match=MatchValue(value=dominio))])
+    qdrant = ctx.qdrant
+    filtro = Filter(must=[FieldCondition(key="domain", match=MatchValue(value=ctx.dominio))])
     # Warmup de 1 consulta para abrir conexão/cache.
     if vetores_consulta:
         await qdrant.async_client.query_points(
@@ -279,7 +279,7 @@ async def _medir_perfil_payload_index(
         tempo_busca_completa_ms = (time.perf_counter() - t0_busca) * 1000.0 / max(1, len(perguntas))
         metricas = avaliar_conjunto(resultados)
         amostras_qdrant = await _medir_latencia_qdrant_puro(
-            ctx.qdrant, collection.name, vetores_consulta, ctx.dominio, repeticoes
+            ctx, collection.name, vetores_consulta, repeticoes
         )
         resumo_lat = resumir_latencias_ms(amostras_qdrant)
     finally:

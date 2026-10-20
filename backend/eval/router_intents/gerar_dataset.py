@@ -87,7 +87,7 @@ DESCRICAO_DOMINIO = {
         "quer marcar uma visita para conhecer o produto, conhecer a empresa, fazer "
         "manutenção no ambiente do cliente, receber um vendedor no ambiente do cliente "
         "ou comprar em uma unidade da empresa (remarcar, cancelar ou confirmar só se já "
-        "tem visita em seu nome)"
+        "tem visita em seu nome); a mensagem não relata defeito, só pede a visita"
     ),
 }
 

@@ -57,7 +57,11 @@ def _brl(valor: Decimal) -> str:
     return f"R$ {valor:.2f}".replace(".", ",")
 
 
-def caso(indice: int, tipo: str, pergunta: str, resposta: str, bruto: dict, produto: str) -> dict:
+Especificacao = tuple[str, str, str, dict, str]  # tipo, pergunta, resposta, bruto, produto
+
+
+def caso(indice: int, spec: Especificacao) -> dict:
+    tipo, pergunta, resposta, bruto, produto = spec
     return {
         "id": indice,
         "tipo": tipo,
@@ -69,9 +73,6 @@ def caso(indice: int, tipo: str, pergunta: str, resposta: str, bruto: dict, prod
         # abre fila de revisão para este conjunto.
         "revisao": {"status": "aprovado", "em": None},
     }
-
-
-Especificacao = tuple[str, str, str, dict, str]  # tipo, pergunta, resposta, bruto, produto
 
 
 def _girar(ordenados: list[dict], n: int, offset: int) -> list[dict]:
@@ -208,7 +209,7 @@ def montar(produtos: list[dict], estoques: dict[int, dict[str, int]]) -> list[di
     specs += _specs_comparacao(ordenados)
     specs += _specs_categoria(ordenados)
     _completar_com_preco(ordenados, specs)
-    return [caso(i, *spec) for i, spec in enumerate(specs, start=1)]
+    return [caso(i, spec) for i, spec in enumerate(specs, start=1)]
 
 
 def envelope(casos: list[dict], total_produtos: int) -> dict:

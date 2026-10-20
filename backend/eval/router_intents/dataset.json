@@ -1,8 +1,8 @@
 {
   "descricao": "Conjunto de 300 mensagens do roteador (Estratégia A, Fase 10). Rótulo = domínio esperado; `chega_ao_llm` diz se a mensagem passa do atalho por palavra-chave e chega ao classificador LLM.",
   "observacoes": "Rascunho gerado por liquid/lfm-2.5-2.6b:free, todo item `revisao.status = pendente`. `chega_ao_llm` e `motivo_caminho` são calculados pelas funções reais de `app.router.classifier` (`_is_cortesia`, `_match_domain_by_keywords`), não pelo modelo. Reportar duas taxas na avaliação: acurácia do sistema (todos os casos) e acurácia do modelo no subconjunto que chega a ele. Em 2026-10-20 as ambíguas foram regeradas por deepseek/deepseek-v4.1-flash com `intencoes_aceitas` (par de domínios fixo; acerta quem cair em qualquer um) e as 137 antigas de rótulo único saíram; ambíguas ficam fora do placar principal.",
-  "total": 416,
-  "chegam_ao_llm": 317,
+  "total": 452,
+  "chegam_ao_llm": 338,
   "casos": [
     {
       "id": 1,
@@ -5580,6 +5580,438 @@
     {
       "id": 607,
       "mensagem": "Me conta uma piada",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 608,
+      "mensagem": "Queria conhecer o IDBlock Facial, tem como alguem ir na minha empresa mostrar?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 609,
+      "mensagem": "Preciso de manutenção preventiva no IDPower, como faço pra equipe passar aqui?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 610,
+      "mensagem": "Quero receber um vendedor pra falar do REP iDClass na minha loja.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 611,
+      "mensagem": "Pode cancelar o atendimento que ficou combinado comigo? Não vou conseguir.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 612,
+      "mensagem": "Preciso muda o dia que combinamos pro SAT iD, pode ser outra data?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 613,
+      "mensagem": "Só confirmando o pessoal que vem amanhã ver o RHiD, tá de pé?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 614,
+      "mensagem": "Queria conhecer a empresa de vocês e ver os leitores QR Code de perto, como faz?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 615,
+      "mensagem": "Tem como fazer uma revisão no IDFit aqui no prédio? Não é defeito, é só manutenção.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_suporte",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 616,
+      "mensagem": "Quero comprar um Print iD Touch, posso ir na unidade de vocês?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 617,
+      "mensagem": "Manda alguem aqui pra falar das catracas e do IDBlock? Quero entender melhor.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 618,
+      "mensagem": "Quero cancelar o que combinei sobre o IDBlock.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 619,
+      "mensagem": "Queria confirmar o atendimento de amanhã pra ver o IDBlock Facial na minha loja.",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 620,
+      "mensagem": "oi queria agendar uma visita pra conhecer o IDBlock Facial, voces tem horario essa semana?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 621,
+      "mensagem": "boa tarde, preciso marcar manutenção no meu leitor QR Code aqui na empresa, pode ser quinta?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 622,
+      "mensagem": "ola, gostaria de receber um vendedor pra ver o REP iDClass Facial, tenho interesse",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 623,
+      "mensagem": "bom dia, quero remarcar minha visita de amanha, deu imprevisto",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 624,
+      "mensagem": "tem como cancelar a visita que marquei pra conhecer a IDPower? nao vou conseguir ir",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 625,
+      "mensagem": "queria confirmar minha visita na unidade, ta marcado pra sexta as 14h, ainda ta de pé?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 626,
+      "mensagem": "boa, preciso agendar alguem pra fazer manutencao do RHiD aqui no escritorio",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 627,
+      "mensagem": "gostaria de conhecer a empresa e ver os produtos, principalmente IDBlock e IDFit, como faço pra agendar?",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 628,
+      "mensagem": "ola, queria comprar em uma unidade da empresa, mas antes quero agendar uma visita pra ver as Tags e o Print iD Touch",
+      "intencao_esperada": "agendamento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 629,
+      "mensagem": "o RHiD chegou com a tela riscada, como faço pra receber outro no lugar?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 630,
+      "mensagem": "como faço pra entrar no site de vocês? esqueci a senha do portal",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 631,
+      "mensagem": "bom dia, comprei um IDBlock Facial semana passada e ainda nao recebi a nota fiscal. como faço pra pedir? pedido 45821",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 632,
+      "mensagem": "oi, quero troca um Leitor QR Code que veio com defeito, chegou hj. qual o prazo e como abro a troca?",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 633,
+      "mensagem": "vcs tem loja fisica em sp? qual horario de atendimento de sabado? nao achei no site",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_agendamento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 634,
+      "mensagem": "ola, fiz pedido de 2 Tags e 1 RHiD mas quero cancelar, ja foi enviado? preciso do estorno",
+      "intencao_esperada": "atendimento",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 635,
+      "mensagem": "quanto sai o IDBlock Facial? preciso de 2 pra recepção",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 636,
+      "mensagem": "o Leitor QR Code funciona junto com o REP iDClass? se der, quero 3",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 637,
+      "mensagem": "quanto custa o IDBlock Facial? e vcs tem pronta entrega? quero fechar 2",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 638,
+      "mensagem": "oi, preciso de um orçamento do REP iDClass Facial + leitor QR Code, da pra me passar? é pra controlar portaria e catraca",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 639,
+      "mensagem": "esse IDFit funciona com o SAT iD? se sim qnt fica 1 kit com Tags e Print iD Touch? quero comprar essa semana",
+      "intencao_esperada": "vendas",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_vendas",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 640,
+      "mensagem": "Valeu, obrigado!",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "cortesia",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 641,
+      "mensagem": "Tem vaga de emprego para a área de marketing?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 642,
+      "mensagem": "Estou pensando em trocar meu notebook por um com mais memória RAM; o que acha?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": false,
+      "motivo_caminho": "atalho_atendimento",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 643,
+      "mensagem": "Bom dia! Sabe me dizer qual foi o resultado do jogo ontem?",
       "intencao_esperada": "fora_escopo",
       "ambiguo": false,
       "chega_ao_llm": true,

@@ -169,6 +169,15 @@ def trecho_confere(trecho: str, texto: str) -> bool:
     return _normalizar(trecho) in _normalizar(texto)
 
 
+def _texto(bruto: dict, campo: str) -> str:
+    return (bruto.get(campo) or "").strip()
+
+
+def _dificuldade_valida(bruto: dict) -> str:
+    dificuldade = bruto.get("dificuldade") or "media"
+    return dificuldade if dificuldade in {"facil", "media", "dificil"} else "media"
+
+
 def montar_casos(
     brutos: list[dict],
     documento: str,
@@ -189,19 +198,16 @@ def montar_casos(
     """
     casos = []
     for i, bruto in enumerate(brutos):
-        pergunta = (bruto.get("pergunta") or "").strip()
-        resposta = (bruto.get("resposta_esperada") or "").strip()
+        pergunta = _texto(bruto, "pergunta")
+        resposta = _texto(bruto, "resposta_esperada")
         if not pergunta or not resposta:
             continue
-        trecho = (bruto.get("trecho_origem") or "").strip()[:MAX_CHARS_TRECHO]
-        dificuldade = bruto.get("dificuldade") or "media"
+        trecho = _texto(bruto, "trecho_origem")[:MAX_CHARS_TRECHO]
         casos.append(
             {
                 "id": proximo_id + i,
                 "pergunta": pergunta,
-                "dificuldade": dificuldade
-                if dificuldade in {"facil", "media", "dificil"}
-                else "media",
+                "dificuldade": _dificuldade_valida(bruto),
                 "documento_origem": documento,
                 "arquivo_origem": arquivo_origem or documento,
                 "origem_ambigua": origem_ambigua,
@@ -362,9 +368,17 @@ def _carregar_casos_anteriores(args, saida: Path) -> tuple[list[dict], bool]:
     return [], False
 
 
-async def _gerar_documento(
-    ctx: ContextoGeracao, indice: int, total: int, doc: dict, n: int, origem_ambigua: bool
-) -> None:
+@dataclass
+class ItemPlano:
+    doc: dict
+    n: int
+    origem_ambigua: bool
+    indice: int
+    total: int
+
+
+async def _gerar_documento(ctx: ContextoGeracao, item: ItemPlano) -> None:
+    doc, n, indice, total = item.doc, item.n, item.indice, item.total
     arquivo = doc["arquivo"]
     nome = Path(arquivo).name
     caminho = ctx.raiz / ctx.corpus / arquivo
@@ -389,7 +403,7 @@ async def _gerar_documento(
         texto,
         proximo_id,
         arquivo_origem=arquivo,
-        origem_ambigua=origem_ambigua,
+        origem_ambigua=item.origem_ambigua,
     )
     sem_trecho = sum(1 for c in novos if not c["trecho_confere"])
     ctx.casos.extend(novos)
@@ -425,6 +439,21 @@ def _imprimir_resumo(saida: Path, casos: list[dict]) -> None:
     print("Todos nascem pendentes: revise em /admin/datasets antes de rodar a avaliação.")
 
 
+def _criar_client(modelo_arg: str | None) -> tuple[OpenRouterClient, str] | None:
+    settings = get_settings()
+    modelo = modelo_arg or settings.external_model_name
+    if not modelo:
+        print("EXTERNAL_MODEL_NAME vazio: configure o modelo do rascunho no .env.")
+        return None
+    client = OpenRouterClient(
+        base_url=settings.external_model_base_url,
+        api_key=settings.external_model_api_key,
+        model=modelo,
+        timeout_s=settings.external_llm_timeout_s,
+    )
+    return client, modelo
+
+
 async def executar(args) -> int:
     auditoria_path = Path(args.auditoria)
     if not auditoria_path.exists():
@@ -453,17 +482,10 @@ async def executar(args) -> int:
         docs = docs[: args.limite_docs]
     plano = cota_por_documento(docs, args.total, args.por_documento)
 
-    settings = get_settings()
-    modelo = args.modelo or settings.external_model_name
-    if not modelo:
-        print("EXTERNAL_MODEL_NAME vazio: configure o modelo do rascunho no .env.")
+    criado = _criar_client(args.modelo)
+    if criado is None:
         return 1
-    client = OpenRouterClient(
-        base_url=settings.external_model_base_url,
-        api_key=settings.external_model_api_key,
-        model=modelo,
-        timeout_s=settings.external_llm_timeout_s,
-    )
+    client, modelo = criado
     print(f"Modelo do rascunho: {modelo}")
     print(
         f"{len(plano)} documento(s) no plano, meta de {args.total} pergunta(s) respondível(is).\n"
@@ -477,7 +499,7 @@ async def executar(args) -> int:
             if doc["arquivo"] in cobertos:
                 continue
             ambigua = basenames[Path(doc["arquivo"]).name] > 1
-            await _gerar_documento(ctx, indice, len(plano), doc, n, ambigua)
+            await _gerar_documento(ctx, ItemPlano(doc, n, ambigua, indice, len(plano)))
         await _gerar_sem_resposta(ctx, auditoria, args.sem_resposta)
     finally:
         # Mesmo com erro no meio, o que já foi gerado fica no arquivo: no

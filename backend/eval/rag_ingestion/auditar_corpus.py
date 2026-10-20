@@ -173,9 +173,7 @@ def auditar_outros(corpus: Path) -> list[dict]:
     return itens
 
 
-def cruzar_por_pasta(pdfs: list[dict], imagens: list[dict], corpus: Path) -> list[dict]:
-    """Para cada pasta de produto: o que ela pode sustentar como gabarito."""
-    pastas = sorted(p.name for p in corpus.iterdir() if p.is_dir())
+def _contar_por_pasta(pdfs: list[dict], imagens: list[dict]) -> dict[str, dict]:
     por_pasta: dict[str, dict] = defaultdict(
         lambda: {"pdfs_uteis": 0, "pdfs_degenerados": 0, "chars_uteis": 0, "imagens_validas": 0}
     )
@@ -189,22 +187,27 @@ def cruzar_por_pasta(pdfs: list[dict], imagens: list[dict], corpus: Path) -> lis
     for item in imagens:
         if item["classificacao"] == "valida":
             por_pasta[item["pasta"]]["imagens_validas"] += 1
+    return por_pasta
 
-    resultado = []
-    for pasta in pastas:
-        dados = por_pasta[pasta]
-        tem_texto = dados["pdfs_uteis"] > 0
-        tem_imagem = dados["imagens_validas"] > 0
-        if tem_texto and tem_imagem:
-            sustenta = "documento+imagem"
-        elif tem_texto:
-            sustenta = "so_documento"
-        elif tem_imagem:
-            sustenta = "so_imagem"
-        else:
-            sustenta = "nada"
-        resultado.append({"pasta": pasta, **dados, "sustenta": sustenta})
-    return resultado
+
+def _o_que_sustenta(dados: dict) -> str:
+    tem_texto = dados["pdfs_uteis"] > 0
+    tem_imagem = dados["imagens_validas"] > 0
+    if tem_texto and tem_imagem:
+        return "documento+imagem"
+    if tem_texto:
+        return "so_documento"
+    return "so_imagem" if tem_imagem else "nada"
+
+
+def cruzar_por_pasta(pdfs: list[dict], imagens: list[dict], corpus: Path) -> list[dict]:
+    """Para cada pasta de produto: o que ela pode sustentar como gabarito."""
+    pastas = sorted(p.name for p in corpus.iterdir() if p.is_dir())
+    por_pasta = _contar_por_pasta(pdfs, imagens)
+    return [
+        {"pasta": pasta, **por_pasta[pasta], "sustenta": _o_que_sustenta(por_pasta[pasta])}
+        for pasta in pastas
+    ]
 
 
 def auditar(corpus: Path) -> dict:
