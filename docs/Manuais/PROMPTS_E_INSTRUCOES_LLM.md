@@ -930,6 +930,15 @@ keywords, não o modelo que se quer escolher.
   vendas com suporte/atendimento e produzia frases sem sentido ("o preço é alto
   e preciso configurar a biometria antes de comprar"), que a revisão humana
   descartava.
+- `_PROMPT_AMBIGUA_PAR` (2026-10-20, flag `--ambiguas-por-par`, gerador
+  `deepseek/deepseek-v4.1-flash`) substitui o anterior nas ambíguas: pede
+  mensagens que caibam **legitimamente nos dois domínios** de um par fixo
+  (`PARES_AMBIGUOS`: vendas/agendamento, vendas/suporte, vendas/atendimento,
+  suporte/agendamento, atendimento/suporte), com as duas leituras igualmente
+  defensáveis, 8–20 palavras, sem pedido de remarcar/reagendar/cancelar visita.
+  O caso grava `intencoes_aceitas` com os dois domínios (acerta quem cair em
+  qualquer um) e fica fora do placar principal. Motivo: com rótulo único, pares
+  como suporte+agendamento eram arbitrários (descarte de 53% na revisão).
 - `_PROMPT_LIVRE` pede mensagens sem restrição de vocabulário, para que a
   "acurácia do sistema" reflita o mix real em vez de só o caminho difícil.
 - `_PROMPT_FORA_ESCOPO` cobre o quinto rótulo com saudação, pergunta

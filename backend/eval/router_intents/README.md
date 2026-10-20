@@ -161,9 +161,15 @@ rodada de chamadas.
 | agendamento | 60 | | cortesia | 4 |
 | fora_escopo | 60 | | | |
 
-79 casos marcados `ambiguo: true`. A revisão prevista é **por amostra**
-(~140 itens): todas as ambíguas, onde o rótulo automático é discutível, mais
-uma amostra aleatória de 40 das demais. **Risco assumido:** um erro
+Em 2026-10-20 as ambíguas foram **regeradas** (`deepseek/deepseek-v4.1-flash`,
+`gerar_dataset.py --ambiguas-por-par`): cada uma nasce de um par fixo de domínios
+(vendas/agendamento, vendas/suporte, vendas/atendimento, suporte/agendamento,
+atendimento/suporte) e traz `intencoes_aceitas`; acerta quem cair em qualquer um.
+As 137 antigas, de rótulo único e arbitrário entre pares, saíram. As ambíguas
+(`ambiguo: true`) ficam **fora do placar principal** (`acuracia_ambiguas` à parte).
+Os casos com `revisao.status = descartado` são ignorados pelos avaliadores. A
+revisão prevista é **por amostra**: todas as ambíguas, onde o rótulo automático é
+discutível, mais uma amostra aleatória das demais. **Risco assumido:** um erro
 *sistemático* do rotulador pode escapar da amostra de 40.
 
 **Reportar duas taxas**, nunca uma: acurácia do sistema (299 casos) e acurácia

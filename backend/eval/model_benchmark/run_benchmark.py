@@ -250,7 +250,7 @@ def gravar_envelope(candidato: dict, envelope: dict) -> Path:
 
 def _carregar_dataset(subpasta: str) -> list[dict]:
     dados = json.loads((EVAL_DIR / subpasta / "dataset.json").read_text(encoding="utf-8"))
-    return dados["casos"]
+    return [c for c in dados["casos"] if (c.get("revisao") or {}).get("status") != "descartado"]
 
 
 async def etapa_roteador(cliente: ClienteInstrumentado, external_client) -> dict:
@@ -262,7 +262,9 @@ async def etapa_roteador(cliente: ClienteInstrumentado, external_client) -> dict
 
     matriz: dict[str, dict[str, int]] = {esperado: {} for esperado in _DOMINIOS}
     erros: list[dict] = []
-    acertos = 0
+    # Placar principal = não ambíguas; as ambíguas aceitam qualquer domínio de
+    # `intencoes_aceitas` e têm placar à parte.
+    acertos = total_principal = acertos_amb = total_amb = 0
 
     for caso in casos:
         resultado = await classify(
@@ -278,25 +280,34 @@ async def etapa_roteador(cliente: ClienteInstrumentado, external_client) -> dict
         esperado = caso["intencao_esperada"]
         previsto = resultado.domain
         matriz[esperado][previsto] = matriz[esperado].get(previsto, 0) + 1
-        if previsto == esperado:
-            acertos += 1
+        ambiguo = bool(caso.get("ambiguo", False))
+        acertou = previsto in (caso.get("intencoes_aceitas") or [esperado])
+        if ambiguo:
+            total_amb += 1
+            acertos_amb += acertou
         else:
+            total_principal += 1
+            acertos += acertou
+        if not acertou:
             erros.append(
                 {
                     "id": caso["id"],
                     "esperado": esperado,
                     "previsto": previsto,
-                    "ambiguo": caso.get("ambiguo", False),
+                    "ambiguo": ambiguo,
                 }
             )
 
     cliente.checar_json_classificacao = False
-    total = len(casos)
+    total = total_principal
     tentativas_json = cliente.json_validos + cliente.json_invalidos
     return {
         "acuracia": round(acertos / total, 4) if total else None,
         "acertos": acertos,
         "total": total,
+        "acuracia_ambiguas": round(acertos_amb / total_amb, 4) if total_amb else None,
+        "acertos_ambiguas": acertos_amb,
+        "total_ambiguas": total_amb,
         "json_invalidos": cliente.json_invalidos,
         "json_tentativas": tentativas_json,
         "json_invalido_taxa": (

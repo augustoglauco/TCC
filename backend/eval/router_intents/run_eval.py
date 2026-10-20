@@ -10,7 +10,9 @@ configurada no `.env` — chama a API real do OpenRouter para o provedor
 
     .venv/bin/python eval/router_intents/run_eval.py
 
-Salva `eval/router_intents/results.json` com, por provedor: acurácia geral,
+Salva `eval/router_intents/results.json` com, por provedor: acurácia geral
+(só casos não ambíguos; as ambíguas têm `acuracia_ambiguas` à parte e
+aceitam qualquer domínio de `intencoes_aceitas`),
 matriz de confusão (domínio esperado x domínio previsto — inclui
 `fora_escopo` como coluna extra quando o classificador escala em vez de
 decidir), latência média por chamada, contagem de degradação silenciosa
@@ -37,7 +39,7 @@ BASE_DIR = Path(__file__).parent
 
 def _carregar_casos() -> list[dict]:
     dados = json.loads((BASE_DIR / "dataset.json").read_text(encoding="utf-8"))
-    return dados["casos"]
+    return [c for c in dados["casos"] if (c.get("revisao") or {}).get("status") != "descartado"]
 
 
 async def _avaliar_provider(
@@ -47,7 +49,10 @@ async def _avaliar_provider(
     erros = []
     degradacoes = []
     latencias = []
-    acertos = 0
+    # Placar principal = só não ambíguas; ambíguas (multi-rótulo, acertam em
+    # qualquer `intencoes_aceitas`) têm placar à parte.
+    acertos = total_principal = 0
+    acertos_amb = total_amb = 0
 
     # `classify()` só chama de fato o LLM local para provider="heuristica_llm"
     # quando `strategy="llm"` também é passado — mesma lógica de
@@ -75,26 +80,37 @@ async def _avaliar_provider(
         if resultado.provider_efetivo != provider:
             degradacoes.append({"id": caso["id"], "provider_efetivo": resultado.provider_efetivo})
 
-        if previsto == esperado:
-            acertos += 1
+        ambiguo = bool(caso.get("ambiguo", False))
+        aceitas = caso.get("intencoes_aceitas") or [esperado]
+        acertou = previsto in aceitas
+        if ambiguo:
+            total_amb += 1
+            acertos_amb += acertou
         else:
+            total_principal += 1
+            acertos += acertou
+
+        if not acertou:
             erros.append(
                 {
                     "id": caso["id"],
                     "mensagem": caso["mensagem"],
                     "esperado": esperado,
                     "previsto": previsto,
-                    "ambiguo": caso.get("ambiguo", False),
+                    "ambiguo": ambiguo,
+                    "aceitas": aceitas,
                     "provider_efetivo": resultado.provider_efetivo,
                 }
             )
 
-    total = len(casos)
     return {
         "provider": provider,
-        "acuracia": round(acertos / total, 4),
+        "acuracia": round(acertos / max(1, total_principal), 4),
         "acertos": acertos,
-        "total": total,
+        "total": total_principal,
+        "acuracia_ambiguas": round(acertos_amb / total_amb, 4) if total_amb else None,
+        "acertos_ambiguas": acertos_amb,
+        "total_ambiguas": total_amb,
         "latencia_media_s": round(sum(latencias) / len(latencias), 3),
         "degradacoes_de_provider": degradacoes,
         "matriz_confusao": matriz,

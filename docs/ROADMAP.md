@@ -2105,6 +2105,12 @@ conversa e classificação do usuário").
         IC 95% de Wilson a p=0,70 é ±5,2 pp, então 10 pp é ~2 IC e não elimina
         por ruído — com teto de 5 sobreviventes, desempate por `visao_local` e
         depois por menor `latencia_p95_s`.
+  - [x] Ambíguas do roteador regeradas (2026-10-20): multi-rótulo
+        (`intencoes_aceitas`, 5 pares fixos) por `deepseek/deepseek-v4.1-flash`,
+        fora do placar principal (`acuracia_ambiguas` à parte em `run_eval.py` e
+        `run_benchmark.py`); loaders ignoram `descartado`; item 409 aceita
+        vendas e agendamento. 109 casos novos `pendente` aguardam revisão humana
+        em `/admin/datasets` (Passo 3).
   - [ ] Rodar a triagem (depende dos conjuntos de roteador e imagem)
 - [x] Orquestrador `eval/model_benchmark/` (2026-10-16). `run_benchmark.py`
       não cria avaliação nova: reexecuta as três que já existem

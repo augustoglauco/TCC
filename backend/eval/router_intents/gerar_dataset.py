@@ -186,6 +186,68 @@ Responda só com um array JSON de strings:
 ["mensagem 1", "mensagem 2"]"""
 
 
+# Ambíguas multi-rótulo (2026-10-20): com rótulo único, suporte+agendamento
+# e atendimento+suporte eram arbitrários (mesmo molde, rótulos opostos). Agora
+# cada par é fixo e o caso aceita os dois domínios em `intencoes_aceitas`.
+PARES_AMBIGUOS = (
+    (
+        "vendas",
+        "agendamento",
+        "quero comprar a catraca, dá pra marcar uma visita pra ver o local antes?",
+    ),
+    (
+        "suporte",
+        "agendamento",
+        "o leitor facial está com defeito, dá pra marcar um técnico aí?",
+    ),
+    (
+        "atendimento",
+        "suporte",
+        "comprei a catraca e veio com defeito, quero a troca",
+    ),
+    # Pares com vendas, para o domínio não ficar só em um par (2026-10-20):
+    # dúvida técnica antes de comprar e recompra a partir de pedido anterior.
+    (
+        "vendas",
+        "suporte",
+        "quero comprar o leitor, mas funciona com o sistema que já uso? preciso de ajuda técnica",
+    ),
+    (
+        "vendas",
+        "atendimento",
+        "quero comprar mais duas catracas iguais às do pedido anterior, dá pra ver o histórico?",
+    ),
+)
+
+_PROMPT_AMBIGUA_PAR = """Você monta a parte difícil do conjunto de teste do roteador \
+de intenção de um assistente de controle de acesso e segurança eletrônica.
+
+Produtos do catálogo:
+{produtos}
+
+Escreva {n} mensagens de cliente que **caibam legitimamente em dois domínios**: \
+**{dominio}** ({descricao}) e **{outro}** ({descricao_outro}). Um atendente \
+humano aceitaria encaminhar para qualquer um dos dois; as duas leituras são \
+igualmente defensáveis.
+
+Regras:
+- A mensagem tem de **fazer sentido como situação real de um cliente**, escrita \
+por uma pessoa só, com um único objetivo.
+- Cada mensagem deve conter ao menos uma palavra de cada um destes dois grupos:
+{grupos}
+- **Curta**: de 8 a 20 palavras, uma ou duas frases, tom de WhatsApp.
+- Português correto e coerente, **sem erro de digitação proposital**.
+- Cite o produto pelo nome em, no máximo, metade das mensagens; nas outras, \
+diga só "o leitor", "a catraca", "o relógio".
+- **Só visita nova**: nunca peça remarcar, reagendar nem cancelar visita.
+- Não misture um terceiro domínio. Varie o começo e o jeito de pedir.
+
+Exemplo do tipo de mistura (não copie): "{exemplo}".
+
+Responda só com um array JSON de strings:
+["mensagem 1", "mensagem 2"]"""
+
+
 class _ClienteSemRaciocinio(httpx.AsyncClient):
     """Desliga o raciocínio oculto (Qwen3.5 etc.) no Ollama: com o prompt longo
     ele gasta a saída pensando e devolve `content` vazio."""
@@ -262,7 +324,12 @@ def produtos_do_corpus(limite: int = 12) -> list[str]:
 
 
 def montar_casos(
-    mensagens: list[str], dominio: str, ambiguo: bool, proximo_id: int, vistos: set[str]
+    mensagens: list[str],
+    dominio: str,
+    ambiguo: bool,
+    proximo_id: int,
+    vistos: set[str],
+    aceitas: list[str] | None = None,
 ) -> list[dict]:
     casos = []
     for mensagem in mensagens:
@@ -272,17 +339,18 @@ def montar_casos(
             continue
         vistos.add(chave)
         chega, motivo = classificar_caminho(texto)
-        casos.append(
-            {
-                "id": proximo_id + len(casos),
-                "mensagem": texto,
-                "intencao_esperada": dominio,
-                "ambiguo": ambiguo,
-                "chega_ao_llm": chega,
-                "motivo_caminho": motivo,
-                "revisao": {"status": "pendente", "em": None},
-            }
-        )
+        caso = {
+            "id": proximo_id + len(casos),
+            "mensagem": texto,
+            "intencao_esperada": dominio,
+            "ambiguo": ambiguo,
+            "chega_ao_llm": chega,
+            "motivo_caminho": motivo,
+            "revisao": {"status": "pendente", "em": None},
+        }
+        if aceitas:
+            caso["intencoes_aceitas"] = aceitas
+        casos.append(caso)
     return casos
 
 
@@ -357,6 +425,11 @@ async def executar(args) -> int:
 
     casos: list[dict] = []
     vistos: set[str] = set()
+    for arquivo in args.evitar:
+        vistos |= {
+            c["mensagem"].lower()
+            for c in json.loads(Path(arquivo).read_text(encoding="utf-8"))["casos"]
+        }
     if args.completar and saida.exists():
         casos = json.loads(saida.read_text(encoding="utf-8"))["casos"]
         vistos = {c["mensagem"].lower() for c in casos}
@@ -408,6 +481,53 @@ async def executar(args) -> int:
             if not novos:
                 break
             restante -= len(novos)
+
+    if args.extra_nao_ambiguas:
+        # Só as "difíceis" (sem palavra da tabela), que chegam ao LLM.
+        for item in args.extra_nao_ambiguas.split(","):
+            dominio, quantos = item.split(":")
+            await pedir(_PROMPT_DOMINIO, dominio, False, int(quantos), "extra-sem-keyword")
+        salvar(saida, casos, modelo)
+        print(f"\n{saida}: {len(casos)} não ambígua(s) extras.")
+        return 0
+
+    if args.ambiguas_por_par:
+        # Só ambíguas multi-rótulo, em arquivo à parte (a mescla no
+        # dataset.json é decisão de quem revisa).
+        for dominio, outro, exemplo in PARES_AMBIGUOS:
+            if args.pares and f"{dominio}+{outro}" not in args.pares.split(","):
+                continue
+            restante = args.ambiguas_por_par
+            while restante > 0:
+                n = min(LOTE, restante)
+                print(f"[par] {dominio}+{outro}: pedindo {n}...")
+                if args.dry_run:
+                    break
+                prompt = _PROMPT_AMBIGUA_PAR.format(
+                    n=n,
+                    produtos=produtos,
+                    dominio=dominio,
+                    descricao=DESCRICAO_DOMINIO[dominio],
+                    outro=outro,
+                    descricao_outro=DESCRICAO_DOMINIO[outro],
+                    grupos=_grupos_de_keywords((dominio, outro)),
+                    exemplo=exemplo,
+                )
+                mensagens = await _gerar(client, prompt)
+                proximo = max((c["id"] for c in casos), default=0) + 1
+                novos = montar_casos(
+                    mensagens[:n], dominio, True, proximo, vistos, [dominio, outro]
+                )
+                casos.extend(novos)
+                chegam = sum(1 for c in novos if c["chega_ao_llm"])
+                print(f"    {len(novos)} caso(s), {chegam} chega(m) ao LLM")
+                salvar(saida, casos, modelo)
+                if not novos:
+                    break
+                restante -= len(novos)
+        salvar(saida, casos, modelo)
+        print(f"\n{saida}: {len(casos)} ambígua(s) multi-rótulo.")
+        return 0
 
     if args.piloto:
         # Só ambíguas, para medir a qualidade do gerador antes da rodada toda.
@@ -466,6 +586,23 @@ def main(argv: list[str]) -> int:
         default=0,
         metavar="N",
         help="gera só N ambíguas por domínio (use com --saida fora de dataset.json)",
+    )
+    parser.add_argument(
+        "--ambiguas-por-par",
+        type=int,
+        default=0,
+        metavar="N",
+        help="gera só N ambíguas multi-rótulo (`intencoes_aceitas`) por par de domínios",
+    )
+    parser.add_argument("--pares", default="", help='filtra pares, ex.: "vendas+suporte"')
+    parser.add_argument(
+        "--extra-nao-ambiguas",
+        default="",
+        metavar="DOM:N,...",
+        help='gera N não ambíguas difíceis por domínio, ex.: "agendamento:12,atendimento:3"',
+    )
+    parser.add_argument(
+        "--evitar", nargs="*", default=[], help="datasets cujas mensagens não podem repetir"
     )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
