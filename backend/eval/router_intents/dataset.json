@@ -1,8 +1,8 @@
 {
   "descricao": "Conjunto de 300 mensagens do roteador (Estratégia A, Fase 10). Rótulo = domínio esperado; `chega_ao_llm` diz se a mensagem passa do atalho por palavra-chave e chega ao classificador LLM.",
   "observacoes": "Rascunho gerado por liquid/lfm-2.5-2.6b:free, todo item `revisao.status = pendente`. `chega_ao_llm` e `motivo_caminho` são calculados pelas funções reais de `app.router.classifier` (`_is_cortesia`, `_match_domain_by_keywords`), não pelo modelo. Reportar duas taxas na avaliação: acurácia do sistema (todos os casos) e acurácia do modelo no subconjunto que chega a ele. Em 2026-10-20 as ambíguas foram regeradas por deepseek/deepseek-v4.1-flash com `intencoes_aceitas` (par de domínios fixo; acerta quem cair em qualquer um) e as 137 antigas de rótulo único saíram; ambíguas ficam fora do placar principal.",
-  "total": 397,
-  "chegam_ao_llm": 298,
+  "total": 416,
+  "chegam_ao_llm": 317,
   "casos": [
     {
       "id": 1,
@@ -5204,6 +5204,298 @@
     {
       "id": 588,
       "mensagem": "Qual foi o resultado do jogo ontem?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 589,
+      "mensagem": "Comprei um leitor antes e agora queria orçamento para mais dois; pode ver meu histórico?",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 590,
+      "mensagem": "Meu pedido anterior teve atraso; por isso, qual o preço do leitor com desconto?",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 591,
+      "mensagem": "O IDBlock Facial está disponível? Preciso incluir na nota fiscal do meu pedido.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 592,
+      "mensagem": "Comprei um leitor e quero desconto na troca por outro; tem disponível?",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 593,
+      "mensagem": "Meu pedido anterior teve atraso; ainda tem estoque para eu comprar outro?",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 594,
+      "mensagem": "Comprei Tags e preciso de devolução; qual o preço do leitor novo?",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 595,
+      "mensagem": "A cotação do equipamento inclui nota fiscal? Meu pedido anterior não veio com uma.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 596,
+      "mensagem": "Tem desconto no IDFit? Quero troca do que comprei por ele.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 597,
+      "mensagem": "Preciso do cancelamento do meu pedido anterior; depois, qual o preço do controlador?",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 598,
+      "mensagem": "Vocês têm o leitor disponível? Quero incluir no meu pedido que já fiz.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 599,
+      "mensagem": "Comprei o IDBlock e preciso da nota fiscal; a loja vende separado para troca?",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 600,
+      "mensagem": "Ainda tem estoque do SAT iD? Quero troca do meu pedido anterior.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 601,
+      "mensagem": "Com o atraso do meu pedido anterior, quero troca; o leitor está disponível?",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 602,
+      "mensagem": "Meu pedido anterior veio errado; quero orçamento para comprar o leitor compatível.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 603,
+      "mensagem": "Comprei um IDBlock e quero saber se há desconto na troca por outro compatível.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 604,
+      "mensagem": "Quero cotação do REP iDClass, mas preciso ver o que comprei antes.",
+      "intencao_esperada": "vendas",
+      "ambiguo": true,
+      "chega_ao_llm": true,
+      "motivo_caminho": "duas_ou_mais_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      },
+      "intencoes_aceitas": [
+        "vendas",
+        "atendimento"
+      ]
+    },
+    {
+      "id": 605,
+      "mensagem": "Bom dia, você viu o novo lançamento do Python?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 606,
+      "mensagem": "Vocês patrocinam eventos comunitários?",
+      "intencao_esperada": "fora_escopo",
+      "ambiguo": false,
+      "chega_ao_llm": true,
+      "motivo_caminho": "zero_keywords",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 607,
+      "mensagem": "Me conta uma piada",
       "intencao_esperada": "fora_escopo",
       "ambiguo": false,
       "chega_ao_llm": true,

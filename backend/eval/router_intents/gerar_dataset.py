@@ -220,7 +220,7 @@ PARES_AMBIGUOS = (
     (
         "vendas",
         "atendimento",
-        "quero comprar mais duas catracas iguais às do pedido anterior, dá pra ver o histórico?",
+        "quero comprar a catraca, vocês ficam onde? dá pra ir aí ver pessoalmente?",
     ),
 )
 
@@ -244,6 +244,12 @@ por uma pessoa só, com um único objetivo.
 - Português correto e coerente, **sem erro de digitação proposital**.
 - Cite o produto pelo nome em, no máximo, metade das mensagens; nas outras, \
 diga só "o leitor", "a catraca", "o relógio".
+- **Uma frase complementa a outra**: as duas partes têm de formar um único \
+pedido coerente, nunca duas perguntas soltas sem relação.
+- Atendimento é pós-compra **ou** dúvida genérica sobre a empresa (localização, \
+horário de funcionamento, acesso ao site). Pós-compra (pedido, troca, nota \
+fiscal, atraso) só se a pessoa já comprou antes: diga "meu pedido anterior", \
+"o que comprei". Quem ainda quer comprar não tem pedido para atrasar ou trocar.
 - **Só visita nova**: nunca peça remarcar, reagendar nem cancelar visita.
 - Não misture um terceiro domínio. Varie o começo e o jeito de pedir.
 
