@@ -617,15 +617,14 @@ def _validar_bytes_identificacao(image_b64: str) -> bytes:
 
 
 async def _preprocessar_imagem(
-    image_b64: str | None,
-    image_intent: str | None,
+    payload: ChatMessageRequest,
     effective_message: str | None,
     conversation_id: str,
-    user_email: str | None,
     app_state,
 ) -> _ImagemPreprocessada:
     """Detecta intenção (comprovante vs. identificação), roda OCR se necessário,
     valida bytes para CLIP. Retorna flags e mensagem efetiva atualizada."""
+    image_b64 = payload.image
     if not image_b64:
         return _ImagemPreprocessada(
             effective_message=effective_message,
@@ -634,9 +633,12 @@ async def _preprocessar_imagem(
             identificacao_image_bytes=None,
         )
 
-    tem_reserva_pendente = await _tem_reserva_pendente(app_state, conversation_id, user_email)
+    tem_reserva_pendente = await _tem_reserva_pendente(
+        app_state, conversation_id, payload.user_email
+    )
     comprovante_por_legenda_ou_intent = (
-        image_intent == "documento" or detectar_intencao_comprovante(effective_message or "")
+        payload.image_intent == "documento"
+        or detectar_intencao_comprovante(effective_message or "")
     )
     imagem_e_documento = comprovante_por_legenda_ou_intent or tem_reserva_pendente
     forcado_so_por_reserva_pendente = tem_reserva_pendente and not comprovante_por_legenda_ou_intent
@@ -913,24 +915,26 @@ async def _stream_resposta_fixa_email(
     yield _sse("done", done_data.model_dump(mode="json"))
 
 
-async def _finalizar_troca(
-    event: RouterDecision,
-    *,
-    app_state,
-    conversation_id: str,
-    effective_message: str | None,
-    resposta: str,
-    local_client: LLMClient,
-) -> str:
+@dataclass
+class _ContextoTroca:
+    """Onde e a partir de que mensagem a troca atual é gravada."""
+
+    app_state: Any
+    conversation_id: str
+    effective_message: str | None
+    local_client: LLMClient
+
+
+async def _finalizar_troca(event: RouterDecision, resposta: str, troca: _ContextoTroca) -> str:
     """Persiste a troca e devolve o evento SSE `done` da decisão do roteador."""
     done_data = _router_decision_para_done_data(event)
     await _registrar_troca_segura(
-        app_state,
-        conversation_id,
-        effective_message,
+        troca.app_state,
+        troca.conversation_id,
+        troca.effective_message,
         resposta,
         event.domain,
-        local_client,
+        troca.local_client,
         done_data,
     )
     return _sse("done", done_data.model_dump(mode="json"))
@@ -958,6 +962,7 @@ async def _stream_llm(
     )
 
     partes_resposta: list[str] = []
+    troca = _ContextoTroca(app_state, conversation_id, effective_message, local_client)
     try:
         async for event in handle_message(
             message=effective_message,
@@ -997,14 +1002,7 @@ async def _stream_llm(
                 yield _sse("escalonamento", {"motivo": event.motivo, "confianca": event.confianca})
                 _despachar_escalonamento(event, app_state, conversation_id, effective_message)
             elif isinstance(event, RouterDecision):
-                yield await _finalizar_troca(
-                    event,
-                    app_state=app_state,
-                    conversation_id=conversation_id,
-                    effective_message=effective_message,
-                    resposta="".join(partes_resposta),
-                    local_client=local_client,
-                )
+                yield await _finalizar_troca(event, "".join(partes_resposta), troca)
     except (
         LocalBackendIndisponivelError,
         ExternalBackendIndisponivelError,
@@ -1017,30 +1015,28 @@ async def _stream_llm(
         yield _sse("error", {"detail": "Serviço temporariamente indisponível, tente novamente."})
 
 
-async def _resolver_email_cliente(
-    app_state,
-    conversation_id: str,
-    user_email_payload: str | None,
-    effective_message: str | None,
-    contexto,
-) -> tuple[bool, str | None]:
-    """R10: resolve (usuario_autenticado, email_cliente).
-    Autenticado → usa email do payload e persiste se mudou.
-    Deslogado → extrai da mensagem ou usa o prévio da conversa.
-    Devolve (usuario_autenticado, email_cliente)."""
+def _decidir_email_cliente(
+    user_email_payload: str | None, effective_message: str | None, email_previo: str | None
+) -> tuple[bool, str | None, str | None]:
+    """R10: devolve (usuario_autenticado, email_cliente, email_explicito).
+    Autenticado → usa email do payload. Deslogado → extrai da mensagem ou usa o
+    prévio da conversa. `email_explicito` é o e-mail recém-informado (ou None)."""
     email_autenticado = (user_email_payload or "").strip().lower()
     if email_autenticado:
-        if contexto.email != email_autenticado:
-            await _registrar_email_seguro(app_state, conversation_id, email_autenticado)
-            contexto.email = email_autenticado
-        return True, email_autenticado
-
+        return True, email_autenticado, email_autenticado
     email_na_mensagem = extrair_email(effective_message) if effective_message else None
-    email_cliente = email_na_mensagem or contexto.email
-    if email_na_mensagem and contexto.email != email_na_mensagem:
-        await _registrar_email_seguro(app_state, conversation_id, email_na_mensagem)
-        contexto.email = email_na_mensagem
-    return False, email_cliente
+    return False, email_na_mensagem or email_previo, email_na_mensagem
+
+
+async def _resolver_email_cliente(
+    app_state, conversation_id: str, contexto, decisao: tuple[bool, str | None, str | None]
+) -> tuple[bool, str | None]:
+    """Persiste o e-mail explícito se mudou; devolve (usuario_autenticado, email_cliente)."""
+    usuario_autenticado, email_cliente, email_explicito = decisao
+    if email_explicito and contexto.email != email_explicito:
+        await _registrar_email_seguro(app_state, conversation_id, email_explicito)
+        contexto.email = email_explicito
+    return usuario_autenticado, email_cliente
 
 
 async def _resolver_contexto_cliente(
@@ -1056,7 +1052,10 @@ async def _resolver_contexto_cliente(
     # nunca `payload.user_email` (livre).
     is_admin = await _verificar_modo_admin_seguro(app_state, payload.auth_token)
     usuario_autenticado, email_cliente = await _resolver_email_cliente(
-        app_state, conversation_id, payload.user_email, effective_message, contexto
+        app_state,
+        conversation_id,
+        contexto,
+        _decidir_email_cliente(payload.user_email, effective_message, contexto.email),
     )
     dados_cliente = await _carregar_dados_cliente_seguro(
         app_state,
@@ -1204,12 +1203,7 @@ async def _preprocessar_entrada(
     """Áudio → texto e imagem → intenção/OCR; 422 se não sobrou nada para responder."""
     audio_prep = await _preprocessar_audio(payload.message, payload.audio, stt_client)
     img_prep = await _preprocessar_imagem(
-        payload.image,
-        payload.image_intent,
-        audio_prep.effective_message,
-        conversation_id,
-        payload.user_email,
-        app_state,
+        payload, audio_prep.effective_message, conversation_id, app_state
     )
     if not img_prep.effective_message and not img_prep.is_identificacao_imagem:
         raise HTTPException(
