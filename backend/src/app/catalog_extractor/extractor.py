@@ -295,9 +295,9 @@ def _figura_de_fundo(w: float, h: float, page_w: float, page_h: float) -> bool:
     return w >= page_w * 0.92 and h >= page_h * 0.92
 
 
-def _logo_na_borda(w: float, h: float, top: float, bottom: float, page_h: float) -> bool:
+def _logo_na_borda(w: float, h: float, margem_sup: float, margem_inf: float) -> bool:
     """Figura pequena encostada no topo/rodapé da página (logo, selo, numeração)."""
-    na_borda = top < 38 or bottom > page_h - 38
+    na_borda = margem_sup < 38 or margem_inf < 38
     return na_borda and w < 160 and h < 65
 
 
@@ -314,7 +314,7 @@ def _figura_valida(
     descartada = (
         _figura_pequena_ou_alongada(w, h)
         or _figura_de_fundo(w, h, page_w, page_h)
-        or _logo_na_borda(w, h, top, bottom, page_h)
+        or _logo_na_borda(w, h, top, page_h - bottom)
         or any(_is_duplicate_figure(c, x0, top, w, h) for c in candidates)
     )
     return not descartada
@@ -432,6 +432,40 @@ def _eventos_sse(progresso: dict[str, Any], page_result: CatalogPageResult) -> t
     )
 
 
+async def _extrair_local_seguro(
+    texto: str, local_client: Any, descricao: str
+) -> list[dict[str, Any]]:
+    """Extração local best-effort: falha do modelo vira lista vazia (log em `descricao`)."""
+    try:
+        return await extract_page_products_local(texto, local_client)
+    except Exception as e:  # fronteira de isolamento: o stream segue para a próxima etapa
+        logger.warning(f"{descricao}: {e}")
+        return []
+
+
+async def _visao_externa_segura(
+    img_bytes: bytes,
+    vision_client: Any,
+    *,
+    source_identifier: str,
+    session_factory: Any,
+    descricao: str,
+) -> tuple[list[dict[str, Any]], str | None]:
+    """Visão externa best-effort. Retorna (raw_prods, erro_pagina)."""
+    try:
+        raw_prods = await extract_page_products_vision(
+            img_bytes,
+            vision_client,
+            source_identifier=source_identifier,
+            session_factory=session_factory,
+            ambiente="externo",
+        )
+        return raw_prods, None
+    except Exception as e:  # fronteira de isolamento: o erro vai ao resultado da página
+        logger.error(f"{descricao}: {e}")
+        return [], f"Falha ao consultar modelo de visão externo: {e}"
+
+
 async def _processar_bloco_texto(
     bloco: str,
     num_bloco: int,
@@ -448,10 +482,9 @@ async def _processar_bloco_texto(
     }
     raw_prods: list[dict[str, Any]] = []
     if local_client:
-        try:
-            raw_prods = await extract_page_products_local(bloco, local_client)
-        except Exception as e:
-            logger.warning(f"Erro na extração local do texto {filename}: {e}")
+        raw_prods = await _extrair_local_seguro(
+            bloco, local_client, f"Erro na extração local do texto {filename}"
+        )
     produtos = [
         _montar_produto(
             item,
@@ -485,27 +518,23 @@ async def _extrair_pdf_local_com_fallback(
     erro_pagina: str | None = None
 
     if len(texto_pagina.strip()) >= 30 and cfg.local_client:
-        try:
-            raw_prods = await extract_page_products_local(texto_pagina, cfg.local_client)
-        except Exception as e:
-            logger.warning(f"Erro na extração local: {e}")
+        raw_prods = await _extrair_local_seguro(
+            texto_pagina, cfg.local_client, "Erro na extração local"
+        )
 
     pode_usar_fallback_externo = (
         not raw_prods and cfg.fallback_external and bool(img_bytes) and bool(cfg.vision_client)
     )
     if pode_usar_fallback_externo:
-        try:
-            raw_prods = await extract_page_products_vision(
-                img_bytes,  # type: ignore[arg-type]
-                cfg.vision_client,
-                source_identifier=f"{filename}#p{num_pagina_pdf}",
-                session_factory=cfg.session_factory,
-                ambiente="externo",
-            )
+        raw_prods, erro_pagina = await _visao_externa_segura(
+            img_bytes,  # type: ignore[arg-type]
+            cfg.vision_client,
+            source_identifier=f"{filename}#p{num_pagina_pdf}",
+            session_factory=cfg.session_factory,
+            descricao="Erro no fallback de visão externa",
+        )
+        if erro_pagina is None:
             provider_usado = "external"
-        except Exception as e:
-            logger.error(f"Erro no fallback de visão externa: {e}")
-            erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
 
     return provider_usado, raw_prods, erro_pagina
 
@@ -523,17 +552,13 @@ async def _extrair_produtos_pagina_pdf(
         raw_prods: list[dict[str, Any]] = []
         erro_pagina: str | None = None
         if img_bytes and cfg.vision_client:
-            try:
-                raw_prods = await extract_page_products_vision(
-                    img_bytes,
-                    cfg.vision_client,
-                    source_identifier=f"{filename}#p{num_pagina_pdf}",
-                    session_factory=cfg.session_factory,
-                    ambiente="externo",
-                )
-            except Exception as e:
-                logger.error(f"Erro na visão externa: {e}")
-                erro_pagina = f"Falha ao consultar modelo de visão externo: {e}"
+            raw_prods, erro_pagina = await _visao_externa_segura(
+                img_bytes,
+                cfg.vision_client,
+                source_identifier=f"{filename}#p{num_pagina_pdf}",
+                session_factory=cfg.session_factory,
+                descricao="Erro na visão externa",
+            )
         return cfg.provider, raw_prods, erro_pagina
 
     return await _extrair_pdf_local_com_fallback(
@@ -649,10 +674,9 @@ async def _tentar_extracao_local_imagem(
         logger.warning(f"OCR indisponível/falhou para imagem {filename}: {e}")
 
     if len(texto_ocr.strip()) >= 30:
-        try:
-            raw_prods = await extract_page_products_local(texto_ocr, local_client)
-        except Exception as e:
-            logger.warning(f"Erro na extração local (OCR) da imagem {filename}: {e}")
+        raw_prods = await _extrair_local_seguro(
+            texto_ocr, local_client, f"Erro na extração local (OCR) da imagem {filename}"
+        )
 
     if not raw_prods:
         try:
@@ -676,18 +700,14 @@ async def _tentar_extracao_externa_imagem(
     session_factory: Any,
 ) -> tuple[list[dict[str, Any]], str, str | None]:
     """Tenta visão externa. Retorna (raw_prods, provider_usado, erro_pagina)."""
-    try:
-        raw_prods = await extract_page_products_vision(
-            content,
-            vision_client,
-            source_identifier=filename,
-            session_factory=session_factory,
-            ambiente="externo",
-        )
-        return raw_prods, "external", None
-    except Exception as e:
-        logger.error(f"Erro na visão externa para imagem {filename}: {e}")
-        return [], "external", f"Falha ao consultar modelo de visão externo: {e}"
+    raw_prods, erro = await _visao_externa_segura(
+        content,
+        vision_client,
+        source_identifier=filename,
+        session_factory=session_factory,
+        descricao=f"Erro na visão externa para imagem {filename}",
+    )
+    return raw_prods, "external", erro
 
 
 def _salvar_imagem_temp(content: bytes, temp_dir: Path) -> str:
