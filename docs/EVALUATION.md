@@ -855,11 +855,12 @@ confirmar o critério de corte da triagem no README do benchmark (item 14) e
 sincronizar os números dos documentos (item 18). Você pode ir direto ao
 passo 3.
 
-### Passo 3 — Revisar o Roteador (329 itens válidos, 146 pendentes)
-- **Estado em 2026-10-20:** `dataset.json` tem 452 casos; 329 válidos
-  (141 aprovados, 42 corrigidos, **146 pendentes**) e 249 chegam ao LLM
-  (meta ≥200 atingida). Dos pendentes, 99 são ambíguas e 47 não ambíguas.
-  Os 123 `descartado` ficam no arquivo e são ignorados pelos avaliadores.
+### Passo 3 — Revisar o Roteador (concluído em 2026-10-20)
+- **Estado em 2026-10-20 (22h40):** `dataset.json` tem 452 casos; **0
+  pendentes**. 311 válidos (266 aprovados, 45 corrigidos) e 141 `descartado`
+  (ficam no arquivo e são ignorados pelos avaliadores). Chegam ao LLM 231
+  dos válidos (meta ≥200 atingida): 150 não ambíguos (placar principal) e 81
+  ambíguos. Dos válidos, 229 são não ambíguos e 82 ambíguos.
 - **Ambíguas multi-rótulo.** As 100 ambíguas válidas nascem de um par fixo de
   domínios (vendas/agendamento, vendas/suporte, vendas/atendimento,
   suporte/agendamento, atendimento/suporte) e trazem `intencoes_aceitas`:
@@ -869,7 +870,7 @@ passo 3.
   (`gerar_dataset.py --ambiguas-por-par`); as 137 antigas, de rótulo único,
   saíram.
 - **Placar principal (não ambíguas), meta de 40 por domínio:** fora_escopo
-  59, suporte 48, agendamento 43, vendas 40, atendimento 39.
+  59, suporte 48, agendamento 43, vendas 40, atendimento 39 (total 229).
 - **Definições dos domínios (do dono, 2026-10-20), já no classificador e no
   gerador:**
   - *atendimento*: pós-compra (nota fiscal, troca, devolução, cancelamento,
@@ -896,8 +897,8 @@ passo 3.
   no catálogo, ou tem frases soltas sem relação.
 - **Não mexa em** `chega_ao_llm` e `motivo_caminho`: são calculados pelo
   código do classificador, não pelo modelo.
-- **Pronto quando:** pendentes = 0. Avise o agente: ele confere que ainda
-  sobram ao menos 200 itens que chegam ao LLM depois dos descartes.
+- **Pronto quando:** pendentes = 0 e ao menos 200 itens chegam ao LLM
+  depois dos descartes. **Ambos atendidos**; segue o Passo 4.
 - **Já reavaliado pelo agente em 2026-10-20** (a pedido do dono, que pode ter
   sido induzido nas aprovações anteriores): 60 casos fracos ou mal rotulados
   foram marcados `descartado`, depois restaurados os de compatibilidade e de
