@@ -38,6 +38,7 @@ import argparse
 import asyncio
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 import httpx
@@ -321,20 +322,14 @@ def faltantes(casos: list[dict]) -> list[tuple[str, bool, int]]:
     revisão tirou, na mesma categoria, em vez de só fechar o total.
     """
     vivos = [c for c in casos if (c.get("revisao") or {}).get("status") != "descartado"]
-    faltas: list[tuple[str, bool, int]] = []
-    for dominio in DOMINIOS:
-        for ambiguo, meta in (
-            (True, POR_DOMINIO_DIFICIL // 2),
-            (False, POR_DOMINIO_DIFICIL // 2 + POR_DOMINIO_LIVRE),
-        ):
-            tem = sum(
-                1
-                for c in vivos
-                if c["intencao_esperada"] == dominio and bool(c["ambiguo"]) == ambiguo
-            )
-            if meta > tem:
-                faltas.append((dominio, ambiguo, meta - tem))
-    tem_fora = sum(1 for c in vivos if c["intencao_esperada"] == "fora_escopo")
+    contagem = Counter((c["intencao_esperada"], bool(c["ambiguo"])) for c in vivos)
+    faltas = [
+        (dominio, ambiguo, meta - contagem[(dominio, ambiguo)])
+        for dominio in DOMINIOS
+        for ambiguo, meta in _METAS_POR_DOMINIO
+        if meta > contagem[(dominio, ambiguo)]
+    ]
+    tem_fora = sum(n for (dominio, _), n in contagem.items() if dominio == "fora_escopo")
     if FORA_ESCOPO > tem_fora:
         faltas.append(("fora_escopo", False, FORA_ESCOPO - tem_fora))
     return faltas
@@ -377,29 +372,33 @@ def montar_casos(
     return casos
 
 
-async def _gerar(client, prompt: str) -> list[str]:
+async def _chamar_com_retry(client, prompt: str):
     for tentativa in range(MAX_TENTATIVAS):
         try:
-            resposta = await client.generate(prompt)
-            break
+            return await client.generate(prompt)
         except httpx.HTTPStatusError as exc:
             if exc.response.status_code != 429 or tentativa == MAX_TENTATIVAS - 1:
                 raise
             espera = ESPERA_BASE_S * (2**tentativa)
             print(f"    429 ({tentativa + 1}/{MAX_TENTATIVAS}), aguardando {espera:.0f}s...")
             await asyncio.sleep(espera)
+
+
+def _lista_de_textos(dados) -> list[str]:
+    if isinstance(dados, dict):
+        dados = next((v for v in dados.values() if isinstance(v, list)), dados)
+    return [d for d in dados if isinstance(d, str)] if isinstance(dados, list) else []
+
+
+async def _gerar(client, prompt: str) -> list[str]:
+    resposta = await _chamar_com_retry(client, prompt)
     await asyncio.sleep(PAUSA_ENTRE_CHAMADAS_S)
     try:
         dados = json.loads(strip_code_fence(resposta.text))
     except (ValueError, TypeError) as exc:
         print(f"    JSON inválido do modelo: {exc}")
         return []
-    if isinstance(dados, dict):
-        for valor in dados.values():
-            if isinstance(valor, list):
-                dados = valor
-                break
-    return [d for d in dados if isinstance(d, str)] if isinstance(dados, list) else []
+    return _lista_de_textos(dados)
 
 
 def envelope(casos: list[dict], modelo: str) -> dict:
@@ -429,56 +428,73 @@ def salvar(saida: Path, casos: list[dict], modelo: str) -> None:
     )
 
 
-async def executar(args) -> int:
-    saida = Path(args.saida)
-    produtos = "\n".join(f"- {p}" for p in produtos_do_corpus())
+_METAS_POR_DOMINIO = (
+    (True, POR_DOMINIO_DIFICIL // 2),
+    (False, POR_DOMINIO_DIFICIL // 2 + POR_DOMINIO_LIVRE),
+)
 
-    settings = get_settings()
-    modelo = args.modelo or settings.external_model_name
-    # Ollama expõe /v1/chat/completions compatível com OpenAI: basta apontar
-    # `--base-url http://localhost:11434/v1` (a chave é ignorada).
-    client = OpenRouterClient(
-        base_url=args.base_url or settings.external_model_base_url,
-        api_key="ollama" if args.base_url else settings.external_model_api_key,
-        model=modelo,
-        timeout_s=args.timeout_s or settings.external_llm_timeout_s,
-        client=_ClienteSemRaciocinio() if args.base_url else None,
-    )
-    print(f"Modelo do rascunho: {modelo}\n")
 
-    casos: list[dict] = []
-    vistos: set[str] = set()
-    for arquivo in args.evitar:
-        vistos |= {
-            c["mensagem"].lower()
-            for c in json.loads(Path(arquivo).read_text(encoding="utf-8"))["casos"]
-        }
-    if args.completar and saida.exists():
-        casos = json.loads(saida.read_text(encoding="utf-8"))["casos"]
-        vistos = {c["mensagem"].lower() for c in casos}
+class _Gerador:
+    """Estado de uma rodada: cliente, casos acumulados e dedup (`vistos`)."""
 
-    async def pedir(prompt: str, dominio: str, ambiguo: bool, quantos: int, rotulo: str) -> None:
+    def __init__(self, args, client, modelo: str) -> None:
+        self.args = args
+        self.client = client
+        self.modelo = modelo
+        self.saida = Path(args.saida)
+        self.produtos = "\n".join(f"- {p}" for p in produtos_do_corpus())
+        self.casos: list[dict] = []
+        self.vistos: set[str] = set()
+
+    def carregar_existentes(self) -> None:
+        for arquivo in self.args.evitar:
+            self.vistos |= {
+                c["mensagem"].lower()
+                for c in json.loads(Path(arquivo).read_text(encoding="utf-8"))["casos"]
+            }
+        if self.args.completar and self.saida.exists():
+            self.casos = json.loads(self.saida.read_text(encoding="utf-8"))["casos"]
+            self.vistos = {c["mensagem"].lower() for c in self.casos}
+
+    def salvar(self) -> None:
+        salvar(self.saida, self.casos, self.modelo)
+
+    async def _lotes(
+        self,
+        prefixo: str,
+        quantos: int,
+        prompt_de,
+        dominio: str,
+        ambiguo: bool,
+        aceitas: list[str] | None = None,
+        mostrar_chegam: bool = True,
+        dry_run_consome: bool = True,
+    ) -> None:
+        """Pede `quantos` mensagens em lotes de `LOTE`, salvando a cada lote."""
         restante = quantos
         while restante > 0:
             n = min(LOTE, restante)
-            print(f"[{rotulo}] {dominio}: pedindo {n}...")
-            if args.dry_run:
+            print(f"{prefixo} pedindo {n}...")
+            if self.args.dry_run:
+                if not dry_run_consome:
+                    break
                 restante -= n
                 continue
-            mensagens = await _gerar(
-                client, prompt.format(n=n, produtos=produtos, **_extra(dominio))
-            )
-            proximo = max((c["id"] for c in casos), default=0) + 1
-            novos = montar_casos(mensagens[:n], dominio, ambiguo, proximo, vistos)
-            casos.extend(novos)
-            chegam = sum(1 for c in novos if c["chega_ao_llm"])
-            print(f"    {len(novos)} caso(s), {chegam} chega(m) ao LLM")
-            salvar(saida, casos, modelo)
+            mensagens = await _gerar(self.client, prompt_de(n))
+            proximo = max((c["id"] for c in self.casos), default=0) + 1
+            novos = montar_casos(mensagens[:n], dominio, ambiguo, proximo, self.vistos, aceitas)
+            self.casos.extend(novos)
+            if mostrar_chegam:
+                chegam = sum(1 for c in novos if c["chega_ao_llm"])
+                print(f"    {len(novos)} caso(s), {chegam} chega(m) ao LLM")
+            else:
+                print(f"    {len(novos)} caso(s)")
+            self.salvar()
             if not novos:
                 break
             restante -= len(novos)
 
-    def _extra(dominio: str) -> dict:
+    def _extra(self, dominio: str) -> dict:
         outro, exemplo = PAR_AMBIGUO.get(dominio, (dominio, ""))
         return {
             "dominio": dominio,
@@ -490,121 +506,161 @@ async def executar(args) -> int:
             "grupos": _grupos_de_keywords((dominio, outro)),
         }
 
-    async def pedir_fora_escopo(quantos: int) -> None:
-        restante = quantos
-        while restante > 0 and not args.dry_run:
-            n = min(LOTE, restante)
-            print(f"[fora_escopo] pedindo {n}...")
-            mensagens = await _gerar(client, _PROMPT_FORA_ESCOPO.format(n=n))
-            proximo = max((c["id"] for c in casos), default=0) + 1
-            novos = montar_casos(mensagens[:n], "fora_escopo", False, proximo, vistos)
-            casos.extend(novos)
-            print(f"    {len(novos)} caso(s)")
-            salvar(saida, casos, modelo)
-            if not novos:
-                break
-            restante -= len(novos)
+    async def pedir(self, prompt: str, dominio: str, ambiguo: bool, quantos: int, rotulo: str):
+        await self._lotes(
+            f"[{rotulo}] {dominio}:",
+            quantos,
+            lambda n: prompt.format(n=n, produtos=self.produtos, **self._extra(dominio)),
+            dominio,
+            ambiguo,
+        )
 
-    if args.extra_nao_ambiguas:
+    async def pedir_fora_escopo(self, quantos: int) -> None:
+        if self.args.dry_run:
+            return
+        await self._lotes(
+            "[fora_escopo]",
+            quantos,
+            lambda n: _PROMPT_FORA_ESCOPO.format(n=n),
+            "fora_escopo",
+            False,
+            mostrar_chegam=False,
+        )
+
+    async def pedir_par(self, dominio: str, outro: str, exemplo: str) -> None:
+        def prompt_de(n: int) -> str:
+            return _PROMPT_AMBIGUA_PAR.format(
+                n=n,
+                produtos=self.produtos,
+                dominio=dominio,
+                descricao=DESCRICAO_DOMINIO[dominio],
+                outro=outro,
+                descricao_outro=DESCRICAO_DOMINIO[outro],
+                grupos=_grupos_de_keywords((dominio, outro)),
+                exemplo=exemplo,
+            )
+
+        await self._lotes(
+            f"[par] {dominio}+{outro}:",
+            self.args.ambiguas_por_par,
+            prompt_de,
+            dominio,
+            True,
+            [dominio, outro],
+            dry_run_consome=False,
+        )
+
+    async def modo_extra_nao_ambiguas(self) -> int:
         # "DOM:N" = difíceis (sem palavra da tabela, chegam ao LLM); "DOM:N:livre" = livres.
-        for item in args.extra_nao_ambiguas.split(","):
+        for item in self.args.extra_nao_ambiguas.split(","):
             dominio, quantos, *modo = item.split(":")
             if dominio == "fora_escopo":
-                await pedir_fora_escopo(int(quantos))
+                await self.pedir_fora_escopo(int(quantos))
                 continue
             livre = modo == ["livre"]
-            await pedir(
+            await self.pedir(
                 _PROMPT_LIVRE if livre else _PROMPT_DOMINIO,
                 dominio,
                 False,
                 int(quantos),
                 "extra-livre" if livre else "extra-sem-keyword",
             )
-        salvar(saida, casos, modelo)
-        print(f"\n{saida}: {len(casos)} não ambígua(s) extras.")
+        self.salvar()
+        print(f"\n{self.saida}: {len(self.casos)} não ambígua(s) extras.")
         return 0
 
-    if args.ambiguas_por_par:
+    async def modo_ambiguas_por_par(self) -> int:
         # Só ambíguas multi-rótulo, em arquivo à parte (a mescla no
         # dataset.json é decisão de quem revisa).
+        filtro = self.args.pares.split(",") if self.args.pares else None
         for dominio, outro, exemplo in PARES_AMBIGUOS:
-            if args.pares and f"{dominio}+{outro}" not in args.pares.split(","):
+            if filtro is not None and f"{dominio}+{outro}" not in filtro:
                 continue
-            restante = args.ambiguas_por_par
-            while restante > 0:
-                n = min(LOTE, restante)
-                print(f"[par] {dominio}+{outro}: pedindo {n}...")
-                if args.dry_run:
-                    break
-                prompt = _PROMPT_AMBIGUA_PAR.format(
-                    n=n,
-                    produtos=produtos,
-                    dominio=dominio,
-                    descricao=DESCRICAO_DOMINIO[dominio],
-                    outro=outro,
-                    descricao_outro=DESCRICAO_DOMINIO[outro],
-                    grupos=_grupos_de_keywords((dominio, outro)),
-                    exemplo=exemplo,
-                )
-                mensagens = await _gerar(client, prompt)
-                proximo = max((c["id"] for c in casos), default=0) + 1
-                novos = montar_casos(
-                    mensagens[:n], dominio, True, proximo, vistos, [dominio, outro]
-                )
-                casos.extend(novos)
-                chegam = sum(1 for c in novos if c["chega_ao_llm"])
-                print(f"    {len(novos)} caso(s), {chegam} chega(m) ao LLM")
-                salvar(saida, casos, modelo)
-                if not novos:
-                    break
-                restante -= len(novos)
-        salvar(saida, casos, modelo)
-        print(f"\n{saida}: {len(casos)} ambígua(s) multi-rótulo.")
+            await self.pedir_par(dominio, outro, exemplo)
+        self.salvar()
+        print(f"\n{self.saida}: {len(self.casos)} ambígua(s) multi-rótulo.")
         return 0
 
-    if args.piloto:
+    async def modo_piloto(self) -> int:
         # Só ambíguas, para medir a qualidade do gerador antes da rodada toda.
         for dominio in DOMINIOS:
-            await pedir(_PROMPT_AMBIGUA, dominio, True, args.piloto, "piloto-ambígua")
-        salvar(saida, casos, modelo)
-        print(f"\n{saida}: {len(casos)} ambígua(s) de piloto.")
+            await self.pedir(_PROMPT_AMBIGUA, dominio, True, self.args.piloto, "piloto-ambígua")
+        self.salvar()
+        print(f"\n{self.saida}: {len(self.casos)} ambígua(s) de piloto.")
         return 0
 
-    # Dedup descarta repetidas e o total pode fechar abaixo da meta: sem
-    # `--completar` a rodada recomeça do zero, então o resto vem aqui.
-    if args.completar and casos:
-        for dominio, ambiguo, faltam in faltantes(casos):
+    async def modo_completar(self) -> int:
+        for dominio, ambiguo, faltam in faltantes(self.casos):
             if ambiguo:
-                await pedir(_PROMPT_AMBIGUA, dominio, True, faltam, "completar-ambígua")
+                await self.pedir(_PROMPT_AMBIGUA, dominio, True, faltam, "completar-ambígua")
             elif dominio == "fora_escopo":
-                await pedir_fora_escopo(faltam)
+                await self.pedir_fora_escopo(faltam)
             else:
-                await pedir(_PROMPT_LIVRE, dominio, False, faltam, "completar")
-        salvar(saida, casos, modelo)
-        print(f"\n{saida}: {len(casos)} mensagem(ns) após completar.")
+                await self.pedir(_PROMPT_LIVRE, dominio, False, faltam, "completar")
+        self.salvar()
+        print(f"\n{self.saida}: {len(self.casos)} mensagem(ns) após completar.")
         return 0
 
-    for dominio in DOMINIOS:
-        # Metade das difíceis por "sinônimo fora da tabela" e metade por
-        # ambiguidade real: são os dois caminhos distintos até o LLM, e um
-        # conjunto com só um dos dois mediria metade do problema.
-        await pedir(_PROMPT_DOMINIO, dominio, False, POR_DOMINIO_DIFICIL // 2, "sem-keyword")
-        await pedir(_PROMPT_AMBIGUA, dominio, True, POR_DOMINIO_DIFICIL // 2, "ambígua")
-        await pedir(_PROMPT_LIVRE, dominio, False, POR_DOMINIO_LIVRE, "livre")
+    async def modo_completo(self) -> int:
+        for dominio in DOMINIOS:
+            # Metade das difíceis por "sinônimo fora da tabela" e metade por
+            # ambiguidade real: são os dois caminhos distintos até o LLM, e um
+            # conjunto com só um dos dois mediria metade do problema.
+            await self.pedir(
+                _PROMPT_DOMINIO, dominio, False, POR_DOMINIO_DIFICIL // 2, "sem-keyword"
+            )
+            await self.pedir(_PROMPT_AMBIGUA, dominio, True, POR_DOMINIO_DIFICIL // 2, "ambígua")
+            await self.pedir(_PROMPT_LIVRE, dominio, False, POR_DOMINIO_LIVRE, "livre")
+        await self.pedir_fora_escopo(FORA_ESCOPO)
 
-    await pedir_fora_escopo(FORA_ESCOPO)
+        if self.args.dry_run:
+            print("\n(dry-run) nenhuma chamada feita.")
+            return 0
 
-    if args.dry_run:
-        print("\n(dry-run) nenhuma chamada feita.")
+        self.salvar()
+        chegam = sum(1 for c in self.casos if c["chega_ao_llm"])
+        pct = 100 * chegam / max(1, len(self.casos))
+        print(
+            f"\n{self.saida}: {len(self.casos)} mensagem(ns), {chegam} chega(m) ao LLM ({pct:.0f}%)"
+        )
+        if chegam < 200:
+            print(f"ATENÇÃO: meta é >=200 chegando ao LLM; faltam {200 - chegam}. Rode de novo.")
         return 0
 
-    salvar(saida, casos, modelo)
-    chegam = sum(1 for c in casos if c["chega_ao_llm"])
-    pct = 100 * chegam / max(1, len(casos))
-    print(f"\n{saida}: {len(casos)} mensagem(ns), {chegam} chega(m) ao LLM ({pct:.0f}%)")
-    if chegam < 200:
-        print(f"ATENÇÃO: meta é >=200 chegando ao LLM; faltam {200 - chegam}. Rode de novo.")
-    return 0
+    async def rodar(self) -> int:
+        args = self.args
+        if args.extra_nao_ambiguas:
+            return await self.modo_extra_nao_ambiguas()
+        if args.ambiguas_por_par:
+            return await self.modo_ambiguas_por_par()
+        if args.piloto:
+            return await self.modo_piloto()
+        # Dedup descarta repetidas e o total pode fechar abaixo da meta: sem
+        # `--completar` a rodada recomeça do zero, então o resto vem aqui.
+        if args.completar and self.casos:
+            return await self.modo_completar()
+        return await self.modo_completo()
+
+
+def _criar_cliente(args, modelo: str, settings) -> OpenRouterClient:
+    # Ollama expõe /v1/chat/completions compatível com OpenAI: basta apontar
+    # `--base-url http://localhost:11434/v1` (a chave é ignorada).
+    return OpenRouterClient(
+        base_url=args.base_url or settings.external_model_base_url,
+        api_key="ollama" if args.base_url else settings.external_model_api_key,
+        model=modelo,
+        timeout_s=args.timeout_s or settings.external_llm_timeout_s,
+        client=_ClienteSemRaciocinio() if args.base_url else None,
+    )
+
+
+async def executar(args) -> int:
+    settings = get_settings()
+    modelo = args.modelo or settings.external_model_name
+    gerador = _Gerador(args, _criar_cliente(args, modelo, settings), modelo)
+    print(f"Modelo do rascunho: {modelo}\n")
+    gerador.carregar_existentes()
+    return await gerador.rodar()
 
 
 def main(argv: list[str]) -> int:
