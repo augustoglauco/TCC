@@ -5,6 +5,7 @@ import binascii
 import json
 import logging
 import re
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any
 from uuid import uuid4
@@ -90,16 +91,32 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 
+async def _com_sessao_segura[T](
+    app_state,
+    operacao: str,
+    fn: Callable[[Any], Awaitable[T]],
+    padrao: T,
+) -> T:
+    """Roda `fn(session)` numa sessão do Postgres; falha do banco (ou `app.state`
+    sem `db_sessionmaker`) vira log `memoria_indisponivel` e devolve `padrao`."""
+    try:
+        async with app_state.db_sessionmaker() as session:
+            return await fn(session)
+    except Exception as exc:
+        _logar_memoria_indisponivel(operacao, exc)
+        return padrao
+
+
 async def _carregar_contexto_seguro(app_state, conversation_id: str) -> ContextoConversa:
     """Histórico recente e resumo da conversa, lidos do Postgres (R9, Fase 6).
     Falha do banco (ou `app.state` sem `db_sessionmaker`) vira log e um
     contexto vazio: a resposta sai sem memória, mas sai."""
-    try:
-        async with app_state.db_sessionmaker() as session:
-            return await carregar_contexto(session, conversation_id)
-    except Exception as exc:
-        _logar_memoria_indisponivel("carregar", exc)
-        return ContextoConversa()
+    return await _com_sessao_segura(
+        app_state,
+        "carregar",
+        lambda session: carregar_contexto(session, conversation_id),
+        ContextoConversa(),
+    )
 
 
 async def _registrar_troca_segura(
@@ -117,21 +134,24 @@ async def _registrar_troca_segura(
     e guarda as métricas do `done` na resposta (o painel ⚙️ reaparece no
     histórico). A cada `INTERVALO_RESUMO` mensagens novas, dispara o resumo
     em segundo plano, sem esperar por ele."""
-    try:
-        async with app_state.db_sessionmaker() as session:
-            conversa, assistente = await registrar_troca(
-                session, conversation_id, mensagem, resposta, dominio
-            )
-            total = await contar_mensagens(session, conversation_id)
-            resumir = precisa_resumir(total, conversa.mensagens_resumidas)
-            classificacao = await atualizar_perfil(session, conversation_id, mensagem)
-            if classificacao is not None:
-                done_data.perfil_usuario = classificacao.perfil
-                done_data.perfil_motivo = classificacao.motivo
-            await gravar_metricas(session, assistente, done_data.model_dump(mode="json"))
-    except Exception as exc:
-        _logar_memoria_indisponivel("registrar", exc)
+
+    async def _gravar(session) -> tuple[Classificacao | None, bool]:
+        conversa, assistente = await registrar_troca(
+            session, conversation_id, mensagem, resposta, dominio
+        )
+        total = await contar_mensagens(session, conversation_id)
+        resumir = precisa_resumir(total, conversa.mensagens_resumidas)
+        classificacao = await atualizar_perfil(session, conversation_id, mensagem)
+        if classificacao is not None:
+            done_data.perfil_usuario = classificacao.perfil
+            done_data.perfil_motivo = classificacao.motivo
+        await gravar_metricas(session, assistente, done_data.model_dump(mode="json"))
+        return classificacao, resumir
+
+    resultado = await _com_sessao_segura(app_state, "registrar", _gravar, None)
+    if resultado is None:
         return None
+    classificacao, resumir = resultado
     if resumir:
         spawn_background_task(
             atualizar_resumo(app_state.db_sessionmaker, conversation_id, local_client)
@@ -154,11 +174,12 @@ async def _registrar_troca_segura(
 async def _registrar_email_seguro(app_state, conversation_id: str, email: str) -> None:
     """Guarda o e-mail na chegada da mensagem (R10). Mesma proteção de
     `_carregar_contexto_seguro`; o e-mail nunca vai para o log."""
-    try:
-        async with app_state.db_sessionmaker() as session:
-            await registrar_email(session, conversation_id, email)
-    except Exception as exc:
-        _logar_memoria_indisponivel("registrar_email", exc)
+    await _com_sessao_segura(
+        app_state,
+        "registrar_email",
+        lambda session: registrar_email(session, conversation_id, email),
+        None,
+    )
 
 
 async def _carregar_dados_cliente_seguro(
@@ -199,12 +220,12 @@ async def _verificar_modo_admin_seguro(app_state, auth_token: str | None) -> boo
     completo por acidente."""
     if not auth_token:
         return False
-    try:
-        async with app_state.db_sessionmaker() as session:
-            return await verificar_admin_por_token(session, auth_token)
-    except Exception as exc:
-        _logar_memoria_indisponivel("verificar_admin", exc)
-        return False
+    return await _com_sessao_segura(
+        app_state,
+        "verificar_admin",
+        lambda session: verificar_admin_por_token(session, auth_token),
+        False,
+    )
 
 
 async def _carregar_contexto_anterior_seguro(
@@ -212,14 +233,14 @@ async def _carregar_contexto_anterior_seguro(
 ) -> str | None:
     """Carrega o resumo ou histórico condensado da conversa anterior mais recente
     do usuário autenticado (R9/R10). Falha vira log e segue sem quebrar a resposta."""
-    try:
-        async with app_state.db_sessionmaker() as session:
-            return await obter_contexto_conversa_anterior(
-                session, email=email, conversa_atual_id=conversation_id
-            )
-    except Exception as exc:
-        _logar_memoria_indisponivel("carregar_contexto_anterior", exc)
-        return None
+    return await _com_sessao_segura(
+        app_state,
+        "carregar_contexto_anterior",
+        lambda session: obter_contexto_conversa_anterior(
+            session, email=email, conversa_atual_id=conversation_id
+        ),
+        None,
+    )
 
 
 async def _carregar_conversa_db_segura(app_state, conversation_id: str) -> Conversa | None:
@@ -882,6 +903,15 @@ class _ContextoCliente:
 
 
 @dataclass
+class _EntradaCliente:
+    """O que identifica o cliente na mensagem recebida (token, e-mail, conversa e texto)."""
+
+    payload: ChatMessageRequest
+    conversation_id: str
+    effective_message: str | None
+
+
+@dataclass
 class _ConfigRoteador:
     """Configuração de runtime do roteador injetada via `Depends` em `send_message`."""
 
@@ -1040,13 +1070,10 @@ async def _resolver_email_cliente(
 
 
 async def _resolver_contexto_cliente(
-    app_state,
-    payload: ChatMessageRequest,
-    conversation_id: str,
-    effective_message: str | None,
-    contexto,
+    app_state, entrada: _EntradaCliente, contexto
 ) -> _ContextoCliente:
     """Resolve admin (verificado no servidor), e-mail, dados e contexto anterior do cliente."""
+    payload, conversation_id = entrada.payload, entrada.conversation_id
     # Modo admin do RAG (decisão de 2026-09-30, docs/ARCHITECTURE.md §6): só
     # `payload.auth_token` prova, no servidor, uma sessão admin de verdade —
     # nunca `payload.user_email` (livre).
@@ -1055,7 +1082,7 @@ async def _resolver_contexto_cliente(
         app_state,
         conversation_id,
         contexto,
-        _decidir_email_cliente(payload.user_email, effective_message, contexto.email),
+        _decidir_email_cliente(payload.user_email, entrada.effective_message, contexto.email),
     )
     dados_cliente = await _carregar_dados_cliente_seguro(
         app_state,
@@ -1264,7 +1291,7 @@ async def send_message(
 
     contexto = await _carregar_contexto_seguro(app_state, conversation_id)
     cliente = await _resolver_contexto_cliente(
-        app_state, payload, conversation_id, effective_message, contexto
+        app_state, _EntradaCliente(payload, conversation_id, effective_message), contexto
     )
     if cliente.is_admin:
         rag_client = rag_client_admin
