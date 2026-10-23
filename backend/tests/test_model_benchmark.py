@@ -295,3 +295,23 @@ def test_modelos_json_tem_tag_ollama_unica_por_candidato():
             "parametros_b",
             "quantizacao",
         }
+
+
+def test_resumir_imagem_conta_so_respostas_validas_e_categoria_cobrada():
+    casos = [
+        {"e_do_portfolio": True},
+        {"e_do_portfolio": False},
+        {"e_do_portfolio": True},
+    ]
+    resultados = [
+        {"json_valido": True, "acerto_portfolio": True, "acerto_categoria": False},
+        {"json_valido": True, "acerto_portfolio": True, "acerto_categoria": None},
+        {"json_valido": False},
+    ]
+    resumo = bench._resumir_imagem(casos, resultados, [0.12345])
+    assert resumo["total"] == 3
+    assert resumo["positivos"] == 1
+    assert resumo["json_valido_taxa"] == round(2 / 3, 4)
+    assert resumo["portfolio_acerto_taxa"] == round(2 / 3, 4)
+    assert resumo["categoria_acerto_taxa"] == 0.0
+    assert resumo["latencias_s"] == [0.123]

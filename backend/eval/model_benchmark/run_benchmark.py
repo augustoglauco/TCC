@@ -460,55 +460,49 @@ async def etapa_imagem(inner: OllamaClient, tem_visao: bool) -> dict:
 
     dados = json.loads((BASE_DIR / "imagens" / "dataset.json").read_text(encoding="utf-8"))
     casos = dados["casos"]
-
-    resultados: list[dict] = []
     latencias: list[float] = []
-    json_validos = 0
-    portfolio_ok = 0
-    categoria_ok = 0
-    com_categoria = 0
-    positivos = 0
+    resultados = [await _avaliar_caso_imagem(inner, caso, latencias) for caso in casos]
+    return _resumir_imagem(casos, resultados, latencias)
 
-    for caso in casos:
-        texto = await _descrever_caso_imagem(inner, caso, latencias)
-        resposta = _parse_vision_answer(texto) if texto else None
-        if resposta is None:
-            resultados.append({"id": caso["id"], "json_valido": False, "bruto": texto[:300]})
-            print(f"    [{caso['id']}] JSON inválido")
-            continue
 
-        json_validos += 1
-        acerto_portfolio, acerto_categoria = _pontuar_imagem(caso, resposta)
-        portfolio_ok += int(acerto_portfolio)
-        positivos += int(caso["e_do_portfolio"])
-        if acerto_categoria is not None:
-            com_categoria += 1
-            categoria_ok += int(acerto_categoria)
-        resultados.append(
-            {
-                "id": caso["id"],
-                "json_valido": True,
-                "produto_esperado": caso["produto_esperado"],
-                "produto_previsto": resposta.produto,
-                "e_do_portfolio_previsto": resposta.e_do_portfolio,
-                "confianca": resposta.confianca,
-                "acerto_portfolio": acerto_portfolio,
-                "acerto_categoria": acerto_categoria,
-            }
-        )
-        print(
-            f"    [{caso['id']}] '{resposta.produto}' "
-            f"acertou_portfolio={acerto_portfolio} acertou_categoria={acerto_categoria}"
-        )
+async def _avaliar_caso_imagem(inner: OllamaClient, caso: dict, latencias: list[float]) -> dict:
+    """Registro de um caso de imagem; `json_valido: False` quando a resposta
+    não é parseável."""
+    texto = await _descrever_caso_imagem(inner, caso, latencias)
+    resposta = _parse_vision_answer(texto) if texto else None
+    if resposta is None:
+        print(f"    [{caso['id']}] JSON inválido")
+        return {"id": caso["id"], "json_valido": False, "bruto": texto[:300]}
 
+    acerto_portfolio, acerto_categoria = _pontuar_imagem(caso, resposta)
+    print(
+        f"    [{caso['id']}] '{resposta.produto}' "
+        f"acertou_portfolio={acerto_portfolio} acertou_categoria={acerto_categoria}"
+    )
+    return {
+        "id": caso["id"],
+        "json_valido": True,
+        "produto_esperado": caso["produto_esperado"],
+        "produto_previsto": resposta.produto,
+        "e_do_portfolio_previsto": resposta.e_do_portfolio,
+        "confianca": resposta.confianca,
+        "acerto_portfolio": acerto_portfolio,
+        "acerto_categoria": acerto_categoria,
+    }
+
+
+def _resumir_imagem(casos: list[dict], resultados: list[dict], latencias: list[float]) -> dict:
+    validos = [(c, r) for c, r in zip(casos, resultados, strict=True) if r["json_valido"]]
+    portfolio_ok = sum(int(r["acerto_portfolio"]) for _, r in validos)
+    cobrados = [r["acerto_categoria"] for _, r in validos if r["acerto_categoria"] is not None]
     total = len(casos)
     return {
         "suportado_localmente": True,
         "total": total,
-        "positivos": positivos,
-        "json_valido_taxa": round(json_validos / total, 4) if total else None,
+        "positivos": sum(int(c["e_do_portfolio"]) for c, _ in validos),
+        "json_valido_taxa": round(len(validos) / total, 4) if total else None,
         "portfolio_acerto_taxa": round(portfolio_ok / total, 4) if total else None,
-        "categoria_acerto_taxa": round(categoria_ok / com_categoria, 4) if com_categoria else None,
+        "categoria_acerto_taxa": round(sum(cobrados) / len(cobrados), 4) if cobrados else None,
         "casos": resultados,
         "latencias_s": [round(s, 3) for s in latencias],
     }
@@ -693,13 +687,40 @@ def _criar_clientes(settings, timeout_s: float, seed: int) -> tuple[OllamaClient
     return inner, external_client
 
 
-async def main() -> None:
-    args = _criar_parser().parse_args()
-
-    etapas = [e.strip() for e in args.etapas.split(",") if e.strip()]
+def _parse_etapas(texto: str) -> list[str]:
+    etapas = [e.strip() for e in texto.split(",") if e.strip()]
     invalidas = [e for e in etapas if e not in ETAPAS]
     if invalidas:
         raise SystemExit(f"etapa(s) inválida(s): {', '.join(invalidas)}. Use: {', '.join(ETAPAS)}")
+    return etapas
+
+
+async def _rodar_candidato(
+    candidato: dict,
+    baixados: set[str],
+    etapas: list[str],
+    forcar: bool,
+    inner: OllamaClient,
+    external_client,
+    rag_client,
+) -> None:
+    print(f"\n=== {candidato['rotulo']} ({candidato['ollama']}) ===")
+    if candidato["ollama"] not in baixados:
+        print(f"  não baixado — pulando. Para incluir: ollama pull {candidato['ollama']}")
+        return
+    try:
+        await rodar_modelo(candidato, etapas, forcar, inner, external_client, rag_client)
+    except Exception as exc:  # noqa: BLE001
+        # Um candidato que estoura a VRAM ou derruba o Ollama não pode
+        # levar junto os que ainda não rodaram: o que já foi gravado fica
+        # no arquivo dele e a rodada segue para o próximo.
+        print(f"  FALHOU: {type(exc).__name__}: {exc}")
+        await inner.unload()
+
+
+async def main() -> None:
+    args = _criar_parser().parse_args()
+    etapas = _parse_etapas(args.etapas)
 
     ids = [i.strip() for i in args.modelos.split(",")] if args.modelos else None
     candidatos = carregar_candidatos(ids)
@@ -716,18 +737,9 @@ async def main() -> None:
     rag_client = _construir_rag_client(settings) if "rag" in etapas else None
 
     for candidato in candidatos:
-        print(f"\n=== {candidato['rotulo']} ({candidato['ollama']}) ===")
-        if candidato["ollama"] not in baixados:
-            print(f"  não baixado — pulando. Para incluir: ollama pull {candidato['ollama']}")
-            continue
-        try:
-            await rodar_modelo(candidato, etapas, args.forcar, inner, external_client, rag_client)
-        except Exception as exc:  # noqa: BLE001
-            # Um candidato que estoura a VRAM ou derruba o Ollama não pode
-            # levar junto os que ainda não rodaram: o que já foi gravado fica
-            # no arquivo dele e a rodada segue para o próximo.
-            print(f"  FALHOU: {type(exc).__name__}: {exc}")
-            await inner.unload()
+        await _rodar_candidato(
+            candidato, baixados, etapas, args.forcar, inner, external_client, rag_client
+        )
 
 
 if __name__ == "__main__":
