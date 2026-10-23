@@ -3,13 +3,9 @@ docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md
 
 Todo ponto do sistema que usa um modelo/engine de IA **de geração que
 possa ter custo de API** (local ou externo, texto ou visão) chama
-`registrar_uso_ia` — ver a fronteira do ledger abaixo. Mesmo padrão de sessão de
-`app.services.ingestion_metrics.record_ingestion_cost` (sessão explícita /
+`registrar_uso_ia` — ver a fronteira do ledger abaixo. Sessão explícita /
 sessão própria via factory / fallback para um sessionmaker global
-configurado uma vez em `app.main`) — reaproveitado de propósito em vez de
-inventar uma convenção nova; os dois serviços continuam independentes
-(decisão sobre unificá-los fica para quando a origem "admin" for
-conectada, ver spec §6).
+configurado uma vez em `app.main`.
 """
 
 import logging

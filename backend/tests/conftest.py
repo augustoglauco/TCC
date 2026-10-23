@@ -80,8 +80,7 @@ def _isola_banco_de_telemetria(tmp_path_factory):
     """Impede que a suíte escreva no Postgres real do desenvolvedor.
 
     O lifespan de `app.main` monta o engine a partir de `settings.postgres_dsn`
-    e aponta os sessionmakers GLOBAIS de `app.services.ai_usage` e
-    `app.services.ingestion_metrics` para ele (`main.py:253-257`). Todo teste
+    e aponta os sessionmaker GLOBAL de `app.services.ai_usage` para ele. Todo teste
     que sobe a app de verdade (`with TestClient(app)`) executava esse lifespan
     com o `.env` real — e, como esses globais são variáveis de módulo que
     ninguém reseta, os registros fire-and-forget (`registrar_uso_ia(session=
@@ -120,18 +119,16 @@ def _isola_banco_de_telemetria(tmp_path_factory):
 
 @pytest.fixture(autouse=True)
 def _reset_sessionmakers_globais():
-    """Zera, entre testes, os sessionmakers globais de telemetria que o
+    """Zera, entre testes, o sessionmaker global de telemetria que o
     lifespan de `app.main` configura — segunda camada da proteção descrita em
     `_isola_banco_de_telemetria`. Sem isso, um teste que sobe a app deixa o
     global apontando para o banco dela e contamina os testes posteriores:
     `pytest tests/test_main_app.py tests/test_integration_domains.py` gravava
     12 eventos fora do banco do próprio teste; cada arquivo sozinho, nenhum."""
     yield
-    from app.services.ai_usage import set_global_sessionmaker as _reset_ai
-    from app.services.ingestion_metrics import set_global_sessionmaker as _reset_ing
+    from app.services.ai_usage import set_global_sessionmaker
 
-    _reset_ai(None)
-    _reset_ing(None)
+    set_global_sessionmaker(None)
 
 
 @pytest.fixture(autouse=True)
