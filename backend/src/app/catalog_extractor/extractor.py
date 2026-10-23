@@ -445,19 +445,18 @@ async def _extrair_local_seguro(
 
 async def _visao_externa_segura(
     img_bytes: bytes,
-    vision_client: Any,
+    cfg: _ExtractionConfig,
     *,
     source_identifier: str,
-    session_factory: Any,
     descricao: str,
 ) -> tuple[list[dict[str, Any]], str | None]:
     """Visão externa best-effort. Retorna (raw_prods, erro_pagina)."""
     try:
         raw_prods = await extract_page_products_vision(
             img_bytes,
-            vision_client,
+            cfg.vision_client,
             source_identifier=source_identifier,
-            session_factory=session_factory,
+            session_factory=cfg.session_factory,
             ambiente="externo",
         )
         return raw_prods, None
@@ -528,9 +527,8 @@ async def _extrair_pdf_local_com_fallback(
     if pode_usar_fallback_externo:
         raw_prods, erro_pagina = await _visao_externa_segura(
             img_bytes,  # type: ignore[arg-type]
-            cfg.vision_client,
+            cfg,
             source_identifier=f"{filename}#p{num_pagina_pdf}",
-            session_factory=cfg.session_factory,
             descricao="Erro no fallback de visão externa",
         )
         if erro_pagina is None:
@@ -554,9 +552,8 @@ async def _extrair_produtos_pagina_pdf(
         if img_bytes and cfg.vision_client:
             raw_prods, erro_pagina = await _visao_externa_segura(
                 img_bytes,
-                cfg.vision_client,
+                cfg,
                 source_identifier=f"{filename}#p{num_pagina_pdf}",
-                session_factory=cfg.session_factory,
                 descricao="Erro na visão externa",
             )
         return cfg.provider, raw_prods, erro_pagina
@@ -696,15 +693,13 @@ async def _tentar_extracao_local_imagem(
 async def _tentar_extracao_externa_imagem(
     content: bytes,
     filename: str,
-    vision_client: Any,
-    session_factory: Any,
+    cfg: _ExtractionConfig,
 ) -> tuple[list[dict[str, Any]], str, str | None]:
     """Tenta visão externa. Retorna (raw_prods, provider_usado, erro_pagina)."""
     raw_prods, erro = await _visao_externa_segura(
         content,
-        vision_client,
+        cfg,
         source_identifier=filename,
-        session_factory=session_factory,
         descricao=f"Erro na visão externa para imagem {filename}",
     )
     return raw_prods, "external", erro
@@ -743,7 +738,7 @@ async def _extrair_produtos_imagem(
     deve_tentar_externo = not raw_prods and (cfg.provider == "external" or cfg.fallback_external)
     if deve_tentar_externo and cfg.vision_client:
         raw_prods, provider_usado, erro_pagina = await _tentar_extracao_externa_imagem(
-            content, filename, cfg.vision_client, cfg.session_factory
+            content, filename, cfg
         )
 
     return raw_prods, provider_usado, erro_pagina or _erro_sem_resultado(raw_prods)
