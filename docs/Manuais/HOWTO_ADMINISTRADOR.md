@@ -22,21 +22,33 @@
 ## 📌 Acesso e Visão Geral do Painel Admin
 
 O painel de administração é acessível pelo menu do site (ícone de engrenagem
-⚙️ no cabeçalho). **Desde 2026-09-29, esse menu só aparece para quem está
-logado com um usuário de perfil `Admin`** (antes, qualquer visitante via os
-links de administração) — faça login em `/conta/login` com um e-mail
-`admin@example.com`/`admin@*` (senha mock `12345` ou `admin123`) para ver a
-engrenagem. Isso restringe a **entrada** pelo menu; as páginas internas
-(`/admin/ingestao`, `/admin/produtos`, `/admin/modelos`) continuam sem
-checagem própria de sessão se acessadas pela URL direta (`# MVP`, ver
-`docs/ARCHITECTURE.md` §5) — só `/admin/usuarios` e `/admin/agendamentos`
-bloqueiam o acesso direto de quem não é Admin.
+⚙️ no cabeçalho), que **só aparece para quem está logado com perfil `Admin`**:
+faça login em `/conta/login` com um e-mail `admin@example.com`/`admin@*` (senha
+mock `12345` ou `admin123`).
 
-### Módulos Principais
-1. **Gestão de Usuários (`/admin/usuarios`)**: cadastro e listagem de usuários, promoção a Administrador e consulta de pedidos por usuário.
-2. **Ingestão de Documentos (`/admin/ingestao`)**: Upload de PDFs, textos de suporte e indexação automatizada de sites via crawler.
-3. **Modelos e Parâmetros (`/admin/modelos`)**: Escolha do modelo de linguagem (LLM) local, ajuste de velocidade/criatividade e regras de transbordo.
-4. **Gestão Operacional**: Monitoramento de conversas, perfilamento de clientes e filas de atendimento.
+**Proteção:** as telas de usuários, agendamentos, pedidos, atendimento, mensagens,
+dashboards, métricas, ferramentas e datasets mostram "Acesso restrito" a quem não
+é Admin, mesmo pela URL direta. As telas de ingestão, modelos e produtos abrem
+pela URL, mas **todas as rotas de API que alteram algo exigem o token de Admin**
+(`require_admin`), então um visitante enxerga a tela vazia, sem poder agir
+(`# MVP`: o token é o mock de login, ver `docs/ARCHITECTURE.md` §5).
+
+### Itens do menu ⚙️
+| Menu | Tela | Para que serve |
+| --- | --- | --- |
+| Central de Atendimento | `/admin/atendimento` | Fila de atendimento humano ao vivo |
+| Catálogo de Produtos | `/admin/produtos` | Produtos, estoque, preços, importação de catálogo |
+| Dashboards & Gráficos | `/admin/dashboards` | Gráficos gerados pelo chat |
+| Gerenciar Usuários | `/admin/usuarios` | Usuários e perfis |
+| Gestão de Agendamentos | `/admin/agendamentos` | Visitas do sistema e da agenda Google |
+| Ingestão de documentos (RAG) | `/admin/ingestao` | Collections, documentos, crawler |
+| Mensagens de Agentes | `/admin/mensagens` | Avisos dos agentes autônomos (estoque) |
+| Pedidos & Conversão | `/admin/pedidos` | Reservas, comprovantes, vendas |
+| Administração IA | `/admin/modelos` | Modelos, parâmetros e agentes |
+| Métricas & Custos IA | `/admin/metricas` | Uso e custo de IA |
+| Ferramentas de Código | `/admin/ferramentas` | Graphify, Repowise, GitNexus |
+| Preparação da Avaliação | `/admin/datasets` | Revisão dos conjuntos de teste |
+| Resultados da Avaliação | `/avaliacao` | Página pública de resultados |
 
 ---
 
@@ -126,6 +138,9 @@ Ao acessar a seção **Web Crawler** em `/admin/ingestao`, você encontrará os 
 2. Clique no botão **Iniciar Varredura Web**.
 3. Acompanhe a barra de progresso. Ao finalizar, o sistema confirmará o total de páginas lidas e indexadas com sucesso.
 
+### Fila de Revisão de Páginas
+O crawler classifica cada página em um domínio (Vendas, Suporte ou Atendimento). Quando a **confiança da classificação fica abaixo do limiar**, a página não é indexada sozinha: ela vai para a **Fila de Revisão** (em `/admin/ingestao`), com o domínio proposto e o texto extraído. Você escolhe **Aprovar** (indexa no domínio proposto ou no que você corrigir) ou **Rejeitar** (descarta). Recrawlear a mesma URL antes de revisar atualiza a linha existente em vez de duplicar. Páginas com confiança alta são indexadas direto, e reindexar uma URL já ingerida substitui a versão anterior.
+
 ---
 
 ## 🤖 Gerenciamento e Parametrização da IA (`/admin/modelos`)
@@ -137,7 +152,7 @@ Nesta tela, o administrador controla como o "cérebro" do assistente se comporta
 ### 1. Seleção do Modelo Local (Ollama) & Características no Hover
 O sistema roda em uma GPU própria de 16GB. Você pode escolher qual modelo atende seus clientes no momento:
 * **Gemma 4 12B** (`gemma4:12b-it-q4_K_M`): Padrão de alta capacidade para conversação fluida, raciocínio de vendas e atendimento.
-* **Gemma 4 E4B** (`gemma4-e4b`, quantização Q8): empata estatisticamente com o 12B no roteador (triagem de 2026-10-24) e também tem visão local.
+* **Gemma 4 E4B** (`hf.co/unsloth/gemma-4-E4B-it-GGUF:UD-Q8_K_XL`): empata estatisticamente com o 12B no roteador (triagem de 2026-10-24) e também tem visão local.
 * **Qwen2.5-VL 7B e 3B**: modelos de visão e texto mais leves; ficaram entre os 4 finalistas da triagem, mas falham com mais frequência no formato JSON.
 
 > O conjunto de candidatos e o resultado da triagem estão em `docs/EVALUATION.md` (seção "Benchmark comparativo"). Os modelos que aparecem na tela dependem do que está baixado no Ollama da máquina (`ollama list`).
@@ -184,6 +199,9 @@ Na seção **Parâmetros de Execução**, você pode ajustar o comportamento do 
 * **Valor Recomendado**: `15` a `30` segundos.
 * **Uso prático**: Se o servidor local estiver muito sobrecarregado e ultrapassar esse tempo, o sistema aciona automaticamente o transbordo para o modelo externo (OpenRouter) para não deixar o cliente esperando.
 
+#### 🎛️ Outros parâmetros do modelo local
+Na mesma seção ficam a **Janela de Contexto** (`num_ctx`), o **Nucleus Sampling** (`top_p`), o **Top-K Sampling** (`top_k`), a **Penalidade de Repetição** (`repeat_penalty`) e a **Semente Aleatória** (`seed`, para respostas reproduzíveis). Os padrões servem para o uso normal; mexa só se souber o efeito.
+
 #### 🌐 3. Tempo Limite do Modelo Externo (`Timeout Externo`)
 * **O que faz**: Quantos segundos esperar caso a requisição precise recorrer à IA em nuvem externa.
 * **Valor Recomendado**: `20` segundos.
@@ -193,8 +211,15 @@ Na seção **Parâmetros de Execução**, você pode ajustar o comportamento do 
 * **O que faz**: Chave de Liga/Desliga (`Sim` / `Não`).
 * **Uso prático**: Quando ativado (`Sim`), se um cliente fizer uma pergunta de Suporte Técnico enquanto estiver navegando na página de Vendas, o assistente é autorizado a buscar nos manuais técnicos para responder ao cliente, sem bloqueá-lo.
 
+#### 🖼️ Modelo de Visão Externo e Limiares de Confiança
+Seção "Visão" da mesma tela: define o modelo multimodal do OpenRouter usado quando a identificação de imagem precisa sair do hardware local (atalhos: Gemma 4 31B grátis, Gemini Flash, GPT-4o Mini, Qwen 2.5 VL grátis), mostra preço e modalidades do modelo escolhido e ajusta os limiares de confiança da identificação. Campo vazio desliga a visão externa. A ordem de custo mínimo é OCR/texto, depois visão local, depois visão externa.
+
+#### 📦 Agente de Previsão de Estoque (R13)
+Seção própria: escolhe o agente ativo (**Determinístico**, regra de média de baixa dos últimos 30 dias; **IA**, um LLM avalia risco e sugere reposição, local ou externo; ou **Desativado**). Ele avisa o administrador quando prevê falta em até 10 dias; se a IA falhar, a regra determinística garante que nenhum alerta se perca. Os avisos aparecem em `/admin/mensagens` (guia: `docs/Manuais/agente-estoque-manual.md`).
+
 #### 🧭 5. Roteador de Intenção (`Provedor do Classificador`) — novo em 2026-09-23
-* **O que faz**: Escolhe qual motor decide o domínio de cada mensagem do cliente (Vendas/Suporte/Atendimento/Agendamento/Fora de escopo) — duas opções:
+* **O que faz**: Escolhe qual motor decide o domínio de cada mensagem do cliente (Vendas/Suporte/Atendimento/Agendamento/Fora de escopo) — três opções:
+  * **Heurística (Palavras-chave)** — só regras locais, sem LLM; se inconclusiva, a mensagem é tratada como fora de escopo.
   * **Heurística + LLM Local (Ollama)** — padrão. Palavras-chave locais, com fallback para o modelo Ollama configurado quando necessário. Não depende de internet.
   * **TypeSafe Jev (OpenRouter)** — um modelo externo de decisão estruturada, mais rápido/barato que um LLM de chat para essa tarefa específica.
 * **Uso prático**: Pense nisso como um experimento A/B de classificação — trocar aqui não muda o resto do atendimento, só QUEM decide o domínio da mensagem. Se o Jev falhar (rede, indisponibilidade), o sistema volta sozinho pra heurística local, sem interromper o cliente — você vê qual dos dois realmente respondeu no painel de métricas do chat (ícone ⚙️ ao lado do domínio, em cada resposta).
