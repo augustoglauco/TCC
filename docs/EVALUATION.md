@@ -917,6 +917,10 @@ passo 3.
   PDFs: tudo bem manter.
 - **Dica:** pode parar quando cansar. Cada ação é salva na hora e a fila só
   mostra o que falta.
+- **Pronto quando:** pendentes = 0. **Atendido em 2026-10-23/24:** 180
+  revisados — 163 aprovados, 4 corrigidos, 13 descartados; restam **167
+  válidos** (147 com resposta + 20 `sem_resposta`, todos mantidos). Segue o
+  Passo 5; as Etapas 2–5 do RAG ficam destravadas.
 
 ### Passo 5 — Revisar a Injeção de prompt (100 itens, ~1 h)
 - **Por quê por último:** só a rodada completa usa este conjunto.
