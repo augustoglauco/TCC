@@ -431,8 +431,8 @@ testes e exigem alterar código de produção:
    pt-BR custa **4,31 chars/token** — teto efetivo de **~552 caracteres**.
    O `chunk_size = 800` de produção portanto descarta ~31% do texto de cada
    chunk antes de embeddar, sem erro nem aviso. Isso também **explica** o
-   resultado do experimento de bisseção de `chunk_size` (2026-10-01,
-   `backend/eval/rag_quality/chunk_size_search.py`): o "vencedor" 375 e o
+   resultado do experimento de bisseção de `chunk_size` (2026-10-01, script e resultados removidos
+   em 2026-10-24): o "vencedor" 375 e o
    550 são exatamente os pontos que caberam inteiros na janela do modelo, e
    a trajetória não-monótona (800→900 cai, 900→550 sobe) é o teto de 128
    tokens, não uma propriedade do chunking.
@@ -675,8 +675,8 @@ do Claude, discriminado abaixo:
    - **Script e testes:** `backend/eval/rag_ingestion/run_etapa2.py`,
      `tests/test_rag_embeddings.py`, `tests/test_rag_qdrant_client.py` e
      `tests/test_rag_ingestion_eval.py`.
-   - **Artefato gerado sobre `dataset_minimo.json` (`n=15`):**
-     `backend/eval/rag_ingestion/resultados_etapa2.json`.
+   - Rodada preliminar sobre `dataset_minimo.json` (`n=15`); o artefato foi
+     removido em 2026-10-24 e a rodada oficial usa as 167 perguntas.
 3. **Etapa 3 — Commit `e5cf918` (`feat(rag): implement recursive token-based
    chunking and Etapa 3 5x3 grid benchmark`):**
    - **Código de produção (`app.rag.chunking`, `app.rag.embeddings`,
@@ -732,8 +732,8 @@ do Claude, discriminado abaixo:
    - **Script e testes:** `backend/eval/rag_ingestion/run_etapa3.py`,
      `tests/test_rag_chunking.py`, `tests/test_rag_ingest.py` e
      `tests/test_rag_ingestion_eval.py`.
-   - **Artefato gerado sobre `dataset_minimo.json` (`n=15`):**
-     `backend/eval/rag_ingestion/resultados_etapa3.json`.
+   - Rodada preliminar sobre `dataset_minimo.json` (`n=15`); o artefato foi
+     removido em 2026-10-24 e a rodada oficial usa as 167 perguntas.
 4. **Etapa 4 e Etapa 5 — commitadas em `c4efe82`** (a nota original dizia
    "não commitados"; o mesmo commit que trouxe esta seção já versionou os dois
    scripts e os JSONs preliminares):
@@ -741,15 +741,14 @@ do Claude, discriminado abaixo:
      `--entrada`, `--saida` e `--ponto-id` para aceitar tanto o JSON da Etapa 1
      quanto o JSON de múltiplos pontos da Etapa 3 (`extrair_base_varredura`) e
      calcular `recomendar_threshold` pelo ponto médio do intervalo separável.
-     Artefato preliminar: `varredura_threshold_etapa4.json`.
+     O artefato preliminar foi removido em 2026-10-24.
    - `backend/eval/rag_ingestion/run_etapa5.py`: implementa a Bateria 1
      (`cosine`, `dot`, `euclid`) e a Bateria 2 (latência `media_ms`, `p50_ms`,
      `p95_ms` de `query_points` com e sem payload index `keyword` em `domain`).
      **Achado técnico no Qdrant:** para `euclid` (`Order::SmallBetter`), o
      Qdrant trata `score_threshold` como limite **superior** (`distancia <=
      thr`), de modo que `score_threshold=0.0` descarta qualquer vetor com
-     distância `> 0` (foi o que ocorreu na 1ª rodada gravada em
-     `resultados_etapa5.json`). O código de `run_etapa5.py` já está corrigido
+     distância `> 0` (foi o que ocorreu na 1ª rodada preliminar, já apagada). O código de `run_etapa5.py` já está corrigido
      com `thr_sem_corte = 10.0` para `euclid`/`manhattan`, mas não foi
      reexecutado.
    - `backend/tests/test_rag_ingestion_eval.py`: +4 testes cobrindo as Etapas 4

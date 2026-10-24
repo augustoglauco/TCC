@@ -4,9 +4,8 @@ Seção 2.1).
 Mede **só recuperação** — `Recall@k`, `nDCG@10`, `MRR` e taxa de vazio —
 sem gerar resposta e **sem nenhuma chamada de LLM-as-judge**. É o que torna
 a varredura de parâmetros das Etapas 2–5 viável: uma configuração custa
-~30 s em vez das 18 chamadas de juiz por ponto que `chunk_size_search.py`
-gastava (e que esbarraram em rate limit 429 do OpenRouter, limitando aquele
-experimento a 7 pontos por bisseção em vez de uma grade).
+~30 s em vez de uma chamada de juiz por pergunta e por ponto (que esbarra em
+rate limit 429 do OpenRouter).
 
 **Mede a busca crua (`QdrantRAGClient.search`), não o caminho do
 orquestrador.** `_buscar_documentos_rag` acrescenta contexto da conversa e

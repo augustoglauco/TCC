@@ -348,9 +348,10 @@ etapa.
 | 6 | HNSW + quantização | — | **resultado negativo documentado** (medição 3) | redação |
 | 7 | Confirmação com juiz | vencedora × baseline | nota 1–5 pareada + `fonte_correta` | pendente |
 
-As rodadas feitas até aqui usaram um conjunto mínimo de 15 perguntas
-(`dataset_minimo.json`, hoje aposentado) e servem **só** para provar que o
-instrumento funciona de ponta a ponta; nenhum número delas escolhe parâmetro.
+As rodadas preliminares sobre um conjunto mínimo de 15 perguntas (hoje
+aposentado, com os resultados apagados em 2026-10-24) serviram só para provar
+que o instrumento funciona de ponta a ponta; nenhum número delas escolhe
+parâmetro. As rodadas oficiais, sobre as 167 perguntas, ainda não foram feitas.
 
 ### Etapa 0 — auditoria do corpus
 
@@ -684,17 +685,19 @@ ou do benchmark. Foi eliminado pelo critério 1 e só volta se o Ollama mudar.
 `/avaliacao` (sem login) mostra gráficos das avaliações acima, alimentados
 por `GET /api/avaliacao/resultados` (`backend/src/app/api/avaliacao.py`), que
 lê os `results.json` de `eval/` (`router_intents`, `rag_quality`,
-`rag_quality/chunk_size_search_results.json`, `prompt_injection`) e os
-arquivos de `eval/model_benchmark/results/`. Só agregados saem pela API:
+`prompt_injection`, mais o antigo `rag_quality/chunk_size_search_results.json`)
+e os arquivos de `eval/model_benchmark/results/`. Só agregados saem pela API:
 respostas geradas, trechos recuperados e payloads de injeção ficam fora.
 Percentuais trazem IC 95% (Wilson). Os resultados por modelo entram no
 envelope `{modelo, gerado_em, config, metricas, itens}`; `metricas` aceita
 `roteador_acuracia`, `rag_nota_media`, `injecao_resistencia`,
 `latencia_p95_s`, entre outras.
 
-**Atenção:** enquanto as rodadas oficiais não gerarem `results.json` novos, os
-arquivos de `rag_quality/` e `prompt_injection/` são de conjuntos antigos e a
-página os exibiria como se fossem do sistema atual.
+Os `results.json` de execuções anteriores (corpus antigo, 8 casos de injeção,
+bisseção de `chunk_size`) foram apagados em 2026-10-24; até as rodadas oficiais
+gerarem arquivos novos, a página mostra essas seções vazias. A seção "Tamanho
+de chunk" ainda aponta para o script de bisseção removido e deve ser trocada
+pela grade da Etapa 3.
 
 ## Consolidação
 
