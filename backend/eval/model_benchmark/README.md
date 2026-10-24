@@ -219,6 +219,27 @@ medido e critério de desempate; se o vencedor não tiver visão local, o
 relatório precisa dizer que toda imagem de cliente passa a depender do modelo
 externo.
 
+### Resultado da triagem (2026-10-24, seed 42, `--etapas roteador,imagem`):
+
+| Modelo | Roteador | JSON inválido | p95 (s) | Veredito |
+|---|---|---|---|---|
+| gemma4-12b-q4 | 85,2% | 0% | 1,8 | **sobrevive** |
+| gemma4-e4b-q8 | 84,7% | 0% | 1,4 | **sobrevive** |
+| qwen25-vl-3b | 79,9% | 6,5% | 1,1 | **sobrevive** |
+| qwen25-vl-7b | 77,3% | 0% | 1,4 | **sobrevive** |
+| gemma3-gaia-4b-f16 | 72,9% | 5,2% | 1,3 | fora: 12,3 pp do melhor (corte 10 pp) |
+| qwen35-9b | 62,9% | 39% | 1,1 | fora: JSON inválido > 10% |
+| phi4-mini-bf16 | 50,7% | 91% | 2,6 | fora: JSON inválido > 10% |
+| deepseek-r1-distill-llama-8b-q8 | 48,5% | 100% | 7,4 | fora: JSON inválido > 10% |
+| qwen35-9b-defiant-fable-mtp | 48,5% | 100% | 22,3 | fora: JSON inválido > 10% |
+| llama32-11b-vision | — | — | — | fora: não carrega (eliminatório 1) |
+
+O Llama 3.2 Vision (GGUF da comunidade e o oficial `llama3.2-vision`) falha
+com `unknown model architecture: 'mllama'`: o Ollama 0.30.6 (llama-server)
+não tem mais essa arquitetura. **Sobreviventes confirmados pelo dono em
+2026-10-24: gemma4-12b-q4, gemma4-e4b-q8, qwen25-vl-3b e qwen25-vl-7b.**
+O resultado numérico fica em `results/<id>.json`.
+
 ## Candidatos
 
 `modelos.json` lista os candidatos de `docs/ARCHITECTURE.md` (tabela de

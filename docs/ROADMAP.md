@@ -2111,7 +2111,10 @@ conversa e classificação do usuário").
         `run_benchmark.py`); loaders ignoram `descartado`; item 409 aceita
         vendas e agendamento. 109 casos novos `pendente` aguardam revisão humana
         em `/admin/datasets` (Passo 3).
-  - [ ] Rodar a triagem (depende dos conjuntos de roteador e imagem)
+  - [x] Rodar a triagem (2026-10-24): 9 dos 10 candidatos medidos (Llama 3.2
+        Vision não carrega no Ollama 0.30.6). 4 sobreviventes confirmados:
+        gemma4-12b-q4, gemma4-e4b-q8, qwen25-vl-3b, qwen25-vl-7b
+        (`eval/model_benchmark/README.md`)
 - [x] Orquestrador `eval/model_benchmark/` (2026-10-16). `run_benchmark.py`
       não cria avaliação nova: reexecuta as três que já existem
       (`router_intents`, `rag_quality`, `prompt_injection`) trocando só o

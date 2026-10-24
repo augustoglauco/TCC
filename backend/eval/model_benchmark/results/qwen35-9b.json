@@ -1,0 +1,1617 @@
+{
+  "versao": 1,
+  "avaliacao": "model_benchmark",
+  "modelo": "Qwen3.5 9B Q4_K_M",
+  "gerado_em": "2026-10-24T10:26:33+00:00",
+  "config": {
+    "ollama": "qwen3.5:9b",
+    "familia": "qwen3.5",
+    "parametros_b": 9.7,
+    "quantizacao": "Q4_K_M",
+    "timeout_s": 180.0,
+    "seed": 42,
+    "carga_s": 7.537,
+    "vram_bytes": 5641055763,
+    "capabilities": [
+      "completion",
+      "thinking",
+      "tools",
+      "vision"
+    ],
+    "visao_local": true
+  },
+  "metricas": {
+    "roteador_acuracia": 0.6288,
+    "roteador_acertos": 144,
+    "roteador_total": 229,
+    "json_invalido_taxa": 0.3896,
+    "latencia_media_s": 0.791,
+    "latencia_p95_s": 1.14,
+    "chamadas_medidas": 303,
+    "visao_local": true,
+    "imagem_portfolio_acerto": 0.1667,
+    "imagem_categoria_acerto": 1.0,
+    "imagem_json_valido_taxa": 0.3194,
+    "imagem_total": 72
+  },
+  "itens": {
+    "roteador": {
+      "acuracia": 0.6288,
+      "acertos": 144,
+      "total": 229,
+      "acuracia_ambiguas": 0.5366,
+      "acertos_ambiguas": 44,
+      "total_ambiguas": 82,
+      "json_invalidos": 90,
+      "json_tentativas": 231,
+      "json_invalido_taxa": 0.3896,
+      "matriz_confusao": {
+        "vendas": {
+          "vendas": 36,
+          "suporte": 10,
+          "fora_escopo": 25,
+          "atendimento": 3,
+          "agendamento": 4
+        },
+        "suporte": {
+          "fora_escopo": 29,
+          "suporte": 36,
+          "vendas": 3,
+          "agendamento": 4
+        },
+        "atendimento": {
+          "atendimento": 35,
+          "fora_escopo": 9,
+          "suporte": 5,
+          "vendas": 1,
+          "agendamento": 1
+        },
+        "agendamento": {
+          "atendimento": 8,
+          "agendamento": 20,
+          "suporte": 6,
+          "fora_escopo": 14,
+          "vendas": 3
+        },
+        "fora_escopo": {
+          "fora_escopo": 39,
+          "suporte": 9,
+          "atendimento": 10,
+          "agendamento": 1
+        }
+      },
+      "erros": [
+        {
+          "id": 7,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 8,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 11,
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 12,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 13,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 14,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 18,
+          "esperado": "vendas",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 43,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 45,
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 50,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 51,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 54,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 59,
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 60,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 67,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 68,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 76,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 101,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 111,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 123,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 127,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 132,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 133,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 135,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 137,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 162,
+          "esperado": "atendimento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 168,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 181,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 193,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 224,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 235,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 239,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 242,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 248,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 252,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 254,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 257,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 259,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 266,
+          "esperado": "fora_escopo",
+          "previsto": "agendamento",
+          "ambiguo": false
+        },
+        {
+          "id": 268,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 269,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 270,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 272,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 276,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 277,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 280,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 286,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 290,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 294,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 295,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 325,
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 326,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 327,
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 329,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 332,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 334,
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 337,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 456,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 467,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 471,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 472,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 474,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 475,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 477,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 478,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 480,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 491,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 494,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 498,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 499,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 500,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 501,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 503,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 505,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 506,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 507,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 508,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 518,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 521,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 527,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 528,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 538,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 565,
+          "esperado": "vendas",
+          "previsto": "atendimento",
+          "ambiguo": true
+        },
+        {
+          "id": 566,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 567,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 569,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 572,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 574,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 576,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 577,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 579,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 580,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 581,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 583,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 586,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 589,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 594,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 596,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 597,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 600,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 603,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 608,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 609,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 610,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 611,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 612,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 613,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 615,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 616,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 617,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 618,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 619,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 621,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 622,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 626,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 627,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 628,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 629,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 632,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 633,
+          "esperado": "atendimento",
+          "previsto": "agendamento",
+          "ambiguo": false
+        },
+        {
+          "id": 635,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 636,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 642,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        }
+      ],
+      "latencias_s": [
+        0.8,
+        0.709,
+        0.721,
+        0.755,
+        0.705,
+        0.671,
+        0.729,
+        0.717,
+        0.704,
+        0.761,
+        0.689,
+        0.699,
+        0.716,
+        0.702,
+        0.695,
+        0.708,
+        0.733,
+        0.749,
+        0.716,
+        0.747,
+        0.738,
+        0.731,
+        0.69,
+        0.746,
+        0.737,
+        0.723,
+        0.717,
+        0.739,
+        0.744,
+        0.731,
+        0.722,
+        0.725,
+        0.706,
+        0.732,
+        0.691,
+        0.737,
+        0.683,
+        0.746,
+        0.727,
+        0.678,
+        0.745,
+        0.737,
+        0.737,
+        0.695,
+        0.728,
+        0.693,
+        0.662,
+        0.737,
+        0.724,
+        0.722,
+        0.718,
+        0.729,
+        0.728,
+        0.723,
+        0.758,
+        0.728,
+        0.772,
+        0.725,
+        0.73,
+        0.731,
+        0.689,
+        0.737,
+        0.716,
+        0.751,
+        0.771,
+        0.689,
+        0.717,
+        0.754,
+        0.749,
+        0.745,
+        0.721,
+        0.738,
+        0.725,
+        0.747,
+        0.739,
+        0.763,
+        0.755,
+        0.74,
+        0.721,
+        0.684,
+        0.672,
+        0.708,
+        0.73,
+        0.77,
+        0.771,
+        0.734,
+        0.734,
+        0.756,
+        0.668,
+        0.744,
+        0.733,
+        0.735,
+        0.726,
+        0.736,
+        0.691,
+        0.713,
+        0.713,
+        0.751,
+        0.742,
+        0.746,
+        0.726,
+        0.708,
+        0.719,
+        0.686,
+        0.736,
+        0.734,
+        0.722,
+        0.727,
+        0.752,
+        0.72,
+        0.72,
+        0.723,
+        0.717,
+        0.697,
+        0.722,
+        0.708,
+        0.756,
+        0.722,
+        0.72,
+        0.725,
+        0.664,
+        0.717,
+        0.747,
+        0.688,
+        0.73,
+        0.699,
+        0.686,
+        0.694,
+        0.723,
+        0.698,
+        0.664,
+        0.705,
+        0.721,
+        0.704,
+        0.656,
+        0.709,
+        0.716,
+        0.751,
+        0.712,
+        0.713,
+        0.761,
+        0.725,
+        0.733,
+        0.663,
+        0.747,
+        0.667,
+        0.694,
+        0.696,
+        0.717,
+        0.679,
+        0.707,
+        0.73,
+        0.689,
+        0.703,
+        0.693,
+        0.674,
+        0.72,
+        0.736,
+        0.719,
+        0.722,
+        0.73,
+        0.686,
+        0.738,
+        0.678,
+        0.688,
+        0.677,
+        0.726,
+        0.692,
+        0.705,
+        0.724,
+        0.722,
+        0.705,
+        0.677,
+        0.733,
+        0.714,
+        0.711,
+        0.709,
+        0.713,
+        0.702,
+        0.693,
+        0.805,
+        0.73,
+        0.689,
+        0.725,
+        0.733,
+        0.679,
+        0.698,
+        0.672,
+        0.705,
+        0.705,
+        0.713,
+        0.717,
+        0.674,
+        0.695,
+        0.651,
+        0.741,
+        0.671,
+        0.717,
+        0.701,
+        0.752,
+        0.668,
+        0.728,
+        0.692,
+        0.688,
+        0.732,
+        0.687,
+        0.684,
+        0.767,
+        0.686,
+        0.744,
+        0.755,
+        0.728,
+        0.712,
+        0.737,
+        0.719,
+        0.672,
+        0.718,
+        0.742,
+        0.741,
+        0.765,
+        0.737,
+        0.748,
+        0.697,
+        0.665,
+        0.688,
+        0.667,
+        0.75,
+        0.681,
+        0.757,
+        0.748,
+        0.755
+      ]
+    },
+    "imagem": {
+      "suportado_localmente": true,
+      "total": 72,
+      "positivos": 5,
+      "json_valido_taxa": 0.3194,
+      "portfolio_acerto_taxa": 0.1667,
+      "categoria_acerto_taxa": 1.0,
+      "casos": [
+        {
+          "id": "pos_01",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_02",
+          "json_valido": true,
+          "produto_esperado": "IDBlock Facial",
+          "produto_previsto": "catraca eletrônica com leitor biométrico",
+          "e_do_portfolio_previsto": true,
+          "confianca": 1.0,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "pos_03",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_04",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_05",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_06",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_07",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_08",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_09",
+          "json_valido": true,
+          "produto_esperado": "Tags",
+          "produto_previsto": "control ID",
+          "e_do_portfolio_previsto": false,
+          "confianca": 0.95,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "pos_10",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_11",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_12",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_13",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_14",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_15",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_16",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_17",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_18",
+          "json_valido": true,
+          "produto_esperado": "iDConnect",
+          "produto_previsto": "Leitor biométrico Control ID",
+          "e_do_portfolio_previsto": true,
+          "confianca": 0.95,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "pos_19",
+          "json_valido": true,
+          "produto_esperado": "IDFACE/FP/A",
+          "produto_previsto": "Control iD - Identificador biométrico facial",
+          "e_do_portfolio_previsto": true,
+          "confianca": 0.98,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "pos_20",
+          "json_valido": true,
+          "produto_esperado": "iDFace Max",
+          "produto_previsto": "catraca eletrônica com leitor biométrico facial",
+          "e_do_portfolio_previsto": true,
+          "confianca": 0.98,
+          "acerto_portfolio": true,
+          "acerto_categoria": true
+        },
+        {
+          "id": "pos_21",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "pos_22",
+          "json_valido": false,
+          "bruto": "{\n  \"produto\": \"controle remoto\",\n  \"e_do_portfolio\": false,\n  \"confiança\": 0.95\n}"
+        },
+        {
+          "id": "pos_23",
+          "json_valido": false,
+          "bruto": ""
+        },
+        {
+          "id": "neg_01",
+          "json_valido": false,
+          "bruto": "{\n  \"produto\": \"Máscara de cílios\",\n  \"e_do_portfolio\": false,\n  \"confiança\": 1.0\n}"
+        },
+        {
+          "id": "neg_02",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Eyeshadow Palette with Mirror)",
+          "produto_previsto": "Paleta de maquiagem",
+          "e_do_portfolio_previsto": false,
+          "confianca": 1.0,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_03",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Calvin Klein CK One)",
+          "produto_previsto": "perfume",
+          "e_do_portfolio_previsto": false,
+          "confianca": 0.95,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_04",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Chanel Coco Noir Eau De)",
+          "produto_previsto": "perfume",
+          "e_do_portfolio_previsto": false,
+          "confianca": 1.0,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_05",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"cama\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_06",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"sofá\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_07",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"maçã\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_08",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"carne\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_09",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"cadeira\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_10",
+          "json_valido": false,
+          "bruto": "{\n  \"produto\": \"quadro de fotos\",\n  \"e_do_portfolio\": false,\n  \"confiança\": 1.0\n}"
+        },
+        {
+          "id": "neg_11",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"laptop\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_12",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Asus Zenbook Pro Dual Screen Laptop)",
+          "produto_previsto": "laptop",
+          "e_do_portfolio_previsto": false,
+          "confianca": 1.0,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_13",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"camisa plaid\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_14",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Gigabyte Aorus Men Tshirt)",
+          "produto_previsto": "Camiseta",
+          "e_do_portfolio_previsto": false,
+          "confianca": 1.0,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_15",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"tênis de alta performance\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_16",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"tênis de futebol\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_17",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"relógio\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_18",
+          "json_valido": false,
+          "bruto": "{\n  \"produto\": \"relógio\",\n  \"e_do_portfolio\": false,\n  \"confiança\": 1.0\n}"
+        },
+        {
+          "id": "neg_19",
+          "json_valido": false,
+          "bruto": "{\n  \"produto\": \"moto\",\n  \"e_do_portfolio\": false,\n  \"confiança\": 1.0\n}"
+        },
+        {
+          "id": "neg_20",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"motocicleta\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_21",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Attitude Super Leaves Hand Soap)",
+          "produto_previsto": "Shampoo",
+          "e_do_portfolio_previsto": false,
+          "confianca": 1.0,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_22",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"shampoo\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_23",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"smartphone\", \"e_do_portfolio\": false, \"confiança\": 0.95}"
+        },
+        {
+          "id": "neg_24",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"iPhone\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_25",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"Óculos de sol\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_26",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"Óculos de sol\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_27",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — iPad Mini 2021 Starlight)",
+          "produto_previsto": "Tablet",
+          "e_do_portfolio_previsto": false,
+          "confianca": 1.0,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_28",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"tablet\", \"e_do_portfolio\": false, \"confiança\": 0.95}"
+        },
+        {
+          "id": "neg_29",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"vestido infantil\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_30",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"vestido\", \"e_do_portfolio\": false, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_31",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"terminal biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}"
+        },
+        {
+          "id": "neg_32",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Controlador de Acesso Facial Bio-T Wi-Fi Intelbras SS 3532 MF W)",
+          "produto_previsto": "visiophone",
+          "e_do_portfolio_previsto": false,
+          "confianca": 0.95,
+          "acerto_portfolio": true,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_33",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Controlador de Acesso Facial Intelbras SS 1540 MF W)",
+          "produto_previsto": "catraca eletrônica com leitor biométrico e tela",
+          "e_do_portfolio_previsto": true,
+          "confianca": 0.95,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_34",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"catraca eletrônica\", \"e_do_portfolio\": true, \"confiança\": 0.95}"
+        },
+        {
+          "id": "neg_35",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Leitor e Controlador RFID Security Intelbras LE 1110 Security)",
+          "produto_previsto": "Leitor de cartão Intelbras LE 1110 Security",
+          "e_do_portfolio_previsto": true,
+          "confianca": 0.98,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_36",
+          "json_valido": false,
+          "bruto": "{\n  \"produto\": \"Leitor biométrico com tela de interface\",\n  \"e_do_portfolio\": true,\n  \"confiança\": 0.98\n}"
+        },
+        {
+          "id": "neg_37",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Controlador de Acesso Facial com Biometria Intelbras SS 3542 MF)",
+          "produto_previsto": "Identificador biométrico",
+          "e_do_portfolio_previsto": true,
+          "confianca": 1.0,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_38",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"identificador biométrico facial\", \"e_do_portfolio\": true, \"confiança\": 0.95}"
+        },
+        {
+          "id": "neg_39",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Terminal de Controle de Acesso Facial Henry Face)",
+          "produto_previsto": "Identificador biométrico facial",
+          "e_do_portfolio_previsto": true,
+          "confianca": 0.95,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_40",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Pedestal com Terminal de Reconhecimento Facial Henry)",
+          "produto_previsto": "catraca eletrônica",
+          "e_do_portfolio_previsto": true,
+          "confianca": 1.0,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_41",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Controlador de Acesso Henry TLN Omni)",
+          "produto_previsto": "Catraca eletrônica",
+          "e_do_portfolio_previsto": true,
+          "confianca": 0.95,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_42",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Totem Mini de Controle de Acesso Henry)",
+          "produto_previsto": "catraca eletrônica",
+          "e_do_portfolio_previsto": true,
+          "confianca": 0.95,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_43",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"catraca eletrônica\", \"e_do_portfolio\": true, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_44",
+          "json_valido": false,
+          "bruto": "{\n  \"produto\": \"catraca eletrônica\",\n  \"e_do_portfolio\": true,\n  \"confiança\": 1.0\n}"
+        },
+        {
+          "id": "neg_45",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Cancela Automática de Controle de Acesso Henry Inca)",
+          "produto_previsto": "Catraca eletrônica",
+          "e_do_portfolio_previsto": true,
+          "confianca": 1.0,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_46",
+          "json_valido": false,
+          "bruto": "{\"produto\": \"catraca eletrônica\", \"e_do_portfolio\": true, \"confiança\": 1}"
+        },
+        {
+          "id": "neg_47",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Catraca Pedestal em Aço Inox Escovado Henry)",
+          "produto_previsto": "Catraca eletrônica",
+          "e_do_portfolio_previsto": true,
+          "confianca": 1.0,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_48",
+          "json_valido": true,
+          "produto_esperado": "(nenhum — Catraca de Acesso Henry Lumen Park)",
+          "produto_previsto": "catraca eletrônica",
+          "e_do_portfolio_previsto": true,
+          "confianca": 0.95,
+          "acerto_portfolio": false,
+          "acerto_categoria": null
+        },
+        {
+          "id": "neg_comprovante",
+          "json_valido": false,
+          "bruto": "{\n  \"produto\": null,\n  \"e_do_portfolio\": false,\n  \"confianca\": 0.0\n}"
+        }
+      ],
+      "latencias_s": [
+        1.253,
+        3.999,
+        0.815,
+        0.895,
+        0.722,
+        1.115,
+        0.691,
+        0.801,
+        1.087,
+        0.748,
+        0.652,
+        1.203,
+        0.643,
+        1.159,
+        0.809,
+        0.64,
+        0.627,
+        1.14,
+        2.026,
+        2.013,
+        0.859,
+        0.842,
+        0.7,
+        0.855,
+        1.08,
+        0.862,
+        0.993,
+        0.816,
+        0.847,
+        0.857,
+        0.842,
+        0.838,
+        0.951,
+        0.828,
+        1.019,
+        0.856,
+        0.983,
+        0.885,
+        0.83,
+        0.84,
+        0.935,
+        0.925,
+        0.853,
+        0.967,
+        0.9,
+        0.792,
+        0.788,
+        0.839,
+        0.837,
+        1.078,
+        0.889,
+        0.816,
+        0.825,
+        0.986,
+        1.227,
+        1.063,
+        1.187,
+        1.363,
+        0.963,
+        1.277,
+        1.223,
+        1.354,
+        1.284,
+        1.153,
+        1.01,
+        0.971,
+        1.044,
+        1.054,
+        1.43,
+        1.139,
+        1.027,
+        1.063
+      ]
+    }
+  }
+}

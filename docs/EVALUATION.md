@@ -943,6 +943,10 @@ Repowise durante a rodada: ele usa o mesmo gemma4:12b.
 O agente aplica o critério de corte já registrado e mostra a tabela. Você
 confirma os 4–5 que seguem. É decisão sua porque define o custo da rodada
 completa.
+- **Feito em 2026-10-24:** 4 sobreviventes confirmados — gemma4-12b-q4,
+  gemma4-e4b-q8, qwen25-vl-3b, qwen25-vl-7b. Tabela completa e motivo de cada
+  corte em `backend/eval/model_benchmark/README.md`. O Llama 3.2 Vision não
+  carrega no Ollama 0.30.6 (`mllama` removido). Segue o Passo 8.
 
 ### Passo 8 — Fechar os parâmetros do RAG (~30 min)
 Com o passo 4 feito, o agente roda as Etapas 2–5 nas 180 perguntas e

@@ -1,0 +1,1189 @@
+{
+  "versao": 1,
+  "avaliacao": "model_benchmark",
+  "modelo": "Gemma-3-Gaia-PT-BR-4b-it F16",
+  "gerado_em": "2026-10-24T11:20:48+00:00",
+  "config": {
+    "ollama": "hf.co/mradermacher/Gemma-3-Gaia-PT-BR-4b-it-GGUF:F16",
+    "familia": "gemma3",
+    "parametros_b": 4,
+    "quantizacao": "F16",
+    "timeout_s": 180.0,
+    "seed": 42,
+    "carga_s": 10.014,
+    "vram_bytes": 8154240777,
+    "capabilities": [
+      "completion",
+      "vision"
+    ],
+    "visao_local": true
+  },
+  "metricas": {
+    "roteador_acuracia": 0.7293,
+    "roteador_acertos": 167,
+    "roteador_total": 229,
+    "json_invalido_taxa": 0.0519,
+    "latencia_media_s": 0.844,
+    "latencia_p95_s": 1.287,
+    "chamadas_medidas": 303,
+    "visao_local": true,
+    "imagem_portfolio_acerto": 0.0,
+    "imagem_categoria_acerto": null,
+    "imagem_json_valido_taxa": 0.0,
+    "imagem_total": 72
+  },
+  "itens": {
+    "roteador": {
+      "acuracia": 0.7293,
+      "acertos": 167,
+      "total": 229,
+      "acuracia_ambiguas": 0.8902,
+      "acertos_ambiguas": 73,
+      "total_ambiguas": 82,
+      "json_invalidos": 12,
+      "json_tentativas": 231,
+      "json_invalido_taxa": 0.0519,
+      "matriz_confusao": {
+        "vendas": {
+          "vendas": 48,
+          "suporte": 17,
+          "atendimento": 5,
+          "agendamento": 6,
+          "fora_escopo": 2
+        },
+        "suporte": {
+          "suporte": 61,
+          "fora_escopo": 4,
+          "vendas": 3,
+          "agendamento": 4
+        },
+        "atendimento": {
+          "suporte": 17,
+          "atendimento": 27,
+          "vendas": 1,
+          "fora_escopo": 5,
+          "agendamento": 1
+        },
+        "agendamento": {
+          "atendimento": 5,
+          "agendamento": 29,
+          "suporte": 12,
+          "fora_escopo": 1,
+          "vendas": 4
+        },
+        "fora_escopo": {
+          "fora_escopo": 35,
+          "atendimento": 15,
+          "suporte": 7,
+          "agendamento": 1,
+          "vendas": 1
+        }
+      },
+      "erros": [
+        {
+          "id": 13,
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 16,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 18,
+          "esperado": "vendas",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 45,
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 51,
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 59,
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 60,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 120,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 132,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 135,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 162,
+          "esperado": "atendimento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 164,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 168,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 169,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 179,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 181,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 224,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 239,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 241,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 242,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 243,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 251,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 252,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 259,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 261,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 266,
+          "esperado": "fora_escopo",
+          "previsto": "agendamento",
+          "ambiguo": false
+        },
+        {
+          "id": 268,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 269,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 270,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 273,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 277,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 280,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 281,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 286,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 294,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 297,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 325,
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 332,
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 429,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 462,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 466,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 490,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 509,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 510,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 517,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 521,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 572,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 576,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 577,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 583,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 596,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 598,
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": true
+        },
+        {
+          "id": 600,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 605,
+          "esperado": "fora_escopo",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 606,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 609,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 610,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 611,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 612,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 614,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 615,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 616,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 617,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 618,
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 622,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 629,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 632,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 633,
+          "esperado": "atendimento",
+          "previsto": "agendamento",
+          "ambiguo": false
+        },
+        {
+          "id": 636,
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 641,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 642,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        }
+      ],
+      "latencias_s": [
+        0.851,
+        0.709,
+        0.698,
+        0.711,
+        0.711,
+        0.713,
+        0.712,
+        0.715,
+        0.702,
+        0.705,
+        0.692,
+        0.714,
+        0.702,
+        0.677,
+        0.695,
+        0.699,
+        0.722,
+        0.688,
+        0.703,
+        0.679,
+        0.683,
+        0.682,
+        0.683,
+        0.697,
+        0.694,
+        0.693,
+        0.699,
+        0.693,
+        0.697,
+        0.711,
+        0.682,
+        0.703,
+        0.676,
+        0.711,
+        0.717,
+        0.693,
+        0.682,
+        0.689,
+        0.68,
+        0.696,
+        0.704,
+        0.689,
+        0.701,
+        0.708,
+        0.696,
+        0.709,
+        0.706,
+        0.718,
+        0.708,
+        0.705,
+        0.69,
+        0.721,
+        0.684,
+        0.713,
+        0.704,
+        0.697,
+        0.699,
+        0.692,
+        0.684,
+        0.693,
+        0.743,
+        0.72,
+        0.733,
+        0.725,
+        0.726,
+        0.694,
+        0.709,
+        0.722,
+        0.706,
+        0.733,
+        0.714,
+        0.716,
+        0.698,
+        0.69,
+        0.683,
+        0.733,
+        0.717,
+        0.714,
+        0.679,
+        0.696,
+        0.7,
+        0.727,
+        0.71,
+        0.693,
+        0.72,
+        0.726,
+        0.698,
+        0.733,
+        0.692,
+        0.72,
+        0.688,
+        0.682,
+        0.714,
+        0.689,
+        0.721,
+        0.721,
+        0.725,
+        0.726,
+        0.694,
+        0.719,
+        0.698,
+        0.691,
+        0.703,
+        0.706,
+        0.703,
+        0.692,
+        0.71,
+        0.696,
+        0.711,
+        0.692,
+        0.685,
+        0.692,
+        0.708,
+        0.69,
+        0.693,
+        0.737,
+        0.702,
+        0.734,
+        0.686,
+        0.731,
+        0.695,
+        0.714,
+        0.715,
+        0.692,
+        0.699,
+        0.711,
+        0.692,
+        0.696,
+        0.695,
+        0.694,
+        0.709,
+        0.706,
+        0.688,
+        0.719,
+        0.705,
+        0.692,
+        0.681,
+        0.687,
+        0.697,
+        0.696,
+        0.712,
+        0.682,
+        0.694,
+        0.71,
+        0.701,
+        0.687,
+        0.708,
+        0.703,
+        0.685,
+        0.692,
+        0.717,
+        0.698,
+        0.677,
+        0.708,
+        0.709,
+        0.697,
+        0.678,
+        0.702,
+        0.679,
+        0.686,
+        0.699,
+        0.677,
+        0.699,
+        0.682,
+        0.699,
+        0.679,
+        0.705,
+        0.692,
+        0.706,
+        0.698,
+        0.718,
+        0.706,
+        0.705,
+        0.719,
+        0.709,
+        0.708,
+        0.709,
+        0.68,
+        0.695,
+        0.706,
+        0.691,
+        0.721,
+        0.694,
+        0.696,
+        0.711,
+        0.677,
+        0.69,
+        0.694,
+        0.715,
+        0.696,
+        0.688,
+        0.707,
+        0.709,
+        0.691,
+        0.685,
+        0.713,
+        0.715,
+        0.701,
+        0.72,
+        0.691,
+        0.708,
+        0.704,
+        0.685,
+        0.699,
+        0.701,
+        0.707,
+        0.696,
+        0.692,
+        0.702,
+        0.733,
+        0.711,
+        0.709,
+        0.683,
+        0.714,
+        0.707,
+        0.703,
+        0.696,
+        0.716,
+        0.696,
+        0.709,
+        0.71,
+        0.712,
+        0.668,
+        0.7,
+        0.703,
+        0.711,
+        0.697,
+        0.692,
+        0.695,
+        0.701,
+        0.732
+      ]
+    },
+    "imagem": {
+      "suportado_localmente": true,
+      "total": 72,
+      "positivos": 0,
+      "json_valido_taxa": 0.0,
+      "portfolio_acerto_taxa": 0.0,
+      "categoria_acerto_taxa": null,
+      "casos": [
+        {
+          "id": "pos_01",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_02",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catraca eletrônica\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_03",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_04",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Carregador de veículos elétricos\", \"e_do_portfolio\": false, \"confiança\": 0.8}\n```"
+        },
+        {
+          "id": "pos_05",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_06",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_07",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_08",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_09",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Control iD\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_10",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_11",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_12",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_13",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_14",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_15",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_16",
+          "json_valido": false,
+          "bruto": "```json\n{\n  \"produto\": \"Control ID - Controller Box\",\n  \"e_do_portfolio\": true,\n  \"confiança\": 0.95\n}\n```"
+        },
+        {
+          "id": "pos_17",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_18",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Control ID\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_19",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_20",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_21",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "pos_22",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Mouse ergonômico\", \"e_do_portfolio\": false, \"confiança\": 0.7}\n```"
+        },
+        {
+          "id": "pos_23",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_01",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Máscara de cílios\", \"e_do_portfolio\": false, \"confiança\": 0.8}\n```"
+        },
+        {
+          "id": "neg_02",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Paleta de Maquiagem\", \"e_do_portfolio\": false, \"confiança\": 0.2}\n```"
+        },
+        {
+          "id": "neg_03",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Perfume\", \"e_do_portfolio\": false, \"confiança\": 0.2}\n```"
+        },
+        {
+          "id": "neg_04",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Perfume Chanel Coco Noir\", \"e_do_portfolio\": false, \"confiança\": 0.1}\n```"
+        },
+        {
+          "id": "neg_05",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Cama\", \"e_do_portfolio\": false, \"confiança\": 0.2}\n```"
+        },
+        {
+          "id": "neg_06",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"sofá\", \"e_do_portfolio\": false, \"confiança\": 0.2}\n```"
+        },
+        {
+          "id": "neg_07",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Maçã\", \"e_do_portfolio\": false, \"confiança\": 0.8}\n```"
+        },
+        {
+          "id": "neg_08",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Carne bovina\", \"e_do_portfolio\": false, \"confiança\": 0.1}\n```"
+        },
+        {
+          "id": "neg_09",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Cadeira de balanço\", \"e_do_portfolio\": false, \"confiança\": 0.2}\n```"
+        },
+        {
+          "id": "neg_10",
+          "json_valido": false,
+          "bruto": "```json\n[\n  { \"produto\": \"Frame de fotos\", \"e_do_portfolio\": false, \"confiança\": 0.7 }\n]\n```"
+        },
+        {
+          "id": "neg_11",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Laptop\", \"e_do_portfolio\": false, \"confiança\": 0.5}\n```"
+        },
+        {
+          "id": "neg_12",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Laptop de alto desempenho\", \"e_do_portfolio\": false, \"confiança\": 0.75}\n```"
+        },
+        {
+          "id": "neg_13",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Camisa xadrez\", \"e_do_portfolio\": false, \"confiança\": 0.2}\n```"
+        },
+        {
+          "id": "neg_14",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Camiseta Gamer\", \"e_do_portfolio\": false, \"confiança\": 0.6}\n```"
+        },
+        {
+          "id": "neg_15",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Tênis Jordan 1\", \"e_do_portfolio\": false, \"confiança\": 0.8}\n```"
+        },
+        {
+          "id": "neg_16",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Nike Air Zoom SuperTurf\", \"e_do_portfolio\": false, \"confiança\": 0.2}\n```"
+        },
+        {
+          "id": "neg_17",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Relógio de pulso\", \"e_do_portfolio\": false, \"confiança\": 0.1}\n```"
+        },
+        {
+          "id": "neg_18",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Relógio de pulso\", \"e_do_portfolio\": false, \"confiança\": 0.1}\n```"
+        },
+        {
+          "id": "neg_19",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Motocicleta esportiva\", \"e_do_portfolio\": false, \"confiança\": 0.8}\n```"
+        },
+        {
+          "id": "neg_20",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Motocicleta\", \"e_do_portfolio\": false, \"confiança\": 0.8}\n```"
+        },
+        {
+          "id": "neg_21",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Hand lotion\", \"e_do_portfolio\": false, \"confiança\": 0.8}\n```"
+        },
+        {
+          "id": "neg_22",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Loção corporal\", \"e_do_portfolio\": false, \"confiança\": 0.7}\n```"
+        },
+        {
+          "id": "neg_23",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"iPhone\", \"e_do_portfolio\": false, \"confiança\": 0.8}\n```"
+        },
+        {
+          "id": "neg_24",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"iPhone 6\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_25",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Óculos de sol\", \"e_do_portfolio\": false, \"confiança\": 0.75}\n```"
+        },
+        {
+          "id": "neg_26",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Sunglasses\", \"e_do_portfolio\": false, \"confiança\": 0.6}\n```"
+        },
+        {
+          "id": "neg_27",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"iPad Mini\", \"e_do_portfolio\": false, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_28",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Tablet com caneta stylus\", \"e_do_portfolio\": false, \"confiança\": 0.7}\n```"
+        },
+        {
+          "id": "neg_29",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Vestido\", \"e_do_portfolio\": false, \"confiança\": 0.2}\n```"
+        },
+        {
+          "id": "neg_30",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Vestido\", \"e_do_portfolio\": false, \"confiança\": 0.1}\n```"
+        },
+        {
+          "id": "neg_31",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_32",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_33",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_34",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_35",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_36",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_37",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_38",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_39",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Identificador biométrico\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_40",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_41",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_42",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_43",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_44",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_45",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_46",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_47",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catraca eletrônica\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_48",
+          "json_valido": false,
+          "bruto": "```json\n{\"produto\": \"Catracas eletrônicas\", \"e_do_portfolio\": true, \"confiança\": 0.95}\n```"
+        },
+        {
+          "id": "neg_comprovante",
+          "json_valido": false,
+          "bruto": "```json\n[\n  { \"produto\": \"câmeras\", \"e_do_portfolio\": true, \"confiança\": 0.95 },\n  { \"produto\": \"sensores\", \"e_do_portfolio\": true, \"confiança\": 0.9 } ,\n  { \"produto\": \"automação\", \"e_do_portfolio\": true, \"confiança\": 0.85 },\n  { \"produto\": \"equipamentos de rede\", \"e_do_portfolio\": true, \"confiança\""
+        }
+      ],
+      "latencias_s": [
+        2.031,
+        1.287,
+        1.403,
+        1.622,
+        1.398,
+        1.843,
+        1.37,
+        1.497,
+        1.149,
+        1.334,
+        1.385,
+        1.776,
+        1.269,
+        1.818,
+        1.4,
+        1.418,
+        1.069,
+        1.149,
+        1.226,
+        1.184,
+        1.286,
+        1.152,
+        1.227,
+        1.193,
+        1.22,
+        1.13,
+        1.203,
+        1.092,
+        1.117,
+        1.171,
+        1.167,
+        1.211,
+        1.19,
+        1.086,
+        1.18,
+        1.192,
+        1.125,
+        1.207,
+        1.209,
+        1.189,
+        1.169,
+        1.182,
+        1.111,
+        1.127,
+        1.124,
+        1.118,
+        1.167,
+        1.184,
+        1.092,
+        1.174,
+        1.157,
+        1.168,
+        1.156,
+        1.189,
+        1.198,
+        1.169,
+        1.259,
+        1.26,
+        1.23,
+        1.26,
+        1.21,
+        1.202,
+        1.243,
+        1.194,
+        1.244,
+        1.247,
+        1.263,
+        1.197,
+        1.29,
+        1.229,
+        1.228,
+        4.103
+      ]
+    }
+  }
+}

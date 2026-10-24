@@ -1,0 +1,1479 @@
+{
+  "versao": 1,
+  "avaliacao": "model_benchmark",
+  "modelo": "Phi-4-mini-instruct BF16",
+  "gerado_em": "2026-10-24T11:16:22+00:00",
+  "config": {
+    "ollama": "hf.co/unsloth/Phi-4-mini-instruct-GGUF:BF16",
+    "familia": "phi4",
+    "parametros_b": 3.8,
+    "quantizacao": "BF16",
+    "timeout_s": 180.0,
+    "seed": 42,
+    "carga_s": 6.404,
+    "vram_bytes": 8276431338,
+    "capabilities": [
+      "completion",
+      "tools"
+    ],
+    "visao_local": false
+  },
+  "metricas": {
+    "roteador_acuracia": 0.5066,
+    "roteador_acertos": 116,
+    "roteador_total": 229,
+    "json_invalido_taxa": 0.9091,
+    "latencia_media_s": 1.874,
+    "latencia_p95_s": 2.627,
+    "chamadas_medidas": 231,
+    "visao_local": false
+  },
+  "itens": {
+    "roteador": {
+      "acuracia": 0.5066,
+      "acertos": 116,
+      "total": 229,
+      "acuracia_ambiguas": 0.0122,
+      "acertos_ambiguas": 1,
+      "total_ambiguas": 82,
+      "json_invalidos": 210,
+      "json_tentativas": 231,
+      "json_invalido_taxa": 0.9091,
+      "matriz_confusao": {
+        "vendas": {
+          "fora_escopo": 55,
+          "atendimento": 2,
+          "vendas": 21
+        },
+        "suporte": {
+          "fora_escopo": 59,
+          "suporte": 10,
+          "vendas": 3
+        },
+        "atendimento": {
+          "fora_escopo": 34,
+          "suporte": 1,
+          "atendimento": 14,
+          "vendas": 1,
+          "agendamento": 1
+        },
+        "agendamento": {
+          "fora_escopo": 26,
+          "agendamento": 19,
+          "suporte": 3,
+          "vendas": 3
+        },
+        "fora_escopo": {
+          "fora_escopo": 52,
+          "suporte": 3,
+          "agendamento": 1,
+          "atendimento": 3
+        }
+      },
+      "erros": [
+        {
+          "id": 1,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 3,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 4,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 7,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 8,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 9,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 11,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 12,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 13,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 14,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 16,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 18,
+          "esperado": "vendas",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 43,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 45,
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 47,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 50,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 51,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 54,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 57,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 59,
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 60,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 62,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 63,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 66,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 67,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 68,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 72,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 73,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 74,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 76,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 101,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 111,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 112,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 114,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 116,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 120,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 123,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 127,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 132,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 133,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 135,
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 136,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 137,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 162,
+          "esperado": "atendimento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 164,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 165,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 166,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 168,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 169,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 171,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 173,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 179,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 181,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 191,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 193,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 224,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 229,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 235,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 239,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 242,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 245,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 251,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 266,
+          "esperado": "fora_escopo",
+          "previsto": "agendamento",
+          "ambiguo": false
+        },
+        {
+          "id": 270,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 284,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 286,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        },
+        {
+          "id": 287,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 288,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 294,
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 300,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 325,
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 326,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 327,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 329,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 330,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 332,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 334,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 335,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 337,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 414,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 429,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 468,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 409,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 469,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 470,
+          "esperado": "vendas",
+          "previsto": "atendimento",
+          "ambiguo": true
+        },
+        {
+          "id": 471,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 472,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 474,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 475,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 477,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 478,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 479,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 480,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 482,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 483,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 485,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 486,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 488,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 489,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 490,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 491,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 492,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 493,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 494,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 495,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 496,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 497,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 498,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 499,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 500,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 501,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 502,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 503,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 504,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 505,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 506,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 507,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 508,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 509,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 510,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 511,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 513,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 514,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 515,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 517,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 518,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 520,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 521,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 525,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 526,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 527,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 528,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 529,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 536,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 537,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 538,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 540,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 543,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 544,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 546,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 547,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 565,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 566,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 567,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 568,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 569,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 570,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 571,
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 572,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 574,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 575,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 576,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 577,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 578,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 579,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 580,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 581,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 582,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 583,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 586,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 587,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 589,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 592,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 594,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 596,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 597,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 598,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 600,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 603,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true
+        },
+        {
+          "id": 608,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 609,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 610,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 611,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 612,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 613,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 614,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 615,
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false
+        },
+        {
+          "id": 616,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 617,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 618,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 619,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 621,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 622,
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false
+        },
+        {
+          "id": 626,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 628,
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 629,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 630,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 632,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 633,
+          "esperado": "atendimento",
+          "previsto": "agendamento",
+          "ambiguo": false
+        },
+        {
+          "id": 634,
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 635,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 636,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 637,
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false
+        },
+        {
+          "id": 642,
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false
+        }
+      ],
+      "latencias_s": [
+        2.265,
+        2.037,
+        1.511,
+        2.15,
+        2.373,
+        1.821,
+        1.67,
+        1.907,
+        2.627,
+        1.474,
+        2.488,
+        1.855,
+        2.47,
+        2.441,
+        1.742,
+        1.831,
+        2.093,
+        2.327,
+        0.735,
+        2.161,
+        2.043,
+        1.99,
+        2.161,
+        1.933,
+        1.591,
+        1.981,
+        2.324,
+        1.692,
+        1.52,
+        2.009,
+        2.035,
+        1.621,
+        2.018,
+        2.235,
+        1.92,
+        2.092,
+        1.956,
+        1.756,
+        1.943,
+        1.658,
+        2.088,
+        1.628,
+        1.669,
+        1.919,
+        2.081,
+        0.722,
+        1.641,
+        1.705,
+        1.938,
+        1.669,
+        1.86,
+        1.636,
+        1.859,
+        1.585,
+        1.575,
+        2.377,
+        1.68,
+        1.925,
+        0.722,
+        1.438,
+        0.742,
+        2.269,
+        2.01,
+        2.102,
+        2.593,
+        0.665,
+        1.264,
+        0.623,
+        2.749,
+        2.698,
+        2.326,
+        1.896,
+        1.935,
+        1.699,
+        0.662,
+        0.613,
+        2.228,
+        2.929,
+        2.022,
+        1.924,
+        0.726,
+        1.94,
+        1.788,
+        1.766,
+        1.527,
+        2.386,
+        2.794,
+        2.044,
+        1.922,
+        3.117,
+        2.221,
+        0.716,
+        2.224,
+        1.719,
+        0.62,
+        0.635,
+        2.278,
+        1.706,
+        2.204,
+        1.704,
+        1.758,
+        2.137,
+        2.44,
+        1.706,
+        1.721,
+        2.26,
+        2.236,
+        1.861,
+        1.575,
+        1.883,
+        0.723,
+        2.074,
+        0.661,
+        1.918,
+        0.662,
+        0.619,
+        1.915,
+        2.267,
+        1.6,
+        2.578,
+        2.017,
+        0.63,
+        1.952,
+        1.702,
+        1.759,
+        1.573,
+        3.024,
+        1.376,
+        1.622,
+        2.009,
+        2.019,
+        1.932,
+        1.889,
+        1.918,
+        1.804,
+        1.844,
+        2.135,
+        1.958,
+        3.194,
+        1.425,
+        2.364,
+        1.821,
+        1.806,
+        1.858,
+        2.114,
+        1.506,
+        2.438,
+        2.054,
+        1.825,
+        1.523,
+        1.797,
+        2.063,
+        1.946,
+        2.119,
+        1.961,
+        1.684,
+        1.672,
+        1.917,
+        1.431,
+        2.135,
+        1.965,
+        2.377,
+        1.93,
+        1.762,
+        1.998,
+        1.737,
+        2.095,
+        1.817,
+        1.839,
+        2.081,
+        1.932,
+        2.405,
+        2.088,
+        1.972,
+        1.272,
+        1.327,
+        1.804,
+        1.885,
+        1.92,
+        2.99,
+        2.626,
+        3.053,
+        2.396,
+        2.492,
+        2.627,
+        1.97,
+        2.391,
+        2.063,
+        1.545,
+        2.246,
+        1.927,
+        3.957,
+        2.037,
+        2.176,
+        2.285,
+        2.181,
+        1.665,
+        0.686,
+        0.633,
+        2.092,
+        1.908,
+        1.713,
+        1.697,
+        2.437,
+        1.682,
+        1.872,
+        2.013,
+        3.204,
+        1.804,
+        0.627,
+        1.316,
+        2.521,
+        2.21,
+        1.881,
+        2.24,
+        2.353,
+        1.733,
+        1.879,
+        1.384,
+        1.928,
+        0.621,
+        1.807,
+        1.684,
+        0.668,
+        2.247,
+        1.866,
+        1.765,
+        2.336,
+        1.848,
+        1.302,
+        1.551
+      ]
+    },
+    "imagem": {
+      "suportado_localmente": false,
+      "observacao": "Modelo sem capability 'vision' no Ollama: no sistema real `describe_image` levanta VisionModelIndisponivelError e a imagem cai para a visão externa.",
+      "latencias_s": []
+    }
+  }
+}
