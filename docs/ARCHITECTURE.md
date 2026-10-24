@@ -281,13 +281,12 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 > mapeadas e descartadas por ora) — o passo (3) acima chama o Ollama com o
 > `LOCAL_MODEL_NAME` configurado, reaproveitando a mesma instância já
 > residente em VRAM (`keep_alive=-1`) usada para texto, sem custo extra de
-> carga/VRAM. Risco a tratar na implementação: se o admin trocar
-> `LOCAL_MODEL_NAME` em runtime (`/admin/modelos`) para um modelo sem
-> capability `vision` (ex.: `qwen2.5-coder`), a chamada de visão local falha
-> — precisa cair com segurança para o passo (4), não propagar erro ao
-> usuário. Implementação (religar `vision_client` no fluxo de chat; inserir
-> o passo de visão local; tratar o risco acima) **ainda não feita** — ver
-> item do roadmap (Fase 11).
+> carga/VRAM. Risco tratado: se o admin trocar `LOCAL_MODEL_NAME` em
+> runtime (`/admin/modelos`) para um modelo sem capability `vision`, a
+> chamada de visão local falha e cai com segurança para o passo (4), sem
+> propagar erro ao usuário. **Implementado** (visão local religada no fluxo
+> de chat, `local_vision_client` em `orchestrator.py`; ver `docs/ROADMAP.md`,
+> política de custo mínimo de 2026-10-06).
 >
 > **Gaps encontrados que contrariavam essa diretriz, todos já corrigidos**
 > (achado de 2026-10-06, revisão da leitura de comprovante no chat; gap 3
@@ -512,247 +511,71 @@ grupo em vez de global) fica **fora de escopo**: impede busca cross-domain,
 que o sistema usa no fallback de domínio
 (`Settings.rag_search_domain_fallback`).
 
-**Risco de coordenação registrado (2026-10-17): refatoração visual M3 Glass
-x funções compartilhadas com o chat.** Outro agente conduz uma refatoração
-visual do site (spec em
-`docs/superpowers/specs/2026-10-17-m3glass-visual-refactor-design.md`,
-commit `8f8ec1a`; plano em
-`docs/superpowers/plans/2026-10-17-m3glass-visual-refactor.md`, commit
-`7eebebb`). O escopo declarado é Home, Header, Footer e `/produtos`, mas ele
-toca três superfícies compartilhadas com partes que hoje funcionam. Este
-bloco registra o **estado atual** dessas partes para permitir verificação e
-rollback, não para bloquear a refatoração.
+**Registro condensado (2026-10-17, revisado em 2026-10-24): refatoração
+visual M3 Glass e Etapas 2–5 do RAG.** Dois blocos de coordenação entre
+agentes, antes longos, ficam resumidos ao que ainda vale; o detalhe está no
+histórico do git (âncora de rollback do frontend: commit `7eebebb`; âncora
+antes das Etapas 2–5: `7ef9fbf`).
 
-**Âncora de rollback:** commit `7eebebb` — o último **antes** de qualquer
-alteração de código do frontend; os commits da refatoração até ali eram só
-documentação (`8f8ec1a` spec, `7eebebb` plano), e o primeiro de código é
-`4dabe10` (Header e Footer). Blob de `frontend/lib/utils/resolveImageUrl.ts`
-em `7eebebb`:
-`c2707c97139da005c1e78e9cce1e433378467abf` (17 linhas). Restaurar um arquivo
-isolado, sem desfazer o resto da refatoração (verificado em 2026-10-17 —
-as duas formas produzem o mesmo blob):
+*Refatoração M3 Glass* (spec `docs/superpowers/specs/2026-10-17-m3glass-visual-refactor-design.md`;
+escopo: Home, Header, Footer e `/produtos`). Pontos que continuam valendo:
 
-```bash
-git show 7eebebb:frontend/lib/utils/resolveImageUrl.ts > frontend/lib/utils/resolveImageUrl.ts
-# ou, direto pelo blob:
-git cat-file blob c2707c97139da005c1e78e9cce1e433378467abf > frontend/lib/utils/resolveImageUrl.ts
-```
+- **`resolveImageUrl`** (`frontend/lib/utils/resolveImageUrl.ts`) é
+  compartilhada com o card de produto do chat. O parâmetro opcional
+  `productName` só age como fallback para URL nula; uma URL informada é
+  preservada. O card do chat (`components/chat/cards/ProductCard.tsx`) deve
+  continuar chamando-a com um argumento. Restaurar a versão anterior:
+  `git show 7eebebb:frontend/lib/utils/resolveImageUrl.ts`.
+- **Vitrine não prova indexação CLIP.** Com o fallback por nome, produto sem
+  imagem cadastrada exibe foto; o estado do índice `catalogo_imagens` se
+  confere em `/admin/produtos` ou pela contagem de vetores (hoje 77 imagens
+  indexadas), nunca pela aparência do site.
+- **`/avaliacao` usa o layout global** (sem layout próprio), então herda
+  Header/Footer escuros da refatoração; conferir contraste da página.
+- **`docs/Manuais_fornecedor/` é `gitignored`** (corpus do fornecedor); as
+  fotos copiadas para `frontend/public/images/products/` são versionadas, o
+  que foi decisão consciente (regra 6 do `CLAUDE.md`).
+- **Testes que guardam o contrato** (asserção alterada = quebra de contrato,
+  não ajuste visual): `ChatProductCard`, `ProductCard`, `ProdutoDetalhePage`,
+  `LayoutHeaderFooter` (inclui ocultar Footer em `/admin/*`), `apiBaseUrl` e
+  `ChatModal`, todos em `frontend/tests/`.
 
-Reverter a função sozinha quebra quem já a chamar com dois argumentos, então
-o rollback de `resolveImageUrl` é conjunto: a função mais os chamadores que
-passaram a usar `productName`.
+*Etapas 2–5 do RAG* (`docs/EVALUATION.md` Seção 2.1). Código de produção e
+scripts entraram em 2026-10-17; as rodadas preliminares sobre o
+`dataset_minimo.json` (n=15) foram descartadas e os artefatos removidos em
+2026-10-24 — a rodada oficial usa as 167 perguntas válidas. Decisões que
+permanecem:
 
-### 1. `resolveImageUrl` é compartilhada com o card de produto do chat
-
-Contrato de hoje, que funciona e precisa continuar funcionando:
-
-```
-resolveImageUrl(url: string | null | undefined): string | null
-```
-
-Só reescreve URL relativa do backend para o host do backend
-(`getApiBaseUrl()`); devolve `null` para entrada vazia; preserva `http(s)://`
-e `data:`. **Nenhuma** resolução por nome de produto. Três importadores:
-
-| Importador | Chamada hoje | No escopo da refatoração? |
-| --- | --- | --- |
-| `components/products/ProductCard.tsx` | `resolveImageUrl(product.imagem_url)` | sim |
-| `app/produtos/[id]/page.tsx` | idem | sim |
-| `components/chat/cards/ProductCard.tsx` | `resolveImageUrl(card.imagem_url)` | **não** — é o card rico do chat |
-
-O plano acrescenta um segundo parâmetro **opcional**
-(`productName?: string`) e, pelos testes que ele próprio especifica, o
-arquivo local é **fallback para URL nula**, não prioridade: uma URL informada
-é preservada intacta. Isso é mais seguro do que a redação da spec sugeria
-(§5.2 fala em "priorizar" o arquivo local) e mantém o card do chat
-compatível, desde que ele continue sendo chamado com um argumento. **O que
-verificar:** que `components/chat/cards/ProductCard.tsx` não passe a receber
-resolução por nome sem decisão explícita, e que
-`frontend/tests/components/ChatProductCard.test.tsx` continue passando sem
-alteração de asserção.
-
-### 2. Imagem no site deixa de ser evidência de indexação CLIP
-
-Com o fallback por nome, um produto **sem imagem cadastrada** passa a exibir
-foto. Hoje exibe nada. A coleção `catalogo_imagens` do Qdrant tem **3
-vetores** (medido em 2026-10-16), e a Estratégia A (`docs/EVALUATION.md`
-Seção 0) exige que os 29 produtos sejam cadastrados **pelo sistema**
-justamente para exercitar a indexação CLIP que o conjunto de 107 imagens
-avalia. Consequência: depois da refatoração, ver produtos ilustrados no site
-não diz mais nada sobre o estado do índice — "sem imagem cadastrada" fica
-visualmente idêntico a "cadastrada". No fluxo de identificação por foto (R6),
-se o CLIP identificar um produto sem imagem cadastrada, o card mostra uma
-foto casada por nome. **O que verificar:** o estado do índice continua sendo
-conferido em `/admin/produtos` ou pela contagem de vetores, nunca pela
-vitrine.
-
-### 3. `/avaliacao` herda Header e Footer sem estar no escopo
-
-`frontend/app/avaliacao/page.tsx` **não tem layout próprio**, então usa
-`app/layout.tsx`. A refatoração muda Header e Footer para tema escuro
-(`bg-slate-950`), e essa página é pública, de conteúdo claro com gráficos
-Recharts, e está descrita nesta documentação e em `docs/EVALUATION.md`.
-**O que verificar:** contraste e legibilidade da página de resultados após a
-mudança de layout; `frontend/tests/unit/LayoutHeaderFooter.test.tsx` é o
-teste que guarda o comportamento atual (inclusive a ocultação do Footer em
-`/admin/*`).
-
-### 4. Cópia versionada de material que é `gitignored`
-
-`docs/Manuais_fornecedor/` está em `.gitignore:21` — o corpus do fornecedor
-é deliberadamente não versionado. O plano copia fotos para
-`frontend/public/images/products/`, que **é** versionado. Não é problema de
-tamanho (~5 MB), é reversão implícita de uma decisão. Fica registrado aqui
-para ser decisão consciente, conforme a regra 6 do `CLAUDE.md`.
-
-### 5. Dois caminhos de origem do plano não existem
-
-Conferidos contra o corpus em 2026-10-17 (5 dos 7 existem exatamente como
-escritos; os dois abaixo o próprio plano marcou como "ou similar"):
-
-| Caminho no plano | Real |
-| --- | --- |
-| `REP iDClass/REP_iDClass.jpg` | `REP iDClass/REP-iDClass-Frontal.jpg` (e `-Perspectiva.jpg`) |
-| `iDAccess Pro/iDAccess_Pro.jpg` | `iDAccess Pro/iDAccess-Pro-Frontal.jpg` (e `-Perspectiva.jpg`) |
-
-**Correção de uma análise anterior desta mesma data:** chegou-se a registrar
-que `idblock-pcd` não tinha foto no corpus e que as imagens `idblock-inox` e
-`idblock-preto` só existiam como `.tif`, tendo sido "destravadas" pela
-conversão da Etapa 0. **As duas afirmações estavam erradas**, por omissão da
-pasta `IDBlock` no levantamento: `IDBlock/idblock-pcd-perspectiva.jpg`,
-`IDBlock/iDBlock-BQC-Inox-Perspectiva.jpg` e
-`IDBlock/iDBlock-BQC-Preto-Perspectiva.jpg` sempre existiram como JPEG. Os
-`.tif` convertidos na Etapa 0 são da pasta `IDBlock Facial`, que é **outra
-linha de produto** (iDBlock Facial, não iDBlock BQC); a conversão segue
-valendo para o corpus de imagem do RAG (levou o conjunto de 73 para 77
-imagens válidas), mas **não** era pré-requisito da refatoração visual.
-
-### Checklist de verificação (depois que a refatoração terminar)
-
-Os testes abaixo já existem e guardam o comportamento de hoje. Qualquer um
-deles que precise ter **asserção** alterada (não só seletor) é sinal de
-quebra de contrato, não de ajuste visual:
-
-| Teste | Guarda |
-| --- | --- |
-| `tests/components/ChatProductCard.test.tsx` | card de produto do chat (R6/Fase 8) |
-| `tests/components/ProductCard.test.tsx` | card do catálogo |
-| `tests/components/ProdutoDetalhePage.test.tsx` | `/produtos/[id]` |
-| `tests/unit/LayoutHeaderFooter.test.tsx` | Header/Footer e ocultação do Footer em `/admin/*` |
-| `tests/lib/apiBaseUrl.test.ts` | resolução do host do backend |
-| `tests/components/ChatModal.test.tsx` | streaming SSE e modal do chat |
-
-**Nota de coordenação e auditoria para o Claude (2026-10-17): implementação
-de código e execução preliminar indevida das Etapas 2–5 do RAG.** Após
-concluir a refatoração M3 Glass (commit `7ef9fbf`, âncora limpa antes desta
-frente), outro agente implementou o código de produção e os scripts das
-Etapas 2, 3, 4 e 5 (`docs/EVALUATION.md` Seção 2.1) e **executou-os
-prematuramente sobre `dataset_minimo.json` (`n=15`, 3 pastas)**, quando a
-execução para escolha de parâmetros só deveria ocorrer após a construção das
-180 perguntas da Estratégia A. Tudo foi mantido no repositório para avaliação
-do Claude, discriminado abaixo:
-
-1. **Âncora antes das Etapas 2–5:** commit `7ef9fbf` (`feat(eval): ajusta
-   ingerir_corpus_avaliacao para ControlId e fecha verificacao M3 Glass`).
-2. **Etapa 2 — Commit `6e556ce` (`feat(rag): add asymmetric task prefixes to
-   TextEmbedder and Etapa 2 embedding benchmark`):**
-   - **Código de produção (`app.rag.embeddings`, `app.rag.qdrant_client`):**
-     - `TextEmbedder` ganhou `TASK_PREFIXES` com prefixos assimétricos
-       (`query_prefix` vs `document_prefix`) para `google/embeddinggemma-300m`
-       (`"task: search result | query: "` / `"title: none | text: "`) e
-       `intfloat/multilingual-e5-large-instruct`
-       (`"Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: "`
-       / `""`), aplicados automaticamente em `embed(texts, *, is_query: bool = False)`
-       (default `False` para ingestão; `QdrantRAGClient.search` passa
-       `is_query=True`).
-     - **Achado de infraestrutura:** `google/embeddinggemma-300m` no Hugging
-       Face é repositório *gated* (retorna 401/403 sem `HF_TOKEN`).
-       `TextEmbedder._load_model` ganhou `FALLBACK_MODEL_ALIASES` que redireciona
-       em caso de erro de acesso para o mirror público ungated
-       `unsloth/embeddinggemma-300m` (mesmos pesos, mesmo tokenizer e mesmos
-       prefixos), preservando `self.model_name = "google/embeddinggemma-300m"`.
-     - Documentado na Seção 18 de `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.
-   - **Script e testes:** `backend/eval/rag_ingestion/run_etapa2.py`,
-     `tests/test_rag_embeddings.py`, `tests/test_rag_qdrant_client.py` e
-     `tests/test_rag_ingestion_eval.py`.
-   - Rodada preliminar sobre `dataset_minimo.json` (`n=15`); o artefato foi
-     removido em 2026-10-24 e a rodada oficial usa as 167 perguntas.
-3. **Etapa 3 — Commit `e5cf918` (`feat(rag): implement recursive token-based
-   chunking and Etapa 3 5x3 grid benchmark`):**
-   - **Código de produção (`app.rag.chunking`, `app.rag.embeddings`,
-     `app.rag.ingest`):**
-     - `chunk_text(text, chunk_size=800, overlap=100, *, tokenizer=None)`
-       substituiu a janela deslizante cega por corte recursivo hierárquico nos
-       separadores `("\n\n", "\n", ". ", " ")` (com fatia dura apenas quando um
-       átomo sem espaços excede `chunk_size`) e passou a medir `chunk_size` e
-       `chunk_overlap` em **tokens** quando `tokenizer` é fornecido
-       (`encode(text, add_special_tokens=False)`), mantendo contagem em
-       caracteres quando `tokenizer=None` (retrocompatibilidade com testes que
-       não instanciam embedder).
-     - `TextEmbedder.get_tokenizer()` expõe o tokenizer do `SentenceTransformer`
-       subjacente; `ingest_bytes` e `reingest_document` (`app.rag.ingest`)
-       passam `tokenizer = embedder.get_tokenizer()` para `chunk_text`.
-     - **Regressão resolvida em 2026-10-17 — `chunk_size` e `chunk_overlap`
-       são contados em TOKENS.** Decisão: em vez de tirar o tokenizer do
-       caminho (o que quebraria a Etapa 3) ou de criar uma coluna
-       `chunk_unit` (modelo + migração + API + tipos do frontend + 9 arquivos
-       de teste, caro demais para um protótipo — regra 8), o projeto assume
-       tokens como unidade única. Já era a intenção: a UI mostra "tokens" em
-       `CollectionOptionCard.tsx`, e a grade da Etapa 3 e o corte de 512 da
-       literatura são em tokens. O que ficou para trás foram os números e um
-       tooltip. Alterados: `DEFAULT_CHUNK_SIZE`/`DEFAULT_CHUNK_OVERLAP`
-       (`app/rag/chunking.py`) e os defaults de `CollectionCreateRequest`
-       (`app/models/rag.py`), de `800/100` para **`512/51`**, e o tooltip de
-       `CollectionChunkingSection.tsx`, que dizia "caracteres/tokens".
-       `512/51` é **provisório** até a execução oficial sobre as 180
-       perguntas; vem da literatura e do centro da grade 5×3, não do ensaio
-       preliminar de `n=15`. O seed `docs_texto` (`800/100`, MiniLM) **não
-       foi migrado**: a ingestão oficial cria e ativa uma collection nova com
-       parâmetros declarados, que é para isso que o cadastro de collections
-       existe. Registro do diagnóstico original abaixo.
-
-       O `800/100` não vinha de `app.rag.collection_profiles` nem de
-       `Settings` — esse módulo não existe e `Settings` não declara
-       `chunk_size`. Os dois lugares reais eram
-       `DEFAULT_CHUNK_SIZE`/`DEFAULT_CHUNK_OVERLAP` em `app/rag/chunking.py`
-       e o seed da collection `docs_texto` em
-       `migrations/versions/0002_rag_collections.py:81-82`, ambos pensados em
-       **caracteres**. Como `ingest_bytes` e `reingest_document` passaram a
-       obter o tokenizer **incondicionalmente**, o mesmo `800` virou `800
-       tokens` (~3.450 chars) sem migração e sem mudança no valor gravado.
-       **Sem efeito nos dados, verificado em 2026-10-17:** `docs_texto`,
-       `docs_admin` e `docs_mcp_b2b` estavam com **0 pontos** no Qdrant, de
-       modo que a troca de semântica não chegou a misturar chunks das duas
-       unidades — era risco para a próxima ingestão, não estrago já feito.
-       Reverter o tokenizer implícito não serve como correção: o
-       caminho de avaliação (`criar_collection_temporaria` → `ingest_file` →
-       `ingest_bytes`, em `run_etapa1.py:133`) depende dele para que a
-       Etapa 3 meça tokens de fato — foi o que levou à decisão por tokens
-       como unidade única, registrada acima.
-   - **Script e testes:** `backend/eval/rag_ingestion/run_etapa3.py`,
-     `tests/test_rag_chunking.py`, `tests/test_rag_ingest.py` e
-     `tests/test_rag_ingestion_eval.py`.
-   - Rodada preliminar sobre `dataset_minimo.json` (`n=15`); o artefato foi
-     removido em 2026-10-24 e a rodada oficial usa as 167 perguntas.
-4. **Etapa 4 e Etapa 5 — commitadas em `c4efe82`** (a nota original dizia
-   "não commitados"; o mesmo commit que trouxe esta seção já versionou os dois
-   scripts e os JSONs preliminares):
-   - `backend/eval/rag_ingestion/varrer_threshold.py`: estendido com
-     `--entrada`, `--saida` e `--ponto-id` para aceitar tanto o JSON da Etapa 1
-     quanto o JSON de múltiplos pontos da Etapa 3 (`extrair_base_varredura`) e
-     calcular `recomendar_threshold` pelo ponto médio do intervalo separável.
-     O artefato preliminar foi removido em 2026-10-24.
-   - `backend/eval/rag_ingestion/run_etapa5.py`: implementa a Bateria 1
-     (`cosine`, `dot`, `euclid`) e a Bateria 2 (latência `media_ms`, `p50_ms`,
-     `p95_ms` de `query_points` com e sem payload index `keyword` em `domain`).
-     **Achado técnico no Qdrant:** para `euclid` (`Order::SmallBetter`), o
-     Qdrant trata `score_threshold` como limite **superior** (`distancia <=
-     thr`), de modo que `score_threshold=0.0` descarta qualquer vetor com
-     distância `> 0` (foi o que ocorreu na 1ª rodada preliminar, já apagada). O código de `run_etapa5.py` já está corrigido
-     com `thr_sem_corte = 10.0` para `euclid`/`manhattan`, mas não foi
-     reexecutado.
-   - `backend/tests/test_rag_ingestion_eval.py`: +4 testes cobrindo as Etapas 4
-     e 5 (total de 54 testes passando em `test_rag_ingestion_eval.py`).
+1. **Etapa 2 (embeddings):** `TextEmbedder` aplica prefixos assimétricos de
+   tarefa (`TASK_PREFIXES`) para `google/embeddinggemma-300m` e
+   `intfloat/multilingual-e5-large-instruct` em `embed(texts, *, is_query)`;
+   `QdrantRAGClient.search` passa `is_query=True`. O repositório do
+   embeddinggemma no Hugging Face é *gated*; `FALLBACK_MODEL_ALIASES`
+   redireciona para o mirror `unsloth/embeddinggemma-300m` (mesmos pesos),
+   preservando `model_name`. Script: `backend/eval/rag_ingestion/run_etapa2.py`.
+   Prompt/prefixos documentados na Seção 18 de
+   `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.
+2. **Etapa 3 (chunking):** `chunk_text` faz corte recursivo hierárquico nos
+   separadores `("\n\n", "\n", ". ", " ")` e conta `chunk_size`/`chunk_overlap`
+   em **tokens** quando recebe `tokenizer` (`TextEmbedder.get_tokenizer()`,
+   passado por `ingest_bytes` e `reingest_document`). **Tokens são a unidade
+   única do projeto** (decisão de 2026-10-17: evitar coluna `chunk_unit`,
+   migração e mudanças em API/frontend, regra 8). Defaults
+   `DEFAULT_CHUNK_SIZE`/`DEFAULT_CHUNK_OVERLAP` e os de
+   `CollectionCreateRequest` passaram de `800/100` para **`512/51`**,
+   provisórios até a execução oficial. O seed `docs_texto` (`800/100`,
+   MiniLM) não foi migrado: a ingestão oficial cria e ativa uma collection
+   nova com parâmetros declarados. Script: `run_etapa3.py` (grade 5×3).
+3. **Etapas 4 e 5:** `varrer_threshold.py` aceita `--entrada`, `--saida` e
+   `--ponto-id` e recomenda o limiar pelo ponto médio do intervalo
+   separável. `run_etapa5.py` compara métricas de distância (`cosine`,
+   `dot`, `euclid`) e a latência com e sem payload index `keyword` em
+   `domain`. **Achado no Qdrant:** para `euclid` (`SmallBetter`),
+   `score_threshold` é limite *superior* (`distância <= thr`), então
+   `score_threshold=0.0` descarta tudo; o código usa `thr_sem_corte = 10.0`
+   para `euclid`/`manhattan`. A correção está no código, mas a Etapa 5 **não
+   foi reexecutada** desde então (Passo 8 do roteiro em `docs/EVALUATION.md`).
+   Cobertura: `tests/test_rag_ingestion_eval.py`.
 
 **Decisão registrada (além do MVP, a pedido explícito, 2026-09-21):**
 collections ganham um campo de **finalidade** (`purpose`): `chat` (default,
@@ -2670,9 +2493,13 @@ respostas do RAG, e comparação de latência entre modelo local e externo.
 benchmark por modelo):**
 
 - **Ordem:** a Fase 10 só roda depois de o corpus real estar ingerido. Os
-  datasets de roteador e RAG existentes foram montados sobre outro conjunto
-  de documentos e precisam ser refeitos; os números antigos não valem para o
-  corpus novo.
+  datasets antigos foram refeitos sobre o corpus ControlId (Estratégia A) e
+  os resultados antigos foram apagados em 2026-10-24.
+- **Estado em 2026-10-24:** conjuntos prontos (roteador 311, RAG docs 167,
+  imagem 72, banco 80, injeção 95; latência ainda não criado); triagem de
+  modelos feita, com 4 sobreviventes (Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL
+  3B e 7B). Pendentes: RAG Etapas 1–5 sobre as 167 perguntas, benchmark
+  final e latência. Detalhe e números em `docs/EVALUATION.md`.
 - **Benchmark:** um orquestrador (`eval/model_benchmark/`) repete os
   harnesses existentes (`router_intents`, `rag_quality`, `prompt_injection`)
   para cada configuração candidata, retomável por modelo, com aquecimento
