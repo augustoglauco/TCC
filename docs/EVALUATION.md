@@ -780,6 +780,128 @@ documentos. Decisões de medição (aquecimento descartado, `unload()` entre
 candidatos, por que `json_invalido_taxa` é medida à parte da acurácia) em
 `backend/eval/model_benchmark/README.md`.
 
+### Resultado da triagem dos candidatos (2026-10-24)
+
+Rodada `--etapas roteador,imagem`, seed 42, uma execução por modelo, Ollama
+0.30.6, GPU de 16 GB. O critério de corte é o registrado em 17/10 em
+`eval/model_benchmark/README.md`, antes de qualquer número existir. Os
+valores brutos estão em `eval/model_benchmark/results/<id>.json`.
+
+**Como ler os números.** `roteador_acuracia` mede o **sistema** (heurística +
+LLM do provider `heuristica_llm`), não o modelo isolado, nas **229 mensagens
+não ambíguas** do conjunto revisado (as 82 ambíguas têm placar à parte, porque
+aceitam dois domínios). Com n = 229 o IC 95% de Wilson é de cerca de ±4,5 pp.
+A etapa de imagem usa 72 casos: 23 positivos (produto do portfólio) e 49
+negativos (outro objeto).
+
+#### Tabela completa
+
+| Modelo | VRAM | Roteador | IC 95% | Ambíguas | JSON inválido | Lat. p95 | Imagem: portfólio | Imagem: JSON válido |
+|---|---|---|---|---|---|---|---|---|
+| gemma4-12b-q4 | 8,1 GB | **85,2%** | 80,0–89,2 | 100% | 0% | 1,8 s | 68,1% | 100% |
+| gemma4-e4b-q8 | 6,0 GB | **84,7%** | 79,5–88,8 | 100% | 0% | 1,4 s | 68,1% | 98,6% |
+| qwen25-vl-3b | 7,1 GB | **79,9%** | 74,2–84,6 | 96,3% | 6,5% | 1,1 s | 38,9% | 69,4% |
+| qwen25-vl-7b | 10,2 GB | **77,3%** | 71,4–82,2 | 92,7% | 0% | 1,4 s | 45,8% | 75,0% |
+| gemma3-gaia-4b-f16 | 8,2 GB | 72,9% | 66,8–78,3 | 89,0% | 5,2% | 1,3 s | 0% | 0% |
+| qwen35-9b | 5,6 GB | 62,9% | 56,5–68,9 | 53,7% | 39,0% | 1,1 s | 16,7% | 31,9% |
+| phi4-mini-bf16 | 8,3 GB | 50,7% | — | 1,2% | 90,9% | 2,6 s | sem visão | — |
+| deepseek-r1-distill-8b-q8 | 8,6 GB | 48,5% | — | 1,2% | 100% | 7,4 s | sem visão | — |
+| qwen35-9b-defiant-fable-mtp | 9,9 GB | 48,5% | — | 1,2% | 100% | 22,3 s | 23,6% | 43,1% |
+| llama32-11b-vision | — | não carrega | — | — | — | — | — | — |
+
+Nenhum candidato reprovou por VRAM (máximo 10,2 GB, limite 15 GB) nem por
+latência (máximo p95 22,3 s, limite 30 s). **Todo o corte veio de formato
+JSON e de acurácia.**
+
+#### Aplicação do critério, candidato a candidato
+
+1. **Eliminatório 1 (roda até o fim, ≤ 15 GB):** só o Llama 3.2 Vision reprova.
+2. **Eliminatório 2 (JSON inválido ≤ 10%):** reprovam qwen35-9b (39%),
+   phi4-mini (91%), deepseek-r1 (100%) e qwen35-9b-defiant (100%).
+3. **Eliminatório 3 (p95 ≤ 30 s):** ninguém reprova; o defiant chega perto
+   (22,3 s) e o deepseek-r1 tem 7,4 s.
+4. **Comparativo (dentro de 10 pp do melhor, 85,2%, ou seja ≥ 75,2%):** passam
+   os dois Gemma 4 e os dois Qwen2.5-VL. O gemma3-gaia (72,9%) fica 2,3 pp
+   abaixo da linha.
+5. **Teto de 5:** 4 sobreviventes, não é preciso desempatar.
+
+**Sobreviventes (confirmados pelo dono em 2026-10-24):** gemma4-12b-q4,
+gemma4-e4b-q8, qwen25-vl-3b, qwen25-vl-7b.
+
+#### Análise
+
+**Por que os quatro "reprovados por JSON" se parecem.** phi4-mini, deepseek-r1
+e defiant erram entre 91% e 100% do formato e têm matriz de confusão quase
+idêntica: tudo o que o modelo não consegue formatar cai no fallback e vira
+`fora_escopo` (56–60 mensagens de cada domínio real). O número 48–51% é,
+portanto, quase só o fallback da heurística, e **não mede o raciocínio do
+modelo**: é exatamente o motivo do eliminatório 2. Hipótese **não verificada**:
+deepseek-r1, defiant e qwen35-9b têm a capability `thinking`, e o texto de
+raciocínio pode estar consumindo ou poluindo a saída; o phi4-mini não tem
+`thinking`, então a hipótese não explica todos.
+
+**Gemma 4 12B × E4B.** A diferença no roteador é de 1 mensagem em 229 (195 ×
+194), muito menor que o IC: são **empate estatístico**. O E4B ocupa 2 GB a
+menos e responde um pouco mais rápido; o 12B tem a vantagem na categoria do
+produto identificado na imagem (6 de 7 contra 4 de 7, amostra pequena). Quem
+decide entre os dois é a rodada completa (RAG e injeção), não esta triagem.
+Os dois erram do mesmo jeito: a maior fatia dos erros é `fora_escopo`
+classificado como `atendimento` (9) ou `suporte` (6), isto é, são
+conservadores demais em recusar assunto alheio.
+
+**Qwen2.5-VL 3B × 7B.** O 3B ficou 2,6 pp acima do 7B no roteador, também
+dentro do ruído, e usa 3 GB a menos. O 7B confunde `vendas`, `atendimento` e
+`fora_escopo` com `suporte` (11 casos de cada); o 3B erra principalmente
+`fora_escopo` → `suporte` (12).
+
+**gemma3-gaia-4b: o corte mais apertado.** O IC dele (66,8–78,3) se sobrepõe ao
+do qwen25-vl-7b (71,4–82,2), então **não dá para afirmar que ele seja pior
+que um Qwen sobrevivente**; a regra de 10 pp foi fixada antes e foi mantida
+para não virar escolha a posteriori. Ele também falha por completo na imagem
+(0 de 72 respostas com JSON válido). Se o critério for revisto no futuro, é
+o primeiro candidato a reentrar.
+
+**Imagem: o resultado é mais fraco do que a tabela sugere.**
+- A etapa de imagem **não é eliminatória**; por isso os dois Qwen2.5-VL
+  sobrevivem apesar de 25–31% de JSON inválido.
+- Nos Qwen, 17 dos 23 positivos vieram sem JSON válido. A taxa de
+  "categoria 100%" que aparece nos JSONs deles é calculada sobre **um único
+  caso** (n = 1) e **não deve ser citada**.
+- Os dois Gemma 4 acertam o formato (≥ 98,6%) e reconhecem o portfólio
+  (positivos: 20 de 23 no 12B e 23 de 23 no E4B), mas **erram boa parte dos
+  negativos** (acerto de 29 de 49 no 12B e 26 de 49 no E4B): tratam como do
+  portfólio câmeras, terminais de acesso, DVRs e sensores de segurança, que são
+  parecidos com os produtos da empresa. Em produção, o CLIP contra o
+  catálogo é quem identifica com precisão; a visão local é só o fallback.
+- Consequência para a escolha final: se o vencedor for um Qwen, na prática a
+  imagem do cliente continuará dependendo da visão externa.
+
+**Llama 3.2 Vision.** O GGUF da comunidade (`leafspark`, Q8_0) e o oficial
+(`llama3.2-vision`, Q4_K_M, 7,8 GB baixado para conferir) falham da mesma
+forma: `unknown model architecture: 'mllama'`. O Ollama 0.30.6 usa o
+llama-server e não tem mais essa arquitetura. Não é problema de VRAM, contexto
+ou do benchmark. Foi eliminado pelo critério 1. Voltaria a ser candidato
+se o Ollama ou o modelo mudar; o modelo oficial continua instalado.
+
+**Bug encontrado na primeira tentativa.** A matriz de confusão do
+`run_benchmark.py` e do `run_eval.py` só tinha linhas para 4 domínios e quebrava
+(`KeyError: 'fora_escopo'`) depois que a revisão do roteador tornou
+`fora_escopo` um gabarito válido. Corrigido no commit `127748b`; os números
+acima são da segunda execução, já corrigida.
+
+#### Limites desta triagem
+
+- Uma execução por modelo, com seed fixa: não mede variação entre execuções.
+- O IC de ±4,5 pp só separa grupos grandes; dentro de cada par (Gemma 4,
+  Qwen2.5-VL) não há diferença demonstrável. McNemar pareado entra na rodada
+  completa.
+- As 229 mensagens são sintéticas e revisadas pelo dono; a acurácia é do
+  sistema com heurística, não do modelo isolado.
+- A imagem tem poucos positivos (23) e o formato JSON dos Qwen contamina a
+  métrica; trate esses números como indício, não como medida.
+- Não houve avaliação de RAG nem de injeção de prompt nesta fase, que fica
+  para os 4 sobreviventes.
+
 ## Página pública de resultados
 
 `/avaliacao` (sem login) mostra gráficos das avaliações acima, alimentados
@@ -943,7 +1065,7 @@ Repowise durante a rodada: ele usa o mesmo gemma4:12b.
 O agente aplica o critério de corte já registrado e mostra a tabela. Você
 confirma os 4–5 que seguem. É decisão sua porque define o custo da rodada
 completa.
-- **Feito em 2026-10-24:** 4 sobreviventes confirmados — gemma4-12b-q4,
+- **Feito em 2026-10-24** (análise completa na seção "Resultado da triagem dos candidatos"): 4 sobreviventes confirmados — gemma4-12b-q4,
   gemma4-e4b-q8, qwen25-vl-3b, qwen25-vl-7b. Tabela completa e motivo de cada
   corte em `backend/eval/model_benchmark/README.md`. O Llama 3.2 Vision não
   carrega no Ollama 0.30.6 (`mllama` removido). Segue o Passo 8.
