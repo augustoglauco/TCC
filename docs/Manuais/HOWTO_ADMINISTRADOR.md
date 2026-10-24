@@ -203,18 +203,19 @@ Na seção **Parâmetros de Execução**, você pode ajustar o comportamento do 
 #### 🚨 6. Monitor de Tom (`Habilitar` / `Provedor`) — novo em 2026-09-23
 * **O que faz**: Liga/desliga o Monitor de Tom (R8) e, quando ligado, escolhe qual motor decide o fallback ambíguo (quando a heurística de palavras-chave não encontra um sinal forte de urgência/insatisfação) — mesmas duas opções do Roteador de Intenção acima: **Heurística + LLM Local (Ollama)** (padrão) ou **TypeSafe Jev (OpenRouter)**.
 * **Uso prático**: Desligar (`Não`) remove qualquer custo extra por mensagem — nem a heurística roda. Ligado (padrão), toda mensagem passa pela checagem; ao detectar um sinal forte, o assistente continua respondendo normalmente E registra o caso para acompanhamento (ver seção "Monitor de Tom e Escalada" abaixo) — a resposta ao cliente nunca é interrompida por isso.
-* **Onde ver os casos escalonados**: por ora só via API (`GET /api/admin/tom/escalonamentos`), sem painel visual dedicado nesta entrega.
+* **Onde ver os casos escalonados**: pela API (`GET /api/admin/tom/escalonamentos`) e, para os que entram na fila de atendimento humano, na Central de Atendimento (`/admin/atendimento`).
 
 ---
 
 ## 🛍️ Gestão do Catálogo B2B e Ferramentas MCP
 
-O sistema expõe um servidor MCP próprio que alimenta o chat com 4 ferramentas automáticas:
+O sistema expõe um servidor MCP próprio, usado por IAs de parceiros (B2B), com 5 ferramentas; o chat de Vendas consulta os mesmos dados e regras diretamente no banco:
 
 1. **Ferramenta de Compatibilidade**: Verifica se peças ou produtos são compatíveis entre si.
 2. **Ferramenta de Cálculo de Frete**: Calcula prazos e valores com base no CEP e peso do produto.
 3. **Ferramenta de Cotação B2B**: Aplica descontos por volume e gera orçamentos prévios.
-4. **Ferramenta de Reserva/Pedido**: Bloqueia itens em estoque temporariamente durante o checkout.
+4. **Ferramenta de Reserva/Pedido**: Cria a reserva e baixa o estoque do centro de distribuição.
+5. **Conversão de Reserva em Venda**: Efetiva a venda a partir do comprovante de pagamento.
 
 ### Tabela de Produtos e Estoque por Centro de Distribuição (`/admin/produtos`)
 * **Visualização de Estoque por CD**: A coluna de estoque exibe a quantidade total consolidada. Ao repousar o mouse sobre o valor, um tooltip detalhado apresenta a divisão física dos itens por filial ou centro de distribuição (ex.: CD-SP, CD-MG, CD-PR).
@@ -245,7 +246,16 @@ O sistema analisa o comportamento da conversa e categoriza o cliente automaticam
 O assistente monitora continuamente o tom da mensagem do cliente (insatisfação, irritação ou urgência elevada).
 
 * **Limiar de Alerta**: Se o cliente demonstrar forte insatisfação (ex.: *"Ninguém me ajuda, preciso falar com um atendente agora!"*), o monitor de tom aciona um alerta automático.
-* **Comportamento no Chat**: O assistente exibe um banner de transferência ("Conectando você a um atendente humano...") e envia a notificação para o painel da equipe de suporte com o resumo completo do histórico recente.
+* **Comportamento no Chat**: O assistente exibe um banner de transferência ("Conectando você a um atendente humano...") e registra o caso para acompanhamento.
+
+### 3. Central de Atendimento Humano ao Vivo (`/admin/atendimento`)
+Menu ⚙️ (só Admin). Uma conversa entra na **fila de espera** quando o cliente pede um humano ("quero falar com um atendente humano") ou quando o monitor de tom escala o caso. Enquanto está na fila ou em atendimento, **a IA fica pausada** naquela conversa.
+
+* **Fila de espera**: ordenada por prioridade e tempo de espera, com o motivo do escalonamento e os dados do cliente (nome, perfil e histórico de compras, se cadastrado).
+* **Assumir chat**: o primeiro atendente que clicar fica com a conversa (a reivindicação é atômica; outro atendente não consegue assumir a mesma).
+* **Meus chats**: abas com as conversas sob sua responsabilidade; você escreve ao cliente e ele recebe na mesma janela do chat, identificada com o seu nome.
+* **Encerrar ou devolver**: finaliza o atendimento ou devolve a conversa ao assistente.
+* `# MVP`: não há integração com sistema externo de ticketing; a fila é interna ao sistema.
 
 ---
 

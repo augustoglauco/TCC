@@ -1276,10 +1276,10 @@ cada conversa emite o evento SSE `escalonamento` (`docs/FRONTEND.md` §4),
 persiste um registro em `tom_escalonamentos` (Postgres, migração `0006`) e
 loga o evento estruturado `tom_escalonado`. `# MVP: sem mecanismo de
 "des-escalar" uma conversa já marcada (estado em memória por processo, mesma
-limitação já aceita para o fluxo de agendamento); sem fila real de
-atendimento humano nem painel administrativo visual — só a API de listagem
-(`GET /api/admin/tom/escalonamentos`) e o log estruturado, para inspeção
-manual/demonstração`. Banner visual no frontend consumindo o evento
+limitação já aceita para o fluxo de agendamento); a fila de
+atendimento humano e a Central de Atendimento (`/admin/atendimento`) vieram
+depois, em 2026-10-03/05 (ver Seção 5, transbordo humano); aqui ficou só a API de
+listagem (`GET /api/admin/tom/escalonamentos`) e o log estruturado`. Banner visual no frontend consumindo o evento
 `escalonamento` implementado na Fase 8 (`components/chat/EscalonamentoBanner.tsx`).
 
 **Decisão registrada (Fase 5, backend único de dados do MCP B2B, R12,
@@ -2120,7 +2120,7 @@ usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 | Domínios (Vendas/Suporte/Atendimento) | Separação lógica de fluxo e prompts por domínio, com playbooks iniciais para Suporte Técnico e Atendimento ao Usuário. Playbook de Vendas oferece agendamento de visita só quando o cliente sinaliza explicitamente que quer fechar negócio (não para qualquer pedido de orçamento/cotação), no máximo uma vez por conversa — ajustado em 2026-10-05 após a oferta estar aparecendo em quase toda resposta (o roteador só reclassifica como `agendamento` na resposta seguinte do cliente, usando o contexto curto de conversa citado na linha "Roteador/Orquestrador") | Playbooks completos por domínio, integração com sistema de ticketing |
 | Agendamento de visita (MCP consumido) | Nova intenção reconhecida pelo roteador; coleta data/hora e dados básicos; valida expediente e conflito de agenda (na mesma agenda configurada) local/via MCP antes de sequer pedir confirmação; exige confirmação explícita do visitante antes de criar o evento; chama o MCP do Google Calendar e envia confirmação automática por e-mail | Reagendamento/cancelamento, checagem de disponibilidade em múltiplas agendas, confirmação também por SMS |
 | MCP de integração B2B (MCP provido) | Servidor MCP reaproveitando a base do catálogo/estoque/preços do RAG; recursos de leitura + as quatro ferramentas já implementadas; exposto publicamente via DuckDNS + HTTPS (Caddy), protegido por chave estática por parceiro (Bearer) e com log de qual parceiro chamou cada ferramenta; Roteador/Orquestrador consome o mesmo backend em Vendas (estoque, cotação, compatibilidade), por chamada direta no mesmo processo | OAuth/servidor de autorização, permissões por ferramenta, auditoria persistida de ações transacionais, rate limiting e expiração/rotação de chaves |
-| Monitor de tom | Classificador de sentimento/urgência (heurística + LLM leve) com alerta, transferência simulada e log dos casos escalonados | Integração real com fila de atendentes humanos, escalonamento por SLA |
+| Monitor de tom | Classificador de sentimento/urgência (heurística + LLM leve) com alerta, escalonamento para a fila interna de atendimento humano (Central de Atendimento ao vivo) e log dos casos escalonados | Integração com ticketing externo, escalonamento por SLA |
 | Memória da conversa | Persistência por ID no Postgres (mensagens do cliente e do assistente) + resumo automático periódico no prompt + retomada do histórico no widget | Perfil de cliente enriquecido a partir do histórico de conversas, memória entre dispositivos (login) |
 | Classificação do usuário | Regras fixas sobre uma base de clientes fictícia: e-mail captado no momento natural da conversa (pós-venda, agendamento) e cruzado com as compras; Cliente/Esporádico por quantidade e recência das compras, Lead por intenção de compra sem cadastro | Modelo preditivo, score de propensão, enriquecimento de dados externos, confirmação de identidade |
 
@@ -2333,8 +2333,9 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   solução genérica de produção.
 - Monitor de tom: classificadores leves tendem a mais falsos
   positivos/negativos; tratar como heurística, não decisão final automatizada.
-- Atendimento humano real (fila, transferência de contexto) não será
-  implementado de ponta a ponta neste protótipo — é simulado.
+- O atendimento humano tem fila interna, claim atômico e transferência de
+  contexto (Central de Atendimento, `/admin/atendimento`); o que não existe é
+  integração com ticketing externo, SLA nem roteamento por habilidade.
 - Classificação de cliente/lead/esporádico depende de poucos sinais iniciais;
   tratar como hipótese a validar com mais dados.
 - Dependência do MCP do Google Calendar: falhas de conexão/permissão

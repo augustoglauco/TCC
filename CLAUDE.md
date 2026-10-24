@@ -136,7 +136,7 @@ plano anti-AI foram restaurados depois, a pedido (linhas acima).
   rate limiting, auditoria completa, expiração/rotação de chaves). O MVP
   expõe o MCP B2B publicamente só com uma chave estática por parceiro, via
   HTTPS (decisão de 2026-09-25, `docs/ARCHITECTURE.md` §6).
-- Integração real com fila de atendimento humano e sistema de ticketing.
+- Integração com sistema de ticketing externo, SLA e roteamento por habilidade. (A fila interna de atendimento humano e a Central de Atendimento `/admin/atendimento` existem.)
 - Reagendamento/cancelamento de visita, checagem de disponibilidade em
   múltiplas agendas.
 
