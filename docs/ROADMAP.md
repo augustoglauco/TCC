@@ -502,7 +502,7 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       atendente)
 - [x] Implementar classificador leve de sentimento/urgência (heurística +
       LLM leve)
-- [x] Implementar alerta e transferência simulada para atendente humano + log
+- [x] Implementar alerta e transferência para atendente humano (na Fase 4B era simulada; a fila real veio em 2026-10-05, item abaixo) + log
       dos casos escalonados (evento SSE `escalonamento` + tabela
       `tom_escalonamentos` — banner visual no frontend implementado na Fase 8,
       ver `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md` §9)

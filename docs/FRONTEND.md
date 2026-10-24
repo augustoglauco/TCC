@@ -193,8 +193,9 @@ com o histórico recarregado.
   "Identificamos urgência na sua solicitação. Um atendente humano foi notificado...";
   `insatisfacao`: "Percebemos sua insatisfação e lamentamos o transtorno..."),
   badge explicativo "Alerta de Tom" e botão de fechar (`aria-label="Fechar aviso de atendimento humano"`).
-  No MVP essa transferência é simulada no backend (registrada na tabela `tom_escalonamentos`),
-  mas a UI reage ao evento informando o usuário com transparência.
+  O backend registra o caso em `tom_escalonamentos` e coloca a conversa na fila de
+  atendimento humano (Central de Atendimento, `/admin/atendimento`); a UI reage ao
+  evento informando o usuário com transparência.
 
 **Estados do widget:** ocioso · enviando · aguardando streaming · gravando
 áudio · processando imagem · transferido para atendente · erro (ex.: falha
@@ -472,15 +473,12 @@ assistente criada sob demanda, exibe um texto de status temporário enquanto
 o modelo local carrega (ver "Estados do widget" abaixo) e nunca deixa a
 bolha vazia ou travada no placeholder — se `onDone` chegar sem nenhum token
 (resposta vazia do modelo), o texto final vira um aviso de "sem resposta do
-modelo, tente novamente" em vez de ficar em branco. Também sem upload de
-imagem e sem cards ricos — essas partes dependem de
-R6/R11/R12 no backend (ainda não implementados) e/ou de trabalho de UI ainda
-não iniciado, e ficam para quando essas dependências existirem. Todas as
-demais páginas listadas na Seção 2 (exceto `/suporte`, que já tem um FAQ
-estático real) são *stubs* de navegação ("em construção"), sem nenhuma
-chamada de API — a integração real com o catálogo, pedidos, autenticação e
-agendamentos é tarefa futura de frontend, condicionada às respectivas APIs
-existirem no backend.
+modelo, tente novamente" em vez de ficar em branco. Além de texto e áudio, o
+widget envia imagem (`ImageUploader`), mostra os cards ricos (produto, cotação,
+agendamento, download de documento e gráfico), a identificação de produto por
+foto e o aviso de escalonamento. As demais páginas da Seção 2 estão
+implementadas e integradas às respectivas APIs (catálogo, pedidos,
+autenticação, agendamentos e telas administrativas).
 
 **Gravação de áudio (`AudioRecorder`, R5):** botão de microfone
 (`components/chat/AudioRecorder.tsx`) ao lado do botão "Enviar" no

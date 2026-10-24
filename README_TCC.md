@@ -67,7 +67,7 @@ Entrada Multimodal (Texto / Áudio / Imagem)
   - *Cliente MCP*: Consome um servidor MCP de terceiro self-hosted (`calendar-mcp-server`) que gerencia a autenticação OAuth2 com a Google Calendar API, para criação automatizada de eventos de visita.
   - *Provedor MCP B2B*: Servidor próprio que expõe ferramentas de verificação de compatibilidade, cálculo de frete, cotação por volume, reserva de estoque e conversão de reserva em venda com comprovação multimodal.
 * **Interface Frontend (Next.js)**: Widget de chat flutuante adaptável com suporte a *Server-Sent Events (SSE)* para respostas em streaming e renderização de *Cards Ricos* de produtos, cotações, agendamentos, gráficos analíticos dinâmicos e download do documento-fonte do RAG.
-* **Central de Atendimento Humano ao Vivo**: além da escalada simulada do Monitor de Tom, o sistema implementa uma fila de transbordo real com *claim* atômico por atendente, pausa automática da geração de respostas da IA durante o atendimento humano e uma interface dedicada de operador.
+* **Central de Atendimento Humano ao Vivo**: o Monitor de Tom e o pedido direto do cliente colocam a conversa numa fila de transbordo real com *claim* atômico por atendente, pausa automática da geração de respostas da IA durante o atendimento humano e uma interface dedicada de operador.
 * **Painel Administrativo**: gestão de usuários, ingestão/configuração do RAG com isolamento por finalidade, web crawler, gerenciador de modelos locais com controle de residência em VRAM, importação inteligente de catálogos via visão computacional, gestão de pedidos e dashboards analíticos gerados sob demanda pelo próprio chat via um agente Text-to-SQL.
 
 ---
