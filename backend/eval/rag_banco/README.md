@@ -15,9 +15,8 @@ Exige só Postgres no ar.
 
 O gabarito é **exato por construção**: a pergunta é montada por template a
 partir da própria linha, então a resposta certa é o valor que está no banco.
-É uma das duas decisões de desenho que derrubam a revisão da Estratégia A de
-12 h para ~4,5 h (`docs/EVALUATION.md` Seção 0) — a outra é o gabarito do
-conjunto de imagem ser o nome da pasta do fornecedor.
+Junto com o conjunto de imagem (gabarito = nome da pasta do fornecedor), é um
+dos dois conjuntos sem revisão humana (`docs/EVALUATION.md` Seção 0).
 
 Cada caso carrega `gabarito_bruto` com o valor cru que a resposta afirma. Se o
 preço mudar no banco, o caso fica **detectavelmente** velho em vez de
