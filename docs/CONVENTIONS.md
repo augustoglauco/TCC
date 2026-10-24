@@ -399,7 +399,7 @@ uv sync --all-extras
 ```
 
 **Cobertura para o Repowise** (relatório + mapa teste→código; 2026-10-20: 91,3 %
-de linhas; 1227 testes em 2026-10-24). A partir da raiz, depois de rodar na pasta `backend`:
+de linhas; 1230 testes em 2026-10-24). A partir da raiz, depois de rodar na pasta `backend`:
 
 ```bash
 cd backend && .venv/bin/pytest -q --cov=src/app --cov-context=test

@@ -1,24 +1,33 @@
 # Avaliação 1 — Acerto do Roteador na Identificação de Intenções (Fase 10)
 
-> **Conjunto invalidado em 2026-10-17.** Mesmo motivo do aviso em
-> `eval/rag_quality/README.md`: o corpus da avaliação passou a ser
-> `docs/Manuais_fornecedor/ControlId/`, e as 40 mensagens de `dataset.json`
-> foram ancoradas no catálogo/RAG anterior. Os 95,0% de `heuristica_llm` são
-> histórico; o conjunto novo tem **300 mensagens, ≥200 desenhadas para
-> chegar ao LLM** (`docs/EVALUATION.md` Seção 0). O achado que **continua
-> valendo** é de código, não de dado: 18 dos 19 erros da heurística pura são
-> `fora_escopo` por sinônimo fora de `_DOMAIN_KEYWORDS`.
+Ver `docs/EVALUATION.md` Seção 1 para o desenho completo desta avaliação e
+os números vigentes.
 
-Ver `docs/EVALUATION.md` Seção 1 para o desenho completo desta avaliação.
+## Estado (2026-10-24)
 
-- `dataset.json` — 40 mensagens rotuladas manualmente (10 por domínio,
-  8 delas deliberadamente ambíguas), ancoradas nos dados reais do catálogo
-  e do RAG já ingeridos no sistema.
-- `run_eval.py` — roda o classificador real (`app.router.classifier.classify`)
-  sobre o dataset para os três provedores (`heuristica`, `heuristica_llm`,
-  `jev_openrouter`) e salva `results.json`.
-- `results.json` — saída da última execução (2026-10-04, ambiente local
-  completo no ar: Ollama com `gemma4:12b-it-q4_K_M`, OpenRouter real).
+- `dataset.json` — conjunto da Estratégia A sobre o corpus ControlId:
+  **311 mensagens válidas** (229 não ambíguas + 82 ambíguas com
+  `intencoes_aceitas`, fora do placar principal), revisadas pelo dono.
+  O arquivo guarda também os itens descartados na revisão; os loaders os
+  ignoram. `chega_ao_llm` e `motivo_caminho` vêm das funções reais de
+  `app.router.classifier`, não do modelo.
+- `gerar_dataset.py` — gerador dos rascunhos (juiz externo), que a revisão
+  humana em `/admin/datasets` aprova, corrige ou descarta.
+- `run_eval.py` — roda o classificador real sobre o dataset para os três
+  provedores (`heuristica`, `heuristica_llm`, `jev_openrouter`) e grava
+  `results.json`. **Não tem `--help`: executar o arquivo já dispara a
+  avaliação** (chama Ollama e OpenRouter).
+- `results.json` — **removido em 2026-10-24**: era do piloto de 40
+  mensagens (2026-10-04), sobre outro corpus, e aparecia na página pública
+  `/avaliacao`. A comparação entre os três provedores sobre o conjunto atual
+  ainda não foi feita; só a triagem de modelos mediu o roteador
+  (`heuristica_llm`, seed 42), com resultados em `eval/model_benchmark/`.
+
+## Histórico do piloto (2026-09/10) — não é resultado vigente
+
+Tudo abaixo é do piloto de 40 mensagens, ancorado no catálogo e no RAG
+anteriores. Fica como registro do método e do achado de código sobre
+`_DOMAIN_KEYWORDS`, não como medição.
 
 ## Resultado (2026-10-04, após ampliar `_DOMAIN_KEYWORDS` — ver abaixo)
 
