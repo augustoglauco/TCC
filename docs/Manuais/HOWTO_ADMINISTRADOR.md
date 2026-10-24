@@ -137,8 +137,10 @@ Nesta tela, o administrador controla como o "cérebro" do assistente se comporta
 ### 1. Seleção do Modelo Local (Ollama) & Características no Hover
 O sistema roda em uma GPU própria de 16GB. Você pode escolher qual modelo atende seus clientes no momento:
 * **Gemma 4 12B** (`gemma4:12b-it-q4_K_M`): Padrão de alta capacidade para conversação fluida, raciocínio de vendas e atendimento.
-* **Llama 3.1 8B**: Recomendado para conversas formais, respostas diretas e rápida capacidade de síntese.
-* **Qwen 2.5 7B**: Excelente para compreensão estruturada de tabelas, códigos de produtos e raciocínio lógico.
+* **Gemma 4 E4B** (`gemma4-e4b`, quantização Q8): empata estatisticamente com o 12B no roteador (triagem de 2026-10-24) e também tem visão local.
+* **Qwen2.5-VL 7B e 3B**: modelos de visão e texto mais leves; ficaram entre os 4 finalistas da triagem, mas falham com mais frequência no formato JSON.
+
+> O conjunto de candidatos e o resultado da triagem estão em `docs/EVALUATION.md` (seção "Benchmark comparativo"). Os modelos que aparecem na tela dependem do que está baixado no Ollama da máquina (`ollama list`).
 
 > **Painel de Características Técnicas no Hover**: Ao passar o cursor sobre qualquer card de modelo (local ou remoto do OpenRouter), um painel inteligente exibe instantaneamente a janela de contexto máxima (ex.: 128k tokens), modalidades suportadas (texto, imagem, áudio), provedores e precificação por milhão de tokens.
 
@@ -353,6 +355,20 @@ diferentes.
 ### 4. Ciclo de Vida do Atendimento e Encerramento
 * **Encerramento Manual**: O visitante pode encerrar o atendimento a qualquer momento clicando no botão 🏁 **Encerrar atendimento** no topo do widget de chat. A sessão é marcada como `encerrada` com motivo `manual_usuario` e contabilizada nos relatórios.
 * **Encerramento Automático por Inatividade**: O servidor executa um serviço em segundo plano (`inactivity_closure_worker`) que identifica conversas abertas sem nenhuma interação nos últimos 30 minutos e as encerra automaticamente com motivo `inatividade`.
+
+---
+
+## 🧾 Pedidos e Conversão de Reservas (`/admin/pedidos`)
+
+Painel de **Gestão de Pedidos & Conversão** (menu ⚙️, só Admin). Mostra os KPIs de faturamento, filtros por status (`reservado`, `venda_concluida`, `pagamento_divergente`) e busca rápida. Cada reserva pode virar venda enviando o comprovante (imagem, PDF ou TXT): você escolhe entre efetivar manualmente (com ou sem parecer da IA) ou deixar a venda ser efetivada automaticamente quando o valor pago confere. Desenho dos cinco modos de conversão: `docs/ARCHITECTURE.md` §5 (decisão de 2026-10-05).
+
+---
+
+## 🧪 Painel de Preparação da Avaliação (`/admin/datasets`)
+
+Tela de apoio ao experimento da Fase 10 (fora do assistente): mostra o progresso dos cinco conjuntos de teste (roteador, RAG documentos, imagem, banco e injeção), a **fila de revisão** (um item por vez; `A` aprova, `D` descarta, e editar qualquer campo grava a decisão como `corrigido`) e o disparo das tarefas longas (ingestão, geração de conjuntos, benchmark) com log em tempo real. Só uma tarefa de cada tipo roda por vez. O que cada conjunto mede e o roteiro completo: `docs/EVALUATION.md`.
+
+> Os resultados da avaliação aparecem na página pública `/avaliacao` (sem login).
 
 ---
 

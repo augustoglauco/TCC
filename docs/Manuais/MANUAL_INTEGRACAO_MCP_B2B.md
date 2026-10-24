@@ -40,49 +40,48 @@ Authorization: Bearer <SUA_CHAVE_DE_PARCEIRO>
 
 ### 3.1 Recursos (Resources — Somente Leitura)
 
-Os recursos fornecem acesso direto aos dados estruturados e à base de conhecimento (RAG B2B exclusivo):
+Os recursos fornecem acesso direto aos dados estruturados e à base de conhecimento (RAG B2B). As respostas são JSON.
 
-| Recurso | Descrição |
+| URI | Descrição |
 | :--- | :--- |
-| `catalog://produtos` | Catálogo de produtos, dimensões, pesos e especificações. |
-| `inventory://estoque` | Saldo de estoque disponível em tempo real. |
-| `pricing://tabelas` | Tabelas de preços vigentes e regras de desconto por volume. |
-| `docs://manuais` | Esquemas elétricos, guias de instalação e termos de garantia. |
+| `catalogo://produtos{?categoria}` | Catálogo de produtos, com filtro opcional por categoria. |
+| `catalogo://produtos/{produto_id}` | Detalhe de um produto: dimensões, peso e especificações. |
+| `estoque://produtos/{produto_id}` | Saldo de estoque por centro de distribuição. |
+| `precos://produtos/{produto_id}` | Preço, promoção vigente e descontos por volume. |
+| `manuais://busca/{domain}{?query}` | Busca semântica em manuais e documentação técnica. `domain` é `vendas`, `suporte` ou `atendimento`. Alcança o acervo público do chat e o conteúdo exclusivo do canal B2B. |
 
 ---
 
 ### 3.2 Ferramentas (Tools — Execução de Ações)
 
-O servidor dispõe das seguintes ferramentas transacionais:
+O servidor dispõe de cinco ferramentas:
 
 #### 1. `validar_compatibilidade`
-Verifica se um acessório ou peça é compatível com um equipamento principal.
-* **Argumentos:**
-  * `produto_id` *(int, obrigatório)*: ID do produto principal (ex.: Gerador a Diesel).
-  * `acessorio_id` *(int, obrigatório)*: ID da peça ou acessório.
-* **Retorno:** Booleano de compatibilidade com detalhes técnicos e restrições.
+Verifica se dois produtos do catálogo são compatíveis. A relação é simétrica.
+* **Argumentos:** `produto_id` *(int)* e `produto_relacionado_id` *(int)*, ambos obrigatórios.
 
 #### 2. `consultar_frete`
-Calcula o valor do frete e o prazo de entrega para o CEP de destino.
-* **Argumentos:**
-  * `itens` *(array, obrigatório)*: Lista de objetos `{"produto_id": int, "quantidade": int}`.
-  * `cep_destino` *(string, obrigatório)*: CEP com 8 dígitos (ex.: `"01310-100"`).
-* **Retorno:** Custo total do frete, transportadora e estimativa em dias úteis.
+Estima custo e prazo de frete para um CEP, a partir do peso total dos itens. É uma estimativa interna, sem consulta a transportadora.
+* **Argumentos:** `cep` *(string, 8 dígitos, com ou sem hífen)* e `itens` *(array de `{"produto_id": int, "quantidade": int}`)*.
+* **Retorno:** CEP, peso total em kg, custo estimado e prazo em dias.
 
 #### 3. `cotar`
-Gera uma cotação comercial com aplicação automática de descontos e prazos de pagamento.
-* **Argumentos:**
-  * `itens` *(array, obrigatório)*: Lista de objetos `{"produto_id": int, "quantidade": int}`.
-  * `uf` *(string, opcional)*: Sigla do estado de destino para cálculo tributário (ex.: `"SP"`).
-* **Retorno:** Cotação detalhada (preço unitário, descontos aplicados, total e validade).
+Gera uma cotação com o desconto por volume aplicado automaticamente.
+* **Argumentos:** `itens` *(array de `{"produto_id": int, "quantidade": int}`)*.
+* **Retorno:** por item, preço unitário, percentual de desconto aplicado e subtotal, mais o total.
 
 #### 4. `reservar_pedido`
-Efetua uma reserva formal no estoque para o parceiro ou cliente final.
-* **Argumentos:**
-  * `itens` *(array, obrigatório)*: Lista de objetos `{"produto_id": int, "quantidade": int}`.
-  * `cep_destino` *(string, obrigatório)*: CEP de entrega.
-  * `cliente_final` *(string, opcional)*: Razão Social ou Nome do cliente final.
-* **Retorno:** Número do pedido de reserva, prazo de garantia da reserva e status de confirmação.
+Cria uma reserva e baixa o estoque do centro de distribuição indicado.
+* **Argumentos:** `itens` *(array de `{"produto_id": int, "quantidade": int, "centro_distribuicao": string}`)*.
+* **Retorno:** `id` do pedido, `status` (`reservado`), `criado_em` e os itens reservados.
+* Quantidade acima do estoque do centro é recusada.
+
+#### 5. `converter_reserva_venda`
+Converte uma reserva em venda concluída, validando o comprovante de pagamento com um modelo multimodal.
+* **Argumentos:** `pedido_id` *(string)*, `comprovante_base64_ou_texto` *(string: texto ou arquivo em base64)* e `nome_arquivo` *(string, opcional; padrão `comprovante.txt`)*.
+* **Retorno:** o resultado da conversão (venda concluída ou pagamento divergente), com o parecer da validação.
+
+> **Limitações do protótipo:** uma chave estática por parceiro, sem OAuth, limite de uso nem auditoria completa; reserva sem controle de concorrência. Decisões em `docs/ARCHITECTURE.md` §6.
 
 ---
 
@@ -104,11 +103,11 @@ from mcp.shared._httpx_utils import create_mcp_http_client
 
 # Configurações de Conexão
 MCP_URL = "https://augustoglauco.duckdns.org:8443/mcp"
-PARNER_KEY = "SUA_CHAVE_DE_PARCEIRO_AQUI"
+PARTNER_KEY = "SUA_CHAVE_DE_PARCEIRO_AQUI"
 
 async def executar_integracao_b2b():
     # 1. Configura o cliente HTTP com a chave no cabeçalho Authorization
-    headers = {"Authorization": f"Bearer {PARNER_KEY}"}
+    headers = {"Authorization": f"Bearer {PARTNER_KEY}"}
     
     async with create_mcp_http_client(headers=headers) as http_client:
         # 2. Conecta ao transporte SSE do servidor MCP
@@ -128,8 +127,7 @@ async def executar_integracao_b2b():
                 resultado_cotacao = await session.call_tool(
                     "cotar", 
                     arguments={
-                        "itens": [{"produto_id": 1, "quantidade": 2}],
-                        "uf": "SP"
+                        "itens": [{"produto_id": 1, "quantidade": 2}]
                     }
                 )
                 
@@ -156,7 +154,7 @@ python backend/scripts/cliente_mcp_b2b.py \
 ```text
 Sem chave: HTTP 401 ✅
 Com chave: initialize ok (mcp-b2b-server) ✅
-Com chave: tools/list ok (4 ferramentas) ✅
+Com chave: tools/list ok (5 ferramentas) ✅
 Com chave: tools/call cotar ok ✅
 {
   "sucesso": true,
@@ -174,7 +172,7 @@ Com chave: tools/call cotar ok ✅
 | **`HTTP 401 Unauthorized`** | Chave ausente ou incorreta no cabeçalho `Authorization`. | Verifique se enviou `Bearer <sua-chave>` corretamente. |
 | **`Connection Refused / Timeout`** | Servidor fora do ar ou firewall bloqueando a porta 8443. | Verifique se a porta 8443 está liberada na sua rede de saída. |
 | **`SSL Certificate Error`** | Certificado TLS não reconhecido pela aplicação cliente. | Garanta que o SO da sua aplicação possui a cadeia CA padrão atualizada. |
-| **`Tool Error: Produto não encontrado`** | ID de produto inexistente enviado nos argumentos. | Consulte os IDs válidos via recurso `catalog://produtos`. |
+| **`Tool Error: Produto não encontrado`** | ID de produto inexistente enviado nos argumentos. | Consulte os IDs válidos via recurso `catalogo://produtos`. |
 
 ---
 *Em caso de dúvidas técnicas sobre a integração B2B ou solicitação de renovação de chaves, entre em contato com a equipe de suporte de TI.*

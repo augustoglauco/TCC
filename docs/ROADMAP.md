@@ -1549,7 +1549,7 @@ conversa e classificação do usuário").
 - [x] Montar conjunto de perguntas de referência para qualidade do RAG
       (avaliação manual em escala 1–5 + LLM-as-judge) — conjunto de 20
       perguntas com gabarito já existia em
-      `backend/eval/rag_quality/bateria_perguntas_rag.md` (commit
+      o arquivo `bateria_perguntas_rag.md` (removido em 2026-10-24) (commit
       `9603557`); extraído para `dataset.json` e rodada a avaliação em
       `run_eval.py`, reproduzindo o caminho real de produção do domínio
       Suporte (busca RAG + prompt + geração pelo modelo local, sem passar
@@ -1583,7 +1583,7 @@ conversa e classificação do usuário").
       2026-10-24; a grade da Etapa 3 o substitui e alimenta a `/avaliacao`.)*
       Experimento complementar (a pedido explícito do desenvolvedor, fora
       da lista original de avaliações): busca por bisseção do `chunk_size`
-      ideal — `backend/eval/rag_quality/chunk_size_search.py` cria
+      ideal — o script `chunk_size_search` (removido em 2026-10-24) cria
       collections temporárias (só os 11 PDFs reais do domínio Suporte,
       `chunk_overlap` sempre 12,5% do `chunk_size`), mede contra as mesmas
       18 perguntas e **sempre apaga a collection ao final** — nunca toca na

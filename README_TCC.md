@@ -74,9 +74,9 @@ Entrada Multimodal (Texto / Áudio / Imagem)
 
 ### 3. Resultados
 
-Os resultados finais serão consolidados ao término das avaliações detalhadas em `docs/EVALUATION.md`. Estado em 2026-10-24: os conjuntos de teste (sobre o corpus ControlId) estão revisados e a **triagem dos 10 modelos locais candidatos** foi concluída; as demais medições estão pendentes.
+Os resultados finais serão consolidados ao término das avaliações detalhadas em `docs/EVALUATION.md`. Estado em 2026-10-24: os conjuntos de teste (sobre o corpus ControlId) estão revisados e a **triagem dos 9 modelos locais candidatos** foi concluída; as demais medições estão pendentes.
 
-**Já medido — triagem de modelos (roteador e imagem, 229 mensagens não ambíguas, seed 42):** os dois Gemma 4 lideram a acurácia do roteador (12B: 85,2%; E4B: 84,7%, empate estatístico), seguidos por Qwen2.5-VL 3B (79,9%) e 7B (77,3%), que formam com eles os 4 finalistas. Cinco candidatos foram eliminados (JSON inválido acima de 10% ou mais de 10 pp abaixo do melhor) e o Llama 3.2 11B Vision não carrega na versão atual do Ollama. Na imagem, os Gemma 4 acertam o formato, mas aprovam como do portfólio parte dos objetos parecidos; os Qwen falham no formato em boa parte dos casos.
+**Já medido — triagem de modelos (roteador e imagem, 229 mensagens não ambíguas, seed 42):** os dois Gemma 4 lideram a acurácia do roteador (12B: 85,2%; E4B: 84,7%, empate estatístico), seguidos por Qwen2.5-VL 3B (79,9%) e 7B (77,3%), que formam com eles os 4 finalistas. Cinco candidatos foram eliminados (JSON inválido acima de 10% ou mais de 10 pp abaixo do melhor) (o Llama 3.2 11B Vision, que não carrega na versão atual do Ollama, foi descartado do pool). Na imagem, os Gemma 4 acertam o formato, mas aprovam como do portfólio parte dos objetos parecidos; os Qwen falham no formato em boa parte dos casos.
 
 **Pendente:**
 1. **Parâmetros de ingestão do RAG**: modelo de embedding, chunking, limiar e distância, por `Recall@k`, `nDCG@10` e `MRR` sobre 167 perguntas.

@@ -1,5 +1,7 @@
 # Manual Didático: GitNexus no Ambiente de Desenvolvimento Agêntico (WSL2, Antigravity IDE, Claude CLI)
 
+> **Estado em 2026-10-24:** o GitNexus está **desativado no projeto desde 2026-10-17 (a rever)** — o bloco dele no `AGENTS.md` foi removido e o Repowise é a fonte única de inteligência de código. Este manual fica como referência de instalação e uso, caso a ferramenta volte.
+
 O **GitNexus** é uma ferramenta avançada de inteligência de código e análise de grafos de conhecimento (*knowledge graph & code intelligence*). Ele analisa o repositório, mapeia símbolos (funções, classes, métodos, rotas), constrói um grafo de chamadas bidirecional, detecta fluxos de execução (*execution flows*), avalia riscos de raio de impacto (*blast radius*) antes de edições e fornece uma interface web rica e um servidor MCP (Model Context Protocol) para agentes de IA e desenvolvedores.
 
 ---

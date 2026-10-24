@@ -1,8 +1,11 @@
 # Manual Didático: Graphify no Ambiente de Desenvolvimento Agêntico (WSL2, Antigravity IDE, Claude CLI, Kiro CLI)
 
 Criado em 2026-10-14: das quatro ferramentas locais de inteligência de código,
-o graphify era a única sem manual, embora seja a primeira consulta obrigatória
-das três ferramentas agênticas (`CLAUDE.md`, seção "Graphify"). O papel dele
+o graphify era a única sem manual, embora fosse a primeira consulta das
+ferramentas agênticas. **Desde 2026-10-17 o uso é opcional**: a fonte única
+para código é o Repowise (`docs/CONVENTIONS.md`, "Ordem de uso das
+ferramentas de grafo de código"); o graphify ficou como mapa macro rápido e
+para cruzar código com PDF/banco/papers. O papel dele
 diante do GitNexus e do Repowise está em `docs/Manuais/gitnexus-manual.md` §2
 e não é repetido aqui.
 
@@ -21,7 +24,7 @@ Artefatos, todos versionados em `graphify-out/`:
 | `graph.json`                 | O grafo em si; é o que a CLI consulta. ~3 MB.                                  |
 | `graph.html`                 | Visualização interativa, servida pelo backend em `/admin/ferramentas`.         |
 | `GRAPH_REPORT.md`            | Relatório macro: comunidades, god nodes, lacunas de conhecimento.              |
-| `wiki/index.md`              | Navegação em prosa, quando existe — substitui ler código-fonte bruto.          |
+| `wiki/index.md`              | Não gerado: esta CLI não tem comando que o produza.                            |
 | `.graphify_labels.json`      | Nomes das comunidades (ver §5, rotulagem).                                     |
 | `manifest.json`              | Metadados do build (contagens, data).                                          |
 
@@ -30,7 +33,7 @@ Artefatos, todos versionados em `graphify-out/`:
 ## ⚡ 2. Comandos do dia a dia
 
 ```bash
-# Orientação — sempre antes de abrir arquivo bruto
+# Orientação — mapa macro rápido (opcional)
 graphify query "<pergunta>"            # subgrafo enxuto do assunto
 graphify query "<pergunta>" --budget 3000   # mais nós (o default trunca)
 graphify explain "<símbolo/conceito>"  # um nó e seus vizinhos

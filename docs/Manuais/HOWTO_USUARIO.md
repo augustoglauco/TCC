@@ -95,7 +95,7 @@ O assistente é treinado para resolver solicitações em 4 domínios principais:
 * **Consulta de Estoque**: *"Vocês têm o modelo X em estoque na quantidade de 10 unidades?"*
 * **Cálculo de Frete**: *"Quanto fica o frete para o CEP 04538-133?"*
 * **Cotações e Orçamentos**: *"Quero uma cotação para 50 peças do item Y com desconto de empresa."*
-* **Reserva de Itens**: *"Pode reservar 2 unidades deste produto para mim enquanto finalizo a compra?"*
+* **Fechamento do Pedido**: o assistente confirma produto, quantidade e total e, se você estiver logado, indica como finalizar na página **Pedidos** do site (o chat em si não cria nem reserva pedidos).
 
 ---
 
@@ -135,4 +135,4 @@ Se em algum momento o assistente não conseguir resolver a sua dúvida ou se voc
 
 1. O **Monitor de Tom** da nossa plataforma identificará a sua necessidade de suporte humano.
 2. O chat exibirá um aviso: *"Conectando você a um de nossos especialistas..."*.
-3. Um atendente da nossa equipe assumirá o atendimento mantendo todo o histórico da conversa para que você não precise repetir o que já foi dito!
+3. A conversa é sinalizada no painel de atendimento da equipe, com todo o histórico, para que você não precise repetir o que já foi dito. (Neste protótipo não há fila real de atendimento humano: a sinalização aparece para a equipe no painel administrativo.)

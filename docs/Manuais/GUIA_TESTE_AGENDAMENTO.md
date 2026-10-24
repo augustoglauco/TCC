@@ -174,13 +174,13 @@ Acesse o site em `http://localhost:3000` e abra o widget do assistente de chat n
 * **Objetivo**: Confirmar que falhas de conexão ou credenciais do Google Calendar são tratadas graciosamente.
 
 #### Procedimento de Teste (Simulação de Erro):
-1. Renomeie temporariamente o arquivo de token `backend/secrets/google_calendar_token.json` para `google_calendar_token.json.bak`.
+1. Renomeie temporariamente o arquivo de token `backend/secrets/calendar_mcp_token.json` (o `TOKEN_FILE_PATH` do passo 2.2) para `calendar_mcp_token.json.bak`.
 2. No chat, execute um fluxo completo de agendamento e confirme.
 3. **Resposta Esperada**:
    - O assistente responde com a mensagem de fallback amigável:
      > *"No momento não consegui confirmar o agendamento automaticamente. Um atendente da nossa equipe vai entrar em contato para confirmar os detalhes. Pedimos desculpas pelo transtorno."*
    - O backend registra o log estruturado contendo `google_calendar_indisponivel` (tipo `auth`).
-4. **Restauração**: Restaure o arquivo `google_calendar_token.json`. Ao enviar "Tentar novamente" ou confirmar na mensagem seguinte, o fluxo deve ser concluído com sucesso.
+4. **Restauração**: Restaure o arquivo `calendar_mcp_token.json`. Ao enviar "Tentar novamente" ou confirmar na mensagem seguinte, o fluxo deve ser concluído com sucesso.
 
 ---
 

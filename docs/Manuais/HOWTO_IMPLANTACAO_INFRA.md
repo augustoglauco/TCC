@@ -30,8 +30,8 @@
 * **SO**: Ubuntu 22.04 LTS (ou subsistema WSL2 no Windows 11).
 * **Drivers NVIDIA**: Driver 535+ com NVIDIA Container Toolkit instalado.
 * **Docker & Docker Compose**: Docker Engine 24.0+ e Compose v2+.
-* **Python**: Versão 3.11+.
-* **Node.js**: Versão 18.x ou 20.x LTS com `npm`.
+* **Python**: Versão 3.14+ (`requires-python = ">=3.14"`; o `uv` baixa o interpretador sozinho).
+* **Node.js**: Versão 20.x LTS ou superior, com `npm`.
 
 ---
 
@@ -86,12 +86,12 @@ O Ollama é responsável por servir localmente os modelos de linguagem em GPU se
 3. **Download dos Modelos Necessários para o MVP**:
    Execute o pull dos modelos homologados para inferência local:
    ```bash
-   # Modelo Principal de Linguagem / Roteamento (Llama 3.1 8B ou Qwen 2.5 7B)
-   ollama pull llama3.1:8b
-   ollama pull qwen2.5:7b
+   # Modelo em uso (LOCAL_MODEL_NAME): multimodal, ~8 GB de VRAM
+   ollama pull gemma4:12b-it-q4_K_M
 
-   # (Opcional) Outros modelos suportados
-   ollama pull phi4
+   # (Opcional) Demais candidatos da avaliação: lista e tags exatas em
+   # backend/eval/model_benchmark/modelos.json (resultado em docs/EVALUATION.md);
+   # também podem ser baixados e trocados pela tela /admin/modelos.
    ```
 
 4. **Testar Serviço Ollama**:
@@ -108,9 +108,9 @@ O Ollama é responsável por servir localmente os modelos de linguagem em GPU se
 > [`uv`](https://docs.astral.sh/uv/) (`backend/pyproject.toml` +
 > `backend/uv.lock`), não `requirements.txt`. `uv` baixa/gerencia o próprio
 > interpretador Python isoladamente, sem depender de pacotes extras do SO.
-> Alternativa sem `uv`: `python3.11 -m venv .venv && source
+> Alternativa sem `uv`: `python3.14 -m venv .venv && source
 > .venv/bin/activate && pip install -e ".[dev]"` — só funciona se o Python
-> 3.11+ e seu pacote `venv` já estiverem instalados no sistema.
+> 3.14+ e seu pacote `venv` já estiverem instalados no sistema.
 
 1. **Navegue até o diretório do backend**:
    ```bash
@@ -144,7 +144,7 @@ O Ollama é responsável por servir localmente os modelos de linguagem em GPU se
 
    # Modelo local (Ollama)
    LOCAL_MODEL_BASE_URL=http://localhost:11434
-   LOCAL_MODEL_NAME=llama3.1:8b
+   LOCAL_MODEL_NAME=gemma4:12b-it-q4_K_M   # o .env.example traz llama3.1:8b; troque
 
    # Modelo externo via OpenRouter (roteador, transbordo/fallback)
    EXTERNAL_MODEL_BASE_URL=https://openrouter.ai/api/v1
@@ -230,23 +230,26 @@ A plataforma opera com arquitetura **Dual MCP**:
      cada sessão. Não existe URI de redirecionamento a configurar no
      Console — o fluxo usa `http://localhost:8080` (porta do próprio
      `calendar-mcp-server`, não a 8000 do backend).
-   - Passo a passo completo, com troubleshooting: `docs/GUIA_TESTE_AGENDAMENTO.md`
+   - Passo a passo completo, com troubleshooting: `docs/Manuais/GUIA_TESTE_AGENDAMENTO.md`
      §2.2, e o startup consolidado em `goup.md`.
    - O backend só precisa saber onde esse processo está escutando
      (`CALENDAR_MCP_URL=http://127.0.0.1:8090/mcp`, ver Passo 3 acima) —
      não guarda nenhuma credencial OAuth do Google.
 
-2. **Provedor MCP B2B Próprio (Catálogo e Transações B2B) — ainda não implementado**:
-   - Faz parte do escopo do MVP (R12, Fase 5 do `docs/ROADMAP.md`), mas
-     **nenhuma tarefa da Fase 5 foi concluída ainda** — `src/app/mcp_server/`
-     existe como pasta vazia (`__init__.py` sem conteúdo). Não há
-     endpoint/comando real para testar hoje; os exemplos de `curl` que
-     existiam aqui antes eram aspiracionais, não refletiam o código.
-   - Quando a Fase 5 for implementada, atualize esta seção com o comando
-     real de start do servidor MCP (`MCP_B2B_HOST`/`MCP_B2B_PORT`, já
-     configuráveis em `.env.example`, mas ainda sem consumidor) e a forma
-     real de testar as 4 ferramentas (compatibilidade, frete, cotação,
-     reserva/pedido) — ver `docs/ARCHITECTURE.md` §6.
+2. **Provedor MCP B2B próprio (catálogo e transações B2B)** — implementado (R12):
+   - Processo à parte, em `127.0.0.1:8100`, iniciado por
+     `scripts/run_mcp_b2b_server.py` (`MCP_B2B_HOST`/`MCP_B2B_PORT`):
+     ```bash
+     cd backend && nohup .venv/bin/python scripts/run_mcp_b2b_server.py > /tmp/tcc-mcp-b2b.log 2>&1 & disown
+     ```
+   - Não sobe sem chave: exige `MCP_B2B_PARTNER_KEYS` no `backend/.env`
+     (uma chave estática por parceiro, `nome:chave`).
+   - Expõe recursos de leitura (catálogo, estoque, preços, manuais) e
+     ferramentas transacionais (compatibilidade, frete, cotação,
+     reserva/pedido, conversão de reserva em venda). Acesso externo via
+     Caddy/HTTPS, exemplos e manual do parceiro: `goup.md` e
+     `docs/Manuais/MANUAL_INTEGRACAO_MCP_B2B.md`; desenho em
+     `docs/ARCHITECTURE.md` §6.
 
 ---
 
@@ -300,4 +303,4 @@ A plataforma opera com arquitetura **Dual MCP**:
 | **Erro ao processar imagem (OCR)** | Binário `tesseract` não encontrado no PATH do sistema. | Instale o Tesseract: `sudo apt install tesseract-ocr tesseract-ocr-por` (sem variável de ambiente própria neste projeto — só precisa estar no PATH). |
 | **Erro na gravação/transcrição de áudio** | Modelo `faster-whisper` (`STT_MODEL_SIZE`) não baixado ou falta da biblioteca `ffmpeg`. | Instale o ffmpeg: `sudo apt install ffmpeg` e certifique-se que a GPU tem VRAM livre (STT roda na mesma GPU do modelo local). |
 | **Containers não sobem** | Conflito de porta (`5433` ou `6335`/`6336` já em uso — não `5432`/`6333`, que são as portas *internas* do container, ver Passo 1). | Verifique processos em uso com `sudo lsof -i :5433` ou altere as portas publicadas no `backend/docker-compose.yml` (lembre de atualizar `POSTGRES_DSN`/`QDRANT_PORT` em `.env` junto). |
-| **Agendamento falha com "MCP do Google Calendar indisponível"** | `calendar-mcp-server` não está rodando na porta 8090, ou o token expirou. | Ver `docs/GUIA_TESTE_AGENDAMENTO.md` §5 e `goup.md` — confirme com `curl http://127.0.0.1:8090/mcp` (400 = processo no ar; sem resposta = subir de novo). |
+| **Agendamento falha com "MCP do Google Calendar indisponível"** | `calendar-mcp-server` não está rodando na porta 8090, ou o token expirou. | Ver `docs/Manuais/GUIA_TESTE_AGENDAMENTO.md` §5 e `goup.md` — confirme com `curl http://127.0.0.1:8090/mcp` (400 = processo no ar; sem resposta = subir de novo). |
