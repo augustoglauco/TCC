@@ -77,11 +77,16 @@ Acessível pelo menu ⚙️ (também restrito a Admin). Duas abas:
 
 O sistema utiliza a técnica de **RAG (Busca Aumentada por Recuperação)**. Isso significa que o assistente lê a documentação oficial da sua empresa para responder dúvidas de Suporte Técnico e Atendimento com precisão.
 
+### Abas da tela
+`/admin/ingestao` tem cinco abas: **Enviar documento**, **Documentos ingeridos**, **Configuração** (collections e regras de busca), **Playground** (teste de buscas) e **Crawler**.
+
 ### Como Enviar Novos Documentos (PDFs / Manuais)
-1. Acesse a rota `/admin/ingestao` no navegador.
-2. Na seção **Upload de Documentos**, selecione um arquivo `.pdf` ou `.txt` (ex.: *Manual_de_Instalacao_Produto_X.pdf*).
-3. Clique em **Enviar e Indexar**.
-4. O sistema irá extrair os textos, quebrá-los em blocos lógicos e armazená-los na base vetorial. A partir desse momento, o assistente já saberá responder dúvidas baseadas nesse novo arquivo.
+1. Acesse `/admin/ingestao`, aba **Enviar documento**.
+2. Escolha o **domínio** (Vendas, Suporte Técnico ou Atendimento ao Usuário) e a collection de destino.
+3. Selecione ou arraste um arquivo `.pdf`, `.txt` ou `.md` (ex.: *Manual_de_Instalacao_Produto_X.pdf*).
+4. Clique em **Enviar para ingestão**.
+5. O sistema extrai o texto (PDFs de duas colunas são lidos coluna a coluna), divide em blocos e grava na base vetorial. A partir daí o assistente já responde com base no arquivo. PDFs que são só imagem escaneada não rendem texto (não há OCR na ingestão de documentos).
+6. Na aba **Documentos ingeridos** você filtra, abre, baixa, reingere em outra collection ou exclui cada documento.
 
 ### Quem pode ver cada documento (campo "Finalidade")
 
@@ -125,17 +130,17 @@ O **Web Crawler** é um robô de busca que navega em páginas web (como sua Cent
 
 ### Como Parametrizar o Crawler (Explicação Simplificada)
 
-Ao acessar a seção **Web Crawler** em `/admin/ingestao`, você encontrará os seguintes campos de configuração:
+Ao acessar a aba **Crawler** em `/admin/ingestao`, você encontrará os seguintes campos de configuração:
 
 | Parâmetro | Nome na Tela | O que significa na prática? | Exemplo Recomendado |
 |---|---|---|---|
-| **URL Semente** | *Endereço Inicial (URL)* | A página exata por onde o robô deve começar a leitura. | `https://suaempresa.com.br/suporte` |
-| **Profundidade** | *Nível de Cliques (Profundidade)* | Quantos "cliques" de distância o robô pode navegar a partir da página inicial. <br>• **1**: Lê apenas a página informada.<br>• **2**: Lê a página informada + links diretos dela.<br>• **3**: Navega até 3 níveis de links internos. | **2** *(Evita navegar em todo o site desnecessariamente)* |
-| **Limite de Páginas** | *Teto Máximo de Páginas* | O número máximo de páginas que o robô pode salvar em uma única execução. Garante que a leitura seja rápida e não sobrecarregue seu servidor. | **50** páginas |
+| **URL Semente** | *URL semente* | A página exata por onde o robô deve começar a leitura. | `https://suaempresa.com.br/suporte` |
+| **Profundidade** | *Profundidade* | Quantos "cliques" de distância o robô pode navegar a partir da página inicial. <br>• **1**: Lê apenas a página informada.<br>• **2**: Lê a página informada + links diretos dela.<br>• **3**: Navega até 3 níveis de links internos. | **2** *(Evita navegar em todo o site desnecessariamente)* |
+| **Limite de Páginas** | *Máximo de páginas* | O número máximo de páginas que o robô pode salvar em uma única execução. Garante que a leitura seja rápida e não sobrecarregue seu servidor. | **50** páginas |
 
 ### Executando o Crawler
 1. Preencha a **URL Semente**, **Profundidade** e **Limite de Páginas**.
-2. Clique no botão **Iniciar Varredura Web**.
+2. Clique no botão **Rodar crawler**.
 3. Acompanhe a barra de progresso. Ao finalizar, o sistema confirmará o total de páginas lidas e indexadas com sucesso.
 
 ### Fila de Revisão de Páginas
@@ -246,6 +251,9 @@ O sistema expõe um servidor MCP próprio, usado por IAs de parceiros (B2B), com
 * **Visualização de Estoque por CD**: A coluna de estoque exibe a quantidade total consolidada. Ao repousar o mouse sobre o valor, um tooltip detalhado apresenta a divisão física dos itens por filial ou centro de distribuição (ex.: CD-SP, CD-MG, CD-PR).
 * **Agrupamento de Preços**: A tabela destaca visualmente o preço base do revendedor e o preço sugerido de venda ao consumidor final.
 * **Fonte Única Autorizada no PostgreSQL**: Todos os dados do catálogo são mantidos e consultados diretamente no banco de dados relacional (`SalesCatalogClient`), sem duplicar ou poluir o RAG textual com arquivos sintéticos.
+
+### Formulário de Produto (abas)
+Ao criar ou editar um produto, o formulário tem quatro abas: **Informações Gerais & Fotos** (nome, categoria, descrição, especificações, dimensões, peso, preços e fotos), **Estoque por CD** (quantidade por centro de distribuição), **Descontos Volume** (percentual por quantidade mínima) e **Compatibilidade** (vínculos com outros produtos, consultados nos dois sentidos). Em Informações Gerais há ainda o campo **Alertar estoque com (dias)**: o prazo de reposição daquele produto, que substitui o padrão de 10 dias do agente de previsão de estoque (vazio = padrão). As fotos cadastradas são indexadas no CLIP para a busca por imagem.
 
 ### Importação Inteligente de Catálogos (`/admin/produtos`)
 * No botão de importação, **arraste** os arquivos para dentro da janela, **cole** com `Ctrl+V` (imagem copiada, arquivo copiado ou um texto copiado, que vira um `.txt`) ou use "Procurar Arquivos".

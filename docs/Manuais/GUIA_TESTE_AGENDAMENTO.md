@@ -18,9 +18,9 @@ O assistente coleta **4 campos obrigatórios**:
 
 ### Regras de Negócio Importantes:
 * **Expediente padrão**: Segunda a Sexta-feira, das 09:00 às 18:00 (Fuso `America/Sao_Paulo`).
-* **Validação de Conflito**: O sistema consulta a agenda via MCP `list_events` antes de pedir confirmação.
+* **Validação de Conflito**: O sistema consulta a agenda via MCP (tool `find_events`, chamada por `is_time_available`) antes de pedir confirmação.
 * **Confirmação Explícita**: Nenhum evento é criado no Google Calendar sem antes pedir e receber um "Sim / Pode confirmar" do usuário.
-* **Envio de E-mail**: A notificação por e-mail é disparada nativamente pelo Google Calendar (`sendUpdates: "all"`).
+* **Envio de E-mail**: o visitante entra como convidado do evento (`attendee_emails`) e o convite por e-mail sai do próprio Google Calendar.
 
 ---
 
@@ -147,7 +147,7 @@ Acesse o site em `http://localhost:3000` e abra o widget do assistente de chat n
 
 ### 🟠 CT-04: Validação de Conflito de Agenda (Double-Booking)
 
-* **Objetivo**: Testar se a verificação via MCP `list_events` impede o agendamento em horário ocupado.
+* **Objetivo**: Testar se a verificação via MCP (`find_events`) impede o agendamento em horário ocupado.
 
 #### Procedimento de Teste:
 1. Abra o seu **Google Calendar** manualmente e crie um evento genérico na **próxima sexta-feira das 11:00 às 11:30**.
