@@ -75,7 +75,8 @@ async def _avaliar_provider(
 
         esperado = caso["intencao_esperada"]
         previsto = resultado.domain
-        matriz[esperado][previsto] = matriz[esperado].get(previsto, 0) + 1
+        linha = matriz.setdefault(esperado, {})  # `fora_escopo` também é gabarito
+        linha[previsto] = linha.get(previsto, 0) + 1
 
         if resultado.provider_efetivo != provider:
             degradacoes.append({"id": caso["id"], "provider_efetivo": resultado.provider_efetivo})

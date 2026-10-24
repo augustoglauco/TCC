@@ -279,7 +279,8 @@ async def etapa_roteador(cliente: ClienteInstrumentado, external_client) -> dict
         )
         esperado = caso["intencao_esperada"]
         previsto = resultado.domain
-        matriz[esperado][previsto] = matriz[esperado].get(previsto, 0) + 1
+        linha = matriz.setdefault(esperado, {})  # `fora_escopo` também é gabarito
+        linha[previsto] = linha.get(previsto, 0) + 1
         ambiguo = bool(caso.get("ambiguo", False))
         acertou = previsto in (caso.get("intencoes_aceitas") or [esperado])
         if ambiguo:
