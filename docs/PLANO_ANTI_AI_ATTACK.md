@@ -1,5 +1,15 @@
 # Plano de Defesa e Mitigação de Ataques contra Sistemas de IA (Anti-AI Attack Plan)
 
+> **Documento histórico — não descreve o sistema atual.** Restaurado em
+> 2026-10-18 do texto anterior ao descarte de 2026-10-07. Ele assume
+> arquitetura que **não existe** neste projeto (multi-tenant, JWT, Presidio,
+> Llama Guard, Redis). A defesa realmente implementada (isolamento por
+> delimitador, detecção log-only e avaliação comportamental) está em
+> `docs/superpowers/specs/2026-10-07-seguranca-prompt-injection-mcp-design.md`,
+> e a medição, em `docs/EVALUATION.md` (Seção 4) e
+> `backend/eval/prompt_injection/README.md`. Use este plano só como
+> referência de taxonomia (OWASP LLM Top 10, MITRE ATLAS).
+
 **Projeto:** Assistente Virtual Multimodal com Roteador Inteligente e Arquitetura Dual MCP  
 **Autor:** Augusto Quintino  
 **Contexto:** Trabalho de Conclusão de Curso (TCC) — GenAI e LLM MASTER (PUC-Rio)  

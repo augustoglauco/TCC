@@ -93,6 +93,8 @@ Regras práticas:
   checar escopo, `mvp-task` para implementar um item do roadmap) e o steering
   de `.kiro/steering/project.md`, que carrega o contexto do projeto
   automaticamente.
+- **Amazon Q Developer CLI:** para refatoração de backend (redução de
+  complexidade e de funções longas), lendo `.amazonq/rules/project.md`.
 
 Não há uma regra rígida — na dúvida, use a ferramenta com a qual for mais
 fácil revisar o resultado antes de aceitar. O importante é que, seja qual for
@@ -101,13 +103,16 @@ a ferramenta, o contexto lido e a documentação atualizada sejam os mesmos.
 ## Loop de trabalho recomendado
 
 1. Escolha o próximo item pendente (`- [ ]`) em `docs/ROADMAP.md`.
-2. Consulte primeiramente o **Graphify** (`graphify query`, `explain`,
-   `path`) para mapear dependências e entender o impacto antes de alterar ou
-   escrever código.
+2. Oriente-se com o **Repowise** (`get_answer`, `get_context`, `get_risk`),
+   que é a fonte única para código desde 2026-10-17, para mapear dependências
+   e entender o impacto antes de alterar. O Graphify (`graphify query`,
+   `explain`, `path`) é opcional, só para o mapa macro (ver `docs/CONVENTIONS.md`,
+   "Ordem de uso das ferramentas de grafo de código").
 3. Implemente (Antigravity Editor View, Manager Surface, Claude Code CLI ou
    Kiro CLI).
-4. Após qualquer alteração no código, execute de maneira automática
-   `graphify update .` para sincronizar o knowledge graph (`graphify-out/`).
+4. Não é preciso atualizar o grafo à mão: o hook `post-commit` reconstrói o
+   `graphify-out/` sozinho (rode `graphify update .` só se o git voltar a
+   ignorar o hook).
 5. Verifique o resultado:
    - No Antigravity, revise os **Artifacts** (plano, screenshots, gravações
      de navegador/terminal) em vez de aceitar às cegas.

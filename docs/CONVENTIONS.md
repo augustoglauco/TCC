@@ -47,8 +47,8 @@ nunca usou). O porquê das escolhas centrais está em `docs/ARCHITECTURE.md`
 | Linguagem e API | Python 3.14, FastAPI, Uvicorn, Pydantic v2, `pydantic-settings` (`.env`) |
 | Banco relacional | PostgreSQL 15 (`postgres:15-alpine`), SQLAlchemy 2 async + `asyncpg`, migrações Alembic em `backend/migrations/` |
 | Banco vetorial | Qdrant (`qdrant/qdrant`), `qdrant-client`; collections por perfil (`rag_collections`) e `catalogo_imagens` |
-| Embeddings | `sentence-transformers`: texto `paraphrase-multilingual-MiniLM-L12-v2` (384 dims, configurável por collection), imagem `clip-ViT-B-32` (512 dims) |
-| Modelo local | Ollama (cliente HTTP próprio); em uso `gemma4:12b-it-q4_K_M`, candidatos da avaliação em `docs/EVALUATION.md` |
+| Embeddings | `sentence-transformers`: texto configurável por collection (collection provisória em `google/embeddinggemma-300m`, 768 dims; baseline antigo `paraphrase-multilingual-MiniLM-L12-v2`, 384 dims; escolha final na Fase 10), imagem `clip-ViT-B-32` (512 dims) |
+| Modelo local | Ollama (cliente HTTP próprio); em uso `gemma4:12b-it-q4_K_M`; 4 finalistas da triagem (Gemma 4 12B e E4B, Qwen2.5-VL 3B e 7B) em `docs/EVALUATION.md` |
 | Modelo externo | OpenRouter via `httpx` (texto, visão e classificador Jev); modelo trocável em `/admin/modelos` |
 | Documentos e imagem | `pdfplumber` (PDF), `beautifulsoup4` (crawler), Pillow, `pytesseract` (OCR) |
 | Áudio | `faster-whisper` local (`STT_MODEL_SIZE`, default `small`) |
@@ -67,22 +67,24 @@ simples de manter para um TCC com um desenvolvedor, e facilita manter
 ```
 repo/
 ├── CLAUDE.md
-├── .agents/rules/project.md
+├── .agents/rules/project.md · .kiro/steering/project.md · .amazonq/rules/project.md
+├── goup.md · g.sh · testar.sh
 ├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── FRONTEND.md
-│   ├── ROADMAP.md
-│   ├── CONVENTIONS.md
-│   ├── EVALUATION.md
-│   └── AGENTIC_WORKFLOW.md
+│   ├── ARCHITECTURE.md · FRONTEND.md · ROADMAP.md · CONVENTIONS.md
+│   ├── EVALUATION.md · AGENTIC_WORKFLOW.md · TESTE_LOCAL.md
+│   ├── modelos_ia_previstos.md · PLANO_ANTI_AI_ATTACK.md
+│   └── Manuais/            # manuais de uso, implantação, B2B, prompts/LLM e ferramentas
 ├── backend/
 │   ├── src/app/
 │   │   ├── api/            # rotas HTTP (FastAPI routers)
-│   │   ├── router/          # Roteador/Orquestrador (classificação de intenção)
+│   │   ├── router/          # Roteador/Orquestrador, clientes LLM, playbooks, monitor de tom
 │   │   ├── rag/             # ingestão, embeddings, busca vetorial (texto e imagem)
+│   │   ├── services/        # dashboards/Text-to-SQL, atendimento humano, ledger de uso de IA
+│   │   ├── agents/          # agentes de e-mail e de estoque
+│   │   ├── catalog_extractor/ # extração estruturada de catálogos (PDF/imagem/texto)
+│   │   ├── model_catalog/   # características dos modelos locais/externos
 │   │   ├── stt/             # conversão de áudio em texto
-│   │   ├── ocr/             # OCR e identificação de imagem
-│   │   ├── tone_monitor/    # monitoramento de tom
+│   │   ├── ocr/             # OCR e leitura de imagem
 │   │   ├── mcp_client/      # cliente MCP (Google Calendar)
 │   │   ├── mcp_server/      # servidor MCP B2B (provido)
 │   │   ├── memory/          # persistência e resumo de conversa
@@ -92,12 +94,19 @@ repo/
 │   │   └── config.py
 │   ├── migrations/          # migrações do PostgreSQL (ex.: Alembic)
 │   ├── eval/
-│   │   ├── router_intents/  # conjunto de teste + script de avaliação do roteador
-│   │   ├── rag_quality/     # perguntas de referência + script de avaliação do RAG
-│   │   └── latency/         # script de benchmark de latência local x externo
+│   │   ├── router_intents/  # conjunto de teste + avaliação do roteador
+│   │   ├── rag_quality/     # perguntas de referência + avaliação do RAG (juiz)
+│   │   ├── rag_ingestion/   # escolha dos parâmetros de ingestão (Etapas 0-5)
+│   │   ├── rag_banco/       # perguntas de preço/estoque/prazo
+│   │   ├── prompt_injection/ # casos de injeção direta e indireta
+│   │   ├── model_benchmark/ # triagem e comparação dos modelos locais
+│   │   └── latency/         # latência local x externo (a criar)
+│   ├── scripts/             # teste_local.py, popular produtos, ingerir imagens do corpus
 │   ├── tests/
 │   ├── .env.example
 │   └── pyproject.toml
+├── scripts/                 # checar_mudanca.py (gate de pré-commit)
+├── cliente-b2b/             # cliente de referência do MCP B2B para parceiros (Streamlit)
 ├── infra/
 │   └── caddy/               # proxy HTTPS público do MCP B2B (Caddyfile + caddy.env.example)
 └── frontend/                # ver estrutura detalhada em docs/FRONTEND.md §5
@@ -196,7 +205,7 @@ intencional achando que é um bug ou uma tarefa esquecida.
   catálogo real e deixavam lixo quando falhavam (limpeza:
   `backend/scripts/limpar_produtos_de_teste.py`).
 - **Sobrescrever a dependência `get_db_session` não basta.** A telemetria
-  (`app.services.ai_usage` e `app.services.ingestion_metrics`) grava em
+  (`app.services.ai_usage`) grava em
   *fire-and-forget*, por um sessionmaker **global de módulo** que o lifespan
   de `app.main` aponta para `settings.postgres_dsn` — caminho que não passa
   por nenhuma dependência do FastAPI. Até 2026-10-12, um teste que subia a
@@ -206,7 +215,8 @@ intencional achando que é um bug ou uma tarefa esquecida.
   painel `/admin/metricas` como se fossem uso real. Duas fixtures `autouse`
   em `conftest.py` fecham isso — `_isola_banco_de_telemetria` (troca o DSN
   por um SQLite descartável da sessão de testes, com schema) e
-  `_reset_sessionmakers_globais` (zera os dois globais entre testes). Ao
+  `_reset_sessionmakers_globais` (zera o global entre testes; o
+  `ingestion_metrics` foi removido em 2026-10-23). Ao
   criar um serviço novo com sessionmaker global, acrescente-o à segunda.
 - Testes que dependem de GPU/modelo local devem ser marcados
   (`@pytest.mark.gpu` ou equivalente) para poderem ser pulados em ambientes
@@ -389,7 +399,7 @@ uv sync --all-extras
 ```
 
 **Cobertura para o Repowise** (relatório + mapa teste→código; 2026-10-20: 91,3 %
-de linhas, 1226 testes). A partir da raiz, depois de rodar na pasta `backend`:
+de linhas; 1227 testes em 2026-10-24). A partir da raiz, depois de rodar na pasta `backend`:
 
 ```bash
 cd backend && .venv/bin/pytest -q --cov=src/app --cov-context=test
@@ -399,15 +409,16 @@ cd .. && repowise coverage add backend/.coverage && rm backend/.coverage
 Depois, reinicie backend e MCP B2B (`./testar.sh` já faz isso, ver
 `docs/TESTE_LOCAL.md`, ou os passos do `goup.md`).
 
-## Ao usar Claude Code CLI, Antigravity ou Kiro CLI para gerar código
+## Ao usar Claude Code CLI, Antigravity, Kiro CLI ou Amazon Q para gerar código
 
 - Leia `CLAUDE.md` (Claude Code) ou confirme que a regra de workspace está
   ativa (Antigravity: `.agents/rules/project.md`; Kiro:
-  `.kiro/steering/project.md`) antes de começar.
+  `.kiro/steering/project.md`; Amazon Q: `.amazonq/rules/project.md`) antes
+  de começar.
 - Prefira revisar o diff/plano antes de aceitar mudanças em arquivos de
   `docs/` — esses arquivos são a fonte de verdade para futuras sessões.
 - Ver `docs/AGENTIC_WORKFLOW.md` para a divisão de trabalho recomendada entre
-  Antigravity (Editor View / Manager Surface), Claude Code CLI e Kiro CLI.
+  Antigravity (Editor View / Manager Surface), Claude Code CLI, Kiro CLI e Amazon Q.
 
 ### Ferramentas que escrevem nos arquivos de regras
 
@@ -582,7 +593,7 @@ A troca feita, em vez de somar: os três hooks copiados saíram de
 | Servidor MCP | um só, `plugin:repowise:repowise` (ferramentas `mcp__plugin_repowise_repowise__*`) |
 | Hooks por chamada de Bash | **1** — `repowise-rewrite`, que o plugin **não** traz e por isso continua declarado à mão |
 | Dono dos outros 3 hooks | o plugin (`SessionStart`, `PostToolUse`, `PostToolUseFailure`) |
-| Versão | 0.57.0 (era 0.56.0) |
+| Versão | 0.57.0 na troca; 0.58.0 em 2026-10-24 |
 
 **Armadilha encontrada na troca:** o servidor do `.mcp.json` era o que
 carregava o `REPOWISE_SYNTHESIS_MAX_TOKENS`. Removê-lo sem mais faria perder
@@ -606,10 +617,6 @@ custo por turno; acender um a um, se e quando for avaliado.
 modelo gerador do próprio assistente**. Ou seja, `get_answer` disputa a GPU
 com o sistema avaliado — não usar durante uma rodada de benchmark da Fase 10,
 sob pena de contaminar a medição de latência.
-
-Pendências conhecidas, nenhuma bloqueante: o índice está em
-`status: "upgrading"` (`Full upgrade: pending`), e o servidor roda 0.56.0 com
-a 0.57.0 disponível.
 
 #### Ler fonte do repo com `Read`/`Grep`, não com `cat`/`grep`
 

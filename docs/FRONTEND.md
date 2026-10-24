@@ -12,11 +12,15 @@
 - **Next.js (App Router) + TypeScript.**
 - **Tailwind CSS** para estilo — produtividade alta para um protótipo de TCC
   com uma pessoa só no frontend.
-- **React Query (ou SWR)** para dados de servidor (produtos, pedidos,
-  histórico de conversa) — cache e revalidação sem estado global manual.
-- **Zustand (ou Context API)** apenas para estado local do widget de chat
-  (aberto/fechado, mensagens em andamento, estado de gravação de áudio) — não
-  para dados que já vêm do backend.
+- **Dados de servidor** (produtos, pedidos, histórico) por `fetch` direto nos
+  clientes de `lib/api/` e hooks próprios; **nenhuma biblioteca de cache**
+  (React Query/SWR) foi adotada — decisão de simplicidade do MVP.
+- **Zustand 5** para o estado do widget de chat (aberto/fechado, mensagens em
+  andamento, `conversation_id`) e a autenticação — não para dados que já vêm
+  do backend.
+- **Recharts** para os gráficos (`/avaliacao`, `/admin/dashboards`, cards de
+  gráfico no chat) e **Radix UI** (dialog, tabs) para os componentes
+  acessíveis.
 - **Server-Sent Events (SSE)** para streaming da resposta do chat — mais
   simples de implementar com FastAPI do que WebSocket bidirecional; suficiente
   porque o cliente só precisa *receber* o streaming, o envio é uma requisição
@@ -26,7 +30,7 @@ Esta stack é o ponto de partida; qualquer troca (ex.: SSE → WebSocket, se o
 chat evoluir para notificações do servidor sem o cliente perguntar) deve ser
 registrada aqui com o motivo.
 
-## 2. Seções/páginas propostas
+## 2. Seções/páginas
 
 | Seção | Rota (sugestão) | Propósito | Requer login |
 | --- | --- | --- | --- |
@@ -41,6 +45,7 @@ registrada aqui com o motivo.
 | Agendamentos | `/agendamentos` | Visualizar visitas agendadas do cliente autenticado, desmarcar visitas confirmadas com confirmação (sincronizado com Google Calendar) e CTA para novo agendamento via chat (R11) | Sim |
 | Admin — Agendamentos | `/admin/agendamentos` | Painel administrativo com abas (sistema por usuário com busca e filtros vs consulta à agenda corporativa do Google Calendar em tempo real via MCP) e modal para agendamento manual com validação de conflitos — duração da visita configurável (`duracao_minutos`, decisão de 2026-09-29) | Sim (`admin`) |
 | Admin — Usuários | `/admin/usuarios` | Lista/filtra os usuários cadastrados (nome/e-mail/perfil), com contagem de clientes x admins e link "Ver Pedidos" por usuário (`/pedidos/historico?email=...`) — decisão em `docs/ARCHITECTURE.md` §5 (2026-09-29) | Sim (`admin`) |
+| Resultados da Avaliação | `/avaliacao` | Gráficos públicos das avaliações da Fase 10 (roteador, RAG, grade de chunking da Etapa 3, injeção de prompt e comparativo de modelos), só agregados com IC de Wilson; vazio até as rodadas oficiais gerarem `results.json` (Seção 4) | Não |
 | Suporte / Central de Ajuda | `/suporte` | FAQ e documentação de produto — é justamente o conteúdo que o crawler (R4) e o RAG de Suporte/Atendimento (R7) devem indexar | Não |
 | Contato | `/contato` | Dados institucionais, formas de contato alternativas ao chat | Não |
 | **Chat** | widget global (todas as rotas) | Ponto de entrada único para os quatro domínios de atendimento — ver Seção 3 | Não (funciona anônimo; melhora com login) |
@@ -511,7 +516,10 @@ feature de produto para o usuário final.
 
 `GET /api/avaliacao/resultados` — **público** (sem token), alimenta a página
 `/avaliacao` (Recharts): `{roteador, rag, chunk_size, injecao, modelos}`,
-cada seção `null`/vazia se o `results.json` não existe. Só agregados, com
+cada seção `null`/vazia se o `results.json` não existe. `chunk_size` lê a
+grade da Etapa 3 (`eval/rag_ingestion/resultados_etapa3.json`) e traz, por
+tamanho de chunk em tokens, o melhor overlap com `ndcg_10` e `recall_5`
+(`{chunk_size, overlap_pct, ndcg_10, recall_5}`). Só agregados, com
 intervalo de Wilson (`{acertos, total, taxa, ic_inf, ic_sup}`); tipos em
 `frontend/lib/api/avaliacao.ts`. Link "Resultados da Avaliação" no menu ⚙️.
 
@@ -582,8 +590,12 @@ frontend/
 │   │   └── historico/page.tsx     # histórico de pedidos
 │   ├── conta/
 │   │   ├── login/page.tsx
+│   │   ├── cadastro/page.tsx
 │   │   └── perfil/page.tsx
 │   ├── agendamentos/page.tsx      # status de visitas agendadas
+│   ├── avaliacao/page.tsx         # resultados públicos da avaliação (Fase 10)
+│   ├── admin/                     # agendamentos, atendimento, dashboards, datasets, ferramentas,
+│   │                              # ingestao, mensagens, metricas, modelos, pedidos, produtos, usuarios
 │   ├── suporte/page.tsx           # FAQ / central de ajuda
 │   └── contato/page.tsx
 ├── components/
