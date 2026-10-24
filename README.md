@@ -94,11 +94,11 @@ Este projeto consiste em um **Assistente Virtual Multimodal** projetado para aut
 
 ### Backend (Python + FastAPI)
 - **Linguagem & Framework**: Python 3.14, [FastAPI](https://fastapi.tiangolo.com/) (Async-first, suporte a Server-Sent Events), Uvicorn, Pydantic v2.
-- **Inferência Local**: [Ollama](https://ollama.com/) servindo modelos quantizados GGUF (ex.: `gemma4:12b-it-q4_K_M`, Llama 3.2 11B Vision, Qwen2.5-VL, Gemma-3-Gaia — ver avaliação comparativa em `docs/EVALUATION.md`).
+- **Inferência Local**: [Ollama](https://ollama.com/) servindo modelos quantizados GGUF (em uso: `gemma4:12b-it-q4_K_M`; 10 candidatos triados, 4 finalistas — Gemma 4 12B e E4B, Qwen2.5-VL 3B e 7B — ver `docs/EVALUATION.md`).
 - **Inferência Externa**: [OpenRouter API](https://openrouter.ai/) via `httpx` (texto, visão e classificador estruturado Jev).
 - **Banco Relacional & ORM**: PostgreSQL 15 via [SQLAlchemy 2.0](https://www.sqlalchemy.org/) (`asyncpg`) e Alembic para migrações.
 - **Banco Vetorial**: [Qdrant](https://qdrant.tech/) rodando em container Docker, com collections segregadas por finalidade (`chat`, `mcp_b2b`, `admin`) e por domínio de imagem.
-- **Embeddings & Visão**: `sentence-transformers` (texto, `paraphrase-multilingual-MiniLM-L12-v2`), `CLIP ViT-B/32` (imagens) e `pytesseract` / Tesseract (OCR).
+- **Embeddings & Visão**: `sentence-transformers` (texto: `google/embeddinggemma-300m` na collection provisória, com a escolha final pendente da Fase 10; o `paraphrase-multilingual-MiniLM-L12-v2` ficou como baseline), `CLIP ViT-B/32` (imagens) e `pytesseract` / Tesseract (OCR).
 - **Processamento de Áudio**: `faster-whisper` (local, STT).
 - **Protocolo MCP**: SDK oficial MCP em Python ([modelcontextprotocol](https://github.com/modelcontextprotocol)).
 - **Qualidade & Linters**: `ruff` (linter/formatter) e `pytest`/`pytest-asyncio` (testes unitários e de integração).
@@ -127,28 +127,34 @@ O projeto adota a estrutura de monorepo, mantendo backend, frontend, testes e do
 ├── CLAUDE.md                   # Instruções de desenvolvimento para Claude Code CLI
 ├── .agents/                    # Regras do workspace para Antigravity IDE
 ├── .kiro/                      # Regras e agentes para o Kiro CLI
+├── .amazonq/                   # Regras para o Amazon Q Developer CLI
+├── goup.md · g.sh · testar.sh  # Instalação/subida do ambiente e teste local (GPU/Ollama)
+├── infra/caddy/                # Proxy reverso HTTPS do MCP B2B público
+├── cliente-b2b/                # Cliente de referência do MCP B2B para parceiros (Streamlit)
 ├── docs/                       # Documentação técnica e fonte de verdade
 │   ├── ARCHITECTURE.md         # Arquitetura, requisitos e escopo do MVP
 │   ├── FRONTEND.md             # Especificação da UI, rotas Next.js e contratos de API
 │   ├── CONVENTIONS.md          # Padrões de código, estrutura e regras do Git
-│   ├── EVALUATION.md           # Detalhamento operacional das avaliações experimentais
+│   ├── EVALUATION.md           # Plano, estado e resultados das avaliações experimentais (Fase 10)
 │   ├── TESTE_LOCAL.md          # Teste na máquina do desenvolvedor (./testar.sh) e roteiros manuais
-│   ├── Manuais/                # Manuais do usuário, administrador e mapa de prompts/instruções LLM
-│   ├── AGENTIC_WORKFLOW.md     # Guia de colaboração com agentes de IA (Antigravity/Kiro/Claude)
+│   ├── Manuais/                # Manuais de uso, implantação, integração B2B, prompts/instruções LLM e ferramentas de dev
+│   ├── Manuais_fornecedor/     # Corpus da avaliação (ControlId; gitignored)
+│   ├── modelos_ia_previstos.md # Lista dos modelos de IA previstos para teste
+│   ├── AGENTIC_WORKFLOW.md     # Guia de colaboração com agentes de IA (Antigravity/Kiro/Amazon Q/Claude)
 │   └── ROADMAP.md              # Checklist de desenvolvimento por fases (Fase 0 a 11 + extras)
 ├── backend/                    # Código-fonte da aplicação Backend (FastAPI)
 │   ├── src/app/
 │   │   ├── api/                 # Rotas HTTP/SSE: chat, rag, admin_* (ingestão, produtos, pedidos,
 │   │   │                        # atendimento, charts, métricas, runtime-settings), crawler, auth
-│   │   ├── router/               # Roteador/Orquestrador, clientes LLM (Ollama/OpenRouter), playbooks
+│   │   ├── router/               # Roteador/Orquestrador, clientes LLM (Ollama/OpenRouter), playbooks, monitor de tom
 │   │   ├── rag/                   # Pipeline de ingestão, embeddings, busca Qdrant e crawler
 │   │   ├── services/               # Dashboards/Text-to-SQL, atendimento humano, avaliação de
-│   │   │                           # comprovantes, métricas de ingestão, fechamento de conversas
+│   │   │                           # comprovantes, ledger de uso de IA, fechamento de conversas
+│   │   ├── agents/                  # Agentes de e-mail e de estoque (previsão determinística + IA)
 │   │   ├── catalog_extractor/       # Extração estruturada de catálogos (PDF/Imagem/Texto)
 │   │   ├── model_catalog/            # Catálogo de características dos modelos locais/externos
 │   │   ├── stt/                       # Transcrição de áudio em texto (Whisper)
 │   │   ├── ocr/                        # Extração de texto e leitura de imagens
-│   │   ├── tone_monitor/                # Análise de sentimento, urgência e alerta
 │   │   ├── mcp_client/                   # Cliente MCP (Google Calendar)
 │   │   ├── mcp_server/                    # Servidor MCP B2B (catálogo, estoque, ferramentas)
 │   │   ├── memory/                         # Persistência de sessões e sumarização automática
@@ -158,9 +164,13 @@ O projeto adota a estrutura de monorepo, mantendo backend, frontend, testes e do
 │   │   └── config.py                           # Configurações globais (`pydantic-settings`)
 │   ├── migrations/              # Versionamento do schema PostgreSQL (Alembic)
 │   ├── eval/                    # Artefatos e scripts das avaliações experimentais
-│   │   ├── router_intents/      # Benchmark de acurácia e matriz de confusão 4x4
-│   │   ├── rag_quality/         # Avaliação de qualidade (Ground Truth + LLM-as-Judge)
-│   │   └── latency/             # Benchmark de latência (GPU Local vs API Externa)
+│   │   ├── router_intents/      # Acurácia do roteador e matriz de confusão (4 domínios + fora_escopo)
+│   │   ├── rag_quality/         # Qualidade das respostas do RAG (gabarito + LLM-as-Judge)
+│   │   ├── rag_ingestion/       # Escolha dos parâmetros de ingestão (embedding, chunking, limiar)
+│   │   ├── rag_banco/           # Perguntas de preço/estoque/prazo (gabarito exato do banco)
+│   │   ├── prompt_injection/    # Resistência a injeção de prompt (direta e indireta via RAG)
+│   │   ├── model_benchmark/     # Triagem e comparação dos modelos locais candidatos
+│   │   └── latency/             # Latência local x externo (conjunto ainda a criar)
 │   ├── tests/                   # Suíte de testes automatizados (pytest)
 │   ├── pyproject.toml           # Dependências Python, ruff e configurações do pytest
 │   └── .env.example             # Modelo de variáveis de ambiente
@@ -176,27 +186,22 @@ O projeto adota a estrutura de monorepo, mantendo backend, frontend, testes e do
 
 ---
 
-## 📊 Avaliação Experimental (`eval/`)
+## 📊 Avaliação Experimental (`backend/eval/`)
 
-Como requisito metodológico do TCC, o protótipo é submetido a três baterias de avaliações quantitativas e qualitativas (Fase 10, em andamento — conjuntos de teste já montados, execuções finais pendentes):
+Como requisito metodológico do TCC, o protótipo é submetido a avaliações quantitativas sobre o corpus `docs/Manuais_fornecedor/ControlId/` (Fase 10, em andamento — conjuntos revisados, triagem de modelos feita, rodada final pendente). Plano, estado e resultados em [`docs/EVALUATION.md`](docs/EVALUATION.md):
 
-1. **🎯 Acurácia do Roteador de Intenções (`eval/router_intents/`)**:
-   - Avaliação com mensagens rotuladas cobrindo os 4 domínios + casos ambíguos.
-   - Geração da **Matriz de Confusão 4x4** e cálculo da acurácia global de classificação.
-2. **📚 Qualidade das Respostas do RAG (`eval/rag_quality/`)**:
-   - Bateria de perguntas com respostas esperadas conhecidas (*ground truth*).
-   - Avaliação dupla: nota manual (1 a 5) e avaliação automatizada via *LLM-as-Judge* (relevância, correção e uso da fonte).
-3. **⚡ Latência e Custo: Modelo Local vs. Modelo Externo (`eval/latency/`)**:
-   - Medição do tempo de resposta ponta a ponta (média e percentil $p_{95}$) e consumo de tokens.
-   - Comparação empírica entre inferência local em GPU (Ollama) e chamada externa (OpenRouter).
-4. **🔬 Benchmark Comparativo entre 10 Modelos Locais**:
-   - Avaliação comparativa de 10 configurações de modelos em GPU de 16GB (Llama 3.2 11B Vision, Qwen2.5-VL 7B/3B, Qwen3.5 9B, DeepSeek-R1-Distill-Llama-8B, Qwen3.5 9B Defiant Fable MTP, Phi-4-mini BF16, Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit/E4B) contra o sistema completo (com RAG e playbooks reais).
+1. **🎯 Roteador de intenções (`eval/router_intents/`)**: 311 mensagens válidas (229 não ambíguas + 82 ambíguas multi-rótulo), cinco rótulos (os 4 domínios + `fora_escopo`), com matriz de confusão e acurácia separadas para ambíguas.
+2. **📚 Qualidade do RAG (`eval/rag_quality/`, `eval/rag_banco/`)**: 167 perguntas de documentos (147 com resposta + 20 sem resposta no corpus, para medir alucinação) avaliadas por *LLM-as-Judge*, e 80 perguntas de preço/estoque/prazo com gabarito exato do banco.
+3. **🔧 Parâmetros de ingestão do RAG (`eval/rag_ingestion/`)**: recuperação medida offline (`Recall@k`, `nDCG@10`, `MRR`) para escolher modelo de embedding, chunking, limiar e distância, sem chamadas de juiz.
+4. **🛡️ Prompt injection (`eval/prompt_injection/`)**: 95 casos válidos (45 diretos + 50 indiretos via documento do RAG).
+5. **⚡ Latência local x externo (`eval/latency/`)**: média e p95 ponta a ponta; conjunto ainda a criar.
+6. **🔬 Benchmark de modelos locais (`eval/model_benchmark/`)**: triagem de 10 candidatos em GPU de 16GB feita em 2026-10-24 (roteador e imagem). Sobrevivem **Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL 3B e Qwen2.5-VL 7B**, que seguem para a rodada completa (RAG e injeção). O Llama 3.2 11B Vision não carrega no Ollama 0.30.6.
 
 ---
 
 ## 🗺️ Status e Roadmap de Desenvolvimento
 
-O progresso é estruturado em fases sequenciais conforme documentado em [`docs/ROADMAP.md`](docs/ROADMAP.md). **As Fases 0 a 9 do MVP original estão concluídas**:
+O progresso é estruturado em fases sequenciais conforme documentado em [`docs/ROADMAP.md`](docs/ROADMAP.md). **As Fases 0 a 9 do MVP original estão concluídas** (estado em 2026-10-24):
 
 - [x] **Fase 0 — Fundamentos e Infraestrutura**
 - [x] **Fase 1 — Modelo Local e Roteador Básico** (R1, R3)
@@ -208,7 +213,7 @@ O progresso é estruturado em fases sequenciais conforme documentado em [`docs/R
 - [x] **Fase 7 — Frontend: Site Institucional, Produtos e Pedidos**
 - [x] **Fase 8 — Frontend: Widget de Chat Multimodal**
 - [x] **Fase 9 — Integração Ponta a Ponta e Robustez**
-- [~] **Fase 10 — Avaliação Experimental**: conjuntos de teste (roteador e RAG) já montados; execução dos benchmarks comparativos de modelo local, medição de latência e consolidação do relatório final ainda pendentes.
+- [~] **Fase 10 — Avaliação Experimental**: corpus ingerido, cinco conjuntos de teste revisados e triagem dos 10 modelos feita (4 finalistas). Pendentes: parâmetros de ingestão do RAG (Etapas 1–5), rodada completa nos finalistas, conjunto e medição de latência e o relatório consolidado.
 - [~] **Fase 11 — Preparação da Entrega**: revisão final dos 12 requisitos funcionais, atualização de documentação e demonstração ponta a ponta ainda pendentes.
 
 > Além das 12 fases do MVP original, diversos recursos extras foram entregues
@@ -223,11 +228,10 @@ O progresso é estruturado em fases sequenciais conforme documentado em [`docs/R
 > tokens (`/admin/metricas`), e download do documento-fonte do RAG via card
 > rico diretamente no chat público.
 >
-> Um único item segue fora do MVP por decisão consciente, pendente de uma
-> nova decisão de arquitetura antes de ser implementado: avaliar se vale a
-> pena adicionar suporte a visão multimodal ao modelo local (hoje só texto),
-> para identificação de produtos por imagem sem depender de um modelo
-> externo pago.
+> A visão multimodal local foi resolvida sem modelo adicional: a visão usa o
+> mesmo modelo de texto residente quando ele tem a capability `vision`, e só
+> cai para a visão externa se faltar (`docs/ARCHITECTURE.md`). A triagem de
+> modelos mede esse trade-off.
 
 ---
 
@@ -319,13 +323,16 @@ Para detalhes aprofundados sobre cada componente da solução, consulte a docume
 - ⚙️ [HOWTO_ADMINISTRADOR.md](docs/Manuais/HOWTO_ADMINISTRADOR.md) — Manual do Administrador do Sistema (Gestão RAG/PDFs, Web Crawler, Parametrização da IA em runtime, Catálogo, Pedidos, Dashboards, Métricas, Atendimento Humano).
 - 👤 [HOWTO_USUARIO.md](docs/Manuais/HOWTO_USUARIO.md) — Manual do Usuário e Cliente (Recursos do Website + Guia do Chat Multimodal com Texto, Áudio, Imagem e Cards).
 - 🧭 [PROMPTS_E_INSTRUCOES_LLM.md](docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md) — Mapeamento de todos os prompts e instruções enviados a um LLM no código.
+- 🔌 [MANUAL_INTEGRACAO_MCP_B2B.md](docs/Manuais/MANUAL_INTEGRACAO_MCP_B2B.md) — Integração de parceiros ao MCP B2B público.
+- 🏗️ [HOWTO_IMPLANTACAO_INFRA.md](docs/Manuais/HOWTO_IMPLANTACAO_INFRA.md) · 📅 [GUIA_TESTE_AGENDAMENTO.md](docs/Manuais/GUIA_TESTE_AGENDAMENTO.md) — Implantação da infraestrutura e roteiro de teste do agendamento (restaurados de versão anterior; `goup.md` e `TESTE_LOCAL.md` têm a versão conferida).
 
 ### 📐 Especificações Técnicas e Arquitetura
 - 📘 [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Visão geral da arquitetura, requisitos funcionais (R1–R12), fluxos de decisão e limitações.
 - 💻 [FRONTEND.md](docs/FRONTEND.md) — Especificação da interface Next.js, componentes do widget, rotas e contratos da API REST.
 - 🧪 [TESTE_LOCAL.md](docs/TESTE_LOCAL.md) — Teste na máquina do desenvolvedor (`./testar.sh`) e roteiros manuais.
 - 📏 [CONVENTIONS.md](docs/CONVENTIONS.md) — Stack (bibliotecas e versões), estrutura do monorepo, convenções de código Python/TypeScript, Git e testes.
-- 📊 [EVALUATION.md](docs/EVALUATION.md) — Procedimentos operacionais para as avaliações experimentais (Acurácia, RAG, Latência, Comparativo de Modelos).
+- 📊 [EVALUATION.md](docs/EVALUATION.md) — Plano, estado e resultados das avaliações experimentais (roteador, RAG, ingestão, injeção, latência, comparativo de modelos).
+- 🤖 [modelos_ia_previstos.md](docs/modelos_ia_previstos.md) — Modelos de IA previstos para teste (locais, externos, embeddings).
 - 🔄 [AGENTIC_WORKFLOW.md](docs/AGENTIC_WORKFLOW.md) — Guia do fluxo de trabalho com agentes de IA (Antigravity IDE, Kiro CLI e Claude Code CLI).
 - 🗺️ [ROADMAP.md](docs/ROADMAP.md) — Lista detalhada de tarefas dividida por fases do MVP e entregas além do MVP.
 

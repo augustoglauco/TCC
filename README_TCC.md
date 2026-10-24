@@ -61,8 +61,8 @@ Entrada Multimodal (Texto / Áudio / Imagem)
 * **Pré-processamento Multimodal**: 
   - *Áudio*: Processado via OpenAI Whisper (`base`) para conversão Speech-to-Text (STT).
   - *Imagem*: OCR dirigido via Tesseract para extração de texto em comprovantes e embeddings visual CLIP (`ViT-B/32`) para busca no catálogo.
-* **Roteador / Orquestrador**: Classifica o contexto (analisando as últimas 1 a 3 mensagens) em um dos 4 domínios de atendimento (Vendas, Suporte, Atendimento Geral, Agendamento) e determina o caminho de execução.
-* **Inferência Local e Fallback**: O modelo local quantizado (padrão `gemma4:12b-it-q4_K_M`, entre 9 configurações candidatas avaliadas comparativamente — ver Seção 3) responde às requisições padrão. Caso exceda o limite de tempo ou complexidade, o roteador aciona o modelo externo via OpenRouter API.
+* **Roteador / Orquestrador**: Classifica o contexto (analisando as últimas 1 a 3 mensagens) em um dos 4 domínios de atendimento (Vendas, Suporte, Atendimento Geral, Agendamento) ou em `fora_escopo` e determina o caminho de execução.
+* **Inferência Local e Fallback**: O modelo local quantizado (padrão `gemma4:12b-it-q4_K_M`, entre 10 configurações candidatas triadas, com 4 finalistas — ver Seção 3) responde às requisições padrão. Caso exceda o limite de tempo ou complexidade, o roteador aciona o modelo externo via OpenRouter API.
 * **Dual MCP (Model Context Protocol)**:
   - *Cliente MCP*: Consome um servidor MCP de terceiro self-hosted (`calendar-mcp-server`) que gerencia a autenticação OAuth2 com a Google Calendar API, para criação automatizada de eventos de visita.
   - *Provedor MCP B2B*: Servidor próprio que expõe ferramentas de verificação de compatibilidade, cálculo de frete, cotação por volume, reserva de estoque e conversão de reserva em venda com comprovação multimodal.
@@ -74,10 +74,14 @@ Entrada Multimodal (Texto / Áudio / Imagem)
 
 ### 3. Resultados
 
-Os resultados quantitativos e qualitativos da plataforma serão consolidados ao término das baterias de testes e avaliações experimentais detalhadas em `docs/EVALUATION.md`, que abrangem:
-1. **Acurácia do Roteador de Intenções**: Avaliação do alinhamento da matriz de confusão nos 4 domínios de atendimento.
-2. **Qualidade e Relevância do RAG Multimodal**: Medição de métricas de recuperação (Hit Rate, MRR) na busca por documentos técnicos e similaridade de imagens via CLIP.
-3. **Desempenho e Latência de Inferência**: Tempo de resposta (First Token Latency e Tokens por Segundo) na GPU local de 16GB frente ao fallback externo em nuvem.
+Os resultados finais serão consolidados ao término das avaliações detalhadas em `docs/EVALUATION.md`. Estado em 2026-10-24: os conjuntos de teste (sobre o corpus ControlId) estão revisados e a **triagem dos 10 modelos locais candidatos** foi concluída; as demais medições estão pendentes.
+
+**Já medido — triagem de modelos (roteador e imagem, 229 mensagens não ambíguas, seed 42):** os dois Gemma 4 lideram a acurácia do roteador (12B: 85,2%; E4B: 84,7%, empate estatístico), seguidos por Qwen2.5-VL 3B (79,9%) e 7B (77,3%), que formam com eles os 4 finalistas. Cinco candidatos foram eliminados (JSON inválido acima de 10% ou mais de 10 pp abaixo do melhor) e o Llama 3.2 11B Vision não carrega na versão atual do Ollama. Na imagem, os Gemma 4 acertam o formato, mas aprovam como do portfólio parte dos objetos parecidos; os Qwen falham no formato em boa parte dos casos.
+
+**Pendente:**
+1. **Parâmetros de ingestão do RAG**: modelo de embedding, chunking, limiar e distância, por `Recall@k`, `nDCG@10` e `MRR` sobre 167 perguntas.
+2. **Qualidade do RAG e resistência a prompt injection** nos 4 finalistas (LLM-as-Judge; 147 perguntas com resposta, 20 sem resposta e 95 casos de injeção).
+3. **Latência**: tempo de resposta ponta a ponta na GPU local de 16GB frente ao fallback externo em nuvem.
 
 ---
 
