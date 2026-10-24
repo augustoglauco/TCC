@@ -1882,7 +1882,7 @@ conversa e classificação do usuário").
       custos e justificativa estatística — em `docs/EVALUATION.md` Seção 0.
       Os números antigos (40/18/8) eram exemplo, não dimensionamento.
       Custos: ~US$ 12, 8–15 h de GPU, **~4,5 h de revisão humana**. Em ordem:
-  - [ ] Ingerir as três mídias do RAG. Registrar quantos chunks/vetores
+  - [x] Ingerir as três mídias do RAG. Registrar quantos chunks/vetores
         resultaram.
     - [x] **Texto — feito em 2026-10-17.** Collection nova
           `docs_texto_gemma512` (`google/embeddinggemma-300m`, 768 dim,
@@ -1949,7 +1949,8 @@ conversa e classificação do usuário").
         (~140 itens — todas as ambíguas + 40 aleatórias das demais).
         Reportar duas taxas: acurácia do sistema (299) e do modelo no
         subconjunto que lhe chega (233).
-  - [ ] RAG documentos: **180 perguntas**, incluindo **20 sem resposta no
+  - [x] RAG documentos: **180 perguntas**, incluindo **20 sem resposta no
+        *(Estado real em 2026-10-24: 167 perguntas válidas, 147 com resposta + 20 sem resposta, revisadas; ver `docs/EVALUATION.md`.)*
         corpus** para medir alucinação. Cada item carrega o trecho de origem
         extraído com `pdfplumber`, para a revisão ser leitura lado a lado em
         vez de caça ao PDF
@@ -1974,7 +1975,8 @@ conversa e classificação do usuário").
           `# MVP: o rascunho é do LLM e todo item nasce pendente; as 20 sem
           resposta são as que mais precisam de conferência, porque o modelo
           pode propor um tema que está no corpus.`
-    - [ ] Rodar o gerador sobre os 86 documentos e revisar as 180 na tela
+    - [x] Rodar o gerador sobre os 86 documentos e revisar as 180 na tela
+          *(Feito; resultado final de 167 válidas após revisão humana.)*
           (~2 h). No tier `:free` a rodada leva ~86 chamadas com pausa de 3 s
           e backoff a cada 429.
       **1ª rodada completa (2026-10-17) foi descartada e o prompt corrigido.**
@@ -2030,9 +2032,11 @@ conversa e classificação do usuário").
     - [ ] Expor a taxa de alucinação na página pública `/avaliacao`: o
           `results.json` já grava `casos_sem_resposta` e `resumo`, mas o
           endpoint e o gráfico ainda não mostram
-    - [ ] Geradores dos outros quatro conjuntos (roteador 300, imagem 103,
+    - [x] Geradores dos outros quatro conjuntos (roteador 300, imagem 103,
+          *(Feitos: roteador 311, imagem 72, banco 80, injeção 95 — números finais em `docs/EVALUATION.md`, que substituem as metas deste item.)*
           banco 80, injeção 100) — mesmo padrão, ainda não escritos
-  - [ ] RAG imagem: **53** (23 produto + 30 não-produto) — número revisto pela
+  - [x] RAG imagem: **53** (23 produto + 30 não-produto) — número revisto pela
+        *(Estado real: 72 casos, 23 positivos + 49 negativos, gabarito exato por construção, com holdout.)*
         segunda vez em 2026-10-17, agora por um defeito de desenho achado ao
         validar a ingestão. **Consultar o CLIP com uma foto que está indexada
         dá score 1,000 e acerto garantido: isso mede identidade, não
@@ -2083,11 +2087,13 @@ conversa e classificação do usuário").
         silenciosamente errado. Exercita o caminho de produção de **Vendas**
         (`app.router.sales_catalog`), não o conector de banco do RAG.
         Determinístico: duas execuções dão o mesmo conjunto.
-  - [ ] Injeção: **100 casos** (50 diretos + 50 indiretos)
+  - [x] Injeção: **100 casos** (50 diretos + 50 indiretos)
+        *(Estado real: 95 válidos, 45 diretos + 50 indiretos, revisados; ainda não rodados.)*
   - [ ] Relatar comparação entre candidatos com **McNemar pareado** (todos
         respondem aos mesmos itens), e IC de Wilson só para descrever cada
         um isoladamente
-- [ ] O dono precisa entregar três coisas, e só estas: **30 fotos
+- [x] O dono precisa entregar três coisas, e só estas: **30 fotos
+      *(Resolvido: as negativas de imagem e os dados de preço/estoque foram produzidos; catálogo com 47 produtos.)*
       não-produto** (o repositório só tem 2 imagens reais não-produto, e são
       o mesmo comprovante com valores diferentes) e **autorização para
       inventar preço/estoque** dos 28 produtos. A terceira — a escolha do

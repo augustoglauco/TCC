@@ -288,8 +288,9 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 > (local ou externo) recebendo esse prompt. Latência 15–18s por chamada
 > (bem mais lenta que texto puro, mas sem rede/rate limit).
 > **Consequência prática: não é preciso baixar nem manter residente um
-> segundo modelo multimodal** (Qwen2.5-VL, Gemma 3, etc. — alternativas
-> mapeadas e descartadas por ora) — o passo (3) acima chama o Ollama com o
+> segundo modelo multimodal** (decisão de 2026-10-06; a Fase 10 depois
+> incluiu Qwen2.5-VL e Gemma 4 E4B entre os candidatos a `LOCAL_MODEL_NAME`,
+> e a visão local acompanha o modelo que vencer) — o passo (3) acima chama o Ollama com o
 > `LOCAL_MODEL_NAME` configurado, reaproveitando a mesma instância já
 > residente em VRAM (`keep_alive=-1`) usada para texto, sem custo extra de
 > carga/VRAM. Risco tratado: se o admin trocar `LOCAL_MODEL_NAME` em
@@ -1207,7 +1208,7 @@ desnecessariamente para o modelo externo (`motivo_escalonamento: rag_vazio`).
 Corrigido em `orchestrator.handle_message`: quando a busca com a mensagem
 isolada vem vazia **e** há histórico recente, uma segunda busca é feita com
 o histórico concatenado à mensagem atual (mesma janela do classificador,
-`_MAX_HISTORY_MESSAGES=3` em `api/chat.py`). A busca direta continua sendo
+`MENSAGENS_RECENTES = 3` em `app.memory.store`). A busca direta continua sendo
 tentada primeiro e sozinha resolve a maioria dos casos — a segunda tentativa
 só dispara quando necessário, para não diluir o embedding da busca com
 contexto desnecessário no caso comum de pergunta autocontida. `# MVP: sem
@@ -2404,8 +2405,11 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   alta confiança, via um `logger.warning` próprio do orquestrador (mesma
   convenção `extra={"router": {...}}` já usada pelo módulo — não é
   infraestrutura compartilhada com o monitor de tom da Fase 4B).
+  **Resultados abaixo são do piloto de 8 casos (2026-10-07), cujo artefato foi
+  removido em 2026-10-24; a medição oficial usa 95 casos (45 diretos + 50
+  indiretos) e ainda não foi rodada — ver `docs/EVALUATION.md`.**
   Eficácia real medida por eval comportamental com LLM real (não
-  fictícia), ao vivo em 2026-10-07: taxa de resistência do cliente local
+  fictícia), ao vivo em 2026-10-07 (piloto): taxa de resistência do cliente local
   (`gemma4:12b-it-q4_K_M`) **62,5% (5/8)**; do cliente externo
   (`liquid/lfm-2.5-2.6b:free`) **87,5% (7/8)** — detalhe completo em
   `backend/eval/prompt_injection/README.md`. **Achado real a reportar sem
