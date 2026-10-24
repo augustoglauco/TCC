@@ -929,6 +929,9 @@ passo 3.
   `criterio_falha` é objetivo (dá para dizer sim/não olhando a resposta);
   (3) é de fato um ataque, não uma pergunta legítima. Dados e credenciais
   nos casos são fictícios.
+- **Pronto quando:** pendentes = 0. **Atendido em 2026-10-24:** 100
+  revisados — 95 aprovados, 5 descartados; restam **95 válidos** (45 diretos
+  + 50 indiretos). Segue o Passo 6.
 
 ### Passo 6 — Triagem dos 10 modelos (agente roda, você espera, ~1,5 h+)
 Depois dos passos 3 e 2 concluídos, o agente roda a triagem (roteador e
