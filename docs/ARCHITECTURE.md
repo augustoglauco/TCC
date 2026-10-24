@@ -73,12 +73,17 @@ flowchart TD
     PRE -- "imagem de produto" --> ID["Identificação: CLIP em catalogo_imagens<br/>→ visão externa se a confiança for baixa"]
     ID --> FICHA["Ficha do produto no Postgres<br/>(RAG só se não estiver no banco)"] --> OUTID["tokens + evento identification + done<br/>(troca gravada na memória)"]
     PRE -- "texto" --> MSG["Mensagem efetiva"]
-    MSG --> EMAIL{"Só um e-mail?"}
+    MSG --> HUM{"Conversa na fila ou em<br/>atendimento humano, ou pediu humano?"}
+    HUM -- "sim" --> FILA["Entra na fila (IA pausada)<br/>status + aviso + done domain=atendimento_humano"]
+    HUM -- "não" --> EMAIL{"Só um e-mail?"}
     EMAIL -- "sim" --> FIXA["Grava o e-mail, resposta fixa sem LLM"]
     EMAIL -- "não" --> MEM["Memória: últimas mensagens, última troca,<br/>resumo e e-mail (Postgres)"]
     MEM --> PAR["Em paralelo: classificador de domínio<br/>e Monitor de Tom"]
     PAR -- "tom crítico" --> ESC["evento escalonamento<br/>+ registro em tom_escalonamentos"]
-    PAR --> DOM{"Domínio"}
+    PAR --> CURTOS{"Pedido de gráfico (Admin)<br/>ou comprovante de pagamento?"}
+    CURTOS -- "gráfico" --> GRAF["Card de gráfico (SQL só de leitura)"] --> OUT
+    CURTOS -- "comprovante" --> COMP["Conversão de reserva em venda<br/>(OCR/visão + parecer do LLM)"] --> OUT
+    CURTOS -- "não" --> DOM{"Domínio"}
     DOM -- "agendamento" --> AG["Máquina de estados<br/>+ calendar-mcp-server (8090)"]
     DOM -- "vendas" --> VEN["RAG + catálogo do Postgres em paralelo<br/>(SalesCatalogClient, sem MCP)"]
     DOM -- "suporte / atendimento" --> RAG["RAG de texto"]
@@ -100,6 +105,12 @@ flowchart TD
 | Imagem de produto | Validação do formato | Identificação (CLIP → visão externa) → ficha do banco ou RAG | `conversation`, `token`, `identification`, `done` |
 | Imagem de documento (`image_intent=documento`) | OCR | Texto extraído anexado → mesmo caminho do texto | `conversation`, `token`, `done` |
 | Só um e-mail | Regex | Grava o e-mail, resposta fixa | `conversation`, `token`, `done` |
+| Qualquer um, com a conversa na fila de atendimento humano (ou pedido de humano) | — | IA pausada; aviso de recebimento, sem LLM | `conversation`, `status` (com o atendente), `token`, `done` (`domain=atendimento_humano`) |
+
+Em toda mensagem de texto que chega ao LLM, `detectar_tentativa_injecao`
+registra um log (`tentativa_injecao_detectada`) sem bloquear a resposta, e o
+conteúdo não confiável (RAG, catálogo) é isolado por delimitador no prompt
+(ver `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`).
 
 Falha de dependência (Ollama, OpenRouter, RAG) vira o evento `error` com
 "Serviço temporariamente indisponível".
@@ -2119,7 +2130,7 @@ usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 | RAG sobre imagens / tratamento de imagem (obrigatório) | Busca multimodal via embeddings (ex.: CLIP) em catálogo ampliado, com reranking básico + OCR para imagens dirigidas | Catálogo completo, embeddings mais robustos, busca externa refinada |
 | Domínios (Vendas/Suporte/Atendimento) | Separação lógica de fluxo e prompts por domínio, com playbooks iniciais para Suporte Técnico e Atendimento ao Usuário. Playbook de Vendas oferece agendamento de visita só quando o cliente sinaliza explicitamente que quer fechar negócio (não para qualquer pedido de orçamento/cotação), no máximo uma vez por conversa — ajustado em 2026-10-05 após a oferta estar aparecendo em quase toda resposta (o roteador só reclassifica como `agendamento` na resposta seguinte do cliente, usando o contexto curto de conversa citado na linha "Roteador/Orquestrador") | Playbooks completos por domínio, integração com sistema de ticketing |
 | Agendamento de visita (MCP consumido) | Nova intenção reconhecida pelo roteador; coleta data/hora e dados básicos; valida expediente e conflito de agenda (na mesma agenda configurada) local/via MCP antes de sequer pedir confirmação; exige confirmação explícita do visitante antes de criar o evento; chama o MCP do Google Calendar e envia confirmação automática por e-mail | Reagendamento/cancelamento, checagem de disponibilidade em múltiplas agendas, confirmação também por SMS |
-| MCP de integração B2B (MCP provido) | Servidor MCP reaproveitando a base do catálogo/estoque/preços do RAG; recursos de leitura + as quatro ferramentas já implementadas; exposto publicamente via DuckDNS + HTTPS (Caddy), protegido por chave estática por parceiro (Bearer) e com log de qual parceiro chamou cada ferramenta; Roteador/Orquestrador consome o mesmo backend em Vendas (estoque, cotação, compatibilidade), por chamada direta no mesmo processo | OAuth/servidor de autorização, permissões por ferramenta, auditoria persistida de ações transacionais, rate limiting e expiração/rotação de chaves |
+| MCP de integração B2B (MCP provido) | Servidor MCP reaproveitando a base do catálogo/estoque/preços do RAG; recursos de leitura + as cinco ferramentas já implementadas (compatibilidade, frete, cotação, reserva e conversão de reserva em venda); exposto publicamente via DuckDNS + HTTPS (Caddy), protegido por chave estática por parceiro (Bearer) e com log de qual parceiro chamou cada ferramenta; Roteador/Orquestrador consome o mesmo backend em Vendas (estoque, cotação, compatibilidade), por chamada direta no mesmo processo | OAuth/servidor de autorização, permissões por ferramenta, auditoria persistida de ações transacionais, rate limiting e expiração/rotação de chaves |
 | Monitor de tom | Classificador de sentimento/urgência (heurística + LLM leve) com alerta, escalonamento para a fila interna de atendimento humano (Central de Atendimento ao vivo) e log dos casos escalonados | Integração com ticketing externo, escalonamento por SLA |
 | Memória da conversa | Persistência por ID no Postgres (mensagens do cliente e do assistente) + resumo automático periódico no prompt + retomada do histórico no widget | Perfil de cliente enriquecido a partir do histórico de conversas, memória entre dispositivos (login) |
 | Classificação do usuário | Regras fixas sobre uma base de clientes fictícia: e-mail captado no momento natural da conversa (pós-venda, agendamento) e cruzado com as compras; Cliente/Esporádico por quantidade e recência das compras, Lead por intenção de compra sem cadastro | Modelo preditivo, score de propensão, enriquecimento de dados externos, confirmação de identidade |
@@ -2211,7 +2222,7 @@ reservas/pedidos. No MVP entra só a primeira, na forma mais simples (chave
 por parceiro, abaixo); as demais continuam como evolução futura (Seção 8).
 
 **Escopo no protótipo (MVP):** recursos de leitura sobre uma base pequena e
-as quatro ferramentas já implementadas, **expostos publicamente a
+as cinco ferramentas já implementadas, **expostos publicamente a
 revendedores fora da rede local e protegidos por uma chave secreta por
 parceiro**.
 
@@ -2304,7 +2315,7 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
 ## 7. Riscos e limitações conhecidos
 
 - Escopo ambicioso para um único protótipo: conector de BD, crawler, RAG
-  multimodal e as quatro ferramentas do MCP B2B são obrigatórios já no MVP;
+  multimodal e as cinco ferramentas do MCP B2B são obrigatórios já no MVP;
   pode ser necessário priorizar as frentes mais custosas — RAG multimodal e
   monitor de tom — caso o escopo completo não seja viável de uma só vez.
 - Restrição de hardware: 16GB de VRAM limita os modelos locais candidatos a
@@ -2375,7 +2386,7 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   e-mail é de quem o digitou. Aceitável num protótipo com base de clientes
   fictícia; exigiria tratamento próprio antes de uso real. O e-mail não
   entra nos logs.
-- Escopo do MVP relativamente amplo (4 ferramentas do MCP B2B, playbooks
+- Escopo do MVP relativamente amplo (5 ferramentas do MCP B2B, playbooks
   iniciais, crawler/catálogo maiores) aumenta a superfície de testes dentro
   do próprio protótipo.
 - **Resiliência a prompt injection (decisão de 2026-10-07):** um plano de
@@ -2518,7 +2529,7 @@ benchmark por modelo):**
 
 O desenho atende aos doze requisitos de forma modular, permitindo que o
 protótipo entregue um fluxo ponta a ponta funcional, com escopo robusto —
-incluindo as quatro ferramentas do MCP B2B, playbooks iniciais por domínio e
+incluindo as cinco ferramentas do MCP B2B, playbooks iniciais por domínio e
 catálogo de imagens ampliado — servindo de base para as próximas etapas do
 trabalho, entre elas a evolução do MCP interno para integração real com
 parceiros B2B. A avaliação experimental complementa a entrega com evidências

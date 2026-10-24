@@ -191,8 +191,8 @@ intencional achando que é um bug ou uma tarefa esquecida.
     ambíguos).
   - Recuperação do RAG (texto e imagem) — dado um conjunto pequeno de
     documentos/imagens conhecidos, a busca retorna o item esperado.
-  - Handlers das quatro ferramentas do MCP B2B (compatibilidade, frete,
-    cotação, reserva/pedido) — incluindo o caso de concorrência simples em
+  - Handlers das cinco ferramentas do MCP B2B (compatibilidade, frete,
+    cotação, reserva/pedido, conversão de reserva em venda) — incluindo o caso de concorrência simples em
     reserva/pedido.
   - Parsing e validação de schemas Pydantic de entrada/saída.
 - Testes automatizados **nunca** usam o Postgres, o Qdrant nem a pasta de
