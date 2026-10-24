@@ -69,11 +69,11 @@ const DADOS_COMPLETOS: ResultadosAvaliacao = {
   },
   chunk_size: {
     pontos: [
-      { chunk_size: 400, nota_media: 3.2, fonte_correta_taxa: 0.7 },
-      { chunk_size: 800, nota_media: 3.8, fonte_correta_taxa: 0.8 },
-      { chunk_size: 1200, nota_media: 3.5, fonte_correta_taxa: 0.75 },
+      { chunk_size: 256, overlap_pct: 15, ndcg_10: 0.52, recall_5: 0.7 },
+      { chunk_size: 512, overlap_pct: 15, ndcg_10: 0.61, recall_5: 0.8 },
+      { chunk_size: 1024, overlap_pct: 10, ndcg_10: 0.55, recall_5: 0.75 },
     ],
-    melhor_chunk_size: 800,
+    melhor_chunk_size: 512,
   },
   injecao: {
     clientes: [
@@ -178,7 +178,7 @@ describe("AvaliacaoPage — seções vazias (dados null / modelos [])", () => {
     render(<AvaliacaoPage />);
     await screen.findByText("Resultados da avaliação experimental");
     expect(
-      screen.getByText(/python eval\/rag_quality\/chunk_size_search\.py/),
+      screen.getByText(/python eval\/rag_ingestion\/run_etapa3\.py/),
     ).toBeInTheDocument();
   });
 

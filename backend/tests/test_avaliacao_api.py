@@ -106,6 +106,32 @@ def test_agrega_sem_vazar_respostas(client, eval_em):
     assert "SEGREDO" not in r.text
 
 
+def test_chunk_size_usa_grade_da_etapa3_com_melhor_overlap(client, eval_em):
+    def ponto(cs, ov, ndcg, r5):
+        return {
+            "chunk_size": cs,
+            "overlap_pct": ov,
+            "metricas_sem_corte": {"ndcg@10": ndcg, "recall": {"@5": r5}},
+            "itens": ["SEGREDO"],
+        }
+
+    _gravar(
+        eval_em,
+        "rag_ingestion/resultados_etapa3.json",
+        {"pontos": [ponto(512, 10, 0.5, 0.6), ponto(512, 15, 0.7, 0.8), ponto(128, 15, 0.4, 0.5)]},
+    )
+    corpo = client.get("/api/avaliacao/resultados").json()["chunk_size"]
+    assert [p["chunk_size"] for p in corpo["pontos"]] == [128, 512]
+    assert corpo["pontos"][1] == {
+        "chunk_size": 512,
+        "overlap_pct": 15,
+        "ndcg_10": 0.7,
+        "recall_5": 0.8,
+    }
+    assert corpo["melhor_chunk_size"] == 512
+    assert "SEGREDO" not in json.dumps(corpo)
+
+
 def test_arquivo_corrompido_vira_secao_vazia(client, eval_em):
     (eval_em / "router_intents").mkdir()
     (eval_em / "router_intents" / "results.json").write_text("{quebrado")

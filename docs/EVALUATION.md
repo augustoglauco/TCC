@@ -696,8 +696,9 @@ envelope `{modelo, gerado_em, config, metricas, itens}`; `metricas` aceita
 Os `results.json` de execuções anteriores (corpus antigo, 8 casos de injeção,
 bisseção de `chunk_size`) foram apagados em 2026-10-24; até as rodadas oficiais
 gerarem arquivos novos, a página mostra essas seções vazias. A seção "Tamanho
-de chunk" ainda aponta para o script de bisseção removido e deve ser trocada
-pela grade da Etapa 3.
+de chunk" lê agora a grade da Etapa 3 (`eval/rag_ingestion/resultados_etapa3.json`)
+e mostra nDCG@10 e Recall@5 por `chunk_size` em tokens, com o melhor overlap de
+cada tamanho.
 
 ## Consolidação
 

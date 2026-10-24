@@ -30,7 +30,12 @@ export interface ResultadosAvaliacao {
     por_dificuldade: { dificuldade: string; total: number; nota_media: number | null }[];
   } | null;
   chunk_size: {
-    pontos: { chunk_size: number; nota_media: number | null; fonte_correta_taxa: number | null }[];
+    pontos: {
+      chunk_size: number;
+      overlap_pct: number | null;
+      ndcg_10: number | null;
+      recall_5: number | null;
+    }[];
     melhor_chunk_size: number | null;
   } | null;
   injecao: {

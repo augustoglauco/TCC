@@ -628,8 +628,6 @@ export function getVisitPrompt(
 
 Prompt de avaliação LLM-as-judge (Fase 10, R4) — compara a resposta gerada pelo modelo local com o gabarito de cada pergunta de `eval/rag_quality/dataset.json`, usando um modelo EXTERNO (diferente do gerador, para reduzir viés de autoavaliação) e critérios documentados em `docs/EVALUATION.md` Seção 2 (relevância, correção factual, uso da fonte recuperada).
 
-Além do `run_eval.py`, o script de busca por bisseção do tamanho de chunk (`backend/eval/rag_quality/chunk_size_search.py`) importa e reutiliza diretamente a função `_julgar_resposta` deste módulo, avaliando as respostas produzidas sobre as coleções temporárias sob os mesmos critérios deste prompt.
-
 ```python
 # Line 55: Prompt de avaliação (LLM-as-judge) da qualidade das respostas do RAG
 _JUDGE_PROMPT_TEMPLATE = """\

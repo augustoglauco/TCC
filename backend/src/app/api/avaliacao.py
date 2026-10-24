@@ -127,19 +127,26 @@ def _rag(dados: dict | None) -> dict | None:
 
 
 def _chunk_size(dados: dict | None) -> dict | None:
-    pontos = (dados or {}).get("pontos_medidos")
+    """Grade da Etapa 3 (`rag_ingestion/resultados_etapa3.json`): para cada
+    `chunk_size` em tokens, o overlap de maior nDCG@10 (recuperação, sem juiz)."""
+    pontos = (dados or {}).get("pontos")
     if not pontos:
         return None
-    lista = [
-        {
+    melhor_por_tamanho: dict[int, dict] = {}
+    for p in pontos:
+        m = p.get("metricas_sem_corte") or {}
+        ponto = {
             "chunk_size": int(p["chunk_size"]),
-            "nota_media": p.get("nota_media"),
-            "fonte_correta_taxa": p.get("fonte_correta_taxa"),
+            "overlap_pct": p.get("overlap_pct"),
+            "ndcg_10": m.get("ndcg@10"),
+            "recall_5": (m.get("recall") or {}).get("@5"),
         }
-        for p in pontos.values()
-    ]
-    lista.sort(key=lambda x: x["chunk_size"])
-    return {"pontos": lista, "melhor_chunk_size": dados.get("melhor_chunk_size")}
+        atual = melhor_por_tamanho.get(ponto["chunk_size"])
+        if atual is None or (ponto["ndcg_10"] or 0) > (atual["ndcg_10"] or 0):
+            melhor_por_tamanho[ponto["chunk_size"]] = ponto
+    lista = sorted(melhor_por_tamanho.values(), key=lambda x: x["chunk_size"])
+    melhor = max(lista, key=lambda x: x["ndcg_10"] or 0)
+    return {"pontos": lista, "melhor_chunk_size": melhor["chunk_size"]}
 
 
 def _injecao(dados: dict | None) -> dict | None:
@@ -199,7 +206,7 @@ async def obter_resultados() -> ResultadosAvaliacao:
     return ResultadosAvaliacao(
         roteador=_roteador(_ler_json(base / "router_intents" / "results.json")),
         rag=_rag(_ler_json(base / "rag_quality" / "results.json")),
-        chunk_size=_chunk_size(_ler_json(base / "rag_quality" / "chunk_size_search_results.json")),
+        chunk_size=_chunk_size(_ler_json(base / "rag_ingestion" / "resultados_etapa3.json")),
         injecao=_injecao(_ler_json(base / "prompt_injection" / "results.json")),
         modelos=_modelos(base / "model_benchmark" / "results"),
     )

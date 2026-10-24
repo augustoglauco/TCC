@@ -331,39 +331,27 @@ function SecaoChunkSize({ chunk_size }: { chunk_size: DadosChunkSize | null | un
   return (
     <Secao
       titulo="Tamanho de chunk"
-      descricao="Nota média e fonte correta por chunk_size (busca por bisseção)."
+      descricao="nDCG@10 e Recall@5 por chunk_size em tokens (melhor overlap de cada tamanho)."
     >
       {!chunk_size ? (
-        <Vazio comando="python eval/rag_quality/chunk_size_search.py" />
+        <Vazio comando="python eval/rag_ingestion/run_etapa3.py" />
       ) : (
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chunk_size.pontos.map((p) => ({
                 ...p,
-                fonte: p.fonte_correta_taxa != null ? pct(p.fonte_correta_taxa) : null,
+                ndcg: p.ndcg_10 != null ? pct(p.ndcg_10) : null,
+                recall: p.recall_5 != null ? pct(p.recall_5) : null,
               }))}
             >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="chunk_size" />
-              <YAxis yAxisId="n" domain={[0, 5]} />
-              <YAxis yAxisId="f" orientation="right" domain={[0, 100]} unit="%" />
+              <YAxis domain={[0, 100]} unit="%" />
               <Tooltip />
               <Legend />
-              <Line
-                yAxisId="n"
-                type="monotone"
-                dataKey="nota_media"
-                name="Nota média"
-                stroke="#2563eb"
-              />
-              <Line
-                yAxisId="f"
-                type="monotone"
-                dataKey="fonte"
-                name="Fonte correta"
-                stroke="#10b981"
-              />
+              <Line type="monotone" dataKey="ndcg" name="nDCG@10" stroke="#2563eb" />
+              <Line type="monotone" dataKey="recall" name="Recall@5" stroke="#10b981" />
             </LineChart>
           </ResponsiveContainer>
         </div>
