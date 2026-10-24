@@ -94,7 +94,7 @@ Este projeto consiste em um **Assistente Virtual Multimodal** projetado para aut
 
 ### Backend (Python + FastAPI)
 - **Linguagem & Framework**: Python 3.14, [FastAPI](https://fastapi.tiangolo.com/) (Async-first, suporte a Server-Sent Events), Uvicorn, Pydantic v2.
-- **Inferência Local**: [Ollama](https://ollama.com/) servindo modelos quantizados GGUF (em uso: `gemma4:12b-it-q4_K_M`; 10 candidatos triados, 4 finalistas — Gemma 4 12B e E4B, Qwen2.5-VL 3B e 7B — ver `docs/EVALUATION.md`).
+- **Inferência Local**: [Ollama](https://ollama.com/) servindo modelos quantizados GGUF (em uso: `gemma4:12b-it-q4_K_M`; 9 candidatos triados, 4 finalistas — Gemma 4 12B e E4B, Qwen2.5-VL 3B e 7B — ver `docs/EVALUATION.md`).
 - **Inferência Externa**: [OpenRouter API](https://openrouter.ai/) via `httpx` (texto, visão e classificador estruturado Jev).
 - **Banco Relacional & ORM**: PostgreSQL 15 via [SQLAlchemy 2.0](https://www.sqlalchemy.org/) (`asyncpg`) e Alembic para migrações.
 - **Banco Vetorial**: [Qdrant](https://qdrant.tech/) rodando em container Docker, com collections segregadas por finalidade (`chat`, `mcp_b2b`, `admin`) e por domínio de imagem.
@@ -195,7 +195,7 @@ Como requisito metodológico do TCC, o protótipo é submetido a avaliações qu
 3. **🔧 Parâmetros de ingestão do RAG (`eval/rag_ingestion/`)**: recuperação medida offline (`Recall@k`, `nDCG@10`, `MRR`) para escolher modelo de embedding, chunking, limiar e distância, sem chamadas de juiz.
 4. **🛡️ Prompt injection (`eval/prompt_injection/`)**: 95 casos válidos (45 diretos + 50 indiretos via documento do RAG).
 5. **⚡ Latência local x externo (`eval/latency/`)**: média e p95 ponta a ponta; conjunto ainda a criar.
-6. **🔬 Benchmark de modelos locais (`eval/model_benchmark/`)**: triagem de 10 candidatos em GPU de 16GB feita em 2026-10-24 (roteador e imagem). Sobrevivem **Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL 3B e Qwen2.5-VL 7B**, que seguem para a rodada completa (RAG e injeção). O Llama 3.2 11B Vision não carrega no Ollama 0.30.6.
+6. **🔬 Benchmark de modelos locais (`eval/model_benchmark/`)**: triagem de 9 candidatos em GPU de 16GB feita em 2026-10-24 (roteador e imagem). Sobrevivem **Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL 3B e Qwen2.5-VL 7B**, que seguem para a rodada completa (RAG e injeção). O Llama 3.2 11B Vision não carrega no Ollama 0.30.6.
 
 ---
 
@@ -213,7 +213,7 @@ O progresso é estruturado em fases sequenciais conforme documentado em [`docs/R
 - [x] **Fase 7 — Frontend: Site Institucional, Produtos e Pedidos**
 - [x] **Fase 8 — Frontend: Widget de Chat Multimodal**
 - [x] **Fase 9 — Integração Ponta a Ponta e Robustez**
-- [~] **Fase 10 — Avaliação Experimental**: corpus ingerido, cinco conjuntos de teste revisados e triagem dos 10 modelos feita (4 finalistas). Pendentes: parâmetros de ingestão do RAG (Etapas 1–5), rodada completa nos finalistas, conjunto e medição de latência e o relatório consolidado.
+- [~] **Fase 10 — Avaliação Experimental**: corpus ingerido, cinco conjuntos de teste revisados e triagem dos 9 modelos feita (4 finalistas). Pendentes: parâmetros de ingestão do RAG (Etapas 1–5), rodada completa nos finalistas, conjunto e medição de latência e o relatório consolidado.
 - [~] **Fase 11 — Preparação da Entrega**: revisão final dos 12 requisitos funcionais, atualização de documentação e demonstração ponta a ponta ainda pendentes.
 
 > Além das 12 fases do MVP original, diversos recursos extras foram entregues

@@ -7,11 +7,10 @@ Este arquivo consolida a relação de todos os modelos de Inteligência Artifici
 ## 1. Modelos Locais Candidatos a SLM Principal (`LOCAL_MODEL_NAME`)
 *Avaliação comparativa no benchmark da Fase 10 contra o sistema completo (Roteador, RAG, Injeção de Prompt e Visão). Servidos via Ollama em GPU RTX 4080 16GB.*
 *Fonte: `backend/eval/model_benchmark/modelos.json` e `docs/ARCHITECTURE.md`.*
-*Triagem feita em 2026-10-24 (roteador e imagem); tabela completa e análise em `docs/EVALUATION.md`, seção "Benchmark comparativo". Sobreviventes: Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL 3B e Qwen2.5-VL 7B.*
+*Triagem feita em 2026-10-24 (roteador e imagem); tabela completa e análise em `docs/EVALUATION.md`, seção "Benchmark comparativo". Llama 3.2 Vision foi descartado (não carrega no Ollama 0.30.6); o pool tem 9 candidatos. Sobreviventes: Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL 3B e Qwen2.5-VL 7B.*
 
 | ID | Nome / Rótulo | Tag Ollama | Família | Parâmetros | Quantização | Visão Local (`vision`) | Papel / Critério no Teste | Resultado da triagem |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :--- |
-| `llama32-11b-vision` | Llama 3.2 11B Vision Instruct | `hf.co/leafspark/Llama-3.2-11B-Vision-Instruct-GGUF:Q8_0` | llama3.2-vision | 11B | Q8_0 | **Sim** | Multimodal nativo (visão local) e alta capacidade de síntese | **Eliminado:** não carrega no Ollama 0.30.6 (arquitetura `mllama` removida) |
 | `qwen25-vl-7b` | Qwen2.5-VL 7B Instruct | `hf.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF:UD-Q8_K_XL` | qwen2.5-vl | 7B | UD-Q8_K_XL | **Sim** | Multimodal nativo (visão local) e alta qualidade lógica | **Sobrevive** — roteador 77,3%, JSON 0% inválido |
 | `qwen35-9b` | Qwen3.5 9B Q4_K_M | `qwen3.5:9b` | qwen3.5 | 9.7B | Q4_K_M | **Sim** | Modelo denso moderno com raciocínio thinking nativo e visão local | Eliminado — 39% de JSON inválido (roteador 62,9%) |
 | `qwen25-vl-3b` | Qwen2.5-VL 3B Instruct | `hf.co/unsloth/Qwen2.5-VL-3B-Instruct-GGUF:BF16` | qwen2.5-vl | 3B | BF16 | **Sim** | Multimodal leve de altíssima velocidade e visão local | **Sobrevive** — roteador 79,9%, 6,5% de JSON inválido |
@@ -48,7 +47,6 @@ Este arquivo consolida a relação de todos os modelos de Inteligência Artifici
 | `hf.co/unsloth/Qwen2.5-VL-7B-Instruct-GGUF:UD-Q8_K_XL` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware |
 | `qwen3.5:9b` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware com thinking |
 | `hf.co/unsloth/Qwen2.5-VL-3B-Instruct-GGUF:BF16` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware |
-| `hf.co/leafspark/Llama-3.2-11B-Vision-Instruct-GGUF:Q8_0` | Local (Ollama) | Visão Multimodal | Descrição e classificação de imagens no próprio hardware |
 | `google/gemma-4-31b-it:free` | Externo (OpenRouter) | Visão Multimodal | Fallback externo (`EXTERNAL_VISION_MODEL_NAME`) para imagens |
 | `CLIP` (Sentence Transformers) | Local (Qdrant) | Embedding de Imagem | Busca vetorial direta de similaridade visual no catálogo de produtos |
 

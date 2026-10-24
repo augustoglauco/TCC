@@ -1506,8 +1506,8 @@ conversa e classificação do usuário").
 > mais** e ficam como histórico de método, não como resultado; os
 > resultados vigentes estão só em `docs/EVALUATION.md`.
 
-- [ ] Rodar a avaliação comparativa entre as 10 configurações de modelo local
-      candidatas (Llama 3.2 11B Vision Instruct; Qwen2.5-VL 7B/3B Instruct; Qwen3.5 9B Q4_K_M; DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16; Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL — ver
+- [ ] Rodar a avaliação comparativa entre as 9 configurações de modelo local
+      candidatas (Qwen2.5-VL 7B/3B Instruct; Qwen3.5 9B Q4_K_M; DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16; Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL — ver
       `docs/ARCHITECTURE.md` tabela de escopo), medindo custo/latência e
       qualidade de resposta **contra o sistema completo** (RAG real da Fase 2,
       playbooks de domínio da Fase 3), não isoladamente — decidida
@@ -1515,8 +1515,8 @@ conversa e classificação do usuário").
       medição precoce sem RAG/playbooks reais não reflete a qualidade real de
       cada candidato e arriscaria descartar/escolher um modelo com base em
       sinal incompleto. Resultado: escolha do `LOCAL_MODEL_NAME` final.
-      Os 10 candidatos foram baixados no Ollama; a triagem de 2026-10-24
-      mediu 9 (Llama 3.2 Vision não carrega no Ollama 0.30.6) e deixou 4
+      Os candidatos foram baixados no Ollama (Llama 3.2 Vision foi descartado
+      em 2026-10-24: não carrega no Ollama 0.30.6); a triagem mediu os 9 e deixou 4
       sobreviventes — a rodada completa neles segue pendente. `# MVP: primeira chamada após trocar de modelo tem
       custo de carga (cold start) bem maior que chamadas subsequentes —
       verificado empiricamente (~13s incluindo load vs. resposta quase
@@ -2108,7 +2108,7 @@ conversa e classificação do usuário").
       orçamento de ~US$ 12 da Estratégia A cai para **US$ 0**
 - [ ] Rodar o benchmark em **duas rodadas** (rodada 1, triagem, feita em
       2026-10-24; rodada 2 pendente): triagem com
-      `--etapas roteador,imagem` nos 10 candidatos (~8 min de GPU cada, zero
+      `--etapas roteador,imagem` nos 9 candidatos (~8 min de GPU cada, zero
       chamada de juiz) e rodada completa só nos 4–5 sobreviventes.
   - [x] **Critério de corte registrado em 2026-10-17, antes da primeira
         triagem** (`eval/model_benchmark/README.md`, seção "Critério de corte
@@ -2126,8 +2126,8 @@ conversa e classificação do usuário").
         `run_benchmark.py`); loaders ignoram `descartado`; item 409 aceita
         vendas e agendamento. 109 casos novos `pendente` aguardam revisão humana
         em `/admin/datasets` (Passo 3).
-  - [x] Rodar a triagem (2026-10-24): 9 dos 10 candidatos medidos (Llama 3.2
-        Vision não carrega no Ollama 0.30.6). 4 sobreviventes confirmados:
+  - [x] Rodar a triagem (2026-10-24): 9 candidatos medidos (o Llama 3.2
+        Vision foi descartado: não carrega no Ollama 0.30.6). 4 sobreviventes confirmados:
         gemma4-12b-q4, gemma4-e4b-q8, qwen25-vl-3b, qwen25-vl-7b
         (`eval/model_benchmark/README.md`)
 - [x] Orquestrador `eval/model_benchmark/` (2026-10-16). `run_benchmark.py`
@@ -2191,8 +2191,8 @@ conversa e classificação do usuário").
       sem seed).
 - [x] **Visão local não é requisito do candidato** (decisão de 2026-10-17,
       registrada em `docs/ARCHITECTURE.md` e no README de
-      `eval/model_benchmark/`). Das 10 tags de `modelos.json` (lista revista em 2026-10-18), 8 têm
-      `vision`; só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini não têm. Exigir visão local cortaria 2 dos 10 (8 têm `vision`, conferido em 2026-10-18) por um
+      `eval/model_benchmark/`). Das tags de `modelos.json` (10 em 2026-10-18; 9 desde o descarte do Llama 3.2 Vision em 2026-10-24), 7 têm
+      `vision`; só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini não têm. Exigir visão local cortaria 2 dos 9 (7 têm `vision`) por um
       requisito que o sistema não impõe: `OllamaClient.describe_image` usa o
       mesmo `LOCAL_MODEL_NAME`, e candidato sem a capability manda a imagem do
       cliente para a visão externa, que é caminho documentado, não defeito.
@@ -2200,10 +2200,10 @@ conversa e classificação do usuário").
       vencedor não tiver, o relatório precisa dizer que toda imagem de cliente
       passa a depender do modelo externo.
 - [x] Contagem de candidatos corrigida em 2026-10-17: `docs/ARCHITECTURE.md`
-      dizia "9 configurações" e listava 10 (Llama 3.2 11B Vision Instruct; Qwen2.5-VL 7B/3B Instruct; Qwen3.5 9B
+      dizia "9 configurações" e listava 10 (histórico, 10 candidatos na época: Llama 3.2 11B Vision Instruct; Qwen2.5-VL 7B/3B Instruct; Qwen3.5 9B
       Q4_K_M; DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16; Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B
       4-bit e Gemma-4-E4B-it UD-Q8_K_XL), que são os 10 de `eval/model_benchmark/modelos.json`. O
-      número no documento passou a 10 — nenhum candidato foi retirado.
+      número no documento passou a 10; em 2026-10-24 o Llama 3.2 Vision foi descartado e restaram 9.
 - [x] Página pública de resultados `/avaliacao` com gráficos (Recharts) e
       endpoint `GET /api/avaliacao/resultados` só com agregados (intervalo
       de Wilson) — ver `docs/ARCHITECTURE.md` §9. Lê os `results.json`
@@ -2292,9 +2292,9 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       único dos 4 candidatos de embedding da Etapa 2 fora do cache. Os outros
       três (`paraphrase-multilingual-MiniLM-L12-v2`, `embeddinggemma-300m`,
       `BAAI/bge-m3`) já estavam.
-- [x] **Todos os 10 modelos candidatos baixados no Ollama local** (100% prontos):
-      todos os 10 modelos já estão baixados e disponíveis no Ollama (`gemma4:12b-it-q4_K_M`,
-      `Gemma-4-E4B-it`, `Gemma-3-Gaia 4B F16`, `Llama 3.2 11B Vision`, `Qwen2.5-VL 7B`,
+- [x] **Todos os candidatos baixados no Ollama local** (9 desde 2026-10-24, quando o Llama 3.2 Vision foi descartado):
+      todos os modelos já estão baixados e disponíveis no Ollama (`gemma4:12b-it-q4_K_M`,
+      `Gemma-4-E4B-it`, `Gemma-3-Gaia 4B F16`, `Qwen2.5-VL 7B`,
       `Qwen2.5-VL 3B`, `Qwen3.5 9B Defiant Fable MTP`, `qwen3.5:9b`, `Phi-4-mini-instruct BF16`
       e `DeepSeek-R1-Distill-Llama-8B Q8_0`). O pool está completo para o benchmark da Fase 10.
 

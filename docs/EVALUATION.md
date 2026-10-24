@@ -21,7 +21,7 @@ execuções. Os caminhos `eval/...` deste documento são relativos a `backend/`.
 | RAG banco | 80 perguntas | gabarito exato por construção; não rodado |
 | Injeção de prompt | 95 válidos (45 diretos + 50 indiretos) | revisado; não rodado |
 | Latência | — | **conjunto ainda não criado** (`eval/latency/` só tem `.gitkeep`) |
-| Triagem de modelos | 10 candidatos | **feita**; 4 sobreviventes (ver "Benchmark comparativo") |
+| Triagem de modelos | 9 candidatos (Llama 3.2 Vision descartado) | **feita**; 4 sobreviventes (ver "Benchmark comparativo") |
 | Rodada completa, juiz e relatório | — | pendentes (Passos 8–10) |
 
 Nenhum resultado de execução anterior a 2026-10-17 vale: os conjuntos antigos
@@ -176,9 +176,9 @@ GPU: é o juiz, que pede uma chamada por item nas etapas `rag` e `injecao`.
 
 ### Triagem em duas rodadas
 
-Rodar as quatro etapas nos 10 candidatos seria desperdício:
+Rodar as quatro etapas nos 9 candidatos seria desperdício:
 
-1. **Triagem** — `--etapas roteador,imagem` nos 10 candidatos (nenhuma
+1. **Triagem** — `--etapas roteador,imagem` nos 9 candidatos (nenhuma
    chamada de juiz, custo zero). Elimina quem não segue o formato JSON, quem
    não cabe na VRAM e quem não carrega. **Feita em 2026-10-24**; levou cerca
    de 75 min de relógio para 9 modelos.
@@ -593,7 +593,6 @@ Wilson é de cerca de ±4,5 pp. A etapa de imagem usa 72 casos: 23 positivos
 | phi4-mini-bf16 | 8,3 GB | 50,7% | — | 1,2% | 90,9% | 2,6 s | sem visão | — |
 | deepseek-r1-distill-8b-q8 | 8,6 GB | 48,5% | — | 1,2% | 100% | 7,4 s | sem visão | — |
 | qwen35-9b-defiant-fable-mtp | 9,9 GB | 48,5% | — | 1,2% | 100% | 22,3 s | 23,6% | 43,1% |
-| llama32-11b-vision | — | não carrega | — | — | — | — | — | — |
 
 Nenhum candidato reprovou por VRAM (máximo 10,2 GB, limite 15 GB) nem por
 latência (máximo p95 22,3 s, limite 30 s). **Todo o corte veio de formato JSON
@@ -601,7 +600,7 @@ e de acurácia.**
 
 #### Aplicação do critério, candidato a candidato
 
-1. **Eliminatório 1 (roda até o fim, ≤ 15 GB):** só o Llama 3.2 Vision reprova.
+1. **Eliminatório 1 (roda até o fim, ≤ 15 GB):** nenhum dos 9 reprova (o Llama 3.2 Vision, que não carregava, foi descartado do pool).
 2. **Eliminatório 2 (JSON inválido ≤ 10%):** reprovam qwen35-9b (39%),
    phi4-mini (91%), deepseek-r1 (100%) e qwen35-9b-defiant (100%).
 3. **Eliminatório 3 (p95 ≤ 30 s):** ninguém reprova; o defiant chega perto
@@ -666,7 +665,7 @@ a reentrar.
 (`llama3.2-vision`, Q4_K_M, 7,8 GB, baixado para conferir) falham da mesma
 forma: `unknown model architecture: 'mllama'`. O Ollama 0.30.6 usa o
 llama-server e não tem mais essa arquitetura. Não é problema de VRAM, contexto
-ou do benchmark. Foi eliminado pelo critério 1 e só volta se o Ollama mudar.
+ou do benchmark. Por isso foi **descartado do pool em 2026-10-24** (o dono decidiu seguir com 9 candidatos; modelo removido do Ollama e de `modelos.json`). Só voltaria se o Ollama recuperar a arquitetura.
 
 #### Limites desta triagem
 
@@ -731,7 +730,7 @@ no work state `roteiro-dono-fase10`.
 | 3 | Revisar o Roteador | feito em 2026-10-20: 311 válidos |
 | 4 | Revisar o RAG documentos | feito em 2026-10-24: 167 válidos |
 | 5 | Revisar a Injeção de prompt | feito em 2026-10-24: 95 válidos |
-| 6 | Triagem dos 10 modelos | feita em 2026-10-24 |
+| 6 | Triagem dos 9 modelos | feita em 2026-10-24 |
 | 7 | Escolher os sobreviventes | feito em 2026-10-24: 4 confirmados |
 | 8 | Fechar os parâmetros do RAG | **pendente** |
 | 9 | Rodada completa e conferência do juiz | pendente |

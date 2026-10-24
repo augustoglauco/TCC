@@ -62,7 +62,7 @@ Entrada Multimodal (Texto / Áudio / Imagem)
   - *Áudio*: Processado via OpenAI Whisper (`base`) para conversão Speech-to-Text (STT).
   - *Imagem*: OCR dirigido via Tesseract para extração de texto em comprovantes e embeddings visual CLIP (`ViT-B/32`) para busca no catálogo.
 * **Roteador / Orquestrador**: Classifica o contexto (analisando as últimas 1 a 3 mensagens) em um dos 4 domínios de atendimento (Vendas, Suporte, Atendimento Geral, Agendamento) ou em `fora_escopo` e determina o caminho de execução.
-* **Inferência Local e Fallback**: O modelo local quantizado (padrão `gemma4:12b-it-q4_K_M`, entre 10 configurações candidatas triadas, com 4 finalistas — ver Seção 3) responde às requisições padrão. Caso exceda o limite de tempo ou complexidade, o roteador aciona o modelo externo via OpenRouter API.
+* **Inferência Local e Fallback**: O modelo local quantizado (padrão `gemma4:12b-it-q4_K_M`, entre 9 configurações candidatas triadas, com 4 finalistas — ver Seção 3) responde às requisições padrão. Caso exceda o limite de tempo ou complexidade, o roteador aciona o modelo externo via OpenRouter API.
 * **Dual MCP (Model Context Protocol)**:
   - *Cliente MCP*: Consome um servidor MCP de terceiro self-hosted (`calendar-mcp-server`) que gerencia a autenticação OAuth2 com a Google Calendar API, para criação automatizada de eventos de visita.
   - *Provedor MCP B2B*: Servidor próprio que expõe ferramentas de verificação de compatibilidade, cálculo de frete, cotação por volume, reserva de estoque e conversão de reserva em venda com comprovação multimodal.

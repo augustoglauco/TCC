@@ -178,7 +178,7 @@ datasets → rodar o benchmark.
 
 ## Critério de corte da triagem (registrado em 2026-10-17, ANTES de rodar)
 
-A triagem roda `--etapas roteador,imagem` nos 10 candidatos: ~8 min de GPU
+A triagem roda `--etapas roteador,imagem` nos 9 candidatos: ~8 min de GPU
 cada, nenhuma chamada de juiz, custo zero. A rodada completa (as quatro
 etapas, com juiz no tier `:free`) só roda nos sobreviventes. Este critério
 está escrito aqui **antes** da primeira triagem de propósito: decidido
@@ -213,7 +213,7 @@ Todos os campos citados são os de `metricas` em `results/<id>.json`.
 **`visao_local: false` não elimina.** A produção já trata visão local como
 opcional: `OllamaClient.describe_image` usa o mesmo `LOCAL_MODEL_NAME`, e
 candidato sem a capability manda a imagem do cliente para a visão externa —
-caminho documentado, não defeito. Exigir visão local cortaria 2 dos 10
+caminho documentado, não defeito. Exigir visão local cortaria 2 dos 9
 candidatos (DeepSeek-R1-Distill e Phi-4-mini) por um requisito que o sistema não impõe. Fica como atributo
 medido e critério de desempate; se o vencedor não tiver visão local, o
 relatório precisa dizer que toda imagem de cliente passa a depender do modelo
@@ -224,19 +224,19 @@ externo.
 Sobreviventes confirmados pelo dono: **gemma4-12b-q4, gemma4-e4b-q8,
 qwen25-vl-3b e qwen25-vl-7b**. Eliminados: gemma3-gaia-4b (72,9%, 12,3 pp do
 melhor), qwen35-9b, phi4-mini, deepseek-r1 e qwen35-9b-defiant (JSON inválido
-> 10%) e llama32-11b-vision (não carrega: `mllama` ausente no Ollama 0.30.6).
+> 10%); o llama32-11b-vision foi descartado do pool (não carregava: `mllama` ausente no Ollama 0.30.6).
 Tabela completa, aplicação do critério, análise e limites em
 `docs/EVALUATION.md`, seção "Resultado da triagem dos candidatos".
 
 ## Candidatos
 
 `modelos.json` lista os candidatos de `docs/ARCHITECTURE.md` (tabela de
-escopo, linha "Modelo local"). São **10 configurações**: Llama 3.2 11B Vision Instruct; Qwen2.5-VL 7B Instruct; Qwen2.5-VL 3B Instruct; Qwen3.5 9B Q4_K_M;
+escopo, linha "Modelo local"). São **9 configurações** (o Llama 3.2 11B Vision foi descartado em 2026-10-24: não carrega no Ollama 0.30.6): Qwen2.5-VL 7B Instruct; Qwen2.5-VL 3B Instruct; Qwen3.5 9B Q4_K_M;
 DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16; Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B 4-bit; Gemma-4-E4B-it UD-Q8_K_XL.
 
-**Ponto em aberto para a escolha final:** dessas 10 tags, Llama 3.2 11B Vision Instruct, Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit, Gemma-4-E4B-it, Qwen2.5-VL 7B Instruct, Qwen2.5-VL 3B Instruct, Qwen3.5 9B Q4_K_M e Qwen3.5 9B Defiant Fable MTP têm `vision` (8 dos 10 candidatos com visão local nativa) — só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini são text-only. Confirmado pelo Ollama (`/api/show`, capabilities) em 2026-10-18 para os 10. Se visão local for
+**Ponto em aberto para a escolha final:** dessas 9 tags, Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit, Gemma-4-E4B-it, Qwen2.5-VL 7B Instruct, Qwen2.5-VL 3B Instruct, Qwen3.5 9B Q4_K_M e Qwen3.5 9B Defiant Fable MTP têm `vision` (7 dos 9 candidatos com visão local nativa) — só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini são text-only. Confirmado pelo Ollama (`/api/show`, capabilities) em 2026-10-18. Se visão local for
 requisito, a lista de candidatos é que precisa ser revista — o benchmark vai
 reportar o fato, não escondê-lo.
 
-Atualmente, **todos os 10 modelos candidatos já estão baixados** nesta máquina via Ollama/HuggingFace Hub. O `generate()` do `OllamaClient` já manda
+Atualmente, **todos os 9 modelos candidatos já estão baixados** nesta máquina via Ollama/HuggingFace Hub. O `generate()` do `OllamaClient` já manda
 `think=False`, então os modelos da família Qwen3.5 rodam sem *thinking* sem configuração extra.
