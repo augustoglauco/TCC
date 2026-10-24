@@ -32,14 +32,18 @@ A nossa plataforma foi projetada para oferecer uma experiência completa de comp
 
 ### 🛒 3. Pedidos e Carrinho de Compras (`/pedidos`)
 * **Carrinho de Compras**: Adicione produtos, ajuste quantidades e veja o resumo do seu pedido.
-* **Histórico de Pedidos (`/pedidos/historico`)**: Acompanhe o status dos seus pedidos anteriores (em processamento, enviado, entregue).
+* **Histórico de Pedidos (`/pedidos/historico`)**: Acompanhe seus pedidos e o status de cada um: `reservado` (estoque separado, aguardando o pagamento), `venda_concluida` (comprovante validado) ou `pagamento_divergente` (o valor do comprovante não confere).
 
 ### 📅 4. Agendamentos de Visita (`/agendamentos`)
 * Visualize a lista de todas as reuniões ou visitas presenciais agendadas entre você e a nossa equipe (marcadas via site ou através do chat assistente).
 * Os botões "Agendar Visita pelo Chat" já abrem o assistente com a mensagem preenchida com seu nome e e-mail (se você estiver logado), para não precisar digitar tudo de novo.
 
 ### 📖 5. Central de Suporte e FAQ (`/suporte`)
-* Acesse perguntas frequentes, manuais de instrução, políticas de garantia e termos de devolução.
+* Perguntas frequentes em cartões, sobre pedidos, garantia, manuais e agendamento de visitas, com um atalho para abrir o assistente quando a resposta não estiver ali.
+
+### ☎️ 6. Contato (`/contato`) e Perfil (`/conta/perfil`)
+* **Contato**: e-mail, telefone e endereço da empresa.
+* **Perfil** (logado): seus dados, a classificação que o assistente atribuiu a você (Cliente recorrente, Esporádico ou Lead) e seus pedidos e reservas recentes, com link para o histórico completo.
 
 ---
 
@@ -49,6 +53,7 @@ O **Assistente Virtual** é um robô inteligente disponível **em todas as pági
 
 * **Como abrir**: Basta clicar no **ícone flutuante de balão de conversa** localizado no canto inferior direito da tela.
 * **Funcionamento**: Você pode usá-lo tanto como visitante anônimo quanto logado na sua conta. Se estiver logado, ele lembrará das suas conversas anteriores e pedidos recentes!
+* **Botões do chat**: **Falar com atendente humano** (veja a última seção), **Encerrar atendimento** (finaliza a sessão; conversas paradas por 30 minutos também são encerradas sozinhas) e **Limpar histórico** (apaga as mensagens e a memória da conversa). Visitantes anônimos perdem a conversa ao fechar o navegador; logado, ela é retomada na próxima visita.
 * **Indicadores de Modelo**: Respostas do modelo local (GPU) são exibidas no balão cinza padrão. Quando o assistente consulta o modelo especialista em nuvem para perguntas externas ou mais complexas, o balão de resposta recebe um **destaque em vermelho clarinho**.
 
 ---
@@ -122,8 +127,8 @@ O assistente é treinado para resolver solicitações em 4 domínios principais:
 
 Em vez de apenas mensagens de texto longas, o assistente pode enviar **Cards Interativos** direto no chat:
 
-* **Card de Produto**: Exibe a foto do produto, preço atual e disponibilidade em estoque, com um botão direto para comprar ou ver detalhes no site.
-* **Card de Cotação**: Exibe a proposta comercial gerada com descontos e botão para levar os itens direto para o checkout.
+* **Card de Produto**: foto, preço atual e disponibilidade em estoque; ao clicar, abre a página do produto no site.
+* **Card de Cotação**: a proposta comercial com os descontos aplicados; ao clicar, abre a página do produto para você seguir com o pedido.
 * **Card de Agendamento**: Exibe a data, hora e link do agendamento confirmado da sua visita.
 * **Card de Download de Documento** (novo, 2026-10-05): quando sua pergunta bate com alta confiança num manual, catálogo ou outro documento da nossa base de conhecimento, o assistente anexa um card com o nome do arquivo, o tamanho e um botão **"📥 Baixar Documento"** para você baixar o arquivo original completo — sem precisar de login.
 
