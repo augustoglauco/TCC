@@ -613,14 +613,15 @@ frontend/
 │   │   ├── ChatWidget.tsx          # botão flutuante + estado aberto/fechado
 │   │   ├── ChatModal.tsx           # modal de conversa (sobre ui/Modal.tsx)
 │   │   ├── MessageBubble.tsx
+│   │   ├── Chat*.tsx               # partes do modal: mensagens, input, ações, métricas, banner de escalonamento
 │   │   ├── AudioRecorder.tsx
 │   │   ├── ImageUploader.tsx
-│   │   └── cards/                  # ChatCard (dispatcher), ProductCard, AppointmentCard, QuoteCard, DocumentDownloadCard
-│   ├── layout/                     # Header, Footer, Nav
-│   └── ui/                         # botões, inputs, componentes genéricos
+│   │   └── cards/                  # ChatCard (dispatcher), ProductCard, AppointmentCard, QuoteCard, DocumentDownloadCard, ChatChartCard
+│   ├── layout/                     # Header, Footer, AdminGearMenu
+│   └── ui/                         # Modal, Tabs, Toast, Tooltip, SearchableSelect
 ├── lib/
 │   ├── api/                        # cliente HTTP para o backend
-│   ├── hooks/                      # useChat, useConversation, useProducts...
+│   ├── hooks/                      # useChatStore, useChatEnvio, useAuthStore, useCartStore, useAdmin*...
 │   └── types/                      # tipos compartilhados com o backend
 ├── public/
 ├── tests/
@@ -628,12 +629,11 @@ frontend/
 └── package.json
 ```
 
-Estado atual (Fase 7/8): `AudioRecorder.tsx`, `ImageUploader.tsx` e
-`components/chat/cards/` já existem (cards ricos implementados em
-2026-09-29, ver §3). `lib/hooks/useChatStore.ts` contém o estado do widget via Zustand
-(aberto/fechado, mensagens, `conversation_id`) — ainda não há `useConversation`
-nem `useProducts` (sem dados de servidor além do chat nesta etapa). Os testes
-de componente vivem em `tests/components/` (Vitest + Testing Library).
+Estado atual: `lib/hooks/useChatStore.ts` contém o estado do widget via Zustand
+(aberto/fechado, mensagens, `conversation_id`); o envio fica em `useChatEnvio.ts`.
+Não existem `useConversation` nem `useProducts` (os dados de servidor vêm de
+`lib/api/` direto nas páginas). Os testes vivem em `tests/` (`components/`,
+`lib/`, `unit/`, `smoke/` com Vitest + Testing Library, e `e2e/` com Playwright).
 
 ## 6. Convenções específicas de frontend
 
