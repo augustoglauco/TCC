@@ -384,6 +384,7 @@ def conjunto(tmp_path):
         _caso(3, revisao={"status": "pendente", "em": None}),
         _caso(4, revisao={"status": "descartado", "em": None}),
         _caso(5, trecho_confere=False),
+        _caso(9, trecho_confere=False, revisao={"status": "pendente", "em": None}),
         _caso(6, origem_ambigua=True),
         _caso(7, duplicada_de=1),
         {
@@ -408,21 +409,20 @@ def test_carregador_so_passa_itens_revisados_e_converte_negativas(conjunto):
     dataset, auditoria = conjunto
     d = carregar_dataset(dataset, auditoria=auditoria)
     ids = [p["id"] for p in d["perguntas"]]
-    assert ids == ["q001", "q002", "q008"]
+    assert ids == ["q001", "q002", "q005", "q008"]  # q005: aprovado por humano vale mesmo com trecho_confere=False
     negativa = d["perguntas"][-1]
     assert negativa["fontes_aceitas"] == []
     assert d["perguntas"][0]["fontes_aceitas"] == ["doc1.pdf"]
     assert d["perguntas"][0]["pasta"] == "iDFace"
-    assert d["relatorio"]["positivas"] == 2 and d["relatorio"]["negativas"] == 1
+    assert d["relatorio"]["positivas"] == 3 and d["relatorio"]["negativas"] == 1
 
 
 def test_carregador_conta_cada_corte(conjunto):
     dataset, auditoria = conjunto
     cortes = carregar_dataset(dataset, auditoria=auditoria)["relatorio"]["cortes"]
     assert cortes == {
-        "pendente": 1,
+        "pendente": 2,
         "descartado": 1,
-        "trecho_nao_confere": 1,
         "origem_ambigua": 1,
         "duplicada": 1,
     }
@@ -708,3 +708,9 @@ def test_comparar_rankings_distancia_detecta_equivalencia_em_vetores_normalizado
     }
     comp = etapa5.comparar_rankings_distancia(por_metrica)
     assert comp["rankings_identicos"] is True
+
+
+def test_carregador_ensaio_ainda_corta_pendente_com_trecho_que_nao_confere(conjunto):
+    dataset, auditoria = conjunto
+    r = carregar_dataset(dataset, incluir_pendentes=True, auditoria=auditoria)["relatorio"]
+    assert r["cortes"]["trecho_nao_confere"] == 1

@@ -16,7 +16,7 @@ execuções. Os caminhos `eval/...` deste documento são relativos a `backend/`.
 | Frente | Conjunto | Estado |
 | --- | --- | --- |
 | Roteador | 311 válidos (229 não ambíguos + 82 ambíguos) | revisado; só rodado na triagem de modelos |
-| RAG documentos | 167 válidos (147 com resposta + 20 sem resposta) | revisado; Etapas 2–5 pendentes |
+| RAG documentos | 167 válidos (147 com resposta + 20 sem resposta) | revisado; Etapa 1 feita (163 rodadas); Etapas 2–5 pendentes |
 | RAG imagem | 72 casos (23 positivos + 49 negativos) | gabarito exato por construção; só rodado na triagem |
 | RAG banco | 80 perguntas | gabarito exato por construção; não rodado |
 | Injeção de prompt | 95 válidos (45 diretos + 50 indiretos) | revisado; não rodado |
@@ -340,7 +340,7 @@ etapa.
 | # | Etapa | O que varia | Métrica de decisão | Estado |
 | --- | --- | --- | --- | --- |
 | 0 | Auditoria do corpus | — | chars/página por PDF | **feita** (2026-10-17) |
-| 1 | Harness de recuperação | — | `Recall@k`/`nDCG@10`/`MRR` | harness **feito**; baseline sobre as 167 pendente |
+| 1 | Harness de recuperação | — | `Recall@k`/`nDCG@10`/`MRR` | **feita** (2026-10-24): baseline sobre 163 perguntas |
 | 2 | **Modelo de embedding** | 4 candidatos | `nDCG@10` + VRAM + tempo de ingestão | runner feito; rodada oficial pendente |
 | 3 | **Chunking × overlap** | grade 5×3, **em tokens** | `nDCG@10`, `Recall@5` | runner feito; rodada oficial pendente |
 | 4 | `top_k` + `score_threshold` | varredura offline | `Recall@k` vs. precisão vs. taxa de vazio | `varrer_threshold.py` feito; pendente |
@@ -399,8 +399,27 @@ dono em 2026-10-17:
 
 Harness em `eval/rag_ingestion/`: `run_etapa1.py` (orquestrador),
 `metricas.py` (métricas puras), `varrer_threshold.py` (Etapa 4) e testes que
-rodam sem Qdrant nem Postgres. O baseline sobre as 167 perguntas revisadas
-**ainda não foi rodado**.
+rodam sem Qdrant nem Postgres.
+
+**Baseline medido em 2026-10-24** (produção: MiniLM-L12 384d, cosine, chunk 800
+caracteres/overlap 100, `top_k` 5, limiar 0,35; 87 arquivos ingeridos).
+Rodaram **163 das 167 válidas**: o carregador (`dataset.py`) corta mais 2
+duplicadas e 2 de origem ambígua (`ingest_file` grava só o basename em
+`source`, então homônimos contariam como acerto). Sobram 143 com resposta e 20
+sem. `trecho_confere = false` não corta item já aprovado ou corrigido por
+humano: o flag é aviso automático para o revisor e falha com erro de OCR (16
+itens aprovados caíam por isso).
+
+| Métrica | Valor |
+| --- | --- |
+| Recall@1 / @3 / @5 | 0,329 / 0,531 / 0,622 |
+| nDCG@10 | 0,488 |
+| MRR | 0,444 |
+| Positivas que voltaram vazias | 1,4% |
+| Negativas recusadas (de 20) | **0** |
+
+Recall@10 sai igual ao @5 porque o `top_k` desta rodada é 5. Resultado de
+`eval/rag_ingestion/resultados_etapa1.json`.
 
 O único achado até agora, vindo do conjunto mínimo de 15 perguntas (n=12
 positivas, IC 95% de ±27 pp, logo **sem valor de decisão**): as distribuições
@@ -408,7 +427,7 @@ de score de perguntas com e sem resposta no corpus se sobrepõem por completo
 — o menor score máximo entre as positivas é 0,4553 e o maior entre as
 negativas é 0,6098, com 8 das 12 positivas abaixo da pior negativa. Isso
 aponta para o modelo de embedding (Etapa 2), não para calibração de limiar
-(Etapa 4). Precisa ser confirmado nas 167.
+(Etapa 4). **Confirmado no baseline de 163: 0 de 20 negativas recusadas.**
 
 ### Etapa 2 — candidatos de embedding
 

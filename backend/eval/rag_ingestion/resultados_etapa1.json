@@ -1,0 +1,5106 @@
+{
+  "gerado_em": "2026-10-24T23:50:06.305902+00:00",
+  "dataset": "dataset.json",
+  "config": {
+    "embedding_model": "paraphrase-multilingual-MiniLM-L12-v2",
+    "vector_dimension": 384,
+    "distance_metric": "cosine",
+    "chunk_size": 800,
+    "chunk_overlap": 100,
+    "top_k": 5,
+    "score_threshold": 0.35,
+    "dominio": "suporte",
+    "arquivos_ingeridos": 87
+  },
+  "metricas": {
+    "n_total": 163,
+    "n_positivas": 143,
+    "n_negativas": 20,
+    "recall": {
+      "@1": 0.32867132867132864,
+      "@3": 0.5314685314685315,
+      "@5": 0.6223776223776224,
+      "@10": 0.6223776223776224
+    },
+    "ndcg@10": 0.48844600406300437,
+    "mrr": 0.44358974358974357,
+    "taxa_vazio_positivas": 0.013986013986013986,
+    "acerto_negativas": 0.0
+  },
+  "itens": [
+    {
+      "id": "q007",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDTouch permite registrar?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idtouch-manual.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.6325
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5742
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5545
+        },
+        {
+          "fonte": "idtouch-guia.pdf",
+          "score": 0.5534
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5477
+        }
+      ],
+      "score_maximo": 0.6325,
+      "acertou": false
+    },
+    {
+      "id": "q008",
+      "pergunta": "Quais são as dimensões do equipamento iDTouch?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idtouch-manual.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5898
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.5497
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.5399
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5329
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5318
+        }
+      ],
+      "score_maximo": 0.5898,
+      "acertou": false
+    },
+    {
+      "id": "q009",
+      "pergunta": "Qual é a capacidade máxima de usuários na iDLock Bio?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock-bio-manual.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idlock-bio-guia.pdf",
+          "score": 0.5845
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.548
+        },
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.5258
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.5181
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5116
+        }
+      ],
+      "score_maximo": 0.5845,
+      "acertou": false
+    },
+    {
+      "id": "q010",
+      "pergunta": "Quantos digitais distintos podem ser registrados na iDLock Bio?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock-bio-manual.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idlock-bio-manual.pdf",
+          "score": 0.6573
+        },
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.6387
+        },
+        {
+          "fonte": "idlock-bio-guia.pdf",
+          "score": 0.5629
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.534
+        },
+        {
+          "fonte": "idbio-montagem-oem.pdf",
+          "score": 0.533
+        }
+      ],
+      "score_maximo": 0.6573,
+      "acertou": true
+    },
+    {
+      "id": "q011",
+      "pergunta": "Qual a memória interna do S@T-iD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "satid-manual.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "satid-guia-rapido.pdf",
+          "score": 0.5056
+        },
+        {
+          "fonte": "satid-manual.pdf",
+          "score": 0.4634
+        },
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.4174
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.3998
+        },
+        {
+          "fonte": "idlock-datasheet.pdf",
+          "score": 0.3982
+        }
+      ],
+      "score_maximo": 0.5056,
+      "acertou": true
+    },
+    {
+      "id": "q012",
+      "pergunta": "O que indica o LED de suporte constante aceso no S@T-iD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "satid-manual.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-lite-guia.pdf",
+          "score": 0.6107
+        },
+        {
+          "fonte": "satid-guia-rapido.pdf",
+          "score": 0.5595
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.4833
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4796
+        },
+        {
+          "fonte": "tag-uhf-abs-datasheet.pdf",
+          "score": 0.4763
+        }
+      ],
+      "score_maximo": 0.6107,
+      "acertou": false
+    },
+    {
+      "id": "q014",
+      "pergunta": "Qual é a configuração padrão do barramento serial do módulo iDBio?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbio-rs232.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex.pdf",
+          "score": 0.5131
+        },
+        {
+          "fonte": "api_idclass_latest.md",
+          "score": 0.5052
+        },
+        {
+          "fonte": "idfit-guia.pdf",
+          "score": 0.5
+        },
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.4935
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.4917
+        }
+      ],
+      "score_maximo": 0.5131,
+      "acertou": false
+    },
+    {
+      "id": "q015",
+      "pergunta": "Per quanto número de parafusos Allen M5x10mm são fornecidos no kit de instalação do iDBlock Next?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.5597
+        },
+        {
+          "fonte": "idaccess_pro-guia.pdf",
+          "score": 0.5597
+        },
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.5575
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.5218
+        },
+        {
+          "fonte": "tag-uhf-abs-datasheet.pdf",
+          "score": 0.5054
+        }
+      ],
+      "score_maximo": 0.5597,
+      "acertou": false
+    },
+    {
+      "id": "q016",
+      "pergunta": "Quantos iDFace podem ser instalados no iDBlock Next?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.6066
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5772
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.5532
+        },
+        {
+          "fonte": "idblock-next.pdf",
+          "score": 0.5436
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5356
+        }
+      ],
+      "score_maximo": 0.6066,
+      "acertou": true
+    },
+    {
+      "id": "q017",
+      "pergunta": "Qual a tensão e corrente mínima necessária para alimentar o iDConnect V2?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idconnect-v2-userguide-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.5969
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.5596
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5388
+        },
+        {
+          "fonte": "idaccess-guia.pdf",
+          "score": 0.5359
+        },
+        {
+          "fonte": "idbox-v2-userguide.pdf",
+          "score": 0.5301
+        }
+      ],
+      "score_maximo": 0.5969,
+      "acertou": true
+    },
+    {
+      "id": "q018",
+      "pergunta": "Em qual intervalo de IP deve ser configurado o iDConnect V2 para evitar conflitos?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idconnect-v2-userguide-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.6788
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.6197
+        },
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.5989
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.566
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.5383
+        }
+      ],
+      "score_maximo": 0.6788,
+      "acertou": false
+    },
+    {
+      "id": "q019",
+      "pergunta": "Qual a potência mínima de alimentação necessária para o iDConnect?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idconnect-userguide-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5854
+        },
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.5127
+        },
+        {
+          "fonte": "idconnect-userguide-pt.pdf",
+          "score": 0.4903
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4817
+        },
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.478
+        }
+      ],
+      "score_maximo": 0.5854,
+      "acertou": true
+    },
+    {
+      "id": "q020",
+      "pergunta": "Qual é o IP fixo recomendado para acessar a interface web do iDConnect?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idconnect-userguide-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.6821
+        },
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.6654
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.6254
+        },
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.5351
+        },
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.5119
+        }
+      ],
+      "score_maximo": 0.6821,
+      "acertou": false
+    },
+    {
+      "id": "q021",
+      "pergunta": "Quais componentes são necessários para a instalação física do iDUHF Lite?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "iduhf-lite-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-lite-guia.pdf",
+          "score": 0.5993
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5195
+        },
+        {
+          "fonte": "idconnect-userguide-pt.pdf",
+          "score": 0.5035
+        },
+        {
+          "fonte": "idfit-guia.pdf",
+          "score": 0.4952
+        },
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.485
+        }
+      ],
+      "score_maximo": 0.5993,
+      "acertou": true
+    },
+    {
+      "id": "q022",
+      "pergunta": "Como são definidas as credenciais de login para acessar o iDUHF Lite pela interface web?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "iduhf-lite-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-lite-guia.pdf",
+          "score": 0.492
+        },
+        {
+          "fonte": "idfit-guia.pdf",
+          "score": 0.443
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.4395
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4384
+        },
+        {
+          "fonte": "tag-uhf-abs-datasheet.pdf",
+          "score": 0.4309
+        }
+      ],
+      "score_maximo": 0.492,
+      "acertou": true
+    },
+    {
+      "id": "q023",
+      "pergunta": "Qual a tensão e corrente mínima exigidas para alimentar o iDFace?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idface.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.4439
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.4046
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.3943
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.3891
+        },
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.3879
+        }
+      ],
+      "score_maximo": 0.4439,
+      "acertou": false
+    },
+    {
+      "id": "q024",
+      "pergunta": "Qual a altura recomendada para fixar o iDFace no painel de parede?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idface.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.4392
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.4385
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.4245
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.4192
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.4095
+        }
+      ],
+      "score_maximo": 0.4392,
+      "acertou": false
+    },
+    {
+      "id": "q025",
+      "pergunta": "Qual a altura mínima e máxima de instalação do iDTouch?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idtouch-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5218
+        },
+        {
+          "fonte": "idtouch-guia.pdf",
+          "score": 0.503
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4761
+        },
+        {
+          "fonte": "idconnect-userguide-pt.pdf",
+          "score": 0.4757
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.4748
+        }
+      ],
+      "score_maximo": 0.5218,
+      "acertou": true
+    },
+    {
+      "id": "q026",
+      "pergunta": "Quantos dígitos compõem o ID do usuário no cadastro?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idtouch-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.3679
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.3651
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.3615
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.354
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.3536
+        }
+      ],
+      "score_maximo": 0.3679,
+      "acertou": false
+    },
+    {
+      "id": "q027",
+      "pergunta": "Qual a tensão e corrente mínima necessária para alimentar o iDFit?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idfit-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.4929
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.4675
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.4588
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.4463
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.4415
+        }
+      ],
+      "score_maximo": 0.4929,
+      "acertou": false
+    },
+    {
+      "id": "q028",
+      "pergunta": "Em qual local deve ser instalado o iDFit para garantir o funcionamento adequado?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idfit-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.6411
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.6076
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5869
+        },
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.5589
+        },
+        {
+          "fonte": "idbell-datasheet-pt.pdf",
+          "score": 0.5554
+        }
+      ],
+      "score_maximo": 0.6411,
+      "acertou": false
+    },
+    {
+      "id": "q029",
+      "pergunta": "Qual é a tensão e corrente máxima da fonte de alimentação da Print iD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "printid-guia-rapido.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.5997
+        },
+        {
+          "fonte": "printid-folder.pdf",
+          "score": 0.5825
+        },
+        {
+          "fonte": "printid_touch.pdf",
+          "score": 0.5138
+        },
+        {
+          "fonte": "printid-touch-folder.pdf",
+          "score": 0.513
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.497
+        }
+      ],
+      "score_maximo": 0.5997,
+      "acertou": true
+    },
+    {
+      "id": "q030",
+      "pergunta": "Quais são os modelos de bobina para impressora térmicas aceitos pela Print iD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "printid-guia-rapido.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "printid-folder.pdf",
+          "score": 0.7888
+        },
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.7742
+        },
+        {
+          "fonte": "printid_touch.pdf",
+          "score": 0.7189
+        },
+        {
+          "fonte": "printid-touch-folder.pdf",
+          "score": 0.7035
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.4696
+        }
+      ],
+      "score_maximo": 0.7888,
+      "acertou": true
+    },
+    {
+      "id": "q031",
+      "pergunta": "Em qual local deve ser instalado o iDFit para evitar danos?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idfit_V2.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5973
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5718
+        },
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.5573
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.5401
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.5348
+        }
+      ],
+      "score_maximo": 0.5973,
+      "acertou": false
+    },
+    {
+      "id": "q032",
+      "pergunta": "Quantos pinos possui o conector de expansão do iDFit?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idfit_V2.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-guia.pdf",
+          "score": 0.4939
+        },
+        {
+          "fonte": "idfit_V2.pdf",
+          "score": 0.378
+        }
+      ],
+      "score_maximo": 0.4939,
+      "acertou": true
+    },
+    {
+      "id": "q033",
+      "pergunta": "Qual a tensão de alimentação necessária para a iDBox V2?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbox-v2-userguide.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idbox-v2-userguide.pdf",
+          "score": 0.5897
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5151
+        },
+        {
+          "fonte": "idbox.pdf",
+          "score": 0.4438
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.408
+        },
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.3934
+        }
+      ],
+      "score_maximo": 0.5897,
+      "acertou": true
+    },
+    {
+      "id": "q034",
+      "pergunta": "Quantos pinos são necessários para conectar uma fechadura de eletroímã à iDBox V2?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbox-v2-userguide.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-guia.pdf",
+          "score": 0.618
+        },
+        {
+          "fonte": "idfit_V2.pdf",
+          "score": 0.5991
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.59
+        },
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.5848
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.5644
+        }
+      ],
+      "score_maximo": 0.618,
+      "acertou": false
+    },
+    {
+      "id": "q035",
+      "pergunta": "Qual a tensão e corrente mínima necessária para alimentar o iDFlex IP65?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idflex_ip65-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.6719
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.6699
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.5055
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.4934
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.4886
+        }
+      ],
+      "score_maximo": 0.6719,
+      "acertou": true
+    },
+    {
+      "id": "q036",
+      "pergunta": "A que altura a tampa de vedação do iDFlex IP65 deve ser fixada na parede?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idflex_ip65-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.6314
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.5919
+        },
+        {
+          "fonte": "iduhf-lite-guia.pdf",
+          "score": 0.579
+        },
+        {
+          "fonte": "tag-uhf-abs-datasheet.pdf",
+          "score": 0.5724
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5515
+        }
+      ],
+      "score_maximo": 0.6314,
+      "acertou": true
+    },
+    {
+      "id": "q037",
+      "pergunta": "Qual a tensão mínima de alimentação exigida para o iDAccess?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-guia.pdf"
+      ],
+      "recuperadas": [],
+      "score_maximo": null,
+      "acertou": false
+    },
+    {
+      "id": "q038",
+      "pergunta": "Quais portas Wiegand devem ser conectadas à controladora para operação via Ethernet?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.6906
+        },
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.6803
+        },
+        {
+          "fonte": "idfit_V2.pdf",
+          "score": 0.6045
+        },
+        {
+          "fonte": "idlock-datasheet.pdf",
+          "score": 0.5373
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.521
+        }
+      ],
+      "score_maximo": 0.6906,
+      "acertou": false
+    },
+    {
+      "id": "q039",
+      "pergunta": "Quais são os itens necessários para a instalação do iDAccess Nano?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess_nano.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess_nano.pdf",
+          "score": 0.7572
+        },
+        {
+          "fonte": "idaccess_nano_guia.pdf",
+          "score": 0.7572
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.6512
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.6401
+        },
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.5201
+        }
+      ],
+      "score_maximo": 0.7572,
+      "acertou": true
+    },
+    {
+      "id": "q040",
+      "pergunta": "Como acessar a tela de configuração do iDAccess Nano?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess_nano.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess_nano_guia.pdf",
+          "score": 0.7394
+        },
+        {
+          "fonte": "idaccess_nano.pdf",
+          "score": 0.7394
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.6374
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.6024
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.4818
+        }
+      ],
+      "score_maximo": 0.7394,
+      "acertou": true
+    },
+    {
+      "id": "q041",
+      "pergunta": "Qual a tensão de alimentação mínima necessária para o iDAccess Nano?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess_nano_guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess_nano_guia.pdf",
+          "score": 0.5479
+        },
+        {
+          "fonte": "idaccess_nano.pdf",
+          "score": 0.5479
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.5414
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.5302
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.4046
+        }
+      ],
+      "score_maximo": 0.5479,
+      "acertou": true
+    },
+    {
+      "id": "q043",
+      "pergunta": "Qual a tensão de alimentação do iDAccess Pro?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess_pro.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.3997
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.3807
+        }
+      ],
+      "score_maximo": 0.3997,
+      "acertou": false
+    },
+    {
+      "id": "q044",
+      "pergunta": "Qual a altura recomendada para fixar o suporte de parede do iDAccess Pro?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess_pro.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.5478
+        },
+        {
+          "fonte": "idaccess_pro-guia.pdf",
+          "score": 0.5478
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.4592
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.4563
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4547
+        }
+      ],
+      "score_maximo": 0.5478,
+      "acertou": true
+    },
+    {
+      "id": "q045",
+      "pergunta": "Como deve ser alimentado o iDAccess Pro?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess_pro-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.5931
+        },
+        {
+          "fonte": "idaccess_pro-guia.pdf",
+          "score": 0.537
+        },
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.537
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5342
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5211
+        }
+      ],
+      "score_maximo": 0.5931,
+      "acertou": true
+    },
+    {
+      "id": "q046",
+      "pergunta": "Qual a altura de fixação recomendada para o suporte de parede do iDAccess Pro?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess_pro-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.5298
+        },
+        {
+          "fonte": "idaccess_pro-guia.pdf",
+          "score": 0.5298
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.4397
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.4386
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.4352
+        }
+      ],
+      "score_maximo": 0.5298,
+      "acertou": true
+    },
+    {
+      "id": "q047",
+      "pergunta": "Qual é a especificação da fonte de alimentação da impressora Print iD Touch?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "printid_touch.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "printid-touch-folder.pdf",
+          "score": 0.8025
+        },
+        {
+          "fonte": "printid_touch.pdf",
+          "score": 0.7529
+        },
+        {
+          "fonte": "printid-folder.pdf",
+          "score": 0.7097
+        },
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.6691
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4813
+        }
+      ],
+      "score_maximo": 0.8025,
+      "acertou": true
+    },
+    {
+      "id": "q048",
+      "pergunta": "Qual é o endereço IP da impressora Print iD Touch?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "printid_touch.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "printid-touch-folder.pdf",
+          "score": 0.6289
+        },
+        {
+          "fonte": "printid_touch.pdf",
+          "score": 0.5579
+        },
+        {
+          "fonte": "printid-folder.pdf",
+          "score": 0.5345
+        },
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.5011
+        },
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.4647
+        }
+      ],
+      "score_maximo": 0.6289,
+      "acertou": true
+    },
+    {
+      "id": "q049",
+      "pergunta": "Quais materiais e ferramentas são necessários para instalar o iDFlex?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idflex.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex.pdf",
+          "score": 0.7108
+        },
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.622
+        },
+        {
+          "fonte": "idfit-guia.pdf",
+          "score": 0.61
+        },
+        {
+          "fonte": "idbox-v2-userguide.pdf",
+          "score": 0.5507
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.55
+        }
+      ],
+      "score_maximo": 0.7108,
+      "acertou": true
+    },
+    {
+      "id": "q050",
+      "pergunta": "Quais são as credenciais de login padrão para acessar a tela de configuração do iDFlex?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idflex.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex.pdf",
+          "score": 0.5416
+        },
+        {
+          "fonte": "idfit-guia.pdf",
+          "score": 0.5223
+        },
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.5165
+        },
+        {
+          "fonte": "idface.pdf",
+          "score": 0.4664
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.4466
+        }
+      ],
+      "score_maximo": 0.5416,
+      "acertou": true
+    },
+    {
+      "id": "q051",
+      "pergunta": "Quais ferramentas e materiais são necessários para instalar a iDBox?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbox.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idbox-v2-userguide.pdf",
+          "score": 0.6754
+        },
+        {
+          "fonte": "idbox.pdf",
+          "score": 0.6549
+        },
+        {
+          "fonte": "idflex.pdf",
+          "score": 0.5715
+        },
+        {
+          "fonte": "idfit-guia.pdf",
+          "score": 0.5649
+        },
+        {
+          "fonte": "idprox-guia.pdf",
+          "score": 0.5477
+        }
+      ],
+      "score_maximo": 0.6754,
+      "acertou": true
+    },
+    {
+      "id": "q052",
+      "pergunta": "Como acessar a interface web de configuração da iDBox?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbox.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex.pdf",
+          "score": 0.5529
+        },
+        {
+          "fonte": "idfit-guia.pdf",
+          "score": 0.5439
+        },
+        {
+          "fonte": "idbox-v2-userguide.pdf",
+          "score": 0.5391
+        },
+        {
+          "fonte": "idbox.pdf",
+          "score": 0.5343
+        },
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.5303
+        }
+      ],
+      "score_maximo": 0.5529,
+      "acertou": true
+    },
+    {
+      "id": "q053",
+      "pergunta": "De onde posso baixar o driver do iDProx USB?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idprox_usb.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idprox-usb-folder.pdf",
+          "score": 0.5479
+        },
+        {
+          "fonte": "satid-guia-rapido.pdf",
+          "score": 0.5397
+        },
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.5068
+        },
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.4895
+        },
+        {
+          "fonte": "idaccess_pro-guia.pdf",
+          "score": 0.4895
+        }
+      ],
+      "score_maximo": 0.5479,
+      "acertou": false
+    },
+    {
+      "id": "q055",
+      "pergunta": "Qual é o nome do produto descrito neste guia?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock_bio_guia_instalação.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.4334
+        },
+        {
+          "fonte": "satid-manual.pdf",
+          "score": 0.418
+        },
+        {
+          "fonte": "idblock-bqc.pdf",
+          "score": 0.4127
+        },
+        {
+          "fonte": "idtouch-manual.pdf",
+          "score": 0.4078
+        },
+        {
+          "fonte": "idlock-bio-manual.pdf",
+          "score": 0.4069
+        }
+      ],
+      "score_maximo": 0.4334,
+      "acertou": false
+    },
+    {
+      "id": "q056",
+      "pergunta": "Quantos parafusos tipo M5 são necessários para fixar a parte interna?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock_bio_guia_instalação.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess_pro-guia.pdf",
+          "score": 0.4847
+        },
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.4847
+        },
+        {
+          "fonte": "idaccess-guia.pdf",
+          "score": 0.4761
+        },
+        {
+          "fonte": "idlock_bio_guia_instalação.pdf",
+          "score": 0.4666
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.4631
+        }
+      ],
+      "score_maximo": 0.4847,
+      "acertou": true
+    },
+    {
+      "id": "q059",
+      "pergunta": "Qual a potência mínima de alimentação necessária para o iDProx?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idprox-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5143
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.474
+        },
+        {
+          "fonte": "idprox-guia.pdf",
+          "score": 0.4706
+        },
+        {
+          "fonte": "idflex.pdf",
+          "score": 0.4507
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.427
+        }
+      ],
+      "score_maximo": 0.5143,
+      "acertou": true
+    },
+    {
+      "id": "q060",
+      "pergunta": "Quais são as dimensões do modelo Compact do iDProx?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idprox-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.4845
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.4771
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.4757
+        },
+        {
+          "fonte": "idflex.pdf",
+          "score": 0.4523
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.449
+        }
+      ],
+      "score_maximo": 0.4845,
+      "acertou": false
+    },
+    {
+      "id": "q061",
+      "pergunta": "Qual a capacidade da bateria incluída na iDPower?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idpower-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.7663
+        },
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.5644
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.5116
+        },
+        {
+          "fonte": "idconnect-userguide-pt.pdf",
+          "score": 0.5013
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.4836
+        }
+      ],
+      "score_maximo": 0.7663,
+      "acertou": true
+    },
+    {
+      "id": "q062",
+      "pergunta": "Qual o tamanho (dimensões) da unidade iDPower?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idpower-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5677
+        },
+        {
+          "fonte": "idaccess-guia.pdf",
+          "score": 0.507
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4697
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4642
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.4629
+        }
+      ],
+      "score_maximo": 0.5677,
+      "acertou": true
+    },
+    {
+      "id": "q063",
+      "pergunta": "Qual a tensão de alimentação do modelo USB?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "leitor-qr-code-usb.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idprox-usb-folder.pdf",
+          "score": 0.472
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.444
+        },
+        {
+          "fonte": "satid-guia-rapido.pdf",
+          "score": 0.4073
+        },
+        {
+          "fonte": "printid_touch.pdf",
+          "score": 0.3896
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.3622
+        }
+      ],
+      "score_maximo": 0.472,
+      "acertou": false
+    },
+    {
+      "id": "q064",
+      "pergunta": "Quais dimensões o leitor Wiegand possui?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "leitor-qr-code-usb.pdf"
+      ],
+      "recuperadas": [],
+      "score_maximo": null,
+      "acertou": false
+    },
+    {
+      "id": "q065",
+      "pergunta": "Qual o tamanho do leitor Control iD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "leitor-qr-code-usb1.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.4912
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4897
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.4766
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.4718
+        },
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.4678
+        }
+      ],
+      "score_maximo": 0.4912,
+      "acertou": false
+    },
+    {
+      "id": "q067",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDFace Max pode registrar?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idface-max-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.521
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.4977
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4844
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.471
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.4654
+        }
+      ],
+      "score_maximo": 0.521,
+      "acertou": true
+    },
+    {
+      "id": "q068",
+      "pergunta": "Até quantas faces o iDFace Max consegue identificar com reconhecimento facial?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idface-max-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.6827
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.67
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.6549
+        },
+        {
+          "fonte": "torniquete-facial-id-datasheet.pdf",
+          "score": 0.6218
+        },
+        {
+          "fonte": "torniquete-facial-datasheet.pdf",
+          "score": 0.6218
+        }
+      ],
+      "score_maximo": 0.6827,
+      "acertou": true
+    },
+    {
+      "id": "q069",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock PcD com iDFace Max suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-pcd-facial-idface-max-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5626
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5565
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5254
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.5247
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5105
+        }
+      ],
+      "score_maximo": 0.5626,
+      "acertou": true
+    },
+    {
+      "id": "q070",
+      "pergunta": "Quantos rostos o iDBlock PcD com iDFace Max consegue identificar?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-pcd-facial-idface-max-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.6667
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.6549
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.6502
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.6149
+        },
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.6083
+        }
+      ],
+      "score_maximo": 0.6667,
+      "acertou": false
+    },
+    {
+      "id": "q071",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDFace suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idface-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5706
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5515
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5399
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.5364
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5343
+        }
+      ],
+      "score_maximo": 0.5706,
+      "acertou": false
+    },
+    {
+      "id": "q072",
+      "pergunta": "Até quantas faces o iDFace consegue identificar com reconhecimento facial?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idface-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.729
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7246
+        },
+        {
+          "fonte": "torniquete-facial-id-datasheet.pdf",
+          "score": 0.6766
+        },
+        {
+          "fonte": "torniquete-facial-datasheet.pdf",
+          "score": 0.6766
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.6436
+        }
+      ],
+      "score_maximo": 0.729,
+      "acertou": true
+    },
+    {
+      "id": "q073",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock PcD Facial suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-pcd-facial-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.6867
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.6738
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.6728
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.6715
+        },
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.6707
+        }
+      ],
+      "score_maximo": 0.6867,
+      "acertou": false
+    },
+    {
+      "id": "q074",
+      "pergunta": "Qual é a capacidade máxima de faces que o iDBlock PcD Facial pode reconhecer?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-pcd-facial-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7134
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.7031
+        },
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.6805
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.6789
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.6659
+        }
+      ],
+      "score_maximo": 0.7134,
+      "acertou": false
+    },
+    {
+      "id": "q077",
+      "pergunta": "Qual a capacidade de armazenamento do SAT iD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "satid-folder.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.5943
+        },
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.44
+        },
+        {
+          "fonte": "rhid-datasheet.pdf",
+          "score": 0.4299
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.424
+        },
+        {
+          "fonte": "idprox-usb-folder.pdf",
+          "score": 0.414
+        }
+      ],
+      "score_maximo": 0.5943,
+      "acertou": true
+    },
+    {
+      "id": "q078",
+      "pergunta": "Que tipo de certificado digital é utilizado pelo SAT iD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "satid-folder.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.5809
+        },
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.4741
+        },
+        {
+          "fonte": "rhid-datasheet.pdf",
+          "score": 0.4296
+        },
+        {
+          "fonte": "idprox-usb-folder.pdf",
+          "score": 0.4053
+        },
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.4039
+        }
+      ],
+      "score_maximo": 0.5809,
+      "acertou": true
+    },
+    {
+      "id": "q079",
+      "pergunta": "Qual a capacidade máxima de rostos que o iDBlock Mini com iDFace Max suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-facial-mini-idface-max-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.7191
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.719
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.6943
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.6654
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.6611
+        }
+      ],
+      "score_maximo": 0.7191,
+      "acertou": true
+    },
+    {
+      "id": "q080",
+      "pergunta": "Quantos iDFace Max podem ser instalados no equipamento iDBlock Mini com iDFace Max?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-facial-mini-idface-max-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.5717
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5481
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.5338
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5281
+        },
+        {
+          "fonte": "idaccess-guia.pdf",
+          "score": 0.5265
+        }
+      ],
+      "score_maximo": 0.5717,
+      "acertou": true
+    },
+    {
+      "id": "q081",
+      "pergunta": "Que tipo de plataforma é o RHiD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "rhid-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "rhid-datasheet.pdf",
+          "score": 0.7489
+        },
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.48
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.4728
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4674
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4655
+        }
+      ],
+      "score_maximo": 0.7489,
+      "acertou": true
+    },
+    {
+      "id": "q082",
+      "pergunta": "É possível usar o RHiD em dispositivos móveis?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "rhid-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "rhid-datasheet.pdf",
+          "score": 0.5619
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5235
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.5024
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4962
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.4948
+        }
+      ],
+      "score_maximo": 0.5619,
+      "acertou": true
+    },
+    {
+      "id": "q083",
+      "pergunta": "Qual é a velocidade máxima de impressão da impressora Print iD Touch?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "printid-touch-folder.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "printid-touch-folder.pdf",
+          "score": 0.6733
+        },
+        {
+          "fonte": "printid-folder.pdf",
+          "score": 0.6406
+        },
+        {
+          "fonte": "printid_touch.pdf",
+          "score": 0.6123
+        },
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.5842
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4743
+        }
+      ],
+      "score_maximo": 0.6733,
+      "acertou": true
+    },
+    {
+      "id": "q084",
+      "pergunta": "Qual é a resolução da tela LCD da impressora?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "printid-touch-folder.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "printid-touch-folder.pdf",
+          "score": 0.5131
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.4272
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.413
+        },
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.3999
+        },
+        {
+          "fonte": "printid_touch.pdf",
+          "score": 0.3824
+        }
+      ],
+      "score_maximo": 0.5131,
+      "acertou": true
+    },
+    {
+      "id": "q085",
+      "pergunta": "Qual a quantidade máxima de usuários na versão Enterprise do iDSecure?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idsecure.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5168
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.4953
+        },
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.4818
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.48
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.4611
+        }
+      ],
+      "score_maximo": 0.5168,
+      "acertou": true
+    },
+    {
+      "id": "q086",
+      "pergunta": "Quantos cartões são suportados pela versão Enterprise do iDSecure?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idsecure.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idprox-usb-folder.pdf",
+          "score": 0.5522
+        },
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.5503
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5475
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5276
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.5218
+        }
+      ],
+      "score_maximo": 0.5522,
+      "acertou": false
+    },
+    {
+      "id": "q087",
+      "pergunta": "Qual é a capacidade máxima de usuários que a catraca iDBlock Next BQC suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-bqc-idface-max-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.569
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5535
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.5466
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.5392
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.53
+        }
+      ],
+      "score_maximo": 0.569,
+      "acertou": true
+    },
+    {
+      "id": "q088",
+      "pergunta": "Qual é a capacidade máxima de rostos com reconhecimento facial?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-bqc-idface-max-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.6888
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.6729
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.6379
+        },
+        {
+          "fonte": "torniquete-facial-id-datasheet.pdf",
+          "score": 0.6154
+        },
+        {
+          "fonte": "torniquete-facial-datasheet.pdf",
+          "score": 0.6154
+        }
+      ],
+      "score_maximo": 0.6888,
+      "acertou": false
+    },
+    {
+      "id": "q089",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock Next BQC pode suportar?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-bqc-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5541
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.5518
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5391
+        },
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.5383
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.5264
+        }
+      ],
+      "score_maximo": 0.5541,
+      "acertou": false
+    },
+    {
+      "id": "q090",
+      "pergunta": "Quantos rostos são suportados pelo iDBlock Next BQC?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-bqc-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.678
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.6643
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.6518
+        },
+        {
+          "fonte": "idblock-next-bqc-datasheet.pdf",
+          "score": 0.638
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.6378
+        }
+      ],
+      "score_maximo": 0.678,
+      "acertou": true
+    },
+    {
+      "id": "q091",
+      "pergunta": "Qual é a velocidade máxima de impressão do Print iD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "printid-folder.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "printid-folder.pdf",
+          "score": 0.6427
+        },
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.598
+        },
+        {
+          "fonte": "printid-touch-folder.pdf",
+          "score": 0.5581
+        },
+        {
+          "fonte": "printid_touch.pdf",
+          "score": 0.544
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4371
+        }
+      ],
+      "score_maximo": 0.6427,
+      "acertou": true
+    },
+    {
+      "id": "q092",
+      "pergunta": "Qual é a vida útil da cabeça de impressão do Print iD?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "printid-folder.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "printid-folder.pdf",
+          "score": 0.6835
+        },
+        {
+          "fonte": "printid-touch-folder.pdf",
+          "score": 0.6021
+        },
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.5923
+        },
+        {
+          "fonte": "printid_touch.pdf",
+          "score": 0.5135
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.4948
+        }
+      ],
+      "score_maximo": 0.6835,
+      "acertou": true
+    },
+    {
+      "id": "q093",
+      "pergunta": "Qual a capacidade máxima de usuários que o iDBlock Next com iDFace Max suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-idface-max-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5904
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.5463
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.5319
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.5284
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5252
+        }
+      ],
+      "score_maximo": 0.5904,
+      "acertou": true
+    },
+    {
+      "id": "q094",
+      "pergunta": "Qual a capacidade de reconhecimento facial do equipamento iDBlock Next com iDFace Max?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-idface-max-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7536
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.7353
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.7259
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.7195
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.7056
+        }
+      ],
+      "score_maximo": 0.7536,
+      "acertou": false
+    },
+    {
+      "id": "q095",
+      "pergunta": "Qual é a capacidade máxima de usuários do Torniquete com iDFace?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "torniquete-facial-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5368
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.5324
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5215
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.5122
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5087
+        }
+      ],
+      "score_maximo": 0.5368,
+      "acertou": false
+    },
+    {
+      "id": "q096",
+      "pergunta": "Quantos rostos o Torniquete com iDFace consegue identificar simultaneamente?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "torniquete-facial-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.6146
+        },
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.6041
+        },
+        {
+          "fonte": "torniquete-facial-datasheet.pdf",
+          "score": 0.5937
+        },
+        {
+          "fonte": "torniquete-facial-id-datasheet.pdf",
+          "score": 0.5937
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.5866
+        }
+      ],
+      "score_maximo": 0.6146,
+      "acertou": true
+    },
+    {
+      "id": "q097",
+      "pergunta": "Qual é a capacidade máxima de usuários que o torniquete suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "torniquete-facial-id-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5095
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.4865
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.4815
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.4713
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.4691
+        }
+      ],
+      "score_maximo": 0.5095,
+      "acertou": false
+    },
+    {
+      "id": "q098",
+      "pergunta": "Quantos rostos o torniquete consegue identificar simultaneamente?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "torniquete-facial-id-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "torniquete-facial-datasheet.pdf",
+          "score": 0.5468
+        },
+        {
+          "fonte": "torniquete-facial-id-datasheet.pdf",
+          "score": 0.5468
+        },
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.5396
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.5354
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.5307
+        }
+      ],
+      "score_maximo": 0.5468,
+      "acertou": true
+    },
+    {
+      "id": "q099",
+      "pergunta": "Qual a capacidade máxima de usuários que a iDBlock Next suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5806
+        },
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.5654
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.5602
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.5448
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5375
+        }
+      ],
+      "score_maximo": 0.5806,
+      "acertou": false
+    },
+    {
+      "id": "q100",
+      "pergunta": "Quantos iDFaces podem ser instalados no equipamento?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.6052
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5752
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5547
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.538
+        },
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.5309
+        }
+      ],
+      "score_maximo": 0.6052,
+      "acertou": false
+    },
+    {
+      "id": "q101",
+      "pergunta": "Qual a capacidade máxima de usuários que o iDBlock Facial pode registrar?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-facial-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7248
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.7088
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.7058
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.6975
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.6862
+        }
+      ],
+      "score_maximo": 0.7248,
+      "acertou": false
+    },
+    {
+      "id": "q102",
+      "pergunta": "Para o iDBlock Facial, quantos rostos o dispositivo pode identificar dependendo do modelo?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-facial-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7573
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.7488
+        },
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.7111
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.6889
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.6818
+        }
+      ],
+      "score_maximo": 0.7573,
+      "acertou": true
+    },
+    {
+      "id": "q103",
+      "pergunta": "Qual o grau de proteção do equipamento iDBell?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbell-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.6338
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.6186
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.6151
+        },
+        {
+          "fonte": "idbell-datasheet-pt.pdf",
+          "score": 0.6027
+        },
+        {
+          "fonte": "tag-uhf-abs-datasheet.pdf",
+          "score": 0.5906
+        }
+      ],
+      "score_maximo": 0.6338,
+      "acertou": true
+    },
+    {
+      "id": "q104",
+      "pergunta": "Qual a resolução do vídeo transmitido pelo iDBell?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbell-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idbell-datasheet-pt.pdf",
+          "score": 0.4436
+        },
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.3713
+        },
+        {
+          "fonte": "iduhf-lite-guia.pdf",
+          "score": 0.3677
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.3659
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.3594
+        }
+      ],
+      "score_maximo": 0.4436,
+      "acertou": true
+    },
+    {
+      "id": "q105",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock Facial Mini pode suportar?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-facial-mini-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.7086
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.7055
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7015
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.7002
+        },
+        {
+          "fonte": "idblock-facial-mini-datasheet.pdf",
+          "score": 0.6896
+        }
+      ],
+      "score_maximo": 0.7086,
+      "acertou": true
+    },
+    {
+      "id": "q106",
+      "pergunta": "Qual é a capacidade máxima de faces que o iDBlock Facial Mini pode reconhecer?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-facial-mini-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7538
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.7333
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.7223
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.6943
+        },
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.6937
+        }
+      ],
+      "score_maximo": 0.7538,
+      "acertou": false
+    },
+    {
+      "id": "q107",
+      "pergunta": "Qual a capacidade de usuários suportados pelo iDBlock Balcão Facial com iDFace Max?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-balcao-facial-idface-max-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.7527
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7366
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.7355
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.7323
+        },
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.7052
+        }
+      ],
+      "score_maximo": 0.7527,
+      "acertou": true
+    },
+    {
+      "id": "q108",
+      "pergunta": "O iDBlock Balcão Facial com iDFace Max possui capacidade para até 100.000* faces com detecção de rosto vivo?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-balcao-facial-idface-max-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7394
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.7233
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.7114
+        },
+        {
+          "fonte": "torniquete-facial-id-datasheet.pdf",
+          "score": 0.6953
+        },
+        {
+          "fonte": "torniquete-facial-datasheet.pdf",
+          "score": 0.6953
+        }
+      ],
+      "score_maximo": 0.7394,
+      "acertou": true
+    },
+    {
+      "id": "q109",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDAccess Nano suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-nano.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.73
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.7269
+        },
+        {
+          "fonte": "idaccess_nano_guia.pdf",
+          "score": 0.684
+        },
+        {
+          "fonte": "idaccess_nano.pdf",
+          "score": 0.684
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5585
+        }
+      ],
+      "score_maximo": 0.73,
+      "acertou": true
+    },
+    {
+      "id": "q110",
+      "pergunta": "Até quantos digitais de identificação biométrica o iDAccess Nano pode registrar?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-nano.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess_nano_guia.pdf",
+          "score": 0.6367
+        },
+        {
+          "fonte": "idaccess_nano.pdf",
+          "score": 0.6367
+        },
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.6344
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.6324
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.5876
+        }
+      ],
+      "score_maximo": 0.6367,
+      "acertou": true
+    },
+    {
+      "id": "q111",
+      "pergunta": "Quais portas de comunicação estão disponíveis no iDBlock Balcão Facial?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-balcao-facial-idface-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7819
+        },
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.7151
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.7132
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.7113
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-datasheet-pt.pdf",
+          "score": 0.7064
+        }
+      ],
+      "score_maximo": 0.7819,
+      "acertou": true
+    },
+    {
+      "id": "q112",
+      "pergunta": "Qual a durabilidade do mecanismo do iDBlock Balcão Facial?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-balcao-facial-idface-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-facial-datasheet.pdf",
+          "score": 0.7413
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.7128
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.7101
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.7064
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.6989
+        }
+      ],
+      "score_maximo": 0.7413,
+      "acertou": false
+    },
+    {
+      "id": "q113",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDAccess Pro suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-pro-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.6149
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.6142
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5712
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.5379
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.5354
+        }
+      ],
+      "score_maximo": 0.6149,
+      "acertou": true
+    },
+    {
+      "id": "q114",
+      "pergunta": "Qual é a resolução do leitor biométrico do iDAccess Pro?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-pro-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.6608
+        },
+        {
+          "fonte": "idlock-bio-manual.pdf",
+          "score": 0.5846
+        },
+        {
+          "fonte": "idface.pdf",
+          "score": 0.4962
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.4959
+        },
+        {
+          "fonte": "idbio-guia-rapido.pdf",
+          "score": 0.4922
+        }
+      ],
+      "score_maximo": 0.6608,
+      "acertou": false
+    },
+    {
+      "id": "q115",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDAccess Nano Prox suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-nano-prox.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.7576
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.6464
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.6438
+        },
+        {
+          "fonte": "idaccess_nano_guia.pdf",
+          "score": 0.6413
+        },
+        {
+          "fonte": "idaccess_nano.pdf",
+          "score": 0.6413
+        }
+      ],
+      "score_maximo": 0.7576,
+      "acertou": true
+    },
+    {
+      "id": "q116",
+      "pergunta": "Qual o tamanho da tela touchscreen do iDAccess Nano Prox?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-nano-prox.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.6224
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.5971
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.5023
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5013
+        },
+        {
+          "fonte": "idaccess_nano_guia.pdf",
+          "score": 0.498
+        }
+      ],
+      "score_maximo": 0.6224,
+      "acertou": true
+    },
+    {
+      "id": "q117",
+      "pergunta": "Qual a capacidade máxima de usuários que a iDBlock PcD suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-pcd-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5858
+        },
+        {
+          "fonte": "idblock-pcd-datasheet.pdf",
+          "score": 0.5716
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.563
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5404
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5388
+        }
+      ],
+      "score_maximo": 0.5858,
+      "acertou": true
+    },
+    {
+      "id": "q118",
+      "pergunta": "Quais dimensões a catraca iDBlock PcD possui?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-pcd-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.609
+        },
+        {
+          "fonte": "idblock-pcd-datasheet.pdf",
+          "score": 0.5919
+        },
+        {
+          "fonte": "idaccess-guia.pdf",
+          "score": 0.5759
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.5389
+        },
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.5357
+        }
+      ],
+      "score_maximo": 0.609,
+      "acertou": true
+    },
+    {
+      "id": "q119",
+      "pergunta": "Qual a capacidade de identificação biométrica do iDFlex IP65?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idflex_ip65.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.6833
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.6769
+        },
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.5931
+        },
+        {
+          "fonte": "idflex.pdf",
+          "score": 0.5172
+        },
+        {
+          "fonte": "idbio-guia-rapido.pdf",
+          "score": 0.5034
+        }
+      ],
+      "score_maximo": 0.6833,
+      "acertou": true
+    },
+    {
+      "id": "q120",
+      "pergunta": "Qual a capacidade de registros de acesso do iDFlex IP65?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idflex_ip65.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.716
+        },
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.6747
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.5773
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5704
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5667
+        }
+      ],
+      "score_maximo": 0.716,
+      "acertou": true
+    },
+    {
+      "id": "q121",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDUHF Lite suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "iduhf-lite-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5939
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5251
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5151
+        },
+        {
+          "fonte": "iduhf-lite-guia.pdf",
+          "score": 0.5135
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.4982
+        }
+      ],
+      "score_maximo": 0.5939,
+      "acertou": true
+    },
+    {
+      "id": "q122",
+      "pergunta": "Qual é a fonte de alimentação do iDUHF Lite?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "iduhf-lite-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-lite-guia.pdf",
+          "score": 0.4439
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.3746
+        }
+      ],
+      "score_maximo": 0.4439,
+      "acertou": false
+    },
+    {
+      "id": "q123",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock Braço Articulado suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-bqc.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.6318
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.6153
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.5952
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.5912
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5792
+        }
+      ],
+      "score_maximo": 0.6318,
+      "acertou": false
+    },
+    {
+      "id": "q124",
+      "pergunta": "Quais são as dimensões gerais do iDBlock Braço Articulado?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-bqc.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.5701
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5684
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.5522
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5452
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5366
+        }
+      ],
+      "score_maximo": 0.5701,
+      "acertou": false
+    },
+    {
+      "id": "q125",
+      "pergunta": "Para o iDAccess Pro Prox, qual é a capacidade máxima de usuários que ele suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-pro-prox.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.7446
+        },
+        {
+          "fonte": "idprox-guia.pdf",
+          "score": 0.5711
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5678
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.5631
+        },
+        {
+          "fonte": "idflex.pdf",
+          "score": 0.5291
+        }
+      ],
+      "score_maximo": 0.7446,
+      "acertou": true
+    },
+    {
+      "id": "q126",
+      "pergunta": "O iDAccess Pro Prox possui uma porta Ethernet nativa?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idaccess-pro-prox.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.6527
+        },
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.6519
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.5999
+        },
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.5767
+        },
+        {
+          "fonte": "idaccess_pro-guia.pdf",
+          "score": 0.5767
+        }
+      ],
+      "score_maximo": 0.6527,
+      "acertou": true
+    },
+    {
+      "id": "q127",
+      "pergunta": "Qual o tamanho físico do iDConnect?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idconnect-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.5212
+        },
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.5176
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5102
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5078
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5049
+        }
+      ],
+      "score_maximo": 0.5212,
+      "acertou": true
+    },
+    {
+      "id": "q128",
+      "pergunta": "Quais são os três modos de operação do iDConnect?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idconnect-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.6347
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5983
+        },
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.5804
+        },
+        {
+          "fonte": "idbell-datasheet-pt.pdf",
+          "score": 0.5733
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.5713
+        }
+      ],
+      "score_maximo": 0.6347,
+      "acertou": true
+    },
+    {
+      "id": "q129",
+      "pergunta": "Qual é o nome do software de controle de acesso descrito no documento?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idsecure-cloud.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.554
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5164
+        },
+        {
+          "fonte": "rhid-datasheet.pdf",
+          "score": 0.4986
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.4887
+        },
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.4727
+        }
+      ],
+      "score_maximo": 0.554,
+      "acertou": true
+    },
+    {
+      "id": "q130",
+      "pergunta": "O sistema permite abertura remota de visitantes?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idsecure-cloud.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5508
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5034
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4992
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.4773
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.4282
+        }
+      ],
+      "score_maximo": 0.5508,
+      "acertou": true
+    },
+    {
+      "id": "q131",
+      "pergunta": "Quais são os itens incluídos no Kit OEM iDBio?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbio-montagem-oem.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.4985
+        },
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.4977
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.4915
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.4887
+        },
+        {
+          "fonte": "idbox-v2-userguide.pdf",
+          "score": 0.4828
+        }
+      ],
+      "score_maximo": 0.4985,
+      "acertou": false
+    },
+    {
+      "id": "q133",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5588
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5554
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.5437
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.5369
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.53
+        }
+      ],
+      "score_maximo": 0.5588,
+      "acertou": false
+    },
+    {
+      "id": "q134",
+      "pergunta": "Quais são as dimensões físicas do iDBlock?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.5286
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.5129
+        },
+        {
+          "fonte": "idblock-balcao-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5119
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5102
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5032
+        }
+      ],
+      "score_maximo": 0.5286,
+      "acertou": false
+    },
+    {
+      "id": "q135",
+      "pergunta": "Qual é a rapidez de processamento do scanner iDBio?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbio-guia-rapido.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5826
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.509
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.5079
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.4985
+        },
+        {
+          "fonte": "printid-folder.pdf",
+          "score": 0.4942
+        }
+      ],
+      "score_maximo": 0.5826,
+      "acertou": false
+    },
+    {
+      "id": "q136",
+      "pergunta": "Quais são as dimensões do equipamento iDBio?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbio-guia-rapido.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5568
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5333
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5276
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5099
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.4992
+        }
+      ],
+      "score_maximo": 0.5568,
+      "acertou": false
+    },
+    {
+      "id": "q137",
+      "pergunta": "Qual a capacidade máxima de usuários que o iDUHF suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "iduhf-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.5612
+        },
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.5498
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.549
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5441
+        },
+        {
+          "fonte": "idfit-guia.pdf",
+          "score": 0.5378
+        }
+      ],
+      "score_maximo": 0.5612,
+      "acertou": true
+    },
+    {
+      "id": "q138",
+      "pergunta": "Qual a classificação de proteção IP do iDUHF?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "iduhf-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idflex_ip65.pdf",
+          "score": 0.6467
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.6281
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.6035
+        },
+        {
+          "fonte": "tag-uhf-abs-datasheet.pdf",
+          "score": 0.5958
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.5957
+        }
+      ],
+      "score_maximo": 0.6467,
+      "acertou": true
+    },
+    {
+      "id": "q139",
+      "pergunta": "Qual é a capacidade máxima de usuários que o iDLock suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.5679
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5598
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5576
+        },
+        {
+          "fonte": "idlock-datasheet.pdf",
+          "score": 0.5548
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5531
+        }
+      ],
+      "score_maximo": 0.5679,
+      "acertou": true
+    },
+    {
+      "id": "q140",
+      "pergunta": "O iDLock possui detecção de arrombamento com aviso visual e sonoro?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idlock-datasheet.pdf",
+          "score": 0.6085
+        },
+        {
+          "fonte": "idbell-datasheet-pt.pdf",
+          "score": 0.5549
+        },
+        {
+          "fonte": "idlock-guia.pdf",
+          "score": 0.5368
+        },
+        {
+          "fonte": "idblock-bqc.pdf",
+          "score": 0.5229
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.5
+        }
+      ],
+      "score_maximo": 0.6085,
+      "acertou": true
+    },
+    {
+      "id": "q141",
+      "pergunta": "Quais são os métodos de identificação disponíveis no iDTouch?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idtouch-folder.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idtouch-guia.pdf",
+          "score": 0.6167
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.6166
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.6024
+        },
+        {
+          "fonte": "idface.pdf",
+          "score": 0.5763
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5655
+        }
+      ],
+      "score_maximo": 0.6167,
+      "acertou": true
+    },
+    {
+      "id": "q142",
+      "pergunta": "Qual a capacidade máxima de usuários que o iDTouch suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idtouch-folder.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.675
+        },
+        {
+          "fonte": "idtouch-guia.pdf",
+          "score": 0.6121
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.6051
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5879
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5808
+        }
+      ],
+      "score_maximo": 0.675,
+      "acertou": true
+    },
+    {
+      "id": "q143",
+      "pergunta": "Quais são os três modos de operação do iDConnect V2?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idconnect-v2-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.6715
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.6063
+        },
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.6003
+        },
+        {
+          "fonte": "idbox-v2-userguide.pdf",
+          "score": 0.5792
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5603
+        }
+      ],
+      "score_maximo": 0.6715,
+      "acertou": true
+    },
+    {
+      "id": "q144",
+      "pergunta": "Qual é a potência da fonte de alimentação do iDConnect V2?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idconnect-v2-datasheet-pt.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.648
+        },
+        {
+          "fonte": "idbox-v2-userguide.pdf",
+          "score": 0.5841
+        },
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.5347
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.5329
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4781
+        }
+      ],
+      "score_maximo": 0.648,
+      "acertou": true
+    },
+    {
+      "id": "q145",
+      "pergunta": "Qual a tensão de saída do iDPower?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idpower-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.628
+        },
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.576
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.5673
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.5498
+        },
+        {
+          "fonte": "idblock-next-idface-max-datasheet.pdf",
+          "score": 0.5327
+        }
+      ],
+      "score_maximo": 0.628,
+      "acertou": true
+    },
+    {
+      "id": "q146",
+      "pergunta": "Que tipo de bateria é compatível com o iDPower?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idpower-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.772
+        },
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.5599
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.5344
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.5162
+        },
+        {
+          "fonte": "idconnect-userguide-pt.pdf",
+          "score": 0.5147
+        }
+      ],
+      "score_maximo": 0.772,
+      "acertou": true
+    },
+    {
+      "id": "q147",
+      "pergunta": "Qual a capacidade máxima de usuários do torniquete?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "torniquetes-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.4502
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4115
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.4088
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.3961
+        },
+        {
+          "fonte": "idblock-facial-mini-idface-max-datasheet.pdf",
+          "score": 0.3931
+        }
+      ],
+      "score_maximo": 0.4502,
+      "acertou": true
+    },
+    {
+      "id": "q148",
+      "pergunta": "Quais interfaces de comunicação estão disponíveis no modelo FET-100?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "torniquetes-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-userguide-pt.pdf",
+          "score": 0.5328
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.5263
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.5239
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.5121
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.51
+        }
+      ],
+      "score_maximo": 0.5328,
+      "acertou": false
+    },
+    {
+      "id": "q149",
+      "pergunta": "Qual o dedo recomendado para cadastro no leitor biométrico?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock-bio-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.5754
+        },
+        {
+          "fonte": "idlock-bio-manual.pdf",
+          "score": 0.5489
+        },
+        {
+          "fonte": "idbio-guia-rapido.pdf",
+          "score": 0.4693
+        },
+        {
+          "fonte": "idbio-montagem-oem.pdf",
+          "score": 0.4435
+        },
+        {
+          "fonte": "printid-touch-folder.pdf",
+          "score": 0.4149
+        }
+      ],
+      "score_maximo": 0.5754,
+      "acertou": false
+    },
+    {
+      "id": "q150",
+      "pergunta": "O que acontece quando ativa-se o modo Não Perturbe com a porta fechada?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock-bio-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.4376
+        },
+        {
+          "fonte": "idlock-datasheet.pdf",
+          "score": 0.4339
+        },
+        {
+          "fonte": "idblock.pdf",
+          "score": 0.4138
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.3728
+        },
+        {
+          "fonte": "idblock-bqc.pdf",
+          "score": 0.3668
+        }
+      ],
+      "score_maximo": 0.4376,
+      "acertou": false
+    },
+    {
+      "id": "q152",
+      "pergunta": "Quais tecnologias de cartão são compatíveis com o iDProx USB?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idprox-usb-folder.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idprox-usb-folder.pdf",
+          "score": 0.763
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.5774
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5759
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.571
+        },
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.5577
+        }
+      ],
+      "score_maximo": 0.763,
+      "acertou": true
+    },
+    {
+      "id": "q153",
+      "pergunta": "Qual o tamanho da tela LCD do iDBlock Next com Contador de Giros?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-contador-giros-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5308
+        },
+        {
+          "fonte": "idaccess-nano.pdf",
+          "score": 0.5114
+        },
+        {
+          "fonte": "idaccess-nano-prox.pdf",
+          "score": 0.4861
+        },
+        {
+          "fonte": "idflex_ip65-guia.pdf",
+          "score": 0.4818
+        },
+        {
+          "fonte": "tag-uhf-pet-datasheet.pdf",
+          "score": 0.4678
+        }
+      ],
+      "score_maximo": 0.5308,
+      "acertou": false
+    },
+    {
+      "id": "q154",
+      "pergunta": "Quantos ciclos de giro o equipamento suporta?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-next-contador-giros-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.4379
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4332
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.426
+        },
+        {
+          "fonte": "idaccess-pro-prox.pdf",
+          "score": 0.3811
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.3661
+        }
+      ],
+      "score_maximo": 0.4379,
+      "acertou": false
+    },
+    {
+      "id": "q155",
+      "pergunta": "Como abrir a fechadura iDLock usando a senha cadastrada?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idlock-datasheet.pdf",
+          "score": 0.7199
+        },
+        {
+          "fonte": "idlock-guia.pdf",
+          "score": 0.7004
+        },
+        {
+          "fonte": "idlock-bio-guia.pdf",
+          "score": 0.6466
+        },
+        {
+          "fonte": "idlock_bio_guia_instalação.pdf",
+          "score": 0.5113
+        },
+        {
+          "fonte": "idfit_V2.pdf",
+          "score": 0.4934
+        }
+      ],
+      "score_maximo": 0.7199,
+      "acertou": true
+    },
+    {
+      "id": "q156",
+      "pergunta": "Como desativar o modo Não Perturbe na fechadura iDLock?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idlock-guia.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idlock-guia.pdf",
+          "score": 0.7055
+        },
+        {
+          "fonte": "idlock-datasheet.pdf",
+          "score": 0.6949
+        },
+        {
+          "fonte": "idlock-bio-guia.pdf",
+          "score": 0.6321
+        },
+        {
+          "fonte": "idlock_bio_guia_instalação.pdf",
+          "score": 0.5714
+        },
+        {
+          "fonte": "idfit_V2.pdf",
+          "score": 0.5157
+        }
+      ],
+      "score_maximo": 0.7055,
+      "acertou": true
+    },
+    {
+      "id": "q158",
+      "pergunta": "Qual a escala do componente B?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idblock-diagramas.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-guia.pdf",
+          "score": 0.3843
+        },
+        {
+          "fonte": "idblock-next-bqc-idface-max-datasheet.pdf",
+          "score": 0.3652
+        }
+      ],
+      "score_maximo": 0.3843,
+      "acertou": false
+    },
+    {
+      "id": "q159",
+      "pergunta": "Quantas portas nativas com suporte a OSDP possui o iDBox V2?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbox-v2-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.511
+        },
+        {
+          "fonte": "idfit_V2.pdf",
+          "score": 0.4974
+        },
+        {
+          "fonte": "idaccess_pro.pdf",
+          "score": 0.4874
+        },
+        {
+          "fonte": "idaccess_pro-guia.pdf",
+          "score": 0.4874
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.4869
+        }
+      ],
+      "score_maximo": 0.511,
+      "acertou": true
+    },
+    {
+      "id": "q160",
+      "pergunta": "Qual a plataforma de nuvem integrada ao iDBox V2?",
+      "negativa": false,
+      "fontes_aceitas": [
+        "idbox-v2-datasheet.pdf"
+      ],
+      "recuperadas": [
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.6318
+        },
+        {
+          "fonte": "idbox-v2-userguide.pdf",
+          "score": 0.5947
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.5763
+        },
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.5337
+        },
+        {
+          "fonte": "rhid-datasheet.pdf",
+          "score": 0.5294
+        }
+      ],
+      "score_maximo": 0.6318,
+      "acertou": true
+    },
+    {
+      "id": "q161",
+      "pergunta": "Qual é o procedimento recomendado para migrar usuários existentes de cartões magnéticos para o novo sistema de identificação biométrica?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idbio-guia-rapido.pdf",
+          "score": 0.5094
+        },
+        {
+          "fonte": "idprox-usb-folder.pdf",
+          "score": 0.5018
+        },
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.4826
+        },
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.4716
+        },
+        {
+          "fonte": "idblock-next-bqc-datasheet.pdf",
+          "score": 0.4695
+        }
+      ],
+      "score_maximo": 0.5094,
+      "acertou": false
+    },
+    {
+      "id": "q162",
+      "pergunta": "Como garantir a conformidade com as normas de proteção de dados ao armazenar imagens faciais em servidores externos?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "torniquete-facial-id-datasheet.pdf",
+          "score": 0.5794
+        },
+        {
+          "fonte": "torniquete-facial-datasheet.pdf",
+          "score": 0.5794
+        },
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.5747
+        },
+        {
+          "fonte": "suporte-em-cunha-datasheet-pt.pdf",
+          "score": 0.5639
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.5491
+        }
+      ],
+      "score_maximo": 0.5794,
+      "acertou": false
+    },
+    {
+      "id": "q163",
+      "pergunta": "Quais são os requisitos de rede necessários para operar múltiplos pontos de entrada simultaneamente sem latência excessiva?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.5453
+        },
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.5025
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.4621
+        },
+        {
+          "fonte": "idaccess-guia.pdf",
+          "score": 0.4607
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.458
+        }
+      ],
+      "score_maximo": 0.5453,
+      "acertou": false
+    },
+    {
+      "id": "q164",
+      "pergunta": "De que forma pode-se personalizar políticas de acesso baseadas em horários específicos para diferentes departamentos dentro de um prédio?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.4853
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.4247
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.4125
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4117
+        },
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.4056
+        }
+      ],
+      "score_maximo": 0.4853,
+      "acertou": false
+    },
+    {
+      "id": "q165",
+      "pergunta": "Após a instalação de um dispositivo de leitura de identificação, quais passos asseguram a integridade dos dados de barramento?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idbio-folder.pdf",
+          "score": 0.5221
+        },
+        {
+          "fonte": "idprox-usb-folder.pdf",
+          "score": 0.5123
+        },
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.5115
+        },
+        {
+          "fonte": "idblock-next-datasheet.pdf",
+          "score": 0.5103
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.505
+        }
+      ],
+      "score_maximo": 0.5221,
+      "acertou": false
+    },
+    {
+      "id": "q166",
+      "pergunta": "Como realizar a calibração dos sensores infravermelhos utilizados na leitura facial para minimizar falsos positivos?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idface-datasheet.pdf",
+          "score": 0.6417
+        },
+        {
+          "fonte": "idface-max-datasheet-pt.pdf",
+          "score": 0.5699
+        },
+        {
+          "fonte": "rep-idclass-facial-datasheet.pdf",
+          "score": 0.5538
+        },
+        {
+          "fonte": "torniquete-facial-id-datasheet.pdf",
+          "score": 0.5262
+        },
+        {
+          "fonte": "torniquete-facial-datasheet.pdf",
+          "score": 0.5262
+        }
+      ],
+      "score_maximo": 0.6417,
+      "acertou": false
+    },
+    {
+      "id": "q167",
+      "pergunta": "Quais são as melhores práticas para manter a disponibilidade contínua do sistema de bloqueio de porta em caso de falha de energia?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.532
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4972
+        },
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.4969
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.4869
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.4833
+        }
+      ],
+      "score_maximo": 0.532,
+      "acertou": false
+    },
+    {
+      "id": "q168",
+      "pergunta": "Em que medida o sistema suporta a integração com protocolos de autenticação multifator que combinam chave física e aplicativo móvel?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.6085
+        },
+        {
+          "fonte": "idlock-datasheet.pdf",
+          "score": 0.5713
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.5556
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.522
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.5053
+        }
+      ],
+      "score_maximo": 0.6085,
+      "acertou": false
+    },
+    {
+      "id": "q169",
+      "pergunta": "Qual é o processo de validação de licenças de software antes da implantação em ambientes industriais críticos?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "rep-idclass-671.pdf",
+          "score": 0.4543
+        },
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.428
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.4157
+        },
+        {
+          "fonte": "printid-folder.pdf",
+          "score": 0.4
+        },
+        {
+          "fonte": "idblock-next-datasheet.pdf",
+          "score": 0.3924
+        }
+      ],
+      "score_maximo": 0.4543,
+      "acertou": false
+    },
+    {
+      "id": "q170",
+      "pergunta": "Como otimizar o consumo de bateria dos dispositivos portáteis de acesso em ambientes com pouca cobertura elétrica?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idpower-guia.pdf",
+          "score": 0.5794
+        },
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.5175
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.5017
+        },
+        {
+          "fonte": "idconnect-v2-userguide-pt.pdf",
+          "score": 0.4873
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.4815
+        }
+      ],
+      "score_maximo": 0.5794,
+      "acertou": false
+    },
+    {
+      "id": "q171",
+      "pergunta": "Qual estratégia recomendada permite atualizar firmwares dos equipamentos sem interromper o fluxo de pessoas?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.6292
+        },
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.61
+        },
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.5951
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5922
+        },
+        {
+          "fonte": "idblock-next-datasheet.pdf",
+          "score": 0.5807
+        }
+      ],
+      "score_maximo": 0.6292,
+      "acertou": false
+    },
+    {
+      "id": "q172",
+      "pergunta": "Como garantir que a cadeia de suprimentos de peças de reposição seja gerenciada de forma eficiente após a implementação?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idpower-datasheet.pdf",
+          "score": 0.4401
+        },
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.432
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.4263
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.4163
+        },
+        {
+          "fonte": "idblock-next-datasheet.pdf",
+          "score": 0.4124
+        }
+      ],
+      "score_maximo": 0.4401,
+      "acertou": false
+    },
+    {
+      "id": "q173",
+      "pergunta": "Quais indicadores de desempenho devem ser coletados para avaliar a eficiência do sistema de controle de acesso em tempo real?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.5471
+        },
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.5438
+        },
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.538
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.5361
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5346
+        }
+      ],
+      "score_maximo": 0.5471,
+      "acertou": false
+    },
+    {
+      "id": "q174",
+      "pergunta": "Como resolver conflitos entre permissões de acesso definidas pelo administrador e restrições impostas por políticas de segurança?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.4858
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.4773
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.461
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.4221
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4209
+        }
+      ],
+      "score_maximo": 0.4858,
+      "acertou": false
+    },
+    {
+      "id": "q175",
+      "pergunta": "De que maneira implementar um sistema de auditoria que registre cada tentativa de acesso, incluindo IP e usuário, para fins de investigação?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idsecure.pdf",
+          "score": 0.5672
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.5438
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5147
+        },
+        {
+          "fonte": "rhid-datasheet.pdf",
+          "score": 0.4909
+        },
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.4835
+        }
+      ],
+      "score_maximo": 0.5672,
+      "acertou": false
+    },
+    {
+      "id": "q176",
+      "pergunta": "Quais são os passos necessários para obter certificação de conformidade com regulamentações locais de segurança pública?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.3938
+        },
+        {
+          "fonte": "torniquetes-datasheet.pdf",
+          "score": 0.3704
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.3639
+        },
+        {
+          "fonte": "satid-folder.pdf",
+          "score": 0.3569
+        }
+      ],
+      "score_maximo": 0.3938,
+      "acertou": false
+    },
+    {
+      "id": "q177",
+      "pergunta": "Como a arquitetura de rede influencia a latência percebida pelos usuários ao atravessar múltiplos switches?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.5406
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5249
+        },
+        {
+          "fonte": "idconnect-v2-datasheet-pt.pdf",
+          "score": 0.4753
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.4676
+        },
+        {
+          "fonte": "idconnect-datasheet-pt.pdf",
+          "score": 0.4673
+        }
+      ],
+      "score_maximo": 0.5406,
+      "acertou": false
+    },
+    {
+      "id": "q178",
+      "pergunta": "Qual é o procedimento correto para desativar temporariamente um ponto de entrada durante obras de manutenção estrutural?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "printid-guia-rapido.pdf",
+          "score": 0.4437
+        },
+        {
+          "fonte": "idblock-next-contador-giros-datasheet.pdf",
+          "score": 0.4306
+        },
+        {
+          "fonte": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+          "score": 0.3834
+        },
+        {
+          "fonte": "idblock-bqc.pdf",
+          "score": 0.367
+        }
+      ],
+      "score_maximo": 0.4437,
+      "acertou": false
+    },
+    {
+      "id": "q179",
+      "pergunta": "Como o sistema gerencia a sincronização de credenciais entre diferentes plataformas de acesso remoto sem depender de hardware específico?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.5743
+        },
+        {
+          "fonte": "iduhf-datasheet.pdf",
+          "score": 0.4897
+        },
+        {
+          "fonte": "idsecure-cloud.pdf",
+          "score": 0.4867
+        },
+        {
+          "fonte": "idtouch-folder.pdf",
+          "score": 0.4856
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.4821
+        }
+      ],
+      "score_maximo": 0.5743,
+      "acertou": false
+    },
+    {
+      "id": "q180",
+      "pergunta": "Qual é o procedimento padrão para atualizar os firmwares nos dispositivos de leitura de credenciais quando ocorre falha na comunicação com o servidor central?",
+      "negativa": true,
+      "fontes_aceitas": [],
+      "recuperadas": [
+        {
+          "fonte": "changelog_pt-br.pdf",
+          "score": 0.5624
+        },
+        {
+          "fonte": "idaccess-pro-datasheet.pdf",
+          "score": 0.4116
+        },
+        {
+          "fonte": "idbox-v2-datasheet.pdf",
+          "score": 0.4065
+        },
+        {
+          "fonte": "iduhf-lite-datasheet.pdf",
+          "score": 0.3941
+        }
+      ],
+      "score_maximo": 0.5624,
+      "acertou": false
+    }
+  ]
+}

@@ -10,7 +10,10 @@ Regras de seleção (cada corte é contado em `relatorio`, nada some em silênci
 
 - só `revisao.status` ∈ {aprovado, corrigido}; `--incluir-pendentes` libera
   `pendente` para ensaio, e o resultado NÃO vale como decisão;
-- `descartado`, `duplicada_de` e `trecho_confere == False` ficam de fora;
+- `descartado` e `duplicada_de` ficam de fora; `trecho_confere == False` só
+  corta item ainda `pendente` (ensaio): o flag é um aviso automático para o
+  revisor (casa o trecho com o texto extraído, e falha com erro de OCR ou
+  quebra de linha), e a aprovação humana, feita com o trecho na tela, vale mais;
 - `origem_ambigua` fica de fora: `ingest_file` grava só o basename em
   `source`, então um arquivo homônimo de outra pasta contaria como acerto;
 - `sem_resposta` vira caso **negativo** (`fontes_aceitas` vazia): acerto é
@@ -62,7 +65,7 @@ def _motivo_de_corte(caso: dict[str, Any], incluir_pendentes: bool) -> str | Non
         return "duplicada"
     if caso.get("sem_resposta"):
         return None
-    if not caso.get("trecho_confere", True):
+    if status == "pendente" and not caso.get("trecho_confere", True):
         return "trecho_nao_confere"
     if caso.get("origem_ambigua"):
         return "origem_ambigua"
