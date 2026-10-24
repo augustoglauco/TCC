@@ -668,7 +668,7 @@ git commit -m "test(seguranca): caracteriza validação de abuso das ferramentas
 
 **Interfaces:**
 - Consumes: `_build_prompt`, `wrap_untrusted` (já com isolamento da Task 2), `OllamaClient`, `OpenRouterClient`, `Document` — todos já existentes, sem mudança de assinatura.
-- Produces: `backend/eval/prompt_injection/results.json` (gerado ao rodar o script, não committed vazio — mesmo padrão de `eval/router_intents/` e `eval/rag_quality/`, que committam `results.json` só depois de rodar ao vivo).
+- Produces: o `results.json` de `prompt_injection` (removido em 2026-10-24) (gerado ao rodar o script, não committed vazio — mesmo padrão de `eval/router_intents/` e `eval/rag_quality/`, que committam `results.json` só depois de rodar ao vivo).
 
 - [ ] **Step 1: Criar o dataset**
 
