@@ -1495,6 +1495,17 @@ conversa e classificação do usuário").
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
+> **Estado em 2026-10-24.** Conjuntos de teste da Estratégia A prontos
+> (roteador 311, RAG docs 167, imagem 72, banco 80, injeção 95; latência
+> ainda não criado). Triagem de modelos concluída (9 de 10 medidos; 4
+> sobreviventes). Pendentes: Passo 8 (RAG Etapas 1–5 sobre as 167 perguntas
+> e aprovação do dono antes de reingerir), benchmark final nos 4
+> sobreviventes, injeção, latência e consolidação. Os números dos itens
+> `[x]` mais antigos abaixo (40 mensagens, 18–20 perguntas, 95,0% do
+> roteador) são do **piloto de 2026-09/10 sobre dados que não existem
+> mais** e ficam como histórico de método, não como resultado; os
+> resultados vigentes estão só em `docs/EVALUATION.md`.
+
 - [ ] Rodar a avaliação comparativa entre as 10 configurações de modelo local
       candidatas (Llama 3.2 11B Vision Instruct; Qwen2.5-VL 7B/3B Instruct; Qwen3.5 9B Q4_K_M; DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16; Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL — ver
       `docs/ARCHITECTURE.md` tabela de escopo), medindo custo/latência e
@@ -1504,8 +1515,9 @@ conversa e classificação do usuário").
       medição precoce sem RAG/playbooks reais não reflete a qualidade real de
       cada candidato e arriscaria descartar/escolher um modelo com base em
       sinal incompleto. Resultado: escolha do `LOCAL_MODEL_NAME` final.
-      Todos os 10 modelos candidatos já estão baixados e disponíveis localmente
-      no Ollama (`ollama list` / `api/tags`). `# MVP: primeira chamada após trocar de modelo tem
+      Os 10 candidatos foram baixados no Ollama; a triagem de 2026-10-24
+      mediu 9 (Llama 3.2 Vision não carrega no Ollama 0.30.6) e deixou 4
+      sobreviventes — a rodada completa neles segue pendente. `# MVP: primeira chamada após trocar de modelo tem
       custo de carga (cold start) bem maior que chamadas subsequentes —
       verificado empiricamente (~13s incluindo load vs. resposta quase
       imediata com modelo já quente); o script de benchmark deve descartar
@@ -1567,7 +1579,9 @@ conversa e classificação do usuário").
       independente que `docs/EVALUATION.md` pede; exige o
       desenvolvedor/orientador olhar as 18 respostas geradas. Resultado e
       tabela completos em `backend/eval/rag_quality/README.md`.
-- [x] Experimento complementar (a pedido explícito do desenvolvedor, fora
+- [x] *(Histórico: `chunk_size_search.py` e seu resultado foram removidos em
+      2026-10-24; a grade da Etapa 3 o substitui e alimenta a `/avaliacao`.)*
+      Experimento complementar (a pedido explícito do desenvolvedor, fora
       da lista original de avaliações): busca por bisseção do `chunk_size`
       ideal — `backend/eval/rag_quality/chunk_size_search.py` cria
       collections temporárias (só os 11 PDFs reais do domínio Suporte,
@@ -1719,7 +1733,7 @@ conversa e classificação do usuário").
         fallback transparente para mirror ungated `unsloth/embeddinggemma-300m`,
         seção 18 em `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` e
         `backend/eval/rag_ingestion/run_etapa2.py`. No conjunto mínimo
-        (`resultados_etapa2.json`, n=15): `google/embeddinggemma-300m` e
+        (piloto n=15; `resultados_etapa2.json` removido em 2026-10-24): `google/embeddinggemma-300m` e
         `BAAI/bge-m3` empatam em `Recall@5 = 1,000` (contra `0,750` do `e5-large`
         e `0,500` do `MiniLM-L12-v2` mesmo em `chunk_size=400`), mas
         `embeddinggemma-300m` é o **único separável** (`pos_min = 0,5670 >
@@ -1766,7 +1780,7 @@ conversa e classificação do usuário").
         *(Script estendido em 2026-10-17 em `varrer_threshold.py` para aceitar
         `--entrada`/`--saida`/`--ponto-id` do formato da Etapa 3 e calcular
         `recomendar_threshold` pelo ponto médio do intervalo separável;
-        rodada preliminar em `varredura_threshold_etapa4.json` sobre `cs512_ov10`
+        rodada preliminar (artefato removido em 2026-10-24) sobre `cs512_ov10`
         em `dataset_minimo.json` recomendou `score_threshold = 0,55` e
         `top_k = 5` com `ponto_medio = 0,5479` — execução oficial pendente das
         180 perguntas da Estratégia A.)*
@@ -1780,7 +1794,7 @@ conversa e classificação do usuário").
         *(Script implementado em 2026-10-17 em
         `backend/eval/rag_ingestion/run_etapa5.py` com testes em
         `tests/test_rag_ingestion_eval.py`. Na primeira execução preliminar
-        (`resultados_etapa5.json` sobre `dataset_minimo.json`), `cosine` e
+        (piloto sobre `dataset_minimo.json`, artefato removido em 2026-10-24), `cosine` e
         `dot` empataram com scores idênticos (`Recall@5 = 1,000`, `nDCG@10 =
         1,000`), o payload index `keyword` em `domain` mediu `media = 4,908 ms`
         / `p95 = 5,960 ms` vs `4,912 ms` / `5,384 ms` sem índice, e `euclid`
@@ -2092,7 +2106,8 @@ conversa e classificação do usuário").
       sair baixa na primeira etapa, a decisão a revisitar é o *modelo* free,
       não o tier. Os rascunhos dos conjuntos usam o mesmo tier, então o
       orçamento de ~US$ 12 da Estratégia A cai para **US$ 0**
-- [ ] Rodar o benchmark em **duas rodadas**: triagem com
+- [ ] Rodar o benchmark em **duas rodadas** (rodada 1, triagem, feita em
+      2026-10-24; rodada 2 pendente): triagem com
       `--etapas roteador,imagem` nos 10 candidatos (~8 min de GPU cada, zero
       chamada de juiz) e rodada completa só nos 4–5 sobreviventes.
   - [x] **Critério de corte registrado em 2026-10-17, antes da primeira
