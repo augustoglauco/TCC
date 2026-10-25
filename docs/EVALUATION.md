@@ -342,7 +342,7 @@ etapa.
 | 0 | Auditoria do corpus | — | chars/página por PDF | **feita** (2026-10-17) |
 | 1 | Harness de recuperação | — | `Recall@k`/`nDCG@10`/`MRR` | **feita** (2026-10-24): baseline sobre 163 perguntas |
 | 2 | **Modelo de embedding** | 4 candidatos | `nDCG@10` + VRAM + tempo de ingestão | **feita** (2026-10-24): bge-m3 ≈ embeddinggemma ≫ e5 ≫ MiniLM |
-| 3 | **Chunking × overlap** | grade 5×3, **em tokens** | `nDCG@10`, `Recall@5` | runner feito; rodada oficial pendente |
+| 3 | **Chunking × overlap** | grade 5×3, **em tokens** | `nDCG@10`, `Recall@5` | **feita** (2026-10-24): 768 tok / 15%; 512–1024 empatam |
 | 4 | `top_k` + `score_threshold` | varredura offline | `Recall@k` vs. precisão vs. taxa de vazio | `varrer_threshold.py` feito; pendente |
 | 5 | Distância + payload index | cosine/dot/euclid; índice `keyword` em `domain` | `nDCG@10`; p95 de latência | runner feito; rodada oficial pendente |
 | 6 | HNSW + quantização | — | **resultado negativo documentado** (medição 3) | redação |
@@ -512,6 +512,39 @@ decisão antes de qualquer implementação (regra 6 do `CLAUDE.md`).
 fronteira; acima de 25% adiciona ruído). **Chunking semântico fica fora de
 escopo:** as avaliações públicas de 2026 o colocam *abaixo* do split recursivo
 simples, e a regra 8 do `CLAUDE.md` decide contra ele.
+
+**Resultado medido em 2026-10-24** (bge-m3, 163 perguntas, 143 positivas;
+`eval/rag_ingestion/resultados_etapa3.json`). Os 15 pontos, por tamanho:
+
+| `chunk_size` (tokens) | overlap 10% | overlap 15% | overlap 20% |
+| --- | --- | --- | --- |
+| 128 | 0,769 / 0,923 | 0,749 / 0,895 | 0,762 / 0,916 |
+| 256 | 0,743 / 0,923 | 0,771 / 0,895 | 0,776 / 0,916 |
+| 512 | 0,796 / 0,944 | 0,776 / 0,923 | 0,802 / 0,937 |
+| **768** | 0,805 / 0,944 | **0,814 / 0,944** | 0,807 / 0,923 |
+| 1024 | 0,794 / 0,923 | 0,802 / 0,944 | 0,809 / 0,937 |
+
+(células: nDCG@10 / Recall@5; ingestão de 169 a 188 s por ponto.)
+
+**Leitura.** O ponto de maior nDCG@10 é `cs768_ov15` (0,814 / 0,944 / MRR
+0,763), mas a diferença para o resto da faixa de 512–1024 tokens é ruído:
+contra `cs512_ov10` (3 × 3 discordâncias, p = 1,0), `cs1024_ov15` (1 × 1) e
+`cs512_ov15` (5 × 2, p = 0,45) o pareado não separa. O que a grade mostra com
+segurança é a forma da curva: de 128 a 256 tokens o desempenho cai (contra
+`cs128_ov15`, ΔnDCG +0,065, IC95 [+0,016; +0,114]); de 512 para cima fica
+em platô. O overlap não tem efeito consistente (a ordem entre 10%, 15% e 20%
+muda de um tamanho para outro). A amplitude total é de 0,07 de nDCG@10 em uma
+amostra de 143, o que limita o que se pode afirmar entre pontos vizinhos.
+
+**Decisão: 768 tokens com overlap de 15%** (115 tokens). Vence por ser o
+máximo medido e fica no meio do platô, longe do degrau de 256 tokens e dentro
+da janela de 8192 tokens do bge-m3. Qualquer ponto de 512 a 1024 seria
+defensável; o relatório não deve vender 768 como superior aos vizinhos.
+
+**Separabilidade.** Nenhum dos 15 pontos separa positivas de negativas
+(menor score positivo 0,440–0,476; maior negativo 0,600–0,661). O chunking
+não resolve a recusa, o que confirma que o problema é de método, tratado na
+Etapa 4.
 
 **Implementado:** `app.rag.chunking.chunk_text` com corte recursivo (`\n\n` →
 `\n` → `. ` → `" "` → fatia dura) e contagem em tokens quando recebe

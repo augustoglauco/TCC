@@ -1745,7 +1745,7 @@ conversa e classificação do usuário").
         Escolhido o **bge-m3** por tempo de ingestão (179 s × 310 s), janela
         de 8192 tokens e híbrido disponível. Análise em
         `docs/EVALUATION.md` §2.1, Etapa 2.*
-  - [ ] Etapa 3 — `chunk_text` passa a contar **tokens** pelo tokenizer da
+  - [x] Etapa 3 — `chunk_text` passa a contar **tokens** pelo tokenizer da
         collection (não caracteres) e a cortar recursivamente
         (`\n\n` → `\n` → `. ` → espaço); grade 5×3: `chunk_size` ∈ {128,
         256, 512, 768, 1024} tokens × `overlap` ∈ {10%, 15%, 20%}. A
@@ -1767,6 +1767,11 @@ conversa e classificação do usuário").
         (`0,5750 > 0,5208`), todos os 12 pontos de 256–1024 tokens mantêm
         `Recall@5 = 1,000` e `separável = True`, e a única faixa que degrada é
         `128` tokens.)*
+        *Resultado oficial (2026-10-24, bge-m3, 163 perguntas): melhor ponto
+        `cs768_ov15` (nDCG@10 0,814, Recall@5 0,944), mas indistinguível de
+        512–1024 tokens (todos p > 0,4 no pareado); só 128 tokens degrada
+        (nDCG −0,065, IC95 [+0,016; +0,114] a favor do 768). Adotado
+        768 tokens / 15%. Análise em `docs/EVALUATION.md` §2.1, Etapa 3.*
   - [x] **Regressão de unidade de `chunk_size` aberta pela Etapa 3**
         (achado e correção em 2026-10-17, detalhados em
         `docs/ARCHITECTURE.md`). `chunk_size`/`chunk_overlap` passam a ser
