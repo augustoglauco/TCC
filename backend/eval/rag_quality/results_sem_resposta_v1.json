@@ -1,0 +1,390 @@
+{
+  "casos": [],
+  "casos_sem_resposta": [
+    {
+      "id": 161,
+      "pergunta": "Qual é o procedimento recomendado para migrar usuários existentes de cartões magnéticos para o novo sistema de identificação biométrica?",
+      "resposta_gerada": "Olá! Para realizar a transição ou garantir que os usuários cadastrados via cartão possam ser identificados pelo sistema, você pode seguir as orientações baseadas no manual do equipamento:\n\nSe o objetivo é manter os dados existentes e apenas permitir novas formas de identificação, note que o sistema permite múltiplos métodos (biometria, face, cartão de proximidade, código de barras ou senha). \n\nCaso ocorram falhas repetitivas na leitura da biometria devido à qualidade da digital do usuário, a recomendação técnica é:\n1.  **Melhorar a captura:** Certifique-se de que o usuário limpe os dedos (água e sabão), utilize os dedos indicados ou do meio, e pressione firmemente contra o sensor sem movimentá-lo.\n2.  **Alternativa de Identificação:** Se a biometria continuar apresentando falhas constantes para determinados usuários, o manual recomenda que você configure ou altere o tipo de verificação para **senha, cartão de proximidade ou código de barras**.\n\nCaso precise realizar uma migração física de dados entre equipamentos (backup e restauração):\n1. Insira um pendrive na porta USB não fiscal (localizada à direita do display).\n2. No menu principal, selecione a opção \"USB\".\n3. Escolha **\"Enviar usuários\"** para exportar todos os dados cadastrados (incluindo cartões, digitais e senhas) para o pendrive.\n4. No novo equipamento, selecione **\"Receber usuários\"** para importar os dados do pendrive.\n\nSe você precisar de mais detalhes sobre um modelo específico ou se houver uma mensagem de erro específica aparecendo durante esse processo, por favor, me informe para que eu possa te orientar melhor!",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "rep-idclass-manual.pdf",
+        "rep-idclass-manual.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não cobre a migração de cartões para biometria. Em vez disso, descreve procedimentos específicos atribuídos ao manual (porta USB à direita do display, menus \"USB\", \"Enviar usuários\" e \"Receber usuários\", alternativas de identificação), embora as fontes recuperadas não comprovem nenhum desses detalhes. O pedido de mais contexto no final não basta para caracterizar recusa."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 162,
+      "pergunta": "Como garantir a conformidade com as normas de proteção de dados ao armazenar imagens faciais em servidores externos?",
+      "resposta_gerada": "Olá! Compreendo sua preocupação com a segurança e o tratamento de dados sensíveis, como imagens faciais.\n\nCom base nas informações técnicas disponíveis no manual do sistema:\n\n1.  **Processamento Local:** O equipamento possui recursos avançados para identificação facial (como melhorias em algoritmos de liveness e detecção de rostos) que ocorrem diretamente no dispositivo ou via integração com o servidor local da empresa.\n2.  **Gestão de Dados via API:** Para o cadastro de imagens, o sistema permite o envio através de requisições específicas (como `user_set_image` ou `update_users`), onde as imagens podem ser enviadas em formato binário ou base64. \n\nNo entanto, a documentação técnica fornecida **não contém informações específicas sobre protocolos de criptografia de dados em trânsito, termos de conformidade com leis de proteção de dados (como a LGPD) ou detalhes sobre políticas de armazenamento em nuvem/servidores externos.**\n\nComo o suporte técnico foca na funcionalidade do equipamento e não na consultoria jurídica de proteção de dados, recomendo que:\n*   Você verifique os Termos de Uso da plataforma de gerenciamento que você utiliza.\n*   Consulte a política de privacidade da empresa para entender como os dados trafegados pelos dispositivos são protegidos no servidor externo.\n\nSe precisar de ajuda com alguma função específica da API ou configuração técnica do dispositivo, estou à disposição!",
+      "fontes_recuperadas": [
+        "api_idclass_latest.md",
+        "changelog_pt-br.pdf",
+        "api_idclass_latest.md"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite não ter informações sobre criptografia, LGPD e armazenamento em servidores externos, mas afirma como vindos do manual recursos (algoritmos de liveness), endpoints (`user_set_image`, `update_users`) e formatos de envio que não foram verificados nas fontes recuperadas para essa pergunta. Essa mistura de ressalva com dados técnicos apresentados como do acervo conta como alucinação."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 163,
+      "pergunta": "Quais são os requisitos de rede necessários para operar múltiplos pontos de entrada simultaneamente sem latência excessiva?",
+      "resposta_gerada": "Para garantir o funcionamento correto e evitar interferências quando houver mais de um produto instalado no mesmo ambiente, a recomendação técnica é a seguinte:\n\nPara dispositivos que operam com uma placa controladora externa (sistema central de controle), recomenda-se utilizar a configuração via **protocolo Wiegand**. \n\nEssa configuração é a recomendada especificamente para evitar interferências quando há múltiplos produtos instalados simultaneamente no ambiente.",
+      "fontes_recuperadas": [
+        "idbox-v2-userguide.pdf",
+        "idconnect-v2-userguide-pt.pdf",
+        "iduhf-lite-guia.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite falta de informação e não trata de requisitos de rede ou latência. Ela afirma como recomendação do acervo que o protocolo Wiegand deve ser usado para evitar interferências entre múltiplos produtos, um procedimento técnico específico que não está fundamentado nas fontes apresentadas."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 164,
+      "pergunta": "De que forma pode-se personalizar políticas de acesso baseadas em horários específicos para diferentes departamentos dentro de um prédio?",
+      "resposta_gerada": "Olá! Compreendo sua necessidade de organizar o controle de acesso por departamento e horário.\n\nCom base nas especificações técnicas do sistema, você pode realizar essa personalização utilizando as funcionalidades do **iDAccess Nano Prox**. O equipamento permite a configuração de regras de liberação baseadas em horários e departamentos.\n\nPara configurar essas políticas, siga estas orientações:\n\n1.  **Configuração de Regras:** O sistema permite a criação de regras de acesso personalizadas especificamente por grupos (departamentos) e horários definidos por você.\n2.  **Gestão via Software:** Caso o equipamento esteja operando em modo \"enterprise\" (que requer licença específica), ele conta com um software completo de gerenciamento de controle de acesso via navegador para facilitar essa gestão.\n3.  **Identificação:** O sistema permite que a identificação seja feita por senha numérica ou cartões de proximidade, facilitando a atribuição do usuário ao seu respectivo departamento.\n\nCaso precise de mais detalhes sobre como configurar uma regra específica no software ou sobre o módulo de acionamento externo para expansão de soluções, estou à disposição!",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "idlock-bio-manual.pdf",
+        "idaccess-nano-prox.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite falta de informação e afirma como fatos do acervo que o iDAccess Nano Prox permite regras por departamento e horário, que existe um modo \"enterprise\" com licença e software via navegador, e um módulo de acionamento externo. Nenhuma dessas afirmações foi confirmada pelas fontes recuperadas, que podem ser irrelevantes."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 165,
+      "pergunta": "Após a instalação de um dispositivo de leitura de identificação, quais passos asseguram a integridade dos dados de barramento?",
+      "resposta_gerada": "Para garantir a integridade e o funcionamento correto da comunicação com o módulo biométrico iDBio via serial RS232/TTL, você deve observar os seguintes padrões técnicos:\n\n1. **Configuração de Baudrate**: A configuração padrão do barramento é 115200 (115200 bits/s, 8 bits de dados, sem paridade e 1 bit de parada).\n2. **Formato dos Dados**: Os comandos e parâmetros devem ser separados pelo caractere \"pipe\" (`|`, que é o código ASCII 0x7C) e finalizados com uma quebra de linha (`\\n`, código ASCII 0x0A).\n3. **Estrutura de Transmissão**:\n   - O comando enviado deve seguir o padrão: `COMANDO|PARAMETRO1|PARAMETRO2|...`\n   - A resposta do dispositivo seguirá o formato: `CODIGO_RETORNO|PARAMETRO1|PARAMETRO2|...`\n4. **Verificação de Erros**: O sistema utiliza o cálculo de CRC32 (com polinômio 0x04C11DB7) para a recepção dos dados. Em caso de erro, o dispositivo retornará apenas o código correspondente ao problema.\n\n**Observação Importante:** Evite utilizar TTL +5V diretamente no módulo, pois isso pode causar danos ao equipamento.",
+      "fontes_recuperadas": [
+        "idbio-rs232.pdf",
+        "leitor-qr-code-usb1.pdf",
+        "leitor-qr-code-usb.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não tem a informação e apresenta como fato dados técnicos específicos (baudrate 115200, separador pipe, CRC32 com polinômio 0x04C11DB7, formato de resposta), sem que as fontes recuperadas (nomes de arquivos de iDBio e leitores QR code) comprovem esses detalhes."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 166,
+      "pergunta": "Como realizar a calibração dos sensores infravermelhos utilizados na leitura facial para minimizar falsos positivos?",
+      "resposta_gerada": "Olá! Para realizar a calibração das câmeras IR no seu equipamento REP iDClass Facial, siga os passos abaixo:\n\n1. Acesse o menu de **Câmeras** no seu equipamento.\n2. Selecione a opção **Calibração**.\n3. No momento em que aparecer a mensagem \"Tudo certo, mantenha essa posição\", você deve se afastar da câmera e permanecer imóvel.\n4. Após o processo, o número de calibração deverá aparecer na parte superior da tela.\n\n**Dicas adicionais para melhorar o reconhecimento facial:**\n*   **Limpeza:** Certifique-se de que as lentes não estejam sujas ou borradas; utilize um pano de microfibras para limpeza.\n*   **Iluminação:** O sistema funciona melhor em ambientes bem iluminados (embora o equipamento possua LEDs para auxílio em locais escuros).\n*   **Posicionamento:** Oriente os usuários a olharem diretamente para a câmera durante a identificação.",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "rep-idclass-manual.pdf",
+        "api_idclass_latest.md"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não tem a informação e apresenta como fato um procedimento específico (menu Câmeras, opção Calibração, mensagens na tela, número de calibração) sem que as fontes recuperadas sustentem esses detalhes. Também não trata de minimizar falsos positivos, que era o foco da pergunta."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 167,
+      "pergunta": "Quais são as melhores práticas para manter a disponibilidade contínua do sistema de bloqueio de porta em caso de falha de energia?",
+      "resposta_gerada": "Para garantir a disponibilidade e o funcionamento do seu sistema de segurança mesmo em casos de falha de energia ou fim da autonomia das pilhas, seguem as recomendações baseadas no manual do equipamento:\n\n1. **Utilização de Pilhas Alcalinas:** O equipamento iDLock deve ser alimentado por 4 pilhas alcalinas AA para garantir a operação regular.\n2. **Monitoramento de Bateria:** O sistema possui um aviso de bateria fraca que sinaliza quando é necessário realizar a troca das pilhas preventivamente.\n3. **Alimentação de Emergência:** Em casos onde as pilhas se esgotarem totalmente, o equipamento permite o uso de uma **bateria de 9V** para fornecer energia imediata e permitir o acesso ao local de forma segura.\n\n**Dica de Manutenção:** Para preservar a vida útil do produto e garantir sua durabilidade, recomenda-se não remover ou substituir peças internas, utilizando apenas as pilhas recomendadas e evitando a exposição a sol, chuva ou umidade.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "idlock-bio-manual.pdf",
+        "idtouch-manual.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite falta de informação e apresenta dados técnicos específicos (4 pilhas alcalinas AA, aviso de bateria fraca e bateria de 9V de emergência) como se constassem do manual, embora a pergunta não tenha resposta no acervo. Isso caracteriza alucinação."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 168,
+      "pergunta": "Em que medida o sistema suporta a integração com protocolos de autenticação multifator que combinam chave física e aplicativo móvel?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a integração com sistemas de autenticação multifator (MFA) que combinem chaves físicas e aplicativos móveis.\n\nCom base nas informações disponíveis em nossa base de conhecimento técnica, não há detalhes específicos ou documentação sobre o suporte direto a protocolos de autenticação multifator externos ou integrações específicas com aplicativos móveis para esse fim.\n\nPara que eu possa fornecer uma orientação mais precisa ou verificar se existe algum módulo específico para essa finalidade, você poderia me informar:\n1. Qual é o modelo do equipamento que você utiliza?\n2. Existe algum erro ou mensagem específica que aparece quando você tenta realizar essa configuração?\n3. Você já tentou alguma integração via API ou protocolo específico (como o RS-485 mencionado nos manuais)?\n\nCaso prefira, posso encaminhar sua dúvida para nossa equipe de engenharia para um detalhamento técnico mais profundo sobre as capacidades de integração do sistema com soluções de terceiros.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "erro": "JSON inválido do juiz: Unterminated string starting at: line 1 column 54 (char 53)"
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 169,
+      "pergunta": "Qual é o processo de validação de licenças de software antes da implantação em ambientes industriais críticos?",
+      "resposta_gerada": "Olá! Compreendo a importância da validação de licenciamento para sistemas que operam em ambientes críticos.\n\nCom base nas informações disponíveis sobre as soluções de controle de acesso, o processo de validação e a estrutura das licenças funcionam da seguinte forma:\n\n1.  **Modelos de Licença:** O sistema iDSecure possui duas versões principais para atender a diferentes necessidades de infraestrutura:\n    *   **iDSecure Lite:** Voltada para operações que exigem validadores locais, permitindo até 2.000 usuários e 5 equipamentos.\n    *   **iDSecure Enterprise:** Projetada para maior robustez, com suporte a número ilimitado de usuários e equipamentos (conforme o pacote de licença adquirido), além de validação e identificação processadas em servidor.\n\n2.  **Validação de Regras e Segurança:**\n    *   Na versão **Lite**, as regras de acesso são validadas localmente nos próprios dispositivos.\n    *   Na versão **Enterprise**, a validação ocorre no servidor, permitindo implementar funcionalidades mais complexas como regra de dupla-entrada, gestão de créditos e itens de segurança avançados.\n\n3.  **Recursos Adicionais na Versão Enterprise:** Para ambientes que exigem maior rigor técnico e integração, a versão Enterprise oferece recursos adicionais não disponíveis na Lite, tais como:\n    *   Regras de acesso complexas;\n    *   Controle de créditos e de veículos;\n    *   Integração com câmeras IP (CFTV);\n    *   Alerta de pânico e lista negra.\n\nCaso você precise de detalhes específicos sobre a homologação ou conformidade técnica para o seu modelo específico de instalação, recomendo informar qual versão do software (Lite ou Enterprise) será utilizada no ambiente industrial, para que possamos detalhar os requisitos técnicos correspondentes.",
+      "fontes_recuperadas": [
+        "idsecure.pdf",
+        "satid-manual.pdf",
+        "printid-guia-rapido.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não trata do processo de validação antes da implantação em ambientes industriais; em vez disso, apresenta dados específicos do iDSecure (limites de 2.000 usuários e 5 equipamentos, diferenças entre Lite e Enterprise) como 'informações disponíveis', sem que as fontes recuperadas comprovem esses dados nem o procedimento pedido. O pedido final de mais contexto não basta para caracterizar recusa."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 170,
+      "pergunta": "Como otimizar o consumo de bateria dos dispositivos portáteis de acesso em ambientes com pouca cobertura elétrica?",
+      "resposta_gerada": "Olá! Entendo sua preocupação quanto à autonomia de energia em locais com infraestrutura elétrica limitada.\n\nCom base nas informações técnicas disponíveis, os equipamentos mencionados (como o iDConnect e o iDConnect V2) são projetados para serem alimentados por fontes externas ou integrados a sistemas maiores. Para garantir o funcionamento correto e otimizar o uso de energia nesses cenários, recomendo as seguintes práticas:\n\n1. **Alimentação Direta:** Em vez de depender de baterias, os dispositivos podem ser conectados diretamente a um Relógio de Ponto (REP) ou a um Controlador de Acesso que possua porta USB. Isso permite que o equipamento utilize a energia do sistema principal da empresa.\n2. **Uso de Fontes Dedicadas:** Caso não haja conexão com um REP ou controlador, utilize uma fonte de alimentação dedicada (mínimo de 5V e 1A para modelos iDConnect/iDConnect V2). Isso garante que o equipamento opere de forma estável sem depender de baterias internas ou externas.\n3. **Conexão Estável:** Para dispositivos com modem 4G, certifique-se de que a conectividade seja mantida através de um plano de dados válido e sinal estável, evitando que o equipamento precise realizar reconexões constantes (o que pode consumir mais energia).\n\nSe você estiver utilizando um modelo específico e precisar de orientações sobre como integrá-lo ao seu sistema atual para economizar energia, por favor, informe o modelo exato do produto que você possui.",
+      "fontes_recuperadas": [
+        "idconnect-v2-userguide-pt.pdf",
+        "idaccess-guia.pdf",
+        "idconnect-userguide-pt.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não tem a informação e oferece recomendações como se fossem baseadas em documentação, incluindo dados específicos inventados (fonte de 5V e 1A, conexão USB ao REP, modem 4G). O pedido final por mais detalhes do modelo é um complemento, não uma recusa clara."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 171,
+      "pergunta": "Qual estratégia recomendada permite atualizar firmwares dos equipamentos sem interromper o fluxo de pessoas?",
+      "resposta_gerada": "Para realizar a atualização de firmware do equipamento REP iDClass, siga os procedimentos abaixo conforme orientado no manual:\n\n1. Insira um \"Pendrive\" contendo o firmware do equipamento na porta USB não fiscal.\n2. Acesse a tela \"Sobre\".\n3. Pressione o botão **UPDATE**.\n4. Aguarde até que o processo de atualização seja totalmente concluído.\n5. Somente após a conclusão, remova o pendrive da porta USB e reinicie o equipamento.\n\n**Importante:** Nunca remova o pendrive antes do término do processo, pois isso pode causar danos ao seu equipamento.\n\nQuanto à estratégia para não interromper o fluxo de pessoas, as informações disponíveis no manual técnico não especificam um cronograma ou método alternativo para evitar interrupções durante a atualização. Recomenda-se realizar o procedimento em horários de menor movimento ou em momentos programados para manutenção.",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite que o manual não traz estratégia para evitar interrupções, o que configura recusa parcial. Mesmo assim, apresenta como vindo do manual um procedimento específico de atualização (pendrive na porta USB não fiscal, tela 'Sobre', botão UPDATE), dado que não foi verificado nas fontes recuperadas, o que caracteriza alucinação."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 172,
+      "pergunta": "Como garantir que a cadeia de suprimentos de peças de reposição seja gerenciada de forma eficiente após a implementação?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a gestão da cadeia de suprimentos para peças de reposição após a implementação.\n\nInfelizmente, as informações disponíveis em minha base de conhecimento técnica não contemplam procedimentos sobre gestão logística, cadeia de suprimentos ou políticas de estoque de peças de reposição para os produtos mencionados (como o iDBlock Next ou a iDPower).\n\nPara que eu possa te ajudar melhor, você poderia me informar se está enfrentando algum problema técnico específico com um componente ou se precisa de orientações sobre a instalação e configuração de algum modelo específico? Caso prefira, posso encaminhar sua dúvida para o setor responsável.",
+      "fontes_recuperadas": [
+        "idblock-next.pdf",
+        "idblock-next.pdf",
+        "idpower-guia.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente que a base não contém informações sobre gestão da cadeia de suprimentos de peças de reposição e pede mais contexto, oferecendo encaminhamento a um setor responsável. Não há dados, números, especificações ou procedimentos inventados; os nomes dos produtos citados já constam nas fontes recuperadas."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 173,
+      "pergunta": "Quais indicadores de desempenho devem ser coletados para avaliar a eficiência do sistema de controle de acesso em tempo real?",
+      "resposta_gerada": "Com base nas informações disponíveis sobre o software **iDSecure**, que é utilizado para gerenciar e monitorar acessos em tempo real, os principais elementos e recursos que auxiliam no monitoramento da eficiência do sistema são:\n\n1.  **Monitoramento em Tempo Real:** O iDSecure permite o acompanhamento imediato das entradas e saídas de pessoas e veículos.\n2.  **Relatórios Customizáveis:** A plataforma gera relatórios detalhados para facilitar a análise e gestão operacional.\n3.  **Alertas e Segurança:** É possível configurar alertas de pânico e listas negras, que são indicadores críticos para a segurança do local.\n4.  **Gestão de Regras:** O sistema permite validar regras personalizadas (por grupos, horários e tipos de acesso), garantindo que apenas usuários autorizados acessem áreas específicas.\n\nEmbora o material técnico não liste \"indicadores de desempenho\" específicos (como tempo médio de espera ou taxa de tentativas inválidas), a eficiência do sistema é demonstrada pela capacidade de:\n*   Monitorar acessos em tempo real;\n*   Gerar relatórios detalhados para análise de dados;\n*   Validar regras complexas de acesso.\n\nCaso você precise de métricas específicas sobre hardware (como o desempenho dos processadores quad-core dos controladores iDAccess Pro ou Nano), posso fornecer os detalhes técnicos desses equipamentos.",
+      "fontes_recuperadas": [
+        "idaccess-pro-datasheet.pdf",
+        "idsecure.pdf",
+        "idaccess-nano.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite que o material não lista indicadores de desempenho, mas em seguida apresenta funcionalidades do iDSecure como se medissem a eficiência do sistema. Também afirma como fato que os controladores iDAccess Pro e Nano possuem processadores quad-core, especificação que não consta das fontes recuperadas."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 174,
+      "pergunta": "Como resolver conflitos entre permissões de acesso definidas pelo administrador e restrições impostas por políticas de segurança?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a gestão de permissões e como lidar com possíveis conflitos entre as configurações do administrador e as políticas de segurança do sistema.\n\nCom base nas informações técnicas da nossa plataforma, o comportamento do sistema em relação às regras depende da versão do software que você utiliza (iDSecure ou iDSecure Cloud). Segue uma explicação detalhada:\n\n**1. Para usuários do iDSecure (Versão Local):**\n*   **iDSecure Lite:** As validações de regras (como horários, grupos e tipos de acesso) são processadas localmente nos dispositivos. Se houver um conflito, a regra definida no equipamento prevalecerá para o controle de acesso imediato.\n*   **iDSecure Enterprise:** Esta versão permite a configuração de regras complexas, como dupla-entrada, créditos e restrições avançadas. Nela, tanto a identificação quanto a validação das regras ocorrem diretamente no servidor, permitindo uma gestão mais rigorosa e centralizada para garantir que as políticas de segurança sejam seguidas.\n\n**2. Para usuários do iDSecure Cloud:**\n*   O sistema é totalmente em nuvem e permite a configuração de regras personalizadas. \n*   A plataforma oferece integração via API, o que permite que as políticas de segurança sejam integradas a outras aplicações externas de forma consistente.\n\nPara que eu possa te orientar com mais precisão sobre como configurar essas camadas de segurança no seu ambiente específico, você poderia me informar qual versão do software você utiliza (Lite, Enterprise ou Cloud)?",
+      "fontes_recuperadas": [
+        "idsecure.pdf",
+        "idsecure-cloud.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não contém a informação e, em vez disso, descreve como cada versão (Lite, Enterprise, Cloud) resolve conflitos de regras, como se isso constasse das fontes. A pergunta final por qual versão o usuário usa é apenas um pedido de contexto e não substitui a admissão de falta de informação."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 175,
+      "pergunta": "De que maneira implementar um sistema de auditoria que registre cada tentativa de acesso, incluindo IP e usuário, para fins de investigação?",
+      "resposta_gerada": "Olá! Entendo a importância de contar com registros detalhados para investigações e segurança.\n\nCom base no nosso manual técnico, o equipamento possui uma funcionalidade específica para este fim:\n\nO sistema realiza o registro em banco de dados de diversos eventos, incluindo:\n*   Eventos de API;\n*   Alteração de parâmetros;\n*   Configuração de rede;\n*   Uso de Menu e USB.\n\nPara consultar ou gerar esses registros (Logs de Auditoria), você tem duas opções principais:\n1.  **Pelo dispositivo:** Acessar o menu **Diagnóstico > Gerar log de auditoria** diretamente no display do equipamento.\n2.  **Pela interface Web:** O acesso pode ser feito através da web do embarcado.\n\nAlém disso, caso haja perda de conexão com o servidor, o sistema conta com a tabela \"access_events\" para registrar eventos que ocorreram nesse período (como o giro de braço da catraca).\n\nCaso precise de detalhes técnicos adicionais sobre um modelo específico ou uma configuração personalizada via API, por favor, me informe o modelo do seu equipamento e eu poderei auxiliá-lo melhor!",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "idsecure.pdf",
+        "idsecure-cloud.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não cobre a pergunta e afirma procedimentos específicos (menu Diagnóstico > Gerar log de auditoria, interface Web, tabela \"access_events\") como se constassem do manual, embora as fontes recuperadas sejam um changelog e documentos genéricos que não sustentam essas informações."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 176,
+      "pergunta": "Quais são os passos necessários para obter certificação de conformidade com regulamentações locais de segurança pública?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre as certificações de segurança.\n\nInfelizmente, as informações disponíveis na nossa base de conhecimento não detalham os procedimentos ou requisitos específicos para obter certificações de conformidade com regulamentações locais de segurança pública.\n\nPara que eu possa te ajudar melhor ou direcionar sua solicitação ao setor responsável, você poderia fornecer mais detalhes? Por exemplo:\n1. Qual é o modelo exato do equipamento ou sistema que você utiliza?\n2. Em qual região/estado você está buscando essa conformidade?\n3. Existe algum órgão específico ou norma técnica mencionada pelo seu setor de segurança?\n\nAssim que você fornecer esses detalhes, farei o possível para buscar informações mais específicas para você.",
+      "fontes_recuperadas": [
+        "api_idclass_latest.md",
+        "idlock-bio-manual.pdf",
+        "satid-manual.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite explicitamente que a base de conhecimento não contém os procedimentos de certificação e pede mais contexto antes de prosseguir. Não apresenta nenhum dado técnico, número, procedimento ou fonte como se constasse do acervo."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 177,
+      "pergunta": "Como a arquitetura de rede influencia a latência percebida pelos usuários ao atravessar múltiplos switches?",
+      "resposta_gerada": "Olá! Compreendo que você tem uma dúvida técnica sobre como a estrutura da rede pode impactar o desempenho do sistema.\n\nCom base nas informações disponíveis em nossa documentação técnica, não há detalhes específicos detalhando o impacto técnico exato de múltiplos switches na latência de rede para os nossos dispositivos.\n\nPara que eu possa te ajudar melhor ou encaminhar seu caso para um especialista, você poderia me informar:\n1. Qual modelo de equipamento você está utilizando?\n2. Existe algum problema específico de lentidão ou erro de comunicação ocorrendo no momento?\n3. Você já realizou testes de ping ou diagnóstico de rede entre o dispositivo e o servidor/gateway?\n\nCom esses detalhes adicionais, poderei buscar informações mais precisas para auxiliá-lo.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite explicitamente que a documentação não traz detalhes sobre o impacto de múltiplos switches na latência e pede mais contexto ao usuário. Não afirma nenhum dado técnico, número, especificação ou procedimento como se constasse do acervo."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 178,
+      "pergunta": "Qual é o procedimento correto para desativar temporariamente um ponto de entrada durante obras de manutenção estrutural?",
+      "resposta_gerada": "Para desativar temporariamente o acesso por fora da porta, você pode utilizar a função **Não Perturbe** do equipamento iDLock. Este modo bloqueia a abertura da porta pelo lado externo.\n\nSiga os passos abaixo para ativar e desativar essa função:\n\n**Para ativar o modo Não Perturbe:**\n1. Pressione e segure o botão \"Não Perturbe\" por 2 segundos;\n2. Um bipe duplo e rápido indicará que o modo foi ativado com sucesso.\n\n**Para desativar o modo Não Perturbe:**\n* Basta abrir a fechadura pelo lado interno.",
+      "fontes_recuperadas": [
+        "idtouch-manual.pdf",
+        "satid-manual.pdf",
+        "idlock-bio-manual.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite falta de informação e apresenta um procedimento específico (botão 'Não Perturbe' com pressão de 2 segundos e bipe duplo) como se constasse do acervo. As fontes recuperadas são manuais de fechaduras, sem relação com pontos de entrada em obras estruturais."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 179,
+      "pergunta": "Como o sistema gerencia a sincronização de credenciais entre diferentes plataformas de acesso remoto sem depender de hardware específico?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre como o sistema gerencia as credenciais em diferentes ambientes.\n\nCom base nas informações do nosso software, a gestão e a sincronização das credenciais ocorrem da seguinte forma:\n\n1.  **Plataforma Baseada em Nuvem (iDSecure Cloud):** O sistema iDSecure Cloud funciona 100% em nuvem. Isso significa que a gestão de usuários, regras de acesso e monitoramento é centralizada na plataforma web, permitindo que os dados sejam acessíveis de qualquer lugar através de um navegador, independentemente do dispositivo (PC, tablet ou celular).\n2.  **Integração Nativa:** Todos os controladores da Control iD estão integrados nativamente ao sistema. Isso garante que as regras e credenciais configuradas na plataforma central sejam aplicadas corretamente nos equipamentos conectados.\n3.  **Aplicativo Móvel:** Para maior mobilidade, existe um aplicativo exclusivo para iOS e Android que permite a gestão remota (como cadastro de visitantes e visualização de logs), mantendo a sincronia com a base de dados da nuvem.\n4.  **Sincronização via API:** O sistema também oferece integração via API, o que permite conectar a plataforma com diversas aplicações externas de forma segura e dinâmica.\n\nSe você estiver utilizando a versão **iDSecure (Local)** em vez da Cloud, as regras de acesso e validações são processadas localmente nos dispositivos, mas ainda assim mantendo a compatibilidade com os controladores integrados.\n\nCaso precise de mais detalhes sobre uma funcionalidade específica ou tenha alguma dúvida sobre um modelo de equipamento que você já possui, estou à disposição para ajudar!",
+      "fontes_recuperadas": [
+        "idsecure-cloud.pdf",
+        "changelog_pt-br.pdf",
+        "idsecure.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não contém a informação; em vez disso, descreve como funciona a sincronização de credenciais (nuvem centralizada, integração nativa, app móvel, API, processamento local na versão iDSecure Local) como se fosse dado do acervo, embora as fontes recuperadas não tratem desse tema específico. Isso constitui alucinação de procedimentos técnicos."
+      },
+      "nota_manual": null
+    },
+    {
+      "id": 180,
+      "pergunta": "Qual é o procedimento padrão para atualizar os firmwares nos dispositivos de leitura de credenciais quando ocorre falha na comunicação com o servidor central?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre o procedimento de atualização de firmware em situações de falha de comunicação com o servidor central.\n\nCom base nas informações técnicas disponíveis, não há um passo a passo específico detalhado para o caso de \"falha na comunicação com o servidor\" para realizar a atualização. No entanto, as notas de atualização indicam que houve melhorias importantes e correções críticas relacionadas à estabilidade da conexão em versões recentes:\n\n1. **Melhorias na Verificação (V5.5.4):** Foram implementadas melhorias na verificação de atualização via rede.\n2. **Estabilidade com SecBox (V5.5.3):** Houve correções importantes para casos onde o equipamento parava de procurar pela SecBox em caso de falha de comunicação durante a inicialização.\n3. **Resiliência (V5.5.1 e V5.5.0):** Foram implementadas melhorias na comunicação com a SecBoxV2 e um recurso de \"Reset da SecBoxV2 quando houver perda de comunicação com a unidade\".\n\nComo o procedimento exato para atualização offline ou em caso de falha específica não consta detalhadamente nos manuais recuperados, recomendo que você forneça mais detalhes para que eu possa ajudá-lo melhor:\n\n1. Qual é o modelo exato do dispositivo que você está tentando atualizar?\n2. O equipamento possui uma SecBox conectada?\n3. Existe alguma mensagem de erro específica aparecendo no display ou na interface web do equipamento?\n\nCom esses dados, poderei verificar se existe uma instrução específica para o seu modelo.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite não ter o procedimento específico e pede mais contexto, mas em seguida cita versões (V5.5.0 a V5.5.4) e funcionalidades como se constassem das notas de atualização, sem que as fontes recuperadas comprovem esses dados para a pergunta feita."
+      },
+      "nota_manual": null
+    }
+  ],
+  "resumo": {
+    "respondiveis": 0,
+    "sem_resposta": 20,
+    "recusou": 7,
+    "alucinou": 16,
+    "recusa_por_marcador": 1
+  }
+}

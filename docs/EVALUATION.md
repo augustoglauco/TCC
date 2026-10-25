@@ -632,6 +632,92 @@ uma checagem de suficiência em chamada separada (+1 chamada do gerador por
 pergunta). Vira decisão de arquitetura (regra 6) e altera o prompt mapeado em
 `PROMPTS_E_INSTRUCOES_LLM.md` (regra 11).
 
+**Robustez e configuração do `run_eval.py` (2026-10-25).** A rodada das 143
+positivas (`--com-resposta`) falhou duas vezes e deixou regras de método:
+
+- **Caso 80, `ReadTimeout` no Ollama:** o prompt (~3,5 mil tokens com 3
+  documentos) ficou perto do `num_ctx` padrão de 4096. Em produção
+  `local_llm_num_ctx` está `null` em `app_settings` (padrão do Ollama), então o
+  mesmo risco existe no chat: `_build_prompt` não trunca por tokens.
+  Se o Ollama corta o prompt acima do contexto, o corte é silencioso.
+- **Caso 160, crash do llama-server** (`CUDA error: illegal memory access`, 500
+  em `/api/generate`): falha da GPU, não de contexto; não voltou ao repetir.
+- **Rodada mista:** os 65 primeiros casos rodaram com o contexto padrão e o juiz
+  gratuito; os 78 restantes com `num_ctx` 8192 e `anthropic/claude-haiku-5.5`.
+  Essa rodada **não é comparável entre si** e deve ser refeita inteira.
+
+Regras agora no `run_eval.py`: o JSON grava `configuracao` (modelos, `num_ctx`
+configurado e efetivo lido de `/api/ps`, timeout, prompt v2); cada caso grava
+`prompt_tokens` e `contexto_em_risco` (prompt > 80% do contexto); o gerador
+local repete em timeout e 5xx (3 tentativas); o juiz repete em 429 e timeout;
+`--retomar` continua uma rodada interrompida e avisa se a configuração mudou.
+O juiz de referência é um modelo pago (`EXTERNAL_MODEL_NAME`), não o `:free`.
+
+**Rodada completa e revisão das notas baixas (2026-10-25).** Rodada única
+(`gemma4:12b`, `num_ctx` 8192, juiz `anthropic/claude-haiku-5.5`, prompt v1,
+143 positivas, zero erro de parsing, nenhum prompt acima de 80% do contexto,
+maior prompt 3.208 tokens): nota geral **3,62/5**; relevância 4,61; correção
+factual 3,87; uso da fonte 2,92; fonte correta recuperada em 126/143 (88%);
+distribuição 5→9, 4→95, 3→21, 2→12, 1→6.
+
+Os 18 casos com nota ≤ 2 foram lidos contra o texto dos PDFs (extrator da
+ingestão). **12 eram defeito do conjunto, não do sistema:**
+
+- 7 perguntas sem produto ou presas a "este guia/no documento" (26, 55, 100,
+  129, 130, 149, 158) — o assistente recebe a pergunta sem o documento;
+- 1 gabarito errado, aprovado na revisão: o caso 60 perguntava as dimensões do
+  "Compact" do iDProx e o gabarito era do "Slim" (o Compact é 22x130x55 mm);
+- 1 premissa falsa (61: "bateria incluída" — o guia diz que **não** é
+  inclusa; o sistema acertou e foi punido);
+- 1 gabarito truncado (135: ">1000 usuários" sem "em menos de 1s"; a resposta
+  do sistema era equivalente);
+- 1 pergunta sem produto sobre desenho técnico de texto ilegível (158);
+- 1 contradição **do corpus** (25: `idtouch-manual.pdf` diz 1,00–1,80 m e
+  `idtouch-guia.pdf` diz 1,00–1,40 m; o sistema citou um dos dois);
+- 56 (parafusos M5) exige o modelo da porta, que a pergunta não trazia.
+
+Os outros 6 são falhas reais e **ficaram no conjunto** (trocar pergunta porque
+o sistema errou seria maquiar a medida): 16, 23 e 148 (recuperação trouxe o
+documento de outro produto ou o `changelog`), 156 (o manual e o guia da iDLock
+descrevem o "Não Perturbe" de formas diferentes) e 90/121 (precisão: omitiu a
+variante Lite, trocou "até" por "mais de").
+
+Causas de fundo no app, ainda **não corrigidas**:
+
+1. `_build_prompt` (`orchestrator.py`) monta o contexto só com
+   `documento.content`; o `source` não entra no prompt. O modelo não sabe de
+   qual manual veio cada trecho: não consegue citar a fonte (uso da fonte
+   2,92) nem separar produtos (caso 23 respondeu com a fonte do iDPower).
+2. O texto embutido de cada chunk não leva o nome do documento/produto, então
+   um trecho de datasheet ("Capacidade para mais de 200.000 usuários") só
+   casa com o produto pelo vizinho; os dois `changelog` (≈163 mil caracteres)
+   entram nas buscas genéricas (casos 16 e 130).
+
+O conjunto também era 100% `facil` e dominado por consultas de um valor
+("capacidade máxima de usuários", tensão, dimensões). Em 2026-10-25 foram
+**descartados os 12 casos defeituosos** (`revisao.status = descartado`, com
+`motivo_descarte`) e **anexadas 57 perguntas novas, escritas à mão a partir da
+leitura dos PDFs**. Como as 107 aprovadas restantes ainda eram todas `facil`
+(as 32 `media`/`dificil` do conjunto eram as novas), o mesmo dia teve uma
+segunda leva: **descartados 28 `facil` redundantes** (a pergunta-modelo
+"capacidade máxima de usuários/faces" e "velocidade máxima", repetida por
+produto — mede a recuperação do nome do produto, não a compreensão; ficaram
+7, 67, 71, 85, 99, 109, 121 e 91 como representantes) e **anexadas mais 66
+perguntas** (38 `media`, 28 `dificil`) sobre documentos que o conjunto não
+cobria (iDFlex IP65, iDAccess, iDFit, iDBox, Print iD e Print iD Touch, iDProx
+USB, protocolo serial do iDBio, leitor de QR Code, RHiD) e mais fundo no
+iDLock Bio e no iDTouch. Tipos: valor, multi-fato, procedimento, cenário,
+condicional, tabela, comparação; todas com o produto no enunciado e
+`trecho_origem` conferido contra o texto extraído. As 123 novas nascem
+`pendente`: só entram na rodada depois da aprovação em `/admin/datasets`.
+Aprovadas, o conjunto passa a 230 respondíveis: 116 `facil`, 70 `media`,
+44 `dificil` (50% `facil`).
+
+Achado de ingestão, fora do dataset: o texto extraído de
+`iDFace Max/idface-cadastramento-de-foto.pdf` sai com cada letra duplicada
+("EEssttaa ccaarrttiillhhaa"), então esse documento não gera chunk útil e não
+tem pergunta. Os PDFs da Print iD saem com `ti` virado em `�` ("�cket").
+
 ### Etapa 5 — métrica de distância e payload index
 
 Para vetores **normalizados** (todos os candidatos), cosine e dot produzem o

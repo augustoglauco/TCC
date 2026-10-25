@@ -26,6 +26,7 @@ collection `docs_texto` ativa e populada com os manuais, e
     .venv/bin/python eval/rag_quality/run_eval.py
     .venv/bin/python eval/rag_quality/run_eval.py --sem-resposta   # só as 20 negativas
     .venv/bin/python eval/rag_quality/run_eval.py --sem-resposta --sem-juiz  # sem chamar o juiz
+    .venv/bin/python eval/rag_quality/run_eval.py --com-resposta [--prompt-v2]  # 143 respondíveis
 
 Salva `eval/rag_quality/results.json`.
 """
@@ -50,6 +51,10 @@ from app.router.orchestrator import _build_prompt, _buscar_documentos_rag
 
 BASE_DIR = Path(__file__).parent
 _DOMAIN = "suporte"
+# Contexto padrão da avaliação. A produção usa `local_llm_num_ctx = null`
+# (padrão do Ollama); aqui 8192 evita o timeout/truncamento do caso 80 da
+# Etapa 4 (prompt de ~3,5 mil tokens). `LOCAL_LLM_NUM_CTX` no ambiente prevalece.
+_NUM_CTX_PADRAO_AVALIACAO = 8192
 
 # Prompt novo (LLM-as-judge) — ver docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md.
 # Critérios pedidos por docs/EVALUATION.md Seção 2: relevância, correção
@@ -136,6 +141,58 @@ def _carregar_casos() -> list[dict]:
     return dados["casos"]
 
 
+# Variante de prompt em teste (`--prompt-v2`, experimento da Etapa 4): troca a
+# instrução que manda "responder com o que souber" por uma que manda admitir
+# que não achou, e avisa explicitamente quando a busca volta vazia. Fica só aqui,
+# no eval: o prompt de produção (`orchestrator._build_prompt`) não muda até a
+# decisão de arquitetura.
+_FRASE_V1 = (
+    "Se as informações não forem suficientes, responda com o que souber, sem "
+    "inventar dados específicos (preços, prazos, números de série)."
+)
+_FRASE_V2 = (
+    "Se as informações não responderem à pergunta, diga claramente que não "
+    "encontrou essa informação na base de conhecimento e oriente o cliente a "
+    "falar com um atendente ou consultar o manual do produto; não responda com "
+    "conhecimento próprio nem invente dados específicos (preços, prazos, "
+    "números de série, procedimentos)."
+)
+_AVISO_SEM_CONTEXTO_V2 = (
+    "\n\nNenhuma informação foi encontrada na base de conhecimento da empresa "
+    "para esta pergunta. Diga claramente que não encontrou essa informação e "
+    "oriente o cliente a falar com um atendente; não responda com conhecimento "
+    "próprio nem invente dados."
+)
+
+
+def _nome_saida(so_negativas: bool, so_respondiveis: bool, prompt_v2: bool) -> str:
+    if not (so_negativas or so_respondiveis or prompt_v2):
+        return "results.json"
+    modo = "sem_resposta" if so_negativas else "respondiveis" if so_respondiveis else "completo"
+    return f"results_{modo}_{'v2' if prompt_v2 else 'v1'}.json"
+
+
+def _aplicar_prompt_v2(prompt: str, tem_documentos: bool) -> str:
+    if not tem_documentos:
+        return prompt + _AVISO_SEM_CONTEXTO_V2
+    if _FRASE_V1 not in prompt:
+        # Falha alto: senão a rodada "v2" mediria o prompt v1 sem avisar.
+        raise RuntimeError("frase de suficiência do prompt mudou; atualize _FRASE_V1")
+    return prompt.replace(_FRASE_V1, _FRASE_V2)
+
+
+def _so_respondiveis_revisados(casos: list[dict]) -> list[dict]:
+    """Os casos com resposta aprovados/corrigidos, sem duplicata nem origem ambígua."""
+    return [
+        c
+        for c in casos
+        if not c.get("sem_resposta")
+        and (c.get("revisao") or {}).get("status") in {"aprovado", "corrigido"}
+        and not c.get("duplicada_de")
+        and not c.get("origem_ambigua")
+    ]
+
+
 def _so_sem_resposta_revisados(casos: list[dict]) -> list[dict]:
     """Os casos `sem_resposta` aprovados ou corrigidos na revisão, sem duplicatas."""
     return [
@@ -164,17 +221,7 @@ async def _julgar_recusa(
     prompt = _JUDGE_PROMPT_SEM_RESPOSTA.format(
         pergunta=pergunta, fontes=fontes_texto, resposta_gerada=resposta_gerada
     )
-    for tentativa in range(_MAX_TENTATIVAS_JUIZ):
-        try:
-            resposta = await judge_client.generate(prompt)
-            break
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 429 or tentativa == _MAX_TENTATIVAS_JUIZ - 1:
-                raise
-            espera_s = _ESPERA_BASE_S * (2**tentativa)
-            numero = f"{tentativa + 1}/{_MAX_TENTATIVAS_JUIZ}"
-            print(f"    429 do juiz ({numero}), aguardando {espera_s:.0f}s...")
-            await asyncio.sleep(espera_s)
+    resposta = await _gerar_com_retry(judge_client, prompt)
     await asyncio.sleep(PAUSA_ENTRE_CHAMADAS_S)
     try:
         return json.loads(strip_code_fence(resposta.text))
@@ -199,6 +246,29 @@ _ESPERA_BASE_S = 8.0
 PAUSA_ENTRE_CHAMADAS_S = 3.0
 
 
+async def _gerar_com_retry(judge_client, prompt: str):
+    """Chama o juiz repetindo em 429 e em timeout (`httpx.TimeoutException`).
+
+    Antes só o 429 era repetido; um `ReadTimeout` do juiz subia sem retry e
+    derrubava a rodada inteira no meio.
+    """
+    for tentativa in range(_MAX_TENTATIVAS_JUIZ):
+        try:
+            return await judge_client.generate(prompt)
+        except (httpx.HTTPStatusError, httpx.TimeoutException) as exc:
+            limitado = isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429
+            if not (limitado or isinstance(exc, httpx.TimeoutException)):
+                raise
+            if tentativa == _MAX_TENTATIVAS_JUIZ - 1:
+                raise
+            espera_s = _ESPERA_BASE_S * (2**tentativa)
+            numero = f"{tentativa + 1}/{_MAX_TENTATIVAS_JUIZ}"
+            motivo = "429" if limitado else "timeout"
+            print(f"    {motivo} do juiz ({numero}), aguardando {espera_s:.0f}s...")
+            await asyncio.sleep(espera_s)
+    raise AssertionError("inalcançável")  # pragma: no cover
+
+
 async def _julgar_resposta(
     judge_client, pergunta: str, resposta_esperada: str, resposta_gerada: str, fontes: list[str]
 ) -> dict:
@@ -213,22 +283,91 @@ async def _julgar_resposta(
     # limit (429) do OpenRouter com frequência (modelo `:free`, ver
     # `_ESPERA_BASE_S` acima) — retry com backoff exponencial mais paciente
     # em vez de derrubar a rodada inteira por causa de um limite transitório.
-    for tentativa in range(_MAX_TENTATIVAS_JUIZ):
-        try:
-            resposta = await judge_client.generate(prompt)
-            break
-        except httpx.HTTPStatusError as exc:
-            if exc.response.status_code != 429 or tentativa == _MAX_TENTATIVAS_JUIZ - 1:
-                raise
-            espera_s = _ESPERA_BASE_S * (2**tentativa)
-            numero = f"{tentativa + 1}/{_MAX_TENTATIVAS_JUIZ}"
-            print(f"    429 do juiz ({numero}), aguardando {espera_s:.0f}s...")
-            await asyncio.sleep(espera_s)
+    resposta = await _gerar_com_retry(judge_client, prompt)
     await asyncio.sleep(PAUSA_ENTRE_CHAMADAS_S)
     try:
         return json.loads(strip_code_fence(resposta.text))
     except (json.JSONDecodeError, ValueError):  # fmt: skip
         return {"nota": None, "erro_parsing": resposta.text[:300]}
+
+
+def _resumo(resultados: list[dict], sem_resposta: list[dict]) -> dict:
+    # `casos` fica só com os respondíveis para não quebrar o agregado público
+    # (`app.api.avaliacao._rag` usa `len(casos)` como denominador de
+    # `fonte_correta`): com os 20 sem resposta na mesma lista, a taxa de fonte
+    # cairia por construção.
+    return {
+        "respondiveis": len(resultados),
+        "sem_resposta": len(sem_resposta),
+        "recusou": sum(1 for c in sem_resposta if c["recusou"]),
+        "alucinou": sum(1 for c in sem_resposta if c["alucinou"]),
+        "recusa_por_marcador": sum(1 for c in sem_resposta if c["recusa_por_marcador"]),
+    }
+
+
+# Configuração da rodada, preenchida em `main()` e gravada junto dos resultados:
+# sem ela, duas rodadas com `num_ctx` ou juiz diferentes (como a retomada da
+# Etapa 5, que misturou 4096 e 8192) ficam indistinguíveis no JSON.
+_CONFIGURACAO: dict = {}
+# Fração do contexto efetivo a partir da qual o prompt é considerado em risco
+# de truncamento silencioso pelo Ollama.
+_LIMITE_OCUPACAO_CONTEXTO = 0.8
+_MAX_TENTATIVAS_LOCAL = 3
+_ESPERA_LOCAL_S = 15.0
+
+
+async def _gerar_local_com_retry(local_client, prompt: str):
+    """Gera no modelo local repetindo em timeout e em 5xx do Ollama.
+
+    Um crash do llama-server (ex.: `CUDA error` no caso 160 da Etapa 5)
+    devolve 500 e o Ollama o recarrega sozinho; a espera dá tempo disso.
+    """
+    for tentativa in range(_MAX_TENTATIVAS_LOCAL):
+        try:
+            return await local_client.generate(prompt)
+        except (httpx.HTTPStatusError, httpx.TimeoutException) as exc:
+            servidor = isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code >= 500
+            if not (servidor or isinstance(exc, httpx.TimeoutException)):
+                raise
+            if tentativa == _MAX_TENTATIVAS_LOCAL - 1:
+                raise
+            numero = f"{tentativa + 1}/{_MAX_TENTATIVAS_LOCAL}"
+            print(f"    falha do modelo local ({type(exc).__name__}, {numero}), reaguardando...")
+            await asyncio.sleep(_ESPERA_LOCAL_S)
+    raise AssertionError("inalcançável")  # pragma: no cover
+
+
+async def _contexto_efetivo(local_client) -> int | None:
+    """`context_length` que o Ollama realmente carregou (`/api/ps`)."""
+    status = await local_client.get_loaded_status()
+    return (status or {}).get("context_length")
+
+
+def _avisar_ocupacao(prompt_tokens: int | None, contexto: int | None) -> bool:
+    """Avisa se o prompt ocupa demais do contexto; devolve se está em risco."""
+    if not prompt_tokens or not contexto:
+        return False
+    em_risco = prompt_tokens > _LIMITE_OCUPACAO_CONTEXTO * contexto
+    if em_risco:
+        print(f"    AVISO: prompt de {prompt_tokens} tokens em contexto de {contexto}")
+    return em_risco
+
+
+def _gravar_resultados(path: Path, resultados: list[dict], sem_resposta: list[dict]) -> None:
+    """Grava o estado atual; chamada a cada caso para uma falha não perder a rodada."""
+    path.write_text(
+        json.dumps(
+            {
+                "configuracao": _CONFIGURACAO,
+                "casos": resultados,
+                "casos_sem_resposta": sem_resposta,
+                "resumo": _resumo(resultados, sem_resposta),
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
 
 async def main() -> None:
@@ -237,8 +376,13 @@ async def main() -> None:
     # Modo `--sem-resposta`: só as negativas revisadas, saída em arquivo próprio
     # (não sobrescreve o `results.json` da rodada completa).
     so_negativas = "--sem-resposta" in sys.argv
+    so_respondiveis = "--com-resposta" in sys.argv
+    prompt_v2 = "--prompt-v2" in sys.argv
     if so_negativas:
         casos = _so_sem_resposta_revisados(casos)
+    elif so_respondiveis:
+        casos = _so_respondiveis_revisados(casos)
+    output_path = BASE_DIR / _nome_saida(so_negativas, so_respondiveis, prompt_v2)
 
     qdrant = QdrantRAGClient(
         host=settings.qdrant_host,
@@ -251,12 +395,13 @@ async def main() -> None:
     session_factory = create_session_factory(db_engine)
     rag_client = ActiveCollectionRagClient(qdrant, session_factory, embedders)
 
+    num_ctx = settings.local_llm_num_ctx or _NUM_CTX_PADRAO_AVALIACAO
     local_client = OllamaClient(
         base_url=settings.local_model_base_url,
         model=settings.local_model_name,
         timeout_s=settings.local_llm_timeout_s,
         temperature=settings.local_llm_temperature,
-        num_ctx=settings.local_llm_num_ctx,
+        num_ctx=num_ctx,
         top_p=settings.local_llm_top_p,
         top_k=settings.local_llm_top_k,
         repeat_penalty=settings.local_llm_repeat_penalty,
@@ -271,14 +416,41 @@ async def main() -> None:
 
     resultados = []
     resultados_sem_resposta: list[dict] = []
+    # `--retomar`: continua uma rodada interrompida, reaproveitando os casos já
+    # gravados em `output_path` e pulando os seus ids.
+    if "--retomar" in sys.argv and output_path.exists():
+        anterior = json.loads(output_path.read_text(encoding="utf-8"))
+        resultados = anterior.get("casos", [])
+        resultados_sem_resposta = anterior.get("casos_sem_resposta", [])
+    _CONFIGURACAO.update(
+        modelo_local=settings.local_model_name,
+        modelo_juiz=settings.external_model_name,
+        num_ctx_configurado=num_ctx,
+        local_llm_timeout_s=settings.local_llm_timeout_s,
+        prompt_v2=prompt_v2,
+    )
+    if "--retomar" in sys.argv and output_path.exists():
+        anterior_cfg = json.loads(output_path.read_text(encoding="utf-8")).get("configuracao")
+        if anterior_cfg != _CONFIGURACAO:
+            print(f"AVISO: retomada com configuração diferente: {anterior_cfg} -> {_CONFIGURACAO}")
+    ja_feitos = {str(c["id"]) for c in resultados + resultados_sem_resposta}
     for caso in casos:
+        if str(caso["id"]) in ja_feitos:
+            continue
+        _gravar_resultados(output_path, resultados, resultados_sem_resposta)
         print(f"[{caso['id']}] {caso['pergunta'][:70]}...")
         documentos = await _buscar_documentos_rag(
             caso["pergunta"], recent_messages=[], domain=_DOMAIN, rag_client=rag_client
         )
         prompt = _build_prompt(caso["pergunta"], documentos, domain=_DOMAIN)
-        resposta_llm = await local_client.generate(prompt)
+        if prompt_v2:
+            prompt = _aplicar_prompt_v2(prompt, bool(documentos))
+        resposta_llm = await _gerar_local_com_retry(local_client, prompt)
         resposta_gerada = resposta_llm.text
+        contexto = await _contexto_efetivo(local_client)
+        _CONFIGURACAO["num_ctx_efetivo"] = contexto
+        prompt_tokens = resposta_llm.prompt_tokens
+        contexto_em_risco = _avisar_ocupacao(prompt_tokens, contexto)
         fontes = [documento.source for documento in documentos]
 
         # Os casos `sem_resposta` medem alucinação, não recuperação: o
@@ -309,6 +481,8 @@ async def main() -> None:
                     "alucinou": julgamento.get("alucinou"),
                     "recusa_por_marcador": recusa_heuristica,
                     "julgamento": julgamento,
+                    "prompt_tokens": prompt_tokens,
+                    "contexto_em_risco": contexto_em_risco,
                     "nota_manual": None,
                 }
             )
@@ -335,37 +509,16 @@ async def main() -> None:
                 "fontes_recuperadas": fontes,
                 "fonte_correta": fonte_correta,
                 "nota_llm_judge": julgamento,
+                "prompt_tokens": prompt_tokens,
+                "contexto_em_risco": contexto_em_risco,
                 "nota_manual": None,
             }
         )
         print(f"    fonte_correta={fonte_correta}  nota_llm_judge={julgamento.get('nota')}")
 
-    # `casos` fica só com os respondíveis para não quebrar o agregado público
-    # (`app.api.avaliacao._rag` usa `len(casos)` como denominador de
-    # `fonte_correta`): com os 20 sem resposta na mesma lista, a taxa de fonte
-    # cairia por construção.
-    resumo = {
-        "respondiveis": len(resultados),
-        "sem_resposta": len(resultados_sem_resposta),
-        "recusou": sum(1 for c in resultados_sem_resposta if c["recusou"]),
-        "alucinou": sum(1 for c in resultados_sem_resposta if c["alucinou"]),
-        "recusa_por_marcador": sum(1 for c in resultados_sem_resposta if c["recusa_por_marcador"]),
-    }
-    output_path = BASE_DIR / ("results_sem_resposta.json" if so_negativas else "results.json")
-    output_path.write_text(
-        json.dumps(
-            {
-                "casos": resultados,
-                "casos_sem_resposta": resultados_sem_resposta,
-                "resumo": resumo,
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
+    _gravar_resultados(output_path, resultados, resultados_sem_resposta)
     print(f"\nResultados salvos em {output_path}")
-    print(f"Resumo: {resumo}")
+    print(f"Resumo: {_resumo(resultados, resultados_sem_resposta)}")
 
 
 if __name__ == "__main__":

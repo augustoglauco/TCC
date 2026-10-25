@@ -2,7 +2,7 @@
   "duplicadas": 2,
   "descricao": "Conjunto de RAG documentos da Estratégia A (Fase 10): perguntas sobre os manuais e datasheets do corpus, mais perguntas sem resposta no corpus para medir alucinação.",
   "observacao": "Rascunho gerado por liquid/lfm-2.5-2.6b:free sobre docs/Manuais_fornecedor/ControlId. Todo item nasce `revisao.status = pendente`: o gabarito só vale depois da revisão humana em /admin/datasets. `trecho_confere = false` marca trecho que não foi localizado no texto do PDF e precisa de atenção redobrada.",
-  "respondiveis": 160,
+  "respondiveis": 283,
   "sem_resposta": 20,
   "casos": [
     {
@@ -145,9 +145,10 @@
       "trecho_confere": false,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:13:48-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 10,
@@ -401,9 +402,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:18:30-0300"
-      }
+      },
+      "motivo_descarte": "o corpus se contradiz: idtouch-manual diz 1,00-1,80 m e idtouch-guia diz 1,00-1,40 m; o sistema respondeu com um dos dois"
     },
     {
       "id": 26,
@@ -417,9 +419,10 @@
       "trecho_confere": false,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:18:40-0300"
-      }
+      },
+      "motivo_descarte": "pergunta sem produto; 'ID do usuário' existe em vários manuais com tamanhos diferentes (4 dígitos no iDTouch, 1-499 na iDLock)"
     },
     {
       "id": 27,
@@ -882,9 +885,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:27:51-0300"
-      }
+      },
+      "motivo_descarte": "pergunta depende de 'este guia'; o sistema não vê o documento"
     },
     {
       "id": 56,
@@ -898,9 +902,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:28:10-0300"
-      }
+      },
+      "motivo_descarte": "pergunta sem produto; o 2 vale só para os modelos D a H"
     },
     {
       "id": 57,
@@ -962,9 +967,10 @@
       "trecho_confere": false,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:28:51-0300"
-      }
+      },
+      "motivo_descarte": "gabarito errado: 20x95x51 mm é o modelo Slim; o Compact mede 22x130x55 mm"
     },
     {
       "id": 61,
@@ -978,9 +984,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:28:57-0300"
-      }
+      },
+      "motivo_descarte": "premissa falsa: o texto diz que a bateria NÃO é inclusa; o sistema acertou"
     },
     {
       "id": 62,
@@ -1107,9 +1114,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:33:46-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 70,
@@ -1171,9 +1179,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:34:38-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 74,
@@ -1187,9 +1196,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:34:44-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 75,
@@ -1267,9 +1277,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:35:29-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 80,
@@ -1331,9 +1342,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:36:20-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 84,
@@ -1395,9 +1407,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:37:14-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 88,
@@ -1411,9 +1424,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:37:18-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 89,
@@ -1427,9 +1441,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:37:24-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 90,
@@ -1491,9 +1506,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:37:55-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 94,
@@ -1507,9 +1523,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:38:02-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 95,
@@ -1523,9 +1540,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:38:07-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 96,
@@ -1555,9 +1573,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:38:15-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 98,
@@ -1603,9 +1622,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:38:47-0300"
-      }
+      },
+      "motivo_descarte": "pergunta sem produto ('no equipamento')"
     },
     {
       "id": 101,
@@ -1619,9 +1639,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:38:51-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 102,
@@ -1683,9 +1704,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-23T23:56:05-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 106,
@@ -1699,9 +1721,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:32:26-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 107,
@@ -1715,9 +1738,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:32:31-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 108,
@@ -1731,9 +1755,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:32:34-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 109,
@@ -1811,9 +1836,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:33:23-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 114,
@@ -1843,9 +1869,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:33:26-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 116,
@@ -1875,9 +1902,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:42:31-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 118,
@@ -1971,9 +1999,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:52:19-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 124,
@@ -2003,9 +2032,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:52:43-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 126,
@@ -2067,9 +2097,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:54:33-0300"
-      }
+      },
+      "motivo_descarte": "pergunta depende de 'no documento'; o sistema não vê o documento"
     },
     {
       "id": 130,
@@ -2083,9 +2114,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:54:49-0300"
-      }
+      },
+      "motivo_descarte": "pergunta sem produto ('o sistema')"
     },
     {
       "id": 131,
@@ -2131,9 +2163,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:55:14-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 134,
@@ -2163,9 +2196,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:56:12-0300"
-      }
+      },
+      "motivo_descarte": "gabarito truncado: '>1000 usuários' sem 'em menos de 1s'; a resposta do sistema era equivalente"
     },
     {
       "id": 136,
@@ -2195,9 +2229,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:56:20-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 138,
@@ -2227,9 +2262,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:56:28-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 140,
@@ -2275,9 +2311,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:57:13-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 143,
@@ -2355,9 +2392,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:57:46-0300"
-      }
+      },
+      "motivo_descarte": "redundante: repete a pergunta-modelo de capacidade/velocidade máxima de outro caso do mesmo tipo; mede só a recuperação do nome do produto, não a compreensão"
     },
     {
       "id": 148,
@@ -2387,9 +2425,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T00:58:45-0300"
-      }
+      },
+      "motivo_descarte": "pergunta sem produto ('o leitor biométrico')"
     },
     {
       "id": 150,
@@ -2531,9 +2570,10 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "revisao": {
-        "status": "aprovado",
+        "status": "descartado",
         "em": "2026-10-24T01:02:43-0300"
-      }
+      },
+      "motivo_descarte": "pergunta sem produto e sobre desenho técnico cujo texto extraído é ilegível"
     },
     {
       "id": 159,
@@ -2825,6 +2865,2343 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-24T01:06:15-0300"
+      }
+    },
+    {
+      "id": 181,
+      "pergunta": "Quantos dígitos tem o ID de usuário no iDTouch e qual o tamanho permitido para a senha de acesso?",
+      "dificuldade": "facil",
+      "tipo": "valor",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O ID do usuário tem 4 dígitos e a senha de acesso tem de 4 a 6 dígitos.",
+      "trecho_origem": "Digite os 4 dígitos do ID do usuário e pressione (#).\n5. O equipamento bipará 2 vezes;\n6. Digite a senha de acesso (entre 4 e 6 dígitos) e pressione (#).",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 182,
+      "pergunta": "Qual a distância mínima que o iDTouch deve ter de qualquer objeto nas laterais na hora de instalar?",
+      "dificuldade": "facil",
+      "tipo": "valor",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-guia.pdf",
+      "arquivo_origem": "iDTouch/idtouch-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Nenhum objeto deve ficar a menos de 20 cm das laterais do equipamento.",
+      "trecho_origem": "Nenhum objeto deve estar a menos de 20 cm\nde distância das laterais do equipamento.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 183,
+      "pergunta": "Como ativo o bloqueio do teclado do iDTouch contra tentativas erradas de senha e por quanto tempo ele fica bloqueado?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No modo de programação, pressione 9 + #, digite 1 + # e aguarde o bipe longo. Com o recurso ativo, o iDTouch fica desativado por 5 minutos após 10 tentativas de identificação com senha incorreta. De fábrica o bloqueio vem desativado.",
+      "trecho_origem": "O recurso de recorrência de negação permite que o iDTouch fique desativado por 5\nminutos após 10 tentativas de identificação por senha incorreta.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 184,
+      "pergunta": "Esqueci a senha de programação do meu iDTouch, mas não quero apagar os usuários cadastrados. Como volto para a senha de fábrica?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Desligue o equipamento, conecte os sinais X2.3 (WIN0_RX) e X2.6 (WOUT1) dos conectores externos, ligue o equipamento e aguarde os bipes repetidos; depois desligue, desconecte os dois sinais e ligue de novo. Só a senha de programação volta ao padrão de fábrica (12345); os usuários continuam cadastrados.",
+      "trecho_origem": "Para restaurar a senha de fábrica do equipamento, siga os passos abaixo:\n1. Desligue o equipamento;\n2. Conecte os sinais X2.3 (WIN0_RX) e X2.6 (WOUT1) dos conectores externos;\n3. Ligue o equipamento;",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 185,
+      "pergunta": "Quais são os modos de saída Wiegand do iDTouch e quantos bits tem cada um?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O iDTouch tem 4 modos de saída Wiegand: Modo I com 26 bits, Modo II com 32 bits (sem paridades), Modo III com 34 bits e Modo IV com 66 bits.",
+      "trecho_origem": "O iDTouch possui 4 modos de saída Wiegand. Para configurar a quantidade de bits,\nsiga os passos abaixo:\n1. Acesse o menu de programação;\n2. Pressione (15) e pressione (#);\n3. LED Verde Ficará Piscando;\n4. Cada modo possui seu respectivo código:\na. Modo I – Wiegand 26 bits",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 186,
+      "pergunta": "Vou instalar a fechadura iDLock Bio numa porta de 24 mm de espessura. Qual modelo de parafuso M5 devo usar e quantos parafusos são?",
+      "dificuldade": "media",
+      "tipo": "tabela",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock_bio_guia_instalação.pdf",
+      "arquivo_origem": "iDBlockBio/idlock_bio_guia_instalação.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Para porta de 24 mm use o modelo D (portas de 22 a 30 mm), com 2 parafusos M5.",
+      "trecho_origem": "batente e certifique-se de D 22 a 30mm\nfixação e utilize 2 parafusos\nque ambas estão alinhadas\nM5 (modelo D/E/F/G/H) E 27 a 35mm",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 187,
+      "pergunta": "Qual dedo é recomendado para cadastrar a digital na iDLock Bio e quantas digitais distintas posso cadastrar por usuário?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock_bio_guia_instalação.pdf",
+      "arquivo_origem": "iDBlockBio/idlock_bio_guia_instalação.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O dedo indicador é o recomendado, pressionado firmemente e sempre da mesma forma. O máximo é de 10 digitais distintas por usuário.",
+      "trecho_origem": "É recomendado utilizar o dedo indicador para cadastro. Pressione o dedo firmemente e posicione-o sempre da mesma forma no leitor biométrico.\n3 Máximo de 10 digitais distintas por usuário",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 188,
+      "pergunta": "Quais itens vêm dentro da caixa da fechadura iDLock Bio?",
+      "dificuldade": "facil",
+      "tipo": "multi-fato",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock_bio_guia_instalação.pdf",
+      "arquivo_origem": "iDBlockBio/idlock_bio_guia_instalação.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "1 parte externa, 1 parte interna, 1 chapa de fixação, 6 espaçadores, 1 falsa-testa, 1 kit batente com ímã, pilhas e parafusos, e o gabarito.",
+      "trecho_origem": "1x Parte Externa 1x Parte Interna 1x Chapa de Fixação 6x Espaçadores\n1x Falsa-testa 1x Kit Batente Ímã, Pilhas e Parafusos Gabarito",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 189,
+      "pergunta": "As pilhas da minha iDLock Bio acabaram de vez e não consigo abrir pelo teclado. O que posso fazer?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock_bio_guia_instalação.pdf",
+      "arquivo_origem": "iDBlockBio/idlock_bio_guia_instalação.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Se as pilhas descarregaram totalmente, use uma bateria de 9V para alimentar a fechadura e abrir a porta; depois troque as pilhas. O ícone de bateria fraca em vermelho avisa antes, e nesse caso as pilhas devem ser trocadas imediatamente.",
+      "trecho_origem": "utilize uma bateria de 9V para alimentar a fechadura.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 190,
+      "pergunta": "Como restauro a iDLock Bio para o padrão de fábrica sem usar o menu do teclado?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock_bio_guia_instalação.pdf",
+      "arquivo_origem": "iDBlockBio/idlock_bio_guia_instalação.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Remova uma das pilhas AA, segure o botão “Menu”, insira a pilha novamente enquanto segura o botão e aguarde 3 bipes sonoros; depois feche o compartimento de pilhas.",
+      "trecho_origem": "a. Remova uma das pilhas AA.\nb. Segure o botão “Menu” da figura ao lado.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 191,
+      "pergunta": "Quantos registros de acesso a iDLock guarda e qual a autonomia das pilhas?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDLock",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Guarda até 10.000 registros de acesso e as pilhas duram cerca de 1 ano com 10 acessos por dia.",
+      "trecho_origem": "Registros de acesso Até 10000\nAutonomia das pilhas 1 ano (10 acessos/dia)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 192,
+      "pergunta": "Cadastrei um usuário comum na iDLock sem criar um administrador. A senha padrão 1234 ainda abre a porta?",
+      "dificuldade": "dificil",
+      "tipo": "condicional",
+      "produto": "iDLock",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não. Depois de cadastrar um usuário comum sem administrador, a senha de fábrica 1234 passa a valer apenas para acessar o menu de programação, e não abre mais o mecanismo.",
+      "trecho_origem": "Ao cadastrar um usuário comum (senha ou biometria), sem usuário administrador,\na sequência padrão de fábrica (1234) passa a funcionar apenas para acesso do menu\nde programação e não mais para abertura do mecanismo.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 193,
+      "pergunta": "O que é o modo aleatório de senha da iDLock e até quantos dígitos posso digitar?",
+      "dificuldade": "dificil",
+      "tipo": "condicional",
+      "produto": "iDLock",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "É um recurso para impedir que terceiros descubram a senha: ao abrir, o usuário pode digitar números aleatórios antes ou depois da senha original, até totalizar 20 dígitos.",
+      "trecho_origem": "Modo aleatório: para impedir que terceiros descubram sua senha cadastrada, é possí-\nvel inserir, durante a operação, números aleatórios antes ou depois da senha original,\naté totalizar 20 dígitos.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 194,
+      "pergunta": "Depois de quantas senhas erradas seguidas a iDLock dispara o alarme e por quanto tempo ela fica bloqueada?",
+      "dificuldade": "media",
+      "tipo": "valor",
+      "produto": "iDLock",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Após 10 erros consecutivos de senha, a iDLock emite um alarme sonoro e fica bloqueada por 1 minuto.",
+      "trecho_origem": "caso alguém erre a senha por 10 vezes consectutivas, a\niDLock emite um alarme sonoro e fica bloqueada por 1 minuto.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 195,
+      "pergunta": "Como abro a iDLock por senha de forma silenciosa, sem os avisos sonoros?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDLock",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Toque no teclado para acender as luzes de fundo, toque na tecla (#), digite uma das senhas cadastradas e pressione (#); aguarde o LED verde de confirmação para abrir a porta.",
+      "trecho_origem": "Para abrir a fechadura por senha de maneira silenciosa (sem avisos sonoros), siga os\npassos:\n1. Toque no teclado para acender as luzes de fundo;\n2. Toque na tecla (#);",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 196,
+      "pergunta": "Quais são as dimensões do iDProx modelo Compact?",
+      "dificuldade": "facil",
+      "tipo": "valor",
+      "produto": "iDProx",
+      "documento_origem": "idprox-guia.pdf",
+      "arquivo_origem": "iDProx/idprox-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "22mm x 130mm x 55mm (P x A x L).",
+      "trecho_origem": "Modelo Compact 22mm x 130mm x 55mm (P x A x L)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 197,
+      "pergunta": "Quero que o iDProx saia em Wiegand 34. Quais pinos devo ligar para configurar esse modo e que cor de LED ele mostra?",
+      "dificuldade": "dificil",
+      "tipo": "tabela",
+      "produto": "iDProx",
+      "documento_origem": "idprox-guia.pdf",
+      "arquivo_origem": "iDProx/idprox-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Com o iDProx desligado, ligue os pinos MODE/BZ e D1 (MODE/BZ + D1) e religue o leitor: ele fica em Wiegand 34 com o LED amarelo aceso. Depois desligue, refaça as ligações normais e ligue de novo.",
+      "trecho_origem": "MODE/BZ + D0 Wiegand 26 Verde, aceso\nMODE/BZ + D1 Wiegand 34 Amarelo, aceso",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 198,
+      "pergunta": "Qual a diferença de alcance de leitura entre cartões ASK e Mifare no iDProx?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDProx",
+      "documento_origem": "idprox-guia.pdf",
+      "arquivo_origem": "iDProx/idprox-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O alcance com cartão ASK é de 15 cm e com Mifare é de 6 cm, ou seja, o ASK lê 9 cm mais longe.",
+      "trecho_origem": "ASK: 15cm | FSK: 10cm | PSK: 10cm | Mifare: 6cm",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 199,
+      "pergunta": "A iDPower já vem com bateria? Que bateria preciso comprar?",
+      "dificuldade": "media",
+      "tipo": "condicional",
+      "produto": "iDPower",
+      "documento_origem": "idpower-guia.pdf",
+      "arquivo_origem": "IDPower/idpower-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não: a bateria e os itens de fixação não são inclusos. A iDPower usa uma bateria de chumbo-ácido de 12V 7Ah (cerca de 15x10x7 cm).",
+      "trecho_origem": "Bateria de 12V 7Ah (15x10x7cm)\n⚠ A bateria e os itens para fixação não são inclusos no produto.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 200,
+      "pergunta": "O que significa o LED da bateria da iDPower estar amarelo?",
+      "dificuldade": "media",
+      "tipo": "tabela",
+      "produto": "iDPower",
+      "documento_origem": "idpower-guia.pdf",
+      "arquivo_origem": "IDPower/idpower-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Amarelo indica tensão da bateria entre 11V e 12,5V. Vermelho é abaixo de 11V, verde acima de 12,5V e apagado quando há rede AC mas não há bateria.",
+      "trecho_origem": "Rede AC conectada, mas não há bateria Apagado\nTensão bateria menor que 11V Vermelho\nTensão bateria entre 11V e 12,5V Amarelo\nTensão bateria acima de 12,5V Verde",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 201,
+      "pergunta": "Como ajusto o tempo do relé temporizado da iDPower e qual a faixa possível?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDPower",
+      "documento_origem": "idpower-guia.pdf",
+      "arquivo_origem": "IDPower/idpower-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Pelo potenciômetro da placa, entre 0 e 30 s; girar a chave no sentido horário aumenta o tempo. O relé temporizado existe só em alguns modelos.",
+      "trecho_origem": "A contagem do temporizador pode ser ajustada entre 0 e 30s a partir do\npotenciômetro instalado na placa.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 202,
+      "pergunta": "Posso usar a catraca iDBlock Next com apenas um iDFace? Qual o máximo de iDFaces?",
+      "dificuldade": "media",
+      "tipo": "condicional",
+      "produto": "iDBlock Next",
+      "documento_origem": "idblock-next-datasheet.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Sim. O suporte integrado permite operar com apenas um iDFace, com controle combinado de entrada ou saída. O máximo é de dois iDFaces, que controlam entrada e saída separadamente.",
+      "trecho_origem": "e até dois iDFaces instalados, que\ncontrolam tanto a entrada como a saída\nde pessoas através da tecnologia\nde reconhecimento facial. O equipamento\nconta com um suporte integrado que\npermite a operação com apenas um\niDFace instalado, oferecendo o controle\ncombinado de entrada ou da saída.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 203,
+      "pergunta": "Qual a diferença de capacidade de faces entre as versões Lite e Pro da iDBlock Next?",
+      "dificuldade": "media",
+      "tipo": "variantes",
+      "produto": "iDBlock Next",
+      "documento_origem": "idblock-next-datasheet.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A versão Lite comporta até 3.000 faces e a Pro até 10.000 faces, ambas com detecção de rosto vivo.",
+      "trecho_origem": "Capacidade para até 3.000 (Lite)/10.000 (Pro) faces\ncom detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 204,
+      "pergunta": "Quantas faces o iDFace Max suporta conforme a licença adquirida?",
+      "dificuldade": "media",
+      "tipo": "variantes",
+      "produto": "iDFace Max",
+      "documento_origem": "idface-max-datasheet-pt.pdf",
+      "arquivo_origem": "iDFace Max/idface-max-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Até 10.000, 50.000 ou 100.000 faces com detecção de rosto vivo, conforme a licença adquirida.",
+      "trecho_origem": "Capacidade para até 10.000 / 50.000 / 100.000 faces com\ndetecção de rosto vivo, conforme a licença adquirida.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 205,
+      "pergunta": "Qual a diferença de capacidade de faces entre as versões Lite e Pro do iDFace?",
+      "dificuldade": "media",
+      "tipo": "variantes",
+      "produto": "iDFace",
+      "documento_origem": "idface-datasheet.pdf",
+      "arquivo_origem": "iDFace/idface-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A versão Lite suporta até 3.000 faces e a Pro até 30.000 faces, com detecção de rosto vivo.",
+      "trecho_origem": "Capacidade para até 3.000 (Lite)/30.000 (Pro) faces\ncom detecção de rosto vivo",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 206,
+      "pergunta": "O iDFace Max pode ser alimentado por PoE? Qual a alternativa?",
+      "dificuldade": "media",
+      "tipo": "valor",
+      "produto": "iDFace Max",
+      "documento_origem": "idface-max-datasheet-pt.pdf",
+      "arquivo_origem": "iDFace Max/idface-max-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Sim: aceita PoE (IEEE 802.3af) ou fonte externa de 12V 2A.",
+      "trecho_origem": "Fonte externa de 12V 2A ou PoE (IEEE802.3af)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 207,
+      "pergunta": "O iDFace Max suporta o protocolo OSDP? Por qual interface?",
+      "dificuldade": "media",
+      "tipo": "valor",
+      "produto": "iDFace Max",
+      "documento_origem": "idface-max-datasheet-pt.pdf",
+      "arquivo_origem": "iDFace Max/idface-max-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Sim, ele suporta OSDP como Dispositivo Periférico pela interface RS-485.",
+      "trecho_origem": "Suporte ao protocolo OSDP como Dispositivo Periférico\npela interface RS-485",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 208,
+      "pergunta": "Qual o tamanho e a resolução da tela de cada iDFace Max na iDBlock Next BQC com iDFace Max?",
+      "dificuldade": "media",
+      "tipo": "variantes",
+      "produto": "iDBlock Next BQC com iDFace Max",
+      "documento_origem": "idblock-next-bqc-idface-max-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-next-bqc-idface-max-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Display LCD TFT colorido de 7 polegadas (800x1280) com tela capacitiva sensível ao toque. A tela da base da catraca é de 3,5 polegadas (320x480).",
+      "trecho_origem": "Tela LCD Touchscreen em cada iDFace Max\nDisplay LCD TFT colorido de 7” (800x1280)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 209,
+      "pergunta": "Qual o endereço, o usuário e a senha padrão para abrir a interface web de configuração do iDFace pela primeira vez?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDFace",
+      "documento_origem": "idface.pdf",
+      "arquivo_origem": "iDFace/idface.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Conecte o iDFace direto ao PC por cabo de rede, configure no PC um IP fixo na rede 192.168.0.xxx (xxx diferente de 129) com máscara 255.255.255.0, e acesse http://192.168.0.129. Usuário e senha padrão: admin / admin.",
+      "trecho_origem": "http://192.168.0.129",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 210,
+      "pergunta": "Na hora de cadastrar meu rosto no iDFace, a que distância devo ficar da câmera e o que devo evitar?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDFace",
+      "documento_origem": "idface.pdf",
+      "arquivo_origem": "iDFace/idface.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mantenha o rosto alinhado com a câmera a 50 cm de distância e evite expressões faciais atípicas e objetos que escondam regiões importantes da face, como máscara e óculos escuros.",
+      "trecho_origem": "processo, certifique-se de que o rosto esteja\nalinhado com a câmera mantendo a distância de 50\ncm. Evite expressões faciais atípicas e objetos que",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 211,
+      "pergunta": "Se eu usar só um iDFace na catraca iDBlock Next, em quais posições posso instalá-lo?",
+      "dificuldade": "media",
+      "tipo": "condicional",
+      "produto": "iDBlock Next",
+      "documento_origem": "idblock-next.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O iDFace único pode ficar à esquerda, à direita ou no centro; a catraca pode ter no máximo dois iDFaces.",
+      "trecho_origem": "Nesta configuração, um único iDFace\ncontrola a iDBlock Next. O iDFace pode ser\ninstalado na esquerda, direita ou no centro.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 212,
+      "pergunta": "Na iDBlock Next com dois iDFaces, quantos podem ser primários e o que faz o equipamento secundário?",
+      "dificuldade": "dificil",
+      "tipo": "multi-fato",
+      "produto": "iDBlock Next",
+      "documento_origem": "idblock-next.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Só um dispositivo pode ser o primário (controla a catraca, mantém o registro de acessos e fala com o servidor). O secundário apenas coleta os dados de identificação e os envia ao primário; não se comunica com software, não aciona a catraca e não armazena registros de acesso.",
+      "trecho_origem": "O dispositivo secundário não se comunica\ncom nenhum software, não envia comandos\nde acionamento para a catraca e não\narmazena registros de acesso.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 213,
+      "pergunta": "Como ligo a botoeira na iDBlock Next para liberar só o lado direito? E para liberar os dois lados?",
+      "dificuldade": "dificil",
+      "tipo": "tabela",
+      "produto": "iDBlock Next",
+      "documento_origem": "idblock-next.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Lado direito: ligar preto (GND) + verde. Ambos os lados: preto + verde + branco, apertando as duas botoeiras ao mesmo tempo ou ligando o verde com o branco na mesma botoeira. Nunca ligue fonte (+3.3V, +5V, +12V) nos pinos branco e verde.",
+      "trecho_origem": "Preto (GND) + Branco Libera lado esquerdo\nPreto (GND) + Verde Libera lado direito\nPreto (GND) + Verde + Branco Libera ambos os lados",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 214,
+      "pergunta": "Qual o modo de operação da iDBlock Next recomendado pela Control iD?",
+      "dificuldade": "media",
+      "tipo": "valor",
+      "produto": "iDBlock Next",
+      "documento_origem": "idblock-next.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O modo Standalone, em que o equipamento primário guarda no próprio banco todas as informações para identificar e autorizar acessos e os secundários espelham esse banco automaticamente.",
+      "trecho_origem": "Este é o modo de operação recomendado\npela Control iD.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 215,
+      "pergunta": "Quais testes de diagnóstico posso fazer na iDBlock Next pelo menu Catraca?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDBlock Next",
+      "documento_origem": "idblock-next.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Liberação de giro, relés, LEDs, leitora Wiegand (urna) e confirmação de giro.",
+      "trecho_origem": "• Liberação de Giro\n• Relés\n• LEDs\n• Leitora Wiegand (Urna)\n• Confirmação de Giro",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 216,
+      "pergunta": "Na instalação da catraca iDBlock, os cabos de energia e de rede podem passar pela mesma tubulação?",
+      "dificuldade": "facil",
+      "tipo": "valor",
+      "produto": "iDBlock",
+      "documento_origem": "idblock-diagramas.pdf",
+      "arquivo_origem": "IDBlock/idblock-diagramas.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não. Os cabos de energia e de rede não devem passar pela mesma tubulação.",
+      "trecho_origem": "Os cabos de energia e rede não Unidade: mm\ndevem passar pela mesma tubulação.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 217,
+      "pergunta": "O iDSecure Cloud permite abrir portas remotamente pelo celular?",
+      "dificuldade": "facil",
+      "tipo": "valor",
+      "produto": "iDSecure Cloud",
+      "documento_origem": "idsecure-cloud.pdf",
+      "arquivo_origem": "iDSecure Cloud/idsecure-cloud.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Sim. O app para iOS e Android do iDSecure Cloud permite o cadastro de visitantes, a abertura remota e a visualização de logs de acesso.",
+      "trecho_origem": "app\npara iOS e Android que possibilita\no cadastro de visitantes,\nabertura remota e visualização\nde logs de acesso.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 218,
+      "pergunta": "Quais equipamentos da Control iD se integram nativamente ao iDSecure Cloud?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDSecure Cloud",
+      "documento_origem": "idsecure-cloud.pdf",
+      "arquivo_origem": "iDSecure Cloud/idsecure-cloud.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Todos os controladores de acesso da Control iD, como iDFace, iDFit, iDBox e iDBlock, estão integrados nativamente ao iDSecure Cloud. Há também integração via API.",
+      "trecho_origem": "iDFace, iDFit, iDBox e iDBlock) estão integrados nativamente",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 219,
+      "pergunta": "Quantos usuários o leitor biométrico iDBio identifica em menos de 1 segundo?",
+      "dificuldade": "facil",
+      "tipo": "valor",
+      "produto": "iDBio",
+      "documento_origem": "idbio-guia-rapido.pdf",
+      "arquivo_origem": "iDBio/idbio-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mais de 1000 usuários em menos de 1 segundo.",
+      "trecho_origem": "Rapidez: Mais de 1000 usuários em menos de 1s",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 220,
+      "pergunta": "Qual a área e a resolução do scanner do iDBio?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDBio",
+      "documento_origem": "idbio-guia-rapido.pdf",
+      "arquivo_origem": "iDBio/idbio-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Área do scanner de 21 x 19 mm, resolução de 500 DPI e imagem em 256 níveis de cinza.",
+      "trecho_origem": "Área do scanner: 21 x 19 mm",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 221,
+      "pergunta": "O Windows 7 não reconheceu meu iDBio como porta COM. Como instalo o driver?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "iDBio",
+      "documento_origem": "idbio-guia-rapido.pdf",
+      "arquivo_origem": "iDBio/idbio-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No Gerenciador de Dispositivos, localize o “CDC Serial” em Outros Dispositivos, clique com o botão direito e escolha Atualizar Driver, depois Procurar software de driver no computador e Permitir que eu escolha em uma lista. O driver está na SDK (IDBIO_SDK.zip). Selecione “iDBio”, clique em Próximo e confirme; no fim o “iDBio (COMx)” deve aparecer em Portas (COM & LPT).",
+      "trecho_origem": "localize o dispositivo “CDC Serial” reconhecido\ncomo “Outros Dispositivos”;",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 222,
+      "pergunta": "Qual o endereço e as credenciais padrão para acessar a interface web do iDConnect V2, e que regra a nova senha precisa seguir?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDConnect V2",
+      "documento_origem": "idconnect-v2-userguide-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-v2-userguide-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Acesse http://192.168.0.131 com usuário admin e senha igual ao número serial do equipamento (na caixa ou no corpo). No primeiro acesso a troca de login é obrigatória e a nova senha deve ter no mínimo 8 caracteres, com letras e números.",
+      "trecho_origem": "http://192.168.0.131\nA tela de login aparecerá. Por padrão, as credenciais\nde acesso são:\n• Nome de usuário: admin\n• Senha: <SERIAL>",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 223,
+      "pergunta": "Qual o modo de operação padrão de fábrica do iDConnect V2 nos modelos 4GWIFI e WIFI?",
+      "dificuldade": "dificil",
+      "tipo": "variantes",
+      "produto": "iDConnect V2",
+      "documento_origem": "idconnect-v2-userguide-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-v2-userguide-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No modelo 4GWIFI o padrão é o Modo 1 (funciona como modem 4G e compartilha a internet por cabo e Wi-Fi). No modelo WIFI o padrão é o Modo 3 (switch de rede local, sem acesso direto à internet).",
+      "trecho_origem": "É\nimportante ressaltar que o modo padrão de fábrica\npara o modelo iDConnect V2 4GWIFI é o Modo 1.\nPara o modelo iDConnect V2 WIFI, é o Modo 3.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 224,
+      "pergunta": "Como volto o iDConnect V2 às configurações de fábrica e o que acontece com os dados configurados?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDConnect V2",
+      "documento_origem": "idconnect-v2-userguide-pt.pdf",
+      "arquivo_origem": "iDConnect/idconnect-v2-userguide-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Use o botão de reboot/reset, dentro do orifício perto da entrada de cabo Ethernet, com uma pinça: segure por 5 segundos. O equipamento volta às configurações de fábrica e todos os dados configurados são perdidos. Um toque rápido apenas reinicia o aparelho.",
+      "trecho_origem": "pressione o botão por 5 segundos",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 225,
+      "pergunta": "Quais saídas Wiegand e qual faixa de potência de transmissão da antena posso configurar no iDUHF Lite?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDUHF Lite",
+      "documento_origem": "iduhf-lite-guia.pdf",
+      "arquivo_origem": "iDUHF Lite/iduhf-lite-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Saída Wiegand de 26 (padrão), 32, 34 ou 66 bits e potência de transmissão da antena entre 15 e 24 dBm.",
+      "trecho_origem": "o Bits da saída Wiegand - 26 (padrão), 32, 34 ou 66 bits.\no Potência de transmissão da antena - entre 15 e 24 dBm para regular",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 226,
+      "pergunta": "Como faço o iDUHF Lite ler a tag do veículo só quando ele estiver na posição certa na cancela?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDUHF Lite",
+      "documento_origem": "iduhf-lite-guia.pdf",
+      "arquivo_origem": "iDUHF Lite/iduhf-lite-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Use a entrada de sensor gatilho (Trigger – TGR) com um sensor de barreira ou laço indutivo e configure o modo de operação como Trigger na interface web (com o timeout do trigger); assim a identificação ocorre apenas com o veículo na posição adequada.",
+      "trecho_origem": "identificação apenas quando um veículo estiver na posição adequada.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 227,
+      "pergunta": "Qual o IP padrão do iDUHF Lite e como redefino se eu tiver alterado?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDUHF Lite",
+      "documento_origem": "iduhf-lite-guia.pdf",
+      "arquivo_origem": "iDUHF Lite/iduhf-lite-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O IP padrão é 192.168.0.129. Para redefinir, reinicie a alimentação com os contatos Trigger e Sensor de Porta conectados ao GND.",
+      "trecho_origem": "Para redefinir o IP padrão de fábrica (192.168.0.129), reinicie a alimentação",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 228,
+      "pergunta": "Quantas entradas supervisionadas a iDBox V2 tem e quais valores de resistor são permitidos?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDBox V2",
+      "documento_origem": "idbox-v2-userguide.pdf",
+      "arquivo_origem": "iDBox/idbox-v2-userguide.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "São 8 entradas supervisionadas, que detectam tentativas de violação nos sensores de porta. Os resistores R1 e R2 devem ser iguais, com valores de 1KΩ, 2.2KΩ, 4.7KΩ ou 10KΩ.",
+      "trecho_origem": "A iDBox V2 possui suporte para 8 entradas\nsupervisionadas que permitem a detecção de",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 229,
+      "pergunta": "Como configuro leitoras OSDP na iDBox V2 e qual o baudrate padrão?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "iDBox V2",
+      "documento_origem": "idbox-v2-userguide.pdf",
+      "arquivo_origem": "iDBox/idbox-v2-userguide.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Pela interface web, no menu OSDP > Configurar Leitoras, escolha o modo de operação de cada uma das 4 leitoras; no modo OSDP o baudrate padrão é 9600 bps. Os periféricos OSDP são adicionados em OSDP > Cadastrar Periférico, com Secure Channel opcional.",
+      "trecho_origem": "A configuração dos recursos OSDP é feita pela\ninterface web, no menu OSDP > Configurar\nLeitoras, onde seleciona-se o modo de operação de\ncada uma das 4 leitoras.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 230,
+      "pergunta": "Qual a faixa de temperatura de operação do iDBell?",
+      "dificuldade": "facil",
+      "tipo": "valor",
+      "produto": "iDBell",
+      "documento_origem": "idbell-datasheet-pt.pdf",
+      "arquivo_origem": "iDBell/idbell-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "De -20°C a +60°C.",
+      "trecho_origem": "Temperatura de Operação\n-20°C a +60°C",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 231,
+      "pergunta": "Onde o iDBell grava as fotos e os vídeos?",
+      "dificuldade": "facil",
+      "tipo": "valor",
+      "produto": "iDBell",
+      "documento_origem": "idbell-datasheet-pt.pdf",
+      "arquivo_origem": "iDBell/idbell-datasheet-pt.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Em cartão de memória SD.",
+      "trecho_origem": "Gravação de Foto e Vídeo\nGravação de dados em cartão de memória SD",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 232,
+      "pergunta": "Esqueci o código de ativação do S@T-iD. Como defino um novo?",
+      "dificuldade": "media",
+      "tipo": "cenario",
+      "produto": "S@T-iD",
+      "documento_origem": "satid-manual.pdf",
+      "arquivo_origem": "SAT iD/satid-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Use o código de ativação de emergência, que está no guia rápido dentro da caixa do equipamento: no Utilitário S@T-iD, marque o checkbox de emergência, digite o código de emergência, informe o novo código de ativação duas vezes e clique em “Alterar”.",
+      "trecho_origem": "O segundo método é indicado caso o usuário esqueça o Código de Ativação que foi utilizado pela\núltima vez no equipamento.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 233,
+      "pergunta": "O que significa o LED de suporte do S@T-iD piscando 10 vezes por segundo (100 ms)?",
+      "dificuldade": "media",
+      "tipo": "tabela",
+      "produto": "S@T-iD",
+      "documento_origem": "satid-manual.pdf",
+      "arquivo_origem": "SAT iD/satid-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Atualização pendente. (Aceso constante indica violação pelo tamper/blindagem; 200 ms 5x/s indica segmentation fault.)",
+      "trecho_origem": "Piscando por 100ms 10x/s: Atualização pendente.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 234,
+      "pergunta": "Como instalo o driver do S@T-iD no Windows 7 e no Windows 10?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "S@T-iD",
+      "documento_origem": "satid-manual.pdf",
+      "arquivo_origem": "SAT iD/satid-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No Windows 10 a instalação é automática. No Windows 7 é manual: no Gerenciador de Dispositivos, localize o “CDC Serial” em Outros Dispositivos, Atualizar Driver, Procurar software, Permitir que eu escolha, “Com disco”, e selecione o arquivo satid.inf na pasta do Software Ativador; selecione “S@T-iD”, Próximo e aguarde. O driver só pode ser instalado depois do Utilitário S@T-iD e com o equipamento conectado.",
+      "trecho_origem": "No Windows 7, é necessário um procedimento manual de\ninstalação, enquanto que, no Windows 10, a instalação é automática.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 235,
+      "pergunta": "Qual a capacidade da memória interna (MRP) do REP iDClass e o que acontece quando ela enche?",
+      "dificuldade": "media",
+      "tipo": "condicional",
+      "produto": "REP iDClass",
+      "documento_origem": "rep-idclass-manual.pdf",
+      "arquivo_origem": "REP iDClass/rep-idclass-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A MRP tem 128MB (cerca de 10 milhões de marcações). Se a capacidade for excedida o REP não faz mais marcações de ponto; só permite exportar o AFD pela porta USB, gerar a RIM e imprimir a chave pública.",
+      "trecho_origem": "O REP iDClass possui uma memória interna (MRP) de 128MB, onde ficam\narmazenados,",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 236,
+      "pergunta": "Como imprimo a Relação Instantânea de Marcações (RIM) no REP iDClass e o que acontece se não houve marcações?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "REP iDClass",
+      "documento_origem": "rep-idclass-manual.pdf",
+      "arquivo_origem": "REP iDClass/rep-idclass-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Pressione o botão vermelho RIM, na frente do REP à direita do display, por 5 segundos. A RIM lista as marcações das últimas 24 horas; se não houve marcações nesse período ela não é impressa e uma mensagem avisa o fato.",
+      "trecho_origem": "pressione o botão\nvermelho RIM, localizado na parte frontal do REP, à direita do display,\ndurante 5 segundos.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 237,
+      "pergunta": "Qual o tamanho da bobina de papel, a velocidade de impressão e a vida útil da cabeça de impressão do REP iDClass?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "REP iDClass",
+      "documento_origem": "rep-idclass-manual.pdf",
+      "arquivo_origem": "REP iDClass/rep-idclass-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Bobina de 400 metros, velocidade de impressão de 100 mm/s e cabeça de impressão com vida útil de 100 km de papel impresso.",
+      "trecho_origem": "Bobina de papel 400 metros 2\nVida útil da cabeça de\n100 km de papel impresso",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 238,
+      "pergunta": "Instalei o iDFlex IP65 e o leitor de proximidade está com alcance ruim porque há ferragens atrás do equipamento. O que o guia recomenda?",
+      "dificuldade": "media",
+      "tipo": "cenario",
+      "produto": "iDFlex IP65",
+      "documento_origem": "idflex_ip65-guia.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Evitar objetos metálicos próximos à parte traseira do equipamento, pois prejudicam o alcance do leitor de cartão de proximidade. Se não for possível afastá-los, utilizar espaçadores isolantes.",
+      "trecho_origem": "Caso não seja possível, utilizar espaçadores",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 239,
+      "pergunta": "A que altura do solo devo fixar o suporte de parede do iDFlex IP65 e quantos furos de fixação o gabarito pede?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDFlex IP65",
+      "documento_origem": "idflex_ip65-guia.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A parte inferior do suporte de parede deve ficar a 1,2 m do solo, e o gabarito do verso do guia é usado para fazer 3 furos de fixação.",
+      "trecho_origem": "Fixar a parte inferior do suporte de parede do\niDFlex IP65 a 1,2m do solo.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 240,
+      "pergunta": "O módulo de acionamento externo (MAE) do iDFlex IP65 vai ficar a mais de 5 metros do equipamento. Que cabo devo usar e qual cuidado devo ter com os sinais A e B?",
+      "dificuldade": "media",
+      "tipo": "condicional",
+      "produto": "iDFlex IP65",
+      "documento_origem": "idflex_ip65-guia.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Usar um cabo de 4 condutores; para distâncias maiores que 5 m, o tipo par trançado, utilizando o mesmo par para os sinais A e B.",
+      "trecho_origem": "que 5m, utilize um cabo do tipo par trançado.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 241,
+      "pergunta": "Em qual contato do relé devo ligar uma fechadura de eletroímã no iDFlex IP65 e por que essa escolha?",
+      "dificuldade": "dificil",
+      "tipo": "condicional",
+      "produto": "iDFlex IP65",
+      "documento_origem": "idflex_ip65-guia.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No contato NC do relé de acionamento: o eletroímã precisa de corrente enquanto a porta está fechada e, para abrir a porta, o relé abre e interrompe o fluxo de corrente.",
+      "trecho_origem": "a fechadura de eletroímã é normalmente\nligada ao contato NC do relé de acionamento",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 242,
+      "pergunta": "Tenho uma fechadura eletromecânica que funciona em 110/220 V. Posso ligá-la ao relé do iDFlex IP65 como as demais?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDFlex IP65",
+      "documento_origem": "idflex_ip65-guia.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não do modo comum: o guia manda confirmar a tensão de operação antes de ligar, pois muitas fechaduras eletromecânicas operam em 110V/220V e devem usar uma ligação diferenciada (o relé do MAE é de até 30V e 5A).",
+      "trecho_origem": "Muitas fechaduras\neletromecânicas operam com 110V/220V e,\nportanto, devem utilizar uma ligação",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 243,
+      "pergunta": "Acabei de instalar o iDFlex IP65 e não sei o IP dele. Como acesso a interface web pela primeira vez?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "iDFlex IP65",
+      "documento_origem": "idflex_ip65-guia.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Conectar o equipamento diretamente a um PC por cabo de rede, configurar no PC um IP fixo na rede 192.168.0.xxx (xxx diferente de 129) com máscara 255.255.255.0, abrir http://192.168.0.129 e entrar com usuário admin e senha admin.",
+      "trecho_origem": "máquina na rede 192.168.0.xxx (onde xxx é\ndiferente de 129 para que não haja conflito de IP)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 244,
+      "pergunta": "Qual é a função da tampa e da borracha de vedação na traseira do iDFlex IP65?",
+      "dificuldade": "media",
+      "tipo": "explicacao",
+      "produto": "iDFlex IP65",
+      "documento_origem": "idflex_ip65-guia.pdf",
+      "arquivo_origem": "iDFlexIp65/idflex_ip65-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "São essenciais para garantir o grau de proteção IP65; devem ser reposicionadas e fixadas adequadamente na traseira do produto depois de ligar os cabos.",
+      "trecho_origem": "A tampa e a borracha de vedação são",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 245,
+      "pergunta": "Quero controlar duas fechaduras com o iDAccess. Qual relé vem ativado de fábrica e o que preciso fazer para usar a segunda?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDAccess",
+      "documento_origem": "idaccess-guia.pdf",
+      "arquivo_origem": "iDAccess/idaccess-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "De fábrica só o Relé 1 vem ativado, então a primeira fechadura deve ir sempre no Relé 1. Para a segunda, usar o Relé 2 e ativar a configuração pertinente no equipamento.",
+      "trecho_origem": "Atenção! Por padrão o iDAccess vem somente com o",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 246,
+      "pergunta": "Quero ligar uma sirene ao iDAccess. Posso usar as saídas AL+ e AL-?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDAccess",
+      "documento_origem": "idaccess-guia.pdf",
+      "arquivo_origem": "iDAccess/idaccess-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não: AL+ e AL- são transistorizadas de baixa corrente (< 10 mA), reservadas à interligação com outros iDAccess ou central de alarme externa/discador. A sirene deve ser ligada ao RELÉ2, habilitando essa configuração no equipamento.",
+      "trecho_origem": "sirene, ligue-a ao RELÉ2 e habilite esta configuração no",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 247,
+      "pergunta": "Que tipo de sensor pode ser ligado nas entradas ZN1 a ZN5 do iDAccess?",
+      "dificuldade": "media",
+      "tipo": "valor",
+      "produto": "iDAccess",
+      "documento_origem": "idaccess-guia.pdf",
+      "arquivo_origem": "iDAccess/idaccess-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Sensores de porta, janela, presença etc., desde que sejam do tipo contato seco (transistorizado ou com relé).",
+      "trecho_origem": "devem ser do tipo “contato seco” (transistorizado ou",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 248,
+      "pergunta": "O que acontece se eu ligar um dispositivo qualquer no conector de 10 pinos (expansão) do iDAccess?",
+      "dificuldade": "dificil",
+      "tipo": "condicional",
+      "produto": "iDAccess",
+      "documento_origem": "idaccess-guia.pdf",
+      "arquivo_origem": "iDAccess/idaccess-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O conector é reservado a placas de expansão vendidas separadamente pela Control iD; ligar qualquer outro dispositivo ou fio invalida a garantia e pode danificar o equipamento.",
+      "trecho_origem": "Nunca ligue nenhum tipo de dispositivo ou fio que",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 249,
+      "pergunta": "Como ligo uma leitora de cartão Wiegand externa ao iDAccess e para que servem as saídas WOUT0 e WOUT1?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDAccess",
+      "documento_origem": "idaccess-guia.pdf",
+      "arquivo_origem": "iDAccess/idaccess-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A leitora externa vai nas entradas Wiegand WIN0 e WIN1. Havendo placa controladora, as saídas WOUT0 e WOUT1 vão à controladora para transferir a ela o id do usuário identificado no iDAccess. Wiegand 26 (padrão) ou ABATRACK II.",
+      "trecho_origem": "entradas Wiegand WIN0 e WIN1. Caso haja",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 250,
+      "pergunta": "Vou instalar o iDFit numa caixa 4x2. Que adaptação a caixa de alvenaria e a de drywall exigem?",
+      "dificuldade": "media",
+      "tipo": "condicional",
+      "produto": "iDFit",
+      "documento_origem": "idfit-guia.pdf",
+      "arquivo_origem": "IDFit/idfit-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Na caixa de alvenaria, as duas orelhas de fixação de parafusos precisam ser completamente removidas; na de drywall, que é arredondada, os cantos precisam ser limados. O iDFit é fixado a 1,2 m do solo (até a parte inferior do produto).",
+      "trecho_origem": "as duas “orelhas” de fixação de parafusos",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 251,
+      "pergunta": "Como retiro o espelho frontal do iDFit durante a instalação e em que momento recoloco?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDFit",
+      "documento_origem": "idfit-guia.pdf",
+      "arquivo_origem": "IDFit/idfit-guia.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Depois de retirar o iDFit da caixa, remove-se o espelho frontal forçando levemente o espelho na parte de baixo; o espelho é recolocado no último passo, após parafusar o iDFit nas buchas e conectar os cabos.",
+      "trecho_origem": "Retirar o iDFit de sua caixa e remover o espelho",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 252,
+      "pergunta": "Que sinais existem no conector de 6 pinos para leitor de cartão da controladora iDBox e para que servem BEEP e LED?",
+      "dificuldade": "media",
+      "tipo": "tabela",
+      "produto": "iDBox",
+      "documento_origem": "idbox.pdf",
+      "arquivo_origem": "iDBox/idbox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Os pinos são +12V, GND, DATA 0 e DATA 1 (entradas Wiegand), BEEP (aciona o buzzer do leitor iDProx) e LED (aciona o LED do leitor iDProx).",
+      "trecho_origem": "BEEP Aciona Buzzer do Leitor iDProx",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 253,
+      "pergunta": "Quais são os sinais do conector de 6 pinos para controle de porta da iDBox?",
+      "dificuldade": "media",
+      "tipo": "tabela",
+      "produto": "iDBox",
+      "documento_origem": "idbox.pdf",
+      "arquivo_origem": "iDBox/idbox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "GND, BT (entrada da botoeira), DS (entrada para sensor de porta), COM (contato comum), NC (normalmente fechado) e NO (normalmente aberto).",
+      "trecho_origem": "DS Entrada para Sensor de Porta",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 254,
+      "pergunta": "Vou alimentar uma fechadura de eletroímã da iDBox com fonte AC. Preciso do diodo em série?",
+      "dificuldade": "dificil",
+      "tipo": "condicional",
+      "produto": "iDBox",
+      "documento_origem": "idbox.pdf",
+      "arquivo_origem": "iDBox/idbox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não: se a fechadura for alimentada por fonte AC, o diodo não deve ser utilizado. Com fonte DC, liga-se o diodo em série com o eletroímã (catodo, a parte listrada, no positivo do eletroímã e anodo no GND).",
+      "trecho_origem": "AC, o Diodo não deve ser utilizado na instalação.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 255,
+      "pergunta": "Que material e ferramentas preciso separar para instalar a controladora iDBox?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDBox",
+      "documento_origem": "idbox.pdf",
+      "arquivo_origem": "iDBox/idbox.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Furadeira, quatro buchas de fixação número 5 (diâmetro interno de 3,5 mm) com parafusos, chave de fenda ou philips, fonte de 12 V de no mínimo 1 A e as fechaduras eletrônicas conforme o projeto.",
+      "trecho_origem": "seguintes itens: furadeira, quatro buchas de fixação\nnúmero 5 (diâmetro interno de 3.5mm) com seus",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 256,
+      "pergunta": "A impressora Print iD está com o endereço IP desconhecido. Como restauro o IP de fábrica e qual é ele?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "Print iD",
+      "documento_origem": "printid-guia-rapido.pdf",
+      "arquivo_origem": "Print iD/printid-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O IP de fábrica é 192.168.0.128. Com a impressora desligada, pressione POWER e PAPER FEED simultaneamente por 15 segundos ou até ouvir cinco bipes, espere o LED INFO apagar e o IP volta ao de fábrica.",
+      "trecho_origem": "até ouvir cinco bipes;",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 257,
+      "pergunta": "Na Print iD, como distingo \"pouco papel\" de \"sem papel ou tampa aberta\" pelos LEDs e pelo buzzer?",
+      "dificuldade": "dificil",
+      "tipo": "tabela",
+      "produto": "Print iD",
+      "documento_origem": "printid-guia-rapido.pdf",
+      "arquivo_origem": "Print iD/printid-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Com pouco papel o LED INFO pisca lentamente e o buzzer fica desligado; sem papel ou com a tampa aberta o LED INFO pisca em ritmo médio e o buzzer dá um bipe.",
+      "trecho_origem": "Sem papel Pisca em",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 258,
+      "pergunta": "A Print iD está piscando o LED INFO rapidamente e dando dois bipes. O que isso indica?",
+      "dificuldade": "media",
+      "tipo": "tabela",
+      "produto": "Print iD",
+      "documento_origem": "printid-guia-rapido.pdf",
+      "arquivo_origem": "Print iD/printid-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Papel atolado.",
+      "trecho_origem": "Ligado Dois bipes",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 259,
+      "pergunta": "Preciso usar bobina de 58 mm na Print iD, cujo padrão é 80 mm. O que devo fazer?",
+      "dificuldade": "media",
+      "tipo": "condicional",
+      "produto": "Print iD",
+      "documento_origem": "printid-guia-rapido.pdf",
+      "arquivo_origem": "Print iD/printid-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A impressora aceita bobinas de 80 mm e 58 mm; para a de 58 mm é necessário colocar a peça fornecida nos encaixes interiores da cavidade de armazenamento do papel.",
+      "trecho_origem": "é necessário colocar a peça fornecida",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 260,
+      "pergunta": "Como imprimo o ticket de autoteste da Print iD?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "Print iD",
+      "documento_origem": "printid-guia-rapido.pdf",
+      "arquivo_origem": "Print iD/printid-guia-rapido.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Ligue a impressora segurando a tecla POWER até ouvir 3 bipes e solte; o ticket é impresso após alguns segundos. Solte assim que ouvir os 3 bipes para não desligar o produto.",
+      "trecho_origem": "segurando a tecla POWER até ouvir\n3 bipes e solte o botão.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 261,
+      "pergunta": "Como imprimo o ticket de teste na Print iD Touch?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "Print iD Touch",
+      "documento_origem": "printid_touch.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Clique no ícone Menu, na parte central inferior da tela, e selecione a segunda opção, Ticket Teste.",
+      "trecho_origem": "clique no ícone Menu, localizado na parte central",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 262,
+      "pergunta": "Quais conexões a Print iD Touch tem na parte traseira e quantas portas USB A ela oferece?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "Print iD Touch",
+      "documento_origem": "printid_touch.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "USB B (device) para o PC, duas portas USB A (host) para periféricos como módulos Wi-Fi e Bluetooth, Ethernet, gaveta de dinheiro, HDMI e conector de fonte.",
+      "trecho_origem": "duas portas USB 2.0 utilizadas",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 263,
+      "pergunta": "Quero atualizar o firmware da Print iD Touch. Qual o procedimento e como o pendrive deve estar formatado?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "Print iD Touch",
+      "documento_origem": "printid_touch.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Baixar o arquivo de firmware na página da Print iD Touch, copiá-lo para um pendrive formatado em FAT32, inserir o pendrive em um dos conectores USB A com a impressora ligada; a atualização inicia automaticamente e, após alguns minutos, a impressora reinicia e imprime o ticket de teste.",
+      "trecho_origem": "formatado em FAT32",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 264,
+      "pergunta": "Quais formatos de leitura o software do iDProx USB oferece para o modelo 125kHz ASK e para o modelo MIFARE?",
+      "dificuldade": "media",
+      "tipo": "comparacao",
+      "produto": "iDProx USB",
+      "documento_origem": "idprox_usb.pdf",
+      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "125kHz ASK: Padrão (MSB) e LSB. MIFARE: Padrão (MSB64), Wiegand (MSB24), LSB 24, LSB 32 e LSB 64.",
+      "trecho_origem": "MIFARE™: Padrão(MSB64), Wiegand(MSB24), LSB 24, LSB 32 e LSB 64",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 265,
+      "pergunta": "Preciso instalar driver para usar o iDProx USB no Windows 10 e no Windows 7?",
+      "dificuldade": "media",
+      "tipo": "comparacao",
+      "produto": "iDProx USB",
+      "documento_origem": "idprox_usb.pdf",
+      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No Windows 8/10 a instalação é automática. No Windows 7 é preciso instalar o driver manualmente pelo Gerenciador de Dispositivos (dispositivo CDC Serial), escolhendo o driver baixado do site da Control iD.",
+      "trecho_origem": "É preciso instalar um driver para o funcionamento nesse sistema, siga as",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 266,
+      "pergunta": "Como configuro o iDProx USB para cadastrar um cartão MIFARE no RHiD?",
+      "dificuldade": "dificil",
+      "tipo": "tabela",
+      "produto": "iDProx USB",
+      "documento_origem": "idprox_usb.pdf",
+      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No RHiD, no funcionário, em Cartão RFID, selecione o tipo de cartão e o modo de exibição: para Mifare, formato de leitura Padrão (MSB 64) e formato de saída Hexadecimal.",
+      "trecho_origem": "Mifare Padrão Padrão (MSB 64) Hexadecimal",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 267,
+      "pergunta": "O que significa a opção \"deslocar código de área\" do iDProx USB e quais valores existem?",
+      "dificuldade": "media",
+      "tipo": "explicacao",
+      "produto": "iDProx USB",
+      "documento_origem": "idprox_usb.pdf",
+      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Desloca o código de área em relação ao código de usuário, conforme a aplicação; as opções são Padrão (16 bits) e 32 bits.",
+      "trecho_origem": "aplicação. As opções disponíveis para o deslocamento são: Padrão (16 bits) e 32",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 268,
+      "pergunta": "Posso ligar o módulo iDBio direto numa porta serial TTL de 5 V?",
+      "dificuldade": "dificil",
+      "tipo": "condicional",
+      "produto": "iDBio",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não: o nível lógico TTL do módulo é +3,3 V e conectar a um dispositivo serial TTL +5 V pode danificá-lo (a alimentação Vcc do módulo é +5 V).",
+      "trecho_origem": "Atenção: O nível lógico TTL do módulo é +3,3V. Conectar a um dispositivo serial",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 269,
+      "pergunta": "Qual é a configuração padrão da serial do iDBio e como são montados os comandos enviados a ele?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDBio",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "115200 8N1 (115200 bits/s, 8 bits de dados, sem paridade, 1 bit de parada). Os comandos e parâmetros são separados por pipe (|) e terminados em fim de linha (\\n).",
+      "trecho_origem": "A configuração padrão do barramento serial é 115200 8N1",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 270,
+      "pergunta": "O GetImage do iDBio retornou -6. O que isso quer dizer?",
+      "dificuldade": "media",
+      "tipo": "tabela",
+      "produto": "iDBio",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Tempo de captura expirado: o comando espera até 30 segundos por uma digital e, sem captura, retorna -6.",
+      "trecho_origem": "-6 Tempo de captura expirado",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 271,
+      "pergunta": "Chamei GetImageImmediate no iDBio sem dedo no leitor e voltou -21. É falha de comunicação?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDBio",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não: -21 significa digital não detectada. O GetImageImmediate checa se há um dedo no leitor e retorna imediatamente; sem dedo, devolve o erro -21.",
+      "trecho_origem": "Checa se existe um dedo pressionando o leitor. Em caso positivo a imagem da",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 272,
+      "pergunta": "Qual a diferença entre GetFingerprint e CaptureTemplate no iDBio e desde qual firmware o segundo existe?",
+      "dificuldade": "dificil",
+      "tipo": "comparacao",
+      "produto": "iDBio",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O GetFingerprint devolve imagem e template; o CaptureTemplate devolve só o template (e a qualidade), sem a imagem, para ser mais rápido, e está disponível a partir do firmware 1.4.0.",
+      "trecho_origem": "Disponível a partir da versão 1.4.0 de firmware.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 273,
+      "pergunta": "Quais velocidades de serial do iDBio só estão disponíveis a partir do firmware 1.4.0 e qual é a padrão?",
+      "dificuldade": "dificil",
+      "tipo": "tabela",
+      "produto": "iDBio",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A padrão é 115200. Exigem firmware 1.4.0 ou superior: 460800, 500000, 576000 e 921600.",
+      "trecho_origem": "460800 (Disponível a partir da versão 1.4.0 de firmware)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 274,
+      "pergunta": "Quantas capturas o comando EnrollBioWithId do iDBio faz e quanto tempo espera por captura?",
+      "dificuldade": "media",
+      "tipo": "valor",
+      "produto": "iDBio",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Captura 3 imagens do dedo para cadastrar a digital com o ID informado (inteiro de 64 bits), com tempo limite de 30 segundos por iteração.",
+      "trecho_origem": "Captura 3 imagens de uma digital e a cadastra no dispositivo.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 275,
+      "pergunta": "Posso importar templates em formato ISO ou ANSI no iDBio usando MergeTemplates?",
+      "dificuldade": "dificil",
+      "tipo": "condicional",
+      "produto": "iDBio",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não: os formatos ISO e ANSI não são suportados para importação de templates. O MergeTemplates mescla 3 templates da mesma digital em um único.",
+      "trecho_origem": "Mescla 3 templates em um único template. Templates devem pertencer à mesma",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 276,
+      "pergunta": "Qual CRC o iDBio usa na comunicação serial?",
+      "dificuldade": "media",
+      "tipo": "valor",
+      "produto": "iDBio",
+      "documento_origem": "idbio-rs232.pdf",
+      "arquivo_origem": "iDBio/idbio-rs232.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "CRC32 com o polinômio 0x04C11DB7.",
+      "trecho_origem": "0x04C11DB7.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 277,
+      "pergunta": "Com que alimentação o leitor de código de barras e QR Code da Control iD funciona nos modelos USB e Wiegand?",
+      "dificuldade": "media",
+      "tipo": "comparacao",
+      "produto": "Leitor de código de barras e QR Code",
+      "documento_origem": "leitor-qr-code-usb.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "5 V no modelo USB e 12 V no modelo Wiegand.",
+      "trecho_origem": "• Alimentação: 5V (modelo USB) ou 12V (modelo Wiegand)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 278,
+      "pergunta": "Como configuro o leitor de QR Code USB para acrescentar um Enter (CR+LF) depois de cada leitura e para desabilitar o som?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "Leitor de código de barras e QR Code",
+      "documento_origem": "leitor-qr-code-usb.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A configuração é feita aproximando o leitor dos códigos de configuração impressos no guia e aguardando o bipe de confirmação: no sufixo (apenas modelo USB) escolhe-se Adicionar CR+LF; para o som, Desabilitar Som.",
+      "trecho_origem": "5.2 Configuração do Sufixo (apenas modelo USB)",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 279,
+      "pergunta": "Como o RHiD se integra aos REPs da Control iD e a equipamentos de outros fabricantes?",
+      "dificuldade": "media",
+      "tipo": "comparacao",
+      "produto": "RHiD",
+      "documento_origem": "rhid-datasheet.pdf",
+      "arquivo_origem": "RHiD/rhid-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Com os REPs da Control iD a integração é nativa, pelo software iDCloud, com sincronismo bidirecional sem intervenção humana. Com equipamentos de outros fabricantes, a integração é feita por arquivos AFD.",
+      "trecho_origem": "de outros fabricantes através dos arquivos AFD.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 280,
+      "pergunta": "O RHiD limita a quantidade de funcionários, empresas e equipamentos?",
+      "dificuldade": "media",
+      "tipo": "condicional",
+      "produto": "RHiD",
+      "documento_origem": "rhid-datasheet.pdf",
+      "arquivo_origem": "RHiD/rhid-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "São ilimitados, mas alguns dos recursos estão sujeitos à aquisição das respectivas licenças.",
+      "trecho_origem": "estão sujeitos à aquisição das respectivas licenças.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 281,
+      "pergunta": "De quais fontes o RHiD reúne as marcações de ponto?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "RHiD",
+      "documento_origem": "rhid-datasheet.pdf",
+      "arquivo_origem": "RHiD/rhid-datasheet.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Dos REPs, do aplicativo exclusivo para Android e iOS e também de marcações feitas no próprio PC do funcionário.",
+      "trecho_origem": "Criamos uma solução que integra as marcações de ponto",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 282,
+      "pergunta": "Como apago todos os usuários cadastrados na iDLock Bio pelo teclado?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Entre no Menu de Programação, digite 5 e #, depois a sequência 228855 e #; um bipe longo indica que o processo foi concluído.",
+      "trecho_origem": "Para exlcuir todos os usuários cadastrados, siga os passos abaixo:",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 283,
+      "pergunta": "Esqueci a senha de administrador e não consigo entrar no menu de programação da iDLock Bio. Como restauro a fechadura sem usar o menu?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Pela restauração física: remova uma das pilhas AA, segure o botão Menu, reinsira a pilha e aguarde os 3 bipes, depois feche o compartimento. Isso apaga todas as informações: usuários, configurações e relatórios de acesso.",
+      "trecho_origem": "a. Remova uma das pilhas AA;",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 284,
+      "pergunta": "Como ativo e como desativo o fechamento automático da porta na iDLock Bio e depois de quanto tempo ela tranca?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No Menu de Programação digite 6 e #; depois 1 e # para ativar ou 0 e # para desativar. Ativado, a fechadura tranca o mecanismo automaticamente 2 segundos após o alinhamento da parte interna com o batente.",
+      "trecho_origem": "O fechamento automático de porta é um recurso nativo da iDLock que permite trancar o",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 285,
+      "pergunta": "Minha porta tem 18 mm de espessura. Qual parafuso e que peças devo usar para instalar a iDLock Bio?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Para portas de 15 a 22 mm, use os espaçadores da parte interna e os parafusos tipo D (os parafusos M5 D a H cobrem de 22 a 50 mm).",
+      "trecho_origem": "Caso sua porta tenha uma espessura entre 15 e 22mm, utilize os espaçadores da",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 286,
+      "pergunta": "Na instalação da iDLock Bio, quando devo usar espaçadores e quando devo usar a falsa-testa?",
+      "dificuldade": "media",
+      "tipo": "condicional",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Se a parte interna e o batente não ficarem alinhados, use espaçadores para desníveis menores que 10 mm e a falsa-testa para desníveis maiores que 10 mm.",
+      "trecho_origem": "Caso as peças não fiquem alinhadas, use os espaçadores para desníveis menores que",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 287,
+      "pergunta": "Quantas digitais posso cadastrar por usuário na iDLock Bio e quantas capturas são feitas no cadastro de cada uma?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No máximo 10 digitais diferentes por usuário; cada digital é cadastrada com 3 capturas da mesma região do dedo, de preferência o indicador.",
+      "trecho_origem": "- É permitido o cadastro de no máximo 10 digitais diferentes por usuário.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 288,
+      "pergunta": "As 4 pilhas AA da iDLock Bio acabaram totalmente e preciso abrir a porta. O que faço?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Mantenha os contatos de uma bateria de 9 V encostados nos dois terminais da parte frontal da fechadura e use a iDLock normalmente para abrir a porta (acesso de emergência).",
+      "trecho_origem": "Caso a carga das 4 pilhas AA instaladas acabe, mantenha os contatos de uma bateria de 9V",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 289,
+      "pergunta": "Quais são os seis estados de funcionamento da iDLock Bio?",
+      "dificuldade": "media",
+      "tipo": "multi-fato",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Ocioso, Standby, Menu de Programação, Bloqueio de Acesso, Não Perturbe e Violação.",
+      "trecho_origem": "A iDLock possui 6 estados de funcionamento:",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 290,
+      "pergunta": "Quero que a diarista entre na casa pela iDLock Bio só em determinados dias e horários. Como configuro?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Pelo aplicativo iDHome: no dashboard selecione a fechadura, toque em Usuários, escolha o usuário, clique no símbolo do relógio, configure os períodos de cada dia da semana e salve. Por padrão todos os usuários acessam o dia todo, das 00:00 às 23:59.",
+      "trecho_origem": "Por padrão, todos os usuários podem acessar a fechadura em qualquer momento do",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 291,
+      "pergunta": "Como aumento ou diminuo o volume dos avisos sonoros da iDLock Bio pelo teclado?",
+      "dificuldade": "media",
+      "tipo": "procedimento",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No Menu de Programação digite 7 e #; use a tecla 3 para aumentar ou a 6 para diminuir o volume e clique em * para encerrar.",
+      "trecho_origem": "c. Utilize a tecla (3) para aumentar ou a tecla (6) para diminuir o volume de acordo com",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 292,
+      "pergunta": "Qual alarme a iDLock Bio emite se o trinco ficar obstruído ao trancar e qual ao tentar destrancar?",
+      "dificuldade": "dificil",
+      "tipo": "tabela",
+      "produto": "iDLock Bio",
+      "documento_origem": "idlock-bio-manual.pdf",
+      "arquivo_origem": "iDBlockBio/idlock-bio-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Ao travar a porta com o trinco obstruído ou desalinhado, emite 6 bipes seguidos; ao destrancar, se o trinco não conseguir recolher, emite 3 bipes seguidos.",
+      "trecho_origem": "sonoro de 6 bipes seguidos.",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 293,
+      "pergunta": "Quero ajustar o tempo de abertura de porta do iDTouch para 2 segundos. Que valor digito e qual é o padrão de fábrica?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No menu de programação pressione 4 e #, digite 20 e #: o valor vai de 1 a 99 e cada unidade vale 0,1 s (10 = 1 s). O padrão de fábrica é 3 s.",
+      "trecho_origem": "Digite “XX” (Tempo de 1 a 99) e pressione (#);",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 294,
+      "pergunta": "No iDTouch configurado para cartão e senha, qual a diferença entre o Modo I e o Modo II e de quanto tempo disponho entre uma etapa e outra?",
+      "dificuldade": "dificil",
+      "tipo": "comparacao",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "No Modo I o usuário encosta o cartão, digita a senha e pressiona #; no Modo II digita a senha, pressiona # e encosta o cartão. O tempo máximo entre os dígitos e para passar o cartão após o # é de 10 segundos.",
+      "trecho_origem": "NOTA: o tempo máximo entre os dígitos e para passar o cartão após (#) é de",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 295,
+      "pergunta": "Se eu mudar o iDTouch para o modo de verificação \"Cartão Apenas\", o que acontece com os usuários que só têm senha?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Eles deixam de conseguir acesso: neste modo, todos os usuários que tinham somente a senha cadastrada não poderão mais obter acesso.",
+      "trecho_origem": "Atenção: neste modo, todos os usuários que tinham somente a senha cadastrada não",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 296,
+      "pergunta": "Qual a diferença entre restaurar as configurações de fábrica e restaurar as configurações de fábrica completo no iDTouch?",
+      "dificuldade": "dificil",
+      "tipo": "comparacao",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "O comum (menu 8 e #, confirmação 4455 e #) restaura as configurações de fábrica. O completo (menu 13 e #, confirmação 228855 e #) restaura as configurações e a senha de programação e apaga todos os usuários cadastrados.",
+      "trecho_origem": "Para restaurar as configurações de fábrica e a senha de programação e apagar todos",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 297,
+      "pergunta": "Tenho 50 cartões consecutivos para cadastrar no iDTouch. Existe um jeito mais rápido que cadastrar um a um?",
+      "dificuldade": "media",
+      "tipo": "cenario",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Sim, o cadastro sequencial de cartões: no menu de programação pressione 5 e #, digite o ID do primeiro usuário e #, aproxime os cartões em sequência, pressione # para terminar e * para voltar ao Standby.",
+      "trecho_origem": "Para cadastrar um conjunto de cartões, siga os passos abaixo:",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 298,
+      "pergunta": "Tenho dois iDTouch e quero copiar a base de usuários e configurações de um para o outro. Como faço?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Conecte os dois equipamentos (back-to-back). No que enviará os dados ative o modo Sync Out (menu 7 e #) e no que receberá ative o Sync In (menu 6 e #).",
+      "trecho_origem": "Na sincronização da base de dados, um equipamento (IDTouch) em modo SYNC OUT",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 299,
+      "pergunta": "Como atualizo o firmware de um iDTouch desatualizado a partir de outro iDTouch com firmware mais novo?",
+      "dificuldade": "dificil",
+      "tipo": "procedimento",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Conecte os dois. No desatualizado (B) acesse o menu de programação e digite 777435 e #, os LEDs e o backlight se apagam. No atualizado (A) digite 777441 e # e aguarde os LEDs e o backlight do B acenderem.",
+      "trecho_origem": "Na atualização de Firmware, um equipamento (iDTouch A) envia sua versão de",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 300,
+      "pergunta": "Liguei o iDTouch fora do suporte de parede e o alarme de violação não disparou. É defeito?",
+      "dificuldade": "dificil",
+      "tipo": "cenario",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Não: para facilitar a instalação, se for ligado fora do suporte o iDTouch não dispara o alarme inicialmente. Depois de fixado, o alarme dispara ao remover o dispositivo da base.",
+      "trecho_origem": "Caso tenha sido ligado fora, ele não dispara o alarme",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 301,
+      "pergunta": "O iDTouch deu 3 bipes longos quando tentei cadastrar um usuário novo. O que isso significa?",
+      "dificuldade": "media",
+      "tipo": "cenario",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Que a capacidade máxima de usuários foi atingida; o equipamento emite 3 bipes longos a cada tentativa de novo cadastro.",
+      "trecho_origem": "3 bipes Longos Capacidade Máxima de Usuários Atingida",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 302,
+      "pergunta": "Para que servem a entrada e a saída Wiegand do iDTouch?",
+      "dificuldade": "media",
+      "tipo": "explicacao",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "A entrada recebe solicitações de acesso de leitoras iDProx, permitindo gerenciar outro ponto de acesso remoto; a saída envia o código de identificação do usuário para integrar o equipamento a sistemas de controle de acesso.",
+      "trecho_origem": "A porta de comunicação Wiegand de entrada pode ser utilizada para receber",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 303,
+      "pergunta": "Qual a bitola mínima dos cabos para ligar o iDTouch e a fonte?",
+      "dificuldade": "media",
+      "tipo": "valor",
+      "produto": "iDTouch",
+      "documento_origem": "idtouch-manual.pdf",
+      "arquivo_origem": "iDTouch/idtouch-manual.pdf",
+      "origem_ambigua": false,
+      "resposta_esperada": "Cabos de 0,75 mm² ou superior para alimentação, conexões de equipamentos e alimentação das fechaduras, com a energia desligada durante a instalação.",
+      "trecho_origem": "Utilize cabos de 0,75 mm² ou superior para ligações de",
+      "trecho_confere": true,
+      "sem_resposta": false,
+      "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
       }
     }
   ]

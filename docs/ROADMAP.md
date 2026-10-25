@@ -1800,6 +1800,21 @@ conversa e classificação do usuário").
         19 de 20 negativas recusadas, 8,4% das positivas vazias. **Medido, não
         aplicado:** o valor de produção só muda na reingestão aprovada pelo
         dono (Passo 8). Análise em `docs/EVALUATION.md` §2.1, Etapa 4.*
+        *Experimento de recusa do prompt (v1 × v2), 2026-10-25: a rodada das
+        143 positivas falhou no caso 80 (timeout, contexto 4096) e no 160
+        (crash de CUDA) e misturou duas configurações; `run_eval.py` agora
+        grava a configuração e o tamanho do prompt, repete falhas
+        transitórias e tem `--retomar`. **Pendente:** refazer a rodada
+        inteira com configuração única e decidir o `num_ctx` de produção
+        (hoje `null`). Detalhes em `docs/EVALUATION.md`, fim da Etapa 4.*
+        *Rodada completa `c3_pos_v1` feita em 2026-10-25 (nota 3,62/5, uso da
+        fonte 2,92). Revisão das 18 notas ≤ 2: 12 eram defeito do conjunto —
+        descartadas, mais 28 `facil` redundantes — e foram anexadas 123
+        perguntas (70 `media`, 44 `dificil`, 9 `facil`) `pendentes` de
+        aprovação em `/admin/datasets` (230 respondíveis, 50% `facil`).
+        **Pendente:** aprovar as 123, e decidir as correções de app (fonte no prompt do RAG, nome do
+        documento no texto do chunk) para medir de novo. `docs/EVALUATION.md`,
+        "Rodada completa e revisão das notas baixas".*
   - [ ] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores
         normalizados o ranking é o mesmo, a varredura existe para registrar
         isso com número) e **payload index `keyword` em `domain`**, hoje

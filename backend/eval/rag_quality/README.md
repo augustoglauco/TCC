@@ -9,9 +9,14 @@ por isso este diretório não tem `results.json`.
 
 ## Arquivos
 
-- `dataset.json` — **167 perguntas válidas** depois da revisão (147 com
-  resposta + 20 `sem_resposta`), mais 13 descartadas que ficam no arquivo e
-  são ignoradas pelos avaliadores.
+- `dataset.json` — depois da revisão: 107 respondíveis aprovadas/corrigidas
+  (todas `facil`) + 20 `sem_resposta`, **123 respondíveis novas `pendentes`**
+  (reforço de 2026-10-25: 70 `media` e 44 `dificil` + 9 `facil`, escritas à mão
+  a partir dos PDFs, com `origem = "reforco-2026-10-25"`) e 53 descartadas
+  (13 da primeira revisão, 12 defeituosas e 28 `facil` redundantes, com
+  `motivo_descarte`; ver `docs/EVALUATION.md`). Os avaliadores ignoram
+  descartadas e pendentes. Aprovar as 123 em `/admin/datasets` leva o conjunto
+  a 230 respondíveis (116 `facil`, 70 `media`, 44 `dificil`).
 - `gerar_dataset.py` — gera o rascunho (ver abaixo).
 - `run_eval.py` — reproduz o caminho real de produção para o domínio
   "suporte" (busca RAG + prompt + geração pelo modelo local), sem passar pelo
