@@ -341,7 +341,7 @@ etapa.
 | --- | --- | --- | --- | --- |
 | 0 | Auditoria do corpus | — | chars/página por PDF | **feita** (2026-10-17) |
 | 1 | Harness de recuperação | — | `Recall@k`/`nDCG@10`/`MRR` | **feita** (2026-10-24): baseline sobre 163 perguntas |
-| 2 | **Modelo de embedding** | 4 candidatos | `nDCG@10` + VRAM + tempo de ingestão | runner feito; rodada oficial pendente |
+| 2 | **Modelo de embedding** | 4 candidatos | `nDCG@10` + VRAM + tempo de ingestão | **feita** (2026-10-24): bge-m3 ≈ embeddinggemma ≫ e5 ≫ MiniLM |
 | 3 | **Chunking × overlap** | grade 5×3, **em tokens** | `nDCG@10`, `Recall@5` | runner feito; rodada oficial pendente |
 | 4 | `top_k` + `score_threshold` | varredura offline | `Recall@k` vs. precisão vs. taxa de vazio | `varrer_threshold.py` feito; pendente |
 | 5 | Distância + payload index | cosine/dot/euclid; índice `keyword` em `domain` | `nDCG@10`; p95 de latência | runner feito; rodada oficial pendente |
@@ -449,6 +449,26 @@ senão a comparação premia o modelo de janela curta.
 `is_query=True`), com fallback para `unsloth/embeddinggemma-300m` quando o
 `google/embeddinggemma-300m` exige autenticação gated no Hugging Face.
 Runner: `eval/rag_ingestion/run_etapa2.py`.
+
+**Resultado medido em 2026-10-24** (163 perguntas: 143 com resposta, 20 sem;
+`eval/rag_ingestion/resultados_etapa2.json`; cada modelo com o chunking da
+própria janela, limiar 0,35 só para a coluna de separabilidade):
+
+| Modelo | Recall@5 | nDCG@10 | MRR | Ingestão | VRAM | Maior score negativo × menor positivo |
+| --- | --- | --- | --- | --- | --- | --- |
+| bge-m3 | 0,944 | 0,801 | 0,750 | 179 s | 3,3 GB | 0,618 × 0,440 |
+| embeddinggemma-300m | 0,937 | 0,808 | 0,755 | 310 s | 3,1 GB | 0,510 × 0,383 |
+| e5-large-instruct | 0,881 | 0,798 | 0,745 | 157 s | 1,1 GB | 0,849 × 0,812 |
+| MiniLM-L12 (chunk 400) | 0,636 | 0,523 | 0,456 | 156 s | 0,5 GB | 0,642 × 0,289 |
+
+Teste pareado sobre as 143 positivas (McNemar exato em Recall@5; bootstrap
+pareado de 5.000 reamostragens, nDCG de primeiro acerto, aproximado):
+bge-m3 e embeddinggemma **empatam** (3 × 2 discordâncias, p = 1,0; ΔnDCG
+−0,007, IC95 [−0,048; +0,032]); ambos superam o e5-large em Recall@5 (p = 0,035
+e 0,039) mas não em nDCG; todos superam o MiniLM (p < 0,001, ΔnDCG ≈ +0,28).
+**Nenhum modelo separa positivas de negativas** (em todos o menor score de
+positiva fica abaixo do maior de negativa): trocar o embedding resolve a
+recuperação, não a recusa, que fica para a Etapa 4.
 
 ### Etapa 3 — grade de chunking em tokens
 
