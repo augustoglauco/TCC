@@ -812,7 +812,7 @@ Formato exato:
 ### 18. `backend/src/app/rag/embeddings.py`
 **Caminho:** [`backend/src/app/rag/embeddings.py`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/embeddings.py)
 
-Prefixos assimétricos de tarefa aplicados por `TextEmbedder` antes de chamar `SentenceTransformer.encode` (Etapa 2 da otimização do RAG, decisão de 2026-10-17 em `docs/ARCHITECTURE.md` §5 e `docs/EVALUATION.md` §2.1). `QdrantRAGClient.upsert_chunks` chama `embedder.embed(chunks)` (modo documento, `is_query=False` por padrão) e `QdrantRAGClient.search` chama `embedder.embed([query], is_query=True)` (modo consulta). Modelos simétricos (`paraphrase-multilingual-MiniLM-L12-v2`, `BAAI/bge-m3`) recebem prefixo vazio `("", "")`.
+Prefixos assimétricos de tarefa aplicados por `TextEmbedder` antes de chamar `SentenceTransformer.encode` (Etapa 2 da otimização do RAG, decisão de 2026-10-17 em `docs/ARCHITECTURE.md` §5 e `docs/EVALUATION.md` §2.1). `QdrantRAGClient.upsert_chunks` chama `embedder.embed(chunks)` (modo documento, `is_query=False` por padrão) e `QdrantRAGClient.search` chama `embedder.embed([query], is_query=True)` (modo consulta). Modelos simétricos (`paraphrase-multilingual-MiniLM-L12-v2`, `BAAI/bge-m3`) recebem prefixo vazio `("", "")`. **O modelo escolhido na Etapa 2 (2026-10-24) é o `BAAI/bge-m3`**, que não usa prefixo; as constantes abaixo só valem se o `embeddinggemma-300m` ou o `e5-large` voltarem a ser usados (alternativas documentadas, não escolhidas).
 
 ```python
 EMBEDDINGGEMMA_QUERY_PREFIX = "task: search result | query: "

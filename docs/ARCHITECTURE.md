@@ -451,7 +451,8 @@ testes e exigem alterar código de produção:
    (93 modelos avaliados em pt-BR, `arxiv.org/html/2607.04581v2`) coloca
    `paraphrase-multilingual-MiniLM-L12-v2` em **93º de 93**, Mean22
    **0,248** — contra 0,18 de um baseline de embeddings aleatórios.
-   Candidato escolhido para a Etapa 2: **`google/embeddinggemma-300m`**
+   Candidato preferido antes da medição (a Etapa 2 escolheu o `BAAI/bge-m3`,
+   ver decisão de 2026-10-24 abaixo): **`google/embeddinggemma-300m`**
    (308M params, 768 dims com truncamento Matryoshka, contexto 2048, Mean22
    **0,649**, 13º de 93), que cabe na GPU de 16GB ao lado do gerador de 12B.
    Alternativas medidas no mesmo conjunto:
@@ -575,9 +576,31 @@ permanecem:
    migração e mudanças em API/frontend, regra 8). Defaults
    `DEFAULT_CHUNK_SIZE`/`DEFAULT_CHUNK_OVERLAP` e os de
    `CollectionCreateRequest` passaram de `800/100` para **`512/51`**,
-   provisórios até a execução oficial. O seed `docs_texto` (`800/100`,
+   provisórios até a execução oficial (a Etapa 3 mediu e fixou **768/115**, a ser
+   aplicado na reingestão aprovada pelo dono; o código ainda usa 512/51). O seed `docs_texto` (`800/100`,
    MiniLM) não foi migrado: a ingestão oficial cria e ativa uma collection
    nova com parâmetros declarados. Script: `run_etapa3.py` (grade 5×3).
+**Decisão de arquitetura (Fase 10, 2026-10-24): perfil da collection de texto
+medido sobre 163 perguntas** (143 com resposta, 20 sem; dados em
+`backend/eval/rag_ingestion/resultados_etapa{1,2,3}.json`, análise em
+`docs/EVALUATION.md` §2.1):
+
+- **Embedding: `BAAI/bge-m3`** (1024 dims, janela 8192, sem prefixo). Recall@5
+  0,944 contra 0,636 do MiniLM em produção; empata estatisticamente com
+  `embeddinggemma-300m` (0,937; McNemar p = 1,0), desempatado por ingestão
+  1,7× mais rápida (179 s × 310 s), janela maior e busca híbrida disponível.
+  Custo: 3,3 GB de VRAM ao lado do gerador de 12B (~9 GB de 16 GB).
+- **Chunking: 768 tokens, overlap 15% (115 tokens)**, nDCG@10 0,814. A faixa de
+  512 a 1024 tokens é um platô (diferenças com p > 0,4); só 128–256 tokens
+  degradam. Overlap sem efeito consistente.
+- **Achado que muda o desenho:** nenhum embedding nem tamanho de chunk separa
+  perguntas com resposta das sem resposta por score (menor positivo 0,440,
+  maior negativo 0,618 com o perfil vencedor). O baseline de produção recusa
+  0 de 20. A recusa por `score_threshold` sozinho é, portanto, insuficiente;
+  a Etapa 4 mede o custo de recall de cada limiar.
+- **Estado do código:** MiniLM 800/100 em produção até a reingestão; a troca é
+  decisão do dono no Passo 8 (`docs/EVALUATION.md`).
+
 3. **Etapas 4 e 5:** `varrer_threshold.py` aceita `--entrada`, `--saida` e
    `--ponto-id` e recomenda o limiar pelo ponto médio do intervalo
    separável. `run_etapa5.py` compara métricas de distância (`cosine`,
