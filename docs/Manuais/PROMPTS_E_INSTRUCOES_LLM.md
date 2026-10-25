@@ -325,6 +325,13 @@ Responda apenas com JSON no formato: \
 
 Constrói e une todos os blocos de contexto (playbook, dados do cliente, resumo, RAG e mensagem atual) no prompt final enviado ao modelo de linguagem.
 
+> **Fonte por trecho (2026-10-25, R4 Fase 10):** cada trecho do RAG passa a
+> entrar como `- [Fonte: <arquivo>] <conteúdo>` e a instrução do bloco manda
+> usar só os trechos do produto perguntado e citar o documento. Antes o
+> prompt levava só o `content`, então o modelo não separava produtos
+> parecidos nem citava o manual (uso da fonte 2,92/5 na rodada `c3_pos_v1`,
+> `docs/EVALUATION.md`).
+
 > **`_formatar_dados_catalogo_vendas` atualizado em 2026-10-13:** quando há
 > cotação, o bloco ganha a linha "Quantidade do pedido do cliente: N
 > unidade(s)", dizendo que o estoque (total ou por CD) é só disponibilidade
@@ -397,10 +404,14 @@ def _build_prompt(
         partes.append(dados_catalogo)
 
     if documentos:
-        contexto = "\n\n".join(f"- {documento.content}" for documento in documentos)
+        contexto = "\n\n".join(
+            f"- [Fonte: {documento.source}] {documento.content}" for documento in documentos
+        )
         partes.append(
             "Use as informações a seguir, recuperadas da base de conhecimento "
-            "da empresa, para responder à mensagem do cliente. Se as "
+            "da empresa, para responder à mensagem do cliente. Cada trecho "
+            "indica entre colchetes o documento de origem: use só os trechos "
+            "do produto perguntado e cite o documento ao responder. Se as "
             "informações não forem suficientes, responda com o que souber, sem "
             "inventar dados específicos (preços, prazos, números de série).\n\n"
             f"Informações recuperadas:\n{wrap_untrusted('contexto_rag', contexto)}"

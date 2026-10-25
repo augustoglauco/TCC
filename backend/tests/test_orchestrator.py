@@ -21,6 +21,7 @@ from app.router.orchestrator import (
     RouterDecision,
     StatusEvent,
     TokenEvent,
+    _build_prompt,
     _formatar_dados_catalogo_vendas,
     handle_message,
 )
@@ -2928,3 +2929,16 @@ async def test_handle_message_vendas_propaga_login_para_o_playbook(logado, esper
     assert prompt_usado is not None
     assert esperado in prompt_usado
     assert ausente not in prompt_usado
+
+
+def test_build_prompt_rotula_cada_trecho_do_rag_com_a_fonte() -> None:
+    documentos = [
+        Document(content="Capacidade de 1000 usuários.", source="idtouch-manual.pdf", score=0.9),
+        Document(content="Alimentação 12V.", source="idpower-guia.pdf", score=0.8),
+    ]
+
+    prompt = _build_prompt("quantos usuários?", documentos, "suporte")
+
+    assert "- [Fonte: idtouch-manual.pdf] Capacidade de 1000 usuários." in prompt
+    assert "- [Fonte: idpower-guia.pdf] Alimentação 12V." in prompt
+    assert "cite o documento" in prompt

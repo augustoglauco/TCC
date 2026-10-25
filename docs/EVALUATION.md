@@ -713,6 +713,13 @@ condicional, tabela, comparação; todas com o produto no enunciado e
 Aprovadas, o conjunto passa a 230 respondíveis: 116 `facil`, 70 `media`,
 44 `dificil` (50% `facil`).
 
+**Correção de app aplicada (2026-10-25):** `_build_prompt` passou a rotular
+cada trecho do RAG com `[Fonte: <arquivo>]` e a instrução do bloco manda usar
+só os trechos do produto perguntado e citar o documento (primeira das duas
+causas acima; a segunda, o nome do documento dentro do chunk, exige
+reingestão e segue pendente). O efeito sobre a nota e o uso da fonte ainda não
+foi medido: depende de aprovar as 123 perguntas e rodar `run_eval.py` de novo.
+
 Achado de ingestão, fora do dataset: o texto extraído de
 `iDFace Max/idface-cadastramento-de-foto.pdf` sai com cada letra duplicada
 ("EEssttaa ccaarrttiillhhaa"), então esse documento não gera chunk útil e não

@@ -147,10 +147,16 @@ def _build_prompt(
         partes.append(dados_catalogo)
 
     if documentos:
-        contexto = "\n\n".join(f"- {documento.content}" for documento in documentos)
+        # Cada trecho leva o documento de origem: sem ele o modelo não separa
+        # produtos parecidos nem consegue citar o manual (R4, Fase 10).
+        contexto = "\n\n".join(
+            f"- [Fonte: {documento.source}] {documento.content}" for documento in documentos
+        )
         partes.append(
             "Use as informações a seguir, recuperadas da base de conhecimento "
-            "da empresa, para responder à mensagem do cliente. Se as "
+            "da empresa, para responder à mensagem do cliente. Cada trecho "
+            "indica entre colchetes o documento de origem: use só os trechos "
+            "do produto perguntado e cite o documento ao responder. Se as "
             "informações não forem suficientes, responda com o que souber, sem "
             "inventar dados específicos (preços, prazos, números de série).\n\n"
             f"Informações recuperadas:\n{wrap_untrusted('contexto_rag', contexto)}"

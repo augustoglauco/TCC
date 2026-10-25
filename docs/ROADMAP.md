@@ -1812,8 +1812,10 @@ conversa e classificação do usuário").
         descartadas, mais 28 `facil` redundantes — e foram anexadas 123
         perguntas (70 `media`, 44 `dificil`, 9 `facil`) `pendentes` de
         aprovação em `/admin/datasets` (230 respondíveis, 50% `facil`).
-        **Pendente:** aprovar as 123, e decidir as correções de app (fonte no prompt do RAG, nome do
-        documento no texto do chunk) para medir de novo. `docs/EVALUATION.md`,
+        Correção de app aplicada em 2026-10-25: cada trecho do RAG entra no
+        prompt com `[Fonte: <arquivo>]` e a instrução manda citar o documento.
+        **Pendente:** aprovar as 123, medir de novo com a fonte no prompt e
+        decidir o nome do documento no texto do chunk (exige reingestão). `docs/EVALUATION.md`,
         "Rodada completa e revisão das notas baixas".*
   - [ ] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores
         normalizados o ranking é o mesmo, a varredura existe para registrar
