@@ -217,8 +217,9 @@ def main(argv: list[str]) -> int:
         print(
             f"  NÃO — {sep.get('positivas_abaixo_da_pior_negativa')} de {sep.get('n_positivas')} "
             "positivas pontuam abaixo da pior negativa.\n"
-            "  Nenhum score_threshold resolve: o problema está no modelo de embedding\n"
-            "  (Etapa 2), não neste parâmetro."
+            "  Nenhum score_threshold separa as classes: escolher um limiar é trocar\n"
+            "  recall por recusa (ver a tabela). Se a base já usa o embedding vencedor\n"
+            "  da Etapa 2, trocar de modelo não ajuda; avalie outra estratégia de recusa."
         )
 
     print("\n=== Varredura ===")

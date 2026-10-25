@@ -1782,18 +1782,24 @@ conversa e classificação do usuário").
         o tooltip que dizia "caracteres/tokens" foi corrigido. O seed
         `docs_texto` não foi migrado — a ingestão oficial cria e ativa uma
         collection nova com parâmetros declarados.
-  - [ ] Etapa 4 — recalibrar `top_k` e `score_threshold`. **Obrigatória, não
+  - [x] Etapa 4 — recalibrar `top_k` e `score_threshold`. **Obrigatória, não
         opcional:** o threshold é um valor absoluto de cosseno e a escala
         muda com o modelo, então trocar o embedding invalida o valor atual.
         Reportar a taxa de vazio junto, porque ela é o sinal de
         escalonamento ao modelo externo, não só erro.
         *(Script estendido em 2026-10-17 em `varrer_threshold.py` para aceitar
-        `--entrada`/`--saida`/`--ponto-id` do formato da Etapa 3 e calcular
+        `--entrada`/`--saida`/`--ponto` do formato da Etapa 3 e calcular
         `recomendar_threshold` pelo ponto médio do intervalo separável;
         rodada preliminar (artefato removido em 2026-10-24) sobre `cs512_ov10`
         em `dataset_minimo.json` recomendou `score_threshold = 0,55` e
         `top_k = 5` com `ponto_medio = 0,5479` — execução oficial pendente das
         180 perguntas da Estratégia A.)*
+        *Resultado oficial (2026-10-24, bge-m3 768/115, 163 perguntas): nenhum
+        limiar separa as classes (menor positiva 0,440 × maior negativa
+        0,623). Joelho em `top_k` 5 / `score_threshold` 0,60: Recall@5 0,874,
+        19 de 20 negativas recusadas, 8,4% das positivas vazias. **Medido, não
+        aplicado:** o valor de produção só muda na reingestão aprovada pelo
+        dono (Passo 8). Análise em `docs/EVALUATION.md` §2.1, Etapa 4.*
   - [ ] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores
         normalizados o ranking é o mesmo, a varredura existe para registrar
         isso com número) e **payload index `keyword` em `domain`**, hoje

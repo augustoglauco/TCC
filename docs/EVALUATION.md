@@ -343,7 +343,7 @@ etapa.
 | 1 | Harness de recuperação | — | `Recall@k`/`nDCG@10`/`MRR` | **feita** (2026-10-24): baseline sobre 163 perguntas |
 | 2 | **Modelo de embedding** | 4 candidatos | `nDCG@10` + VRAM + tempo de ingestão | **feita** (2026-10-24): bge-m3 ≈ embeddinggemma ≫ e5 ≫ MiniLM |
 | 3 | **Chunking × overlap** | grade 5×3, **em tokens** | `nDCG@10`, `Recall@5` | **feita** (2026-10-24): 768 tok / 15%; 512–1024 empatam |
-| 4 | `top_k` + `score_threshold` | varredura offline | `Recall@k` vs. precisão vs. taxa de vazio | `varrer_threshold.py` feito; pendente |
+| 4 | `top_k` + `score_threshold` | varredura offline | `Recall@k` vs. precisão vs. taxa de vazio | **medida** (2026-10-24); ponto de operação aguarda aprovação do dono |
 | 5 | Distância + payload index | cosine/dot/euclid; índice `keyword` em `domain` | `nDCG@10`; p95 de latência | runner feito; rodada oficial pendente |
 | 6 | HNSW + quantização | — | **resultado negativo documentado** (medição 3) | redação |
 | 7 | Confirmação com juiz | vencedora × baseline | nota 1–5 pareada + `fonte_correta` | pendente |
@@ -549,6 +549,51 @@ Etapa 4.
 **Implementado:** `app.rag.chunking.chunk_text` com corte recursivo (`\n\n` →
 `\n` → `. ` → `" "` → fatia dura) e contagem em tokens quando recebe
 `tokenizer`. Runner: `run_etapa3.py`.
+
+### Etapa 4 — `top_k` e `score_threshold`
+
+**Resultado medido em 2026-10-24**, offline, sobre o ponto vencedor da Etapa 3
+(bge-m3, 768 tokens / overlap 115; base com `top_k` 10 e limiar 0 vinda de
+`resultados_etapa3.json`, ponto `cs768_ov15`; 143 positivas, 20 negativas).
+Comando: `varrer_threshold.py --entrada resultados_etapa3.json --ponto
+cs768_ov15`. Saída em `eval/rag_ingestion/varredura_threshold_etapa4.json`.
+
+**Não existe limiar que separe as classes:** o menor score máximo entre as
+positivas é 0,440 e o maior entre as negativas é 0,623; 26 das 143 positivas
+pontuam abaixo da pior negativa. Escolher um limiar é, portanto, trocar recall
+por recusa. Com `top_k` 5 (os resultados de `top_k` 5 e 10 praticamente
+coincidem; `top_k` 3 limita o Recall@5 a 0,902):
+
+| `score_threshold` | Recall@5 (IC95) | nDCG@10 | Positivas sem resposta | Negativas recusadas (IC95) |
+| --- | --- | --- | --- | --- |
+| 0,35 (atual) | 0,944 | 0,807 | 0,0% | 0 de 20 |
+| 0,50 | 0,944 [0,893; 0,971] | 0,807 | 1,4% | 3 de 20 [0,05; 0,36] |
+| 0,55 | 0,916 [0,859; 0,951] | 0,786 | 5,6% | 12 de 20 [0,39; 0,78] |
+| 0,58 | 0,902 [0,842; 0,941] | 0,775 | 6,3% | 14 de 20 [0,48; 0,85] |
+| **0,60** | **0,874** [0,810; 0,919] | 0,757 | 8,4% | **19 de 20** [0,76; 0,99] |
+| 0,62 | 0,776 [0,701; 0,837] | 0,669 | 17,5% | 19 de 20 [0,76; 0,99] |
+| 0,65 | 0,615 | 0,552 | 30,8% | 20 de 20 |
+
+**Joelho da curva em 0,60.** De 0,58 para 0,60 o sistema perde 2,8 pp de
+Recall@5 e ganha 25 pp de recusa; de 0,60 para 0,62 perde 9,8 pp de recall sem
+recusar mais nenhuma negativa. Abaixo de 0,50 o limiar não recusa quase nada
+(0 a 15%). A recomendação é `top_k` 5 e `score_threshold` 0,60, **sujeita à
+aprovação do dono** no Passo 8 (custo da escolha: 8,4% das perguntas com
+resposta no corpus voltam vazias e viram escalonamento ao modelo externo).
+
+**Limites desta medida:**
+
+- **As 20 negativas escolheram o limiar e o avaliam.** O 19 de 20 é otimista;
+  o IC95 vai de 76% a 99%. Confirmação independente: a Etapa 7 (juiz) e a
+  rodada completa da Fase 10.
+- **O limiar é absoluto e vale para este perfil.** Mudar modelo, chunk ou
+  distância invalida o valor (a Etapa 5 mede a distância).
+- **A taxa de vazio é um sinal, não só erro:** é o que aciona o escalonamento
+  ao modelo externo. Um limiar alto converte recusa em custo de chamada externa.
+- **Alternativa à registrar antes de implementar (regra 6):** como nenhum
+  embedding separa as classes por score, uma checagem de suficiência do contexto
+  pelo gerador é a candidata para recusar sem sacrificar recall. Não foi
+  implementada nem medida.
 
 ### Etapa 5 — métrica de distância e payload index
 
