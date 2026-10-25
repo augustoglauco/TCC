@@ -590,10 +590,47 @@ resposta no corpus voltam vazias e viram escalonamento ao modelo externo).
   distância invalida o valor (a Etapa 5 mede a distância).
 - **A taxa de vazio é um sinal, não só erro:** é o que aciona o escalonamento
   ao modelo externo. Um limiar alto converte recusa em custo de chamada externa.
-- **Alternativa à registrar antes de implementar (regra 6):** como nenhum
-  embedding separa as classes por score, uma checagem de suficiência do contexto
-  pelo gerador é a candidata para recusar sem sacrificar recall. Não foi
-  implementada nem medida.
+- **Recusa de ponta a ponta não é recusa da busca:** ver a subseção seguinte.
+
+#### Recusa de ponta a ponta nas 20 negativas (baseline, 2026-10-24)
+
+A busca "recusar" (voltar vazia) não é o assistente recusar: com contexto
+vazio o orquestrador só escolhe o modelo externo (`rag_vazio`,
+`orchestrator.py:_decidir_backend`) e **nenhum texto manda recusar**; o trecho
+"se as informações não forem suficientes, responda com o que souber, sem
+inventar dados" (`_build_prompt`) só é anexado quando há documentos.
+
+Medição: as 20 negativas passaram pelo caminho real do chat (collection ativa
+`docs_texto_gemma512`: embeddinggemma 512/51, limiar 0,35, gerador
+`gemma4:12b-it-q4_K_M`), via `eval/rag_quality/run_eval.py --sem-resposta
+--sem-juiz`; saída em `eval/rag_quality/results_sem_resposta.json`. **O juiz
+não rodou**: o tier gratuito devolveu 429 até esgotar as 6 tentativas no sexto
+caso (a rodada com juiz morre sem gravar nada), então a classificação abaixo é
+**leitura minha das 20 respostas, subjetiva e sujeita à sua revisão**.
+
+| Classe (leitura do agente) | Casos | Qtd |
+| --- | --- | --- |
+| Recusa explícita ("não consta no acervo") | nenhum | **0** |
+| Ressalva parcial ou pedido de esclarecimento, sem inventar | 161, 168, 174, 176; 162 (só aponta os termos legais reais) | 5 |
+| Responde com conteúdo vizinho do corpus como se respondesse à pergunta | 164–167, 170, 171, 173, 175, 178–180 | 11 |
+| Responde só com conhecimento próprio (**busca vazia**, `fontes = []`) | 163, 169, 172, 177 | 4 |
+
+Leitura: **o gerador não recusa sozinho** (0 de 20 explícitas; no máximo 5 de 20
+sem inventar). O marcador por palavras (`_parece_recusa`) deu 0 de 20, mais
+estreito que a leitura humana (não pegou "não especifica" nem "não há").
+Consequência para a Etapa 4: o limiar 0,60 produziria mais casos do grupo de
+busca vazia, que são os piores (resposta sem nenhuma base no corpus, e pelo
+modelo externo em produção). **Recusar pelo limiar, sozinho, não melhora a
+resposta ao cliente e pode piorá-la.**
+
+**Próximo experimento (não feito):** reescrever a instrução do prompt (trocar
+"responda com o que souber" por "se o trecho não responde, diga que não tem a
+informação e encaminhe") e acrescentar instrução de recusa também quando o
+contexto vem vazio. Custa zero chamadas extras. Medir nas mesmas 20 e, para
+checar recusa indevida, nas 143 positivas com o marcador, antes de decidir por
+uma checagem de suficiência em chamada separada (+1 chamada do gerador por
+pergunta). Vira decisão de arquitetura (regra 6) e altera o prompt mapeado em
+`PROMPTS_E_INSTRUCOES_LLM.md` (regra 11).
 
 ### Etapa 5 — métrica de distância e payload index
 

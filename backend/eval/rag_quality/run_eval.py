@@ -24,6 +24,8 @@ collection `docs_texto` ativa e populada com os manuais, e
 `EXTERNAL_MODEL_API_KEY` configurada no `.env` para o LLM-as-judge):
 
     .venv/bin/python eval/rag_quality/run_eval.py
+    .venv/bin/python eval/rag_quality/run_eval.py --sem-resposta   # só as 20 negativas
+    .venv/bin/python eval/rag_quality/run_eval.py --sem-resposta --sem-juiz  # sem chamar o juiz
 
 Salva `eval/rag_quality/results.json`.
 """
@@ -31,6 +33,7 @@ Salva `eval/rag_quality/results.json`.
 import asyncio
 import json
 import re
+import sys
 from pathlib import Path
 
 import httpx
@@ -133,6 +136,17 @@ def _carregar_casos() -> list[dict]:
     return dados["casos"]
 
 
+def _so_sem_resposta_revisados(casos: list[dict]) -> list[dict]:
+    """Os casos `sem_resposta` aprovados ou corrigidos na revisão, sem duplicatas."""
+    return [
+        c
+        for c in casos
+        if c.get("sem_resposta")
+        and (c.get("revisao") or {}).get("status") in {"aprovado", "corrigido"}
+        and not c.get("duplicada_de")
+    ]
+
+
 def _normalizar_nome_arquivo(nome: str) -> str:
     # Achado ao rodar esta avaliação: um dos PDFs enviados por upload tem
     # espaço duplo no nome real do arquivo ("...IA  FT..."), diferente do
@@ -220,6 +234,11 @@ async def _julgar_resposta(
 async def main() -> None:
     settings = get_settings()
     casos = _carregar_casos()
+    # Modo `--sem-resposta`: só as negativas revisadas, saída em arquivo próprio
+    # (não sobrescreve o `results.json` da rodada completa).
+    so_negativas = "--sem-resposta" in sys.argv
+    if so_negativas:
+        casos = _so_sem_resposta_revisados(casos)
 
     qdrant = QdrantRAGClient(
         host=settings.qdrant_host,
@@ -271,9 +290,14 @@ async def main() -> None:
         # num resultado separado, porque misturar os dois no mesmo
         # denominador estraga as duas medidas.
         if caso.get("sem_resposta"):
-            julgamento = await _julgar_recusa(
-                judge_client, caso["pergunta"], resposta_gerada, fontes
-            )
+            # `--sem-juiz`: o tier gratuito esgota o limite diário (429) no meio da
+            # rodada; sem juiz, a recusa fica com o marcador e a leitura humana.
+            if "--sem-juiz" in sys.argv:
+                julgamento = {}
+            else:
+                julgamento = await _julgar_recusa(
+                    judge_client, caso["pergunta"], resposta_gerada, fontes
+                )
             recusa_heuristica = _parece_recusa(resposta_gerada)
             resultados_sem_resposta.append(
                 {
@@ -327,7 +351,7 @@ async def main() -> None:
         "alucinou": sum(1 for c in resultados_sem_resposta if c["alucinou"]),
         "recusa_por_marcador": sum(1 for c in resultados_sem_resposta if c["recusa_por_marcador"]),
     }
-    output_path = BASE_DIR / "results.json"
+    output_path = BASE_DIR / ("results_sem_resposta.json" if so_negativas else "results.json")
     output_path.write_text(
         json.dumps(
             {

@@ -1,0 +1,290 @@
+{
+  "casos": [],
+  "casos_sem_resposta": [
+    {
+      "id": 161,
+      "pergunta": "Qual é o procedimento recomendado para migrar usuários existentes de cartões magnéticos para o novo sistema de identificação biométrica?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a transição dos usuários para o sistema biométrico.\n\nCom base no manual técnico, não há um procedimento de \"migração automática\" descrito; no entanto, os procedimentos para cadastrar as novas formas de identificação (biometria e cartões) são detalhados da seguinte forma:\n\n**Para o cadastro de digital (Biometria):**\n1. No momento do cadastro, acesse a tela de registro de digital.\n2. Pressione o dedo sobre o leitor biométrico 3 vezes.\n3. O bloco cinza deve ficar verde; quando os três blocos estiverem verdes, aparecerá a mensagem \"Digital cadastrada com sucesso\".\n4. Caso ocorra erro (bloco vermelho), pressione o dedo novamente até que seja aceito.\n\n**Dicas para uma boa leitura biométrica:**\n*   **Pressão:** O usuário deve pressionar firmemente o dedo no sensor, garantindo que cubra toda a área ativa.\n*   **Posicionamento:** Os dedos indicadores e médios são os mais recomendados (evite dedos com machucados ou desgaste).\n*   **Estabilidade:** O dedo deve ficar reto em relação ao sensor e não pode ser movido durante a leitura.\n\n**Observação importante sobre o sistema:**\nCaso a qualidade da impressão digital de algum usuário não seja nítida e o sistema falhe repetidamente na identificação, recomenda-se que o tipo de verificação para esse usuário específico seja alterado para senha ou código de barras.\n\nSe precisar de ajuda com um modelo específico (como o REP iDClass ou iDTouch) ou se houver algum erro específico durante o processo, por favor, me informe para que eu possa fornecer orientações mais detalhadas.",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "rep-idclass-manual.pdf",
+        "idtouch-manual.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 162,
+      "pergunta": "Como garantir a conformidade com as normas de proteção de dados ao armazenar imagens faciais em servidores externos?",
+      "resposta_gerada": "Para garantir a conformidade com as normas de proteção de dados, os produtos da Control iD seguem diretrizes específicas.\n\nAo utilizar os produtos da Control iD, você concorda com os Termos e Condições de Uso e Informações sobre Proteção de Dados Pessoais que podem ser consultados no link oficial:\nwww.controlid.com.br/legal/acessoeponto.pdf\n\nRecomendamos a leitura detalhada deste documento para garantir que o armazenamento e processamento de dados estejam em conformidade com as normas vigentes aplicáveis ao seu projeto.",
+      "fontes_recuperadas": [
+        "api_idclass_latest.md",
+        "api_idclass_latest.md",
+        "idface.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 163,
+      "pergunta": "Quais são os requisitos de rede necessários para operar múltiplos pontos de entrada simultaneamente sem latência excessiva?",
+      "resposta_gerada": "Para garantir o funcionamento de múltiplos pontos de entrada simultâneos com baixa latência, é necessário observar os seguintes requisitos de rede:\n\n1. **Largura de Banda (Bandwidth):** Certifique-se de que a conexão de internet possui largura de banda suficiente para suportar todos os dispositivos ativos ao mesmo tempo. A demanda total deve estar abaixo do limite contratado para evitar gargalos.\n2. **Estabilidade da Conexão:** Utilize conexões cabeada (Ethernet) sempre que possível, pois elas oferecem menor latência e maior estabilidade em comparação com redes Wi-Fi.\n3. **Qualidade da Rede (QoS):** Configure a Priorização de Pacotes (Quality of Service) no seu roteador para garantir que o tráfego dos pontos de entrada tenha prioridade sobre outras atividades de rede (como downloads ou streaming).\n4. **Infraestrutura Local:** Utilize um switch de alta performance e cabos de categoria adequada (como Cat5e ou superior) para evitar perdas de pacotes na rede interna.\n5. **Latência (Ping):** Para uma experiência fluida, a latência da conexão deve ser estável e baixa.\n\nCaso você esteja enfrentando instabilidade específica, por favor, informe o modelo do seu equipamento e o tipo de conexão que você utiliza para que eu possa fornecer orientações mais detalhadas.",
+      "fontes_recuperadas": [],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 164,
+      "pergunta": "De que forma pode-se personalizar políticas de acesso baseadas em horários específicos para diferentes departamentos dentro de um prédio?",
+      "resposta_gerada": "Olá! Compreendo sua necessidade de configurar permissões diferenciadas para diversos grupos ou setores.\n\nCom base nas informações do sistema, você pode configurar horários de acesso específicos para os usuários da seguinte forma:\n\n1.  Selecione o usuário que precisa ter seu horário de acesso configurado no aplicativo;\n2.  Clique no símbolo do relógio;\n3.  Configure os períodos em que o usuário poderá acessar a fechadura em cada dia da semana (por padrão, o sistema permite acesso livre das 00:00 às 23:59);\n4.  Clique em \"Salvar\";\n5.  Clique em \"Salvar\" novamente para confirmar e manter as alterações realizadas.\n\nDessa forma, você consegue estabelecer janelas de tempo específicas para cada usuário ou grupo de acesso dentro da estrutura do prédio.",
+      "fontes_recuperadas": [
+        "idlock-bio-manual.pdf",
+        "idsecure-cloud.pdf",
+        "api_idclass_latest.md"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 165,
+      "pergunta": "Após a instalação de um dispositivo de leitura de identificação, quais passos asseguram a integridade dos dados de barramento?",
+      "resposta_gerada": "Olá! Entendo que você busca garantir a segurança e a integridade da comunicação após a instalação do seu equipamento.\n\nCom base nas informações disponíveis no manual técnico para o leitor **iDProx**, as orientações focam na correta execução física e elétrica para garantir o funcionamento do sistema:\n\n1.  **Conexão de Cabos:** Antes de fixar o dispositivo permanentemente, certifique-se de que todos os cabos foram conectados corretamente aos terminais do iDProx.\n2.  **Alimentação Adequada:** O uso de uma fonte de 12V com no mínimo 1A é essencial para garantir a estabilidade operacional do equipamento.\n3.  **Ciclo de Reinicialização:** Após realizar qualquer ajuste ou conexão, recomenda-se desligar o iDProx e religá-lo. Ao ligar, o dispositivo emitirá um sinal sonoro (buzzer) e os LEDs acenderão para confirmar a configuração.\n\nCaso você esteja enfrentando um erro específico de comunicação ou se a sua dúvida for sobre protocolos de criptografia de dados no barramento, recomendo fornecer o modelo exato do equipamento que você instalou e descrever qual mensagem de erro está aparecendo (se houver), para que eu possa auxiliá-lo com mais precisão.",
+      "fontes_recuperadas": [
+        "idprox-guia.pdf",
+        "idlock-bio-manual.pdf",
+        "idlock-bio-manual.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 166,
+      "pergunta": "Como realizar a calibração dos sensores infravermelhos utilizados na leitura facial para minimizar falsos positivos?",
+      "resposta_gerada": "Para realizar a calibração das câmeras IR (infravermelho) no equipamento REP iDClass Facial, siga os passos abaixo:\n\n1. Acesse o menu de **Câmeras** (específico para o modelo REP iDClass Facial).\n2. Selecione a opção **Calibração**.\n3. No menu de calibração, pressione o botão **\"Iniciar\"**.\n4. Assim que aparecer a mensagem **\"Tudo certo, mantenha essa posição\"**, você deve se afastar da câmera e permanecer imóvel.\n5. Após o processo, o número do valor calibrado aparecerá na parte superior da tela de calibração.\n\nEssa calibração é importante para garantir o funcionamento correto das câmeras e a precisão do sistema.",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "api_idclass_latest.md",
+        "rep-idclass-manual.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 167,
+      "pergunta": "Quais são as melhores práticas para manter a disponibilidade contínua do sistema de bloqueio de porta em caso de falha de energia?",
+      "resposta_gerada": "Olá! Para garantir a disponibilidade e o funcionamento contínuo do seu sistema de bloqueio em situações de falha de energia ou falta de carga, seguem as orientações baseadas no manual técnico:\n\n1. **Uso de Baterias de Emergência:** Caso as pilhas (AA) do dispositivo se esgotem, você pode utilizar uma bateria externa de 9V para realizar a abertura da porta. Para isso, basta encostar os contatos da bateria de 9V nos terminais localizados na parte frontal da fechadura.\n2. **Configuração de Segurança (Fail Secure):** O sistema foi projetado com o conceito *Fail Secure* em modelos eletromecânicos, o que significa que a porta permanece travada em caso de interrupção de energia para garantir a segurança do local.\n3. **Alimentação Dedicada:** Para sistemas que utilizam fechaduras eletromecânicas ou solenoides, é recomendado o uso de uma fonte de alimentação exclusiva para a fechadura (ex: +12V/1A), garantindo que a demanda de energia da porta não sobrecarregue o sistema principal.\n\nCaso você precise de orientações específicas para um modelo de hardware específico (como o iDFlex ou iDLock) ou se houver alguma mensagem de erro específica aparecendo, por favor, me informe o modelo do equipamento e eu poderei detalhar melhor os procedimentos!",
+      "fontes_recuperadas": [
+        "idlock-bio-manual.pdf",
+        "idflex.pdf",
+        "idlock-bio-manual.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 168,
+      "pergunta": "Em que medida o sistema suporta a integração com protocolos de autenticação multifator que combinam chave física e aplicativo móvel?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a possibilidade de integração com sistemas de autenticação multifator (MFA) que combinem chaves físicas e aplicativos móveis.\n\nCom base nas informações técnicas disponíveis, o sistema oferece as seguintes funcionalidades de identificação e segurança:\n\n1.  **Formas de Identificação:** O sistema suporta diversas tecnologias para acesso, como reconhecimento facial (com duas câmeras HD), cartões de proximidade (MIFARE™, 125 kHz ASK ou HID), senhas numéricas e QR Code.\n2.  **Integração de Software:** O equipamento possui software web integrado para o gerenciamento do controle de acesso via navegador.\n\nNo entanto, a documentação técnica fornecida não especifica detalhes sobre protocolos específicos de autenticação multifator (MFA) que integrem aplicativos móveis ou chaves físicas externas além das tecnologias de leitura já citadas (cartões e QR Code).\n\nPara que eu possa fornecer uma resposta mais precisa sobre essa integração específica com o seu ambiente, você poderia informar qual modelo exato de equipamento você utiliza ou se existe algum software de terceiros que pretende integrar ao sistema?",
+      "fontes_recuperadas": [
+        "idface-datasheet.pdf",
+        "idblock-balcao-facial-idface-datasheet-pt.pdf",
+        "idsecure.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 169,
+      "pergunta": "Qual é o processo de validação de licenças de software antes da implantação em ambientes industriais críticos?",
+      "resposta_gerada": "Olá! Compreendo a importância de garantir a estabilidade e a segurança em ambientes industriais críticos.\n\nPara validar as licenças de software antes da implantação, recomenda-se seguir o seguinte processo:\n\n1. **Verificação de Compatibilidade:** Confirme se a versão do software é compatível com o hardware e o sistema operacional do ambiente industrial específico.\n2. **Validação de Escopo:** Certifique-se de que a licença adquirida cobre todos os módulos necessários para a operação pretendida no local.\n3. **Teste em Ambiente Isolado (Staging):** Realize a ativação da licença em um ambiente de teste ou laboratório antes da instalação no campo, para garantir que não haja falhas de comunicação com o servidor de licenciamento.\n4. **Registro de Chaves:** Documente todos os números de série e chaves de ativação em um inventário interno de ativos.\n5. **Verificação de Conectividade:** Se a licença exigir conexão externa, valide se as regras de firewall e gateway do ambiente industrial permitem essa comunicação.\n\nCaso você precise de orientações específicas para um modelo de software que já adquiriu conosco, por favor, informe o nome do produto ou o número do pedido para que eu possa consultar os detalhes técnicos exatos para você.",
+      "fontes_recuperadas": [],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 170,
+      "pergunta": "Como otimizar o consumo de bateria dos dispositivos portáteis de acesso em ambientes com pouca cobertura elétrica?",
+      "resposta_gerada": "Olá! Entendo a sua preocupação sobre a autonomia da bateria para dispositivos portáteis em locais com baixa disponibilidade de energia.\n\nCom base nas especificações técnicas disponíveis, aqui estão algumas orientações e informações sobre o gerenciamento de energia:\n\n1. **Uso de Baterias de Longa Duração:** Para equipamentos que operam com pilhas (como alguns modelos de controle de acesso), a recomendação é utilizar **pilhas Alcalinas AA**, que possuem uma autonomia estimada de até 1 ano para um uso padrão (cerca de 10 acessos por dia).\n2. **Fontes de Alimentação Alternativas:** Em casos onde há necessidade de redundância ou locais com instabilidade na rede elétrica, o sistema pode ser equipado com uma **bateria de reserva** (ex: bateria de chumbo-ácido) para garantir a continuidade do funcionamento da unidade principal.\n3. **Proteção do Equipamento:** Para preservar a integridade dos componentes e evitar desperdícios causados por danos climáticos, certifique-se de que os dispositivos estejam instalados em locais protegidos de sol direto e chuva.\n\nCaso você esteja utilizando um modelo específico ou precise de detalhes sobre a autonomia de um equipamento que já possui em seu histórico de compras, por favor, me informe o modelo para que eu possa fornecer dados mais precisos sobre as capacidades de bateria dele.",
+      "fontes_recuperadas": [
+        "idlock-datasheet.pdf",
+        "idpower-guia.pdf",
+        "idprox-usb-folder.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 171,
+      "pergunta": "Qual estratégia recomendada permite atualizar firmwares dos equipamentos sem interromper o fluxo de pessoas?",
+      "resposta_gerada": "Olá! Entendo a importância de manter os seus equipamentos atualizados garantindo a fluidez no acesso das pessoas.\n\nCom base nas informações disponíveis, o procedimento técnico para atualização de firmware entre dois equipamentos (por exemplo, um iDTouch A com firmware atualizado e um iDTouch B que precisa ser atualizado) é realizado seguindo estes passos:\n\n**Para preparar o equipamento que receberá a atualização (iDTouch B):**\n1. Acesse o menu de programação;\n2. Pressione **(777435)** e pressione **#**;\n3. Os LEDs e o Backlight irão se apagar.\n\n**Para iniciar a transferência do firmware no equipamento atualizado (iDTouch A):**\n1. Acesse o menu de programação;\n2. Pressione **(777441)** e pressione **#**;\n3. Aguarde os LEDs e o Backlight do dispositivo receptor (B) acenderem para iniciar o processo.\n\nAlém disso, as versões mais recentes do sistema incluem melhorias no tratamento de eventos e na persistência de configurações após atualizações, visando maior estabilidade operacional.\n\nCaso tenha alguma dificuldade durante esses passos ou precise de mais detalhes sobre um modelo específico, fico à disposição!",
+      "fontes_recuperadas": [
+        "idtouch-manual.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 172,
+      "pergunta": "Como garantir que a cadeia de suprimentos de peças de reposição seja gerenciada de forma eficiente após a implementação?",
+      "resposta_gerada": "Olá! Entendo sua preocupação. Para garantir que a gestão da cadeia de suprimentos de peças de reposição seja eficiente após a implementação, recomendo seguir estas diretrizes práticas:\n\n1. **Mapeamento de Estoque:** Identifique e categorize todas as peças críticas para o funcionamento do equipamento, estabelecendo níveis mínimos de estoque para cada item.\n2. **Monitoramento de Demanda:** Utilize dados históricos de manutenção para prever quais peças têm maior rotatividade e garantir que elas estejam sempre disponíveis.\n3. **Relacionamento com Fornecedores:** Estabeleça parcerias com fornecedores homologados que garantam prazos de entrega curtos e peças originais.\n4. **Sincronização de Dados:** Integre o sistema de inventário com o cronograma de manutenção preventiva para antecipar a necessidade de reposição antes de uma falha ocorrer.\n5. **Treinamento da Equipe:** Capacite a equipe técnica para registrar corretamente cada peça utilizada, permitindo um controle preciso do fluxo de saída do estoque.\n\nCaso você precise de orientações específicas sobre algum modelo de equipamento que já adquiriu conosco ou sobre manuais técnicos de peças específicas, por favor, informe o número do modelo ou da nota fiscal para que eu possa fornecer detalhes mais precisos.",
+      "fontes_recuperadas": [],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 173,
+      "pergunta": "Quais indicadores de desempenho devem ser coletados para avaliar a eficiência do sistema de controle de acesso em tempo real?",
+      "resposta_gerada": "Olá! Para avaliar a eficiência do sistema de controle de acesso em tempo real, com base nas funcionalidades e especificações técnicas da nossa solução, você deve focar nos seguintes indicadores:\n\n1. **Monitoramento em Tempo Real:** Acompanhar o fluxo de entradas e saídas para garantir que o sistema esteja registrando as movimentações instantaneamente.\n2. **Conformidade com Regras de Acesso:** Verificar se as liberações estão ocorrendo corretamente de acordo com os grupos, horários e departamentos configurados.\n3. **Taxa de Sucesso na Identificação:** Avaliar a eficiência das diferentes formas de identificação (Cartões de Proximidade, Senhas numéricas ou QR Code).\n4. **Desempenho do Processamento:** Garantir que o processador quad-core e o software web embarcado estejam processando as requisições sem atrasos perceptíveis.\n5. **Confiabilidade da Conexão:** Monitorar a estabilidade das conexões (Ethernet, GPRS ou Wi-Fi) para assegurar que os dados cheguem ao sistema em nuvem de forma contínua.\n\nEsses pontos ajudam a garantir que o sistema ofereça a segurança e a alta performance necessárias para o ambiente corporativo. Caso precise de detalhes sobre algum desses componentes específicos, estou à disposição!",
+      "fontes_recuperadas": [
+        "idsecure-cloud.pdf",
+        "idaccess-pro-prox.pdf",
+        "idblock.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 174,
+      "pergunta": "Como resolver conflitos entre permissões de acesso definidas pelo administrador e restrições impostas por políticas de segurança?",
+      "resposta_gerada": "Olá! Compreendo a importância de garantir que as regras de acesso estejam devidamente alinhadas com as políticas de segurança da sua empresa.\n\nCom base na documentação do sistema iDSecure, a gestão de conflitos e a aplicação de permissões são tratadas da seguinte forma:\n\n1.  **Configuração de Regras Customizadas:** O sistema permite a configuração de regras de acesso complexas e customizadas (baseadas em grupos, horários e tipos de usuários como visitantes ou moradores).\n2.  **Validação das Regras:** \n    *   Na versão **Lite**, a validação dessas regras é realizada localmente nos dispositivos.\n    *   Na versão **Enterprise**, o sistema oferece um controle mais robusto, onde tanto a identificação quanto a validação das regras ocorrem de forma centralizada.\n3.  **Gestão por Níveis:** Para resolver conflitos entre permissões administrativas e políticas de segurança, recomenda-se revisar as configurações na versão que melhor atenda à complexidade da sua operação (Lite para necessidades básicas ou Enterprise para regras mais complexas e validação avançada).\n\nCaso você precise de uma orientação específica sobre como configurar uma regra de \"dupla-entrada\", \"créditos\" ou \"revista aleatória\" para resolver um conflito específico, recomendo verificar qual versão do iDSecure você utiliza atualmente.\n\nSe houver algum detalhe técnico adicional ou erro específico que esteja ocorrendo no momento, por favor, informe o modelo do equipamento e a situação para que eu possa te auxiliar melhor!",
+      "fontes_recuperadas": [
+        "idsecure.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 175,
+      "pergunta": "De que maneira implementar um sistema de auditoria que registre cada tentativa de acesso, incluindo IP e usuário, para fins de investigação?",
+      "resposta_gerada": "Olá! Para atender à sua necessidade de monitoramento e registros de acesso utilizando as soluções da Control iD, aqui estão as informações baseadas em nossas plataformas:\n\nAmbas as plataformas (iDSecure Cloud e iDSecure) oferecem funcionalidades de monitoramento para facilitar a gestão do seu ambiente. Veja como elas atendem ao seu objetivo:\n\n1. **Monitoramento em Tempo Real:** Ambas as soluções permitem o acompanhamento dos acessos em tempo real, facilitando a identificação de atividades no momento em que ocorrem.\n2. **Relatórios Customizáveis:** O sistema permite a geração de relatórios detalhados para facilitar a operação e fornecer dados para análises futuras.\n3. **Gestão via iDSecure Cloud:** Se você busca uma solução 100% em nuvem com um app dedicado para iOS e Android, o iDSecure Cloud é indicado por permitir a visualização de logs de acesso diretamente pelo aplicativo ou navegador.\n\n**Informação Importante sobre Detalhes Técnicos (IP e Usuário):**\nEmbora as plataformas forneçam monitoramento e relatórios detalhados conforme mencionado no manual, não temos informações específicas no texto técnico sobre a exibição automática do endereço IP em cada linha do log de auditoria ou campos específicos de investigação avançada.\n\nPara que eu possa te orientar com precisão sobre como configurar exatamente o campo de \"IP\" e \"Usuário\" para fins de investigação criminal ou técnica:\n* Você já possui uma das plataformas (iDSecure Cloud ou iDSecure)? \n* Caso sim, poderia informar se você utiliza alguma integração via API?\n\nSe precisar de detalhes técnicos mais profundos sobre a estrutura dos logs, recomendo fornecer o modelo do controlador que você utiliza para que possamos verificar a documentação específica desse hardware.",
+      "fontes_recuperadas": [
+        "idsecure-cloud.pdf",
+        "idsecure.pdf",
+        "idsecure-cloud.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 176,
+      "pergunta": "Quais são os passos necessários para obter certificação de conformidade com regulamentações locais de segurança pública?",
+      "resposta_gerada": "Olá! Para que eu possa te orientar sobre os passos necessários para a certificação de conformidade com as regulamentações locais de segurança pública, precisaria saber qual é o modelo específico do equipamento ou sistema que você está utilizando.\n\nCada dispositivo pode ter requisitos específicos dependendo da região e do tipo de tecnologia envolvida. Por favor, informe o **modelo do produto** (ou o número de série) para que eu possa consultar o manual técnico e a documentação correspondente e te passar as instruções exatas.",
+      "fontes_recuperadas": [],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 177,
+      "pergunta": "Como a arquitetura de rede influencia a latência percebida pelos usuários ao atravessar múltiplos switches?",
+      "resposta_gerada": "A estrutura da arquitetura de rede impacta diretamente a latência por meio de vários fatores técnicos que afetam o caminho que os dados percorrem até chegarem ao usuário final. Quando um pacote precisa atravessar múltiplos switches, cada \"salto\" pode introduzir atrasos específicos.\n\nAqui estão os principais fatores envolvidos:\n\n1. **Processamento de Frame (Hop Count):** Cada switch na rede precisa processar o quadro de dados para decidir para qual porta ele deve ser encaminhado. Embora o processamento em hardware seja rápido, múltiplos saltos somam milissegundos ao tempo total de viagem (RTT - Round Trip Time).\n2. **Tamanho da Tabela de MAC:** Se um switch estiver com a tabela de endereços MAC cheia ou sobrecarregado, ele pode ter dificuldades para processar os pacotes rapidamente, aumentando a latência.\n3. **Congestionamento e Buffer:** Cada switch possui uma memória de buffer. Se o tráfego em um segmento da rede for superior à capacidade do link (ex: um link de 1Gbps sendo usado por dispositivos que demandam mais banda), o switch retém os pacotes na fila, gerando latência.\n4. **Protocolos de Roteamento e Loop Prevention:** Em redes complexas com muitos switches, protocolos como o Spanning Tree Protocol (STP) definem caminhos. Uma topologia mal desenhada pode forçar o tráfego a passar por caminhos menos eficientes ou mais congestionados.\n5. **Qualidade dos Cabos e Conectores:** Problemas físicos em qualquer um dos switches da cadeia podem causar perda de pacotes, forçando retransmissões que são percebidas pelo usuário como lentidão ou \"travamentos\".\n\n**Resumo técnico:** Para minimizar a latência, o ideal é manter uma topologia de rede eficiente, com o menor número de saltos possível entre o dispositivo do usuário e o gateway, garantindo que cada switch possua largura de banda suficiente para lidar com o tráfego simultâneo.",
+      "fontes_recuperadas": [],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 178,
+      "pergunta": "Qual é o procedimento correto para desativar temporariamente um ponto de entrada durante obras de manutenção estrutural?",
+      "resposta_gerada": "Olá! Compreendo a sua necessidade. Para desativar temporariamente uma porta e impedir que ela seja aberta pelo lado externo durante manutenções, você pode utilizar o **Modo Não Perturbe**.\n\nPara configurar e desativar esse modo, siga as instruções abaixo:\n\n**Para ativar o Modo Não Perturbe:**\n1. Com a porta fechada, pressione e segure o botão **\"Não Perturbe\"** por 2 segundos. Isso bloqueará a abertura pelo lado externo.\n\n**Para desativar o Modo Não Perturbe (e liberar a entrada):**\n1. Basta pressionar o botão **\"Abrir/Fechar\"**.\n\nCaso precise realizar outras configurações no menu de programação ou se tiver mais dúvidas, estou à disposição para ajudar!",
+      "fontes_recuperadas": [
+        "idtouch-manual.pdf",
+        "idlock-bio-guia.pdf",
+        "idlock-bio-manual.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 179,
+      "pergunta": "Como o sistema gerencia a sincronização de credenciais entre diferentes plataformas de acesso remoto sem depender de hardware específico?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre como o sistema realiza a sincronização de credenciais em diferentes plataformas.\n\nCom base nas informações disponíveis sobre as soluções de controle de acesso, aqui estão os pontos principais sobre o funcionamento e integração:\n\n1.  **Gerenciamento via Nuvem (iDCloud):** O sistema utiliza a tecnologia **iDCloud**, que permite gerenciar dispositivos e usuários de forma remota e centralizada. Isso possibilita que a gestão ocorra através da nuvem, facilitando a comunicação entre diferentes plataformas sem depender exclusivamente da infraestrutura física local.\n2.  **Protocolos Universais:** Para garantir que o acesso funcione em diversos tipos de leitores e sistemas (como Wiegand ou OSDP), o equipamento suporta protocolos padrão de mercado. Isso permite que as credenciais sejam interpretadas corretamente independentemente do fabricante do leitor conectado.\n3.  **Sincronização de Horário:** O sistema conta com suporte a **NTP**, garantindo que todos os dispositivos em rede estejam com o horário sincronizado via servidores externos, o que é fundamental para a validação correta de credenciais e registros em tempo real.\n\nCaso você esteja buscando uma integração específica com um software de terceiros ou precise de detalhes sobre um modelo de hardware específico (como a iDBox V2), por favor, informe o modelo do equipamento para que eu possa fornecer instruções mais detalhadas.",
+      "fontes_recuperadas": [
+        "idsecure.pdf",
+        "idbox-v2-datasheet.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    },
+    {
+      "id": 180,
+      "pergunta": "Qual é o procedimento padrão para atualizar os firmwares nos dispositivos de leitura de credenciais quando ocorre falha na comunicação com o servidor central?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a atualização de firmware em casos de falha de comunicação com o servidor.\n\nPara realizar a atualização do firmware, existem duas formas possíveis baseadas no nosso manual técnico:\n\n**Opção 1: Atualização entre equipamentos (via conexão direta)**\nCaso você precise atualizar um equipamento que está sem conexão com o servidor, é possível realizar a transferência de firmware de um dispositivo para outro:\n\n1.  **No equipamento desatualizado (iDTouch B):**\n    *   Acesse o menu de programação;\n    *   Pressione **(777435)** e pressione **(#)**;\n    *   Os LEDs e o Backlight irão se apagar para permitir o recebimento.\n2.  **No equipamento com o firmware atualizado (iDTouch A):**\n    *   Acesse o menu de programação;\n    *   Pressione **(777441)** e pressione **(#)**;\n    *   Aguarde os LEDs e o Backlight do dispositivo B acenderem para iniciar o processo.\n\n**Opção 2: Atualização via Software**\nTambém é possível realizar a atualização através do software oficial:\n1.  Acesse o link de suporte: [https://www.controlid.com.br/legal/acessoeponto.pdf](https://www.controlid.com.br/legal/acessoeponto.pdf)\n2.  Com o dispositivo devidamente conectado via USB, clique na opção **\"Atualizar Firmware\"**.\n\nCaso precise de mais detalhes sobre um modelo específico ou apresente alguma mensagem de erro durante esses procedimentos, por favor, me informe para que eu possa auxiliá-lo melhor.",
+      "fontes_recuperadas": [
+        "idtouch-manual.pdf",
+        "idprox_usb.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": null,
+      "alucinou": null,
+      "recusa_por_marcador": false,
+      "julgamento": {},
+      "nota_manual": null
+    }
+  ],
+  "resumo": {
+    "respondiveis": 0,
+    "sem_resposta": 20,
+    "recusou": 0,
+    "alucinou": 0,
+    "recusa_por_marcador": 0
+  }
+}
