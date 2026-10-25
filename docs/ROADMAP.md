@@ -1716,7 +1716,7 @@ conversa e classificação do usuário").
         nenhuma pergunta devolve mais de 3 fontes distintas.
         Ressalva registrada: com n=12 positivas o IC 95% em p=0,5 é ±27 pp —
         o conjunto mínimo valida o instrumento, não escolhe parâmetro.
-  - [ ] Etapa 2 — escolher o modelo de embedding entre
+  - [x] Etapa 2 — escolher o modelo de embedding entre
         `embeddinggemma-300m` (candidato preferido: 308M, 768 dims, ctx
         2048, Mean22 0,649), `multilingual-e5-large-instruct` (0,641),
         `bge-m3` (ctx 8192, dense+sparse) e o baseline atual. Os 8B+ do topo
@@ -1740,6 +1740,11 @@ conversa e classificação do usuário").
         neg_max = 0,4999`, `nDCG@10 = 0,938`, `MRR = 0,917`), entregando
         simultaneamente `Recall@5 = 1,000` e `acerto_negativas = 1,000` para
         `score_threshold ∈ [0,50, 0,56]`.)*
+        *Resultado oficial (2026-10-24, 163 perguntas): bge-m3 (Recall@5 0,944)
+        empata com embeddinggemma-300m (0,937); e5-large 0,881; MiniLM 0,636.
+        Escolhido o **bge-m3** por tempo de ingestão (179 s × 310 s), janela
+        de 8192 tokens e híbrido disponível. Análise em
+        `docs/EVALUATION.md` §2.1, Etapa 2.*
   - [ ] Etapa 3 — `chunk_text` passa a contar **tokens** pelo tokenizer da
         collection (não caracteres) e a cortar recursivamente
         (`\n\n` → `\n` → `. ` → espaço); grade 5×3: `chunk_size` ∈ {128,

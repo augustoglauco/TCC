@@ -4,8 +4,7 @@
 Com `app.rag.chunking.chunk_text` passando a contar **tokens** pelo tokenizer
 do modelo da collection e a cortar recursivamente (`"\\n\\n"` → `"\\n"` →
 `". "` → `" "`), este script varre a grade de 15 pontos sobre o modelo
-escolhido na Etapa 2 (`google/embeddinggemma-300m` por padrão, janela de 2048
-tokens):
+escolhido na Etapa 2 (`BAAI/bge-m3` por padrão, janela de 8192 tokens):
 
 - `chunk_size` ∈ {128, 256, 512, 768, 1024} tokens
 - `chunk_overlap` ∈ {10%, 15%, 20%} de `chunk_size`
@@ -70,7 +69,7 @@ from app.rag.qdrant_client import QdrantRAGClient  # noqa: E402
 logger = logging.getLogger(__name__)
 
 SAIDA = BASE_DIR / "resultados_etapa3.json"
-MODELO_ETAPA3_PADRAO = "google/embeddinggemma-300m"
+MODELO_ETAPA3_PADRAO = "BAAI/bge-m3"
 CHUNK_SIZES_TOKENS: tuple[int, ...] = (128, 256, 512, 768, 1024)
 OVERLAPS_PCT: tuple[int, ...] = (10, 15, 20)
 TOP_K_BASE = 10

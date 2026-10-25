@@ -427,7 +427,7 @@ de score de perguntas com e sem resposta no corpus se sobrepõem por completo
 — o menor score máximo entre as positivas é 0,4553 e o maior entre as
 negativas é 0,6098, com 8 das 12 positivas abaixo da pior negativa. Isso
 aponta para o modelo de embedding (Etapa 2), não para calibração de limiar
-(Etapa 4). **Confirmado no baseline de 163: 0 de 20 negativas recusadas.**
+(Etapa 4). **Confirmado no baseline de 163: 0 de 20 negativas recusadas.** A hipótese de que a Etapa 2 resolveria isso foi refutada (ver Etapa 2).
 
 ### Etapa 2 — candidatos de embedding
 
@@ -469,6 +469,34 @@ e 0,039) mas não em nDCG; todos superam o MiniLM (p < 0,001, ΔnDCG ≈ +0,28).
 **Nenhum modelo separa positivas de negativas** (em todos o menor score de
 positiva fica abaixo do maior de negativa): trocar o embedding resolve a
 recuperação, não a recusa, que fica para a Etapa 4.
+
+**Decisão (2026-10-24): `BAAI/bge-m3` segue para a Etapa 3.** O teste pareado
+não separa bge-m3 de embeddinggemma-300m (Recall@5 0,944 × 0,937; nDCG@10
+0,801 × 0,808), então o desempate usou critérios operacionais:
+
+- **Tempo de ingestão:** 179 s contra 310 s no mesmo corpus (1,7× mais rápido),
+  o que pesa porque a Etapa 3 reingere o corpus 15 vezes.
+- **Janela de 8192 tokens**, contra 2048: a grade de chunking vai até 1024
+  tokens e não esbarra no teto do modelo.
+- **Híbrido disponível** (dense + sparse + multi-vector) para a evolução
+  futura, sem trocar de modelo.
+- **Custo aceito:** 568M de parâmetros contra 308M e 3,3 GB de VRAM contra
+  3,1 GB; os dois cabem ao lado do gerador de 12B (~9 GB de 16 GB).
+
+Os dois estão empatados em qualidade; o embeddinggemma fica como alternativa
+documentada se a VRAM do gerador mudar. O e5-large, apesar do menor
+custo (1,1 GB), perde em Recall@5 para ambos (p < 0,05) e sai da disputa.
+
+**O que esta etapa não resolveu:** nenhum candidato separa positivas de
+negativas por score (o menor score positivo fica abaixo do maior negativo em
+todos). Com bge-m3: 0,440 × 0,618. **Isso refuta a hipótese do piloto de 15
+perguntas** (n=12, sem valor de decisão), em que o embeddinggemma parecia o
+único separável (0,567 × 0,500) e a troca de modelo parecia resolver a
+recusa. Nas 143 positivas e 20 negativas ele não separa (0,383 × 0,510). A
+recusa não será obtida só com `score_threshold`, e a Etapa 4 precisa medir o custo
+de recall de cada limiar e avaliar alternativas de recusa (por exemplo, uma
+checagem de suficiência do contexto pelo gerador), registrando-as como
+decisão antes de qualquer implementação (regra 6 do `CLAUDE.md`).
 
 ### Etapa 3 — grade de chunking em tokens
 
