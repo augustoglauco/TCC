@@ -1814,7 +1814,9 @@ conversa e classificação do usuário").
         aprovação em `/admin/datasets` (230 respondíveis, 50% `facil`).
         Correção de app aplicada em 2026-10-25: cada trecho do RAG entra no
         prompt com `[Fonte: <arquivo>]` e a instrução manda citar o documento.
-        **Pendente:** aprovar as 123, medir de novo com a fonte no prompt e
+        A/B de 2026-10-26 (155 perguntas, juiz Haiku): nota 3,69 → 3,95 e uso da
+        fonte 2,99 → 3,77 (p<0,001), correção factual neutra.
+        **Pendente:** aprovar as 69 restantes, refazer o número sobre as 230 e
         decidir o nome do documento no texto do chunk (exige reingestão). `docs/EVALUATION.md`,
         "Rodada completa e revisão das notas baixas".*
   - [ ] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores

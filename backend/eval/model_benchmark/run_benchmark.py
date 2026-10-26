@@ -338,7 +338,9 @@ async def etapa_rag(cliente: ClienteInstrumentado, rag_client, judge_client) -> 
         prompt = _build_prompt(caso["pergunta"], documentos, domain="suporte")
         resposta = await cliente.generate(prompt)
         fontes = [documento.source for documento in documentos]
-        fonte_correta = _fonte_e_correta(fontes, caso["documento_origem"])
+        fonte_correta = _fonte_e_correta(
+            fontes, caso["documento_origem"], caso.get("documentos_aceitos")
+        )
         fontes_corretas += int(fonte_correta)
 
         julgamento = await _julgar_resposta(

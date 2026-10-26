@@ -229,9 +229,12 @@ async def _julgar_recusa(
         return {"erro": f"JSON inválido do juiz: {exc}"}
 
 
-def _fonte_e_correta(fontes: list[str], documento_origem: str) -> bool:
-    origem = _normalizar_nome_arquivo(documento_origem)
-    return any(origem in _normalizar_nome_arquivo(fonte) for fonte in fontes)
+def _fonte_e_correta(
+    fontes: list[str], documento_origem: str, documentos_aceitos: list[str] | None = None
+) -> bool:
+    """`documentos_aceitos`: PDFs gêmeos (v1/v2, guia/datasheet) com a mesma evidência."""
+    origens = [_normalizar_nome_arquivo(d) for d in [documento_origem, *(documentos_aceitos or [])]]
+    return any(o in _normalizar_nome_arquivo(f) for o in origens for f in fontes)
 
 
 _MAX_TENTATIVAS_JUIZ = 6
@@ -492,7 +495,9 @@ async def main() -> None:
             )
             continue
 
-        fonte_correta = _fonte_e_correta(fontes, caso["documento_origem"])
+        fonte_correta = _fonte_e_correta(
+            fontes, caso["documento_origem"], caso.get("documentos_aceitos")
+        )
 
         julgamento = await _julgar_resposta(
             judge_client, caso["pergunta"], caso["resposta_esperada"], resposta_gerada, fontes

@@ -3,7 +3,7 @@
   "descricao": "Conjunto de RAG documentos da Estratégia A (Fase 10): perguntas sobre os manuais e datasheets do corpus, mais perguntas sem resposta no corpus para medir alucinação.",
   "observacao": "Rascunho gerado por liquid/lfm-2.5-2.6b:free sobre docs/Manuais_fornecedor/ControlId. Todo item nasce `revisao.status = pendente`: o gabarito só vale depois da revisão humana em /admin/datasets. `trecho_confere = false` marca trecho que não foi localizado no texto do PDF e precisa de atenção redobrada.",
   "respondiveis": 283,
-  "sem_resposta": 20,
+  "sem_resposta": 28,
   "casos": [
     {
       "id": 1,
@@ -292,7 +292,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:16:38-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idconnect-v2-userguide-pt.pdf",
+        "idconnect-userguide-pt.pdf"
+      ]
     },
     {
       "id": 19,
@@ -324,7 +328,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:16:59-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idconnect-userguide-pt.pdf",
+        "idconnect-v2-userguide-pt.pdf"
+      ]
     },
     {
       "id": 21,
@@ -470,7 +478,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:19:14-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "printid-guia-rapido.pdf",
+        "printid_touch.pdf"
+      ]
     },
     {
       "id": 30,
@@ -502,7 +514,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:19:57-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idfit_V2.pdf",
+        "idfit-guia.pdf"
+      ]
     },
     {
       "id": 32,
@@ -518,7 +534,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:20:06-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idfit_V2.pdf",
+        "idfit-guia.pdf"
+      ]
     },
     {
       "id": 33,
@@ -630,7 +650,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:21:17-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idaccess_nano.pdf",
+        "idaccess_nano_guia.pdf"
+      ]
     },
     {
       "id": 40,
@@ -646,7 +670,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:21:31-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idaccess_nano.pdf",
+        "idaccess_nano_guia.pdf"
+      ]
     },
     {
       "id": 41,
@@ -662,7 +690,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:21:39-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idaccess_nano_guia.pdf",
+        "idaccess_nano.pdf"
+      ]
     },
     {
       "id": 42,
@@ -679,7 +711,11 @@
         "status": "aprovado",
         "em": "2026-10-23T23:25:28-0300"
       },
-      "duplicada_de": 40
+      "duplicada_de": 40,
+      "documentos_aceitos": [
+        "idaccess_nano_guia.pdf",
+        "idaccess_nano.pdf"
+      ]
     },
     {
       "id": 43,
@@ -711,7 +747,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:25:46-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idaccess_pro.pdf",
+        "idaccess_pro-guia.pdf"
+      ]
     },
     {
       "id": 45,
@@ -727,7 +767,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:25:55-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idaccess_pro-guia.pdf",
+        "idaccess_pro.pdf"
+      ]
     },
     {
       "id": 46,
@@ -743,7 +787,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:26:06-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idaccess_pro-guia.pdf",
+        "idaccess_pro.pdf"
+      ]
     },
     {
       "id": 47,
@@ -759,7 +807,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:26:10-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "printid_touch.pdf",
+        "printid-guia-rapido.pdf"
+      ]
     },
     {
       "id": 48,
@@ -839,7 +891,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:26:44-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idbox.pdf",
+        "idbox-v2-userguide.pdf"
+      ]
     },
     {
       "id": 53,
@@ -1019,7 +1075,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:29:21-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "leitor-qr-code-usb.pdf",
+        "leitor-qr-code-usb1.pdf"
+      ]
     },
     {
       "id": 64,
@@ -1035,7 +1095,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:29:29-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "leitor-qr-code-usb.pdf",
+        "leitor-qr-code-usb1.pdf"
+      ]
     },
     {
       "id": 65,
@@ -1051,7 +1115,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:29:37-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "leitor-qr-code-usb1.pdf",
+        "leitor-qr-code-usb.pdf"
+      ]
     },
     {
       "id": 66,
@@ -1068,7 +1136,11 @@
         "status": "aprovado",
         "em": "2026-10-23T23:33:05-0300"
       },
-      "duplicada_de": 63
+      "duplicada_de": 63,
+      "documentos_aceitos": [
+        "leitor-qr-code-usb1.pdf",
+        "leitor-qr-code-usb.pdf"
+      ]
     },
     {
       "id": 67,
@@ -1361,7 +1433,10 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-23T23:36:34-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "printid-touch-folder.pdf"
+      ]
     },
     {
       "id": 85,
@@ -2067,7 +2142,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-24T00:53:20-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idconnect-datasheet-pt.pdf",
+        "idconnect-v2-datasheet-pt.pdf"
+      ]
     },
     {
       "id": 128,
@@ -2083,7 +2162,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-24T00:53:33-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idconnect-datasheet-pt.pdf",
+        "idconnect-v2-datasheet-pt.pdf"
+      ]
     },
     {
       "id": 129,
@@ -2330,7 +2413,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-24T00:57:16-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idconnect-v2-datasheet-pt.pdf",
+        "idconnect-datasheet-pt.pdf"
+      ]
     },
     {
       "id": 144,
@@ -2346,7 +2433,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-24T00:57:20-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idconnect-v2-datasheet-pt.pdf",
+        "idconnect-datasheet-pt.pdf"
+      ]
     },
     {
       "id": 145,
@@ -2444,7 +2535,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-24T01:00:31-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idlock-bio-guia.pdf",
+        "idlock-guia.pdf"
+      ]
     },
     {
       "id": 151,
@@ -2508,7 +2603,14 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-24T01:01:51-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idblock-next-contador-giros-datasheet.pdf",
+        "idblock-next-bqc-datasheet.pdf",
+        "idblock-next-bqc-idface-max-datasheet.pdf",
+        "idblock-next-idface-max-datasheet.pdf",
+        "idblock-next-datasheet.pdf"
+      ]
     },
     {
       "id": 155,
@@ -2524,7 +2626,11 @@
       "revisao": {
         "status": "aprovado",
         "em": "2026-10-24T01:02:02-0300"
-      }
+      },
+      "documentos_aceitos": [
+        "idlock-guia.pdf",
+        "idlock-bio-guia.pdf"
+      ]
     },
     {
       "id": 156,
@@ -2655,8 +2761,9 @@
       "motivo_ausencia": "",
       "sem_resposta": true,
       "revisao": {
-        "status": "aprovado",
-        "em": "2026-10-24T01:03:57-0300"
+        "status": "descartado",
+        "em": "2026-10-26T10:30:00-0300",
+        "motivo": "o corpus responde à pergunta (ver auditoria 2026-10-26); negativa inválida"
       }
     },
     {
@@ -2694,8 +2801,9 @@
       "motivo_ausencia": "",
       "sem_resposta": true,
       "revisao": {
-        "status": "aprovado",
-        "em": "2026-10-24T01:04:25-0300"
+        "status": "descartado",
+        "em": "2026-10-26T10:30:00-0300",
+        "motivo": "o corpus responde à pergunta (ver auditoria 2026-10-26); negativa inválida"
       }
     },
     {
@@ -2882,8 +2990,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T09:26:43-0300"
       }
     },
     {
@@ -2901,8 +3009,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T09:26:56-0300"
       }
     },
     {
@@ -2920,8 +3028,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T09:27:46-0300"
       }
     },
     {
@@ -2939,8 +3047,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T09:28:26-0300"
       }
     },
     {
@@ -2958,8 +3066,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T09:28:59-0300"
       }
     },
     {
@@ -2977,8 +3085,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T09:29:36-0300"
       }
     },
     {
@@ -2996,8 +3104,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T09:30:32-0300"
       }
     },
     {
@@ -3015,8 +3123,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T09:34:06-0300"
       }
     },
     {
@@ -3034,8 +3142,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T10:13:19-0300"
       }
     },
     {
@@ -3053,8 +3161,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T10:16:22-0300"
       }
     },
     {
@@ -3072,8 +3180,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T11:13:53-0300"
       }
     },
     {
@@ -3091,8 +3199,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T11:36:04-0300"
       }
     },
     {
@@ -3110,8 +3218,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T11:36:29-0300"
       }
     },
     {
@@ -3129,8 +3237,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:21:03-0300"
       }
     },
     {
@@ -3148,8 +3256,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:21:24-0300"
       }
     },
     {
@@ -3167,8 +3275,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:36:37-0300"
       }
     },
     {
@@ -3186,8 +3294,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:37:12-0300"
       }
     },
     {
@@ -3205,8 +3313,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:39:39-0300"
       }
     },
     {
@@ -3224,8 +3332,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:39:59-0300"
       }
     },
     {
@@ -3243,8 +3351,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:40:20-0300"
       }
     },
     {
@@ -3262,8 +3370,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:40:46-0300"
       }
     },
     {
@@ -3281,8 +3389,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:41:35-0300"
       }
     },
     {
@@ -3300,8 +3408,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:42:43-0300"
       }
     },
     {
@@ -3319,8 +3427,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:43:06-0300"
       }
     },
     {
@@ -3338,8 +3446,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:43:20-0300"
       }
     },
     {
@@ -3357,8 +3465,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:43:39-0300"
       }
     },
     {
@@ -3376,8 +3484,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:43:54-0300"
       }
     },
     {
@@ -3395,8 +3503,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:44:16-0300"
       }
     },
     {
@@ -3414,8 +3522,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:44:38-0300"
       }
     },
     {
@@ -3433,8 +3541,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:45:10-0300"
       }
     },
     {
@@ -3452,8 +3560,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:45:24-0300"
       }
     },
     {
@@ -3471,8 +3579,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T14:45:43-0300"
       }
     },
     {
@@ -3490,8 +3598,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:12:44-0300"
       }
     },
     {
@@ -3509,8 +3617,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "descartado",
+        "em": "2026-10-25T15:13:35-0300"
       }
     },
     {
@@ -3528,8 +3636,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:14:18-0300"
       }
     },
     {
@@ -3547,8 +3655,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:14:50-0300"
       }
     },
     {
@@ -3566,8 +3674,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:18:22-0300"
       }
     },
     {
@@ -3585,8 +3693,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:26:47-0300"
       }
     },
     {
@@ -3604,8 +3712,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:27:32-0300"
       }
     },
     {
@@ -3623,8 +3731,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:28:05-0300"
       }
     },
     {
@@ -3642,8 +3750,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:33:01-0300"
       }
     },
     {
@@ -3661,9 +3769,13 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
-      }
+        "status": "aprovado",
+        "em": "2026-10-25T15:33:27-0300"
+      },
+      "documentos_aceitos": [
+        "idconnect-v2-userguide-pt.pdf",
+        "idconnect-userguide-pt.pdf"
+      ]
     },
     {
       "id": 223,
@@ -3680,8 +3792,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:34:00-0300"
       }
     },
     {
@@ -3699,9 +3811,13 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
-      }
+        "status": "aprovado",
+        "em": "2026-10-25T15:34:30-0300"
+      },
+      "documentos_aceitos": [
+        "idconnect-v2-userguide-pt.pdf",
+        "idconnect-userguide-pt.pdf"
+      ]
     },
     {
       "id": 225,
@@ -3718,8 +3834,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:34:51-0300"
       }
     },
     {
@@ -3737,8 +3853,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:35:17-0300"
       }
     },
     {
@@ -3756,8 +3872,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:35:46-0300"
       }
     },
     {
@@ -3775,8 +3891,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:36:25-0300"
       }
     },
     {
@@ -3794,8 +3910,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:37:00-0300"
       }
     },
     {
@@ -3813,8 +3929,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:37:15-0300"
       }
     },
     {
@@ -3832,8 +3948,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-25T15:37:48-0300"
       }
     },
     {
@@ -3851,8 +3967,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "descartado",
+        "em": "2026-10-25T15:38:32-0300"
       }
     },
     {
@@ -3870,8 +3986,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-26T07:04:27-0300"
       }
     },
     {
@@ -3889,8 +4005,8 @@
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
       "revisao": {
-        "status": "pendente",
-        "em": null
+        "status": "aprovado",
+        "em": "2026-10-26T07:04:48-0300"
       }
     },
     {
@@ -4195,7 +4311,11 @@
       "revisao": {
         "status": "pendente",
         "em": null
-      }
+      },
+      "documentos_aceitos": [
+        "idfit-guia.pdf",
+        "idfit_V2.pdf"
+      ]
     },
     {
       "id": 251,
@@ -4214,7 +4334,11 @@
       "revisao": {
         "status": "pendente",
         "em": null
-      }
+      },
+      "documentos_aceitos": [
+        "idfit-guia.pdf",
+        "idfit_V2.pdf"
+      ]
     },
     {
       "id": 252,
@@ -4271,7 +4395,11 @@
       "revisao": {
         "status": "pendente",
         "em": null
-      }
+      },
+      "documentos_aceitos": [
+        "idbox.pdf",
+        "idbox-v2-userguide.pdf"
+      ]
     },
     {
       "id": 255,
@@ -4290,7 +4418,11 @@
       "revisao": {
         "status": "pendente",
         "em": null
-      }
+      },
+      "documentos_aceitos": [
+        "idbox.pdf",
+        "idbox-v2-userguide.pdf"
+      ]
     },
     {
       "id": 256,
@@ -4708,7 +4840,11 @@
       "revisao": {
         "status": "pendente",
         "em": null
-      }
+      },
+      "documentos_aceitos": [
+        "leitor-qr-code-usb.pdf",
+        "leitor-qr-code-usb1.pdf"
+      ]
     },
     {
       "id": 278,
@@ -4727,7 +4863,11 @@
       "revisao": {
         "status": "pendente",
         "em": null
-      }
+      },
+      "documentos_aceitos": [
+        "leitor-qr-code-usb.pdf",
+        "leitor-qr-code-usb1.pdf"
+      ]
     },
     {
       "id": 279,
@@ -4822,7 +4962,11 @@
       "revisao": {
         "status": "pendente",
         "em": null
-      }
+      },
+      "documentos_aceitos": [
+        "idlock-bio-manual.pdf",
+        "idlock_bio_guia_instalação.pdf"
+      ]
     },
     {
       "id": 284,
@@ -5199,6 +5343,118 @@
       "trecho_confere": true,
       "sem_resposta": false,
       "origem": "reforco-2026-10-25",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 304,
+      "pergunta": "Qual é o preço de venda sugerido do controlador iDFace Max?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "preço não consta em nenhum manual/datasheet (verificado por busca nos 97 PDFs em 2026-10-26)",
+      "sem_resposta": true,
+      "origem": "reforco_negativa_2026_10_26",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 305,
+      "pergunta": "Qual é a taxa de falsa rejeição (FRR) do reconhecimento facial do iDFace?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "FRR/FAR não consta no corpus (verificado por busca nos 97 PDFs em 2026-10-26)",
+      "sem_resposta": true,
+      "origem": "reforco_negativa_2026_10_26",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 306,
+      "pergunta": "O leitor iDUHF Lite suporta comunicação via protocolo Modbus?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "Modbus não consta no corpus (verificado por busca nos 97 PDFs em 2026-10-26)",
+      "sem_resposta": true,
+      "origem": "reforco_negativa_2026_10_26",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 307,
+      "pergunta": "Qual é o MTBF (tempo médio entre falhas) da catraca iDBlock Next?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "MTBF não consta no corpus (verificado por busca nos 97 PDFs em 2026-10-26)",
+      "sem_resposta": true,
+      "origem": "reforco_negativa_2026_10_26",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 308,
+      "pergunta": "O iDLock Bio pode ser integrado a assistentes de voz como a Alexa?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "assistente de voz não consta no corpus (verificado por busca nos 97 PDFs em 2026-10-26)",
+      "sem_resposta": true,
+      "origem": "reforco_negativa_2026_10_26",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 309,
+      "pergunta": "O iDAccess Pro permite integração com sistemas de automação predial via BACnet ou MQTT?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "BACnet/MQTT não consta no corpus (verificado por busca nos 97 PDFs em 2026-10-26)",
+      "sem_resposta": true,
+      "origem": "reforco_negativa_2026_10_26",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 310,
+      "pergunta": "A leitura de cartões por NFC em smartphones é suportada pelo iDAccess Nano?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "NFC não consta no corpus (verificado por busca nos 97 PDFs em 2026-10-26)",
+      "sem_resposta": true,
+      "origem": "reforco_negativa_2026_10_26",
+      "revisao": {
+        "status": "pendente",
+        "em": null
+      }
+    },
+    {
+      "id": 311,
+      "pergunta": "Qual é o prazo de garantia, em meses, do REP iDClass?",
+      "dificuldade": "media",
+      "documento_origem": "",
+      "resposta_esperada": "Não consta no corpus. A resposta correta é o assistente dizer que não tem essa informação, sem inventar dado nem citar fonte.",
+      "motivo_ausencia": "prazo de garantia não consta nos manuais do corpus (verificado por busca nos 97 PDFs em 2026-10-26)",
+      "sem_resposta": true,
+      "origem": "reforco_negativa_2026_10_26",
       "revisao": {
         "status": "pendente",
         "em": null

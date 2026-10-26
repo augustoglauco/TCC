@@ -78,7 +78,9 @@ def _converter(caso: dict[str, Any]) -> dict[str, Any]:
         "id": f"q{int(caso['id']):03d}",
         "pergunta": caso["pergunta"],
         "resposta_esperada": caso.get("resposta_esperada", ""),
-        "fontes_aceitas": [] if negativa else [caso["documento_origem"]],
+        "fontes_aceitas": []
+        if negativa
+        else list(dict.fromkeys([caso["documento_origem"], *caso.get("documentos_aceitos", [])])),
         "dificuldade": caso.get("dificuldade"),
     }
     if not negativa:

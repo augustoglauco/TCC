@@ -258,7 +258,16 @@ item traz `trecho_origem` extraído com `pdfplumber` (campo `trecho_confere`
 indica se o trecho foi localizado no PDF) e `arquivo_origem` com o caminho
 relativo, porque o basename repete no corpus (`changelog_pt-br.pdf` existe em
 `iDAccess Pro/` e em `iDFace/`); `origem_ambigua` marca o mesmo texto em
-vários PDFs.
+vários PDFs. `documentos_aceitos` (auditoria de 2026-10-26) lista os PDFs
+gêmeos da mesma família (v1/v2, guia/datasheet, cópias `-usb`/`-usb1`) que
+têm a mesma evidência: recuperar qualquer um conta como fonte correta em
+`run_eval.py`, `run_benchmark.py` e `rag_ingestion`. Só entra PDF do mesmo
+produto — texto padrão repetido entre produtos diferentes não amplia o
+gabarito. Negativas 164 e 167 descartadas (o corpus responde: regras por
+horários/departamentos nos datasheets do iDBlock/iDAccess; bateria 12V/7Ah
+da iDPower e no-break do REP iDClass); entram 8 negativas específicas de
+produto (ids 304–311), cada termo buscado sem resultado nos 97 PDFs, como
+`pendente` até a revisão.
 
 **Como avaliar:**
 - LLM-as-judge externo, com prompt simples e documentado (relevância,
@@ -717,8 +726,28 @@ Aprovadas, o conjunto passa a 230 respondíveis: 116 `facil`, 70 `media`,
 cada trecho do RAG com `[Fonte: <arquivo>]` e a instrução do bloco manda usar
 só os trechos do produto perguntado e citar o documento (primeira das duas
 causas acima; a segunda, o nome do documento dentro do chunk, exige
-reingestão e segue pendente). O efeito sobre a nota e o uso da fonte ainda não
-foi medido: depende de aprovar as 123 perguntas e rodar `run_eval.py` de novo.
+reingestão e segue pendente).
+
+**Medição A/B do `[Fonte:]` (2026-10-26).** Mesmas 155 respondíveis aprovadas
+(103 antigas, 52 de reforço), mesmo juiz (`claude-haiku-5.5`), mesmo gerador;
+só o `_build_prompt` muda (antigo = worktree de `1339e66^`). Wilcoxon pareado
+por pergunta: nota geral 3,69 → 3,95 (+0,26; 56 melhores / 17 piores; p<0,001);
+**uso da fonte 2,99 → 3,77 (+0,78; p<0,001)**; correção factual 3,91 → 3,99
+(p=0,16) e relevância 4,68 → 4,62 (p=0,21) sem mudança significativa; fonte
+correta recuperada 138/155 nos dois braços (a recuperação não muda). Por
+dificuldade: fácil Δnota +0,31 (p<0,001); média 0,00; difícil +0,33 (n=15,
+p=0,096); uso da fonte sobe nas três (p<0,02). Custo: +67 tokens de prompt em
+média, nenhum prompt em risco. **Ressalva:** "uso da fonte" mede citação e o
+prompt novo manda citar; o indicador independente é a correção factual, que
+ficou neutra. Arquivos: `results_ab_sem_fonte.json`, `results_ab_com_fonte.json`
+(baseline antigo em `results_baseline_c3_pos_v1.json`). Falta o número final
+sobre as 230 perguntas, depois da aprovação das 69 pendentes.
+
+**Auditoria do dataset (2026-10-26).** As 121 perguntas de reforço ativas foram
+lidas contra os PDFs: nenhuma resposta errada; em 86 o `trecho_origem` é curto
+demais para a resposta (não afeta a métrica, que é por documento). Em 79
+casos o trecho aparece também em outro PDF: os 29 da mesma família e 6 de
+pergunta sem produto ganharam `documentos_aceitos` (ver Seção 2).
 
 Achado de ingestão, fora do dataset: o texto extraído de
 `iDFace Max/idface-cadastramento-de-foto.pdf` sai com cada letra duplicada
