@@ -30,7 +30,7 @@ from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.db.models import RagDocument
 from app.logging_config import configure_logging
-from app.rag.collections_registry import get_active_collection
+from app.rag.collections_registry import get_active_collection, get_collection_by_name
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.ingest import SUPPORTED_SUFFIXES, ingest_file
 from app.rag.qdrant_client import QdrantRAGClient
@@ -51,6 +51,7 @@ def listar_arquivos_corpus(diretorio: Path) -> list[Path]:
 async def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dir", type=Path, default=CORPUS_PADRAO)
+    parser.add_argument("--collection", help="nome da collection destino (padrão: a ativa)")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -74,9 +75,12 @@ async def main() -> None:
     total_chunks = 0
 
     async with session_factory() as session:
-        collection = await get_active_collection(session)
+        if args.collection:
+            collection = await get_collection_by_name(session, args.collection)
+        else:
+            collection = await get_active_collection(session)
         if collection is None:
-            raise RuntimeError("Nenhuma collection ativa — rode `alembic upgrade head` primeiro.")
+            raise RuntimeError("Collection não encontrada — rode `alembic upgrade head` primeiro.")
         embedder = embedders.get(collection.embedding_model)
 
         existentes = set(

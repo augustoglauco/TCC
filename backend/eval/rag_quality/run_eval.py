@@ -27,6 +27,7 @@ collection `docs_texto` ativa e populada com os manuais, e
     .venv/bin/python eval/rag_quality/run_eval.py --sem-resposta   # só as 20 negativas
     .venv/bin/python eval/rag_quality/run_eval.py --sem-resposta --sem-juiz  # sem chamar o juiz
     .venv/bin/python eval/rag_quality/run_eval.py --com-resposta [--prompt-v2]  # 143 respondíveis
+    .venv/bin/python eval/rag_quality/run_eval.py --com-resposta --top-k 5 --saida results_x.json
 
 Salva `eval/rag_quality/results.json`.
 """
@@ -373,6 +374,13 @@ def _gravar_resultados(path: Path, resultados: list[dict], sem_resposta: list[di
     )
 
 
+def _opcao(nome: str, padrao: str | None = None) -> str | None:
+    """Valor de `--nome valor` em `sys.argv` (ou `padrao`)."""
+    if nome in sys.argv:
+        return sys.argv[sys.argv.index(nome) + 1]
+    return padrao
+
+
 async def main() -> None:
     settings = get_settings()
     casos = _carregar_casos()
@@ -385,7 +393,10 @@ async def main() -> None:
         casos = _so_sem_resposta_revisados(casos)
     elif so_respondiveis:
         casos = _so_respondiveis_revisados(casos)
-    output_path = BASE_DIR / _nome_saida(so_negativas, so_respondiveis, prompt_v2)
+    output_path = BASE_DIR / (
+        _opcao("--saida") or _nome_saida(so_negativas, so_respondiveis, prompt_v2)
+    )
+    top_k = int(_opcao("--top-k", "3"))
 
     qdrant = QdrantRAGClient(
         host=settings.qdrant_host,
@@ -431,6 +442,7 @@ async def main() -> None:
         num_ctx_configurado=num_ctx,
         local_llm_timeout_s=settings.local_llm_timeout_s,
         prompt_v2=prompt_v2,
+        top_k=top_k,
     )
     if "--retomar" in sys.argv and output_path.exists():
         anterior_cfg = json.loads(output_path.read_text(encoding="utf-8")).get("configuracao")
@@ -443,7 +455,7 @@ async def main() -> None:
         _gravar_resultados(output_path, resultados, resultados_sem_resposta)
         print(f"[{caso['id']}] {caso['pergunta'][:70]}...")
         documentos = await _buscar_documentos_rag(
-            caso["pergunta"], recent_messages=[], domain=_DOMAIN, rag_client=rag_client
+            caso["pergunta"], recent_messages=[], domain=_DOMAIN, rag_client=rag_client, top_k=top_k
         )
         prompt = _build_prompt(caso["pergunta"], documentos, domain=_DOMAIN)
         if prompt_v2:

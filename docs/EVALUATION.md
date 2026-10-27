@@ -756,6 +756,34 @@ da medição de 155 perguntas. Arquivos: `results_ab230_sem_fonte.json` e
 do Ollama no caso 22 (não reproduzido isolado: 24 s) e foi retomada com
 `LOCAL_LLM_TIMEOUT_S=180` (só o timeout muda).
 
+**`top_k` 3 × 5 (2026-10-27).** Mesmas 222 respondíveis, prompt de produção com
+`[Fonte:]`, mesmo juiz e gerador; só `--top-k` muda (a produção usa 3). Wilcoxon
+pareado (n=221): nota geral 3,87 → 4,00 (+0,13; 56 melhores / 35 piores;
+p=0,017); relevância 4,55 → 4,71 (p<0,001); uso da fonte 3,71 → 3,89
+(p=0,002); correção factual 3,95 → 4,05 (p=0,096, sem significância); fonte
+correta 203 → 213 de 222. Custo: prompt de 2879 para 4494 tokens em média
+(+56%; máximo 5154, nenhum em risco com `num_ctx` 8192); a latência de geração
+não foi medida aqui. Nas 18 respostas de nota ≤ 2 com fonte correta, 4 só tinham o
+dado do gabarito com `top_k` 10 (busca por termo, checagem grosseira) e 11 tinham
+o dado já no prompt de 3 trechos e mesmo assim erraram (seleção/mistura de produto
+pelo gerador). Arquivo: `results_ab_topk5.json`. A decisão de `top_k` de produção
+fica para o item 12 do roadmap (muda latência e custo). `run_eval.py` ganhou
+`--top-k` e `--saida`.
+
+**Prompt de recusa v2 × atual (2026-10-27).** `--prompt-v2` troca a frase "responda
+com o que souber" por "diga que não encontrou e oriente a falar com atendente";
+`top_k` 3, mesmo juiz e gerador. *Negativas (26, McNemar exato):* recusou 14 → 19
+(5 só no v2, 0 só no v1; p=0,06); alucinou 19 → 13 (0 só no v2, 6 só no v1;
+p=0,03). Os dois sinais não são complementares: em ambos os prompts nenhuma negativa
+saiu "limpa" (nem recusa nem alucinação), e 7 (v1) e 6 (v2) recusaram e alucinaram na
+mesma resposta. *Respondíveis (222 pareadas):* neutro — nota 3,87 → 3,90 (p=0,48),
+correção factual 3,95 → 3,95, fonte correta 203 nos dois, prompt +31 tokens. Custo:
+9 respostas passaram a trazer recusa/encaminhamento (4%; busca por marcador, grosseira),
+7 delas já tinham nota ≤ 2 com o prompt atual; as quedas claras foram 144 (4 → 1),
+235 e 278 (2 → 1). Arquivos: `results_b_neg_v1.json`, `results_b_neg_v2.json`,
+`results_b_resp_v2.json`. O v2 ainda vive só no eval; adotá-lo em
+`orchestrator._build_prompt` é decisão de arquitetura pendente.
+
 **Auditoria do dataset (2026-10-26).** As 121 perguntas de reforço ativas foram
 lidas contra os PDFs: nenhuma resposta errada; em 86 o `trecho_origem` é curto
 demais para a resposta (não afeta a métrica, que é por documento). Em 79

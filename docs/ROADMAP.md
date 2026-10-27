@@ -1819,7 +1819,10 @@ conversa e classificação do usuário").
         Aprovadas as 69 restantes em 2026-10-27; A/B refeito do zero nas 222
         respondíveis: nota 3,66 → 3,87 e uso da fonte 3,01 → 3,71 (p<0,001),
         correção factual neutra (p=0,13), fonte correta 203/222 nos dois.
-        **Pendente:** decidir o nome do documento no texto do chunk (exige reingestão). `docs/EVALUATION.md`,
+        Nome do documento no embedding do chunk testado em collection clone
+        (`docs_texto_bge768_fonte`): fonte correta 203 → 205 de 222 (5 ganhos, 3
+        perdas), ruído; não adotado. `top_k` 5: nota 3,87 → 4,00 (p=0,017),
+        fonte correta 213/222, prompt +56% em tokens; decisão no item 12. `docs/EVALUATION.md`,
         "Rodada completa e revisão das notas baixas".*
   - [ ] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores
         normalizados o ranking é o mesmo, a varredura existe para registrar
