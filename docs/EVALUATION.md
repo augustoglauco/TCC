@@ -740,8 +740,21 @@ p=0,096); uso da fonte sobe nas três (p<0,02). Custo: +67 tokens de prompt em
 média, nenhum prompt em risco. **Ressalva:** "uso da fonte" mede citação e o
 prompt novo manda citar; o indicador independente é a correção factual, que
 ficou neutra. Arquivos: `results_ab_sem_fonte.json`, `results_ab_com_fonte.json`
-(baseline antigo em `results_baseline_c3_pos_v1.json`). Falta o número final
-sobre as 230 perguntas, depois da aprovação das 69 pendentes.
+(baseline antigo em `results_baseline_c3_pos_v1.json`). Os números
+finais estão abaixo.
+
+**A/B refeito do zero sobre o dataset aprovado (2026-10-27).** Descartados os
+resultados anteriores: as duas rodadas foram refeitas nas 222 respondíveis
+aprovadas (juiz `claude-haiku-5.5`, mesmo gerador, `num_ctx` 8192; antigo =
+worktree de `1339e66^`). Wilcoxon pareado (n=221 com nota; 1 sem julgamento):
+nota geral 3,66 → 3,87 (+0,22; p<0,001); **uso da fonte 3,01 → 3,71 (+0,70;
+p<0,001)**; correção factual 3,86 → 3,95 (p=0,13) e relevância 4,59 → 4,55
+(p=0,21) sem mudança significativa; fonte correta 203/222 nos dois braços;
++66 tokens de prompt em média, nenhum em risco. Mesma conclusão e mesma ressalva
+da medição de 155 perguntas. Arquivos: `results_ab230_sem_fonte.json` e
+`results_ab230_com_fonte.json`. A rodada do prompt novo caiu com `ReadTimeout`
+do Ollama no caso 22 (não reproduzido isolado: 24 s) e foi retomada com
+`LOCAL_LLM_TIMEOUT_S=180` (só o timeout muda).
 
 **Auditoria do dataset (2026-10-26).** As 121 perguntas de reforço ativas foram
 lidas contra os PDFs: nenhuma resposta errada; em 86 o `trecho_origem` é curto

@@ -1816,8 +1816,10 @@ conversa e classificação do usuário").
         prompt com `[Fonte: <arquivo>]` e a instrução manda citar o documento.
         A/B de 2026-10-26 (155 perguntas, juiz Haiku): nota 3,69 → 3,95 e uso da
         fonte 2,99 → 3,77 (p<0,001), correção factual neutra.
-        **Pendente:** aprovar as 69 restantes, refazer o número sobre as 230 e
-        decidir o nome do documento no texto do chunk (exige reingestão). `docs/EVALUATION.md`,
+        Aprovadas as 69 restantes em 2026-10-27; A/B refeito do zero nas 222
+        respondíveis: nota 3,66 → 3,87 e uso da fonte 3,01 → 3,71 (p<0,001),
+        correção factual neutra (p=0,13), fonte correta 203/222 nos dois.
+        **Pendente:** decidir o nome do documento no texto do chunk (exige reingestão). `docs/EVALUATION.md`,
         "Rodada completa e revisão das notas baixas".*
   - [ ] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores
         normalizados o ranking é o mesmo, a varredura existe para registrar
