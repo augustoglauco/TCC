@@ -966,9 +966,12 @@ aquecimento por modelo é descartada. Juiz/externo: `anthropic/claude-haiku-5.5`
 
 O externo é ~15% mais rápido na média mesmo gerando ~3× mais tokens; o local tem
 cauda mais longa (máximo 14,6 s). Tokens de prompt diferem (1.343 × 2.126) só
-por tokenizador. **Custo do externo não medido:** os preços por mil tokens
-estão zerados na configuração (`custo_total_usd` = 0), então só os tokens
-valem; o custo se calcula depois com o preço vigente.
+por tokenizador. **Custo do externo** (preço informado pelo dono em 2026-10-28:
+US$ 0,10 por milhão de tokens de entrada e US$ 0,50 por milhão de saída; o
+`custo_total_usd` do `results.json` saiu 0 porque os preços da configuração
+estão zerados): 382.638 tokens de entrada e 110.717 de saída nas 180 chamadas =
+**US$ 0,094**, ou ~US$ 0,00052 por resposta (~US$ 0,52 por mil respostas). O
+modelo local não tem custo por chamada (energia e hardware fora da conta).
 
 **Como avaliar:**
 - Rodar os mesmos prompts no modelo local (GPU 16GB, via Ollama) e em um
