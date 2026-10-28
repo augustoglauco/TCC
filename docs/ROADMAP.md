@@ -1828,7 +1828,7 @@ conversa e classificação do usuário").
         Regras extras de geração (variante C: não misturar produto/conector, não
         contradizer o trecho) testadas e não adotadas: nota 3,90 → 3,95 (p=0,38). `docs/EVALUATION.md`,
         "Rodada completa e revisão das notas baixas".*
-  - [ ] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores
+  - [x] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores
         normalizados o ranking é o mesmo, a varredura existe para registrar
         isso com número) e **payload index `keyword` em `domain`**, hoje
         ausente (`payload_indexes = []`) embora toda busca filtre por esse
@@ -1846,11 +1846,18 @@ conversa e classificação do usuário").
         superior (`distancia <= thr`) em distância euclidiana; `run_etapa5.py`
         foi corrigido para usar `thr_sem_corte = 10.0` em `euclid`, sem
         reexecutar.)*
-  - [ ] Etapa 6(a) — registrar HNSW/quantização como **resultado negativo**
+        *Resultado oficial (2026-10-27, bge-m3 768/115, 248 perguntas): cosine,
+        dot e euclid dão o mesmo ranking (Recall@5 0,982); payload index em
+        `domain` sem efeito mensurável (média 5,81 → 5,38 ms, p95 6,48 → 6,97 ms),
+        não criado. `docs/EVALUATION.md` §2.1, Etapa 5.*
+  - [x] Etapa 6(a) — registrar HNSW/quantização como **resultado negativo**
         com os números da medição (3) acima, em vez de varrer os eixos. O
         teste sintético alternativo (replicar vetores até 100k–500k e forçar
         o build) foi considerado e descartado pelo dono em 2026-10-17:
         mediria um sistema que não é o do TCC.
+        *Registrado em 2026-10-27: 310 pontos de 1024 dims (~1,3 MB) contra
+        `full_scan_threshold` de 10000 KB, `indexed_vectors_count = 0` — busca
+        exata, HNSW e quantização sem efeito. `docs/EVALUATION.md` §2.1.*
   - [ ] Etapa 7 — confirmar com LLM-as-judge (~360 chamadas, ~US$ 3) que o
         ganho de recuperação virou ganho de resposta: configuração vencedora
         × baseline de 2026-10-01, pareado (McNemar para `Recall@5`,

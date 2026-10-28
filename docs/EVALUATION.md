@@ -821,6 +821,24 @@ substância é o índice `keyword` em `domain`, hoje ausente
 `euclid` o Qdrant trata `score_threshold` como distância máxima, então o
 runner usa um limiar aberto (`thr_sem_corte = 10.0`). Runner: `run_etapa5.py`.
 
+**Resultado (2026-10-27, bge-m3 768/115, 87 arquivos, 248 perguntas: 222 respondíveis e
+26 negativas).** *Distância:* `cosine`, `dot` e `euclid` dão exatamente o mesmo ranking
+(Recall@5 0,982; nDCG@10 0,870; MRR 0,834); só a escala dos scores muda (cosine/dot:
+menor positiva 0,5125 × maior negativa 0,6869; euclid: 0,6213 × 1,0313), e em nenhuma
+métrica as classes se separam. Mantém-se `cosine`. *Payload index `keyword` em
+`domain` (1240 consultas por perfil, Qdrant puro):* média 5,81 → 5,38 ms, p50 5,59 →
+5,05 ms, p95 6,48 → 6,97 ms, Recall@5 igual. A diferença está dentro do ruído, sem
+efeito mensurável nesta escala; o índice não foi criado. Resultado bruto:
+`eval/rag_ingestion/resultados_etapa5.json`.
+
+**Etapa 6(a) — HNSW e quantização, resultado negativo.** A collection ativa
+(`docs_texto_bge768`) tem 310 pontos de 1024 dimensões (cerca de 1,3 MB de vetores) e
+`full_scan_threshold` de 10000 KB, e o Qdrant reporta `indexed_vectors_count = 0`: a
+busca é exata (varredura completa) e o grafo HNSW nem é construído. Logo `m`,
+`ef_construct` e quantização não têm como afetar recall nem latência neste corpus, e
+não foram varridos. Um teste sintético com vetores replicados foi descartado pelo dono
+em 2026-10-17 por medir um sistema que não é o do TCC.
+
 ### Como reportar
 
 O relatório final traz **a grade inteira**, não só a vencedora. Comparação
