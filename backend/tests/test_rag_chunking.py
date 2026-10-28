@@ -1,6 +1,6 @@
 import pytest
 
-from app.rag.chunking import chunk_text
+from app.rag.chunking import chunk_text, contar_unidades
 
 
 def test_texto_vazio_retorna_lista_vazia():
@@ -160,3 +160,29 @@ def test_chunk_text_com_tokenizer_fatia_sequencia_sem_separador_por_tokens():
     chunks = chunk_text(texto, chunk_size=10, overlap=2, tokenizer=tokenizer)
 
     assert chunks == ["x" * 10, "x" * 10, "x" * 9]
+
+
+class _BackendRapidoComTruncacao:
+    """Imita `tokenizers.Tokenizer` do MiniLM: `encode` trunca em 128 tokens."""
+
+    truncation = {"max_length": 128}
+
+    def encode(self, texto, add_special_tokens=False):
+        ids = list(range(len(texto.split())))[:128]
+        return type("Enc", (), {"ids": ids})()
+
+
+class _TokenizerMiniLM:
+    """Wrapper HF: `_tokenizer` com truncação ativa; o `encode` do wrapper não trunca."""
+
+    _tokenizer = _BackendRapidoComTruncacao()
+
+    def encode(self, texto, add_special_tokens=False):
+        return list(range(len(texto.split())))
+
+
+def test_contagem_de_tokens_nao_e_truncada_pela_truncacao_do_tokenizer():
+    texto = " ".join(f"w{i}" for i in range(1000))
+    assert contar_unidades(texto, _TokenizerMiniLM()) == 1000
+    chunks = chunk_text(texto, chunk_size=200, overlap=25, tokenizer=_TokenizerMiniLM())
+    assert len(chunks) > 4

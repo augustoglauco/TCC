@@ -129,6 +129,8 @@ O projeto adota a estrutura de monorepo, mantendo backend, frontend, testes e do
 ├── .kiro/                      # Regras e agentes para o Kiro CLI
 ├── .amazonq/                   # Regras para o Amazon Q Developer CLI
 ├── goup.md · g.sh · testar.sh  # Instalação/subida do ambiente e teste local (GPU/Ollama)
+├── scripts/                    # checar_mudanca.py (gate de pré-commit proporcional à mudança)
+├── testes_locais/              # Relatórios do ./testar.sh
 ├── infra/caddy/                # Proxy reverso HTTPS do MCP B2B público
 ├── cliente-b2b/                # Cliente de referência do MCP B2B para parceiros (Streamlit)
 ├── docs/                       # Documentação técnica e fonte de verdade
@@ -176,8 +178,9 @@ O projeto adota a estrutura de monorepo, mantendo backend, frontend, testes e do
 │   └── .env.example             # Modelo de variáveis de ambiente
 └── frontend/                    # Interface Web e Widget de Chat (Next.js)
     ├── app/                      # Rotas App Router: `/`, `/produtos`, `/pedidos`, `/agendamentos`,
-    │                             # `/conta`, `/suporte`, `/admin/*` (usuarios, ingestao, modelos,
-    │                             # produtos, pedidos, atendimento, dashboards, metricas, agendamentos)
+    │                             # `/conta`, `/suporte`, `/contato`, `/avaliacao`, `/admin/*` (usuarios, ingestao,
+    │                             # modelos, produtos, pedidos, atendimento, dashboards, metricas, agendamentos,
+    │                             # datasets, mensagens, ferramentas)
     ├── components/                # ChatWidget e cards ricos, componentes admin, gráficos, UI
     ├── lib/                        # Clientes API HTTP, hooks e estado Zustand
     ├── tests/                      # Testes de componentes (Vitest) e E2E (Playwright)
@@ -213,7 +216,7 @@ O progresso é estruturado em fases sequenciais conforme documentado em [`docs/R
 - [x] **Fase 7 — Frontend: Site Institucional, Produtos e Pedidos**
 - [x] **Fase 8 — Frontend: Widget de Chat Multimodal**
 - [x] **Fase 9 — Integração Ponta a Ponta e Robustez**
-- [~] **Fase 10 — Avaliação Experimental**: corpus ingerido, cinco conjuntos de teste revisados e triagem dos 9 modelos feita (4 finalistas). Pendentes: parâmetros de ingestão do RAG (Etapas 1–5), rodada completa nos finalistas, conjunto e medição de latência e o relatório consolidado.
+- [~] **Fase 10 — Avaliação Experimental**: corpus ingerido, cinco conjuntos de teste revisados e triagem dos 9 modelos feita (4 finalistas). Parâmetros de ingestão do RAG: Etapas 0–5 e 6(a) concluídas (Etapa 6(a) como resultado negativo); pendente a Etapa 7 (confirmação com LLM-as-judge). Pendentes também: rodada completa nos finalistas, conjunto e medição de latência e o relatório consolidado.
 - [~] **Fase 11 — Preparação da Entrega**: revisão final dos 12 requisitos funcionais, atualização de documentação e demonstração ponta a ponta ainda pendentes.
 
 > Além das 12 fases do MVP original, diversos recursos extras foram entregues
@@ -333,7 +336,7 @@ Para detalhes aprofundados sobre cada componente da solução, consulte a docume
 - 📏 [CONVENTIONS.md](docs/CONVENTIONS.md) — Stack (bibliotecas e versões), estrutura do monorepo, convenções de código Python/TypeScript, Git e testes.
 - 📊 [EVALUATION.md](docs/EVALUATION.md) — Plano, estado e resultados das avaliações experimentais (roteador, RAG, ingestão, injeção, latência, comparativo de modelos).
 - 🤖 [modelos_ia_previstos.md](docs/modelos_ia_previstos.md) — Modelos de IA previstos para teste (locais, externos, embeddings).
-- 🔄 [AGENTIC_WORKFLOW.md](docs/AGENTIC_WORKFLOW.md) — Guia do fluxo de trabalho com agentes de IA (Antigravity IDE, Kiro CLI e Claude Code CLI).
+- 🔄 [AGENTIC_WORKFLOW.md](docs/AGENTIC_WORKFLOW.md) — Guia do fluxo de trabalho com agentes de IA (Antigravity IDE, Kiro CLI, Amazon Q e Claude Code CLI).
 - 🗺️ [ROADMAP.md](docs/ROADMAP.md) — Lista detalhada de tarefas dividida por fases do MVP e entregas além do MVP.
 
 ---

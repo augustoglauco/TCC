@@ -49,9 +49,9 @@ registrada aqui com o motivo.
 | Suporte / Central de Ajuda | `/suporte` | FAQ e documentação de produto — é justamente o conteúdo que o crawler (R4) e o RAG de Suporte/Atendimento (R7) devem indexar | Não |
 | Contato | `/contato` | Dados institucionais, formas de contato alternativas ao chat | Não |
 | **Chat** | widget global (todas as rotas) | Ponto de entrada único para os quatro domínios de atendimento — ver Seção 3 | Não (funciona anônimo; melhora com login) |
-| Admin — Ingestão de documentos | `/admin/ingestao` | Página interna (menu ⚙️) para upload de PDF/texto e ingestão no RAG (R4). Possui painel de collections ativas por finalidade (`Chat`, `MCP B2B`, `Admin`), abas de filtro por finalidade na tabela, botões compactos com ícones SVG, cards flutuantes no hover com contagem de arquivos e métricas técnicas, e playground de busca comparativa restrito ao mesmo purpose | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
-| Admin — Catálogo de Produtos | `/admin/produtos` | Página interna (menu ⚙️) para cadastro e gestão de produtos, preços de revendedor e venda agrupados, estoque total consolidado com tooltip detalhado por Centro de Distribuição (CD), fotos vetorizadas no CLIP, e assistente Human-in-the-Loop de importação de catálogos | Não (`# MVP: sem autenticação`) |
-| Admin — Modelos locais (Ollama) | `/admin/modelos` | Página interna (menu ⚙️) para listar/ativar em runtime/baixar modelos locais de chat, visualizar características multimodais dos modelos no hover (`ModelCharacteristicsPanel`), gerenciar a residência na VRAM e latência (seletor `keep_alive`, warmup automático na inicialização, monitor em tempo real da VRAM em GB, botões para carregar e liberar VRAM), e ajustar parâmetros de execução com persistência permanente no PostgreSQL | Não (`# MVP: sem autenticação, ver docs/ARCHITECTURE.md §5`) |
+| Admin — Ingestão de documentos | `/admin/ingestao` | Página interna (menu ⚙️) para upload de PDF/texto e ingestão no RAG (R4). Possui painel de collections ativas por finalidade (`Chat`, `MCP B2B`, `Admin`), abas de filtro por finalidade na tabela, botões compactos com ícones SVG, cards flutuantes no hover com contagem de arquivos e métricas técnicas, e playground de busca comparativa restrito ao mesmo purpose | Sim (`admin`) |
+| Admin — Catálogo de Produtos | `/admin/produtos` | Página interna (menu ⚙️) para cadastro e gestão de produtos, preços de revendedor e venda agrupados, estoque total consolidado com tooltip detalhado por Centro de Distribuição (CD), fotos vetorizadas no CLIP, e assistente Human-in-the-Loop de importação de catálogos | Sim (`admin`) |
+| Admin — Modelos locais (Ollama) | `/admin/modelos` | Página interna (menu ⚙️) para listar/ativar em runtime/baixar modelos locais de chat, visualizar características multimodais dos modelos no hover (`ModelCharacteristicsPanel`), gerenciar a residência na VRAM e latência (seletor `keep_alive`, warmup automático na inicialização, monitor em tempo real da VRAM em GB, botões para carregar e liberar VRAM), e ajustar parâmetros de execução com persistência permanente no PostgreSQL | Sim (`admin`) |
 | Admin — Métricas & Custos de IA | `/admin/metricas` | Painel de uso de IA sobre o ledger unificado `ai_usage_events` (item E, 2026-10-08), com cinco seções — Por Origem, Por Ambiente, Por Modelo, Por Operação e Detalhamento Diário — mais o KPI de chats encerrados; distingue custo `null` ("não medido", `—`) de `0.0` ("medido e grátis", `$0.0000`) | Sim (`admin`) |
 | Admin — Mensagens de Agentes | `/admin/mensagens` | Caixa de entrada das mensagens que agentes autônomos enviam ao administrador (R13; hoje o Agente de Estoque, que avisa risco de falta nos próximos 10 dias). Lista com severidade, agente, texto e status do e-mail; filtro "só não lidas", marcar uma/todas como lidas. Link no menu ⚙️ | Sim (`admin`) |
 | Admin — Central de Atendimento | `/admin/atendimento` | Página interna (menu ⚙️): fila de espera do atendimento humano, assumir chat (claim atômico), abas de chats ativos e envio de mensagens ao cliente (`/api/admin/atendimento/*`) | Sim (Admin) |
@@ -208,11 +208,13 @@ pode ligar a conversa ao histórico de pedidos — não é responsabilidade do
 frontend decidir a classificação, apenas repassar o contexto de sessão
 disponível.
 
-## 4. Integração com o backend (contrato de API — rascunho)
+## 4. Integração com o backend (contrato de API)
 
 O frontend fala apenas com a API REST do próprio backend (nunca diretamente
-com os MCPs). Endpoints sugeridos como ponto de partida — refinar durante a
-Fase 10/11 do `docs/ROADMAP.md`:
+com os MCPs). A tabela abaixo descreve os endpoints **já implementados** em
+`backend/src/app/api/*.py` (os schemas Pydantic estão em
+`backend/src/app/models/`); ao mudar uma rota ou um campo, atualize esta
+seção na mesma tarefa:
 
 **Resolução da URL base do backend (`frontend/lib/api/apiBaseUrl.ts`,
 2026-09-24):** cada módulo de `frontend/lib/api/*.ts` obtém a URL base via
@@ -230,6 +232,7 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | --- | --- |
 | `POST /api/chat/messages` | Envia mensagem (texto e/ou imagem e/ou áudio) de uma conversa; resposta é o próprio stream Server-Sent Events (SSE) da geração — não há endpoint `GET` separado |
 | `GET /api/chat/conversations/{id}` | Recupera histórico/resumo/status da conversa (R9, Fase 6): `{conversation_id, status, resumo, mensagens: [{papel: "cliente"\|"assistente"\|"atendente", texto, dominio, criada_em, atendente_nome, metricas}]}` — `metricas` é o evento `done` da resposta (só nas do assistente; `null` nas gravadas antes da migração `0012`), convertido por `metricsFromDone` (`lib/utils/chatMetrics.ts`, o mesmo usado ao receber o `done`) para o painel ⚙️ reaparecer igual; `atendente_nome` só preenchido em `papel="atendente"`; mais antiga primeiro (até 50); `404` se a conversa não existe, `503` se o banco está fora do ar. Dois consumidores em `lib/api/chat.ts`: `fetchConversationHistory` (usado pelo `ChatWidget` ao montar — carrega as mensagens só se a tela estiver vazia; qualquer falha deixa o chat vazio, sem erro) e `fetchConversationSnapshot` (histórico + `status` juntos — achado de 2026-10-06, Fase 4: sem WebSocket/SSE do servidor para empurrar uma mensagem do atendente humano ao cliente, o `ChatModal` (via o hook `useConversaHumanaPolling`) usa esta função para repollar a cada 4s e substituir as mensagens em tela enquanto `status` for `aguardando_humano`/`em_atendimento_humano`; para sozinho quando o atendente encerra/devolve a conversa) |
+| `POST /api/chat/conversations/{id}/close` | Encerra a conversa (R9/métricas). Corpo opcional `{motivo}` (default `manual_usuario`; também `manual_admin`, `inatividade`). Resposta `{conversation_id, status, encerrada_em, motivo_encerramento}`; `404` se a conversa não existe, `503` se o banco está fora do ar. Cliente: `closeConversation` em `lib/api/chat.ts` |
 | `DELETE /api/chat/conversations/{id}` | Botão "limpar conversa" do `ChatModal` (`deleteConversation` em `lib/api/chat.ts`): apaga as mensagens e zera resumo e perfil da conversa (o e-mail é mantido); `204`, `404` se a conversa não existe, `503` se o banco está fora do ar |
 | `GET /api/products` | Catálogo público de produtos (mesma base do RAG/MCP B2B), usado por `/produtos` (`lib/api/products.ts`). Query: `termo` (nome, descrição ou especificações), `categoria`, `limit` (1–100, default 12), `offset`. Resposta `{items: ProdutoOut[], total, limit, offset}`, com os produtos com estoque primeiro e depois por nome |
 | `GET /api/products/categorias` | Lista as categorias distintas do catálogo (filtro da página `/produtos`) |
@@ -240,7 +243,7 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `GET /api/admin/produtos/{id}` , `POST /api/admin/produtos` , `PUT /api/admin/produtos/{id}` , `DELETE /api/admin/produtos/{id}` | CRUD de produto (`PUT` parcial). O `DELETE` também remove as fotos e os vetores do CLIP no Qdrant |
 | `POST /api/admin/produtos/{id}/estoque` | Grava a quantidade de um centro de distribuição (`{centro_distribuicao, quantidade}`), aba "Estoque por CD" do `ProductFormModal`; devolve o `ProdutoOut` atualizado |
 | `POST /api/admin/produtos/{id}/descontos-volume` , `DELETE /api/admin/produtos/{id}/descontos-volume/{desconto_id}` | Faixas de desconto por volume (`{quantidade_minima, percentual_desconto}`); `desconto_id` é UUID (`400` se inválido); devolvem o `ProdutoOut` atualizado |
-| `POST /api/admin/produtos/{id}/compatibilidades` , `DELETE /api/admin/produtos/{id}/compatibilidades/{compativel_com_id}` | Vínculo de compatibilidade entre dois produtos (`{compativel_com_id}`), escolhido pelo `SearchableSelect` com busca; `404` se algum dos produtos não existe |
+| `GET /api/admin/produtos/{id}/compatibilidades` , `POST /api/admin/produtos/{id}/compatibilidades` , `DELETE /api/admin/produtos/{id}/compatibilidades/{compativel_com_id}` | Lista (`GET`), cria (`POST`) e remove (`DELETE`) o vínculo de compatibilidade entre dois produtos (`{compativel_com_id}`); `POST`/`DELETE` devolvem a lista atualizada; o produto é escolhido pelo `SearchableSelect` com busca; `404` se algum dos produtos não existe |
 | `POST /api/admin/produtos/{id}/imagens` , `DELETE /api/admin/produtos/{id}/imagens/{img_id}` | Foto avulsa do produto (`multipart`: `file`, `is_principal`), indexada na hora no CLIP; o `DELETE` remove o arquivo e o vetor |
 | `POST /api/admin/produtos/catalogo/extrair/stream` | Extração de produtos de catálogos PDF/imagens/texto (`.txt`, `.md`, `.csv`; o `CatalogImportModal` aceita arrastar, colar com Ctrl+V e seleção) em SSE (`multipart`: `files`, `provider` `local`\|`external`, `fallback_external`, `page_range` opcional: `1-5`, `2, 5, 8`, `3-`, `-4`), usada pelo `CatalogImportModal` |
 | `POST /api/admin/produtos/upload-temp` , `POST /api/admin/produtos/catalogo/confirmar` | Foto de rascunho da conferência (`temp/`) e gravação em lote dos produtos conferidos (com as fotos movidas para a pasta definitiva e indexadas no CLIP) |
@@ -254,12 +257,14 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `GET /api/rag/documents` | Lista o registro de documentos ingeridos (mais recente primeiro), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `DELETE /api/rag/documents/{document_id}` | Exclui um documento (registro + pontos no Qdrant), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/documents/{document_id}/reingest` | Reingere um documento já enviado em outra collection (a partir do arquivo original salvo em disco), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/rag/documents/{document_id}/download` | Baixa o arquivo original (`Content-Disposition: attachment`), usado pelo `DocumentDownloadCard` do chat. **Público** só quando a collection de origem tem `purpose="chat"`; para qualquer outro `purpose` (`admin`, `mcp_b2b`) exige token admin (`Authorization`, `X-Auth-Token` ou `?token=`). `404` se o documento não existe |
 | `GET /api/rag/documents/{document_id}/content` | Devolve o arquivo original do documento (PDF/TXT/MD/CSV, `FileResponse` com `Content-Disposition: inline`), usado pelo preview em `DocumentViewModal.tsx` (`/admin/ingestao`) — 404 se o documento ou o arquivo em disco não existir, fora do MVP original |
-| `GET /api/rag/collections` | Lista os perfis de collection configurados, com contagem de documentos e finalidade (`purpose`: `chat`/`mcp_b2b`) por collection, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/rag/collections` | Lista os perfis de collection configurados, com contagem de documentos e finalidade (`purpose`: `chat`/`mcp_b2b`/`admin`) por collection, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/collections` | Cria um novo perfil de collection (nome, modelo de embedding, chunking, HNSW, quantização, payload indexing, `purpose` — default `chat`) e a collection real correspondente no Qdrant, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/collections/{collection_id}/activate` | Marca a collection como ativa (é a que o chat passa a usar na busca); retorna **409** se a collection for `purpose="mcp_b2b"` (restrita ao canal MCP B2B, não pode ser ativada para o chat), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `DELETE /api/rag/collections/{collection_id}` | Exclui a collection em cascata (documentos, pontos no Qdrant e arquivos em disco); bloqueado (409) se for a collection ativa, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/playground/search` | Roda a mesma busca contra várias collections em paralelo e devolve resultados/latência por collection, para comparação manual, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `POST /api/rag/images` , `POST /api/rag/images/search` , `POST /api/rag/images/identify` | Catálogo visual CLIP (R6), `multipart`. `POST /api/rag/images`: `file` (PNG/JPG/WEBP, senão `400`) + `domain`, ingere e devolve `201 {image_id, filename, domain}`. `/search`: `file` (imagem) **ou** `query` (texto), `domain` opcional; devolve `[{image_id, filename, domain, score, produto_id, imagem_url}]` (`422` se nenhum dos dois). `/identify`: `file`; roda o fluxo CLIP interno → visão externa → RAG texto e devolve o mesmo resultado do evento SSE `identification` (`status`, `produto`, `produto_id`, `imagem_url`, `fonte`, `detalhes`, `confianca_interna`/`confianca_externa`, `mensagem`, mais telemetria `prompt_tokens`/`completion_tokens`/`total_tokens`/`cost_*_usd`/`estimated_cost_usd`/`model_name`). `503` se o RAG está fora do ar. O widget de chat não os chama (envia a imagem em `POST /api/chat/messages`) |
 | `GET /api/rag/crawler/run/stream` | Dispara um crawl a partir de uma URL semente (`url`, `depth`, `max_pages` opcional — default `crawler_max_pages_default`) e emite progresso em tempo real via SSE (eventos `visitando`/`ingerida`/`enfileirada`/`erro`/`done`); classifica cada página por LLM e ingere direto (`>=` limiar de confiança) ou enfileira para revisão (abaixo do limiar), consumido via `EventSource` pela aba "Crawler" de `/admin/ingestao` — ver `backend/src/app/api/crawler.py` |
 | `GET /api/rag/crawler/pending` | Lista as páginas crawleadas cuja classificação de domínio ficou abaixo do limiar de confiança, aguardando revisão manual (aba "Crawler" de `/admin/ingestao`) |
 | `POST /api/rag/crawler/pending/{page_id}/approve` | Aprova uma página pendente com o domínio escolhido pelo revisor e a ingere no RAG (`origin="crawler"`) |
@@ -269,8 +274,11 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `POST /api/admin/local-models/pull` | Dispara o download de um modelo (biblioteca do Ollama ou GGUF do Hugging Face) em background, sem bloquear o backend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `GET /api/admin/local-models/pull-status` | Consulta o progresso de um download em andamento (query param `name`), usado em polling pelo frontend, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `DELETE /api/admin/local-models/delete` | Desinstala um modelo do Ollama (body `{name}`); 404 se não baixado, 409 se for o modelo ativo, 502 se o Ollama falhar. O frontend pede confirmação em modal, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
-| `GET /api/admin/runtime-settings` | Lê os parâmetros de execução ajustáveis em runtime (temperatura do modelo local, timeouts local/externo, fallback de domínio do RAG, `crawler_max_pages_default`, `crawler_confidence_threshold`, `intent_router_provider`: `heuristica` \| `heuristica_llm` \| `jev_openrouter`, `tone_monitor_enabled`, `tone_monitor_provider`: `heuristica_llm` \| `jev_openrouter`, `external_model_name`: modelo de texto do OpenRouter, trocado pelo card "Modelo externo" de `/admin/modelos`, `external_vision_model_name`, `image_internal_confidence`, `image_external_confidence`, `estoque_agent_mode`: `desativado` \| `deterministico` \| `ia` e `estoque_agent_llm`: `local` \| `externo` — agente de previsão de estoque, R13), persistidos em `app_settings`, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/admin/runtime-settings` | Lê os parâmetros de execução ajustáveis em runtime (temperatura do modelo local, timeouts local/externo, fallback de domínio do RAG, `crawler_max_pages_default`, `crawler_confidence_threshold`, `intent_router_provider`: `heuristica` \| `heuristica_llm` \| `jev_openrouter`, `tone_monitor_enabled`, `tone_monitor_provider`: `heuristica_llm` \| `jev_openrouter`, `external_model_name`: modelo de texto do OpenRouter, trocado pelo card "Modelo externo" de `/admin/modelos`, `external_vision_model_name`, `image_internal_confidence`, `image_external_confidence`, `estoque_agent_mode`: `desativado` \| `deterministico` \| `ia` e `estoque_agent_llm`: `local` \| `externo` — agente de previsão de estoque, R13; `local_llm_keep_alive`: string do Ollama, `-1` = permanente (default), `5m`, `0` = descarrega; `local_llm_warmup_on_startup`: bool, default `true` — pré-carrega o modelo na subida do backend; a resposta traz também `local_model_loaded` e `local_model_vram_bytes`, somente leitura), persistidos em `app_settings`, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `POST /api/admin/runtime-settings/preload` , `POST /api/admin/runtime-settings/unload` | Carrega o modelo local na VRAM na hora (warmup manual) ou o descarrega (libera VRAM); sem corpo, devolvem os runtime-settings atualizados. Botões da seção de VRAM de `/admin/modelos` |
 | `PUT /api/admin/runtime-settings` | Atualiza (parcialmente — só os campos enviados mudam) os parâmetros acima; `local_llm_temperature: null` explícito reseta para o default do próprio modelo, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
+| `GET /api/admin/model-catalog/characteristics` | Características de um modelo (query `source`: `openrouter` \| `ollama` \| `huggingface`, e `tag`): `{source, tag, is_multimodal, input_modalities, output_modalities, context_length, parameter_size, quantization, pricing_prompt_per_1k, pricing_completion_per_1k, knowledge_cutoff, fetched_at}`; cacheado no banco. `404` se não achar. Alimenta o `ModelCharacteristicsPanel` de `/admin/modelos` | Sim (`admin`) |
+| `POST /api/admin/model-catalog/characteristics/refresh` | Mesmo retorno, mas força nova consulta à fonte (corpo `{source, tag}`); `404` se não achar | Sim (`admin`) |
 | `GET /api/admin/tom/escalonamentos` | Lista os casos escalonados pelo Monitor de Tom (R8) persistidos em `tom_escalonamentos`, mais recente primeiro, `LIMIT 100` fixo, sem paginação — sem UI dedicada nesta entrega, só para inspeção manual/demonstração, ver `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md` §6.2 |
 | `GET /api/admin/agentes/mensagens` | Caixa de entrada dos agentes (R13, 2026-10-15). Query: `apenas_nao_lidas`, `agente`, `limit` (1–500, padrão 100). Devolve `{mensagens: [{id, agente, tipo, severidade, titulo, corpo, dados, lida, email_status, criado_em}], nao_lidas}`, mais recentes primeiro. `email_status`: `enviado`, `nao_configurado`, `falhou`, `nao_enviado` | Sim (`admin`) |
 | `POST /api/admin/agentes/mensagens/{id}/lida` | Marca uma mensagem como lida; `404` se não existe | Sim (`admin`) |
@@ -282,6 +290,8 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `GET /api/admin/atendimento/fila`, `GET /api/admin/atendimento/meus-chats`, `GET /api/admin/atendimento/{conversation_id}` | Central de Atendimento (Admin): fila de espera por prioridade e tempo (`tempo_espera_segundos`, `motivo_escalonamento`), chats do atendente autenticado e detalhe da conversa com mensagens e dados do cliente. |
 | `POST /api/admin/atendimento/{conversation_id}/claim`, `.../mensagem`, `.../close` | Assumir a conversa (claim atômico; 409 se outro atendente já assumiu), enviar mensagem do atendente ao cliente (papel `atendente`) e encerrar ou devolver a conversa à IA. |
 | `POST /api/chat/conversations/{id}/transbordo` | Botão "Falar com atendente humano" do widget: coloca a conversa na fila (motivo `solicitacao_direta`). |
+| `GET /api/admin/charts` , `POST /api/admin/charts` , `PUT /api/admin/charts/{id}` , `DELETE /api/admin/charts/{id}` , `POST /api/admin/charts/{id}/refresh` | Gráficos persistidos de `/admin/dashboards` (`lib/api/charts.ts`). `AdminChartOut`: `{id, titulo, descricao, tipo_grafico (bar\|line\|pie\|area\|donut), config_json, dados_json, sql_query, fixado, ordem, criado_por, criado_em, atualizado_em}`; lista ordenada por fixado, ordem e criação, sem cache. `POST` (`201`): `titulo` obrigatório, `fixado` default `true`. `PUT` parcial (só os campos enviados). `refresh` re-executa a agregação (`sql_query`) e atualiza `dados_json`. `id` é UUID (`400` se inválido), `404` se não existe; `DELETE` devolve `{"ok": true}` | Sim (`admin`) |
+| `GET /api/admin/pedidos` · `GET /api/admin/pedidos/{id}` · `POST /api/admin/pedidos/{id}/converter-manual-simples` · `.../analisar-comprovante` · `.../confirmar-conversao` · `.../converter-auto-admin` | Conversão de reserva em venda (`/admin/pedidos`, `lib/api/adminPedidos.ts`). Listagem: query `status` (`reservado`, `venda_concluida`, `pagamento_divergente`), `limit` (1–200, default 50), `offset`; cada pedido: `{id, status, user_email, conversation_id, comprovante_url, tipo_conversao, convertido_em, convertido_por, llm_parecer, criado_em, valor_total, itens[]}`. Três modalidades, todas só para pedido em `reservado` (senão `400`): (1) `converter-manual-simples` (`multipart`: `convertido_por`, `comprovante` opcional) → `tipo_conversao=manual_simples`; (2) `analisar-comprovante` (`multipart`: `comprovante`) devolve `{pedido_id, valor_devido, comprovante_url, parecer: {valido, valor_pago, divergencia, justificativa, codigo_transacao}}` e depois `confirmar-conversao` (JSON `{comprovante_url?, parecer_json?, convertido_por?}`) → `manual_padrao`; (3) `converter-auto-admin` (`multipart`: `comprovante`) converte sozinho se o parecer for válido e sem divergência, senão marca `pagamento_divergente`. `404` se o pedido não existe | Sim (`admin`) |
 | `GET /api/admin/metrics/ai-usage` | Painel de uso de IA (`/admin/metricas`, item E do ledger, 2026-10-08): agrega `ai_usage_events` por origem × ambiente × modelo × operação, mais o recorte diário e o volume de chats encerrados. Query: `period` (`today`\|`7d`\|`30d`\|`all`) ou `start_date`+`end_date` (`YYYY-MM-DD`, `400` se mal formada); o recorte é no calendário **local** do administrador. Substituiu `GET /api/admin/metrics/tokens-and-costs` (removido em 2026-10-08) — ver contrato completo abaixo |
 
 `POST /api/chat/messages` — contrato já implementado (Fase 2 para o request;
@@ -370,7 +380,8 @@ event: done                  // sempre o último evento em caso de sucesso — t
 data: {
   "domain": "vendas",              // vendas | suporte | atendimento | agendamento | fora_escopo
   "backend_used": "local",         // local | externo | resposta_fixa (mensagem só com
-                                   // e-mail, sem LLM, R10) | identificacao_imagem
+                                   // e-mail, sem LLM, R10) | identificacao_imagem |
+                                   // humano (conversa em atendimento humano)
   "escalation_reason": "nenhum",   // nenhum | fora_escopo | rag_vazio | complexidade_alta
 
   // Telemetria de inferência (além do MVP original, a pedido explícito —
@@ -379,17 +390,22 @@ data: {
   "model_name": "llama3.1:8b",
   "prompt_tokens": 128,
   "completion_tokens": 342,
+  "total_tokens": 470,
   "latency_ms": 2500.0,
   "ttft_ms": 150.0,
   "tps": 190.0,
   "confidence": 0.92,
   "complexity": "baixa",
+  "cost_prompt_usd": 0.0,          // custo dos tokens de entrada
+  "cost_completion_usd": 0.0,      // custo dos tokens de saída
   "estimated_cost_usd": 0.0,
+  "vision_used": false,            // true quando a resposta envolveu visão computacional
   "rag_retrieval_ms": 38.3,        // tempo do bloco de recuperação — busca RAG e, em Vendas com
                                     // integração do catálogo (R12), a consulta de vendas
                                     // concorrente (as duas rodam em paralelo, ver docs/ARCHITECTURE.md §5)
   "rag_chunks_count": 3,
   "rag_avg_score": 0.71,
+  "rag_chunks": [ { "source": "manual.pdf", "score": 0.78 } ],  // fonte e score de cada chunk
 
   // Provedor que REALMENTE classificou a intenção nesta requisição —
   // "heuristica_llm" ou "jev_openrouter" (ver docs/ARCHITECTURE.md, decisão
@@ -413,7 +429,7 @@ data: {
   // 2026-09-29) — união discriminada por "tipo"; `null`/ausente na maioria
   // dos turnos. Ver §3, "Cards ricos".
   "card": {
-    "tipo": "produto",           // | "cotacao" | "agendamento"
+    "tipo": "produto",           // | "cotacao" | "agendamento" | "grafico" | "documento_download"
     "produto_id": 1,
     "nome": "Gerador Diesel GD-15",
     "preco": "24900.00",         // Decimal serializado como string
@@ -426,7 +442,7 @@ data: {
 O texto completo da resposta do assistente **não** vem em um campo único —
 o cliente reconstrói concatenando o `text` de cada evento `token`, na ordem
 em que chegam (é assim que a UI faz o efeito de "digitando"). O evento
-`transcribed_message` continua sendo como o widget de chat exibe o texto
+`transcription` (campo `transcribed_message`) continua sendo como o widget de chat exibe o texto
 transcrito na bolha do usuário (ver §3), já que a transcrição só existe no
 backend.
 
@@ -464,7 +480,7 @@ CSS, ESLint + Prettier, Vitest + Testing Library) e o widget de chat consome
 em vez de `response.json()`, faz o parsing manual de blocos `event:`/`data:`
 do `ReadableStream` da resposta (não usa `EventSource`, que só suporta GET) e
 entrega a resposta incrementalmente via callbacks — `onConversationId`,
-`onTranscription`, `onStatus`, `onToken`, `onDone`, `onError` — retornando
+`onTranscription`, `onStatus`, `onToken`, `onEscalonamento`, `onDone`, `onError` — retornando
 `Promise<void>` em vez de um objeto de resposta único; nunca lança, erros de
 rede/HTTP/stream viram chamada a `onError` (ver
 `frontend/tests/lib/api/chat.test.ts`). `ChatModal.tsx` já consome essa

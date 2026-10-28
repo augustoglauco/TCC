@@ -409,7 +409,8 @@ def test_carregador_so_passa_itens_revisados_e_converte_negativas(conjunto):
     dataset, auditoria = conjunto
     d = carregar_dataset(dataset, auditoria=auditoria)
     ids = [p["id"] for p in d["perguntas"]]
-    assert ids == ["q001", "q002", "q005", "q008"]  # q005: aprovado por humano vale mesmo com trecho_confere=False
+    # q005: aprovado por humano vale mesmo com trecho_confere=False
+    assert ids == ["q001", "q002", "q005", "q008"]
     negativa = d["perguntas"][-1]
     assert negativa["fontes_aceitas"] == []
     assert d["perguntas"][0]["fontes_aceitas"] == ["doc1.pdf"]

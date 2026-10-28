@@ -81,12 +81,12 @@ cd backend
 source .venv/bin/activate
 uvicorn app.main:app --reload --port 8000
 
-# Terminal 3: Frontend Next.js
+# Terminal 3: Frontend Next.js (porta 3001; a 3000 não é usada, ver goup.md)
 cd frontend
-npm run dev
+PORT=3001 npm run dev
 ```
 
-Acesse o site em `http://localhost:3000` e abra o widget do assistente de chat no canto inferior direito.
+Acesse o site em `http://localhost:3001` e abra o widget do assistente de chat no canto inferior direito.
 
 ---
 
@@ -105,7 +105,7 @@ Acesse o site em `http://localhost:3000` e abra o widget do assistente de chat n
 | **2** | *"Sim, pode confirmar!"* | Mensagem de sucesso: *"Prontinho! Sua visita foi agendada para DD/MM/YYYY às 14:00. Você vai receber a confirmação por e-mail em carlos.silva@email.com."* |
 
 #### Verificação de Resultados:
-- [ ] Checar no **Google Calendar** da conta autenticada se o evento foi criado no dia/horário com duração de 30 minutos.
+- [ ] Checar no **Google Calendar** da conta autenticada se o evento foi criado no dia/horário com duração de 60 minutos.
 - [ ] Checar se a caixa de e-mail `carlos.silva@email.com` (ou e-mail real de teste) recebeu o convite do Google Calendar.
 
 ---
@@ -150,8 +150,8 @@ Acesse o site em `http://localhost:3000` e abra o widget do assistente de chat n
 * **Objetivo**: Testar se a verificação via MCP (`find_events`) impede o agendamento em horário ocupado.
 
 #### Procedimento de Teste:
-1. Abra o seu **Google Calendar** manualmente e crie um evento genérico na **próxima sexta-feira das 11:00 às 11:30**.
-2. No chat do assistente, tente agendar uma visita exatamente para esse horário:
+1. Primeiro agende **pelo próprio chat** uma visita na **próxima sexta-feira às 11:00** (como no CT-01), para existir no Google Calendar um evento criado pelo sistema (marcado `[Sistema]`). Atenção: um evento lançado à mão direto no Google Calendar **não** conta como conflito (`is_time_available` só considera eventos do sistema; `# MVP`, `docs/ARCHITECTURE.md` §5).
+2. No chat (nova conversa), tente agendar uma visita exatamente para esse horário (a visita ocupa 60 minutos):
    - **Usuário**: *"Quero agendar uma visita para próxima sexta-feira às 11:00. Nome Lucas, lucas@email.com, tel 11911112222."*
 3. **Resposta Esperada**: O assistente detecta a ocupação e responde informando que o horário está indisponível, solicitando outra sugestão de horário.
 
@@ -189,7 +189,7 @@ Acesse o site em `http://localhost:3000` e abra o widget do assistente de chat n
 Ao concluir os testes manuais, valide as seguintes evidências:
 
 - [ ] **Chat UI**: Nenhuma resposta gerada contém alucinação de dados (os dados confirmados batem 100% com o que o usuário forneceu).
-- [ ] **Google Calendar UI**: O evento aparece com o título "Visita Comercial - [Nome do Visitante]", início no horário agendado, término 30 minutos depois, e descrição contendo o telefone de contato.
+- [ ] **Google Calendar UI**: O evento aparece com o título "[Sistema] Visita — [Nome do Visitante]", início no horário agendado, término 60 minutos depois, e descrição contendo o nome do visitante e o telefone de contato.
 - [ ] **E-mail de Convite**: O e-mail informado no chat recebe o convite oficial do Google Calendar.
 - [ ] **Logs do Backend**: No terminal do FastAPI, observar logs indicando a transição de slots e a execução da tool MCP `create_event`.
 

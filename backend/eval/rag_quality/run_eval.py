@@ -268,7 +268,7 @@ _MAX_TENTATIVAS_JUIZ = 6
 # novo. Começa em 8s, dobra a cada tentativa (8,16,32,64,128s).
 _ESPERA_BASE_S = 8.0
 # Pausa proativa entre chamadas do juiz, não só reativa a 429 — reduz
-# quantas vezes o limite é batido, importante em `chunk_size_search.py`
+# quantas vezes o limite é batido, importante em rodadas longas
 # (várias rodadas de 18 perguntas em sequência).
 PAUSA_ENTRE_CHAMADAS_S = 3.0
 
@@ -438,7 +438,7 @@ async def main() -> None:
     output_path = BASE_DIR / (
         _opcao("--saida") or _nome_saida(so_negativas, so_respondiveis, prompt_v2)
     )
-    top_k = int(_opcao("--top-k", "3"))
+    top_k = int(_opcao("--top-k", "5"))
 
     qdrant = QdrantRAGClient(
         host=settings.qdrant_host,

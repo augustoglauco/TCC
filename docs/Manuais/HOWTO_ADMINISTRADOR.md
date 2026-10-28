@@ -58,7 +58,7 @@ Acessível pelo menu ⚙️ → "Gerenciar Usuários" (só visível para quem es
 
 * **Listagem e filtros**: todos os usuários cadastrados, com busca por nome/e-mail e filtro por perfil (Cliente/Lead/Esporádico/Admin); contadores de total de usuários, admins e clientes no topo.
 * **Ver Pedidos de um usuário**: cada linha da tabela tem um link que abre `/pedidos/historico?email=...` já filtrado para aquele usuário, com um aviso visual roxo de "Modo de Consulta Administrativa" (você está vendo o histórico de outra pessoa, não o seu).
-* **Criar Nova Conta** (menu ⚙️ → "Criar Nova Conta", `/conta/cadastro`): cadastra um novo usuário; só é possível marcar o novo usuário como Admin se quem está cadastrando já for Admin (ou for a conta demo `admin@example.com`) — caso contrário a API recusa (403).
+* **Criar Nova Conta** (botão "➕ Criar Nova Conta" na página de perfil do Admin, `/conta/perfil`, que leva a `/conta/cadastro`): cadastra um novo usuário; só é possível marcar o novo usuário como Admin se quem está cadastrando já for Admin (ou for a conta demo `admin@example.com`) — caso contrário a API recusa (403).
 * **Como virar Admin**: cadastre-se (ou peça para cadastrarem você) com um e-mail iniciado em `admin@` — por exemplo `admin@suaempresa.com` — ou use a conta demo `admin@example.com`. `# MVP`: é uma regra fixa por prefixo de e-mail, não uma tabela de permissões de verdade.
 
 ---
@@ -160,11 +160,11 @@ O sistema roda em uma GPU própria de 16GB. Você pode escolher qual modelo aten
 * **Gemma 4 E4B** (`hf.co/unsloth/gemma-4-E4B-it-GGUF:UD-Q8_K_XL`): empata estatisticamente com o 12B no roteador (triagem de 2026-10-24) e também tem visão local.
 * **Qwen2.5-VL 7B e 3B**: modelos de visão e texto mais leves; ficaram entre os 4 finalistas da triagem, mas falham com mais frequência no formato JSON.
 
-> O conjunto de candidatos e o resultado da triagem estão em `docs/EVALUATION.md` (seção "Benchmark comparativo"). Os modelos que aparecem na tela dependem do que está baixado no Ollama da máquina (`ollama list`).
+> **De onde vêm os cards de modelo local:** a tela mostra (1) os **presets fixos** de `LocalModelCards.tsx` (Llama 3.1 8B, Qwen 2.5 7B, DeepSeek R1 7B, Mistral 7B, Gemma 2 9B e Phi-3 Mini), com botão para baixar, e (2) tudo que já está instalado no Ollama da máquina (`ollama list`). Os modelos citados acima (Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL) **não são presets**: só aparecem na tela depois de um `ollama pull` com a tag exata (candidatos e tags em `backend/eval/model_benchmark/modelos.json`; resultado da triagem em `docs/EVALUATION.md`, seção "Benchmark comparativo").
 
 > **Painel de Características Técnicas no Hover**: Ao passar o cursor sobre qualquer card de modelo (local ou remoto do OpenRouter), um painel inteligente exibe instantaneamente a janela de contexto máxima (ex.: 128k tokens), modalidades suportadas (texto, imagem, áudio), provedores e precificação por milhão de tokens.
 
-> **Como alterar**: Selecione o modelo desejado no menu suspenso e clique em **Ativar Modelo em Runtime**. A troca ocorre imediatamente sem derrubar o site.
+> **Como alterar**: No card do modelo desejado, clique em **Ativar Modelo** (o card ativo mostra **Modelo Ativo**). A troca ocorre imediatamente sem derrubar o site.
 
 ---
 
@@ -279,7 +279,7 @@ O sistema analisa o comportamento da conversa e categoriza o cliente automaticam
 O assistente monitora continuamente o tom da mensagem do cliente (insatisfação, irritação ou urgência elevada).
 
 * **Limiar de Alerta**: Se o cliente demonstrar forte insatisfação (ex.: *"Ninguém me ajuda, preciso falar com um atendente agora!"*), o monitor de tom aciona um alerta automático.
-* **Comportamento no Chat**: O assistente exibe um banner de transferência ("Conectando você a um atendente humano...") e registra o caso para acompanhamento.
+* **Comportamento no Chat**: O assistente exibe um banner de aviso ao cliente (ex.: "Identificamos urgência na sua solicitação. Um atendente humano foi notificado e já está ciente do seu caso.") e registra o caso para acompanhamento.
 
 ### 3. Central de Atendimento Humano ao Vivo (`/admin/atendimento`)
 Menu ⚙️ (só Admin). Uma conversa entra na **fila de espera** quando o cliente pede um humano ("quero falar com um atendente humano") ou quando o monitor de tom escala o caso. Enquanto está na fila ou em atendimento, **a IA fica pausada** naquela conversa.

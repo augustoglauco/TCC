@@ -73,7 +73,9 @@ repo/
 │   ├── ARCHITECTURE.md · FRONTEND.md · ROADMAP.md · CONVENTIONS.md
 │   ├── EVALUATION.md · AGENTIC_WORKFLOW.md · TESTE_LOCAL.md
 │   ├── modelos_ia_previstos.md · PLANO_ANTI_AI_ATTACK.md
-│   └── Manuais/            # manuais de uso, implantação, B2B, prompts/LLM e ferramentas
+│   ├── Manuais/            # manuais de uso, implantação, B2B, prompts/LLM e ferramentas
+│   ├── Manuais_fornecedor/ # corpus da avaliação (ControlId; gitignored)
+│   └── superpowers/        # specs e planos datados de design (plans/, specs/)
 ├── backend/
 │   ├── src/app/
 │   │   ├── api/            # rotas HTTP (FastAPI routers)
@@ -106,6 +108,7 @@ repo/
 │   ├── .env.example
 │   └── pyproject.toml
 ├── scripts/                 # checar_mudanca.py (gate de pré-commit)
+├── testes_locais/           # relatórios do ./testar.sh (docs/TESTE_LOCAL.md)
 ├── cliente-b2b/             # cliente de referência do MCP B2B para parceiros (Streamlit)
 ├── infra/
 │   └── caddy/               # proxy HTTPS público do MCP B2B (Caddyfile + caddy.env.example)
@@ -326,7 +329,7 @@ completa e o Playwright ficam para mudança transversal (`config.py`,
     a cada rodada enquanto o sintoma persistir.
 
     **O gate aplica o baseline por conta própria.** O `--baseline` do
-    repowise impede a falha mas continua imprimindo os 34 achados aceitos, o
+    repowise impede a falha mas continua imprimindo todos os achados aceitos (hoje 58), o
     que afoga um achado novo. Por isso `scripts/checar_mudanca.py` chama o
     detector com `--format json`, filtra contra o baseline e imprime só o que
     é novo, mais uma linha de contagem do que foi omitido. O corte de
@@ -343,8 +346,8 @@ completa e o Playwright ficam para mudança transversal (`config.py`,
     `repowise update --working-tree`, que inclui as edições não commitadas.
     Com isso o resultado é estável (verificado em duas execuções seguidas).
 
-    O `.doc-drift-baseline.json` registra os 72 achados que existiam em
-    2026-10-15 e por isso o gate só reclama de **deriva nova**: 54 deles estão
+    O `.doc-drift-baseline.json` registra hoje 58 achados (34 `path` e 24 `symbol`; contagem:
+    `entries` do JSON) e por isso o gate só reclama de **deriva nova**: 41 deles estão
     em `docs/superpowers/plans|specs/`, documentos datados de design em que
     citar um arquivo renomeado depois é história correta, não defeito; e vários
     dos demais são menções deliberadas ao que foi apagado na consolidação de
@@ -360,11 +363,11 @@ completa e o Playwright ficam para mudança transversal (`config.py`,
 
 Referências no git:
 
-- tag `pre-python314-baseline` → commit `00bdaed` (estado antes da
+- tag `pre-python314-baseline` → commit `0b65774` (estado antes da
   migração);
-- `2ee1dd2`: alterações de código (PEP 695 em `b2b.py`, PEP 649 em
-  `models/` e `rag/`, `pyproject.toml`); `f4a4eff`: `backend/uv.lock`;
-- `5885d05`: merge da migração no `master`.
+- `2d08ee4`: alterações de código (PEP 695 em `b2b.py`, PEP 649 em
+  `models/` e `rag/`, `pyproject.toml`); `8d65d34`: `backend/uv.lock`;
+- `e1e243f`: merge da migração no `master`.
 
 Commits posteriores podem depender do Python 3.14; depois de reverter,
 rode os testes antes de subir os serviços.
@@ -373,7 +376,7 @@ rode os testes antes de subir os serviços.
 
 ```bash
 git checkout master && git pull origin master
-git revert -m 1 5885d05 -m "revert: rollback da migracao para Python 3.14"
+git revert -m 1 e1e243f
 git push origin master
 ```
 
@@ -399,7 +402,7 @@ uv sync --all-extras
 ```
 
 **Cobertura para o Repowise** (relatório + mapa teste→código; 2026-10-20: 91,3 %
-de linhas; 1230 testes em 2026-10-24). A partir da raiz, depois de rodar na pasta `backend`:
+de linhas; contagem atual: `pytest --collect-only -q` em `backend/`). A partir da raiz, depois de rodar na pasta `backend`:
 
 ```bash
 cd backend && .venv/bin/pytest -q --cov=src/app --cov-context=test

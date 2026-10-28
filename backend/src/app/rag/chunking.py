@@ -75,7 +75,10 @@ def contar_unidades(texto: str, tokenizer: Any = None) -> int:
     if callable(tokenizer) and not hasattr(tokenizer, "encode"):
         return len(tokenizer(limpo))
     fast = getattr(tokenizer, "_tokenizer", None)
-    if fast is not None and hasattr(fast, "encode"):
+    # O backend rápido obedece à truncação do tokenizer (MiniLM: 128 tokens), o que
+    # faria todo trecho "caber" no chunk_size e a ingestão gerar 1 chunk por
+    # documento; com truncação ativa, usa o `encode` do wrapper, que não trunca.
+    if fast is not None and hasattr(fast, "encode") and getattr(fast, "truncation", None) is None:
         return len(fast.encode(limpo, add_special_tokens=False).ids)
     return len(tokenizer.encode(limpo, add_special_tokens=False))
 

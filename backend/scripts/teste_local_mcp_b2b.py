@@ -88,7 +88,7 @@ def _status(nome: str, url: str, chave: str | None) -> Verificacao:
 
 def _sessao(nome: str, url: str, chave: str, parceiro: str, offset: int) -> Verificacao:
     esperado = (
-        "initialize + tools/list (4 ferramentas) + cotar ok; log mcp_b2b_ferramenta com o "
+        "initialize + tools/list (5 ferramentas) + cotar ok; log mcp_b2b_ferramenta com o "
         f"parceiro `{parceiro}`"
     )
     resultado = asyncio.run(verificar_mcp_b2b(url, chave))

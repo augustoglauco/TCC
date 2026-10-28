@@ -23,7 +23,13 @@ from mcp.client.session import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from mcp.shared._httpx_utils import create_mcp_http_client
 
-_FERRAMENTAS_ESPERADAS = {"validar_compatibilidade", "consultar_frete", "cotar", "reservar_pedido"}
+_FERRAMENTAS_ESPERADAS = {
+    "validar_compatibilidade",
+    "consultar_frete",
+    "cotar",
+    "reservar_pedido",
+    "converter_reserva_venda",
+}
 
 
 @dataclass

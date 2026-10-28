@@ -61,8 +61,8 @@ EVAL_DIR = BASE_DIR.parent
 
 # Os critérios de julgamento das etapas `rag` e `injecao` são os mesmos dos
 # evals originais — importados de lá para não existirem duas versões do
-# mesmo prompt de juiz. Mesmo padrão de `rag_quality/chunk_size_search.py`,
-# mas pela pasta `eval/` (os dois módulos se chamam `run_eval`, então
+# mesmo prompt de juiz. Importa de `rag_quality/run_eval.py`
+# pela pasta `eval/` (os dois módulos se chamam `run_eval`, então
 # importar pelo nome curto colidiria em `sys.modules`).
 sys.path.insert(0, str(EVAL_DIR))
 from prompt_injection.run_eval import _avaliar_cliente  # noqa: E402

@@ -16,7 +16,7 @@ LLM-as-judge); aqui se **escolhe** a configuração, medindo só
 
 ## Por que uma pasta nova em vez de estender `rag_quality/`
 
-`chunk_size_search.py` (em `rag_quality/`, 2026-10-01) acopla recuperação e
+`chunk_size_search.py` (em `rag_quality/`, 2026-10-01; removido depois) acopla recuperação e
 geração: cada configuração candidata custa 18 chamadas de LLM-as-judge, o
 que esbarrou em rate limit (429) do OpenRouter e limitou o experimento a 7
 pontos por bisseção, em vez de uma grade. Como as 180 perguntas da

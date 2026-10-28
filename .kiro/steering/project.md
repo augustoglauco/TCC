@@ -5,15 +5,16 @@ inclusion: always
 # Regra de Workspace — Assistente Virtual Multimodal (TCC) — Kiro CLI
 
 Este é o arquivo de regras do **Kiro CLI** para este projeto. Ele cumpre o
-mesmo papel que `CLAUDE.md` (Claude Code CLI) e `.agents/rules/project.md`
-(Antigravity): dar a todo agente o contexto do projeto **antes de iniciar
-qualquer trabalho**. As três ferramentas apontam para os mesmos documentos
-em `docs/` — a fonte de verdade única.
+mesmo papel que `CLAUDE.md` (Claude Code CLI), `.agents/rules/project.md`
+(Antigravity) e `.amazonq/rules/project.md` (Amazon Q Developer CLI): dar a
+todo agente o contexto do projeto **antes de iniciar qualquer trabalho**. As
+quatro ferramentas apontam para os mesmos documentos em `docs/` — a fonte de
+verdade única.
 
 **Não duplique arquitetura ou escopo aqui.** Leia os documentos abaixo (na
 raiz do workspace) antes de propor ou implementar qualquer mudança:
 
-- `CLAUDE.md` — o "como trabalhar aqui" (regras 1–9). Leia por completo.
+- `CLAUDE.md` — o "como trabalhar aqui" (regras 1–12). Leia por completo.
 - `docs/ARCHITECTURE.md` — arquitetura completa, os 12 requisitos funcionais
   (R1–R12), escopo do MVP x evolução futura, riscos conhecidos.
 - `docs/ROADMAP.md` — próxima tarefa a implementar e progresso (checklist por
@@ -63,11 +64,12 @@ raiz do workspace) antes de propor ou implementar qualquer mudança:
 10. **Antes de cada commit, siga o checklist** de `docs/CONVENTIONS.md`
     ("Checklist antes de cada commit").
 11. **Repowise é a fonte única para código** (decisão de 2026-10-17): use `get_answer`, `search_codebase`, `get_context` e `get_why` para se orientar. O GitNexus foi desativado (a rever). O Graphify segue como CLI opcional (`graphify query`, `explain`, `path`) — **não** é mais obrigatório nem precede o `grep`; depois de alterar código, o hook `post-commit` reconstrói o grafo sozinho (bit de execução restaurado em 2026-10-17). Motivo e evidência em `docs/CONVENTIONS.md`, "Ordem de uso das ferramentas de grafo de código".
+12. **Prompt/instrução de LLM alterado ou novo → revise `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`** (regra 11 do `CLAUDE.md`): vale para qualquer texto enviado a um LLM.
+13. **Escreva dentro dos limites de saúde do Repowise** (complexidade ciclomática ≤ 9 por função, ≤ ~50 linhas por função, `main`/handlers só orquestram) — números, origem e falsos positivos de "I/O in loop" em `docs/CONVENTIONS.md`, "Saúde de código — limites do Repowise ao escrever".
 
-## Regra de ouro (comum às três ferramentas)
+## Regra de ouro (comum às quatro ferramentas)
 
 Ao mudar uma decisão de arquitetura ou escopo, edite os documentos em
 `docs/` — nunca duplique a decisão apenas nos arquivos de regras
-(`CLAUDE.md`, `.agents/rules/project.md`, este arquivo). Os arquivos de
+(`CLAUDE.md`, `.agents/rules/project.md`, `.amazonq/rules/project.md`, este arquivo). Os arquivos de
 regras ficam curtos e estáveis; `docs/` concentra o conteúdo que muda.
-12. **Escreva dentro dos limites de saúde do Repowise** (complexidade ciclomática ≤ 9 por função, ≤ ~50 linhas por função, `main`/handlers só orquestram) — números, origem e falsos positivos de "I/O in loop" em `docs/CONVENTIONS.md`, "Saúde de código — limites do Repowise ao escrever".

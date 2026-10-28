@@ -153,13 +153,12 @@ python backend/scripts/cliente_mcp_b2b.py \
 **Saída esperada:**
 ```text
 Sem chave: HTTP 401 ✅
-Com chave: initialize ok (mcp-b2b-server) ✅
+Com chave: initialize ok (mcp-b2b) ✅
 Com chave: tools/list ok (5 ferramentas) ✅
 Com chave: tools/call cotar ok ✅
 {
-  "sucesso": true,
   "itens": [...],
-  "valor_total": ...
+  "total": ...
 }
 ```
 
@@ -172,7 +171,13 @@ Com chave: tools/call cotar ok ✅
 | **`HTTP 401 Unauthorized`** | Chave ausente ou incorreta no cabeçalho `Authorization`. | Verifique se enviou `Bearer <sua-chave>` corretamente. |
 | **`Connection Refused / Timeout`** | Servidor fora do ar ou firewall bloqueando a porta 8443. | Verifique se a porta 8443 está liberada na sua rede de saída. |
 | **`SSL Certificate Error`** | Certificado TLS não reconhecido pela aplicação cliente. | Garanta que o SO da sua aplicação possui a cadeia CA padrão atualizada. |
-| **`Tool Error: Produto não encontrado`** | ID de produto inexistente enviado nos argumentos. | Consulte os IDs válidos via recurso `catalogo://produtos`. |
+| **`Produto N não encontrado no catálogo.`** | Recurso `catalogo://produtos/{id}`, `estoque://...` ou `precos://...` com ID inexistente (`ResourceNotFoundError`). | Consulte os IDs válidos via recurso `catalogo://produtos`. |
+| **`Produto N não encontrado no catálogo.`** (ferramenta) | `validar_compatibilidade`, `cotar`, `consultar_frete` ou `reservar_pedido` com `produto_id` inexistente (`ToolError`). | Idem. |
+| **`produto_id inválido (esperado inteiro): ...`** | ID não numérico num recurso. | Envie o ID como inteiro. |
+| **`CEP inválido (esperado 8 dígitos): ...`** | `consultar_frete` com CEP fora do formato. | Envie 8 dígitos, com ou sem hífen. |
+| **`ID de pedido inválido: '...'`** / **`Pedido '...' não encontrado.`** | `converter_reserva_venda` com `pedido_id` malformado ou inexistente. | Use o `id` devolvido por `reservar_pedido`. |
+| **`Divergência ou comprovante inválido: ...`** | `converter_reserva_venda`: comprovante não confere com o valor devido. | Reenvie o comprovante correto; a reserva fica como pagamento divergente. |
+| **`Parâmetro 'query' é obrigatório para a busca em manuais.`** | Recurso `manuais://busca/{domain}` sem `?query=`. | Informe a consulta. |
 
 ---
 *Em caso de dúvidas técnicas sobre a integração B2B ou solicitação de renovação de chaves, entre em contato com a equipe de suporte de TI.*

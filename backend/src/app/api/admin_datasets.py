@@ -255,7 +255,7 @@ _tarefas: dict[str, _Tarefa] = {}
 
 TAREFAS_DISPONIVEIS: dict[str, tuple[str, list[str]]] = {
     "gerar_rascunho_roteador": (
-        "Gerar rascunho das 300 mensagens do roteador",
+        "Gerar rascunho das mensagens do roteador",
         [".venv/bin/python", "eval/router_intents/gerar_dataset.py"],
     ),
     "gerar_conjunto_banco": (
@@ -267,15 +267,15 @@ TAREFAS_DISPONIVEIS: dict[str, tuple[str, list[str]]] = {
         [".venv/bin/python", "eval/prompt_injection/gerar_dataset.py"],
     ),
     "gerar_rascunho_rag_docs": (
-        "Gerar rascunho das 180 perguntas de RAG documentos",
+        "Gerar rascunho das perguntas de RAG documentos",
         [".venv/bin/python", "eval/rag_quality/gerar_dataset.py"],
     ),
     "ingerir_corpus": (
-        "Ingerir os 97 PDFs no RAG",
+        "Ingerir os PDFs do corpus no RAG",
         [".venv/bin/python", "scripts/ingerir_corpus_avaliacao.py"],
     ),
     "triagem": (
-        "Triagem: roteador + imagem nos 10 candidatos",
+        "Triagem: roteador + imagem nos candidatos",
         [
             ".venv/bin/python",
             "eval/model_benchmark/run_benchmark.py",

@@ -517,6 +517,7 @@ nomes de recursos e argumentos errados).
   | `consultar_frete` | `cep`, `itens: [{produto_id, quantidade}]` | `{cep, peso_total_kg, custo_estimado, prazo_dias}` (estimativa interna, sem transportadora real) |
   | `cotar` | `itens: [{produto_id, quantidade}]` | `{itens, total}`, com desconto por volume |
   | `reservar_pedido` | `itens: [{produto_id, quantidade, centro_distribuicao}]` | `{id, status: "reservado", criado_em, itens}` (cria pedido de verdade) |
+| `converter_reserva_venda` | `pedido_id`, `comprovante_base64_ou_texto`, `nome_arquivo` (opcional, default `comprovante.txt`) | `{pedido_id, status, tipo_conversao, convertido_em, convertido_por, comprovante_url, sucesso, mensagem, parecer}` (converte a reserva em venda após validar o comprovante de pagamento) |
 
 - **Exemplo em Python** (`pip install "mcp>=2.0"`):
 

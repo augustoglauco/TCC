@@ -25,17 +25,20 @@ implementar qualquer mudança:
 - `docs/EVALUATION.md` — como implementar a avaliação experimental
   (acerto do roteador, qualidade do RAG, latência local x externo).
 - `docs/AGENTIC_WORKFLOW.md` — divisão de trabalho entre Antigravity,
-  Claude Code CLI e Kiro CLI, loop de trabalho e boas práticas de revisão.
+  Claude Code CLI, Kiro CLI e Amazon Q, loop de trabalho e boas práticas de revisão.
 - `docs/TESTE_LOCAL.md`, `goup.md` (instalação e subida do ambiente) e
-  `docs/Manuais/` (manuais do usuário e do administrador) — lista completa
+  `docs/Manuais/` (manuais de uso, implantação, integração B2B, prompts/LLM e
+  ferramentas de desenvolvimento) — lista completa
   e regra de "não criar documentos paralelos" na tabela do `CLAUDE.md`.
 - `CLAUDE.md` — o mesmo contexto, na versão consumida pelo Claude Code CLI.
 - `.kiro/steering/project.md` — o mesmo contexto, na versão consumida pelo
   Kiro CLI (+ agentes customizados em `.kiro/agents/*.json`).
+- `.amazonq/rules/project.md` — o mesmo contexto, na versão consumida pelo
+  Amazon Q Developer CLI.
 
-> O projeto é desenvolvido em três ferramentas (Antigravity, Claude Code CLI
-> e Kiro CLI), muitas vezes em paralelo. Os três arquivos de regras são
-> ponteiros equivalentes para `docs/`. Manter `docs/` sempre atualizado
+> O projeto é desenvolvido em quatro ferramentas (Antigravity, Claude Code
+> CLI, Kiro CLI e Amazon Q), muitas vezes em paralelo. Os quatro arquivos de
+> regras são ponteiros equivalentes para `docs/`. Manter `docs/` sempre atualizado
 > (regra 7 abaixo) é o que garante que todas as ferramentas vejam a mesma
 > coisa — ver `docs/AGENTIC_WORKFLOW.md`.
 
@@ -71,3 +74,4 @@ implementar qualquer mudança:
    você vai editar. Motivo e evidência em `docs/CONVENTIONS.md`, "Ordem de
    uso das ferramentas de grafo de código".
 10. **Escreva dentro dos limites de saúde do Repowise** (complexidade ciclomática ≤ 9 por função, ≤ ~50 linhas por função, `main`/handlers só orquestram) — números, origem e falsos positivos de "I/O in loop" em `docs/CONVENTIONS.md`, "Saúde de código — limites do Repowise ao escrever".
+11. **Prompt/instrução de LLM alterado ou novo → revise `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`** (regra 11 do `CLAUDE.md`): vale para qualquer texto enviado a um LLM.

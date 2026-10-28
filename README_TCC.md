@@ -59,7 +59,7 @@ Entrada Multimodal (Texto / Áudio / Imagem)
 
 #### Componentes da Modelagem:
 * **Pré-processamento Multimodal**: 
-  - *Áudio*: Processado via OpenAI Whisper (`base`) para conversão Speech-to-Text (STT).
+  - *Áudio*: Processado via Whisper via `faster-whisper` (modelo `small`, configurável em `STT_MODEL_SIZE`) para conversão Speech-to-Text (STT).
   - *Imagem*: OCR dirigido via Tesseract para extração de texto em comprovantes e embeddings visual CLIP (`ViT-B/32`) para busca no catálogo.
 * **Roteador / Orquestrador**: Classifica o contexto (analisando as últimas 1 a 3 mensagens) em um dos 4 domínios de atendimento (Vendas, Suporte, Atendimento Geral, Agendamento) ou em `fora_escopo` e determina o caminho de execução.
 * **Inferência Local e Fallback**: O modelo local quantizado (padrão `gemma4:12b-it-q4_K_M`, entre 9 configurações candidatas triadas, com 4 finalistas — ver Seção 3) responde às requisições padrão. Caso exceda o limite de tempo ou complexidade, o roteador aciona o modelo externo via OpenRouter API.
@@ -79,7 +79,7 @@ Os resultados finais serão consolidados ao término das avaliações detalhadas
 **Já medido — triagem de modelos (roteador e imagem, 229 mensagens não ambíguas, seed 42):** os dois Gemma 4 lideram a acurácia do roteador (12B: 85,2%; E4B: 84,7%, empate estatístico), seguidos por Qwen2.5-VL 3B (79,9%) e 7B (77,3%), que formam com eles os 4 finalistas. Cinco candidatos foram eliminados (JSON inválido acima de 10% ou mais de 10 pp abaixo do melhor) (o Llama 3.2 11B Vision, que não carrega na versão atual do Ollama, foi descartado do pool). Na imagem, os Gemma 4 acertam o formato, mas aprovam como do portfólio parte dos objetos parecidos; os Qwen falham no formato em boa parte dos casos.
 
 **Pendente:**
-1. **Parâmetros de ingestão do RAG**: modelo de embedding, chunking, limiar e distância, por `Recall@k`, `nDCG@10` e `MRR` sobre 167 perguntas.
+1. **Parâmetros de ingestão do RAG**: modelo de embedding, chunking, limiar e distância já medidos por `Recall@k`, `nDCG@10` e `MRR` sobre 167 perguntas (Etapas 0–5 e 6(a)); falta confirmar com LLM-as-judge o ganho na resposta (Etapa 7).
 2. **Qualidade do RAG e resistência a prompt injection** nos 4 finalistas (LLM-as-Judge; 147 perguntas com resposta, 20 sem resposta e 95 casos de injeção).
 3. **Latência**: tempo de resposta ponta a ponta na GPU local de 16GB frente ao fallback externo em nuvem.
 

@@ -144,7 +144,7 @@ O Ollama é responsável por servir localmente os modelos de linguagem em GPU se
 
    # Modelo local (Ollama)
    LOCAL_MODEL_BASE_URL=http://localhost:11434
-   LOCAL_MODEL_NAME=gemma4:12b-it-q4_K_M   # o .env.example traz llama3.1:8b; troque
+   LOCAL_MODEL_NAME=gemma4:12b-it-q4_K_M
 
    # Modelo externo via OpenRouter (roteador, transbordo/fallback)
    EXTERNAL_MODEL_BASE_URL=https://openrouter.ai/api/v1
@@ -203,10 +203,25 @@ Postgres/Qdrant no ar e a migração do Alembic já aplicada):
 
 > Não existem scripts `seed_products`/`ingest_catalog_images` neste
 > projeto — o catálogo de produtos de exemplo já vem semeado pela migração
-> do Alembic (tabela `produtos`); imagens de catálogo para a busca
-> multimodal (CLIP) são ingeridas via `POST /api/rag/images`
-> (`backend/src/app/api/image_search.py`), sem UI dedicada no frontend
-> ainda nem script de linha de comando — chame o endpoint diretamente.
+> do Alembic (tabela `produtos`). Para a **busca por imagem (CLIP)** há três
+> caminhos:
+>
+> * **Pelo admin (uso normal):** ao cadastrar ou trocar a foto de um produto em
+>   `/admin/produtos`, a imagem é indexada no CLIP automaticamente.
+> * **Via endpoint:** `POST /api/rag/images`
+>   (`backend/src/app/api/image_search.py`) ingere uma imagem avulsa.
+> * **Em lote, a partir do corpus de avaliação (Fase 10):**
+>   `backend/scripts/ingerir_imagens_corpus.py` ingere no CLIP uma foto por
+>   produto do corpus ControlId, associando cada foto ao `produto_id` pela
+>   pasta de origem. Pré-requisitos: rodar a partir de `backend/`, com Postgres
+>   e Qdrant no ar, migração aplicada, produtos do corpus já criados
+>   (`scripts/popular_produtos_corpus.py`) e o corpus presente no caminho
+>   gravado em `eval/rag_ingestion/auditoria_corpus.json`.
+>   ```bash
+>   .venv/bin/python scripts/ingerir_imagens_corpus.py --dry-run   # só mostra o que faria
+>   .venv/bin/python scripts/ingerir_imagens_corpus.py             # ingere
+>   .venv/bin/python scripts/ingerir_imagens_corpus.py --holdout   # reindexa deixando 1 foto por pasta fora, como consulta do conjunto
+>   ```
 
 ---
 
@@ -272,7 +287,7 @@ A plataforma opera com arquitetura **Dual MCP**:
 
 4. **Execução em Desenvolvimento**:
    ```bash
-   npm run dev
+   PORT=3001 npm run dev
    ```
    *O site estará acessível em `http://localhost:3001`.*
 

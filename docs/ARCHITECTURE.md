@@ -556,14 +556,15 @@ escopo: Home, Header, Footer e `/produtos`). Pontos que continuam valendo:
 *Etapas 2–5 do RAG* (`docs/EVALUATION.md` Seção 2.1). Código de produção e
 scripts entraram em 2026-10-17; as rodadas preliminares sobre o
 `dataset_minimo.json` (n=15) foram descartadas e os artefatos removidos em
-2026-10-24 — a rodada oficial usa as 167 perguntas válidas. Decisões que
+2026-10-24 — a rodada oficial usa as perguntas válidas do `dataset.json` (histórico de 2026-10-24: 167; estado vigente em 2026-10-28: 222 respondíveis e 26 negativas aprovadas). Decisões que
 permanecem:
 
 1. **Etapa 2 (embeddings):** `TextEmbedder` aplica prefixos assimétricos de
-   tarefa (`TASK_PREFIXES`) para `google/embeddinggemma-300m` e
+   tarefa (`prefixos_do_modelo`, constantes `EMBEDDINGGEMMA_*_PREFIX` e
+   `E5_*_PREFIX`) para `google/embeddinggemma-300m` e
    `intfloat/multilingual-e5-large-instruct` em `embed(texts, *, is_query)`;
    `QdrantRAGClient.search` passa `is_query=True`. O repositório do
-   embeddinggemma no Hugging Face é *gated*; `FALLBACK_MODEL_ALIASES`
+   embeddinggemma no Hugging Face é *gated*; `_FALLBACK_MIRRORS`
    redireciona para o mirror `unsloth/embeddinggemma-300m` (mesmos pesos),
    preservando `model_name`. Script: `backend/eval/rag_ingestion/run_etapa2.py`.
    Prompt/prefixos documentados na Seção 18 de
@@ -577,11 +578,11 @@ permanecem:
    `DEFAULT_CHUNK_SIZE`/`DEFAULT_CHUNK_OVERLAP` e os de
    `CollectionCreateRequest` passaram de `800/100` para **`512/51`**,
    provisórios até a execução oficial (a Etapa 3 mediu e fixou **768/115**, a ser
-   aplicado na reingestão aprovada pelo dono; o código ainda usa 512/51). O seed `docs_texto` (`800/100`,
+   aplicado na reingestão aprovada pelo dono; os defaults do código para collection nova continuam 512/51 — `chunking.py:25-26`, `models/rag.py:115-116`). O seed `docs_texto` (`800/100`,
    MiniLM) não foi migrado: a ingestão oficial cria e ativa uma collection
    nova com parâmetros declarados. Script: `run_etapa3.py` (grade 5×3).
 **Decisão de arquitetura (Fase 10, 2026-10-24): perfil da collection de texto
-medido sobre 163 perguntas** (143 com resposta, 20 sem; dados em
+medido sobre 163 perguntas** (histórico de 2026-10-24, antes da revisão ampliada do dataset: 143 com resposta, 20 sem; dados em
 `backend/eval/rag_ingestion/resultados_etapa{1,2,3}.json`, análise em
 `docs/EVALUATION.md` §2.1):
 
@@ -598,8 +599,13 @@ medido sobre 163 perguntas** (143 com resposta, 20 sem; dados em
   maior negativo 0,618 com o perfil vencedor). O baseline de produção recusa
   0 de 20. A recusa por `score_threshold` sozinho é, portanto, insuficiente;
   a Etapa 4 mede o custo de recall de cada limiar.
-- **Estado do código:** MiniLM 800/100 em produção até a reingestão; a troca é
-  decisão do dono no Passo 8 (`docs/EVALUATION.md`).
+- **Estado do código (conferido em 2026-10-28):** `DEFAULT_EMBEDDING_MODEL` segue
+  `paraphrase-multilingual-MiniLM-L12-v2` e os defaults de collection nova são
+  512/51 tokens; o perfil vencedor (bge-m3, 768/115) não é default de código, é
+  dado de collection. Segundo `docs/EVALUATION.md` (Etapa 6a), a collection ativa
+  hoje é `docs_texto_bge768` (1024 dims, 310 pontos), com `rag_top_k=5` e
+  `rag_score_threshold=0,35` em `config.py`; o limiar 0,60 foi simulado e
+  rejeitado. A aprovação formal do perfil (Passo 8) segue com o dono.
 
 3. **Etapas 4 e 5:** `varrer_threshold.py` aceita `--entrada`, `--saida` e
    `--ponto-id` e recomenda o limiar pelo ponto médio do intervalo
@@ -607,8 +613,8 @@ medido sobre 163 perguntas** (143 com resposta, 20 sem; dados em
    `dot`, `euclid`) e a latência com e sem payload index `keyword` em
    `domain`. **Achado no Qdrant:** para `euclid` (`SmallBetter`),
    `score_threshold` é limite *superior* (`distância <= thr`), então
-   `score_threshold=0.0` descarta tudo; o código usa `thr_sem_corte = 10.0`
-   para `euclid`/`manhattan`. A correção está no código, mas a Etapa 5 **não
+   `score_threshold=0.0` descarta tudo; o script `run_etapa5.py` usa
+   `thr_sem_corte = 10.0` para `euclid`/`manhattan`. A correção está no script, mas a Etapa 5 **não
    foi reexecutada** desde então (Passo 8 do roteiro em `docs/EVALUATION.md`).
    Cobertura: `tests/test_rag_ingestion_eval.py`.
 
@@ -790,7 +796,7 @@ playbook morto") e substituído por um fluxo procedural dedicado,
 estado de coleta/validação/confirmação, ver decisão registrada logo abaixo e
 `docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`).
 
-**Decisão registrada (Fase 4A, agendamento via MCP Calendar, R11):** três
+**Decisão registrada (Fase 4A, agendamento via MCP Calendar, R11) — itens (a) e (b) SUPERADOS em 2026-09-23, ver "Decisão revista (Fase 4A, troca do MCP consumido)" logo abaixo; o item (c) segue vigente:** três
 escolhas de implementação feitas nesta fase, detalhadas em
 `docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`:
 (a) o assistente **consome** o servidor MCP remoto oficial do Google
@@ -929,7 +935,7 @@ interno antes da resposta mesmo quando só se pede um JSON curto — medido
 **~50s** de latência, e nessa mesma rodada a extração de `data_hora` saiu
 `null` apesar do dado estar claro na mensagem (o raciocínio não convergiu
 de forma limpa). Isso explicava timeouts intermitentes na extração de
-agendamento (`local_llm_timeout_s`, default 60s) que pareciam só "GPU
+agendamento (`local_llm_timeout_s`, default de 60s na época, 2026-09-23; hoje 30s em `config.py`) que pareciam só "GPU
 ocupada", mas na verdade eram o modelo pensando ~50s para uma tarefa
 trivial. Com `think: false`: mesma chamada, **2.6s**, **91 tokens**,
 extração correta. `generate_stream()` (resposta de chat de verdade, onde o
@@ -1072,7 +1078,7 @@ chamada reais desde então, ver abaixo e os itens B/C/D/E em
 `docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md`.
 
 **Decisão registrada (Parâmetros obrigatórios de origem/llm_ambiente em ComprovanteEvaluator, item B, 2026-10-08):**
-durante a implementação do item B (conectar pontos de chamada real da origem "chat" ao ledger), `ComprovanteEvaluator.__init__` ganhou dois parâmetros de construtor obrigatórios, keyword-only, **sem defaults**: `origem: str` e `llm_ambiente: str`. Motivado por `ComprovanteEvaluator` ser compartilhada por três origens distintas (chat em item B, B2B em item C, admin em item D) — um padrão com defaults silenciosos teria mislabelado os chamadores fora do chat, tornando impossível depois rastrear cada evento de volta à sua origem verdadeira. Como efeito colateral dessa obrigatoriedade, todos os 4 call sites passam agora `origem`/`llm_ambiente` explícitos (chat ×2 em `orchestrator.py`, b2b ×1 em `mcp_server/b2b.py`, admin ×2 em `api/admin_pedidos_conversao.py`) — as dimensões corretas do ledger são garantidas por construção.
+durante a implementação do item B (conectar pontos de chamada real da origem "chat" ao ledger), `ComprovanteEvaluator.__init__` ganhou dois parâmetros de construtor obrigatórios, keyword-only, **sem defaults**: `origem: str` e `llm_ambiente: str`. Motivado por `ComprovanteEvaluator` ser compartilhada por três origens distintas (chat em item B, B2B em item C, admin em item D) — um padrão com defaults silenciosos teria mislabelado os chamadores fora do chat, tornando impossível depois rastrear cada evento de volta à sua origem verdadeira. Como efeito colateral dessa obrigatoriedade, todos os 4 call sites passam agora `origem`/`llm_ambiente` explícitos (chat ×1 em `router/sales_catalog.py`, b2b ×1 em `mcp_server/b2b.py`, admin ×2 em `api/admin_pedidos_conversao.py`) — as dimensões corretas do ledger são garantidas por construção.
 
 **Decisão registrada (Migração da telemetria de extração de catálogo por visão para o ledger unificado, sem dual-write, item D, 2026-10-08):**
 `extract_page_products_vision` (`app.catalog_extractor.extractor`) registrava seu custo/tokens na tabela antiga `IngestionCostEvent` via `record_ingestion_cost` (módulo `ingestion_metrics`, removido em 2026-10-23). Na implementação do item D, esse ponto de chamada passou a registrar no ledger novo (`registrar_uso_ia`, origem `"admin"`) **sem dual-write** — `record_ingestion_cost` foi removido desse caminho, não duplicado. Motivo: unificação do rastreio de uso de IA é o próprio objetivo do ledger (item A §6 do spec de design já havia flagueado essa decisão — manter ou não `IngestionCostEvent` em paralelo — como fora do escopo da fundação e deferida para o item que de fato migrasse esse call site); e a estimativa de tokens por tamanho de texto que o caminho antigo fazia quando a API de visão não reportava uso real contrariava a semântica `None`=não-capturado do ledger novo, então não fazia sentido portá-la. Decisão explícita do dono do projeto: os dados históricos de `IngestionCostEvent` não precisavam ser preservados/migrados. Consequência observável: o card "Ingestão & Dados" do painel `/admin/metricas` (que lê `IngestionCostEvent`) deixou de receber novos registros de extração de catálogo por visão a partir desta mudança — esperado, não um bug; será endereçado pelo item E (reconstrução do painel sobre a tabela nova `ai_usage_events`).
@@ -1299,8 +1305,8 @@ travada custe até 30s ao visitante antes do fallback gracioso disparar.
 
 **Monitor de Tom (R8, Fase 4B, decisão registrada em 2026-09-23):**
 implementado como checagem transversal (`app.router.tone_monitor.analyze_tone`)
-que roda no início de `handle_message`, antes da classificação de domínio,
-sem substituir a resposta normal — ver
+que roda no início de `handle_message`, em paralelo com a classificação de
+domínio (`asyncio.TaskGroup`), sem substituir a resposta normal — ver
 `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md`. Mesmo padrão
 de dois provedores configuráveis do classificador de intenção
 (`TONE_MONITOR_PROVIDER`: `heuristica_llm` — heurística de palavras-chave +
@@ -1355,7 +1361,7 @@ unidades). `# MVP: sem tratamento de concorrência em reservas/pedidos
 auditoria — evolução futura explícita (Seção 6, "Governança e segurança"),
 não antecipada por este item de modelagem; nenhuma ferramenta MCP nem
 endpoint HTTP é exposto ainda — isso fica para os próximos itens desta
-mesma fase (servidor MCP e as 4 ferramentas)`.
+mesma fase (servidor MCP e as ferramentas — hoje 5, ver Seção 6)`.
 
 **Decisão registrada (Fase 5, servidor MCP B2B — recursos de leitura, R12,
 2026-09-24):** o segundo item da Fase 5 ("implementar servidor MCP interno
@@ -1381,8 +1387,8 @@ Google Calendar) — mesmo padrão de pastas já reservado em
    mapeamento direto: os 4 recursos deste item viram `@server.resource(...)`
    com URIs próprias (`catalogo://produtos`, `catalogo://produtos/{id}`,
    `estoque://produtos/{id}`, `precos://produtos/{id}`,
-   `manuais://busca/{domain}?query=...`); as 4 ferramentas transacionais do
-   próximo item desta fase (compatibilidade, frete, cotação, reserva/pedido)
+   `manuais://busca/{domain}?query=...`); as ferramentas transacionais do
+   próximo item desta fase (compatibilidade, frete, cotação, reserva/pedido; a quinta, `converter_reserva_venda`, entrou em 2026-10-05)
    é que serão `tools` de verdade, por terem efeito colateral/parâmetros de
    ação.
 3. **Processo próprio, não embutido no backend FastAPI principal:**
@@ -1399,7 +1405,7 @@ Google Calendar) — mesmo padrão de pastas já reservado em
    consistente com os hosts/portas que já estavam reservados em
    `app.config.Settings` antes deste item existir. `goup.md` ganhou uma
    nova seção para subir/derrubar esse processo (porta 8100).
-4. **Busca de manuais restrita a collections `purpose="mcp_b2b"`:** o
+4. **(SUPERADO em 2026-09-30 — ver a decisão de escopo de acesso do parceiro B2B abaixo; hoje inclui também a collection `chat` ativa)** **Busca de manuais restrita a collections `purpose="mcp_b2b"`:** o
    recurso `manuais://busca/{domain}?query=...` lista todas as
    `RagCollection` via `app.rag.collections_registry.list_collections` e
    filtra em memória as com `purpose == "mcp_b2b"` (sem função dedicada nova
@@ -1411,7 +1417,7 @@ Google Calendar) — mesmo padrão de pastas já reservado em
    (`purpose="chat"`) — completa a "metade de consumo" que a decisão de
    2026-09-21 (ingestão de documentação restrita ao MCP B2B) deixou em
    aberto para esta fase. `domain` continua sendo um parâmetro obrigatório
-   do recurso (um dos três domínios de R7), pelo mesmo motivo já registrado
+   do recurso (um dos quatro domínios de atendimento de R7; o classificador ainda tem o rótulo `fora_escopo`), pelo mesmo motivo já registrado
    para o playground de busca: `QdrantRAGClient.search` sempre filtra por
    domínio, sem modo "todos os domínios" — estender esse contrato fica fora
    do escopo deste item.
@@ -1428,7 +1434,7 @@ dependências de teste — SQLite em memória + Qdrant `:memory:`), não só a
 camada de dados por baixo (já coberta por `test_catalog.py`).
 
 **Decisão registrada (2026-09-30, escopo de acesso do parceiro B2B ao RAG,
-a pedido explícito do desenvolvedor) — substitui o item 4 acima:** o
+a pedido explícito do desenvolvedor) — substitui o item 4 acima (item 4 SUPERADO em 2026-09-30; vale a regra assimétrica desta decisão):** o
 parceiro B2B pode acessar **todo o conteúdo do RAG principal e do
 específico do canal B2B**; só o cliente final (chat público) não deve ter
 acesso a documentos exclusivos do B2B. Antes, `manuais_busca` buscava só em
@@ -1498,7 +1504,7 @@ sozinho, mesmo com valor `admin@...`, não troca).
 
 **Decisão registrada (Fase 5, ferramentas transacionais do MCP B2B, R12,
 2026-09-24):** o terceiro item da Fase 5 ("implementar as 4 ferramentas do
-MCP B2B") entra como `@server.tool(...)` em `app.mcp_server.b2b`, ao lado
+MCP B2B"; hoje são 5 — `converter_reserva_venda` entrou em 2026-10-05, ver Seção 6) entra como `@server.tool(...)` em `app.mcp_server.b2b`, ao lado
 dos recursos já existentes (decisão anterior nesta mesma seção) — mesma
 distinção resource x tool do protocolo MCP já registrada ali. Quatro
 decisões de modelagem/lógica, uma por ferramenta:
@@ -1557,7 +1563,7 @@ O sistema prevê a conversão de reservas de estoque (`Pedido.status == "reserva
 Diffs de modelo: Tabela `pedidos` ganha colunas `comprovante_url`, `tipo_conversao`, `convertido_em`, `convertido_por`, `llm_parecer` e novos status (`venda_concluida`, `pagamento_divergente`). Especificação completa em `docs/superpowers/specs/2026-10-05-conversao-reserva-venda-design.md`.
 
 **Decisão registrada (Fase 5, Orquestrador como integrador do MCP B2B em
-1089: Vendas, R12, 2026-09-24):** o quarto item da Fase 5 fecha a frase final da
+Vendas, R12, 2026-09-24):** o quarto item da Fase 5 fecha a frase final da
 Seção 6 ("o próprio Roteador/Orquestrador deve ser tratado como 'mais um
 integrador' desse MCP para intenções de Vendas") no novo módulo
 `app.router.sales_catalog` (`SalesCatalogClient` + `extract_sales_slots`),
@@ -2140,7 +2146,10 @@ seguinte, não joga mais os tokens dela para o dia seguinte — cada métrica
 aparece no dia que de fato lhe pertence. Testes novos em
 `tests/test_admin_metrics_api.py` cobrindo os dois achados separadamente
 (conversa aberta conta tokens mas não chats encerrados; tokens e
-encerramento bucketados em dias diferentes quando divergem). Doc de
+encerramento bucketados em dias diferentes quando divergem; esse arquivo
+não existe mais e `stmt_msgs` saiu de `admin_metrics.py` quando o painel
+passou a ler só `ai_usage_events`, item E do ledger — a cobertura atual é
+`tests/test_admin_metrics_ai_usage.py`). Doc de
 usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 
 ### Tabela de escopo por requisito
@@ -2343,7 +2352,7 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   pode ser necessário priorizar as frentes mais custosas — RAG multimodal e
   monitor de tom — caso o escopo completo não seja viável de uma só vez.
 - Alucinação em pergunta fora da base: a busca não recusa (as 26 negativas do
-  dataset recuperam trecho acima de 0,35) e nenhum limiar separa as classes; a
+  dataset vigente recuperam trecho acima de 0,35) e nenhum limiar separa as classes; a
   recusa depende do gerador. Decisão de 2026-10-27: a frase do bloco de RAG em
   `orchestrator._build_prompt` manda dizer que não encontrou e oriente a falar com um
   atendente, em vez de "responder com o que souber". Medido só no domínio suporte:
@@ -2543,10 +2552,10 @@ benchmark por modelo):**
 - **Ordem:** a Fase 10 só roda depois de o corpus real estar ingerido. Os
   datasets antigos foram refeitos sobre o corpus ControlId (Estratégia A) e
   os resultados antigos foram apagados em 2026-10-24.
-- **Estado em 2026-10-24:** conjuntos prontos (roteador 311, RAG docs 167,
+- **Estado em 2026-10-24:** conjuntos prontos (roteador 311, RAG docs 167 na época — hoje 222 respondíveis + 26 negativas aprovadas,
   imagem 72, banco 80, injeção 95; latência ainda não criado); triagem de
   modelos feita, com 4 sobreviventes (Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL
-  3B e 7B). Pendentes: RAG Etapas 1–5 sobre as 167 perguntas, benchmark
+  3B e 7B). Pendentes (histórico de 2026-10-24): RAG Etapas 1–5 sobre as 167 perguntas, benchmark
   final e latência. Detalhe e números em `docs/EVALUATION.md`.
 - **Benchmark:** um orquestrador (`eval/model_benchmark/`) repete os
   harnesses existentes (`router_intents`, `rag_quality`, `prompt_injection`)
@@ -2563,7 +2572,7 @@ benchmark por modelo):**
 
 ## 10. Considerações finais
 
-O desenho atende aos doze requisitos de forma modular, permitindo que o
+O desenho atende aos treze requisitos de forma modular, permitindo que o
 protótipo entregue um fluxo ponta a ponta funcional, com escopo robusto —
 incluindo as cinco ferramentas do MCP B2B, playbooks iniciais por domínio e
 catálogo de imagens ampliado — servindo de base para as próximas etapas do

@@ -24,7 +24,7 @@ A nossa plataforma foi projetada para oferecer uma experiência completa de comp
 * **Navegar pelo Catálogo**: Visualize todos os produtos disponíveis em uma grade responsiva com **rolagem interna** (sem estourar a tela do seu celular ou computador).
 * **Filtros e Busca**: Utilize a barra de pesquisa para buscar produtos por nome, código ou palavra-chave.
 * **Detalhes do Produto (`/produtos/[id]`)**: Veja especificações técnicas, preço, fotos em alta resolução e disponibilidade em estoque.
-* **"Perguntar ao Assistente sobre este Produto"**: Em qualquer página de produto, clique no botão dedicado para abrir o chat tirando dúvidas específicas sobre aquele item de forma instantânea.
+* **"Cotar com Assistente"**: Na página de um produto, clique no botão dedicado para abrir o chat já falando daquele item.
 
 ### 👤 2. Conta (`/conta/login`, `/conta/cadastro`, `/conta/perfil`)
 * **Criar conta**: cadastre-se em `/conta/cadastro` com nome, e-mail e senha (senha de demonstração fixa: `12345`).
@@ -139,6 +139,6 @@ Em vez de apenas mensagens de texto longas, o assistente pode enviar **Cards Int
 Se em algum momento o assistente não conseguir resolver a sua dúvida ou se você solicitar explicitamente para falar com um atendente:
 
 1. O **Monitor de Tom** da nossa plataforma identificará a sua necessidade de suporte humano.
-2. O chat exibirá um aviso: *"Conectando você a um de nossos especialistas..."*.
+2. O chat exibirá um banner de aviso, por exemplo: *"Identificamos urgência na sua solicitação. Um atendente humano foi notificado e já está ciente do seu caso."* (ou, no caso de insatisfação, *"Percebemos sua insatisfação e lamentamos o transtorno..."*).
 3. Sua conversa entra na **fila de atendimento** da equipe (a IA para de responder). Um atendente assume o chat pela Central de Atendimento e conversa com você na mesma janela, com todo o histórico à vista, para que você não precise repetir o que já foi dito.
 4. Você também pode pedir direto, por exemplo "quero falar com um atendente humano". Ao final, o atendente encerra ou devolve a conversa ao assistente.

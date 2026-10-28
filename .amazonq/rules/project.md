@@ -18,7 +18,7 @@ trabalho**. As quatro ferramentas apontam para os mesmos documentos em
 **Não duplique arquitetura ou escopo aqui.** Leia os documentos abaixo (na
 raiz do workspace) antes de propor ou implementar qualquer mudança:
 
-- `CLAUDE.md` — o "como trabalhar aqui" (regras 1–11). Leia por completo.
+- `CLAUDE.md` — o "como trabalhar aqui" (regras 1–12). Leia por completo.
 - `docs/ARCHITECTURE.md` — arquitetura completa, os 12 requisitos funcionais
   (R1–R12), escopo do MVP x evolução futura, riscos conhecidos.
 - `docs/ROADMAP.md` — próxima tarefa a implementar e progresso (checklist por
@@ -51,9 +51,14 @@ pacote, sem passar caminhos**:
 
 ```bash
 cd backend      && uv run ruff format && uv run ruff check
-cd cliente-b2b  && uv run ruff format && uv run ruff check
+cd cliente-b2b  && ../backend/.venv/bin/ruff format && ../backend/.venv/bin/ruff check
 cd frontend     && npx prettier --write <arquivos alterados> && npx eslint <arquivos alterados>
 ```
+
+(O `ruff` não é dependência do `cliente-b2b`: `uv run ruff` lá falha com
+`Failed to spawn: ruff`. Use o binário do backend, com o cwd em
+`cliente-b2b/`, que é onde ele acha o `[tool.ruff]` certo — ver item 6 do
+checklist em `docs/CONVENTIONS.md`.)
 
 E a checagem proporcional à mudança, que é o portão antes de commitar:
 

@@ -1495,12 +1495,14 @@ conversa e classificação do usuário").
 
 ## Fase 10 — Avaliação Experimental (ver `docs/EVALUATION.md`)
 
-> **Estado em 2026-10-24.** Conjuntos de teste da Estratégia A prontos
-> (roteador 311, RAG docs 167, imagem 72, banco 80, injeção 95; latência
-> ainda não criado). Triagem de modelos concluída (9 de 10 medidos; 4
-> sobreviventes). Pendentes: Passo 8 (RAG Etapas 1–5 sobre as 167 perguntas
-> e aprovação do dono antes de reingerir), benchmark final nos 4
-> sobreviventes, injeção, latência e consolidação. Os números dos itens
+> **Estado em 2026-10-28.** Conjuntos de teste da Estratégia A prontos
+> (roteador 311, RAG docs 252 válidos — 222 respondíveis + 26 negativas nas
+> rodadas —, imagem 72, banco 80, injeção 95; latência ainda não criado).
+> Triagem de modelos concluída (9 de 10 medidos; 4 sobreviventes). RAG
+> Etapas 1–6 feitas e parâmetros de produção fechados (bge-m3 768/115,
+> `top_k` 5, limiar 0,35, prompt de recusa v2). Pendentes: Etapa 7
+> (baseline MiniLM em preparação), benchmark final nos 4 sobreviventes,
+> injeção, latência e consolidação. Os números dos itens
 > `[x]` mais antigos abaixo (40 mensagens, 18–20 perguntas, 95,0% do
 > roteador) são do **piloto de 2026-09/10 sobre dados que não existem
 > mais** e ficam como histórico de método, não como resultado; os
@@ -1797,14 +1799,16 @@ conversa e classificação do usuário").
         *Resultado oficial (2026-10-24, bge-m3 768/115, 163 perguntas): nenhum
         limiar separa as classes (menor positiva 0,440 × maior negativa
         0,623). Joelho em `top_k` 5 / `score_threshold` 0,60: Recall@5 0,874,
-        19 de 20 negativas recusadas, 8,4% das positivas vazias. **Medido, não
-        aplicado:** o valor de produção só muda na reingestão aprovada pelo
-        dono (Passo 8). Análise em `docs/EVALUATION.md` §2.1, Etapa 4.*
+        19 de 20 negativas recusadas, 8,4% das positivas vazias. **Medido em
+        2026-10-24; desfecho em 2026-10-28: `top_k` 5 adotado, limiar 0,60
+        rejeitado (0,35 mantido), ver abaixo.** Análise em
+        `docs/EVALUATION.md` §2.1, Etapa 4.*
         *Experimento de recusa do prompt (v1 × v2), 2026-10-25: a rodada das
         143 positivas falhou no caso 80 (timeout, contexto 4096) e no 160
         (crash de CUDA) e misturou duas configurações; `run_eval.py` agora
         grava a configuração e o tamanho do prompt, repete falhas
-        transitórias e tem `--retomar`. **Pendente:** refazer a rodada
+        transitórias e tem `--retomar`. **Pendente na época (a rodada única
+        foi refeita em seguida, ver abaixo):** refazer a rodada
         inteira com configuração única e decidir o `num_ctx` de produção
         (hoje `null`). Detalhes em `docs/EVALUATION.md`, fim da Etapa 4.*
         *Rodada completa `c3_pos_v1` feita em 2026-10-25 (nota 3,62/5, uso da
@@ -1986,7 +1990,8 @@ conversa e classificação do usuário").
           que invalidou perguntas do RAG. Eram "28 produtos" no plano, "29" na
           revisão de 2026-10-17; o número real derivado do corpus é 34 novos.
   - [x] **Roteador — feito em 2026-10-17.** `eval/router_intents/gerar_dataset.py`
-        produziu **299 mensagens com 233 chegando ao LLM (78%)**, contra os
+        produziu **299 mensagens com 233 chegando ao LLM (78%)** (histórico de
+        2026-10-17; o conjunto final é de 311 válidas, 231 ao LLM), contra os
         22,5% de antes (9 de 40). O requisito de ≥200 é cumprido com folga.
         São 59–60 por domínio nos cinco rótulos e 79 marcadas `ambiguo`.
         Quatro prompts: um que **proíbe as palavras da tabela de keywords** do
@@ -2467,7 +2472,7 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
         por `ConversaMensagem.criada_em`; "Chats Encerrados" continua
         bucketado por `Conversa.encerrada_em` — são duas consultas e dois
         agrupamentos independentes agora, cada um na data que lhe pertence.
-      Testes novos/atualizados em `tests/test_admin_metrics_api.py`. Doc de
+      Testes novos/atualizados em `tests/test_admin_metrics_ai_usage.py` (o antigo `test_admin_metrics_api.py` foi reescrito sobre o ledger). Doc de
       usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 - [x] **MCP B2B (`converter_reserva_venda`, Modo 5) sem LLM/visão nenhuma
       (achado de 2026-10-06, implementado em 2026-10-06):** decisão

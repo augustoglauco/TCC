@@ -11,12 +11,12 @@ subdiretório por frente (ver `docs/CONVENTIONS.md`), com resultados salvos
 como JSON versionado (dados pequenos) para permitir comparação entre
 execuções. Os caminhos `eval/...` deste documento são relativos a `backend/`.
 
-## Estado atual (2026-10-24)
+## Estado atual (2026-10-28)
 
 | Frente | Conjunto | Estado |
 | --- | --- | --- |
 | Roteador | 311 válidos (229 não ambíguos + 82 ambíguos) | revisado; só rodado na triagem de modelos |
-| RAG documentos | 167 válidos (147 com resposta + 20 sem resposta) | revisado; Etapa 1 feita (163 rodadas); Etapas 2–5 pendentes |
+| RAG documentos | 252 válidos (226 com resposta + 26 sem resposta; as rodadas usam 222 + 26) | revisado; Etapas 1–6 feitas, parâmetros de produção fechados (bge-m3 768/115, `top_k` 5, limiar 0,35); Etapa 7 em preparação |
 | RAG imagem | 72 casos (23 positivos + 49 negativos) | gabarito exato por construção; só rodado na triagem |
 | RAG banco | 80 perguntas | gabarito exato por construção; não rodado |
 | Injeção de prompt | 95 válidos (45 diretos + 50 indiretos) | revisado; não rodado |
@@ -168,8 +168,8 @@ por enquanto**, tanto o juiz quanto os rascunhos dos conjuntos. O custo vira
 tempo de relógio: pausa de 3 s entre chamadas e backoff base de 8 s a cada
 429, e o limite diário da conta pode espalhar a rodada completa por mais de
 um dia. A independência do juiz é preservada (juiz externo ≠ modelo
-avaliado), mas o modelo configurado hoje (`liquid/lfm-2.5-2.6b:free`) é
-pequeno para a tarefa. **Se a concordância entre juiz e revisão humana sair
+avaliado), mas o modelo do tier free configurado no `.env` é pequeno para a tarefa
+(as rodadas oficiais de 2026-10-25 em diante usam `EXTERNAL_MODEL_NAME=anthropic/claude-haiku-5.5`, ver Seção 2.1). **Se a concordância entre juiz e revisão humana sair
 baixa, troca-se o *modelo* free por um maior do mesmo tier, não o tier.** Um
 juiz pago custaria ~US$ 12 na rodada inteira. O gargalo de relógio não é a
 GPU: é o juiz, que pede uma chamada por item nas etapas `rag` e `injecao`.
@@ -251,9 +251,14 @@ ainda não foi feita sobre ele. **Saída:** `eval/router_intents/results.json`
 **O que mede:** relevância e correção das respostas geradas a partir do
 conteúdo recuperado (catálogo, documentos, manuais).
 
-**Conjunto (`eval/rag_quality/`):** 180 perguntas geradas, **167 válidas**
-depois da revisão do dono (163 aprovadas, 4 corrigidas, 13 descartadas): 147
-com resposta e **20 sem resposta no corpus**, para medir alucinação. Cada
+**Conjunto (`eval/rag_quality/`):** *estado em 2026-10-28:* 311 casos no
+arquivo, **252 válidos** (248 aprovados, 4 corrigidos; 59 descartados; nenhum
+pendente): 226 com resposta e **26 sem resposta no corpus**. As rodadas usam as
+26 negativas e 222 respondíveis (o carregador corta 2 duplicadas e 2 de origem
+ambígua). *Versão original (2026-10-24, histórico):* 180 perguntas geradas,
+**167 válidas** depois da revisão do dono (163 aprovadas, 4 corrigidas, 13
+descartadas): 147 com resposta e **20 sem resposta no corpus**, para medir
+alucinação; o reforço de 2026-10-25/26 está na Seção 2.1. Cada
 item traz `trecho_origem` extraído com `pdfplumber` (campo `trecho_confere`
 indica se o trecho foi localizado no PDF) e `arquivo_origem` com o caminho
 relativo, porque o basename repete no corpus (`changelog_pt-br.pdf` existe em
@@ -266,8 +271,8 @@ produto — texto padrão repetido entre produtos diferentes não amplia o
 gabarito. Negativas 164 e 167 descartadas (o corpus responde: regras por
 horários/departamentos nos datasheets do iDBlock/iDAccess; bateria 12V/7Ah
 da iDPower e no-break do REP iDClass); entram 8 negativas específicas de
-produto (ids 304–311), cada termo buscado sem resultado nos 97 PDFs, como
-`pendente` até a revisão.
+produto (ids 304–311), cada termo buscado sem resultado nos 97 PDFs (entraram
+`pendentes` e já foram aprovadas: hoje são 26 negativas válidas).
 
 **Como avaliar:**
 - LLM-as-judge externo, com prompt simples e documentado (relevância,
@@ -275,7 +280,7 @@ produto (ids 304–311), cada termo buscado sem resultado nos 97 PDFs, como
   amostra de conferência humana do juiz.
 - Por pergunta, se a fonte recuperada era a correta (separa erro de
   recuperação de erro de geração).
-- As 20 sem resposta têm prompt de juiz próprio (`_JUDGE_PROMPT_SEM_RESPOSTA`,
+- As sem resposta (20 na versão original, 26 hoje) têm prompt de juiz próprio (`_JUDGE_PROMPT_SEM_RESPOSTA`,
   binário: `recusou` e `alucinou`) e um segundo sinal determinístico por
   marcadores de recusa.
 
@@ -352,15 +357,17 @@ etapa.
 | 1 | Harness de recuperação | — | `Recall@k`/`nDCG@10`/`MRR` | **feita** (2026-10-24): baseline sobre 163 perguntas |
 | 2 | **Modelo de embedding** | 4 candidatos | `nDCG@10` + VRAM + tempo de ingestão | **feita** (2026-10-24): bge-m3 ≈ embeddinggemma ≫ e5 ≫ MiniLM |
 | 3 | **Chunking × overlap** | grade 5×3, **em tokens** | `nDCG@10`, `Recall@5` | **feita** (2026-10-24): 768 tok / 15%; 512–1024 empatam |
-| 4 | `top_k` + `score_threshold` | varredura offline | `Recall@k` vs. precisão vs. taxa de vazio | **medida** (2026-10-24); ponto de operação aguarda aprovação do dono |
-| 5 | Distância + payload index | cosine/dot/euclid; índice `keyword` em `domain` | `nDCG@10`; p95 de latência | runner feito; rodada oficial pendente |
-| 6 | HNSW + quantização | — | **resultado negativo documentado** (medição 3) | redação |
-| 7 | Confirmação com juiz | vencedora × baseline | nota 1–5 pareada + `fonte_correta` | pendente |
+| 4 | `top_k` + `score_threshold` | varredura offline | `Recall@k` vs. precisão vs. taxa de vazio | **feita** (2026-10-24 medida; 2026-10-28 decidida): `top_k` 5, limiar 0,35 mantido; 0,60 rejeitado |
+| 5 | Distância + payload index | cosine/dot/euclid; índice `keyword` em `domain` | `nDCG@10`; p95 de latência | **feita** (2026-10-27): cosine mantido, índice não criado |
+| 6 | HNSW + quantização | — | **resultado negativo documentado** (medição 3) | **registrada** (2026-10-27) |
+| 7 | Confirmação com juiz | vencedora × baseline | nota 1–5 pareada + `fonte_correta` | em preparação (baseline MiniLM em rodada; sem resultado definitivo) |
 
 As rodadas preliminares sobre um conjunto mínimo de 15 perguntas (hoje
 aposentado, com os resultados apagados em 2026-10-24) serviram só para provar
 que o instrumento funciona de ponta a ponta; nenhum número delas escolhe
-parâmetro. As rodadas oficiais, sobre as 167 perguntas, ainda não foram feitas.
+parâmetro. As rodadas oficiais das Etapas 1–5 foram feitas em 2026-10-24 (163
+perguntas, Etapas 1–4) e 2026-10-27 (248 perguntas, Etapa 5); os números
+abaixo trazem a data de cada rodada.
 
 ### Etapa 0 — auditoria do corpus
 
@@ -586,9 +593,11 @@ coincidem; `top_k` 3 limita o Recall@5 a 0,902):
 **Joelho da curva em 0,60.** De 0,58 para 0,60 o sistema perde 2,8 pp de
 Recall@5 e ganha 25 pp de recusa; de 0,60 para 0,62 perde 9,8 pp de recall sem
 recusar mais nenhuma negativa. Abaixo de 0,50 o limiar não recusa quase nada
-(0 a 15%). A recomendação é `top_k` 5 e `score_threshold` 0,60, **sujeita à
-aprovação do dono** no Passo 8 (custo da escolha: 8,4% das perguntas com
-resposta no corpus voltam vazias e viram escalonamento ao modelo externo).
+(0 a 15%). A recomendação **desta varredura (2026-10-24)** era `top_k` 5 e
+`score_threshold` 0,60 (custo da escolha: 8,4% das perguntas com resposta no
+corpus voltam vazias e viram escalonamento ao modelo externo). **Decisão final
+(2026-10-28): `top_k` 5 adotado, limiar 0,60 rejeitado e 0,35 mantido** (ver o
+fim da Etapa 5).
 
 **Limites desta medida:**
 
@@ -632,7 +641,7 @@ busca vazia, que são os piores (resposta sem nenhuma base no corpus, e pelo
 modelo externo em produção). **Recusar pelo limiar, sozinho, não melhora a
 resposta ao cliente e pode piorá-la.**
 
-**Próximo experimento (não feito):** reescrever a instrução do prompt (trocar
+**Próximo experimento (proposto em 2026-10-24; feito em 2026-10-27 como "prompt de recusa v2", abaixo):** reescrever a instrução do prompt (trocar
 "responda com o que souber" por "se o trecho não responde, diga que não tem a
 informação e encaminhe") e acrescentar instrução de recusa também quando o
 contexto vem vazio. Custa zero chamadas extras. Medir nas mesmas 20 e, para
@@ -691,7 +700,7 @@ documento de outro produto ou o `changelog`), 156 (o manual e o guia da iDLock
 descrevem o "Não Perturbe" de formas diferentes) e 90/121 (precisão: omitiu a
 variante Lite, trocou "até" por "mais de").
 
-Causas de fundo no app, ainda **não corrigidas**:
+Causas de fundo no app (a 1ª foi corrigida em 2026-10-25, ver "Correção de app" abaixo; a 2ª segue pendente):
 
 1. `_build_prompt` (`orchestrator.py`) monta o contexto só com
    `documento.content`; o `source` não entra no prompt. O modelo não sabe de
@@ -718,9 +727,11 @@ USB, protocolo serial do iDBio, leitor de QR Code, RHiD) e mais fundo no
 iDLock Bio e no iDTouch. Tipos: valor, multi-fato, procedimento, cenário,
 condicional, tabela, comparação; todas com o produto no enunciado e
 `trecho_origem` conferido contra o texto extraído. As 123 novas nascem
-`pendente`: só entram na rodada depois da aprovação em `/admin/datasets`.
-Aprovadas, o conjunto passa a 230 respondíveis: 116 `facil`, 70 `media`,
-44 `dificil` (50% `facil`).
+`pendente`: só entram na rodada depois da aprovação em `/admin/datasets`
+(aprovadas em 2026-10-27). Meta prevista na época: 230 respondíveis (116
+`facil`, 70 `media`, 44 `dificil`); o estado real hoje é 226 válidas (116
+`facil`, 67 `media`, 43 `dificil`), 222 nas rodadas após o corte de duplicadas
+e ambíguas.
 
 **Correção de app aplicada (2026-10-25):** `_build_prompt` passou a rotular
 cada trecho do RAG com `[Fonte: <arquivo>]` e a instrução do bloco manda usar
@@ -767,12 +778,13 @@ não foi medida aqui. Nas 18 respostas de nota ≤ 2 com fonte correta, 4 só ti
 dado do gabarito com `top_k` 10 (busca por termo, checagem grosseira) e 11 tinham
 o dado já no prompt de 3 trechos e mesmo assim erraram (seleção/mistura de produto
 pelo gerador). Arquivo: `results_ab_topk5.json`. A decisão de `top_k` de produção
-fica para o item 12 do roadmap (muda latência e custo). `run_eval.py` ganhou
-`--top-k` e `--saida`.
+ficou para depois (muda latência e custo) e foi tomada em 2026-10-28: `top_k` 5 (ver
+fim da Etapa 5). `run_eval.py` ganhou
+`--top-k` (padrão do script: 5, igual à produção) e `--saida`.
 
 **Prompt de recusa v2 × atual (2026-10-27).** `--prompt-v2` troca a frase "responda
 com o que souber" por "diga que não encontrou e oriente a falar com atendente";
-`top_k` 3, mesmo juiz e gerador. *Negativas (26, McNemar exato):* recusou 14 → 19
+`top_k` 3 (produção na época), mesmo juiz e gerador. *Negativas (26, McNemar exato):* recusou 14 → 19
 (5 só no v2, 0 só no v1; p=0,06); alucinou 19 → 13 (0 só no v2, 6 só no v1;
 p=0,03). Os dois sinais não são complementares: em ambos os prompts nenhuma negativa
 saiu "limpa" (nem recusa nem alucinação), e 7 (v1) e 6 (v2) recusaram e alucinaram na
@@ -781,8 +793,8 @@ correção factual 3,95 → 3,95, fonte correta 203 nos dois, prompt +31 tokens.
 9 respostas passaram a trazer recusa/encaminhamento (4%; busca por marcador, grosseira),
 7 delas já tinham nota ≤ 2 com o prompt atual; as quedas claras foram 144 (4 → 1),
 235 e 278 (2 → 1). Arquivos: `results_b_neg_v1.json`, `results_b_neg_v2.json`,
-`results_b_resp_v2.json`. O v2 ainda vive só no eval; adotá-lo em
-`orchestrator._build_prompt` foi adotado em 2026-10-27 (só a frase; o aviso de "sem
+`results_b_resp_v2.json`. O v2 foi adotado em
+`orchestrator._build_prompt` em 2026-10-27 (só a frase; o aviso de "sem
 contexto" do eval não entrou, porque `_build_prompt` serve todos os domínios). Desde
 então `--prompt-v2` é no-op e a rodada de produção já é a v2; o baseline v1 está nos
 arquivos acima.
@@ -822,8 +834,9 @@ substância é o índice `keyword` em `domain`, hoje ausente
 runner usa um limiar aberto (`thr_sem_corte = 10.0`). Runner: `run_etapa5.py`.
 
 **Resultado (2026-10-27, bge-m3 768/115, 87 arquivos, 248 perguntas: 222 respondíveis e
-26 negativas).** *Distância:* `cosine`, `dot` e `euclid` dão exatamente o mesmo ranking
-(Recall@5 0,982; nDCG@10 0,870; MRR 0,834); só a escala dos scores muda (cosine/dot:
+26 negativas).** *Distância:* `cosine`, `dot` e `euclid` dão exatamente as mesmas métricas
+(Recall@5 0,982; nDCG@10 0,870; MRR 0,834; o JSON registra `rankings_identicos: false`,
+isto é, a lista de fontes difere em ao menos uma pergunta, sem efeito nas métricas); só a escala dos scores muda (cosine/dot:
 menor positiva 0,5125 × maior negativa 0,6869; euclid: 0,6213 × 1,0313), e em nenhuma
 métrica as classes se separam. Mantém-se `cosine`. *Payload index `keyword` em
 `domain` (1240 consultas por perfil, Qdrant puro):* média 5,81 → 5,38 ms, p50 5,59 →
@@ -855,7 +868,10 @@ da collection passou a ser lido em **tokens** (commit `e5cf918`), e o tokenizer 
 trunca a contagem em 128 (`model_max_length`), então `contar_unidades` nunca passa de 128 e
 a ingestão pelo caminho de produção gera **1 chunk por documento** (90 chunks nos 98 PDFs,
 embedados só nos primeiros 128 tokens) — com 200 tokens também deu 90. Só afeta modelos de
-contexto curto (bge-m3 e embeddinggemma não). O baseline foi ingerido por caracteres
+contexto curto (bge-m3 e embeddinggemma não). **Corrigido em 2026-10-28** em
+`chunking.contar_unidades` (com truncação ativa usa o `encode` do wrapper, que não trunca;
+teste em `test_rag_chunking.py`): o `idtouch-manual` passa de 1 para 43 chunks de 200 tokens
+com o MiniLM. O baseline foi ingerido por caracteres
 (embedder sem `get_tokenizer`): 1.073 chunks, dentro da faixa de 151–1.210 da Etapa 1. Os 8
 PDFs sem texto extraível (`idaccess`, `idbox-datasheet`, `idclass373`, `idfit`, `idflexlite`,
 `idflexpro`, `idlock-bio-datasheet`, `rep-idclass-1510`; "degenerados" da Etapa 0) ficam sem
@@ -1094,8 +1110,8 @@ ou do benchmark. Por isso foi **descartado do pool em 2026-10-24** (o dono decid
 `/avaliacao` (sem login) mostra gráficos das avaliações acima, alimentados
 por `GET /api/avaliacao/resultados` (`backend/src/app/api/avaliacao.py`), que
 lê os `results.json` de `eval/` (`router_intents`, `rag_quality`,
-`prompt_injection`, mais o antigo `rag_quality/chunk_size_search_results.json`)
-e os arquivos de `eval/model_benchmark/results/`. Só agregados saem pela API:
+`prompt_injection`), a grade `rag_ingestion/resultados_etapa3.json` (o antigo
+`chunk_size_search_results.json` saiu em 2026-10-24) e os arquivos de `eval/model_benchmark/results/`. Só agregados saem pela API:
 respostas geradas, trechos recuperados e payloads de injeção ficam fora.
 Percentuais trazem IC 95% (Wilson). Os resultados por modelo entram no
 envelope `{modelo, gerado_em, config, metricas, itens}`; `metricas` aceita
@@ -1138,16 +1154,16 @@ no work state `roteiro-dono-fase10`.
 | 1 | Três decisões rápidas (visão local obrigatória? holdout de imagem? baixar modelos) | feito: visão local é atributo medido, não requisito; holdout aceito com 23 positivos; 10 modelos baixados |
 | 2 | Trabalho do agente (negativas de imagem, critério de corte, sincronizar docs) | feito: 23 positivas + 48 negativas + 1 comprovante = 72 casos |
 | 3 | Revisar o Roteador | feito em 2026-10-20: 311 válidos |
-| 4 | Revisar o RAG documentos | feito em 2026-10-24: 167 válidos |
+| 4 | Revisar o RAG documentos | feito em 2026-10-24: 167 válidos (ampliado depois: 252 em 2026-10-28) |
 | 5 | Revisar a Injeção de prompt | feito em 2026-10-24: 95 válidos |
 | 6 | Triagem dos 9 modelos | feita em 2026-10-24 |
 | 7 | Escolher os sobreviventes | feito em 2026-10-24: 4 confirmados |
-| 8 | Fechar os parâmetros do RAG | **pendente** |
+| 8 | Fechar os parâmetros do RAG | feito em 2026-10-28: bge-m3 768/115, cosine, `top_k` 5, limiar 0,35 (Etapa 7, baseline MiniLM, em preparação) |
 | 9 | Rodada completa e conferência do juiz | pendente |
 | 10 | Relatório e Fase 11 | pendente |
 
 ### Passo 8 — Fechar os parâmetros do RAG (~30 min)
-O agente roda as Etapas 1–5 nas 167 perguntas válidas e apresenta o ponto
+*(Texto original; as Etapas 1–5 já foram rodadas, ver Seção 2.1.)* O agente roda as Etapas 1–5 nas perguntas válidas (167 na época) e apresenta o ponto
 vencedor (embedding, chunk_size/overlap, limiar, distância) com o intervalo
 de confiança. Você aprova antes de reingerir o corpus. Não use o `get_answer`
 do Repowise durante rodadas de benchmark: ele usa o mesmo `gemma4:12b`.
