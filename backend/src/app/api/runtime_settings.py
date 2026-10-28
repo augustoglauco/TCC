@@ -40,7 +40,7 @@ async def _build_response(request: Request) -> RuntimeSettingsResponse:
     tone_monitor_provider = getattr(
         request.app.state, "tone_monitor_provider", DEFAULT_TONE_MONITOR_PROVIDER
     )
-    rag_top_k = getattr(request.app.state, "rag_top_k", 3)
+    rag_top_k = getattr(request.app.state, "rag_top_k", 5)
     rag_score_threshold = getattr(request.app.state, "rag_score_threshold", 0.35)
     keep_alive = str(getattr(local_client, "keep_alive", "-1"))
     warmup_on_startup = getattr(request.app.state, "local_llm_warmup_on_startup", True)

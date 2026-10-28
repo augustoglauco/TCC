@@ -491,6 +491,13 @@ async def main() -> None:
         contexto = await _contexto_efetivo(local_client)
         _CONFIGURACAO["num_ctx_efetivo"] = contexto
         prompt_tokens = resposta_llm.prompt_tokens
+        latencia_geracao = {
+            "total_ms": resposta_llm.total_duration_ms,
+            "carga_ms": resposta_llm.load_duration_ms,
+            "prompt_eval_ms": resposta_llm.prompt_eval_duration_ms,
+            "eval_ms": resposta_llm.eval_duration_ms,
+            "completion_tokens": resposta_llm.completion_tokens,
+        }
         contexto_em_risco = _avisar_ocupacao(prompt_tokens, contexto)
         fontes = [documento.source for documento in documentos]
 
@@ -523,6 +530,7 @@ async def main() -> None:
                     "recusa_por_marcador": recusa_heuristica,
                     "julgamento": julgamento,
                     "prompt_tokens": prompt_tokens,
+                    "latencia_geracao": latencia_geracao,
                     "contexto_em_risco": contexto_em_risco,
                     "nota_manual": None,
                 }
@@ -553,6 +561,7 @@ async def main() -> None:
                 "fonte_correta": fonte_correta,
                 "nota_llm_judge": julgamento,
                 "prompt_tokens": prompt_tokens,
+                "latencia_geracao": latencia_geracao,
                 "contexto_em_risco": contexto_em_risco,
                 "nota_manual": None,
             }

@@ -831,6 +831,21 @@ métrica as classes se separam. Mantém-se `cosine`. *Payload index `keyword` em
 efeito mensurável nesta escala; o índice não foi criado. Resultado bruto:
 `eval/rag_ingestion/resultados_etapa5.json`.
 
+**`top_k` 5 com o prompt v2 e latência; limiar 0,60 (2026-10-28).** Mesmas 222
+respondíveis, v2 em produção, `top_k` 5 × 3 rodados na mesma sessão (`results_d_B_resp.json`,
+`results_d_A_resp.json`): nota 3,95 → 4,14 (+0,18; 57 melhores / 29 piores; p=0,002), uso da
+fonte 3,82 → 4,02 (p=0,0006), correção factual 4,04 → 4,14 (p=0,08), relevância 4,65 → 4,70
+(p=0,33), fonte correta 203 → 213; melhora nas três faixas de dificuldade. Ruído do gerador
+(A nova × A antiga, mesma configuração): nota +0,05 (p=0,21). Negativas (26): recusou 19 → 19
+(p=1,0), alucinou 13 → 11 (p=0,69). Prompt 2.910 → 4.525 tokens; latência de geração
+(gemma local) média 4,5 → 5,1 s, p95 7,0 → 7,6 s (processamento do prompt 1,0 → 1,4 s; tokens
+gerados iguais; a média da B inclui uma carga fria de 40 s no 1º caso, ~0,2 s). Os campos
+`latencia_geracao` por caso estão nos JSON. **Adotado em produção: `top_k` 5, limiar 0,35.**
+*Limiar 0,60 (simulação só de recuperação, sem gerador):* fonte correta 213 → 198, 12
+respondíveis ficam sem trecho (e vão ao modelo externo por `rag_vazio`), 19 de 26 negativas
+ficam sem trecho; top-1 das respondíveis 0,51–0,68 e das negativas 0,47–0,69 se sobrepõem, então
+o limiar não separa "tem resposta" de "não tem". 0,35 e 0,45 não filtram nada. Não adotado.
+
 **Etapa 6(a) — HNSW e quantização, resultado negativo.** A collection ativa
 (`docs_texto_bge768`) tem 310 pontos de 1024 dimensões (cerca de 1,3 MB de vetores) e
 `full_scan_threshold` de 10000 KB, e o Qdrant reporta `indexed_vectors_count = 0`: a

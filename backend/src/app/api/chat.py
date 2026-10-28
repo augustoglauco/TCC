@@ -1014,7 +1014,7 @@ async def _stream_llm(
             dados_cliente=cliente.dados_cliente,
             contexto_conversa_anterior=cliente.contexto_anterior,
             db_sessionmaker=getattr(app_state, "db_sessionmaker", None),
-            rag_top_k=getattr(app_state, "rag_top_k", 3),
+            rag_top_k=getattr(app_state, "rag_top_k", 5),
             rag_score_threshold=getattr(app_state, "rag_score_threshold", 0.35),
             rag_download_threshold=getattr(app_state, "rag_download_confidence_threshold", 0.65),
             is_admin=cliente.is_admin,

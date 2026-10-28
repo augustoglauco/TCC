@@ -97,7 +97,7 @@ class Settings(BaseSettings):
     # das outras dependências externas, a carga/inferência do CLIP não tinha
     # teto de tempo nenhum (ver `app/rag/clip_embedder.py`).
     clip_timeout_s: float = 30.0
-    rag_top_k: int = 3
+    rag_top_k: int = 5
     rag_score_threshold: float = 0.35
     # Limiar de confiança do card de download do documento-fonte no chat
     # (Fase 8, além do MVP — ver docs/ARCHITECTURE.md §7): score do melhor

@@ -56,7 +56,7 @@ class RuntimeSettingsResponse(BaseModel):
         ..., description="Timeout da chamada não-streaming ao OpenRouter, quando escalada."
     )
     rag_top_k: int = Field(
-        default=3, description="Quantidade de trechos de documentos buscados no Qdrant (top-k)."
+        default=5, description="Quantidade de trechos de documentos buscados no Qdrant (top-k)."
     )
     rag_score_threshold: float = Field(
         default=0.35, description="Limiar mínimo de similaridade vetorial no Qdrant (0.0 a 1.0)."

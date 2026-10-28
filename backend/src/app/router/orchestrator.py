@@ -267,7 +267,7 @@ async def _buscar_documentos_rag(
     domain: str,
     rag_client: RAGClient,
     ultima_resposta: str | None = None,
-    top_k: int = 3,
+    top_k: int = 5,
     score_threshold: float = 0.35,
 ) -> list[Document]:
     texto_busca = _texto_busca_rag(message, recent_messages, ultima_resposta)
@@ -1730,7 +1730,7 @@ async def handle_message(  # noqa: PLR0913
     dados_cliente: str | None = None,
     contexto_conversa_anterior: str | None = None,
     db_sessionmaker: async_sessionmaker[AsyncSession] | None = None,
-    rag_top_k: int = 3,
+    rag_top_k: int = 5,
     rag_score_threshold: float = 0.35,
     rag_download_threshold: float = 0.65,
     is_admin: bool = False,
