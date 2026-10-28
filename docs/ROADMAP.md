@@ -1934,8 +1934,11 @@ conversa e classificação do usuário").
       e `backend/eval/prompt_injection/README.md` (resultado real).
 - [ ] Medir latência (média e p95) do modelo local (configuração vencedora
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
+      (script `eval/latency/run_eval.py` pronto em 2026-10-28; falta executar
+      com a GPU livre, depois da rodada do benchmark)
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto
-      para apresentação ao orientador
+      para apresentação ao orientador (`eval/model_benchmark/consolidar.py`
+      gera a tabela e o McNemar entre pares; pronto em 2026-10-28)
 - [ ] **Estratégia A de medição** (escolhida pelo dono em 2026-10-16 entre
       três alternativas). Plano completo — tamanhos, divisão de trabalho,
       custos e justificativa estatística — em `docs/EVALUATION.md` Seção 0.

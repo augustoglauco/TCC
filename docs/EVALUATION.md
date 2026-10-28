@@ -20,7 +20,7 @@ execuções. Os caminhos `eval/...` deste documento são relativos a `backend/`.
 | RAG imagem | 72 casos (23 positivos + 49 negativos) | gabarito exato por construção; só rodado na triagem |
 | RAG banco | 80 perguntas | gabarito exato por construção; não rodado |
 | Injeção de prompt | 95 válidos (45 diretos + 50 indiretos) | revisado; não rodado |
-| Latência | — | **conjunto ainda não criado** (`eval/latency/` só tem `.gitkeep`) |
+| Latência | — | amostra de 60 mensagens do roteador × 3 repetições (`eval/latency/run_eval.py`, pronto, ainda não executado) |
 | Triagem de modelos | 9 candidatos (Llama 3.2 Vision descartado) | **feita**; 4 sobreviventes (ver "Benchmark comparativo") |
 | Rodada completa, juiz e relatório | — | pendentes (Passos 8–10) |
 
@@ -923,10 +923,14 @@ conclusivo nessa escala de amostra.
 **O que mede:** tempo de resposta (média e percentil 95) para um mesmo
 conjunto de perguntas, comparando modelo local e modelo externo.
 
-**Estado:** o conjunto **ainda não existe** (`eval/latency/` só tem
-`.gitkeep`); depende do modelo vencedor da rodada completa. O plano é
-reaproveitar um subconjunto das perguntas das avaliações 1 e 2 (60 prompts ×
-3 repetições, cobrindo os quatro domínios).
+**Estado:** script pronto (2026-10-28), ainda não executado:
+`eval/latency/run_eval.py`. Amostra fixa de 60 mensagens do conjunto do
+roteador (15 por domínio, não ambíguas, seed 42) × 3 repetições; cada uma vira
+o prompt de produção (`_buscar_documentos_rag` + `_build_prompt`) uma vez e o
+mesmo prompt vai ao modelo local e ao externo. Uma chamada de aquecimento por
+modelo é descartada. Rodar com a GPU livre, depois da rodada do benchmark, e
+com `EXTERNAL_MODEL_NAME=anthropic/claude-haiku-5.5` (o `.env` aponta para um
+modelo `:free`). `--listar` mostra a amostra sem chamar LLM.
 
 **Como avaliar:**
 - Rodar os mesmos prompts no modelo local (GPU 16GB, via Ollama) e em um
