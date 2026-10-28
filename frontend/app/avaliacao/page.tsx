@@ -6,7 +6,6 @@ import {
   BarChart,
   CartesianGrid,
   ErrorBar,
-  LabelList,
   Legend,
   Line,
   LineChart,
@@ -152,69 +151,71 @@ type DadosChunkSize = NonNullable<ResultadosAvaliacao["chunk_size"]>;
 type DadosInjecao = NonNullable<ResultadosAvaliacao["injecao"]>;
 type ModeloBenchmark = ResultadosAvaliacao["modelos"][number];
 
+// "Gemma-4-E4B-it UD-Q8_K_XL" -> "Gemma-4-E4B-it": o sufixo de quantização só polui o eixo.
+const nomeCurto = (nome: string) => nome.split(" ").slice(0, 2).join(" ");
+
+const pctOuTraco = (v: number | null | undefined) => (v != null ? `${pct(v)}%` : "—");
+
 function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
-  // Só os modelos que rodaram a etapa de RAG têm nota e, portanto, ponto no gráfico.
+  // Só quem rodou a etapa de RAG tem nota e ponto no gráfico (os da triagem não).
   const comRag = modelos.filter(
     (m) => m.metricas.rag_nota_media != null && m.metricas.latencia_p95_s != null,
   );
   return (
     <Secao
       titulo="Comparativo de modelos locais"
-      descricao="Qualidade × latência de cada configuração candidata, contra o sistema completo."
+      descricao="Qualidade × latência de cada modelo candidato, medidos contra o sistema completo. Quanto mais ao alto e à esquerda, melhor."
     >
-      {modelos.length === 0 ? (
+      {comRag.length === 0 ? (
         <Vazio comando="python eval/model_benchmark/run_benchmark.py" />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="h-72">
+        <div className="space-y-8">
+          <div className="h-[26rem]">
             <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 8, right: 16, bottom: 24, left: 8 }}>
+              <ScatterChart margin={{ top: 16, right: 32, bottom: 16, left: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   type="number"
                   dataKey="latencia"
                   name="Latência p95"
                   unit=" s"
-                  label={{ value: "Latência p95 (s)", position: "bottom" }}
+                  domain={[0, 10]}
+                  ticks={[0, 2, 4, 6, 8, 10]}
+                  tick={{ fontSize: 13 }}
+                  label={{ value: "Latência p95 (s)", position: "insideBottom", offset: -8 }}
                 />
                 <YAxis
                   type="number"
                   dataKey="qualidade"
                   name="Nota RAG"
-                  domain={[0, 5]}
+                  domain={[2, 5]}
+                  tick={{ fontSize: 13 }}
                   label={{ value: "Nota RAG (1–5)", angle: -90, position: "insideLeft" }}
                 />
-                <ZAxis range={[80, 80]} />
-                <Tooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  formatter={(v, n) => [v, n]}
-                  labelFormatter={() => ""}
-                />
-                <Legend verticalAlign="top" />
+                <ZAxis range={[220, 220]} />
+                <Tooltip cursor={{ strokeDasharray: "3 3" }} labelFormatter={() => ""} />
+                <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: 16, fontSize: 14 }} />
                 {comRag.map((m, i) => (
                   <Scatter
                     key={m.modelo}
-                    name={m.modelo}
+                    name={nomeCurto(m.modelo)}
                     fill={CORES_MODELOS[i % CORES_MODELOS.length]}
                     data={[
                       {
-                        modelo: m.modelo,
                         latencia: m.metricas.latencia_p95_s,
                         qualidade: m.metricas.rag_nota_media,
                       },
                     ]}
-                  >
-                    <LabelList dataKey="modelo" position="top" style={{ fontSize: 10 }} />
-                  </Scatter>
+                  />
                 ))}
               </ScatterChart>
             </ResponsiveContainer>
           </div>
-          <div className="h-72">
+          <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
-                data={modelos.map((m) => ({
-                  modelo: m.modelo,
+                data={comRag.map((m) => ({
+                  modelo: nomeCurto(m.modelo),
                   Roteador:
                     m.metricas.roteador_acuracia != null ? pct(m.metricas.roteador_acuracia) : null,
                   Injeção:
@@ -222,17 +223,47 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
                       ? pct(m.metricas.injecao_resistencia)
                       : null,
                 }))}
-                margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+                margin={{ top: 16, right: 32, left: 0, bottom: 8 }}
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="modelo" tick={{ fontSize: 11 }} />
-                <YAxis domain={[0, 100]} unit="%" />
-                <Tooltip />
-                <Legend />
+                <XAxis dataKey="modelo" tick={{ fontSize: 13 }} />
+                <YAxis domain={[0, 100]} unit="%" tick={{ fontSize: 13 }} />
+                <Tooltip formatter={(v) => `${v}%`} />
+                <Legend wrapperStyle={{ paddingTop: 8, fontSize: 14 }} />
                 <Bar dataKey="Roteador" fill="#2563eb" />
                 <Bar dataKey="Injeção" fill="#f59e0b" />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500">
+                  <th className="p-2">Modelo</th>
+                  <th className="p-2">Roteador</th>
+                  <th className="p-2">Nota RAG</th>
+                  <th className="p-2">Injeção</th>
+                  <th className="p-2">Latência p95</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comRag.map((m, i) => (
+                  <tr key={m.modelo} className="border-t border-gray-100">
+                    <td className="p-2">
+                      <span
+                        className="mr-2 inline-block h-3 w-3 rounded-full align-middle"
+                        style={{ background: CORES_MODELOS[i % CORES_MODELOS.length] }}
+                      />
+                      {m.modelo}
+                    </td>
+                    <td className="p-2">{pctOuTraco(m.metricas.roteador_acuracia)}</td>
+                    <td className="p-2">{m.metricas.rag_nota_media?.toFixed(2) ?? "—"}</td>
+                    <td className="p-2">{pctOuTraco(m.metricas.injecao_resistencia)}</td>
+                    <td className="p-2">{m.metricas.latencia_p95_s?.toFixed(1)} s</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

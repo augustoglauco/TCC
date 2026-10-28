@@ -350,7 +350,8 @@ describe("AvaliacaoPage — RAG com nota_media null", () => {
     });
     render(<AvaliacaoPage />);
     await screen.findByText("Qualidade do RAG");
-    expect(screen.getByText("—")).toBeInTheDocument();
+    // O cartão "Nota média" mostra o traço (a tabela de modelos também usa "—" p/ ausentes).
+    expect(screen.getByText("Nota média").parentElement).toHaveTextContent("—");
   });
 });
 
