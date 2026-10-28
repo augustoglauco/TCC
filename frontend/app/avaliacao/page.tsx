@@ -6,6 +6,7 @@ import {
   BarChart,
   CartesianGrid,
   ErrorBar,
+  LabelList,
   Legend,
   Line,
   LineChart,
@@ -18,6 +19,9 @@ import {
   ZAxis,
 } from "recharts";
 import { fetchResultadosAvaliacao, Proporcao, ResultadosAvaliacao } from "@/lib/api/avaliacao";
+
+// Uma cor por modelo no gráfico de dispersão (legenda + rótulo ao lado do ponto).
+const CORES_MODELOS = ["#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#0891b2"];
 
 const pct = (v: number) => Math.round(v * 1000) / 10;
 
@@ -149,6 +153,10 @@ type DadosInjecao = NonNullable<ResultadosAvaliacao["injecao"]>;
 type ModeloBenchmark = ResultadosAvaliacao["modelos"][number];
 
 function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
+  // Só os modelos que rodaram a etapa de RAG têm nota e, portanto, ponto no gráfico.
+  const comRag = modelos.filter(
+    (m) => m.metricas.rag_nota_media != null && m.metricas.latencia_p95_s != null,
+  );
   return (
     <Secao
       titulo="Comparativo de modelos locais"
@@ -182,15 +190,23 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
                   formatter={(v, n) => [v, n]}
                   labelFormatter={() => ""}
                 />
-                <Scatter
-                  name="Modelos"
-                  fill="#2563eb"
-                  data={modelos.map((m) => ({
-                    modelo: m.modelo,
-                    latencia: m.metricas.latencia_p95_s,
-                    qualidade: m.metricas.rag_nota_media,
-                  }))}
-                />
+                <Legend verticalAlign="top" />
+                {comRag.map((m, i) => (
+                  <Scatter
+                    key={m.modelo}
+                    name={m.modelo}
+                    fill={CORES_MODELOS[i % CORES_MODELOS.length]}
+                    data={[
+                      {
+                        modelo: m.modelo,
+                        latencia: m.metricas.latencia_p95_s,
+                        qualidade: m.metricas.rag_nota_media,
+                      },
+                    ]}
+                  >
+                    <LabelList dataKey="modelo" position="top" style={{ fontSize: 10 }} />
+                  </Scatter>
+                ))}
               </ScatterChart>
             </ResponsiveContainer>
           </div>
