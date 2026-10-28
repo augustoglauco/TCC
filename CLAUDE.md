@@ -145,33 +145,12 @@ MVP e Evolução Futura" e "Riscos e Limitações".
 
 <!-- graphify:start -->
 
-## Grafo de código — Graphify (`graphify-out/`)
+## Graphify (opcional)
 
-Grafo do código (comunidades, nós centrais e relações entre arquivos) gerado
-via AST — rápido e sem custo de API. **Opcional desde 2026-10-17:** útil para
-um mapa macro rápido, mas o **Repowise é a fonte única para código**, e
-consultar este grafo **não** é pré-requisito de `grep`/`Read` — os dois hooks
-`PreToolUse` que impunham isso foram removidos.
-
-Este bloco fica entre os marcadores do `graphify install` e é **regenerado**
-se o instalador rodar de novo, o que traria de volta o mandato antigo e os
-hooks. A fonte de verdade é `docs/CONVENTIONS.md`, seção "Ordem de uso das
-ferramentas de grafo de código", válida para as três ferramentas.
-
-- Para se orientar: `graphify query "<pergunta>"` (subgrafo enxuto),
-  `graphify explain "<símbolo/conceito>"` (nó focalizado),
-  `graphify path "<A>" "<B>"` (dependência entre dois pontos).
-- `graphify-out/GRAPH_REPORT.md` só para visão macro da arquitetura. (Não
-  procure um `graphify-out/wiki/`: esta CLI não tem comando que o gere.)
-- **Depois de alterar código**, o hook `post-commit` reconstrói o grafo
-  sozinho (o bit de execução foi restaurado em 2026-10-17). Só rode
-  `graphify update .` à mão se o git voltar a ignorar o hook com um `hint:`
-  — item 9 do checklist de `docs/CONVENTIONS.md`.
-- Onde o Graphify ganha de todos, e por isso segue instalado: cruzar código
-  com PDF, schema de banco ao vivo ou paper no mesmo grafo
-  (`/graphify --update` sobre material não-código). Nunca foi feito aqui — o
-  grafo tem 0 nós vindos de PDF, apesar dos 97 PDFs do corpus ControlId.
-- O grafo orienta, não substitui: ler o arquivo bruto continua obrigatório
-  antes de editá-lo.
+Mapa macro do código, **não versionado** (`graphify-out/` é gitignored desde
+2026-10-28; o hook `post-commit` o reconstrói local). Fonte única para código: o
+Repowise. Só use `graphify query|explain|path` para visão macro; nunca antes de
+`grep`/`Read`. Regras completas: `docs/CONVENTIONS.md`, "Ordem de uso das
+ferramentas de grafo de código". O instalador regenera este bloco — reduza de novo.
 
 <!-- graphify:end -->

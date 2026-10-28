@@ -17,7 +17,7 @@ Grafo estrutural do repositório extraído por AST — nós de arquivos, classes
 funções, chamadas diretas, comunidades (Louvain) e nós centrais. Não usa LLM
 para extrair, então é rápido e sem custo de API.
 
-Artefatos, todos versionados em `graphify-out/`:
+Artefatos em `graphify-out/` (**não versionado** desde 2026-10-28; o hook `post-commit` gera na sua máquina):
 
 | Arquivo                      | Para que serve                                                                 |
 | ---------------------------- | ------------------------------------------------------------------------------ |

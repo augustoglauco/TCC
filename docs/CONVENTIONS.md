@@ -294,10 +294,9 @@ completa e o Playwright ficam para mudança transversal (`config.py`,
    um `hint:` e nenhum commit reconstruía o grafo) e foi restaurado com
    `chmod +x .git/hooks/post-commit`. Se o `hint:` reaparecer, o bit caiu de
    novo — rode `graphify update .` à mão até refazer o `chmod`. O
-   `graphify-out/` é
-   versionado: se o rebuild pegar trabalho não commitado de outra ferramenta,
-   não commite o artefato — deixe que quem está no meio da tarefa o
-   reconstrua ao fechar.
+   `graphify-out/` **não é mais versionado** (2026-10-28): é regenerável, um
+   rebuild por commit gerava diff de milhares de linhas e a árvore ficava
+   sempre suja. Fica no `.gitignore`; cada máquina gera o seu.
 10. **GitNexus foi desativado** em 2026-10-17 (MCP e os dois hooks globais),
     **com revisão futura prevista** — por ora não há nada a rodar antes do
     commit. Motivo e evidência na seção "Ordem
@@ -498,16 +497,14 @@ schema de banco ao vivo ou paper no mesmo grafo — continua valendo; para isso
 é preciso rodar `/graphify --update` sobre o material não-código, o que nunca
 foi feito aqui.
 
-**GitNexus: desativado, a rever.** Não é decisão definitiva — o dono pediu
-revisão futura em 2026-10-17, então o que segue descreve por que ele saiu
-agora, não um veredito permanente. O MCP saiu de `~/.claude.json`
-(`claude mcp remove gitnexus -s user`) e os dois hooks globais saíram de
-`~/.claude/settings.json`, em 2026-10-17. Motivo: índice 16 commits defasado,
-zero usos, dois processos no ar (`gitnexus mcp` e `gitnexus serve -p 4757`) e
-um hook avisando da defasagem em cada chamada de Bash — ruído puro, dado que
-"índice defasado não bloqueia nada" já era a decisão do dono (2026-10-15). Os
-skills `gitnexus-*` continuam instalados e inertes; os manuais em
-`docs/Manuais/gitnexus-manual.md` ficam como referência histórica.
+**GitNexus: só a interface (decisão de 2026-10-28).** O MCP e os hooks
+continuam fora (2026-10-17: índice defasado, zero usos, ruído em cada Bash). A
+tela `/admin/ferramentas` e o `g.sh` seguem subindo `gitnexus serve -p 4757`
+para navegação visual do grafo, sem hook e sem skill: os seis skills
+`gitnexus-*` do projeto (`.claude/skills` e `.agents/skills`) foram apagados
+em 2026-10-28, porque mandavam o agente chamar uma ferramenta que não está
+conectada. Os skills globais em `~/.claude/skills` são do usuário.
+`docs/Manuais/gitnexus-manual.md` fica como referência.
 
 **Serena: removida** em 2026-10-17 (`claude mcp remove serena`), fechando a
 consolidação. Era a mais barata das quatro — nenhum hook, e tools *deferred*,
@@ -523,7 +520,7 @@ que só entram no contexto sob demanda — então o motivo não foi custo:
 - O sistema de memória dela seria o **terceiro** do projeto, ao lado do
   claude-mem e do auto-memory, com risco de registro dividido.
 
-`.serena/project.yml` foi **preservado** (e `.serena/` é gitignored), só o
+Reapareceu como config local em 2026-10-28 e foi removida de novo (`claude mcp remove serena -s local`). `.serena/project.yml` foi **preservado** (e `.serena/` é gitignored), só o
 cache de LSP de 18 MB foi apagado — reinstalar é um comando, sem
 reconfigurar. **Quando vale trazer de volta:** um rename grande no frontend
 TypeScript, onde o `rename_symbol` segue tipos e é genuinamente melhor que

@@ -54,7 +54,9 @@ infra/caddy/caddy.env
 .mcp.json
 .github/copilot-instructions.md
 
-# Graphify cache e apontadores locais de ambiente
+# Graphify: saída inteira é regenerável pelo hook post-commit (não versionar)
+graphify-out/
+# (linhas abaixo ficam por compatibilidade)
 graphify-out/cache/
 graphify-out/.graphify_python
 graphify-out/.graphify_root
