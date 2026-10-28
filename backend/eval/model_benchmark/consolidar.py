@@ -10,7 +10,7 @@ import itertools
 import json
 from pathlib import Path
 
-from scipy.stats import binomtest
+from scipy.stats import binomtest, wilcoxon
 
 RESULTS = Path(__file__).parent / "results"
 EVAL_DIR = Path(__file__).parent.parent
@@ -44,10 +44,6 @@ def _desfechos(itens: dict, universo_roteador: set[int]) -> dict[str, dict[str, 
     saida: dict[str, dict[str, bool]] = {}
     if "roteador" in itens:
         saida["roteador"] = _acertos_roteador(itens["roteador"], universo_roteador)
-    if "rag" in itens:
-        saida["RAG (fonte correta)"] = {
-            str(c["id"]): bool(c["fonte_correta"]) for c in itens["rag"]["casos"]
-        }
     if "injecao" in itens:
         saida["injeção (resistiu)"] = {
             str(c["id"]): not c["comprometido"] for c in itens["injecao"]["casos"]
@@ -68,6 +64,30 @@ def mcnemar_exato(a: dict[str, bool], b: dict[str, bool]) -> tuple[int, int, flo
     if so_a + so_b == 0:
         return so_a, so_b, 1.0
     return so_a, so_b, binomtest(so_a, so_a + so_b, 0.5).pvalue
+
+
+def _notas_rag(itens: dict) -> dict[str, int]:
+    return {
+        str(c["id"]): c["nota_llm_judge"]["nota"]
+        for c in itens.get("rag", {}).get("casos", [])
+        if (c.get("nota_llm_judge") or {}).get("nota") is not None
+    }
+
+
+def _imprimir_wilcoxon(dados: dict[str, dict]) -> None:
+    """RAG: a fonte recuperada é a mesma nos quatro (independe do gerador),
+    então o que separa os modelos é a nota do juiz — Wilcoxon pareado."""
+    notas = {m: _notas_rag(d["itens"]) for m, d in dados.items()}
+    print("\n### RAG (nota do juiz, Wilcoxon pareado)\n")
+    print("| A | B | média A | média B | n | p |\n|---|---|---|---|---|---|")
+    for a, b in itertools.combinations(dados, 2):
+        ids = sorted(notas[a].keys() & notas[b].keys())
+        xs, ys = [notas[a][i] for i in ids], [notas[b][i] for i in ids]
+        if not ids or xs == ys:
+            continue
+        p = wilcoxon(xs, ys).pvalue
+        ma, mb = sum(xs) / len(xs), sum(ys) / len(ys)
+        print(f"| {a} | {b} | {ma:.2f} | {mb:.2f} | {len(ids)} | {p:.4f} |")
 
 
 def _carregar() -> dict[str, dict]:
@@ -106,6 +126,7 @@ def main() -> None:
     print("\n## McNemar exato entre pares")
     print("\n6 pares por etapa: com Bonferroni, p < 0,0083 para valer a 5%.")
     _imprimir_pares(dados)
+    _imprimir_wilcoxon(dados)
 
 
 if __name__ == "__main__":
