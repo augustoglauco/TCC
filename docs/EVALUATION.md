@@ -787,6 +787,20 @@ contexto" do eval não entrou, porque `_build_prompt` serve todos os domínios).
 então `--prompt-v2` é no-op e a rodada de produção já é a v2; o baseline v1 está nos
 arquivos acima.
 
+**Regras de geração (variante C) × produção (2026-10-27).** `--prompt-c` acrescenta à
+frase de suficiência: responder só sobre o produto/modelo exatos, ignorar trecho de outro
+modelo ou conector, copiar valores e passos sem misturar trechos e começar pela
+conclusão sem contradizê-la. Base = produção (v2, `top_k` 3), 222 respondíveis pareadas:
+nota 3,90 → 3,95 (+0,05; 42 melhores / 33 piores; p=0,38); correção factual 3,95 →
+4,03 (p=0,18); relevância 4,56 → 4,58; uso da fonte 3,76 → 3,77; fonte correta 203 nos
+dois; +74 tokens. Nenhuma diferença significativa. Nas 18 respostas ruins houve mexida
+nos dois sentidos (257: 1 → 4; 34: 4 → 3; 246: 2 → 1), compatível com variação do
+gerador. Nas 26 negativas: recusou 19 → 20, alucinou 13 → 10 (3 só na base, 0 só na C;
+p=0,25). **Não adotada**: o ganho não se distingue de ruído e o gargalo dos 11 casos
+"dado no prompt e resposta errada" parece ser o gerador (gemma4 12B q4), não a redação
+do prompt; isso volta a ser medido na rodada completa dos 4 modelos. Arquivos:
+`results_c_resp.json`, `results_c_neg.json`.
+
 **Auditoria do dataset (2026-10-26).** As 121 perguntas de reforço ativas foram
 lidas contra os PDFs: nenhuma resposta errada; em 86 o `trecho_origem` é curto
 demais para a resposta (não afeta a métrica, que é por documento). Em 79

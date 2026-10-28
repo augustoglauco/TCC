@@ -158,6 +158,18 @@ _FRASE_V2 = (
     "conhecimento próprio nem invente dados específicos (preços, prazos, "
     "números de série, procedimentos)."
 )
+# Variante C (`--prompt-c`, 2026-10-27): acrescenta à frase de suficiência regras
+# contra os erros das 18 respostas de nota <= 2 com a fonte certa recuperada
+# (produto/modelo trocado, valor de outro conector, conclusão contrária ao trecho).
+# Fica só no eval até a decisão de arquitetura.
+_REGRAS_C = (
+    " Responda apenas sobre o produto e o modelo exatos da pergunta: se um "
+    "trecho for de outro modelo ou de outro conector, ignore-o. Copie valores, "
+    "nomes de sinais e passos exatamente como estão no trecho, sem misturar "
+    "trechos. Quando o trecho trouxer a resposta, comece pela conclusão e não "
+    "a contradiga."
+)
+
 _AVISO_SEM_CONTEXTO_V2 = (
     "\n\nNenhuma informação foi encontrada na base de conhecimento da empresa "
     "para esta pergunta. Diga claramente que não encontrou essa informação e "
@@ -184,6 +196,12 @@ def _aplicar_prompt_v2(prompt: str, tem_documentos: bool) -> str:
         # Falha alto: senão a rodada "v2" mediria o prompt v1 sem avisar.
         raise RuntimeError("frase de suficiência do prompt mudou; atualize _FRASE_V1")
     return prompt.replace(_FRASE_V1, _FRASE_V2)
+
+
+def _aplicar_prompt_c(prompt: str) -> str:
+    if _FRASE_V2 not in prompt:
+        raise RuntimeError("frase v2 ausente do prompt; a variante C parte dela")
+    return prompt.replace(_FRASE_V2, _FRASE_V2 + _REGRAS_C)
 
 
 def _so_respondiveis_revisados(casos: list[dict]) -> list[dict]:
@@ -393,6 +411,7 @@ async def main() -> None:
     so_negativas = "--sem-resposta" in sys.argv
     so_respondiveis = "--com-resposta" in sys.argv
     prompt_v2 = "--prompt-v2" in sys.argv
+    prompt_c = "--prompt-c" in sys.argv
     if so_negativas:
         casos = _so_sem_resposta_revisados(casos)
     elif so_respondiveis:
@@ -447,6 +466,7 @@ async def main() -> None:
         local_llm_timeout_s=settings.local_llm_timeout_s,
         prompt_v2=prompt_v2,
         top_k=top_k,
+        prompt_c=prompt_c,
     )
     if "--retomar" in sys.argv and output_path.exists():
         anterior_cfg = json.loads(output_path.read_text(encoding="utf-8")).get("configuracao")
@@ -464,6 +484,8 @@ async def main() -> None:
         prompt = _build_prompt(caso["pergunta"], documentos, domain=_DOMAIN)
         if prompt_v2:
             prompt = _aplicar_prompt_v2(prompt, bool(documentos))
+        if prompt_c:
+            prompt = _aplicar_prompt_c(prompt)
         resposta_llm = await _gerar_local_com_retry(local_client, prompt)
         resposta_gerada = resposta_llm.text
         contexto = await _contexto_efetivo(local_client)

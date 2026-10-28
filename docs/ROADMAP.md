@@ -1824,7 +1824,9 @@ conversa e classificação do usuário").
         perdas), ruído; não adotado. `top_k` 5: nota 3,87 → 4,00 (p=0,017),
         fonte correta 213/222, prompt +56% em tokens; decisão no item 12.
         Prompt de recusa v2 adotado em produção em 2026-10-27: alucinou 19 → 13 nas
-        26 negativas, respondíveis neutras. `docs/EVALUATION.md`,
+        26 negativas, respondíveis neutras.
+        Regras extras de geração (variante C: não misturar produto/conector, não
+        contradizer o trecho) testadas e não adotadas: nota 3,90 → 3,95 (p=0,38). `docs/EVALUATION.md`,
         "Rodada completa e revisão das notas baixas".*
   - [ ] Etapa 5 — métrica de distância (cosine/dot/euclid: para vetores
         normalizados o ranking é o mesmo, a varredura existe para registrar
