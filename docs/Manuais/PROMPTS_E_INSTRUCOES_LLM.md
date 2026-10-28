@@ -412,8 +412,11 @@ def _build_prompt(
             "da empresa, para responder à mensagem do cliente. Cada trecho "
             "indica entre colchetes o documento de origem: use só os trechos "
             "do produto perguntado e cite o documento ao responder. Se as "
-            "informações não forem suficientes, responda com o que souber, sem "
-            "inventar dados específicos (preços, prazos, números de série).\n\n"
+            "informações não responderem à pergunta, diga claramente que não "
+            "encontrou essa informação na base de conhecimento e oriente o "
+            "cliente a falar com um atendente ou consultar o manual do produto; "
+            "não responda com conhecimento próprio nem invente dados "
+            "específicos (preços, prazos, números de série, procedimentos).\n\n"
             f"Informações recuperadas:\n{wrap_untrusted('contexto_rag', contexto)}"
         )
 

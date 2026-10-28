@@ -176,6 +176,10 @@ def _nome_saida(so_negativas: bool, so_respondiveis: bool, prompt_v2: bool) -> s
 def _aplicar_prompt_v2(prompt: str, tem_documentos: bool) -> str:
     if not tem_documentos:
         return prompt + _AVISO_SEM_CONTEXTO_V2
+    if _FRASE_V2 in prompt:
+        # A frase v2 virou a de produção em 2026-10-27; `--prompt-v2` fica só
+        # como no-op para reproduzir os nomes de saída antigos.
+        return prompt
     if _FRASE_V1 not in prompt:
         # Falha alto: senão a rodada "v2" mediria o prompt v1 sem avisar.
         raise RuntimeError("frase de suficiência do prompt mudou; atualize _FRASE_V1")

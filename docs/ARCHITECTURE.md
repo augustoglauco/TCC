@@ -2342,6 +2342,15 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   multimodal e as cinco ferramentas do MCP B2B são obrigatórios já no MVP;
   pode ser necessário priorizar as frentes mais custosas — RAG multimodal e
   monitor de tom — caso o escopo completo não seja viável de uma só vez.
+- Alucinação em pergunta fora da base: a busca não recusa (as 26 negativas do
+  dataset recuperam trecho acima de 0,35) e nenhum limiar separa as classes; a
+  recusa depende do gerador. Decisão de 2026-10-27: a frase do bloco de RAG em
+  `orchestrator._build_prompt` manda dizer que não encontrou e oriente a falar com um
+  atendente, em vez de "responder com o que souber". Medido só no domínio suporte:
+  alucinou 19 → 13 e recusou 14 → 19 nas 26 negativas, respondíveis neutras (nota
+  3,87 → 3,90; `docs/EVALUATION.md`, "Prompt de recusa v2"). Limite aceito: ~6 das 26
+  ainda recusam e alucinam na mesma resposta, e 9 de 222 respondíveis passaram a
+  trazer recusa.
 - Restrição de hardware: 16GB de VRAM limita os modelos locais candidatos a
   versões quantizadas; candidatos na faixa de 9B a 12B (ex.: Qwen3.5 9B, Gemma-4-12B) só
   entram na avaliação comparativa em quantizações que deixem margem para o

@@ -782,7 +782,10 @@ correção factual 3,95 → 3,95, fonte correta 203 nos dois, prompt +31 tokens.
 7 delas já tinham nota ≤ 2 com o prompt atual; as quedas claras foram 144 (4 → 1),
 235 e 278 (2 → 1). Arquivos: `results_b_neg_v1.json`, `results_b_neg_v2.json`,
 `results_b_resp_v2.json`. O v2 ainda vive só no eval; adotá-lo em
-`orchestrator._build_prompt` é decisão de arquitetura pendente.
+`orchestrator._build_prompt` foi adotado em 2026-10-27 (só a frase; o aviso de "sem
+contexto" do eval não entrou, porque `_build_prompt` serve todos os domínios). Desde
+então `--prompt-v2` é no-op e a rodada de produção já é a v2; o baseline v1 está nos
+arquivos acima.
 
 **Auditoria do dataset (2026-10-26).** As 121 perguntas de reforço ativas foram
 lidas contra os PDFs: nenhuma resposta errada; em 86 o `trecho_origem` é curto
