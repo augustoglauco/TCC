@@ -1,0 +1,803 @@
+{
+  "configuracao": {
+    "modelo_local": "gemma4:12b-it-q4_K_M",
+    "modelo_juiz": "anthropic/claude-haiku-5.5",
+    "num_ctx_configurado": 8192,
+    "local_llm_timeout_s": 180.0,
+    "prompt_v2": false,
+    "top_k": 5,
+    "prompt_c": false,
+    "collection": "docs_texto_minilm800c",
+    "num_ctx_efetivo": 8192
+  },
+  "casos": [],
+  "casos_sem_resposta": [
+    {
+      "id": 161,
+      "pergunta": "Qual é o procedimento recomendado para migrar usuários existentes de cartões magnéticos para o novo sistema de identificação biométrica?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a migração de usuários para o sistema de identificação biométrica.\n\nInfelizmente, não encontrei informações específicas na nossa base de conhecimento sobre o procedimento recomendado para migrar usuários de cartões magnéticos para um sistema de identificação biométrica.\n\nPara que eu possa te ajudar melhor ou encaminhar ao setor responsável, você poderia fornecer mais detalhes? Por exemplo:\n1. Qual é o modelo exato do equipamento que você está utilizando?\n2. Existe alguma mensagem de erro específica ou dificuldade técnica em um passo determinado?\n\nCaso prefira, você também pode consultar o manual do produto ou falar diretamente com um de nossos atendentes para uma assistência personalizada.",
+      "fontes_recuperadas": [
+        "idprox_usb.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "rep-idclass-manual.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente que não encontrou informações sobre o procedimento de migração e pede mais detalhes ou encaminha a um atendente, sem afirmar nenhum dado técnico, número, procedimento ou fonte inexistente."
+      },
+      "prompt_tokens": 1512,
+      "latencia_geracao": {
+        "total_ms": 3818.951226,
+        "carga_ms": 501.210706,
+        "prompt_eval_ms": 369.807,
+        "eval_ms": 2379.778,
+        "completion_tokens": 143
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 162,
+      "pergunta": "Como garantir a conformidade com as normas de proteção de dados ao armazenar imagens faciais em servidores externos?",
+      "resposta_gerada": "Sinto muito, mas não encontrei informações específicas na nossa base de conhecimento sobre como garantir a conformidade com normas de proteção de dados (como a LGPD) ao armazenar imagens em servidores externos.\n\nPara obter detalhes precisos sobre este tema ou orientações legais sobre o tratamento de dados, recomendo que você entre em contato com um atendente para falar diretamente com um especialista ou consulte o manual técnico do produto para verificar as especificações de segurança da rede e do software iDSecure Cloud.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "rep-idclass-manual.pdf",
+        "torniquete-facial-datasheet.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite não ter informação sobre conformidade com a LGPD e encaminha o usuário a um especialista. Ao mencionar o software \"iDSecure Cloud\" como referência para verificar especificações, porém, cita um nome de produto que não aparece nas fontes recuperadas, o que caracteriza um dado específico não comprovado no acervo."
+      },
+      "prompt_tokens": 1617,
+      "latencia_geracao": {
+        "total_ms": 3235.397824,
+        "carga_ms": 475.027503,
+        "prompt_eval_ms": 597.382,
+        "eval_ms": 1682.485,
+        "completion_tokens": 103
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 163,
+      "pergunta": "Quais são os requisitos de rede necessários para operar múltiplos pontos de entrada simultaneamente sem latência excessiva?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre os requisitos de rede para o funcionamento dos dispositivos.\n\nInfelizmente, as informações disponíveis na nossa base de conhecimento não detalham especificamente os requisitos de rede para operar múltiplos pontos simultaneamente sem latência (como largura de banda mínima ou latência máxima permitida). Os documentos técnicos fornecem apenas configurações de IP e máscaras para modelos específicos:\n\n*   Para o **iDConnect V2**, as configurações recomendadas são: IP 192.168.0.132 / Máscara 255.255.255.0 / Gateway 192.168.0.131 [Fonte: idconnect-v2-userguide-pt.pdf].\n*   Para o **iDFlex**, a configuração padrão mencionada é IP 192.168.0.xxx (onde xxx é diferente de 129) com máscara 255.255.255.0 [Fonte: idflex.pdf].\n\nComo não encontrei a especificação exata sobre latência para múltiplos acessos nos manuais técnicos, recomendo que você entre em contato com um de nossos atendentes ou consulte o manual técnico específico do seu modelo para obter orientações detalhadas sobre a infraestrutura de rede necessária para o seu cenário.",
+      "fontes_recuperadas": [
+        "idaccess-guia.pdf",
+        "idflex.pdf",
+        "idaccess-guia.pdf",
+        "idaccess-nano-prox.pdf",
+        "idconnect-v2-userguide-pt.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite não ter a especificação de latência e encaminha o usuário a um atendente, mas também cita IPs, máscara e gateway como 'configurações recomendadas' dos manuais. Esses dados não respondem à pergunta e não há evidência de que constem nas fontes recuperadas, o que caracteriza alucinação."
+      },
+      "prompt_tokens": 1704,
+      "latencia_geracao": {
+        "total_ms": 6213.289254,
+        "carga_ms": 480.851514,
+        "prompt_eval_ms": 423.327,
+        "eval_ms": 4613.049,
+        "completion_tokens": 286
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 165,
+      "pergunta": "Após a instalação de um dispositivo de leitura de identificação, quais passos asseguram a integridade dos dados de barramento?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a segurança e integridade dos dados após a instalação do seu dispositivo.\n\nCom base na documentação técnica disponível para o equipamento iDClass, os passos para assegurar a integridade e validar os registros são:\n\n1. **Utilização do Sistema Criptográfico**: O sistema garante que os dados impressos em um registro de marcação de ponto foram efetivamente gerados por um REP e permite comprovar qual equipamento gerou o registro [Fonte: rep-idclass-manual.pdf].\n2. **Emissão da Chave Pública**: Para realizar a validação, o usuário deve emitir a chave pública do sistema (conforme detalhado na seção 15.3 do manual) [Fonte: rep-idclass-manual.pdf].\n3. **Validação via Software**: O usuário deve inserir no programa de validação da Control iD os seguintes dados:\n   * A chave pública emitida;\n   * O número de fabricação do equipamento;\n   * Os dados do registro (sem a assinatura) [Fonte: rep-idclass-manual.pdf].\n\nO programa comparará a assinatura gerada com a apresentada no comprovante de marcação para confirmar a integridade.\n\nCaso você precise de mais detalhes sobre o procedimento de emissão da chave pública ou tenha dificuldades com o software de validação, recomendo consultar a seção 15.3 do manual do usuário do iDClass ou entrar em contato com um técnico especializado.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "rep-idclass-manual.pdf",
+        "changelog_pt-br.pdf",
+        "rep-idclass-manual.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite falta de informação e apresenta um procedimento específico (chave pública, seção 15.3, programa de validação, número de fabricação) como constante do manual iDClass. Além disso, trata de assinatura de registros de ponto, não da integridade dos dados de barramento que a pergunta pede."
+      },
+      "prompt_tokens": 1578,
+      "latencia_geracao": {
+        "total_ms": 6930.425629,
+        "carga_ms": 478.736119,
+        "prompt_eval_ms": 572.797,
+        "eval_ms": 5107.069,
+        "completion_tokens": 310
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 166,
+      "pergunta": "Como realizar a calibração dos sensores infravermelhos utilizados na leitura facial para minimizar falsos positivos?",
+      "resposta_gerada": "Para realizar a calibração das câmeras (que incluem as câmeras de luz IR) no seu equipamento REP iDClass Facial, siga a orientação abaixo:\n\nSe o reconhecimento facial não estiver funcionando como esperado, é recomendável que seja realizado o processo de calibração das câmeras. Você pode encontrar os detalhes deste procedimento na seção **13.9.3 Calibração** do manual do produto [rep-idclass-manual.pdf].\n\nAlém da calibração, aqui estão algumas recomendações adicionais para melhorar a qualidade da verificação facial:\n1. **Ambiente:** Garanta que o local esteja bem iluminado (o equipamento possui LEDs que acendem em ambientes escuros) [rep-idclass-manual.pdf].\n2. **Posicionamento:** O usuário deve olhar diretamente para a câmera; o reconhecimento não funcionará como esperado se o usuário olhar para os lados [rep-idclass-manual.pdf].\n3. **Limpeza:** Caso a imagem esteja borrada, limpe as câmeras com panos de microfibras [rep-idclass-manual.pdf].",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "changelog_pt-br.pdf",
+        "rep-idclass-manual.pdf",
+        "changelog_pt-br.pdf",
+        "idblock-facial-datasheet.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não tem o procedimento de calibração dos sensores IR nem trata de falsos positivos. Em vez disso, cita a seção 13.9.3 do manual e afirma dados técnicos específicos (LEDs que acendem em ambientes escuros, limpeza com microfibra), apresentados como constantes da documentação, sem que as fontes recuperadas comprovem esse conteúdo."
+      },
+      "prompt_tokens": 1619,
+      "latencia_geracao": {
+        "total_ms": 5517.830743,
+        "carga_ms": 468.051909,
+        "prompt_eval_ms": 719.403,
+        "eval_ms": 3767.968,
+        "completion_tokens": 234
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 168,
+      "pergunta": "Em que medida o sistema suporta a integração com protocolos de autenticação multifator que combinam chave física e aplicativo móvel?",
+      "resposta_gerada": "Com base nas informações disponíveis em nossa base de conhecimento, os detalhes técnicos específicos sobre o suporte a protocolos de autenticação multifator (MFA) combinando especificamente \"chave física e aplicativo móvel\" não foram localizados nos manuais fornecidos.\n\nNo entanto, o sistema oferece as seguintes capacidades relacionadas a integração e modalidades de acesso:\n\n1.  **Integração e Conectividade:** O sistema permite integração via API, garantindo compatibilidade com diversos requisitos de segurança [Fonte: idsecure.pdf].\n2.  **Modelos de Hardware:** \n    *   O modelo **iDBox V2** possui display touchscreen, software web embarcado e suporte a múltiplos métodos (leitores de proximidade e equipamentos biométricos) [Fonte: idbox-v2-datasheet.pdf].\n    *   A controladora iDBox V2 suporta protocolos como Wiegand e OSDP (com Secure Channel) para integração com periféricos [Fonte: idbox-v2-datasheet.pdf].\n3.  **Gestão de Acesso:** O sistema permite configurações complexas baseadas em grupos, horários e tipos de usuário [Fonte: idsecure.pdf].\n\nComo a documentação não especifica o comportamento exato para a combinação de \"chave física + aplicativo móvel\" como um protocolo MFA único, recomendo que você informe o modelo específico do equipamento que pretende utilizar ou entre em contato com um de nossos atendentes técnicos para uma análise detalhada da sua infraestrutura.",
+      "fontes_recuperadas": [
+        "idsecure-cloud.pdf",
+        "idsecure.pdf",
+        "idaccess-nano-prox.pdf",
+        "idbox-v2-datasheet.pdf",
+        "idbox-v2-datasheet.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite que não encontrou detalhes sobre MFA com chave física e aplicativo móvel e encaminha o usuário a um atendente. Mesmo assim, atribui a fontes específicas dados técnicos como suporte a Wiegand e OSDP com Secure Channel, display touchscreen e configurações por grupos e horários, sem que o acervo recuperado comprove esses dados."
+      },
+      "prompt_tokens": 1656,
+      "latencia_geracao": {
+        "total_ms": 6902.584995,
+        "carga_ms": 516.25479,
+        "prompt_eval_ms": 415.393,
+        "eval_ms": 5101.13,
+        "completion_tokens": 316
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 169,
+      "pergunta": "Qual é o processo de validação de licenças de software antes da implantação em ambientes industriais críticos?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a validação de licenças.\n\nInfelizmente, não encontrei informações na base de conhecimento sobre o processo específico de validação de licenças de software para implantação em ambientes industriais críticos.\n\nPara obter essa informação precisa ou detalhes técnicos sobre requisitos de segurança e licenciamento, recomendo que você entre em contato diretamente com um de nossos atendentes ou consulte o manual técnico do produto específico que você pretende utilizar.",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "idsecure.pdf",
+        "rhid-datasheet.pdf",
+        "idblock-next.pdf",
+        "rhid-datasheet.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente que não encontrou a informação na base de conhecimento e encaminha o usuário a um atendente ou ao manual do produto. Não apresenta nenhum dado técnico, número, procedimento ou fonte como se constasse do acervo."
+      },
+      "prompt_tokens": 1434,
+      "latencia_geracao": {
+        "total_ms": 3258.784696,
+        "carga_ms": 489.433485,
+        "prompt_eval_ms": 617.91,
+        "eval_ms": 1476.173,
+        "completion_tokens": 94
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 170,
+      "pergunta": "Como otimizar o consumo de bateria dos dispositivos portáteis de acesso em ambientes com pouca cobertura elétrica?",
+      "resposta_gerada": "Olá! Sinto muito, mas não encontrei informações na nossa base de conhecimento sobre como otimizar o consumo de bateria em dispositivos portáteis.\n\nPara que eu possa te ajudar melhor ou para que possamos encaminhar ao setor responsável, você poderia informar o modelo específico do dispositivo que está utilizando e se existe algum erro ou comportamento específico que você está observando? Caso prefira, você também pode consultar o manual técnico do seu produto para orientações específicas de configuração.",
+      "fontes_recuperadas": [
+        "idpower-datasheet.pdf",
+        "idpower-datasheet.pdf",
+        "idpower-guia.pdf",
+        "idpower-guia.pdf",
+        "idpower-guia.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente não ter encontrado a informação na base de conhecimento e pede mais contexto (modelo do dispositivo e comportamento observado), encaminhando ao manual. Não há dados técnicos, números, especificações ou procedimentos afirmados como constantes do acervo."
+      },
+      "prompt_tokens": 1677,
+      "latencia_geracao": {
+        "total_ms": 3505.304055,
+        "carga_ms": 468.252227,
+        "prompt_eval_ms": 747.617,
+        "eval_ms": 1570.712,
+        "completion_tokens": 97
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 171,
+      "pergunta": "Qual estratégia recomendada permite atualizar firmwares dos equipamentos sem interromper o fluxo de pessoas?",
+      "resposta_gerada": "Olá! Compreendo a importância de manter a operação fluindo durante as atualizações de sistema.\n\nCom base nas informações disponíveis, não foram encontrados detalhes específicos sobre uma estratégia de atualização de firmware que garanta a não interrupção do fluxo de pessoas nos manuais fornecidos. \n\nPara garantir a segurança da sua operação e evitar paradas não planejadas, recomendo que você:\n1. Consulte o manual técnico específico do modelo do seu equipamento;\n2. Entre em contato com um de nossos atendentes para que possamos verificar as especificações do seu hardware e orientá-lo sobre o melhor procedimento.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "idsecure-cloud.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "idprox_usb.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente que não há detalhes sobre a estratégia nos manuais disponíveis e encaminha o usuário ao manual técnico do modelo e a um atendente. Não afirma nenhum dado técnico, número, modelo ou procedimento como se constasse do acervo."
+      },
+      "prompt_tokens": 1513,
+      "latencia_geracao": {
+        "total_ms": 3759.704713,
+        "carga_ms": 484.988213,
+        "prompt_eval_ms": 656.583,
+        "eval_ms": 2014.299,
+        "completion_tokens": 126
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 172,
+      "pergunta": "Como garantir que a cadeia de suprimentos de peças de reposição seja gerenciada de forma eficiente após a implementação?",
+      "resposta_gerada": "Sinto muito, mas não encontrei informações na base de conhecimento sobre o gerenciamento da cadeia de suprimentos de peças de reposição ou procedimentos logísticos após a implementação.\n\nPara obter essa informação, recomendo que você entre em contato com um de nossos atendentes para falar com um especialista ou consulte o manual específico do seu produto.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "idblock-next.pdf",
+        "changelog_pt-br.pdf",
+        "idbox-v2-userguide.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente que não encontrou a informação na base de conhecimento e encaminha o usuário a um atendente ou ao manual do produto. Não afirma nenhum dado técnico, número, procedimento ou fonte específica como constante do acervo."
+      },
+      "prompt_tokens": 1575,
+      "latencia_geracao": {
+        "total_ms": 2689.157583,
+        "carga_ms": 473.894585,
+        "prompt_eval_ms": 534.489,
+        "eval_ms": 1114.632,
+        "completion_tokens": 69
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 173,
+      "pergunta": "Quais indicadores de desempenho devem ser coletados para avaliar a eficiência do sistema de controle de acesso em tempo real?",
+      "resposta_gerada": "Olá! Entendo sua dúvida sobre quais indicadores monitorar para avaliar a eficiência do seu sistema de controle de acesso.\n\nCom base nas informações disponíveis em nossa documentação técnica, o sistema oferece as seguintes funcionalidades relacionadas ao monitoramento e gerenciamento que podem auxiliar nessa avaliação:\n\n1. **Monitoramento em tempo real:** O sistema permite o monitoramento em tempo real para garantir a segurança e o acompanhamento dos acessos [Fonte: idsecure-cloud.pdf].\n2. **Relatórios customizáveis:** O sistema oferece relatórios que podem ser customizados conforme a necessidade de análise do usuário [Fonte: idsecure-cloud.pdf].\n3. **Regras de acesso complexas:** A eficácia pode ser avaliada através da aplicação de regras baseadas em empresas, grupos, horários e tipos de usuários (como visitantes e funcionários) [Fonte: idsecure-cloud.pdf; idsecure.pdf].\n\nCaso você precise de orientações mais específicas sobre métricas de desempenho técnico ou indicadores customizados para o seu cenário particular, recomendo consultar o manual do produto ou entrar em contato com um de nossos atendentes para uma análise detalhada da sua infraestrutura.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "idaccess-nano-prox.pdf",
+        "idsecure-cloud.pdf",
+        "idsecure.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": false,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": false,
+        "alucinou": true,
+        "justificativa": "A resposta não admite que o acervo não traz indicadores de eficiência, e apresenta funcionalidades (monitoramento em tempo real, relatórios customizáveis, regras por empresa, grupo, horário e tipo de usuário) como se constassem das fontes citadas, sem que o acervo recuperado sustente isso. A ressalva final de encaminhar ao manual ou a um atendente não basta para descaracterizar a resposta substituta."
+      },
+      "prompt_tokens": 1569,
+      "latencia_geracao": {
+        "total_ms": 5528.717994,
+        "carga_ms": 479.323779,
+        "prompt_eval_ms": 669.26,
+        "eval_ms": 3937.266,
+        "completion_tokens": 241
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 174,
+      "pergunta": "Como resolver conflitos entre permissões de acesso definidas pelo administrador e restrições impostas por políticas de segurança?",
+      "resposta_gerada": "Sinto muito, mas não encontrei informações específicas na base de conhecimento sobre como resolver conflitos entre permissões de acesso do administrador e políticas de segurança.\n\nPara que eu possa te ajudar melhor, você poderia fornecer mais detalhes? Por exemplo:\n- Qual é o modelo exato do equipamento que você está utilizando?\n- Existe alguma mensagem de erro específica aparecendo no sistema?\n- Quais procedimentos ou configurações você já tentou realizar para resolver esse problema?\n\nCaso prefira, você também pode consultar o manual técnico do seu produto ou entrar em contato com um de nossos atendentes para um suporte personalizado.",
+      "fontes_recuperadas": [
+        "idlock-bio-manual.pdf",
+        "rep-idclass-manual.pdf",
+        "idsecure.pdf",
+        "idaccess-nano-prox.pdf",
+        "rep-idclass-manual.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente não ter encontrado a informação na base de conhecimento e pede mais contexto (modelo do equipamento, mensagens de erro, procedimentos já tentados), além de sugerir o manual ou um atendente. Não afirma nenhum dado técnico, número, procedimento ou fonte como se constasse do acervo."
+      },
+      "prompt_tokens": 1564,
+      "latencia_geracao": {
+        "total_ms": 3511.537948,
+        "carga_ms": 498.164079,
+        "prompt_eval_ms": 428.251,
+        "eval_ms": 1965.021,
+        "completion_tokens": 124
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 175,
+      "pergunta": "De que maneira implementar um sistema de auditoria que registre cada tentativa de acesso, incluindo IP e usuário, para fins de investigação?",
+      "resposta_gerada": "Olá! Compreendo sua necessidade de implementar um sistema de auditoria detalhado para monitoramento e investigações.\n\nCom base nas informações disponíveis em nossa base de conhecimento, a solução **iDSecure** oferece funcionalidades voltadas para a gestão e transparência da operação:\n\n1.  **Relatórios Detalhados:** A plataforma iDSecure permite a geração de relatórios customizáveis para facilitar o gerenciamento [Fonte: idsecure.pdf].\n2.  **Monitoramento em Tempo Real:** O sistema oferece monitoramento em tempo real das ações no ambiente de controle de acesso [Fonte: idsecure.pdf].\n\nEntretanto, as informações disponíveis nos manuais não detalham especificamente como configurar a captura do IP e do usuário em cada tentativa individual para fins de auditoria técnica. \n\nCaso precise de uma configuração específica para conformidade de segurança ou investigações forenses, recomendo que você entre em contato com um de nossos atendentes técnicos ou consulte o manual completo do software iDSecure para verificar as configurações avançadas de log.",
+      "fontes_recuperadas": [
+        "idblock-next.pdf",
+        "idsecure.pdf",
+        "iduhf-datasheet.pdf",
+        "idsecure.pdf",
+        "rhid-datasheet.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite não ter detalhes sobre a captura de IP e usuário e encaminha o caso a um atendente. Mas afirma, citando idsecure.pdf, que o iDSecure oferece relatórios customizáveis e monitoramento em tempo real, funcionalidades que não foram verificadas no acervo recuperado."
+      },
+      "prompt_tokens": 1644,
+      "latencia_geracao": {
+        "total_ms": 5484.444183,
+        "carga_ms": 470.551809,
+        "prompt_eval_ms": 722.159,
+        "eval_ms": 3508.409,
+        "completion_tokens": 219
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 176,
+      "pergunta": "Quais são os passos necessários para obter certificação de conformidade com regulamentações locais de segurança pública?",
+      "resposta_gerada": "Sinto muito, mas não encontrei informações na nossa base de conhecimento sobre \"certificações de conformidade com regulamentações locais de segurança pública\".\n\nPara que eu possa te ajudar melhor ou para que possamos encaminhar sua solicitação ao setor responsável, você poderia fornecer mais detalhes? Se houver um modelo de equipamento específico ou uma norma específica a que você se refere, por favor, informe. Alternativamente, caso prefira, posso orientá-lo a consultar o manual do produto ou falar diretamente com um atendente.",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "rep-idclass-manual.pdf",
+        "iduhf-lite-guia.pdf",
+        "idface.pdf",
+        "idsecure.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente não encontrar a informação na base de conhecimento e pede mais detalhes ou encaminhamento a um atendente. Não afirma nenhum dado técnico, número, procedimento ou fonte inexistente no acervo."
+      },
+      "prompt_tokens": 1383,
+      "latencia_geracao": {
+        "total_ms": 3527.832892,
+        "carga_ms": 472.743156,
+        "prompt_eval_ms": 344.388,
+        "eval_ms": 1734.726,
+        "completion_tokens": 109
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 177,
+      "pergunta": "Como a arquitetura de rede influencia a latência percebida pelos usuários ao atravessar múltiplos switches?",
+      "resposta_gerada": "Olá! Entendo sua dúvida sobre como a arquitetura de rede impacta na latência.\n\nInfelizmente, não encontrei informações específicas na nossa base de conhecimento técnica sobre o impacto da arquitetura de rede ou do uso de múltiplos switches na latência percebida pelos usuários.\n\nCaso você precise de mais detalhes técnicos sobre este assunto específico, recomendo que entre em contato com um de nossos atendentes especializados ou consulte o manual técnico detalhado do seu equipamento.",
+      "fontes_recuperadas": [
+        "idconnect-userguide-pt.pdf",
+        "idflex.pdf",
+        "idaccess_nano.pdf",
+        "idaccess_nano_guia.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente que não encontrou informações sobre o tema na base de conhecimento e encaminha o usuário a atendentes especializados ou ao manual do equipamento. Não há nenhum dado técnico, número, especificação ou fonte afirmada como constante do acervo."
+      },
+      "prompt_tokens": 1605,
+      "latencia_geracao": {
+        "total_ms": 3157.702821,
+        "carga_ms": 476.940102,
+        "prompt_eval_ms": 632.929,
+        "eval_ms": 1568.702,
+        "completion_tokens": 96
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 178,
+      "pergunta": "Qual é o procedimento correto para desativar temporariamente um ponto de entrada durante obras de manutenção estrutural?",
+      "resposta_gerada": "Olá! Sinto muito, mas não encontrei informações na base de conhecimento sobre procedimentos para desativar temporariamente pontos de entrada durante obras de manutenção estrutural.\n\nPara obter essa orientação específica, recomendo que você entre em contato com um de nossos atendentes ou consulte o manual técnico do seu produto.",
+      "fontes_recuperadas": [
+        "idflex.pdf",
+        "idfit_V2.pdf",
+        "idfit_V2.pdf",
+        "idlock-bio-manual.pdf",
+        "idfit-guia.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente não encontrar a informação na base de conhecimento e encaminha o usuário a um atendente ou ao manual técnico. Não há nenhum dado técnico, número, procedimento ou fonte afirmado como constante do acervo."
+      },
+      "prompt_tokens": 1526,
+      "latencia_geracao": {
+        "total_ms": 2610.910788,
+        "carga_ms": 472.635657,
+        "prompt_eval_ms": 603.213,
+        "eval_ms": 992.733,
+        "completion_tokens": 63
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 179,
+      "pergunta": "Como o sistema gerencia a sincronização de credenciais entre diferentes plataformas de acesso remoto sem depender de hardware específico?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre como o sistema gerencia a sincronização e as integrações.\n\nCom base nas informações disponíveis em nossa base de conhecimento, posso informar que:\n\nO sistema iDSecure Cloud permite a integração com cadastradores de cartão e/ou biometria para PC em qualquer lugar, possibilitando o gerenciamento dos acessos em tempo real [Fonte: idsecure-cloud.pdf]. Além disso, a solução oferece integração via API para garantir a compatibilidade do sistema com diversas aplicações, permitindo a configuração de regras complexas baseadas em empresas, grupos, horários e tipos (visitantes e pessoas) [Fonte: idsecure-cloud.pdf].\n\nCaso você precise de detalhes mais específicos sobre o funcionamento técnico dessa sincronização entre plataformas sem hardware específico ou tenha outras dúvidas técnicas, recomendo consultar o manual do produto ou falar com um de nossos atendentes para uma análise mais detalhada.",
+      "fontes_recuperadas": [
+        "idconnect-v2-datasheet-pt.pdf",
+        "idaccess-nano-prox.pdf",
+        "idsecure-cloud.pdf",
+        "idflex.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta encaminha o usuário ao manual e a um atendente, mas não admite claramente que o acervo não contém a informação. Ela também atribui ao idsecure-cloud.pdf funcionalidades específicas (integração em tempo real, API, regras por empresa, grupo, horário e tipo), que não respondem à pergunta sobre sincronização sem hardware específico."
+      },
+      "prompt_tokens": 1675,
+      "latencia_geracao": {
+        "total_ms": 4676.556536,
+        "carga_ms": 480.150972,
+        "prompt_eval_ms": 580.964,
+        "eval_ms": 3110.743,
+        "completion_tokens": 190
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 180,
+      "pergunta": "Qual é o procedimento padrão para atualizar os firmwares nos dispositivos de leitura de credenciais quando ocorre falha na comunicação com o servidor central?",
+      "resposta_gerada": "Sinto muito, mas não encontrei informações específicas sobre o procedimento para atualizar firmwares em casos de falha na comunicação com o servidor central na base de conhecimento disponível.\n\nPara resolver este problema, recomendo que você consulte o manual do produto ou entre em contato com um de nossos atendentes técnicos, fornecendo o modelo exato do equipamento e descrevendo a falha ocorrida.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente não ter encontrado a informação na base de conhecimento e encaminha o usuário ao manual ou a um atendente técnico. Não apresenta nenhum dado, número, modelo ou procedimento técnico específico como se constasse do acervo."
+      },
+      "prompt_tokens": 1568,
+      "latencia_geracao": {
+        "total_ms": 3356.777961,
+        "carga_ms": 469.047082,
+        "prompt_eval_ms": 617.777,
+        "eval_ms": 1266.113,
+        "completion_tokens": 79
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 304,
+      "pergunta": "Qual é o preço de venda sugerido do controlador iDFace Max?",
+      "resposta_gerada": "Olá! Lamento, mas não encontrei informações sobre o preço de venda sugerido do controlador iDFace Max na base de conhecimento disponível.\n\nPara obter essa informação específica ou outros detalhes comerciais, recomendo que você entre em contato diretamente com um de nossos atendentes ou consulte o catálogo oficial do produto.",
+      "fontes_recuperadas": [
+        "idbio-guia-rapido.pdf",
+        "idflex_ip65.pdf",
+        "idaccess-nano-prox.pdf",
+        "idaccess-pro-datasheet.pdf",
+        "printid-touch-folder.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente não ter a informação sobre o preço de venda sugerido do iDFace Max e encaminha o usuário a um atendente ou ao catálogo oficial. Não apresenta nenhum dado técnico, número ou fonte inventado."
+      },
+      "prompt_tokens": 1571,
+      "latencia_geracao": {
+        "total_ms": 2637.289934,
+        "carga_ms": 485.015134,
+        "prompt_eval_ms": 631.392,
+        "eval_ms": 1007.826,
+        "completion_tokens": 63
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 305,
+      "pergunta": "Qual é a taxa de falsa rejeição (FRR) do reconhecimento facial do iDFace?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a taxa de falsa rejeição (FRR) do sistema de reconhecimento facial.\n\nInfelizmente, não encontrei informações específicas sobre a taxa de falsa rejeição (FRR) na base de conhecimento disponível para o equipamento iDClass Facial.\n\nCaso você precise desse dado técnico específico ou tenha outras dificuldades, recomendo entrar em contato com um de nossos atendentes ou consultar o manual do produto para obter detalhes adicionais.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "rep-idclass-manual.pdf",
+        "rep-idclass-facial-datasheet.pdf",
+        "changelog_pt-br.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente que não encontrou a taxa FRR na base de conhecimento e encaminha o usuário a um atendente ou ao manual, sem citar nenhum número, especificação ou fonte inexistente."
+      },
+      "prompt_tokens": 1582,
+      "latencia_geracao": {
+        "total_ms": 3027.173701,
+        "carga_ms": 473.911779,
+        "prompt_eval_ms": 360.146,
+        "eval_ms": 1494.58,
+        "completion_tokens": 94
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 306,
+      "pergunta": "O leitor iDUHF Lite suporta comunicação via protocolo Modbus?",
+      "resposta_gerada": "Olá! Sinto muito, mas não encontrei informações sobre a compatibilidade do leitor iDUHF Lite com o protocolo Modbus na base de conhecimento disponível.\n\nPara obter essa confirmação técnica ou mais detalhes sobre as funcionalidades de comunicação do equipamento, recomendo que você entre em contato com um de nossos atendentes ou consulte o manual do produto.",
+      "fontes_recuperadas": [
+        "idtouch-manual.pdf",
+        "iduhf-lite-guia.pdf",
+        "iduhf-lite-guia.pdf",
+        "changelog_pt-br.pdf",
+        "iduhf-lite-guia.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente não encontrar a informação na base de conhecimento e encaminha o usuário a um atendente ou ao manual. Não afirma nenhum dado técnico específico, número, modelo ou procedimento como se constasse do acervo."
+      },
+      "prompt_tokens": 1721,
+      "latencia_geracao": {
+        "total_ms": 2819.594623,
+        "carga_ms": 473.121405,
+        "prompt_eval_ms": 621.646,
+        "eval_ms": 1137.414,
+        "completion_tokens": 72
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 307,
+      "pergunta": "Qual é o MTBF (tempo médio entre falhas) da catraca iDBlock Next?",
+      "resposta_gerada": "Olá! Sinto muito, mas não encontrei a informação sobre o MTBF (tempo médio entre falhas) da catraca iDBlock Next na base de conhecimento disponível.\n\nCaso precise de detalhes técnicos específicos que não constam no manual ou nos guias de suporte, recomendo entrar em contato com um atendente ou consultar diretamente o manual técnico do produto.",
+      "fontes_recuperadas": [
+        "idpower-guia.pdf",
+        "idtouch-manual.pdf",
+        "changelog_pt-br.pdf",
+        "idblock-next.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente que não encontrou o MTBF da iDBlock Next na base de conhecimento e encaminha o usuário a um atendente ou ao manual técnico. Não apresenta nenhum número, especificação ou dado técnico inventado."
+      },
+      "prompt_tokens": 1655,
+      "latencia_geracao": {
+        "total_ms": 2967.807484,
+        "carga_ms": 461.999174,
+        "prompt_eval_ms": 758.489,
+        "eval_ms": 1199.99,
+        "completion_tokens": 76
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 308,
+      "pergunta": "O iDLock Bio pode ser integrado a assistentes de voz como a Alexa?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre a integração da fechadura iDLock com assistentes de voz.\n\nInfelizmente, não encontrei informações na nossa base de conhecimento que confirmem a possibilidade de integração do modelo iDLock Bio com assistentes de voz como a Alexa.\n\nPara obter uma resposta precisa sobre essa funcionalidade específica, recomendo que você entre em contato com um de nossos atendentes ou consulte o manual do produto [idlock-bio-manual.pdf] para verificar as configurações disponíveis.",
+      "fontes_recuperadas": [
+        "changelog_pt-br.pdf",
+        "idlock-bio-manual.pdf",
+        "torniquete-facial-datasheet.pdf",
+        "torniquete-facial-id-datasheet.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente que não encontrou informação sobre integração com a Alexa e encaminha o usuário a um atendente. Não afirma nenhum dado técnico, número ou especificação como constante do acervo; a menção ao manual é apenas uma sugestão de consulta."
+      },
+      "prompt_tokens": 1804,
+      "latencia_geracao": {
+        "total_ms": 3656.135237,
+        "carga_ms": 487.158618,
+        "prompt_eval_ms": 743.306,
+        "eval_ms": 1727.397,
+        "completion_tokens": 105
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 309,
+      "pergunta": "O iDAccess Pro permite integração com sistemas de automação predial via BACnet ou MQTT?",
+      "resposta_gerada": "Olá! Compreendo sua dúvida sobre as capacidades de integração do equipamento.\n\nCom base nas informações disponíveis em nossa base de conhecimento, o controlador de acesso **iDAccess Pro Prox** possui comunicação via **TCP/IP** [Fonte: idaccess-pro-prox.pdf]. \n\nNo entanto, não foram encontrados detalhes específicos nos manuais ou documentações sobre a integração direta com protocolos de automação predial como BACnet ou MQTT. \n\nPara uma confirmação técnica precisa sobre esses protocolos específicos, recomendo que você entre em contato com um de nossos atendentes especializados ou consulte o manual técnico detalhado do produto. Caso deseje, posso solicitar que um consultor entre em contato para falar sobre as possibilidades de integração do sistema.",
+      "fontes_recuperadas": [
+        "idaccess-pro-prox.pdf",
+        "idsecure.pdf",
+        "changelog_pt-br.pdf",
+        "satid-folder.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite não encontrar informações sobre BACnet ou MQTT e encaminha para um atendente. Porém, afirma como dado do acervo que o iDAccess Pro Prox possui comunicação TCP/IP, citando idaccess-pro-prox.pdf, sem evidência de que essa especificação conste nas fontes recuperadas."
+      },
+      "prompt_tokens": 1603,
+      "latencia_geracao": {
+        "total_ms": 4261.664138,
+        "carga_ms": 482.511803,
+        "prompt_eval_ms": 591.869,
+        "eval_ms": 2412.638,
+        "completion_tokens": 151
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 310,
+      "pergunta": "A leitura de cartões por NFC em smartphones é suportada pelo iDAccess Nano?",
+      "resposta_gerada": "Olá! Com base nas informações disponíveis no manual do produto, o iDAccess Nano oferece suporte para identificação via cartão de proximidade [Fonte: idaccess-nano.pdf].\n\nNo entanto, a documentação não especifica explicitamente se a leitura é feita especificamente por tecnologia NFC em smartphones ou apenas por cartões/tags físicos compatíveis com o sistema. Caso você precise de detalhes técnicos específicos sobre a compatibilidade com dispositivos móveis, recomendo consultar o manual técnico completo do produto ou entrar em contato com um de nossos atendentes para mais informações.",
+      "fontes_recuperadas": [
+        "idaccess_nano_guia.pdf",
+        "idaccess_nano.pdf",
+        "idaccess-nano.pdf",
+        "idprox-usb-folder.pdf",
+        "changelog_pt-br.pdf"
+      ],
+      "recusou": true,
+      "alucinou": true,
+      "recusa_por_marcador": false,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": true,
+        "justificativa": "A resposta admite que a documentação não especifica a leitura por NFC em smartphones e encaminha para o manual completo ou atendimento. Porém, afirma como dado do acervo que o produto suporta identificação por cartão de proximidade, citando 'idaccess-nano.pdf', sem que essa informação tenha sido verificada nas fontes recuperadas."
+      },
+      "prompt_tokens": 1629,
+      "latencia_geracao": {
+        "total_ms": 3442.103359,
+        "carga_ms": 473.569724,
+        "prompt_eval_ms": 648.74,
+        "eval_ms": 1816.829,
+        "completion_tokens": 115
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    },
+    {
+      "id": 311,
+      "pergunta": "Qual é o prazo de garantia, em meses, do REP iDClass?",
+      "resposta_gerada": "Olá! Entendo sua dúvida sobre o prazo de garantia do equipamento.\n\nInfelizmente, não encontrei a informação específica sobre o prazo de garantia em meses para o REP iDClass na base de conhecimento disponível. \n\nPara obter essa informação exata e garantir que você tenha o suporte adequado, recomendo consultar o manual do produto ou entrar em contato diretamente com um de nossos atendentes, informando o modelo do seu equipamento.",
+      "fontes_recuperadas": [
+        "rep-idclass-manual.pdf",
+        "rep-idclass-manual.pdf",
+        "idpower-guia.pdf",
+        "changelog_pt-br.pdf",
+        "api_idclass_latest.md"
+      ],
+      "recusou": true,
+      "alucinou": false,
+      "recusa_por_marcador": true,
+      "julgamento": {
+        "recusou": true,
+        "alucinou": false,
+        "justificativa": "A resposta admite claramente não encontrar o prazo de garantia na base de conhecimento e encaminha o usuário ao manual ou a um atendente, sem citar nenhum número, especificação ou fonte inventada."
+      },
+      "prompt_tokens": 1576,
+      "latencia_geracao": {
+        "total_ms": 3346.010682,
+        "carga_ms": 478.907206,
+        "prompt_eval_ms": 553.704,
+        "eval_ms": 1462.496,
+        "completion_tokens": 89
+      },
+      "contexto_em_risco": false,
+      "nota_manual": null
+    }
+  ],
+  "resumo": {
+    "respondiveis": 0,
+    "sem_resposta": 26,
+    "recusou": 23,
+    "alucinou": 10,
+    "recusa_por_marcador": 17
+  }
+}

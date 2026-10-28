@@ -1864,11 +1864,13 @@ conversa e classificação do usuário").
         *Registrado em 2026-10-27: 310 pontos de 1024 dims (~1,3 MB) contra
         `full_scan_threshold` de 10000 KB, `indexed_vectors_count = 0` — busca
         exata, HNSW e quantização sem efeito. `docs/EVALUATION.md` §2.1.*
-  - [ ] Etapa 7 — confirmar com LLM-as-judge (~360 chamadas, ~US$ 3) que o
+  - [x] Etapa 7 — confirmar com LLM-as-judge (~360 chamadas, ~US$ 3) que o
         ganho de recuperação virou ganho de resposta: configuração vencedora
         × baseline de 2026-10-01, pareado (McNemar para `Recall@5`,
         bootstrap pareado para `nDCG@10`/nota, conforme Seção 0). Relatar a
-        grade inteira, não só a vencedora.
+        grade inteira, não só a vencedora. **Feita em 2026-10-28:** nota 2,74 → 4,14
+        (+1,39; p<0,0001), fonte correta 156 → 213 de 222 (McNemar p=1,4e-13),
+        recusas indevidas 81 → 5; ver `docs/EVALUATION.md`, "Etapa 7 — resultado".
 - [x] **Verificar, depois que a refatoração visual M3 Glass terminar**, as
     quatro superfícies que ela compartilha com partes que hoje funcionam —
     estado atual e âncora de rollback registrados em

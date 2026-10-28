@@ -360,7 +360,7 @@ etapa.
 | 4 | `top_k` + `score_threshold` | varredura offline | `Recall@k` vs. precisão vs. taxa de vazio | **feita** (2026-10-24 medida; 2026-10-28 decidida): `top_k` 5, limiar 0,35 mantido; 0,60 rejeitado |
 | 5 | Distância + payload index | cosine/dot/euclid; índice `keyword` em `domain` | `nDCG@10`; p95 de latência | **feita** (2026-10-27): cosine mantido, índice não criado |
 | 6 | HNSW + quantização | — | **resultado negativo documentado** (medição 3) | **registrada** (2026-10-27) |
-| 7 | Confirmação com juiz | vencedora × baseline | nota 1–5 pareada + `fonte_correta` | em preparação (baseline MiniLM em rodada; sem resultado definitivo) |
+| 7 | Confirmação com juiz | vencedora × baseline | nota 1–5 pareada + `fonte_correta` | **feita** (2026-10-28): nota 2,74 → 4,14, fonte correta 156 → 213 |
 
 As rodadas preliminares sobre um conjunto mínimo de 15 perguntas (hoje
 aposentado, com os resultados apagados em 2026-10-24) serviram só para provar
@@ -876,6 +876,23 @@ com o MiniLM. O baseline foi ingerido por caracteres
 PDFs sem texto extraível (`idaccess`, `idbox-datasheet`, `idclass373`, `idfit`, `idflexlite`,
 `idflexpro`, `idlock-bio-datasheet`, `rep-idclass-1510`; "degenerados" da Etapa 0) ficam sem
 chunk nas duas collections, então não enviesam a comparação.
+
+**Etapa 7 — resultado (2026-10-28).** Baseline de 2026-10-01 (MiniLM-L12, 800/100 em
+caracteres, `docs_texto_minilm800c`, 1.073 chunks) × vencedora (bge-m3, 768/115, `docs_texto_bge768`),
+ambas `top_k` 5, limiar 0,35, prompt v2, mesmo gerador e juiz, 222 respondíveis pareadas
+(`results_e_base_resp.json` × `results_d_B_resp.json`). Wilcoxon: nota **2,74 → 4,14** (+1,39;
+141 melhores / 22 piores; p<0,0001), relevância 3,37 → 4,70, correção factual 2,72 → 4,14, uso da
+fonte 2,94 → 4,02 (todas p<0,0001); melhora nas três faixas de dificuldade (fácil 2,82 → 4,21,
+média 2,64 → 4,10, difícil 2,70 → 3,98). Fonte correta 156 → 213 de 222 (McNemar exato: 62 só
+na vencedora, 5 só no baseline, p=1,4e-13). Respostas que viram recusa ("não encontrei"): 81 →
+5 das 222 — o baseline não recupera o trecho e recusa até o que está no corpus. Prompt
+1.644 → 4.525 tokens; latência de geração média 4,2 → 5,1 s, p95 7,0 → 7,6 s. *Negativas
+(26):* recusou 23 → 19 (p=0,125), alucinou 10 → 11 (p=1,0), sem diferença; o baseline "recusa
+mais" porque recusa tudo (81 recusas nas respondíveis), não por discernir melhor, então isso
+não é vantagem dele. **Conclusão: o ganho de recuperação virou ganho de resposta; a
+configuração vencedora (bge-m3 768/115, `top_k` 5, limiar 0,35, prompt v2) melhora a resposta
+em +1,39 de nota sobre o ponto de partida, sem custo de recusa.** Grade completa reportada
+nas Etapas 2–5 e 6(a) acima.
 
 **Etapa 6(a) — HNSW e quantização, resultado negativo.** A collection ativa
 (`docs_texto_bge768`) tem 310 pontos de 1024 dimensões (cerca de 1,3 MB de vetores) e
