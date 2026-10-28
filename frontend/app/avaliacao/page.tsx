@@ -143,6 +143,7 @@ function MapaCalor({
 
 type DadosRoteador = NonNullable<ResultadosAvaliacao["roteador"]>;
 type DadosRag = NonNullable<ResultadosAvaliacao["rag"]>;
+type DadosEtapa7 = NonNullable<ResultadosAvaliacao["etapa7"]>;
 type DadosChunkSize = NonNullable<ResultadosAvaliacao["chunk_size"]>;
 type DadosInjecao = NonNullable<ResultadosAvaliacao["injecao"]>;
 type ModeloBenchmark = ResultadosAvaliacao["modelos"][number];
@@ -199,9 +200,7 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
                 data={modelos.map((m) => ({
                   modelo: m.modelo,
                   Roteador:
-                    m.metricas.roteador_acuracia != null
-                      ? pct(m.metricas.roteador_acuracia)
-                      : null,
+                    m.metricas.roteador_acuracia != null ? pct(m.metricas.roteador_acuracia) : null,
                   Injeção:
                     m.metricas.injecao_resistencia != null
                       ? pct(m.metricas.injecao_resistencia)
@@ -321,6 +320,102 @@ function SecaoRag({ rag }: { rag: DadosRag | null | undefined }) {
               </ResponsiveContainer>
             </div>
           </div>
+          <div className="grid grid-cols-3 gap-3">
+            <Cartao rotulo="Sem resposta no corpus" valor={String(rag.sem_resposta.total)} />
+            <Cartao
+              rotulo="Recusou (correto)"
+              valor={`${rag.sem_resposta.recusou}/${rag.sem_resposta.total}`}
+            />
+            <Cartao
+              rotulo="Inventou resposta"
+              valor={`${rag.sem_resposta.alucinou}/${rag.sem_resposta.total}`}
+            />
+          </div>
+        </div>
+      )}
+    </Secao>
+  );
+}
+
+function SecaoEtapa7({ etapa7 }: { etapa7: DadosEtapa7 | null | undefined }) {
+  return (
+    <Secao
+      titulo="Configuração do RAG: antes × depois"
+      descricao="Ponto de partida (MiniLM, chunks de 800 caracteres) contra a configuração escolhida (bge-m3, 768 tokens, top_k 5), no mesmo conjunto de perguntas e com o mesmo juiz."
+    >
+      {!etapa7 ? (
+        <Vazio comando="python eval/rag_quality/consolidar_etapa7.py" />
+      ) : (
+        <div className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={etapa7.bracos.map((b) => ({
+                    ...comIc(b.rotulo, b.fonte_correta_ic),
+                    nome: b.braco === "baseline" ? "Antes" : "Depois",
+                  }))}
+                  margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nome" />
+                  <YAxis domain={[0, 100]} unit="%" />
+                  <Tooltip formatter={(v) => [`${v}%`, "Fonte correta"]} />
+                  <Bar dataKey="valor" fill="#2563eb" name="Fonte correta">
+                    <ErrorBar dataKey="erro" width={6} stroke="#111827" />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={etapa7.bracos.map((b) => ({
+                    nome: b.braco === "baseline" ? "Antes" : "Depois",
+                    Nota: b.nota_media,
+                    "Recusas indevidas": b.recusas_indevidas,
+                  }))}
+                  margin={{ top: 8, right: 16, left: 0, bottom: 8 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nome" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="Nota" fill="#10b981" />
+                  <Bar dataKey="Recusas indevidas" fill="#ef4444" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-gray-500">
+                <th className="p-2">Configuração</th>
+                <th className="p-2">Nota</th>
+                <th className="p-2">Fonte correta</th>
+                <th className="p-2">Recusa correta (sem resposta no corpus)</th>
+                <th className="p-2">Latência média / p95</th>
+              </tr>
+            </thead>
+            <tbody>
+              {etapa7.bracos.map((b) => (
+                <tr key={b.braco} className="border-t border-gray-100">
+                  <td className="p-2">{b.rotulo}</td>
+                  <td className="p-2">{b.nota_media.toFixed(2)}</td>
+                  <td className="p-2">
+                    {b.fonte_correta}/{b.respondiveis}
+                  </td>
+                  <td className="p-2">
+                    {b.negativas_recusou}/{b.sem_resposta}
+                  </td>
+                  <td className="p-2">
+                    {b.latencia_media_s.toFixed(1)} s / {b.latencia_p95_s.toFixed(1)} s
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </Secao>
@@ -420,7 +515,7 @@ export default function AvaliacaoPage() {
   if (!dados)
     return <main className="mx-auto max-w-5xl p-6 text-gray-600">Carregando resultados…</main>;
 
-  const { roteador, rag, chunk_size, injecao, modelos } = dados;
+  const { roteador, rag, etapa7, chunk_size, injecao, modelos } = dados;
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
@@ -435,6 +530,7 @@ export default function AvaliacaoPage() {
       <SecaoModelos modelos={modelos} />
       <SecaoRoteador roteador={roteador} provedor={provedor} onProvedor={setProvedor} />
       <SecaoRag rag={rag} />
+      <SecaoEtapa7 etapa7={etapa7} />
       <SecaoChunkSize chunk_size={chunk_size} />
       <SecaoInjecao injecao={injecao} />
     </main>

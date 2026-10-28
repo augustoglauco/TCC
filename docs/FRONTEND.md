@@ -45,7 +45,7 @@ registrada aqui com o motivo.
 | Agendamentos | `/agendamentos` | Visualizar visitas agendadas do cliente autenticado, desmarcar visitas confirmadas com confirmação (sincronizado com Google Calendar) e CTA para novo agendamento via chat (R11) | Sim |
 | Admin — Agendamentos | `/admin/agendamentos` | Painel administrativo com abas (sistema por usuário com busca e filtros vs consulta à agenda corporativa do Google Calendar em tempo real via MCP) e modal para agendamento manual com validação de conflitos — duração da visita configurável (`duracao_minutos`, decisão de 2026-09-29) | Sim (`admin`) |
 | Admin — Usuários | `/admin/usuarios` | Lista/filtra os usuários cadastrados (nome/e-mail/perfil), com contagem de clientes x admins e link "Ver Pedidos" por usuário (`/pedidos/historico?email=...`) — decisão em `docs/ARCHITECTURE.md` §5 (2026-09-29) | Sim (`admin`) |
-| Resultados da Avaliação | `/avaliacao` | Gráficos públicos das avaliações da Fase 10 (roteador, RAG, grade de chunking da Etapa 3, injeção de prompt e comparativo de modelos), só agregados com IC de Wilson; vazio até as rodadas oficiais gerarem `results.json` (Seção 4) | Não |
+| Resultados da Avaliação | `/avaliacao` | Gráficos públicos das avaliações da Fase 10 (roteador, RAG, antes × depois da configuração do RAG (Etapa 7), perguntas sem resposta no corpus, grade de chunking da Etapa 3, injeção de prompt e comparativo de modelos), só agregados com IC de Wilson; vazio até as rodadas oficiais gerarem `results.json` (Seção 4) | Não |
 | Suporte / Central de Ajuda | `/suporte` | FAQ e documentação de produto — é justamente o conteúdo que o crawler (R4) e o RAG de Suporte/Atendimento (R7) devem indexar | Não |
 | Contato | `/contato` | Dados institucionais, formas de contato alternativas ao chat | Não |
 | **Chat** | widget global (todas as rotas) | Ponto de entrada único para os quatro domínios de atendimento — ver Seção 3 | Não (funciona anônimo; melhora com login) |
@@ -541,7 +541,7 @@ avaliação experimental da Fase 10 (`docs/EVALUATION.md`), não como uma
 feature de produto para o usuário final.
 
 `GET /api/avaliacao/resultados` — **público** (sem token), alimenta a página
-`/avaliacao` (Recharts): `{roteador, rag, chunk_size, injecao, modelos}`,
+`/avaliacao` (Recharts): `{roteador, rag (com `sem_resposta`), etapa7, chunk_size, injecao, modelos}` (`etapa7` vem de `rag_quality/etapa7.json`, gerado por `consolidar_etapa7.py`),
 cada seção `null`/vazia se o `results.json` não existe. `chunk_size` lê a
 grade da Etapa 3 (`eval/rag_ingestion/resultados_etapa3.json`) e traz, por
 tamanho de chunk em tokens, o melhor overlap com `ndcg_10` e `recall_5`

@@ -73,7 +73,10 @@ class Settings(BaseSettings):
     # `options.temperature`). Ajustável em runtime via
     # `PUT /api/admin/runtime-settings` (ver `app/api/runtime_settings.py`).
     local_llm_temperature: float | None = None
-    local_llm_num_ctx: int | None = None
+    # 8192: com RAG top_k 5 e chunks de 768 tokens o prompt passa de 4 mil tokens, e o
+    # padrão do Ollama (4096) corta o prompt em silêncio (resposta truncada, medido
+    # em 2026-10-28). `None` volta ao padrão do Ollama.
+    local_llm_num_ctx: int | None = 8192
     local_llm_top_p: float | None = None
     local_llm_top_k: int | None = None
     local_llm_repeat_penalty: float | None = None

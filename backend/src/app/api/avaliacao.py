@@ -44,6 +44,7 @@ class ResultadosAvaliacao(BaseModel):
     roteador: dict[str, Any] | None
     rag: dict[str, Any] | None
     chunk_size: dict[str, Any] | None
+    etapa7: dict[str, Any] | None = None
     injecao: dict[str, Any] | None
     modelos: list[dict[str, Any]]
 
@@ -93,6 +94,15 @@ def _roteador(dados: dict | None) -> dict | None:
     return {"dominios": dados.get("dominios", []), "provedores": provedores}
 
 
+def _sem_resposta(dados: dict | None) -> dict:
+    casos = (dados or {}).get("casos_sem_resposta") or []
+    return {
+        "total": len(casos),
+        "recusou": sum(1 for c in casos if c.get("recusou")),
+        "alucinou": sum(1 for c in casos if c.get("alucinou")),
+    }
+
+
 def _rag(dados: dict | None) -> dict | None:
     casos = (dados or {}).get("casos") or []
     if not casos:
@@ -113,6 +123,7 @@ def _rag(dados: dict | None) -> dict | None:
         return round(sum(xs) / len(xs), 3) if xs else None
 
     return {
+        "sem_resposta": _sem_resposta(dados),
         "total": len(casos),
         "nota_media": media(notas),
         "fonte_correta": intervalo_wilson(fonte_ok, len(casos)).model_dump(),
@@ -147,6 +158,19 @@ def _chunk_size(dados: dict | None) -> dict | None:
     lista = sorted(melhor_por_tamanho.values(), key=lambda x: x["chunk_size"])
     melhor = max(lista, key=lambda x: x["ndcg_10"] or 0)
     return {"pontos": lista, "melhor_chunk_size": melhor["chunk_size"]}
+
+
+def _etapa7(dados: dict | None) -> dict | None:
+    """Baseline x vencedora da Etapa 7 (`rag_quality/etapa7.json`, gerado por
+    `consolidar_etapa7.py`): só agregados já calculados, sem respostas."""
+    bracos = (dados or {}).get("bracos")
+    if not bracos:
+        return None
+    for b in bracos:
+        b["fonte_correta_ic"] = intervalo_wilson(
+            int(b["fonte_correta"]), int(b["respondiveis"])
+        ).model_dump()
+    return {"bracos": bracos}
 
 
 def _injecao(dados: dict | None) -> dict | None:
@@ -207,6 +231,7 @@ async def obter_resultados() -> ResultadosAvaliacao:
         roteador=_roteador(_ler_json(base / "router_intents" / "results.json")),
         rag=_rag(_ler_json(base / "rag_quality" / "results.json")),
         chunk_size=_chunk_size(_ler_json(base / "rag_ingestion" / "resultados_etapa3.json")),
+        etapa7=_etapa7(_ler_json(base / "rag_quality" / "etapa7.json")),
         injecao=_injecao(_ler_json(base / "prompt_injection" / "results.json")),
         modelos=_modelos(base / "model_benchmark" / "results"),
     )

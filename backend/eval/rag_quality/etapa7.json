@@ -1,0 +1,32 @@
+{
+  "bracos": [
+    {
+      "braco": "baseline",
+      "rotulo": "MiniLM 800/100 (2026-10-01)",
+      "colecao": "docs_texto_minilm800c",
+      "respondiveis": 222,
+      "nota_media": 2.743,
+      "fonte_correta": 156,
+      "recusas_indevidas": 81,
+      "sem_resposta": 26,
+      "negativas_recusou": 23,
+      "negativas_alucinou": 10,
+      "latencia_media_s": 4.19,
+      "latencia_p95_s": 7.22
+    },
+    {
+      "braco": "vencedora",
+      "rotulo": "bge-m3 768/115, top_k 5",
+      "colecao": null,
+      "respondiveis": 222,
+      "nota_media": 4.135,
+      "fonte_correta": 213,
+      "recusas_indevidas": 5,
+      "sem_resposta": 26,
+      "negativas_recusou": 19,
+      "negativas_alucinou": 11,
+      "latencia_media_s": 5.08,
+      "latencia_p95_s": 7.74
+    }
+  ]
+}

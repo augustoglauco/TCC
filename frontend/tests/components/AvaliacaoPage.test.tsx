@@ -66,6 +66,39 @@ const DADOS_COMPLETOS: ResultadosAvaliacao = {
       { dificuldade: "medio", total: 80, nota_media: 3.7 },
       { dificuldade: "dificil", total: 40, nota_media: 2.9 },
     ],
+    sem_resposta: { total: 26, recusou: 19, alucinou: 11 },
+  },
+  etapa7: {
+    bracos: [
+      {
+        braco: "baseline",
+        rotulo: "MiniLM 800/100",
+        respondiveis: 222,
+        nota_media: 2.74,
+        fonte_correta: 156,
+        fonte_correta_ic: PROPORCAO_PADRAO,
+        recusas_indevidas: 81,
+        sem_resposta: 26,
+        negativas_recusou: 23,
+        negativas_alucinou: 10,
+        latencia_media_s: 4.2,
+        latencia_p95_s: 7.2,
+      },
+      {
+        braco: "vencedora",
+        rotulo: "bge-m3 768/115",
+        respondiveis: 222,
+        nota_media: 4.14,
+        fonte_correta: 213,
+        fonte_correta_ic: PROPORCAO_PADRAO,
+        recusas_indevidas: 5,
+        sem_resposta: 26,
+        negativas_recusou: 19,
+        negativas_alucinou: 11,
+        latencia_media_s: 5.1,
+        latencia_p95_s: 7.7,
+      },
+    ],
   },
   chunk_size: {
     pontos: [
@@ -116,6 +149,7 @@ const DADOS_COMPLETOS: ResultadosAvaliacao = {
 const DADOS_VAZIOS: ResultadosAvaliacao = {
   roteador: null,
   rag: null,
+  etapa7: null,
   chunk_size: null,
   injecao: null,
   modelos: [],
@@ -143,9 +177,7 @@ describe("AvaliacaoPage — estados de carregamento e erro", () => {
   it("exibe o título principal após carregar com sucesso", async () => {
     vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue(DADOS_COMPLETOS);
     render(<AvaliacaoPage />);
-    expect(
-      await screen.findByText("Resultados da avaliação experimental"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Resultados da avaliação experimental")).toBeInTheDocument();
   });
 });
 
@@ -157,9 +189,7 @@ describe("AvaliacaoPage — seções vazias (dados null / modelos [])", () => {
   it("exibe o comando de benchmark quando modelos está vazio", async () => {
     render(<AvaliacaoPage />);
     await screen.findByText("Resultados da avaliação experimental");
-    expect(
-      screen.getByText(/python eval\/model_benchmark\/run_benchmark\.py/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/python eval\/model_benchmark\/run_benchmark\.py/)).toBeInTheDocument();
   });
 
   it("exibe o comando do roteador quando roteador é null", async () => {
@@ -174,20 +204,22 @@ describe("AvaliacaoPage — seções vazias (dados null / modelos [])", () => {
     expect(screen.getByText(/python eval\/rag_quality\/run_eval\.py/)).toBeInTheDocument();
   });
 
+  it("exibe o comando da Etapa 7 quando etapa7 é null", async () => {
+    vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue(DADOS_VAZIOS);
+    render(<AvaliacaoPage />);
+    expect(await screen.findByText(/consolidar_etapa7\.py/)).toBeInTheDocument();
+  });
+
   it("exibe o comando de chunk_size quando chunk_size é null", async () => {
     render(<AvaliacaoPage />);
     await screen.findByText("Resultados da avaliação experimental");
-    expect(
-      screen.getByText(/python eval\/rag_ingestion\/run_etapa3\.py/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/python eval\/rag_ingestion\/run_etapa3\.py/)).toBeInTheDocument();
   });
 
   it("exibe o comando de injeção quando injecao é null", async () => {
     render(<AvaliacaoPage />);
     await screen.findByText("Resultados da avaliação experimental");
-    expect(
-      screen.getByText(/python eval\/prompt_injection\/run_eval\.py/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/python eval\/prompt_injection\/run_eval\.py/)).toBeInTheDocument();
   });
 });
 
@@ -325,9 +357,7 @@ describe("AvaliacaoPage — RAG com nota_media null", () => {
 describe("AvaliacaoPage — fetchResultadosAvaliacao chamado ao montar", () => {
   it("chama fetchResultadosAvaliacao ao montar e exibe o título", async () => {
     vi.restoreAllMocks();
-    const spy = vi
-      .spyOn(avaliacaoApi, "fetchResultadosAvaliacao")
-      .mockResolvedValue(DADOS_VAZIOS);
+    const spy = vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue(DADOS_VAZIOS);
     render(<AvaliacaoPage />);
     await screen.findByText("Resultados da avaliação experimental");
     expect(spy).toHaveBeenCalled();

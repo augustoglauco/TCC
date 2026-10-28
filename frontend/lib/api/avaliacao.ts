@@ -28,6 +28,25 @@ export interface ResultadosAvaliacao {
     nota_media_fonte_errada: number | null;
     distribuicao_notas: Record<string, number>;
     por_dificuldade: { dificuldade: string; total: number; nota_media: number | null }[];
+    /** Perguntas que o corpus não responde: o certo é recusar sem inventar. */
+    sem_resposta: { total: number; recusou: number; alucinou: number };
+  } | null;
+  /** Baseline (MiniLM 800/100) x vencedora (bge-m3 768/115) da Etapa 7. */
+  etapa7: {
+    bracos: {
+      braco: string;
+      rotulo: string;
+      respondiveis: number;
+      nota_media: number;
+      fonte_correta: number;
+      fonte_correta_ic: Proporcao;
+      recusas_indevidas: number;
+      sem_resposta: number;
+      negativas_recusou: number;
+      negativas_alucinou: number;
+      latencia_media_s: number;
+      latencia_p95_s: number;
+    }[];
   } | null;
   chunk_size: {
     pontos: {

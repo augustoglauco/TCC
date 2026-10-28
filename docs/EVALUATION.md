@@ -658,6 +658,14 @@ positivas (`--com-resposta`) falhou duas vezes e deixou regras de método:
   `local_llm_num_ctx` está `null` em `app_settings` (padrão do Ollama), então o
   mesmo risco existe no chat: `_build_prompt` não trunca por tokens.
   Se o Ollama corta o prompt acima do contexto, o corte é silencioso.
+  **Resolvido em 2026-10-28:** com `top_k` 5 e chunks de 768 tokens o prompt chega
+  a ~4,7 mil tokens; sem `num_ctx` o Ollama truncou em 4095 e o gerador devolveu
+  só "Com" (reproduzido; com 8192 a resposta sai completa). O benchmark de
+  modelos (`run_benchmark.py`, que não aplica o 8192 do `run_eval`) herdou o
+  defeito e a primeira tentativa da rodada completa deu nota 1 em 125 de 152
+  casos, interrompida. O padrão de `local_llm_num_ctx` passou a 8192 em
+  `config.py` (e no `app_settings` local); os números de produção da Etapa 7
+  não mudam, pois o `run_eval` já usava 8192.
 - **Caso 160, crash do llama-server** (`CUDA error: illegal memory access`, 500
   em `/api/generate`): falha da GPU, não de contexto; não voltou ao repetir.
 - **Rodada mista:** os 65 primeiros casos rodaram com o contexto padrão e o juiz

@@ -136,3 +136,24 @@ def test_arquivo_corrompido_vira_secao_vazia(client, eval_em):
     (eval_em / "router_intents").mkdir()
     (eval_em / "router_intents" / "results.json").write_text("{quebrado")
     assert client.get("/api/avaliacao/resultados").json()["roteador"] is None
+
+
+def test_etapa7_e_sem_resposta_sao_agregados(client, eval_em):
+    _gravar(
+        eval_em,
+        "rag_quality/results.json",
+        {
+            "casos": [
+                {"nota_llm_judge": {"nota": 4}, "fonte_correta": True, "dificuldade": "facil"}
+            ],
+            "casos_sem_resposta": [
+                {"recusou": True, "alucinou": False},
+                {"recusou": False, "alucinou": True},
+            ],
+        },
+    )
+    braco = {"braco": "vencedora", "fonte_correta": 9, "respondiveis": 10}
+    _gravar(eval_em, "rag_quality/etapa7.json", {"bracos": [braco]})
+    corpo = client.get("/api/avaliacao/resultados").json()
+    assert corpo["rag"]["sem_resposta"] == {"total": 2, "recusou": 1, "alucinou": 1}
+    assert corpo["etapa7"]["bracos"][0]["fonte_correta_ic"]["total"] == 10
