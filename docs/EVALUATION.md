@@ -846,6 +846,21 @@ respondíveis ficam sem trecho (e vão ao modelo externo por `rag_vazio`), 19 de
 ficam sem trecho; top-1 das respondíveis 0,51–0,68 e das negativas 0,47–0,69 se sobrepõem, então
 o limiar não separa "tem resposta" de "não tem". 0,35 e 0,45 não filtram nada. Não adotado.
 
+**Etapa 7 — preparação do baseline (2026-10-28).** O baseline é a configuração de
+2026-10-01 (MiniLM-L12 384d, chunk 800/overlap 100 **em caracteres**, `top_k` 5, limiar 0,35),
+reingerida com o corpus atual na collection `docs_texto_minilm800c` e rodada com o mesmo
+prompt v2, gerador e juiz da vencedora (`run_eval.py --collection docs_texto_minilm800c`, que
+busca numa collection por nome sem trocar a ativa). *Armadilha encontrada:* o perfil "800/100"
+da collection passou a ser lido em **tokens** (commit `e5cf918`), e o tokenizer do MiniLM
+trunca a contagem em 128 (`model_max_length`), então `contar_unidades` nunca passa de 128 e
+a ingestão pelo caminho de produção gera **1 chunk por documento** (90 chunks nos 98 PDFs,
+embedados só nos primeiros 128 tokens) — com 200 tokens também deu 90. Só afeta modelos de
+contexto curto (bge-m3 e embeddinggemma não). O baseline foi ingerido por caracteres
+(embedder sem `get_tokenizer`): 1.073 chunks, dentro da faixa de 151–1.210 da Etapa 1. Os 8
+PDFs sem texto extraível (`idaccess`, `idbox-datasheet`, `idclass373`, `idfit`, `idflexlite`,
+`idflexpro`, `idlock-bio-datasheet`, `rep-idclass-1510`; "degenerados" da Etapa 0) ficam sem
+chunk nas duas collections, então não enviesam a comparação.
+
 **Etapa 6(a) — HNSW e quantização, resultado negativo.** A collection ativa
 (`docs_texto_bge768`) tem 310 pontos de 1024 dimensões (cerca de 1,3 MB de vetores) e
 `full_scan_threshold` de 10000 KB, e o Qdrant reporta `indexed_vectors_count = 0`: a

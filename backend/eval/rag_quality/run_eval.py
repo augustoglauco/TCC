@@ -43,6 +43,7 @@ import httpx
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
 from app.rag.active_collection_client import ActiveCollectionRagClient
+from app.rag.collections_registry import get_collection_by_name
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import QdrantRAGClient
 from app.router.classifier import normalize, strip_code_fence
@@ -403,6 +404,24 @@ def _opcao(nome: str, padrao: str | None = None) -> str | None:
     return padrao
 
 
+class _ColecaoNomeadaRagClient:
+    """`RAGClient` fixo numa collection por nome (`--collection`), sem mexer na ativa."""
+
+    def __init__(self, qdrant, session_factory, embedders, nome: str) -> None:
+        self._qdrant = qdrant
+        self._session_factory = session_factory
+        self._embedders = embedders
+        self._nome = nome
+
+    async def search(self, query, domain, top_k=3, score_threshold=0.35):
+        async with self._session_factory() as session:
+            colecao = await get_collection_by_name(session, self._nome)
+        embedder = self._embedders.get(colecao.embedding_model)
+        return await self._qdrant.search(
+            colecao.name, embedder, query, domain, top_k=top_k, score_threshold=score_threshold
+        )
+
+
 async def main() -> None:
     settings = get_settings()
     casos = _carregar_casos()
@@ -430,7 +449,11 @@ async def main() -> None:
     embedders = EmbedderRegistry()
     db_engine = create_db_engine(settings.postgres_dsn)
     session_factory = create_session_factory(db_engine)
-    rag_client = ActiveCollectionRagClient(qdrant, session_factory, embedders)
+    nome_colecao = _opcao("--collection")
+    if nome_colecao:
+        rag_client = _ColecaoNomeadaRagClient(qdrant, session_factory, embedders, nome_colecao)
+    else:
+        rag_client = ActiveCollectionRagClient(qdrant, session_factory, embedders)
 
     num_ctx = settings.local_llm_num_ctx or _NUM_CTX_PADRAO_AVALIACAO
     local_client = OllamaClient(
@@ -467,6 +490,7 @@ async def main() -> None:
         prompt_v2=prompt_v2,
         top_k=top_k,
         prompt_c=prompt_c,
+        collection=nome_colecao,
     )
     if "--retomar" in sys.argv and output_path.exists():
         anterior_cfg = json.loads(output_path.read_text(encoding="utf-8")).get("configuracao")
