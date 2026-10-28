@@ -342,6 +342,21 @@ describe("AvaliacaoPage — seção Chunk Size com dados", () => {
   });
 });
 
+describe("AvaliacaoPage — badges de ajuda dos gráficos", () => {
+  it("cada gráfico tem um badge 'i' com a explicação (role tooltip)", async () => {
+    vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue(DADOS_COMPLETOS);
+    render(<AvaliacaoPage />);
+    await screen.findByText("Distribuição das notas");
+    expect(
+      screen.getAllByRole("button", { name: "Sobre este gráfico" }).length,
+    ).toBeGreaterThanOrEqual(10);
+    const balao = screen
+      .getAllByRole("tooltip")
+      .find((el) => /receberam cada nota/.test(el.textContent ?? ""));
+    expect(balao).toHaveTextContent("69% das perguntas ficaram em 4 ou 5");
+  });
+});
+
 describe("AvaliacaoPage — RAG com nota_media null", () => {
   it("exibe '—' quando nota_media é null", async () => {
     vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue({

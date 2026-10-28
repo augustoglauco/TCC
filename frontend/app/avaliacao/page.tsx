@@ -60,18 +60,75 @@ function Vazio({ comando }: { comando: string }) {
   );
 }
 
-function Cartao({ rotulo, valor }: { rotulo: string; valor: string }) {
+/** Badge "i": o balão com a explicação abre ao passar o mouse ou ao focar (teclado). */
+function Info({ texto }: { texto: string }) {
+  return (
+    <span className="group relative ml-2 inline-flex align-middle">
+      <button
+        type="button"
+        aria-label="Sobre este gráfico"
+        className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold italic leading-none text-blue-700 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+      >
+        i
+      </button>
+      <span
+        role="tooltip"
+        className="pointer-events-none invisible absolute left-0 top-6 z-20 w-72 max-w-[80vw] rounded-md bg-gray-900 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-white opacity-0 shadow-lg group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+      >
+        {texto}
+      </span>
+    </span>
+  );
+}
+
+/** Título de um gráfico/tabela com o badge de ajuda; `className` fixa a altura do gráfico. */
+function Grafico({
+  titulo,
+  ajuda,
+  className,
+  children,
+}: {
+  titulo: string;
+  ajuda: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold text-gray-800">
+        {titulo}
+        <Info texto={ajuda} />
+      </h3>
+      <div className={className}>{children}</div>
+    </div>
+  );
+}
+
+function Cartao({ rotulo, valor, ajuda }: { rotulo: string; valor: string; ajuda?: string }) {
   return (
     <div className="rounded-md border border-gray-200 p-3">
-      <div className="text-xs uppercase tracking-wide text-gray-500">{rotulo}</div>
+      <div className="text-xs uppercase tracking-wide text-gray-500">
+        {rotulo}
+        {ajuda && <Info texto={ajuda} />}
+      </div>
       <div className="text-2xl font-semibold text-gray-900">{valor}</div>
     </div>
   );
 }
 
-function BarrasComIc({ dados, rotulo }: { dados: ReturnType<typeof comIc>[]; rotulo: string }) {
+function BarrasComIc({
+  dados,
+  rotulo,
+  titulo,
+  ajuda,
+}: {
+  dados: ReturnType<typeof comIc>[];
+  rotulo: string;
+  titulo: string;
+  ajuda: string;
+}) {
   return (
-    <div className="h-64">
+    <Grafico titulo={titulo} ajuda={ajuda} className="h-64">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={dados} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -83,7 +140,7 @@ function BarrasComIc({ dados, rotulo }: { dados: ReturnType<typeof comIc>[]; rot
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-    </div>
+    </Grafico>
   );
 }
 
@@ -170,7 +227,11 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
         <Vazio comando="python eval/model_benchmark/run_benchmark.py" />
       ) : (
         <div className="space-y-8">
-          <div className="h-[26rem]">
+          <Grafico
+            titulo="Qualidade × latência"
+            ajuda="Cada ponto é um modelo. Eixo horizontal: latência p95 (95% das respostas saem mais rápido que esse tempo). Eixo vertical: nota média do juiz (1 a 5) nas respostas de RAG. Quanto mais ao alto e à esquerda, melhor: resposta boa e rápida."
+            className="h-[26rem]"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 16, right: 32, bottom: 16, left: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -210,8 +271,12 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
                 ))}
               </ScatterChart>
             </ResponsiveContainer>
-          </div>
-          <div className="h-80">
+          </Grafico>
+          <Grafico
+            titulo="Roteador e resistência à injeção"
+            ajuda="Para cada modelo: em azul, a porcentagem de mensagens que o roteador classificou no domínio certo (vendas, suporte, atendimento, agendamento); em laranja, a porcentagem de ataques de prompt injection que o modelo resistiu, isto é, não obedeceu à instrução maliciosa. Maior é melhor."
+            className="h-80"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={comRag.map((m) => ({
@@ -234,8 +299,12 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
                 <Bar dataKey="Injeção" fill="#f59e0b" />
               </BarChart>
             </ResponsiveContainer>
-          </div>
-          <div className="overflow-x-auto">
+          </Grafico>
+          <Grafico
+            titulo="Resumo numérico"
+            ajuda="Os mesmos valores dos dois gráficos acima, em números. A bolinha tem a cor do ponto no gráfico de qualidade × latência."
+            className="overflow-x-auto"
+          >
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-gray-500">
@@ -264,7 +333,7 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Grafico>
         </div>
       )}
     </Secao>
@@ -291,6 +360,8 @@ function SecaoRoteador({
       ) : (
         <div className="space-y-6">
           <BarrasComIc
+            titulo="Acurácia por método"
+            ajuda="Porcentagem de mensagens classificadas no domínio correto, por método: heurística (palavras-chave), heurística + LLM (modelo local) e JEV (modelo externo). A barra preta é o intervalo de confiança de 95%: se duas barras se sobrepõem, a diferença pode ser acaso."
             rotulo="Acurácia"
             dados={roteador.provedores.map((p) => comIc(p.provider, p.acuracia))}
           />
@@ -310,7 +381,12 @@ function SecaoRoteador({
               </select>
             </label>
             {matrizAtual && (
-              <MapaCalor dominios={roteador.dominios} matriz={matrizAtual.matriz_confusao} />
+              <Grafico
+                titulo="Matriz de confusão"
+                ajuda="Cada linha é o domínio correto; cada coluna, o que o roteador previu. A diagonal verde são os acertos; as células vermelhas, os erros (por exemplo, uma mensagem de vendas classificada como agendamento). Quanto mais forte a cor, mais casos."
+              >
+                <MapaCalor dominios={roteador.dominios} matriz={matrizAtual.matriz_confusao} />
+              </Grafico>
             )}
           </div>
         </div>
@@ -320,6 +396,9 @@ function SecaoRoteador({
 }
 
 function SecaoRag({ rag }: { rag: DadosRag | null | undefined }) {
+  const notas = rag?.distribuicao_notas ?? {};
+  const totalNotas = Object.values(notas).reduce((s, n) => s + n, 0) || 1;
+  const pct4e5 = Math.round((((notas["4"] ?? 0) + (notas["5"] ?? 0)) / totalNotas) * 100);
   return (
     <Secao
       titulo="Qualidade do RAG"
@@ -332,14 +411,23 @@ function SecaoRag({ rag }: { rag: DadosRag | null | undefined }) {
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             <Cartao rotulo="Perguntas" valor={String(rag.total)} />
             <Cartao rotulo="Nota média" valor={rag.nota_media?.toFixed(2) ?? "—"} />
-            <Cartao rotulo="Fonte correta" valor={`${pct(rag.fonte_correta.taxa)}%`} />
+            <Cartao
+              rotulo="Fonte correta"
+              valor={`${pct(rag.fonte_correta.taxa)}%`}
+              ajuda="Em quantas perguntas o documento certo estava entre os trechos recuperados pela busca. Mede só a recuperação, separada da geração da resposta."
+            />
             <Cartao
               rotulo="Nota c/ fonte certa × errada"
+              ajuda="Nota média do juiz quando a busca trouxe o documento certo × quando não trouxe. A diferença mostra o quanto uma busca errada limita a qualidade da resposta."
               valor={`${rag.nota_media_fonte_certa?.toFixed(1) ?? "—"} × ${rag.nota_media_fonte_errada?.toFixed(1) ?? "—"}`}
             />
           </div>
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="h-56">
+            <Grafico
+              titulo="Distribuição das notas"
+              ajuda={`Quantas perguntas receberam cada nota do juiz (um LLM que compara a resposta com o gabarito), de 1 (errada ou inútil) a 5 (correta, relevante e fundamentada na fonte). ${pct4e5}% das perguntas ficaram em 4 ou 5; as notas 1 e 2 são as falhas.`}
+              className="h-56"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={Object.entries(rag.distribuicao_notas).map(([nota, n]) => ({ nota, n }))}
@@ -354,8 +442,12 @@ function SecaoRag({ rag }: { rag: DadosRag | null | undefined }) {
                   <Bar dataKey="n" name="Perguntas" fill="#2563eb" />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-            <div className="h-56">
+            </Grafico>
+            <Grafico
+              titulo="Nota média por dificuldade"
+              ajuda="Nota média do juiz (1 a 5) por faixa de dificuldade da pergunta. Barras parecidas indicam que o sistema não piora muito em perguntas mais difíceis."
+              className="h-56"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={rag.por_dificuldade}>
                   <CartesianGrid strokeDasharray="3 3" />
@@ -365,16 +457,22 @@ function SecaoRag({ rag }: { rag: DadosRag | null | undefined }) {
                   <Bar dataKey="nota_media" name="Nota média" fill="#10b981" />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </Grafico>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <Cartao rotulo="Sem resposta no corpus" valor={String(rag.sem_resposta.total)} />
+            <Cartao
+              rotulo="Sem resposta no corpus"
+              valor={String(rag.sem_resposta.total)}
+              ajuda="Perguntas cuja resposta não está em nenhum documento. O comportamento certo é admitir que não sabe, sem inventar."
+            />
             <Cartao
               rotulo="Recusou (correto)"
+              ajuda="Das perguntas sem resposta no corpus, quantas o modelo admitiu não saber. Maior é melhor."
               valor={`${rag.sem_resposta.recusou}/${rag.sem_resposta.total}`}
             />
             <Cartao
               rotulo="Inventou resposta"
+              ajuda="Das perguntas sem resposta no corpus, quantas o modelo respondeu mesmo assim, sem base nos documentos (alucinação). Menor é melhor."
               valor={`${rag.sem_resposta.alucinou}/${rag.sem_resposta.total}`}
             />
           </div>
@@ -395,7 +493,11 @@ function SecaoEtapa7({ etapa7 }: { etapa7: DadosEtapa7 | null | undefined }) {
       ) : (
         <div className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="h-64">
+            <Grafico
+              titulo="Fonte correta: antes × depois"
+              ajuda="Porcentagem de perguntas em que o documento certo foi recuperado, antes (MiniLM, chunks de 800 caracteres) e depois (bge-m3, 768 tokens, top_k 5). A barra preta é o intervalo de confiança de 95%: sem sobreposição, a melhora é real."
+              className="h-64"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={etapa7.bracos.map((b) => ({
@@ -413,8 +515,12 @@ function SecaoEtapa7({ etapa7 }: { etapa7: DadosEtapa7 | null | undefined }) {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-            <div className="h-64">
+            </Grafico>
+            <Grafico
+              titulo="Nota e recusas indevidas"
+              ajuda="Em verde, a nota média do juiz (1 a 5). Em vermelho, quantas respostas disseram “não encontrei” mesmo havendo a resposta no corpus: a busca antiga falhava e o modelo desistia; a nova reduz muito isso."
+              className="h-64"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={etapa7.bracos.map((b) => ({
@@ -433,36 +539,41 @@ function SecaoEtapa7({ etapa7 }: { etapa7: DadosEtapa7 | null | undefined }) {
                   <Bar dataKey="Recusas indevidas" fill="#ef4444" />
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </Grafico>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-gray-500">
-                <th className="p-2">Configuração</th>
-                <th className="p-2">Nota</th>
-                <th className="p-2">Fonte correta</th>
-                <th className="p-2">Recusa correta (sem resposta no corpus)</th>
-                <th className="p-2">Latência média / p95</th>
-              </tr>
-            </thead>
-            <tbody>
-              {etapa7.bracos.map((b) => (
-                <tr key={b.braco} className="border-t border-gray-100">
-                  <td className="p-2">{b.rotulo}</td>
-                  <td className="p-2">{b.nota_media.toFixed(2)}</td>
-                  <td className="p-2">
-                    {b.fonte_correta}/{b.respondiveis}
-                  </td>
-                  <td className="p-2">
-                    {b.negativas_recusou}/{b.sem_resposta}
-                  </td>
-                  <td className="p-2">
-                    {b.latencia_media_s.toFixed(1)} s / {b.latencia_p95_s.toFixed(1)} s
-                  </td>
+          <Grafico
+            titulo="Resumo numérico"
+            ajuda="Os valores dos dois gráficos acima, mais a recusa correta nas perguntas sem resposta no corpus e a latência de geração (média / p95)."
+          >
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500">
+                  <th className="p-2">Configuração</th>
+                  <th className="p-2">Nota</th>
+                  <th className="p-2">Fonte correta</th>
+                  <th className="p-2">Recusa correta (sem resposta no corpus)</th>
+                  <th className="p-2">Latência média / p95</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {etapa7.bracos.map((b) => (
+                  <tr key={b.braco} className="border-t border-gray-100">
+                    <td className="p-2">{b.rotulo}</td>
+                    <td className="p-2">{b.nota_media.toFixed(2)}</td>
+                    <td className="p-2">
+                      {b.fonte_correta}/{b.respondiveis}
+                    </td>
+                    <td className="p-2">
+                      {b.negativas_recusou}/{b.sem_resposta}
+                    </td>
+                    <td className="p-2">
+                      {b.latencia_media_s.toFixed(1)} s / {b.latencia_p95_s.toFixed(1)} s
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Grafico>
         </div>
       )}
     </Secao>
@@ -478,7 +589,11 @@ function SecaoChunkSize({ chunk_size }: { chunk_size: DadosChunkSize | null | un
       {!chunk_size ? (
         <Vazio comando="python eval/rag_ingestion/run_etapa3.py" />
       ) : (
-        <div className="h-64">
+        <Grafico
+          titulo="Recuperação por tamanho de chunk"
+          ajuda="Chunk é o pedaço de texto em que cada documento é dividido para a busca. nDCG@10 (azul): o documento certo aparece bem posicionado entre os 10 primeiros. Recall@5 (verde): o documento certo está entre os 5 primeiros. Curvas altas e planas indicam que o tamanho importa pouco."
+          className="h-64"
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={chunk_size.pontos.map((p) => ({
@@ -496,7 +611,7 @@ function SecaoChunkSize({ chunk_size }: { chunk_size: DadosChunkSize | null | un
               <Line type="monotone" dataKey="recall" name="Recall@5" stroke="#10b981" />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </Grafico>
       )}
     </Secao>
   );
@@ -513,31 +628,38 @@ function SecaoInjecao({ injecao }: { injecao: DadosInjecao | null | undefined })
       ) : (
         <div className="space-y-4">
           <BarrasComIc
+            titulo="Resistência por modelo"
+            ajuda="Porcentagem de ataques de prompt injection que o modelo resistiu (não obedeceu à instrução maliciosa), para o modelo local e o externo. A barra preta é o intervalo de confiança de 95%. Maior é melhor."
             rotulo="Resistência"
             dados={injecao.clientes.map((c) => comIc(c.cliente, c.resistencia))}
           />
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-gray-500">
-                <th className="p-2">Cliente</th>
-                <th className="p-2">Categoria</th>
-                <th className="p-2">Casos</th>
-                <th className="p-2">Comprometidos</th>
-              </tr>
-            </thead>
-            <tbody>
-              {injecao.clientes.flatMap((c) =>
-                c.por_categoria.map((cat) => (
-                  <tr key={`${c.cliente}-${cat.categoria}`} className="border-t border-gray-100">
-                    <td className="p-2">{c.cliente}</td>
-                    <td className="p-2">{cat.categoria}</td>
-                    <td className="p-2">{cat.total}</td>
-                    <td className="p-2">{cat.comprometidos}</td>
-                  </tr>
-                )),
-              )}
-            </tbody>
-          </table>
+          <Grafico
+            titulo="Casos por categoria"
+            ajuda="Injeção direta: a instrução maliciosa está na própria mensagem do usuário. Injeção indireta via RAG: ela está escondida num documento recuperado. “Comprometidos” é quantas vezes o modelo obedeceu ao ataque; menos é melhor."
+          >
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500">
+                  <th className="p-2">Cliente</th>
+                  <th className="p-2">Categoria</th>
+                  <th className="p-2">Casos</th>
+                  <th className="p-2">Comprometidos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {injecao.clientes.flatMap((c) =>
+                  c.por_categoria.map((cat) => (
+                    <tr key={`${c.cliente}-${cat.categoria}`} className="border-t border-gray-100">
+                      <td className="p-2">{c.cliente}</td>
+                      <td className="p-2">{cat.categoria}</td>
+                      <td className="p-2">{cat.total}</td>
+                      <td className="p-2">{cat.comprometidos}</td>
+                    </tr>
+                  )),
+                )}
+              </tbody>
+            </table>
+          </Grafico>
         </div>
       )}
     </Secao>
