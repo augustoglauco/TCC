@@ -20,7 +20,7 @@ execuções. Os caminhos `eval/...` deste documento são relativos a `backend/`.
 | RAG imagem | 72 casos (23 positivos + 49 negativos) | gabarito exato por construção; só rodado na triagem |
 | RAG banco | 80 perguntas | gabarito exato por construção; não rodado |
 | Injeção de prompt | 95 válidos (45 diretos + 50 indiretos) | revisado; não rodado |
-| Latência | — | amostra de 60 mensagens do roteador × 3 repetições (`eval/latency/run_eval.py`, pronto, ainda não executado) |
+| Latência | — | 60 mensagens do roteador × 3 repetições, local x externo (`eval/latency/run_eval.py`, executado em 2026-10-28) |
 | Triagem de modelos | 9 candidatos (Llama 3.2 Vision descartado) | **feita**; 4 sobreviventes (ver "Benchmark comparativo") |
 | Rodada completa, juiz e relatório | — | pendentes (Passos 8–10) |
 
@@ -918,19 +918,57 @@ binário tipo `Recall@5`; bootstrap pareado para `nDCG@10`), já que todas
 respondem às mesmas perguntas. Um delta de `nDCG@10` sem teste pareado não é
 conclusivo nessa escala de amostra.
 
+**Rodada final consolidada (2026-10-28).** Benchmark completo dos 4 sobreviventes
+(`eval/model_benchmark/results/`, juiz `claude-haiku-5.5`, `num_ctx` 8192) e as
+avaliações de produção que alimentam `/avaliacao` (`results.json` de roteador,
+RAG e injeção; RAG com `--top-k 5`). `eval/model_benchmark/consolidar.py` gera
+a tabela e os testes pareados entre modelos.
+
+| Modelo | Roteador | Nota RAG | Fonte correta | Resistência à injeção | Lat. p95 |
+|---|---|---|---|---|---|
+| gemma4-12b-q4 | 85,2% | **4,06** | 96,4% | 90,5% | 6,7 s |
+| gemma4-e4b-q8 | 84,7% | 3,89 | 96,4% | **93,7%** | **4,7 s** |
+| qwen25-vl-3b | 79,9% | 2,81 | 96,4% | 92,6% | 5,1 s |
+| qwen25-vl-7b | 77,3% | 3,32 | 96,4% | 88,4% | 7,7 s |
+
+Fonte correta é igual nos quatro por construção (a recuperação não depende do
+gerador): o que separa os modelos no RAG é a nota (Wilcoxon pareado: 12b > e4b,
+p=0,006; ambos > os dois Qwen, p<0,0001). Roteador: os dois Gemma empatam (p=1,0) e superam o qwen25-vl-7b (p=0,0014 e
+0,0005, ambos abaixo do limite de Bonferroni, p<0,0083 para 6 pares); contra o
+qwen25-vl-3b as diferenças (p=0,029 e 0,019) não passam a correção. Injeção e imagem: nenhum par significativo (n=95 e 72).
+Produção (gemma4-12b-q4, bge-m3 768/115, top_k 5): roteador heurística 48,5%,
+heurística+LLM 84,3%, JEV 93,4% (n=229); RAG nota 4,08, fonte correta
+213/222, negativas 18/26 recusadas e 12/26 inventadas; injeção 91,6% local e
+97,9% externo (n=95).
+
+**Achado de método:** `run_eval` de RAG e de injeção, rodados sem filtro,
+incluíam os casos descartados na revisão (283/28 e 100 casos em vez de 222/26
+e 95). Corrigido nos dois; os `results.json` desta rodada foram refiltrados
+sobre as medições já feitas (casos independentes, mesmo resultado de rodar só
+os válidos).
+
 ## 3. Latência: modelo local x modelo externo
 
 **O que mede:** tempo de resposta (média e percentil 95) para um mesmo
 conjunto de perguntas, comparando modelo local e modelo externo.
 
-**Estado:** script pronto (2026-10-28), ainda não executado:
-`eval/latency/run_eval.py`. Amostra fixa de 60 mensagens do conjunto do
-roteador (15 por domínio, não ambíguas, seed 42) × 3 repetições; cada uma vira
-o prompt de produção (`_buscar_documentos_rag` + `_build_prompt`) uma vez e o
-mesmo prompt vai ao modelo local e ao externo. Uma chamada de aquecimento por
-modelo é descartada. Rodar com a GPU livre, depois da rodada do benchmark, e
-com `EXTERNAL_MODEL_NAME=anthropic/claude-haiku-5.5` (o `.env` aponta para um
-modelo `:free`). `--listar` mostra a amostra sem chamar LLM.
+**Estado:** executada em 2026-10-28 (`eval/latency/run_eval.py`,
+`eval/latency/results.json`). Amostra fixa de 60 mensagens do conjunto do
+roteador (15 por domínio, não ambíguas, seed 42) × 3 repetições = 180 chamadas
+por modelo; cada mensagem vira o prompt de produção (`_buscar_documentos_rag` +
+`_build_prompt`) uma vez e o mesmo prompt vai aos dois modelos. Uma chamada de
+aquecimento por modelo é descartada. Juiz/externo: `anthropic/claude-haiku-5.5`.
+
+| Modelo | Média | Mediana | p95 | Máximo | Tokens de saída (média) |
+|---|---|---|---|---|---|
+| Local `gemma4:12b-it-q4_K_M` | 4,56 s | 4,12 s | 8,41 s | 14,6 s | 216 |
+| Externo `claude-haiku-5.5` | 3,90 s | 3,56 s | 7,13 s | 9,1 s | 615 |
+
+O externo é ~15% mais rápido na média mesmo gerando ~3× mais tokens; o local tem
+cauda mais longa (máximo 14,6 s). Tokens de prompt diferem (1.343 × 2.126) só
+por tokenizador. **Custo do externo não medido:** os preços por mil tokens
+estão zerados na configuração (`custo_total_usd` = 0), então só os tokens
+valem; o custo se calcula depois com o preço vigente.
 
 **Como avaliar:**
 - Rodar os mesmos prompts no modelo local (GPU 16GB, via Ollama) e em um

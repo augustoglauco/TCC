@@ -435,6 +435,9 @@ async def main() -> None:
         casos = _so_sem_resposta_revisados(casos)
     elif so_respondiveis:
         casos = _so_respondiveis_revisados(casos)
+    else:
+        # Rodada completa = as duas partes revisadas (sem descartados nem pendentes).
+        casos = _so_respondiveis_revisados(casos) + _so_sem_resposta_revisados(casos)
     output_path = BASE_DIR / (
         _opcao("--saida") or _nome_saida(so_negativas, so_respondiveis, prompt_v2)
     )

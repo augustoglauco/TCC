@@ -1,0 +1,3059 @@
+{
+  "dominios": [
+    "vendas",
+    "suporte",
+    "atendimento",
+    "agendamento"
+  ],
+  "providers": {
+    "heuristica": {
+      "provider": "heuristica",
+      "acuracia": 0.4847,
+      "acertos": 111,
+      "total": 229,
+      "acuracia_ambiguas": 0.0122,
+      "acertos_ambiguas": 1,
+      "total_ambiguas": 82,
+      "latencia_media_s": 0.0,
+      "degradacoes_de_provider": [
+        {
+          "id": 240,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 260,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 265,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 283,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 461,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 465,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 640,
+          "provider_efetivo": "regras"
+        }
+      ],
+      "matriz_confusao": {
+        "vendas": {
+          "fora_escopo": 56,
+          "atendimento": 1,
+          "vendas": 21
+        },
+        "suporte": {
+          "fora_escopo": 60,
+          "suporte": 9,
+          "vendas": 3
+        },
+        "atendimento": {
+          "fora_escopo": 39,
+          "suporte": 1,
+          "atendimento": 9,
+          "vendas": 1,
+          "agendamento": 1
+        },
+        "agendamento": {
+          "fora_escopo": 28,
+          "agendamento": 17,
+          "suporte": 3,
+          "vendas": 3
+        },
+        "fora_escopo": {
+          "fora_escopo": 55,
+          "suporte": 2,
+          "agendamento": 1,
+          "atendimento": 1
+        }
+      },
+      "erros": [
+        {
+          "id": 1,
+          "mensagem": "Ei, quero saber quanto sai com o IDBlock Facial, já tem modelo novo?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 3,
+          "mensagem": "Preciso de um Repetidor iDClass pra minha catraca, quantas unidades têm?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 4,
+          "mensagem": "Qual o valor de um Leitor QR Code? É barato?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 7,
+          "mensagem": "RHiD pode ler meus relógios de ponto? Me conta detalhes.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 8,
+          "mensagem": "Tags de identificação funcionam bem com os catracas? Pode confirmar?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 9,
+          "mensagem": "Preciso saber se o IDPower é seguro para uso interno.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 11,
+          "mensagem": "Print iD Touch tem tela sensível ao toque? Qual o custo?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 12,
+          "mensagem": "Quero saber se o REP iDClass pode ser instalado em catraca antiga.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 13,
+          "mensagem": "Qual a diferença entre o IDBlock e o IDBlock Facial? Qual o melhor?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 14,
+          "mensagem": "Estou pensando em adicionar um novo leitor QR Code ao sistema, onde posso encomendar?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 16,
+          "mensagem": "Posso usar o RHiD junto com o Relógio de Ponto? Como integrar?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 18,
+          "mensagem": "Há alguma promoção especial para compras em volume?",
+          "esperado": "vendas",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 43,
+          "mensagem": "O Print iD Touch funciona com meu celular Android?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 45,
+          "mensagem": "Quero saber se o RHiD é compatível com os leitores QR code.",
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 47,
+          "mensagem": "Qual o prazo de entrega do IDPower?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 50,
+          "mensagem": "Posso usar o Tags junto com o IDBlock Facial?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 51,
+          "mensagem": "Preciso de mais informações sobre o REP iDClass.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 54,
+          "mensagem": "Quero saber se o RHiD pode ser usado com o REP iDClass.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 57,
+          "mensagem": "Tem algum desconto para compras acima de R$ 5000?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 59,
+          "mensagem": "Onde posso ver a lista de produtos que são compatíveis com o IDBlock?",
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 60,
+          "mensagem": "O IDBlock parou de ler os códigos ontem, agora só dá beep.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 61,
+          "mensagem": "No IDBlock Facial o rosto não é reconhecido, a pessoa entra e nada acontece.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 62,
+          "mensagem": "A impressão digital do IDFit não passa mais, ele fica travado quando eu tento novamente.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 63,
+          "mensagem": "O IDPower está desligado desde a manhã, desliga completamente.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 66,
+          "mensagem": "Print iD Touch está travado, não aceita tocar na tela e o app não abre.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 67,
+          "mensagem": "REP iDClass não envia dados corretos, o servidor recebe só texto vazio.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 68,
+          "mensagem": "REP iDClass Facial demora muito pra processar o rosto, a fila está esperando há minutos.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 72,
+          "mensagem": "O IDBlock começa a emitir som alto toda vez que tenta ler um cartão.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 73,
+          "mensagem": "O IDBlock Facial está confundindo rostos, a pessoa entra e o sistema diz 'não reconhecido'.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 74,
+          "mensagem": "O IDFit não registra a impressão digital depois da primeira tentativa, volta ao estado inicial.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 76,
+          "mensagem": "Leitor QR Code está lento, cada scan leva mais de dois minutos e a fila cresce.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 101,
+          "mensagem": "A impressora Print iD está imprimindo só linhas tortas, não dá para corrigir.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 111,
+          "mensagem": "O IDBlock Facial não detecta o rosto, mesmo com luz adequada.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 112,
+          "mensagem": "REP iDClass está enviando dados corrompidos, o servidor recebe bagunça.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 114,
+          "mensagem": "Não consigo conectar o IDFit à rede Wi‑Fi, aparece desconectado.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 116,
+          "mensagem": "O RHiD mostra falha de comunicação constante, não consegue sincronizar.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 120,
+          "mensagem": "Ei, a solicitação que eu pedi não chegou ainda, preciso saber quando vai.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 123,
+          "mensagem": "Quero alterar a data da entrega, mas o sistema não permite.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 127,
+          "mensagem": "O relatório de uso das catracas está incompleto, onde está o dado?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 132,
+          "mensagem": "O sistema de alertas não está enviando notificações, preciso de solução.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 133,
+          "mensagem": "Estou com dificuldade para acessar o painel de controle, precisa de ajuda.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 135,
+          "mensagem": "Encontrei um defeito no relógio de ponto, quero mudar por outro modelo.",
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 136,
+          "mensagem": "Preciso de um novo cartão de acesso, o anterior expirou.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 137,
+          "mensagem": "Onde posso encontrar o manual de instalação da fechadura digital?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 162,
+          "mensagem": "Eu quero devolver o produto, mas não recebi o comprovante",
+          "esperado": "atendimento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 164,
+          "mensagem": "O atendimento está lento, preciso de uma solução rápida",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 165,
+          "mensagem": "Preciso de uma renovação de senha no sistema iD",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 166,
+          "mensagem": "Não consegui imprimir o ticket QR Code, o leitor não reconhece",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 168,
+          "mensagem": "A notificação de cancelamento chegou errada, tem erro de data",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 169,
+          "mensagem": "Estou com reclamação sobre a qualidade do produto, quero reembolso",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 170,
+          "mensagem": "Posso alterar o endereço de entrega para outro?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 171,
+          "mensagem": "Meu contato mudou, atualize o telefone no cadastro",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 173,
+          "mensagem": "O app de controle de acesso não abre, está travando",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 179,
+          "mensagem": "O canal de atendimento está sempre ocupado, quando posso falar?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 181,
+          "mensagem": "Pode me mandar alguém aqui para reservar a inspeção dos relógios de ponto?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 191,
+          "mensagem": "Não consigo acessar meu painel, preciso de ajuda agora.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 193,
+          "mensagem": "Tem algum slot livre na próxima semana?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 224,
+          "mensagem": "Quero confirmar se ainda tem slot para uma revisão do leitor QR Code.",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 229,
+          "mensagem": "Alguém pode me avisar sobre a agenda de manutenção? Quero agendar algo.",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 235,
+          "mensagem": "Qual é o melhor dia para eu fazer a instalação do novo sensor facial?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 239,
+          "mensagem": "Por favor, confirme se ainda há vagas para a inspeção do REP iDClass.",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 242,
+          "mensagem": "valeu, consegui resolver meu problema.",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 244,
+          "mensagem": "onde fica a sede da sua empresa?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 245,
+          "mensagem": "as horas de funcionamento são das 9h às 18h?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 262,
+          "mensagem": "Onde fica o escritório central da empresa?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 266,
+          "mensagem": "Que horário o sistema de acesso está ativo nos fins de semana?",
+          "esperado": "fora_escopo",
+          "previsto": "agendamento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 284,
+          "mensagem": "Onde fica a sua sede?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 287,
+          "mensagem": "Em quais cidades a empresa possui escritórios?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 288,
+          "mensagem": "Quais são os dias de funcionamento do seu centro de atendimento?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 294,
+          "mensagem": "Você já tentou configurar um firewall DIY?",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 300,
+          "mensagem": "Oi, eu preciso de um IDPower, tem disponibilidade e quanto custa?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 325,
+          "mensagem": "O RHiD é compatível com meus sistemas de acesso?",
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 326,
+          "mensagem": "Quero ver se o Print iD Touch pode ser usado com o IDPower.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 327,
+          "mensagem": "Alguém sabe qual o melhor modelo para segurança eletrônica em loja?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 329,
+          "mensagem": "Como funciona o REP iDClass Facial? É preciso registro?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 330,
+          "mensagem": "Existe algum desconto para compras acima de R$ 5000?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 332,
+          "mensagem": "Qual a diferença entre o IDBlock Facial e o normal?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 334,
+          "mensagem": "Pode mandar o link do catálogo atualizado?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 335,
+          "mensagem": "Tenho dúvidas sobre a compatibilidade do SAT iD com minha rede Wi‑Fi.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 337,
+          "mensagem": "Se tiver promoção, me chama, quero garantir a melhor oferta.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 414,
+          "mensagem": "Preciso saber se o RHiD funciona com os leitores QR Code que eu uso.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 425,
+          "mensagem": "Cancelar a assinatura do serviço, por favor.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 429,
+          "mensagem": "Minha conta foi bloqueada, como eu libero?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 456,
+          "mensagem": "Me avisa se tem slot na sexta",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 463,
+          "mensagem": "Que horas abre o centro de atendimento?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 468,
+          "mensagem": "Bom dia! Onde fica o escritório principal?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 409,
+          "mensagem": "Quero saber o preço, mas preciso primeiro marcar uma visita para avaliar.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 469,
+          "mensagem": "Oi, qual o preço do IDBlock e dá para agendar uma visita técnica?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 470,
+          "mensagem": "Bom dia, preciso de orçamento e um horário para visita do técnico.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 471,
+          "mensagem": "A catraca está disponível? Queria marcar uma visita para conhecer de perto.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 472,
+          "mensagem": "Você vende o leitor? Consigo agendar uma visita para ver funcionando?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 474,
+          "mensagem": "Gostaria de cotação do relógio e de um horário para visita técnica.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 475,
+          "mensagem": "O IDPower é compatível? Quero agendar uma visita para avaliar a instalação.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 477,
+          "mensagem": "Preciso de orçamento do IDFit e agendar visita com o técnico.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 478,
+          "mensagem": "Você vende a catraca com instalação? Quero marcar uma visita para ver o espaço.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 479,
+          "mensagem": "Me passa o preço do REP iDClass e um horário para visita?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 480,
+          "mensagem": "Preciso da cotação do RHiD e de marcar uma visita para conhecer.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 482,
+          "mensagem": "Você faz orçamento do SAT iD e consegue agendar visita no local?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 483,
+          "mensagem": "Qual o preço do leitor? Posso marcar uma visita para testar?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 485,
+          "mensagem": "O Print iD Touch está disponível? Posso marcar visita para conhecer?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 486,
+          "mensagem": "Preciso de cotação das Tags e de agendar uma visita ao técnico.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 488,
+          "mensagem": "Oi, o IDBlock está com defeito e queria marcar uma visita técnica.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 489,
+          "mensagem": "Bom dia, o leitor não funciona desde ontem. Qual horário tem para agendar técnico?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 490,
+          "mensagem": "A catraca está com problema, preciso de uma visita para configurar o sistema.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 491,
+          "mensagem": "O IDPower não liga; consigo agendar um horário com o técnico?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 492,
+          "mensagem": "Oi, o relógio está fazendo barulho e queria marcar visita técnica.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 493,
+          "mensagem": "O IDFit apresentou erro, tem como agendar uma visita para ver isso?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 494,
+          "mensagem": "Preciso resetar a catraca, mas antes quero marcar um horário com técnico.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 495,
+          "mensagem": "O SAT iD está com defeito; qual horário vocês têm para visita técnica?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 496,
+          "mensagem": "A biometria do leitor falhou, dá para agendar técnico para hoje?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 497,
+          "mensagem": "Oi, o REP iDClass não funciona e preciso marcar uma visita.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 498,
+          "mensagem": "O leitor deu problema, consigo um horário de técnico amanhã?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 499,
+          "mensagem": "O Print iD Touch está quebrado; como faço para agendar visita técnica?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 500,
+          "mensagem": "Preciso de manutenção no relógio e quero marcar uma visita nova.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 501,
+          "mensagem": "O RHiD está com erro; tem horário para técnico dar uma olhada?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 502,
+          "mensagem": "As Tags estão com defeito, dá para marcar visita técnica?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 503,
+          "mensagem": "O leitor está com defeito e o técnico pode vir em qual horário?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 504,
+          "mensagem": "Oi, preciso configurar a biometria da catraca e agendar uma visita.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 505,
+          "mensagem": "O IDBlock Facial não liga; qual horário fica bom para visita técnica?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 506,
+          "mensagem": "A catraca está com defeito, queria agendar um técnico para olhar.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 507,
+          "mensagem": "O REP iDClass Facial deu problema; consigo marcar visita com técnico?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 508,
+          "mensagem": "Comprei o IDBlock e ele não funciona, preciso ver minha nota fiscal.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 509,
+          "mensagem": "O leitor chegou com defeito, quero troca e não achei meu pedido.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 510,
+          "mensagem": "Minha catraca está com erro, preciso do histórico para pedir troca.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 511,
+          "mensagem": "O relógio não liga, comprei na loja e quero registrar reclamação.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 513,
+          "mensagem": "O leitor está quebrado, quero devolução e a nota fiscal.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 514,
+          "mensagem": "Comprei o IDPower com problema, preciso de troca ou devolução.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 515,
+          "mensagem": "A catraca deu defeito, preciso do histórico do meu pedido.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 517,
+          "mensagem": "O leitor não funciona, quero troca e ver meu pedido no histórico.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 518,
+          "mensagem": "A catraca está com problema, comprei e quero cancelamento.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 520,
+          "mensagem": "O SAT iD apresenta erro, comprei e quero nota fiscal para manutenção.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 521,
+          "mensagem": "Meu REP iDClass Facial não funciona, quero nota fiscal para troca.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 525,
+          "mensagem": "O RHiD deu defeito, preciso de troca e minha nota fiscal.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "atendimento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 526,
+          "mensagem": "O leitor está com erro; preciso de orçamento, vocês têm estoque?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 527,
+          "mensagem": "A catraca está com defeito, quero cotação de uma nova disponível.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 528,
+          "mensagem": "IDBlock Facial com defeito, mas você vende produto compatível?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 529,
+          "mensagem": "O relógio não liga; vocês têm desconto em um novo?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 536,
+          "mensagem": "IDFit com erro; quero cotação e saber se é compatível.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 537,
+          "mensagem": "A catraca faz barulho; vocês têm orçamento de uma nova com estoque?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 538,
+          "mensagem": "O relógio deu defeito, vocês têm desconto em um novo?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 540,
+          "mensagem": "O leitor está quebrado; vocês têm um novo disponível com desconto?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 543,
+          "mensagem": "SAT iD com defeito; quero orçamento de um novo compatível.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 544,
+          "mensagem": "O relógio não liga; quero cotação de um novo e desconto.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 546,
+          "mensagem": "Bom dia, o leitor está com erro e não funciona; qual o preço para comprar outro?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 547,
+          "mensagem": "A catraca está com defeito e preciso de manutenção; vocês têm peça disponível?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 565,
+          "mensagem": "Preciso de orçamento do IDBlock na visita; qual horário o técnico tem?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 566,
+          "mensagem": "A catraca está com desconto? Consigo marcar uma visita para ver?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 567,
+          "mensagem": "Sobre o relógio de ponto: qual o preço a vista? Qual o horário do técnico?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 568,
+          "mensagem": "Oi, o leitor está com erro e queria marcar um horário com técnico.",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 569,
+          "mensagem": "Bom dia, o IDBlock não funciona; consigo agendar visita com técnico?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 570,
+          "mensagem": "O leitor está com problema na biometria, dá para marcar visita com técnico?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 571,
+          "mensagem": "Preciso configurar o leitor, tem horário de técnico para visita?",
+          "esperado": "suporte",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "suporte",
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 572,
+          "mensagem": "O REP iDClass tá reiniciando sozinho, dá pra passar aqui depois de amanhã?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "agendamento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 574,
+          "mensagem": "O relógio de ponto SAT iD parou do nada, manda alguém aqui na parte da tarde?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "agendamento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 575,
+          "mensagem": "recebi o IDFit ontem, preciso do documento dele pra contabilidade, como consigo?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 576,
+          "mensagem": "o Leitor QR Code veio com a tampa solta, queria outro novinho, como faço?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 577,
+          "mensagem": "fiz uma solicitação do IDBlock Facial semana passada e até agora nada, consegue ver pra mim?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 578,
+          "mensagem": "oi, o leitor facial aqui parou do nada. consegue mandar alguém pra ver isso? qual dia fica bom?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "agendamento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 579,
+          "mensagem": "boa, preciso de alguem pra olhar a catraca da recepção, ela ta travando. quando vcs podem vir?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "agendamento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 580,
+          "mensagem": "e ai, o relogio de ponto nao ta registrando. da pra vir alguem aqui essa semana?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "agendamento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 581,
+          "mensagem": "o IDBlock do portao principal pifou. queria que passassem aqui pra resolver. tem como?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "agendamento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 582,
+          "mensagem": "oi, a fechadura eletronica ta bipando do nada. manda uma equipe aqui? qual o proximo dia livre?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "agendamento",
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 583,
+          "mensagem": "preciso que venham ver o REP iDClass novo na loja. qdo consegue?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 586,
+          "mensagem": "e ai, consigo agendar uma visita nova pra configurar o REP iDClass Facial? preciso de um tecnico",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 587,
+          "mensagem": "Vocês ficam onde?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 589,
+          "mensagem": "Comprei um leitor antes e agora queria orçamento para mais dois; pode ver meu histórico?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 592,
+          "mensagem": "Comprei um leitor e quero desconto na troca por outro; tem disponível?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 594,
+          "mensagem": "Comprei Tags e preciso de devolução; qual o preço do leitor novo?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 596,
+          "mensagem": "Tem desconto no IDFit? Quero troca do que comprei por ele.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 597,
+          "mensagem": "Preciso do cancelamento do meu pedido anterior; depois, qual o preço do controlador?",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 598,
+          "mensagem": "Vocês têm o leitor disponível? Quero incluir no meu pedido que já fiz.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 600,
+          "mensagem": "Ainda tem estoque do SAT iD? Quero troca do meu pedido anterior.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 603,
+          "mensagem": "Comprei um IDBlock e quero saber se há desconto na troca por outro compatível.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": true,
+          "aceitas": [
+            "vendas",
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 608,
+          "mensagem": "Queria conhecer o IDBlock Facial, tem como alguem ir na minha empresa mostrar?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 609,
+          "mensagem": "Preciso de manutenção preventiva no IDPower, como faço pra equipe passar aqui?",
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 610,
+          "mensagem": "Quero receber um vendedor pra falar do REP iDClass na minha loja.",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 611,
+          "mensagem": "Pode cancelar o atendimento que ficou combinado comigo? Não vou conseguir.",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 612,
+          "mensagem": "Preciso mudar o dia que combinamos pro SAT iD, pode ser outra data?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 613,
+          "mensagem": "Só confirmando o pessoal que vem amanhã ver o RHiD, tá de pé?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 614,
+          "mensagem": "Queria conhecer a empresa de vocês e ver os leitores QR Code de perto, como faz?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 615,
+          "mensagem": "Tem como fazer uma revisão no IDFit aqui no prédio? Não é defeito, é só manutenção.",
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 616,
+          "mensagem": "Quero comprar um Print iD Touch, posso ir na unidade de vocês?",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 617,
+          "mensagem": "Manda alguem aqui pra falar das catracas e do IDBlock? Quero entender melhor.",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 618,
+          "mensagem": "Quero cancelar o que combinei sobre o IDBlock.",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 619,
+          "mensagem": "Queria confirmar o atendimento de amanhã pra ver o IDBlock Facial na minha loja.",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 621,
+          "mensagem": "boa tarde, preciso marcar manutenção no meu leitor QR Code aqui na empresa, pode ser quinta?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 622,
+          "mensagem": "ola, gostaria de receber um vendedor pra ver o REP iDClass Facial, tenho interesse",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 626,
+          "mensagem": "boa, preciso agendar alguem pra fazer manutencao do RHiD aqui no escritorio",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 627,
+          "mensagem": "gostaria de conhecer a empresa e ver os produtos, principalmente IDBlock e IDFit, como faço pra agendar?",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 628,
+          "mensagem": "ola, queria comprar em uma unidade da empresa, mas antes quero agendar uma visita pra ver as Tags e o Print iD Touch",
+          "esperado": "agendamento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 629,
+          "mensagem": "o RHiD chegou com a tela riscada, como faço pra receber outro no lugar?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 630,
+          "mensagem": "como faço pra entrar no site de vocês? esqueci a senha do portal",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 632,
+          "mensagem": "oi, quero troca um Leitor QR Code que veio com defeito, chegou hj. qual o prazo e como abro a troca?",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 633,
+          "mensagem": "vcs tem loja fisica em sp? qual horario de atendimento de sabado? nao achei no site",
+          "esperado": "atendimento",
+          "previsto": "agendamento",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 634,
+          "mensagem": "ola, fiz pedido de 2 Tags e 1 RHiD mas quero cancelar, ja foi enviado? preciso do estorno",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 635,
+          "mensagem": "quanto sai o IDBlock Facial? preciso de 2 pra recepção",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 636,
+          "mensagem": "o Leitor QR Code funciona junto com o REP iDClass? se der, quero 3",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 637,
+          "mensagem": "quanto custa o IDBlock Facial? e vcs tem pronta entrega? quero fechar 2",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica"
+        },
+        {
+          "id": 642,
+          "mensagem": "Estou pensando em trocar meu notebook por um com mais memória RAM; o que acha?",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica"
+        }
+      ]
+    },
+    "heuristica_llm": {
+      "provider": "heuristica_llm",
+      "acuracia": 0.8428,
+      "acertos": 193,
+      "total": 229,
+      "acuracia_ambiguas": 1.0,
+      "acertos_ambiguas": 82,
+      "total_ambiguas": 82,
+      "latencia_media_s": 0.721,
+      "degradacoes_de_provider": [
+        {
+          "id": 240,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 260,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 265,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 283,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 461,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 465,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 640,
+          "provider_efetivo": "regras"
+        }
+      ],
+      "matriz_confusao": {
+        "vendas": {
+          "vendas": 51,
+          "suporte": 5,
+          "atendimento": 8,
+          "agendamento": 14
+        },
+        "suporte": {
+          "suporte": 45,
+          "vendas": 4,
+          "agendamento": 23
+        },
+        "atendimento": {
+          "atendimento": 48,
+          "suporte": 1,
+          "vendas": 1,
+          "agendamento": 1
+        },
+        "agendamento": {
+          "agendamento": 44,
+          "suporte": 3,
+          "vendas": 3,
+          "atendimento": 1
+        },
+        "fora_escopo": {
+          "fora_escopo": 39,
+          "atendimento": 10,
+          "suporte": 6,
+          "vendas": 3,
+          "agendamento": 1
+        }
+      },
+      "erros": [
+        {
+          "id": 13,
+          "mensagem": "Qual a diferença entre o IDBlock e o IDBlock Facial? Qual o melhor?",
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 18,
+          "mensagem": "Há alguma promoção especial para compras em volume?",
+          "esperado": "vendas",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 45,
+          "mensagem": "Quero saber se o RHiD é compatível com os leitores QR code.",
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 59,
+          "mensagem": "Onde posso ver a lista de produtos que são compatíveis com o IDBlock?",
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 135,
+          "mensagem": "Encontrei um defeito no relógio de ponto, quero mudar por outro modelo.",
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 162,
+          "mensagem": "Eu quero devolver o produto, mas não recebi o comprovante",
+          "esperado": "atendimento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 241,
+          "mensagem": "obrigado por responder rápido.",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 242,
+          "mensagem": "valeu, consegui resolver meu problema.",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 251,
+          "mensagem": "a nova versão do Android mudou alguma coisa na interface?",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 252,
+          "mensagem": "como é a experiência de usar o aplicativo de controle remoto?",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 258,
+          "mensagem": "qual o melhor café para começar o dia?",
+          "esperado": "fora_escopo",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 259,
+          "mensagem": "qual a diferença entre Wi‑Fi 6 e Wi‑Fi 5?",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 266,
+          "mensagem": "Que horário o sistema de acesso está ativo nos fins de semana?",
+          "esperado": "fora_escopo",
+          "previsto": "agendamento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 268,
+          "mensagem": "Já utilizou servidores de nuvem para escalar sua aplicação?",
+          "esperado": "fora_escopo",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 269,
+          "mensagem": "Boa tarde, estou aqui.",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 270,
+          "mensagem": "Existe algum programa de treinamento interno para novos colaboradores?",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 272,
+          "mensagem": "Estou explorando APIs de IoT para automação residencial.",
+          "esperado": "fora_escopo",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 273,
+          "mensagem": "Obrigado pelo atendimento!",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 277,
+          "mensagem": "E aí, tudo certo?",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 280,
+          "mensagem": "Obrigado por chamar!",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 294,
+          "mensagem": "Você já tentou configurar um firewall DIY?",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 297,
+          "mensagem": "Meu amigo disse que o Wi‑Fi 6 é mais rápido que o 5G em casa.",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 325,
+          "mensagem": "O RHiD é compatível com meus sistemas de acesso?",
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 329,
+          "mensagem": "Como funciona o REP iDClass Facial? É preciso registro?",
+          "esperado": "suporte",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "suporte"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 332,
+          "mensagem": "Qual a diferença entre o IDBlock Facial e o normal?",
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 462,
+          "mensagem": "Obrigado pela atenção.",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 466,
+          "mensagem": "Como funciona a rede Wi‑Fi no parque?",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 606,
+          "mensagem": "Vocês patrocinam eventos comunitários?",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 609,
+          "mensagem": "Preciso de manutenção preventiva no IDPower, como faço pra equipe passar aqui?",
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 610,
+          "mensagem": "Quero receber um vendedor pra falar do REP iDClass na minha loja.",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 615,
+          "mensagem": "Tem como fazer uma revisão no IDFit aqui no prédio? Não é defeito, é só manutenção.",
+          "esperado": "agendamento",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 616,
+          "mensagem": "Quero comprar um Print iD Touch, posso ir na unidade de vocês?",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 618,
+          "mensagem": "Quero cancelar o que combinei sobre o IDBlock.",
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 622,
+          "mensagem": "ola, gostaria de receber um vendedor pra ver o REP iDClass Facial, tenho interesse",
+          "esperado": "agendamento",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 633,
+          "mensagem": "vcs tem loja fisica em sp? qual horario de atendimento de sabado? nao achei no site",
+          "esperado": "atendimento",
+          "previsto": "agendamento",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        },
+        {
+          "id": 642,
+          "mensagem": "Estou pensando em trocar meu notebook por um com mais memória RAM; o que acha?",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "heuristica_llm"
+        }
+      ]
+    },
+    "jev_openrouter": {
+      "provider": "jev_openrouter",
+      "acuracia": 0.9345,
+      "acertos": 214,
+      "total": 229,
+      "acuracia_ambiguas": 1.0,
+      "acertos_ambiguas": 82,
+      "total_ambiguas": 82,
+      "latencia_media_s": 0.323,
+      "degradacoes_de_provider": [
+        {
+          "id": 240,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 260,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 265,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 283,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 461,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 465,
+          "provider_efetivo": "regras"
+        },
+        {
+          "id": 640,
+          "provider_efetivo": "regras"
+        }
+      ],
+      "matriz_confusao": {
+        "vendas": {
+          "vendas": 48,
+          "atendimento": 7,
+          "fora_escopo": 1,
+          "suporte": 5,
+          "agendamento": 17
+        },
+        "suporte": {
+          "suporte": 63,
+          "agendamento": 9
+        },
+        "atendimento": {
+          "atendimento": 47,
+          "suporte": 2,
+          "fora_escopo": 2
+        },
+        "agendamento": {
+          "agendamento": 44,
+          "suporte": 6,
+          "atendimento": 1
+        },
+        "fora_escopo": {
+          "fora_escopo": 52,
+          "suporte": 3,
+          "atendimento": 3,
+          "vendas": 1
+        }
+      },
+      "erros": [
+        {
+          "id": 47,
+          "mensagem": "Qual o prazo de entrega do IDPower?",
+          "esperado": "vendas",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 51,
+          "mensagem": "Preciso de mais informações sobre o REP iDClass.",
+          "esperado": "vendas",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 135,
+          "mensagem": "Encontrei um defeito no relógio de ponto, quero mudar por outro modelo.",
+          "esperado": "atendimento",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 136,
+          "mensagem": "Preciso de um novo cartão de acesso, o anterior expirou.",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 171,
+          "mensagem": "Meu contato mudou, atualize o telefone no cadastro",
+          "esperado": "atendimento",
+          "previsto": "fora_escopo",
+          "ambiguo": false,
+          "aceitas": [
+            "atendimento"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 251,
+          "mensagem": "a nova versão do Android mudou alguma coisa na interface?",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 252,
+          "mensagem": "como é a experiência de usar o aplicativo de controle remoto?",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 259,
+          "mensagem": "qual a diferença entre Wi‑Fi 6 e Wi‑Fi 5?",
+          "esperado": "fora_escopo",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 266,
+          "mensagem": "Que horário o sistema de acesso está ativo nos fins de semana?",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 332,
+          "mensagem": "Qual a diferença entre o IDBlock Facial e o normal?",
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 412,
+          "mensagem": "O Rep iDClass está disponível? Quero garantir que seja compatível com meu sistema.",
+          "esperado": "vendas",
+          "previsto": "suporte",
+          "ambiguo": false,
+          "aceitas": [
+            "vendas"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 466,
+          "mensagem": "Como funciona a rede Wi‑Fi no parque?",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 606,
+          "mensagem": "Vocês patrocinam eventos comunitários?",
+          "esperado": "fora_escopo",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 618,
+          "mensagem": "Quero cancelar o que combinei sobre o IDBlock.",
+          "esperado": "agendamento",
+          "previsto": "atendimento",
+          "ambiguo": false,
+          "aceitas": [
+            "agendamento"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        },
+        {
+          "id": 642,
+          "mensagem": "Estou pensando em trocar meu notebook por um com mais memória RAM; o que acha?",
+          "esperado": "fora_escopo",
+          "previsto": "vendas",
+          "ambiguo": false,
+          "aceitas": [
+            "fora_escopo"
+          ],
+          "provider_efetivo": "jev_openrouter"
+        }
+      ]
+    }
+  }
+}

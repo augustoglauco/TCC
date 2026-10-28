@@ -55,7 +55,8 @@ PAUSA_ENTRE_CHAMADAS_S = 3.0
 
 def _carregar_casos() -> list[dict]:
     dados = json.loads((BASE_DIR / "dataset.json").read_text(encoding="utf-8"))
-    return dados["casos"]
+    # Os descartados na revisão não entram (mesmo critério do benchmark de modelos).
+    return [c for c in dados["casos"] if (c.get("revisao") or {}).get("status") != "descartado"]
 
 
 async def _julgar_resposta(judge_client, criterio_falha: str, resposta_gerada: str) -> dict:

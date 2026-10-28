@@ -1932,10 +1932,9 @@ conversa e classificação do usuário").
       + eval comportamental com LLM real. Ver
       `docs/superpowers/specs/2026-10-07-seguranca-prompt-injection-mcp-design.md`
       e `backend/eval/prompt_injection/README.md` (resultado real).
-- [ ] Medir latência (média e p95) do modelo local (configuração vencedora
+- [x] Medir latência (média e p95) do modelo local (configuração vencedora
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
-      (script `eval/latency/run_eval.py` pronto em 2026-10-28; falta executar
-      com a GPU livre, depois da rodada do benchmark)
+      (executado em 2026-10-28: `eval/latency/results.json`)
 - [ ] Consolidar os resultados das quatro avaliações em um relatório curto
       para apresentação ao orientador (`eval/model_benchmark/consolidar.py`
       gera a tabela e o McNemar entre pares; pronto em 2026-10-28)
@@ -2175,8 +2174,8 @@ conversa e classificação do usuário").
       sair baixa na primeira etapa, a decisão a revisitar é o *modelo* free,
       não o tier. Os rascunhos dos conjuntos usam o mesmo tier, então o
       orçamento de ~US$ 12 da Estratégia A cai para **US$ 0**
-- [ ] Rodar o benchmark em **duas rodadas** (rodada 1, triagem, feita em
-      2026-10-24; rodada 2 pendente): triagem com
+- [x] Rodar o benchmark em **duas rodadas** (rodada 1, triagem, feita em
+      2026-10-24; rodada 2 completa feita em 2026-10-28, ver EVALUATION.md): triagem com
       `--etapas roteador,imagem` nos 9 candidatos (~8 min de GPU cada, zero
       chamada de juiz) e rodada completa só nos 4–5 sobreviventes.
   - [x] **Critério de corte registrado em 2026-10-17, antes da primeira
