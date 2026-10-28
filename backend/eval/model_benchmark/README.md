@@ -79,6 +79,8 @@ A partir de `backend/`, com o Ollama no ar:
 .venv/bin/python eval/model_benchmark/run_benchmark.py --etapas roteador
 .venv/bin/python eval/model_benchmark/run_benchmark.py --modelos gemma4-12b-q4,phi4-mini-bf16
 .venv/bin/python eval/model_benchmark/run_benchmark.py --forcar
+# relatório consolidado: tabela por modelo e McNemar exato entre pares (sem GPU)
+.venv/bin/python eval/model_benchmark/consolidar.py
 ```
 
 - `--listar` mostra, por candidato, se o modelo está baixado e quais etapas
