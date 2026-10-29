@@ -252,7 +252,7 @@ comprovante/documento (fluxo dirigido)? → **sim:** OCR + validação. → **n�
 >    `confianca >= IMAGE_EXTERNAL_CONFIDENCE` (limiar alto, default 0.80,
 >    configurável) → usa o nome retornado (mais o contexto de mensagens
 >    recentes do usuário, quando houver) para buscar no **RAG de texto**
->    (`docs_texto`) e retorna os detalhes do produto. Caso contrário (não é
+>    (collection de texto ativa) e retorna os detalhes do produto. Caso contrário (não é
 >    do portfólio, confiança baixa, ou resposta não-parseável) → responde
 >    objetivamente que **não identificou o produto**.
 > 4. **Detalhes vêm do banco (decisão de 2026-09-27):** produto é dado do
@@ -455,53 +455,23 @@ simultâneas com perfis próprios (ex.: manuais longos × FAQs curtas) e
 avaliação do LLM contra cada uma. Os resultados do benchmark de modelos
 valem para o perfil da collection ativa no momento da rodada.
 
-**Decisão registrada (Fase 10, 2026-10-17): troca do modelo de embedding de
-texto e chunking contado em tokens.** Antes de rodar a otimização de
-parâmetros de ingestão (`docs/EVALUATION.md` Seção 2.1), três medições
-feitas no corpus e no próprio modelo mudaram a ordem de prioridade dos
-testes e exigem alterar código de produção:
+**Decisão registrada (Fase 10, 2026-10-17 a 2026-10-28): perfil vigente da collection de texto.** A otimização de ingestão (`docs/EVALUATION.md` Seção 2.1) começou por três medições no corpus e no próprio modelo, que mudaram o plano e exigiram alterar o código de produção:
 
-1. **Truncamento silencioso.** `paraphrase-multilingual-MiniLM-L12-v2`
-   (`app.rag.embeddings.DEFAULT_EMBEDDING_MODEL`) tem
-   `max_seq_length = 128` tokens. Medido no tokenizer do próprio modelo,
-   pt-BR custa **4,31 chars/token** — teto efetivo de **~552 caracteres**.
-   O `chunk_size = 800` de produção portanto descarta ~31% do texto de cada
-   chunk antes de embeddar, sem erro nem aviso. Isso também **explica** o
-   resultado do experimento de bisseção de `chunk_size` (2026-10-01, script e resultados removidos
-   em 2026-10-24): o "vencedor" 375 e o
-   550 são exatamente os pontos que caberam inteiros na janela do modelo, e
-   a trajetória não-monótona (800→900 cai, 900→550 sobe) é o teto de 128
-   tokens, não uma propriedade do chunking.
-2. **O modelo é o último colocado em português.** O benchmark MTEB-BR
-   (93 modelos avaliados em pt-BR, `arxiv.org/html/2607.04581v2`) coloca
-   `paraphrase-multilingual-MiniLM-L12-v2` em **93º de 93**, Mean22
-   **0,248** — contra 0,18 de um baseline de embeddings aleatórios.
-   Candidato preferido antes da medição (a Etapa 2 escolheu o `BAAI/bge-m3`,
-   ver decisão de 2026-10-24 abaixo): **`google/embeddinggemma-300m`**
-   (308M params, 768 dims com truncamento Matryoshka, contexto 2048, Mean22
-   **0,649**, 13º de 93), que cabe na GPU de 16GB ao lado do gerador de 12B.
-   Alternativas medidas no mesmo conjunto:
-   `intfloat/multilingual-e5-large-instruct` (560M, 0,641) e `BAAI/bge-m3`
-   (568M, contexto 8192, o único que oferece dense+sparse+multi-vector).
-   Os líderes absolutos do MTEB-BR são modelos de 8B+ e não cabem na VRAM
-   junto do modelo de geração.
-3. **Consequências de código.** `app.rag.chunking.chunk_text` passa a
-   contar **tokens** pelo tokenizer do modelo da collection (não
-   caracteres) e a cortar recursivamente por separador
-   (`\n\n` → `\n` → `. ` → espaço); `chunk_size`/`chunk_overlap` do perfil
-   de collection passam a ser medidos em tokens. `embeddinggemma` exige
-   **prefixos de tarefa** (`task: search result | query:` na consulta,
-   `title: none | text:` no documento) — sem eles o ganho de qualidade não
-   se materializa, então o prefixo é responsabilidade de
-   `app.rag.embeddings`, não do chamador, e entra em
-   `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md` (regra 11 do `CLAUDE.md`).
-   Trocar o modelo muda `vector_dimension` (384 → 768) e **invalida o
-   `score_threshold` atual**, que é um valor absoluto de cosseno com escala
-   específica por modelo — daí a recalibração de `top_k`/`score_threshold`
-   (Etapa 4) ser obrigatória, não opcional. Como todo perfil de collection é
-   imutável, a troca acontece criando uma collection nova e ativando-a; a
-   atual permanece para comparação, e os resultados de 2026-10-01 passam a
-   valer como baseline histórico, não como estado do sistema.
+1. **Truncamento silencioso.** O `paraphrase-multilingual-MiniLM-L12-v2` tem `max_seq_length = 128` tokens; em pt-BR (4,31 caracteres por token) o teto efetivo é de ~552 caracteres, então `chunk_size = 800` descartava ~31% de cada chunk sem erro nem aviso.
+2. **Modelo mal colocado em português.** No MTEB-BR (93 modelos, `arxiv.org/html/2607.04581v2`) ele é o **93º de 93** (Mean22 0,248; baseline aleatório 0,18). Os líderes absolutos são modelos de 8B+ e não cabem na VRAM ao lado do gerador de 12B.
+3. **Escala do corpus.** ~151 a 1.210 vetores: abaixo dos limiares do Qdrant, a busca é exata (ver a limitação de escala abaixo).
+
+**Mudanças de código que ficam:** `app.rag.chunking.chunk_text` conta `chunk_size`/`chunk_overlap` em **tokens** (tokenizer do modelo da collection) e corta recursivamente (`\n\n` → `\n` → `. ` → espaço → fatia dura); tokens são a unidade única do projeto (sem coluna `chunk_unit`, regra 8). `app.rag.embeddings.TextEmbedder.embed(texts, *, is_query)` aplica **prefixos assimétricos de tarefa** quando o modelo os exige (embeddinggemma, e5; documentados em `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`) e a busca passa `is_query=True`; o `google/embeddinggemma-300m` é *gated* no Hugging Face, então `_FALLBACK_MIRRORS` usa o mirror `unsloth/embeddinggemma-300m` (mesmos pesos).
+
+**Resultado medido** (Etapas 1 a 7; números e datas em `docs/EVALUATION.md`):
+
+- **Embedding: `BAAI/bge-m3`** (1024 dims, janela 8192, sem prefixo). Recall@5 0,944 contra 0,636 do MiniLM; empata com o `embeddinggemma-300m` (McNemar p = 1,0), desempatado por ingestão 1,7× mais rápida, janela maior e busca híbrida disponível. Custo: 3,3 GB de VRAM ao lado do gerador.
+- **Chunking: 768 tokens, overlap 15% (115 tokens).** De 512 a 1024 tokens é um platô (diferenças sem significância); só 128–256 tokens degradam; o overlap não tem efeito consistente.
+- **Recusa:** nenhum embedding nem chunk separa pergunta com resposta de pergunta sem resposta pelo score (menor positivo 0,440; maior negativo 0,618). A recusa não sai do `score_threshold`: foi tratada no prompt (v2) e o limiar 0,60, simulado, foi **rejeitado**: fonte correta 213 → 198, 12 respondíveis ficariam sem trecho e os top-1 de positivas e negativas se sobrepõem, então ele não separa as classes. Vigentes: `rag_top_k = 5`, `rag_score_threshold = 0,35`.
+- **Distância e índice (Etapa 5):** `cosine` mantido; índice `keyword` em `domain` não criado. No Qdrant, para `euclid` o `score_threshold` é limite superior (`distância <= thr`), então `0.0` descarta tudo; `run_etapa5.py` usa `thr_sem_corte = 10.0` nesse caso.
+- **Confirmação com juiz (Etapa 7):** bge-m3 768/115 contra o baseline MiniLM 800/100, nas mesmas 222 perguntas: nota 2,74 → 4,14; fonte correta 156 → 213.
+
+**Estado do código:** os defaults continuam `DEFAULT_EMBEDDING_MODEL = paraphrase-multilingual-MiniLM-L12-v2` e chunks de 512/51 tokens (`chunking.py:25-26`, `models/rag.py:115-116`); o perfil vencedor é **dado de collection**, não default de código. A collection ativa de produção é `docs_texto_bge768` (1024 dims). Como o perfil de uma collection é imutável, trocar de perfil significa criar uma collection nova e ativá-la; as anteriores permanecem para comparação (`docs_texto`, MiniLM 800/100, inativa; `docs_texto_minilm800c`, o baseline da Etapa 7). Os scripts das etapas estão em `backend/eval/rag_ingestion/` (`run_etapa2.py` a `run_etapa5.py`, `varrer_threshold.py`) e são cobertos por `tests/test_rag_ingestion_eval.py`.
 
 **Limitação de escala registrada (Fase 10, 2026-10-17): HNSW e quantização
 de vetores não são mensuráveis neste corpus.** O corpus da avaliação é
@@ -540,20 +510,18 @@ escala. Um teste sintético (replicar os vetores até 100k–500k e forçar o
 build baixando `indexing_threshold`) foi explicitamente considerado e
 **descartado** em 2026-10-17: mediria um sistema que não é o do TCC.
 
-A única exceção é o **payload index em `domain`**: toda busca filtra por
+A única exceção candidata era o **payload index em `domain`**: toda busca filtra por
 esse campo (`app.rag.qdrant_client.search`) e a collection de produção foi
-criada com `payload_indexes = []`. O índice `keyword` nesse campo entra na
-Etapa 5 porque seu efeito é corretude e latência sob filtro, não recall. A
+criada com `payload_indexes = []`. A Etapa 5 mediu o índice `keyword` nesse campo e ele não foi criado (p95 6,48 → 6,97 ms, dentro do ruído nesta escala). A
 combinação de multi-tenancy do Qdrant (`m=0` + `payload_m=16`, índice por
 grupo em vez de global) fica **fora de escopo**: impede busca cross-domain,
 que o sistema usa no fallback de domínio
 (`Settings.rag_search_domain_fallback`).
 
 **Registro condensado (2026-10-17, revisado em 2026-10-24): refatoração
-visual M3 Glass e Etapas 2–5 do RAG.** Dois blocos de coordenação entre
-agentes, antes longos, ficam resumidos ao que ainda vale; o detalhe está no
-histórico do git (âncora de rollback do frontend: commit `7eebebb`; âncora
-antes das Etapas 2–5: `7ef9fbf`).
+visual M3 Glass.** O bloco de coordenação entre agentes, antes longo, fica
+resumido ao que ainda vale; o detalhe está no histórico do git (âncora de
+rollback do frontend: commit `7eebebb`).
 
 *Refatoração M3 Glass* (spec `docs/superpowers/specs/2026-10-17-m3glass-visual-refactor-design.md`;
 escopo: Home, Header, Footer e `/produtos`). Pontos que continuam valendo:
@@ -578,70 +546,6 @@ escopo: Home, Header, Footer e `/produtos`). Pontos que continuam valendo:
   `LayoutHeaderFooter` (inclui ocultar Footer em `/admin/*`), `apiBaseUrl` e
   `ChatModal`, todos em `frontend/tests/`.
 
-*Etapas 2–5 do RAG* (`docs/EVALUATION.md` Seção 2.1). Código de produção e
-scripts entraram em 2026-10-17; as rodadas preliminares sobre o
-`dataset_minimo.json` (n=15) foram descartadas e os artefatos removidos em
-2026-10-24 — a rodada oficial usa as perguntas válidas do `dataset.json` (histórico de 2026-10-24: 167; estado vigente em 2026-10-28: 222 respondíveis e 26 negativas aprovadas). Decisões que
-permanecem:
-
-1. **Etapa 2 (embeddings):** `TextEmbedder` aplica prefixos assimétricos de
-   tarefa (`prefixos_do_modelo`, constantes `EMBEDDINGGEMMA_*_PREFIX` e
-   `E5_*_PREFIX`) para `google/embeddinggemma-300m` e
-   `intfloat/multilingual-e5-large-instruct` em `embed(texts, *, is_query)`;
-   `QdrantRAGClient.search` passa `is_query=True`. O repositório do
-   embeddinggemma no Hugging Face é *gated*; `_FALLBACK_MIRRORS`
-   redireciona para o mirror `unsloth/embeddinggemma-300m` (mesmos pesos),
-   preservando `model_name`. Script: `backend/eval/rag_ingestion/run_etapa2.py`.
-   Prompt/prefixos documentados na Seção 18 de
-   `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`.
-2. **Etapa 3 (chunking):** `chunk_text` faz corte recursivo hierárquico nos
-   separadores `("\n\n", "\n", ". ", " ")` e conta `chunk_size`/`chunk_overlap`
-   em **tokens** quando recebe `tokenizer` (`TextEmbedder.get_tokenizer()`,
-   passado por `ingest_bytes` e `reingest_document`). **Tokens são a unidade
-   única do projeto** (decisão de 2026-10-17: evitar coluna `chunk_unit`,
-   migração e mudanças em API/frontend, regra 8). Defaults
-   `DEFAULT_CHUNK_SIZE`/`DEFAULT_CHUNK_OVERLAP` e os de
-   `CollectionCreateRequest` passaram de `800/100` para **`512/51`**,
-   provisórios até a execução oficial (a Etapa 3 mediu e fixou **768/115**, a ser
-   aplicado na reingestão aprovada pelo dono; os defaults do código para collection nova continuam 512/51 — `chunking.py:25-26`, `models/rag.py:115-116`). O seed `docs_texto` (`800/100`,
-   MiniLM) não foi migrado: a ingestão oficial cria e ativa uma collection
-   nova com parâmetros declarados. Script: `run_etapa3.py` (grade 5×3).
-**Decisão de arquitetura (Fase 10, 2026-10-24): perfil da collection de texto
-medido sobre 163 perguntas** (histórico de 2026-10-24, antes da revisão ampliada do dataset: 143 com resposta, 20 sem; dados em
-`backend/eval/rag_ingestion/resultados_etapa{1,2,3}.json`, análise em
-`docs/EVALUATION.md` §2.1):
-
-- **Embedding: `BAAI/bge-m3`** (1024 dims, janela 8192, sem prefixo). Recall@5
-  0,944 contra 0,636 do MiniLM em produção; empata estatisticamente com
-  `embeddinggemma-300m` (0,937; McNemar p = 1,0), desempatado por ingestão
-  1,7× mais rápida (179 s × 310 s), janela maior e busca híbrida disponível.
-  Custo: 3,3 GB de VRAM ao lado do gerador de 12B (~9 GB de 16 GB).
-- **Chunking: 768 tokens, overlap 15% (115 tokens)**, nDCG@10 0,814. A faixa de
-  512 a 1024 tokens é um platô (diferenças com p > 0,4); só 128–256 tokens
-  degradam. Overlap sem efeito consistente.
-- **Achado que muda o desenho:** nenhum embedding nem tamanho de chunk separa
-  perguntas com resposta das sem resposta por score (menor positivo 0,440,
-  maior negativo 0,618 com o perfil vencedor). O baseline de produção recusa
-  0 de 20. A recusa por `score_threshold` sozinho é, portanto, insuficiente;
-  a Etapa 4 mede o custo de recall de cada limiar.
-- **Estado do código (conferido em 2026-10-28):** `DEFAULT_EMBEDDING_MODEL` segue
-  `paraphrase-multilingual-MiniLM-L12-v2` e os defaults de collection nova são
-  512/51 tokens; o perfil vencedor (bge-m3, 768/115) não é default de código, é
-  dado de collection. Segundo `docs/EVALUATION.md` (Etapa 6a), a collection ativa
-  hoje é `docs_texto_bge768` (1024 dims, 310 pontos), com `rag_top_k=5` e
-  `rag_score_threshold=0,35` em `config.py`; o limiar 0,60 foi simulado e
-  rejeitado. A aprovação formal do perfil (Passo 8) segue com o dono.
-
-3. **Etapas 4 e 5:** `varrer_threshold.py` aceita `--entrada`, `--saida` e
-   `--ponto-id` e recomenda o limiar pelo ponto médio do intervalo
-   separável. `run_etapa5.py` compara métricas de distância (`cosine`,
-   `dot`, `euclid`) e a latência com e sem payload index `keyword` em
-   `domain`. **Achado no Qdrant:** para `euclid` (`SmallBetter`),
-   `score_threshold` é limite *superior* (`distância <= thr`), então
-   `score_threshold=0.0` descarta tudo; o script `run_etapa5.py` usa
-   `thr_sem_corte = 10.0` para `euclid`/`manhattan`. A correção está no script, mas a Etapa 5 **não
-   foi reexecutada** desde então (Passo 8 do roteiro em `docs/EVALUATION.md`).
-   Cobertura: `tests/test_rag_ingestion_eval.py`.
 
 **Decisão registrada (além do MVP, a pedido explícito, 2026-09-21):**
 collections ganham um campo de **finalidade** (`purpose`): `chat` (default,
@@ -821,60 +725,12 @@ playbook morto") e substituído por um fluxo procedural dedicado,
 estado de coleta/validação/confirmação, ver decisão registrada logo abaixo e
 `docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`).
 
-**Decisão registrada (Fase 4A, agendamento via MCP Calendar, R11) — itens (a) e (b) SUPERADOS em 2026-09-23, ver "Decisão revista (Fase 4A, troca do MCP consumido)" logo abaixo; o item (c) segue vigente:** três
-escolhas de implementação feitas nesta fase, detalhadas em
-`docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`:
-(a) o assistente **consome** o servidor MCP remoto oficial do Google
-(`calendarmcp.googleapis.com`) em vez de construir um servidor MCP próprio
-que envolveria a API do Calendar — replicar do lado do servidor o que o
-Google já publica de forma padronizada não ganharia a interoperabilidade que
-é o motivo de existir do MCP (spec §2); (b) autenticação por **consentimento
-único do admin** (OAuth `access_type=offline`, refresh token guardado em
-`GOOGLE_CALENDAR_TOKEN_PATH`) em vez de autenticação por visitante — o caso de
-uso é um backend headless agendando numa única agenda da empresa, não há
-usuário final logado a cada visita (spec §3); (c) mensagens ao visitante
-durante a coleta/confirmação são **templates determinísticos** (não geradas
-por LLM), ver `app.router.scheduling` (`mensagem_campos_faltando`,
-`mensagem_pedir_confirmacao`, `mensagem_sucesso`) — decisão para não arriscar
-o LLM inventar/alucinar detalhes de confirmação (data, nome, e-mail) numa ação
-irreversível (criação real de evento na agenda).
+**Decisão registrada (Fase 4A, agendamento via MCP Calendar, R11; revista em 2026-09-23):** o assistente **consome** um MCP já existente em vez de construir um servidor MCP próprio sobre a API do Calendar (replicar o que já existe não ganharia a interoperabilidade que é o motivo de existir do MCP). O servidor oficial do Google (`calendarmcp.googleapis.com`) foi validado e descartado: está em **Developer Preview**, toda chamada de tool devolve `isError: true` pedindo inscrição num programa de aprovação manual que, pela documentação do próprio Google, não aceita contas Gmail pessoais — inviável para o ambiente de desenvolvimento e demonstração deste TCC. Em seu lugar roda um **MCP de terceiro self-hosted**, `calendar-mcp-server` (pacote PyPI, https://github.com/deciduus/calendar-mcp), como processo local (`uvx calendar-mcp-server serve --transport http --port 8090`). Trocar por chamada REST direta abandonaria o objetivo de R11 (demonstrar o consumo de um MCP externo); o MCP de terceiro mantém a arquitetura e só troca qual MCP.
 
-**Decisão revista (Fase 4A, troca do MCP consumido, 2026-09-23):** o item
-(a) acima muda — o assistente deixa de consumir o MCP remoto oficial do
-Google (`calendarmcp.googleapis.com`) e passa a consumir um **MCP de
-terceiro self-hosted**, `calendar-mcp-server` (pacote PyPI, código em
-https://github.com/deciduus/calendar-mcp), rodando como processo local
-(`uvx calendar-mcp-server serve --transport http --port 8090`). Motivo:
-validado contra a API real, o MCP oficial do Google está em **Developer
-Preview** — toda chamada de tool retorna `isError: true` pedindo inscrição
-em https://developers.google.com/workspace/preview, um programa de
-aprovação manual (fila de alguns dias) que pela documentação do próprio
-Google não aceita contas Gmail pessoais (só Workspace pago ou Workspace for
-Education) — inviável para o ambiente de desenvolvimento/demonstração deste
-TCC. O objetivo do requisito R11 nesta etapa é demonstrar o **consumo de um
-MCP externo disponível** — trocar por uma chamada REST direta à API do
-Calendar abandonaria esse objetivo; um MCP de terceiro mantém a
-arquitetura "consome um MCP" pedida, só troca qual MCP.
-Isso também revisa o item (b): a autenticação OAuth (mesmo client "Desktop
-app" já criado, mesmo escopo `https://www.googleapis.com/auth/calendar`)
-passa a ser gerenciada pelo **próprio `calendar-mcp-server`**
-(`calendar-mcp-server auth`, token salvo via `TOKEN_FILE_PATH`) — o backend
-FastAPI não guarda mais `client_id`/`client_secret`/refresh token nenhum,
-só fala MCP HTTP local com o servidor (`CALENDAR_MCP_URL`,
-`app.mcp_client.google_calendar.GoogleCalendarMCPClient`), o que também
-simplificou o cliente (`_load_client_secrets`/`_load_refresh_token`/
-`_get_access_token` removidos, junto com `scripts/authorize_google_calendar.py`,
-que ficou obsoleto). Tools reais confirmadas lendo o código-fonte do pacote
-(não documentação de terceiros): `find_events` (parâmetros `calendar_id`,
-`time_min`, `time_max`; resposta com `count`/`events`, usada para checar
-disponibilidade) e `create_event` (parâmetros `calendar_id`, `summary`,
-`start_time`/`end_time` como string ISO 8601 solta — não mais objeto
-`{"dateTime": ...}` —, `description`, `attendee_emails` como lista de
-e-mails, sem nome de exibição por convidado — o nome do visitante passou a
-ir na descrição do evento). O item (c) (mensagens determinísticas)
-permanece inalterado. `# MVP: endpoint MCP local sem autenticação própria
-— mesma confiança de rede local que Qdrant/Postgres neste protótipo, não
-exposto publicamente`.
+- **Autenticação:** o OAuth (client "Desktop app", escopo `https://www.googleapis.com/auth/calendar`) é gerenciado pelo próprio `calendar-mcp-server` (`calendar-mcp-server auth`, token em `TOKEN_FILE_PATH`). O backend FastAPI não guarda `client_id`, `client_secret` nem refresh token: só fala MCP HTTP local (`CALENDAR_MCP_URL`, `app.mcp_client.google_calendar.GoogleCalendarMCPClient`).
+- **Tools usadas** (confirmadas lendo o código-fonte do pacote): `find_events` (`calendar_id`, `time_min`, `time_max`; devolve `count`/`events`, usada para checar disponibilidade) e `create_event` (`calendar_id`, `summary`, `start_time`/`end_time` como string ISO 8601, `description`, `attendee_emails` como lista de e-mails). Não há nome de exibição por convidado: o nome do visitante vai na descrição do evento.
+- **Mensagens ao visitante** na coleta e na confirmação são **templates determinísticos**, não geradas por LLM (`app.router.scheduling`: `mensagem_campos_faltando`, `mensagem_pedir_confirmacao`, `mensagem_sucesso`), para o LLM não inventar data, nome ou e-mail numa ação irreversível (criar evento real na agenda).
+- `# MVP: endpoint MCP local sem autenticação própria — mesma confiança de rede local que Qdrant/Postgres neste protótipo, não exposto publicamente`.
 
 **Decisão registrada (Fase 7, Gestão e Cancelamento de Agendamentos, R11, 2026-09-29):**
 Para viabilizar a gestão por usuário, consulta administrativa e cancelamento de visitas (ver `docs/superpowers/specs/2026-09-29-gestao-agendamentos-design.md`), foi adotada a **Abordagem Híbrida Sincronizada (Abordagem 1)**:
@@ -1430,22 +1286,7 @@ Google Calendar) — mesmo padrão de pastas já reservado em
    consistente com os hosts/portas que já estavam reservados em
    `app.config.Settings` antes deste item existir. `goup.md` ganhou uma
    nova seção para subir/derrubar esse processo (porta 8100).
-4. **(SUPERADO em 2026-09-30 — ver a decisão de escopo de acesso do parceiro B2B abaixo; hoje inclui também a collection `chat` ativa)** **Busca de manuais restrita a collections `purpose="mcp_b2b"`:** o
-   recurso `manuais://busca/{domain}?query=...` lista todas as
-   `RagCollection` via `app.rag.collections_registry.list_collections` e
-   filtra em memória as com `purpose == "mcp_b2b"` (sem função dedicada nova
-   em `collections_registry` — único consumidor desse recorte até agora,
-   regra 8 do `CLAUDE.md`), busca em cada uma via
-   `QdrantRAGClient.search(collection.name, embedder, query, domain)` e
-   agrega os resultados ordenados por score, cortando em
-   `DEFAULT_MANUAIS_TOP_K=5`. Nunca toca a collection ativa do chat
-   (`purpose="chat"`) — completa a "metade de consumo" que a decisão de
-   2026-09-21 (ingestão de documentação restrita ao MCP B2B) deixou em
-   aberto para esta fase. `domain` continua sendo um parâmetro obrigatório
-   do recurso (um dos quatro domínios de atendimento de R7; o classificador ainda tem o rótulo `fora_escopo`), pelo mesmo motivo já registrado
-   para o playground de busca: `QdrantRAGClient.search` sempre filtra por
-   domínio, sem modo "todos os domínios" — estender esse contrato fica fora
-   do escopo deste item.
+4. **Busca de manuais:** `manuais://busca/{domain}?query=...` busca nas collections `purpose="mcp_b2b"` e na collection `chat` ativa (regra assimétrica da decisão de 2026-09-30, abaixo), agrega por score e corta em `DEFAULT_MANUAIS_TOP_K=5`. `domain` é parâmetro obrigatório (um dos domínios de atendimento de R7; o classificador ainda tem o rótulo `fora_escopo`), porque `QdrantRAGClient.search` sempre filtra por domínio.
 
 `# MVP: mesmo uso interno/sem autenticação por parceiro já registrado para
 o backend único de dados (item anterior desta fase) — este servidor herda
@@ -1459,7 +1300,7 @@ dependências de teste — SQLite em memória + Qdrant `:memory:`), não só a
 camada de dados por baixo (já coberta por `test_catalog.py`).
 
 **Decisão registrada (2026-09-30, escopo de acesso do parceiro B2B ao RAG,
-a pedido explícito do desenvolvedor) — substitui o item 4 acima (item 4 SUPERADO em 2026-09-30; vale a regra assimétrica desta decisão):** o
+a pedido explícito do desenvolvedor) — amplia o item 4 acima (vale a regra assimétrica desta decisão):** o
 parceiro B2B pode acessar **todo o conteúdo do RAG principal e do
 específico do canal B2B**; só o cliente final (chat público) não deve ter
 acesso a documentos exclusivos do B2B. Antes, `manuais_busca` buscava só em
@@ -1475,7 +1316,7 @@ inverso continua vedado como antes: o chat público nunca busca
 Testes em `tests/test_mcp_b2b_server.py`
 (`test_manuais_busca_encontra_conteudo_da_collection_chat_ativa`,
 `test_manuais_busca_ignora_collection_chat_nao_ativa`), validado ao vivo
-contra o servidor real e o `docs_texto` (collection ativa de produção).
+contra o servidor real e a collection ativa de produção.
 
 **Decisão registrada (2026-09-30, modo admin do chat sobre o RAG completo,
 a pedido explícito do desenvolvedor):** o Admin também quer usar o chat
@@ -1937,39 +1778,7 @@ totalmente genérica, sem produto nem categoria) respondia só sobre
    `listar_tudo` na extração e sua precedência) e `tests/test_orchestrator.py`
    (pergunta totalmente genérica lista o catálogo completo no prompt).
 
-**Decisão registrada (Fase 2/5, sincronização automática do catálogo no RAG,
-R4, 2026-09-29) — ⚠️ SUPERADA pela decisão "Desacoplamento do CRUD de
-produtos do RAG e autoridade única no SQL" (2026-10-03), mais abaixo nesta
-seção: o módulo `app.rag.product_sync` descrito aqui foi descontinuado e
-`backend/src/app/rag/product_sync.py` e `backend/tests/test_product_sync.py`
-foram removidos em 2026-10-04. O texto abaixo fica como registro do que foi
-implementado e por quê; não descreve o estado atual (achado de
-`repowise doc-drift`, 2026-10-15):** o conector de leitura a BD relacional
-(`app.rag.db_connector`, R4) só alimentava o RAG semântico (Qdrant) via
-`backend/scripts/ingest_db_table.py`, um script manual rodado uma única vez
-na Fase 2 sobre o catálogo fixture original (5 produtos) — nunca reexecutado
-depois que o catálogo cresceu (estoque, descontos, imagens, Fase 7), então
-o RAG textual de Vendas ficava cada vez mais desatualizado em relação ao
-catálogo real (o único documento de exemplo do domínio, além disso, é só
-sobre geradores — `backend/scripts/sample_docs/vendas/catalogo_geradores.txt`).
-Novo módulo `app.rag.product_sync` (`sync_produto_no_rag`/
-`remover_produto_do_rag`) substitui o script manual por um hook automático
-chamado pelas rotas de CRUD de produtos (`app.api.admin_products`: criar,
-editar, excluir, atualizar estoque, adicionar/remover desconto por volume,
-confirmar lote do extrator de catálogo). Cada produto vira um documento de
-texto próprio (`produto_{id}.txt`, nome determinístico) na collection ativa
-do RAG (mesma buscada pelo chat público), domínio "vendas"; reingerir apaga
-a versão anterior antes (Qdrant + registro em `rag_documents`) para não
-duplicar. `# MVP: sem deduplicação incremental sofisticada — cada sync é um
-delete+ingest completo, mesma limitação já aceita em app.rag.ingest; falha
-de sincronização (Qdrant indisponível etc.) é só logada, nunca bloqueia o
-CRUD de produtos (fonte de verdade real é o SQL, via SalesCatalogClient);
-compatibilidade entre produtos não sincronizada no RAG (baixo valor textual
-para busca semântica)`. O script `ingest_db_table.py` continua existindo
-para outras tabelas/casos avulsos, mas deixa de ser o único caminho para o
-catálogo de produtos. Testado em `tests/test_product_sync.py` (ingestão,
-reingestão sem duplicar, sem collection ativa, falha do Qdrant tolerada,
-remoção ao excluir produto).
+**Histórico (Fase 2/5, 2026-09-29): sincronização automática do catálogo no RAG — descontinuada.** O módulo `app.rag.product_sync` (um documento `produto_{id}.txt` por produto na collection ativa) foi removido em 2026-10-04, depois que o CRUD de produtos foi desacoplado do RAG e o SQL virou a autoridade única (decisão de 2026-10-03, mais abaixo). O script manual `backend/scripts/ingest_db_table.py` segue existindo para outras tabelas ou casos avulsos, mas o catálogo de produtos não passa mais pelo RAG.
 
 **Decisão registrada (Fase 5, correção de bug em Vendas — estoque por
 centro de distribuição no chat, R12, 2026-09-29):** um cliente relatou que
@@ -2181,7 +1990,7 @@ usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 
 | Requisito | MVP (protótipo) | Evolução futura |
 | --- | --- | --- |
-| Modelo local (RTX 4080 GPU 16GB) | Servido via **Ollama** (decisão fechada — simplicidade de setup/gestão de modelos e instrumentação de latência pronta via `eval_count`/`eval_duration`, ver §2, "Escolhas de tecnologia"). Avaliação comparativa ampliada entre **9 configurações** (`eval/model_benchmark/modelos.json`; o Llama 3.2 11B Vision foi descartado em 2026-10-24 por não carregar no Ollama 0.30.6; antes eram 10 — corrigido em 2026-10-17, com Llama 3.2 11B Vision Instruct, Qwen2.5-VL 7B/3B Instruct, Gemma-4-E4B-it UD-Q8_K_XL, Qwen3.5 9B Defiant Fable MTP, Gemma-3-Gaia 4B F16, Qwen3.5 9B Q4_K_M, Phi-4-mini BF16 e DeepSeek-R1-Distill-Llama-8B Q8_0 em 2026-10-18): Qwen2.5-VL 7B Instruct; Qwen2.5-VL 3B Instruct; Qwen3.5 9B Q4_K_M; DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16 (3.8B); Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL — ver riscos de VRAM na Seção 7. **Visão local não é requisito do candidato** (decisão de 2026-10-17): as tags de Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit, Gemma-4-E4B-it, Qwen2.5-VL 7B, Qwen2.5-VL 3B, Qwen3.5 9B Q4_K_M e Qwen3.5 9B Defiant Fable MTP têm a capability `vision` (7 dos 9 candidatos com visão local; só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini não têm — conferido no Ollama em 2026-10-18), e a produção já trata visão local como opcional — candidato sem ela manda a imagem do cliente para a visão externa, caminho documentado. `visao_local` é atributo medido e critério de desempate na triagem, não filtro; se o vencedor não tiver, o relatório diz que toda imagem passa a depender do modelo externo | Fine-tuning de domínio, otimização de latência em produção |
+| Modelo local (RTX 4080 GPU 16GB) | Servido via **Ollama** (decisão fechada — simplicidade de setup/gestão de modelos e instrumentação de latência pronta via `eval_count`/`eval_duration`, ver §2, "Escolhas de tecnologia"). Avaliação comparativa entre **9 candidatos** (`eval/model_benchmark/modelos.json`): Qwen2.5-VL 7B e 3B Instruct, Qwen3.5 9B Q4_K_M, DeepSeek-R1-Distill-Llama-8B Q8_0, Qwen3.5 9B Defiant Fable MTP, Phi-4-mini-instruct BF16, Gemma-3-Gaia-PT-BR 4B F16, Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL; ver riscos de VRAM na Seção 7. O Llama 3.2 11B Vision foi descartado em 2026-10-24 por não carregar no Ollama 0.30.6. A triagem de 2026-10-24 deixou 4 sobreviventes (Gemma-4-12B, Gemma-4-E4B, Qwen2.5-VL 3B e 7B) e a rodada completa neles foi feita em 2026-10-28 (`docs/EVALUATION.md`). **Visão local não é requisito do candidato** (decisão de 2026-10-17): as tags de Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit, Gemma-4-E4B-it, Qwen2.5-VL 7B, Qwen2.5-VL 3B, Qwen3.5 9B Q4_K_M e Qwen3.5 9B Defiant Fable MTP têm a capability `vision` (7 dos 9 candidatos com visão local; só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini não têm — conferido no Ollama em 2026-10-18), e a produção já trata visão local como opcional — candidato sem ela manda a imagem do cliente para a visão externa, caminho documentado. `visao_local` é atributo medido e critério de desempate na triagem, não filtro; se o vencedor não tiver, o relatório diz que toda imagem passa a depender do modelo externo | Fine-tuning de domínio, otimização de latência em produção |
 | Entrada multimodal | Texto e áudio (STT) funcionando, com suporte a mais de um formato de áudio (ex.: wav e mp3); imagem com fluxo básico. STT via **faster-whisper rodando na mesma GPU local** (decisão fechada — consistente com a estratégia "local-first" do resto do projeto, sem custo por chamada; ver risco de contenção de VRAM na Seção 7), modelo `small` ou `medium` conforme resultado da Seção 7 | Robustez para áudio ruidoso, formatos adicionais, streaming |
 | Roteador/Orquestrador | Classificador de intenção simples (regras + LLM) para local x externo x RAG, com log básico de decisões (custo/latência). Modelo externo acessado via **OpenRouter** (uma chave cobrindo múltiplos provedores). Domínios Vendas/Suporte/Atendimento tentam local+RAG primeiro e só escalam para externo se: fora de escopo, RAG sem resultado relevante, ou complexidade alta; Agendamento é sempre local. Classificador considera as últimas 1–3 mensagens da conversa (não só a mensagem isolada), necessário para resolver confirmações curtas a ofertas feitas pelo próprio assistente (ex.: aceite de agendamento proposto) | Roteador adaptativo com aprendizado contínuo e métricas de custo/qualidade em produção |
 | RAG — textos, PDFs, BD e sites (obrigatório) | Ingestão de PDFs/textos + busca vetorial; conector básico de leitura a um BD relacional; crawler disparado manualmente a partir de uma URL semente, com profundidade e teto de páginas parametrizáveis por execução, classificação de domínio por LLM com fila de revisão humana abaixo de um limiar de confiança | Conector com escrita/sincronização incremental, crawler agendado, múltiplas fontes web |
@@ -2391,7 +2200,7 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   KV cache — evitar variantes acima de ~12–14B mesmo quantizadas, pelo risco
   de OOM. Atualmente, todos os 9 candidatos da tabela de escopo já estão
   baixados no Ollama local (`gemma4:12b-it-q4_K_M`, `Gemma-4-E4B-it`, `Gemma-3-Gaia 4B F16`,
-  `Qwen2.5-VL 7B`, `Qwen2.5-VL 3B`, `Qwen3.5 9B Defiant Fable MTP`, `qwen3.5:9b`, `Phi-4-mini-instruct BF16` e `DeepSeek-R1-Distill-Llama-8B Q8_0`), estando o pool 100% pronto para a avaliação comparativa da Fase 10.
+  `Qwen2.5-VL 7B`, `Qwen2.5-VL 3B`, `Qwen3.5 9B Defiant Fable MTP`, `qwen3.5:9b`, `Phi-4-mini-instruct BF16` e `DeepSeek-R1-Distill-Llama-8B Q8_0`). A triagem de 2026-10-24 deixou 4 sobreviventes (Gemma 4 12B e E4B, Qwen2.5-VL 3B e 7B) e a rodada completa neles foi feita em 2026-10-28 (`docs/EVALUATION.md`).
 - STT (faster-whisper) roda na mesma GPU que o modelo local de chat —
   contenção de VRAM entre os dois é um risco real. `# MVP: default fechado
   em small (STT_MODEL_SIZE, ~1-2GB de VRAM), sem lógica automática de troca
@@ -2418,15 +2227,8 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   tratar como hipótese a validar com mais dados.
 - Dependência do MCP do Google Calendar: falhas de conexão/permissão
   precisam de tratamento de erro claro (ex.: tentar novamente, transferir
-  para atendente). **Achado ao validar contra a API real (2026-09-23) e
-  decisão resultante:** o MCP oficial do Google
-  (`calendarmcp.googleapis.com`) está em **Developer Preview**, exige
-  inscrição em programa de aprovação manual
-  (https://developers.google.com/workspace/preview) que não aceita contas
-  Gmail pessoais — inviabilizando o ambiente de dev/demonstração deste TCC.
-  Resolvido trocando para um MCP de terceiro self-hosted,
-  `calendar-mcp-server`, rodando localmente — ver decisão revista na Fase
-  4A acima. Risco residual: dependência de um pacote open-source de
+  para atendente). O MCP oficial do Google está em Developer Preview e não aceita contas Gmail pessoais; por isso o projeto consome um MCP de terceiro self-hosted (decisão da Fase 4A acima).
+  Risco residual: dependência de um pacote open-source de
   terceiro (não do Google) para o requisito R11 — se o projeto parar de ser
   mantido, seria necessário migrar para outro MCP de Calendar ou revisitar
   a inscrição no programa de preview.
@@ -2471,23 +2273,15 @@ Na tela administrativa de produtos (`/admin/produtos`), a tabela foi aprimorada 
   alta confiança, via um `logger.warning` próprio do orquestrador (mesma
   convenção `extra={"router": {...}}` já usada pelo módulo — não é
   infraestrutura compartilhada com o monitor de tom da Fase 4B).
-  **Resultados abaixo são do piloto de 8 casos (2026-10-07), cujo artefato foi
-  removido em 2026-10-24; a medição oficial usa 95 casos (45 diretos + 50
-  indiretos) e ainda não foi rodada — ver `docs/EVALUATION.md`.**
-  Eficácia real medida por eval comportamental com LLM real (não
-  fictícia), ao vivo em 2026-10-07 (piloto): taxa de resistência do cliente local
-  (`gemma4:12b-it-q4_K_M`) **62,5% (5/8)**; do cliente externo
-  (`liquid/lfm-2.5-2.6b:free`) **87,5% (7/8)** — detalhe completo em
-  `backend/eval/prompt_injection/README.md`. **Achado real a reportar sem
-  suavizar:** os 4 casos de injeção DIRETA (na mensagem do cliente) foram
-  resistidos 100% por ambos os clientes; só a injeção INDIRETA via RAG
-  comprometeu algum cliente. O caso 7 (um documento do RAG forjava uma
-  política de "reembolso automático sem nota fiscal") comprometeu **os
-  dois** clientes, local e externo — o isolamento por delimitador (Task 2)
-  não impede, por si só, que o modelo trate uma "política" verossímil
-  injetada dentro do conteúdo do RAG como informação de negócio legítima.
-  O caso 8 (só o cliente local) seguiu uma instrução injetada para
-  recomendar um WhatsApp pessoal em vez do suporte oficial. Abuso das
+  Eficácia medida por eval comportamental com LLM real, rodada oficial de
+  2026-10-28 sobre os 95 casos revisados (45 diretos + 50 indiretos via RAG):
+  taxa de resistência do cliente local (`gemma4:12b-it-q4_K_M`) **91,6%** (8
+  comprometidos) e do cliente externo **97,9%** (2 comprometidos) — detalhe em
+  `docs/EVALUATION.md` e `backend/eval/prompt_injection/README.md`. O piloto
+  de 7 de outubro (8 casos, 62,5% local e 87,5% externo) foi descartado, mas
+  deixou o achado de que o isolamento por delimitador não impede, por si só,
+  que o modelo trate uma "política" verossímil injetada no conteúdo do RAG
+  como informação de negócio legítima. Abuso das
   ferramentas MCP B2B caracterizado por teste
   (`backend/tests/test_mcp_b2b_security.py`) contra a validação Pydantic
   já existente, sem necessidade de RBAC/JWT novos — fora do MVP (ver
@@ -2577,11 +2371,13 @@ benchmark por modelo):**
 - **Ordem:** a Fase 10 só roda depois de o corpus real estar ingerido. Os
   datasets antigos foram refeitos sobre o corpus ControlId (Estratégia A) e
   os resultados antigos foram apagados em 2026-10-24.
-- **Estado em 2026-10-24:** conjuntos prontos (roteador 311, RAG docs 167 na época — hoje 222 respondíveis + 26 negativas aprovadas,
-  imagem 72, banco 80, injeção 95; latência ainda não criado); triagem de
-  modelos feita, com 4 sobreviventes (Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL
-  3B e 7B). Pendentes (histórico de 2026-10-24): RAG Etapas 1–5 sobre as 167 perguntas, benchmark
-  final e latência. Detalhe e números em `docs/EVALUATION.md`.
+- **Estado em 2026-10-29:** conjuntos prontos (roteador 311, RAG documentos
+  222 respondíveis + 26 sem resposta, imagem 72, banco 80, injeção 95);
+  triagem feita (4 sobreviventes: Gemma 4 12B, Gemma 4 E4B, Qwen2.5-VL 3B e
+  7B); rodada completa dos 4, latência local x externo e avaliações de
+  produção feitas em 2026-10-28. Pendente: o conjunto de banco (depende dos
+  preços reais) e a comparação com a nova ingestão. Detalhe e números em
+  `docs/EVALUATION.md`.
 - **Benchmark:** um orquestrador (`eval/model_benchmark/`) repete os
   harnesses existentes (`router_intents`, `rag_quality`, `prompt_injection`)
   para cada configuração candidata, retomável por modelo, com aquecimento
