@@ -357,6 +357,20 @@ describe("AvaliacaoPage — badges de ajuda dos gráficos", () => {
   });
 });
 
+describe("AvaliacaoPage — modal de detalhes dos gráficos", () => {
+  it("o badge '+' abre o modal com tabela de origem, motivo e trajetória", async () => {
+    vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue(DADOS_COMPLETOS);
+    render(<AvaliacaoPage />);
+    await screen.findByText("Distribuição das notas");
+    expect(screen.getAllByRole("button", { name: /^Detalhes:/ }).length).toBeGreaterThanOrEqual(10);
+    await userEvent.click(screen.getByRole("button", { name: "Detalhes: Distribuição das notas" }));
+    const modal = await screen.findByRole("dialog");
+    expect(modal).toHaveTextContent("Tabela que originou o gráfico");
+    expect(modal).toHaveTextContent("Por que medimos isto");
+    expect(modal).toHaveTextContent("Como chegamos a esta conclusão");
+  });
+});
+
 describe("AvaliacaoPage — RAG com nota_media null", () => {
   it("exibe '—' quando nota_media é null", async () => {
     vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue({

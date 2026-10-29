@@ -17,6 +17,8 @@ import {
   YAxis,
   ZAxis,
 } from "recharts";
+import { Modal } from "@/components/ui/Modal";
+import { DETALHES } from "./detalhes";
 import { fetchResultadosAvaliacao, Proporcao, ResultadosAvaliacao } from "@/lib/api/avaliacao";
 
 // Uma cor por modelo no gráfico de dispersão (legenda + rótulo ao lado do ponto).
@@ -81,23 +83,153 @@ function Info({ texto }: { texto: string }) {
   );
 }
 
-/** Título de um gráfico/tabela com o badge de ajuda; `className` fixa a altura do gráfico. */
+type Celula = string | number | null;
+interface Tabela {
+  colunas: string[];
+  linhas: Celula[][];
+}
+
+/** Tabela de dados que originou um gráfico, no formato do modal de detalhes. */
+function tabelaDeIc(dados: ReturnType<typeof comIc>[], rotuloValor: string): Tabela {
+  return {
+    colunas: ["Item", rotuloValor, "IC 95%", "Acertos"],
+    linhas: dados.map((d) => [
+      d.nome,
+      `${d.valor}%`,
+      `${Math.round((d.valor - d.erro[0]) * 10) / 10}% – ${Math.round((d.valor + d.erro[1]) * 10) / 10}%`,
+      d.n,
+    ]),
+  };
+}
+
+function Secao2({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <section className="mb-4">
+      <h4 className="mb-1 text-sm font-semibold text-gray-900">{titulo}</h4>
+      {children}
+    </section>
+  );
+}
+
+/** Modal "detalhes": explicação, tabela de origem, motivo, relevância, cuidados e trajetória. */
+function DetalheModal({
+  chave,
+  titulo,
+  ajuda,
+  tabela,
+  open,
+  onOpenChange,
+}: {
+  chave: string;
+  titulo: string;
+  ajuda: string;
+  tabela?: Tabela;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const d = DETALHES[chave];
+  return (
+    <Modal open={open} onOpenChange={onOpenChange} title={titulo} size="3xl">
+      <div className="text-sm leading-relaxed text-gray-700">
+        <Secao2 titulo="O que o gráfico mostra">
+          <p>{ajuda}</p>
+        </Secao2>
+        {tabela && (
+          <Secao2 titulo="Tabela que originou o gráfico">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-gray-500">
+                    {tabela.colunas.map((c) => (
+                      <th key={c} className="p-1.5">
+                        {c}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tabela.linhas.map((l, i) => (
+                    <tr key={i} className="border-t border-gray-100">
+                      {l.map((c, j) => (
+                        <td key={j} className="p-1.5">
+                          {c ?? "—"}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Secao2>
+        )}
+        {d && (
+          <>
+            <Secao2 titulo="Por que medimos isto">
+              <p>{d.motivo}</p>
+            </Secao2>
+            <Secao2 titulo="Relevância">
+              <p>{d.relevancia}</p>
+            </Secao2>
+            <Secao2 titulo="Considerações e cuidados na leitura">
+              <ul className="list-disc space-y-1 pl-5">
+                {d.consideracoes.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            </Secao2>
+            <Secao2 titulo="Como chegamos a esta conclusão">
+              <p>{d.trajetoria}</p>
+            </Secao2>
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+/** Título de um gráfico/tabela com o badge de ajuda (balão) e, se houver `detalhe`, o badge do modal. */
 function Grafico({
   titulo,
   ajuda,
   className,
   children,
+  detalhe,
+  tabela,
 }: {
   titulo: string;
   ajuda: string;
   className?: string;
   children: React.ReactNode;
+  detalhe?: string;
+  tabela?: Tabela;
 }) {
+  const [aberto, setAberto] = useState(false);
   return (
     <div>
       <h3 className="mb-2 text-sm font-semibold text-gray-800">
         {titulo}
         <Info texto={ajuda} />
+        {detalhe && (
+          <>
+            <button
+              type="button"
+              aria-label={`Detalhes: ${titulo}`}
+              title="Detalhes, tabela de origem e como chegamos a esta conclusão"
+              onClick={() => setAberto(true)}
+              className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-violet-100 align-middle text-[11px] font-bold leading-none text-violet-700 hover:bg-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
+            >
+              +
+            </button>
+            <DetalheModal
+              chave={detalhe}
+              titulo={titulo}
+              ajuda={ajuda}
+              tabela={tabela}
+              open={aberto}
+              onOpenChange={setAberto}
+            />
+          </>
+        )}
       </h3>
       <div className={className}>{children}</div>
     </div>
@@ -121,14 +253,22 @@ function BarrasComIc({
   rotulo,
   titulo,
   ajuda,
+  detalhe,
 }: {
   dados: ReturnType<typeof comIc>[];
   rotulo: string;
   titulo: string;
   ajuda: string;
+  detalhe?: string;
 }) {
   return (
-    <Grafico titulo={titulo} ajuda={ajuda} className="h-64">
+    <Grafico
+      titulo={titulo}
+      ajuda={ajuda}
+      className="h-64"
+      detalhe={detalhe}
+      tabela={tabelaDeIc(dados, rotulo)}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={dados} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" />
@@ -229,6 +369,15 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
         <div className="space-y-8">
           <Grafico
             titulo="Qualidade × latência"
+            detalhe="qualidadeLatencia"
+            tabela={{
+              colunas: ["Modelo", "Latência p95 (s)", "Nota RAG"],
+              linhas: comRag.map((m) => [
+                m.modelo,
+                m.metricas.latencia_p95_s?.toFixed(2) ?? null,
+                m.metricas.rag_nota_media?.toFixed(2) ?? null,
+              ]),
+            }}
             ajuda="Cada ponto é um modelo. Eixo horizontal: latência p95 (95% das respostas saem mais rápido que esse tempo). Eixo vertical: nota média do juiz (1 a 5) nas respostas de RAG. Quanto mais ao alto e à esquerda, melhor: resposta boa e rápida."
             className="h-[26rem]"
           >
@@ -274,6 +423,15 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
           </Grafico>
           <Grafico
             titulo="Roteador e resistência à injeção"
+            detalhe="roteadorInjecaoModelos"
+            tabela={{
+              colunas: ["Modelo", "Roteador", "Injeção"],
+              linhas: comRag.map((m) => [
+                m.modelo,
+                pctOuTraco(m.metricas.roteador_acuracia),
+                pctOuTraco(m.metricas.injecao_resistencia),
+              ]),
+            }}
             ajuda="Para cada modelo: em azul, a porcentagem de mensagens que o roteador classificou no domínio certo (vendas, suporte, atendimento, agendamento); em laranja, a porcentagem de ataques de prompt injection que o modelo resistiu, isto é, não obedeceu à instrução maliciosa. Maior é melhor."
             className="h-80"
           >
@@ -302,6 +460,7 @@ function SecaoModelos({ modelos }: { modelos: ModeloBenchmark[] }) {
           </Grafico>
           <Grafico
             titulo="Resumo numérico"
+            detalhe="resumoModelos"
             ajuda="Os mesmos valores dos dois gráficos acima, em números. A bolinha tem a cor do ponto no gráfico de qualidade × latência."
             className="overflow-x-auto"
           >
@@ -361,6 +520,7 @@ function SecaoRoteador({
         <div className="space-y-6">
           <BarrasComIc
             titulo="Acurácia por método"
+            detalhe="roteadorAcuracia"
             ajuda="Porcentagem de mensagens classificadas no domínio correto, por método: heurística (palavras-chave), heurística + LLM (modelo local) e JEV (modelo externo). A barra preta é o intervalo de confiança de 95%: se duas barras se sobrepõem, a diferença pode ser acaso."
             rotulo="Acurácia"
             dados={roteador.provedores.map((p) => comIc(p.provider, p.acuracia))}
@@ -383,6 +543,16 @@ function SecaoRoteador({
             {matrizAtual && (
               <Grafico
                 titulo="Matriz de confusão"
+                detalhe="matrizConfusao"
+                tabela={{
+                  colunas: ["Real \\ Previsto", ...roteador.dominios],
+                  linhas: roteador.dominios.map((real) => [
+                    real,
+                    ...roteador.dominios.map(
+                      (prev) => matrizAtual.matriz_confusao[real]?.[prev] ?? 0,
+                    ),
+                  ]),
+                }}
                 ajuda="Cada linha é o domínio correto; cada coluna, o que o roteador previu. A diagonal verde são os acertos; as células vermelhas, os erros (por exemplo, uma mensagem de vendas classificada como agendamento). Quanto mais forte a cor, mais casos."
               >
                 <MapaCalor dominios={roteador.dominios} matriz={matrizAtual.matriz_confusao} />
@@ -425,6 +595,11 @@ function SecaoRag({ rag }: { rag: DadosRag | null | undefined }) {
           <div className="grid gap-6 md:grid-cols-2">
             <Grafico
               titulo="Distribuição das notas"
+              detalhe="distribuicaoNotas"
+              tabela={{
+                colunas: ["Nota", "Perguntas"],
+                linhas: Object.entries(rag.distribuicao_notas),
+              }}
               ajuda={`Quantas perguntas receberam cada nota do juiz (um LLM que compara a resposta com o gabarito), de 1 (errada ou inútil) a 5 (correta, relevante e fundamentada na fonte). ${pct4e5}% das perguntas ficaram em 4 ou 5; as notas 1 e 2 são as falhas.`}
               className="h-56"
             >
@@ -445,6 +620,14 @@ function SecaoRag({ rag }: { rag: DadosRag | null | undefined }) {
             </Grafico>
             <Grafico
               titulo="Nota média por dificuldade"
+              detalhe="dificuldade"
+              tabela={{
+                colunas: ["Dificuldade", "Nota média"],
+                linhas: rag.por_dificuldade.map((d) => [
+                  d.dificuldade,
+                  d.nota_media?.toFixed(2) ?? null,
+                ]),
+              }}
               ajuda="Nota média do juiz (1 a 5) por faixa de dificuldade da pergunta. Barras parecidas indicam que o sistema não piora muito em perguntas mais difíceis."
               className="h-56"
             >
@@ -495,6 +678,11 @@ function SecaoEtapa7({ etapa7 }: { etapa7: DadosEtapa7 | null | undefined }) {
           <div className="grid gap-6 md:grid-cols-2">
             <Grafico
               titulo="Fonte correta: antes × depois"
+              detalhe="etapa7Fonte"
+              tabela={tabelaDeIc(
+                etapa7.bracos.map((b) => comIc(b.rotulo, b.fonte_correta_ic)),
+                "Fonte correta",
+              )}
               ajuda="Porcentagem de perguntas em que o documento certo foi recuperado, antes (MiniLM, chunks de 800 caracteres) e depois (bge-m3, 768 tokens, top_k 5). A barra preta é o intervalo de confiança de 95%: sem sobreposição, a melhora é real."
               className="h-64"
             >
@@ -518,6 +706,15 @@ function SecaoEtapa7({ etapa7 }: { etapa7: DadosEtapa7 | null | undefined }) {
             </Grafico>
             <Grafico
               titulo="Nota e recusas indevidas"
+              detalhe="etapa7Nota"
+              tabela={{
+                colunas: ["Configuração", "Nota média", "Recusas indevidas"],
+                linhas: etapa7.bracos.map((b) => [
+                  b.rotulo,
+                  b.nota_media.toFixed(2),
+                  b.recusas_indevidas,
+                ]),
+              }}
               ajuda="Em verde, a nota média do juiz (1 a 5). Em vermelho, quantas respostas disseram “não encontrei” mesmo havendo a resposta no corpus: a busca antiga falhava e o modelo desistia; a nova reduz muito isso."
               className="h-64"
             >
@@ -543,6 +740,7 @@ function SecaoEtapa7({ etapa7 }: { etapa7: DadosEtapa7 | null | undefined }) {
           </div>
           <Grafico
             titulo="Resumo numérico"
+            detalhe="resumoEtapa7"
             ajuda="Os valores dos dois gráficos acima, mais a recusa correta nas perguntas sem resposta no corpus e a latência de geração (média / p95)."
           >
             <table className="w-full text-sm">
@@ -591,6 +789,15 @@ function SecaoChunkSize({ chunk_size }: { chunk_size: DadosChunkSize | null | un
       ) : (
         <Grafico
           titulo="Recuperação por tamanho de chunk"
+          detalhe="chunkSize"
+          tabela={{
+            colunas: ["chunk_size (tokens)", "nDCG@10", "Recall@5"],
+            linhas: chunk_size.pontos.map((p) => [
+              p.chunk_size,
+              p.ndcg_10 != null ? `${pct(p.ndcg_10)}%` : null,
+              p.recall_5 != null ? `${pct(p.recall_5)}%` : null,
+            ]),
+          }}
           ajuda="Chunk é o pedaço de texto em que cada documento é dividido para a busca. nDCG@10 (azul): o documento certo aparece bem posicionado entre os 10 primeiros. Recall@5 (verde): o documento certo está entre os 5 primeiros. Curvas altas e planas indicam que o tamanho importa pouco."
           className="h-64"
         >
@@ -629,12 +836,14 @@ function SecaoInjecao({ injecao }: { injecao: DadosInjecao | null | undefined })
         <div className="space-y-4">
           <BarrasComIc
             titulo="Resistência por modelo"
+            detalhe="injecaoResistencia"
             ajuda="Porcentagem de ataques de prompt injection que o modelo resistiu (não obedeceu à instrução maliciosa), para o modelo local e o externo. A barra preta é o intervalo de confiança de 95%. Maior é melhor."
             rotulo="Resistência"
             dados={injecao.clientes.map((c) => comIc(c.cliente, c.resistencia))}
           />
           <Grafico
             titulo="Casos por categoria"
+            detalhe="injecaoCategorias"
             ajuda="Injeção direta: a instrução maliciosa está na própria mensagem do usuário. Injeção indireta via RAG: ela está escondida num documento recuperado. “Comprometidos” é quantas vezes o modelo obedeceu ao ataque; menos é melhor."
           >
             <table className="w-full text-sm">
