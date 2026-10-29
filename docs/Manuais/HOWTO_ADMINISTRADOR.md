@@ -411,7 +411,7 @@ Painel de **Gestão de Pedidos & Conversão** (menu ⚙️, só Admin). Mostra o
 
 Tela de apoio ao experimento da Fase 10 (fora do assistente): mostra o progresso dos cinco conjuntos de teste (roteador, RAG documentos, imagem, banco e injeção), a **fila de revisão** (um item por vez; `A` aprova, `D` descarta, e editar qualquer campo grava a decisão como `corrigido`) e o disparo das tarefas longas (ingestão, geração de conjuntos, benchmark) com log em tempo real. Só uma tarefa de cada tipo roda por vez. O que cada conjunto mede e o roteiro completo: `docs/EVALUATION.md`.
 
-> Os resultados da avaliação aparecem na página pública `/avaliacao` (sem login).
+> Os resultados da avaliação aparecem na página pública `/avaliacao` (sem login). Cada gráfico tem um badge **i** (explicação rápida ao passar o mouse) e um badge **+** (modal com a tabela de origem, o motivo, a relevância e como o projeto chegou à conclusão); o botão **Trajetória completa do experimento**, no topo, conta a história inteira da avaliação.
 
 ---
 

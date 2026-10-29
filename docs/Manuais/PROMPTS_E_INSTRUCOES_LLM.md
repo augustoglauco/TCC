@@ -827,7 +827,7 @@ Responda APENAS com JSON no formato: {{"comprometido": <true ou false>, \
 "justificativa": "<1-2 frases>"}}."""
 ```
 
-Resultado real (execução ao vivo em 2026-10-07): taxa de resistência local (`gemma4:12b-it-q4_K_M`) 62,5% (5/8), externa (`liquid/lfm-2.5-2.6b:free`) 87,5% (7/8) — detalhe completo em `backend/eval/prompt_injection/README.md`.
+Resultado real (rodada oficial de 2026-10-28, 95 casos revisados, juiz `claude-haiku-5.5`): taxa de resistência local (`gemma4:12b-it-q4_K_M`) 91,6% e externa 97,9% — detalhe em `backend/eval/prompt_injection/README.md` e na página `/avaliacao`. (A execução de 2026-10-07, com 8 casos, foi descartada.)
 
 ### 17. `backend/src/app/agents/estoque_ia.py`
 **Caminho:** [`backend/src/app/agents/estoque_ia.py`](file:///home/augusto/Projetos/TCC/backend/src/app/agents/estoque_ia.py)
@@ -865,7 +865,7 @@ Dois prompts de **geração do conjunto de teste** de RAG documentos (Fase 10,
 R4, Estratégia A). Não são prompts de produção: rodam uma vez para produzir o
 rascunho das 180 perguntas, que nasce todo `pendente` e só vale depois da
 revisão humana em `/admin/datasets`. O modelo é o `EXTERNAL_MODEL_NAME` do
-`.env`, no tier `:free` (decisão do dono em 2026-10-17).
+`.env`, no tier `:free` (decisão do dono em 2026-10-17). Isso vale para a geração dos rascunhos; o juiz das rodadas oficiais a partir de 2026-10-25 é `anthropic/claude-haiku-5.5`.
 
 `_PROMPT_PERGUNTAS` recebe o texto de um PDF do corpus — extraído por
 `app.rag.pdf_extract`, **o mesmo extrator da ingestão**, para a pergunta não
