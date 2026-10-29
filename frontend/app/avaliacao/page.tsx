@@ -43,7 +43,7 @@ function Secao({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+    <section className="relative rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <h2 className="text-lg font-semibold text-gray-900">{titulo}</h2>
       <p className="mb-4 text-sm text-gray-600">{descricao}</p>
       {children}
@@ -63,7 +63,7 @@ function Vazio({ comando }: { comando: string }) {
 /** Badge "i": o balão com a explicação abre ao passar o mouse ou ao focar (teclado). */
 function Info({ texto }: { texto: string }) {
   return (
-    <span className="group relative ml-2 inline-flex align-middle">
+    <span className="group ml-2 inline-flex align-middle">
       <button
         type="button"
         aria-label="Sobre este gráfico"
@@ -73,7 +73,7 @@ function Info({ texto }: { texto: string }) {
       </button>
       <span
         role="tooltip"
-        className="pointer-events-none invisible absolute left-0 top-6 z-20 w-72 max-w-[80vw] rounded-md bg-gray-900 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-white opacity-0 shadow-lg group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
+        className="pointer-events-none invisible absolute right-4 z-20 mt-6 w-72 max-w-[80vw] rounded-md bg-gray-900 p-3 text-left text-xs font-normal normal-case leading-relaxed tracking-normal text-white opacity-0 shadow-lg group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100"
       >
         {texto}
       </span>
