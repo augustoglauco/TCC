@@ -18,7 +18,7 @@ export const TRAJETORIA: Capitulo[] = [
   {
     titulo: "2. Os conjuntos de teste",
     paragrafos: [
-      "O corpus são os manuais do fornecedor (ControlId), com 667.291 caracteres úteis. Os rascunhos de perguntas foram gerados a partir do texto dos PDFs e revisados um a um pelo dono em /admin/datasets (aprovar, corrigir ou descartar). Os descartados ficam no arquivo mas não entram em nenhum número.",
+      "O corpus são os manuais do fornecedor (ControlId), com 667.291 caracteres úteis. As perguntas de RAG vêm dos próprios documentos. As primeiras foram rascunhadas por um gerador automático (modelo pequeno do nível gratuito), que só produzia perguntas fáceis e sem citar o produto. Por isso as de dificuldade média e difícil (reforço de 123) e as sem resposta no corpus foram escritas pelo assistente (Claude) lendo os PDFs, cada uma com o trecho de origem conferido contra o texto extraído. Todas passaram pela revisão do dono em /admin/datasets (aprovar, corrigir ou descartar). Os descartados ficam no arquivo mas não entram em nenhum número.",
       "O gabarito do RAG de documentos é ponderado pelo volume de texto de cada produto: cota igual por pasta geraria perguntas artificiais. Há também perguntas sem resposta no corpus, para medir se o assistente admite que não sabe.",
     ],
     tabela: {
@@ -28,7 +28,7 @@ export const TRAJETORIA: Capitulo[] = [
         [
           "RAG documentos",
           "252 (226 com resposta + 26 sem); as rodadas usam 222 + 26",
-          "rascunho a partir dos PDFs + revisão",
+          "gerador automático (fáceis) + escritas pelo assistente a partir dos PDFs (média/difícil e sem resposta) + revisão do dono",
         ],
         ["RAG imagem", "72 (23 positivos + 49 negativos)", "nome da pasta do fornecedor"],
         ["RAG banco", "80", "template a partir das linhas do banco"],
