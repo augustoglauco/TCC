@@ -2368,8 +2368,9 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
 
 ## Fase 11 — Preparação da Entrega
 
-- [ ] Revisar todos os 12 requisitos funcionais contra o que foi de fato
-      implementado (checklist final)
+- [x] Revisar todos os 12 requisitos funcionais contra o que foi de fato
+      implementado (checklist final) — feito em 2026-10-29 (13 requisitos,
+      todos atendidos; tabela em `docs/ARCHITECTURE.md` §3)
 - [ ] Atualizar `docs/ARCHITECTURE.md`, `docs/FRONTEND.md` e este roadmap com
       o estado final do protótipo
 - [ ] Preparar demonstração cobrindo os quatro domínios + agendamento + MCP

@@ -165,6 +165,31 @@ são resolvidos, no protótipo, pela combinação de LLM e RAG (textos, PDFs,
 manuais, crawler do site), sem uma camada de ação dedicada — abrir/acompanhar
 chamados via ticketing é evolução futura (ver Seção 6 e `docs/ROADMAP.md`).
 
+**Checklist final contra o implementado (revisão de 2026-10-29, Fase 11).**
+Suítes na data: backend 1236 passed / 2 skipped; frontend 728 passed (101
+arquivos). Os requisitos são 13 (R13 entrou depois do texto original da
+Fase 11, que falava em 12).
+
+| # | Status | Onde está / evidência |
+| --- | --- | --- |
+| R1 | Atendido | Ollama com `gemma4:12b-it-q4_K_M` (`router/ollama_client.py`, `num_ctx` 8192); benchmark de 4 modelos locais em GPU 16 GB (`eval/model_benchmark`) |
+| R2 | Atendido | texto/imagem em `api/chat.py` + `api/uploads.py`; áudio via `stt/whisper_client.py` |
+| R3 | Atendido | `router/classifier.py` + `router/orchestrator.py`; local x externo via `llm_client.py`/`openrouter_client.py`; acurácia medida em `/avaliacao` |
+| R4 | Atendido | RAG de texto/PDF/site/BD/imagem em `rag/` (`ingest`, `crawler*`, `db_connector`, `clip_embedder`, `image_search`); avaliação experimental concluída (Fase 10) |
+| R5 | Atendido | `stt/whisper_client.py`, testes `test_stt_whisper_client.py` |
+| R6 | Atendido | dirigido: `ocr/image_processor.py` + `ComprovanteEvaluator`; espontâneo: `rag/image_identification.py` com fallback externo |
+| R7 | Atendido | quatro domínios em `router/playbooks.py`; `test_integration_domains.py` |
+| R8 | Atendido | `router/tone_monitor.py` → transbordo (`atendimento_service`, `/admin/atendimento`) |
+| R9 | Atendido | `memory/store.py` e `memory/resumo.py` (id único da conversa e resumo para retomada) |
+| R10 | Atendido | `user_profile/classificacao.py` (Cliente / Lead / Esporádico) |
+| R11 | Atendido | `router/scheduling.py` + `mcp_client/google_calendar.py`; `/admin/agendamentos` |
+| R12 | Atendido | `mcp_server/b2b.py` (catálogo, estoque, preços, manuais, compatibilidade, frete, cotação, reserva, conversão); cliente `cliente-b2b/` |
+| R13 | Atendido | `agents/estoque_preditivo.py`, e-mail e caixa de mensagens (`api/admin_mensagens.py`) |
+
+Limitações que continuam declaradas (não são lacunas de requisito): MCP B2B
+com chave estática por parceiro, sem ticketing externo e sem CRM (ver Seção 5
+e `docs/ROADMAP.md`, "Fora de escopo").
+
 ## 4. Fluxos de decisão: imagem e monitoramento de tom
 
 **(a) Tratamento de imagem:** imagem recebida → o sistema **solicitou** um
