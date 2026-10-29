@@ -28,6 +28,16 @@ por isso este diretório não tem `results.json`.
   Tenta de novo com backoff exponencial (até 4 tentativas) quando o
   OpenRouter devolve 429.
 
+## Comparar ingestões do mesmo conteúdo (PDF x `.md`)
+
+A comparação de fonte (`fonte_correta` e as métricas de `eval/rag_ingestion/`)
+ignora a extensão (`.pdf`, `.md`, `.txt`) e maiúsculas: um documento tratado e
+ingerido como `idtouch-manual.md` acerta o gabarito `idtouch-manual.pdf`. Os
+nomes só precisam coincidir até a extensão; se o tratamento renomear ou fundir
+arquivos, mapeie os novos nomes em `documentos_aceitos`. Rode as duas coleções
+com as mesmas perguntas (`--collection <nome>`) e compare com McNemar/Wilcoxon
+pareados, como na Etapa 7.
+
 ## Reproduzir
 
 ```bash

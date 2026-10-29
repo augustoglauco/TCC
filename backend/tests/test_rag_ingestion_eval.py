@@ -715,3 +715,14 @@ def test_carregador_ensaio_ainda_corta_pendente_com_trecho_que_nao_confere(conju
     dataset, auditoria = conjunto
     r = carregar_dataset(dataset, incluir_pendentes=True, auditoria=auditoria)["relatorio"]
     assert r["cortes"]["trecho_nao_confere"] == 1
+
+
+def test_fonte_ignora_a_extensao_pdf_x_md():
+    """Ingestão tratada (`.md`) acerta o gabarito escrito com o nome do `.pdf`."""
+    metricas = _carregar("metricas")
+    aceitas = {"idtouch-manual.pdf"}
+    assert metricas.acerta_fonte("idtouch-manual.md", aceitas)
+    assert metricas.acerta_fonte("IDTouch-Manual.PDF", aceitas)
+    assert not metricas.acerta_fonte("idtouch-manual-v2.md", aceitas)
+    assert metricas.recall_at_k(["outro.md", "idtouch-manual.md"], aceitas, 2) == 1.0
+    assert metricas.ndcg_at_k(["idtouch-manual.md"], aceitas, 10) == pytest.approx(1.0)

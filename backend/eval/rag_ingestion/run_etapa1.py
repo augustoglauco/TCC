@@ -57,7 +57,12 @@ from dataset import (  # noqa: E402
     descrever,
     rotulo_dataset,
 )
-from metricas import ResultadoPergunta, avaliar_conjunto, deduplicar_com_score  # noqa: E402
+from metricas import (  # noqa: E402
+    ResultadoPergunta,
+    acerta_fonte,
+    avaliar_conjunto,
+    deduplicar_com_score,
+)
 
 from app.config import get_settings  # noqa: E402
 from app.db.engine import create_db_engine, create_session_factory  # noqa: E402
@@ -217,7 +222,7 @@ async def medir(collection, qdrant, embedder, perguntas, args) -> tuple[list, li
                 "acertou": (
                     resultado.acertou_negativa
                     if resultado.negativa
-                    else bool(aceitas & set(fontes))
+                    else any(acerta_fonte(f, aceitas) for f in fontes)
                 ),
             }
         )

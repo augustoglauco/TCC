@@ -26,6 +26,7 @@ fica mais calado e quando fica mais acertivo, sem distinguir os dois.
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import dataclass
 
 
@@ -64,6 +65,19 @@ def aplicar_threshold(
     return fontes[:top_k] if top_k is not None else fontes
 
 
+_EXTENSOES_DOCUMENTO = re.compile(r"\.(pdf|md|txt)$")
+
+
+def chave_fonte(nome: str) -> str:
+    """Identidade de um documento sem a extensão: o mesmo conteúdo em `.pdf`
+    e em `.md` (ingestão tratada) conta como a mesma fonte."""
+    return _EXTENSOES_DOCUMENTO.sub("", re.sub(r"\s+", " ", nome.lower()).strip())
+
+
+def acerta_fonte(fonte: str, aceitas: set[str]) -> bool:
+    return chave_fonte(fonte) in {chave_fonte(a) for a in aceitas}
+
+
 def recall_at_k(recuperadas: list[str], aceitas: set[str], k: int) -> float:
     """1.0 se alguma fonte aceita está entre as `k` primeiras, senão 0.0.
 
@@ -75,13 +89,13 @@ def recall_at_k(recuperadas: list[str], aceitas: set[str], k: int) -> float:
         raise ValueError("k deve ser positivo")
     if not aceitas:
         raise ValueError("recall_at_k não se aplica a caso negativo (aceitas vazio)")
-    return 1.0 if any(f in aceitas for f in recuperadas[:k]) else 0.0
+    return 1.0 if any(acerta_fonte(f, aceitas) for f in recuperadas[:k]) else 0.0
 
 
 def posicao_do_primeiro_acerto(recuperadas: list[str], aceitas: set[str]) -> int | None:
     """Posição 1-indexada da primeira fonte aceita, ou `None` se não houver."""
     for posicao, fonte in enumerate(recuperadas, start=1):
-        if fonte in aceitas:
+        if acerta_fonte(fonte, aceitas):
             return posicao
     return None
 
@@ -113,7 +127,7 @@ def ndcg_at_k(recuperadas: list[str], aceitas: set[str], k: int = 10) -> float:
     dcg = sum(
         1.0 / math.log2(posicao + 1)
         for posicao, fonte in enumerate(recuperadas[:k], start=1)
-        if fonte in aceitas
+        if acerta_fonte(fonte, aceitas)
     )
     idcg = sum(1.0 / math.log2(posicao + 1) for posicao in range(1, min(len(aceitas), k) + 1))
     return dcg / idcg if idcg else 0.0

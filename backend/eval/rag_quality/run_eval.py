@@ -234,7 +234,9 @@ def _normalizar_nome_arquivo(nome: str) -> str:
     # nome usado no gabarito (`dataset.json`) — comparação ingênua marcava
     # falso negativo em "fonte_correta" mesmo quando o documento certo foi
     # de fato recuperado. Colapsa espaços antes de comparar.
-    return re.sub(r"\s+", " ", nome.lower()).strip()
+    # Sem a extensão: o mesmo conteúdo ingerido em `.md` (tratado) acerta o
+    # gabarito escrito com o nome do `.pdf`.
+    return re.sub(r"\.(pdf|md|txt)$", "", re.sub(r"\s+", " ", nome.lower()).strip())
 
 
 async def _julgar_recusa(
