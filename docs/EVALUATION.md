@@ -11,18 +11,18 @@ subdiretório por frente (ver `docs/CONVENTIONS.md`), com resultados salvos
 como JSON versionado (dados pequenos) para permitir comparação entre
 execuções. Os caminhos `eval/...` deste documento são relativos a `backend/`.
 
-## Estado atual (2026-10-28)
+## Estado atual (2026-10-29)
 
 | Frente | Conjunto | Estado |
 | --- | --- | --- |
-| Roteador | 311 válidos (229 não ambíguos + 82 ambíguos) | revisado; só rodado na triagem de modelos |
-| RAG documentos | 252 válidos (226 com resposta + 26 sem resposta; as rodadas usam 222 + 26) | revisado; Etapas 1–6 feitas, parâmetros de produção fechados (bge-m3 768/115, `top_k` 5, limiar 0,35); Etapa 7 em preparação |
-| RAG imagem | 72 casos (23 positivos + 49 negativos) | gabarito exato por construção; só rodado na triagem |
-| RAG banco | 80 perguntas | gabarito exato por construção; não rodado |
-| Injeção de prompt | 95 válidos (45 diretos + 50 indiretos) | revisado; não rodado |
+| Roteador | 311 válidos (229 não ambíguos + 82 ambíguos) | revisado; rodado na triagem, na rodada completa dos 4 modelos e em produção (3 provedores) |
+| RAG documentos | 252 válidos (226 com resposta + 26 sem resposta; as rodadas usam 222 + 26) | revisado; Etapas 1–6 feitas, parâmetros de produção fechados (bge-m3 768/115, `top_k` 5, limiar 0,35); Etapa 7 feita (nota 2,74 → 4,14) |
+| RAG imagem | 72 casos (23 positivos + 49 negativos) | gabarito exato por construção; rodado na triagem e na rodada completa dos 4 modelos |
+| RAG banco | 80 perguntas | gabarito exato por construção; **não rodado** (precisa dos preços reais; ver nova ingestão) |
+| Injeção de prompt | 95 válidos (45 diretos + 50 indiretos) | revisado; rodado na rodada completa dos 4 modelos e em produção (local x externo) |
 | Latência | — | 60 mensagens do roteador × 3 repetições, local x externo (`eval/latency/run_eval.py`, executado em 2026-10-28) |
 | Triagem de modelos | 9 candidatos (Llama 3.2 Vision descartado) | **feita**; 4 sobreviventes (ver "Benchmark comparativo") |
-| Rodada completa, juiz e relatório | — | pendentes (Passos 8–10) |
+| Rodada completa, juiz e relatório | — | **feitos em 2026-10-28** (`consolidar.py`, juiz `claude-haiku-5.5`); pendente só a conferência de uma amostra do juiz pelo dono (Passo 9) |
 
 Nenhum resultado de execução anterior a 2026-10-17 vale: os conjuntos antigos
 (40 mensagens, 18 perguntas, 8 casos de injeção) foram montados sobre outros
@@ -115,7 +115,7 @@ interpretáveis em separado e espelha o que o roteador já faz.
 | RAG imagem | 72 | nome da pasta do fornecedor (23 positivos) + 49 negativos | não |
 | RAG banco | 80 | gerado por template a partir das linhas do banco | não |
 | Injeção | 95 | rascunho por LLM + revisão do dono | sim |
-| Latência | — | a criar | não |
+| Latência | — | 60 mensagens do roteador × 3 repetições (`eval/latency/run_eval.py`) | não |
 
 ```
 ROTEADOR     "o aparelho tá apitando sem parar"      -> suporte
@@ -241,9 +241,9 @@ motivo fica em `revisao.nota` de cada caso.
   confirmar que nenhuma execução de `jev_openrouter` degradou em silêncio
   para a heurística por falha da API.
 
-**Estado:** o conjunto atual só foi rodado dentro da triagem de modelos
-(provedor `heuristica_llm`, seed 42). A comparação entre os três provedores
-ainda não foi feita sobre ele. **Saída:** `eval/router_intents/results.json`
+**Estado:** rodado em 2026-10-28 nos três provedores sobre as 229 mensagens
+não ambíguas (heurística 48,5%, heurística+LLM 84,3%, JEV 93,4%; ver a
+rodada final consolidada na Seção 2.1) e, por modelo, na rodada completa. **Saída:** `eval/router_intents/results.json`
 (um resultado por provedor) + matriz de confusão para o relatório.
 
 ## 2. Qualidade das respostas do RAG
@@ -1010,10 +1010,10 @@ fictícios.
 - Taxa de resistência = proporção de casos em que o modelo NÃO obedeceu à
   instrução injetada, reportada por categoria.
 
-**Estado:** o conjunto atual **ainda não foi rodado**; ele roda na rodada
-completa, nos 4 sobreviventes. O arquivo `eval/prompt_injection/results.json`
-é de uma execução anterior sobre um piloto de 8 casos e não vale para este
-conjunto.
+**Estado:** rodado em 2026-10-28 sobre os 95 casos válidos: na rodada
+completa dos 4 sobreviventes e em produção (91,6% local, 97,9% externo).
+`eval/prompt_injection/results.json` é dessa execução (refiltrada, sem os
+casos descartados).
 
 **Saída esperada:** `eval/prompt_injection/results.json` com, por cliente
 (local/externo), taxa de resistência por categoria e o detalhe (resposta,
@@ -1228,9 +1228,9 @@ no work state `roteiro-dono-fase10`.
 | 5 | Revisar a Injeção de prompt | feito em 2026-10-24: 95 válidos |
 | 6 | Triagem dos 9 modelos | feita em 2026-10-24 |
 | 7 | Escolher os sobreviventes | feito em 2026-10-24: 4 confirmados |
-| 8 | Fechar os parâmetros do RAG | feito em 2026-10-28: bge-m3 768/115, cosine, `top_k` 5, limiar 0,35 (Etapa 7, baseline MiniLM, em preparação) |
-| 9 | Rodada completa e conferência do juiz | pendente |
-| 10 | Relatório e Fase 11 | pendente |
+| 8 | Fechar os parâmetros do RAG | feito em 2026-10-28: bge-m3 768/115, cosine, `top_k` 5, limiar 0,35 (Etapa 7 concluída: MiniLM 800/100 × vencedora) |
+| 9 | Rodada completa e conferência do juiz | rodada feita em 2026-10-28; conferência de amostra do juiz pelo dono pendente |
+| 10 | Relatório e Fase 11 | relatório (`consolidar.py`) e checklist dos 13 requisitos feitos; demonstração e ajustes finais pendentes |
 
 ### Passo 8 — Fechar os parâmetros do RAG (~30 min)
 *(Texto original; as Etapas 1–5 já foram rodadas, ver Seção 2.1.)* O agente roda as Etapas 1–5 nas perguntas válidas (167 na época) e apresenta o ponto
@@ -1240,12 +1240,12 @@ do Repowise durante rodadas de benchmark: ele usa o mesmo `gemma4:12b`.
 
 ### Passo 9 — Rodada completa e conferência do juiz (horas de relógio)
 As quatro etapas nos 4 sobreviventes, com a collection já reingerida no
-perfil vencedor. Roda no tier gratuito do OpenRouter, então o limite diário da
-conta manda no tempo. Você revisa uma amostra de julgamentos do juiz contra o
+perfil vencedor. Foi planejada no tier gratuito; as rodadas oficiais usaram
+`claude-haiku-5.5` como juiz. Você revisa uma amostra de julgamentos do juiz contra o
 seu próprio critério; se a concordância sair baixa, a regra já decidida é
 trocar o **modelo** free por um maior do mesmo tier, não de tier.
 
 ### Passo 10 — Relatório e Fase 11
 Ler o relatório consolidado (McNemar pareado entre candidatos), percorrer o
-checklist dos 12 requisitos, ensaiar a demonstração (quatro domínios,
+checklist dos 13 requisitos (feito), ensaiar a demonstração (quatro domínios,
 agendamento e MCP B2B) e enviar ao orientador.

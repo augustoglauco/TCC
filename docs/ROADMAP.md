@@ -1508,7 +1508,7 @@ conversa e classificação do usuário").
 > mais** e ficam como histórico de método, não como resultado; os
 > resultados vigentes estão só em `docs/EVALUATION.md`.
 
-- [ ] Rodar a avaliação comparativa entre as 9 configurações de modelo local
+- [x] Rodar a avaliação comparativa entre as 9 configurações de modelo local
       candidatas (Qwen2.5-VL 7B/3B Instruct; Qwen3.5 9B Q4_K_M; DeepSeek-R1-Distill-Llama-8B Q8_0; Qwen3.5 9B Defiant Fable MTP; Phi-4-mini-instruct BF16; Gemma-3-Gaia-PT-BR 4B F16; Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL — ver
       `docs/ARCHITECTURE.md` tabela de escopo), medindo custo/latência e
       qualidade de resposta **contra o sistema completo** (RAG real da Fase 2,
@@ -1519,7 +1519,7 @@ conversa e classificação do usuário").
       sinal incompleto. Resultado: escolha do `LOCAL_MODEL_NAME` final.
       Os candidatos foram baixados no Ollama (Llama 3.2 Vision foi descartado
       em 2026-10-24: não carrega no Ollama 0.30.6); a triagem mediu os 9 e deixou 4
-      sobreviventes — a rodada completa neles segue pendente. `# MVP: primeira chamada após trocar de modelo tem
+      sobreviventes — a rodada completa neles foi feita em 2026-10-28 (resultado em `docs/EVALUATION.md`, Seção 2.1). `# MVP: primeira chamada após trocar de modelo tem
       custo de carga (cold start) bem maior que chamadas subsequentes —
       verificado empiricamente (~13s incluindo load vs. resposta quase
       imediata com modelo já quente); o script de benchmark deve descartar
@@ -1610,7 +1610,7 @@ conversa e classificação do usuário").
       o `chunk_size` real (requer recriar `docs_texto` e reingerir tudo)
       fica para quando o desenvolvedor decidir, não automática aqui.
       Detalhes em `backend/eval/rag_quality/README.md`.
-- [ ] **Otimização dos parâmetros de ingestão do RAG** (Fase 10, decidida
+- [x] **Otimização dos parâmetros de ingestão do RAG** (Etapas 0–7 concluídas em 2026-10-28) (Fase 10, decidida
       pelo dono em 2026-10-17 entre três recortes; escolhido "Etapas 0–5 +
       6(a) + 7"). Plano completo em `docs/EVALUATION.md` Seção 2.1; as duas
       decisões de arquitetura que ele exige estão em
@@ -1935,7 +1935,7 @@ conversa e classificação do usuário").
 - [x] Medir latência (média e p95) do modelo local (configuração vencedora
       da comparação acima) x modelo externo para o mesmo conjunto de prompts
       (executado em 2026-10-28: `eval/latency/results.json`)
-- [ ] Consolidar os resultados das quatro avaliações em um relatório curto
+- [x] Consolidar os resultados das quatro avaliações em um relatório curto
       para apresentação ao orientador (`eval/model_benchmark/consolidar.py`
       gera a tabela e o McNemar entre pares; pronto em 2026-10-28)
 - [ ] **Estratégia A de medição** (escolhida pelo dono em 2026-10-16 entre
@@ -2091,9 +2091,9 @@ conversa e classificação do usuário").
           denominador estragaria as duas medidas e derrubaria a taxa de fonte
           correta por construção. `app.api.avaliacao._rag` continua lendo
           `casos` sem mudança.
-    - [ ] Expor a taxa de alucinação na página pública `/avaliacao`: o
-          `results.json` já grava `casos_sem_resposta` e `resumo`, mas o
-          endpoint e o gráfico ainda não mostram
+    - [x] Expor a taxa de alucinação na página pública `/avaliacao`: o
+          endpoint devolve `rag.sem_resposta` e a página mostra os cartões
+          de recusa e de resposta inventada (feito em 2026-10-28)
     - [x] Geradores dos outros quatro conjuntos (roteador 300, imagem 103,
           *(Feitos: roteador 311, imagem 72, banco 80, injeção 95 — números finais em `docs/EVALUATION.md`, que substituem as metas deste item.)*
           banco 80, injeção 100) — mesmo padrão, ainda não escritos
@@ -2151,7 +2151,7 @@ conversa e classificação do usuário").
         Determinístico: duas execuções dão o mesmo conjunto.
   - [x] Injeção: **100 casos** (50 diretos + 50 indiretos)
         *(Estado real: 95 válidos, 45 diretos + 50 indiretos, revisados; ainda não rodados.)*
-  - [ ] Relatar comparação entre candidatos com **McNemar pareado** (todos
+  - [x] Relatar comparação entre candidatos com **McNemar pareado** (todos
         respondem aos mesmos itens), e IC de Wilson só para descrever cada
         um isoladamente
 - [x] O dono precisa entregar três coisas, e só estas: **30 fotos

@@ -15,8 +15,8 @@ verdade única.
 raiz do workspace) antes de propor ou implementar qualquer mudança:
 
 - `CLAUDE.md` — o "como trabalhar aqui" (regras 1–12). Leia por completo.
-- `docs/ARCHITECTURE.md` — arquitetura completa, os 12 requisitos funcionais
-  (R1–R12), escopo do MVP x evolução futura, riscos conhecidos.
+- `docs/ARCHITECTURE.md` — arquitetura completa, os 13 requisitos funcionais
+  (R1–R13), escopo do MVP x evolução futura, riscos conhecidos.
 - `docs/ROADMAP.md` — próxima tarefa a implementar e progresso (checklist por
   fase).
 - `docs/CONVENTIONS.md` — stack (Python/FastAPI + Next.js), estrutura de

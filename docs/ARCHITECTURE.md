@@ -1161,7 +1161,7 @@ escopo do MVP, 2026-10-13):** a área administrativa ganhou
 `/admin/ferramentas`, que reúne Graphify, Repowise e GitNexus — as três
 ferramentas de inteligência de código usadas no desenvolvimento deste TCC.
 Pedido explícito do dono do projeto; **não** é parte do assistente nem de
-nenhum dos 12 requisitos funcionais, e está registrada como item "Extra fora
+nenhum dos 13 requisitos funcionais, e está registrada como item "Extra fora
 do MVP" em `docs/ROADMAP.md`. Três decisões de implementação valem registro:
 (1) a verificação de "a ferramenta está no ar?" é feita no backend
 (`app.api.admin_ferramentas.sondar_servidor`, timeout de 1,5s), porque do

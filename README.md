@@ -217,7 +217,7 @@ O progresso é estruturado em fases sequenciais conforme documentado em [`docs/R
 - [x] **Fase 8 — Frontend: Widget de Chat Multimodal**
 - [x] **Fase 9 — Integração Ponta a Ponta e Robustez**
 - [~] **Fase 10 — Avaliação Experimental**: corpus ingerido, cinco conjuntos de teste revisados e triagem dos 9 modelos feita (4 finalistas). Parâmetros de ingestão do RAG: Etapas 0–5 e 6(a) concluídas (Etapa 6(a) como resultado negativo); pendente a Etapa 7 (confirmação com LLM-as-judge). Pendentes também: rodada completa nos finalistas, conjunto e medição de latência e o relatório consolidado.
-- [~] **Fase 11 — Preparação da Entrega**: revisão final dos 12 requisitos funcionais, atualização de documentação e demonstração ponta a ponta ainda pendentes.
+- [~] **Fase 11 — Preparação da Entrega**: revisão final dos 13 requisitos funcionais, atualização de documentação e demonstração ponta a ponta ainda pendentes.
 
 > Além das 12 fases do MVP original, diversos recursos extras foram entregues
 > a pedido explícito ao longo do projeto (ver `docs/ARCHITECTURE.md` §5 e
@@ -330,7 +330,7 @@ Para detalhes aprofundados sobre cada componente da solução, consulte a docume
 - 🏗️ [HOWTO_IMPLANTACAO_INFRA.md](docs/Manuais/HOWTO_IMPLANTACAO_INFRA.md) · 📅 [GUIA_TESTE_AGENDAMENTO.md](docs/Manuais/GUIA_TESTE_AGENDAMENTO.md) — Implantação da infraestrutura e roteiro de teste do agendamento (restaurados de versão anterior; `goup.md` e `TESTE_LOCAL.md` têm a versão conferida).
 
 ### 📐 Especificações Técnicas e Arquitetura
-- 📘 [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Visão geral da arquitetura, requisitos funcionais (R1–R12), fluxos de decisão e limitações.
+- 📘 [ARCHITECTURE.md](docs/ARCHITECTURE.md) — Visão geral da arquitetura, requisitos funcionais (R1–R13), fluxos de decisão e limitações.
 - 💻 [FRONTEND.md](docs/FRONTEND.md) — Especificação da interface Next.js, componentes do widget, rotas e contratos da API REST.
 - 🧪 [TESTE_LOCAL.md](docs/TESTE_LOCAL.md) — Teste na máquina do desenvolvedor (`./testar.sh`) e roteiros manuais.
 - 📏 [CONVENTIONS.md](docs/CONVENTIONS.md) — Stack (bibliotecas e versões), estrutura do monorepo, convenções de código Python/TypeScript, Git e testes.

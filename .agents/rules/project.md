@@ -13,7 +13,7 @@ dois MCPs — um consumido (Google Calendar) e um provido pela empresa
 deste workspace, são a fonte de verdade — leia-os antes de propor ou
 implementar qualquer mudança:
 
-- `docs/ARCHITECTURE.md` — arquitetura completa, os 12 requisitos
+- `docs/ARCHITECTURE.md` — arquitetura completa, os 13 requisitos
   funcionais, escopo do MVP x evolução futura, riscos conhecidos.
 - `docs/FRONTEND.md` — seções da interface (site + widget de chat), stack
   (Next.js) e contrato de API com o backend.
