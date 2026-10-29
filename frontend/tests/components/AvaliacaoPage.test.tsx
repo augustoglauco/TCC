@@ -371,6 +371,19 @@ describe("AvaliacaoPage — modal de detalhes dos gráficos", () => {
   });
 });
 
+describe("AvaliacaoPage — trajetória completa", () => {
+  it("o badge geral abre o modal com a trajetória do experimento", async () => {
+    vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue(DADOS_COMPLETOS);
+    render(<AvaliacaoPage />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: /Trajetória completa do experimento/ }),
+    );
+    const modal = await screen.findByRole("dialog");
+    expect(modal).toHaveTextContent("Os modelos iniciais e a eliminação");
+    expect(modal).toHaveTextContent("dois erros que viraram correção");
+  });
+});
+
 describe("AvaliacaoPage — RAG com nota_media null", () => {
   it("exibe '—' quando nota_media é null", async () => {
     vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue({

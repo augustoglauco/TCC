@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { Modal } from "@/components/ui/Modal";
 import { DETALHES } from "./detalhes";
+import { TRAJETORIA } from "./trajetoria";
 import { fetchResultadosAvaliacao, Proporcao, ResultadosAvaliacao } from "@/lib/api/avaliacao";
 
 // Uma cor por modelo no gráfico de dispersão (legenda + rótulo ao lado do ponto).
@@ -875,6 +876,78 @@ function SecaoInjecao({ injecao }: { injecao: DadosInjecao | null | undefined })
   );
 }
 
+/** Badge geral do cabeçalho: abre o modal com a trajetória do projeto, do plano inicial às conclusões. */
+function TrajetoriaCompleta() {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setAberto(true)}
+        className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
+      >
+        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-violet-600 text-[11px] leading-none text-white">
+          +
+        </span>
+        Trajetória completa do experimento
+      </button>
+      <Modal
+        open={aberto}
+        onOpenChange={setAberto}
+        title="Trajetória completa do experimento"
+        description="Do plano inicial às conclusões: modelos, testes, ajustes de método, prompts e pontuação"
+        size="3xl"
+      >
+        <div className="space-y-6 text-sm leading-relaxed text-gray-700">
+          {TRAJETORIA.map((c) => (
+            <section key={c.titulo}>
+              <h4 className="mb-2 text-base font-semibold text-gray-900">{c.titulo}</h4>
+              {c.paragrafos.map((p) => (
+                <p key={p} className="mb-2">
+                  {p}
+                </p>
+              ))}
+              {c.itens && (
+                <ul className="mb-2 list-disc space-y-1 pl-5">
+                  {c.itens.map((i) => (
+                    <li key={i}>{i}</li>
+                  ))}
+                </ul>
+              )}
+              {c.tabela && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-gray-500">
+                        {c.tabela.colunas.map((col) => (
+                          <th key={col} className="p-1.5">
+                            {col}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {c.tabela.linhas.map((l) => (
+                        <tr key={l[0]} className="border-t border-gray-100 align-top">
+                          {l.map((cel, j) => (
+                            <td key={j} className="p-1.5">
+                              {cel}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          ))}
+        </div>
+      </Modal>
+    </>
+  );
+}
+
 export default function AvaliacaoPage() {
   const [dados, setDados] = useState<ResultadosAvaliacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -904,6 +977,7 @@ export default function AvaliacaoPage() {
           de modelos locais. As barras de erro são intervalos de confiança de 95% (Wilson): se duas
           barras se sobrepõem, a diferença não é estatisticamente distinguível com essa amostra.
         </p>
+        <TrajetoriaCompleta />
       </header>
       <SecaoModelos modelos={modelos} />
       <SecaoRoteador roteador={roteador} provedor={provedor} onProvedor={setProvedor} />
