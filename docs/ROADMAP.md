@@ -2282,7 +2282,7 @@ conversa e classificação do usuário").
 
 Tela de apoio à condução do experimento da Fase 10, pedida pelo dono em
 2026-10-16. Não faz parte do assistente: serve para revisar os 763 itens da
-Estratégia A e disparar as tarefas longas sem ficar em terminal. O custo de
+Estratégia A (plano de 2026-10-16; os conjuntos válidos hoje somam 810: 311 roteador, 252 RAG documentos, 72 imagem, 80 banco e 95 injeção) e disparar as tarefas longas sem ficar em terminal. O custo de
 ~4,5 h de revisão humana de `docs/EVALUATION.md` Seção 0 pressupõe esta tela —
 revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
 
