@@ -2373,8 +2373,9 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       todos atendidos; tabela em `docs/ARCHITECTURE.md` §3)
 - [ ] Atualizar `docs/ARCHITECTURE.md`, `docs/FRONTEND.md` e este roadmap com
       o estado final do protótipo
-- [ ] Preparar demonstração cobrindo os quatro domínios + agendamento + MCP
-      B2B, usando a interface completa (site + widget de chat)
+- [~] Preparar demonstração cobrindo os quatro domínios + agendamento + MCP
+      B2B, usando a interface completa (site + widget de chat) — roteiro em
+      `docs/TESTE_LOCAL.md`; passos 3 e 4 aguardam a nova ingestão
 - [x] Achado da revisão de 2026-10-04 (ver `docs/ARCHITECTURE.md` §7):
       extraída a dependência compartilhada `require_admin`
       (`app.api.admin_auth`, antes duplicada como `_require_admin` em

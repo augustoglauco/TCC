@@ -112,3 +112,34 @@ reiniciar o backend): `goup.md`, "Solução de problemas e logs".
 
 `# MVP: roteiro de apoio ao teste manual, não avaliação experimental — a
 avaliação do TCC continua em eval/ (docs/EVALUATION.md).`
+
+## Roteiro de demonstração (Fase 11)
+
+Percurso único pela interface completa (site + widget), na ordem em que
+mostra cada requisito. Subir tudo com `./g.sh` (ver `goup.md`). Os passos 3 e 4
+usam o corpus e os preços — **pendentes da nova rodada de ingestão** (`.md`
+tratados, fotos pelas telas e preços reais); rever as perguntas de exemplo
+depois dela.
+
+1. **Site e catálogo** (`/`, produtos): mostrar a apresentação da empresa e o
+   catálogo; abrir o widget de chat.
+2. **Roteador e domínios (R3, R7):** uma pergunta de cada domínio (Vendas,
+   Suporte, Atendimento ao Usuário, Agendamento); o indicador de domínio
+   mostra a intenção e, no menu ⚙️ > Métricas, o modelo local x externo.
+3. **RAG de documentos (R4):** pergunta de suporte técnico respondida com
+   `[Fonte:]` e o card de download do manual. *(depende da nova ingestão)*
+4. **Imagem (R6):** enviar a foto de um produto (identificação) e, depois de o
+   assistente pedir, um comprovante (OCR + conversão de reserva).
+   *(identificação depende das fotos da nova ingestão)*
+5. **Áudio (R2, R5):** gravar uma pergunta e ver a transcrição entrar no chat.
+6. **Agendamento (R11):** pedir uma visita; conferir o evento no Google
+   Calendar (roteiro detalhado na seção anterior).
+7. **Tom e atendimento humano (R8):** escrever com frustração; a conversa vai
+   para a fila em `/admin/atendimento`, onde um atendente assume.
+8. **Memória e perfil (R9, R10):** reabrir a conversa e mostrar o resumo; em
+   `/admin`, a classificação Cliente / Lead / Esporádico.
+9. **MCP B2B (R12):** `cliente-b2b` (Streamlit) consultando estoque/preço e
+   reservando; ver `docs/Manuais/MANUAL_INTEGRACAO_MCP_B2B.md`.
+10. **Agente de estoque (R13):** após uma reserva, mostrar o aviso em
+    `/admin/mensagens`.
+11. **Resultados (Fase 10):** `/avaliacao` com os gráficos e os balões "i".
