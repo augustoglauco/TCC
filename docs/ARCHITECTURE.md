@@ -376,1621 +376,850 @@ Três decisões de escopo:
 
 R4 estabelece que o RAG deve buscar em BD, textos, PDFs, sites e banco de
 imagens — por isso, conector a BD relacional, crawler de sites e RAG
-multimodal sobre imagens são **obrigatórios no MVP**, não itens adiáveis, mas
-entram em versões simplificadas frente a uma versão de produção: o conector
-ao BD é somente leitura, sem sincronização incremental; o crawler navega de
-verdade a partir de uma URL semente informada pelo admin, com profundidade e
-teto de páginas parametrizáveis por execução, disparo sempre manual, sem
-agendamento; o catálogo de imagens do RAG multimodal é ampliado, mas ainda
-não completo, com reranking básico dos resultados.
+multimodal sobre imagens são **obrigatórios no MVP**, em versões
+simplificadas: o conector ao BD é somente leitura, sem sincronização
+incremental; o crawler navega a partir de uma URL semente informada pelo
+admin, com profundidade e teto de páginas por execução, disparo manual; o
+catálogo de imagens do RAG multimodal tem reranking básico.
 
-**Decisão registrada (Fase 2, resolve divergência entre o comentário original
-de `orchestrator.py` e o spec de design da Fase 1):** ao trocar o
-`NullRAGClient` pela busca vetorial real no Qdrant, o conteúdo dos documentos
-recuperados passa a ser **injetado no prompt do LLM** (a resposta fica
-fundamentada no que está nos PDFs/textos indexados), não só usado como sinal
-binário (vazio/não-vazio) para a decisão local x externo — esse sinal
-continua existindo (ainda decide o roteamento), mas deixa de ser o único
-efeito da busca. Sem isso, ter RAG de verdade não mudaria a qualidade da
-resposta, só a decisão de roteamento.
+As decisões abaixo são o registro vigente de cada escolha (o raciocínio
+longo e as alternativas descartadas estão no histórico do git). As marcadas
+"além do MVP" foram feitas a pedido explícito do dono e entram na revisão
+final (Fase 11).
 
-**Decisão registrada (Fase 2):** a ingestão de documentos no RAG passa a ter
-um segundo caminho além do script `backend/scripts/ingest_sample_docs.py` —
-um endpoint HTTP (`POST /api/rag/documents`, upload de PDF/texto +
-`domain`) e uma página administrativa simples no frontend (`/admin/ingestao`,
-fora da navegação pública) que o consome. O script continua existindo para
-ingestão em lote/repetível; o endpoint cobre o caso de adicionar um
-documento avulso sem precisar de acesso ao terminal do servidor. Reabre
-parcialmente a exclusão geral de "painel administrativo" que constava em
-`docs/FRONTEND.md` §8 (ver decisão revista lá) — mantida para
-catálogo/estoque/preços, mas não mais uma proibição geral. `# MVP:` mesmas
-simplificações do script — sem autenticação (rota não listada na navegação
-pública, mas não protegida por login), sem deduplicação/reingestão
-incremental (mesma limitação de `app.rag.qdrant_client.upsert_chunks`).
+**Decisão registrada (Fase 2): o conteúdo recuperado do RAG é injetado no
+prompt.** Com a busca vetorial real no Qdrant, os trechos recuperados vão
+para o prompt do LLM (resposta fundamentada nos PDFs/textos indexados); o
+sinal vazio/não-vazio continua decidindo local x externo.
 
-**Decisão registrada (além do MVP, a pedido explícito, 2026-09-14):** toda
-ingestão de documento no RAG (endpoint HTTP ou script em lote) passa a criar
-um registro persistente no Postgres (`rag_documents`) — o primeiro uso real
-dessa infraestrutura, até então só prevista em config/`docker-compose.yml`.
-A partir desse registro, um documento pode ser listado e excluído (linha do
-Postgres + pontos correspondentes no Qdrant, amarrados por um `document_id`
-gravado no payload de cada ponto). Esta funcionalidade **não faz parte do
-MVP original** — foi implementada por pedido explícito do usuário antes de
-retomar os itens pendentes da Fase 2 (conector de BD relacional, crawler).
-Fica registrada aqui para não ser confundida com um item do escopo original
-nem esquecida na revisão final (Fase 11). Detalhes de implementação:
+**Decisão registrada (Fase 2): ingestão por endpoint e tela, além do script.**
+`POST /api/rag/documents` (PDF/texto + `domain`) e a página `/admin/ingestao`
+complementam `backend/scripts/ingest_sample_docs.py` (lote repetível).
+`# MVP:` sem deduplicação/reingestão incremental (limitação de
+`app.rag.qdrant_client.upsert_chunks`).
+
+**Decisão registrada (além do MVP, 2026-09-14): registro persistente de
+documentos.** Toda ingestão cria um registro em `rag_documents` (Postgres);
+o documento pode ser listado e excluído (linha + pontos no Qdrant, ligados
+por `document_id` no payload). Spec:
 `docs/superpowers/specs/2026-09-14-registro-documentos-rag-design.md`.
 
-**Decisão registrada (além do MVP, a pedido explícito, 2026-09-15):** o
-registro de documentos acima evolui para **múltiplos perfis de collection**
-configuráveis (chunk size/overlap, modelo de embedding, dimensão, métrica de
-distância, HNSW, quantização de vetores, payload indexing do Qdrant) —
-Entregas B e C+D anunciadas como "spec futura" na decisão anterior, agora
-combinadas numa só entrega por ficarem interdependentes. Cada collection é um
-perfil imutável (mudar um parâmetro é criar uma nova collection); uma delas é
-marcada como "ativa" e é a que o chat de fato usa, enquanto as demais servem
-para comparação num playground de busca administrativo (pergunta única
-rodada contra várias collections, resultados/score/latência lado a lado, sem
-métrica agregada de qualidade — isso continua reservado para a Fase 10,
-Avaliação Experimental). Documentos ganham um arquivo original salvo em
-disco (`backend/data/rag_uploads/`), permitindo reingerir o mesmo documento
-em outra collection para comparação. Como a entrega anterior, **não faz
-parte do MVP original** — fica registrada aqui e no roadmap para não ser
-confundida com item do escopo original nem esquecida na revisão final (Fase
-11). Detalhes de implementação:
+**Decisão registrada (além do MVP, 2026-09-15): múltiplos perfis de
+collection.** Cada collection é um perfil **imutável** (chunk size/overlap,
+embedding, dimensão, distância, HNSW, quantização, payload index); uma é a
+"ativa" e é a que o chat usa; as demais servem de comparação no playground
+de busca administrativo. O arquivo original fica em
+`backend/data/rag_uploads/`, permitindo reingerir em outra collection. Spec:
 `docs/superpowers/specs/2026-09-15-rag-collections-config-design.md`.
 
 **Decisão registrada (Fase 10, 2026-10-18): a avaliação cobre um único perfil
-de collection de texto.** O sistema permite várias collections com perfis
-próprios, mas o chat usa só a ativa, e a Avaliação Experimental
-(`docs/EVALUATION.md` Seção 2.1) escolhe **um** perfil vencedor (embedding,
-`chunk_size`/`overlap`, `score_threshold`, distância) sobre o corpus real e o
-aplica à collection ativa. Os domínios (Vendas, Suporte etc.) se separam pelo
-filtro `domain` no payload, não por collection. Texto e imagem continuam em
-collections distintas por necessidade (CLIP tem outra dimensão e espaço de
-embedding). Motivo: corpus de ~151–1.210 vetores, busca exata, e embeddings
-diferentes por collection obrigariam embedar a consulta várias vezes e
-comparar scores incomparáveis. **Evolução futura:** collections de texto
-simultâneas com perfis próprios (ex.: manuais longos × FAQs curtas) e
-avaliação do LLM contra cada uma. Os resultados do benchmark de modelos
-valem para o perfil da collection ativa no momento da rodada.
+de collection de texto.** O chat usa só a collection ativa e a Avaliação
+(`docs/EVALUATION.md` Seção 2.1) escolhe **um** perfil vencedor, aplicado a
+ela. Domínios se separam pelo filtro `domain` no payload, não por collection;
+texto e imagem ficam em collections distintas (CLIP tem outra dimensão).
+Motivo: corpus pequeno, busca exata, e embeddings diferentes por collection
+obrigariam várias embedagens da consulta e scores incomparáveis. **Evolução
+futura:** collections de texto simultâneas com perfis próprios. Os
+resultados do benchmark de modelos valem para o perfil ativo na rodada.
 
-**Decisão registrada (Fase 10, 2026-10-17 a 2026-10-28): perfil vigente da collection de texto.** A otimização de ingestão (`docs/EVALUATION.md` Seção 2.1) começou por três medições no corpus e no próprio modelo, que mudaram o plano e exigiram alterar o código de produção:
+**Decisão registrada (Fase 10, 2026-10-17 a 2026-10-28): perfil vigente da
+collection de texto.** A otimização de ingestão (`docs/EVALUATION.md` Seção
+2.1) começou por três medições que mudaram o plano:
 
-1. **Truncamento silencioso.** O `paraphrase-multilingual-MiniLM-L12-v2` tem `max_seq_length = 128` tokens; em pt-BR (4,31 caracteres por token) o teto efetivo é de ~552 caracteres, então `chunk_size = 800` descartava ~31% de cada chunk sem erro nem aviso.
-2. **Modelo mal colocado em português.** No MTEB-BR (93 modelos, `arxiv.org/html/2607.04581v2`) ele é o **93º de 93** (Mean22 0,248; baseline aleatório 0,18). Os líderes absolutos são modelos de 8B+ e não cabem na VRAM ao lado do gerador de 12B.
-3. **Escala do corpus.** ~151 a 1.210 vetores: abaixo dos limiares do Qdrant, a busca é exata (ver a limitação de escala abaixo).
+1. **Truncamento silencioso.** O `paraphrase-multilingual-MiniLM-L12-v2` tem
+   `max_seq_length = 128` tokens; em pt-BR o teto efetivo é ~552 caracteres,
+   então `chunk_size = 800` descartava ~31% de cada chunk sem aviso.
+2. **Modelo mal colocado em português.** No MTEB-BR (93 modelos,
+   `arxiv.org/html/2607.04581v2`) ele é o 93º de 93; os líderes são modelos
+   de 8B+ que não cabem na VRAM ao lado do gerador de 12B.
+3. **Escala do corpus.** ~151 a 1.210 vetores: busca exata (limitação abaixo).
 
-**Mudanças de código que ficam:** `app.rag.chunking.chunk_text` conta `chunk_size`/`chunk_overlap` em **tokens** (tokenizer do modelo da collection) e corta recursivamente (`\n\n` → `\n` → `. ` → espaço → fatia dura); tokens são a unidade única do projeto (sem coluna `chunk_unit`, regra 8). `app.rag.embeddings.TextEmbedder.embed(texts, *, is_query)` aplica **prefixos assimétricos de tarefa** quando o modelo os exige (embeddinggemma, e5; documentados em `docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`) e a busca passa `is_query=True`; o `google/embeddinggemma-300m` é *gated* no Hugging Face, então `_FALLBACK_MIRRORS` usa o mirror `unsloth/embeddinggemma-300m` (mesmos pesos).
+**Código que ficou:** `app.rag.chunking.chunk_text` conta `chunk_size` e
+`chunk_overlap` em **tokens** (tokenizer do modelo da collection) com corte
+recursivo; `TextEmbedder.embed(texts, *, is_query)` aplica **prefixos
+assimétricos** quando o modelo exige (embeddinggemma, e5; ver
+`docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md`); `_FALLBACK_MIRRORS` usa o mirror
+`unsloth/embeddinggemma-300m` (o original é *gated*).
 
-**Resultado medido** (Etapas 1 a 7; números e datas em `docs/EVALUATION.md`):
+**Resultado medido** (Etapas 1 a 7; números em `docs/EVALUATION.md`):
 
-- **Embedding: `BAAI/bge-m3`** (1024 dims, janela 8192, sem prefixo). Recall@5 0,944 contra 0,636 do MiniLM; empata com o `embeddinggemma-300m` (McNemar p = 1,0), desempatado por ingestão 1,7× mais rápida, janela maior e busca híbrida disponível. Custo: 3,3 GB de VRAM ao lado do gerador.
-- **Chunking: 768 tokens, overlap 15% (115 tokens).** De 512 a 1024 tokens é um platô (diferenças sem significância); só 128–256 tokens degradam; o overlap não tem efeito consistente.
-- **Recusa:** nenhum embedding nem chunk separa pergunta com resposta de pergunta sem resposta pelo score (menor positivo 0,440; maior negativo 0,618). A recusa não sai do `score_threshold`: foi tratada no prompt (v2) e o limiar 0,60, simulado, foi **rejeitado**: fonte correta 213 → 198, 12 respondíveis ficariam sem trecho e os top-1 de positivas e negativas se sobrepõem, então ele não separa as classes. Vigentes: `rag_top_k = 5`, `rag_score_threshold = 0,35`.
-- **Distância e índice (Etapa 5):** `cosine` mantido; índice `keyword` em `domain` não criado. No Qdrant, para `euclid` o `score_threshold` é limite superior (`distância <= thr`), então `0.0` descarta tudo; `run_etapa5.py` usa `thr_sem_corte = 10.0` nesse caso.
-- **Confirmação com juiz (Etapa 7):** bge-m3 768/115 contra o baseline MiniLM 800/100, nas mesmas 222 perguntas: nota 2,74 → 4,14; fonte correta 156 → 213.
+- **Embedding: `BAAI/bge-m3`** (1024 dims, janela 8192, sem prefixo).
+  Recall@5 0,944 contra 0,636 do MiniLM; empata com o embeddinggemma-300m
+  (McNemar p = 1,0), desempatado por ingestão 1,7× mais rápida e janela
+  maior. Custo: 3,3 GB de VRAM.
+- **Chunking: 768 tokens, overlap 15% (115).** De 512 a 1024 é um platô;
+  só 128–256 degradam; o overlap não tem efeito consistente.
+- **Recusa:** nenhum embedding separa pergunta com resposta de sem resposta
+  pelo score (menor positivo 0,440; maior negativo 0,618). A recusa foi para
+  o prompt (v2); o limiar 0,60 foi **rejeitado** (fonte correta 213 → 198).
+  Vigentes: `rag_top_k = 5`, `rag_score_threshold = 0,35`.
+- **Distância e índice (Etapa 5):** `cosine` mantido; índice `keyword` em
+  `domain` não criado (p95 6,48 → 6,97 ms). Para `euclid` o
+  `score_threshold` do Qdrant é limite superior, então `run_etapa5.py` usa
+  `thr_sem_corte = 10.0`.
+- **Etapa 7 (juiz):** bge-m3 768/115 contra MiniLM 800/100, nas mesmas 222
+  perguntas: nota 2,74 → 4,14; fonte correta 156 → 213.
 
-**Estado do código:** os defaults continuam `DEFAULT_EMBEDDING_MODEL = paraphrase-multilingual-MiniLM-L12-v2` e chunks de 512/51 tokens (`chunking.py:25-26`, `models/rag.py:115-116`); o perfil vencedor é **dado de collection**, não default de código. A collection ativa de produção é `docs_texto_bge768` (1024 dims). Como o perfil de uma collection é imutável, trocar de perfil significa criar uma collection nova e ativá-la; as anteriores permanecem para comparação (`docs_texto`, MiniLM 800/100, inativa; `docs_texto_minilm800c`, o baseline da Etapa 7). Os scripts das etapas estão em `backend/eval/rag_ingestion/` (`run_etapa2.py` a `run_etapa5.py`, `varrer_threshold.py`) e são cobertos por `tests/test_rag_ingestion_eval.py`.
+**Estado do código:** os defaults continuam MiniLM e chunks 512/51
+(`chunking.py:25-26`, `models/rag.py:115-116`); o perfil vencedor é **dado de
+collection**. A ativa é `docs_texto_bge768` (1024 dims); `docs_texto` (MiniLM
+800/100) e `docs_texto_minilm800c` (baseline da Etapa 7) ficam para
+comparação. Scripts em `backend/eval/rag_ingestion/`, cobertos por
+`tests/test_rag_ingestion_eval.py`.
 
-**Limitação de escala registrada (Fase 10, 2026-10-17): HNSW e quantização
-de vetores não são mensuráveis neste corpus.** O corpus da avaliação é
-`docs/Manuais_fornecedor/ControlId/` (decisão do dono de 2026-10-17): 726 MB
-e 97 PDFs que rendem **667.291 caracteres úteis** — medido sobre os 97, não
-estimado (`backend/eval/rag_ingestion/auditar_corpus.py`, Etapa 0,
-2026-10-17; o extrator usado é o de produção,
-`app.rag.pdf_extract.extract_text_from_pdf`). Isso dá **~151 a 1.210
-chunks**, conforme o `chunk_size`, ou de **0,89 MB** (512 tokens × 768 dims,
-o caso provável) a **4,73 MB** de vetores (128 tokens × 1024 dims, o pior
-caso para este argumento). Dois limiares do Qdrant garantem, nessa escala,
-que o índice HNSW **nunca é construído nem percorrido**:
-
-| Parâmetro | Default | Unidade | Margem sobre o pior caso (4,73 MB) |
-| --- | --- | --- | --- |
-| `hnsw_config.full_scan_threshold` | 10000 | KB ≈ 9,8 MB (1 KB ≈ 1 vetor de dim 256) | **2,1×** acima |
-| `optimizer_config.indexing_threshold` | 20000 | KB ≈ 19,5 MB, **por segmento** | **4,1×** acima |
-
-Duas coisas alargam essa margem além da tabela: `full_scan_threshold` mede
-"o tamanho total dos vetores contra os quais se consulta", e toda busca
-filtra por `domain` — o conjunto consultado é uma fração da collection, não
-ela inteira; e `indexing_threshold` é **por segmento**, com o Qdrant
-criando aproximadamente um segmento por CPU, o que divide ainda mais o
-volume por segmento.
-
-Abaixo do primeiro, o planejador de consultas prefere busca exata
-(brute-force); abaixo do segundo, o otimizador não chega a construir o
-grafo. Portanto `hnsw_m`, `hnsw_ef_construct`, `hnsw_payload_m` e
-`quantization_type` têm hoje **efeito zero** em recall (que é 1,0 por
-construção, para qualquer `hnsw_ef`) e em latência. Esses parâmetros
-**continuam configuráveis** por perfil de collection (a infra da entrega de
-2026-09-15 não muda); o que fica registrado é que **não serão varridos
-experimentalmente** na Fase 10 — seria uma tabela de ruído. O resultado
-negativo, com os números acima, entra no relatório final como limitação de
-escala. Um teste sintético (replicar os vetores até 100k–500k e forçar o
-build baixando `indexing_threshold`) foi explicitamente considerado e
-**descartado** em 2026-10-17: mediria um sistema que não é o do TCC.
-
-A única exceção candidata era o **payload index em `domain`**: toda busca filtra por
-esse campo (`app.rag.qdrant_client.search`) e a collection de produção foi
-criada com `payload_indexes = []`. A Etapa 5 mediu o índice `keyword` nesse campo e ele não foi criado (p95 6,48 → 6,97 ms, dentro do ruído nesta escala). A
-combinação de multi-tenancy do Qdrant (`m=0` + `payload_m=16`, índice por
-grupo em vez de global) fica **fora de escopo**: impede busca cross-domain,
-que o sistema usa no fallback de domínio
+**Limitação de escala (Fase 10, 2026-10-17): HNSW e quantização não são
+mensuráveis neste corpus.** O corpus (`docs/Manuais_fornecedor/ControlId/`,
+97 PDFs) rende **667.291 caracteres úteis** (medido com o extrator de
+produção em `backend/eval/rag_ingestion/auditar_corpus.py`), ou ~151 a 1.210
+chunks e 0,89 a 4,73 MB de vetores. Dois limiares do Qdrant impedem que o
+HNSW seja construído ou percorrido: `full_scan_threshold` (10000 KB ≈ 9,8 MB;
+margem 2,1× sobre o pior caso) e `indexing_threshold` (20000 KB por segmento;
+margem 4,1×). A busca é exata, logo `hnsw_m`, `hnsw_ef_construct`,
+`hnsw_payload_m` e `quantization_type` têm **efeito zero** em recall e
+latência. Continuam configuráveis por perfil, mas **não foram varridos**
+(seria ruído); o resultado negativo entra no relatório como limitação. Um
+teste sintético com vetores replicados foi **descartado** (mediria outro
+sistema). A multi-tenancy do Qdrant (`m=0` + `payload_m=16`) fica fora de
+escopo: impede a busca cross-domain usada no fallback
 (`Settings.rag_search_domain_fallback`).
 
-**Registro condensado (2026-10-17, revisado em 2026-10-24): refatoração
-visual M3 Glass.** O bloco de coordenação entre agentes, antes longo, fica
-resumido ao que ainda vale; o detalhe está no histórico do git (âncora de
-rollback do frontend: commit `7eebebb`).
-
-*Refatoração M3 Glass* (spec `docs/superpowers/specs/2026-10-17-m3glass-visual-refactor-design.md`;
-escopo: Home, Header, Footer e `/produtos`). Pontos que continuam valendo:
+**Registro condensado: refatoração visual M3 Glass (2026-10-17).** Spec em
+`docs/superpowers/specs/2026-10-17-m3glass-visual-refactor-design.md`
+(Home, Header, Footer e `/produtos`; rollback do frontend: commit `7eebebb`).
+O que continua valendo:
 
 - **`resolveImageUrl`** (`frontend/lib/utils/resolveImageUrl.ts`) é
-  compartilhada com o card de produto do chat. O parâmetro opcional
-  `productName` só age como fallback para URL nula; uma URL informada é
-  preservada. O card do chat (`components/chat/cards/ProductCard.tsx`) deve
-  continuar chamando-a com um argumento. Restaurar a versão anterior:
-  `git show 7eebebb:frontend/lib/utils/resolveImageUrl.ts`.
-- **Vitrine não prova indexação CLIP.** Com o fallback por nome, produto sem
-  imagem cadastrada exibe foto; o estado do índice `catalogo_imagens` se
-  confere em `/admin/produtos` ou pela contagem de vetores (hoje 77 imagens
-  indexadas), nunca pela aparência do site.
-- **`/avaliacao` usa o layout global** (sem layout próprio), então herda
-  Header/Footer escuros da refatoração; conferir contraste da página.
-- **`docs/Manuais_fornecedor/` é `gitignored`** (corpus do fornecedor); as
-  fotos copiadas para `frontend/public/images/products/` são versionadas, o
-  que foi decisão consciente (regra 6 do `CLAUDE.md`).
-- **Testes que guardam o contrato** (asserção alterada = quebra de contrato,
-  não ajuste visual): `ChatProductCard`, `ProductCard`, `ProdutoDetalhePage`,
-  `LayoutHeaderFooter` (inclui ocultar Footer em `/admin/*`), `apiBaseUrl` e
-  `ChatModal`, todos em `frontend/tests/`.
+  compartilhada com o card de produto do chat; `productName` só age como
+  fallback para URL nula. O card do chat deve continuar chamando-a com um
+  argumento.
+- **Vitrine não prova indexação CLIP:** o estado do índice
+  `catalogo_imagens` se confere em `/admin/produtos` ou pela contagem de
+  vetores, nunca pela aparência do site.
+- **`/avaliacao` usa o layout global** (Header/Footer escuros).
+- **`docs/Manuais_fornecedor/` é `gitignored`**; as fotos copiadas para
+  `frontend/public/images/products/` são versionadas (decisão consciente).
+- **Testes que guardam o contrato** (asserção alterada = quebra de contrato):
+  `ChatProductCard`, `ProductCard`, `ProdutoDetalhePage`,
+  `LayoutHeaderFooter`, `apiBaseUrl` e `ChatModal`, em `frontend/tests/`.
 
+**Decisão registrada (além do MVP, 2026-09-21): finalidade da collection
+(`purpose`).** `chat` (default, pública) ou `mcp_b2b` (restrita ao canal
+B2B). Uma collection `mcp_b2b` é ingerida pela mesma `/admin/ingestao`, **nunca
+é ativada** (409) nem buscada pelo chat; `ActiveCollectionRagClient.search`
+falha fechado se a invariante for quebrada. O consumo pelo servidor MCP B2B
+é da Fase 5. Spec: `docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md`.
 
-**Decisão registrada (além do MVP, a pedido explícito, 2026-09-21):**
-collections ganham um campo de **finalidade** (`purpose`): `chat` (default,
-pública, elegível a ser ativada e buscada pelo chat) vs `mcp_b2b` (restrita
-ao canal MCP B2B). O admin pode ingerir, pela mesma tela `/admin/ingestao`,
-documentação **exclusiva do canal MCP B2B** numa collection dedicada
-`purpose="mcp_b2b"`, que **nunca é ativada** (a ativação é bloqueada com 409)
-nem buscada pelo chat público — há ainda uma guarda de defesa em profundidade
-em `ActiveCollectionRagClient.search` que falha fechado caso a invariante
-seja quebrada. A **metade de consumo** desse conteúdo (o servidor MCP B2B de
-fato lendo a collection restrita) permanece na **Fase 5 (R12)**, não
-antecipada aqui — por ora o conteúdo fica ingerido e isolado, sem consumidor.
-Segue **fora do MVP** tudo que caracteriza acesso externo real: autenticação
-por parceiro, isolamento multi-tenant, exposição pública, rate limiting e
-auditoria (revisto em 2026-09-25: exposição pública com chave por parceiro
-entrou no MVP, ver Seção 6) (ver seção "Explicitamente fora do MVP" no roadmap). Como as demais
-entregas fora do MVP, fica registrada aqui e no roadmap para não ser
-confundida com item do escopo original nem esquecida na revisão final (Fase
-11). Detalhes de implementação:
-`docs/superpowers/specs/2026-09-21-ingestao-mcp-b2b-design.md`.
-
-**Decisão registrada (além do MVP, a pedido explícito, 2026-09-16):** uma
-tela administrativa (`/admin/modelos`) passa a permitir listar os modelos
-locais já baixados no Ollama, trocar em runtime qual deles o chat usa, e
-baixar um novo — tanto da biblioteca padrão do Ollama quanto um GGUF
-hospedado no Hugging Face (`ollama pull hf.co/<usuário>/<repo>`, suportado
-nativamente pelo Ollama, sem motor de inferência adicional). O download
-roda em background (nunca bloqueia o backend), com progresso acompanhado
-por polling a partir do frontend. A seleção de modelo ativo fica só em
-memória (reseta a cada restart) e **não substitui nem antecipa** a decisão
-formal da Fase 10 (escolha do `LOCAL_MODEL_NAME` de produção via benchmark
-offline contra o sistema completo) — é uma ferramenta de teste manual em
-paralelo. Como as entregas anteriores fora do MVP, fica registrada aqui e
-no roadmap para não ser confundida com item do escopo original nem
-esquecida na revisão final (Fase 11). Detalhes de implementação:
+**Decisão registrada (além do MVP, 2026-09-16): gerenciador de modelos
+locais (`/admin/modelos`).** Lista os modelos do Ollama, troca em runtime o
+modelo do chat e baixa novos (biblioteca do Ollama ou
+`ollama pull hf.co/<usuário>/<repo>`), com download em background e
+progresso por polling. Ferramenta de teste manual: **não substitui** a
+escolha formal do modelo na Fase 10. Spec:
 `docs/superpowers/specs/2026-09-16-local-model-manager-design.md`.
 
-**Decisão registrada (além do MVP, a pedido explícito, 2026-09-17):** a
-mesma tela (`/admin/modelos`) ganhou uma seção "Parâmetros de execução"
-para ajustar em runtime (**atualização de 2026-10-03: estes parâmetros
-passaram a ser também persistidos em Postgres e restaurados no boot — ver
-a decisão "Residência do modelo local na VRAM..." mais abaixo nesta
-seção; o restante deste parágrafo descreve só o estado em 2026-09-17**):
-a temperatura do modelo local (`OllamaClient.temperature`, `null` = usa o
-default do próprio modelo — nenhuma chamada manda `options.temperature`
-até alguém setar um valor explícito, sem mudar o comportamento anterior),
-o timeout das chamadas não-streaming ao backend local e ao externo
-(`OllamaClient.timeout_s`/`OpenRouterClient.timeout_s`), e a flag
-`QdrantRAGClient.search_domain_fallback` (antes só configurável via
-`.env`/restart, ver decisão de 2026-09-17 acima sobre o bug de isolamento
-de domínio). Um único endpoint, `GET`/`PUT /api/admin/runtime-settings`
-(`PUT` com atualização parcial — só os campos enviados mudam), cobre os
-quatro parâmetros, já que eles tocam três clients diferentes (Ollama,
-OpenRouter, Qdrant) e não fazem sentido debaixo do prefixo
-`/api/admin/local-models`. Motivo direto: a temperatura do Ollama também é
-usada pela chamada de classificação de intenção do roteador (mesmo
-client/model) — baixá-la reduz a instabilidade de classificação
-observada em mensagens de acompanhamento ambíguas, sem precisar de uma
-chamada de classificação separada com `temperature` fixo. `# MVP: não
-substitui a escolha formal de hiperparâmetros da Fase 10` (a persistência
-entre restarts, ausente quando este parágrafo foi escrito, foi adicionada
-na decisão de 2026-10-03 citada acima).
+**Decisão registrada (além do MVP, 2026-09-17): parâmetros de execução em
+runtime.** `GET`/`PUT /api/admin/runtime-settings` (atualização parcial)
+ajusta a temperatura do modelo local (`null` = default do modelo), os
+timeouts do local e do externo e `QdrantRAGClient.search_domain_fallback`.
+A temperatura também afeta a classificação de intenção do roteador (baixá-la
+reduz a instabilidade em mensagens ambíguas). Desde 2026-10-03 os parâmetros
+são persistidos em Postgres e restaurados no boot (ver a decisão de
+residência do modelo mais abaixo).
 
-**Decisão registrada (além do MVP, a pedido do desenvolvedor, 2026-09-27;
-registrada na revisão de 2026-09-28):** a tela `/admin/modelos` ganhou o
-card "Modelo externo (OpenRouter)" (`OpenRouterModelCard.tsx`), que troca em
-runtime o modelo de texto do OpenRouter pelo campo `external_model_name` de
-`GET`/`PUT /api/admin/runtime-settings` (`OpenRouterClient.model`), com uma
-lista de sugestões ("populares" e "gratuitos", sufixo `:free`) e um
-histórico dos modelos já usados. O mesmo cliente atende as respostas
-escaladas para o externo, o classificador Jev e o Monitor de Tom, então a
-troca vale para os três. `# MVP: lista de sugestões fixa no frontend, sem
-consultar o catálogo do OpenRouter; histórico só no localStorage do
-navegador` (a persistência entre restarts, ausente quando este parágrafo
-foi escrito, foi adicionada na decisão de 2026-10-03 citada acima). Risco
-conhecido: modelos `:free` têm limite de requisições
-baixo, e o 429 do OpenRouter aparece para o cliente como "Serviço
-temporariamente indisponível" (visto no teste local de 2026-09-27).
+**Decisão registrada (além do MVP, 2026-09-27): modelo externo em runtime.**
+O card "Modelo externo (OpenRouter)" (`OpenRouterModelCard.tsx`) troca
+`external_model_name` (`OpenRouterClient.model`); vale para as respostas
+escaladas, o classificador Jev e o Monitor de Tom. `# MVP:` sugestões fixas
+no frontend; histórico no localStorage. Risco: modelos `:free` têm limite
+baixo e o 429 aparece como "Serviço temporariamente indisponível".
 
-**Decisão registrada (Fase 2, conector de BD relacional exigido por R4,
-2026-09-16):** o conector de leitura a BD relacional reaproveita o mesmo
-Postgres já provisionado em `docker-compose.yml` (o mesmo usado por
-`rag_documents`/`rag_collections`) — sem infraestrutura nova. Uma tabela
-fixture fictícia, `produtos` (`id`, `nome`, `descricao`, `preco`,
-`categoria`), é criada e semeada por migração Alembic
-(`backend/migrations/versions/0003_produtos_fixture.py`), análoga em
-espírito a `backend/scripts/sample_docs/` para PDFs/textos, mas para dados
-estruturados; seus dados fictícios são coerentes com o catálogo de exemplo já
-usado no RAG (geradores a diesel e acessórios, ver
-`backend/scripts/sample_docs/vendas/catalogo_geradores.txt`). A leitura em si
-(`app.rag.db_connector.read_table_as_text`) é genérica via reflexão de tabela
-do SQLAlchemy (`Table(..., autoload_with=...)`) — recebe nome de
-tabela/colunas e devolve linhas transformadas em texto (`coluna: valor` por
-linha), não fica acoplada à tabela `produtos`. Cada linha lida é ingerida
-como um documento próprio no RAG, reaproveitando `app.rag.ingest.ingest_bytes`
-sem duplicar chunking/embedding/upsert (o texto da linha vira o "conteúdo do
-arquivo", com um nome sintético `<tabela>_row<N>.txt`). Exposto só como
-script CLI (`backend/scripts/ingest_db_table.py --table <nome> --domain
-<dominio>`), no mesmo padrão de `backend/scripts/ingest_sample_docs.py` — sem
-endpoint HTTP dedicado (diferente da ingestão de PDF/texto, que já tinha essa
-necessidade validada via `/admin/ingestao`; aqui o caso de uso é
-administrativo/pontual via terminal, sem tela nova no frontend). `# MVP:
-somente leitura (sem INSERT/UPDATE/DELETE no BD de origem) e sem
-sincronização incremental (execução manual sob demanda, sem agendamento nem
-observação de mudanças) — mesma limitação de deduplicação/reingestão já
-aceita em `app.rag.qdrant_client.upsert_chunks``.
+**Decisão registrada (Fase 2, R4): conector de BD relacional.** Reaproveita o
+Postgres do `docker-compose.yml`. A tabela fictícia `produtos` vem da
+migração `0003_produtos_fixture.py`; `app.rag.db_connector.read_table_as_text`
+é genérico (reflexão do SQLAlchemy) e cada linha vira um documento via
+`ingest_bytes` (`<tabela>_row<N>.txt`). Só CLI:
+`backend/scripts/ingest_db_table.py --table <nome> --domain <dominio>`.
+`# MVP:` somente leitura, reforçada por `postgresql_readonly=True` (o banco
+rejeita escrita; dialetos sem a opção, como o SQLite dos testes, a ignoram);
+sem sincronização incremental.
 
-**Decisão registrada (Fase 2, correção de revisão, 2026-09-16):**
-`app.rag.db_connector.read_table_as_text` reforça a garantia de "somente
-leitura" acima com a opção de execução `postgresql_readonly=True`
-(`connection.execution_options(...)`, dialect-specific do Postgres, banco de
-produção deste conector) — faz o próprio banco rejeitar qualquer
-INSERT/UPDATE/DELETE acidental durante a leitura, sem precisar de uma role de
-BD dedicada (infraestrutura nova, fora de escopo do MVP). Dialetos sem essa
-opção (ex.: SQLite, usado nos testes) simplesmente a ignoram.
+**Decisão registrada (Fase 2, 2026-09-16): `create_collection` com lock.**
+`QdrantRAGClient.create_collection` usa um `asyncio.Lock` por instância
+contra a corrida entre checar e criar (duas criações simultâneas com o mesmo
+nome devem dar `CollectionAlreadyExistsError`, não o erro genérico do
+Qdrant). Vale porque o client é singleton por processo
+(`request.app.state.qdrant_client`). `# MVP:` protege só um worker Uvicorn.
 
-**Decisão registrada (Fase 2, correção de revisão, 2026-09-16):**
-`QdrantRAGClient.create_collection` usa um `asyncio.Lock` por instância para
-evitar a corrida TOCTOU entre checar se a collection já existe e criá-la de
-fato (duas requisições concorrentes de criação com o mesmo nome não devem
-colidir no erro genérico do Qdrant em vez do `CollectionAlreadyExistsError`
-tratado). Funciona porque `QdrantRAGClient` é injetado como singleton por
-processo (`request.app.state.qdrant_client`, ver `rag_dependencies.py`).
-`# MVP: protege apenas concorrência dentro de um único worker Uvicorn — não
-protege contra múltiplas instâncias/processos do backend rodando
-simultaneamente contra o mesmo Qdrant`, o que é aceitável para o cenário de
-desenvolvimento/demonstração deste protótipo (um único processo backend).
+**Decisão registrada (Fase 3, R6): OCR para imagens dirigidas.**
+`POST /api/chat/messages` aceita `image` (base64 PNG/JPG/WEBP, formato
+detectado por magic bytes). O OCR (`pytesseract`, Tesseract 5, `por+eng`)
+extrai o texto e o concatena à mensagem antes do orchestrator. Formato
+inválido → 400; Tesseract indisponível → 503. `# MVP:` uso dirigido
+(comprovantes), sem classificação de tipo nem pré-processamento (binarização,
+deskew).
 
-**Decisão registrada (Fase 3, R6, OCR para imagens dirigidas):**
-`POST /api/chat/messages` passou a aceitar um campo `image` (base64,
-PNG/JPG/WEBP). Quando presente, o OCR extrai o texto da imagem via
-`pytesseract` (Tesseract 5.x, idiomas `por+eng`) e o concatena à mensagem
-efetiva antes de passar ao orchestrator — o texto extraído é injetado como
-contexto adicional, não substitui a mensagem de texto digitada (os dois
-podem coexistir). Formato detectado por magic bytes, não pela extensão.
-Formato inválido → 400; Tesseract indisponível → 503. `# MVP: uso dirigido
-(comprovantes, documentos solicitados pelo sistema) — sem classificação
-automática de tipo de imagem nem pré-processamento avançado (binarização,
-deskew); busca por similaridade visual via CLIP é item separado abaixo`.
+**Decisão registrada (Fase 3, R6): busca multimodal via CLIP.** `ClipEmbedder`
+(ViT-B/32, 512 dims, `sentence-transformers`) sobre a collection
+`catalogo_imagens` (cosine, criada na primeira ingestão). Endpoints
+`POST /api/rag/images` e `POST /api/rag/images/search` (imagem ou texto, mesmo
+espaço vetorial). `# MVP:` catálogo parcial, sem deduplicação; limiar 0,20
+(scores CLIP são menores que os do texto, 0,35). **Reranking básico:**
+`app.rag.image_search` recupera `top_k * 3` e `rerank_image_results` soma um
+bônus de 0,05 (só chave de ordenação) a quem tem o `domain` consultado;
+heurístico, sem cross-encoder.
 
-**Decisão registrada (Fase 3, R6, busca multimodal via CLIP):**
-Busca por similaridade visual implementada via `ClipEmbedder` (CLIP
-ViT-B/32, 512 dims, via `sentence-transformers` — já era dependência do
-projeto, sem pacote novo) sobre uma collection dedicada `catalogo_imagens`
-no Qdrant. Dois endpoints novos: `POST /api/rag/images` (ingestão de imagem
-com `domain`) e `POST /api/rag/images/search` (busca por imagem de consulta
-ou descrição textual — mesmo espaço vetorial CLIP). A collection é criada
-automaticamente na primeira ingestão (dimensão 512, cosine fixos), diferente
-das collections de texto que exigem criação explícita via API admin — aceito
-porque `catalogo_imagens` é única e de configuração fixa neste protótipo.
-`# MVP: catálogo ampliado mas não completo; reranking básico implementado
-(ver decisão abaixo); sem deduplicação (mesmo comportamento de
-`QdrantRAGClient.upsert_chunks`); score threshold mais baixo (0.20) que o
-RAG de texto (0.35) porque scores cosine do CLIP são naturalmente menores`.
-
-**Decisão registrada (Fase 3, reranking básico da busca por imagem):** a
-busca por imagem (`app.rag.image_search`) agora recupera um pool maior
-(`top_k * 3`) do Qdrant e reordena via `rerank_image_results` antes de cortar
-para `top_k`. O rerank mantém a ordem por score do CLIP, mas soma um bônus
-pequeno (0.05, só como chave de ordenação — o score exibido não muda) aos
-resultados cujo `domain` bate com o domínio consultado, priorizando o domínio
-pedido quando o pool é misto. `# MVP: reranking heurístico por domínio, sem
-cross-encoder nem segundo modelo — o "básico" pedido no roadmap`.
-
-**Decisão registrada (Fase 3, playbooks/prompts por domínio):** cada domínio
-de atendimento de negócio (vendas, suporte, atendimento) tem um prompt de
-sistema estático em `app.router.playbooks`, anteposto pelo orchestrator ao
-prompt antes de chamar o LLM (com ou sem contexto de RAG). `fora_escopo` não
-tem playbook. Reflete a assimetria intencional da Seção 3: Vendas oferece
-proativamente o agendamento de visita quando há intenção de compra (a criação
-real do evento é R11, Fase 4); Suporte e Atendimento são LLM + RAG, sem camada
-de ação. `# MVP: playbooks são strings estáticas, sem versionamento nem edição
-em runtime`. **Agendamento (Fase 4A) não usa playbook** — o
-`_AGENDAMENTO_PLAYBOOK` estático foi removido (commit `a529f2b`, "remove
-playbook morto") e substituído por um fluxo procedural dedicado,
+**Decisão registrada (Fase 3): playbooks por domínio.** Vendas, suporte e
+atendimento têm um prompt de sistema estático em `app.router.playbooks`,
+anteposto pelo orchestrator (`fora_escopo` não tem). Vendas oferece
+proativamente a visita; Suporte e Atendimento são LLM + RAG, sem ação.
+`# MVP:` strings estáticas, sem versionamento nem edição em runtime. O
+**agendamento não usa playbook**: é o fluxo procedural
 `orchestrator._handle_agendamento` + `app.router.scheduling` (máquina de
-estado de coleta/validação/confirmação, ver decisão registrada logo abaixo e
+estados de coleta/validação/confirmação; spec
 `docs/superpowers/specs/2026-09-21-agendamento-mcp-calendar-design.md`).
 
-**Decisão registrada (Fase 4A, agendamento via MCP Calendar, R11; revista em 2026-09-23):** o assistente **consome** um MCP já existente em vez de construir um servidor MCP próprio sobre a API do Calendar (replicar o que já existe não ganharia a interoperabilidade que é o motivo de existir do MCP). O servidor oficial do Google (`calendarmcp.googleapis.com`) foi validado e descartado: está em **Developer Preview**, toda chamada de tool devolve `isError: true` pedindo inscrição num programa de aprovação manual que, pela documentação do próprio Google, não aceita contas Gmail pessoais — inviável para o ambiente de desenvolvimento e demonstração deste TCC. Em seu lugar roda um **MCP de terceiro self-hosted**, `calendar-mcp-server` (pacote PyPI, https://github.com/deciduus/calendar-mcp), como processo local (`uvx calendar-mcp-server serve --transport http --port 8090`). Trocar por chamada REST direta abandonaria o objetivo de R11 (demonstrar o consumo de um MCP externo); o MCP de terceiro mantém a arquitetura e só troca qual MCP.
+**Decisão revista (Fase 4A, troca do MCP de Calendar, R11, 2026-09-23):
+agendamento via MCP de terceiro.** O assistente **consome** um MCP existente em vez de
+construir um servidor próprio. O servidor oficial do Google
+(`calendarmcp.googleapis.com`) foi descartado: Developer Preview, exige
+aprovação manual que não aceita contas Gmail pessoais. Roda no lugar o MCP de
+terceiro self-hosted `calendar-mcp-server` (PyPI,
+https://github.com/deciduus/calendar-mcp;
+`uvx calendar-mcp-server serve --transport http --port 8090`); REST direta
+abandonaria o objetivo de R11 (consumir um MCP externo).
 
-- **Autenticação:** o OAuth (client "Desktop app", escopo `https://www.googleapis.com/auth/calendar`) é gerenciado pelo próprio `calendar-mcp-server` (`calendar-mcp-server auth`, token em `TOKEN_FILE_PATH`). O backend FastAPI não guarda `client_id`, `client_secret` nem refresh token: só fala MCP HTTP local (`CALENDAR_MCP_URL`, `app.mcp_client.google_calendar.GoogleCalendarMCPClient`).
-- **Tools usadas** (confirmadas lendo o código-fonte do pacote): `find_events` (`calendar_id`, `time_min`, `time_max`; devolve `count`/`events`, usada para checar disponibilidade) e `create_event` (`calendar_id`, `summary`, `start_time`/`end_time` como string ISO 8601, `description`, `attendee_emails` como lista de e-mails). Não há nome de exibição por convidado: o nome do visitante vai na descrição do evento.
-- **Mensagens ao visitante** na coleta e na confirmação são **templates determinísticos**, não geradas por LLM (`app.router.scheduling`: `mensagem_campos_faltando`, `mensagem_pedir_confirmacao`, `mensagem_sucesso`), para o LLM não inventar data, nome ou e-mail numa ação irreversível (criar evento real na agenda).
-- `# MVP: endpoint MCP local sem autenticação própria — mesma confiança de rede local que Qdrant/Postgres neste protótipo, não exposto publicamente`.
+- **Autenticação:** o OAuth (client "Desktop app", escopo
+  `https://www.googleapis.com/auth/calendar`) é do próprio
+  `calendar-mcp-server` (`calendar-mcp-server auth`, `TOKEN_FILE_PATH`). O
+  backend não guarda client_id, secret nem refresh token: só fala MCP HTTP
+  (`CALENDAR_MCP_URL`, `GoogleCalendarMCPClient`).
+- **Tools:** `find_events` (disponibilidade) e `create_event` (`summary`,
+  `start_time`/`end_time` ISO 8601, `description`, `attendee_emails`; o nome
+  do visitante vai na descrição). Mais `delete_event` (cancelamento).
+- **Mensagens ao visitante** são templates determinísticos
+  (`mensagem_campos_faltando`, `mensagem_pedir_confirmacao`,
+  `mensagem_sucesso`), para o LLM não inventar dado numa ação irreversível.
+- `# MVP:` endpoint MCP local sem autenticação própria, não exposto.
 
-**Decisão registrada (Fase 7, Gestão e Cancelamento de Agendamentos, R11, 2026-09-29):**
-Para viabilizar a gestão por usuário, consulta administrativa e cancelamento de visitas (ver `docs/superpowers/specs/2026-09-29-gestao-agendamentos-design.md`), foi adotada a **Abordagem Híbrida Sincronizada (Abordagem 1)**:
-(a) **Tabela `agendamentos` (Postgres, migração `0015`):** armazena o histórico auditável da aplicação (UUID, `user_email`, `nome_cliente`, `telefone`, `data_hora_inicio`, `data_hora_fim`, `descricao`, `status` [confirmado/cancelado], `origem` [chat/manual_admin], `google_event_id`, `google_event_link`, `conversation_id`).
-(b) **Integração com o Chat (`orchestrator._handle_agendamento`):** ao confirmar o agendamento no chat, além de acionar o MCP do Google Calendar (`create_event`), persiste imediatamente o registro com `origem="chat"` e `status="confirmado"`.
-(c) **Cancelamento Bidirecional:** quando o usuário (ou admin) cancela uma visita (`POST /api/agendamentos/{id}/cancelar`), a linha no banco tem seu status alterado para `"cancelado"` (mantendo histórico) e o cliente MCP dispara a remoção do evento na agenda corporativa via tool `delete_event`.
-(d) **Painel Admin Dual (`/admin/agendamentos`):** divide a visão em duas abas: (1) Agendamentos do Sistema (filtráveis por e-mail e status) e (2) Consulta em Tempo Real da agenda corporativa do Google Calendar via `calendar_client.list_events` (`find_events` do MCP), permitindo também agendamento manual direto pelo admin (`POST /api/agendamentos/admin/manual`) com checagem de conflitos.
+**Decisão registrada (Fase 7, R11, 2026-09-29): gestão e cancelamento de
+agendamentos.** Abordagem híbrida sincronizada (spec
+`docs/superpowers/specs/2026-09-29-gestao-agendamentos-design.md`):
+(a) a tabela `agendamentos` (migração `0015`) guarda o histórico auditável
+(`user_email`, datas, `status` confirmado/cancelado, `origem` chat/manual_admin,
+`google_event_id`, `conversation_id`); (b) ao confirmar no chat, o
+orchestrator chama `create_event` e persiste o registro; (c) o cancelamento
+(`POST /api/agendamentos/{id}/cancelar`) marca `cancelado` (mantém histórico)
+e remove o evento via `delete_event`; (d) `/admin/agendamentos` tem duas
+abas (agendamentos do sistema e consulta em tempo real do Calendar) e
+permite agendar manualmente (`POST /api/agendamentos/admin/manual`) com
+checagem de conflito.
 
-**Decisão registrada (Fase 4/7, individualização de eventos do sistema e
-disponibilidade no Google Calendar, R11, 2026-09-29):** a agenda corporativa
-configurada (`CALENDAR_ID`) pode ter compromissos que nada têm a ver com
-visitas agendadas pelo assistente (reuniões internas, eventos pessoais no
-ambiente de demonstração de um único desenvolvedor). Antes,
-`is_time_available` considerava **qualquer** evento no horário pedido como
-"ocupado", então um compromisso alheio ao sistema bloqueava um novo
-agendamento sem relação nenhuma com ele. `GoogleCalendarMCPClient.create_event`
-passa a marcar todo evento que cria com um prefixo `[Sistema]` no `summary` e
-um marcador `[origem:sistema]` na descrição (`is_system_event`);
-`is_time_available` e `list_events` passam a considerar/retornar **somente**
-eventos com essa marcação — um evento "estranho" ao sistema deixa de contar
-como conflito de disponibilidade e não aparece mais na aba "Consulta em
-Tempo Real" do painel admin. `# MVP: risco assumido — um evento criado
-manualmente direto no Google Calendar (fora do sistema) não bloqueia mais um
-novo agendamento pelo chat/admin, podendo colidir na mesma agenda; aceitável
-porque a agenda de demonstração deste TCC é de uso exclusivo do fluxo de
-agendamento — produção precisaria de um calendário dedicado só a visitas, ou
-checar todos os eventos, não só os marcados`. Testado em
+**Decisão registrada (Fase 4/7, R11, 2026-09-29): só eventos do sistema contam
+na disponibilidade.** `create_event` marca o evento com o prefixo `[Sistema]`
+no `summary` e `[origem:sistema]` na descrição (`is_system_event`);
+`is_time_available` e `list_events` consideram **somente** eventos marcados,
+para que compromissos alheios na agenda não bloqueiem visitas. `# MVP:`
+risco assumido: evento criado à mão fora do sistema não bloqueia e pode
+colidir; produção usaria um calendário só de visitas. Teste:
 `tests/test_google_calendar_client.py`.
 
-**Decisão registrada (Fase 7/8, duração configurável da visita e
-pré-preenchimento do chat ao agendar, R11, 2026-09-29):** `DURACAO_VISITA`
-(`app.router.scheduling`, usada pelo fluxo de agendamento via chat) passa de
-30 para 60 minutos por padrão. O agendamento manual pelo admin
-(`POST /api/agendamentos/admin/manual`) ganha o campo opcional
-`duracao_minutos` (padrão 60, incrementos de 15 no formulário) — quando
-informado, `data_hora_fim` é calculado a partir dele em vez do fixo de 30
-minutos anterior. No frontend, os botões "Agendar Visita pelo Chat"
-(`/agendamentos`) não abrem mais o chat vazio: `useChatStore.openVisitChat`
-pré-preenche o campo de mensagem com um texto que já leva nome/e-mail do
-usuário logado (ou pede e-mail/nome explicitamente para um visitante
-anônimo), reduzindo a fricção de o assistente ter que perguntar dados que o
-site já conhece.
+**Decisão registrada (Fase 7/8, R11, 2026-09-29): duração da visita.**
+`DURACAO_VISITA` passa de 30 para 60 minutos; o agendamento manual do admin
+ganha `duracao_minutos` (padrão 60, passos de 15). Os botões "Agendar Visita
+pelo Chat" (`useChatStore.openVisitChat`) pré-preenchem a mensagem com
+nome/e-mail do usuário logado.
 
-**Decisão registrada (Fase 7, gestão de usuários e perfil Administrador,
-R10, 2026-09-29):** `POST /api/auth/register` cadastra um novo usuário
-(perfil `Cliente` por padrão, mesma senha mock `12345` do login, que passa a
-aceitar também `admin123`); um e-mail `admin@example.com` ou iniciado em
-`admin@` vira automaticamente perfil `Admin`. Cadastrar um perfil `Admin`
-por qualquer outro e-mail exige que o `requester_email` informado já
-pertença a um usuário `Admin` (ou seja a própria conta demo
-`admin@example.com`), senão a API devolve 403.
-`GET /api/auth/users` lista todos os clientes cadastrados com o perfil já
-calculado, sempre incluindo `admin@example.com` mesmo que ele ainda não
-tenha linha própria no banco (fallback fixo). No frontend, o menu ⚙️
-(`AdminGearMenu`) deixa de aparecer por completo para quem não é `Admin`
-(antes, qualquer usuário via os links de administração); dois itens novos
-para quem é `Admin`: "Gerenciar Usuários" (`/admin/usuarios`, lista/filtra
-usuários por nome/e-mail/perfil com contagem de clientes x admins e um link
-"Ver Pedidos" por usuário) e "Criar Nova Conta" (`/conta/cadastro`).
-`/pedidos/historico` ganha um modo de "inspeção administrativa": com
-`?email=` na URL e o usuário logado sendo `Admin`, mostra o histórico
-daquele e-mail em vez do próprio (banner roxo distinto avisando o modo);
-sem login, a página passa a pedir explicitamente para entrar em vez de
-listar pedidos de ninguém. `# MVP: perfil Admin é heurística por prefixo de
-e-mail (admin@...), sem tabela de permissões/RBAC de verdade;
-POST /api/auth/register confia no requester_email informado pelo próprio
-cliente, sem verificação de sessão real — mesmo modelo de autenticação mock
-usado no resto do projeto (ver decisão de login/cadastro na Fase 7)`.
-Testado em `tests/test_auth_api.py`,
-`frontend/tests/components/AdminUsuariosPage.test.tsx` e
-`frontend/tests/components/AdminGearMenu.test.tsx`.
+**Decisão registrada (Fase 7, R10, 2026-09-29): usuários e perfil
+Administrador.** `POST /api/auth/register` cadastra usuário (perfil `Cliente`;
+senha mock `12345`, o login também aceita `admin123`); `admin@example.com` ou
+e-mail iniciado em `admin@` vira `Admin`; cadastrar um `Admin` por outro
+e-mail exige `requester_email` de um Admin (senão 403). `GET
+/api/auth/users` lista os clientes com o perfil calculado. No frontend, o
+menu ⚙️ (`AdminGearMenu`) só aparece para `Admin`, com "Gerenciar Usuários"
+(`/admin/usuarios`) e "Criar Nova Conta" (`/conta/cadastro`);
+`/pedidos/historico?email=` abre a inspeção administrativa do histórico de
+outro usuário. `# MVP:` perfil por prefixo de e-mail, sem RBAC; o
+`requester_email` não é verificado por sessão real (mesmo modelo mock do
+projeto). Testes: `tests/test_auth_api.py`, `AdminUsuariosPage.test.tsx`,
+`AdminGearMenu.test.tsx`.
 
-**Decisão registrada (correção de qualidade, achado ao validar o
-agendamento com API real, 2026-09-23):** `OllamaClient.generate()` (chamada
-não-streaming, usada só pelos três classificadores/extratores de JSON curto
-do backend — `classifier._classify_with_llm`,
-`scheduling.extract_booking_slots`, `rag.crawler_classifier`) passa a mandar
-`"think": false` no payload do `POST /api/generate`. Achado real, medido
-diretamente: modelos com a capability `thinking` do Ollama (confirmado via
-`ollama show`, é o caso de `gemma4:12b-it-q4_K_M`) geram um raciocínio
-interno antes da resposta mesmo quando só se pede um JSON curto — medido
-**2684 tokens gerados** (`eval_count`) para uma resposta de ~30 tokens,
-**~50s** de latência, e nessa mesma rodada a extração de `data_hora` saiu
-`null` apesar do dado estar claro na mensagem (o raciocínio não convergiu
-de forma limpa). Isso explicava timeouts intermitentes na extração de
-agendamento (`local_llm_timeout_s`, default de 60s na época, 2026-09-23; hoje 30s em `config.py`) que pareciam só "GPU
-ocupada", mas na verdade eram o modelo pensando ~50s para uma tarefa
-trivial. Com `think: false`: mesma chamada, **2.6s**, **91 tokens**,
-extração correta. `generate_stream()` (resposta de chat de verdade, onde o
-usuário já vê tokens chegando via streaming e "pensar" pode ajudar a
-qualidade) não muda — só as três chamadas de classificação/extração
-estruturada, que nunca se beneficiam de raciocínio livre. Confirmado que
-Ollama ignora `think` com segurança em modelos sem essa capability (testado
-contra `qwen2.5-coder:14b-local`, sem erro). Risco residual identificado
-nesta mesma investigação (data extraída às vezes com ano errado) —
-resolvido na decisão seguinte.
+**Decisão registrada (qualidade, 2026-09-23 e 2026-09-24): `think: false` nas
+chamadas ao Ollama.** Modelos com a capability `thinking` (como o
+`gemma4:12b-it-q4_K_M`) raciocinam antes de responder, mesmo para um JSON
+curto: medido 2684 tokens e ~50 s para ~30 tokens de resposta, com a
+extração de `data_hora` errada; com `think: false`, 2,6 s e 91 tokens,
+correto. `OllamaClient.generate()` (classificadores/extratores:
+`classifier._classify_with_llm`, `scheduling.extract_booking_slots`,
+`rag.crawler_classifier`) manda `think: false`. Correção posterior, achada no
+E2E do Monitor de Tom: `generate_stream()` também precisa dele, porque o
+modelo (testado com `qwen3.5:9b`) podia gastar todo o orçamento no
+raciocínio e fechar com `done_reason: "length"` e resposta vazia, mostrada
+ao usuário como "(sem resposta do modelo, tente novamente)". O Ollama ignora
+`think` em modelos sem a capability. `# MVP:` sem reativar o raciocínio
+seletivamente.
 
-**Correção (achado na verificação E2E do Monitor de Tom, 2026-09-24):** a
-decisão acima de deixar `generate_stream()` sem `think: false` — supondo
-que "pensar" só ajuda a qualidade do chat — se mostrou incompleta.
-Reproduzido direto contra `POST /api/generate` com `qwen3.5:9b`
-(`stream: true`, sem `think`): o modelo pode gastar **todo** o orçamento de
-geração (`num_predict`/janela de contexto) só na fase de raciocínio — o
-stream chega em `done: true`/`done_reason: "length"` com `response` vazio
-em 100% das linhas e `eval_count` não-zero, sem nunca emitir texto de
-resposta. Nesse caso o usuário via o fallback genérico "(sem resposta do
-modelo, tente novamente)" (`ChatModal.tsx`) depois de pagar o custo total
-de latência/GPU do raciocínio — silencioso, sem nenhum erro. `think: false`
-passa a valer também para `generate_stream()`, igualando ao comportamento
-de `generate()`: mesmo teste (prompt sobre motor de combustão interna,
-antes truncado a 20 tokens só de raciocínio) passou a responder
-normalmente, 1573 chunks de texto real. `# MVP: sem mecanismo pra reativar
-"thinking" seletivamente por complexidade da pergunta — trade-off aceito,
-mesmo espírito da simplificação já registrada para generate()`.
+**Decisão registrada (qualidade, 2026-09-23): tabela dos próximos 14 dias na
+extração de agendamento.** `extract_booking_slots` recebe o parâmetro
+obrigatório `timezone` e inclui no prompt a data de hoje e uma **tabela dos
+próximos 14 dias com o dia da semana já calculado**
+(`_formatar_proximos_dias`). Só informar "hoje é X" corrigiu o ano, mas o
+modelo ainda errava o dia da semana ("quarta-feira que vem" virava quinta);
+consultar tabela é mais confiável que calcular. `# MVP:` janela fixa de 14
+dias.
 
-**Decisão registrada (correção de qualidade, mesma investigação acima,
-2026-09-23):** `extract_booking_slots` (`app.router.scheduling`) ganha um
-novo parâmetro obrigatório `timezone` e passa a incluir no prompt de
-extração (a) a data de hoje (dia da semana + `YYYY-MM-DD`) e (b) uma
-**tabela de referência com os próximos 14 dias e seus dias da semana já
-calculados** (`_formatar_proximos_dias`). Motivo: informar só "hoje é X"
-resolveu o ano errado (o modelo já não confundia mais 2024/2026), mas o
-modelo ainda errava o **dia da semana** ao tentar calcular datas relativas
-de cabeça — pedido "quarta-feira que vem" numa quarta-feira, devolveu uma
-quinta-feira (medido, não hipotético). Trocar cálculo por consulta a uma
-tabela pronta no próprio prompt é uma técnica conhecida para reduzir erro
-de aritmética de datas em LLMs — mais confiável que só descrever a regra e
-esperar o modelo calcular certo. `orchestrator._handle_agendamento` passa
-`scheduling_config.timezone` (já existente) para essa nova assinatura, sem
-mudança de comportamento em nenhum outro ponto. Validado com múltiplas
-frases reais pelo chat após a correção: "quarta-feira que vem" → data e
-dia da semana corretos; "daqui a 3 dias" → corretamente identificado como
-sábado, rejeitado pela validação de expediente (não pela extração).
-`# MVP: janela de 14 dias fixa — suficiente para o horizonte típico de
-agendamento de visita comercial deste protótipo, não parametrizada`.
+**Decisão registrada (Fase 2, 2026-09-17): `pdfplumber` com detecção de 2
+colunas.** `app.rag.pdf_extract.extract_text_from_pdf` trocou `pypdf` por
+`pdfplumber` e detecta layout de 2 colunas (corredor vertical sem palavras na
+faixa de 15% a 85% da largura, com no mínimo 2% da largura e 15 pt), extraindo
+cada coluna separadamente; os catálogos têm produtos lado a lado e o `pypdf`
+embaralhava os vizinhos. `chunk_text` também preserva quebras de linha como
+pontos de corte. `# MVP:` só 2 colunas com corredor limpo; os demais casos
+caem na extração de página inteira (sem regressão). PDFs escaneados seguem
+sem OCR (R6).
 
-**Decisão registrada (Fase 2, melhoria de qualidade a pedido explícito,
-2026-09-17):** `app.rag.pdf_extract.extract_text_from_pdf` trocou de `pypdf`
-para `pdfplumber`, com uma heurística de detecção de layout em 2 colunas —
-procura um corredor vertical sem nenhuma palavra na faixa central da página
-(entre 15% e 85% da largura, corredor com pelo menos 2% da largura da
-página **e** pelo menos 15pt em valor absoluto, o que for maior — o
-segundo critério evita falso positivo em páginas com pouco texto, onde o
-espaçamento natural entre 2-3 palavras já passava do limite relativo) e, se
-achar, extrai cada coluna separadamente antes de concatenar. Motivo:
-catálogos de produto (ex.: `docs/Manuais_fornecedor/`) têm produtos lado a
-lado em colunas, e a extração anterior (`pypdf`, ordem "bruta" dos objetos
-do PDF) embaralhava título/bullets de produtos vizinhos num único texto
-corrido — verificado com os PDFs reais do projeto antes de implementar.
-`chunk_text` (`app.rag.chunking`) também passou a preservar quebras de
-linha como pontos de corte preferenciais (antes colapsava tudo em espaço
-único), senão o chunking desfazia a estrutura recém-recuperada pela
-extração. `# MVP: heurística cobre só 2 colunas e só quando existe um
-corredor "limpo" atravessando toda a altura da página — layouts com 3+
-colunas ou cabeçalhos de seção fora do padrão (testado com um caso real,
-ver commit) caem no fallback de extração de página inteira, que ainda
-assim preserva melhor a ordem de leitura do que a extração anterior; não
-há regressão, só ausência do ganho extra do split por coluna nesses
-casos`. Sem OCR para PDFs escaneados/baseados em imagem (isso continua
-sendo R6, Fase 3).
+**Decisão registrada (Fase 2/R3, 2026-09-17): fallback de domínio como flag.**
+O fallback que refazia a busca sem filtro de `domain` quando vinha vazia
+quebrava o isolamento entre domínios e o sinal de escalonamento (RAG vazio →
+externo). Virou a flag `Settings.rag_search_domain_fallback`
+(`RAG_SEARCH_DOMAIN_FALLBACK`), **desligada por padrão**. `# MVP:` só para
+experimento.
 
-**Decisão registrada (Fase 2/R3, correção de regressão, 2026-09-17):**
-`QdrantRAGClient.search` ganhou (em trabalho paralelo de outro agente sobre
-o chat) um fallback que, quando a busca filtrada por `domain` não retorna
-nada, refazia a busca sem filtro de domínio — quebrando o isolamento entre
-domínios (uma pergunta de "vendas" podia trazer conteúdo de "suporte") e
-corrompendo o sinal de escalonamento do roteador (RAG vazio → escala pro
-modelo externo, ver Seção 2/3): com o fallback, a busca quase nunca fica
-vazia, então esse sinal deixa de refletir a realidade. Em vez de remover
-esse comportamento, ele virou uma flag explícita —
-`Settings.rag_search_domain_fallback` (`RAG_SEARCH_DOMAIN_FALLBACK` em
-`.env`), passada para `QdrantRAGClient(search_domain_fallback=...)` —
-**desligada por padrão** (mantém o comportamento documentado/correto).
-`# MVP: existe só para comparação/experimento entre as duas estratégias,
-não é uma opção recomendada para uso normal — ligá-la sacrifica isolamento
-entre domínios e o sinal de escalonamento do roteador`.
+**Decisão registrada (além do MVP, 2026-09-17): telemetria por mensagem.**
+`POST /api/chat/messages` devolve modelo, tokens de entrada/saída, latência,
+TTFT (`prompt_eval_duration` do Ollama), TPS (`eval_duration`), custo
+estimado e tempo/quantidade/score médio da busca RAG, com o arquivo e o score
+de cada chunk (`rag_chunks`); contrato em `docs/FRONTEND.md` §4. O
+`ChatModal` mostra o painel e exporta CSV/JSON
+(`frontend/lib/utils/exportMetrics.ts`). Motivo: alimentar a Fase 10. É
+persistida em `ConversaMensagem.metricas` (migração `0012`); o TTFT fica
+`null` para o externo (OpenRouter não o expõe). Correções de 2026-10-08:
+`GET /api/chat/conversations/{id}` cortava em 50 mensagens e o export
+filtrava só as do assistente (detalhe em `docs/ROADMAP.md`, "Telemetria de
+Inferência no Chat").
 
-**Decisão registrada (além do MVP, a pedido explícito, 2026-09-17):**
-`POST /api/chat/messages` passa a devolver telemetria detalhada por
-mensagem — modelo usado, tokens de entrada/saída, latência total, TTFT
-(proxy via `prompt_eval_duration` do Ollama), TPS (via `eval_duration`,
-geração pura), custo estimado, e tempo/qtd./score médio da busca no RAG —
-inclusive, por chunk usado no contexto, o arquivo de origem e o score
-individual (`rag_chunks`, adicionado em 2026-09-18: já existia internamente
-em `Document.source`/`score`, só não era exposto na telemetria; hoje a busca
-RAG só recupera de arquivos ingeridos, sem fonte de internet) (ver contrato
-completo em `docs/FRONTEND.md` §4). O `ChatModal` mostra
-essas métricas num painel e permite exportar a conversa em CSV/JSON
-(`frontend/lib/utils/exportMetrics.ts`). Motivo: alimentar a avaliação
-experimental da Fase 10 (`docs/EVALUATION.md`) com dados reais coletados
-durante o desenvolvimento/demonstração, não uma feature de produto para o
-usuário final. `# MVP:` nota corrigida em 2026-10-08 — a telemetria por
-mensagem É persistida no Postgres desde a migração `0012` (coluna
-`ConversaMensagem.metricas`, JSON com o evento `done` inteiro); a nota
-original ("só em memória, não persistida") ficou desatualizada quando essa
-migração entrou. TTFT só é preenchido para o backend local (Ollama expõe
-`prompt_eval_duration`), fica `null` para o externo (OpenRouter não expõe
-essa granularidade em modo não-streaming) — essa parte continua válida.
-Correção também em 2026-10-08 (bug relatado): `GET /api/chat/conversations/
-{id}` (fonte dos dados do `ChatModal`, incluindo o export) cortava
-silenciosamente em 50 mensagens por não pedir `limite=None` a
-`app.memory.store.listar_mensagens`; e `exportMetricsToJson`/
-`exportMetricsToCsv` filtravam só mensagens do assistente, descartando
-cliente e atendente. Ver `docs/ROADMAP.md`, "Extra fora do MVP — Telemetria
-de Inferência no Chat", para o detalhe completo da correção.
-
-**Decisão registrada (Ledger unificado de uso de IA, 2026-10-08):** nova
-tabela `ai_usage_events` (`app.db.models.AiUsageEvent`, migração `0024`)
-e função central `app.services.ai_usage.registrar_uso_ia` — todo ponto do
-sistema que usa um modelo/engine de IA (local ou externo, texto ou visão)
-registra um evento com `origem` (chat/b2b/admin, extensível),
-`ambiente` (interno/externo), `modelo`, `operacao`, tokens de
-entrada/saída e custo em USD. Motivado por não ser possível, antes desta
-mudança, identificar no painel `/admin/metricas` o que foi gasto em visão
-computacional interna x externa — e por achados mais graves durante a
-investigação: custo de visão do avaliador de comprovante nunca era
-capturado (nem no fluxo de chat, nem no da ferramenta MCP B2B
-`converter_reserva_venda`, que chama o mesmo avaliador), e o
-classificador/monitor de tom via TypeSafe Jev nunca teve métrica alguma
-capturada. Padrão de sessão: explícita / fire-and-forget / fallback
-global. Este item (A) entregou só a fundação — na
-época, nenhum ponto de chamada real estava conectado ainda; os itens B
-(chat, 2026-10-08) e D (admin, 2026-10-08) já conectaram diversos pontos de
-chamada reais desde então, ver abaixo e os itens B/C/D/E em
-`docs/ROADMAP.md`. Spec original:
+**Decisão registrada (ledger unificado de uso de IA, 2026-10-08).** A tabela
+`ai_usage_events` (`AiUsageEvent`, migração `0024`) e
+`app.services.ai_usage.registrar_uso_ia` registram todo uso de modelo de
+geração (local ou externo, texto ou visão) com `origem` (chat/b2b/admin),
+`ambiente` (interno/externo), `modelo`, `operacao`, tokens e custo em USD.
+Motivo: não dava para separar visão interna x externa no `/admin/metricas`,
+e o custo de visão do avaliador de comprovante e a telemetria do
+classificador/monitor de tom Jev nunca eram capturados. Sessão explícita /
+fire-and-forget / fallback global. Spec:
 `docs/superpowers/specs/2026-10-08-ledger-uso-ia-origem-ambiente-modelo-design.md`.
 
-**Decisão registrada (Parâmetros obrigatórios de origem/llm_ambiente em ComprovanteEvaluator, item B, 2026-10-08):**
-durante a implementação do item B (conectar pontos de chamada real da origem "chat" ao ledger), `ComprovanteEvaluator.__init__` ganhou dois parâmetros de construtor obrigatórios, keyword-only, **sem defaults**: `origem: str` e `llm_ambiente: str`. Motivado por `ComprovanteEvaluator` ser compartilhada por três origens distintas (chat em item B, B2B em item C, admin em item D) — um padrão com defaults silenciosos teria mislabelado os chamadores fora do chat, tornando impossível depois rastrear cada evento de volta à sua origem verdadeira. Como efeito colateral dessa obrigatoriedade, todos os 4 call sites passam agora `origem`/`llm_ambiente` explícitos (chat ×1 em `router/sales_catalog.py`, b2b ×1 em `mcp_server/b2b.py`, admin ×2 em `api/admin_pedidos_conversao.py`) — as dimensões corretas do ledger são garantidas por construção.
+- **`ComprovanteEvaluator`** recebe `origem` e `llm_ambiente` como
+  parâmetros keyword-only **sem default**: a classe é compartilhada por chat
+  (`router/sales_catalog.py`), B2B (`mcp_server/b2b.py`) e admin
+  (`api/admin_pedidos_conversao.py`, ×2), e um default mislabelaria os
+  chamadores.
+- **Migração sem dual-write:** `extract_page_products_vision` e o
+  `crawler_classifier.classify_page` migraram de `IngestionCostEvent` para o
+  ledger. A estimativa de tokens por tamanho de texto do caminho antigo foi
+  descartada (contraria a semântica `None` = não capturado).
+- **Fechamento (item E):** `/admin/metricas` lê **somente** `ai_usage_events`;
+  o histórico pré-ledger foi descartado sem backfill (decisão do dono) e
+  `IngestionCostEvent` ficou no banco sem leitor nem escritor. O painel
+  distingue `None` (`—`) de `0.0` (`$0.0000`) e conta
+  `chamadas_sem_custo_medido`.
+- **Fronteira (2026-10-12):** ficam **fora, em definitivo**, o resumo
+  periódico (`app.memory.resumo`), o STT (Whisper) e os embeddings de texto e
+  CLIP (`qdrant_client`, `image_search`): rodam sempre localmente e sem custo
+  em USD, e instrumentá-los custaria 6 call sites em caminhos quentes sem
+  mudar nenhum número de custo. O painel conta chamadas de **geração**; a
+  latência da Fase 10 é medida por fora, em `backend/eval/`. A fronteira está
+  também em `app.services.ai_usage`.
 
-**Decisão registrada (Migração da telemetria de extração de catálogo por visão para o ledger unificado, sem dual-write, item D, 2026-10-08):**
-`extract_page_products_vision` (`app.catalog_extractor.extractor`) registrava seu custo/tokens na tabela antiga `IngestionCostEvent` via `record_ingestion_cost` (módulo `ingestion_metrics`, removido em 2026-10-23). Na implementação do item D, esse ponto de chamada passou a registrar no ledger novo (`registrar_uso_ia`, origem `"admin"`) **sem dual-write** — `record_ingestion_cost` foi removido desse caminho, não duplicado. Motivo: unificação do rastreio de uso de IA é o próprio objetivo do ledger (item A §6 do spec de design já havia flagueado essa decisão — manter ou não `IngestionCostEvent` em paralelo — como fora do escopo da fundação e deferida para o item que de fato migrasse esse call site); e a estimativa de tokens por tamanho de texto que o caminho antigo fazia quando a API de visão não reportava uso real contrariava a semântica `None`=não-capturado do ledger novo, então não fazia sentido portá-la. Decisão explícita do dono do projeto: os dados históricos de `IngestionCostEvent` não precisavam ser preservados/migrados. Consequência observável: o card "Ingestão & Dados" do painel `/admin/metricas` (que lê `IngestionCostEvent`) deixou de receber novos registros de extração de catálogo por visão a partir desta mudança — esperado, não um bug; será endereçado pelo item E (reconstrução do painel sobre a tabela nova `ai_usage_events`).
+**Decisão registrada (fora do MVP, 2026-10-13; atualizada em 2026-10-16): tela
+`/admin/ferramentas`.** Reúne Graphify, Repowise e GitNexus, as ferramentas de
+inteligência de código do desenvolvimento (item "Extra fora do MVP" no
+`docs/ROADMAP.md`; não é um dos 13 requisitos). (1) A checagem "está no ar?"
+é feita no backend (`app.api.admin_ferramentas.sondar_servidor`, timeout de
+1,5 s), porque do navegador não se distingue servidor desligado de bloqueio
+de CORS; (2) o `graphify-out/graph.html` (~3 MB) é servido por endpoint
+administrativo, com iframe autenticado por `?token=`; (3) servidor fora do ar
+devolve `200` com `online: false` e o comando para subir. `# MVP:` portas
+fixas, ajustáveis por `REPOWISE_WEB_URL`, `GITNEXUS_WEB_URL` e
+`GRAPHIFY_OUT_DIR`.
+Acesso externo (2026-10-16): as portas públicas do Caddy
+(`infra/caddy/Caddyfile.ferramentas`: 3002 → Repowise, 4747 → GitNexus)
+nasceram com `basic_auth`; a senha se perdeu e o dono decidiu **remover a
+autenticação** (o quadro embutido não envia `Authorization`). `# MVP:` as
+portas expõem código e análise sem proteção; a mitigação é operacional
+(encaminhar no roteador só enquanto se usa de fora). A SPA do GitNexus tem o
+backend `localhost:4747` fixo no bundle, então `urlDeVisualizacao`
+(`frontend/lib/api/ferramentas.ts`) acrescenta `?server=` apontando para a
+origem da página (casado com o GitNexus 1.6.12). A política vigente de uso
+das ferramentas está em `docs/CONVENTIONS.md`; confira se a tela ainda
+descreve as três.
 
-Fechamento do ledger (item E, 2026-10-08): o painel `/admin/metricas`
-passou a ler **somente** `ai_usage_events`. Decisões do dono do projeto:
-(1) substituir o painel antigo em vez de mantê-lo em paralelo; (2) descartar
-o histórico pré-ledger sem backfill — inferir `origem`/`operacao` dos dados
-antigos exigiria exatamente a heurística que o ledger veio eliminar, e os
-números que importam para a avaliação experimental (Fase 10) serão gerados
-em cima do ledger; (3) manter a tabela `IngestionCostEvent` no banco sem
-leitor nem escritor, marcada como morta no modelo, em vez de uma migração
-destrutiva. O classificador do crawler
-(`app.rag.crawler_classifier.classify_page`), último ponto de uso de IA
-ainda escrevendo na tabela antiga `IngestionCostEvent`, foi migrado neste
-item (não era, porém, o último ponto de uso de IA fora do ledger — ver a
-decisão de fronteira a seguir). A distinção `custo_usd`/`tokens`
-`None` (não capturado) × `0.0` (grátis conhecido) é preservada da tabela
-até a tela: `—` versus `$0.0000`, mais um contador
-`chamadas_sem_custo_medido` por grupo, que é como o painel expõe — em vez
-de esconder atrás de um zero — o gap conhecido de estimativa de uso em
-`OpenRouterClient.describe_image`.
+**Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17).**
+`POST /api/chat/messages` devolve a resposta como stream **Server-Sent Events**
+(`text/event-stream`), sem endpoint `GET` de stream separado (evita duplicar a
+validação de entrada e histórico). Eventos, em ordem: `conversation`,
+`transcription` (opcional, áudio), `status` (opcional, modelo ainda não
+carregado), `token` (zero ou mais), e `done` (telemetria completa) ou `error`
+(falha de dependência **depois** de o stream abrir; o HTTP já é 200). Erros de
+validação anteriores à abertura continuam 400/422/503 normais. A troca só é
+gravada na memória (R9) quando o `done` chega. Contrato em `docs/FRONTEND.md`
+§4. `# MVP:` sem reconexão nem `Last-Event-ID`: se a conexão cair, o cliente
+reenvia a mensagem inteira.
 
-**Decisão registrada (Fronteira do ledger de uso de IA — STT, embeddings e
-resumo periódico ficam fora, em definitivo, 2026-10-12):** a revisão de ponta
-a ponta do item E (2026-10-09) comparou os pontos de invocação de IA do
-sistema contra os 16 call sites de `registrar_uso_ia` e achou quatro famílias
-ainda fora do ledger — o inventário §1 do spec do item E tratou os 15 pontos
-então levantados como exaustivos, e não eram:
+**Decisão registrada (Vendas, R3, 2026-10-13): quantidade e fechamento.** A
+quantidade da cotação é a última pedida pelo cliente (o extrator ignora
+números de falas do assistente) e o bloco do catálogo a repete separada do
+estoque. O chat de Vendas não cria nem reserva pedidos (reserva é do MCP B2B).
+Com o visitante logado (`user_email`), o playbook confirma produto,
+quantidade e total e oferece o fechamento (finalização na página Pedidos);
+deslogado, só apresenta a proposta e informa que fechar exige login. Visita
+só é oferecida se o cliente demonstrar desistência. `# MVP:` correção por
+prompt; o card segue o dado do banco.
 
-- `app.memory.resumo` (`llm_client.generate`, o resumo periódico de conversa,
-  disparado por `app.api.chat` a cada 6 mensagens);
-- `app.api.chat` (`stt_client.transcribe`, Whisper na mesma GPU);
-- `app.rag.qdrant_client` e `app.rag.image_search` (embeddings de texto e
-  CLIP, a cada ingestão e a cada busca).
-
-Decisão: **documentar a exclusão como definitiva**, não instrumentar. A
-fronteira do ledger passa a ser explícita — "modelo de geração que possa ter
-custo de API" — e está registrada também no módulo
-`app.services.ai_usage`, onde quem for ligar um ponto de uso de IA novo vai
-ler. Motivo: as quatro famílias rodam sempre localmente e nunca têm custo em
-USD, então incluí-las não mudaria nenhum número de custo interno × externo do
-painel nem a resposta que a Fase 10 precisa; o único ganho seria precisão de
-volume de chamadas, ao preço de instrumentar 6 call sites em caminhos quentes
-(cada busca RAG e cada ingestão geram embeddings) e de poluir o painel com
-operações de natureza diferente das que ele compara. Consequência assumida: o
-painel `/admin/metricas` conta chamadas de **geração**, não toda inferência
-que a GPU executa — a avaliação de latência da Fase 10 mede o caminho
-completo por fora do ledger, via `backend/eval/`. Reverter é barato se a
-precisão de volume vier a importar: a decisão é de escopo, não de
-arquitetura.
-
-**Decisão registrada (Tela de ferramentas de código em `/admin`, fora do
-escopo do MVP, 2026-10-13):** a área administrativa ganhou
-`/admin/ferramentas`, que reúne Graphify, Repowise e GitNexus — as três
-ferramentas de inteligência de código usadas no desenvolvimento deste TCC.
-Pedido explícito do dono do projeto; **não** é parte do assistente nem de
-nenhum dos 13 requisitos funcionais, e está registrada como item "Extra fora
-do MVP" em `docs/ROADMAP.md`. Três decisões de implementação valem registro:
-(1) a verificação de "a ferramenta está no ar?" é feita no backend
-(`app.api.admin_ferramentas.sondar_servidor`, timeout de 1,5s), porque do
-navegador uma requisição a `localhost:3002`/`:4747` falha de forma opaca e
-não dá para distinguir servidor desligado de bloqueio de CORS; (2) o
-artefato do Graphify (`graphify-out/graph.html`, ~3 MB) é servido por um
-endpoint administrativo em vez de copiado para `frontend/public/` a cada
-`graphify update`, e o iframe autentica por `?token=` — único caminho
-possível, já que iframe não envia cabeçalho `Authorization` (mesmo padrão de
-`GET /api/rag/documents/{id}/download`, §7); (3) servidor fora do ar devolve
-`200` com `online: false` e o comando para subir, não erro: com dois
-servidores locais que o desenvolvedor liga sob demanda, "offline" é o estado
-comum, não uma falha. # MVP: sem descoberta dinâmica de porta — se uma
-ferramenta subir fora da porta documentada, ajusta-se a variável de ambiente
-correspondente (`REPOWISE_WEB_URL`, `GITNEXUS_WEB_URL`, `GRAPHIFY_OUT_DIR`).
-
-**Atualização de 2026-10-16 — acesso externo às ferramentas sem senha:** as
-portas públicas do Caddy (`infra/caddy/Caddyfile.ferramentas`: 3002 →
-Repowise 3012, 4747 → GitNexus 4757) nasceram em 2026-10-15 protegidas por
-`basic_auth` (usuário `admin`, hash bcrypt em `infra/caddy/caddy.env`). A
-senha se perdeu e o dono do projeto decidiu **remover a autenticação** em vez
-de gerar outra: o quadro embutido da tela não envia cabeçalho
-`Authorization`, então cada abertura exigia autenticar à parte em nova aba.
-`# MVP: as portas 3002 e 4747 expõem o código-fonte e a análise completa do
-projeto sem nenhuma proteção — mitigação é operacional, não técnica: só
-encaminhá-las no roteador enquanto a tela estiver sendo usada de fora da
-rede.` Dentro da rede local nada muda (as UIs reais seguem presas a
-`127.0.0.1`).
-
-Segundo achado do mesmo dia, independente da senha: abrir o GitNexus de fora
-da rede caía em "Start your local server" mesmo com a porta pública
-respondendo. A UI dele é uma SPA com a URL do próprio backend **fixa no
-bundle** (`http://localhost:4747`), e esse `localhost` é o do navegador — de
-fora, a máquina de quem acessa. A SPA aceita sobrescrever esse endereço pelo
-parâmetro de query `?server=`, então `urlDeVisualizacao`
-(`frontend/lib/api/ferramentas.ts`) passou a acrescentá-lo à URL do iframe do
-GitNexus apontando para a origem de onde a página foi servida. Corrige os
-dois casos de uma vez: de fora da rede passa a funcionar, e em `localhost` a
-tela deixa de depender de o Caddy estar no ar — o padrão `:4747` do bundle só
-respondia ali porque é a porta pública do proxy. `# MVP: casado com o nome do
-parâmetro server do GitNexus 1.6.12.`
-
-**Decisão registrada (Streaming SSE do chat, R2/R3, 2026-09-17):**
-`POST /api/chat/messages` deixou de devolver um JSON síncrono único e passou
-a devolver a resposta como o próprio stream **Server-Sent Events** (SSE),
-`Content-Type: text/event-stream` — não existe um endpoint `GET` de stream
-separado (uma ideia cogitada inicialmente em `docs/FRONTEND.md`, mas
-descartada: manter tudo no mesmo `POST` evita duplicar a lógica de
-validação de entrada/histórico de conversa entre dois endpoints). Eventos
-emitidos, nesta ordem: `conversation` (id da conversa), `transcription`
-(opcional, só quando há áudio transcrito), `status` (opcional, quando o
-modelo escolhido ainda não está carregado), `token` (zero ou mais, um por
-trecho de texto gerado — o cliente concatena para montar a resposta
-completa) e, por fim, `done` (telemetria completa, mesmos campos que antes
-iam no JSON síncrono, exceto o texto da resposta em si, que já chegou via
-`token`) ou `error` em caso de falha de uma dependência (Ollama, OpenRouter,
-Qdrant) **depois** que o stream já abriu — nesse ponto o HTTP já é 200, não
-dá mais para trocar por um status de erro. Erros de validação de entrada
-anteriores à abertura do stream (áudio base64 inválido, nem `message` nem
-`audio`, STT indisponível) continuam HTTP 400/422/503 normal, sem SSE. A
-troca só é gravada na memória da conversa (Postgres, R9) quando o `done`
-chega com sucesso, não em caso de `error`. Contrato completo (payload de cada evento)
-em `docs/FRONTEND.md` §4. `# MVP: sem reconexão automática/`Last-Event-ID`
-se a conexão cair no meio do stream — o cliente perde os tokens já enviados
-e precisa reenviar a mensagem inteira, aceitável para este protótipo`.
-
-**Decisão registrada (quantidade e fechamento no chat de Vendas, R3, 2026-10-13):**
-a quantidade da cotação é a última pedida pelo próprio cliente (o extrator
-ignora números de falas do assistente, como o estoque por CD), e o bloco do
-catálogo a repete como "Quantidade do pedido do cliente", separada do
-estoque. O chat de Vendas não cria nem reserva pedidos (reserva é do MCP
-B2B). Regra de fechamento (a pedido do usuário): com o visitante logado
-(`user_email` no payload), o playbook manda confirmar produto, quantidade e
-total e oferecer prosseguir com o fechamento (finalização na página Pedidos
-do site); deslogado, apresenta só a proposta e informa que fechar o pedido
-exige login. Visita não é oferecida durante a compra, apenas se o cliente
-demonstrar desistência. MVP: a correção é por prompt; um modelo local fraco
-ainda pode errar o texto, mas o card segue o dado do banco.
-
-**Decisão registrada (saudação/cortesia pura não escala, R3, 2026-10-13):**
-`classify()` reconhece saudações e agradecimentos puros ("bom dia!", "olá",
-"tudo bem?", "obrigado") por um conjunto fechado de palavras (pelo menos
-uma âncora, todas as palavras no conjunto, até 6 palavras) e devolve
+**Decisão registrada (R3, 2026-10-13): saudação pura não escala.** `classify()`
+reconhece saudações e agradecimentos puros ("bom dia!", "obrigado") por
+conjunto fechado de palavras (ao menos uma âncora, até 6 palavras) e devolve
 `fora_escopo`/`baixa`/`confidence=1.0` com `provider_efetivo="regras"`, sem
-chamar LLM (local ou Jev) nem o RAG. Motivo: o LLM local classificava
-"bom dia" em `atendimento`, a busca RAG vazia (~10 s) disparava
-`rag_vazio` e a saudação ia ao modelo externo. Confirmações curtas ("sim",
-"ok") ficam de fora: dependem do contexto. MVP: lista fixa em pt-BR.
+LLM nem RAG. Motivo: o LLM local classificava "bom dia" como `atendimento`, a
+busca vazia (~10 s) disparava `rag_vazio` e a saudação ia ao externo.
+Confirmações curtas ("sim", "ok") ficam de fora, pois dependem do contexto.
 
-**Decisão registrada (RAG com contexto de fallback, R4, 2026-09-17):**
-A busca do RAG (`rag_client.search`) usava só a mensagem atual, mesmo o
-classificador já considerando as últimas mensagens da conversa (ver linha
-"Roteador/Orquestrador" abaixo). Isso fazia uma pergunta de acompanhamento
-que omite o assunto já estabelecido (ex.: perguntar sobre câmeras e depois
-"quais outras opções?") não encontrar nenhum chunk relevante — mesmo com o
-domínio corretamente classificado como `vendas` — e escalar
-desnecessariamente para o modelo externo (`motivo_escalonamento: rag_vazio`).
-Corrigido em `orchestrator.handle_message`: quando a busca com a mensagem
-isolada vem vazia **e** há histórico recente, uma segunda busca é feita com
-o histórico concatenado à mensagem atual (mesma janela do classificador,
-`MENSAGENS_RECENTES = 3` em `app.memory.store`). A busca direta continua sendo
-tentada primeiro e sozinha resolve a maioria dos casos — a segunda tentativa
-só dispara quando necessário, para não diluir o embedding da busca com
-contexto desnecessário no caso comum de pergunta autocontida. `# MVP: sem
-reescrita de query via LLM (mais preciso, mas custaria uma chamada de rede
-extra) — concatenação simples do histórico basta para o caso relatado`.
+**Decisão registrada (RAG com contexto de fallback, R4, 2026-09-17).** Quando a busca com
+a mensagem isolada vem vazia e há histórico recente, `orchestrator.handle_message`
+faz uma segunda busca com o histórico concatenado (`MENSAGENS_RECENTES = 3`,
+`app.memory.store`). Evita escalar ao externo (`rag_vazio`) em perguntas de
+acompanhamento ("quais outras opções?"). `# MVP:` sem reescrita de query por
+LLM.
 
-**Decisão registrada (além do MVP, a pedido explícito, 2026-09-23; atualizada em 2026-09-28):** o
-classificador de intenção do roteador (Fase 1) oferece três modos de operação,
-alternáveis em runtime pelo mesmo painel `/admin/modelos` → "Parâmetros de execução"
-(`intent_router_provider`):
-1. `"heuristica"` (Local Regras): classificação puramente heurística baseada em
-   palavras-chave locais; se inconclusiva, colapsa diretamente para `fora_escopo`
-   sem invocar o LLM local para triagem (latência zero de triagem por LLM, delegando
-   a resolução diretamente para o modelo externo quando fora de escopo).
-2. `"heuristica_llm"` (Local Híbrido, padrão/default): fast-path por heurística de
-   palavras-chave; se inconclusivo, recorre ao LLM local (Ollama) para classificar
-   o domínio; se o LLM local falhar ou classificar como inconclusivo/fora de escopo,
-   delega ao modelo externo.
-3. `"jev_openrouter"` (OpenRouter Jev): o **TypeSafe Jev**, um modelo de decisão
-   estruturada ("System One") acessado via **OpenRouter**, reaproveitando a
-   mesma chave (`EXTERNAL_MODEL_API_KEY`) já usada para o modelo externo de
-   chat. Diferente de um LLM de chat, o Jev é chamado por um endpoint dedicado
-   do OpenRouter — `POST https://openrouter.ai/api/v1/systemone` (não
-   `/chat/completions`) — com corpo estruturado (`state` + `questions`
-   tipadas `choice`/`score`/`noul`) e resposta tipada
-   (`answers.<pergunta>.choice`/`.confidence`), sem geração de texto livre nem
-   parsing de JSON solto a partir de um prompt. O classificador usa uma única
-   pergunta `choice` cobrindo os 5 domínios do sistema (`vendas`, `suporte`,
-   `atendimento`, `agendamento`, `fora_escopo`), com a descrição de cada um em
-   `app.router.classifier.DOMAIN_CRITERIA`. O classificador LLM local
-   (`heuristica_llm`) usa as mesmas descrições no prompt, para os dois
-   provedores não divergirem sobre o que cada domínio cobre. Qualquer falha (timeout, erro
-   HTTP, chave ausente, payload inesperado) degrada imediatamente para a
-   heurística local de palavras-chave, sem interromper o atendimento — o
-   padrão do roteador continua sendo `heuristica_llm`, preservando
-   independência de rede externa no boot. Modelo identificado por
-   `~typesafe/jev-latest` (o til é parte do slug do modelo no OpenRouter, não
-   um artefato de URL — sem ele a API devolve 400 "Model ... does not exist",
-   achado na verificação E2E da Task 6/Fase 1 com chamada real à API; alias
-   que sempre aponta para a versão mais recente da família Jev; configurável
-   via `JEV_MODEL_NAME` em `.env`). **Não faz
-   parte do MVP original** (não descrito em nenhuma fase do roadmap) — fica
-   registrada aqui e no roadmap para não ser confundida com item do escopo
-   original nem esquecida na revisão final (Fase 11). `# MVP: seleção só em
-   memória, mesmo padrão de `intent_router_provider`/demais "Parâmetros de
-   execução" acima — reseta a cada restart; telemetria do provedor usado é
-   exposta no evento `done` do SSE e no painel de métricas do chat, mas não
-   persistida (mesma limitação já aceita para as demais métricas de
-   telemetria)`.
+**Decisão registrada (além do MVP, 2026-09-23; atualizada em 2026-09-28):
+três modos do classificador de intenção** (`intent_router_provider`, em
+runtime pelo `/admin/modelos`):
+1. `"heuristica"` (Local Regras): só palavras-chave; inconclusivo vira
+   `fora_escopo`, sem LLM de triagem.
+2. `"heuristica_llm"` (Local Híbrido, **padrão**): palavras-chave; se
+   inconclusivo, o LLM local; se este falhar ou ficar inconclusivo, o externo.
+3. `"jev_openrouter"` (OpenRouter Jev): o **TypeSafe Jev**, modelo de decisão
+   estruturada acessado pelo OpenRouter com a mesma chave
+   (`EXTERNAL_MODEL_API_KEY`), no endpoint dedicado
+   `POST https://openrouter.ai/api/v1/systemone` (não `/chat/completions`),
+   com `state` + `questions` tipadas e resposta tipada
+   (`answers.<pergunta>.choice`/`.confidence`). Uma única pergunta `choice`
+   cobre os 5 domínios (`vendas`, `suporte`, `atendimento`, `agendamento`,
+   `fora_escopo`), descritos em `app.router.classifier.DOMAIN_CRITERIA` (as
+   mesmas descrições vão ao prompt do LLM local). Qualquer falha degrada para a
+   heurística local. Modelo `~typesafe/jev-latest` (o til é parte do slug;
+   sem ele a API devolve 400), configurável por `JEV_MODEL_NAME`.
 
-**Correção (achado importante 1 da revisão final do branch, 2026-09-23):** a
-telemetria (`RouterDecision.router_provider`/`ChatDoneEventData.router_provider`)
-reflete o provedor **que de fato produziu a classificação**
-(`ClassificationResult.provider_efetivo`), não o provedor apenas
-*selecionado* no admin — quando o Jev falha e degrada para a heurística
-local, a telemetria passa a registrar `heuristica_llm`, não
-`jev_openrouter`. Sem essa correção, uma execução com fallback silencioso
-seria contabilizada como sucesso do Jev na comparação de acurácia/latência
-entre provedores prevista em `docs/EVALUATION.md` — o próprio propósito
-deste TCC. O Jev também ganhou um orçamento de timeout próprio
-(`JEV_TIMEOUT_S`, default 10s, contra os 30s default de
-`EXTERNAL_LLM_TIMEOUT_S` do LLM de chat) — mesma decisão de "sem
-persistência/edição em runtime" do nome do modelo, evita que uma chamada
-travada custe até 30s ao visitante antes do fallback gracioso disparar.
+`# MVP:` seleção só em memória, como os demais parâmetros de execução (hoje
+persistidos, ver a decisão de residência do modelo).
 
-**Monitor de Tom (R8, Fase 4B, decisão registrada em 2026-09-23):**
-implementado como checagem transversal (`app.router.tone_monitor.analyze_tone`)
-que roda no início de `handle_message`, em paralelo com a classificação de
-domínio (`asyncio.TaskGroup`), sem substituir a resposta normal — ver
-`docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md`. Mesmo padrão
-de dois provedores configuráveis do classificador de intenção
-(`TONE_MONITOR_PROVIDER`: `heuristica_llm` — heurística de palavras-chave +
-sinais estruturais, com fallback ao LLM local — ou `jev_openrouter`, com
-degradação automática para `heuristica_llm` em qualquer falha do Jev, mesma
-lógica de `ClassificationResult.provider_efetivo`). Primeira escalada de
-cada conversa emite o evento SSE `escalonamento` (`docs/FRONTEND.md` §4),
-persiste um registro em `tom_escalonamentos` (Postgres, migração `0006`) e
-loga o evento estruturado `tom_escalonado`. `# MVP: sem mecanismo de
-"des-escalar" uma conversa já marcada (estado em memória por processo, mesma
-limitação já aceita para o fluxo de agendamento); a fila de
-atendimento humano e a Central de Atendimento (`/admin/atendimento`) vieram
-depois, em 2026-10-03/05 (ver Seção 5, transbordo humano); aqui ficou só a API de
-listagem (`GET /api/admin/tom/escalonamentos`) e o log estruturado`. Banner visual no frontend consumindo o evento
-`escalonamento` implementado na Fase 8 (`components/chat/EscalonamentoBanner.tsx`).
+**Correção (revisão final, 2026-09-23): a telemetria registra o provedor
+efetivo.** `RouterDecision.router_provider`/`ChatDoneEventData.router_provider`
+vêm de `ClassificationResult.provider_efetivo`, não do provedor selecionado:
+se o Jev falha e degrada, registra `heuristica_llm`. Senão, um fallback
+silencioso contaria como sucesso do Jev na comparação de provedores da
+Fase 10. O Jev tem timeout próprio (`JEV_TIMEOUT_S`, 10 s, contra 30 s de
+`EXTERNAL_LLM_TIMEOUT_S`).
 
-**Decisão registrada (Fase 5, backend único de dados do MCP B2B, R12,
-2026-09-24):** o primeiro item da Fase 5 ("modelar o backend único de dados
-reaproveitado tanto pelo RAG quanto pelo servidor MCP", Seção 6) estende a
-tabela fixture `produtos` (migração `0003`, Fase 2) em vez de criar um
-schema paralelo — mesma tabela, agora com um model SQLAlchemy próprio
-(`app.db.models.Produto`, antes só lida por reflexão genérica em
-`app.rag.db_connector`, que continua funcionando sem alteração). Cobre os
-três recursos estruturados do R12 (Seção 6):
-- **Catálogo:** `produtos` ganha `especificacoes_tecnicas`, `dimensoes_cm` e
-  `peso_kg`.
-- **Estoque:** nova tabela `produto_estoque` (produto × centro de
-  distribuição × quantidade) — relação 1:N porque um produto tem estoque em
-  vários centros, não caberia como coluna única em `produtos`.
-- **Preços:** `produtos` ganha `preco_promocional`/`promocao_valida_ate`
-  (cobre "campanhas"); nova tabela `produto_descontos_volume` (produto ×
-  quantidade mínima × percentual) cobre "descontos por volume".
+**Monitor de Tom (R8, Fase 4B, 2026-09-23).** Checagem transversal
+(`app.router.tone_monitor.analyze_tone`) que roda no início de
+`handle_message`, em paralelo com a classificação (`asyncio.TaskGroup`), sem
+substituir a resposta (spec `docs/superpowers/specs/2026-09-23-monitor-de-tom-design.md`).
+Dois provedores como no classificador (`TONE_MONITOR_PROVIDER`:
+`heuristica_llm` ou `jev_openrouter`, que degrada para `heuristica_llm` em
+falha). A primeira escalada de cada conversa emite o evento SSE
+`escalonamento`, grava em `tom_escalonamentos` (migração `0006`) e loga
+`tom_escalonado`; o banner é `components/chat/EscalonamentoBanner.tsx`. A fila
+humana e a Central `/admin/atendimento` vieram em 2026-10-03/05; a listagem é
+`GET /api/admin/tom/escalonamentos`. `# MVP:` sem "des-escalar" (estado em
+memória por processo).
 
-O quarto recurso do R12, **manuais e documentação**, **não** ganha tabela
-nem linha nova aqui — continua sendo servido pela infraestrutura RAG já
-existente (documentos PDF/texto ingeridos via `app.rag.ingest`, inclusive a
-collection `purpose="mcp_b2b"` já criada na decisão de 2026-09-21 para
-conteúdo exclusivo do canal B2B). Manuais são texto longo não-estruturado —
-modelar como linhas de banco duplicaria o pipeline de busca semântica que o
-RAG já resolve; o "backend único" do R12 cobre os três recursos
-estruturados, o RAG cobre o quarto.
+**Decisão registrada (Fase 5, R12, 2026-09-24): backend único de dados do MCP
+B2B.** Estende a fixture `produtos` (migração `0003`) com o model
+`app.db.models.Produto` (o `db_connector` por reflexão continua funcionando):
+- **Catálogo:** `especificacoes_tecnicas`, `dimensoes_cm`, `peso_kg`.
+- **Estoque:** tabela `produto_estoque` (produto × centro × quantidade, 1:N).
+- **Preços:** `preco_promocional`/`promocao_valida_ate` e a tabela
+  `produto_descontos_volume`.
 
-Acesso via novo módulo `app.db.catalog` (funções livres recebendo
-`AsyncSession`, mesmo padrão de `app.router.tone_monitor`), com CRUD básico
-sobre as três tabelas — consumido a partir da próxima etapa desta fase tanto
-pelo servidor MCP (recursos de leitura) quanto, potencialmente, pelo RAG.
-Migração `0008` (`backend/migrations/versions/0008_catalog_mcp_b2b.py`) semeia
-dados fictícios coerentes com a fixture original (mesmos 5 produtos), com
-estoque em `CD-SP`/`CD-RJ` e duas faixas de desconto por produto (5%/10+
-unidades). `# MVP: sem tratamento de concorrência em reservas/pedidos
-(atualizar_estoque é um upsert simples, ler-depois-escrever) nem trilha de
-auditoria — evolução futura explícita (Seção 6, "Governança e segurança"),
-não antecipada por este item de modelagem; nenhuma ferramenta MCP nem
-endpoint HTTP é exposto ainda — isso fica para os próximos itens desta
-mesma fase (servidor MCP e as ferramentas — hoje 5, ver Seção 6)`.
+O quarto recurso do R12, **manuais**, não ganha tabela: segue no RAG (inclusive
+a collection `purpose="mcp_b2b"`), porque texto longo não estruturado
+duplicaria a busca semântica. Acesso por `app.db.catalog` (funções livres com
+`AsyncSession`). A migração `0008` semeia os mesmos 5 produtos, estoque em
+`CD-SP`/`CD-RJ` e duas faixas de desconto (5%/10+ unidades). `# MVP:` sem
+concorrência em reservas (`atualizar_estoque` é upsert simples) nem auditoria.
 
-**Decisão registrada (Fase 5, servidor MCP B2B — recursos de leitura, R12,
-2026-09-24):** o segundo item da Fase 5 ("implementar servidor MCP interno
-expondo os 4 recursos de leitura") entra em `app.mcp_server.b2b`
-(`create_b2b_mcp_server`), espelhando `app.mcp_client` (cliente do MCP do
-Google Calendar) — mesmo padrão de pastas já reservado em
-`docs/CONVENTIONS.md`. Quatro decisões de implementação:
-
-1. **SDK e API usadas:** `mcp` (Python SDK oficial), mas a versão
-   efetivamente instalada no projeto é a série **2.x**, onde a antiga
-   `FastMCP` foi **renomeada para `MCPServer`**
-   (`mcp.server.mcpserver.MCPServer`) — confirmado lendo o próprio pacote
-   instalado (`mcp.server.fastmcp` na 2.x só existe como um stub que levanta
-   `ModuleNotFoundError` apontando para o guia de migração). `pyproject.toml`
-   passa a pinar `mcp>=2.0` (antes `mcp>=1.0`, que não garantia qual das
-   duas APIs incompatíveis estaria disponível) para deixar explícito que o
-   servidor depende da API 2.x.
-2. **Resources, não tools, para os 4 itens de leitura:** o protocolo MCP
-   distingue *resources* (dados endereçáveis por URI, tipicamente
-   somente-leitura) de *tools* (ações/funções com efeitos ou lógica
-   arbitrária). A Seção 6 deste documento já separa os "Recursos (dados,
-   somente leitura)" das "Ferramentas (ações e automações transacionais)" —
-   mapeamento direto: os 4 recursos deste item viram `@server.resource(...)`
-   com URIs próprias (`catalogo://produtos`, `catalogo://produtos/{id}`,
+**Decisão registrada (Fase 5, R12, 2026-09-24): servidor MCP B2B, recursos de
+leitura.** `app.mcp_server.b2b` (`create_b2b_mcp_server`), espelhando
+`app.mcp_client`:
+1. **SDK:** `mcp>=2.0`, onde a antiga `FastMCP` virou `MCPServer`
+   (`mcp.server.mcpserver.MCPServer`); o `pyproject.toml` pina a série 2.x.
+2. **Resources, não tools,** para leitura (a Seção 6 já separa dados de
+   ações): `catalogo://produtos`, `catalogo://produtos/{id}`,
    `estoque://produtos/{id}`, `precos://produtos/{id}`,
-   `manuais://busca/{domain}?query=...`); as ferramentas transacionais do
-   próximo item desta fase (compatibilidade, frete, cotação, reserva/pedido; a quinta, `converter_reserva_venda`, entrou em 2026-10-05)
-   é que serão `tools` de verdade, por terem efeito colateral/parâmetros de
-   ação.
-3. **Processo próprio, não embutido no backend FastAPI principal:**
-   `scripts/run_mcp_b2b_server.py` sobe o servidor via transporte
-   `streamable-http` em `MCP_B2B_HOST:MCP_B2B_PORT` (settings já reservados
-   desde a modelagem do backend único; default `127.0.0.1:8100` desde
-   2026-09-25, ver "Escopo no protótipo" na Seção 6) — mesmo
-   padrão de execução já usado para o `calendar-mcp-server` consumido em
-   R11 (processo solto, gerenciado via `goup.md`). Motivo: R12 descreve o
-   MCP B2B como um serviço voltado a **consumidores externos** (IAs de
-   parceiros integradores), papel distinto da API HTTP do chat — mantê-lo
-   num processo/porta própria evita acoplar o ciclo de vida dos dois (um
-   reinício do backend do chat não derruba o MCP B2B e vice-versa) e é
-   consistente com os hosts/portas que já estavam reservados em
-   `app.config.Settings` antes deste item existir. `goup.md` ganhou uma
-   nova seção para subir/derrubar esse processo (porta 8100).
-4. **Busca de manuais:** `manuais://busca/{domain}?query=...` busca nas collections `purpose="mcp_b2b"` e na collection `chat` ativa (regra assimétrica da decisão de 2026-09-30, abaixo), agrega por score e corta em `DEFAULT_MANUAIS_TOP_K=5`. `domain` é parâmetro obrigatório (um dos domínios de atendimento de R7; o classificador ainda tem o rótulo `fora_escopo`), porque `QdrantRAGClient.search` sempre filtra por domínio.
+   `manuais://busca/{domain}?query=...`. As ferramentas transacionais são
+   `tools` (hoje 5; `converter_reserva_venda` entrou em 2026-10-05).
+3. **Processo próprio** (`scripts/run_mcp_b2b_server.py`, transporte
+   `streamable-http`, `MCP_B2B_HOST:MCP_B2B_PORT`, padrão `127.0.0.1:8100`): é
+   serviço para consumidores externos, e o ciclo de vida fica separado do
+   backend do chat. Subida em `goup.md`.
+4. **Busca de manuais:** nas collections `purpose="mcp_b2b"` e na `chat`
+   ativa (regra assimétrica abaixo), agrega por score e corta em
+   `DEFAULT_MANUAIS_TOP_K=5`; `domain` é obrigatório (o Qdrant filtra por
+   domínio).
 
-`# MVP: mesmo uso interno/sem autenticação por parceiro já registrado para
-o backend único de dados (item anterior desta fase) — este servidor herda
-essa limitação; catálogo/estoque/preços expostos sem paginação (mesmo
-comportamento de app.db.catalog.listar_produtos, que já não pagina); busca
-de manuais sem reranking entre collections além da ordenação por score
-(mesma simplificação já aceita para o reranking de imagem, "básico").`
-Testado chamando o servidor pela mesma superfície que um cliente MCP usaria
-(`MCPServer.read_resource(...)`, via `create_b2b_mcp_server` injetado com
-dependências de teste — SQLite em memória + Qdrant `:memory:`), não só a
-camada de dados por baixo (já coberta por `test_catalog.py`).
+`# MVP:` sem autenticação por parceiro (herdado), sem paginação, sem
+reranking entre collections. Testado por `MCPServer.read_resource(...)`
+(SQLite em memória + Qdrant `:memory:`).
 
-**Decisão registrada (2026-09-30, escopo de acesso do parceiro B2B ao RAG,
-a pedido explícito do desenvolvedor) — amplia o item 4 acima (vale a regra assimétrica desta decisão):** o
-parceiro B2B pode acessar **todo o conteúdo do RAG principal e do
-específico do canal B2B**; só o cliente final (chat público) não deve ter
-acesso a documentos exclusivos do B2B. Antes, `manuais_busca` buscava só em
-collections `purpose="mcp_b2b"`, nunca na collection `chat` ativa — o
-isolamento era nos dois sentidos. Agora é assimétrico: `b2b_collections`
-(`app.mcp_server.b2b.manuais_busca`) inclui `purpose="mcp_b2b"` **e** a
-collection `purpose="chat"` que estiver ativa (o mesmo conteúdo que o chat
-público usa) — mas não collections `chat` não ativas, que são artefatos de
-comparação do admin (`/admin/ingestao`), não conteúdo publicado. O caminho
-inverso continua vedado como antes: o chat público nunca busca
-`purpose="mcp_b2b"` (guarda de defesa em profundidade em
-`ActiveCollectionRagClient.search`, decisão de 2026-09-21, inalterada).
-Testes em `tests/test_mcp_b2b_server.py`
-(`test_manuais_busca_encontra_conteudo_da_collection_chat_ativa`,
-`test_manuais_busca_ignora_collection_chat_nao_ativa`), validado ao vivo
-contra o servidor real e a collection ativa de produção.
+**Decisão registrada (2026-09-30): o parceiro B2B acessa todo o RAG.**
+`b2b_collections` (`manuais_busca`) inclui `purpose="mcp_b2b"` **e** a `chat`
+ativa, mas não `chat` não ativas (artefatos de comparação). O chat público
+continua sem acessar `mcp_b2b` (guarda de 2026-09-21). Testes em
+`tests/test_mcp_b2b_server.py`.
 
-**Decisão registrada (2026-09-30, modo admin do chat sobre o RAG completo,
-a pedido explícito do desenvolvedor):** o Admin também quer usar o chat
-público (não só o playground de `/admin/ingestao`) para pesquisar seus
-próprios documentos — que só ele pode acessar. Três peças, todas novas:
+**Decisão registrada (2026-09-30): modo admin do chat sobre o RAG completo.**
+1. **`purpose="admin"`:** terceira finalidade, exclusiva do Admin (nem o chat
+   público nem o parceiro a enxergam). `activate_collection` e a guarda de
+   `ActiveCollectionRagClient.search` generalizaram para `purpose != "chat"`.
+2. **Detecção por token:** `ChatMessageRequest.user_email` é livre e nunca
+   validado, então liberar documentos por ele deixaria qualquer um digitar
+   `admin@...`. O novo `auth_token` (enviado só após `/api/auth/login`) é
+   verificado por `app.api.auth.verificar_admin_por_token` (formato
+   `mock-token-{id}`, perfil recalculado no servidor; ainda mock, como toda a
+   autenticação). `_obter_perfil_cliente` virou pública.
+3. **`AdminAllCollectionsRagClient`** (`app.rag.admin_all_collections_client`)
+   busca a `chat` ativa + `mcp_b2b` + `admin`. `app.main` sobe as duas
+   instâncias (`rag_client`/`rag_client_admin`) e `send_message` troca de
+   cliente após `_verificar_modo_admin_seguro`, que **falha fechada** a
+   qualquer erro. A busca paralela virou `app.rag.multi_collection_search`.
 
-1. **Terceira finalidade de collection, `purpose="admin"`:** ao lado de
-   `"chat"` (pública) e `"mcp_b2b"` (parceiros + chat ativo, decisão acima),
-   uma collection `purpose="admin"` é exclusiva do Admin — nem o chat
-   público nem o parceiro B2B a enxergam. `activate_collection`
-   (`app.rag.collections_registry`) e a guarda de defesa em profundidade de
-   `ActiveCollectionRagClient.search` generalizaram de
-   `purpose == "mcp_b2b"` para `purpose != "chat"`, cobrindo a nova
-   finalidade sem precisar enumerar cada uma.
-2. **Detecção do Admin no chat exige mais que `user_email`:** o campo
-   `ChatMessageRequest.user_email` já existia (R10, classificação/histórico
-   de compras), mas é livre e nunca validado contra sessão nenhuma — usá-lo
-   para liberar documentos confidenciais deixaria qualquer visitante digitar
-   `admin@...` e ver tudo. Novo campo `ChatMessageRequest.auth_token`
-   (enviado pelo frontend só quando o usuário passou por `/api/auth/login`
-   nesta sessão) é verificado no servidor por
-   `app.api.auth.verificar_admin_por_token`: confere que o token tem o
-   formato `mock-token-{id}` de fato emitido pelo login, resolve o
-   `Cliente` correspondente e recalcula o perfil ali (nunca aceita um
-   perfil declarado pelo requisitante). Ainda uma verificação mock (o token
-   é previsível a partir do id, mesma limitação de todo o resto da
-   autenticação do projeto — `docs/Manuais/HOWTO_ADMINISTRADOR.md`), mas
-   fecha o buraco específico de um e-mail solto no payload do chat. `app.api.chat`
-   importa a função de `app.api.auth` (mesmo pacote, sem ciclo); a função
-   antes privada `_obter_perfil_cliente` virou pública
-   (`obter_perfil_cliente`) para ser reaproveitada.
-3. **Cliente RAG dedicado ao modo admin:** `AdminAllCollectionsRagClient`
-   (`app.rag.admin_all_collections_client`), implementando o mesmo Protocol
-   `RAGClient` de `ActiveCollectionRagClient`, busca a collection `chat`
-   ativa **+** toda `purpose="mcp_b2b"` **+** toda `purpose="admin"` — o
-   Admin vê tudo, nunca o contrário. `app.main` sobe as duas instâncias
-   (`app.state.rag_client`/`rag_client_admin`) desde o startup;
-   `app.api.chat.send_message` troca qual delas usa pelo resto da mensagem
-   assim que `_verificar_modo_admin_seguro` confirma o token — ao contrário
-   das outras funções `_..._seguro` (que falham *abertas* para "sem
-   memória"), esta falha *fechada* para "sem modo admin" em qualquer erro.
-   A lógica de busca paralela em N collections (antes só em
-   `manuais_busca`) foi extraída para `app.rag.multi_collection_search`,
-   reaproveitada pelos dois lados.
+Testes: `test_auth_admin_token.py`, `test_rag_admin_all_collections_client.py`,
+`test_rag_active_collection_client.py`, `test_rag_collections_registry.py` e
+`test_chat_api.py` (`user_email` sozinho não troca o cliente).
 
-Testes: `tests/test_auth_admin_token.py`, `tests/test_rag_admin_all_collections_client.py`,
-casos novos em `tests/test_rag_active_collection_client.py`/
-`test_rag_collections_registry.py` (purpose=admin) e em `tests/test_chat_api.py`
-(confirma que `auth_token` de admin troca o cliente RAG e que `user_email`
-sozinho, mesmo com valor `admin@...`, não troca).
+**Decisão registrada (Fase 5, R12, 2026-09-24): ferramentas transacionais do
+MCP B2B.** `@server.tool(...)` em `app.mcp_server.b2b` (hoje 5):
+1. **Compatibilidade:** tabela `produto_compatibilidades` (par direcional,
+   consultado nos dois sentidos). `# MVP:` pares cadastrados na migração, sem
+   dedução automática.
+2. **Frete e prazo:** estimativa determinística, sem transportadora: custo e
+   prazo pelo primeiro dígito do CEP (região, 0–9) e pelo peso total
+   (`peso_kg * quantidade`), com tabela fixa de custo-base/dia por região e
+   adicional por kg. `# MVP:` estimativa, não frete real.
+3. **Cotação:** `preco`/`preco_promocional` (se vigente) e a maior faixa de
+   `produto_descontos_volume` atingida; nenhuma tabela nova.
+4. **Reserva/pedido:** tabelas `pedidos` e `pedido_itens` (preço unitário no
+   momento); cria o pedido `"reservado"` e decrementa `produto_estoque` por
+   upsert; quantidade indisponível falha (nunca abaixo de zero). `# MVP:` sem
+   lock (corrida pode sobre-reservar), sem auditoria, sem pagamento real.
 
-**Decisão registrada (Fase 5, ferramentas transacionais do MCP B2B, R12,
-2026-09-24):** o terceiro item da Fase 5 ("implementar as 4 ferramentas do
-MCP B2B"; hoje são 5 — `converter_reserva_venda` entrou em 2026-10-05, ver Seção 6) entra como `@server.tool(...)` em `app.mcp_server.b2b`, ao lado
-dos recursos já existentes (decisão anterior nesta mesma seção) — mesma
-distinção resource x tool do protocolo MCP já registrada ali. Quatro
-decisões de modelagem/lógica, uma por ferramenta:
+A migração `0009` cria as tabelas e semeia 2–3 pares de compatibilidade.
 
-1. **Validação de compatibilidade:** nova tabela `produto_compatibilidades`
-   (par `produto_id`/`compativel_com_id`, ambos FK para `produtos.id`,
-   direcional mas consultado nos dois sentidos pela ferramenta — "A
-   compatível com B" implica "B compatível com A" do ponto de vista da
-   consulta, sem duplicar a escrita). `# MVP: pares cadastrados manualmente
-   via fixture de migração (mesmo padrão dos 5 produtos/estoque/descontos
-   já semeados na migração 0008) — sem regra automática de dedução por
-   categoria/especificação técnica; evolução futura, não este item.`
-2. **Consulta de frete e prazos:** estimativa determinística interna, **sem
-   integração com serviço externo de transportadora/Correios** — a
-   Seção 6/tabela de escopo não especifica o método, e a leitura mais
-   simples que atende ao MVP (regra 8 do `CLAUDE.md`) é reaproveitar dados
-   já modelados (`peso_kg` do produto) em vez de introduzir uma dependência
-   externa nova só para este item. Regra: custo e prazo calculados a partir
-   do primeiro dígito do CEP informado (região dos Correios, 0–9) e do peso
-   total do pedido (`peso_kg * quantidade`, somado se múltiplos itens),
-   com uma tabela fixa de custo-base/dia por região e um adicional por kg
-   — constantes no módulo, não um novo domínio de configuração via admin
-   (isso ficaria fora do escopo deste item). `# MVP: estimativa, não
-   frete real — nenhuma transportadora é consultada.`
-3. **Cotação automática:** reaproveita `preco`/`preco_promocional` (se
-   `promocao_valida_ate` vigente) e `produto_descontos_volume` já
-   modelados — para cada item da cotação, aplica a maior faixa de desconto
-   cuja `quantidade_minima` a quantidade pedida atinge, soma os itens.
-   Nenhuma tabela nova; só lógica sobre o que já existe.
-4. **Reserva/pedido:** novas tabelas `pedidos` (cabeçalho: status, criado em)
-   e `pedido_itens` (produto, quantidade, preço unitário no momento da
-   reserva). Cria o pedido com status `"reservado"` e decrementa
-   `produto_estoque.quantidade` via upsert simples (ler-depois-escrever,
-   mesmo padrão já aceito em `atualizar_estoque`) — `# MVP: sem lock
-   otimista/pessimista (corrida entre duas reservas concorrentes pode
-   sobre-reservar), sem trilha de auditoria, sem pagamento/gateway real —
-   simplificação já registrada na modelagem do backend único desta fase
-   (Seção 6, "Governança e segurança", evolução futura explícita)`. Reserva
-   com quantidade indisponível falha (não decrementa abaixo de zero,
-   consistente com a garantia mínima que `atualizar_estoque` já mantém).
+**Decisão registrada (Fase 7, 2026-09-28): API REST de Pedidos, Cotação e
+Frete.** `app.api.orders`: `POST /api/orders`, `GET /api/orders`,
+`GET /api/orders/{id}`, `POST /api/orders/quote`, `POST /api/orders/freight`,
+sobre `app.db.catalog`. A migração `0014` adiciona `user_email` e
+`conversation_id` a `pedidos`. No frontend, `useCartStore` (Zustand) guarda o
+carrinho; `/pedidos` faz checkout B2C, frete por CEP e simulação de desconto B2B,
+e `/pedidos/historico` lista o histórico.
 
-Migração `0009` cria as tabelas novas (`produto_compatibilidades`,
-`pedidos`, `pedido_itens`) e semeia 2-3 pares de compatibilidade fictícios
-entre os 5 produtos já existentes.
+**Decisão registrada (2026-10-05): conversão de reserva em venda com
+comprovação multimodal.** `Pedido.status` vai de `"reservado"` a
+`"venda_concluida"` (ou `"pagamento_divergente"`) por 5 modalidades, com
+comprovante (imagem, PDF ou TXT) analisado por LLM multimodal:
+1. **Manual simples (Admin):** muda o status, comprovante opcional, sem LLM.
+2. **Manual padrão:** o LLM compara valor pago e devido e gera parecer para o
+   admin aprovar.
+3. **Automática (upload do Admin):** efetiva se `divergencia == 0.00`.
+4. **Automática (cliente no chat):** o roteador identifica a intenção, o LLM
+   avalia a conformidade com a reserva da sessão e efetiva
+   (`tipo_conversao = "auto_chat"`).
+5. **Automática (B2B via MCP):** a tool `converter_reserva_venda`
+   (`pedido_id` + comprovante; `tipo_conversao = "auto_mcp_b2b"`).
 
-**Decisão registrada (Fase 7, API REST de Pedidos, Cotação e Frete B2C/B2B, 2026-09-28):**
-A API pública de pedidos (`app.api.orders`) expõe endpoints `POST /api/orders`, `GET /api/orders`, `GET /api/orders/{id}`, `POST /api/orders/quote` e `POST /api/orders/freight` sobre o backend de dados único (`app.db.catalog`). Migração `0014` adiciona colunas `user_email` e `conversation_id` à tabela `pedidos` para vincular os pedidos à sessão do cliente. No frontend, a store Zustand `useCartStore` gerencia o carrinho localmente e a página `/pedidos` permite checkout B2C, cálculo de frete por CEP e simulação de descontos B2B por volume, enquanto `/pedidos/historico` consome o histórico de pedidos.
+`pedidos` ganha `comprovante_url`, `tipo_conversao`, `convertido_em`,
+`convertido_por` e `llm_parecer`. Spec:
+`docs/superpowers/specs/2026-10-05-conversao-reserva-venda-design.md`.
 
-**Decisão registrada (Conversão de Reserva para Venda com Comprovação Multimodal, 2026-10-05):**
-O sistema prevê a conversão de reservas de estoque (`Pedido.status == "reservado"`) em vendas efetivas (`"venda_concluida"`) através de 5 modalidades por canal de efetivação com suporte a análise de comprovantes financeiros (Imagem, PDF e TXT) via LLM multimodal:
-1. **Manual Simples (Admin):** O admin altera o status para venda no painel, podendo anexar o comprovante manualmente sem validação de LLM.
-2. **Manual Padrão (Admin com Parecer LLM):** O admin faz upload do comprovante, o LLM analisa o documento (valor pago vs. valor devido) e gera um parecer estruturado para aprovação manual do admin.
-3. **Automática (Admin Upload):** O admin envia o comprovante e, se o LLM confirmar equivalência sem divergência (`divergencia == 0.00`), o sistema efetiva a venda automaticamente.
-4. **Automática (Cliente via Chat):** O cliente envia o comprovante no chat público; o roteador identifica a intenção, o LLM avalia a conformidade com a reserva da sessão (independente de quantidade ou descontos aplicados na emissão) e efetiva a venda, confirmando no chat (`tipo_conversao = "auto_chat"`).
-5. **Automática (Cliente B2B via MCP Tool):** A nova ferramenta MCP `converter_reserva_venda` permite a integradores parceiros enviar o `pedido_id` e o comprovante, convertendo o pedido em venda após validação multimodal por LLM (`tipo_conversao = "auto_mcp_b2b"`).
-Diffs de modelo: Tabela `pedidos` ganha colunas `comprovante_url`, `tipo_conversao`, `convertido_em`, `convertido_por`, `llm_parecer` e novos status (`venda_concluida`, `pagamento_divergente`). Especificação completa em `docs/superpowers/specs/2026-10-05-conversao-reserva-venda-design.md`.
-
-**Decisão registrada (Fase 5, Orquestrador como integrador do MCP B2B em
-Vendas, R12, 2026-09-24):** o quarto item da Fase 5 fecha a frase final da
-Seção 6 ("o próprio Roteador/Orquestrador deve ser tratado como 'mais um
-integrador' desse MCP para intenções de Vendas") no novo módulo
-`app.router.sales_catalog` (`SalesCatalogClient` + `extract_sales_slots`),
-injetado opcionalmente em `handle_message` (mesmo padrão de
-`calendar_client`/`scheduling_config`, construído em `app.main` e guardado
-em `app.state.sales_catalog_client`). Design completo em
+**Decisão registrada (Fase 5, R12, 2026-09-24): o orquestrador como integrador
+do MCP B2B em Vendas.** O módulo `app.router.sales_catalog`
+(`SalesCatalogClient` + `extract_sales_slots`), injetado opcionalmente em
+`handle_message` (`app.state.sales_catalog_client`), fecha a frase da Seção 6
+("o Roteador é mais um integrador"). Spec:
 `docs/superpowers/specs/2026-09-24-orquestrador-mcp-b2b-vendas-design.md`.
-Cinco decisões:
+1. **Resolução do produto em duas etapas.** Com ~1000 produtos, o casamento
+   único por nome quase nunca dispara. Etapa 1 (sem LLM):
+   `extrair_termos_busca` tokeniza (minúsculas, sem acento, sem stopwords,
+   descarta tokens de até 2 caracteres **exceto os com dígito**, como o "15"
+   de "GD-15") e `buscar_candidatos` faz `OR` de `ILIKE` em `Produto.nome` e
+   `categoria`, limitado a `SALES_CANDIDATOS_LIMITE = 10`. Etapa 2 (LLM
+   local): recebe a mensagem e os candidatos e devolve só IDs da lista
+   (`produto_id`, `produto_relacionado_id`, `quantidade`). Sem candidatos, a
+   etapa 2 não roda. Termos das mensagens anteriores complementam a lista
+   (candidatos da mensagem atual primeiro). Sem embeddings nem `pg_trgm`
+   (paridade SQLite/Postgres).
+2. **Chamada direta a `app.db.catalog`, não MCP via rede:** as mesmas funções
+   do servidor B2B (`obter_produto`, `listar_estoque`, `calcular_item_cotacao`,
+   `sao_compativeis`), no mesmo processo. "Mais um integrador" é simetria
+   arquitetural, e o chat não depende do processo `mcp-b2b-server` (8100).
+3. **Em paralelo com o RAG, complementa:** só para `domain == "vendas"`.
+   `_consultar_vendas` roda no mesmo `asyncio.TaskGroup` da busca RAG. O
+   bloco "Dados do catálogo interno" (estoque somado entre CDs, cotação para
+   N unidades com desconto só se maior que zero, compatibilidade) é anteposto
+   ao contexto em `_build_prompt`, com cabeçalho mandando usar exatamente
+   aqueles nomes e valores e preferi-los ao RAG. O prompt final não leva o
+   histórico, então numa mensagem de acompanhamento o bloco é a única fonte
+   do produto. Manuais e garantia continuam vindo do RAG.
+   `rag_retrieval_ms` passa a medir o bloco paralelo inteiro em Vendas
+   (`docs/FRONTEND.md` §4).
+4. **Falha isolada:** `_consultar_vendas` nunca levanta; erro vira o log
+   `vendas_catalogo_consulta_falhou` e o turno segue só com RAG. Cada consulta
+   emite `vendas_catalogo_consulta` (INFO) com `resultado` (`sem_termos`,
+   `sem_candidatos`, `llm_sem_produto`, `produto_inexistente`, `ok`) e o que
+   cada etapa viu; é por esse log que o teste manual confirma o que o LLM
+   recebeu. O `TaskGroup` usa `except* Exception` e relança a exceção
+   original, então `handle_message` continua levantando `RAGConnectionError`;
+   o log `rag_indisponivel` registra `tipo`/`erro`.
+5. **Ajustes do 1º teste local (2026-09-25):** (a) "o QTA-100 é compatível com
+   o GD-30?" caía em `suporte`; o prompt do classificador LLM passou a trazer
+   `DOMAIN_CRITERIA`, com compatibilidade e estoque explícitos em `vendas`.
+   (b) No acompanhamento, a resposta citou o GD-60 de um trecho do RAG, daí o
+   cabeçalho do item 3; e o produto só fora achado por coincidência ("5" de
+   "5 unidades" casou com "GD-15"), daí a busca no histórico (item 1).
+6. **Descrição e ficha técnica no bloco (2026-09-27):** o bloco leva também
+   `descricao`, `especificacoes_tecnicas`, dimensões e peso (cada texto
+   truncado em 1.500 caracteres), e o cabeçalho manda responder o que foi
+   perguntado, sem puxar preço e estoque não pedidos. Em mensagens de
+   acompanhamento ("possui detalhes?"), a busca de candidatos, a escolha pelo
+   LLM e os classificadores LLM (local e Jev) usam também a última resposta do
+   assistente; a heurística por palavra-chave não (palavras como "visita"
+   puxariam o domínio errado). Com o bloco preenchido, RAG vazio **não**
+   escala ao externo: o produto é dado do banco e os PDFs só complementam.
+7. **Fora desta entrega:** `consultar_frete` e `reservar_pedido` ficam só como
+   tools MCP (reserva tem efeito real e exigiria confirmação explícita, como
+   o agendamento); também cards estruturados (Fase 8), toggle em runtime,
+   busca semântica e ranking na busca de candidatos.
 
-1. **Resolução do produto em duas etapas, não casamento por nome:** com o
-   catálogo previsto para ~1000 produtos, termos genéricos ("gerador")
-   casam dezenas de itens, então um "match único por `ILIKE`" quase nunca
-   dispara. Etapa 1 (sem LLM): `extrair_termos_busca` tokeniza a mensagem
-   (minúsculas, sem acentos, sem stopwords, descarta tokens de até 2
-   caracteres **exceto os que têm dígito**, para preservar códigos de
-   produto como o "15" de "GD-15") e `buscar_candidatos` faz um `OR` de
-   `ILIKE '%termo%'` contra `Produto.nome`/`Produto.categoria`, limitado a
-   `SALES_CANDIDATOS_LIMITE = 10`. Etapa 2 (uma chamada ao LLM local): o
-   LLM recebe a mensagem **e a lista de candidatos** e devolve só IDs
-   dessa lista (`produto_id`, `produto_relacionado_id`, `quantidade`); IDs
-   fora da lista são descartados. Sem candidatos, a etapa 2 nem roda.
-   Os termos das mensagens anteriores da conversa também são buscados,
-   como complemento: os candidatos da mensagem atual vêm primeiro e os do
-   histórico completam a lista até o mesmo teto, sem repetir produto. Isso
-   cobre mensagens de acompanhamento que não citam o produto ("E se eu
-   levar 3 unidades?"). Sem
-   embeddings nem `pg_trgm`, para manter a paridade SQLite/Postgres dos
-   testes.
-2. **Chamada direta a `app.db.catalog`, não protocolo MCP via rede:**
-   `SalesCatalogClient` chama no mesmo processo as mesmas funções que
-   `app.mcp_server.b2b` usa por baixo (`obter_produto`, `listar_estoque`,
-   `calcular_item_cotacao`, `sao_compativeis`). "Mais um integrador" é lido
-   como simetria arquitetural (mesmo backend único, mesmas regras de
-   negócio), não como obrigação de usar o protocolo MCP dentro do próprio
-   backend. Assim o chat não passa a depender do processo `mcp-b2b-server`
-   (porta 8100) estar de pé. É o mesmo padrão do `app.rag.db_connector`.
-3. **Roda em paralelo com o RAG e complementa, não substitui:** só para
-   `domain == "vendas"` com o cliente injetado. `_consultar_vendas` roda
-   no mesmo `asyncio.TaskGroup` da busca RAG. O bloco "Dados do catálogo
-   interno" (estoque total somado entre CDs; cotação para N unidades, com
-   o percentual de desconto só quando for maior que zero; compatibilidade
-   com o segundo produto) é anteposto ao contexto RAG em `_build_prompt`,
-   com um cabeçalho que manda o LLM usar exatamente aqueles nomes e valores
-   e preferi-los a trechos do RAG que digam outra coisa. O prompt final não
-   leva o histórico da conversa, então numa mensagem de acompanhamento
-   ("E se eu levar 5 unidades?") o bloco é a única fonte do produto em
-   questão.
-   Manuais, garantia e texto não estruturado continuam vindo do RAG. A
-   decisão local x externo continua usando o sinal RAG vazio x não
-   vazio, com uma exceção (item 6): o bloco do catálogo conta como
-   contexto. Efeito colateral aceito: `rag_retrieval_ms` passa a medir o
-   bloco paralelo inteiro (RAG + consulta de vendas) em mensagens de
-   Vendas com o cliente injetado (ver `docs/FRONTEND.md` §4).
-4. **Falha isolada:** `_consultar_vendas` nunca levanta. Qualquer erro
-   (banco, LLM) gera o log `vendas_catalogo_consulta_falhou` e devolve
-   `None`, e o turno segue só com RAG, como antes. Cada consulta também
-   emite uma linha `vendas_catalogo_consulta` (nível INFO) dizendo em qual
-   etapa parou (`resultado`: `sem_termos`, `sem_candidatos`,
-   `llm_sem_produto`, `produto_inexistente` ou `ok`) e o que cada etapa viu
-   (termos, candidatos, slots do LLM, bloco injetado). O prompt final não
-   sai na resposta SSE, então é por esse log que o teste manual confirma o
-   que o LLM recebeu (`docs/TESTE_LOCAL.md`). O `TaskGroup` usa
-   `except* Exception` (não só `RAGConnectionError`) e relança a exceção
-   original, sem `ExceptionGroup`. Assim quem chama `handle_message`
-   continua recebendo `RAGConnectionError` como antes. O log
-   `rag_indisponivel` registra `tipo`/`erro` para que uma exceção
-   inesperada não fique muda.
-5. **Ajustes do 1º teste local (2026-09-25, `docs/TESTE_LOCAL.md`):**
-   6 de 7 cenários passaram. Dois problemas corrigidos: (a) "o QTA-100 é
-   compatível com o GD-30?" foi classificado como `suporte` e o catálogo
-   não foi consultado. O prompt do classificador LLM local só listava os
-   nomes dos domínios, então passou a trazer `DOMAIN_CRITERIA`, e
-   compatibilidade/estoque ficaram explícitos em `vendas`, como a Seção 6
-   já previa. (b) Na mensagem de acompanhamento o bloco estava certo (GD-15,
-   5 unidades, 5% de desconto), mas a resposta citou o GD-60 e o preço dele,
-   tirados de um trecho do RAG. Daí o cabeçalho do item 3. Além disso, o
-   produto só foi achado por coincidência: o "5" de "5 unidades" casou com
-   "GD-15". Com "3 unidades" a busca não acharia nada. Daí a busca
-   complementar no histórico (item 1).
-6. **Descrição e ficha técnica no bloco (correção de 2026-09-27):** o
-   bloco do item 3 passou a levar também a descrição comercial
-   (`descricao`), as especificações técnicas (`especificacoes_tecnicas`),
-   as dimensões e o peso do produto, cada texto truncado em 1.500
-   caracteres. O cabeçalho manda responder o que o cliente perguntou: em
-   pedidos de detalhes, dados técnicos ou características, usar a descrição
-   e a ficha técnica, sem puxar preço e estoque se não foram pedidos.
-   Achado no uso real: o bloco só tinha estoque e cotação, e o LLM
-   respondia sobre preço e estoque quando o cliente pedia detalhes. Na
-   mensagem seguinte ("detalhes do produto acima?", ou só "possui
-   detalhes?"), a busca de candidatos e a escolha do produto pelo LLM
-   sempre usam também a última resposta do assistente (ex.: "Identifiquei:
-   Rádio … RC 4102g2") como complemento do histórico, e os classificadores
-   de domínio LLM (local e Jev) a recebem no contexto; a heurística por
-   palavra-chave não, porque palavras da resposta (ex.: a oferta de
-   "visita") puxariam para o domínio errado. Achado no teste no navegador
-   de 2026-09-28: "possui detalhes?" depois da imagem caía em `fora_escopo`
-   e ia para o externo. Com o bloco do catálogo
-   preenchido, RAG vazio **não** escala para o externo (`rag_vazio`): o
-   produto está no banco e a resposta sai do bloco. Achado no uso real: a
-   pergunta seguinte à identificação por imagem acertou o produto, mas foi
-   para o externo porque nenhum PDF falava dele. O produto é dado do banco;
-   os PDFs só complementam.
-7. **Fora desta entrega (decisão consciente):** `consultar_frete` e
-   `reservar_pedido` continuam só como tools MCP para integradores externos.
-   Reserva tem efeito colateral real e exigiria um fluxo de confirmação
-   explícita como o do agendamento. Também ficam de fora: cards
-   estruturados no frontend (Fase 8), toggle em runtime settings, busca
-   semântica e ranking de relevância na busca de candidatos.
-
-`# MVP: busca de candidatos por tokenização simples + ILIKE, sem ranking
-nem busca semântica; SalesCatalogClient chama app.db.catalog diretamente,
-sem conexão MCP real; quantidade extraída pelo LLM usada sem faixa de
-sanidade (valor não numérico descarta a extração inteira; <=0 só omite a
-cotação; valores muito grandes não são validados)`. Testado em
-`tests/test_sales_catalog.py` (tokenização, busca, detalhes, extração com
-LLM fake), `tests/test_orchestrator.py` (bloco no prompt, formatação da
-cotação com e sem desconto, ausência do cliente, mensagem sem produto,
-falha isolada, outros domínios não chamam o cliente, log de diagnóstico
-`vendas_catalogo_consulta`, log de
-`rag_indisponivel`) e `tests/test_main_app.py` (wiring em `app.main`).
+`# MVP:` ILIKE com tokenização simples; sem conexão MCP real; quantidade do
+LLM sem faixa de sanidade (não numérico descarta a extração; <=0 omite a
+cotação). Testes: `tests/test_sales_catalog.py`, `tests/test_orchestrator.py`,
+`tests/test_main_app.py`.
 
 **Decisão registrada (Fase 6, memória da conversa e classificação do
-usuário, R9/R10, 2026-09-25):** decisões do desenvolvedor, tomadas antes da
-implementação.
+usuário, R9/R10, 2026-09-25).**
 
 *R9: persistência, resumo e retomada.*
-
-1. **Onde:** duas tabelas no Postgres. `conversas` guarda o id (o mesmo
-   `conversation_id` que o widget já guarda no `localStorage`), as datas,
-   o resumo, o e-mail e o perfil. `conversa_mensagens` guarda cada mensagem
-   do cliente **e** a resposta do assistente, com o domínio da resposta.
-   Substitui o histórico em memória de `app.api.chat`, que se perdia a cada
-   reinício. O histórico recente usado pelo roteador (últimas 3 mensagens
-   do cliente) passa a vir do banco, com o mesmo conteúdo de antes.
-2. **Quando grava:** quando a resposta termina, antes do evento `done`. O
-   perfil calculado (R10) sai já no `done` daquela resposta, e a próxima
-   mensagem sempre encontra a anterior gravada. Uma falha do banco vira log
-   (`memoria_indisponivel`) e a conversa segue sem memória naquela
-   mensagem; nunca derruba a resposta.
-3. **Resumo automático periódico:** a cada 6 mensagens gravadas (3 trocas),
-   o LLM local reescreve o resumo a partir do resumo anterior e das
-   mensagens novas. Roda em segundo plano, sem atrasar a resposta. O
-   resumo entra no prompt da resposta ("Resumo da conversa até aqui"). Isso
-   também cobre uma lacuna vista nos testes de Vendas: o LLM que responde
-   não via o histórico da conversa.
-4. **Retomada no widget:** `GET /api/chat/conversations/{id}` (caminho
-   que o `docs/FRONTEND.md` §4 já previa) devolve o resumo e as mensagens
-   gravadas, sem e-mail. O widget as carrega ao montar, só se ainda não
-   houver mensagem na tela. Cada resposta do assistente guarda também as
-   métricas do seu evento `done` (coluna `metricas`, JSON, migração `0012`:
-   modelo, tokens, latência, RAG, perfil), para o painel ⚙️ reaparecer igual
-   nas mensagens recarregadas e a telemetria ficar consultável no banco
-   (ajuste pedido pelo desenvolvedor após a conferência no navegador). `# MVP: quem tiver o
-   conversation_id (UUID aleatório no navegador) lê a conversa, sem login`.
-
-4b. **Contexto de mensagens de acompanhamento (correção de 2026-09-27):**
-   a identificação de produto por imagem passou a ser gravada na memória
-   (mensagem do cliente "[imagem enviada]", resposta com o produto
-   identificado), e o prompt da resposta passou a levar a **última troca**
-   da conversa (cliente + assistente, truncada), além do resumo periódico.
-   Quando a mensagem aponta para algo anterior ("acima", "esse", "desse",
-   "dele", "isso"...), a busca no RAG usa também a última resposta, que traz
-   o nome do produto, e o filtro que descarta documentos de outro produto
-   (`_filtrar_documentos_relevantes_ao_contexto`) também passa a enxergar a
-   última resposta ("Identifiquei: X"). Achado no uso real: depois de identificar um rádio pela
-   imagem, "possui detalhes do produto acima?" chegava sem contexto, e o RAG,
-   buscando só a frase, trouxe o manual de um relógio de ponto, que o LLM
-   descreveu como se fosse o rádio.
-4c. **Limpar conversa (2026-09-27, registrado na revisão de 2026-09-28):**
-   o botão "limpar conversa" do chat (`DELETE
-   /api/chat/conversations/{id}`) apaga as mensagens e zera resumo e
-   perfil. `# MVP: o e-mail da conversa é mantido`: é a identidade do
-   visitante, não memória da conversa, e o perfil é recalculado na próxima
-   mensagem.
+1. **Onde:** `conversas` (id = `conversation_id` do widget, datas, resumo,
+   e-mail, perfil) e `conversa_mensagens` (mensagem do cliente e resposta do
+   assistente, com o domínio). Substitui o histórico em memória; o histórico
+   do roteador (3 últimas mensagens do cliente) vem do banco.
+2. **Quando grava:** ao terminar a resposta, antes do `done`, para o perfil
+   (R10) sair já nele. Falha do banco vira o log `memoria_indisponivel` e a
+   conversa segue sem memória naquela mensagem.
+3. **Resumo periódico:** a cada 6 mensagens (3 trocas) o LLM local reescreve o
+   resumo, em segundo plano. Ele entra no prompt ("Resumo da conversa até
+   aqui").
+4. **Retomada:** `GET /api/chat/conversations/{id}` devolve resumo e mensagens
+   (sem e-mail); o widget as carrega ao montar. Cada resposta guarda as
+   métricas do `done` em `metricas` (JSON, migração `0012`). `# MVP:` quem
+   tiver o `conversation_id` (UUID) lê a conversa, sem login.
+   - **4b. Acompanhamento (2026-09-27):** a identificação por imagem é gravada
+     ("[imagem enviada]" + produto identificado) e o prompt leva a **última
+     troca**. Quando a mensagem aponta para algo anterior ("acima", "esse",
+     "isso"), a busca RAG e o filtro
+     `_filtrar_documentos_relevantes_ao_contexto` usam também a última
+     resposta (antes, "possui detalhes do produto acima?" trouxe o manual de
+     um relógio de ponto).
+   - **4c. Limpar conversa (2026-09-27):** `DELETE /api/chat/conversations/{id}`
+     apaga mensagens e zera resumo e perfil; o e-mail é mantido (identidade
+     do visitante).
 
 *R10: classificação do usuário.*
+5. **Identidade pelo e-mail.** Tabelas fictícias `clientes` e `cliente_compras`
+   (migração). O e-mail é captado quando o visitante o escreve (o agendamento
+   já pede) e guardado antes de chamar o LLM, para não se perder em falha. A
+   abertura do chat mostra boas-vindas só de interface, convidando a informar
+   o e-mail (opcional). Mensagem que é só o e-mail recebe resposta fixa, sem
+   LLM (`backend_used="resposta_fixa"`), que não revela se há cadastro. No
+   pós-venda sem e-mail, o prompt manda pedir o e-mail da compra.
+6. **Regras,** recalculadas a cada mensagem, com o motivo gravado:
+   **Cliente** (cadastrado, 2+ compras, última em 12 meses); **Esporádico**
+   (cadastrado, 1 compra ou última há mais de 12 meses); **Lead** (sem
+   cadastro, com resposta em `vendas` ou `agendamento`); **Não classificado**.
+7. **Exibição:** `perfil_usuario` e `perfil_motivo` no `done`, no painel ⚙️;
+   o perfil não entra no prompt.
+8. **Privacidade e persistência (2026-09-29).** O histórico de compras
+   (`dados_cliente`) só é carregado com usuário autenticado
+   (`payload.user_email`); sem autenticação, o e-mail só classifica (R10) e o
+   prompt leva o aviso `[Perfil do Visitante no Chat (Não Autenticado)]`
+   mandando não expor compras e pedir login. No navegador, anônimos usam
+   `sessionStorage` (`tcc_chat_session_conversation_id`); autenticados usam
+   `localStorage` (`tcc_chat_user_conversation_id_{email}`), e o login
+   durante uma conversa vincula a sessão à conta. O logout chama `clearChat()`.
+   Para autenticados, `obter_contexto_conversa_anterior` injeta o resumo da
+   última conversa prévia ("Contexto da conversa anterior do cliente").
+   - **8.1. Ciclo de vida e custos (2026-10-04):** `conversas` ganha `status`
+     (`aberta`/`encerrada`), `encerrada_em` e `motivo_encerramento`
+     (`manual_usuario`, `manual_admin`, `inatividade`), migração `0018`.
+     `POST /api/chat/conversations/{id}/close` é idempotente. O
+     `inactivity_closure_worker` (no `lifespan`) varre a cada 5 min e
+     encerra conversas abertas sem atividade há mais de 30 min. As respostas
+     registram `prompt_tokens` e `completion_tokens` e, no externo,
+     `cost_prompt_usd`/`cost_completion_usd` (local = US$ 0,00), no JSON
+     `metricas` e no `done`. O endpoint `GET /api/admin/metrics/ai-usage` agrega
+     `ai_usage_events` por origem × ambiente × modelo × operação, com período
+     (`today`, `7d`, `30d`, `all` ou `start_date`+`end_date`) no fuso do
+     admin; é um `GROUP BY` mais uma seleção por evento, e o bucket diário é
+     feito em Python (sem SQL portável entre SQLite e PostgreSQL). Substituiu
+     `GET /api/admin/metrics/tokens-and-costs` (removido em 2026-10-08).
 
-5. **Identidade pelo e-mail, no momento natural:** o chat não tem login, e
-   não existia base de clientes nem compras de pessoas (os pedidos do MCP
-   B2B são reservas de parceiros). Entram duas tabelas fictícias,
-   semeadas em migração como os produtos: `clientes` (e-mail, nome) e
-   `cliente_compras` (produto, valor, data). O e-mail é captado quando o
-   visitante o escreve em qualquer mensagem (o agendamento já pede). Ao
-   abrir o chat com a conversa vazia, uma mensagem de boas-vindas (só de
-   interface, não gravada) convida a informar o e-mail junto com a
-   pergunta, deixando claro que é opcional e que facilita o relacionamento
-   com a empresa; não há pergunta obrigatória nem bloqueio.
-   O e-mail é guardado assim que a mensagem chega, antes de chamar o LLM:
-   uma falha na resposta (ex.: 429 do modelo externo) não o perde. Uma
-   mensagem que é basicamente só o e-mail ("Sou fulano@…", "meu e-mail é
-   …") recebe uma resposta fixa, sem LLM (`backend_used="resposta_fixa"`),
-   que agradece e pergunta como ajudar; antes ela caía em `fora_escopo` e
-   ia para o modelo externo. A resposta não diz se o e-mail tem cadastro,
-   para não permitir descobrir quem é cliente testando e-mails; o perfil
-   sai só no painel de métricas. Correções vindas do teste local de
-   2026-09-25 (cenários R6/R9 com 429 do OpenRouter). No pós-venda (`suporte`/`atendimento`), sem
-   e-mail conhecido, o prompt instrui o assistente a pedir educadamente o
-   e-mail usado na compra.
-6. **Regras**, recalculadas a cada mensagem e gravadas com o motivo:
-   - **Cliente:** e-mail cadastrado, com 2 ou mais compras e a última nos
-     últimos 12 meses.
-   - **Esporádico:** e-mail cadastrado, mas só 1 compra ou a última há mais
-     de 12 meses.
-   - **Lead:** sem cadastro (ou sem e-mail), mas com intenção de compra na
-     conversa (alguma resposta nos domínios `vendas` ou `agendamento`).
-   - **Não classificado:** nenhum sinal ainda.
-7. **Exibição:** `perfil_usuario` e `perfil_motivo` no evento `done` do SSE,
-   mostrados no painel de métricas da resposta (⚙️). O perfil não entra no
-   prompt.
-8. **Privacidade, Autenticação e Persistência de Conversas (Decisão registrada em 2026-09-29):**
-   - Dados detalhados de histórico de compras e pedidos (`dados_cliente` no prompt com lista de produtos, valores, datas e pedidos) **SOMENTE** são carregados e disponibilizados se o usuário estiver formalmente autenticado no frontend (`payload.user_email` preenchido).
-   - Quando o visitante NÃO estiver autenticado (mesmo que cite um e-mail na conversa ou retome uma conversa prévia), o sistema no máximo utiliza a informação para classificar o tipo de cliente no chat (R10: cliente, esporádico ou lead), injetando aviso de segurança explícito no prompt (`[Perfil do Visitante no Chat (Não Autenticado)]`) orientando o modelo a não expor compras e a instruir o visitante a fazer login na conta para acessar seus dados.
-   - **Persistência de conversas no navegador:**
-     - Visitantes anônimos/não autenticados utilizam `sessionStorage` (`tcc_chat_session_conversation_id`), mantendo a conversa durante a navegação entre abas e páginas na mesma visita, mas esquecendo-a completamente ao fechar o navegador/aba (não persistida no `localStorage`).
-     - Usuários autenticados têm seu identificador de conversa mantido no `localStorage` vinculado à conta (`tcc_chat_user_conversation_id_{email}`). Ao fazer login durante uma conversa ativa, a sessão corrente é vinculada ao usuário sem perda de contexto.
-     - No **logout**, `useAuthStore.getState().logout()` limpa a sessão ativa do chat e os armazenamentos locais associados (`clearChat()`), impedindo que outro visitante herde mensagens.
-   - **Injeção de contexto da conversa anterior:**
-     - Quando um usuário autenticado inicia ou dá sequência a um atendimento, o backend busca a última conversa prévia do cliente (`obter_contexto_conversa_anterior`), recupera seu resumo ou mensagens condensadas e injeta no prompt (`Contexto da conversa anterior do cliente`), permitindo ao LLM manter continuidade sobre tópicos discutidos em atendimentos passados.
-8.1. **Ciclo de Vida de Atendimentos, Contabilizador de Tokens e Custos Segregados (Decisão registrada em 2026-10-04):**
-   - **Tabela `conversas` (migração `0018_conversas_status_custos.py`):** adiciona os campos `status` (`aberta` ou `encerrada`), `encerrada_em` (`TIMESTAMP WITH TIME ZONE`) e `motivo_encerramento` (`manual_usuario`, `manual_admin`, `inatividade`), com índices B-tree para consultas de agregação analítica (`idx_conversas_status`, `idx_conversas_encerrada_em`).
-   - **Encerramento Manual e Idempotente:** endpoint `POST /api/chat/conversations/{id}/close` permite encerramento voluntário pelo visitante no botão "Encerrar atendimento" do widget ou por rotinas de moderação, retornando HTTP 200 de forma idempotente em chamadas repetidas.
-   - **Worker de Inatividade:** serviço em background (`inactivity_closure_worker`), gerenciado pelo ciclo de vida `lifespan` do FastAPI, varre o banco periodicamente (a cada 5 minutos) e encerra automaticamente conversas com `status='aberta'` e inatividade superior a 30 minutos (`atualizada_em < NOW() - INTERVAL '30 minutes'`).
-   - **Contabilidade de Entrada e Saída (Prompt vs Completion):** todas as respostas geradas registram contagens separadas de `prompt_tokens` e `completion_tokens`. Para provedores externos (OpenRouter), calculam-se separadamente `cost_prompt_usd` e `cost_completion_usd` baseados nas tabelas de preço por 1k tokens, gravando o payload no JSON `conversa_mensagens.metricas` e no evento SSE `done`. Para o modelo local (Ollama), os custos são estritamente US$ 0.00.
-   - **Painel de Uso de IA:** o endpoint `GET /api/admin/metrics/ai-usage`
-     agrega a tabela `ai_usage_events` (ledger unificado, item A) por
-     origem × ambiente × modelo × operação, com filtros de período
-     (`today`, `7d`, `30d`, `all` ou `start_date`+`end_date`) no calendário
-     local do administrador, e alimenta o painel `/admin/metricas`. Duas
-     consultas: um `GROUP BY` das quatro dimensões, de onde cinco visões
-     são derivadas por roll-up (`app.services.ai_usage_report`), e uma
-     seleção estreita por evento para o recorte diário — o bucket diário é
-     feito em Python porque não existe expressão SQL portável entre SQLite
-     (testes) e PostgreSQL (produção) para truncar um timestamp num fuso
-     arbitrário. Substituiu `GET /api/admin/metrics/tokens-and-costs`
-     (removido em 2026-10-08), que lia dois esquemas diferentes
-     (`ConversaMensagem.metricas` e `IngestionCostEvent`) e inferia visão
-     computacional por heurística de nome de modelo.
+`# MVP:` um visitante = um navegador; base de clientes fictícia; e-mail por
+expressão regular, sem confirmação de posse; regras fixas; e-mail sem política
+de consentimento/retenção (LGPD, Seção 7).
 
-`# MVP: um visitante = um navegador (conversation_id no localStorage), sem
-login; base de clientes fictícia; e-mail captado por expressão regular, sem
-confirmação de posse; classificação por regras fixas, sem modelo preditivo;
-e-mail guardado sem política de consentimento/retenção (LGPD), ver Seção 7`.
+**Decisão registrada (além do MVP, 2026-09-25): gestão de produtos, catálogo
+visual CLIP e ingestão de catálogos (`/admin/produtos`).**
+1. **Dados:** `Produto` ganha `preco_base_fornecedor` e `imagem_url`; a tabela
+   `produto_imagens` (1:N) vem na migração `0013`.
+2. **Catálogo visual:** as fotos vão para `data/product_images/`, servidas em
+   `/api/uploads/produtos/{filename}` (proteção a path traversal e checagem de
+   MIME) e vetorizadas em `catalogo_imagens` com `produto_id` e `imagem_url`
+   no payload; ao excluir, a imagem sai do Qdrant.
+3. **Extração híbrida com revisão humana:**
+   `/api/admin/produtos/catalogo/extrair/stream` (SSE) processa PDFs
+   multipáginas (`pdfplumber` + renderização), imagens e texto
+   (`.txt`/`.md`/`.csv`, em blocos de 6000 caracteres, só modelo local). Tenta
+   extração local pelo Ollama e recorre à visão do OpenRouter em catálogo
+   escaneado ou baixa confiança. Desde 2026-10-06 (política de custo mínimo),
+   imagem avulsa tenta OCR + extração local, depois visão local
+   (`OllamaClient.describe_image`) e só então a visão externa (ou direto, se o
+   admin forçar `provider="external"`). Falhas `429`/`5xx` da visão ganham 2
+   tentativas com backoff (`OpenRouterClient.describe_image`); se persistirem, o
+   evento `pagina_concluida` traz `erro`, distinto de "nenhum produto". A
+   conferência prévia antecede `POST /api/admin/produtos/catalogo/confirmar`.
+4. **Estoque, descontos e compatibilidade (2026-09-27):** abas no formulário
+   de produto, sobre as mesmas tabelas de `app.db.catalog`.
+5. `# MVP:` extração dentro da requisição SSE, sem fila nem retomada;
+   listagens (admin e `GET /api/products`, que ordena os com estoque primeiro)
+   paginam em memória.
 
-**Decisão registrada (além do MVP, a pedido explícito, 2026-09-25 — Gestão de Produtos, Catálogo Visual CLIP e Ingestão de Catálogos):**
-O administrador do sistema ganha uma interface dedicada (`/admin/produtos`) para gestão completa do catálogo de produtos, cálculo de margem comercial e ingestão inteligente de catálogos via IA:
-1. **Modelo de dados:** estende `Produto` com `preco_base_fornecedor` (custo) e `imagem_url`, criando a tabela `produto_imagens` com relação 1:N no Postgres (migração `0013`).
-2. **Catálogo visual CLIP integrado:** as fotos cadastradas ou importadas são salvas em `data/product_images/`, servidas estaticamente em `/api/uploads/produtos/{filename}` com proteção a path traversal e checagem de MIME, e automaticamente vetorizadas no Qdrant (`catalogo_imagens`) com payload enriquecido (`produto_id`, `imagem_url`). Ao ser excluída, a imagem é expurgada do Qdrant.
-3. **Extração híbrida Human-in-the-Loop:** o backend expõe `/api/admin/produtos/catalogo/extrair/stream` com Server-Sent Events (SSE). Processa PDFs multipáginas (`pdfplumber` + renderização visual), múltiplas imagens ou arquivos de texto (`.txt`/`.md`/`.csv`, divididos em blocos de 6000 caracteres e lidos só pelo modelo local — `# MVP`: sem fallback de visão, pois não há imagem). No frontend os arquivos podem ser arrastados, colados (Ctrl+V) ou selecionados. Realiza extração local via Ollama quando há texto disponível e recorre à visão multimodal via OpenRouter em caso de catálogo escaneado ou baixa confiança. **Atualizado em 2026-10-06 (política de custo mínimo, ver mais abaixo nesta seção):** imagem avulsa (upload de uma única foto de página, sem PDF) deixou de usar sempre a visão externa — agora tenta OCR + extração local, depois visão local (`OllamaClient.describe_image`, novo), só caindo para a visão externa como último recurso (ou direto, se o admin forçar `provider="external"`). Falhas transitórias do modelo de visão (`429`/`5xx`, comuns em modelos `:free` do OpenRouter, que compartilham um pool de limite de taxa) ganham 2 tentativas extras com backoff curto (`OpenRouterClient.describe_image`); se mesmo assim falhar, o evento `pagina_concluida` da SSE traz um campo `erro` que o modal exibe distinto de "nenhum produto encontrado", para o administrador não confundir falha de infraestrutura com página genuinamente vazia. Uma tela de conferência prévia permite revisar, ajustar campos e selecionar itens antes da gravação definitiva (`POST /api/admin/produtos/catalogo/confirmar`).
-4. **Estoque, descontos e compatibilidade no admin (2026-09-27, commit
-   `a6c530d`; registrado na revisão de 2026-09-28):** o formulário de
-   produto ganhou abas para editar o estoque por centro de distribuição, as
-   faixas de desconto por volume e os vínculos de compatibilidade, as mesmas
-   tabelas que o chat de Vendas e o MCP B2B leem (`app.db.catalog`).
-5. **Simplificações (registradas na revisão de 2026-09-28):** `# MVP: a
-   extração roda dentro da própria requisição SSE, sem fila nem retomada;
-   listagens de produtos (admin e pública, `GET /api/products`, que ordena
-   os com estoque primeiro) paginam em memória, carregando todos os
-   produtos do filtro`.
+**Decisão registrada (Fase 5, R12, 2026-09-26): consulta genérica por
+categoria em Vendas.** A etapa 2 só escolhia um `produto_id`, então "tem
+geradores no estoque?" voltava `llm_sem_produto` e o chat dizia "não tenho
+informações de estoque". Correções: (1) `VendaSlots` ganha `categoria`; o
+prompt de `extract_sales_slots` lista as categorias
+(`SalesCatalogClient.listar_categorias`) e manda preencher `categoria` em vez
+de `produto_id` para tipos genéricos (validada sem acento/caixa; produto único
+tem precedência). `consultar_categoria` usa `listar_produtos(categoria=...)`
+com `selectinload` do estoque e devolve `DadosCatalogoCategoria`;
+`_formatar_dados_catalogo_categoria` o antepõe ao contexto. Novos `resultado`
+no log: `ok_categoria` e `categoria_vazia`. (2) `_DOMAIN_KEYWORDS["vendas"]`
+ganhou `"estoque"` e `"disponível"`, alinhando a heurística (padrão de
+produção) a `DOMAIN_CRITERIA`. `# MVP:` ILIKE sem ranking; categoria sem
+paginação. Testes em `tests/test_sales_catalog.py` e `tests/test_orchestrator.py`.
 
-**Decisão registrada (Fase 5, correção de bug em Vendas — consulta genérica
-por categoria, R12, 2026-09-26):** o fluxo do orquestrador em Vendas
-(`app.router.sales_catalog` + `orchestrator._consultar_vendas`, decisão de
-2026-09-24 nesta seção) resolvia **apenas um produto único** por mensagem: a
-etapa 2 (LLM, `extract_sales_slots`) escolhia um `produto_id` entre os
-candidatos. Consultas genéricas por um **tipo** de produto ("tem geradores no
-estoque?", "quais geradores vocês têm?") não citam um modelo específico —
-então a etapa 1 achava os candidatos (via `categoria`), mas a etapa 2
-devolvia `produto_id: null` (`resultado=llm_sem_produto`), nenhum bloco de
-catálogo era injetado e o chat respondia "não tenho informações de estoque"
-(caía só no RAG textual, que não tem estoque estruturado). Busca por modelo
-específico funcionava (o LLM escolhia o ID), a genérica não — exatamente o
-sintoma relatado. Não era uma simplificação registrada (a spec de 2026-09-24
-§9 lista os não-objetivos, e listagem por categoria não estava entre eles),
-mas uma lacuna de cobertura. Duas correções:
+**Decisão registrada (Fase 5, R4/R12, 2026-09-29): viés no few-shot e
+listagem completa do catálogo.** "Quais produtos em estoque disponíveis?"
+(genérica) respondia só sobre geradores. Causas: (1) o exemplo do prompt de
+extração (`_EXTRACTION_PROMPT_TEMPLATE`) citava uma categoria fixa e ancorava o
+LLM; virou o placeholder "categoria X", com instrução de deixar `categoria`
+nula se nenhuma foi mencionada. (2) Não havia caminho para "listar tudo", e
+`_consultar_vendas` cortava em `sem_candidatos` antes do LLM. `VendaSlots`
+ganha `listar_tudo` (precedência `produto_id` > `categoria` > `listar_tudo`), o
+orquestrador sempre chama `extract_sales_slots`, e
+`SalesCatalogClient.listar_todos_produtos()` devolve `DadosCatalogoCategoria`
+com `categoria=None` (cabeçalho "Todos os produtos do catálogo interno").
+`# MVP:` toda mensagem de Vendas sem candidato custa uma chamada extra ao LLM
+local; sem paginação. Testes em `tests/test_sales_catalog.py` e
+`tests/test_orchestrator.py`.
 
-1. **Consulta por categoria (`app.router.sales_catalog`):** `VendaSlots`
-   ganha um campo `categoria`; o prompt de `extract_sales_slots` passa a
-   listar as categorias disponíveis (`SalesCatalogClient.listar_categorias`,
-   sobre `app.db.catalog.listar_categorias_distintas`) e instrui o LLM a
-   preencher `categoria` (em vez de `produto_id`) quando o cliente pergunta
-   por um tipo de produto genericamente. A categoria devolvida é validada
-   contra as existentes (comparação sem acento/caixa via `normalize`);
-   produto único tem precedência sobre categoria. `SalesCatalogClient.consultar_categoria`
-   reaproveita `app.db.catalog.listar_produtos(categoria=...)` +
-   `selectinload` do estoque (sem query extra por produto) e devolve
-   `DadosCatalogoCategoria` (lista de produtos da categoria com preço e
-   estoque somado entre CDs). O orquestrador formata esse bloco
-   (`_formatar_dados_catalogo_categoria`) e o antepõe ao contexto RAG, com o
-   mesmo cabeçalho "prefira estes dados ao RAG" do bloco de produto único.
-   Novos resultados de diagnóstico no log `vendas_catalogo_consulta`:
-   `ok_categoria` e `categoria_vazia`.
-2. **Alinhamento das keywords do classificador heurístico
-   (`app.router.classifier`):** `_DOMAIN_KEYWORDS["vendas"]` ganhou
-   `"estoque"` e `"disponível"`. O `DOMAIN_CRITERIA["vendas"]` (usado pelos
-   classificadores LLM local e Jev) **já** listava "estoque/disponibilidade"
-   como intenção de Vendas desde o cenário V4 do teste local de 2026-09-25,
-   mas a heurística de palavras-chave (`ROUTER_COMPLEXITY_STRATEGY=heuristic`,
-   default de produção) divergia: "tem geradores no estoque?" não casava
-   nenhuma keyword de Vendas e caía em `fora_escopo` (roteada ao externo, sem
-   consultar o catálogo). Agora os dois classificadores concordam. `# MVP:
-   busca de candidatos/categorias por ILIKE simples, sem ranking nem busca
-   semântica — mesma limitação já registrada para produto único; consulta por
-   categoria lista todos os produtos da categoria sem paginação (catálogo
-   fictício pequeno)`. Testado em `tests/test_sales_catalog.py`
-   (`listar_categorias`, `consultar_categoria` com/sem estoque, `categoria`
-   no `extract_sales_slots` incluindo validação/precedência) e
-   `tests/test_orchestrator.py` (pergunta genérica lista produtos no prompt,
-   categoria vazia não injeta bloco).
+**Histórico (2026-09-29): sincronização do catálogo no RAG, descontinuada.** O
+módulo `app.rag.product_sync` foi removido em 2026-10-04, quando o CRUD de
+produtos se desacoplou do RAG e o SQL virou a autoridade única (decisão de
+2026-10-03). O `backend/scripts/ingest_db_table.py` segue para outras tabelas.
 
-**Decisão registrada (Fase 5, correção de bug em Vendas — viés no few-shot e
-listagem completa do catálogo, R4/R12, 2026-09-29):** um cliente relatou que
-"você poderia me fornecer os produtos em estoque disponíveis?" (pergunta
-totalmente genérica, sem produto nem categoria) respondia só sobre
-"geradores". Duas causas, corrigidas juntas:
+**Decisão registrada (Fase 5, R12, 2026-09-29): estoque por centro de
+distribuição no chat.** Perguntar pelo estoque do "CD-SP" respondia o total
+somado, porque o detalhe por CD nunca chegava ao prompt. `DadosCatalogoVendas`
+ganha `estoque_por_cd` (`EstoqueCentroDistribuicao`), o bloco acrescenta
+"Estoque por centro de distribuição: CD-X: N, CD-Y: M" e o cabeçalho manda
+usar o detalhe quando se pergunta por um CD. Mesmo princípio do few-shot: dar
+ao LLM todo o dado relevante e deixar a pergunta decidir o que usar. Testes em
+`tests/test_sales_catalog.py` e `tests/test_orchestrator.py`.
 
-1. **Few-shot enviesado no prompt de extração
-   (`app.router.sales_catalog._EXTRACTION_PROMPT_TEMPLATE`):** o único
-   exemplo de pergunta genérica citava uma categoria fixa do catálogo
-   fictício ("quais geradores vocês têm?"), ancorando o LLM a inferir essa
-   categoria mesmo quando o cliente não citou nenhuma. Trocado por um
-   placeholder genérico ("categoria X") e instrução explícita para deixar
-   `categoria` null quando nenhuma categoria da lista foi mencionada.
-2. **Sem caminho para "listar tudo":** mesmo corrigido o viés, uma pergunta
-   totalmente genérica (sem produto nem categoria) não injetava nenhum dado
-   do catálogo — pior, `_consultar_vendas` cortava **antes** de chamar o LLM
-   quando a busca por palavra-chave (`buscar_candidatos`) não achava nenhum
-   candidato (`resultado=sem_candidatos`), que é sempre o caso para uma
-   pergunta genérica (termos como "produtos"/"fornecer" não casam nome nem
-   categoria nenhuma por ILIKE). `VendaSlots` ganha `listar_tudo: bool`
-   (precedência: `produto_id` > `categoria` > `listar_tudo`, mesmo espírito
-   da precedência já existente); o prompt instrui o LLM a preenchê-lo em
-   pedidos amplos de catálogo/estoque. O orquestrador não corta mais em
-   `sem_candidatos` — sempre chama `extract_sales_slots` (mesmo com
-   `candidatos` vazio), que agora pode decidir por `listar_tudo`.
-   `SalesCatalogClient.listar_todos_produtos()` reaproveita
-   `app.db.catalog.listar_produtos()` sem filtro de categoria, devolvendo o
-   mesmo formato de `DadosCatalogoCategoria` com `categoria=None` (que passa
-   a aceitar `None` para representar "catálogo completo"); o orquestrador
-   formata o mesmo bloco "prefira estes dados ao RAG", com cabeçalho "Todos
-   os produtos do catálogo interno" em vez de "Produtos da categoria X".
-   `# MVP: sem essa otimização, toda mensagem de Vendas sem candidato
-   casado por palavra-chave agora custa uma chamada extra ao LLM local de
-   extração — aceito pela simplicidade e correção do comportamento;
-   catálogo fictício pequeno, sem paginação na listagem completa`. Testado
-   em `tests/test_sales_catalog.py` (`listar_todos_produtos`,
-   `listar_tudo` na extração e sua precedência) e `tests/test_orchestrator.py`
-   (pergunta totalmente genérica lista o catálogo completo no prompt).
-
-**Histórico (Fase 2/5, 2026-09-29): sincronização automática do catálogo no RAG — descontinuada.** O módulo `app.rag.product_sync` (um documento `produto_{id}.txt` por produto na collection ativa) foi removido em 2026-10-04, depois que o CRUD de produtos foi desacoplado do RAG e o SQL virou a autoridade única (decisão de 2026-10-03, mais abaixo). O script manual `backend/scripts/ingest_db_table.py` segue existindo para outras tabelas ou casos avulsos, mas o catálogo de produtos não passa mais pelo RAG.
-
-**Decisão registrada (Fase 5, correção de bug em Vendas — estoque por
-centro de distribuição no chat, R12, 2026-09-29):** um cliente relatou que
-perguntar pelo estoque de um CD específico ("quanto tem no CD-SP?") ou "por
-centro de distribuição" fazia o LLM responder com o **total somado** entre
-todos os CDs, não o valor do centro pedido. Causa: `SalesCatalogClient.
-consultar_detalhes` já buscava o detalhamento por CD (`app.db.catalog.
-listar_estoque`) só para somar em `estoque_total` — o detalhe em si nunca
-chegava ao bloco do prompt (`DadosCatalogoVendas` só carregava o total; a
-docstring dizia explicitamente que o resumo do chat "não precisa do detalhe
-por CD, já disponível via o resource MCP `estoque://`" — mas esse resource é
-só do canal B2B, não do chat público). `DadosCatalogoVendas` ganha
-`estoque_por_cd: list[EstoqueCentroDistribuicao]` (schema novo,
-`centro_distribuicao`/`quantidade`), populado a partir do mesmo `listar_estoque`
-já chamado; `_formatar_dados_catalogo_vendas` acrescenta uma linha "Estoque
-por centro de distribuição: CD-X: N, CD-Y: M" sempre que houver mais de um
-CD ou o campo vier preenchido, e o cabeçalho do bloco ganha uma instrução
-explícita: perguntas por um CD específico ou "por centro de distribuição"
-devem usar esse detalhamento, não o total. Mesmo padrão da correção do
-few-shot enviesado (dar ao LLM todo o dado relevante e deixar a pergunta do
-cliente decidir o que usar, em vez de tentar prever a intenção antes).
-Testado em `tests/test_sales_catalog.py`
-(`consultar_detalhes` com múltiplos CDs) e `tests/test_orchestrator.py`
-(formatação do bloco com e sem detalhamento por CD).
-
-**Decisão registrada (Fase 8, cards ricos no chat, R6/R11/R12, 2026-09-29):**
-item do roadmap que já estava pronto para ser implementado — a nota original
-("depende de R6/R11/R12 no backend, ainda não implementados") estava
-desatualizada, as três dependências já tinham sido entregues em fases
-anteriores (busca por imagem CLIP, agendamento via MCP Calendar, integração
-MCP B2B em Vendas). Contrato de dados novo, sem endpoint/evento SSE
-adicional — reaproveita o `done` já existente:
-
+**Decisão registrada (Fase 8, R6/R11/R12, 2026-09-29): cards ricos no chat.**
+Contrato novo dentro do `done`, sem evento SSE adicional:
 1. **`app.models.chat.ChatCard`:** união discriminada por `tipo`
-   (`Literal["produto"|"cotacao"|"agendamento"]`, `Field(discriminator="tipo")`)
-   com três schemas — `CardProduto` (produto_id, nome, preço, imagem_url,
-   estoque_total), `CardCotacao` (idem + quantidade, preço unitário,
-   percentual de desconto, subtotal) e `CardAgendamento` (data/hora de
-   início e fim, link do evento no Google Calendar). Campo opcional
-   `card: ChatCard | None` acrescentado a `RouterDecision` (orquestrador) e
-   `ChatDoneEventData` (contrato público) — vai dentro do `done` já emitido
-   ao final de cada turno, sem novo tipo de evento SSE.
-2. **Construção em Vendas (`orchestrator._construir_card_vendas`):**
-   reaproveita o mesmo resultado de `_consultar_vendas`
-   (`DadosCatalogoVendas`) já usado para montar o bloco de texto do prompt —
-   sem chamada extra ao banco. Produto com `cotacao` preenchida (cliente
-   informou quantidade) vira `CardCotacao`; sem quantidade, `CardProduto`.
-   `DadosCatalogoVendas` ganha `produto_id`/`preco`/`imagem_url` (opcionais,
-   populados por `consultar_detalhes` a partir do `Produto` já carregado) só
-   para isso. `DadosCatalogoCategoria` (consulta por categoria ou catálogo
-   completo, decisão anterior desta mesma seção) **não vira card** — é uma
-   lista, não um item único; `# MVP: fica para uma iteração futura`.
-3. **Construção em Agendamento (`orchestrator._handle_agendamento`):**
-   `CardAgendamento` montado só no branch de confirmação bem-sucedida (depois
-   de `calendar_client.create_event` retornar), com os mesmos dados já
-   gravados na tabela `agendamentos`. `_emitir_resposta_agendamento` ganha um
-   parâmetro `card` opcional, repassado ao `RouterDecision`.
-4. **Achado durante a implementação — serialização SSE:** `Decimal`
-   (preços) e `datetime` (data/hora do agendamento) não são serializáveis
-   por `json.dumps` no modo "python" do Pydantic (`model_dump()` puro) — só
-   no modo `model_dump(mode="json")`, que os converte para string. Os três
-   pontos em `app.api.chat` que montavam o evento `done`
-   (`done_data.model_dump()`) foram corrigidos para `model_dump(mode="json")`
-   — bug que só existiria a partir do primeiro card com `Decimal`/`datetime`
-   (nenhum campo anterior de `ChatDoneEventData` usava esses tipos), pego e
-   coberto por teste antes de chegar a produção
-   (`tests/test_chat_api.py::test_done_event_com_card_serializa_decimal_e_datetime_como_json`).
+   (`produto`, `cotacao`, `agendamento`) com `CardProduto`, `CardCotacao` e
+   `CardAgendamento`; o campo opcional `card` vai em `RouterDecision` e
+   `ChatDoneEventData`.
+2. **Vendas (`orchestrator._construir_card_vendas`):** reaproveita o
+   `DadosCatalogoVendas` de `_consultar_vendas` (sem consulta extra);
+   `cotacao` preenchida vira `CardCotacao`, senão `CardProduto`.
+   `DadosCatalogoCategoria` (lista) **não vira card** (`# MVP:`).
+3. **Agendamento:** `CardAgendamento` só na confirmação bem-sucedida, depois de
+   `create_event`; `_emitir_resposta_agendamento` recebe `card` opcional.
+4. **Serialização SSE:** `Decimal` e `datetime` exigem
+   `model_dump(mode="json")`; os três pontos de `app.api.chat` que montam o
+   `done` foram corrigidos (teste
+   `test_done_event_com_card_serializa_decimal_e_datetime_como_json`).
 5. **Frontend:** `components/chat/cards/{ProductCard,QuoteCard,AppointmentCard}.tsx`
-   (um componente por tipo) + `ChatCard.tsx` (dispatcher por `card.tipo`),
-   renderizados em `MessageBubble.tsx` logo abaixo do texto da resposta do
-   assistente (sempre visível, não atrás do toggle ⚙️ de métricas). O card
-   também reaparece ao recarregar o histórico da conversa (R9,
-   `fetchConversationHistory`), mesmo padrão já usado para as métricas.
-   `resolveImageUrl`/`formatarPrecoBRL` extraídos como utils pequenos
-   (`lib/utils/`), reaproveitando a mesma lógica já usada em
-   `components/products/ProductCard.tsx`. Correção de 2026-09-29 (pedido
-   explícito): `AppointmentCard` **não** exibe o link do evento no Google
-   Calendar ao cliente — `card.google_event_link` continua no contrato de
-   dados (é consumido pelo painel `/admin/agendamentos`), só não é
-   renderizado neste card do chat.
+   + `ChatCard.tsx` (dispatcher), em `MessageBubble.tsx` abaixo do texto, e
+   recarregados com o histórico (`fetchConversationHistory`). O
+   `AppointmentCard` **não** mostra `google_event_link` ao cliente (continua
+   no contrato, para `/admin/agendamentos`).
 
-Testado em `tests/test_orchestrator.py` (card de produto, cotação,
-agendamento confirmado e ausência de card para categoria/catálogo completo),
-`tests/test_sales_catalog.py` (`produto_id`/`preco`/`imagem_url` em
-`consultar_detalhes`), `tests/test_chat_api.py` (serialização JSON dos três
-cards) e os testes de componente do frontend
-(`tests/components/Chat{ProductCard,QuoteCard,AppointmentCard}.test.tsx`,
-`MessageBubble.test.tsx`).
+Testes: `tests/test_orchestrator.py`, `test_sales_catalog.py`,
+`test_chat_api.py` e `tests/components/Chat{ProductCard,QuoteCard,AppointmentCard}.test.tsx`.
 
-**Decisão registrada (2026-10-06 — Agente Analítico de Gráficos Dinâmicos:
-eliminar o fallback hardcoded, introspecção automática de esquema):** a
-feature "Dashboards e Gráficos Dinâmicos via Chat" (além do MVP, entregue em
-2026-10-04 — `docs/superpowers/plans/2026-10-04-llm-dynamic-charts-agent.md`)
-nunca tinha ganhado um registro de decisão nesta seção; fica documentada
-aqui junto da revisão abaixo.
+**Decisão registrada (2026-10-06): Agente Analítico de Gráficos Dinâmicos, sem
+fallback hardcoded.** A feature "Dashboards e Gráficos Dinâmicos via Chat"
+(além do MVP, entregue em 2026-10-04; plano
+`docs/superpowers/plans/2026-10-04-llm-dynamic-charts-agent.md`) é o
+`app.services.analytics_agent.process_dynamic_chart_request`: (1) dados
+digitados pelo usuário; (2) Text-to-SQL via LLM, com SQL validado por
+whitelist (`app.services.safe_sql`). Antes havia um passo (3), o fallback para
+7 agregações fixas, que escondia o problema: o esquema escrito à mão estava
+desatualizado (sem `venda_concluida` em `pedidos.status`), então o passo (3)
+quase sempre "vencia". Revisão do dono (2026-10-06):
+1. **Passo (3) removido.** Se (1) não disparar e (2) falhar ou vier sem
+   linhas, devolve `chart=None` com a explicação (LLM indisponível, SQL
+   recusado, sem resultado). Antes, uma exceção deixava `chart=None` sem
+   resposta ao admin; agora todo caminho com `chart=None` explica.
+2. **`get_catalog_schema_prompt` introspecta o banco** (`sqlalchemy.inspect`,
+   igual em Postgres e SQLite), restrito às 8 tabelas de `ALLOWED_TABLES`. Os
+   valores de colunas "enum" sem constraint (como `pedidos.status`) vêm de
+   **notas semânticas curadas à mão**. `# MVP:` exigem atualização manual se
+   surgir um status novo.
+3. **`chart_generator.py` fica só com `detect_chart_request`** (gate de
+   intenção por palavra-chave). `execute_chart_aggregation` e
+   `SUPPORTED_QUERIES` foram **removidos**, e o terceiro ramo de `/refresh`
+   (`app.api.admin_charts`) também: nenhum gráfico antigo estava em uso. Um
+   `sql_query` que não seja `dynamic_sql: ...` nem `dynamic_user_data` não é
+   recalculado no refresh.
+4. Registro histórico: as agregações removidas somavam `PedidoItem` de
+   reservas (sem filtrar `venda_concluida`) e agrupavam `Produto.preco` do
+   catálogo em vez de vendas reais.
 
-> **Estado antes desta revisão:** `app.services.analytics_agent.
-> process_dynamic_chart_request` tentava, em cadeia, (1) dados digitados
-> pelo próprio usuário no prompt; (2) Text-to-SQL via LLM (esquema das 8
-> tabelas permitidas injetado no prompt como texto Markdown escrito à mão em
-> `get_catalog_schema_prompt()`, SQL validado por whitelist em
-> `app.services.safe_sql`); (3) **fallback para uma das 7 agregações fixas
-> de `app.services.chart_generator.execute_chart_aggregation`** sempre que
-> (2) falhasse — LLM indisponível, JSON malformado, SQL rejeitado pela
-> whitelist, ou zero linhas retornadas. Isso contrariava o objetivo real da
-> feature (o LLM deveria formular o SQL a partir do pedido em linguagem
-> natural, sem consulta hardcoded) e escondia o problema: o esquema
-> escrito à mão estava **desatualizado** — descrevia `pedidos.status` como
-> `'reservado'/'aprovado'/'cancelado'`, sem o valor real `venda_concluida`
-> usado em todo o resto do sistema (ver "Conversão de Reserva em Venda",
-> 2026-10-05) — o LLM nunca tinha como filtrar vendas efetivadas
-> corretamente, então o passo (3) hardcoded quase sempre "vencia" por
-> omissão.
->
-> **Revisão (decisão do desenvolvedor, 2026-10-06):**
-> 1. **Passo (3) removido da geração de gráficos novos.** Se (1) não
->    disparar e (2) falhar/não retornar linhas, `process_dynamic_chart_request`
->    devolve `chart=None` com uma explicação do motivo (LLM indisponível,
->    SQL recusado pela validação de segurança, ou consulta sem resultado) —
->    o admin recebe essa explicação como resposta no chat, em vez de um
->    gráfico silenciosamente incorreto. Achado lateral corrigido: antes,
->    quando `process_dynamic_chart_request` levantava uma exceção não
->    tratada, `chart` ficava `None` e o orquestrador **não dizia nada ao
->    admin**, só seguia tentando casar a mensagem com outras intenções
->    (comprovante, agendamento) — agora qualquer caminho que resulte em
->    `chart=None` gera uma resposta explicativa.
-> 2. **`get_catalog_schema_prompt` passa a introspectar o banco de verdade**
->    (via `sqlalchemy.inspect`/`Inspector.get_columns`, dialect-agnostic —
->    roda igual contra Postgres em produção e SQLite nos testes), restrito
->    às mesmas 8 tabelas de `ALLOWED_TABLES` (a whitelist de segurança não
->    muda, só a fonte da descrição de colunas/tipos). Colunas "tipo enum"
->    sem constraint no banco (ex.: `pedidos.status`, texto livre, sem
->    `CHECK`) não têm de onde a introspecção tirar os valores válidos — por
->    isso uma pequena tabela de **notas semânticas curadas à mão** continua
->    existindo, à parte da introspecção, documentando essas regras de
->    negócio (ex.: os 3 valores reais de `pedidos.status` e que
->    `venda_concluida` é o único que representa venda efetivada). `# MVP:
->    notas semânticas exigem atualização manual se um novo valor de status
->    for introduzido — risco aceito, mesmo padrão de documentação manual já
->    usado em outras partes do projeto`.
-> 3. **`chart_generator.py` fica só com `detect_chart_request`** (gate barato
->    de intenção no orquestrador — heurística por palavra-chave, decide só
->    "parece pedido de gráfico?" antes de acionar o LLM; não é uma consulta
->    SQL, é classificação de intenção). `execute_chart_aggregation` e
->    `SUPPORTED_QUERIES` (as 7 agregações fixas) foram **removidos**, não só
->    desativados — intenção inicial da revisão era manter esse código vivo
->    só para o **refresh** de gráficos já persistidos com uma `query_key`
->    fixa antes desta revisão (`app.api.admin_charts`, endpoint `/refresh`),
->    mas o desenvolvedor confirmou (2026-10-06) que nenhum gráfico desses
->    existe em uso — sem dado real para migrar, manter o código só
->    adicionava superfície sem propósito. O terceiro ramo do endpoint
->    `/refresh` (que reexecutava essa agregação) também foi removido; um
->    `sql_query` que não seja `dynamic_sql: ...` nem `dynamic_user_data`
->    agora simplesmente não é recalculado no refresh (sem erro, sem efeito).
->    Os bugs de precisão abaixo foram corrigidos antes dessa remoção ser
->    decidida — ficam só como registro histórico do que estava errado, já
->    que o código em que viviam não existe mais.
-> 4. **Bugs de precisão que existiam em `execute_chart_aggregation`** (achado
->    de 2026-10-05, item "Correção da Precisão de Métricas e Gráficos" do
->    roadmap — metade da correção; a outra metade, `admin_metrics.py`,
->    é **código totalmente independente** deste sistema, tela fixa sem
->    interface conversacional, segue pendente separada):
->    - `vendas_produtos_quantidade`/`vendas_produtos_valor` somavam
->      `PedidoItem` de qualquer pedido, incluindo reservas nunca pagas —
->      não filtravam `Pedido.status == "venda_concluida"`.
->    - `vendas_por_categoria`/`vendas_categoria_quantidade` somavam
->      `Produto.preco` do catálogo estático agrupado por categoria (medindo
->      "valor do catálogo cadastrado", não "valor vendido") em vez de
->      agregar vendas reais.
->
-> A tela fixa `/admin/metricas` (`app.api.admin_metrics`) não foi tocada
-> nesta revisão — confirmado por leitura de código que não importa nada de
-> `chart_generator`/`analytics_agent`/`safe_sql`/`AdminChart`; é SQL direto
-> sem qualquer caminho conversacional, então "Text-to-SQL dinâmico" não se
-> aplica a ela por desenho. Os bullets 3 e 4 do item de roadmap
-> ("Métricas de Chat em Tempo Real", "Agrupamento por Data de Mensagem")
-> continuam pendentes ali, independentes desta revisão.
+A tela fixa `/admin/metricas` (`app.api.admin_metrics`) não depende deste
+sistema (SQL direto, sem interface conversacional).
 
-**Decisão registrada (2026-10-06 — `/admin/metricas`: tokens/custos não
-exigem mais conversa encerrada, agrupamento diário por data da mensagem):**
-resolve os bullets 3 e 4 citados acima, em `app.api.admin_metrics`. A
-consulta original fazia duas coisas numa só — contar chats encerrados e
-somar tokens/custos — com uma única condição `Conversa.status ==
-"encerrada"` para ambas. Token/custo já é um fato consumado por mensagem
-(gravado em `ConversaMensagem.metricas` assim que o LLM responde), não
-depende da conversa como um todo ter sido encerrada; uma conversa aberta
-(cliente ainda digitando, ou só não atingiu os 30 min de inatividade do
-worker) nunca contribuía em nada até fechar, deixando o filtro "Hoje"
-artificialmente vazio em qualquer horário com conversa em andamento.
-
-Dividido em duas consultas independentes: `stmt_closed` (KPI "Chats
-Encerrados", continua exigindo `status == "encerrada"`, bucketado por
-`Conversa.encerrada_em` — isso é literalmente o que a métrica mede, não é
-bug) e `stmt_msgs` (tokens/custos, agora sobre `ConversaMensagem` sem
-filtro de status da conversa, bucketado por `ConversaMensagem.criada_em`
-em vez de `encerrada_em`). Efeito colateral corrigido pelo bucketamento
-por `criada_em`: uma conversa com mensagem numa noite, fechada só na manhã
-seguinte, não joga mais os tokens dela para o dia seguinte — cada métrica
-aparece no dia que de fato lhe pertence. Testes novos em
-`tests/test_admin_metrics_api.py` cobrindo os dois achados separadamente
-(conversa aberta conta tokens mas não chats encerrados; tokens e
-encerramento bucketados em dias diferentes quando divergem; esse arquivo
-não existe mais e `stmt_msgs` saiu de `admin_metrics.py` quando o painel
-passou a ler só `ai_usage_events`, item E do ledger — a cobertura atual é
-`tests/test_admin_metrics_ai_usage.py`). Doc de
-usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
+**Decisão registrada (2026-10-06): `/admin/metricas` sem exigir conversa
+encerrada.** Tokens e custos já são fato consumado por mensagem; exigir
+`Conversa.status == "encerrada"` deixava o filtro "Hoje" vazio com conversas em
+andamento. A consulta se dividiu: "Chats Encerrados" continua exigindo
+`status == "encerrada"` (bucket por `encerrada_em`), e tokens/custos passaram a
+somar `ConversaMensagem` sem filtro de status, com bucket por `criada_em` (uma
+conversa que cruza a meia-noite não desloca mais os tokens). Desde o item E do
+ledger o painel lê só `ai_usage_events`; a cobertura atual é
+`tests/test_admin_metrics_ai_usage.py`. Doc de usuário:
+`docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 
 ### Tabela de escopo por requisito
 
 | Requisito | MVP (protótipo) | Evolução futura |
 | --- | --- | --- |
-| Modelo local (RTX 4080 GPU 16GB) | Servido via **Ollama** (decisão fechada — simplicidade de setup/gestão de modelos e instrumentação de latência pronta via `eval_count`/`eval_duration`, ver §2, "Escolhas de tecnologia"). Avaliação comparativa entre **9 candidatos** (`eval/model_benchmark/modelos.json`): Qwen2.5-VL 7B e 3B Instruct, Qwen3.5 9B Q4_K_M, DeepSeek-R1-Distill-Llama-8B Q8_0, Qwen3.5 9B Defiant Fable MTP, Phi-4-mini-instruct BF16, Gemma-3-Gaia-PT-BR 4B F16, Gemma-4-12B 4-bit e Gemma-4-E4B-it UD-Q8_K_XL; ver riscos de VRAM na Seção 7. O Llama 3.2 11B Vision foi descartado em 2026-10-24 por não carregar no Ollama 0.30.6. A triagem de 2026-10-24 deixou 4 sobreviventes (Gemma-4-12B, Gemma-4-E4B, Qwen2.5-VL 3B e 7B) e a rodada completa neles foi feita em 2026-10-28 (`docs/EVALUATION.md`). **Visão local não é requisito do candidato** (decisão de 2026-10-17): as tags de Gemma-3-Gaia 4B F16, Gemma-4-12B 4-bit, Gemma-4-E4B-it, Qwen2.5-VL 7B, Qwen2.5-VL 3B, Qwen3.5 9B Q4_K_M e Qwen3.5 9B Defiant Fable MTP têm a capability `vision` (7 dos 9 candidatos com visão local; só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini não têm — conferido no Ollama em 2026-10-18), e a produção já trata visão local como opcional — candidato sem ela manda a imagem do cliente para a visão externa, caminho documentado. `visao_local` é atributo medido e critério de desempate na triagem, não filtro; se o vencedor não tiver, o relatório diz que toda imagem passa a depender do modelo externo | Fine-tuning de domínio, otimização de latência em produção |
+| Modelo local (RTX 4080 GPU 16GB) | Servido via **Ollama** (decisão fechada: setup simples e instrumentação de latência pronta via `eval_count`/`eval_duration`, ver §2). Comparação entre **9 candidatos** (`eval/model_benchmark/modelos.json`); a triagem de 2026-10-24 deixou 4 sobreviventes (Gemma-4-12B, Gemma-4-E4B, Qwen2.5-VL 3B e 7B) e a rodada completa neles foi feita em 2026-10-28 (`docs/EVALUATION.md`). **Visão local não é requisito do candidato** (decisão de 2026-10-17): 7 dos 9 têm a capability `vision` (só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini não, conferido em 2026-10-18); candidato sem ela manda a imagem do cliente para a visão externa, caminho documentado. Riscos de VRAM: Seção 7 | Fine-tuning de domínio, otimização de latência em produção |
 | Entrada multimodal | Texto e áudio (STT) funcionando, com suporte a mais de um formato de áudio (ex.: wav e mp3); imagem com fluxo básico. STT via **faster-whisper rodando na mesma GPU local** (decisão fechada — consistente com a estratégia "local-first" do resto do projeto, sem custo por chamada; ver risco de contenção de VRAM na Seção 7), modelo `small` ou `medium` conforme resultado da Seção 7 | Robustez para áudio ruidoso, formatos adicionais, streaming |
 | Roteador/Orquestrador | Classificador de intenção simples (regras + LLM) para local x externo x RAG, com log básico de decisões (custo/latência). Modelo externo acessado via **OpenRouter** (uma chave cobrindo múltiplos provedores). Domínios Vendas/Suporte/Atendimento tentam local+RAG primeiro e só escalam para externo se: fora de escopo, RAG sem resultado relevante, ou complexidade alta; Agendamento é sempre local. Classificador considera as últimas 1–3 mensagens da conversa (não só a mensagem isolada), necessário para resolver confirmações curtas a ofertas feitas pelo próprio assistente (ex.: aceite de agendamento proposto) | Roteador adaptativo com aprendizado contínuo e métricas de custo/qualidade em produção |
 | RAG — textos, PDFs, BD e sites (obrigatório) | Ingestão de PDFs/textos + busca vetorial; conector básico de leitura a um BD relacional; crawler disparado manualmente a partir de uma URL semente, com profundidade e teto de páginas parametrizáveis por execução, classificação de domínio por LLM com fila de revisão humana abaixo de um limiar de confiança | Conector com escrita/sincronização incremental, crawler agendado, múltiplas fontes web |
@@ -2002,54 +1231,41 @@ usuário atualizado em `docs/Manuais/HOWTO_ADMINISTRADOR.md`.
 | Memória da conversa | Persistência por ID no Postgres (mensagens do cliente e do assistente) + resumo automático periódico no prompt + retomada do histórico no widget | Perfil de cliente enriquecido a partir do histórico de conversas, memória entre dispositivos (login) |
 | Classificação do usuário | Regras fixas sobre uma base de clientes fictícia: e-mail captado no momento natural da conversa (pós-venda, agendamento) e cruzado com as compras; Cliente/Esporádico por quantidade e recência das compras, Lead por intenção de compra sem cadastro | Modelo preditivo, score de propensão, enriquecimento de dados externos, confirmação de identidade |
 
-**Decisão registrada (Agente autônomo de previsão de estoque, R13,
-2026-10-15):** requisito acrescentado ao MVP por decisão do dono do projeto
-("deveria estar incluído no MVP"). O agente roda em toda venda ou reserva:
-`app.db.catalog.criar_pedido` — ponto único por onde passam o chat, a API
-de pedidos e o MCP B2B — chama `app.agents.estoque_preditivo.avaliar_estoque`
-**depois** do commit do pedido e engolindo qualquer exceção, de modo que uma
-falha do agente nunca desfaz nem atrasa a reserva. Para cada produto do
-pedido: (1) estoque atual = soma dos centros de distribuição; (2) taxa de
-baixa = unidades reservadas nos últimos 30 dias (`pedido_itens`) / 30;
-(3) cobertura = estoque / taxa; (4) se a cobertura for menor que 10 dias, há
-risco de falta e o agente publica uma mensagem. Mensagens ficam na tabela
-`mensagens_agentes` (campo `agente` identifica o autor, para agentes
-futuros), são mostradas em `/admin/mensagens` e, quando o SMTP está
-configurado, enviadas por e-mail ao administrador (`ADMIN_ALERT_EMAIL`).
-Anti-ruído: no máximo um alerta por produto a cada 24h.
-**Dois "cérebros" selecionáveis (2026-10-15, mesma data, pedido do dono do
-projeto "para fins de aprendizagem e teste"):** o agente tem o cérebro
-determinístico acima e um cérebro de IA (`app.agents.estoque_ia`), e o
-administrador escolhe qual fica ativo em `/admin/modelos` → configurações de
-execução: `estoque_agent_mode` = `desativado` | `deterministico` (padrão) |
-`ia`, e `estoque_agent_llm` = `local` (Ollama) | `externo` (OpenRouter), no
-modo IA. A configuração usa o mesmo mecanismo das demais (`PUT
-/api/admin/runtime-settings`, persistida em `app_settings`, restaurada no
-boot) e fica em `app.agents.runtime`, porque o gancho de `criar_pedido` não
-tem acesso a `request.app`. No modo IA o LLM recebe só fatos estruturados
-(estoque por centro, baixa diária dos 30 dias, preço — nada de texto livre de
-usuário) e devolve JSON com `risco`, `dias_ate_falta`, `reposicao_sugerida`,
-`alertar` e `justificativa`; o alerta usa esse texto. Roda em segundo plano
-com sessão própria (o LLM leva segundos e a reserva não espera) e, se falhar
-ou devolver JSON inválido, cai na regra determinística, então nenhum alerta
-se perde. Produtos sem baixa na janela não consultam o LLM (sem custo à toa).
-A chamada entra no ledger de uso de IA (origem `admin`, operação
-`agente_estoque_ia`). A mensagem traz `agente` = `estoque_ia` ou
-`estoque_preditivo`, mostrando qual decidiu.
-`# MVP:` uma chamada de LLM por produto avaliado; sem cache nem few-shot; o
-modo IA não compara automaticamente seus resultados com os do determinístico
-(isso seria avaliação experimental, Fase 10).
-**Horizonte por produto (2026-10-15):** o limite de 10 dias é só o padrão
-global (`ESTOQUE_HORIZONTE_DIAS`). Cada produto tem a coluna opcional
-`produtos.dias_alerta_estoque` (migração `0026`; campo "Alertar estoque com
-(dias)" no formulário do produto em `/admin/produtos`), que reflete o prazo
-de reposição/entrega daquele item; quando preenchida, substitui o padrão para
-as duas versões do agente (e vai no prompt do modo IA). Vazia = padrão global.
-`# MVP:` taxa constante (média móvel de 30 dias, sem sazonalidade nem
-tendência); estoque somado entre centros (não alerta por centro); sem
-reposição automática nem ordem de compra; e-mail via SMTP simples, sem
-fila/reenvio (falha de envio fica registrada na própria mensagem);
-sem confirmação de leitura por usuário (um único marcador `lida`).
+**Decisão registrada (R13, 2026-10-15): agente autônomo de previsão de
+estoque.** Requisito acrescentado ao MVP por decisão do dono. Roda em toda
+venda ou reserva: `app.db.catalog.criar_pedido` (ponto único do chat, da API
+de pedidos e do MCP B2B) chama `app.agents.estoque_preditivo.avaliar_estoque`
+**depois** do commit e engolindo qualquer exceção, então uma falha do agente
+nunca desfaz nem atrasa a reserva. Para cada produto: estoque = soma dos
+centros; taxa de baixa = unidades reservadas nos últimos 30 dias / 30;
+cobertura = estoque / taxa; abaixo de 10 dias, publica uma mensagem em
+`mensagens_agentes` (campo `agente`), exibida em `/admin/mensagens` e enviada
+por e-mail se houver SMTP (`ADMIN_ALERT_EMAIL`). No máximo um alerta por
+produto a cada 24 h.
+
+- **Dois "cérebros" (2026-10-15, para aprendizagem e teste):** o determinístico
+  acima e o de IA (`app.agents.estoque_ia`). `estoque_agent_mode` =
+  `desativado` | `deterministico` (padrão) | `ia`, e `estoque_agent_llm` =
+  `local` | `externo` (no modo IA), em `/admin/modelos` → configurações de
+  execução (`PUT /api/admin/runtime-settings`, persistida em `app_settings`,
+  em `app.agents.runtime` porque o gancho não tem `request.app`). No modo IA o
+  LLM recebe só fatos estruturados (estoque por centro, baixa diária dos 30
+  dias, preço) e devolve JSON (`risco`, `dias_ate_falta`, `reposicao_sugerida`,
+  `alertar`, `justificativa`). Roda em segundo plano com sessão própria e, se
+  falhar ou vier JSON inválido, cai na regra determinística. Produtos sem
+  baixa na janela não consultam o LLM. A chamada entra no ledger (origem
+  `admin`, operação `agente_estoque_ia`) e a mensagem traz `agente` =
+  `estoque_ia` ou `estoque_preditivo`.
+- **Horizonte por produto:** 10 dias é só o padrão (`ESTOQUE_HORIZONTE_DIAS`);
+  `produtos.dias_alerta_estoque` (migração `0026`, campo "Alertar estoque com
+  (dias)" em `/admin/produtos`) o substitui, nas duas versões do agente.
+
+`# MVP:` uma chamada de LLM por produto; taxa constante (média móvel de 30
+dias, sem sazonalidade); estoque somado entre centros; sem reposição
+automática; e-mail SMTP simples, sem fila (a falha fica na mensagem); um único
+marcador `lida`; o modo IA não se compara automaticamente ao determinístico
+(avaliação da Fase 10).
+
 
 ## 6. MCP de integração com parceiros B2B (recursos e ferramentas)
 
