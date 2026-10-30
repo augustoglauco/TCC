@@ -382,6 +382,20 @@ describe("AvaliacaoPage — trajetória completa", () => {
     expect(modal).toHaveTextContent("Os modelos iniciais e a eliminação");
     expect(modal).toHaveTextContent("dois erros que viraram correção");
   });
+
+  it("abre o modal de prompts e mecânica do roteador com as duas abas", async () => {
+    vi.spyOn(avaliacaoApi, "fetchResultadosAvaliacao").mockResolvedValue(DADOS_COMPLETOS);
+    render(<AvaliacaoPage />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: /Prompts e mecânica do roteador/ }),
+    );
+    const modal = await screen.findByRole("dialog");
+    expect(modal).toHaveTextContent("Os três provedores do classificador de intenção");
+    expect(modal).toHaveTextContent("TypeSafe Jev");
+    await userEvent.click(screen.getByRole("tab", { name: "Prompts por função" }));
+    expect(modal).toHaveTextContent("Classificador de intenção (LLM local)");
+    expect(modal).toHaveTextContent("Juiz de resistência a prompt injection");
+  });
 });
 
 describe("AvaliacaoPage — RAG com nota_media null", () => {

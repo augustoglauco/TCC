@@ -19,6 +19,7 @@ import {
 } from "recharts";
 import { Modal } from "@/components/ui/Modal";
 import { DETALHES } from "./detalhes";
+import { GRUPOS_PROMPTS, MECANICA, type TabelaSimples } from "./prompts";
 import { TRAJETORIA } from "./trajetoria";
 import { fetchResultadosAvaliacao, Proporcao, ResultadosAvaliacao } from "@/lib/api/avaliacao";
 
@@ -876,6 +877,177 @@ function SecaoInjecao({ injecao }: { injecao: DadosInjecao | null | undefined })
   );
 }
 
+const BOTAO_CABECALHO =
+  "inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400";
+const BOTAO_CABECALHO_ICONE =
+  "inline-flex h-4 w-4 items-center justify-center rounded-full bg-violet-600 text-[11px] leading-none text-white";
+
+/** Texto com `trechos` entre crases renderizados como código. */
+function TextoRico({ texto }: { texto: string }) {
+  return (
+    <>
+      {texto.split("`").map((parte, i) =>
+        i % 2 === 1 ? (
+          <code key={i} className="rounded bg-gray-100 px-1 py-0.5 text-[0.85em] text-gray-800">
+            {parte}
+          </code>
+        ) : (
+          <span key={i}>{parte}</span>
+        ),
+      )}
+    </>
+  );
+}
+
+function TabelaMecanica({ tabela }: { tabela: TabelaSimples }) {
+  return (
+    <div className="mb-3 overflow-x-auto">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="text-left text-gray-500">
+            {tabela.colunas.map((col) => (
+              <th key={col} className="p-1.5">
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {tabela.linhas.map((l) => (
+            <tr key={l[0]} className="border-t border-gray-100 align-top">
+              {l.map((cel, j) => (
+                <td key={j} className="p-1.5">
+                  <TextoRico texto={cel} />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function AbaMecanica() {
+  return (
+    <div className="space-y-6">
+      {MECANICA.map((b) => (
+        <section key={b.titulo}>
+          <h4 className="mb-2 text-base font-semibold text-gray-900">{b.titulo}</h4>
+          {b.paragrafos.map((p) => (
+            <p key={p} className="mb-2">
+              <TextoRico texto={p} />
+            </p>
+          ))}
+          {b.tabela && <TabelaMecanica tabela={b.tabela} />}
+          {b.passos && (
+            <ol className="space-y-2">
+              {b.passos.map((s) => (
+                <li key={s.titulo} className="rounded-lg border border-gray-100 bg-gray-50 p-2.5">
+                  <p className="font-medium text-gray-900">{s.titulo}</p>
+                  <p className="text-gray-700">
+                    <TextoRico texto={s.texto} />
+                  </p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function AbaPrompts() {
+  return (
+    <div className="space-y-6">
+      <p className="rounded-lg bg-violet-50 p-3 text-xs text-violet-900">
+        Variáveis entre chaves (como {"{mensagem}"}) são preenchidas em tempo de execução. Textos
+        longos aparecem abreviados; o texto completo de cada prompt está em{" "}
+        <code>docs/Manuais/PROMPTS_E_INSTRUCOES_LLM.md</code> e no arquivo indicado em cada item.
+      </p>
+      {GRUPOS_PROMPTS.map((g) => (
+        <section key={g.titulo}>
+          <h4 className="mb-1 text-base font-semibold text-gray-900">{g.titulo}</h4>
+          <p className="mb-3 text-gray-600">
+            <TextoRico texto={g.intro} />
+          </p>
+          <div className="space-y-3">
+            {g.prompts.map((p) => (
+              <article key={p.nome} className="rounded-lg border border-gray-200 p-3">
+                <h5 className="font-semibold text-gray-900">{p.nome}</h5>
+                <dl className="mt-1 grid gap-x-3 gap-y-0.5 text-xs text-gray-600 sm:grid-cols-[auto_1fr]">
+                  <dt className="font-medium">Quando roda</dt>
+                  <dd>{p.quando}</dd>
+                  <dt className="font-medium">Modelo</dt>
+                  <dd>{p.modelo}</dd>
+                  <dt className="font-medium">Arquivo</dt>
+                  <dd className="break-all font-mono">{p.arquivo}</dd>
+                </dl>
+                <p className="mt-2 text-gray-700">
+                  <TextoRico texto={p.explicacao} />
+                </p>
+                {p.texto && (
+                  <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded bg-gray-900 p-3 text-xs leading-relaxed text-gray-100">
+                    {p.texto}
+                  </pre>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+/** Botão do cabeçalho: abre o modal com a mecânica do roteador (regras, LLM local, Jev) e todos os prompts por função. */
+function PromptsEMecanica() {
+  const [aberto, setAberto] = useState(false);
+  const [aba, setAba] = useState<"mecanica" | "prompts">("mecanica");
+  const abas = [
+    { id: "mecanica", rotulo: "Mecânica do roteador" },
+    { id: "prompts", rotulo: "Prompts por função" },
+  ] as const;
+  return (
+    <>
+      <button type="button" onClick={() => setAberto(true)} className={BOTAO_CABECALHO}>
+        <span className={BOTAO_CABECALHO_ICONE}>+</span>
+        Prompts e mecânica do roteador
+      </button>
+      <Modal
+        open={aberto}
+        onOpenChange={setAberto}
+        title="Prompts e mecânica do roteador"
+        description="Como uma mensagem é classificada (regras, LLM local, TypeSafe Jev) e cada prompt enviado a um modelo, por função"
+        size="3xl"
+      >
+        <div className="text-sm leading-relaxed text-gray-700">
+          <div role="tablist" className="mb-4 flex gap-2 border-b border-gray-200">
+            {abas.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                role="tab"
+                aria-selected={aba === a.id}
+                onClick={() => setAba(a.id)}
+                className={`-mb-px border-b-2 px-3 py-1.5 text-sm font-medium ${
+                  aba === a.id
+                    ? "border-violet-600 text-violet-700"
+                    : "border-transparent text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                {a.rotulo}
+              </button>
+            ))}
+          </div>
+          {aba === "mecanica" ? <AbaMecanica /> : <AbaPrompts />}
+        </div>
+      </Modal>
+    </>
+  );
+}
+
 /** Badge geral do cabeçalho: abre o modal com a trajetória do projeto, do plano inicial às conclusões. */
 function TrajetoriaCompleta() {
   const [aberto, setAberto] = useState(false);
@@ -884,11 +1056,9 @@ function TrajetoriaCompleta() {
       <button
         type="button"
         onClick={() => setAberto(true)}
-        className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700 hover:bg-violet-200 focus:outline-none focus:ring-2 focus:ring-violet-400"
+        className={BOTAO_CABECALHO}
       >
-        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-violet-600 text-[11px] leading-none text-white">
-          +
-        </span>
+        <span className={BOTAO_CABECALHO_ICONE}>+</span>
         Trajetória completa do experimento
       </button>
       <Modal
@@ -977,7 +1147,10 @@ export default function AvaliacaoPage() {
           de modelos locais. As barras de erro são intervalos de confiança de 95% (Wilson): se duas
           barras se sobrepõem, a diferença não é estatisticamente distinguível com essa amostra.
         </p>
-        <TrajetoriaCompleta />
+        <div className="mt-3 flex flex-wrap gap-2">
+          <TrajetoriaCompleta />
+          <PromptsEMecanica />
+        </div>
       </header>
       <SecaoModelos modelos={modelos} />
       <SecaoRoteador roteador={roteador} provedor={provedor} onProvedor={setProvedor} />

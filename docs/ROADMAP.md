@@ -2376,6 +2376,11 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
 - [~] Preparar demonstração cobrindo os quatro domínios + agendamento + MCP
       B2B, usando a interface completa (site + widget de chat) — roteiro em
       `docs/TESTE_LOCAL.md`; passos 3 e 4 aguardam a nova ingestão
+- [x] `/avaliacao`: botão “Prompts e mecânica do roteador” (2026-10-30), ao lado
+      da trajetória completa. Modal com a mecânica do roteador (regras, LLM
+      local e TypeSafe Jev, monitor de tom, decisão local × externo) e todos
+      os prompts por função (`app/avaliacao/prompts.ts`); conferido contra o
+      código, e as divergências achadas foram levadas ao dono.
 - [x] Achado da revisão de 2026-10-04 (ver `docs/ARCHITECTURE.md` §7):
       extraída a dependência compartilhada `require_admin`
       (`app.api.admin_auth`, antes duplicada como `_require_admin` em
