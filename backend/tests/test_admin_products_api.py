@@ -46,6 +46,53 @@ async def test_crud_admin_produtos(app_sqlite, admin_headers):
 
 
 @pytest.mark.asyncio
+async def test_admin_produto_familia_opcional_grava_e_atualiza(app_sqlite, admin_headers):
+    """`familia` agrupa modelos do mesmo produto (cada modelo é uma linha): é
+    opcional, volta na API e pode ser trocada ou limpa pelo PUT."""
+    base = {
+        "descricao": "Controlador de acesso",
+        "preco": "900.00",
+        "categoria": "Controle de Acesso",
+    }
+    async with AsyncClient(
+        transport=ASGITransport(app=app_sqlite), base_url="http://test"
+    ) as client:
+        sem_familia = await client.post(
+            "/api/admin/produtos", json={**base, "nome": "Avulso"}, headers=admin_headers
+        )
+        assert sem_familia.status_code == 201
+        assert sem_familia.json()["familia"] is None
+
+        criado = await client.post(
+            "/api/admin/produtos",
+            json={**base, "nome": "iDAccess — Pro", "familia": "iDAccess"},
+            headers=admin_headers,
+        )
+        assert criado.status_code == 201
+        assert criado.json()["familia"] == "iDAccess"
+        prod_id = criado.json()["id"]
+
+        trocado = await client.put(
+            f"/api/admin/produtos/{prod_id}",
+            json={"familia": "iDAccess Linha 2"},
+            headers=admin_headers,
+        )
+        assert trocado.json()["familia"] == "iDAccess Linha 2"
+
+        limpo = await client.put(
+            f"/api/admin/produtos/{prod_id}", json={"familia": None}, headers=admin_headers
+        )
+        assert limpo.json()["familia"] is None
+
+        longa = await client.post(
+            "/api/admin/produtos",
+            json={**base, "nome": "X", "familia": "a" * 121},
+            headers=admin_headers,
+        )
+        assert longa.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_admin_produto_upload_e_delete_imagem(app_sqlite, admin_headers):
     app = app_sqlite
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

@@ -55,6 +55,7 @@ class ProdutoOut(BaseModel):
     preco_base_fornecedor: Decimal | None = None
     imagem_url: str | None = None
     dias_alerta_estoque: int | None = Field(default=None, ge=1, le=365)
+    familia: str | None = Field(default=None, max_length=120)
     estoques: list[ProdutoEstoqueOut] = []
     descontos_volume: list[ProdutoDescontoVolumeOut] = []
     imagens: list[ProdutoImagemOut] = []
@@ -82,6 +83,7 @@ class ProdutoCreate(BaseModel):
     preco_base_fornecedor: Decimal | None = None
     imagem_url: str | None = None
     dias_alerta_estoque: int | None = Field(default=None, ge=1, le=365)
+    familia: str | None = Field(default=None, max_length=120)
 
 
 class ProdutoUpdate(BaseModel):
@@ -100,3 +102,4 @@ class ProdutoUpdate(BaseModel):
     preco_base_fornecedor: Decimal | None = None
     imagem_url: str | None = None
     dias_alerta_estoque: int | None = Field(default=None, ge=1, le=365)
+    familia: str | None = Field(default=None, max_length=120)

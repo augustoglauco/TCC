@@ -840,6 +840,20 @@ humana e a Central `/admin/atendimento` vieram em 2026-10-03/05; a listagem é
 `GET /api/admin/tom/escalonamentos`. `# MVP:` sem "des-escalar" (estado em
 memória por processo).
 
+**Decisão registrada (2026-10-31): modelos do mesmo produto são uma linha
+cada em `produtos`, agrupados por `familia`.** Preço, promoção, estoque,
+desconto por volume, item de pedido, imagem e compatibilidade são por
+`produto_id`, e o extrator de Vendas escolhe um único `produto_id`; por isso
+cada modelo é um produto vendável, com nome padronizado (`Linha — Modelo`) e
+a mesma categoria. O manual comum se ingere uma vez no RAG, e o que varia por
+modelo fica em `especificacoes_tecnicas` (banco, exato), não em tabela de
+manual. `produtos.familia` (migração `0027`, `String(120)`, opcional) só
+agrupa no cadastro (`/admin/produtos`) e na API (`ProdutoOut`): o chat, a
+busca de candidatos e o RAG **não** a usam. `# MVP:` sem tabela de variantes
+(estoque, pedidos, descontos, MCP B2B e extrator teriam de mudar); usar a
+família na busca de candidatos de Vendas ou numa listagem "modelos da linha X"
+é evolução futura, só se o nome padronizado não bastar com os produtos reais.
+
 **Decisão registrada (Fase 5, R12, 2026-09-24): backend único de dados do MCP
 B2B.** Estende a fixture `produtos` (migração `0003`) com o model
 `app.db.models.Produto` (o `db_connector` por reflexão continua funcionando):

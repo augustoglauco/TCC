@@ -7,6 +7,7 @@ const BASE_PROPS = {
   produtoParaEditar: null,
   nome: "",
   categoria: "",
+  familia: "",
   preco: "",
   precoBaseFornecedor: "",
   diasAlertaEstoque: "",
@@ -18,6 +19,7 @@ const BASE_PROPS = {
   saving: false,
   onNome: vi.fn(),
   onCategoria: vi.fn(),
+  onFamilia: vi.fn(),
   onPreco: vi.fn(),
   onPrecoBase: vi.fn(),
   onDiasAlerta: vi.fn(),
@@ -61,6 +63,12 @@ describe("ProductFormGeralTab — renderização dos campos", () => {
   it("renderiza o campo Categoria", () => {
     render(<ProductFormGeralTab {...BASE_PROPS} />);
     expect(screen.getByPlaceholderText("Ex: CFTV")).toBeInTheDocument();
+  });
+
+  it("renderiza o campo Família e propaga a digitação", () => {
+    render(<ProductFormGeralTab {...BASE_PROPS} />);
+    fireEvent.change(screen.getByLabelText("Família"), { target: { value: "iDAccess" } });
+    expect(BASE_PROPS.onFamilia).toHaveBeenCalledWith("iDAccess");
   });
 
   it("renderiza o campo Preço Venda", () => {
@@ -192,7 +200,9 @@ describe("ProductFormGeralTab — callbacks dos campos", () => {
 
   it("chama onSubmit ao submeter o formulário", () => {
     const onSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
-    render(<ProductFormGeralTab {...BASE_PROPS} onSubmit={onSubmit} nome="Produto X" preco="100" />);
+    render(
+      <ProductFormGeralTab {...BASE_PROPS} onSubmit={onSubmit} nome="Produto X" preco="100" />,
+    );
     fireEvent.submit(screen.getByRole("button", { name: "Salvar Produto" }).closest("form")!);
     expect(onSubmit).toHaveBeenCalled();
   });
@@ -200,12 +210,7 @@ describe("ProductFormGeralTab — callbacks dos campos", () => {
 
 describe("ProductFormGeralTab — preview de imagem", () => {
   it("exibe o preview quando imagemPreview está preenchido", () => {
-    render(
-      <ProductFormGeralTab
-        {...BASE_PROPS}
-        imagemPreview="data:image/png;base64,abc"
-      />,
-    );
+    render(<ProductFormGeralTab {...BASE_PROPS} imagemPreview="data:image/png;base64,abc" />);
     const img = screen.getByAltText("Preview") as HTMLImageElement;
     expect(img.src).toContain("data:image/png");
   });
@@ -218,23 +223,17 @@ describe("ProductFormGeralTab — preview de imagem", () => {
 
 describe("ProductFormGeralTab — galeria de imagens existentes", () => {
   it("não exibe a galeria quando não há produto para editar", () => {
-    render(
-      <ProductFormGeralTab {...BASE_PROPS} produtoParaEditar={null} imagens={[IMAGEM]} />,
-    );
+    render(<ProductFormGeralTab {...BASE_PROPS} produtoParaEditar={null} imagens={[IMAGEM]} />);
     expect(screen.queryByText(/Imagens associadas/)).not.toBeInTheDocument();
   });
 
   it("não exibe a galeria quando imagens está vazio", () => {
-    render(
-      <ProductFormGeralTab {...BASE_PROPS} produtoParaEditar={PRODUTO} imagens={[]} />,
-    );
+    render(<ProductFormGeralTab {...BASE_PROPS} produtoParaEditar={PRODUTO} imagens={[]} />);
     expect(screen.queryByText(/Imagens associadas/)).not.toBeInTheDocument();
   });
 
   it("exibe a galeria com a contagem quando há produto e imagens", () => {
-    render(
-      <ProductFormGeralTab {...BASE_PROPS} produtoParaEditar={PRODUTO} imagens={[IMAGEM]} />,
-    );
+    render(<ProductFormGeralTab {...BASE_PROPS} produtoParaEditar={PRODUTO} imagens={[IMAGEM]} />);
     expect(screen.getByText("Imagens associadas (1):")).toBeInTheDocument();
   });
 

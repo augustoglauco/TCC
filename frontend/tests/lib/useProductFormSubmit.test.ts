@@ -4,6 +4,7 @@ import { montarPayloadProduto } from "@/lib/hooks/useProductFormSubmit";
 const base = {
   nome: " Câmera ",
   categoria: " CFTV ",
+  familia: "  ",
   preco: "199.9",
   precoBaseFornecedor: "",
   diasAlertaEstoque: "",
@@ -29,6 +30,7 @@ describe("montarPayloadProduto", () => {
       payload: {
         nome: "Câmera",
         categoria: "CFTV",
+        familia: null,
         preco: 199.9,
         preco_base_fornecedor: null,
         dias_alerta_estoque: null,
@@ -42,6 +44,7 @@ describe("montarPayloadProduto", () => {
     const r = montarPayloadProduto({
       ...base,
       categoria: " ",
+      familia: " iDAccess ",
       precoBaseFornecedor: "50.5",
       diasAlertaEstoque: "7",
       especificacoesTecnicas: " 4K ",
@@ -49,6 +52,7 @@ describe("montarPayloadProduto", () => {
     expect(r).toMatchObject({
       payload: {
         categoria: "Geral",
+        familia: "iDAccess",
         preco_base_fornecedor: 50.5,
         dias_alerta_estoque: 7,
         especificacoes_tecnicas: "4K",

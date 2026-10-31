@@ -181,6 +181,10 @@ class Produto(Base):
     # quais o administrador é avisado. Reflete o prazo de reposição/entrega
     # deste produto; `None` usa o padrão global (`estoque_horizonte_dias`).
     dias_alerta_estoque: Mapped[int | None] = mapped_column(nullable=True)
+    # Agrupa os modelos do mesmo produto (cada modelo é uma linha em `produtos`,
+    # com preço e estoque próprios). Só cadastro e API: o chat e o RAG ainda
+    # não usam este campo (`docs/ARCHITECTURE.md`, decisão de 2026-10-31).
+    familia: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     estoques: Mapped[list[ProdutoEstoque]] = relationship(
         back_populates="produto", cascade="all, delete-orphan"

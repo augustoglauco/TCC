@@ -66,7 +66,16 @@ function useEstoqueCd({ token, produtoParaEditar, onSuccess, setError }: ExtrasD
     });
   };
 
-  return { estoques, setEstoques, cdNome, setCdNome, cdQtd, setCdQtd, updatingStock, handleSalvarEstoque };
+  return {
+    estoques,
+    setEstoques,
+    cdNome,
+    setCdNome,
+    cdQtd,
+    setCdQtd,
+    updatingStock,
+    handleSalvarEstoque,
+  };
 }
 
 function useDescontosVolume({ token, produtoParaEditar, onSuccess, setError }: ExtrasDeps) {
@@ -83,20 +92,34 @@ function useDescontosVolume({ token, produtoParaEditar, onSuccess, setError }: E
       setError("Informe quantidade mínima (>0) e percentual válido (>0).");
       return;
     }
-    await executarAcao(setError, setUpdatingDiscount, "Erro ao adicionar faixa de desconto", async () => {
-      const prod = await addAdminProductVolumeDiscount(token, produtoParaEditar.id, qtdMin, perc);
-      setDescontosVolume(prod.descontos_volume || []);
-      onSuccess(prod);
-    });
+    await executarAcao(
+      setError,
+      setUpdatingDiscount,
+      "Erro ao adicionar faixa de desconto",
+      async () => {
+        const prod = await addAdminProductVolumeDiscount(token, produtoParaEditar.id, qtdMin, perc);
+        setDescontosVolume(prod.descontos_volume || []);
+        onSuccess(prod);
+      },
+    );
   };
 
   const handleRemoverDesconto = async (descontoId: string) => {
     if (!produtoParaEditar || !token) return;
-    await executarAcao(setError, setUpdatingDiscount, "Erro ao excluir faixa de desconto", async () => {
-      const prod = await deleteAdminProductVolumeDiscount(token, produtoParaEditar.id, descontoId);
-      setDescontosVolume(prod.descontos_volume || []);
-      onSuccess(prod);
-    });
+    await executarAcao(
+      setError,
+      setUpdatingDiscount,
+      "Erro ao excluir faixa de desconto",
+      async () => {
+        const prod = await deleteAdminProductVolumeDiscount(
+          token,
+          produtoParaEditar.id,
+          descontoId,
+        );
+        setDescontosVolume(prod.descontos_volume || []);
+        onSuccess(prod);
+      },
+    );
   };
 
   return {
@@ -121,19 +144,31 @@ function useCompatibilidades({ token, produtoParaEditar, setError }: ExtrasDeps)
     if (!produtoParaEditar || !compativelSelectedId || !token) return;
     const targetId = parseInt(compativelSelectedId, 10);
     if (isNaN(targetId) || targetId === produtoParaEditar.id) return;
-    await executarAcao(setError, setUpdatingCompatibility, "Erro ao adicionar compatibilidade", async () => {
-      setCompatividades(await addAdminProductCompatibility(token, produtoParaEditar.id, targetId));
-      setCompativelSelectedId("");
-    });
+    await executarAcao(
+      setError,
+      setUpdatingCompatibility,
+      "Erro ao adicionar compatibilidade",
+      async () => {
+        setCompatividades(
+          await addAdminProductCompatibility(token, produtoParaEditar.id, targetId),
+        );
+        setCompativelSelectedId("");
+      },
+    );
   };
 
   const handleRemoverCompatibilidade = async (compativelComId: number) => {
     if (!produtoParaEditar || !token) return;
-    await executarAcao(setError, setUpdatingCompatibility, "Erro ao remover compatibilidade", async () => {
-      setCompatividades(
-        await deleteAdminProductCompatibility(token, produtoParaEditar.id, compativelComId),
-      );
-    });
+    await executarAcao(
+      setError,
+      setUpdatingCompatibility,
+      "Erro ao remover compatibilidade",
+      async () => {
+        setCompatividades(
+          await deleteAdminProductCompatibility(token, produtoParaEditar.id, compativelComId),
+        );
+      },
+    );
   };
 
   return {

@@ -99,6 +99,7 @@ interface ProductFormGeralTabProps {
   produtoParaEditar?: AdminProduct | null;
   nome: string;
   categoria: string;
+  familia: string;
   preco: string;
   precoBaseFornecedor: string;
   diasAlertaEstoque: string;
@@ -110,6 +111,7 @@ interface ProductFormGeralTabProps {
   saving: boolean;
   onNome: (v: string) => void;
   onCategoria: (v: string) => void;
+  onFamilia: (v: string) => void;
   onPreco: (v: string) => void;
   onPrecoBase: (v: string) => void;
   onDiasAlerta: (v: string) => void;
@@ -228,6 +230,7 @@ export function ProductFormGeralTab({
   produtoParaEditar,
   nome,
   categoria,
+  familia,
   preco,
   precoBaseFornecedor,
   diasAlertaEstoque,
@@ -239,6 +242,7 @@ export function ProductFormGeralTab({
   saving,
   onNome,
   onCategoria,
+  onFamilia,
   onPreco,
   onPrecoBase,
   onDiasAlerta,
@@ -286,6 +290,28 @@ export function ProductFormGeralTab({
             <option value="Automação" />
             <option value="Geral" />
           </datalist>
+        </div>
+
+        <div>
+          <label
+            htmlFor="produto-familia"
+            className="block text-xs font-semibold text-gray-700 uppercase tracking-wider"
+          >
+            Família
+          </label>
+          <input
+            id="produto-familia"
+            type="text"
+            maxLength={120}
+            value={familia}
+            onChange={(e) => onFamilia(e.target.value)}
+            placeholder="Ex: iDAccess"
+            className={inputCls}
+          />
+          <p className="mt-1 text-[11px] text-gray-500">
+            Agrupa os modelos do mesmo produto. Cada modelo continua sendo um produto, com preço e
+            estoque próprios. Opcional.
+          </p>
         </div>
 
         <CamposPreco

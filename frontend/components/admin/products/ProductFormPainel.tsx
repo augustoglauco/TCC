@@ -38,6 +38,7 @@ export function ProductFormPainel({
         produtoParaEditar={produtoParaEditar}
         nome={campos.nome}
         categoria={campos.categoria}
+        familia={campos.familia}
         preco={campos.preco}
         precoBaseFornecedor={campos.precoBaseFornecedor}
         diasAlertaEstoque={campos.diasAlertaEstoque}
@@ -49,6 +50,7 @@ export function ProductFormPainel({
         saving={saving}
         onNome={campos.setNome}
         onCategoria={campos.setCategoria}
+        onFamilia={campos.setFamilia}
         onPreco={campos.setPreco}
         onPrecoBase={campos.setPrecoBaseFornecedor}
         onDiasAlerta={campos.setDiasAlertaEstoque}

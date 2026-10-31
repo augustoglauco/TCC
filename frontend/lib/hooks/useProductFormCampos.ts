@@ -30,6 +30,7 @@ export function useProductFormCampos({
 }: RemocaoImagemDeps) {
   const [nome, setNome] = useState("");
   const [categoria, setCategoria] = useState("CFTV");
+  const [familia, setFamilia] = useState("");
   const [preco, setPreco] = useState("");
   const [precoBaseFornecedor, setPrecoBaseFornecedor] = useState("");
   const [diasAlertaEstoque, setDiasAlertaEstoque] = useState("");
@@ -52,6 +53,7 @@ export function useProductFormCampos({
   const novo = useCallback(() => {
     setNome("");
     setCategoria("CFTV");
+    setFamilia("");
     setPreco("");
     setPrecoBaseFornecedor("");
     setDiasAlertaEstoque("");
@@ -63,6 +65,7 @@ export function useProductFormCampos({
   const preencher = useCallback((p: AdminProduct) => {
     setNome(p.nome);
     setCategoria(p.categoria || "Geral");
+    setFamilia(p.familia || "");
     setPreco(p.preco ? String(p.preco) : "");
     setPrecoBaseFornecedor(p.preco_base_fornecedor ? String(p.preco_base_fornecedor) : "");
     setDiasAlertaEstoque(p.dias_alerta_estoque ? String(p.dias_alerta_estoque) : "");
@@ -114,6 +117,7 @@ export function useProductFormCampos({
   return {
     nome,
     categoria,
+    familia,
     preco,
     precoBaseFornecedor,
     diasAlertaEstoque,
@@ -125,6 +129,7 @@ export function useProductFormCampos({
     deletingImageId,
     setNome,
     setCategoria,
+    setFamilia,
     setPreco,
     setPrecoBaseFornecedor,
     setDiasAlertaEstoque,

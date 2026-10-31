@@ -12,6 +12,7 @@ import type { AdminProduct } from "@/lib/types/adminProducts";
 export interface CamposParaPayload {
   nome: string;
   categoria: string;
+  familia: string;
   preco: string;
   precoBaseFornecedor: string;
   diasAlertaEstoque: string;
@@ -31,6 +32,7 @@ export function montarPayloadProduto(campos: CamposParaPayload): ResultadoPayloa
     payload: {
       nome: campos.nome.trim(),
       categoria: campos.categoria.trim() || "Geral",
+      familia: campos.familia.trim() || null,
       preco: precoNum,
       preco_base_fornecedor: campos.precoBaseFornecedor
         ? parseFloat(campos.precoBaseFornecedor)

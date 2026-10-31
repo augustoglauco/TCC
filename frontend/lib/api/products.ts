@@ -27,6 +27,7 @@ export interface Produto {
   descricao: string;
   preco: number;
   categoria: string;
+  familia?: string | null;
   especificacoes_tecnicas?: string | null;
   dimensoes_cm?: string | null;
   peso_kg?: number | null;

@@ -2381,6 +2381,11 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       local e TypeSafe Jev, monitor de tom, decisão local × externo) e todos
       os prompts por função (`app/avaliacao/prompts.ts`); conferido contra o
       código, e as divergências achadas foram levadas ao dono.
+- [x] Campo opcional `familia` em produtos (2026-10-31, migração `0027`): agrupa
+      os modelos do mesmo produto (cada modelo é uma linha, com preço e estoque
+      próprios). Só cadastro e API (formulário do admin e `ProdutoOut`); chat e
+      RAG não usam. Decisão em `docs/ARCHITECTURE.md` §5. Migração aplicada no
+      banco de desenvolvimento.
 - [x] Correção (2026-10-31): a aba "Documentos ingeridos" ficava vazia porque
       `GET /api/rag/documents` devolvia 500 com qualquer documento de
       `origin="corpus_avaliacao"` (valor gravado pelos scripts da Fase 10, fora

@@ -34,6 +34,8 @@ export interface AdminProduct {
   descricao: string;
   preco: number;
   categoria: string;
+  /** Agrupa modelos do mesmo produto; null = sem família. */
+  familia?: string | null;
   especificacoes_tecnicas?: string | null;
   dimensoes_cm?: string | null;
   peso_kg?: number | null;
