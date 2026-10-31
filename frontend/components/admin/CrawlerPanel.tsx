@@ -35,16 +35,27 @@ interface CrawlerPanelProps {
   onFinished: () => void;
 }
 
-export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: CrawlerPanelProps) {
-  const token = useAuthStore((s) => s.token);
-  const [collectionId, setCollectionId] = useState("");
-  // Sem escolha válida, cai na ativa de chat (o backend faz o mesmo sem `collection_id`).
-  const collectionSelecionada = collections.some((c) => c.id === collectionId)
-    ? collectionId
-    : (collections.find((c) => c.is_active && (c.purpose || "chat") === "chat")?.id ?? "");
-  const [url, setUrl] = useState("");
-  const [depth, setDepth] = useState(1);
-  const [maxPages, setMaxPages] = useState<number | "">("");
+type CrawlParams = Parameters<typeof runCrawlerStream>[1];
+
+// Sem escolha válida, cai na ativa de chat (o backend faz o mesmo sem `collection_id`).
+function resolverCollection(collections: RagCollection[], collectionId: string): string {
+  if (collections.some((c) => c.id === collectionId)) return collectionId;
+  return collections.find((c) => c.is_active && (c.purpose || "chat") === "chat")?.id ?? "";
+}
+
+// Só usado pra pré-preencher `maxPages` — falha ao carregar não impede o
+// form de funcionar (o backend usa seu próprio default se `max_pages`
+// não for enviado).
+function useMaxPagesPadrao(token: string | null, setMaxPages: (n: number) => void) {
+  useEffect(() => {
+    if (!token) return;
+    getRuntimeSettings(token)
+      .then((settings) => setMaxPages(settings.crawler_max_pages_default))
+      .catch(() => {});
+  }, [token, setMaxPages]);
+}
+
+function useCrawlerRun(token: string | null, onFinished: () => void) {
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState<LiveProgress>(PROGRESSO_INICIAL);
   const [result, setResult] = useState<CrawlRunResponse | null>(null);
@@ -55,16 +66,6 @@ export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: Cra
   // state) para o tick poder lê-lo sem recriar o intervalo a cada evento.
   const lastActivityRef = useRef<number>(0);
   const [secondsSinceActivity, setSecondsSinceActivity] = useState(0);
-
-  useEffect(() => {
-    // Só usado pra pré-preencher `maxPages` — falha ao carregar não impede o
-    // form de funcionar (o backend usa seu próprio default se `max_pages`
-    // não for enviado).
-    if (!token) return;
-    getRuntimeSettings(token)
-      .then((settings) => setMaxPages(settings.crawler_max_pages_default))
-      .catch(() => {});
-  }, [token]);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -79,58 +80,198 @@ export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: Cra
     setSecondsSinceActivity(0);
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!url || isRunning || !token) {
-      return;
-    }
-
+  async function run(params: CrawlParams) {
+    if (!token) return;
     setIsRunning(true);
     setError(null);
     setResult(null);
     setProgress(PROGRESSO_INICIAL);
     marcarAtividade();
 
-    await runCrawlerStream(
-      token,
-      {
-        url,
-        depth,
-        max_pages: maxPages === "" ? undefined : maxPages,
-        collection_id: collectionSelecionada || undefined,
+    await runCrawlerStream(token, params, {
+      onVisiting: (visitandoUrl) => {
+        marcarAtividade();
+        setProgress((atual) => ({
+          ...atual,
+          currentUrl: visitandoUrl,
+          visited: atual.visited + 1,
+        }));
       },
-      {
-        onVisiting: (visitandoUrl) => {
-          marcarAtividade();
-          setProgress((atual) => ({
-            ...atual,
-            currentUrl: visitandoUrl,
-            visited: atual.visited + 1,
-          }));
-        },
-        onQueued: () => {
-          marcarAtividade();
-          setProgress((atual) => ({ ...atual, queued: atual.queued + 1 }));
-        },
-        onPageError: () => {
-          marcarAtividade();
-          setProgress((atual) => ({ ...atual, errors: atual.errors + 1 }));
-        },
-        onDone: (summary) => {
-          setResult(summary);
-          onFinished();
-        },
-        onError: (message) => {
-          setError(message);
-        },
+      onQueued: () => {
+        marcarAtividade();
+        setProgress((atual) => ({ ...atual, queued: atual.queued + 1 }));
       },
-    );
+      onPageError: () => {
+        marcarAtividade();
+        setProgress((atual) => ({ ...atual, errors: atual.errors + 1 }));
+      },
+      onDone: (summary) => {
+        setResult(summary);
+        onFinished();
+      },
+      onError: (message) => {
+        setError(message);
+      },
+    });
 
     setIsRunning(false);
     setProgress((atual) => ({ ...atual, currentUrl: null }));
   }
 
-  const stalled = isRunning && secondsSinceActivity >= STALL_THRESHOLD_S;
+  return { isRunning, progress, result, error, secondsSinceActivity, run };
+}
+
+function CrawlerLiveStatus({
+  progress,
+  secondsSinceActivity,
+}: {
+  progress: LiveProgress;
+  secondsSinceActivity: number;
+}) {
+  const stalled = secondsSinceActivity >= STALL_THRESHOLD_S;
+  return (
+    <div
+      data-testid="crawler-live-status"
+      aria-live="polite"
+      className="mt-6 rounded-md border border-blue-200 bg-blue-50 p-4"
+    >
+      <div className="flex items-center gap-2 text-sm font-semibold text-blue-800">
+        <span
+          className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-blue-500"
+          aria-hidden
+        />
+        {progress.currentUrl ? (
+          <span className="break-all">
+            Lendo: <span className="font-mono font-normal">{progress.currentUrl}</span>
+          </span>
+        ) : (
+          <span>Iniciando o crawl…</span>
+        )}
+      </div>
+
+      <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-blue-900">
+        <div>
+          <dt className="text-blue-600">Visitadas</dt>
+          <dd className="text-base font-bold">{progress.visited}</dd>
+        </div>
+        <div>
+          <dt className="text-blue-600">Fila</dt>
+          <dd className="text-base font-bold">{progress.queued}</dd>
+        </div>
+        <div>
+          <dt className="text-blue-600">Erros</dt>
+          <dd className="text-base font-bold">{progress.errors}</dd>
+        </div>
+      </dl>
+
+      <p className="mt-3 text-xs text-blue-700">Última atividade há {secondsSinceActivity}s</p>
+
+      {stalled && (
+        <p
+          data-testid="crawler-stall-warning"
+          role="alert"
+          className="mt-2 rounded bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-800"
+        >
+          ⚠️ Sem resposta do servidor há {secondsSinceActivity}s — o crawl pode ter travado.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function CrawlerResultado({
+  result,
+  error,
+}: {
+  result: CrawlRunResponse | null;
+  error: string | null;
+}) {
+  return (
+    <>
+      {result && (
+        <p className="mt-6 rounded-md bg-green-50 px-4 py-3 text-green-800">
+          {result.pages_visited} página(s) visitada(s) — {result.queued.length} na fila de revisão
+          (nada foi ingerido: escolha o domínio e aprove abaixo)
+          {result.errors.length > 0 ? `, ${result.errors.length} com erro` : ""}.
+        </p>
+      )}
+      {error && <p className="mt-6 rounded-md bg-red-50 px-4 py-3 text-red-800">{error}</p>}
+    </>
+  );
+}
+
+function CrawlerLimites({
+  depth,
+  onDepthChange,
+  maxPages,
+  onMaxPagesChange,
+}: {
+  depth: number;
+  onDepthChange: (n: number) => void;
+  maxPages: number | "";
+  onMaxPagesChange: (n: number | "") => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div>
+        <label htmlFor="crawler-depth" className="block text-sm font-medium text-gray-900">
+          Profundidade
+        </label>
+        <input
+          id="crawler-depth"
+          type="number"
+          min={0}
+          required
+          value={depth}
+          onChange={(event) => onDepthChange(Number(event.target.value))}
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+        />
+      </div>
+      <div>
+        <label htmlFor="crawler-max-pages" className="block text-sm font-medium text-gray-900">
+          Máximo de páginas
+        </label>
+        <input
+          id="crawler-max-pages"
+          type="number"
+          min={1}
+          value={maxPages}
+          onChange={(event) =>
+            onMaxPagesChange(event.target.value === "" ? "" : Number(event.target.value))
+          }
+          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
+        />
+      </div>
+    </div>
+  );
+}
+
+export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: CrawlerPanelProps) {
+  const token = useAuthStore((s) => s.token);
+  const [collectionId, setCollectionId] = useState("");
+  const collectionSelecionada = resolverCollection(collections, collectionId);
+  const [url, setUrl] = useState("");
+  const [depth, setDepth] = useState(1);
+  const [maxPages, setMaxPages] = useState<number | "">("");
+  const { isRunning, progress, result, error, secondsSinceActivity, run } = useCrawlerRun(
+    token,
+    onFinished,
+  );
+
+  useMaxPagesPadrao(token, setMaxPages);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!url || isRunning || !token) {
+      return;
+    }
+    await run({
+      url,
+      depth,
+      max_pages: maxPages === "" ? undefined : maxPages,
+      collection_id: collectionSelecionada || undefined,
+    });
+  }
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
@@ -156,37 +297,12 @@ export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: Cra
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="crawler-depth" className="block text-sm font-medium text-gray-900">
-              Profundidade
-            </label>
-            <input
-              id="crawler-depth"
-              type="number"
-              min={0}
-              required
-              value={depth}
-              onChange={(event) => setDepth(Number(event.target.value))}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          </div>
-          <div>
-            <label htmlFor="crawler-max-pages" className="block text-sm font-medium text-gray-900">
-              Máximo de páginas
-            </label>
-            <input
-              id="crawler-max-pages"
-              type="number"
-              min={1}
-              value={maxPages}
-              onChange={(event) =>
-                setMaxPages(event.target.value === "" ? "" : Number(event.target.value))
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900"
-            />
-          </div>
-        </div>
+        <CrawlerLimites
+          depth={depth}
+          onDepthChange={setDepth}
+          maxPages={maxPages}
+          onMaxPagesChange={setMaxPages}
+        />
 
         <CrawlerDestino
           collections={collections}
@@ -206,62 +322,9 @@ export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: Cra
       </form>
 
       {isRunning && (
-        <div
-          data-testid="crawler-live-status"
-          aria-live="polite"
-          className="mt-6 rounded-md border border-blue-200 bg-blue-50 p-4"
-        >
-          <div className="flex items-center gap-2 text-sm font-semibold text-blue-800">
-            <span
-              className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-blue-500"
-              aria-hidden
-            />
-            {progress.currentUrl ? (
-              <span className="break-all">
-                Lendo: <span className="font-mono font-normal">{progress.currentUrl}</span>
-              </span>
-            ) : (
-              <span>Iniciando o crawl…</span>
-            )}
-          </div>
-
-          <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-blue-900">
-            <div>
-              <dt className="text-blue-600">Visitadas</dt>
-              <dd className="text-base font-bold">{progress.visited}</dd>
-            </div>
-            <div>
-              <dt className="text-blue-600">Fila</dt>
-              <dd className="text-base font-bold">{progress.queued}</dd>
-            </div>
-            <div>
-              <dt className="text-blue-600">Erros</dt>
-              <dd className="text-base font-bold">{progress.errors}</dd>
-            </div>
-          </dl>
-
-          <p className="mt-3 text-xs text-blue-700">Última atividade há {secondsSinceActivity}s</p>
-
-          {stalled && (
-            <p
-              data-testid="crawler-stall-warning"
-              role="alert"
-              className="mt-2 rounded bg-amber-100 px-3 py-2 text-xs font-semibold text-amber-800"
-            >
-              ⚠️ Sem resposta do servidor há {secondsSinceActivity}s — o crawl pode ter travado.
-            </p>
-          )}
-        </div>
+        <CrawlerLiveStatus progress={progress} secondsSinceActivity={secondsSinceActivity} />
       )}
-
-      {result && (
-        <p className="mt-6 rounded-md bg-green-50 px-4 py-3 text-green-800">
-          {result.pages_visited} página(s) visitada(s) — {result.queued.length} na fila de revisão
-          (nada foi ingerido: escolha o domínio e aprove abaixo)
-          {result.errors.length > 0 ? `, ${result.errors.length} com erro` : ""}.
-        </p>
-      )}
-      {error && <p className="mt-6 rounded-md bg-red-50 px-4 py-3 text-red-800">{error}</p>}
+      <CrawlerResultado result={result} error={error} />
     </div>
   );
 }
