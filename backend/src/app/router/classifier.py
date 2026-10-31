@@ -17,6 +17,12 @@ Domain = Literal["vendas", "suporte", "atendimento", "agendamento", "fora_escopo
 Complexity = Literal["baixa", "alta"]
 
 
+# Rótulo próprio para quando o Jev falha e só as palavras-chave decidiram: não
+# pode ser "heuristica_llm" (nenhum LLM roda nesse caminho), senão a falha do Jev
+# se mistura com o modo híbrido na comparação de provedores da Fase 10.
+PROVIDER_FALLBACK_JEV = "heuristica_fallback_jev"
+
+
 class IntentClassifierClient(Protocol):
     """Contrato mínimo que `external_client` precisa satisfazer quando
     `provider="jev_openrouter"` — documenta a interface duck-typed em vez de
@@ -38,7 +44,7 @@ class ClassificationResult(BaseModel):
     # produziu esta classificação — não confundir com o parâmetro `provider`
     # pedido pelo chamador em `classify()`. Quando o Jev falha,
     # `_classify_with_jev` degrada para `_classify_heuristic_fallback`, cujo
-    # resultado tem `provider_efetivo="heuristica_llm"` mesmo que o chamador
+    # resultado tem `provider_efetivo="heuristica_fallback_jev"` mesmo que o chamador
     # tenha pedido `provider="jev_openrouter"` — é este campo, não o
     # parâmetro do chamador, que deve alimentar `RouterDecision.router_provider`
     # no orchestrator (ver docs/EVALUATION.md: comparação de acurácia/latência
@@ -428,7 +434,7 @@ async def _classify_with_jev(
             },
         )
         return _classify_heuristic_fallback(
-            message, recent_messages, provider_efetivo="heuristica_llm"
+            message, recent_messages, provider_efetivo=PROVIDER_FALLBACK_JEV
         )
 
 

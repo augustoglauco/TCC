@@ -338,11 +338,12 @@ async def test_classify_com_jev_fallback_em_falha():
     assert result.confidence == 0.3
     # Fix (revisão final, achado importante 1): mesmo com `provider`
     # pedido="jev_openrouter", a falha degrada o campo `provider_efetivo`
-    # para "heuristica_llm" — é o que aconteceu de fato, não o que foi
-    # pedido. Regressão específica do bug corrigido nesta rodada: sem isso,
-    # a telemetria (RouterDecision/ChatDoneEventData) atribuiria ao Jev uma
-    # resposta que na verdade veio da heurística local.
-    assert result.provider_efetivo == "heuristica_llm"
+    # para "heuristica_fallback_jev" — é o que aconteceu de fato, não o que foi
+    # pedido, e não "heuristica_llm", porque nenhum LLM rodou. Regressão
+    # específica do bug corrigido: sem isso, a telemetria
+    # (RouterDecision/ChatDoneEventData) atribuiria ao Jev uma resposta que na
+    # verdade veio da heurística local, ou a misturaria com o modo híbrido.
+    assert result.provider_efetivo == "heuristica_fallback_jev"
 
 
 async def test_classify_com_jev_sem_external_client_cai_para_heuristica():
@@ -353,7 +354,7 @@ async def test_classify_com_jev_sem_external_client_cai_para_heuristica():
     )
     assert result.domain == "vendas"
     assert result.confidence == 0.3
-    assert result.provider_efetivo == "heuristica_llm"
+    assert result.provider_efetivo == "heuristica_fallback_jev"
 
 
 async def test_classify_com_jev_client_sem_metodo_cai_para_heuristica():
@@ -367,7 +368,7 @@ async def test_classify_com_jev_client_sem_metodo_cai_para_heuristica():
     )
     assert result.domain == "vendas"
     assert result.confidence == 0.3
-    assert result.provider_efetivo == "heuristica_llm"
+    assert result.provider_efetivo == "heuristica_fallback_jev"
 
 
 async def test_classificador_llm_recebe_a_ultima_resposta_do_assistente():

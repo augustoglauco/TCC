@@ -95,7 +95,7 @@ export const MECANICA: BlocoMecanica[] = [
           "jev_openrouter (TypeSafe Jev)",
           "Vai direto ao Jev, sem passar pelo atalho de palavras-chave. Uma pergunta tipada `choice` com os 5 domínios e a descrição de cada um como critério.",
           "Modelo de decisão estruturada via OpenRouter (~typesafe/jev-latest), timeout 10 s",
-          "Qualquer erro (timeout, HTTP, chave ausente, payload inesperado) degrada para as palavras-chave com histórico (fora_escopo se inconclusivo, confiança 0,3). A telemetria registra `heuristica_llm`, embora nenhum LLM seja chamado nesse caminho.",
+          "Qualquer erro (timeout, HTTP, chave ausente, payload inesperado) degrada para as palavras-chave com histórico (fora_escopo se inconclusivo, confiança 0,3). A telemetria registra `heuristica_fallback_jev` (rótulo próprio, para não misturar a falha do Jev com o modo híbrido; nenhum LLM é chamado nesse caminho).",
         ],
       ],
     },
@@ -199,7 +199,7 @@ export const MECANICA: BlocoMecanica[] = [
       {
         titulo: "Telemetria honesta",
         texto:
-          "O campo `router_provider` do resultado vem de `provider_efetivo` (quem de fato decidiu), não do provedor selecionado no admin. Por isso uma falha do Jev nunca é contada como acerto do Jev na comparação de provedores. Resultado medido (311 mensagens, ver gráficos): heurística 48,5%, heurística+LLM 84,3%, Jev 93,4%.",
+          "O campo `router_provider` do resultado vem de `provider_efetivo` (quem de fato decidiu), não do provedor selecionado no admin. Por isso uma falha do Jev nunca é contada como acerto do Jev na comparação de provedores, nem como acerto do modo híbrido: ela aparece como `heuristica_fallback_jev`. Resultado medido (311 mensagens, ver gráficos): heurística 48,5%, heurística+LLM 84,3%, Jev 93,4%.",
       },
       {
         titulo: "Custo",

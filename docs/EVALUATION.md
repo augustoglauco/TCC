@@ -239,7 +239,9 @@ motivo fica em `revisao.nota` de cada caso.
   `jev_openrouter` e comparar acurácia, latência e custo. Usar
   `ClassificationResult.provider_efetivo` (não o provedor selecionado) para
   confirmar que nenhuma execução de `jev_openrouter` degradou em silêncio
-  para a heurística por falha da API.
+  para a heurística por falha da API: a degradação aparece como
+  `heuristica_fallback_jev` (rótulo próprio desde 2026-10-31; antes aparecia
+  como `heuristica_llm` e se misturava com o modo híbrido).
 
 **Estado:** rodado em 2026-10-28 nos três provedores sobre as 229 mensagens
 não ambíguas (heurística 48,5%, heurística+LLM 84,3%, JEV 93,4%; ver a

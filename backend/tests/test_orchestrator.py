@@ -708,7 +708,7 @@ async def test_handle_message_propaga_router_provider_jev_quando_client_falha():
     # vinha direto do parâmetro bruto `intent_router_provider` e mentia
     # "jev_openrouter" mesmo quando a heurística respondeu de fato. Agora
     # deve refletir `classification.provider_efetivo`, ou seja
-    # "heuristica_llm" — ver também o teste de sucesso logo abaixo.
+    # "heuristica_fallback_jev" — ver também o teste de sucesso logo abaixo.
     eventos = await _coletar_eventos(
         "Quero orçamento",
         recent_messages=[],
@@ -721,7 +721,7 @@ async def test_handle_message_propaga_router_provider_jev_quando_client_falha():
 
     decisao = eventos[-1]
     assert isinstance(decisao, RouterDecision)
-    assert decisao.router_provider == "heuristica_llm"
+    assert decisao.router_provider == "heuristica_fallback_jev"
 
 
 async def test_handle_message_propaga_router_provider_jev_quando_client_sucede():

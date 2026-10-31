@@ -408,12 +408,13 @@ data: {
   "rag_chunks": [ { "source": "manual.pdf", "score": 0.78 } ],  // fonte e score de cada chunk
 
   // Provedor que REALMENTE classificou a intenção nesta requisição —
-  // "heuristica_llm" ou "jev_openrouter" (ver docs/ARCHITECTURE.md, decisão
+  // "heuristica", "heuristica_llm", "jev_openrouter" ou
+  // "heuristica_fallback_jev" (ver docs/ARCHITECTURE.md, decisão
   // do TypeSafe Jev como provedor alternativo). Alternado via runtime
   // settings, não por request. Reflete o provedor efetivo, não
   // necessariamente o selecionado: se o Jev falhar (timeout, erro HTTP,
   // resposta malformada), o classificador degrada para a heurística local e
-  // este campo mostra "heuristica_llm" mesmo com "jev_openrouter"
+  // este campo mostra "heuristica_fallback_jev" com "jev_openrouter"
   // selecionado no admin (correção de revisão final — antes vazava o valor
   // selecionado, não o usado de fato). `null` no fluxo de identificação de
   // imagem, que não passa por classificação de intenção.

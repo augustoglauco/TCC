@@ -214,7 +214,9 @@ class ChatDoneEventData(BaseModel):
     )
     router_provider: str | None = Field(
         default=None,
-        description='Provedor de roteamento utilizado ("heuristica_llm" ou "jev_openrouter"). '
+        description='Provedor de roteamento utilizado ("heuristica", "heuristica_llm", '
+        '"jev_openrouter" ou "heuristica_fallback_jev", quando o Jev falhou e só as '
+        "palavras-chave decidiram). "
         "None quando a resposta não passou por classificação de intenção "
         "(ex.: caminho de identificação de imagem).",
     )

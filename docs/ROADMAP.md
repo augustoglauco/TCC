@@ -2381,6 +2381,11 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       local e TypeSafe Jev, monitor de tom, decisão local × externo) e todos
       os prompts por função (`app/avaliacao/prompts.ts`); conferido contra o
       código, e as divergências achadas foram levadas ao dono.
+- [x] Roteador (2026-10-31): falha do Jev na classificação passa a gravar
+      `router_provider = "heuristica_fallback_jev"` (antes `heuristica_llm`,
+      que misturava a falha com o modo híbrido na comparação de provedores).
+      Constante `PROVIDER_FALLBACK_JEV` em `classifier.py`; testes, ARCHITECTURE,
+      EVALUATION, FRONTEND e o modal da `/avaliacao` atualizados.
 - [x] Modal de nova collection (2026-10-31): lista fixa de modelos de embedding
       ganhou `BAAI/bge-m3` (1024 dim, vencedor da avaliação) e
       `google/embeddinggemma-300m` (768 dim); o padrão segue o MiniLM

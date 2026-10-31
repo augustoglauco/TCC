@@ -819,9 +819,12 @@ persistidos, ver a decisão de residência do modelo).
 **Correção (revisão final, 2026-09-23): a telemetria registra o provedor
 efetivo.** `RouterDecision.router_provider`/`ChatDoneEventData.router_provider`
 vêm de `ClassificationResult.provider_efetivo`, não do provedor selecionado:
-se o Jev falha e degrada, registra `heuristica_llm`. Senão, um fallback
-silencioso contaria como sucesso do Jev na comparação de provedores da
-Fase 10. O Jev tem timeout próprio (`JEV_TIMEOUT_S`, 10 s, contra 30 s de
+se o Jev falha e degrada, registra `heuristica_fallback_jev` (rótulo próprio,
+de 2026-10-31: antes era `heuristica_llm`, mas nenhum LLM roda nesse caminho,
+e a falha se misturava com o modo híbrido). Senão, um fallback silencioso
+contaria como sucesso do Jev na comparação de provedores da Fase 10. O monitor
+de tom não tem o mesmo problema na telemetria: a falha do Jev nunca escala, e
+só as escaladas são gravadas. O Jev tem timeout próprio (`JEV_TIMEOUT_S`, 10 s, contra 30 s de
 `EXTERNAL_LLM_TIMEOUT_S`).
 
 **Monitor de Tom (R8, Fase 4B, 2026-09-23).** Checagem transversal
