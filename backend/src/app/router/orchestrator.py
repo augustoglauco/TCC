@@ -84,6 +84,63 @@ logger = logging.getLogger(__name__)
 #   (risco de PII/volume em produção) a revisitar antes de qualquer uso real.
 
 
+def _secoes_historico(
+    contexto_conversa_anterior: str | None,
+    resumo_conversa: str | None,
+    ultima_troca: tuple[str, str] | None,
+) -> list[str]:
+    """Seções de histórico do prompt: conversa anterior, resumo e troca anterior."""
+    partes: list[str] = []
+    if contexto_conversa_anterior:
+        partes.append(
+            "Contexto da conversa anterior do cliente (use como histórico prévio do cliente; "
+            "se a conversa atual tratar de algo novo, priorize o contexto atual):\n"
+            f"{wrap_untrusted('entrada_cliente', contexto_conversa_anterior)}"
+        )
+
+    if resumo_conversa:
+        # O prompt não leva as mensagens anteriores; o resumo periódico é o
+        # que dá ao LLM o contexto da conversa (ex.: de que produto se fala).
+        partes.append(
+            "Resumo da conversa até aqui (use como contexto; se a mensagem "
+            f"atual disser algo diferente, ela vale):\n"
+            f"{wrap_untrusted('entrada_cliente', resumo_conversa)}"
+        )
+
+    if ultima_troca:
+        # O resumo só existe a cada 6 mensagens; a troca anterior é o que
+        # resolve referências como "o produto acima" ou "e esse?".
+        cliente, assistente = ultima_troca
+        partes.append(
+            "Troca anterior da conversa (use para entender referências como "
+            "'o produto acima' ou 'esse'):\n"
+            f"Cliente: {wrap_untrusted('entrada_cliente', cliente[:_ULTIMA_RESPOSTA_MAX_CHARS])}\n"
+            f"Assistente: {assistente[:_ULTIMA_RESPOSTA_MAX_CHARS]}"
+        )
+    return partes
+
+
+def _secao_rag(documentos: list[Document]) -> str:
+    """Seção do prompt com os trechos recuperados do RAG, cada um com sua fonte."""
+    # Cada trecho leva o documento de origem: sem ele o modelo não separa
+    # produtos parecidos nem consegue citar o manual (R4, Fase 10).
+    contexto = "\n\n".join(
+        f"- [Fonte: {documento.source}] {documento.content}" for documento in documentos
+    )
+    return (
+        "Use as informações a seguir, recuperadas da base de conhecimento "
+        "da empresa, para responder à mensagem do cliente. Cada trecho "
+        "indica entre colchetes o documento de origem: use só os trechos "
+        "do produto perguntado e cite o documento ao responder. Se as "
+        "informações não responderem à pergunta, diga claramente que não "
+        "encontrou essa informação na base de conhecimento e oriente o "
+        "cliente a falar com um atendente ou consultar o manual do produto; "
+        "não responda com conhecimento próprio nem invente dados "
+        "específicos (preços, prazos, números de série, procedimentos).\n\n"
+        f"Informações recuperadas:\n{wrap_untrusted('contexto_rag', contexto)}"
+    )
+
+
 def _build_prompt(
     message: str,
     documentos: list[Document],
@@ -117,54 +174,13 @@ def _build_prompt(
     if dados_cliente is not None:
         partes.append(dados_cliente)
 
-    if contexto_conversa_anterior:
-        partes.append(
-            "Contexto da conversa anterior do cliente (use como histórico prévio do cliente; "
-            "se a conversa atual tratar de algo novo, priorize o contexto atual):\n"
-            f"{wrap_untrusted('entrada_cliente', contexto_conversa_anterior)}"
-        )
-
-    if resumo_conversa:
-        # O prompt não leva as mensagens anteriores; o resumo periódico é o
-        # que dá ao LLM o contexto da conversa (ex.: de que produto se fala).
-        partes.append(
-            "Resumo da conversa até aqui (use como contexto; se a mensagem "
-            f"atual disser algo diferente, ela vale):\n"
-            f"{wrap_untrusted('entrada_cliente', resumo_conversa)}"
-        )
-
-    if ultima_troca:
-        # O resumo só existe a cada 6 mensagens; a troca anterior é o que
-        # resolve referências como "o produto acima" ou "e esse?".
-        cliente, assistente = ultima_troca
-        partes.append(
-            "Troca anterior da conversa (use para entender referências como "
-            "'o produto acima' ou 'esse'):\n"
-            f"Cliente: {wrap_untrusted('entrada_cliente', cliente[:_ULTIMA_RESPOSTA_MAX_CHARS])}\n"
-            f"Assistente: {assistente[:_ULTIMA_RESPOSTA_MAX_CHARS]}"
-        )
+    partes.extend(_secoes_historico(contexto_conversa_anterior, resumo_conversa, ultima_troca))
 
     if dados_catalogo is not None:
         partes.append(dados_catalogo)
 
     if documentos:
-        # Cada trecho leva o documento de origem: sem ele o modelo não separa
-        # produtos parecidos nem consegue citar o manual (R4, Fase 10).
-        contexto = "\n\n".join(
-            f"- [Fonte: {documento.source}] {documento.content}" for documento in documentos
-        )
-        partes.append(
-            "Use as informações a seguir, recuperadas da base de conhecimento "
-            "da empresa, para responder à mensagem do cliente. Cada trecho "
-            "indica entre colchetes o documento de origem: use só os trechos "
-            "do produto perguntado e cite o documento ao responder. Se as "
-            "informações não responderem à pergunta, diga claramente que não "
-            "encontrou essa informação na base de conhecimento e oriente o "
-            "cliente a falar com um atendente ou consultar o manual do produto; "
-            "não responda com conhecimento próprio nem invente dados "
-            "específicos (preços, prazos, números de série, procedimentos).\n\n"
-            f"Informações recuperadas:\n{wrap_untrusted('contexto_rag', contexto)}"
-        )
+        partes.append(_secao_rag(documentos))
 
     if pedir_email_pos_venda and domain in DOMINIOS_POS_VENDA:
         # R10 (Fase 6): identidade pelo e-mail, pedida só no momento natural
@@ -555,6 +571,53 @@ def _construir_card_vendas(
     )
 
 
+async def _buscar_documento_chat(
+    session: AsyncSession, filename: str, domain: str
+) -> RagDocument | None:
+    """Documento mais recente de `filename`+`domain` numa collection de chat."""
+    resultado = await session.execute(
+        select(RagDocument)
+        .join(RagCollection, RagDocument.collection_id == RagCollection.id)
+        .where(
+            RagDocument.filename == filename,
+            RagDocument.domain == domain,
+            RagCollection.purpose == "chat",
+        )
+        .order_by(RagDocument.created_at.desc())
+        .limit(1)
+    )
+    # MVP: casamento por filename+domain, não por document_id — o
+    # `Document` devolvido por `RAGClient.search` não carrega
+    # document_id, só o filename em `source` (ver
+    # app/router/rag_client.py / app/rag/qdrant_client.py). O join
+    # com `RagCollection` e o filtro por `purpose="chat"` já
+    # resolvem a ambiguidade de `reingest_document` (app/rag/
+    # ingest.py) criar uma nova linha com o mesmo filename+domain em
+    # outra collection — duplicatas entre collections são estado
+    # normal, não um corner case (achado importante 1 da revisão
+    # final). `order_by(created_at desc)` é só o critério de
+    # desempate caso ainda sobre mais de uma linha `purpose="chat"`.
+    return resultado.scalar_one_or_none()
+
+
+def _tamanho_arquivo_documento(doc: RagDocument) -> int | None:
+    """Tamanho do arquivo de download do documento, ou None se não existe em disco."""
+    arquivo = doc.download_path or doc.storage_path
+    if not arquivo:
+        return None
+    try:
+        # Intencionalmente mais estrito que a cadeia de fallback do
+        # endpoint de download (`download_document_endpoint`, app/
+        # api/rag.py): aqui só `storage_path` é checado, sem tentar
+        # `uploads_dir / filename` nem `uploads_dir /
+        # f"{id}_{filename}"`. Um documento cujo arquivo só resolve
+        # via fallback simplesmente não ganha card — nunca um link
+        # morto no chat (achado menor 4 da revisão final).
+        return Path(arquivo).stat().st_size
+    except OSError:
+        return None
+
+
 async def _construir_card_documento_download(
     db_sessionmaker: async_sessionmaker[AsyncSession] | None,
     documentos: list[Document],
@@ -576,44 +639,11 @@ async def _construir_card_documento_download(
         return None
     try:
         async with db_sessionmaker() as session:
-            resultado = await session.execute(
-                select(RagDocument)
-                .join(RagCollection, RagDocument.collection_id == RagCollection.id)
-                .where(
-                    RagDocument.filename == melhor_chunk.source,
-                    RagDocument.domain == domain,
-                    RagCollection.purpose == "chat",
-                )
-                .order_by(RagDocument.created_at.desc())
-                .limit(1)
-            )
-            # MVP: casamento por filename+domain, não por document_id — o
-            # `Document` devolvido por `RAGClient.search` não carrega
-            # document_id, só o filename em `source` (ver
-            # app/router/rag_client.py / app/rag/qdrant_client.py). O join
-            # com `RagCollection` e o filtro por `purpose="chat"` já
-            # resolvem a ambiguidade de `reingest_document` (app/rag/
-            # ingest.py) criar uma nova linha com o mesmo filename+domain em
-            # outra collection — duplicatas entre collections são estado
-            # normal, não um corner case (achado importante 1 da revisão
-            # final). `order_by(created_at desc)` é só o critério de
-            # desempate caso ainda sobre mais de uma linha `purpose="chat"`.
-            doc = resultado.scalar_one_or_none()
+            doc = await _buscar_documento_chat(session, melhor_chunk.source, domain)
             if doc is None:
                 return None
-            arquivo = doc.download_path or doc.storage_path
-            if not arquivo:
-                return None
-            try:
-                # Intencionalmente mais estrito que a cadeia de fallback do
-                # endpoint de download (`download_document_endpoint`, app/
-                # api/rag.py): aqui só `storage_path` é checado, sem tentar
-                # `uploads_dir / filename` nem `uploads_dir /
-                # f"{id}_{filename}"`. Um documento cujo arquivo só resolve
-                # via fallback simplesmente não ganha card — nunca um link
-                # morto no chat (achado menor 4 da revisão final).
-                file_size = Path(arquivo).stat().st_size
-            except OSError:
+            file_size = _tamanho_arquivo_documento(doc)
+            if file_size is None:
                 return None
             return CardDocumentoDownload(
                 documento_id=str(doc.id),

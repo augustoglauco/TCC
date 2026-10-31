@@ -591,7 +591,7 @@ def _renderizar_pagina_pdf(
         img_bytes = img_buf.getvalue()
         temp_img_path.write_bytes(img_bytes)
         return img_bytes, pil_img, f"/api/uploads/produtos/temp/{temp_img_name}"
-    except Exception as e:
+    except Exception as e:  # fronteira de isolamento: página sem imagem segue só com texto
         logger.warning(f"Não foi possível renderizar imagem da página {num_pagina_pdf} do PDF: {e}")
         return None, None, None
 
@@ -619,7 +619,7 @@ async def _processar_pagina_pdf(
     if pil_img:
         try:
             figuras_pagina = _extrair_figuras_pagina(page, pil_img, cfg.temp_dir)
-        except Exception as e:
+        except Exception as e:  # fronteira de isolamento: sem figuras recortadas, a página segue
             logger.warning(f"Erro ao extrair figuras recortadas da página {num_pagina_pdf}: {e}")
 
     provider_usado, raw_prods, erro_pagina = await _extrair_produtos_pagina_pdf(
@@ -684,7 +684,7 @@ async def _tentar_extracao_local_imagem(
                 session_factory=session_factory,
                 ambiente="interno",
             )
-        except Exception as e:
+        except Exception as e:  # fronteira de isolamento: a visão local falha sem derrubar a imagem
             logger.warning(f"Erro na visão local da imagem {filename}: {e}")
 
     return raw_prods, provider_usado
