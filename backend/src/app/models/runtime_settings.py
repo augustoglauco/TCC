@@ -71,13 +71,6 @@ class RuntimeSettingsResponse(BaseModel):
             "Teto default de páginas por execução do crawler, pré-preenche o form do admin."
         ),
     )
-    crawler_confidence_threshold: float = Field(
-        ...,
-        description=(
-            "Limiar de confiança do classificador do crawler: acima ingere direto, "
-            "abaixo vai pra fila de revisão."
-        ),
-    )
     external_model_name: str = Field(
         ...,
         description="Modelo LLM de texto via OpenRouter ativo para inferência externa.",
@@ -158,7 +151,6 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     rag_score_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
     rag_search_domain_fallback: bool | None = None
     crawler_max_pages_default: int | None = Field(default=None, ge=1)
-    crawler_confidence_threshold: float | None = Field(default=None, ge=0.0, le=1.0)
     external_model_name: str | None = None
     external_vision_model_name: str | None = None
     image_internal_confidence: float | None = Field(default=None, ge=0.0, le=1.0)

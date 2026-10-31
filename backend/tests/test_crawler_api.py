@@ -52,7 +52,6 @@ def _build_app(
     uploads_dir,
     llm_client,
     max_pages_default: int = 20,
-    confidence_threshold: float = 0.7,
     paginas: dict[str, tuple[int, str, str]] | None = None,
 ) -> FastAPI:
     app = FastAPI()
@@ -64,7 +63,6 @@ def _build_app(
     app.state.external_client = llm_client
     app.state.crawler_http_client = httpx.AsyncClient(transport=_mock_transport(paginas or {}))
     app.state.crawler_max_pages_default = max_pages_default
-    app.state.crawler_confidence_threshold = confidence_threshold
     return app
 
 

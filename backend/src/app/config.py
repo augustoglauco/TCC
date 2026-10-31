@@ -163,10 +163,6 @@ class Settings(BaseSettings):
     # páginas (R4). Ajustável em runtime via `PUT /api/admin/runtime-settings`
     # (ver docs/superpowers/specs/2026-09-19-crawler-paginas-design.md).
     crawler_max_pages: int = 20
-    # Limiar de confiança do classificador de domínio do crawler:
-    # `confidence >= limiar` ingere direto, abaixo vai pra fila de revisão
-    # manual. Ajustável em runtime via `PUT /api/admin/runtime-settings`.
-    crawler_confidence_threshold: float = 0.7
 
     # URL do servidor MCP de terceiro `calendar-mcp-server` (pacote PyPI,
     # https://github.com/deciduus/calendar-mcp), rodando localmente via

@@ -89,7 +89,7 @@ def test_rota_de_local_models_esta_registrada():
 def test_rotas_do_crawler_estao_registradas_e_o_estado_correspondente_tambem():
     """Achado #6 da revisão final: a Task 9 registrou `crawler_router` e o
     `app.state` que ele depende (`crawler_http_client`,
-    `crawler_max_pages_default`, `crawler_confidence_threshold`) em
+    `crawler_max_pages_default`) em
     `create_app()`, mas nenhum teste exercitava a app real — os 255 testes
     existentes montam `FastAPI()` "nuas" com dependency overrides, sem nunca
     passar por `create_app()`. Sem esta checagem, remover essa fiação por
@@ -104,7 +104,7 @@ def test_rotas_do_crawler_estao_registradas_e_o_estado_correspondente_tambem():
 
     assert app.state.crawler_http_client is not None
     assert isinstance(app.state.crawler_max_pages_default, int)
-    assert isinstance(app.state.crawler_confidence_threshold, float)
+    assert not hasattr(app.state, "crawler_confidence_threshold")
 
 
 def test_create_app_monta_o_cliente_de_calendario_e_config_de_agendamento():

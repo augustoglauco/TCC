@@ -50,7 +50,6 @@ describe("OpenRouterModelCard", () => {
       external_llm_timeout_s: 30,
       rag_search_domain_fallback: false,
       crawler_max_pages_default: 20,
-      crawler_confidence_threshold: 0.7,
       external_model_name: "openai/gpt-4o-mini",
       external_vision_model_name: "",
     });
@@ -82,7 +81,6 @@ describe("OpenRouterModelCard", () => {
       external_llm_timeout_s: 30,
       rag_search_domain_fallback: false,
       crawler_max_pages_default: 20,
-      crawler_confidence_threshold: 0.7,
       external_model_name: "anthropic/claude-3.5-sonnet",
       external_vision_model_name: "",
     });

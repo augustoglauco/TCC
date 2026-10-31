@@ -16,7 +16,6 @@ const RUNTIME_SETTINGS_PADRAO: RuntimeSettings = {
   external_llm_timeout_s: 60,
   rag_search_domain_fallback: false,
   crawler_max_pages_default: 20,
-  crawler_confidence_threshold: 0.6,
 };
 
 vi.mock("@/lib/api/rag", async () => {

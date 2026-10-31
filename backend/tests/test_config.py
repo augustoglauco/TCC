@@ -33,7 +33,7 @@ def test_settings_have_stt_model_size_default():
 def test_settings_have_crawler_defaults():
     settings = Settings(_env_file=None)
     assert settings.crawler_max_pages == 20
-    assert settings.crawler_confidence_threshold == 0.7
+    assert not hasattr(settings, "crawler_confidence_threshold")
 
 
 def test_settings_tem_defaults_de_agendamento():

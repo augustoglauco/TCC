@@ -81,7 +81,6 @@ _SETTINGS_MAP: list[tuple[str, str, str, Callable | None]] = [
     ("rag_top_k", "app", "rag_top_k", None),
     ("rag_score_threshold", "app", "rag_score_threshold", None),
     ("crawler_max_pages_default", "app", "crawler_max_pages_default", None),
-    ("crawler_confidence_threshold", "app", "crawler_confidence_threshold", None),
     ("image_internal_confidence", "app", "image_internal_confidence", None),
     ("image_external_confidence", "app", "image_external_confidence", None),
     ("intent_router_provider", "app", "intent_router_provider", None),
@@ -266,7 +265,6 @@ def create_app() -> FastAPI:
     app.state.product_images_dir.mkdir(parents=True, exist_ok=True)
     (app.state.product_images_dir / "temp").mkdir(parents=True, exist_ok=True)
     app.state.crawler_max_pages_default = settings.crawler_max_pages
-    app.state.crawler_confidence_threshold = settings.crawler_confidence_threshold
     # Cliente HTTP dedicado ao crawler (spec
     # docs/superpowers/specs/2026-09-19-crawler-paginas-design.md) — separado
     # de `external_client`/`local_client`, que são clientes de LLM, não de

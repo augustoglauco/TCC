@@ -880,8 +880,9 @@ vai para `crawler_pending_pages` com o domínio sugerido e a confiança, e
 **nada é ingerido sem aprovação**, mesmo com confiança alta: o caminho de
 ingestão automática por limiar foi removido no mesmo dia, a pedido (o LLM só
 sugere; o domínio nunca é automático). O evento `ingerida` e o campo
-`auto_ingested` do `done` deixaram de existir. `crawler_confidence_threshold`
-(runtime settings) ficou sem uso pelo crawler. `crawler_pending_pages` ganhou
+`auto_ingested` do `done` deixaram de existir. `crawler_confidence_threshold` (config, `app_settings`,
+runtime settings e `.env`) foi removido por ficar sem função (linha antiga em
+`app_settings` é ignorada). `crawler_pending_pages` ganhou
 `collection_id` (migração `0029`, FK `ON DELETE SET NULL`; nulo = a ativa de
 chat na aprovação) e `POST .../pending/{id}/approve` aceita `collection_id`
 no corpo, que sobrepõe o gravado. A fila mostra e permite trocar domínio e

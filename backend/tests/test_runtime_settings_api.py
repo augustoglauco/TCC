@@ -8,6 +8,7 @@ from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
     IntentRouterProvider,
+    RuntimeSettingsUpdateRequest,
 )
 
 
@@ -69,7 +70,6 @@ def _build_app(
     qdrant_client: _FakeQdrantClient,
     db_session,
     crawler_max_pages_default: int = 20,
-    crawler_confidence_threshold: float = 0.7,
     image_internal_confidence: float = 0.30,
     image_external_confidence: float = 0.80,
     intent_router_provider: IntentRouterProvider = DEFAULT_INTENT_ROUTER_PROVIDER,
@@ -87,7 +87,6 @@ def _build_app(
     app.state.external_client = external_client
     app.state.qdrant_client = qdrant_client
     app.state.crawler_max_pages_default = crawler_max_pages_default
-    app.state.crawler_confidence_threshold = crawler_confidence_threshold
     app.state.image_internal_confidence = image_internal_confidence
     app.state.image_external_confidence = image_external_confidence
     app.state.intent_router_provider = intent_router_provider
@@ -143,7 +142,6 @@ async def test_get_devolve_valores_atuais_dos_clientes(db_session, admin_headers
         "rag_score_threshold": 0.35,
         "rag_search_domain_fallback": False,
         "crawler_max_pages_default": 20,
-        "crawler_confidence_threshold": 0.7,
         "external_model_name": "openai/gpt-4o-mini",
         "external_vision_model_name": "",
         "image_internal_confidence": 0.30,
@@ -260,32 +258,17 @@ async def test_put_atualiza_crawler_max_pages_default(db_session, admin_headers)
     assert app.state.crawler_max_pages_default == 50
 
 
-async def test_put_atualiza_crawler_confidence_threshold(db_session, admin_headers):
+async def test_limiar_de_confianca_do_crawler_nao_faz_parte_dos_ajustes(db_session, admin_headers):
+    """O crawler não ingere mais sozinho (toda página vai para a fila), então o
+    limiar de confiança deixou de existir."""
     app, *_ = _build_default_app(db_session)
     client = TestClient(app)
 
-    response = client.put(
-        "/api/admin/runtime-settings",
-        json={"crawler_confidence_threshold": 0.5},
-        headers=admin_headers,
+    assert (
+        "crawler_confidence_threshold"
+        not in client.get("/api/admin/runtime-settings", headers=admin_headers).json()
     )
-
-    assert response.status_code == 200
-    assert response.json()["crawler_confidence_threshold"] == 0.5
-    assert app.state.crawler_confidence_threshold == 0.5
-
-
-async def test_put_crawler_confidence_threshold_fora_do_intervalo_e_422(db_session, admin_headers):
-    app, *_ = _build_default_app(db_session)
-    client = TestClient(app)
-
-    response = client.put(
-        "/api/admin/runtime-settings",
-        json={"crawler_confidence_threshold": 1.5},
-        headers=admin_headers,
-    )
-
-    assert response.status_code == 422
+    assert "crawler_confidence_threshold" not in RuntimeSettingsUpdateRequest.model_fields
 
 
 async def test_put_crawler_max_pages_default_zero_ou_negativo_e_422(db_session, admin_headers):
@@ -554,7 +537,6 @@ async def test_persistencia_de_runtime_settings_no_banco():
     app.state.external_client = ext_client
     app.state.qdrant_client = qdrant
     app.state.crawler_max_pages_default = 20
-    app.state.crawler_confidence_threshold = 0.7
     app.state.image_internal_confidence = 0.30
     app.state.image_external_confidence = 0.80
     app.state.intent_router_provider = DEFAULT_INTENT_ROUTER_PROVIDER

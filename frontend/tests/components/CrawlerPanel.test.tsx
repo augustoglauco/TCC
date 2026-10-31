@@ -77,7 +77,6 @@ describe("CrawlerPanel", () => {
       external_llm_timeout_s: 30,
       rag_search_domain_fallback: false,
       crawler_max_pages_default: 20,
-      crawler_confidence_threshold: 0.7,
     });
   });
 

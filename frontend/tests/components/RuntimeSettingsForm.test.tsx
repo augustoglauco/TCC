@@ -43,7 +43,6 @@ const SETTINGS_PADRAO: RuntimeSettings = {
   external_llm_timeout_s: 30.0,
   rag_search_domain_fallback: false,
   crawler_max_pages_default: 50,
-  crawler_confidence_threshold: 0.8,
   external_vision_model_name: "google/gemini-flash-1.5",
   image_internal_confidence: 0.3,
   image_external_confidence: 0.7,
