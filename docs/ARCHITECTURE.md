@@ -871,6 +871,22 @@ busca de candidatos e o RAG **não** a usam. `# MVP:` sem tabela de variantes
 família na busca de candidatos de Vendas ou numa listagem "modelos da linha X"
 é evolução futura, só se o nome padronizado não bastar com os produtos reais.
 
+**Decisão registrada (2026-10-31): o crawler escolhe a collection e o admin
+decide o domínio; o LLM só sugere.** Antes, o crawler gravava sempre na
+collection ativa de chat e o domínio vinha do classificador externo, filtrado
+só pelo limiar de confiança. Agora `GET /api/rag/crawler/run/stream` recebe
+`collection_id` (omitido = a ativa de chat; `404` se não existe) e `review`
+(padrão `true`): com `review=true` toda página vai para
+`crawler_pending_pages` com o domínio sugerido e a confiança, e nada é
+ingerido sem aprovação; com `review=false` vale o gate de antes (confiança ≥
+limiar ingere direto com o domínio sugerido). `crawler_pending_pages` ganhou
+`collection_id` (migração `0029`, FK `ON DELETE SET NULL`; nulo = a ativa de
+chat na aprovação) e `POST .../pending/{id}/approve` aceita `collection_id`
+no corpo, que sobrepõe o gravado. A fila mostra e permite trocar domínio e
+collection por página. `# MVP:` sem domínio fixo por crawl e sem
+multi-domínio por página; mudar o domínio de várias páginas de uma vez é
+evolução futura.
+
 **Decisão registrada (Fase 5, R12, 2026-09-24): backend único de dados do MCP
 B2B.** Estende a fixture `produtos` (migração `0003`) com o model
 `app.db.models.Produto` (o `db_connector` por reflexão continua funcionando):

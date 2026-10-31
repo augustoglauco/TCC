@@ -180,7 +180,8 @@ def test_stream_com_falha_de_commit_em_uma_pagina_nao_contamina_as_seguintes(
     client = TestClient(app)
 
     response = client.get(
-        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1", headers=admin_headers
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1&review=false",
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -328,7 +329,8 @@ def test_stream_emite_visitando_ingerida_e_done(
     client = TestClient(app)
 
     response = client.get(
-        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0", headers=admin_headers
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0&review=false",
+        headers=admin_headers,
     )
 
     assert response.status_code == 200
@@ -374,3 +376,196 @@ def test_stream_sem_collection_ativa_retorna_503(db_session, tmp_path, admin_hea
     )
 
     assert response.status_code == 503
+
+
+def _seed_collection(db_session, name: str):
+    import asyncio
+    import uuid
+
+    from app.db.models import RagCollection
+
+    async def _seed():
+        collection = RagCollection(
+            id=uuid.uuid4(),
+            name=name,
+            embedding_model="fake-embedding-model",
+            vector_dimension=384,
+            distance_metric="cosine",
+            chunk_size=800,
+            chunk_overlap=100,
+            hnsw_m=16,
+            hnsw_ef_construct=100,
+            hnsw_full_scan_threshold=10000,
+            hnsw_max_indexing_threads=0,
+            hnsw_on_disk=False,
+            hnsw_payload_m=None,
+            quantization_type="none",
+            quantization_config={},
+            payload_indexes=[],
+            is_active=False,
+        )
+        db_session.add(collection)
+        await db_session.commit()
+        await db_session.refresh(collection)
+        return collection
+
+    return asyncio.run(_seed())
+
+
+def test_stream_revisar_enfileira_mesmo_com_confianca_alta_na_collection_escolhida(
+    db_session, active_collection, tmp_path, admin_headers
+):
+    html = "<html><body><p>Conteúdo de vendas</p></body></html>"
+    fake_qdrant = _FakeQdrantRAGClient()
+    destino = _seed_collection(db_session, "docs_destino")
+    app = _build_app(
+        fake_qdrant,
+        db_session,
+        tmp_path,
+        _FakeLLMClient(domain="vendas", confidence=0.99),
+        paginas={"https://exemplo.com/": (200, "text/html", html)},
+    )
+    client = TestClient(app)
+
+    response = client.get(
+        f"/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0&review=true"
+        f"&collection_id={destino.id}",
+        headers=admin_headers,
+    )
+
+    done = _parse_sse(response.text)[-1][1]
+    assert done["queued"] == ["https://exemplo.com/"]
+    assert fake_qdrant.upserts == []
+    pendentes = client.get("/api/rag/crawler/pending", headers=admin_headers).json()
+    assert pendentes[0]["collection_id"] == str(destino.id)
+    assert pendentes[0]["collection_name"] == "docs_destino"
+
+
+def test_stream_sem_revisar_ingere_na_collection_escolhida(
+    db_session, active_collection, tmp_path, admin_headers
+):
+    html = "<html><body><p>Conteúdo de vendas</p></body></html>"
+    fake_qdrant = _FakeQdrantRAGClient()
+    destino = _seed_collection(db_session, "docs_destino")
+    app = _build_app(
+        fake_qdrant,
+        db_session,
+        tmp_path,
+        _FakeLLMClient(domain="vendas", confidence=0.99),
+        paginas={"https://exemplo.com/": (200, "text/html", html)},
+    )
+    client = TestClient(app)
+
+    client.get(
+        f"/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0&review=false"
+        f"&collection_id={destino.id}",
+        headers=admin_headers,
+    )
+
+    assert [u[0] for u in fake_qdrant.upserts] == ["docs_destino"]
+
+
+def test_stream_collection_inexistente_retorna_404(
+    db_session, active_collection, tmp_path, admin_headers
+):
+    import uuid
+
+    app = _build_app(_FakeQdrantRAGClient(), db_session, tmp_path, _FakeLLMClient("vendas", 0.9))
+    client = TestClient(app)
+
+    response = client.get(
+        f"/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0&collection_id={uuid.uuid4()}",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 404
+
+
+def test_approve_usa_collection_gravada_na_pagina_pendente(
+    db_session, active_collection, tmp_path, admin_headers
+):
+    import asyncio
+
+    from app.rag.crawler_pending import upsert_pending_page
+
+    destino = _seed_collection(db_session, "docs_destino")
+    fake_qdrant = _FakeQdrantRAGClient()
+
+    async def _seed():
+        return await upsert_pending_page(
+            db_session,
+            url="https://exemplo.com/p",
+            extracted_text="texto",
+            domain_proposed="vendas",
+            confidence=0.3,
+            collection_id=destino.id,
+        )
+
+    page = asyncio.run(_seed())
+    client = TestClient(
+        _build_app(fake_qdrant, db_session, tmp_path, _FakeLLMClient("vendas", 0.9))
+    )
+
+    response = client.post(
+        f"/api/rag/crawler/pending/{page.id}/approve",
+        json={"domain": "suporte"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert [u[0] for u in fake_qdrant.upserts] == ["docs_destino"]
+
+
+def test_approve_collection_do_corpo_sobrepoe_a_gravada(
+    db_session, active_collection, tmp_path, admin_headers
+):
+    import asyncio
+
+    from app.rag.crawler_pending import upsert_pending_page
+
+    destino = _seed_collection(db_session, "docs_destino")
+    fake_qdrant = _FakeQdrantRAGClient()
+
+    async def _seed():
+        return await upsert_pending_page(
+            db_session,
+            url="https://exemplo.com/p",
+            extracted_text="texto",
+            domain_proposed="vendas",
+            confidence=0.3,
+        )
+
+    page = asyncio.run(_seed())
+    client = TestClient(
+        _build_app(fake_qdrant, db_session, tmp_path, _FakeLLMClient("vendas", 0.9))
+    )
+
+    response = client.post(
+        f"/api/rag/crawler/pending/{page.id}/approve",
+        json={"domain": "suporte", "collection_id": str(destino.id)},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    assert [u[0] for u in fake_qdrant.upserts] == ["docs_destino"]
+
+
+def test_stream_padrao_revisa_tudo_e_nao_ingere(
+    db_session, active_collection, tmp_path, admin_headers
+):
+    fake_qdrant = _FakeQdrantRAGClient()
+    app = _build_app(
+        fake_qdrant,
+        db_session,
+        tmp_path,
+        _FakeLLMClient(domain="vendas", confidence=0.99),
+        paginas={"https://exemplo.com/": (200, "text/html", "<html><body>x</body></html>")},
+    )
+
+    response = TestClient(app).get(
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0", headers=admin_headers
+    )
+
+    done = _parse_sse(response.text)[-1][1]
+    assert done["queued"] == ["https://exemplo.com/"]
+    assert fake_qdrant.upserts == []

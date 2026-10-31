@@ -11,7 +11,7 @@ import {
 } from "@/lib/api/crawler";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { PendingPage } from "@/lib/types/crawler";
-import type { RagDomain } from "@/lib/types/rag";
+import type { RagCollection, RagDomain } from "@/lib/types/rag";
 
 const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
   { value: "vendas", label: "Vendas" },
@@ -19,10 +19,18 @@ const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
   { value: "atendimento", label: "Atendimento ao Usuário" },
 ];
 
-export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
+export function CrawlerReviewQueue({
+  reloadKey,
+  collections,
+}: {
+  reloadKey: number;
+  collections: RagCollection[];
+}) {
   const token = useAuthStore((s) => s.token);
   const [pages, setPages] = useState<PendingPage[] | null>(null);
   const [selectedDomain, setSelectedDomain] = useState<Record<string, RagDomain>>({});
+  // "" = a collection gravada na página (ou a ativa de chat, se não houver).
+  const [selectedCollection, setSelectedCollection] = useState<Record<string, string>>({});
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { toasts, showToast, dismissToast } = useToast();
 
@@ -63,6 +71,7 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
     try {
       await approvePendingPage(token, page.id, {
         domain: selectedDomain[page.id] ?? page.domain_proposed,
+        collection_id: selectedCollection[page.id] || undefined,
       });
       showToast(`"${page.url}" aprovada e ingerida.`, "success");
       setPages((atual) => atual?.filter((p) => p.id !== page.id) ?? null);
@@ -103,12 +112,13 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-xs">
-      <table className="w-full min-w-[700px] text-left text-sm">
+      <table className="w-full min-w-[860px] text-left text-sm">
         <thead>
           <tr className="border-b border-slate-200/80 bg-slate-50/80 text-[11px] uppercase tracking-wider font-semibold text-slate-500">
             <th className="py-3 px-4">URL</th>
             <th className="py-3 px-4">Trecho</th>
             <th className="py-3 px-4">Domínio</th>
+            <th className="py-3 px-4">Collection</th>
             <th className="py-3 px-4">Confiança</th>
             <th className="py-3 px-4 text-right">Ações</th>
           </tr>
@@ -120,6 +130,7 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
               <td className="py-3.5 px-4 text-slate-600 text-xs">{page.text_snippet}</td>
               <td className="py-3.5 px-4">
                 <select
+                  aria-label={`Domínio de ${page.url}`}
                   value={selectedDomain[page.id] ?? page.domain_proposed}
                   onChange={(event) =>
                     setSelectedDomain((atual) => ({
@@ -132,6 +143,26 @@ export function CrawlerReviewQueue({ reloadKey }: { reloadKey: number }) {
                   {DOMAIN_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td className="py-3.5 px-4">
+                <select
+                  aria-label={`Collection de ${page.url}`}
+                  value={selectedCollection[page.id] ?? page.collection_id ?? ""}
+                  onChange={(event) =>
+                    setSelectedCollection((atual) => ({
+                      ...atual,
+                      [page.id]: event.target.value,
+                    }))
+                  }
+                  className="rounded-md border border-gray-300 px-2 py-1 text-sm text-gray-900"
+                >
+                  <option value="">Ativa no chat</option>
+                  {collections.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
                     </option>
                   ))}
                 </select>

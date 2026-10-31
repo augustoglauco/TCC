@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CrawlerPanel } from "@/components/admin/CrawlerPanel";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { CrawlerStreamCallbacks, CrawlRunPayload } from "@/lib/types/crawler";
+import type { RagCollection } from "@/lib/types/rag";
 
 vi.mock("@/lib/api/crawler", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/crawler")>("@/lib/api/crawler");
@@ -27,6 +28,40 @@ import { getRuntimeSettings } from "@/lib/api/runtimeSettings";
 
 const mockedRunCrawlerStream = vi.mocked(runCrawlerStream);
 const mockedGetRuntimeSettings = vi.mocked(getRuntimeSettings);
+
+const COLECAO_CHAT: RagCollection = {
+  id: "col-chat",
+  name: "docs_chat",
+  embedding_model: "m",
+  vector_dimension: 384,
+  distance_metric: "cosine",
+  chunk_size: 800,
+  chunk_overlap: 100,
+  hnsw_m: 16,
+  hnsw_ef_construct: 100,
+  hnsw_full_scan_threshold: 10000,
+  hnsw_max_indexing_threads: 0,
+  hnsw_on_disk: false,
+  hnsw_payload_m: null,
+  quantization_type: "none",
+  quantization_config: {},
+  payload_indexes: [],
+  is_active: true,
+  purpose: "chat",
+  document_count: 0,
+  created_at: new Date().toISOString(),
+};
+const COLECAO_GERAL: RagCollection = {
+  ...COLECAO_CHAT,
+  id: "col-geral",
+  name: "DocsGeral",
+  is_active: false,
+};
+
+const PROPS_BASE = {
+  collections: [COLECAO_CHAT, COLECAO_GERAL],
+  onColecoesMudaram: vi.fn().mockResolvedValue([COLECAO_CHAT, COLECAO_GERAL]),
+};
 
 describe("CrawlerPanel", () => {
   beforeEach(() => {
@@ -58,7 +93,7 @@ describe("CrawlerPanel", () => {
     );
     const onFinished = vi.fn();
 
-    render(<CrawlerPanel onFinished={onFinished} />);
+    render(<CrawlerPanel {...PROPS_BASE} onFinished={onFinished} />);
     await user.type(screen.getByLabelText("URL semente"), "https://exemplo.com");
     await user.click(screen.getByRole("button", { name: "Rodar crawler" }));
 
@@ -105,7 +140,7 @@ describe("CrawlerPanel", () => {
         },
       );
 
-      render(<CrawlerPanel onFinished={vi.fn()} />);
+      render(<CrawlerPanel {...PROPS_BASE} onFinished={vi.fn()} />);
       fireEvent.change(screen.getByLabelText("URL semente"), {
         target: { value: "https://exemplo.com" },
       });
@@ -133,12 +168,44 @@ describe("CrawlerPanel", () => {
       },
     );
 
-    render(<CrawlerPanel onFinished={vi.fn()} />);
+    render(<CrawlerPanel {...PROPS_BASE} onFinished={vi.fn()} />);
     fireEvent.change(screen.getByLabelText("URL semente"), {
       target: { value: "https://exemplo.com" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Rodar crawler" }));
 
     expect(await screen.findByText("Serviço indisponível.")).toBeInTheDocument();
+  });
+
+  it("envia a collection escolhida e o modo de revisão no payload do crawl", async () => {
+    const user = userEvent.setup();
+    mockedRunCrawlerStream.mockResolvedValue(undefined);
+
+    render(<CrawlerPanel {...PROPS_BASE} onFinished={vi.fn()} />);
+    await user.type(screen.getByLabelText("URL semente"), "https://exemplo.com");
+    await user.selectOptions(screen.getByLabelText("Collection destino"), "col-geral");
+    await user.click(screen.getByRole("button", { name: "Rodar crawler" }));
+
+    await waitFor(() => expect(mockedRunCrawlerStream).toHaveBeenCalled());
+    expect(mockedRunCrawlerStream.mock.calls[0][1]).toMatchObject({
+      collection_id: "col-geral",
+      review: true,
+    });
+  });
+
+  it("desmarcar 'Revisar antes de ingerir' envia review=false e usa a ativa de chat por padrão", async () => {
+    const user = userEvent.setup();
+    mockedRunCrawlerStream.mockResolvedValue(undefined);
+
+    render(<CrawlerPanel {...PROPS_BASE} onFinished={vi.fn()} />);
+    await user.type(screen.getByLabelText("URL semente"), "https://exemplo.com");
+    await user.click(screen.getByLabelText(/Revisar antes de ingerir/));
+    await user.click(screen.getByRole("button", { name: "Rodar crawler" }));
+
+    await waitFor(() => expect(mockedRunCrawlerStream).toHaveBeenCalled());
+    expect(mockedRunCrawlerStream.mock.calls[0][1]).toMatchObject({
+      collection_id: "col-chat",
+      review: false,
+    });
   });
 });

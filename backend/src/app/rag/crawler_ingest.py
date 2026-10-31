@@ -54,11 +54,14 @@ async def ingest_or_queue(
     text: str,
     classification: PageClassification,
     confidence_threshold: float,
+    review: bool = False,
 ) -> Literal["ingested", "queued"]:
     """Aplica o gate de confiança: `confidence >= confidence_threshold`
     ingere direto (com dedup-por-URL antes); abaixo do limiar, upsert na
-    fila de revisão (`crawler_pending_pages`), fora do RAG até aprovação."""
-    if classification.confidence >= confidence_threshold:
+    fila de revisão (`crawler_pending_pages`), fora do RAG até aprovação.
+    Com `review=True` toda página vai para a fila (o LLM só sugere o
+    domínio; quem decide é o administrador)."""
+    if not review and classification.confidence >= confidence_threshold:
         await replace_previous_ingestion(session, qdrant, collection, url)
         await ingest_bytes(
             qdrant,
@@ -79,5 +82,6 @@ async def ingest_or_queue(
         extracted_text=text,
         domain_proposed=classification.domain,
         confidence=classification.confidence,
+        collection_id=collection.id,
     )
     return "queued"

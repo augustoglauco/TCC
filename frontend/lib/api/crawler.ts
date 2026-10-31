@@ -129,6 +129,12 @@ export async function runCrawlerStream(
   if (payload.max_pages !== undefined) {
     params.set("max_pages", String(payload.max_pages));
   }
+  if (payload.collection_id) {
+    params.set("collection_id", payload.collection_id);
+  }
+  if (payload.review !== undefined) {
+    params.set("review", String(payload.review));
+  }
 
   let response: Response;
   try {

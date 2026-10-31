@@ -108,6 +108,10 @@ class CrawlerPendingPage(Base):
     extracted_text: Mapped[str]
     domain_proposed: Mapped[str]
     confidence: Mapped[float]
+    # Collection escolhida no crawl; nulo = a ativa de chat na hora da aprovação.
+    collection_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("rag_collections.id", ondelete="SET NULL"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

@@ -11,6 +11,10 @@ export interface CrawlRunPayload {
   url: string;
   depth: number;
   max_pages?: number;
+  /** Collection destino; omitido = a ativa de chat. */
+  collection_id?: string;
+  /** true (padrão do backend) = toda página vai para a fila de revisão. */
+  review?: boolean;
 }
 
 /** Resumo final de um crawl (evento `done` do SSE `GET /api/rag/crawler/run/stream`). */
@@ -48,12 +52,16 @@ export interface PendingPage {
   text_snippet: string;
   domain_proposed: RagDomain;
   confidence: number;
+  collection_id: string | null;
+  collection_name: string | null;
   created_at: string;
 }
 
 /** Corpo de `POST /api/rag/crawler/pending/{id}/approve`. */
 export interface ApprovePendingPagePayload {
   domain: RagDomain;
+  /** Omitido = a collection gravada na página (ou a ativa de chat). */
+  collection_id?: string;
 }
 
 /** Resposta de `POST /api/rag/crawler/pending/{id}/approve`. */

@@ -139,13 +139,15 @@ Ao acessar a aba **Crawler** em `/admin/ingestao`, você encontrará os seguinte
 | **Profundidade** | *Profundidade* | Quantos "cliques" de distância o robô pode navegar a partir da página inicial. <br>• **1**: Lê apenas a página informada.<br>• **2**: Lê a página informada + links diretos dela.<br>• **3**: Navega até 3 níveis de links internos. | **2** *(Evita navegar em todo o site desnecessariamente)* |
 | **Limite de Páginas** | *Máximo de páginas* | O número máximo de páginas que o robô pode salvar em uma única execução. Garante que a leitura seja rápida e não sobrecarregue seu servidor. | **50** páginas |
 
+Abaixo dos campos há a **Collection destino** (mesmo seletor do upload; sem escolha, vale a ativa no chat) e a caixa **Revisar antes de ingerir**, marcada por padrão.
+
 ### Executando o Crawler
-1. Preencha a **URL Semente**, **Profundidade** e **Limite de Páginas**.
+1. Preencha a **URL Semente**, **Profundidade** e **Limite de Páginas**, e escolha a **Collection destino**.
 2. Clique no botão **Rodar crawler**.
 3. Acompanhe a barra de progresso. Ao finalizar, o sistema confirmará o total de páginas lidas e indexadas com sucesso.
 
 ### Fila de Revisão de Páginas
-O crawler classifica cada página em um domínio (Vendas, Suporte ou Atendimento). Quando a **confiança da classificação fica abaixo do limiar**, a página não é indexada sozinha: ela vai para a **Fila de Revisão** (em `/admin/ingestao`), com o domínio proposto e o texto extraído. Você escolhe **Aprovar** (indexa no domínio proposto ou no que você corrigir) ou **Rejeitar** (descarta). Recrawlear a mesma URL antes de revisar atualiza a linha existente em vez de duplicar. Páginas com confiança alta são indexadas direto, e reindexar uma URL já ingerida substitui a versão anterior.
+O crawler **sugere** um domínio (Vendas, Suporte ou Atendimento) para cada página; a decisão é sua. Com **Revisar antes de ingerir** marcada (padrão), toda página vai para a **Fila de Revisão** (em `/admin/ingestao`), com o domínio sugerido, a confiança, a collection e o texto extraído. Em cada linha você pode trocar o **domínio** e a **collection** e então escolher **Aprovar** (indexa) ou **Rejeitar** (descarta). Com a caixa desmarcada, só as páginas com **confiança abaixo do limiar** passam pela fila; as demais entram direto com o domínio sugerido. Recrawlear a mesma URL antes de revisar atualiza a linha existente em vez de duplicar. Reindexar uma URL já ingerida substitui a versão anterior.
 
 ---
 

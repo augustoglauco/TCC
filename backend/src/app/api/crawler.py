@@ -29,13 +29,13 @@ from app.api.rag_dependencies import (
     get_qdrant_client,
     get_uploads_dir,
 )
-from app.db.models import CrawlerPendingPage
+from app.db.models import CrawlerPendingPage, RagCollection
 from app.models.crawler import (
     ApprovedPageResponse,
     ApprovePendingPageRequest,
     PendingPageResponse,
 )
-from app.rag.collections_registry import get_active_collection
+from app.rag.collections_registry import get_active_collection, get_collection, list_collections
 from app.rag.crawler import crawl_stream
 from app.rag.crawler_classifier import classify_page
 from app.rag.crawler_ingest import ingest_or_queue, replace_previous_ingestion
@@ -66,13 +66,30 @@ def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-def _to_pending_response(page: CrawlerPendingPage) -> PendingPageResponse:
+async def _resolver_collection(session: AsyncSession, collection_id: UUID | None) -> RagCollection:
+    """A escolhida (404 se não existe) ou, sem escolha, a ativa de chat (503 se não há)."""
+    if collection_id is not None:
+        collection = await get_collection(session, collection_id)
+        if collection is None:
+            raise HTTPException(status_code=404, detail="Collection não encontrada.")
+        return collection
+    collection = await get_active_collection(session)
+    if collection is None:
+        raise HTTPException(status_code=503, detail="Nenhuma collection ativa configurada.")
+    return collection
+
+
+def _to_pending_response(
+    page: CrawlerPendingPage, nomes: dict[UUID, str] | None = None
+) -> PendingPageResponse:
     return PendingPageResponse(
         id=page.id,
         url=page.url,
         text_snippet=page.extracted_text[:_TEXT_SNIPPET_CHARS],
         domain_proposed=page.domain_proposed,
         confidence=page.confidence,
+        collection_id=page.collection_id,
+        collection_name=(nomes or {}).get(page.collection_id) if page.collection_id else None,
         created_at=page.created_at,
     )
 
@@ -83,6 +100,11 @@ async def run_crawler_stream(
     url: str = Query(..., description="URL semente do crawl."),
     depth: int = Query(..., ge=0),
     max_pages: int | None = Query(default=None, ge=1),
+    collection_id: UUID | None = Query(default=None, description="Collection destino."),
+    review: bool = Query(
+        default=True,
+        description="Toda página vai para a fila de revisão (o LLM só sugere o domínio).",
+    ),
     qdrant: QdrantRAGClient = Depends(get_qdrant_client),
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
     uploads_dir: Path = Depends(get_uploads_dir),
@@ -102,9 +124,7 @@ async def run_crawler_stream(
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail="URL semente inválida.") from exc
 
-    collection = await get_active_collection(session)
-    if collection is None:
-        raise HTTPException(status_code=503, detail="Nenhuma collection ativa configurada.")
+    collection = await _resolver_collection(session, collection_id)
 
     effective_max_pages = max_pages or request.app.state.crawler_max_pages_default
     confidence_threshold = request.app.state.crawler_confidence_threshold
@@ -148,6 +168,7 @@ async def run_crawler_stream(
                         page.text,
                         classification,
                         confidence_threshold,
+                        review=review,
                     )
                 except _ERROS_POR_PAGINA as exc:
                     # Rollback + refresh para não contaminar as páginas
@@ -208,7 +229,8 @@ async def get_pending(
     _: None = Depends(require_admin),
 ) -> list[PendingPageResponse]:
     pages = await list_pending_pages(session)
-    return [_to_pending_response(page) for page in pages]
+    nomes = {c.id: c.name for c in await list_collections(session)}
+    return [_to_pending_response(page, nomes) for page in pages]
 
 
 @router.post("/pending/{page_id}/approve", response_model=ApprovedPageResponse)
@@ -225,9 +247,7 @@ async def approve_pending(
     if page is None:
         raise HTTPException(status_code=404, detail="Página pendente não encontrada.")
 
-    collection = await get_active_collection(session)
-    if collection is None:
-        raise HTTPException(status_code=503, detail="Nenhuma collection ativa configurada.")
+    collection = await _resolver_collection(session, body.collection_id or page.collection_id)
 
     embedder = embedders.get(collection.embedding_model)
     try:

@@ -173,6 +173,11 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       `CrawlRunResponse` do backend e a função `runCrawler()` clássica do
       frontend (o tipo `CrawlRunResponse` do frontend segue como shape do
       evento `done`).
+- [x] Crawler com escolha de collection e de domínio (2026-10-31): o stream
+      recebe `collection_id` e `review` (padrão: toda página vai para a fila
+      com o domínio sugerido pelo LLM); a fila troca domínio e collection por
+      página; `crawler_pending_pages.collection_id` (migração `0029`). Decisão
+      em `docs/ARCHITECTURE.md`.
 - [x] Implementar endpoint HTTP de upload para ingestão de documentos no RAG
       (`POST /api/rag/documents`, `backend/src/app/api/rag.py`), complementando
       `backend/scripts/ingest_sample_docs.py` — decisão registrada em

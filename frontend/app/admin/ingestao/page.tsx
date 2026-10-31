@@ -71,12 +71,22 @@ function AbaDocumentosIngeridos({ collections }: { collections: RagCollection[] 
   );
 }
 
-function AbaCrawler() {
+function AbaCrawler({
+  collections,
+  onColecoesMudaram,
+}: {
+  collections: RagCollection[];
+  onColecoesMudaram: () => Promise<RagCollection[]>;
+}) {
   const [reloadKey, setReloadKey] = useState(0);
   return (
     <div className="space-y-6">
-      <CrawlerPanel onFinished={() => setReloadKey((key) => key + 1)} />
-      <CrawlerReviewQueue reloadKey={reloadKey} />
+      <CrawlerPanel
+        collections={collections}
+        onColecoesMudaram={onColecoesMudaram}
+        onFinished={() => setReloadKey((key) => key + 1)}
+      />
+      <CrawlerReviewQueue reloadKey={reloadKey} collections={collections} />
     </div>
   );
 }
@@ -128,7 +138,7 @@ export default function IngestaoDocumentosPage() {
             <PlaygroundPanel collections={collections} />
           </TabsContent>
           <TabsContent value="crawler" className="pt-0">
-            <AbaCrawler />
+            <AbaCrawler collections={collections} onColecoesMudaram={carregarColecoes} />
           </TabsContent>
         </div>
       </Tabs>

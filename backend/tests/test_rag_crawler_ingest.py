@@ -103,3 +103,32 @@ async def test_ingest_or_queue_recrawl_url_ja_ingerida_substitui(
     documentos = await list_documents(db_session)
     assert len(documentos) == 1
     assert documentos[0].filename == "https://exemplo.com/produtos"
+
+
+async def test_ingest_or_queue_revisao_obrigatoria_enfileira_mesmo_com_confianca_alta(
+    db_session, active_collection, tmp_path
+):
+    from app.rag.embedders_registry import EmbedderRegistry
+
+    fake = _FakeQdrantRAGClient()
+    embedder = EmbedderRegistry().get(active_collection.embedding_model)
+    classification = PageClassification(domain="vendas", confidence=0.99)
+
+    outcome = await ingest_or_queue(
+        db_session,
+        fake,
+        active_collection,
+        embedder,
+        tmp_path,
+        "https://exemplo.com/confiante",
+        "conteúdo",
+        classification,
+        confidence_threshold=0.7,
+        review=True,
+    )
+
+    assert outcome == "queued"
+    assert fake.upserts == []
+    pendentes = await list_pending_pages(db_session)
+    assert pendentes[0].collection_id == active_collection.id
+    assert pendentes[0].domain_proposed == "vendas"

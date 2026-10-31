@@ -16,11 +16,15 @@ class PendingPageResponse(BaseModel):
     text_snippet: str
     domain_proposed: RagDomain
     confidence: float
+    collection_id: UUID | None = None
+    collection_name: str | None = None
     created_at: datetime
 
 
 class ApprovePendingPageRequest(BaseModel):
     domain: RagDomain
+    # Nulo = a collection gravada na página (ou a ativa de chat, se nula).
+    collection_id: UUID | None = None
 
 
 class ApprovedPageResponse(BaseModel):

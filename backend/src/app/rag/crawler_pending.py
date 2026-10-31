@@ -17,6 +17,7 @@ async def upsert_pending_page(
     extracted_text: str,
     domain_proposed: str,
     confidence: float,
+    collection_id: uuid.UUID | None = None,
 ) -> CrawlerPendingPage:
     """Cria a linha pendente para `url`, ou atualiza a existente (mesma URL
     recrawleada antes de alguém revisar) — evita fila duplicada pra mesma
@@ -27,6 +28,7 @@ async def upsert_pending_page(
         existing.extracted_text = extracted_text
         existing.domain_proposed = domain_proposed
         existing.confidence = confidence
+        existing.collection_id = collection_id
         await session.commit()
         await session.refresh(existing)
         return existing
@@ -37,6 +39,7 @@ async def upsert_pending_page(
         extracted_text=extracted_text,
         domain_proposed=domain_proposed,
         confidence=confidence,
+        collection_id=collection_id,
     )
     session.add(page)
     await session.commit()

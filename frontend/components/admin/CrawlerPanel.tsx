@@ -6,6 +6,8 @@ import { runCrawlerStream } from "@/lib/api/crawler";
 import { getRuntimeSettings } from "@/lib/api/runtimeSettings";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import type { CrawlRunResponse } from "@/lib/types/crawler";
+import type { RagCollection } from "@/lib/types/rag";
+import { CrawlerDestino } from "./CrawlerDestino";
 
 // Sem evento do backend por mais que este tempo (em segundos) enquanto o
 // crawl ainda está "rodando" = provável travamento. O crawl real emite um
@@ -29,8 +31,20 @@ const PROGRESSO_INICIAL: LiveProgress = {
   errors: 0,
 };
 
-export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
+interface CrawlerPanelProps {
+  collections: RagCollection[];
+  onColecoesMudaram: () => Promise<RagCollection[]>;
+  onFinished: () => void;
+}
+
+export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: CrawlerPanelProps) {
   const token = useAuthStore((s) => s.token);
+  const [collectionId, setCollectionId] = useState("");
+  const [review, setReview] = useState(true);
+  // Sem escolha válida, cai na ativa de chat (o backend faz o mesmo sem `collection_id`).
+  const collectionSelecionada = collections.some((c) => c.id === collectionId)
+    ? collectionId
+    : (collections.find((c) => c.is_active && (c.purpose || "chat") === "chat")?.id ?? "");
   const [url, setUrl] = useState("");
   const [depth, setDepth] = useState(1);
   const [maxPages, setMaxPages] = useState<number | "">("");
@@ -82,7 +96,13 @@ export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
 
     await runCrawlerStream(
       token,
-      { url, depth, max_pages: maxPages === "" ? undefined : maxPages },
+      {
+        url,
+        depth,
+        max_pages: maxPages === "" ? undefined : maxPages,
+        collection_id: collectionSelecionada || undefined,
+        review,
+      },
       {
         onVisiting: (visitandoUrl) => {
           marcarAtividade();
@@ -124,7 +144,8 @@ export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       <p className="text-gray-600">
         Navega a partir de uma URL semente (site próprio ou externo), seguindo links internos até a
-        profundidade informada, e classifica cada página por domínio.
+        profundidade informada. O LLM sugere o domínio de cada página; você escolhe a collection
+        destino e confirma ou altera o domínio na fila de revisão.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-6">
@@ -174,6 +195,16 @@ export function CrawlerPanel({ onFinished }: { onFinished: () => void }) {
             />
           </div>
         </div>
+
+        <CrawlerDestino
+          collections={collections}
+          onColecoesMudaram={onColecoesMudaram}
+          collectionId={collectionSelecionada}
+          onCollectionIdChange={setCollectionId}
+          review={review}
+          onReviewChange={setReview}
+          disabled={isRunning}
+        />
 
         <button
           type="submit"
