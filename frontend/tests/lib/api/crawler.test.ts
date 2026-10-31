@@ -33,7 +33,6 @@ function mockFetchOnce(body: ReadableStream<Uint8Array> | null, ok = true, statu
 function fakeCallbacks(): CrawlerStreamCallbacks {
   return {
     onVisiting: vi.fn(),
-    onIngested: vi.fn(),
     onQueued: vi.fn(),
     onPageError: vi.fn(),
     onDone: vi.fn(),
@@ -50,10 +49,10 @@ describe("runCrawlerStream", () => {
     mockFetchOnce(
       sseStream([
         'event: visitando\ndata: {"url":"https://exemplo.com/"}\n\n',
-        'event: ingerida\ndata: {"url":"https://exemplo.com/","domain":"vendas"}\n\n',
+        'event: enfileirada\ndata: {"url":"https://exemplo.com/","domain":"vendas"}\n\n',
         'event: visitando\ndata: {"url":"https://exemplo.com/a"}\n\n',
         'event: enfileirada\ndata: {"url":"https://exemplo.com/a","domain":"suporte"}\n\n',
-        'event: done\ndata: {"pages_visited":2,"auto_ingested":["https://exemplo.com/"],"queued":["https://exemplo.com/a"],"errors":[]}\n\n',
+        'event: done\ndata: {"pages_visited":2,"queued":["https://exemplo.com/","https://exemplo.com/a"],"errors":[]}\n\n',
       ]),
     );
 
@@ -61,7 +60,7 @@ describe("runCrawlerStream", () => {
     await runCrawlerStream("mock-token", { url: "https://exemplo.com", depth: 1 }, cbs);
 
     expect(cbs.onVisiting).toHaveBeenNthCalledWith(1, "https://exemplo.com/");
-    expect(cbs.onIngested).toHaveBeenCalledWith("https://exemplo.com/", "vendas");
+    expect(cbs.onQueued).toHaveBeenCalledWith("https://exemplo.com/", "vendas");
     expect(cbs.onVisiting).toHaveBeenNthCalledWith(2, "https://exemplo.com/a");
     expect(cbs.onQueued).toHaveBeenCalledWith("https://exemplo.com/a", "suporte");
     expect(cbs.onDone).toHaveBeenCalledWith(
@@ -75,7 +74,7 @@ describe("runCrawlerStream", () => {
       sseStream([
         'event: visitando\ndata: {"url":"https://exemplo.com/x"}\n\n',
         'event: erro\ndata: {"url":"https://exemplo.com/x"}\n\n',
-        'event: done\ndata: {"pages_visited":0,"auto_ingested":[],"queued":[],"errors":["https://exemplo.com/x"]}\n\n',
+        'event: done\ndata: {"pages_visited":0,"queued":[],"errors":["https://exemplo.com/x"]}\n\n',
       ]),
     );
 

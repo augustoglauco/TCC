@@ -153,3 +153,65 @@ async def test_classify_page_sobrevive_a_falha_de_telemetria(monkeypatch):
     assert chamou is True
     assert task.done()
     assert isinstance(task.exception(), RuntimeError)  # consome a exceção
+
+
+def _erro_http(status: int):
+    import httpx
+
+    request = httpx.Request("POST", "https://openrouter.ai/api/v1/chat/completions")
+    return httpx.HTTPStatusError(
+        f"HTTP {status}", request=request, response=httpx.Response(status, request=request)
+    )
+
+
+class _LLMComFalhas:
+    """Falha `falhas` vezes com o erro dado e depois responde `texto`."""
+
+    def __init__(self, falhas: int, erro: Exception, texto: str) -> None:
+        self.falhas, self.erro, self.texto = falhas, erro, texto
+        self.chamadas = 0
+        self.model = "fake"
+
+    async def generate(self, prompt: str):
+        self.chamadas += 1
+        if self.chamadas <= self.falhas:
+            raise self.erro
+        return _FakeLLMClient(self.texto)
+
+
+async def test_classify_page_repete_em_429_e_devolve_a_classificacao(monkeypatch):
+    import app.rag.crawler_classifier as modulo
+
+    monkeypatch.setattr(modulo, "_ESPERA_BASE_S", 0.0)
+    llm = _LLMComFalhas(2, _erro_http(429), '{"domain": "suporte", "confidence": 0.9}')
+
+    resultado = await classify_page(llm, "conteúdo")
+
+    assert (resultado.domain, resultado.confidence) == ("suporte", 0.9)
+    assert llm.chamadas == 3
+
+
+async def test_classify_page_esgotadas_as_tentativas_devolve_confianca_zero(monkeypatch):
+    """O LLM só sugere o domínio: se ele não responde, a página não se perde, vai
+    para a fila de revisão com confiança 0 e o admin escolhe."""
+    import app.rag.crawler_classifier as modulo
+
+    monkeypatch.setattr(modulo, "_ESPERA_BASE_S", 0.0)
+    llm = _LLMComFalhas(99, _erro_http(429), "")
+
+    resultado = await classify_page(llm, "conteúdo")
+
+    assert resultado.confidence == 0.0
+    assert llm.chamadas == modulo._MAX_TENTATIVAS
+
+
+async def test_classify_page_erro_nao_transitorio_nao_repete(monkeypatch):
+    import app.rag.crawler_classifier as modulo
+
+    monkeypatch.setattr(modulo, "_ESPERA_BASE_S", 0.0)
+    llm = _LLMComFalhas(99, _erro_http(401), "")
+
+    resultado = await classify_page(llm, "conteúdo")
+
+    assert resultado.confidence == 0.0
+    assert llm.chamadas == 1

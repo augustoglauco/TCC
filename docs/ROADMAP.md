@@ -174,10 +174,16 @@ Convenção de status: `- [ ]` pendente · `- [~]` em andamento · `- [x]` feito
       frontend (o tipo `CrawlRunResponse` do frontend segue como shape do
       evento `done`).
 - [x] Crawler com escolha de collection e de domínio (2026-10-31): o stream
-      recebe `collection_id` e `review` (padrão: toda página vai para a fila
-      com o domínio sugerido pelo LLM); a fila troca domínio e collection por
+      recebe `collection_id`; **toda** página vai para a fila com o domínio
+      sugerido pelo LLM e nada é ingerido sem aprovação (o caminho automático
+      por limiar foi removido a pedido); a fila troca domínio e collection por
       página; `crawler_pending_pages.collection_id` (migração `0029`). Decisão
       em `docs/ARCHITECTURE.md`.
+- [x] Crawler corrigido para sites de documentação (2026-10-31): links do
+      `<nav>` coletados antes do descarte, deduplicação por URL final após
+      redirect e retry com recuo em 429/5xx/timeout na classificação (falha
+      esgotada = confiança 0, vai para a fila). Decisão em
+      `docs/ARCHITECTURE.md`.
 - [x] Implementar endpoint HTTP de upload para ingestão de documentos no RAG
       (`POST /api/rag/documents`, `backend/src/app/api/rag.py`), complementando
       `backend/scripts/ingest_sample_docs.py` — decisão registrada em

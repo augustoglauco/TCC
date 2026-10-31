@@ -104,27 +104,28 @@ describe("CrawlerPanel", () => {
       "https://exemplo.com/",
     );
 
-    act(() => cbs!.onIngested("https://exemplo.com/", "vendas"));
+    act(() => cbs!.onQueued("https://exemplo.com/", "vendas"));
     act(() => cbs!.onVisiting("https://exemplo.com/a"));
     act(() => cbs!.onQueued("https://exemplo.com/a", "suporte"));
 
     const status = screen.getByTestId("crawler-live-status");
-    // 2 visitadas, 1 ingerida, 1 na fila, 0 erros
+    // 2 visitadas, 2 na fila, 0 erros
     expect(status).toHaveTextContent("Visitadas");
     expect(status).toHaveTextContent("2");
-    expect(status).toHaveTextContent("Ingeridas");
+    expect(status).not.toHaveTextContent("Ingeridas");
     expect(status).toHaveTextContent("Fila");
 
     act(() =>
       cbs!.onDone({
         pages_visited: 2,
-        auto_ingested: ["https://exemplo.com/"],
-        queued: ["https://exemplo.com/a"],
+        queued: ["https://exemplo.com/", "https://exemplo.com/a"],
         errors: [],
       }),
     );
 
-    expect(await screen.findByText(/2 página\(s\) visitada\(s\)/)).toBeInTheDocument();
+    expect(await screen.findByText(/2 página\(s\) visitada\(s\)/)).toHaveTextContent(
+      "2 na fila de revisão",
+    );
     await waitFor(() => expect(onFinished).toHaveBeenCalled());
   });
 
@@ -177,7 +178,7 @@ describe("CrawlerPanel", () => {
     expect(await screen.findByText("Serviço indisponível.")).toBeInTheDocument();
   });
 
-  it("envia a collection escolhida e o modo de revisão no payload do crawl", async () => {
+  it("envia a collection escolhida no payload do crawl, sem modo automático", async () => {
     const user = userEvent.setup();
     mockedRunCrawlerStream.mockResolvedValue(undefined);
 
@@ -187,25 +188,21 @@ describe("CrawlerPanel", () => {
     await user.click(screen.getByRole("button", { name: "Rodar crawler" }));
 
     await waitFor(() => expect(mockedRunCrawlerStream).toHaveBeenCalled());
-    expect(mockedRunCrawlerStream.mock.calls[0][1]).toMatchObject({
-      collection_id: "col-geral",
-      review: true,
-    });
+    const payload = mockedRunCrawlerStream.mock.calls[0][1];
+    expect(payload).toMatchObject({ collection_id: "col-geral" });
+    expect(payload).not.toHaveProperty("review");
+    expect(screen.queryByLabelText(/Revisar antes de ingerir/)).not.toBeInTheDocument();
   });
 
-  it("desmarcar 'Revisar antes de ingerir' envia review=false e usa a ativa de chat por padrão", async () => {
+  it("sem escolha, usa a collection ativa no chat", async () => {
     const user = userEvent.setup();
     mockedRunCrawlerStream.mockResolvedValue(undefined);
 
     render(<CrawlerPanel {...PROPS_BASE} onFinished={vi.fn()} />);
     await user.type(screen.getByLabelText("URL semente"), "https://exemplo.com");
-    await user.click(screen.getByLabelText(/Revisar antes de ingerir/));
     await user.click(screen.getByRole("button", { name: "Rodar crawler" }));
 
     await waitFor(() => expect(mockedRunCrawlerStream).toHaveBeenCalled());
-    expect(mockedRunCrawlerStream.mock.calls[0][1]).toMatchObject({
-      collection_id: "col-chat",
-      review: false,
-    });
+    expect(mockedRunCrawlerStream.mock.calls[0][1]).toMatchObject({ collection_id: "col-chat" });
   });
 });

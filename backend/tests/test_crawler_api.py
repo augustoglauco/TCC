@@ -91,7 +91,6 @@ def test_stream_confidence_baixa_enfileira_e_aparece_em_pending(
     assert "enfileirada" in [ev for ev, _ in eventos]
     done = eventos[-1][1]
     assert done["queued"] == ["https://exemplo.com/"]
-    assert done["auto_ingested"] == []
     assert fake_qdrant.upserts == []
 
     pendentes = client.get("/api/rag/crawler/pending", headers=admin_headers).json()
@@ -180,7 +179,7 @@ def test_stream_com_falha_de_commit_em_uma_pagina_nao_contamina_as_seguintes(
     client = TestClient(app)
 
     response = client.get(
-        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1&review=false",
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=1",
         headers=admin_headers,
     )
 
@@ -188,7 +187,7 @@ def test_stream_com_falha_de_commit_em_uma_pagina_nao_contamina_as_seguintes(
     done = _parse_sse(response.text)[-1][1]
     assert done["pages_visited"] == 2
     assert done["errors"] == ["https://exemplo.com/"]
-    assert done["auto_ingested"] == ["https://exemplo.com/outra"]
+    assert done["queued"] == ["https://exemplo.com/outra"]
 
 
 def test_approve_pending_page_ingere_com_domain_escolhido(
@@ -313,7 +312,7 @@ def _parse_sse(body: str) -> list[tuple[str, dict]]:
     return eventos
 
 
-def test_stream_emite_visitando_ingerida_e_done(
+def test_stream_emite_visitando_enfileirada_e_done(
     db_session, active_collection, tmp_path, admin_headers
 ):
     html = "<html><body><p>Conteúdo de vendas</p></body></html>"
@@ -329,7 +328,7 @@ def test_stream_emite_visitando_ingerida_e_done(
     client = TestClient(app)
 
     response = client.get(
-        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0&review=false",
+        "/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0",
         headers=admin_headers,
     )
 
@@ -338,18 +337,20 @@ def test_stream_emite_visitando_ingerida_e_done(
     eventos = _parse_sse(response.text)
     tipos = [ev for ev, _ in eventos]
     assert "visitando" in tipos
-    assert "ingerida" in tipos
+    assert "enfileirada" in tipos
+    assert "ingerida" not in tipos
     assert tipos[-1] == "done"
 
-    ingerida = next(data for ev, data in eventos if ev == "ingerida")
-    assert ingerida["url"] == "https://exemplo.com/"
-    assert ingerida["domain"] == "vendas"
+    enfileirada = next(data for ev, data in eventos if ev == "enfileirada")
+    assert enfileirada["url"] == "https://exemplo.com/"
+    assert enfileirada["domain"] == "vendas"
 
     done = eventos[-1][1]
     assert done["pages_visited"] == 1
-    assert done["auto_ingested"] == ["https://exemplo.com/"]
-    assert done["queued"] == []
+    assert "auto_ingested" not in done
+    assert done["queued"] == ["https://exemplo.com/"]
     assert done["errors"] == []
+    assert fake_qdrant.upserts == []
 
 
 def test_stream_url_invalida_retorna_422(db_session, active_collection, tmp_path, admin_headers):
@@ -428,8 +429,7 @@ def test_stream_revisar_enfileira_mesmo_com_confianca_alta_na_collection_escolhi
     client = TestClient(app)
 
     response = client.get(
-        f"/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0&review=true"
-        f"&collection_id={destino.id}",
+        f"/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0&collection_id={destino.id}",
         headers=admin_headers,
     )
 
@@ -439,30 +439,6 @@ def test_stream_revisar_enfileira_mesmo_com_confianca_alta_na_collection_escolhi
     pendentes = client.get("/api/rag/crawler/pending", headers=admin_headers).json()
     assert pendentes[0]["collection_id"] == str(destino.id)
     assert pendentes[0]["collection_name"] == "docs_destino"
-
-
-def test_stream_sem_revisar_ingere_na_collection_escolhida(
-    db_session, active_collection, tmp_path, admin_headers
-):
-    html = "<html><body><p>Conteúdo de vendas</p></body></html>"
-    fake_qdrant = _FakeQdrantRAGClient()
-    destino = _seed_collection(db_session, "docs_destino")
-    app = _build_app(
-        fake_qdrant,
-        db_session,
-        tmp_path,
-        _FakeLLMClient(domain="vendas", confidence=0.99),
-        paginas={"https://exemplo.com/": (200, "text/html", html)},
-    )
-    client = TestClient(app)
-
-    client.get(
-        f"/api/rag/crawler/run/stream?url=https://exemplo.com/&depth=0&review=false"
-        f"&collection_id={destino.id}",
-        headers=admin_headers,
-    )
-
-    assert [u[0] for u in fake_qdrant.upserts] == ["docs_destino"]
 
 
 def test_stream_collection_inexistente_retorna_404(

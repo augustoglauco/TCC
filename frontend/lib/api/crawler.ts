@@ -132,9 +132,6 @@ export async function runCrawlerStream(
   if (payload.collection_id) {
     params.set("collection_id", payload.collection_id);
   }
-  if (payload.review !== undefined) {
-    params.set("review", String(payload.review));
-  }
 
   let response: Response;
   try {
@@ -181,9 +178,6 @@ export async function runCrawlerStream(
           switch (parsed.event) {
             case "visitando":
               callbacks.onVisiting(json.url);
-              break;
-            case "ingerida":
-              callbacks.onIngested(json.url, json.domain);
               break;
             case "enfileirada":
               callbacks.onQueued(json.url, json.domain);

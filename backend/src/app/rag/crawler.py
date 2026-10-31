@@ -62,12 +62,17 @@ def _normalize_url(url: str) -> str:
 
 def extract_text_and_links(html: str, base_url: str) -> tuple[str, list[str]]:
     """Extrai texto visível (sem `script`/`style`/`nav`/`footer`) e os links
-    (`<a href>`) resolvidos para absoluto via `urljoin` e normalizados."""
+    (`<a href>`) resolvidos para absoluto via `urljoin` e normalizados.
+
+    Os links são coletados ANTES de descartar `nav`/`footer`: sites de
+    documentação (Sphinx/Read the Docs) põem o índice inteiro num `<nav>`, e
+    é por ele que o crawl chega às demais páginas. O texto do menu continua
+    fora do que é indexado."""
     soup = BeautifulSoup(html, "html.parser")
+    links = [_normalize_url(urljoin(base_url, a["href"])) for a in soup.find_all("a", href=True)]
     for tag in soup(_IGNORED_TAGS):
         tag.decompose()
     text = " ".join(soup.get_text(separator=" ").split())
-    links = [_normalize_url(urljoin(base_url, a["href"])) for a in soup.find_all("a", href=True)]
     return text, links
 
 
@@ -135,6 +140,12 @@ async def crawl_stream(
 
         if urlparse(page.url).netloc != seed_host:
             continue
+        # Redirect para uma URL já vista (ex.: `/docs` -> `/docs/`): a página é
+        # a mesma, não conta nem é ingerida duas vezes.
+        if page.url != url:
+            if page.url in visited:
+                continue
+            visited.add(page.url)
 
         paginas_visitadas += 1
         yield CrawlEvent(event="pagina", url=page.url, page=page)

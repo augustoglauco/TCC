@@ -18,7 +18,6 @@ const STALL_THRESHOLD_S = 20;
 interface LiveProgress {
   currentUrl: string | null;
   visited: number;
-  ingested: number;
   queued: number;
   errors: number;
 }
@@ -26,7 +25,6 @@ interface LiveProgress {
 const PROGRESSO_INICIAL: LiveProgress = {
   currentUrl: null,
   visited: 0,
-  ingested: 0,
   queued: 0,
   errors: 0,
 };
@@ -40,7 +38,6 @@ interface CrawlerPanelProps {
 export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: CrawlerPanelProps) {
   const token = useAuthStore((s) => s.token);
   const [collectionId, setCollectionId] = useState("");
-  const [review, setReview] = useState(true);
   // Sem escolha válida, cai na ativa de chat (o backend faz o mesmo sem `collection_id`).
   const collectionSelecionada = collections.some((c) => c.id === collectionId)
     ? collectionId
@@ -101,7 +98,6 @@ export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: Cra
         depth,
         max_pages: maxPages === "" ? undefined : maxPages,
         collection_id: collectionSelecionada || undefined,
-        review,
       },
       {
         onVisiting: (visitandoUrl) => {
@@ -111,10 +107,6 @@ export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: Cra
             currentUrl: visitandoUrl,
             visited: atual.visited + 1,
           }));
-        },
-        onIngested: () => {
-          marcarAtividade();
-          setProgress((atual) => ({ ...atual, ingested: atual.ingested + 1 }));
         },
         onQueued: () => {
           marcarAtividade();
@@ -201,8 +193,6 @@ export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: Cra
           onColecoesMudaram={onColecoesMudaram}
           collectionId={collectionSelecionada}
           onCollectionIdChange={setCollectionId}
-          review={review}
-          onReviewChange={setReview}
           disabled={isRunning}
         />
 
@@ -235,14 +225,10 @@ export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: Cra
             )}
           </div>
 
-          <dl className="mt-3 grid grid-cols-4 gap-2 text-center text-xs text-blue-900">
+          <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-blue-900">
             <div>
               <dt className="text-blue-600">Visitadas</dt>
               <dd className="text-base font-bold">{progress.visited}</dd>
-            </div>
-            <div>
-              <dt className="text-blue-600">Ingeridas</dt>
-              <dd className="text-base font-bold">{progress.ingested}</dd>
             </div>
             <div>
               <dt className="text-blue-600">Fila</dt>
@@ -270,8 +256,8 @@ export function CrawlerPanel({ collections, onColecoesMudaram, onFinished }: Cra
 
       {result && (
         <p className="mt-6 rounded-md bg-green-50 px-4 py-3 text-green-800">
-          {result.pages_visited} página(s) visitada(s) — {result.auto_ingested.length} ingerida(s)
-          diretamente, {result.queued.length} na fila de revisão
+          {result.pages_visited} página(s) visitada(s) — {result.queued.length} na fila de revisão
+          (nada foi ingerido: escolha o domínio e aprove abaixo)
           {result.errors.length > 0 ? `, ${result.errors.length} com erro` : ""}.
         </p>
       )}

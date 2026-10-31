@@ -13,14 +13,11 @@ export interface CrawlRunPayload {
   max_pages?: number;
   /** Collection destino; omitido = a ativa de chat. */
   collection_id?: string;
-  /** true (padrão do backend) = toda página vai para a fila de revisão. */
-  review?: boolean;
 }
 
 /** Resumo final de um crawl (evento `done` do SSE `GET /api/rag/crawler/run/stream`). */
 export interface CrawlRunResponse {
   pages_visited: number;
-  auto_ingested: string[];
   queued: string[];
   errors: string[];
 }
@@ -33,9 +30,7 @@ export interface CrawlRunResponse {
 export interface CrawlerStreamCallbacks {
   /** URL prestes a ser buscada (heartbeat de "estou vivo"). */
   onVisiting: (url: string) => void;
-  /** Página ingerida direto (confiança alta). */
-  onIngested: (url: string, domain: RagDomain) => void;
-  /** Página enfileirada para revisão (confiança baixa). */
+  /** Página enfileirada para revisão (todas: o LLM só sugere o domínio). */
   onQueued: (url: string, domain: RagDomain) => void;
   /** Página que falhou (rede/timeout/status/ingestão) — o crawl segue. */
   onPageError: (url: string) => void;

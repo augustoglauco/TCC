@@ -38,7 +38,7 @@ from app.models.crawler import (
 from app.rag.collections_registry import get_active_collection, get_collection, list_collections
 from app.rag.crawler import crawl_stream
 from app.rag.crawler_classifier import classify_page
-from app.rag.crawler_ingest import ingest_or_queue, replace_previous_ingestion
+from app.rag.crawler_ingest import queue_page, replace_previous_ingestion
 from app.rag.crawler_pending import delete_pending_page, get_pending_page, list_pending_pages
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.ingest import ingest_bytes
@@ -101,13 +101,6 @@ async def run_crawler_stream(
     depth: int = Query(..., ge=0),
     max_pages: int | None = Query(default=None, ge=1),
     collection_id: UUID | None = Query(default=None, description="Collection destino."),
-    review: bool = Query(
-        default=True,
-        description="Toda página vai para a fila de revisão (o LLM só sugere o domínio).",
-    ),
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    embedders: EmbedderRegistry = Depends(get_embedder_registry),
-    uploads_dir: Path = Depends(get_uploads_dir),
     session: AsyncSession = Depends(get_db_session),
     _: None = Depends(require_admin),
 ) -> StreamingResponse:
@@ -116,8 +109,10 @@ async def run_crawler_stream(
     o crawl está vivo (e detecte travamento por ausência de eventos).
     Consumido via `EventSource`.
 
-    Eventos: `visitando` (URL atual, heartbeat), `ingerida`, `enfileirada`,
-    `erro` (por página) e `done` (resumo final).
+    Eventos: `visitando` (URL atual, heartbeat), `enfileirada`, `erro` (por
+    página) e `done` (resumo final). Nada é ingerido aqui: toda página vai para
+    a fila de revisão com o domínio sugerido pelo LLM, e o administrador
+    escolhe domínio e collection ao aprovar.
     """
     try:
         seed_url = str(_HTTP_URL_ADAPTER.validate_python(url))
@@ -127,12 +122,9 @@ async def run_crawler_stream(
     collection = await _resolver_collection(session, collection_id)
 
     effective_max_pages = max_pages or request.app.state.crawler_max_pages_default
-    confidence_threshold = request.app.state.crawler_confidence_threshold
-    embedder = embedders.get(collection.embedding_model)
 
     async def event_stream() -> AsyncIterator[str]:
         pages_visited = 0
-        auto_ingested: list[str] = []
         queued: list[str] = []
         errors: list[str] = []
 
@@ -158,18 +150,7 @@ async def run_crawler_stream(
                         page.text,
                         source_identifier=page.url,
                     )
-                    outcome = await ingest_or_queue(
-                        session,
-                        qdrant,
-                        collection,
-                        embedder,
-                        uploads_dir,
-                        page.url,
-                        page.text,
-                        classification,
-                        confidence_threshold,
-                        review=review,
-                    )
+                    await queue_page(session, collection, page.url, page.text, classification)
                 except _ERROS_POR_PAGINA as exc:
                     # Rollback + refresh para não contaminar as páginas
                     # seguintes: sem o rollback, um `SQLAlchemyError` (ex.:
@@ -197,12 +178,8 @@ async def run_crawler_stream(
                     yield _sse("erro", {"url": page.url})
                     continue
 
-                if outcome == "ingested":
-                    auto_ingested.append(page.url)
-                    yield _sse("ingerida", {"url": page.url, "domain": classification.domain})
-                else:
-                    queued.append(page.url)
-                    yield _sse("enfileirada", {"url": page.url, "domain": classification.domain})
+                queued.append(page.url)
+                yield _sse("enfileirada", {"url": page.url, "domain": classification.domain})
         except Exception as exc:  # noqa: BLE001
             # Falha inesperada do próprio crawl (não de uma página): emite um
             # `error` para o cliente não ficar "pendurado" achando que travou.
@@ -214,7 +191,6 @@ async def run_crawler_stream(
             "done",
             {
                 "pages_visited": pages_visited,
-                "auto_ingested": auto_ingested,
                 "queued": queued,
                 "errors": errors,
             },

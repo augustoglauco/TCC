@@ -11,19 +11,15 @@ interface Props {
   onColecoesMudaram: () => Promise<RagCollection[]>;
   collectionId: string;
   onCollectionIdChange: (id: string) => void;
-  review: boolean;
-  onReviewChange: (review: boolean) => void;
   disabled: boolean;
 }
 
-/** Collection destino do crawl e modo de revisão (o LLM sugere o domínio; o admin decide). */
+/** Collection destino do crawl. O domínio de cada página é decidido na fila de revisão. */
 export function CrawlerDestino({
   collections,
   onColecoesMudaram,
   collectionId,
   onCollectionIdChange,
-  review,
-  onReviewChange,
   disabled,
 }: Props) {
   const acoes = useCollectionActions({
@@ -58,20 +54,6 @@ export function CrawlerDestino({
           onCollectionIdChange(novaCol.id);
         }}
       />
-      <label className="flex items-start gap-2 text-sm text-gray-900">
-        <input
-          type="checkbox"
-          checked={review}
-          disabled={disabled}
-          onChange={(event) => onReviewChange(event.target.checked)}
-          className="mt-1"
-        />
-        <span>
-          <strong>Revisar antes de ingerir</strong> — o LLM sugere o domínio de cada página e você
-          confirma ou altera na fila. Desmarcado, as páginas com confiança acima do limiar entram
-          direto com o domínio sugerido.
-        </span>
-      </label>
     </div>
   );
 }

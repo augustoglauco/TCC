@@ -291,3 +291,43 @@ async def test_crawl_stream_emite_erro_para_pagina_com_falha():
         ("visitando", "https://exemplo.com/x"),
         ("erro", "https://exemplo.com/x"),
     ]
+
+
+def test_extract_text_and_links_segue_links_do_menu_nav_mas_nao_indexa_o_texto_dele():
+    """Sites de documentação (Sphinx/Read the Docs) põem o índice inteiro num
+    `<nav>`; descartar o `<nav>` antes de coletar links deixava o crawl com
+    2 links em vez de ~170 (achado de 2026-10-31 em controlid.com.br/suporte)."""
+    html = """
+    <html><body>
+      <nav><a href="/guia/instalacao/">Instalação</a> texto do menu</nav>
+      <main><p>Conteúdo real.</p></main>
+    </body></html>
+    """
+
+    text, links = extract_text_and_links(html, "https://exemplo.com/guia/")
+
+    assert links == ["https://exemplo.com/guia/instalacao/"]
+    assert "texto do menu" not in text
+    assert "Conteúdo real." in text
+
+
+async def test_crawl_nao_conta_duas_vezes_a_semente_que_redireciona_para_si_mesma_com_barra():
+    """`/docs` redireciona para `/docs/` e a própria página linka para `.`
+    (= `/docs/`): a mesma página era visitada, ingerida e contada duas vezes."""
+    html = '<html><body><a href=".">início</a><a href="sub/">sub</a></body></html>'
+    paginas = {
+        "https://exemplo.com/docs": ("redirect", "https://exemplo.com/docs/"),
+        "https://exemplo.com/docs/": (200, "text/html", html),
+        "https://exemplo.com/docs/sub/": (200, "text/html", "<html><body>sub</body></html>"),
+    }
+    client = httpx.AsyncClient(transport=_mock_transport(paginas))
+
+    pages, errors = await _accumulate_crawl(
+        client, "https://exemplo.com/docs", depth=1, max_pages=10
+    )
+
+    assert [p.url for p in pages] == [
+        "https://exemplo.com/docs/",
+        "https://exemplo.com/docs/sub/",
+    ]
+    assert errors == []

@@ -3,9 +3,6 @@ aplica o gate de confiança e o passo de dedup-por-URL descritos em
 docs/superpowers/specs/2026-09-19-crawler-paginas-design.md §1, §3.
 """
 
-from pathlib import Path
-from typing import Literal
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,8 +10,6 @@ from app.db.models import RagCollection, RagDocument
 from app.models.rag import RagDocumentOrigin
 from app.rag.crawler_classifier import PageClassification
 from app.rag.crawler_pending import upsert_pending_page
-from app.rag.embeddings import TextEmbedder
-from app.rag.ingest import ingest_bytes
 from app.rag.qdrant_client import QdrantRAGClient
 from app.rag.registry import delete_document
 
@@ -44,38 +39,17 @@ async def replace_previous_ingestion(
     await delete_document(session, str(documento_anterior.id))
 
 
-async def ingest_or_queue(
+async def queue_page(
     session: AsyncSession,
-    qdrant: QdrantRAGClient,
     collection: RagCollection,
-    embedder: TextEmbedder,
-    uploads_dir: Path,
     url: str,
     text: str,
     classification: PageClassification,
-    confidence_threshold: float,
-    review: bool = False,
-) -> Literal["ingested", "queued"]:
-    """Aplica o gate de confiança: `confidence >= confidence_threshold`
-    ingere direto (com dedup-por-URL antes); abaixo do limiar, upsert na
-    fila de revisão (`crawler_pending_pages`), fora do RAG até aprovação.
-    Com `review=True` toda página vai para a fila (o LLM só sugere o
-    domínio; quem decide é o administrador)."""
-    if not review and classification.confidence >= confidence_threshold:
-        await replace_previous_ingestion(session, qdrant, collection, url)
-        await ingest_bytes(
-            qdrant,
-            embedder,
-            collection,
-            uploads_dir,
-            filename=url,
-            content=text.encode("utf-8"),
-            domain=classification.domain,
-            session=session,
-            origin=_CRAWLER_ORIGIN,
-        )
-        return "ingested"
-
+) -> None:
+    """Põe a página na fila de revisão (`crawler_pending_pages`), fora do RAG
+    até alguém aprovar. O LLM só sugere o domínio (`classification`): mesmo com
+    confiança alta nada é ingerido sozinho; quem decide domínio e collection é
+    o administrador. Recrawlear a mesma URL ainda pendente atualiza a linha."""
     await upsert_pending_page(
         session,
         url=url,
@@ -84,4 +58,3 @@ async def ingest_or_queue(
         confidence=classification.confidence,
         collection_id=collection.id,
     )
-    return "queued"

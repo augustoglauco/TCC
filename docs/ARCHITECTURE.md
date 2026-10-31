@@ -875,17 +875,35 @@ família na busca de candidatos de Vendas ou numa listagem "modelos da linha X"
 decide o domínio; o LLM só sugere.** Antes, o crawler gravava sempre na
 collection ativa de chat e o domínio vinha do classificador externo, filtrado
 só pelo limiar de confiança. Agora `GET /api/rag/crawler/run/stream` recebe
-`collection_id` (omitido = a ativa de chat; `404` se não existe) e `review`
-(padrão `true`): com `review=true` toda página vai para
-`crawler_pending_pages` com o domínio sugerido e a confiança, e nada é
-ingerido sem aprovação; com `review=false` vale o gate de antes (confiança ≥
-limiar ingere direto com o domínio sugerido). `crawler_pending_pages` ganhou
+`collection_id` (omitido = a ativa de chat; `404` se não existe). Toda página
+vai para `crawler_pending_pages` com o domínio sugerido e a confiança, e
+**nada é ingerido sem aprovação**, mesmo com confiança alta: o caminho de
+ingestão automática por limiar foi removido no mesmo dia, a pedido (o LLM só
+sugere; o domínio nunca é automático). O evento `ingerida` e o campo
+`auto_ingested` do `done` deixaram de existir. `crawler_confidence_threshold`
+(runtime settings) ficou sem uso pelo crawler. `crawler_pending_pages` ganhou
 `collection_id` (migração `0029`, FK `ON DELETE SET NULL`; nulo = a ativa de
 chat na aprovação) e `POST .../pending/{id}/approve` aceita `collection_id`
 no corpo, que sobrepõe o gravado. A fila mostra e permite trocar domínio e
 collection por página. `# MVP:` sem domínio fixo por crawl e sem
 multi-domínio por página; mudar o domínio de várias páginas de uma vez é
 evolução futura.
+
+**Decisão registrada (2026-10-31): o crawler segue os links do menu `<nav>` e
+não perde página quando o LLM está limitado.** Em `controlid.com.br/suporte/manual_rhid`
+o crawl voltava 5 páginas e 3 erros, por três causas: (1) o índice do site
+(Sphinx/Read the Docs) fica num `<nav>`, que `extract_text_and_links` descartava
+antes de coletar os links (2 links em vez de ~170); agora os links saem antes
+do descarte e só o texto do menu fica fora do que é indexado; (2) a semente
+sem barra redireciona para a versão com barra e a página linka para `.`, então
+a mesma página era visitada e ingerida duas vezes; o crawl passa a deduplicar
+pela URL final; (3) o modelo externo (`:free` do OpenRouter) devolvia `429` na
+classificação e a página virava erro; `classify_page` repete em 429/5xx/timeout
+com recuo de 2, 4, 8 e 16 s (até 5 tentativas) e, esgotadas, devolve confiança
+0, de modo que a página vai para a fila e o admin escolhe o domínio. Resultado
+no site real: 46 páginas, 0 erros. `# MVP:` o crawler não segue links de PDF
+(só `text/html`) e as páginas do manual são ingeridas inteiras, sem separar o
+conteúdo principal do menu além de `nav`/`footer`.
 
 **Decisão registrada (Fase 5, R12, 2026-09-24): backend único de dados do MCP
 B2B.** Estende a fixture `produtos` (migração `0003`) com o model
