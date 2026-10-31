@@ -7,6 +7,8 @@ const CURATED_MODELS = [
   { value: "paraphrase-multilingual-mpnet-base-v2", label: "MPNet multilíngue (768 dim)" },
   { value: "intfloat/multilingual-e5-base", label: "E5 base multilíngue (768 dim)" },
   { value: "intfloat/multilingual-e5-large", label: "E5 large multilíngue (1024 dim)" },
+  { value: "BAAI/bge-m3", label: "BGE-M3 multilíngue (1024 dim)" },
+  { value: "google/embeddinggemma-300m", label: "EmbeddingGemma 300M (768 dim)" },
   { value: "__custom__", label: "Outro (digitar nome)" },
 ] as const;
 

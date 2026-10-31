@@ -131,6 +131,25 @@ describe("CollectionFormModal", () => {
     expect(screen.getByLabelText("Nome do modelo")).toBeInTheDocument();
   });
 
+  it("a lista traz BGE-M3 e EmbeddingGemma e envia o nome canônico do modelo", async () => {
+    const user = userEvent.setup();
+    mockedCreate.mockResolvedValueOnce(COLLECTION_CRIADA);
+
+    render(<CollectionFormModal open onOpenChange={vi.fn()} onCreated={vi.fn()} />);
+
+    expect(screen.getByRole("option", { name: /EmbeddingGemma/ })).toHaveValue(
+      "google/embeddinggemma-300m",
+    );
+    await user.selectOptions(screen.getByLabelText("Modelo de embedding"), "BAAI/bge-m3");
+    await user.type(screen.getByLabelText("Nome"), "nova");
+    await user.click(screen.getByRole("button", { name: "Criar collection" }));
+
+    expect(mockedCreate).toHaveBeenCalledWith(
+      "mock-token-1",
+      expect.objectContaining({ embedding_model: "BAAI/bge-m3" }),
+    );
+  });
+
   it("chunk_size menor ou igual ao overlap desabilita o envio e mostra aviso", async () => {
     const user = userEvent.setup();
     render(<CollectionFormModal open onOpenChange={vi.fn()} onCreated={vi.fn()} />);

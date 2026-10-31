@@ -2381,6 +2381,10 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       local e TypeSafe Jev, monitor de tom, decisão local × externo) e todos
       os prompts por função (`app/avaliacao/prompts.ts`); conferido contra o
       código, e as divergências achadas foram levadas ao dono.
+- [x] Modal de nova collection (2026-10-31): lista fixa de modelos de embedding
+      ganhou `BAAI/bge-m3` (1024 dim, vencedor da avaliação) e
+      `google/embeddinggemma-300m` (768 dim); o padrão segue o MiniLM
+      (`CollectionEmbeddingSection.tsx`, teste em `CollectionFormModal.test.tsx`).
 - [x] Achado da revisão de 2026-10-04 (ver `docs/ARCHITECTURE.md` §7):
       extraída a dependência compartilhada `require_admin`
       (`app.api.admin_auth`, antes duplicada como `_require_admin` em
