@@ -640,8 +640,8 @@
       "id": 39,
       "pergunta": "Quais são os itens necessários para a instalação do iDAccess Nano?",
       "dificuldade": "facil",
-      "documento_origem": "idaccess_nano.pdf",
-      "arquivo_origem": "iDAccess Nano/idaccess_nano.pdf",
+      "documento_origem": "idaccess_nano_guia.pdf",
+      "arquivo_origem": "iDAccess Nano/idaccess_nano_guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "furadeira, buchas com respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechadura eletrônica",
       "trecho_origem": "Para instalação de seu iDAccess Nano são necessários os seguintes itens: furadeira, buchas com respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechadura eletrônica.",
@@ -652,7 +652,6 @@
         "em": "2026-10-23T23:21:17-0300"
       },
       "documentos_aceitos": [
-        "idaccess_nano.pdf",
         "idaccess_nano_guia.pdf"
       ]
     },
@@ -660,8 +659,8 @@
       "id": 40,
       "pergunta": "Como acessar a tela de configuração do iDAccess Nano?",
       "dificuldade": "facil",
-      "documento_origem": "idaccess_nano.pdf",
-      "arquivo_origem": "iDAccess Nano/idaccess_nano.pdf",
+      "documento_origem": "idaccess_nano_guia.pdf",
+      "arquivo_origem": "iDAccess Nano/idaccess_nano_guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "http://192.168.0.129",
       "trecho_origem": "abra um navegador de internet e digite a URL: http://192.168.0.129",
@@ -672,7 +671,6 @@
         "em": "2026-10-23T23:21:31-0300"
       },
       "documentos_aceitos": [
-        "idaccess_nano.pdf",
         "idaccess_nano_guia.pdf"
       ]
     },
@@ -681,7 +679,7 @@
       "pergunta": "Qual a tensão de alimentação mínima necessária para o iDAccess Nano?",
       "dificuldade": "facil",
       "documento_origem": "idaccess_nano_guia.pdf",
-      "arquivo_origem": "iDAccess Nano Prox/idaccess_nano_guia.pdf",
+      "arquivo_origem": "iDAccess Nano/idaccess_nano_guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "+12VDC, mínimo 1A",
       "trecho_origem": "A ligação à uma fonte de +12V de no mínimo 1A é ⚠ do equipamento.",
@@ -692,8 +690,7 @@
         "em": "2026-10-23T23:21:39-0300"
       },
       "documentos_aceitos": [
-        "idaccess_nano_guia.pdf",
-        "idaccess_nano.pdf"
+        "idaccess_nano_guia.pdf"
       ]
     },
     {
@@ -701,7 +698,7 @@
       "pergunta": "Como acessar a tela de configuração do iDAccess Nano?",
       "dificuldade": "facil",
       "documento_origem": "idaccess_nano_guia.pdf",
-      "arquivo_origem": "iDAccess Nano Prox/idaccess_nano_guia.pdf",
+      "arquivo_origem": "iDAccess Nano/idaccess_nano_guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Através de um navegador de internet digitando http://192.168.0.129",
       "trecho_origem": "abra um navegador de internet e digite a URL: http://192.168.0.129",
@@ -713,16 +710,15 @@
       },
       "duplicada_de": 40,
       "documentos_aceitos": [
-        "idaccess_nano_guia.pdf",
-        "idaccess_nano.pdf"
+        "idaccess_nano_guia.pdf"
       ]
     },
     {
       "id": 43,
       "pergunta": "Qual a tensão de alimentação do iDAccess Pro?",
       "dificuldade": "facil",
-      "documento_origem": "idaccess_pro.pdf",
-      "arquivo_origem": "iDAccess Pro/idaccess_pro.pdf",
+      "documento_origem": "idaccess_pro_guia.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess_pro_guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "+12VDC",
       "trecho_origem": "+12VDC",
@@ -737,8 +733,8 @@
       "id": 44,
       "pergunta": "Qual a altura recomendada para fixar o suporte de parede do iDAccess Pro?",
       "dificuldade": "facil",
-      "documento_origem": "idaccess_pro.pdf",
-      "arquivo_origem": "iDAccess Pro/idaccess_pro.pdf",
+      "documento_origem": "idaccess_pro_guia.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess_pro_guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "1,2m",
       "trecho_origem": "Fixar a parte inferior do suporte de parede do iDAccess Pro a 1,2m do solo.",
@@ -749,16 +745,15 @@
         "em": "2026-10-23T23:25:46-0300"
       },
       "documentos_aceitos": [
-        "idaccess_pro.pdf",
-        "idaccess_pro-guia.pdf"
+        "idaccess_pro_guia.pdf"
       ]
     },
     {
       "id": 45,
       "pergunta": "Como deve ser alimentado o iDAccess Pro?",
       "dificuldade": "facil",
-      "documento_origem": "idaccess_pro-guia.pdf",
-      "arquivo_origem": "iDAccess Pro Prox/idaccess_pro-guia.pdf",
+      "documento_origem": "idaccess_pro_guia.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess_pro_guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Pelo MAE, através do cabo de 4 condutores.",
       "trecho_origem": "A alimentação do iDAccess Pro será fornecida pelo MAE, através do cabo de 4 condutores.",
@@ -769,16 +764,15 @@
         "em": "2026-10-23T23:25:55-0300"
       },
       "documentos_aceitos": [
-        "idaccess_pro-guia.pdf",
-        "idaccess_pro.pdf"
+        "idaccess_pro_guia.pdf"
       ]
     },
     {
       "id": 46,
       "pergunta": "Qual a altura de fixação recomendada para o suporte de parede do iDAccess Pro?",
       "dificuldade": "facil",
-      "documento_origem": "idaccess_pro-guia.pdf",
-      "arquivo_origem": "iDAccess Pro Prox/idaccess_pro-guia.pdf",
+      "documento_origem": "idaccess_pro_guia.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess_pro_guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "1,2m do solo.",
       "trecho_origem": "Fixar a parte inferior do suporte de parede do iDAccess Pro a 1,2m do solo.",
@@ -789,8 +783,7 @@
         "em": "2026-10-23T23:26:06-0300"
       },
       "documentos_aceitos": [
-        "idaccess_pro-guia.pdf",
-        "idaccess_pro.pdf"
+        "idaccess_pro_guia.pdf"
       ]
     },
     {
@@ -1903,8 +1896,8 @@
       "id": 113,
       "pergunta": "Qual é a capacidade máxima de usuários que o iDAccess Pro suporta?",
       "dificuldade": "facil",
-      "documento_origem": "idaccess-pro-datasheet.pdf",
-      "arquivo_origem": "iDAccess Pro/idaccess-pro-datasheet.pdf",
+      "documento_origem": "idaccess-pro.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess-pro.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Mais de 200.000 usuários",
       "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
@@ -1920,8 +1913,8 @@
       "id": 114,
       "pergunta": "Qual é a resolução do leitor biométrico do iDAccess Pro?",
       "dificuldade": "facil",
-      "documento_origem": "idaccess-pro-datasheet.pdf",
-      "arquivo_origem": "iDAccess Pro/idaccess-pro-datasheet.pdf",
+      "documento_origem": "idaccess-pro.pdf",
+      "arquivo_origem": "iDAccess Pro/idaccess-pro.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "500 DPI",
       "trecho_origem": "Leitor de impressão digital óptico de 500 DPI",
