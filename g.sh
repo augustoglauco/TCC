@@ -49,7 +49,10 @@ _subir_docker_e_migracoes() {
     fi
     (
         cd backend
-        docker compose up -d postgres qdrant
+        docker compose up -d qdrant
+        # --wait: o postgres só aceita conexão após o healthcheck; sem isso o alembic
+        # (e o backend logo depois) falham com "the database system is starting up".
+        docker compose up -d --wait --wait-timeout 60 postgres
         .venv/bin/alembic upgrade head
     )
 }
