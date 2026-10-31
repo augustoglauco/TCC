@@ -75,7 +75,7 @@ logger = logging.getLogger(__name__)
 #   em si não muda;
 # - o prompt de sistema por domínio (playbook, Fase 3) é anteposto ao prompt
 #   quando há um playbook para o domínio classificado (ver
-#   app/router/playbooks.py); `fora_escopo` não tem playbook;
+#   app/router/playbooks.py); `fora_escopo` tem um playbook curto de cortesia;
 # - não há persistência das decisões do roteador em banco — a tabela
 #   `router_logs` é da Fase 6; por ora só o log estruturado;
 # - o texto completo da resposta do LLM vai para o log estruturado em nível
@@ -106,7 +106,7 @@ def _build_prompt(
     # sumarização/priorização por score além da ordem já devolvida pelo RAG,
     # e sem truncar por limite de tokens do modelo (ver docs/ARCHITECTURE.md
     # §5). O playbook do domínio (ver app/router/playbooks.py) é anteposto
-    # quando existe; `fora_escopo` não tem playbook.
+    # quando existe; `fora_escopo` tem um playbook curto de cortesia.
     """
     system_prompt = build_system_prompt(domain, usuario_autenticado=usuario_autenticado)
     partes: list[str] = []

@@ -2,7 +2,7 @@ import json
 import logging
 import re
 import unicodedata
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ValidationError
 
@@ -27,7 +27,7 @@ class IntentClassifierClient(Protocol):
 
     async def classify_intent_jev(
         self, message: str, recent_messages: list[str] | None = None
-    ) -> tuple[str, float]: ...
+    ) -> tuple[str, float, dict[str, Any] | None]: ...
 
 
 class ClassificationResult(BaseModel):
@@ -113,8 +113,8 @@ _DOMAIN_KEYWORDS: dict[Domain, list[str]] = {
 # no caso 29 — uma ordem de prioridade fixa acertaria um e erraria o outro, e
 # pior: destravaria o atalho rápido da heurística e pularia a consulta ao LLM
 # que hoje resolve esses casos corretamente em produção). Validado sem
-# regressão contra as 40 mensagens rotuladas do dataset antes de aplicar (ver
-# `backend/eval/router_intents/README.md`).
+# regressão contra as 40 mensagens rotuladas do piloto antes de aplicar (o
+# conjunto vigente tem 311; ver `backend/eval/router_intents/README.md`).
 
 
 def normalize(text: str) -> str:

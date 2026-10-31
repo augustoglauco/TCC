@@ -87,8 +87,8 @@ flowchart TD
     DOM -- "agendamento" --> AG["Máquina de estados<br/>+ calendar-mcp-server (8090)"]
     DOM -- "vendas" --> VEN["RAG + catálogo do Postgres em paralelo<br/>(SalesCatalogClient, sem MCP)"]
     DOM -- "suporte / atendimento" --> RAG["RAG de texto"]
-    DOM -- "fora_escopo" --> EXT
-    VEN --> ROT{"Contexto vazio<br/>ou complexidade alta?"}
+    DOM -- "fora_escopo" --> ROT
+    VEN --> ROT{"Contexto vazio<br/>ou complexidade alta?<br/>(fora_escopo: só complexidade)"}
     RAG --> ROT
     ROT -- "não" --> LOC["Modelo local (Ollama)"]
     ROT -- "sim" --> EXT["Modelo externo (OpenRouter)"]
@@ -570,7 +570,8 @@ heurístico, sem cross-encoder.
 
 **Decisão registrada (Fase 3): playbooks por domínio.** Vendas, suporte e
 atendimento têm um prompt de sistema estático em `app.router.playbooks`,
-anteposto pelo orchestrator (`fora_escopo` não tem). Vendas oferece
+anteposto pelo orchestrator (`fora_escopo` tem um playbook curto de cortesia,
+para saudações sem despejar catálogo). Vendas oferece
 proativamente a visita; Suporte e Atendimento são LLM + RAG, sem ação.
 `# MVP:` strings estáticas, sem versionamento nem edição em runtime. O
 **agendamento não usa playbook**: é o fluxo procedural
@@ -796,7 +797,10 @@ runtime pelo `/admin/modelos`):
 1. `"heuristica"` (Local Regras): só palavras-chave; inconclusivo vira
    `fora_escopo`, sem LLM de triagem.
 2. `"heuristica_llm"` (Local Híbrido, **padrão**): palavras-chave; se
-   inconclusivo, o LLM local; se este falhar ou ficar inconclusivo, o externo.
+   inconclusivo, o LLM local. Não há troca para o externo: se o LLM local ficar
+   indisponível (conexão), o turno devolve erro (`LocalBackendIndisponivelError`);
+   se responder algo que não é JSON válido, volta às palavras-chave e, sem
+   acerto, cai em `fora_escopo` com confiança 0,3.
 3. `"jev_openrouter"` (OpenRouter Jev): o **TypeSafe Jev**, modelo de decisão
    estruturada acessado pelo OpenRouter com a mesma chave
    (`EXTERNAL_MODEL_API_KEY`), no endpoint dedicado
@@ -1221,7 +1225,7 @@ ledger o painel lê só `ai_usage_events`; a cobertura atual é
 | --- | --- | --- |
 | Modelo local (RTX 4080 GPU 16GB) | Servido via **Ollama** (decisão fechada: setup simples e instrumentação de latência pronta via `eval_count`/`eval_duration`, ver §2). Comparação entre **9 candidatos** (`eval/model_benchmark/modelos.json`); a triagem de 2026-10-24 deixou 4 sobreviventes (Gemma-4-12B, Gemma-4-E4B, Qwen2.5-VL 3B e 7B) e a rodada completa neles foi feita em 2026-10-28 (`docs/EVALUATION.md`). **Visão local não é requisito do candidato** (decisão de 2026-10-17): 7 dos 9 têm a capability `vision` (só DeepSeek-R1-Distill-Llama-8B e Phi-4-mini não, conferido em 2026-10-18); candidato sem ela manda a imagem do cliente para a visão externa, caminho documentado. Riscos de VRAM: Seção 7 | Fine-tuning de domínio, otimização de latência em produção |
 | Entrada multimodal | Texto e áudio (STT) funcionando, com suporte a mais de um formato de áudio (ex.: wav e mp3); imagem com fluxo básico. STT via **faster-whisper rodando na mesma GPU local** (decisão fechada — consistente com a estratégia "local-first" do resto do projeto, sem custo por chamada; ver risco de contenção de VRAM na Seção 7), modelo `small` ou `medium` conforme resultado da Seção 7 | Robustez para áudio ruidoso, formatos adicionais, streaming |
-| Roteador/Orquestrador | Classificador de intenção simples (regras + LLM) para local x externo x RAG, com log básico de decisões (custo/latência). Modelo externo acessado via **OpenRouter** (uma chave cobrindo múltiplos provedores). Domínios Vendas/Suporte/Atendimento tentam local+RAG primeiro e só escalam para externo se: fora de escopo, RAG sem resultado relevante, ou complexidade alta; Agendamento é sempre local. Classificador considera as últimas 1–3 mensagens da conversa (não só a mensagem isolada), necessário para resolver confirmações curtas a ofertas feitas pelo próprio assistente (ex.: aceite de agendamento proposto) | Roteador adaptativo com aprendizado contínuo e métricas de custo/qualidade em produção |
+| Roteador/Orquestrador | Classificador de intenção simples (regras + LLM) para local x externo x RAG, com log básico de decisões (custo/latência). Modelo externo acessado via **OpenRouter** (uma chave cobrindo múltiplos provedores). Domínios Vendas/Suporte/Atendimento tentam local+RAG primeiro e só escalam para externo se: RAG sem resultado relevante ou complexidade alta (fora de escopo vai ao local, salvo complexidade alta, e não consulta o RAG); Agendamento é sempre local. Classificador considera as últimas 1–3 mensagens da conversa (não só a mensagem isolada), necessário para resolver confirmações curtas a ofertas feitas pelo próprio assistente (ex.: aceite de agendamento proposto) | Roteador adaptativo com aprendizado contínuo e métricas de custo/qualidade em produção |
 | RAG — textos, PDFs, BD e sites (obrigatório) | Ingestão de PDFs/textos + busca vetorial; conector básico de leitura a um BD relacional; crawler disparado manualmente a partir de uma URL semente, com profundidade e teto de páginas parametrizáveis por execução, classificação de domínio por LLM com fila de revisão humana abaixo de um limiar de confiança | Conector com escrita/sincronização incremental, crawler agendado, múltiplas fontes web |
 | RAG sobre imagens / tratamento de imagem (obrigatório) | Busca multimodal via embeddings (ex.: CLIP) em catálogo ampliado, com reranking básico + OCR para imagens dirigidas | Catálogo completo, embeddings mais robustos, busca externa refinada |
 | Domínios (Vendas/Suporte/Atendimento) | Separação lógica de fluxo e prompts por domínio, com playbooks iniciais para Suporte Técnico e Atendimento ao Usuário. Playbook de Vendas oferece agendamento de visita só quando o cliente sinaliza explicitamente que quer fechar negócio (não para qualquer pedido de orçamento/cotação), no máximo uma vez por conversa — ajustado em 2026-10-05 após a oferta estar aparecendo em quase toda resposta (o roteador só reclassifica como `agendamento` na resposta seguinte do cliente, usando o contexto curto de conversa citado na linha "Roteador/Orquestrador") | Playbooks completos por domínio, integração com sistema de ticketing |

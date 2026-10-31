@@ -138,9 +138,9 @@ def build_system_prompt(domain: Domain, usuario_autenticado: bool = False) -> st
     """Monta o prompt de sistema completo (base + playbook + regra
     anti-injeção) para o domínio.
 
-    Retorna o prompt completo do domínio, ou None (`fora_escopo` sem
-    playbook mantém esse contrato — mensagens fora de escopo não levam
-    prompt de sistema algum).
+    Retorna o prompt completo do domínio, ou None quando o domínio não tem
+    playbook (hoje todos têm, inclusive `fora_escopo`, que recebe o de
+    cortesia; o `None` mantém o contrato para domínios futuros).
     """
     playbook = get_playbook(domain)
     if playbook is None:
