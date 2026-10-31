@@ -234,8 +234,8 @@
       "id": 15,
       "pergunta": "Per quanto número de parafusos Allen M5x10mm são fornecidos no kit de instalação do iDBlock Next?",
       "dificuldade": "facil",
-      "documento_origem": "idblock-next.pdf",
-      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "documento_origem": "idblock-next-guia.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "4",
       "trecho_origem": "2 - Parafuso Allen M5x10mm (4x)",
@@ -250,8 +250,8 @@
       "id": 16,
       "pergunta": "Quantos iDFace podem ser instalados no iDBlock Next?",
       "dificuldade": "facil",
-      "documento_origem": "idblock-next.pdf",
-      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "documento_origem": "idblock-next-guia.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Até dois",
       "trecho_origem": "Ela pode ter até dois iDFaces integrados",
@@ -370,8 +370,8 @@
       "id": 23,
       "pergunta": "Qual a tensão e corrente mínima exigidas para alimentar o iDFace?",
       "dificuldade": "facil",
-      "documento_origem": "idface.pdf",
-      "arquivo_origem": "iDFace/idface.pdf",
+      "documento_origem": "idface-guia.pdf",
+      "arquivo_origem": "iDFace/idface-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "+12V de no mínimo 1A",
       "trecho_origem": "A ligação a uma fonte de +12V de no mínimo 1A Cadastro e Identificação de Usuário é fundamental para a correta operação do equipamento",
@@ -386,8 +386,8 @@
       "id": 24,
       "pergunta": "Qual a altura recomendada para fixar o iDFace no painel de parede?",
       "dificuldade": "facil",
-      "documento_origem": "idface.pdf",
-      "arquivo_origem": "iDFace/idface.pdf",
+      "documento_origem": "idface-guia.pdf",
+      "arquivo_origem": "iDFace/idface-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "1,35m do solo para passagem de pessoas ou 1,20m para reconhecimento em veículos",
       "trecho_origem": "Fixar a parte superior do suporte de parede do iDFace a 1,35m do solo para passagem de pessoas ou 1,20m para o reconhecimento de uma pessoa dentro de um carro.",
@@ -481,7 +481,7 @@
       },
       "documentos_aceitos": [
         "printid-guia-rapido.pdf",
-        "printid_touch.pdf"
+        "printid_touch-guia.pdf"
       ]
     },
     {
@@ -504,8 +504,8 @@
       "id": 31,
       "pergunta": "Em qual local deve ser instalado o iDFit para evitar danos?",
       "dificuldade": "facil",
-      "documento_origem": "idfit_V2.pdf",
-      "arquivo_origem": "IDFit/idfit_V2.pdf",
+      "documento_origem": "idfit_V2-guia.pdf",
+      "arquivo_origem": "IDFit/idfit_V2-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "sem exposição solar direta e ao abrigo de chuva e outros fenômenos naturais",
       "trecho_origem": "Instalação em lugar sem exposição solar direta e ao abrigo de chuva e outros fenômenos naturais.",
@@ -516,7 +516,7 @@
         "em": "2026-10-23T23:19:57-0300"
       },
       "documentos_aceitos": [
-        "idfit_V2.pdf",
+        "idfit_V2-guia.pdf",
         "idfit-guia.pdf"
       ]
     },
@@ -524,8 +524,8 @@
       "id": 32,
       "pergunta": "Quantos pinos possui o conector de expansão do iDFit?",
       "dificuldade": "facil",
-      "documento_origem": "idfit_V2.pdf",
-      "arquivo_origem": "IDFit/idfit_V2.pdf",
+      "documento_origem": "idfit_V2-guia.pdf",
+      "arquivo_origem": "IDFit/idfit_V2-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "10 pinos",
       "trecho_origem": "Conector de 10 pinos (Expansão)",
@@ -536,7 +536,7 @@
         "em": "2026-10-23T23:20:06-0300"
       },
       "documentos_aceitos": [
-        "idfit_V2.pdf",
+        "idfit_V2-guia.pdf",
         "idfit-guia.pdf"
       ]
     },
@@ -790,8 +790,8 @@
       "id": 47,
       "pergunta": "Qual é a especificação da fonte de alimentação da impressora Print iD Touch?",
       "dificuldade": "facil",
-      "documento_origem": "printid_touch.pdf",
-      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "documento_origem": "printid_touch-guia.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "24V – 2,5A",
       "trecho_origem": "Fonte de Alimentação 24V – 2,5A",
@@ -802,7 +802,7 @@
         "em": "2026-10-23T23:26:10-0300"
       },
       "documentos_aceitos": [
-        "printid_touch.pdf",
+        "printid_touch-guia.pdf",
         "printid-guia-rapido.pdf"
       ]
     },
@@ -810,8 +810,8 @@
       "id": 48,
       "pergunta": "Qual é o endereço IP da impressora Print iD Touch?",
       "dificuldade": "facil",
-      "documento_origem": "printid_touch.pdf",
-      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "documento_origem": "printid_touch-guia.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "192.168.0.128",
       "trecho_origem": "3. Acessar o link: http://192.168.0.128",
@@ -826,8 +826,8 @@
       "id": 49,
       "pergunta": "Quais materiais e ferramentas são necessários para instalar o iDFlex?",
       "dificuldade": "facil",
-      "documento_origem": "idflex.pdf",
-      "arquivo_origem": "iDFlexLite/idflex.pdf",
+      "documento_origem": "idflex-guia.pdf",
+      "arquivo_origem": "iDFlexLite/idflex-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "furadeira, buchas com respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechadura eletrônica",
       "trecho_origem": "Para instalação de seu iDFlex são necessários os seguintes itens: furadeira, buchas com respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechadura eletrônica.",
@@ -842,8 +842,8 @@
       "id": 50,
       "pergunta": "Quais são as credenciais de login padrão para acessar a tela de configuração do iDFlex?",
       "dificuldade": "facil",
-      "documento_origem": "idflex.pdf",
-      "arquivo_origem": "iDFlexLite/idflex.pdf",
+      "documento_origem": "idflex-guia.pdf",
+      "arquivo_origem": "iDFlexLite/idflex-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Nome de usuário: admin; Senha: admin",
       "trecho_origem": "Por padrão, as credenciais de acesso são:\n Nome de usuário: admin\n Senha: admin",
@@ -858,8 +858,8 @@
       "id": 51,
       "pergunta": "Quais ferramentas e materiais são necessários para instalar a iDBox?",
       "dificuldade": "facil",
-      "documento_origem": "idbox.pdf",
-      "arquivo_origem": "iDBox/idbox.pdf",
+      "documento_origem": "idbox-guia.pdf",
+      "arquivo_origem": "iDBox/idbox-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "furadeira, quatro buchas de fixação número 5 (diâmetro interno de 3.5mm), chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechaduras eletrônicas",
       "trecho_origem": "Para instalação da sua iDBox, são necessários os segues itens: furadeira, quatro buchas de fixação número 5 (diâmetro interno de 3.5mm) com seus respectivos parafusos, chave de fenda ou philips, fonte de 12V de no mínimo 1A e fechaduras eletrônicas (conforme seu projeto).",
@@ -874,8 +874,8 @@
       "id": 52,
       "pergunta": "Como acessar a interface web de configuração da iDBox?",
       "dificuldade": "facil",
-      "documento_origem": "idbox.pdf",
-      "arquivo_origem": "iDBox/idbox.pdf",
+      "documento_origem": "idbox-guia.pdf",
+      "arquivo_origem": "iDBox/idbox-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "http://192.168.0.129",
       "trecho_origem": "Para acessar a tela de configuração do equipamento, abra um navegador de internet e digite a URL: http://192.168.0.129",
@@ -886,7 +886,7 @@
         "em": "2026-10-23T23:26:44-0300"
       },
       "documentos_aceitos": [
-        "idbox.pdf",
+        "idbox-guia.pdf",
         "idbox-v2-userguide.pdf"
       ]
     },
@@ -894,8 +894,8 @@
       "id": 53,
       "pergunta": "De onde posso baixar o driver do iDProx USB?",
       "dificuldade": "facil",
-      "documento_origem": "idprox_usb.pdf",
-      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "documento_origem": "idprox_usb-guia.pdf",
+      "arquivo_origem": "iDProx/idprox_usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "https://www.controlid.com.br/idproxusb/windows_driver.zip",
       "trecho_origem": "O driver pode ser encontrado em https://www.controlid.com.br/idproxusb/windows_driver.zip",
@@ -910,8 +910,8 @@
       "id": 54,
       "pergunta": "Que tipo de funcionalidade o iDProx USB oferece após ser configurado?",
       "dificuldade": "facil",
-      "documento_origem": "idprox_usb.pdf",
-      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "documento_origem": "idprox_usb-guia.pdf",
+      "arquivo_origem": "iDProx/idprox_usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Funciona como um teclado que lê o cartão e insere o número no Registrador Eletrônico de Ponto (REP)",
       "trecho_origem": "Depois de configurado o leitor com o formato de saída desejado, clique com o cursor do mouse onde deseja inserir o número do cartão e em seguida leia o cartão. O número aparecerá no lugar 6.4 Registrador Eletrônico de Ponto (REP) – Web Embarcado",
@@ -1058,8 +1058,8 @@
       "id": 63,
       "pergunta": "Qual a tensão de alimentação do modelo USB?",
       "dificuldade": "facil",
-      "documento_origem": "leitor-qr-code-usb.pdf",
-      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb.pdf",
+      "documento_origem": "leitor-qr-code-usb-guia.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "5V",
       "trecho_origem": "Alimentação: 5V (modelo USB) ou 12V (modelo Wiegand)",
@@ -1070,16 +1070,15 @@
         "em": "2026-10-23T23:29:21-0300"
       },
       "documentos_aceitos": [
-        "leitor-qr-code-usb.pdf",
-        "leitor-qr-code-usb1.pdf"
+        "leitor-qr-code-usb-guia.pdf"
       ]
     },
     {
       "id": 64,
       "pergunta": "Quais dimensões o leitor Wiegand possui?",
       "dificuldade": "facil",
-      "documento_origem": "leitor-qr-code-usb.pdf",
-      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb.pdf",
+      "documento_origem": "leitor-qr-code-usb-guia.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "65 x 61 x 29 mm",
       "trecho_origem": "Dimensões: 65 x 61 x 29 mm (A x L x P)",
@@ -1090,16 +1089,15 @@
         "em": "2026-10-23T23:29:29-0300"
       },
       "documentos_aceitos": [
-        "leitor-qr-code-usb.pdf",
-        "leitor-qr-code-usb1.pdf"
+        "leitor-qr-code-usb-guia.pdf"
       ]
     },
     {
       "id": 65,
       "pergunta": "Qual o tamanho do leitor Control iD?",
       "dificuldade": "facil",
-      "documento_origem": "leitor-qr-code-usb1.pdf",
-      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb1.pdf",
+      "documento_origem": "leitor-qr-code-usb-guia.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "65 x 61 x 29 mm (A x L x P)",
       "trecho_origem": "Dimensões: 65 x 61 x 29 mm (A x L x P)",
@@ -1110,16 +1108,15 @@
         "em": "2026-10-23T23:29:37-0300"
       },
       "documentos_aceitos": [
-        "leitor-qr-code-usb1.pdf",
-        "leitor-qr-code-usb.pdf"
+        "leitor-qr-code-usb-guia.pdf"
       ]
     },
     {
       "id": 66,
       "pergunta": "Qual a tensão de alimentação do modelo USB?",
       "dificuldade": "facil",
-      "documento_origem": "leitor-qr-code-usb1.pdf",
-      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb1.pdf",
+      "documento_origem": "leitor-qr-code-usb-guia.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "5V",
       "trecho_origem": "Alimentação: 5V (modelo USB) ou 12V (modelo Wiegand)",
@@ -1131,8 +1128,7 @@
       },
       "duplicada_de": 63,
       "documentos_aceitos": [
-        "leitor-qr-code-usb1.pdf",
-        "leitor-qr-code-usb.pdf"
+        "leitor-qr-code-usb-guia.pdf"
       ]
     },
     {
@@ -1171,8 +1167,8 @@
       "id": 69,
       "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock PcD com iDFace Max suporta?",
       "dificuldade": "facil",
-      "documento_origem": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
-      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+      "documento_origem": "idblock-pcd-facial-idface-max-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-idface-max-datasheet.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Mais de 200.000 usuários",
       "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados*",
@@ -1188,8 +1184,8 @@
       "id": 70,
       "pergunta": "Quantos rostos o iDBlock PcD com iDFace Max consegue identificar?",
       "dificuldade": "facil",
-      "documento_origem": "idblock-pcd-facial-idface-max-datasheet-pt.pdf",
-      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-idface-max-datasheet-pt.pdf",
+      "documento_origem": "idblock-pcd-facial-idface-max-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-idface-max-datasheet.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Até 100.000 faces",
       "trecho_origem": "Capacidade para até 100.000* faces com detecção de rosto vivo",
@@ -1236,8 +1232,8 @@
       "id": 73,
       "pergunta": "Qual é a capacidade máxima de usuários que o iDBlock PcD Facial suporta?",
       "dificuldade": "facil",
-      "documento_origem": "idblock-pcd-facial-datasheet-pt.pdf",
-      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-datasheet-pt.pdf",
+      "documento_origem": "idblock-pcd-facial-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-datasheet.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Mais de 200.000 usuários cadastrados",
       "trecho_origem": "Capacidade para mais de 200.000 usuários cadastrados",
@@ -1253,8 +1249,8 @@
       "id": 74,
       "pergunta": "Qual é a capacidade máxima de faces que o iDBlock PcD Facial pode reconhecer?",
       "dificuldade": "facil",
-      "documento_origem": "idblock-pcd-facial-datasheet-pt.pdf",
-      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-datasheet-pt.pdf",
+      "documento_origem": "idblock-pcd-facial-datasheet.pdf",
+      "arquivo_origem": "IDBlock Facial/idblock-pcd-facial-datasheet.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Até 3.000 (Lite)/10.000 (Pro) faces com detecção de rosto vivo",
       "trecho_origem": "Capacidade para até 3.000 (Lite)/10.000 (Pro) faces com detecção de rosto vivo",
@@ -3506,8 +3502,8 @@
       "dificuldade": "media",
       "tipo": "procedimento",
       "produto": "iDFace",
-      "documento_origem": "idface.pdf",
-      "arquivo_origem": "iDFace/idface.pdf",
+      "documento_origem": "idface-guia.pdf",
+      "arquivo_origem": "iDFace/idface-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Conecte o iDFace direto ao PC por cabo de rede, configure no PC um IP fixo na rede 192.168.0.xxx (xxx diferente de 129) com máscara 255.255.255.0, e acesse http://192.168.0.129. Usuário e senha padrão: admin / admin.",
       "trecho_origem": "http://192.168.0.129",
@@ -3525,8 +3521,8 @@
       "dificuldade": "dificil",
       "tipo": "cenario",
       "produto": "iDFace",
-      "documento_origem": "idface.pdf",
-      "arquivo_origem": "iDFace/idface.pdf",
+      "documento_origem": "idface-guia.pdf",
+      "arquivo_origem": "iDFace/idface-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Mantenha o rosto alinhado com a câmera a 50 cm de distância e evite expressões faciais atípicas e objetos que escondam regiões importantes da face, como máscara e óculos escuros.",
       "trecho_origem": "processo, certifique-se de que o rosto esteja\nalinhado com a câmera mantendo a distância de 50\ncm. Evite expressões faciais atípicas e objetos que",
@@ -3544,8 +3540,8 @@
       "dificuldade": "media",
       "tipo": "condicional",
       "produto": "iDBlock Next",
-      "documento_origem": "idblock-next.pdf",
-      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "documento_origem": "idblock-next-guia.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "O iDFace único pode ficar à esquerda, à direita ou no centro; a catraca pode ter no máximo dois iDFaces.",
       "trecho_origem": "Nesta configuração, um único iDFace\ncontrola a iDBlock Next. O iDFace pode ser\ninstalado na esquerda, direita ou no centro.",
@@ -3563,8 +3559,8 @@
       "dificuldade": "dificil",
       "tipo": "multi-fato",
       "produto": "iDBlock Next",
-      "documento_origem": "idblock-next.pdf",
-      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "documento_origem": "idblock-next-guia.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Só um dispositivo pode ser o primário (controla a catraca, mantém o registro de acessos e fala com o servidor). O secundário apenas coleta os dados de identificação e os envia ao primário; não se comunica com software, não aciona a catraca e não armazena registros de acesso.",
       "trecho_origem": "O dispositivo secundário não se comunica\ncom nenhum software, não envia comandos\nde acionamento para a catraca e não\narmazena registros de acesso.",
@@ -3582,8 +3578,8 @@
       "dificuldade": "dificil",
       "tipo": "tabela",
       "produto": "iDBlock Next",
-      "documento_origem": "idblock-next.pdf",
-      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "documento_origem": "idblock-next-guia.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Lado direito: ligar preto (GND) + verde. Ambos os lados: preto + verde + branco, apertando as duas botoeiras ao mesmo tempo ou ligando o verde com o branco na mesma botoeira. Nunca ligue fonte (+3.3V, +5V, +12V) nos pinos branco e verde.",
       "trecho_origem": "Preto (GND) + Branco Libera lado esquerdo\nPreto (GND) + Verde Libera lado direito\nPreto (GND) + Verde + Branco Libera ambos os lados",
@@ -3601,8 +3597,8 @@
       "dificuldade": "media",
       "tipo": "valor",
       "produto": "iDBlock Next",
-      "documento_origem": "idblock-next.pdf",
-      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "documento_origem": "idblock-next-guia.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "O modo Standalone, em que o equipamento primário guarda no próprio banco todas as informações para identificar e autorizar acessos e os secundários espelham esse banco automaticamente.",
       "trecho_origem": "Este é o modo de operação recomendado\npela Control iD.",
@@ -3620,8 +3616,8 @@
       "dificuldade": "media",
       "tipo": "multi-fato",
       "produto": "iDBlock Next",
-      "documento_origem": "idblock-next.pdf",
-      "arquivo_origem": "iDBlock Next/idblock-next.pdf",
+      "documento_origem": "idblock-next-guia.pdf",
+      "arquivo_origem": "iDBlock Next/idblock-next-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Liberação de giro, relés, LEDs, leitora Wiegand (urna) e confirmação de giro.",
       "trecho_origem": "• Liberação de Giro\n• Relés\n• LEDs\n• Leitora Wiegand (Urna)\n• Confirmação de Giro",
@@ -4307,7 +4303,7 @@
       },
       "documentos_aceitos": [
         "idfit-guia.pdf",
-        "idfit_V2.pdf"
+        "idfit_V2-guia.pdf"
       ]
     },
     {
@@ -4330,7 +4326,7 @@
       },
       "documentos_aceitos": [
         "idfit-guia.pdf",
-        "idfit_V2.pdf"
+        "idfit_V2-guia.pdf"
       ]
     },
     {
@@ -4339,8 +4335,8 @@
       "dificuldade": "media",
       "tipo": "tabela",
       "produto": "iDBox",
-      "documento_origem": "idbox.pdf",
-      "arquivo_origem": "iDBox/idbox.pdf",
+      "documento_origem": "idbox-guia.pdf",
+      "arquivo_origem": "iDBox/idbox-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Os pinos são +12V, GND, DATA 0 e DATA 1 (entradas Wiegand), BEEP (aciona o buzzer do leitor iDProx) e LED (aciona o LED do leitor iDProx).",
       "trecho_origem": "BEEP Aciona Buzzer do Leitor iDProx",
@@ -4358,8 +4354,8 @@
       "dificuldade": "media",
       "tipo": "tabela",
       "produto": "iDBox",
-      "documento_origem": "idbox.pdf",
-      "arquivo_origem": "iDBox/idbox.pdf",
+      "documento_origem": "idbox-guia.pdf",
+      "arquivo_origem": "iDBox/idbox-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "GND, BT (entrada da botoeira), DS (entrada para sensor de porta), COM (contato comum), NC (normalmente fechado) e NO (normalmente aberto).",
       "trecho_origem": "DS Entrada para Sensor de Porta",
@@ -4377,8 +4373,8 @@
       "dificuldade": "dificil",
       "tipo": "condicional",
       "produto": "iDBox",
-      "documento_origem": "idbox.pdf",
-      "arquivo_origem": "iDBox/idbox.pdf",
+      "documento_origem": "idbox-guia.pdf",
+      "arquivo_origem": "iDBox/idbox-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Não: se a fechadura for alimentada por fonte AC, o diodo não deve ser utilizado. Com fonte DC, liga-se o diodo em série com o eletroímã (catodo, a parte listrada, no positivo do eletroímã e anodo no GND).",
       "trecho_origem": "AC, o Diodo não deve ser utilizado na instalação.",
@@ -4390,7 +4386,7 @@
         "em": "2026-10-27T07:43:35-0300"
       },
       "documentos_aceitos": [
-        "idbox.pdf",
+        "idbox-guia.pdf",
         "idbox-v2-userguide.pdf"
       ]
     },
@@ -4400,8 +4396,8 @@
       "dificuldade": "media",
       "tipo": "multi-fato",
       "produto": "iDBox",
-      "documento_origem": "idbox.pdf",
-      "arquivo_origem": "iDBox/idbox.pdf",
+      "documento_origem": "idbox-guia.pdf",
+      "arquivo_origem": "iDBox/idbox-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Furadeira, quatro buchas de fixação número 5 (diâmetro interno de 3,5 mm) com parafusos, chave de fenda ou philips, fonte de 12 V de no mínimo 1 A e as fechaduras eletrônicas conforme o projeto.",
       "trecho_origem": "seguintes itens: furadeira, quatro buchas de fixação\nnúmero 5 (diâmetro interno de 3.5mm) com seus",
@@ -4413,7 +4409,7 @@
         "em": "2026-10-27T07:43:55-0300"
       },
       "documentos_aceitos": [
-        "idbox.pdf",
+        "idbox-guia.pdf",
         "idbox-v2-userguide.pdf"
       ]
     },
@@ -4518,8 +4514,8 @@
       "dificuldade": "media",
       "tipo": "procedimento",
       "produto": "Print iD Touch",
-      "documento_origem": "printid_touch.pdf",
-      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "documento_origem": "printid_touch-guia.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Clique no ícone Menu, na parte central inferior da tela, e selecione a segunda opção, Ticket Teste.",
       "trecho_origem": "clique no ícone Menu, localizado na parte central",
@@ -4537,8 +4533,8 @@
       "dificuldade": "media",
       "tipo": "multi-fato",
       "produto": "Print iD Touch",
-      "documento_origem": "printid_touch.pdf",
-      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "documento_origem": "printid_touch-guia.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "USB B (device) para o PC, duas portas USB A (host) para periféricos como módulos Wi-Fi e Bluetooth, Ethernet, gaveta de dinheiro, HDMI e conector de fonte.",
       "trecho_origem": "duas portas USB 2.0 utilizadas",
@@ -4556,8 +4552,8 @@
       "dificuldade": "dificil",
       "tipo": "procedimento",
       "produto": "Print iD Touch",
-      "documento_origem": "printid_touch.pdf",
-      "arquivo_origem": "Print iD Touch/printid_touch.pdf",
+      "documento_origem": "printid_touch-guia.pdf",
+      "arquivo_origem": "Print iD Touch/printid_touch-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Baixar o arquivo de firmware na página da Print iD Touch, copiá-lo para um pendrive formatado em FAT32, inserir o pendrive em um dos conectores USB A com a impressora ligada; a atualização inicia automaticamente e, após alguns minutos, a impressora reinicia e imprime o ticket de teste.",
       "trecho_origem": "formatado em FAT32",
@@ -4575,8 +4571,8 @@
       "dificuldade": "media",
       "tipo": "comparacao",
       "produto": "iDProx USB",
-      "documento_origem": "idprox_usb.pdf",
-      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "documento_origem": "idprox_usb-guia.pdf",
+      "arquivo_origem": "iDProx/idprox_usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "125kHz ASK: Padrão (MSB) e LSB. MIFARE: Padrão (MSB64), Wiegand (MSB24), LSB 24, LSB 32 e LSB 64.",
       "trecho_origem": "MIFARE™: Padrão(MSB64), Wiegand(MSB24), LSB 24, LSB 32 e LSB 64",
@@ -4594,8 +4590,8 @@
       "dificuldade": "media",
       "tipo": "comparacao",
       "produto": "iDProx USB",
-      "documento_origem": "idprox_usb.pdf",
-      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "documento_origem": "idprox_usb-guia.pdf",
+      "arquivo_origem": "iDProx/idprox_usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "No Windows 8/10 a instalação é automática. No Windows 7 é preciso instalar o driver manualmente pelo Gerenciador de Dispositivos (dispositivo CDC Serial), escolhendo o driver baixado do site da Control iD.",
       "trecho_origem": "É preciso instalar um driver para o funcionamento nesse sistema, siga as",
@@ -4613,8 +4609,8 @@
       "dificuldade": "dificil",
       "tipo": "tabela",
       "produto": "iDProx USB",
-      "documento_origem": "idprox_usb.pdf",
-      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "documento_origem": "idprox_usb-guia.pdf",
+      "arquivo_origem": "iDProx/idprox_usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "No RHiD, no funcionário, em Cartão RFID, selecione o tipo de cartão e o modo de exibição: para Mifare, formato de leitura Padrão (MSB 64) e formato de saída Hexadecimal.",
       "trecho_origem": "Mifare Padrão Padrão (MSB 64) Hexadecimal",
@@ -4632,8 +4628,8 @@
       "dificuldade": "media",
       "tipo": "explicacao",
       "produto": "iDProx USB",
-      "documento_origem": "idprox_usb.pdf",
-      "arquivo_origem": "iDProx/idprox_usb.pdf",
+      "documento_origem": "idprox_usb-guia.pdf",
+      "arquivo_origem": "iDProx/idprox_usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "Desloca o código de área em relação ao código de usuário, conforme a aplicação; as opções são Padrão (16 bits) e 32 bits.",
       "trecho_origem": "aplicação. As opções disponíveis para o deslocamento são: Padrão (16 bits) e 32",
@@ -4822,8 +4818,8 @@
       "dificuldade": "media",
       "tipo": "comparacao",
       "produto": "Leitor de código de barras e QR Code",
-      "documento_origem": "leitor-qr-code-usb.pdf",
-      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb.pdf",
+      "documento_origem": "leitor-qr-code-usb-guia.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "5 V no modelo USB e 12 V no modelo Wiegand.",
       "trecho_origem": "• Alimentação: 5V (modelo USB) ou 12V (modelo Wiegand)",
@@ -4835,8 +4831,7 @@
         "em": "2026-10-27T07:49:24-0300"
       },
       "documentos_aceitos": [
-        "leitor-qr-code-usb.pdf",
-        "leitor-qr-code-usb1.pdf"
+        "leitor-qr-code-usb-guia.pdf"
       ]
     },
     {
@@ -4845,8 +4840,8 @@
       "dificuldade": "dificil",
       "tipo": "procedimento",
       "produto": "Leitor de código de barras e QR Code",
-      "documento_origem": "leitor-qr-code-usb.pdf",
-      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb.pdf",
+      "documento_origem": "leitor-qr-code-usb-guia.pdf",
+      "arquivo_origem": "Leitor  QR Code/leitor-qr-code-usb-guia.pdf",
       "origem_ambigua": false,
       "resposta_esperada": "A configuração é feita aproximando o leitor dos códigos de configuração impressos no guia e aguardando o bipe de confirmação: no sufixo (apenas modelo USB) escolhe-se Adicionar CR+LF; para o som, Desabilitar Som.",
       "trecho_origem": "5.2 Configuração do Sufixo (apenas modelo USB)",
@@ -4858,8 +4853,7 @@
         "em": "2026-10-27T07:49:35-0300"
       },
       "documentos_aceitos": [
-        "leitor-qr-code-usb.pdf",
-        "leitor-qr-code-usb1.pdf"
+        "leitor-qr-code-usb-guia.pdf"
       ]
     },
     {
