@@ -30,6 +30,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.email import enviar_email_admin
+from app.agents.execucoes import registrar_execucao
 from app.agents.runtime import runtime
 from app.config import Settings, get_settings
 from app.db.models import MensagemAgente, Pedido, PedidoItem, Produto, ProdutoEstoque
@@ -173,49 +174,78 @@ async def _decidir(f: FatosEstoque, settings: Settings) -> Decisao:
     return decidir_deterministico(f)
 
 
+async def _avaliar_produto(
+    session: AsyncSession, produto_id: int, settings: Settings
+) -> tuple[bool, MensagemAgente | None]:
+    """Avalia um produto: `(avaliado, mensagem criada ou None)`."""
+    produto = await session.get(Produto, produto_id)
+    if produto is None:
+        return False, None
+    chave = f"estoque:{produto_id}"
+    fatos = await coletar_fatos(session, produto, settings)
+    # Sem baixa na janela não há o que prever (nem custo de LLM a gastar).
+    if fatos.unidades_janela <= 0:
+        return True, None
+    if await _ja_alertado(session, chave):
+        return True, None
+
+    decisao = await _decidir(fatos, settings)
+    if not decisao.alertar:
+        return True, None
+
+    mensagem = MensagemAgente(
+        agente=decisao.agente,
+        tipo=TIPO,
+        severidade=decisao.severidade,
+        titulo=decisao.titulo,
+        corpo=decisao.corpo,
+        dados=decisao.dados,
+        chave_dedupe=chave,
+    )
+    mensagem.email_status = await enviar_email_admin(settings, decisao.titulo, decisao.corpo)
+    session.add(mensagem)
+    await session.commit()
+    logger.info("Alerta de estoque (%s) criado para o produto %s", decisao.agente, produto_id)
+    return True, mensagem
+
+
 async def avaliar_estoque(
     session: AsyncSession,
     produto_ids: Iterable[int],
     *,
     settings: Settings | None = None,
 ) -> list[MensagemAgente]:
-    """Avalia os produtos e devolve as mensagens criadas (já commitadas)."""
+    """Avalia os produtos e devolve as mensagens criadas (já commitadas).
+
+    Cada rodada deixa uma linha em `agente_execucoes` (com ou sem alerta, e com
+    o erro se falhar), que alimenta o indicador do catálogo."""
     if runtime.estoque_modo == "desativado":
         return []
     settings = settings or get_settings()
+    modo = runtime.estoque_modo
     criadas: list[MensagemAgente] = []
+    avaliados = 0
 
-    for produto_id in sorted(set(produto_ids)):
-        produto = await session.get(Produto, produto_id)
-        if produto is None:
-            continue
-        chave = f"estoque:{produto_id}"
-        fatos = await coletar_fatos(session, produto, settings)
-        # Sem baixa na janela não há o que prever (nem custo de LLM a gastar).
-        if fatos.unidades_janela <= 0:
-            continue
-        if await _ja_alertado(session, chave):
-            continue
-
-        decisao = await _decidir(fatos, settings)
-        if not decisao.alertar:
-            continue
-
-        mensagem = MensagemAgente(
-            agente=decisao.agente,
-            tipo=TIPO,
-            severidade=decisao.severidade,
-            titulo=decisao.titulo,
-            corpo=decisao.corpo,
-            dados=decisao.dados,
-            chave_dedupe=chave,
+    try:
+        for produto_id in sorted(set(produto_ids)):
+            avaliado, mensagem = await _avaliar_produto(session, produto_id, settings)
+            avaliados += int(avaliado)
+            if mensagem is not None:
+                criadas.append(mensagem)
+    except Exception as exc:
+        await session.rollback()
+        await registrar_execucao(
+            session,
+            modo=modo,
+            produtos_avaliados=avaliados,
+            alertas_criados=len(criadas),
+            erro=f"{type(exc).__name__}: {exc}",
         )
-        mensagem.email_status = await enviar_email_admin(settings, decisao.titulo, decisao.corpo)
-        session.add(mensagem)
-        await session.commit()
-        criadas.append(mensagem)
-        logger.info("Alerta de estoque (%s) criado para o produto %s", decisao.agente, produto_id)
+        raise
 
+    await registrar_execucao(
+        session, modo=modo, produtos_avaliados=avaliados, alertas_criados=len(criadas)
+    )
     return criadas
 
 

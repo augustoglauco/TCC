@@ -6,6 +6,7 @@ import {
   contarPorCategoria,
   useAdminProdutos,
 } from "@/lib/hooks/useAdminProdutos";
+import { AgenteEstoqueIndicador } from "@/components/admin/products/AgenteEstoqueIndicador";
 import ProductListTable from "@/components/admin/products/ProductListTable";
 import ProductFormModal from "@/components/admin/products/ProductFormModal";
 import CatalogImportModal from "@/components/admin/products/CatalogImportModal";
@@ -21,6 +22,7 @@ export default function AdminProdutosPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10 space-y-6">
       <ProdutosHeader onImport={() => p.setImportModalOpen(true)} onNew={p.handleNewProduct} />
+      <AgenteEstoqueIndicador />
       <ProdutosMetricas metricas={calcularMetricas(p.produtos)} />
       <ProdutosFiltros
         termo={p.termo}

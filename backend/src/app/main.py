@@ -17,6 +17,7 @@ from app.agents.runtime import runtime as agent_runtime
 from app.api.admin_atendimento import router as admin_atendimento_router
 from app.api.admin_charts import router as admin_charts_router
 from app.api.admin_datasets import router as admin_datasets_router
+from app.api.admin_estoque_agente import router as admin_estoque_agente_router
 from app.api.admin_ferramentas import router as admin_ferramentas_router
 from app.api.admin_mensagens import router as admin_mensagens_router
 from app.api.admin_metrics import router as admin_metrics_router
@@ -360,6 +361,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_datasets_router)
     app.include_router(avaliacao_router)
     app.include_router(admin_mensagens_router)
+    app.include_router(admin_estoque_agente_router)
     app.include_router(crawler_router)
     app.include_router(image_search_router)
     app.include_router(local_models_router)

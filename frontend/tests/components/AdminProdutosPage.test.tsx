@@ -12,6 +12,10 @@ vi.mock("@/lib/api/adminProducts", () => ({
   deleteAdminProduct: vi.fn(),
 }));
 
+vi.mock("@/components/admin/products/AgenteEstoqueIndicador", () => ({
+  AgenteEstoqueIndicador: () => <div data-testid="agente-estoque-indicador" />,
+}));
+
 vi.mock("@/components/admin/products/ProductListTable", () => ({
   default: ({
     produtos,
@@ -292,9 +296,7 @@ describe("AdminProdutosPage — busca e filtros", () => {
   it("exibe o campo de busca", async () => {
     render(<AdminProdutosPage />);
     await screen.findByText("Catálogo de Produtos");
-    expect(
-      screen.getByPlaceholderText(/Buscar por nome, modelo/),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Buscar por nome, modelo/)).toBeInTheDocument();
   });
 
   it("exibe o CategoryFilter com as categorias disponíveis", async () => {

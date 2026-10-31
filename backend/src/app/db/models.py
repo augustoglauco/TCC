@@ -11,6 +11,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Integer,
     Numeric,
     String,
     Text,
@@ -619,6 +620,29 @@ class MensagemAgente(Base):
     chave_dedupe: Mapped[str | None] = mapped_column(String(200), index=True, nullable=True)
     lida: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     email_status: Mapped[str] = mapped_column(String(30), default="nao_enviado")
+    criado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+
+
+class AgenteExecucao(Base):
+    """Uma avaliação do agente de estoque (R13), gravada a cada rodada, com ou sem
+    alerta, para o catálogo mostrar que o agente está vivo (a caixa de entrada
+    `mensagens_agentes` só guarda alertas, e "nenhum alerta" não distinguia
+    agente saudável de agente parado). `erro` é preenchido quando a rodada falhou.
+
+    # MVP: sem retenção/limpeza (uma linha por pedido) e sem registrar o fallback
+    # do modo IA para a regra determinística.
+    """
+
+    __tablename__ = "agente_execucoes"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    agente: Mapped[str] = mapped_column(String(50), index=True)
+    modo: Mapped[str] = mapped_column(String(20))
+    produtos_avaliados: Mapped[int] = mapped_column(Integer, default=0)
+    alertas_criados: Mapped[int] = mapped_column(Integer, default=0)
+    erro: Mapped[str | None] = mapped_column(Text, nullable=True)
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )

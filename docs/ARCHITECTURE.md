@@ -1316,6 +1316,20 @@ cobertura = estoque / taxa; abaixo de 10 dias, publica uma mensagem em
 por e-mail se houver SMTP (`ADMIN_ALERT_EMAIL`). No máximo um alerta por
 produto a cada 24 h.
 
+- **Indicador de vida (2026-10-31):** o agente só roda quando há pedido e fica
+  em silêncio quando não há risco, então "nenhum alerta" não distinguia agente
+  saudável de agente parado. Cada rodada de `avaliar_estoque` grava uma linha em
+  `agente_execucoes` (migração `0030`: modo, produtos avaliados, alertas
+  criados e o erro, se a rodada falhou), com ou sem alerta; o modo
+  `desativado` não grava. `GET /api/admin/agentes/estoque/status` devolve o
+  modo, o LLM (no modo IA), a última execução e o último alerta, e o catálogo
+  (`/admin/produtos`) mostra uma faixa: verde (ativo, avaliou), amarela (ativo,
+  sem pedido ainda), vermelha (última rodada falhou, motivo no `title`) e cinza
+  (desativado, ou status indisponível). `# MVP:` sem retenção da tabela (uma
+  linha por pedido), sem botão "avaliar agora" e sem registrar o fallback do
+  modo IA para a regra determinística. "Vivo" significa habilitado e sem erro,
+  não "executando agora".
+
 - **Dois "cérebros" (2026-10-15, para aprendizagem e teste):** o determinístico
   acima e o de IA (`app.agents.estoque_ia`). `estoque_agent_mode` =
   `desativado` | `deterministico` (padrão) | `ia`, e `estoque_agent_llm` =

@@ -257,6 +257,15 @@ O sistema expõe um servidor MCP próprio, usado por IAs de parceiros (B2B), com
 * **Agrupamento de Preços**: A tabela destaca visualmente o preço base do revendedor e o preço sugerido de venda ao consumidor final.
 * **Fonte Única Autorizada no PostgreSQL**: Todos os dados do catálogo são mantidos e consultados diretamente no banco de dados relacional (`SalesCatalogClient`), sem duplicar ou poluir o RAG textual com arquivos sintéticos.
 
+### Indicador do Agente de Estoque (`/admin/produtos`)
+Logo abaixo do título há uma faixa que diz se o agente de previsão de estoque está funcionando:
+* **Verde**: ativo, com a última avaliação, quantos produtos avaliou e quantos alertas gerou.
+* **Amarela**: ativo, mas ainda sem nenhuma avaliação ("aguardando o primeiro pedido"). O agente só roda quando um pedido é criado, então sem pedidos ele fica assim.
+* **Vermelha**: a última avaliação falhou; passe o mouse para ver o motivo.
+* **Cinza**: desativado (com atalho para `/admin/modelos`) ou status indisponível.
+
+"Ativo" significa habilitado e sem erro. Zero alertas é normal quando o estoque está folgado.
+
 ### Formulário de Produto (abas)
 Ao criar ou editar um produto, o formulário tem quatro abas: **Informações Gerais & Fotos** (nome, categoria, família, descrição, especificações, dimensões, peso, preços e fotos), **Estoque por CD** (quantidade por centro de distribuição), **Descontos Volume** (percentual por quantidade mínima) e **Compatibilidade** (vínculos com outros produtos, consultados nos dois sentidos). Em Informações Gerais há ainda o campo **Alertar estoque com (dias)**: o prazo de reposição daquele produto, que substitui o padrão de 10 dias do agente de previsão de estoque (vazio = padrão). O campo **Família** (opcional) agrupa os modelos do mesmo produto: cadastre cada modelo como um produto, com nome padronizado (ex.: `iDAccess — Pro`), a mesma categoria e a mesma família; por ora é só organização do cadastro, o assistente não usa o campo. As fotos cadastradas são indexadas no CLIP para a busca por imagem.
 

@@ -1494,6 +1494,10 @@ conversa e classificação do usuário").
       (caixa de entrada de agentes, marcar como lida, contador no menu ⚙️).
 - [x] Atualizar `docs/FRONTEND.md` (contrato) e `docs/CONVENTIONS.md` se
       surgir convenção nova.
+- [x] Indicador de vida do agente de estoque no catálogo (2026-10-31):
+      `agente_execucoes` (migração `0030`), `GET /api/admin/agentes/estoque/status`
+      e a faixa de `/admin/produtos` (verde/amarela/vermelha/cinza). Decisão em
+      `docs/ARCHITECTURE.md`.
 - [x] Cérebro de IA do agente (`app.agents.estoque_ia`, LLM local ou
       externo, com fallback para a regra determinística) e configuração
       persistente do agente ativo (`desativado` | `deterministico` | `ia`)
