@@ -82,6 +82,10 @@ class RagDocument(Base):
     domain: Mapped[str]
     chunk_count: Mapped[int]
     storage_path: Mapped[str | None]
+    # Arquivo que o cliente baixa no card do chat, quando diferente do ingerido
+    # (ex.: o PDF original do fornecedor, enquanto `storage_path` guarda o `.md`
+    # tratado que o RAG indexa). `None` = o download devolve `storage_path`.
+    download_path: Mapped[str | None] = mapped_column(nullable=True)
     origin: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

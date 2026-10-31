@@ -27,6 +27,8 @@ export interface DocumentRegistryEntry {
   collection_name: string;
   origin: RagDocumentOrigin;
   created_at: string;
+  /** Nome do arquivo que o cliente baixa quando difere do ingerido; null = o próprio ingerido. */
+  download_filename?: string | null;
 }
 
 export type DistanceMetric = "cosine" | "euclid" | "dot" | "manhattan";

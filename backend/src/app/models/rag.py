@@ -56,6 +56,9 @@ class DocumentRegistryResponse(BaseModel):
     collection_name: str
     origin: RagDocumentOrigin
     created_at: datetime
+    # Nome do arquivo que o cliente baixa quando difere do ingerido (ex.: o PDF
+    # original de um `.md` tratado); `None` = baixa o próprio arquivo ingerido.
+    download_filename: str | None = None
 
 
 class ReingestRequest(BaseModel):

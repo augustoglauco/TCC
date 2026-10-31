@@ -4,6 +4,7 @@ import { CollectionFormModal } from "@/components/admin/CollectionFormModal";
 import { CollectionPurposeCard } from "./CollectionPurposeCard";
 import { CollectionSelector } from "./CollectionSelector";
 import { DocumentDropzone } from "./DocumentDropzone";
+import { DownloadFileInput } from "./DownloadFileInput";
 import { useEnviarDocumento } from "./useEnviarDocumento";
 import type { DocumentIngestResponse, RagCollection, RagDomain } from "@/lib/types/rag";
 
@@ -155,6 +156,8 @@ export function AbaEnviarDocumento({
         />
 
         <DocumentDropzone file={s.file} onFileChange={s.handleFileChange} onError={s.setError} />
+
+        <DownloadFileInput file={s.downloadFile} onFileChange={s.setDownloadFile} />
 
         <BotaoEnviar disabled={!s.file || s.isSubmitting} enviando={s.isSubmitting} />
       </form>

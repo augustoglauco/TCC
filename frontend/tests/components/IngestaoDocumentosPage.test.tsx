@@ -230,6 +230,28 @@ describe("IngestaoDocumentosPage", () => {
     });
   });
 
+  it("envia o arquivo para download opcional junto com o arquivo ingerido", async () => {
+    const user = userEvent.setup();
+    mockedUploadDocument.mockResolvedValue({
+      filename: "idaccess.md",
+      domain: "vendas",
+      chunks: 2,
+    });
+    render(<IngestaoDocumentosPage />);
+    await user.click(await screen.findByRole("tab", { name: "Enviar documento" }));
+
+    const md = new File(["# texto"], "idaccess.md", { type: "text/markdown" });
+    const pdf = new File(["%PDF"], "idaccess.pdf", { type: "application/pdf" });
+    await user.upload(await screen.findByLabelText("Arquivo"), md);
+    await user.upload(screen.getByLabelText(/Arquivo para download/), pdf);
+    await user.click(screen.getByRole("button", { name: "Enviar para ingestão" }));
+
+    expect(mockedUploadDocument).toHaveBeenCalledWith(
+      "mock-token-1",
+      expect.objectContaining({ file: md, downloadFile: pdf }),
+    );
+  });
+
   it("destaca a área de dropzone ao arrastar arquivo e remove o destaque ao sair", async () => {
     render(<IngestaoDocumentosPage />);
     const dropzone = await screen.findByTestId("document-dropzone");

@@ -84,9 +84,10 @@ O sistema utiliza a técnica de **RAG (Busca Aumentada por Recuperação)**. Iss
 1. Acesse `/admin/ingestao`, aba **Enviar documento**.
 2. Escolha o **domínio** (Vendas, Suporte Técnico ou Atendimento ao Usuário) e a collection de destino.
 3. Selecione ou arraste um arquivo `.pdf`, `.txt` ou `.md` (ex.: *Manual_de_Instalacao_Produto_X.pdf*).
-4. Clique em **Enviar para ingestão**.
-5. O sistema extrai o texto (PDFs de duas colunas são lidos coluna a coluna), divide em blocos e grava na base vetorial. A partir daí o assistente já responde com base no arquivo. PDFs que são só imagem escaneada não rendem texto (não há OCR na ingestão de documentos).
-6. Na aba **Documentos ingeridos** você filtra, abre, baixa, reingere em outra collection ou exclui cada documento.
+4. Se quiser que o cliente baixe no chat outro arquivo no lugar do enviado (por exemplo, o PDF original do fornecedor quando você ingere o `.md` tratado), escolha-o em **Arquivo para download (opcional)**. Ele só é guardado: a busca lê apenas o arquivo do passo 3. Sem esse campo, o cliente baixa o próprio arquivo enviado.
+5. Clique em **Enviar para ingestão**.
+6. O sistema extrai o texto (PDFs de duas colunas são lidos coluna a coluna), divide em blocos e grava na base vetorial. A partir daí o assistente já responde com base no arquivo. PDFs que são só imagem escaneada não rendem texto (não há OCR na ingestão de documentos).
+7. Na aba **Documentos ingeridos** você filtra, abre, baixa, reingere em outra collection ou exclui cada documento.
 
 ### Quem pode ver cada documento (campo "Finalidade")
 

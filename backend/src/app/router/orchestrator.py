@@ -31,6 +31,7 @@ from app.models.runtime_settings import (
     DEFAULT_INTENT_ROUTER_PROVIDER,
     DEFAULT_TONE_MONITOR_PROVIDER,
 )
+from app.rag.registry import download_filename
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
@@ -598,7 +599,10 @@ async def _construir_card_documento_download(
             # final). `order_by(created_at desc)` é só o critério de
             # desempate caso ainda sobre mais de uma linha `purpose="chat"`.
             doc = resultado.scalar_one_or_none()
-            if doc is None or not doc.storage_path:
+            if doc is None:
+                return None
+            arquivo = doc.download_path or doc.storage_path
+            if not arquivo:
                 return None
             try:
                 # Intencionalmente mais estrito que a cadeia de fallback do
@@ -608,12 +612,12 @@ async def _construir_card_documento_download(
                 # f"{id}_{filename}"`. Um documento cujo arquivo só resolve
                 # via fallback simplesmente não ganha card — nunca um link
                 # morto no chat (achado menor 4 da revisão final).
-                file_size = Path(doc.storage_path).stat().st_size
+                file_size = Path(arquivo).stat().st_size
             except OSError:
                 return None
             return CardDocumentoDownload(
                 documento_id=str(doc.id),
-                filename=doc.filename,
+                filename=download_filename(doc) or doc.filename,
                 domain=doc.domain,
                 score=melhor_chunk.score,
                 download_url=f"/api/rag/documents/{doc.id}/download",

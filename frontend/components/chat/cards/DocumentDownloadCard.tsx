@@ -1,5 +1,6 @@
 import type { ChatCardDocumentoDownload } from "@/lib/types/chat";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
+import { FileTypeIcon } from "@/components/ui/FileTypeIcon";
 
 /** Formata bytes em KB/MB para exibição no card (sem utilitário existente
  * no repo para isso — helper local simples, só o suficiente para o MVP). */
@@ -26,7 +27,7 @@ export default function DocumentDownloadCard({ card }: { card: ChatCardDocumento
   return (
     <div className="flex w-full max-w-[85%] gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
       <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-slate-100">
-        <span className="text-2xl">📄</span>
+        <FileTypeIcon filename={card.filename} className="h-12 w-10" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
         <p className="truncate text-sm font-semibold text-slate-900">{card.filename}</p>

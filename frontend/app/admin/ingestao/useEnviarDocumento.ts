@@ -15,6 +15,7 @@ interface Params {
 export function useEnviarDocumento({ collections, onColecoesMudaram, onIngerido }: Params) {
   const token = useAuthStore((s) => s.token);
   const [file, setFile] = useState<File | null>(null);
+  const [downloadFile, setDownloadFile] = useState<File | null>(null);
   const [domain, setDomain] = useState<RagDomain>("vendas");
   const [collectionId, setCollectionId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,9 +46,11 @@ export function useEnviarDocumento({ collections, onColecoesMudaram, onIngerido 
         file,
         domain,
         collectionId: collectionSelecionada || undefined,
+        downloadFile: downloadFile ?? undefined,
       });
       setResult(response);
       setFile(null);
+      setDownloadFile(null);
       onIngerido();
     } catch (err) {
       setError(err instanceof RagApiError ? err.message : "Erro inesperado ao enviar o documento.");
@@ -63,6 +66,8 @@ export function useEnviarDocumento({ collections, onColecoesMudaram, onIngerido 
 
   return {
     file,
+    downloadFile,
+    setDownloadFile,
     domain,
     setDomain,
     setCollectionId,

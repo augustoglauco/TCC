@@ -840,6 +840,23 @@ humana e a Central `/admin/atendimento` vieram em 2026-10-03/05; a listagem é
 `GET /api/admin/tom/escalonamentos`. `# MVP:` sem "des-escalar" (estado em
 memória por processo).
 
+**Decisão registrada (2026-10-31): arquivo de download separado do arquivo
+ingerido.** O RAG indexa o `.md` tratado, mas o cliente deve baixar o original
+do fornecedor (PDF). `rag_documents.download_path` (migração `0028`, opcional)
+guarda esse arquivo em `RAG_UPLOADS_DIR` como `<id>_download_<nome>`; o campo
+opcional `download_file` do `POST /api/rag/documents` o preenche, e o nome
+exibido é o que vem depois de `_download_` (`app.rag.registry.download_filename`).
+`GET /api/rag/documents/{id}/download` e o card do chat usam o arquivo de
+download quando existe (nome e tamanho dele); sem ele, tudo como antes. Se o
+arquivo de download sumiu do disco, o card não é emitido e o endpoint devolve
+`404` (nunca entrega o `.md` no lugar do PDF). O `/content` do admin segue
+mostrando o ingerido, que é o texto que a busca lê. A reingestão copia o
+`download_path`; excluir documento ou collection apaga os dois arquivos.
+`# MVP:` sem anexar depois nem pareamento automático por nome; documentos já
+ingeridos só ganham o arquivo reingerindo; e, como já ocorria com
+`storage_path`, a reingestão compartilha os arquivos com o documento de
+origem, então apagar um apaga o do outro.
+
 **Decisão registrada (2026-10-31): modelos do mesmo produto são uma linha
 cada em `produtos`, agrupados por `familia`.** Preço, promoção, estoque,
 desconto por volume, item de pedido, imagem e compatibilidade são por

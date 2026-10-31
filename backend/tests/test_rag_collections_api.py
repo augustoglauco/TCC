@@ -352,6 +352,59 @@ async def test_excluir_collection_ativa_retorna_409_sem_tocar_qdrant(
     assert await qdrant.collection_exists(active_collection.name) is True
 
 
+async def test_excluir_collection_remove_tambem_o_arquivo_de_download(
+    db_session, active_collection, admin_headers, tmp_path
+):
+    from app.rag.collections_registry import create_collection
+    from app.rag.registry import create_document
+
+    inativa = await create_collection(
+        db_session,
+        name="com_download",
+        embedding_model="fake-embedding-model",
+        vector_dimension=384,
+        distance_metric="cosine",
+        chunk_size=800,
+        chunk_overlap=100,
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+        **_DEFAULT_HNSW,
+    )
+    ingerido = tmp_path / "a_idaccess.md"
+    ingerido.write_text("texto")
+    pdf = tmp_path / "a_download_idaccess.pdf"
+    pdf.write_bytes(b"%PDF")
+    await create_document(
+        db_session,
+        document_id=str(uuid.uuid4()),
+        collection_id=inativa.id,
+        filename="idaccess.md",
+        domain="vendas",
+        chunk_count=1,
+        storage_path=str(ingerido),
+        download_path=str(pdf),
+        origin="upload",
+    )
+    qdrant = _qdrant()
+    await qdrant.create_collection(
+        name="com_download",
+        vector_dimension=384,
+        distance_metric="cosine",
+        quantization_type="none",
+        quantization_config={},
+        payload_indexes=[],
+        **_DEFAULT_HNSW,
+    )
+    client = TestClient(_build_app(qdrant, db_session))
+
+    response = client.delete(f"/api/rag/collections/{inativa.id}", headers=admin_headers)
+
+    assert response.status_code == 204
+    assert not ingerido.exists()
+    assert not pdf.exists()
+
+
 async def test_excluir_collection_inativa_remove_em_cascata(
     db_session, active_collection, admin_headers
 ):

@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 
+import { FileTypeIcon } from "@/components/ui/FileTypeIcon";
+
 const ACCEPTED_EXTENSIONS = ".txt,.md,.pdf";
 
 interface Props {
@@ -28,6 +30,7 @@ function ConteudoDropzone({
         </div>
       ) : file ? (
         <div className="space-y-2">
+          <FileTypeIcon filename={file.name} className="mx-auto h-12 w-10" />
           <div className="space-y-1">
             <p className="text-sm font-bold text-slate-900">{file.name}</p>
             <p className="text-xs text-slate-500">

@@ -119,7 +119,10 @@ com o histórico recarregado.
     com persistência permanente na tabela `admin_charts` e link direto para
     o painel `/admin/dashboards`.
   - `DocumentDownloadCard` (`card.tipo === "documento_download"`, 2026-10-05):
-    nome do arquivo, badge de relevância (score arredondado em %) e tamanho
+    ícone do tipo do arquivo (`components/ui/FileTypeIcon.tsx`, 2026-10-31:
+    folha com etiqueta colorida PDF, MD, TXT ou CSV; outro formato vira o
+    ícone genérico), nome do arquivo (o do arquivo de download associado,
+    quando há, em vez do `.md` ingerido), badge de relevância (score arredondado em %) e tamanho
     formatado (KB/MB), com link `<a download>` apontando para
     `GET /api/rag/documents/{id}/download` (resolvido via `getApiBaseUrl()`
     + `card.download_url`). Emitido pelo orquestrador quando a busca
@@ -254,11 +257,11 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `GET /api/auth/users` | Lista todos os usuários cadastrados com o perfil já calculado, para a página `/admin/usuarios` — decisão em `docs/ARCHITECTURE.md` §5 (2026-09-29) |
 | `POST /api/orders` , `GET /api/orders/{id}` , `GET /api/orders` , `POST /api/orders/quote` , `POST /api/orders/freight` | Criação, consulta, cotação por volume e simulação de frete de pedidos (Fase 7) |
 | `GET /api/agendamentos/meus` , `POST /api/agendamentos/{id}/cancelar` , `GET /api/agendamentos/admin` , `POST /api/agendamentos/admin/manual` , `GET /api/agendamentos/admin/google-events` | Gestão completa de agendamentos, cancelamento sincronizado com o Google Calendar e consulta em tempo real da agenda corporativa via MCP (Fase 7, R11) |
-| `POST /api/rag/documents` | Upload de um PDF/texto (`multipart/form-data`: `file` + `domain` + `collection_id` opcional, default a collection ativa) para ingestão no RAG — usado pela página `/admin/ingestao` (ver `backend/src/app/api/rag.py`) |
+| `POST /api/rag/documents` | Upload de um PDF/texto (`multipart/form-data`: `file` + `domain` + `collection_id` opcional, default a collection ativa) para ingestão no RAG — usado pela página `/admin/ingestao` (ver `backend/src/app/api/rag.py`). `download_file` (opcional, 2026-10-31): arquivo que o cliente baixa no chat no lugar do ingerido (ex.: o PDF original de um `.md` tratado); só é guardado, nunca indexado; mesmos formatos da ingestão, senão `400` sem ingerir nada |
 | `GET /api/rag/documents` | Lista o registro de documentos ingeridos (mais recente primeiro), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `DELETE /api/rag/documents/{document_id}` | Exclui um documento (registro + pontos no Qdrant), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/documents/{document_id}/reingest` | Reingere um documento já enviado em outra collection (a partir do arquivo original salvo em disco), fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
-| `GET /api/rag/documents/{document_id}/download` | Baixa o arquivo original (`Content-Disposition: attachment`), usado pelo `DocumentDownloadCard` do chat. **Público** só quando a collection de origem tem `purpose="chat"`; para qualquer outro `purpose` (`admin`, `mcp_b2b`) exige token admin (`Authorization`, `X-Auth-Token` ou `?token=`). `404` se o documento não existe |
+| `GET /api/rag/documents/{document_id}/download` | Baixa o arquivo original (`Content-Disposition: attachment`), usado pelo `DocumentDownloadCard` do chat. **Público** só quando a collection de origem tem `purpose="chat"`; para qualquer outro `purpose` (`admin`, `mcp_b2b`) exige token admin (`Authorization`, `X-Auth-Token` ou `?token=`). `404` se o documento não existe. Com arquivo de download associado (`download_path`), devolve esse arquivo com o nome dele; se ele sumiu do disco, `404` (não cai no ingerido). Sem associado, devolve o ingerido, como antes |
 | `GET /api/rag/documents/{document_id}/content` | Devolve o arquivo original do documento (PDF/TXT/MD/CSV, `FileResponse` com `Content-Disposition: inline`), usado pelo preview em `DocumentViewModal.tsx` (`/admin/ingestao`) — 404 se o documento ou o arquivo em disco não existir, fora do MVP original |
 | `GET /api/rag/collections` | Lista os perfis de collection configurados, com contagem de documentos e finalidade (`purpose`: `chat`/`mcp_b2b`/`admin`) por collection, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |
 | `POST /api/rag/collections` | Cria um novo perfil de collection (nome, modelo de embedding, chunking, HNSW, quantização, payload indexing, `purpose` — default `chat`) e a collection real correspondente no Qdrant, fora do MVP original — ver `docs/ARCHITECTURE.md` §5 |

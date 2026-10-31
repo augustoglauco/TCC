@@ -24,6 +24,15 @@ describe("DocumentDownloadCard (chat)", () => {
     expect(screen.getByText("Manual_GD30.pdf")).toBeInTheDocument();
   });
 
+  it("mostra o ícone do tipo do arquivo (PDF e Markdown)", () => {
+    const { unmount } = render(<DocumentDownloadCard card={makeCard()} />);
+    expect(screen.getByRole("img", { name: "Arquivo PDF" })).toBeInTheDocument();
+    unmount();
+
+    render(<DocumentDownloadCard card={makeCard({ filename: "idaccess.md" })} />);
+    expect(screen.getByRole("img", { name: "Arquivo Markdown" })).toBeInTheDocument();
+  });
+
   it("renderiza o percentual de relevância arredondado", () => {
     render(<DocumentDownloadCard card={makeCard({ score: 0.88 })} />);
 

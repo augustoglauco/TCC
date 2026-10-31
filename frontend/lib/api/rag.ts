@@ -37,6 +37,8 @@ export interface UploadDocumentParams {
   file: File;
   domain: RagDomain;
   collectionId?: string;
+  /** Arquivo que o cliente baixa no chat no lugar do ingerido (ex.: o PDF original de um .md). */
+  downloadFile?: File;
 }
 
 /**
@@ -48,11 +50,14 @@ export interface UploadDocumentParams {
  */
 export async function uploadDocument(
   token: string,
-  { file, domain, collectionId }: UploadDocumentParams,
+  { file, domain, collectionId, downloadFile }: UploadDocumentParams,
 ): Promise<DocumentIngestResponse> {
   const formData = new FormData();
   formData.append("domain", domain);
   formData.append("file", file);
+  if (downloadFile) {
+    formData.append("download_file", downloadFile);
+  }
   if (collectionId) {
     formData.append("collection_id", collectionId);
   }

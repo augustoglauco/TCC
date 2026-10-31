@@ -5,7 +5,6 @@ Ver docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §6.1.
 """
 
 import logging
-from pathlib import Path
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -26,7 +25,11 @@ from app.rag.collections_registry import (
 )
 from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.qdrant_client import CollectionAlreadyExistsError, QdrantRAGClient
-from app.rag.registry import count_documents_by_collection, list_documents_by_collection
+from app.rag.registry import (
+    arquivos_em_disco,
+    count_documents_by_collection,
+    list_documents_by_collection,
+)
 from app.router.rag_client import RAGConnectionError
 
 logger = logging.getLogger(__name__)
@@ -281,7 +284,7 @@ async def delete_collection_endpoint(
         raise HTTPException(status_code=503, detail=_DETALHE_RAG_INDISPONIVEL) from exc
 
     for documento in documentos:
-        if documento.storage_path is not None:
-            Path(documento.storage_path).unlink(missing_ok=True)
+        for caminho in arquivos_em_disco(documento):
+            caminho.unlink(missing_ok=True)
 
     await _excluir_registro(session, collection)

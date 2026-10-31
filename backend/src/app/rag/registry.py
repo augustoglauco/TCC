@@ -6,11 +6,29 @@ docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §3.
 """
 
 import uuid
+from pathlib import Path
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import RagDocument
+
+# O arquivo de download é gravado como `<id>_download_<nome>`; o nome original
+# (o que o cliente vê) é o que vem depois do marcador.
+DOWNLOAD_MARKER = "_download_"
+
+
+def download_filename(document: RagDocument) -> str | None:
+    """Nome do arquivo de download associado ao documento, ou `None` se não há."""
+    if not document.download_path:
+        return None
+    return Path(document.download_path).name.split(DOWNLOAD_MARKER, 1)[-1]
+
+
+def arquivos_em_disco(document: RagDocument) -> list[Path]:
+    """Caminhos gravados do documento (ingerido e de download), para apagar."""
+    caminhos = (document.storage_path, document.download_path)
+    return [Path(caminho) for caminho in caminhos if caminho]
 
 
 async def create_document(
@@ -23,6 +41,7 @@ async def create_document(
     chunk_count: int,
     storage_path: str | None,
     origin: str,
+    download_path: str | None = None,
 ) -> RagDocument:
     document = RagDocument(
         id=uuid.UUID(document_id),
@@ -31,6 +50,7 @@ async def create_document(
         domain=domain,
         chunk_count=chunk_count,
         storage_path=storage_path,
+        download_path=download_path,
         origin=origin,
     )
     session.add(document)

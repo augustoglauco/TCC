@@ -29,7 +29,7 @@ from app.rag.chunking import chunk_text
 from app.rag.embeddings import TextEmbedder
 from app.rag.pdf_extract import extract_text_from_pdf
 from app.rag.qdrant_client import CollectionAlreadyExistsError, QdrantRAGClient
-from app.rag.registry import create_document
+from app.rag.registry import DOWNLOAD_MARKER, create_document
 
 logger = logging.getLogger(__name__)
 
@@ -87,10 +87,13 @@ async def ingest_bytes(
     domain: str,
     session: AsyncSession,
     origin: str,
+    download: tuple[str, bytes] | None = None,
 ) -> RagDocument:
     """Extrai texto, faz chunking com os parâmetros de `collection`, grava
     no Qdrant, salva o arquivo original em `uploads_dir` e cria o registro
-    do documento."""
+    do documento. `download` = (nome, conteúdo) de um arquivo que o cliente
+    baixa no lugar do ingerido (ex.: o PDF original do `.md` tratado); é só
+    guardado, nunca indexado."""
     text = _extract_text(filename, content)
     get_tokenizer = getattr(embedder, "get_tokenizer", None)
     tokenizer = await get_tokenizer() if callable(get_tokenizer) else None
@@ -111,9 +114,16 @@ async def ingest_bytes(
     )
 
     storage_path = uploads_dir / f"{document_id}_{Path(filename).name}"
+    download_path = (
+        uploads_dir / f"{document_id}{DOWNLOAD_MARKER}{Path(download[0]).name}"
+        if download
+        else None
+    )
     try:
         uploads_dir.mkdir(parents=True, exist_ok=True)
         storage_path.write_bytes(content)
+        if download_path is not None and download is not None:
+            download_path.write_bytes(download[1])
     except OSError:
         # Achado #6 da revisão final: mesmo tratamento de órfão já aplicado
         # abaixo para a falha de registro no Postgres — aqui os chunks já
@@ -145,6 +155,7 @@ async def ingest_bytes(
             domain=domain,
             chunk_count=chunk_count,
             storage_path=str(storage_path),
+            download_path=str(download_path) if download_path else None,
             origin=origin,
         )
     except Exception:
@@ -270,5 +281,6 @@ async def reingest_document(
         domain=source_document.domain,
         chunk_count=chunk_count,
         storage_path=source_document.storage_path,
+        download_path=source_document.download_path,
         origin="reingest",
     )

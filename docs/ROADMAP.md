@@ -2381,6 +2381,11 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       local e TypeSafe Jev, monitor de tom, decisão local × externo) e todos
       os prompts por função (`app/avaliacao/prompts.ts`); conferido contra o
       código, e as divergências achadas foram levadas ao dono.
+- [x] Arquivo de download separado do ingerido (2026-10-31, migração `0028`): campo
+      opcional `download_file` no upload (`rag_documents.download_path`); o card do
+      chat e `GET /api/rag/documents/{id}/download` entregam o PDF original em vez
+      do `.md` tratado, com ícone por tipo de arquivo (`FileTypeIcon`). Migração
+      aplicada no banco de desenvolvimento. Decisão em `docs/ARCHITECTURE.md` §5.
 - [x] Campo opcional `familia` em produtos (2026-10-31, migração `0027`): agrupa
       os modelos do mesmo produto (cada modelo é uma linha, com preço e estoque
       próprios). Só cadastro e API (formulário do admin e `ProdutoOut`); chat e

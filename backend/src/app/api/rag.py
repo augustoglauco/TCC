@@ -52,7 +52,7 @@ from app.rag.embedders_registry import EmbedderRegistry
 from app.rag.ingest import SUPPORTED_SUFFIXES, ingest_bytes, reingest_document
 from app.rag.pdf_extract import PdfExtractionError
 from app.rag.qdrant_client import QdrantRAGClient
-from app.rag.registry import delete_document, list_documents
+from app.rag.registry import arquivos_em_disco, delete_document, download_filename, list_documents
 from app.router.rag_client import RAGConnectionError
 
 logger = logging.getLogger(__name__)
@@ -70,6 +70,7 @@ def _document_to_response(document: RagDocument, collection_name: str) -> Docume
         collection_name=collection_name,
         origin=document.origin,
         created_at=document.created_at,
+        download_filename=download_filename(document),
     )
 
 
@@ -124,10 +125,36 @@ def _resolver_arquivo_original(document: RagDocument, uploads_dir: Path) -> Path
     )
 
 
+async def _ler_arquivo_de_download(download_file: UploadFile | None) -> tuple[str, bytes] | None:
+    """Lê o arquivo de download opcional (mesmos formatos da ingestão); `None`
+    se não veio. Vazio conta como ausente: o navegador envia o campo mesmo sem
+    arquivo escolhido."""
+    if download_file is None or not download_file.filename:
+        return None
+    _validar_formato(download_file.filename)
+    return download_file.filename, await download_file.read()
+
+
+def _resolver_arquivo_para_download(document: RagDocument, uploads_dir: Path) -> tuple[Path, str]:
+    """Arquivo e nome que o cliente baixa: o de download associado, se houver
+    (sem cair no ingerido quando ele sumiu do disco, para não entregar o `.md`
+    no lugar do PDF), senão o próprio arquivo ingerido."""
+    if document.download_path:
+        caminho = Path(document.download_path)
+        if not caminho.exists():
+            raise HTTPException(
+                status_code=404,
+                detail="Arquivo de download do documento não encontrado em disco.",
+            )
+        return caminho, download_filename(document) or document.filename
+    return _resolver_arquivo_original(document, uploads_dir), document.filename
+
+
 @router.post("/documents", response_model=DocumentIngestResponse)
 async def upload_document(
     domain: RagDomain = Form(...),
     file: UploadFile = File(...),
+    download_file: UploadFile | None = File(None),
     collection_id: UUID | None = Form(None),
     qdrant: QdrantRAGClient = Depends(get_qdrant_client),
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
@@ -137,6 +164,7 @@ async def upload_document(
 ) -> DocumentIngestResponse:
     filename = file.filename or ""
     _validar_formato(filename)
+    download = await _ler_arquivo_de_download(download_file)
     collection = await _resolver_collection_upload(session, collection_id)
 
     embedder = embedders.get(collection.embedding_model)
@@ -152,6 +180,7 @@ async def upload_document(
             domain,
             session=session,
             origin="upload",
+            download=download,
         )
     except RAGConnectionError as exc:
         logger.error(
@@ -265,13 +294,13 @@ async def download_document_endpoint(
             detail="Acesso restrito a administradores autenticados.",
         )
 
-    file_path = _resolver_arquivo_original(document, uploads_dir)
+    file_path, nome = _resolver_arquivo_para_download(document, uploads_dir)
     media_type = _MEDIA_TYPES.get(file_path.suffix.lower(), "application/octet-stream")
 
     return FileResponse(
         path=file_path,
         media_type=media_type,
-        filename=document.filename,
+        filename=nome,
         content_disposition_type="attachment",
     )
 
@@ -301,8 +330,8 @@ async def delete_document_endpoint(
                 detail="Serviço de RAG temporariamente indisponível, tente novamente.",
             ) from exc
 
-    if document.storage_path is not None:
-        Path(document.storage_path).unlink(missing_ok=True)
+    for caminho in arquivos_em_disco(document):
+        caminho.unlink(missing_ok=True)
 
     try:
         await delete_document(session, str(document_id))
