@@ -21,7 +21,7 @@ RagDomain = Literal["vendas", "suporte", "atendimento"]
 # (achado #1 da revisão final do branch do crawler): reutilizado tanto aqui
 # quanto em `app.rag.crawler_ingest` para evitar o mesmo valor duplicado
 # como string literal em dois lugares e divergir de novo.
-RagDocumentOrigin = Literal["upload", "batch_script", "reingest", "crawler"]
+RagDocumentOrigin = Literal["upload", "batch_script", "reingest", "crawler", "corpus_avaliacao"]
 
 DistanceMetric = Literal["cosine", "euclid", "dot", "manhattan"]
 QuantizationType = Literal["none", "scalar", "product", "binary"]

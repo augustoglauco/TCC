@@ -14,7 +14,8 @@ export interface DocumentIngestResponse {
   chunks: number;
 }
 
-export type RagDocumentOrigin = "upload" | "batch_script" | "reingest" | "crawler";
+export type RagDocumentOrigin =
+  "upload" | "batch_script" | "reingest" | "crawler" | "corpus_avaliacao";
 
 /** Um item de `GET /api/rag/documents`. */
 export interface DocumentRegistryEntry {

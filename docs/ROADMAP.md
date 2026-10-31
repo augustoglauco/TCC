@@ -2381,6 +2381,11 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       local e TypeSafe Jev, monitor de tom, decisão local × externo) e todos
       os prompts por função (`app/avaliacao/prompts.ts`); conferido contra o
       código, e as divergências achadas foram levadas ao dono.
+- [x] Correção (2026-10-31): a aba "Documentos ingeridos" ficava vazia porque
+      `GET /api/rag/documents` devolvia 500 com qualquer documento de
+      `origin="corpus_avaliacao"` (valor gravado pelos scripts da Fase 10, fora
+      do `Literal` `RagDocumentOrigin`). Valor adicionado no backend e no
+      frontend; teste de regressão parametrizado junto ao do `crawler`.
 - [x] Roteador (2026-10-31): falha do Jev na classificação passa a gravar
       `router_provider = "heuristica_fallback_jev"` (antes `heuristica_llm`,
       que misturava a falha com o modo híbrido na comparação de provedores).
