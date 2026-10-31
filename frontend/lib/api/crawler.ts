@@ -6,6 +6,7 @@ import type {
   CrawlRunResponse,
   PendingPage,
 } from "@/lib/types/crawler";
+import type { RagDomain } from "@/lib/types/rag";
 import { extrairDetalheDeErro } from "@/lib/api/errors";
 import { getApiBaseUrl } from "@/lib/api/apiBaseUrl";
 
@@ -22,14 +23,18 @@ export class CrawlerApiError extends Error {
   }
 }
 
-async function _lancarErroComDetalhe(response: Response, mensagemPadrao: string): Promise<never> {
+async function _mensagemDeErro(response: Response, mensagemPadrao: string): Promise<string> {
   const detail = await extrairDetalheDeErro(response);
-  const message =
+  return (
     detail ??
     (response.status === 503
       ? "Serviço de RAG temporariamente indisponível. Tente novamente."
-      : mensagemPadrao);
-  throw new CrawlerApiError(message, response.status);
+      : mensagemPadrao)
+  );
+}
+
+async function _lancarErroComDetalhe(response: Response, mensagemPadrao: string): Promise<never> {
+  throw new CrawlerApiError(await _mensagemDeErro(response, mensagemPadrao), response.status);
 }
 
 /** Lista a fila de revisão via `GET /api/rag/crawler/pending`. */
@@ -112,6 +117,52 @@ function parseSseBlock(block: string): { event: string; data: string } | null {
   return data ? { event, data } : null;
 }
 
+/** Entrega um evento SSE ao callback certo. Retorna true se o evento encerra o stream. */
+function despacharEvento(
+  event: string,
+  json: { url: string; domain?: RagDomain; detail?: string },
+  callbacks: CrawlerStreamCallbacks,
+): boolean {
+  switch (event) {
+    case "visitando":
+      callbacks.onVisiting(json.url);
+      return false;
+    case "enfileirada":
+      callbacks.onQueued(json.url, json.domain as RagDomain);
+      return false;
+    case "erro":
+      callbacks.onPageError(json.url);
+      return false;
+    case "done":
+      callbacks.onDone(json as unknown as CrawlRunResponse);
+      return true;
+    case "error":
+      callbacks.onError(json.detail ?? "Erro inesperado. Tente novamente.");
+      return true;
+    default:
+      return false;
+  }
+}
+
+/** Consome os blocos SSE completos do buffer; devolve o resto e se algum evento encerrou o stream. */
+function consumirBlocos(
+  buffer: string,
+  callbacks: CrawlerStreamCallbacks,
+): { resto: string; concluiu: boolean } {
+  let resto = buffer;
+  let concluiu = false;
+  let sepIndex = resto.indexOf("\n\n");
+  while (sepIndex !== -1) {
+    const parsed = parseSseBlock(resto.slice(0, sepIndex));
+    resto = resto.slice(sepIndex + 2);
+    if (parsed && despacharEvento(parsed.event, JSON.parse(parsed.data), callbacks)) {
+      concluiu = true;
+    }
+    sepIndex = resto.indexOf("\n\n");
+  }
+  return { resto, concluiu };
+}
+
 /**
  * Dispara um crawl com progresso em tempo real via `GET
  * /api/rag/crawler/run/stream` (SSE) e entrega cada evento pelos callbacks.
@@ -144,12 +195,8 @@ export async function runCrawlerStream(
   }
 
   if (!response.ok || !response.body) {
-    const detail = await extrairDetalheDeErro(response);
     callbacks.onError(
-      detail ??
-        (response.status === 503
-          ? "Serviço de RAG temporariamente indisponível. Tente novamente."
-          : "Não foi possível rodar o crawler. Tente novamente."),
+      await _mensagemDeErro(response, "Não foi possível rodar o crawler. Tente novamente."),
     );
     return;
   }
@@ -168,35 +215,9 @@ export async function runCrawlerStream(
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
 
-      let sepIndex = buffer.indexOf("\n\n");
-      while (sepIndex !== -1) {
-        const block = buffer.slice(0, sepIndex);
-        buffer = buffer.slice(sepIndex + 2);
-        const parsed = parseSseBlock(block);
-        if (parsed) {
-          const json = JSON.parse(parsed.data);
-          switch (parsed.event) {
-            case "visitando":
-              callbacks.onVisiting(json.url);
-              break;
-            case "enfileirada":
-              callbacks.onQueued(json.url, json.domain);
-              break;
-            case "erro":
-              callbacks.onPageError(json.url);
-              break;
-            case "done":
-              concluiu = true;
-              callbacks.onDone(json as CrawlRunResponse);
-              break;
-            case "error":
-              concluiu = true;
-              callbacks.onError(json.detail ?? "Erro inesperado. Tente novamente.");
-              break;
-          }
-        }
-        sepIndex = buffer.indexOf("\n\n");
-      }
+      const consumo = consumirBlocos(buffer, callbacks);
+      buffer = consumo.resto;
+      concluiu ||= consumo.concluiu;
     }
   } catch {
     callbacks.onError("Conexão perdida durante o crawl. Tente novamente.");
