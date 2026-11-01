@@ -27,6 +27,56 @@ class _LLM:
         return _R()
 
 
+class _LLMFixo:
+    def __init__(self, texto):
+        self._texto = texto
+
+    async def generate(self, prompt):
+        class _R:
+            pass
+
+        r = _R()
+        r.response = r.text = self._texto
+        return r
+
+
+class _LLMQuebrado:
+    async def generate(self, prompt):
+        raise RuntimeError("ollama fora do ar")
+
+
+class _Maker:
+    def __init__(self, session):
+        self._session = session
+
+    def __call__(self):
+        return self
+
+    async def __aenter__(self):
+        return self._session
+
+    async def __aexit__(self, *a):
+        return False
+
+
+async def _rodar(db_session, llm, msg="liste os produtos", is_admin=True):
+    return await _coletar(
+        processar_pedido_admin(
+            msg,
+            is_admin=is_admin,
+            local_client=llm,
+            db_sessionmaker=_Maker(db_session),
+            intent_router_provider="heuristica_llm",
+        )
+    )
+
+
+def _texto_e_decisao(eventos):
+    token = next(e for e in eventos if isinstance(e, TokenEvent))
+    decisao = next(e for e in eventos if isinstance(e, RouterDecision))
+    return token.text, decisao
+
+
 async def _coletar(gerador):
     return [e async for e in gerador]
 
@@ -37,7 +87,7 @@ async def test_nao_admin_nao_executa_consulta(db_session):
         processar_pedido_admin(
             "liste os produtos",
             is_admin=False,
-            local_client=_LLM(),
+            local_client=_LLMQuebrado(),
             db_sessionmaker=lambda: db_session,
             intent_router_provider="heuristica_llm",
         )
@@ -70,4 +120,49 @@ async def test_admin_recebe_card_tabela_com_o_resultado(db_session, monkeypatch)
     assert decisao.card.tipo == "tabela"
     assert decisao.card.colunas == ["um"]
     assert decisao.card.linhas == [[1]]
-    assert any(isinstance(e, TokenEvent) for e in eventos)
+    token = next(e for e in eventos if isinstance(e, TokenEvent))
+    assert token.text == "Encontrei 1 linha(s)."
+
+
+@pytest.mark.asyncio
+async def test_json_invalido_do_modelo_vira_mensagem_sem_card(db_session):
+    texto, decisao = _texto_e_decisao(await _rodar(db_session, _LLMFixo("não sei")))
+    assert texto.startswith("Não consegui montar uma consulta")
+    assert decisao.card is None
+
+
+@pytest.mark.asyncio
+async def test_sql_de_escrita_vira_mensagem_de_consulta_nao_permitida(db_session):
+    llm = _LLMFixo('{"sql": "DELETE FROM produtos"}')
+    texto, decisao = _texto_e_decisao(await _rodar(db_session, llm))
+    assert texto.startswith("Essa consulta não é permitida")
+    assert decisao.card is None
+
+
+@pytest.mark.asyncio
+async def test_resultado_vazio_avisa_sem_card(db_session):
+    llm = _LLMFixo('{"sql": "SELECT id FROM produtos WHERE 1 = 0"}')
+    texto, decisao = _texto_e_decisao(await _rodar(db_session, llm))
+    assert texto == "A consulta não retornou nenhuma linha."
+    assert decisao.card is None
+
+
+@pytest.mark.asyncio
+async def test_erro_de_banco_com_sql_errado_nao_quebra_o_turno(db_session):
+    llm = _LLMFixo('{"sql": "SELECT coluna_inexistente FROM produtos"}')
+    texto, decisao = _texto_e_decisao(await _rodar(db_session, llm))
+    assert texto.startswith("A consulta falhou")
+    assert decisao.card is None
+
+
+@pytest.mark.asyncio
+async def test_llm_que_levanta_excecao_nao_quebra_o_turno(db_session):
+    texto, decisao = _texto_e_decisao(await _rodar(db_session, _LLMQuebrado()))
+    assert texto.startswith("A consulta falhou")
+    assert decisao.card is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("msg", ["gere um gráfico de vendas", "qual o horário de atendimento?"])
+async def test_mensagens_que_nao_sao_consulta_nao_emitem_eventos(db_session, msg):
+    assert await _rodar(db_session, _LLMQuebrado(), msg=msg) == []

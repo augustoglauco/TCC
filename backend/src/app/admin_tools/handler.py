@@ -1,12 +1,17 @@
 """Ponto de entrada das ferramentas do Admin para o orquestrador do chat."""
 
+import logging
 from collections.abc import AsyncIterator
 from typing import Any
+
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.admin_tools.consulta import executar_consulta, gerar_sql
 from app.admin_tools.intencao import detectar_consulta
 from app.models.chat import CardTabela
 from app.services.safe_sql import SQLSecurityError, get_catalog_schema_prompt
+
+logger = logging.getLogger(__name__)
 
 LIMITE_LINHAS = 50
 
@@ -24,16 +29,29 @@ def _card_tabela(linhas: list[dict[str, Any]]) -> CardTabela:
 async def _consultar(message: str, local_client: Any, db_sessionmaker: Any):
     """Retorna (texto, card): o card é None quando a consulta não pôde ser feita."""
     async with db_sessionmaker() as session:
-        sql = await gerar_sql(local_client, message, await get_catalog_schema_prompt(session))
+        try:
+            sql = await gerar_sql(local_client, message, await get_catalog_schema_prompt(session))
+        except Exception as exc:  # fronteira de isolamento: LLM/esquema fora não derruba o turno
+            logger.exception("falha_ao_gerar_sql_admin")
+            return _falha(exc), None
         if sql is None:
             return "Não consegui montar uma consulta para esse pedido. Reformule, por favor.", None
         try:
             linhas = await executar_consulta(session, sql)
         except SQLSecurityError as exc:
             return f"Essa consulta não é permitida: {exc}", None
+        except SQLAlchemyError as exc:
+            logger.warning("falha_ao_executar_consulta_admin", extra={"erro": str(exc)})
+            await session.rollback()
+            return _falha(exc), None
     if not linhas:
         return "A consulta não retornou nenhuma linha.", None
     return f"Encontrei {len(linhas)} linha(s).", _card_tabela(linhas)
+
+
+def _falha(exc: Exception) -> str:
+    motivo = (str(exc).splitlines() or [type(exc).__name__])[0][:200]
+    return f"A consulta falhou: {motivo}. Reformule o pedido."
 
 
 async def processar_pedido_admin(
