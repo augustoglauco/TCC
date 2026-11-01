@@ -35,4 +35,5 @@ FERRAMENTAS: dict[str, Ferramenta] = {}
 from app.admin_tools import (  # noqa: E402, F401
     ferramentas_estoque,
     ferramentas_produto,
+    ferramentas_venda,
 )

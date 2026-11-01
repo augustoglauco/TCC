@@ -68,3 +68,15 @@ async def test_interpretar_escrita_ignora_resposta_fora_do_catalogo(resposta):
 @pytest.mark.asyncio
 async def test_interpretar_escrita_llm_fora_do_ar_devolve_none():
     assert await interpretar_escrita(_LLMQuebrado(), "x") is None
+
+
+@pytest.mark.asyncio
+async def test_interpretar_escrita_aceita_atualizar_venda():
+    from app.admin_tools import ferramentas_venda  # noqa: F401
+
+    llm = _LLM(
+        '{"ferramenta": "atualizar_venda", "argumentos": '
+        '{"pedido_id": "abc", "novo_status": "cancelada"}}'
+    )
+    resp = await interpretar_escrita(llm, "cancele o pedido abc")
+    assert resp and resp["ferramenta"] == "atualizar_venda"

@@ -3176,3 +3176,11 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `EstoqueInsuficienteError`) e `devolver_estoque` (usada pela etapa 5) em `db/catalog.py`,
       sem commit. Testes: 9 em `test_admin_tools_estoque.py` (saldo insuficiente, saldo nunca
       negativo, quantidade 0/negativa/texto/decimal).
+- [x] Chat Admin: `atualizar_venda` e status `cancelada` (R12, Fase 10/11) — etapa 5 (última):
+      `admin_tools/ferramentas_venda.py` com `TRANSICOES` (reservado/pagamento_divergente →
+      venda_concluida|cancelada; venda_concluida → cancelada com aviso; cancelada terminal),
+      cancelar devolve cada item ao seu CD e reivindica o status por UPDATE condicional (sem
+      devolução dupla); nota semântica do `safe_sql` e comentário de `Pedido.status` atualizados.
+      Testes: 7 em `test_admin_tools_venda.py`, +1 em `test_admin_tools_roteador.py`.
+- [x] Chat Admin: ferramentas de consulta e escrita (R3, R12, Fase 10/11) — as 5 etapas
+      (`consultar`, proposta/auditoria, produto, `baixa_estoque`, `atualizar_venda`) concluídas.

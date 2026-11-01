@@ -173,9 +173,10 @@ _SEMANTIC_NOTES: dict[str, str] = {
     "pedidos": (
         "   Nota: `status` é texto livre (sem constraint no banco). Valores reais "
         "usados pelo sistema: 'reservado' (reserva ainda não paga), "
-        "'venda_concluida' (ÚNICO valor que representa venda efetivada) e "
-        "'pagamento_divergente'. Para 'vendas'/'faturamento' reais a partir de "
-        "pedido_itens, SEMPRE filtre pedidos.status = 'venda_concluida'."
+        "'venda_concluida' (ÚNICO valor que representa venda efetivada), "
+        "'pagamento_divergente' e 'cancelada' (pedido cancelado; os itens voltaram "
+        "ao estoque e NÃO contam como venda). Para 'vendas'/'faturamento' reais a partir de "
+        "pedido_itens, SEMPRE filtre pedidos.status = 'venda_concluida' (exclui 'cancelada')."
     ),
     "cliente_compras": (
         "   Nota: toda linha aqui já é uma venda concluída (histórico fixo) — "

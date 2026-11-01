@@ -306,6 +306,22 @@ Menu ⚙️ (só Admin). Uma conversa entra na **fila de espera** quando o clien
 
 ---
 
+## 🛠️ Ações do Admin pelo Chat
+
+Logado como Admin, o widget de chat também executa ações de escrita. Toda escrita mostra antes
+um card com a prévia (antes × depois) e os botões **Confirmar** e **Cancelar**; nada é gravado
+sem a confirmação, e a proposta expira em 10 minutos. Cada ação confirmada fica registrada
+(auditoria).
+
+* **Consultar**: "liste os pedidos reservados" devolve uma tabela (até 50 linhas).
+* **Incluir produto**: "inclua o produto X, preço 99,90, categoria Y, descrição Z".
+* **Alterar nome ou descrição**: "altere o nome do produto 12 para ...". Se o nome casar com mais de um produto, o chat lista os candidatos (id: nome) e você repete com o id.
+* **Dar baixa no estoque**: "dê baixa de 1 unidade do produto 12 no CD Sul". Não aceita baixa maior que o saldo.
+* **Atualizar venda**: "conclua a venda <id do pedido>" ou "cancele o pedido <id>". Transições: reservado ou pagamento divergente → concluída ou cancelada; concluída → cancelada (com aviso); cancelada é final. Cancelar devolve os itens ao estoque do centro de distribuição de cada item e o pedido deixa de contar como venda.
+* `# MVP`: o cancelamento não faz estorno financeiro nem é parcial.
+
+---
+
 ## 📉 Dashboards e Gráficos Dinâmicos via Chat (`/admin/dashboards`)
 
 Exclusivo para quem está logado como Admin: além de responder perguntas, o

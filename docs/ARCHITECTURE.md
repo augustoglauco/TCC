@@ -1749,6 +1749,19 @@ saldo insuficiente, nunca fica negativo, mesmo com baixa concorrente entre prév
 `devolver_estoque` soma (cria a linha se faltar) e serve ao desfazer da etapa seguinte. Ambas não
 fazem commit. O `# MVP:` de `ProdutoEstoque` sobre concorrência continua valendo para `criar_pedido`.
 
+### Decisão de 2026-11-01: atualizar venda pelo chat e status `cancelada` (etapa 5)
+
+`atualizar_venda` (`pedido_id`, `novo_status` `venda_concluida|cancelada`) muda o status de um
+pedido. Tabela de transições (`TRANSICOES` em `admin_tools/ferramentas_venda.py`, única fonte de
+verdade): `reservado` e `pagamento_divergente` → `venda_concluida` ou `cancelada`;
+`venda_concluida` → `cancelada` (a prévia traz aviso); `cancelada` é terminal. Concluir preenche
+`tipo_conversao="chat_admin"`, `convertido_em` e `convertido_por="admin:<id>"` e não mexe no
+estoque. Cancelar devolve cada item ao estoque do próprio CD (`devolver_estoque`; a prévia lista
+`estoque_devolvido` por CD). O status é reivindicado por `UPDATE … WHERE status = <lido>`
+(rowcount 0 = outra confirmação venceu), então duas confirmações concorrentes nunca devolvem o
+estoque duas vezes. `cancelada` **não conta como venda** (`safe_sql` e os gráficos já filtram
+`venda_concluida`). `# MVP: sem estorno financeiro (não há gateway) e sem cancelamento parcial de itens.`
+
 ## 10. Considerações finais
 
 O desenho atende aos treze requisitos de forma modular, permitindo que o

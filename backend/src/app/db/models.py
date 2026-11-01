@@ -287,8 +287,10 @@ class Pedido(Base):
     # concorrentes pode sobre-reservar), sem trilha de auditoria, sem
     # pagamento/gateway real — simplificação já registrada na modelagem do
     # backend único desta fase (`docs/ARCHITECTURE.md` §6, "Governança e
-    # segurança", evolução futura explícita). `status` fica sempre
-    # `"reservado"` neste protótipo (sem fluxo de confirmação/cancelamento).
+    # segurança", evolução futura explícita). `status`
+    # nasce `"reservado"`; o Admin o muda pelo chat (`admin_tools/ferramentas_venda.py`,
+    # tabela `TRANSICOES`): `venda_concluida` ou `cancelada` (devolve os itens ao estoque;
+    # terminal). Também existe `pagamento_divergente` (OCR de comprovante).
     """
 
     __tablename__ = "pedidos"

@@ -94,6 +94,7 @@ async def test_get_catalog_schema_prompt(db_session):
     assert "categoria" in prompt
     # Nota semântica curada à mão sobre o valor real de status continua lá
     assert "venda_concluida" in prompt
+    assert "cancelada" in prompt
 
 
 @pytest.mark.asyncio
