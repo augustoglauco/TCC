@@ -111,11 +111,8 @@ async def processar_pedido_admin(
     # de escrita foi entendida, a leitura segue o caminho de `consultar`.
     if resultado is None and detectar_consulta(message):
         resultado = await _consultar(message, local_client, db_sessionmaker)
-    if resultado is None and detectar_escrita(message) and admin_id is not None:
-        resultado = (
-            "Não entendi qual alteração você quer fazer. Descreva o produto/pedido e o novo valor.",
-            None,
-        )
+    # Sem ferramenta entendida nem consulta: não responde (fall-through) para o gráfico, o RAG e
+    # a conversa normal seguirem; um "não entendi" aqui sequestraria esses turnos do Admin.
     if resultado is None:
         return
     texto, card = resultado

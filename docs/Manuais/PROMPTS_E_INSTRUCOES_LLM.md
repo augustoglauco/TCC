@@ -1106,12 +1106,12 @@ permitidas (`get_catalog_schema_prompt`) e deve responder só com JSON
 **Caminho:** `backend/src/app/admin_tools/roteador.py` (`interpretar_escrita`)
 
 Traduz o pedido do administrador em **uma** ação do catálogo `FERRAMENTAS`
-(`incluir_produto`, `alterar_nome_produto`, `alterar_descricao_produto`; o prompt já
-lista `baixa_estoque` e `atualizar_venda` das etapas seguintes) e responde só com
+(as 5 registradas: `incluir_produto`, `alterar_nome_produto`, `alterar_descricao_produto`,
+`baixa_estoque` e `atualizar_venda`) e responde só com
 JSON `{"ferramenta": "<ação>", "argumentos": {...}}` ou `{"ferramenta": null}`;
 instrução explícita de não inventar valores não informados. Resposta fora do JSON,
-ferramenta fora do registro ou LLM indisponível viram `None` ("não entendi a
-alteração"). Nada é gravado aqui: o resultado vira uma proposta
+ferramenta fora do registro ou LLM indisponível viram `None`: o turno não é respondido pelas ferramentas e segue
+para o gráfico, o RAG e a conversa normal (fall-through). Nada é gravado aqui: o resultado vira uma proposta
 (`criar_proposta`) que o Admin confirma no card. Modelo local.
 
 ---

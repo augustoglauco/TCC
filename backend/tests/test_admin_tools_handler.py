@@ -213,22 +213,78 @@ async def test_escrita_de_nao_admin_ou_sem_admin_id_nao_emite_eventos(db_session
 
 
 @pytest.mark.asyncio
-async def test_escrita_nao_entendida_pede_reformulacao(db_session):
+async def test_escrita_nao_entendida_cai_para_o_fluxo_normal(db_session):
     llm = _LLMFixo('{"ferramenta": null}')
-    texto, decisao = _texto_e_decisao(
-        await _rodar_escrita(db_session, llm, "altere o nome do produto")
-    )
-    assert texto.startswith("Não entendi")
-    assert decisao.card is None
+    assert await _rodar_escrita(db_session, llm, "altere o nome do produto") == []
 
 
 @pytest.mark.asyncio
 async def test_escrita_com_llm_quebrado_nao_derruba_o_turno(db_session):
-    texto, decisao = _texto_e_decisao(
-        await _rodar_escrita(db_session, _LLMQuebrado(), "altere o nome do produto 1 para Y")
+    eventos = await _rodar_escrita(db_session, _LLMQuebrado(), "altere o nome do produto 1 para Y")
+    assert eventos == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "msg",
+    [
+        "gere um dashboard atualizado das vendas",
+        "gráfico dos pedidos cancelados por mês",
+        "como cadastrar um produto no sistema?",
+        "qual a política de cancelamento de pedidos?",
+    ],
+)
+async def test_turnos_de_grafico_e_rag_nao_sao_sequestrados(db_session, msg):
+    """Nada emitido = o orquestrador segue para `_handle_chart_request`/RAG/chat normal."""
+    llm = _LLMFixo('{"ferramenta": null}')
+    assert await _rodar_escrita(db_session, llm, msg) == []
+
+
+@pytest.mark.parametrize(
+    ("msg", "esperado"),
+    [
+        ("conclua a venda 3f2a9c10-0000-4000-8000-000000000000", True),
+        ("finalize o pedido 12", True),
+        ("marque a venda 12 como concluída", True),
+        ("gere um gráfico dos pedidos cancelados", False),
+        ("como cancelar um pedido?", False),
+    ],
+)
+def test_detectar_escrita_verbos_de_conclusao_e_exclusoes(msg, esperado):
+    from app.admin_tools.intencao import detectar_escrita
+
+    assert detectar_escrita(msg) is esperado
+
+
+@pytest.mark.asyncio
+async def test_conclua_a_venda_gera_proposta_de_atualizar_venda(db_session):
+    from decimal import Decimal
+
+    from app.admin_tools import ferramentas_venda  # noqa: F401
+    from app.db.catalog import atualizar_estoque, criar_pedido, criar_produto
+
+    p = await criar_produto(
+        db_session, nome="Leitor", descricao="d", preco=Decimal("1"), categoria="x"
     )
-    assert texto.startswith("Não entendi")
-    assert decisao.card is None
+    await atualizar_estoque(db_session, p.id, "CD Sul", 5)
+    pedido = await criar_pedido(db_session, [(p.id, 1, "CD Sul")])
+    pid = str(pedido.id)
+    llm = _LLMRoteado(
+        '{"ferramenta": "atualizar_venda", '
+        f'"argumentos": {{"pedido_id": "{pid}", "novo_status": "venda_concluida"}}}}'
+    )
+    _, decisao = _texto_e_decisao(await _rodar_escrita(db_session, llm, f"conclua a venda {pid}"))
+    assert decisao.card.tipo == "acao_proposta"
+    assert decisao.card.depois == {"status": "venda_concluida"}
+
+
+@pytest.mark.asyncio
+async def test_pergunta_de_vendas_concluidas_continua_sendo_consulta(db_session):
+    llm = _LLMRoteado('{"ferramenta": null}')
+    _, decisao = _texto_e_decisao(
+        await _rodar_escrita(db_session, llm, "quais vendas foram concluídas?")
+    )
+    assert decisao.card.tipo == "tabela"
 
 
 @pytest.mark.asyncio

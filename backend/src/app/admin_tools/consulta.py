@@ -22,11 +22,13 @@ Responda APENAS com JSON válido: {{"sql": "SELECT ..."}}. Só SELECT; sem texto
 async def executar_consulta(session: AsyncSession, sql: str) -> list[dict[str, Any]]:
     """Valida (safe_sql) e executa o SELECT com tempo máximo no Postgres.
 
-    # MVP: o limite de tempo só existe no Postgres (`SET LOCAL statement_timeout`);
+    # MVP: o limite de tempo só existe no Postgres (`SET LOCAL statement_timeout`)
+    # e a transação somente-leitura (`SET TRANSACTION READ ONLY`);
     # nos testes com SQLite a consulta roda sem ele.
     """
     if session.bind is not None and session.bind.dialect.name == "postgresql":
         await session.execute(text(f"SET LOCAL statement_timeout = {TEMPO_MAX_MS}"))
+        await session.execute(text("SET TRANSACTION READ ONLY"))
     return await execute_readonly_sql(session, sql)
 
 

@@ -346,3 +346,36 @@ async def test_mcp_tool_converter_reserva_venda_pedido_inexistente(factory, qdra
         )
 
     assert "não encontrado" in str(exc_info.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_converter_reserva_venda_recusa_pedido_cancelado(factory, qdrant, embedders):
+    from app.admin_tools import ferramentas_venda  # noqa: F401
+    from app.db.catalog import obter_produto
+
+    async with factory() as session:
+        produto = await criar_produto(
+            session, nome="Inversor", descricao="d", preco=Decimal("300.00"), categoria="solar"
+        )
+        await atualizar_estoque(session, produto.id, "CD-SP", 20)
+        pedido = await criar_pedido(session, [(produto.id, 1, "CD-SP")])
+        pedido_id, produto_id = pedido.id, produto.id
+        pedido.status = "cancelada"
+        await ferramentas_venda.devolver_estoque(session, produto_id, "CD-SP", 1)
+        await session.commit()
+
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+    with pytest.raises(ToolError, match="cancelada"):
+        await server.call_tool(
+            "converter_reserva_venda",
+            {
+                "pedido_id": str(pedido_id),
+                "comprovante_base64_ou_texto": "Valor Pago: R$ 300,00\nAutenticação: PIX1",
+                "nome_arquivo": "c.txt",
+            },
+        )
+
+    async with factory() as session:
+        assert (await session.get(Pedido, pedido_id)).status == "cancelada"
+        p = await obter_produto(session, produto_id)
+        assert next(e.quantidade for e in p.estoques if e.centro_distribuicao == "CD-SP") == 20

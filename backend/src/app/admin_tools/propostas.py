@@ -55,10 +55,23 @@ async def _carregar_pendente(
         raise PropostaInvalidaError(f"Proposta já {acao.status}.")
     expira = acao.expira_em if acao.expira_em.tzinfo else acao.expira_em.replace(tzinfo=UTC)
     if agora > expira:
-        acao.status = "expirada"
-        await session.commit()
+        await _encerrar(session, acao, "expirada")
         raise PropostaInvalidaError("Proposta expirada; peça de novo.")
     return acao
+
+
+async def _encerrar(session: AsyncSession, acao: ChatAdminAcao, status: str) -> None:
+    """Muda `proposta` → `status` por UPDATE condicional: nunca sobrescreve `executada`."""
+    resultado = await session.execute(
+        update(ChatAdminAcao)
+        .where(ChatAdminAcao.id == acao.id, ChatAdminAcao.status == "proposta")
+        .values(status=status)
+        .execution_options(synchronize_session=False)
+    )
+    await session.commit()
+    if resultado.rowcount == 0:
+        raise PropostaInvalidaError("Proposta já resolvida.")
+    await session.refresh(acao)
 
 
 async def _reivindicar(session: AsyncSession, acao_id: uuid.UUID) -> None:
@@ -103,6 +116,5 @@ async def confirmar(
 
 async def cancelar(session: AsyncSession, acao_id: uuid.UUID, *, admin_id: int) -> ChatAdminAcao:
     acao = await _carregar_pendente(session, acao_id, admin_id, _agora(None))
-    acao.status = "cancelada"
-    await session.commit()
+    await _encerrar(session, acao, "cancelada")
     return acao

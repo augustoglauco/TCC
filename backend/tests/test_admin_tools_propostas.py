@@ -159,3 +159,40 @@ async def test_perdedor_da_corrida_nao_executa_de_novo(db_session, fake, monkeyp
     assert fake.execucoes == 1
     await db_session.refresh(acao)
     assert acao.status == "executada"
+
+
+async def _executada_por_fora(db_session, acao_id):
+    """Carrega a proposta (fica `proposta` em memória) e a marca `executada` por fora dela."""
+    from sqlalchemy import update
+
+    await db_session.get(ChatAdminAcao, acao_id)
+    await db_session.execute(
+        update(ChatAdminAcao)
+        .where(ChatAdminAcao.id == acao_id)
+        .values(status="executada")
+        .execution_options(synchronize_session=False)
+    )
+
+
+@pytest.mark.asyncio
+async def test_cancelar_nao_sobrescreve_executada_com_objeto_obsoleto(db_session, fake):
+    acao, _ = await criar_proposta(db_session, admin_id=1, ferramenta="fake", argumentos={"v": 2})
+    acao_id = acao.id
+    await _executada_por_fora(db_session, acao_id)
+    with pytest.raises(PropostaInvalidaError):
+        await cancelar(db_session, acao_id, admin_id=1)
+    db_session.expire_all()
+    assert (await db_session.get(ChatAdminAcao, acao_id)).status == "executada"
+
+
+@pytest.mark.asyncio
+async def test_expiracao_nao_sobrescreve_executada_com_objeto_obsoleto(db_session, fake):
+    acao, _ = await criar_proposta(db_session, admin_id=1, ferramenta="fake", argumentos={"v": 2})
+    acao_id = acao.id
+    await _executada_por_fora(db_session, acao_id)
+    depois = datetime.now(UTC) + PROPOSTA_TTL + timedelta(seconds=1)
+    with pytest.raises(PropostaInvalidaError):
+        await confirmar(db_session, acao_id, admin_id=1, agora=depois)
+    db_session.expire_all()
+    assert (await db_session.get(ChatAdminAcao, acao_id)).status == "executada"
+    assert fake.execucoes == 0

@@ -60,6 +60,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
+from app.admin_tools.ferramentas_venda import TRANSICOES
 from app.db.catalog import (
     EstoqueInsuficienteError,
     ProdutoInexistenteError,
@@ -299,6 +300,11 @@ async def _converter_reserva_venda_impl(
                     comprovante_url=pedido.comprovante_url,
                     sucesso=True,
                     mensagem="Este pedido já foi convertido em venda anteriormente.",
+                )
+
+            if "venda_concluida" not in TRANSICOES.get(pedido.status, set()):
+                raise ToolError(
+                    f"Reserva {pedido.id} está '{pedido.status}' e não pode virar venda."
                 )
 
             comprovante_bytes, texto_comprovante = _decodificar_comprovante(

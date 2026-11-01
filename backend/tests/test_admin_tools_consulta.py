@@ -46,3 +46,28 @@ async def test_gerar_sql_extrai_o_sql_do_json_do_modelo():
 @pytest.mark.asyncio
 async def test_gerar_sql_devolve_none_se_o_modelo_nao_responde_json():
     assert await gerar_sql(_LLM("não sei"), "x", "esquema") is None
+
+
+@pytest.mark.asyncio
+async def test_postgres_recebe_timeout_e_transacao_somente_leitura(monkeypatch):
+    from types import SimpleNamespace
+
+    from app.admin_tools import consulta
+
+    emitidos = []
+
+    class _Sessao:
+        bind = SimpleNamespace(dialect=SimpleNamespace(name="postgresql"))
+
+        async def execute(self, stmt):
+            emitidos.append(str(stmt))
+
+    async def _ro(session, sql):
+        return [{"ok": 1}]
+
+    monkeypatch.setattr(consulta, "execute_readonly_sql", _ro)
+    assert await consulta.executar_consulta(_Sessao(), "SELECT 1") == [{"ok": 1}]
+    assert emitidos == [
+        f"SET LOCAL statement_timeout = {consulta.TEMPO_MAX_MS}",
+        "SET TRANSACTION READ ONLY",
+    ]

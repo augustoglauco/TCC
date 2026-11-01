@@ -1763,6 +1763,16 @@ estoque duas vezes. Cancelar também limpa `tipo_conversao`, `convertido_em` e `
 (pedido cancelado não conta como convertido). `cancelada` **não conta como venda** (`safe_sql` e os gráficos já filtram
 `venda_concluida`). `# MVP: sem estorno financeiro (não há gateway) e sem cancelamento parcial de itens.`
 
+Integração com o resto do chat (correções da revisão): o ramo de escrita do Admin faz
+**fall-through**: se `interpretar_escrita` não entende uma ferramenta e a mensagem também não é
+consulta, o handler não emite nada e o orquestrador segue para o gráfico, o RAG e a conversa
+normal (não há mais resposta "não entendi", que sequestrava esses turnos). `detectar_escrita`
+ignora gráficos/dashboards e perguntas ("como…", "qual…") e inclui verbos de conclusão
+(`conclua`, `finalize`, `marque`). `converter_reserva_venda` (MCP B2B) só aceita pedidos de
+onde `TRANSICOES` permite `venda_concluida` (reservado, pagamento_divergente); `cancelada` é
+recusada. Consultas do Admin rodam com `SET TRANSACTION READ ONLY` no Postgres, e cancelar/expirar
+uma proposta é um UPDATE condicional em `status='proposta'` (nunca sobrescreve `executada`).
+
 ## 10. Considerações finais
 
 O desenho atende aos treze requisitos de forma modular, permitindo que o
