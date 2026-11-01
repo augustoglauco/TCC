@@ -29,6 +29,8 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 | `eval/rag_quality/run_eval.py` (variantes) | Backend (`eval`, Fase 10) | `_FRASE_V1`/`_FRASE_V2`/`_REGRAS_C`/`_AVISO_SEM_CONTEXTO_V2`: variantes da frase de suficiência do bloco RAG (item 22) |
 | `eval/prompt_injection/gerar_dataset.py` | Backend (`eval`, Fase 10) | `_PROMPT_DIRETAS`: geração de casos de injeção (item 23) |
 | `openrouter_client.py` | Backend (`app.router`) | Perguntas tipadas do TypeSafe Jev (intenção e tom) (item 24) |
+| `admin_tools/consulta.py` | Backend (`app.admin_tools`) | `_PROMPT`: SQL de leitura do Admin no chat, só SELECT (item 25) |
+| `admin_tools/roteador.py` | Backend (`app.admin_tools`) | `PROMPT_FERRAMENTAS`: pedido do Admin → uma das 5 ações de escrita (item 26) |
 
 
 ---
@@ -1102,6 +1104,11 @@ permitidas (`get_catalog_schema_prompt`) e deve responder só com JSON
 (só SELECT, tabelas da whitelist) antes de executar; resposta fora do JSON vira
 "não consegui montar uma consulta". Modelo local.
 
+Quem decide que a mensagem é uma consulta **não é o LLM**: é a heurística de regex
+`detectar_consulta` (`admin_tools/intencao.py`), que ignora gráficos e perguntas de política ou
+regra ("como…", "qual a política…"). A execução tem `LIMIT 50`, tempo máximo e, no Postgres,
+transação somente-leitura (`SET TRANSACTION READ ONLY`). O resultado volta como card de tabela.
+
 ### 26. `backend/src/app/admin_tools/roteador.py` — `PROMPT_FERRAMENTAS` (escrita do Admin no chat)
 **Caminho:** `backend/src/app/admin_tools/roteador.py` (`interpretar_escrita`)
 
@@ -1113,6 +1120,14 @@ instrução explícita de não inventar valores não informados. Resposta fora d
 ferramenta fora do registro ou LLM indisponível viram `None`: o turno não é respondido pelas ferramentas e segue
 para o gráfico, o RAG e a conversa normal (fall-through). Nada é gravado aqui: o resultado vira uma proposta
 (`criar_proposta`) que o Admin confirma no card. Modelo local.
+
+Antes do LLM, a regex `detectar_escrita` (`admin_tools/intencao.py`) filtra: exige um verbo de
+escrita (inclua/cadastre, altere/mude/atualize, dê baixa, cancele, conclua/finalize/marque) e um
+termo de dados (produto, estoque, venda/pedido, nome, descrição), e ignora gráficos e perguntas
+iniciadas por "como/qual/quais…". Os argumentos que o LLM devolve são validados por esquemas
+Pydantic fixos (preço aceita vírgula; quantidade inteira > 0; `novo_status` só
+`venda_concluida`/`cancelada`); produto ambíguo lista candidatos em vez de escolher um. O texto
+do pedido é do próprio Admin, não vem de documento do RAG.
 
 ---
 
