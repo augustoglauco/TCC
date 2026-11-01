@@ -102,7 +102,7 @@ async def _com_sessao_segura[T](
     try:
         async with app_state.db_sessionmaker() as session:
             return await fn(session)
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         _logar_memoria_indisponivel(operacao, exc)
         return padrao
 
@@ -196,7 +196,7 @@ async def _carregar_dados_cliente_seguro(
             return await carregar_contexto_cliente(
                 session, email, apenas_tipo_cliente=apenas_tipo_cliente
             )
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.warning(
             "contexto_cliente_indisponivel",
             extra={
@@ -250,7 +250,7 @@ async def _carregar_conversa_db_segura(app_state, conversation_id: str) -> Conve
             return None
         async with session_factory() as session:
             return await session.get(Conversa, conversation_id)
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.warning("Falha ao carregar status da conversa %s: %s", conversation_id, exc)
         return None
 
@@ -262,7 +262,7 @@ async def _gravar_mensagem_cliente_segura(app_state, conversation_id: str, texto
             return
         async with session_factory() as session:
             await gravar_mensagem_cliente(session, conversation_id, texto)
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.warning("Falha ao gravar mensagem de cliente em atendimento humano: %s", exc)
 
 
@@ -273,7 +273,7 @@ async def _gravar_aviso_humano_seguro(app_state, conversation_id: str, texto: st
             return
         async with session_factory() as session:
             await gravar_aviso_assistente(session, conversation_id, texto)
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.warning("Falha ao gravar aviso de atendimento humano: %s", exc)
 
 
@@ -287,7 +287,7 @@ async def _escalar_conversa_em_background(
             await escalar_para_humano(
                 session, conversation_id, motivo=motivo, prioridade=prioridade
             )
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.warning("Falha ao escalar conversa %s em background: %s", conversation_id, exc)
 
 
@@ -402,7 +402,7 @@ async def _persistir_escalonamento_em_background(
                 confianca=confianca,
                 provider_efetivo=provider_efetivo,
             )
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.warning(
             "tom_escalonamento_persistencia_falhou",
             extra={
@@ -611,7 +611,7 @@ async def _tem_reserva_pendente(app_state, conversation_id: str, user_email: str
             reserva = await buscar_reserva_ativa(
                 session, conversation_id=conversation_id, user_email=user_email
             )
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         _logar_memoria_indisponivel("verificar_reserva_pendente", exc)
         return False
     return reserva is not None
@@ -848,7 +848,7 @@ def _decodificar_comprovante(payload_image: str | None, imagem_e_documento: bool
         return None
     try:
         return base64.b64decode(payload_image, validate=True)
-    except Exception:
+    except ValueError:
         return None
 
 
