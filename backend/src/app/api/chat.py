@@ -434,7 +434,7 @@ async def obter_conversa(conversation_id: str, request: Request) -> ConversaHist
             mensagens = await listar_mensagens(session, conversation_id, limite=None)
     except HTTPException:
         raise
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         _logar_memoria_indisponivel("obter_conversa", exc)
         raise HTTPException(status_code=503, detail="Histórico indisponível no momento.") from exc
     return ConversaHistoricoOut(
@@ -481,7 +481,7 @@ async def fechar_conversa_endpoint(
             )
     except HTTPException:
         raise
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         _logar_memoria_indisponivel("fechar_conversa", exc)
         raise HTTPException(
             status_code=503, detail="Não foi possível encerrar a conversa."
@@ -498,7 +498,7 @@ async def deletar_conversa(conversation_id: str, request: Request) -> None:
                 raise HTTPException(status_code=404, detail="Conversa não encontrada.")
     except HTTPException:
         raise
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         _logar_memoria_indisponivel("deletar_conversa", exc)
         raise HTTPException(status_code=503, detail="Não foi possível limpar a conversa.") from exc
 
