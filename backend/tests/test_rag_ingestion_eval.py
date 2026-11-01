@@ -726,3 +726,86 @@ def test_fonte_ignora_a_extensao_pdf_x_md():
     assert not metricas.acerta_fonte("idtouch-manual-v2.md", aceitas)
     assert metricas.recall_at_k(["outro.md", "idtouch-manual.md"], aceitas, 2) == 1.0
     assert metricas.ndcg_at_k(["idtouch-manual.md"], aceitas, 10) == pytest.approx(1.0)
+
+
+# --------------------------------------------------------------------------
+# Etapa 1 — seleção de arquivos e saída (run_etapa1.py)
+# --------------------------------------------------------------------------
+
+
+@pytest.fixture
+def etapa1(tmp_path, monkeypatch):
+    modulo = _carregar("run_etapa1")
+    corpus = tmp_path / "ControlId"
+    corpus.mkdir()
+    monkeypatch.setattr(modulo, "CORPUS", corpus)
+    monkeypatch.setattr(modulo, "AUDITORIA", tmp_path / "auditoria_corpus.json")
+    return modulo
+
+
+def _auditoria(etapa1, corpus="x/ControlId", pdfs=(), outros=()):
+    etapa1.AUDITORIA.write_text(
+        json.dumps({"corpus": corpus, "itens_pdfs": list(pdfs), "itens_outros": list(outros)}),
+        encoding="utf-8",
+    )
+
+
+def test_etapa1_sem_auditoria_falha_alto(etapa1):
+    with pytest.raises(etapa1.AuditoriaAusenteError, match="Rode a Etapa 0"):
+        etapa1.carregar_arquivos_a_ingerir(["a"])
+
+
+def test_etapa1_auditoria_de_outro_corpus_falha(etapa1):
+    _auditoria(etapa1, corpus="x/Outro")
+    with pytest.raises(etapa1.AuditoriaAusenteError, match="outro corpus"):
+        etapa1.carregar_arquivos_a_ingerir(["a"])
+
+
+def test_etapa1_seleciona_so_pdf_util_e_texto_das_pastas(etapa1):
+    for nome in ("b.pdf", "a.md", "ruim.pdf", "fora.pdf", "foto.tif"):
+        (etapa1.CORPUS / nome).write_bytes(b"x")
+    _auditoria(
+        etapa1,
+        pdfs=[
+            {"arquivo": "b.pdf", "classificacao": "util", "pasta": "p"},
+            {"arquivo": "ruim.pdf", "classificacao": "degenerado", "pasta": "p"},
+            {"arquivo": "fora.pdf", "classificacao": "util", "pasta": "q"},
+        ],
+        outros=[
+            {"arquivo": "a.md", "extensao": ".md", "pasta": "p"},
+            {"arquivo": "foto.tif", "extensao": ".tif", "pasta": "p"},
+        ],
+    )
+    nomes = [c.name for c in etapa1.carregar_arquivos_a_ingerir(["p"])]
+    assert nomes == ["a.md", "b.pdf"]
+
+
+def test_etapa1_arquivo_sumido_pede_nova_auditoria(etapa1):
+    _auditoria(etapa1, pdfs=[{"arquivo": "sumiu.pdf", "classificacao": "util", "pasta": "p"}])
+    with pytest.raises(etapa1.AuditoriaAusenteError, match="sumiu.pdf"):
+        etapa1.carregar_arquivos_a_ingerir(["p"])
+
+
+def test_etapa1_imprimir_formata_metricas_e_traco_para_none(etapa1, capsys):
+    metricas = {
+        "n_total": 2,
+        "n_positivas": 1,
+        "n_negativas": 1,
+        "recall": {"@1": 0.5, "@5": None},
+        "ndcg@10": 0.386,
+        "mrr": None,
+        "taxa_vazio_positivas": 0.0,
+        "acerto_negativas": 1.0,
+    }
+    detalhes = [
+        {"id": "q1", "acertou": True, "negativa": False, "recuperadas": [{"fonte": "a.pdf"}]},
+        {"id": "q2", "acertou": False, "negativa": True, "recuperadas": []},
+    ]
+    etapa1._imprimir(metricas, detalhes, {"top_k": 5})
+    saida = capsys.readouterr().out
+    assert "[ok ] q1 pos | a.pdf" in saida
+    assert "[ERR] q2 neg | (vazio)" in saida
+    assert "  Recall@1          : 0.500" in saida
+    assert "  Recall@5          : —" in saida
+    assert "  nDCG@10           : 0.386" in saida
+    assert "  MRR               : —" in saida

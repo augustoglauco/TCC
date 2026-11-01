@@ -103,13 +103,8 @@ class AuditoriaAusenteError(RuntimeError):
     """A Etapa 0 não rodou, ou rodou sobre outro corpus."""
 
 
-def carregar_arquivos_a_ingerir(pastas: list[str]) -> list[Path]:
-    """Lista os arquivos ingeríveis das `pastas`, segundo a auditoria.
-
-    Só PDFs `util` entram — é assim que a decisão de deixar os 11 PDFs
-    degenerados de fora vale sem lista manual. Arquivos `.md`/`.txt` entram
-    direto (a auditoria os classifica em `itens_outros`, com `ingerivel`).
-    """
+def _ler_auditoria() -> dict:
+    """Lê `auditoria_corpus.json` e confere que é do corpus ControlId."""
     if not AUDITORIA.exists():
         raise AuditoriaAusenteError(
             f"{AUDITORIA.name} não existe. Rode a Etapa 0 primeiro:\n"
@@ -121,14 +116,32 @@ def carregar_arquivos_a_ingerir(pastas: list[str]) -> list[Path]:
             f"auditoria é de outro corpus ({auditoria.get('corpus')!r}); rode a Etapa 0 "
             "sobre docs/Manuais_fornecedor/ControlId"
         )
+    return auditoria
 
-    escolhidos: list[Path] = []
-    for item in auditoria["itens_pdfs"]:
-        if item["classificacao"] == "util" and item["pasta"] in pastas:
-            escolhidos.append(CORPUS / item["arquivo"])
-    for item in auditoria["itens_outros"]:
-        if item["pasta"] in pastas and item["extensao"] in EXTENSOES_TEXTO:
-            escolhidos.append(CORPUS / item["arquivo"])
+
+def _pdf_ingerivel(item: dict, pastas: list[str]) -> bool:
+    return item["classificacao"] == "util" and item["pasta"] in pastas
+
+
+def _texto_ingerivel(item: dict, pastas: list[str]) -> bool:
+    return item["pasta"] in pastas and item["extensao"] in EXTENSOES_TEXTO
+
+
+def carregar_arquivos_a_ingerir(pastas: list[str]) -> list[Path]:
+    """Lista os arquivos ingeríveis das `pastas`, segundo a auditoria.
+
+    Só PDFs `util` entram — é assim que a decisão de deixar os 11 PDFs
+    degenerados de fora vale sem lista manual. Arquivos `.md`/`.txt` entram
+    direto (a auditoria os classifica em `itens_outros`, com `ingerivel`).
+    """
+    auditoria = _ler_auditoria()
+    escolhidos = [
+        CORPUS / item["arquivo"] for item in auditoria["itens_pdfs"] if _pdf_ingerivel(item, pastas)
+    ] + [
+        CORPUS / item["arquivo"]
+        for item in auditoria["itens_outros"]
+        if _texto_ingerivel(item, pastas)
+    ]
 
     faltando = [c for c in escolhidos if not c.exists()]
     if faltando:
@@ -181,6 +194,29 @@ async def apagar_collection(collection, qdrant, session_factory) -> None:
         await delete_collection(session, collection.id)
 
 
+def _detalhe_pergunta(caso: dict, resultado: ResultadoPergunta, pares: list) -> dict:
+    """Linha de `itens` do JSON de saída para uma pergunta já medida."""
+    fontes = resultado.recuperadas
+    return {
+        "id": caso["id"],
+        "pergunta": caso["pergunta"],
+        "negativa": resultado.negativa,
+        "fontes_aceitas": sorted(resultado.aceitas),
+        # Pareado de propósito: a varredura offline de
+        # `score_threshold` (Etapa 4) precisa do score com que cada
+        # DOCUMENTO entrou. Guardar `fontes` e `scores` em listas
+        # separadas desalinha as duas, porque 5 chunks recuperados
+        # podem virar 3 fontes depois da deduplicação.
+        "recuperadas": [{"fonte": fonte, "score": round(score, 4)} for fonte, score in pares],
+        "score_maximo": round(pares[0][1], 4) if pares else None,
+        "acertou": (
+            resultado.acertou_negativa
+            if resultado.negativa
+            else any(acerta_fonte(f, resultado.aceitas) for f in fontes)
+        ),
+    }
+
+
 async def medir(collection, qdrant, embedder, perguntas, args) -> tuple[list, list]:
     """Roda cada pergunta contra `collection` e devolve (resultados, detalhes)."""
     resultados: list[ResultadoPergunta] = []
@@ -204,36 +240,15 @@ async def medir(collection, qdrant, embedder, perguntas, args) -> tuple[list, li
             aceitas=aceitas,
         )
         resultados.append(resultado)
-        detalhes.append(
-            {
-                "id": caso["id"],
-                "pergunta": caso["pergunta"],
-                "negativa": resultado.negativa,
-                "fontes_aceitas": sorted(aceitas),
-                # Pareado de propósito: a varredura offline de
-                # `score_threshold` (Etapa 4) precisa do score com que cada
-                # DOCUMENTO entrou. Guardar `fontes` e `scores` em listas
-                # separadas desalinha as duas, porque 5 chunks recuperados
-                # podem virar 3 fontes depois da deduplicação.
-                "recuperadas": [
-                    {"fonte": fonte, "score": round(score, 4)} for fonte, score in pares
-                ],
-                "score_maximo": round(pares[0][1], 4) if pares else None,
-                "acertou": (
-                    resultado.acertou_negativa
-                    if resultado.negativa
-                    else any(acerta_fonte(f, aceitas) for f in fontes)
-                ),
-            }
-        )
+        detalhes.append(_detalhe_pergunta(caso, resultado, pares))
     return resultados, detalhes
 
 
-def _imprimir(metricas: dict, detalhes: list[dict], config: dict) -> None:
-    print("\n=== Configuração ===")
-    for chave, valor in config.items():
-        print(f"  {chave:18s}: {valor}")
+def _fmt(rotulo: str, valor) -> str:
+    return f"  {rotulo:18s}: {valor:.3f}" if valor is not None else f"  {rotulo:18s}: —"
 
+
+def _imprimir_por_pergunta(detalhes: list[dict]) -> None:
     print("\n=== Por pergunta ===")
     for d in detalhes:
         marca = "ok " if d["acertou"] else "ERR"
@@ -241,42 +256,43 @@ def _imprimir(metricas: dict, detalhes: list[dict], config: dict) -> None:
         topo = ", ".join(r["fonte"] for r in d["recuperadas"][:3]) or "(vazio)"
         print(f"  [{marca}] {d['id']} {tipo} | {topo}")
 
+
+def _imprimir_metricas(metricas: dict) -> None:
     print("\n=== Métricas ===")
     print(
         f"  n: {metricas['n_total']} "
         f"({metricas['n_positivas']} pos / {metricas['n_negativas']} neg)"
     )
     for k, v in metricas["recall"].items():
-        print(f"  Recall{k:4s}        : {v:.3f}" if v is not None else f"  Recall{k:4s}        : —")
+        print(_fmt(f"Recall{k:4s}", v))
     for rotulo, chave in (
         ("nDCG@10", "ndcg@10"),
         ("MRR", "mrr"),
         ("taxa vazio (pos)", "taxa_vazio_positivas"),
         ("acerto negativas", "acerto_negativas"),
     ):
-        v = metricas[chave]
-        print(f"  {rotulo:18s}: {v:.3f}" if v is not None else f"  {rotulo:18s}: —")
+        print(_fmt(rotulo, metricas[chave]))
 
 
-async def executar(args) -> int:
-    dataset = carregar_dataset(args.dataset, incluir_pendentes=args.incluir_pendentes)
-    print(descrever(dataset))
-    perguntas = dataset["perguntas"]
-    pastas = dataset["_pastas"]
-    args.dominio = args.dominio or dataset["dominio"]
+def _imprimir(metricas: dict, detalhes: list[dict], config: dict) -> None:
+    print("\n=== Configuração ===")
+    for chave, valor in config.items():
+        print(f"  {chave:18s}: {valor}")
+    _imprimir_por_pergunta(detalhes)
+    _imprimir_metricas(metricas)
 
-    arquivos = carregar_arquivos_a_ingerir(pastas)
+
+def _imprimir_plano(pastas: list[str], arquivos: list[Path], n_perguntas: int) -> None:
     print(f"Corpus: {CORPUS.relative_to(RAIZ_REPO)}")
     print(f"Pastas: {', '.join(pastas)}")
     print(f"Arquivos a ingerir: {len(arquivos)}")
     for caminho in arquivos:
         print(f"  {caminho.relative_to(CORPUS)}")
-    print(f"Perguntas: {len(perguntas)}")
+    print(f"Perguntas: {n_perguntas}")
 
-    settings = get_settings()
-    engine = create_db_engine(settings.postgres_dsn)
-    session_factory = create_session_factory(engine)
-    qdrant = QdrantRAGClient(
+
+def _criar_qdrant(settings) -> QdrantRAGClient:
+    return QdrantRAGClient(
         host=settings.qdrant_host,
         port=settings.qdrant_port,
         timeout_s=settings.qdrant_timeout_s,
@@ -289,8 +305,55 @@ async def executar(args) -> int:
         # mesma coisa.
         search_domain_fallback=False,
     )
-    embedders = EmbedderRegistry()
-    embedder = embedders.get(args.embedding_model)
+
+
+def _montar_config(args, dimensao: int, n_arquivos: int) -> dict:
+    return {
+        "embedding_model": args.embedding_model,
+        "vector_dimension": dimensao,
+        "distance_metric": args.distance,
+        "chunk_size": args.chunk_size,
+        "chunk_overlap": args.chunk_overlap,
+        "top_k": args.top_k,
+        "score_threshold": args.score_threshold,
+        "dominio": args.dominio,
+        "arquivos_ingeridos": n_arquivos,
+    }
+
+
+def _salvar_resultado(args, config: dict, metricas: dict, detalhes: list[dict]) -> None:
+    SAIDA.write_text(
+        json.dumps(
+            {
+                "gerado_em": datetime.now(UTC).isoformat(),
+                "dataset": rotulo_dataset(args.dataset, args.incluir_pendentes),
+                "config": config,
+                "metricas": metricas,
+                "itens": detalhes,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    print(f"\nResultado: {SAIDA}")
+
+
+async def executar(args) -> int:
+    dataset = carregar_dataset(args.dataset, incluir_pendentes=args.incluir_pendentes)
+    print(descrever(dataset))
+    perguntas = dataset["perguntas"]
+    pastas = dataset["_pastas"]
+    args.dominio = args.dominio or dataset["dominio"]
+
+    arquivos = carregar_arquivos_a_ingerir(pastas)
+    _imprimir_plano(pastas, arquivos, len(perguntas))
+
+    settings = get_settings()
+    engine = create_db_engine(settings.postgres_dsn)
+    session_factory = create_session_factory(engine)
+    qdrant = _criar_qdrant(settings)
+    embedder = EmbedderRegistry().get(args.embedding_model)
     dimensao = await embedder.get_dimension()
 
     print(f"\nModelo: {args.embedding_model} ({dimensao} dims)")
@@ -312,34 +375,9 @@ async def executar(args) -> int:
         await apagar_collection(collection, qdrant, session_factory)
         await engine.dispose()
 
-    config = {
-        "embedding_model": args.embedding_model,
-        "vector_dimension": dimensao,
-        "distance_metric": args.distance,
-        "chunk_size": args.chunk_size,
-        "chunk_overlap": args.chunk_overlap,
-        "top_k": args.top_k,
-        "score_threshold": args.score_threshold,
-        "dominio": args.dominio,
-        "arquivos_ingeridos": len(arquivos),
-    }
+    config = _montar_config(args, dimensao, len(arquivos))
     _imprimir(metricas, detalhes, config)
-
-    SAIDA.write_text(
-        json.dumps(
-            {
-                "gerado_em": datetime.now(UTC).isoformat(),
-                "dataset": rotulo_dataset(args.dataset, args.incluir_pendentes),
-                "config": config,
-                "metricas": metricas,
-                "itens": detalhes,
-            },
-            ensure_ascii=False,
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-    print(f"\nResultado: {SAIDA}")
+    _salvar_resultado(args, config, metricas, detalhes)
     return 0
 
 
