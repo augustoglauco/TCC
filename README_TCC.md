@@ -135,7 +135,7 @@ Para interagir com o sistema e explorar todas as suas funcionalidades:
    - **Mensagens de Texto**: Pergunte sobre produtos, preços, frete, manuais ou solicitações de agendamento.
    - **Mensagens de Voz (Áudio)**: Clique no ícone de microfone, fale sua pergunta e envie (transcrição automática via Whisper STT).
    - **Fotos e Imagens**: Anexe fotos de comprovantes (OCR) ou imagens de produtos para busca por similaridade visual no catálogo (CLIP).
-   - **Cards Interativos**: Interaja diretamente com os cards ricos de produtos, cotações B2B, confirmações de agendamento no Google Calendar e download do documento-fonte do RAG; administradores autenticados também podem pedir gráficos analíticos dinâmicos diretamente no chat.
+   - **Cards Interativos**: Interaja diretamente com os cards ricos de produtos, cotações B2B, confirmações de agendamento no Google Calendar e download do documento-fonte do RAG; administradores autenticados também podem pedir gráficos analíticos dinâmicos, consultar dados e executar ações (incluir ou alterar produto, baixa de estoque, concluir ou cancelar venda) diretamente no chat, sempre com prévia e confirmação.
 
 *Para o manual de instrução do usuário final, consulte:* [HOWTO_USUARIO.md](docs/Manuais/HOWTO_USUARIO.md).  
 *Para o manual do administrador (ingestão RAG, crawler e parametrização da IA), consulte:* [HOWTO_ADMINISTRADOR.md](docs/Manuais/HOWTO_ADMINISTRADOR.md).

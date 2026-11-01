@@ -14,8 +14,9 @@
 5. [🤖 Gerenciamento e Parametrização da IA (`/admin/modelos`)](#-gerenciamento-e-parametrização-da-ia-adminmodelos)
 6. [🛍️ Gestão do Catálogo B2B e Ferramentas MCP](#️-gestão-do-catálogo-b2b-e-ferramentas-mcp)
 7. [📊 Monitor de Tom, Sessões e Atendimento Humano](#-monitor-de-tom-sessões-e-atendimento-humano)
-8. [📉 Dashboards e Gráficos Dinâmicos via Chat (`/admin/dashboards`)](#-dashboards-e-gráficos-dinâmicos-via-chat-admindashboards)
-9. [📈 Métricas de Tokens, Custos e Chats Encerrados (`/admin/metricas`)](#-métricas-de-tokens-custos-e-chats-encerrados-adminmetricas)
+8. [🛠️ Ações do Admin pelo Chat](#️-ações-do-admin-pelo-chat)
+9. [📉 Dashboards e Gráficos Dinâmicos via Chat (`/admin/dashboards`)](#-dashboards-e-gráficos-dinâmicos-via-chat-admindashboards)
+10. [📈 Métricas de Tokens, Custos e Chats Encerrados (`/admin/metricas`)](#-métricas-de-tokens-custos-e-chats-encerrados-adminmetricas)
 
 ---
 
@@ -308,17 +309,60 @@ Menu ⚙️ (só Admin). Uma conversa entra na **fila de espera** quando o clien
 
 ## 🛠️ Ações do Admin pelo Chat
 
-Logado como Admin, o widget de chat também executa ações de escrita. Toda escrita mostra antes
-um card com a prévia (antes × depois) e os botões **Confirmar** e **Cancelar**; nada é gravado
-sem a confirmação, e a proposta expira em 10 minutos. Cada ação confirmada fica registrada
-(auditoria).
+Logado como Admin, o **widget de chat normal** também consulta e altera dados. Basta escrever o
+pedido em linguagem natural; não existe tela separada.
 
-* **Consultar**: "liste os pedidos reservados" devolve uma tabela (até 50 linhas).
-* **Incluir produto**: "inclua o produto X, preço 99,90, categoria Y, descrição Z".
-* **Alterar nome ou descrição**: "altere o nome do produto 12 para ...". Se o nome casar com mais de um produto, o chat lista os candidatos (id: nome) e você repete com o id.
-* **Dar baixa no estoque**: "dê baixa de 1 unidade do produto 12 no CD Sul". Não aceita baixa maior que o saldo.
-* **Atualizar venda**: "conclua a venda <id do pedido>" ou "cancele o pedido <id>". Transições: reservado ou pagamento divergente → concluída ou cancelada; concluída → cancelada (com aviso); cancelada é final. Cancelar devolve os itens ao estoque do centro de distribuição de cada item e o pedido deixa de contar como venda.
-* `# MVP`: o cancelamento não faz estorno financeiro nem é parcial.
+### Como funciona a confirmação
+
+* **Leituras** (consultar, gráficos) acontecem na hora e nunca gravam.
+* **Toda escrita** mostra antes um card com a prévia (**antes × depois**) e os botões
+  **Confirmar** e **Cancelar**. Nada é gravado sem o clique em Confirmar; escrever "sim" na
+  conversa não grava.
+* A proposta **expira em 10 minutos** e só vale para o Admin que a pediu. Clicar duas vezes em
+  Confirmar não grava duas vezes.
+* Cada ação confirmada, cancelada ou expirada fica registrada (quem, o quê, antes, depois, quando).
+
+### O que dá para pedir
+
+| Pedido | Exemplo | Observações |
+|---|---|---|
+| **Consultar dados** | "liste os pedidos reservados", "quais produtos têm estoque abaixo de 5?" | Só `SELECT`, até 50 linhas, mostrado como tabela. Se passar de 50, o card avisa. |
+| **Gráfico** | "gráfico de barras do estoque por CD" | Ver Seção 8. |
+| **Incluir produto** | "inclua o produto X, preço 99,90, categoria Y, descrição Z" | Preço aceita vírgula ou ponto. A prévia mostra nome, categoria, preço e descrição. |
+| **Alterar nome** | "altere o nome do produto 12 para Novo Nome" | Produto por id ou nome. |
+| **Alterar descrição** | "altere a descrição do produto Sensor Alfa para ..." | Idem. |
+| **Dar baixa no estoque** | "dê baixa de 2 unidades do produto 12 no CD Sul" | Não aceita quantidade zero, negativa, decimal nem maior que o saldo; o CD precisa ter estoque do produto. |
+| **Concluir venda** | "conclua a venda <id do pedido>" | Registra a conversão (`chat_admin`, data e Admin). |
+| **Cancelar venda** | "cancele o pedido <id>" | Devolve cada item ao estoque do **seu próprio** CD. |
+
+Verbos que ativam o modo de ação: inclua/cadastre/adicione, altere/mude/renomeie/atualize, dê baixa,
+cancele, conclua/finalize/marque. A frase precisa citar produto, estoque, venda/pedido, nome ou descrição.
+
+**Se o nome casar com mais de um produto**, o chat lista os candidatos (id: nome) e não altera
+nada; repita o pedido com o id.
+
+### Status de venda
+
+| De | Para | Efeito |
+|---|---|---|
+| reservado | concluída ou cancelada | concluída preenche a conversão; cancelada devolve o estoque |
+| pagamento divergente | concluída ou cancelada | idem |
+| concluída | cancelada | a prévia mostra um aviso extra; devolve o estoque e limpa a conversão, então o pedido deixa de contar como venda |
+| cancelada | qualquer | **recusado** (estado final). O MCP B2B também não reabre pedido cancelado |
+
+### Quando o chat não faz a ação
+
+* Se o assistente não entender o pedido como uma das ações acima, ele **segue como conversa
+  normal** (RAG, gráfico ou resposta comum), sem gravar nada. Reformule citando a ação e o id.
+* Perguntas ("como cadastro um produto?", "qual a política de cancelamento?") são respostas, não
+  ações.
+* Com o modelo de linguagem indisponível, o pedido de escrita não gera prévia.
+
+### Limites (`# MVP`)
+
+* Sem estorno financeiro e sem cancelamento parcial de pedido.
+* Não há exclusão de produto, alteração de preço, nem edição de clientes ou agendamentos pelo chat.
+* Não existe SQL de escrita em nenhum ponto: só as ações da tabela acima gravam.
 
 ---
 
