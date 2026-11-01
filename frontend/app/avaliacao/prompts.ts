@@ -57,7 +57,7 @@ export const MECANICA: BlocoMecanica[] = [
       {
         titulo: "3) Handlers curtos",
         texto:
-          "Pedido de gráfico (somente Admin autenticado) e comprovante de pagamento são tratados antes do resto. Se um deles responde, o turno termina ali.",
+          "Em ordem: ações do Admin no chat (consultar dados ou propor uma escrita com prévia e confirmação; só Admin autenticado), pedido de gráfico (só Admin) e comprovante de pagamento. Se um deles responde, o turno termina ali; se as ações do Admin não entendem o pedido, o turno segue para os demais.",
       },
       {
         titulo: "4) Agendamento",
@@ -462,7 +462,7 @@ Mensagem do cliente: <entrada_cliente>{mensagem}</entrada_cliente>`,
         quando: "Domínio vendas, com produto, categoria ou catálogo completo resolvido.",
         modelo: "LLM local ou externo",
         explicacao:
-          "Não são só dados: o cabeçalho manda preferir os valores do banco a qualquer trecho do RAG e escolher entre estoque total e por centro de distribuição conforme a pergunta. Com cotação, o bloco informa a quantidade do pedido, separada do estoque.",
+          "Não são só dados: o cabeçalho manda preferir os valores do banco a qualquer trecho do RAG e escolher entre estoque total e por centro de distribuição conforme a pergunta. Com cotação, o bloco informa a quantidade do pedido, separada do estoque. Depois do cabeçalho vêm as linhas de dados: descrição, especificações, dimensões (cm), peso (kg), estoque e cotação.",
         texto: `[produto único] Dados oficiais do catálogo interno, já calculados para esta mensagem. O cliente está falando deste produto: use exatamente estes nomes, valores e quantidades, e prefira-os a qualquer informação recuperada abaixo que seja diferente. Responda o que o cliente perguntou: se ele pediu detalhes, dados técnicos ou características, use a descrição comercial e as especificações técnicas, e só fale de preço e estoque se ele perguntou por eles. Se ele perguntar pelo estoque de um centro de distribuição específico, ou pedir o estoque 'por CD', responda com o detalhamento por CD abaixo, não com o total somado.
 
 [categoria / catálogo] Dados oficiais do catálogo interno, já calculados para esta mensagem. O cliente perguntou pelos produtos disponíveis: use exatamente estes nomes, preços e quantidades de estoque, e prefira-os a qualquer informação recuperada abaixo que seja diferente.`,
@@ -627,6 +627,29 @@ Texto da página: {texto}`,
 Conteúdo da página: {texto}
 
 Responda apenas com JSON no formato: {"domain": "...", "confidence": 0.0}`,
+      },
+      {
+        nome: "Consulta SELECT do Admin no chat",
+        arquivo: "backend/src/app/admin_tools/consulta.py (_PROMPT)",
+        quando: "Admin pede uma consulta de dados no chat (\"liste os pedidos reservados\").",
+        modelo: "LLM local",
+        explicacao:
+          "Devolve só um SELECT em JSON. Quem decide que é uma consulta é uma regex, não o modelo. O SQL passa pelo validador (só SELECT, tabelas permitidas, LIMIT 50), roda com tempo máximo e, no Postgres, em transação somente-leitura; o resultado volta como tabela.",
+        texto: `Você é um analista de dados PostgreSQL. O administrador perguntou: "{pergunta}".
+{schema}
+Responda APENAS com JSON válido: {"sql": "SELECT ..."}. Só SELECT; sem texto fora do JSON.`,
+      },
+      {
+        nome: "Ações de escrita do Admin no chat",
+        arquivo: "backend/src/app/admin_tools/roteador.py (PROMPT_FERRAMENTAS)",
+        quando: "Mensagem do Admin com verbo de escrita (inclua, altere, dê baixa, cancele, conclua) sobre produto, estoque ou venda.",
+        modelo: "LLM local",
+        explicacao:
+          "Escolhe UMA das cinco ações e os argumentos, sem inventar valores. O modelo nunca grava: o resultado vira uma proposta com prévia (antes e depois) que o Admin confirma num botão; só o endpoint de confirmação grava, e cada ação fica auditada. Se não entender, o turno segue para o fluxo normal.",
+        texto: `Você traduz um pedido do administrador em UMA ação do sistema.
+Ações: incluir_produto (nome, descricao, preco, categoria); alterar_nome_produto (produto, novo_nome); alterar_descricao_produto (produto, nova_descricao); baixa_estoque (produto, cd, quantidade inteira); atualizar_venda (pedido_id, novo_status: "venda_concluida" ou "cancelada").
+Responda APENAS com JSON: {"ferramenta": "<ação>", "argumentos": {...}}. Se não corresponder a nenhuma ação, {"ferramenta": null}. Não invente valores que o administrador não informou.
+Pedido: {pedido}`,
       },
       {
         nome: "Text-to-SQL dos gráficos dinâmicos",

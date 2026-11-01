@@ -367,6 +367,12 @@ Constrói e une todos os blocos de contexto (playbook, dados do cliente, resumo,
 > e nunca a quantidade do pedido. O texto dizia "2 unidades" (estoque do
 > CD-RJ) enquanto o card mostrava 1.
 
+> **Bloco do catálogo, linhas de dados (conferido em 2026-11-01):** depois do cabeçalho de
+> instrução, `_formatar_dados_catalogo_vendas` lista, nesta ordem e só quando existem:
+> descrição comercial, especificações técnicas, `Dimensões (cm)`, `Peso` (kg), estoque
+> disponível, estoque por CD, cotação e quantidade do pedido, compatibilidade. Dimensões e peso
+> passaram a poder ser preenchidos no formulário do produto (2026-11-01).
+
 > **`_build_prompt` atualizado em 2026-10-07** (resiliência a prompt
 > injection, ver `docs/superpowers/specs/2026-10-07-seguranca-prompt-injection-mcp-design.md`):
 > a mensagem do cliente e o conteúdo recuperado do RAG, antes concatenados
