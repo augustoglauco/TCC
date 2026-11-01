@@ -176,13 +176,7 @@ export async function runCrawlerStream(
   payload: CrawlRunPayload,
   callbacks: CrawlerStreamCallbacks,
 ): Promise<void> {
-  const params = new URLSearchParams({ url: payload.url, depth: String(payload.depth) });
-  if (payload.max_pages !== undefined) {
-    params.set("max_pages", String(payload.max_pages));
-  }
-  if (payload.collection_id) {
-    params.set("collection_id", payload.collection_id);
-  }
+  const params = _montarParams(payload);
 
   let response: Response;
   try {
@@ -201,7 +195,26 @@ export async function runCrawlerStream(
     return;
   }
 
-  const reader = response.body.getReader();
+  await _lerStream(response.body, callbacks);
+}
+
+function _montarParams(payload: CrawlRunPayload): URLSearchParams {
+  const params = new URLSearchParams({ url: payload.url, depth: String(payload.depth) });
+  if (payload.max_pages !== undefined) {
+    params.set("max_pages", String(payload.max_pages));
+  }
+  if (payload.collection_id) {
+    params.set("collection_id", payload.collection_id);
+  }
+  return params;
+}
+
+/** Lê o corpo SSE até o fim, entregando eventos; garante um desfecho (`onError`) se não vier `done`/`error`. */
+async function _lerStream(
+  body: ReadableStream<Uint8Array>,
+  callbacks: CrawlerStreamCallbacks,
+): Promise<void> {
+  const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
   // Se o stream terminar sem `done` nem `error` (ex.: backend fecha a
