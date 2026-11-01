@@ -205,27 +205,24 @@ def _aplicar_prompt_c(prompt: str) -> str:
     return prompt.replace(_FRASE_V2, _FRASE_V2 + _REGRAS_C)
 
 
+def _revisado_e_unico(caso: dict) -> bool:
+    """Aprovado/corrigido na revisão e não marcado como duplicata."""
+    status = (caso.get("revisao") or {}).get("status")
+    return status in {"aprovado", "corrigido"} and not caso.get("duplicada_de")
+
+
 def _so_respondiveis_revisados(casos: list[dict]) -> list[dict]:
     """Os casos com resposta aprovados/corrigidos, sem duplicata nem origem ambígua."""
     return [
         c
         for c in casos
-        if not c.get("sem_resposta")
-        and (c.get("revisao") or {}).get("status") in {"aprovado", "corrigido"}
-        and not c.get("duplicada_de")
-        and not c.get("origem_ambigua")
+        if not c.get("sem_resposta") and _revisado_e_unico(c) and not c.get("origem_ambigua")
     ]
 
 
 def _so_sem_resposta_revisados(casos: list[dict]) -> list[dict]:
     """Os casos `sem_resposta` aprovados ou corrigidos na revisão, sem duplicatas."""
-    return [
-        c
-        for c in casos
-        if c.get("sem_resposta")
-        and (c.get("revisao") or {}).get("status") in {"aprovado", "corrigido"}
-        and not c.get("duplicada_de")
-    ]
+    return [c for c in casos if c.get("sem_resposta") and _revisado_e_unico(c)]
 
 
 def _normalizar_nome_arquivo(nome: str) -> str:
@@ -424,27 +421,17 @@ class _ColecaoNomeadaRagClient:
         )
 
 
-async def main() -> None:
-    settings = get_settings()
-    casos = _carregar_casos()
-    # Modo `--sem-resposta`: só as negativas revisadas, saída em arquivo próprio
-    # (não sobrescreve o `results.json` da rodada completa).
-    so_negativas = "--sem-resposta" in sys.argv
-    so_respondiveis = "--com-resposta" in sys.argv
-    prompt_v2 = "--prompt-v2" in sys.argv
-    prompt_c = "--prompt-c" in sys.argv
+def _selecionar_casos(casos: list[dict], so_negativas: bool, so_respondiveis: bool) -> list[dict]:
+    """Modo `--sem-resposta`/`--com-resposta`; sem flag, a rodada completa."""
     if so_negativas:
-        casos = _so_sem_resposta_revisados(casos)
-    elif so_respondiveis:
-        casos = _so_respondiveis_revisados(casos)
-    else:
-        # Rodada completa = as duas partes revisadas (sem descartados nem pendentes).
-        casos = _so_respondiveis_revisados(casos) + _so_sem_resposta_revisados(casos)
-    output_path = BASE_DIR / (
-        _opcao("--saida") or _nome_saida(so_negativas, so_respondiveis, prompt_v2)
-    )
-    top_k = int(_opcao("--top-k", "5"))
+        return _so_sem_resposta_revisados(casos)
+    if so_respondiveis:
+        return _so_respondiveis_revisados(casos)
+    # Rodada completa = as duas partes revisadas (sem descartados nem pendentes).
+    return _so_respondiveis_revisados(casos) + _so_sem_resposta_revisados(casos)
 
+
+def _montar_rag_client(settings, nome_colecao: str | None):
     qdrant = QdrantRAGClient(
         host=settings.qdrant_host,
         port=settings.qdrant_port,
@@ -452,15 +439,13 @@ async def main() -> None:
         search_domain_fallback=settings.rag_search_domain_fallback,
     )
     embedders = EmbedderRegistry()
-    db_engine = create_db_engine(settings.postgres_dsn)
-    session_factory = create_session_factory(db_engine)
-    nome_colecao = _opcao("--collection")
+    session_factory = create_session_factory(create_db_engine(settings.postgres_dsn))
     if nome_colecao:
-        rag_client = _ColecaoNomeadaRagClient(qdrant, session_factory, embedders, nome_colecao)
-    else:
-        rag_client = ActiveCollectionRagClient(qdrant, session_factory, embedders)
+        return _ColecaoNomeadaRagClient(qdrant, session_factory, embedders, nome_colecao)
+    return ActiveCollectionRagClient(qdrant, session_factory, embedders)
 
-    num_ctx = settings.local_llm_num_ctx or _NUM_CTX_PADRAO_AVALIACAO
+
+def _montar_clientes_llm(settings, num_ctx: int):
     local_client = OllamaClient(
         base_url=settings.local_model_base_url,
         model=settings.local_model_name,
@@ -478,15 +463,133 @@ async def main() -> None:
         model=settings.external_model_name,
         timeout_s=settings.external_llm_timeout_s,
     )
+    return local_client, judge_client
 
-    resultados = []
-    resultados_sem_resposta: list[dict] = []
-    # `--retomar`: continua uma rodada interrompida, reaproveitando os casos já
-    # gravados em `output_path` e pulando os seus ids.
-    if "--retomar" in sys.argv and output_path.exists():
-        anterior = json.loads(output_path.read_text(encoding="utf-8"))
-        resultados = anterior.get("casos", [])
-        resultados_sem_resposta = anterior.get("casos_sem_resposta", [])
+
+def _retomar_anterior(output_path: Path) -> tuple[list[dict], list[dict], dict | None]:
+    """`--retomar`: casos já gravados em `output_path` (cujos ids serão pulados) e a config."""
+    if "--retomar" not in sys.argv or not output_path.exists():
+        return [], [], None
+    anterior = json.loads(output_path.read_text(encoding="utf-8"))
+    return (
+        anterior.get("casos", []),
+        anterior.get("casos_sem_resposta", []),
+        anterior.get("configuracao"),
+    )
+
+
+def _latencia_geracao(resposta_llm) -> dict:
+    return {
+        "total_ms": resposta_llm.total_duration_ms,
+        "carga_ms": resposta_llm.load_duration_ms,
+        "prompt_eval_ms": resposta_llm.prompt_eval_duration_ms,
+        "eval_ms": resposta_llm.eval_duration_ms,
+        "completion_tokens": resposta_llm.completion_tokens,
+    }
+
+
+async def _registrar_sem_resposta(caso: dict, geracao: dict, judge_client) -> dict:
+    """Os casos `sem_resposta` medem alucinação, não recuperação: o
+    gabarito é a recusa, `documento_origem` é vazio de propósito e não
+    existe fonte correta a cobrar. Antes de 2026-10-17 eles passavam
+    pelo mesmo caminho dos respondíveis — `_fonte_e_correta` devolvia
+    False por construção e o juiz comparava a resposta com um gabarito
+    que não é um fato. Agora são julgados por outro prompt e somados
+    num resultado separado, porque misturar os dois no mesmo
+    denominador estraga as duas medidas.
+    """
+    resposta_gerada, fontes = geracao["resposta_gerada"], geracao["fontes"]
+    # `--sem-juiz`: o tier gratuito esgota o limite diário (429) no meio da
+    # rodada; sem juiz, a recusa fica com o marcador e a leitura humana.
+    if "--sem-juiz" in sys.argv:
+        julgamento = {}
+    else:
+        julgamento = await _julgar_recusa(judge_client, caso["pergunta"], resposta_gerada, fontes)
+    recusa_heuristica = _parece_recusa(resposta_gerada)
+    print(
+        f"    [sem resposta] recusou={julgamento.get('recusou')} "
+        f"alucinou={julgamento.get('alucinou')} marcador={recusa_heuristica}"
+    )
+    return {
+        "id": caso["id"],
+        "pergunta": caso["pergunta"],
+        "resposta_gerada": resposta_gerada,
+        "fontes_recuperadas": fontes,
+        "recusou": julgamento.get("recusou"),
+        "alucinou": julgamento.get("alucinou"),
+        "recusa_por_marcador": recusa_heuristica,
+        "julgamento": julgamento,
+        **geracao["medidas"],
+        "nota_manual": None,
+    }
+
+
+async def _registrar_respondivel(caso: dict, geracao: dict, judge_client) -> dict:
+    resposta_gerada, fontes = geracao["resposta_gerada"], geracao["fontes"]
+    fonte_correta = _fonte_e_correta(
+        fontes, caso["documento_origem"], caso.get("documentos_aceitos")
+    )
+    julgamento = await _julgar_resposta(
+        judge_client, caso["pergunta"], caso["resposta_esperada"], resposta_gerada, fontes
+    )
+    print(f"    fonte_correta={fonte_correta}  nota_llm_judge={julgamento.get('nota')}")
+    return {
+        "id": caso["id"],
+        "pergunta": caso["pergunta"],
+        "dificuldade": caso["dificuldade"],
+        "documento_origem_esperado": caso["documento_origem"],
+        "resposta_esperada": caso["resposta_esperada"],
+        "resposta_gerada": resposta_gerada,
+        "fontes_recuperadas": fontes,
+        "fonte_correta": fonte_correta,
+        "nota_llm_judge": julgamento,
+        **geracao["medidas"],
+        "nota_manual": None,
+    }
+
+
+async def _gerar_resposta(caso: dict, rag_client, local_client, top_k: int) -> dict:
+    """Busca no RAG, monta o prompt da variante pedida e gera no modelo local."""
+    documentos = await _buscar_documentos_rag(
+        caso["pergunta"], recent_messages=[], domain=_DOMAIN, rag_client=rag_client, top_k=top_k
+    )
+    prompt = _build_prompt(caso["pergunta"], documentos, domain=_DOMAIN)
+    if "--prompt-v2" in sys.argv:
+        prompt = _aplicar_prompt_v2(prompt, bool(documentos))
+    if "--prompt-c" in sys.argv:
+        prompt = _aplicar_prompt_c(prompt)
+    resposta_llm = await _gerar_local_com_retry(local_client, prompt)
+    contexto = await _contexto_efetivo(local_client)
+    _CONFIGURACAO["num_ctx_efetivo"] = contexto
+    return {
+        "resposta_gerada": resposta_llm.text,
+        "fontes": [documento.source for documento in documentos],
+        "medidas": {
+            "prompt_tokens": resposta_llm.prompt_tokens,
+            "latencia_geracao": _latencia_geracao(resposta_llm),
+            "contexto_em_risco": _avisar_ocupacao(resposta_llm.prompt_tokens, contexto),
+        },
+    }
+
+
+async def main() -> None:
+    settings = get_settings()
+    # Modo `--sem-resposta`: só as negativas revisadas, saída em arquivo próprio
+    # (não sobrescreve o `results.json` da rodada completa).
+    so_negativas = "--sem-resposta" in sys.argv
+    so_respondiveis = "--com-resposta" in sys.argv
+    prompt_v2 = "--prompt-v2" in sys.argv
+    casos = _selecionar_casos(_carregar_casos(), so_negativas, so_respondiveis)
+    output_path = BASE_DIR / (
+        _opcao("--saida") or _nome_saida(so_negativas, so_respondiveis, prompt_v2)
+    )
+    top_k = int(_opcao("--top-k", "5"))
+    nome_colecao = _opcao("--collection")
+    rag_client = _montar_rag_client(settings, nome_colecao)
+    num_ctx = settings.local_llm_num_ctx or _NUM_CTX_PADRAO_AVALIACAO
+    local_client, judge_client = _montar_clientes_llm(settings, num_ctx)
+
+    resultados, resultados_sem_resposta, anterior_cfg = _retomar_anterior(output_path)
     _CONFIGURACAO.update(
         modelo_local=settings.local_model_name,
         modelo_juiz=settings.external_model_name,
@@ -494,108 +597,24 @@ async def main() -> None:
         local_llm_timeout_s=settings.local_llm_timeout_s,
         prompt_v2=prompt_v2,
         top_k=top_k,
-        prompt_c=prompt_c,
+        prompt_c="--prompt-c" in sys.argv,
         collection=nome_colecao,
     )
-    if "--retomar" in sys.argv and output_path.exists():
-        anterior_cfg = json.loads(output_path.read_text(encoding="utf-8")).get("configuracao")
-        if anterior_cfg != _CONFIGURACAO:
-            print(f"AVISO: retomada com configuração diferente: {anterior_cfg} -> {_CONFIGURACAO}")
+    if anterior_cfg is not None and anterior_cfg != _CONFIGURACAO:
+        print(f"AVISO: retomada com configuração diferente: {anterior_cfg} -> {_CONFIGURACAO}")
     ja_feitos = {str(c["id"]) for c in resultados + resultados_sem_resposta}
     for caso in casos:
         if str(caso["id"]) in ja_feitos:
             continue
         _gravar_resultados(output_path, resultados, resultados_sem_resposta)
         print(f"[{caso['id']}] {caso['pergunta'][:70]}...")
-        documentos = await _buscar_documentos_rag(
-            caso["pergunta"], recent_messages=[], domain=_DOMAIN, rag_client=rag_client, top_k=top_k
-        )
-        prompt = _build_prompt(caso["pergunta"], documentos, domain=_DOMAIN)
-        if prompt_v2:
-            prompt = _aplicar_prompt_v2(prompt, bool(documentos))
-        if prompt_c:
-            prompt = _aplicar_prompt_c(prompt)
-        resposta_llm = await _gerar_local_com_retry(local_client, prompt)
-        resposta_gerada = resposta_llm.text
-        contexto = await _contexto_efetivo(local_client)
-        _CONFIGURACAO["num_ctx_efetivo"] = contexto
-        prompt_tokens = resposta_llm.prompt_tokens
-        latencia_geracao = {
-            "total_ms": resposta_llm.total_duration_ms,
-            "carga_ms": resposta_llm.load_duration_ms,
-            "prompt_eval_ms": resposta_llm.prompt_eval_duration_ms,
-            "eval_ms": resposta_llm.eval_duration_ms,
-            "completion_tokens": resposta_llm.completion_tokens,
-        }
-        contexto_em_risco = _avisar_ocupacao(prompt_tokens, contexto)
-        fontes = [documento.source for documento in documentos]
-
-        # Os casos `sem_resposta` medem alucinação, não recuperação: o
-        # gabarito é a recusa, `documento_origem` é vazio de propósito e não
-        # existe fonte correta a cobrar. Antes de 2026-10-17 eles passavam
-        # pelo mesmo caminho dos respondíveis — `_fonte_e_correta` devolvia
-        # False por construção e o juiz comparava a resposta com um gabarito
-        # que não é um fato. Agora são julgados por outro prompt e somados
-        # num resultado separado, porque misturar os dois no mesmo
-        # denominador estraga as duas medidas.
+        geracao = await _gerar_resposta(caso, rag_client, local_client, top_k)
         if caso.get("sem_resposta"):
-            # `--sem-juiz`: o tier gratuito esgota o limite diário (429) no meio da
-            # rodada; sem juiz, a recusa fica com o marcador e a leitura humana.
-            if "--sem-juiz" in sys.argv:
-                julgamento = {}
-            else:
-                julgamento = await _julgar_recusa(
-                    judge_client, caso["pergunta"], resposta_gerada, fontes
-                )
-            recusa_heuristica = _parece_recusa(resposta_gerada)
             resultados_sem_resposta.append(
-                {
-                    "id": caso["id"],
-                    "pergunta": caso["pergunta"],
-                    "resposta_gerada": resposta_gerada,
-                    "fontes_recuperadas": fontes,
-                    "recusou": julgamento.get("recusou"),
-                    "alucinou": julgamento.get("alucinou"),
-                    "recusa_por_marcador": recusa_heuristica,
-                    "julgamento": julgamento,
-                    "prompt_tokens": prompt_tokens,
-                    "latencia_geracao": latencia_geracao,
-                    "contexto_em_risco": contexto_em_risco,
-                    "nota_manual": None,
-                }
+                await _registrar_sem_resposta(caso, geracao, judge_client)
             )
-            print(
-                f"    [sem resposta] recusou={julgamento.get('recusou')} "
-                f"alucinou={julgamento.get('alucinou')} marcador={recusa_heuristica}"
-            )
-            continue
-
-        fonte_correta = _fonte_e_correta(
-            fontes, caso["documento_origem"], caso.get("documentos_aceitos")
-        )
-
-        julgamento = await _julgar_resposta(
-            judge_client, caso["pergunta"], caso["resposta_esperada"], resposta_gerada, fontes
-        )
-
-        resultados.append(
-            {
-                "id": caso["id"],
-                "pergunta": caso["pergunta"],
-                "dificuldade": caso["dificuldade"],
-                "documento_origem_esperado": caso["documento_origem"],
-                "resposta_esperada": caso["resposta_esperada"],
-                "resposta_gerada": resposta_gerada,
-                "fontes_recuperadas": fontes,
-                "fonte_correta": fonte_correta,
-                "nota_llm_judge": julgamento,
-                "prompt_tokens": prompt_tokens,
-                "latencia_geracao": latencia_geracao,
-                "contexto_em_risco": contexto_em_risco,
-                "nota_manual": None,
-            }
-        )
-        print(f"    fonte_correta={fonte_correta}  nota_llm_judge={julgamento.get('nota')}")
+        else:
+            resultados.append(await _registrar_respondivel(caso, geracao, judge_client))
 
     _gravar_resultados(output_path, resultados, resultados_sem_resposta)
     print(f"\nResultados salvos em {output_path}")
