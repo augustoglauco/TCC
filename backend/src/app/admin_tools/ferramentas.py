@@ -32,4 +32,7 @@ FERRAMENTAS: dict[str, Ferramenta] = {}
 
 
 # Importados ao final para registrar as ferramentas em FERRAMENTAS (evita ciclo de import).
-from app.admin_tools import ferramentas_produto  # noqa: E402, F401
+from app.admin_tools import (  # noqa: E402, F401
+    ferramentas_estoque,
+    ferramentas_produto,
+)

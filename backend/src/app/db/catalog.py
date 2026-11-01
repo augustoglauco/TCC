@@ -30,7 +30,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 
-from sqlalchemy import and_, delete, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -280,6 +280,56 @@ async def atualizar_estoque(
     await session.commit()
     await session.refresh(estoque)
     return estoque
+
+
+async def baixar_estoque_atomico(
+    session: AsyncSession, produto_id: int, centro_distribuicao: str, quantidade: int
+) -> int:
+    """Subtrai `quantidade` do CD em uma só instrução (`quantidade >= n` na cláusula WHERE),
+    sem a corrida de ler-e-gravar. Devolve o saldo novo; não faz commit."""
+    resultado = await session.execute(
+        update(ProdutoEstoque)
+        .where(
+            ProdutoEstoque.produto_id == produto_id,
+            ProdutoEstoque.centro_distribuicao == centro_distribuicao,
+            ProdutoEstoque.quantidade >= quantidade,
+        )
+        .values(quantidade=ProdutoEstoque.quantidade - quantidade)
+    )
+    if resultado.rowcount == 0:
+        raise EstoqueInsuficienteError(
+            f"Estoque insuficiente em {centro_distribuicao} para dar baixa de {quantidade}."
+        )
+    saldo = await session.execute(
+        select(ProdutoEstoque.quantidade).where(
+            ProdutoEstoque.produto_id == produto_id,
+            ProdutoEstoque.centro_distribuicao == centro_distribuicao,
+        )
+    )
+    return int(saldo.scalar_one())
+
+
+async def devolver_estoque(
+    session: AsyncSession, produto_id: int, centro_distribuicao: str, quantidade: int
+) -> None:
+    """Soma `quantidade` ao CD (cria a linha se faltar); não faz commit."""
+    resultado = await session.execute(
+        update(ProdutoEstoque)
+        .where(
+            ProdutoEstoque.produto_id == produto_id,
+            ProdutoEstoque.centro_distribuicao == centro_distribuicao,
+        )
+        .values(quantidade=ProdutoEstoque.quantidade + quantidade)
+    )
+    if resultado.rowcount == 0:
+        session.add(
+            ProdutoEstoque(
+                produto_id=produto_id,
+                centro_distribuicao=centro_distribuicao,
+                quantidade=quantidade,
+            )
+        )
+        await session.flush()
 
 
 async def listar_estoque(session: AsyncSession, produto_id: int) -> list[ProdutoEstoque]:

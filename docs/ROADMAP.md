@@ -3169,3 +3169,10 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       emite só a proposta/card), `commit: bool = True` em `criar_produto`/`atualizar_produto`.
       Testes: `test_admin_tools_produto.py`, `test_admin_tools_roteador.py`, +6 em
       `test_admin_tools_handler.py`.
+- [x] Chat Admin: `baixa_estoque` (R12, Fase 10/11) — etapa 4: ferramenta
+      `admin_tools/ferramentas_estoque.py` (args `produto, cd, quantidade` inteira > 0;
+      prévia antes × depois do saldo do CD; recusa CD sem estoque e baixa maior que o saldo já na
+      prévia), `baixar_estoque_atomico` (`UPDATE … WHERE quantidade >= n`, rowcount 0 vira
+      `EstoqueInsuficienteError`) e `devolver_estoque` (usada pela etapa 5) em `db/catalog.py`,
+      sem commit. Testes: 9 em `test_admin_tools_estoque.py` (saldo insuficiente, saldo nunca
+      negativo, quantidade 0/negativa/texto/decimal).

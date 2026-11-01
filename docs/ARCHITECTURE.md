@@ -1740,6 +1740,15 @@ com `commit=False`, para a escrita e a auditoria fecharem na mesma transação d
 O ramo de escrita exige `admin_id` (id do token mock, resolvido em `api/chat.py`); sem ele o chat
 segue o fluxo normal. `# MVP: detecção de escrita por palavras-chave; sem desambiguação interativa.`
 
+### Decisão de 2026-11-01: baixa de estoque pelo chat (etapa 4)
+
+`baixa_estoque` (produto por id ou nome, `cd`, `quantidade` inteira > 0) subtrai do saldo de um
+centro de distribuição. A prévia lê o saldo do banco e recusa baixa maior que o saldo; ao confirmar,
+`baixar_estoque_atomico` faz `UPDATE … WHERE quantidade >= n` numa só instrução (rowcount 0 =
+saldo insuficiente, nunca fica negativo, mesmo com baixa concorrente entre prévia e confirmação).
+`devolver_estoque` soma (cria a linha se faltar) e serve ao desfazer da etapa seguinte. Ambas não
+fazem commit. O `# MVP:` de `ProdutoEstoque` sobre concorrência continua valendo para `criar_pedido`.
+
 ## 10. Considerações finais
 
 O desenho atende aos treze requisitos de forma modular, permitindo que o
