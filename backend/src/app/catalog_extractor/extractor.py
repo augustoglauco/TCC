@@ -879,7 +879,7 @@ async def extract_catalog_stream(
                     file_pages_plan.append(
                         _ArquivoPlano(filename, content, "pdf", num_pages, paginas_alvo)
                     )
-            except Exception as e:
+            except Exception as e:  # fronteira: PDF ilegível entra com 0 páginas, o lote segue
                 logger.error(f"Erro ao abrir PDF {filename}: {e}")
                 file_pages_plan.append(_ArquivoPlano(filename, content, "pdf", 0, None))
         else:
