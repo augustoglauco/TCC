@@ -3,6 +3,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import update
 
 from app.admin_tools import (  # noqa: F401
     ferramentas_estoque,
@@ -17,6 +18,7 @@ from app.db.catalog import (
     obter_pedido,
     obter_produto,
 )
+from app.db.models import Pedido
 
 
 async def _produto(session, nome, saldos):
@@ -141,15 +143,68 @@ async def test_cancelar_duas_vezes_nao_devolve_estoque_duas_vezes(db_session):
 
 
 @pytest.mark.asyncio
-async def test_executar_com_status_ja_mudado_nao_devolve_estoque(db_session):
-    """Guarda atômica: mesmo sem passar por `preparar`, o UPDATE condicional recusa."""
+async def test_executar_repetido_apos_commit_recusa_pela_transicao(db_session):
+    """Depois do commit o pedido é relido como `cancelada`: a checagem de transição recusa."""
     p, pedido = await _pedido_reservado(db_session, quantidade=3, saldo=10)
     impl = ferramentas_venda.AtualizarVenda()
     args = _args(pedido, "cancelada")
     await impl.executar(db_session, args, admin_id=1)
     await db_session.commit()
-    # Simula um segundo confirm concorrente que já passou pela validação.
     with pytest.raises(PropostaInvalidaError):
         await impl.executar(db_session, args, admin_id=1)
     await db_session.rollback()
     assert await _saldo(db_session, p.id) == 10
+
+
+@pytest.mark.asyncio
+async def test_claim_atomico_recusa_pedido_obsoleto_e_nao_devolve_estoque(db_session):
+    """Pedido lido como `reservado`, mas outro UPDATE já o cancelou: o WHERE do claim recusa."""
+    p, pedido = await _pedido_reservado(db_session, quantidade=3, saldo=10)
+    obsoleto = await obter_pedido(db_session, pedido.id)
+    assert obsoleto.status == "reservado"
+    await db_session.execute(
+        update(Pedido)
+        .where(Pedido.id == pedido.id)
+        .values(status="cancelada")
+        .execution_options(synchronize_session=False)
+    )
+    with pytest.raises(PropostaInvalidaError):
+        await ferramentas_venda._reivindicar_status(db_session, obsoleto, "cancelada", 1)
+    await db_session.rollback()
+    assert await _saldo(db_session, p.id) == 7  # nada foi devolvido
+
+
+@pytest.mark.asyncio
+async def test_executar_com_pedido_obsoleto_nao_devolve_estoque(db_session, monkeypatch):
+    p, pedido = await _pedido_reservado(db_session, quantidade=3, saldo=10)
+    obsoleto = await obter_pedido(db_session, pedido.id)
+    await db_session.execute(
+        update(Pedido)
+        .where(Pedido.id == pedido.id)
+        .values(status="cancelada")
+        .execution_options(synchronize_session=False)
+    )
+
+    async def _velho(session, args):
+        return obsoleto, "cancelada"
+
+    monkeypatch.setattr(ferramentas_venda, "_pedido_para_mudar", _velho)
+    with pytest.raises(PropostaInvalidaError):
+        await ferramentas_venda.AtualizarVenda().executar(
+            db_session, _args(pedido, "cancelada"), admin_id=1
+        )
+    await db_session.rollback()
+    assert await _saldo(db_session, p.id) == 7
+
+
+@pytest.mark.asyncio
+async def test_cancelar_venda_concluida_limpa_a_conversao(db_session):
+    _, pedido = await _pedido_reservado(db_session)
+    for novo in ("venda_concluida", "cancelada"):
+        a, _ = await _propor(db_session, pedido, novo)
+        await confirmar(db_session, a.id, admin_id=1)
+    db_session.expire_all()
+    final = await obter_pedido(db_session, pedido.id)
+    assert final.status == "cancelada"
+    assert final.tipo_conversao is None
+    assert final.convertido_em is None and final.convertido_por is None

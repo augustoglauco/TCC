@@ -8,8 +8,12 @@ from pydantic import BaseModel
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin_tools.ferramentas import FERRAMENTAS, Previa, PropostaInvalidaError
-from app.admin_tools.ferramentas_produto import _validar
+from app.admin_tools.ferramentas import (
+    FERRAMENTAS,
+    Previa,
+    PropostaInvalidaError,
+    validar_args,
+)
 from app.db.catalog import devolver_estoque, obter_pedido
 from app.db.models import Pedido
 
@@ -29,7 +33,7 @@ class _AtualizarVenda(BaseModel):
 
 
 async def _pedido_para_mudar(session: AsyncSession, args: dict[str, Any]) -> tuple[Pedido, str]:
-    dados = _validar(_AtualizarVenda, args)
+    dados = validar_args(_AtualizarVenda, args)
     pedido = await obter_pedido(session, dados.pedido_id)
     if pedido is None:
         raise PropostaInvalidaError("Pedido não encontrado.")
@@ -53,7 +57,10 @@ async def _reivindicar_status(
     """UPDATE condicional no status lido: só uma confirmação concorrente vence (e só ela
     devolve estoque). Não faz commit."""
     valores: dict[str, Any] = {"status": novo}
-    if novo == "venda_concluida":
+    if novo == "cancelada":
+        # Cancelada não conta como convertida: limpa a conversão da venda concluída.
+        valores.update(tipo_conversao=None, convertido_em=None, convertido_por=None)
+    else:
         valores.update(
             tipo_conversao="chat_admin",
             convertido_em=datetime.now(UTC),

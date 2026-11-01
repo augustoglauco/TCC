@@ -6,8 +6,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin_tools.ferramentas import FERRAMENTAS, Previa, PropostaInvalidaError
-from app.admin_tools.ferramentas_produto import _validar, resolver_produto
+from app.admin_tools.ferramentas import (
+    FERRAMENTAS,
+    Previa,
+    PropostaInvalidaError,
+    validar_args,
+)
+from app.admin_tools.ferramentas_produto import resolver_produto
 from app.db.catalog import EstoqueInsuficienteError, baixar_estoque_atomico
 from app.db.models import ProdutoEstoque
 
@@ -33,7 +38,7 @@ class BaixaEstoque:
     nome = "baixa_estoque"
 
     async def preparar(self, session: AsyncSession, args: dict[str, Any]) -> Previa:
-        dados = _validar(_Baixa, args)
+        dados = validar_args(_Baixa, args)
         produto = await resolver_produto(session, dados.produto)
         saldo = await _saldo(session, produto.id, dados.cd)
         if saldo is None:
@@ -52,7 +57,7 @@ class BaixaEstoque:
     async def executar(
         self, session: AsyncSession, args: dict[str, Any], *, admin_id: int
     ) -> dict[str, Any]:
-        dados = _validar(_Baixa, args)
+        dados = validar_args(_Baixa, args)
         produto = await resolver_produto(session, dados.produto)
         try:
             novo = await baixar_estoque_atomico(session, produto.id, dados.cd, dados.quantidade)

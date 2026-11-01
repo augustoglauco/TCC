@@ -2,7 +2,7 @@
 
 from typing import Any, Protocol
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -25,6 +25,14 @@ class Ferramenta(Protocol):
     async def executar(
         self, session: AsyncSession, args: dict[str, Any], *, admin_id: int
     ) -> dict[str, Any]: ...
+
+
+def validar_args(modelo: type[BaseModel], args: dict[str, Any]) -> Any:
+    try:
+        return modelo(**args)
+    except ValidationError as exc:
+        campo = exc.errors()[0]["loc"][0] if exc.errors() else "argumentos"
+        raise PropostaInvalidaError(f"Argumento inválido: {campo}.") from exc
 
 
 # Preenchido pelas ferramentas (Tasks 3–5) ao final de cada módulo de ferramenta.

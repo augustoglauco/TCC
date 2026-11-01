@@ -1759,7 +1759,8 @@ verdade): `reservado` e `pagamento_divergente` → `venda_concluida` ou `cancela
 estoque. Cancelar devolve cada item ao estoque do próprio CD (`devolver_estoque`; a prévia lista
 `estoque_devolvido` por CD). O status é reivindicado por `UPDATE … WHERE status = <lido>`
 (rowcount 0 = outra confirmação venceu), então duas confirmações concorrentes nunca devolvem o
-estoque duas vezes. `cancelada` **não conta como venda** (`safe_sql` e os gráficos já filtram
+estoque duas vezes. Cancelar também limpa `tipo_conversao`, `convertido_em` e `convertido_por`
+(pedido cancelado não conta como convertido). `cancelada` **não conta como venda** (`safe_sql` e os gráficos já filtram
 `venda_concluida`). `# MVP: sem estorno financeiro (não há gateway) e sem cancelamento parcial de itens.`
 
 ## 10. Considerações finais

@@ -3,10 +3,15 @@
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin_tools.ferramentas import FERRAMENTAS, Previa, PropostaInvalidaError
+from app.admin_tools.ferramentas import (
+    FERRAMENTAS,
+    Previa,
+    PropostaInvalidaError,
+    validar_args,
+)
 from app.db.catalog import atualizar_produto, criar_produto, listar_produtos, obter_produto
 from app.db.models import Produto
 
@@ -32,14 +37,6 @@ async def resolver_produto(session: AsyncSession, referencia: str | int) -> Prod
     if len(achados) > 1:
         raise ProdutoAmbiguoError([(p.id, p.nome) for p in achados[:10]])
     return achados[0]
-
-
-def _validar(modelo: type[BaseModel], args: dict[str, Any]) -> Any:
-    try:
-        return modelo(**args)
-    except ValidationError as exc:
-        campo = exc.errors()[0]["loc"][0] if exc.errors() else "argumentos"
-        raise PropostaInvalidaError(f"Argumento inválido: {campo}.") from exc
 
 
 def _preco_decimal(v: Any) -> Any:
@@ -83,7 +80,7 @@ class IncluirProduto:
     nome = "incluir_produto"
 
     async def preparar(self, session: AsyncSession, args: dict[str, Any]) -> Previa:
-        dados = _validar(_Incluir, args)
+        dados = validar_args(_Incluir, args)
         return Previa(
             titulo="Incluir produto",
             antes={},
@@ -98,7 +95,7 @@ class IncluirProduto:
     async def executar(
         self, session: AsyncSession, args: dict[str, Any], *, admin_id: int
     ) -> dict[str, Any]:
-        dados = _validar(_Incluir, args)
+        dados = validar_args(_Incluir, args)
         produto = await criar_produto(
             session,
             nome=dados.nome,
@@ -120,7 +117,7 @@ class _AlterarCampo:
     titulo: str
 
     async def preparar(self, session: AsyncSession, args: dict[str, Any]) -> Previa:
-        dados = _validar(self.modelo, args)
+        dados = validar_args(self.modelo, args)
         produto = await resolver_produto(session, dados.produto)
         return Previa(
             titulo=f"{self.titulo}: {produto.nome}",
@@ -131,7 +128,7 @@ class _AlterarCampo:
     async def executar(
         self, session: AsyncSession, args: dict[str, Any], *, admin_id: int
     ) -> dict[str, Any]:
-        dados = _validar(self.modelo, args)
+        dados = validar_args(self.modelo, args)
         produto = await resolver_produto(session, dados.produto)
         novo = getattr(dados, self.arg_novo)
         await atualizar_produto(session, produto.id, {self.campo: novo}, commit=False)
