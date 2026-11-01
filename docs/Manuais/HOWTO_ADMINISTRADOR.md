@@ -327,7 +327,7 @@ pedido em linguagem natural; não existe tela separada.
 | Pedido | Exemplo | Observações |
 |---|---|---|
 | **Consultar dados** | "liste os pedidos reservados", "quais produtos têm estoque abaixo de 5?" | Só `SELECT`, até 50 linhas, mostrado como tabela. Se passar de 50, o card avisa. |
-| **Gráfico** | "gráfico de barras do estoque por CD" | Ver Seção 8. |
+| **Gráfico** | "gráfico de barras do estoque por CD" | Ver Seção 9. |
 | **Incluir produto** | "inclua o produto X, preço 99,90, categoria Y, descrição Z" | Preço aceita vírgula ou ponto. A prévia mostra nome, categoria, preço e descrição. |
 | **Alterar nome** | "altere o nome do produto 12 para Novo Nome" | Produto por id ou nome. |
 | **Alterar descrição** | "altere a descrição do produto Sensor Alfa para ..." | Idem. |
