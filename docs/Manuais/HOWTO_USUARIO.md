@@ -23,7 +23,7 @@ A nossa plataforma foi projetada para oferecer uma experiência completa de comp
 ### 🛍️ 1. Catálogo e Busca de Produtos (`/produtos`)
 * **Navegar pelo Catálogo**: Visualize todos os produtos disponíveis em uma grade responsiva com **rolagem interna** (sem estourar a tela do seu celular ou computador).
 * **Filtros e Busca**: Utilize a barra de pesquisa para buscar produtos por nome, código ou palavra-chave.
-* **Detalhes do Produto (`/produtos/[id]`)**: Veja especificações técnicas, preço, fotos em alta resolução e disponibilidade em estoque.
+* **Detalhes do Produto (`/produtos/[id]`)**: Veja especificações técnicas, dimensões e peso (quando o produto tem esses dados cadastrados; senão aparece "Não informado"), preço, fotos em alta resolução e disponibilidade em estoque.
 * **"Cotar com Assistente"**: Na página de um produto, clique no botão dedicado para abrir o chat já falando daquele item.
 
 ### 👤 2. Conta (`/conta/login`, `/conta/cadastro`, `/conta/perfil`)
@@ -54,6 +54,7 @@ O **Assistente Virtual** é um robô inteligente disponível **em todas as pági
 * **Como abrir**: Basta clicar no **ícone flutuante de balão de conversa** localizado no canto inferior direito da tela.
 * **Funcionamento**: Você pode usá-lo tanto como visitante anônimo quanto logado na sua conta. Se estiver logado, ele lembrará das suas conversas anteriores e pedidos recentes!
 * **Botões do chat**: **Falar com atendente humano** (veja a última seção), **Encerrar atendimento** (finaliza a sessão; conversas paradas por 30 minutos também são encerradas sozinhas) e **Limpar histórico** (apaga as mensagens e a memória da conversa). Visitantes anônimos perdem a conversa ao fechar o navegador; logado, ela é retomada na próxima visita.
+* **Contas de administrador**: quem entra com perfil Admin tem no mesmo chat recursos extras (consultar dados, gráficos e alterar produtos, estoque e vendas, sempre com confirmação). Eles não aparecem para clientes nem visitantes; estão descritos em `HOWTO_ADMINISTRADOR.md`.
 * **Indicadores de Modelo**: Respostas do modelo local (GPU) são exibidas no balão cinza padrão. Quando o assistente consulta o modelo especialista em nuvem para perguntas externas ou mais complexas, o balão de resposta recebe um **destaque em vermelho clarinho**.
 
 ---
