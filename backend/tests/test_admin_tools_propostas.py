@@ -1,8 +1,9 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from sqlalchemy import select
 
-from app.admin_tools import ferramentas
+from app.admin_tools import ferramentas, propostas
 from app.admin_tools.ferramentas import Previa
 from app.admin_tools.propostas import (
     PROPOSTA_TTL,
@@ -11,6 +12,7 @@ from app.admin_tools.propostas import (
     confirmar,
     criar_proposta,
 )
+from app.db.models import ChatAdminAcao
 
 
 class _Fake:
@@ -24,12 +26,33 @@ class _Fake:
 
     async def executar(self, session, args, *, admin_id):
         self.execucoes += 1
-        return {"v": args["v"]}
+        return {"v": args["v"], "real": True}
 
 
 class _Quebra(_Fake):
     async def executar(self, session, args, *, admin_id):
+        session.add(
+            ChatAdminAcao(
+                admin_id=99,
+                ferramenta="lixo",
+                argumentos={},
+                expira_em=datetime.now(UTC),
+            )
+        )
+        await session.flush()
         raise RuntimeError("falha no meio da escrita")
+
+
+class _PreparaDuasVezes(_Fake):
+    def __init__(self):
+        super().__init__()
+        self.preparos = 0
+
+    async def preparar(self, session, args):
+        self.preparos += 1
+        if self.preparos > 1:
+            raise ValueError("estado mudou desde a proposta")
+        return await super().preparar(session, args)
 
 
 @pytest.fixture
@@ -53,6 +76,7 @@ async def test_confirmar_executa_uma_vez_e_registra(db_session, fake):
     acao, _ = await criar_proposta(db_session, admin_id=1, ferramenta="fake", argumentos={"v": 2})
     feita = await confirmar(db_session, acao.id, admin_id=1)
     assert feita.status == "executada" and feita.executado_em is not None and fake.execucoes == 1
+    assert feita.depois == {"v": 2, "real": True}  # resultado de executar, não da prévia
     with pytest.raises(PropostaInvalidaError):
         await confirmar(db_session, acao.id, admin_id=1)  # reconfirmar não grava de novo
     assert fake.execucoes == 1
@@ -102,3 +126,36 @@ async def test_executar_que_levanta_nao_grava_e_proposta_continua_pendente(db_se
         await confirmar(db_session, acao.id, admin_id=1)
     await db_session.refresh(acao)
     assert acao.status == "proposta" and acao.executado_em is None
+    lixo = await db_session.execute(select(ChatAdminAcao).where(ChatAdminAcao.ferramenta == "lixo"))
+    assert lixo.scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_confirmar_revalida_com_preparar_e_nao_executa_se_falhar(db_session, monkeypatch):
+    f = _PreparaDuasVezes()
+    monkeypatch.setitem(ferramentas.FERRAMENTAS, "fake", f)
+    acao, _ = await criar_proposta(db_session, admin_id=1, ferramenta="fake", argumentos={"v": 2})
+    with pytest.raises(ValueError):
+        await confirmar(db_session, acao.id, admin_id=1)
+    assert f.execucoes == 0
+    await db_session.refresh(acao)
+    assert acao.status == "proposta"
+
+
+@pytest.mark.asyncio
+async def test_perdedor_da_corrida_nao_executa_de_novo(db_session, fake, monkeypatch):
+    acao, _ = await criar_proposta(db_session, admin_id=1, ferramenta="fake", argumentos={"v": 2})
+    await confirmar(db_session, acao.id, admin_id=1)
+    assert fake.execucoes == 1
+
+    # Simula a leitura velha de quem perdeu a corrida: a linha no banco já está `executada`,
+    # mas o carregamento (anterior à reivindicação) ainda viu `proposta`.
+    async def _velha(session, acao_id, admin_id, agora):
+        return acao
+
+    monkeypatch.setattr(propostas, "_carregar_pendente", _velha)
+    with pytest.raises(PropostaInvalidaError):
+        await confirmar(db_session, acao.id, admin_id=1)
+    assert fake.execucoes == 1
+    await db_session.refresh(acao)
+    assert acao.status == "executada"

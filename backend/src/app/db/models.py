@@ -652,6 +652,9 @@ class ChatAdminAcao(Base):
     """Proposta/execução de uma ferramenta do Admin no chat (`app.admin_tools`): a trilha de
     auditoria de toda escrita feita pelo chat (antes → depois, quem, quando).
 
+    `status`: `proposta | executada | cancelada | expirada`; `executando` existe só dentro da
+    transação de `confirmar` (reivindicação atômica) e nunca é commitado.
+
     # MVP: o `admin_id` é o id do cliente do token mock (`mock-token-<id>`); sem retenção.
     """
 

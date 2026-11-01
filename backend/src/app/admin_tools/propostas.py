@@ -3,6 +3,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.admin_tools.ferramentas import FERRAMENTAS, Previa
@@ -64,6 +65,22 @@ async def _carregar_pendente(
     return acao
 
 
+async def _reivindicar(session: AsyncSession, acao_id: uuid.UUID) -> None:
+    """Reivindica a proposta de forma atômica (`proposta` → `executando`) antes de executar.
+
+    O status `executando` só existe dentro da transação: o commit final grava `executada` e
+    qualquer falha faz rollback, voltando a `proposta`. Quem perde a corrida não casa a linha.
+    """
+    resultado = await session.execute(
+        update(ChatAdminAcao)
+        .where(ChatAdminAcao.id == acao_id, ChatAdminAcao.status == "proposta")
+        .values(status="executando")
+        .execution_options(synchronize_session=False)
+    )
+    if resultado.rowcount == 0:
+        raise PropostaInvalidaError("Proposta já em execução ou resolvida.")
+
+
 async def confirmar(
     session: AsyncSession, acao_id: uuid.UUID, *, admin_id: int, agora: datetime | None = None
 ) -> ChatAdminAcao:
@@ -76,6 +93,7 @@ async def confirmar(
     acao = await _carregar_pendente(session, acao_id, admin_id, momento)
     impl = FERRAMENTAS[acao.ferramenta]
     try:
+        await _reivindicar(session, acao.id)
         await impl.preparar(session, acao.argumentos)
         acao.depois = await impl.executar(session, acao.argumentos, admin_id=admin_id)
         acao.status = "executada"
