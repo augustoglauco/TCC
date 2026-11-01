@@ -148,7 +148,7 @@ Modelo fora do ar, demora excessiva ou resposta que não é um JSON válido: o a
 
 ## 6. Como escolher qual usar
 
-Em **configurações de execução → Agente de Previsão de Estoque**:
+Em **/admin/modelos → aba "Parâmetros" → Agente de Previsão de Estoque (R13)** (campo "Agente ativo"; clique em "Aplicar" no fim do formulário):
 
 | Modo | Quando usar |
 | --- | --- |
