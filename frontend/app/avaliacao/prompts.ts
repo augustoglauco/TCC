@@ -601,7 +601,7 @@ Retorne EXCLUSIVAMENTE um objeto JSON no formato:
         quando: "Importação de catálogo em /admin/produtos (PDF com texto, .txt, .md, .csv).",
         modelo: "LLM local",
         explicacao:
-          "Devolve um array JSON com nome, descrição, categoria, preços (float ou null) e especificações. Texto longo é dividido em blocos de 6.000 caracteres.",
+          "Devolve um array JSON com nome, descrição, categoria, preços (float ou null) e especificações. Texto longo é dividido em blocos de 6.000 caracteres; arquivos .csv, em blocos de 6 registros com o cabeçalho repetido.",
         texto: `Você é um assistente especialista em extração de produtos de catálogos e tabelas de fornecedores. Analise o texto a seguir extraído de uma página de catálogo comercial e extraia todos os produtos identificados.
 Responda APENAS com um array JSON: [{"nome", "descricao", "categoria", "preco_base_fornecedor", "preco", "especificacoes_tecnicas"}]
 Regras: preços são float ou null (sem R$ nem separadores de milhar); se não houver produto, responda []; nenhum texto fora do array.
@@ -619,9 +619,9 @@ Texto da página: {texto}`,
         nome: "Classificação de páginas do crawler",
         arquivo: "backend/src/app/rag/crawler_classifier.py (_PROMPT_TEMPLATE)",
         quando: "Cada página raspada pelo crawler (disparo manual).",
-        modelo: "LLM local",
+        modelo: "LLM externo (OpenRouter, nível gratuito)",
         explicacao:
-          "Classifica em vendas, suporte ou atendimento com confiança; abaixo do limiar a página vai para a fila de revisão humana.",
+          "Sugere vendas, suporte ou atendimento com confiança; toda página vai para a fila de revisão humana (o modelo só sugere o domínio). Repete em 429/5xx/timeout; esgotadas as tentativas, a confiança é 0.",
         texto: `Classifique o conteúdo de uma página de site em UM dos domínios: vendas, suporte, atendimento. Avalie também sua confiança nessa classificação, de 0.0 (nenhuma certeza) a 1.0 (certeza total).
 
 Conteúdo da página: {texto}

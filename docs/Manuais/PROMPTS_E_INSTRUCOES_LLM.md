@@ -543,7 +543,7 @@ _VISION_PROMPT = (
 ### 9. `backend/src/app/rag/crawler_classifier.py`
 **Caminho:** [`backend/src/app/rag/crawler_classifier.py`](file:///home/augusto/Projetos/TCC/backend/src/app/rag/crawler_classifier.py#L19-L27)
 
-Prompt para classificação de domínio de conteúdos raspados na Web pelo crawler.
+Prompt para classificação de domínio de conteúdos raspados na Web pelo crawler. Roda no **modelo externo** (`external_client`, tier gratuito do OpenRouter), com até 5 tentativas e recuo em 429/5xx/timeout; esgotadas, a confiança vira 0. Desde 2026-10-31 o LLM só **sugere** o domínio: toda página vai para a fila de revisão humana, sem ingestão automática por limiar.
 
 ```python
 # Line 19: Prompt de classificação de páginas web
@@ -564,7 +564,7 @@ Responda apenas com JSON no formato: {{"domain": "...", "confidence": 0.0}}"""
 **Caminho:** [`backend/src/app/catalog_extractor/extractor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/catalog_extractor/extractor.py#L34-L73)
 
 Prompts de extração de dados de produtos a partir de documentos (PDF/texto) e folhetos visuais.
-Desde 2026-10-02, arquivos de texto enviados à importação (`.txt`/`.md`/`.csv`, ou texto colado) reutilizam `LOCAL_EXTRACTION_PROMPT` sem alteração: o arquivo é decodificado e dividido em blocos de até 6.000 caracteres (`TAMANHO_BLOCO_TEXTO`), quebrando em linhas e fatiando textos longos, e cada bloco entra no lugar de "Texto da página".
+Desde 2026-10-02, arquivos de texto enviados à importação (`.txt`/`.md`/`.csv`, ou texto colado) reutilizam `LOCAL_EXTRACTION_PROMPT` sem alteração: o arquivo é decodificado e dividido em blocos de até 6.000 caracteres (`TAMANHO_BLOCO_TEXTO`), quebrando em linhas e fatiando textos longos, e cada bloco entra no lugar de "Texto da página". **Exceção (2026-11-01):** os `.csv` são divididos em blocos de 6 registros (`LINHAS_POR_BLOCO_CSV`), cada um com o cabeçalho repetido, porque um bloco grande gerava um JSON longo demais para o modelo local (timeout de 60 s).
 
 ```python
 # Line 34: Prompt de extração textual de catálogo
