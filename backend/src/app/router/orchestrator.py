@@ -390,7 +390,7 @@ async def _consultar_vendas(
         diagnostico["bloco"] = _formatar_dados_catalogo_vendas(dados)
         _logar_consulta_vendas(diagnostico, "ok")
         return dados
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.warning(
             "vendas_catalogo_consulta_falhou",
             extra={"router": {"event": "vendas_catalogo_consulta_falhou", "erro": str(exc)}},
@@ -653,7 +653,7 @@ async def _construir_card_documento_download(
                 download_url=f"/api/rag/documents/{doc.id}/download",
                 file_size_bytes=file_size,
             )
-    except Exception:
+    except Exception:  # fronteira de isolamento
         logger.exception(
             "documento_download_card_falhou",
             extra={
@@ -837,7 +837,7 @@ async def _persistir_agendamento(
             )
             session.add(agendamento)
             await session.commit()
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.error(
             "erro_ao_persistir_agendamento",
             extra={
@@ -935,7 +935,7 @@ async def _extrair_slots_agendamento(
         return await extract_booking_slots(
             message, recent_messages, slots, local_client, scheduling_config.timezone
         )
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.error(
             "backend_indisponivel",
             extra={
@@ -1046,7 +1046,7 @@ async def _checar_modelo_local(
         return
     try:
         modelo_pronto = await local_client.is_model_ready()
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.warning(
             "verificacao_modelo_local_falhou",
             extra={"router": {"event": "verificacao_modelo_local_falhou", "erro": str(exc)}},
@@ -1056,15 +1056,22 @@ async def _checar_modelo_local(
         yield StatusEvent(status="carregando_modelo")
 
 
+@dataclass(frozen=True)
+class _ConfigRoteador:
+    """Estratégias e toggles do roteador usados em tom + classificação."""
+
+    complexity_strategy: str
+    intent_router_provider: str
+    tone_monitor_enabled: bool
+    tone_monitor_provider: str
+
+
 async def _handle_tone_e_classify(
     message: str,
     recent_messages: list[str],
     local_client: LLMClient,
     external_client: LLMClient,
-    complexity_strategy: str,
-    intent_router_provider: str,
-    tone_monitor_enabled: bool,
-    tone_monitor_provider: str,
+    config: _ConfigRoteador,
     ultima_troca: tuple[str, str] | None,
 ) -> tuple[Any, Any]:
     """Roda tom e classificação em paralelo. Levanta `LocalBackendIndisponivelError` se
@@ -1073,11 +1080,11 @@ async def _handle_tone_e_classify(
         analyze_tone(
             message=message,
             recent_messages=recent_messages,
-            strategy_provider=tone_monitor_provider,
+            strategy_provider=config.tone_monitor_provider,
             llm_client=local_client,
             external_client=external_client,
         )
-        if tone_monitor_enabled
+        if config.tone_monitor_enabled
         else _sem_analise_de_tom()
     )
     try:
@@ -1087,9 +1094,9 @@ async def _handle_tone_e_classify(
                 classify(
                     message=message,
                     recent_messages=recent_messages,
-                    strategy=complexity_strategy,
+                    strategy=config.complexity_strategy,
                     llm_client=local_client,
-                    provider=intent_router_provider,
+                    provider=config.intent_router_provider,
                     external_client=external_client,
                     ultima_resposta=ultima_troca[1] if ultima_troca else None,
                 )
@@ -1214,7 +1221,7 @@ async def _gerar_chart(
                 llm_client=analytics_llm,
                 ambiente=ambiente,
             )
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.error("falha_ao_gerar_grafico_chat", extra={"erro": str(exc)})
         explicacao = (
             "Não consegui gerar esse gráfico agora por uma falha interna. "
@@ -1223,14 +1230,21 @@ async def _gerar_chart(
         return None, explicacao, None, None
 
 
+@dataclass(frozen=True)
+class _RecursosChat:
+    """Clientes e configuração compartilhados pelos handlers curtos (gráfico, comprovante)."""
+
+    local_client: LLMClient
+    external_client: LLMClient
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None
+    intent_router_provider: str
+
+
 async def _handle_chart_request(
     message: str,
     is_admin: bool,
     user_email: str | None,
-    local_client: LLMClient,
-    external_client: LLMClient,
-    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
-    intent_router_provider: str,
+    recursos: _RecursosChat,
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
     """Processa pedidos de gráfico dinâmico (admin). Yields eventos e retorna
     após o primeiro yield bem-sucedido; não yields nada se não for pedido de gráfico."""
@@ -1244,19 +1258,27 @@ async def _handle_chart_request(
         return
 
     if not is_admin:
-        async for evento in _emitir_chart_somente_admin(intent_router_provider):
+        async for evento in _emitir_chart_somente_admin(recursos.intent_router_provider):
             yield evento
         return
 
-    if not db_sessionmaker:
+    if not recursos.db_sessionmaker:
         return
 
     chart, explicacao, chart_prompt_tokens, chart_completion_tokens = await _gerar_chart(
-        message, user_email, local_client, external_client, db_sessionmaker
+        message,
+        user_email,
+        recursos.local_client,
+        recursos.external_client,
+        recursos.db_sessionmaker,
     )
 
     async for evento in _emitir_eventos_chart(
-        chart, explicacao, intent_router_provider, chart_prompt_tokens, chart_completion_tokens
+        chart,
+        explicacao,
+        recursos.intent_router_provider,
+        chart_prompt_tokens,
+        chart_completion_tokens,
     ):
         yield evento
 
@@ -1278,29 +1300,8 @@ def _tokens_do_parecer(parecer: Any) -> dict[str, int | None]:
     }
 
 
-async def _handle_comprovante(
-    message: str,
-    conversation_id: str,
-    user_email: str | None,
-    local_client: LLMClient,
-    external_client: LLMClient,
-    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
-    intent_router_provider: str,
-    comprovante_bytes: bytes | None,
-    comprovante_filename: str | None,
-) -> AsyncIterator[TokenEvent | RouterDecision]:
-    """Processa conversão de reserva em venda via comprovante. Yields eventos
-    se houver reserva ativa; não yields nada caso contrário."""
-    from app.router.sales_catalog import (
-        buscar_reserva_ativa,
-        detectar_intencao_comprovante,
-        processar_conversao_comprovante,
-    )
-
-    if not detectar_intencao_comprovante(message) or not db_sessionmaker:
-        return
-
-    _decision_base: dict = dict(
+def _decisao_base_comprovante(intent_router_provider: str) -> dict:
+    return dict(
         domain="vendas",
         complexity="baixa",
         confidence=1.0,
@@ -1313,6 +1314,44 @@ async def _handle_comprovante(
         custo_estimado_usd=0.0,
         router_provider=intent_router_provider,
     )
+
+
+def _logar_falha_comprovante(conversation_id: str, exc: Exception) -> None:
+    logger.warning(
+        "falha_processar_comprovante",
+        extra={
+            "router": {
+                "event": "falha_processar_comprovante",
+                "conversation_id": conversation_id,
+                "erro": str(exc),
+            }
+        },
+    )
+
+
+async def _handle_comprovante(
+    message: str,
+    conversation_id: str,
+    user_email: str | None,
+    recursos: _RecursosChat,
+    comprovante_bytes: bytes | None,
+    comprovante_filename: str | None,
+) -> AsyncIterator[TokenEvent | RouterDecision]:
+    """Processa conversão de reserva em venda via comprovante. Yields eventos
+    se houver reserva ativa; não yields nada caso contrário."""
+    from app.router.sales_catalog import (
+        buscar_reserva_ativa,
+        detectar_intencao_comprovante,
+        processar_conversao_comprovante,
+    )
+
+    db_sessionmaker = recursos.db_sessionmaker
+    if not detectar_intencao_comprovante(message) or not db_sessionmaker:
+        return
+
+    local_client = recursos.local_client
+    external_client = recursos.external_client
+    _decision_base = _decisao_base_comprovante(recursos.intent_router_provider)
     try:
         pedido_uuid = _extrair_pedido_uuid(message)
         llm_to_use = local_client if local_client is not None else external_client
@@ -1346,17 +1385,8 @@ async def _handle_comprovante(
             resposta=texto_resp,
             **_tokens_do_parecer(parecer_res),
         )
-    except Exception as exc:
-        logger.warning(
-            "falha_processar_comprovante",
-            extra={
-                "router": {
-                    "event": "falha_processar_comprovante",
-                    "conversation_id": conversation_id,
-                    "erro": str(exc),
-                }
-            },
-        )
+    except Exception as exc:  # fronteira de isolamento
+        _logar_falha_comprovante(conversation_id, exc)
 
 
 def _emitir_comprovante_sem_reserva(
@@ -1499,7 +1529,7 @@ async def _gerar_stream_llm(
         if chunk_final is None:
             raise RuntimeError("generate_stream terminou sem chunk final (done=True)")
         yield chunk_final
-    except Exception as exc:
+    except Exception as exc:  # fronteira de isolamento
         logger.error(
             "backend_indisponivel",
             extra={
@@ -1783,16 +1813,19 @@ async def handle_message(  # noqa: PLR0913
         recent_messages=recent_messages,
         local_client=local_client,
         external_client=external_client,
-        complexity_strategy=complexity_strategy,
-        intent_router_provider=intent_router_provider,
-        tone_monitor_enabled=tone_monitor_enabled,
-        tone_monitor_provider=tone_monitor_provider,
+        config=_ConfigRoteador(
+            complexity_strategy,
+            intent_router_provider,
+            tone_monitor_enabled,
+            tone_monitor_provider,
+        ),
         ultima_troca=ultima_troca,
     )
 
     if _deve_escalar_tom(tone_monitor_enabled, tone_result, conversation_id):
         yield _escalar_conversa(conversation_id, tone_result)
 
+    recursos = _RecursosChat(local_client, external_client, db_sessionmaker, intent_router_provider)
     concluido = False
     async for evento in _executar_handlers_curtos(
         partial(
@@ -1800,20 +1833,14 @@ async def handle_message(  # noqa: PLR0913
             message=message,
             is_admin=is_admin,
             user_email=user_email,
-            local_client=local_client,
-            external_client=external_client,
-            db_sessionmaker=db_sessionmaker,
-            intent_router_provider=intent_router_provider,
+            recursos=recursos,
         ),
         partial(
             _handle_comprovante,
             message=message,
             conversation_id=conversation_id,
             user_email=user_email,
-            local_client=local_client,
-            external_client=external_client,
-            db_sessionmaker=db_sessionmaker,
-            intent_router_provider=intent_router_provider,
+            recursos=recursos,
             comprovante_bytes=comprovante_bytes,
             comprovante_filename=comprovante_filename,
         ),
