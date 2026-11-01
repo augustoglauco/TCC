@@ -5,7 +5,7 @@ Contrato espelhado em `docs/FRONTEND.md` §4 (`POST /api/chat/messages`).
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -78,10 +78,20 @@ class CardDocumentoDownload(BaseModel):
     file_size_bytes: int | None = Field(default=None, description="Tamanho do arquivo em bytes.")
 
 
+class CardTabela(BaseModel):
+    """Resultado de uma consulta SELECT do Admin no chat (`app.admin_tools`)."""
+
+    tipo: Literal["tabela"] = "tabela"
+    titulo: str
+    colunas: list[str]
+    linhas: list[list[Any]]
+    truncado: bool = False
+
+
 # União discriminada por "tipo" — cobre produto, cotação, agendamento, gráficos
-# dinâmicos e o card de download do documento-fonte do RAG
+# dinâmicos, o card de download do documento-fonte do RAG e a tabela de consulta do Admin
 ChatCard = Annotated[
-    CardProduto | CardCotacao | CardAgendamento | CardGrafico | CardDocumentoDownload,
+    CardProduto | CardCotacao | CardAgendamento | CardGrafico | CardDocumentoDownload | CardTabela,
     Field(discriminator="tipo"),
 ]
 

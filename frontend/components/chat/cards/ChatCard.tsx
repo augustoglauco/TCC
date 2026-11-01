@@ -4,6 +4,7 @@ import ChatChartCard from "@/components/chat/cards/ChatChartCard";
 import DocumentDownloadCard from "@/components/chat/cards/DocumentDownloadCard";
 import ProductCard from "@/components/chat/cards/ProductCard";
 import QuoteCard from "@/components/chat/cards/QuoteCard";
+import TabelaCard from "@/components/chat/cards/TabelaCard";
 
 /** Despacha para o card certo conforme `card.tipo` (Fase 8) — usado pelo
  * `MessageBubble` para renderizar o card junto da resposta do assistente. */
@@ -19,6 +20,8 @@ export default function ChatCard({ card }: { card: ChatCardData }) {
       return <ChatChartCard card={card} />;
     case "documento_download":
       return <DocumentDownloadCard card={card} />;
+    case "tabela":
+      return <TabelaCard card={card} />;
     default:
       return null;
   }

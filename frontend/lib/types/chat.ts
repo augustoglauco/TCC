@@ -104,12 +104,22 @@ export interface ChatCardDocumentoDownload {
   file_size_bytes?: number | null;
 }
 
+/** Resultado de consulta SELECT do Admin no chat (`app.admin_tools`). */
+export interface ChatCardTabela {
+  tipo: "tabela";
+  titulo: string;
+  colunas: string[];
+  linhas: (string | number | null)[][];
+  truncado?: boolean;
+}
+
 export type ChatCard =
   | ChatCardProduto
   | ChatCardCotacao
   | ChatCardAgendamento
   | ChatCardGrafico
-  | ChatCardDocumentoDownload;
+  | ChatCardDocumentoDownload
+  | ChatCardTabela;
 
 export interface ChatMetrics {
   modelName?: string;

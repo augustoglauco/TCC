@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.admin_tools.handler import processar_pedido_admin
 from app.background_tasks import spawn_background_task
 from app.db.models import Agendamento, RagCollection, RagDocument
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
@@ -1821,6 +1822,14 @@ async def handle_message(  # noqa: PLR0913
     recursos = _RecursosChat(local_client, external_client, db_sessionmaker, intent_router_provider)
     concluido = False
     async for evento in _executar_handlers_curtos(
+        partial(
+            processar_pedido_admin,
+            message,
+            is_admin=is_admin,
+            local_client=local_client,
+            db_sessionmaker=db_sessionmaker,
+            intent_router_provider=intent_router_provider,
+        ),
         partial(
             _handle_chart_request,
             message=message,

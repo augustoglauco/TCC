@@ -118,6 +118,9 @@ com o histórico recarregado.
     gerado pelo assistente via Recharts (barras, linhas, pizza, área, donut),
     com persistência permanente na tabela `admin_charts` e link direto para
     o painel `/admin/dashboards`.
+  - `TabelaCard` (`card.tipo === "tabela"`, 2026-11-01): tabela com colunas e
+    linhas do resultado de uma consulta SELECT do Admin no chat; avisa
+    "Mostrando as primeiras 50 linhas." quando `truncado`.
   - `DocumentDownloadCard` (`card.tipo === "documento_download"`, 2026-10-05):
     ícone do tipo do arquivo (`components/ui/FileTypeIcon.tsx`, 2026-10-31:
     folha com etiqueta colorida PDF, MD, TXT ou CSV; outro formato vira o
@@ -435,7 +438,7 @@ data: {
   // 2026-09-29) — união discriminada por "tipo"; `null`/ausente na maioria
   // dos turnos. Ver §3, "Cards ricos".
   "card": {
-    "tipo": "produto",           // | "cotacao" | "agendamento" | "grafico" | "documento_download"
+    "tipo": "produto",           // | "cotacao" | "agendamento" | "grafico" | "documento_download" | "tabela"
     "produto_id": 1,
     "nome": "Gerador Diesel GD-15",
     "preco": "24900.00",         // Decimal serializado como string

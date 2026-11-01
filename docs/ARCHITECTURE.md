@@ -1701,6 +1701,15 @@ benchmark por modelo):**
   trechos de documentos recuperados e payloads de injeção ficam fora da
   resposta pública. `# MVP: sem cache/limite de taxa; dados são estáticos.`
 
+### Decisão de 2026-11-01: ferramentas do chat Admin, etapa 1 (`consultar`)
+
+O Admin autenticado pode pedir consultas de leitura no chat. O modelo local
+gera um `SELECT` livre, validado por `app.services.safe_sql` (só SELECT, tabelas
+da whitelist, sem `;` múltiplo), e o resultado volta como card `tabela` (50
+linhas no máximo no card). Não-Admin segue o fluxo normal. Spec:
+`docs/superpowers/specs/2026-11-01-chat-admin-ferramentas-design.md`.
+`# MVP: o tempo máximo (5 s, SET LOCAL statement_timeout) só existe no Postgres.`
+
 ## 10. Considerações finais
 
 O desenho atende aos treze requisitos de forma modular, permitindo que o

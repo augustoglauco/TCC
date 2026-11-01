@@ -3148,3 +3148,8 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       em cada um, com o erro só no log. `.csv` agora vai em blocos de 6 registros com
       o cabeçalho repetido (`_blocos_do_arquivo`), e a falha do modelo local volta no
       `erro` do trecho. Medido com o arquivo real: 89 produtos em 15 trechos, 4 min 31 s.
+- [x] Chat Admin: `consultar(sql)` (R12, Fase 10/11) — etapa 1 das ferramentas do chat
+      Admin (`app.admin_tools`): pedido de consulta do Admin vira SELECT gerado pelo
+      modelo local, validado por `safe_sql`, e volta como card `tabela`
+      (`TabelaCard`). Testes: 7 em `test_admin_tools_consulta.py`, 7 em
+      `test_admin_tools_handler.py`, 1 em `TabelaCard.test.tsx`.

@@ -1093,10 +1093,19 @@ cancelamento/processo, ou insatisfação explícita e forte.") / `false` ("Tom
 neutro ou normal de atendimento, mesmo com dúvida ou reclamação leve."). O
 estado enviado é "Contexto prévio:\n{contexto}\n\nMensagem: {mensagem}".
 
+### 25. `backend/src/app/admin_tools/consulta.py` — `_PROMPT` (consulta SELECT do Admin)
+**Caminho:** `backend/src/app/admin_tools/consulta.py` (`gerar_sql`)
+
+Analista PostgreSQL: recebe a pergunta do administrador e o esquema das tabelas
+permitidas (`get_catalog_schema_prompt`) e deve responder só com JSON
+`{"sql": "SELECT ..."}`. O SQL gerado passa por `app.services.safe_sql`
+(só SELECT, tabelas da whitelist) antes de executar; resposta fora do JSON vira
+"não consegui montar uma consulta". Modelo local.
+
 ---
 
 ## Conclusão
 
-Todos os **24 itens de código** que contêm instruções diretas, prompts de sistema, prefixos de tarefa, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
+Todos os **25 itens de código** que contêm instruções diretas, prompts de sistema, prefixos de tarefa, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
 
 
