@@ -36,8 +36,21 @@ describe("montarPayloadProduto", () => {
         dias_alerta_estoque: null,
         descricao: "desc",
         especificacoes_tecnicas: null,
+        dimensoes_cm: null,
+        peso_kg: null,
       },
     });
+  });
+
+  it("envia dimensões e peso (aceita vírgula) e rejeita peso inválido", () => {
+    expect(
+      montarPayloadProduto({ ...base, dimensoesCm: " 12 x 8 x 3 ", pesoKg: "0,35" }),
+    ).toMatchObject({ payload: { dimensoes_cm: "12 x 8 x 3", peso_kg: 0.35 } });
+    for (const pesoKg of ["abc", "-1"]) {
+      expect(montarPayloadProduto({ ...base, pesoKg })).toEqual({
+        erro: "Informe um peso válido (kg).",
+      });
+    }
   });
 
   it("converte opcionais preenchidos e usa categoria padrão", () => {

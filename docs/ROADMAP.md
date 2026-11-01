@@ -3184,3 +3184,7 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       Testes: 10 em `test_admin_tools_venda.py` (após as correções, inclui o claim atômico), +1 em `test_admin_tools_roteador.py`.
 - [x] Chat Admin: ferramentas de consulta e escrita (R3, R12, Fase 10/11) — as 5 etapas
       (`consultar`, proposta/auditoria, produto, `baixa_estoque`, `atualizar_venda`) concluídas.
+- [x] Formulário do produto: campos "Dimensões (L x A x P, cm)" e "Peso (kg)" (R3, Fase 10/11) —
+      a API, o modelo e a ficha `/produtos/{id}` já tinham `dimensoes_cm`/`peso_kg`, mas o formulário
+      do admin não os preenchia (ficha mostrava "Não informado"). Peso aceita vírgula e rejeita
+      negativo/texto. Testes: `ProductFormGeralTab.test.tsx` (+2) e `useProductFormSubmit.test.ts` (+1).

@@ -44,6 +44,8 @@ export function ProductFormPainel({
         diasAlertaEstoque={campos.diasAlertaEstoque}
         descricao={campos.descricao}
         especificacoesTecnicas={campos.especificacoesTecnicas}
+        dimensoesCm={campos.dimensoesCm}
+        pesoKg={campos.pesoKg}
         imagemPreview={campos.imagemPreview}
         imagens={campos.imagens}
         deletingImageId={campos.deletingImageId}
@@ -56,6 +58,8 @@ export function ProductFormPainel({
         onDiasAlerta={campos.setDiasAlertaEstoque}
         onDescricao={campos.setDescricao}
         onEspecificacoes={campos.setEspecificacoesTecnicas}
+        onDimensoes={campos.setDimensoesCm}
+        onPeso={campos.setPesoKg}
         onImageChange={campos.handleImageChange}
         onRemoverImagem={campos.handleRemoverImagemExistente}
         onClose={onClose}

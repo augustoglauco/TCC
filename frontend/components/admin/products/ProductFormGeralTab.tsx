@@ -105,6 +105,8 @@ interface ProductFormGeralTabProps {
   diasAlertaEstoque: string;
   descricao: string;
   especificacoesTecnicas: string;
+  dimensoesCm: string;
+  pesoKg: string;
   imagemPreview: string | null;
   imagens: AdminProductImage[];
   deletingImageId: number | null;
@@ -117,6 +119,8 @@ interface ProductFormGeralTabProps {
   onDiasAlerta: (v: string) => void;
   onDescricao: (v: string) => void;
   onEspecificacoes: (v: string) => void;
+  onDimensoes: (v: string) => void;
+  onPeso: (v: string) => void;
   onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoverImagem: (id: number) => void;
   onClose: () => void;
@@ -146,6 +150,58 @@ function CampoAreaTexto({
         placeholder={placeholder}
         className={inputCls}
       />
+    </div>
+  );
+}
+
+function CamposMedidas({
+  dimensoesCm,
+  pesoKg,
+  onDimensoes,
+  onPeso,
+}: {
+  dimensoesCm: string;
+  pesoKg: string;
+  onDimensoes: (v: string) => void;
+  onPeso: (v: string) => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div>
+        <label
+          htmlFor="produto-dimensoes"
+          className="block text-xs font-semibold text-gray-700 uppercase tracking-wider"
+        >
+          Dimensões (L x A x P, cm)
+        </label>
+        <input
+          id="produto-dimensoes"
+          type="text"
+          maxLength={120}
+          value={dimensoesCm}
+          onChange={(e) => onDimensoes(e.target.value)}
+          placeholder="Ex: 12 x 8 x 3"
+          className={inputCls}
+        />
+      </div>
+      <div>
+        <label
+          htmlFor="produto-peso"
+          className="block text-xs font-semibold text-gray-700 uppercase tracking-wider"
+        >
+          Peso (kg)
+        </label>
+        <input
+          id="produto-peso"
+          type="number"
+          step="0.001"
+          min="0"
+          value={pesoKg}
+          onChange={(e) => onPeso(e.target.value)}
+          placeholder="Ex: 0,350"
+          className={inputCls}
+        />
+      </div>
     </div>
   );
 }
@@ -236,6 +292,8 @@ export function ProductFormGeralTab({
   diasAlertaEstoque,
   descricao,
   especificacoesTecnicas,
+  dimensoesCm,
+  pesoKg,
   imagemPreview,
   imagens,
   deletingImageId,
@@ -248,6 +306,8 @@ export function ProductFormGeralTab({
   onDiasAlerta,
   onDescricao,
   onEspecificacoes,
+  onDimensoes,
+  onPeso,
   onImageChange,
   onRemoverImagem,
   onClose,
@@ -358,6 +418,13 @@ export function ProductFormGeralTab({
         value={especificacoesTecnicas}
         onChange={onEspecificacoes}
         placeholder="Canais, resolução, alcance IR, voltagem, portas..."
+      />
+
+      <CamposMedidas
+        dimensoesCm={dimensoesCm}
+        pesoKg={pesoKg}
+        onDimensoes={onDimensoes}
+        onPeso={onPeso}
       />
 
       <ProductImageSection

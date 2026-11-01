@@ -18,6 +18,8 @@ export interface CamposParaPayload {
   diasAlertaEstoque: string;
   descricao: string;
   especificacoesTecnicas: string;
+  dimensoesCm?: string;
+  pesoKg?: string;
 }
 
 export type ResultadoPayload = { payload: Partial<AdminProduct> } | { erro: string };
@@ -27,6 +29,10 @@ export function montarPayloadProduto(campos: CamposParaPayload): ResultadoPayloa
   if (!campos.nome.trim()) return { erro: "O nome do produto é obrigatório." };
   const precoNum = parseFloat(campos.preco);
   if (isNaN(precoNum) || precoNum < 0) return { erro: "Informe um preço de venda válido." };
+  const pesoNum = campos.pesoKg ? parseFloat(campos.pesoKg.replace(",", ".")) : null;
+  if (pesoNum !== null && (isNaN(pesoNum) || pesoNum < 0)) {
+    return { erro: "Informe um peso válido (kg)." };
+  }
 
   return {
     payload: {
@@ -40,6 +46,8 @@ export function montarPayloadProduto(campos: CamposParaPayload): ResultadoPayloa
       dias_alerta_estoque: campos.diasAlertaEstoque ? parseInt(campos.diasAlertaEstoque, 10) : null,
       descricao: campos.descricao.trim(),
       especificacoes_tecnicas: campos.especificacoesTecnicas.trim() || null,
+      dimensoes_cm: campos.dimensoesCm?.trim() || null,
+      peso_kg: pesoNum,
     },
   };
 }

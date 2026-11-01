@@ -36,6 +36,8 @@ export function useProductFormCampos({
   const [diasAlertaEstoque, setDiasAlertaEstoque] = useState("");
   const [descricao, setDescricao] = useState("");
   const [especificacoesTecnicas, setEspecificacoesTecnicas] = useState("");
+  const [dimensoesCm, setDimensoesCm] = useState("");
+  const [pesoKg, setPesoKg] = useState("");
   const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [imagemPreview, setImagemPreview] = useState<string | null>(null);
   const [imagens, setImagens] = useState<AdminProductImage[]>([]);
@@ -59,6 +61,8 @@ export function useProductFormCampos({
     setDiasAlertaEstoque("");
     setDescricao("");
     setEspecificacoesTecnicas("");
+    setDimensoesCm("");
+    setPesoKg("");
     limparImagens();
   }, [limparImagens]);
 
@@ -71,6 +75,8 @@ export function useProductFormCampos({
     setDiasAlertaEstoque(p.dias_alerta_estoque ? String(p.dias_alerta_estoque) : "");
     setDescricao(p.descricao || "");
     setEspecificacoesTecnicas(p.especificacoes_tecnicas || "");
+    setDimensoesCm(p.dimensoes_cm || "");
+    setPesoKg(p.peso_kg ? String(p.peso_kg) : "");
     setImagemPreview(resolveImageUrl(p.imagem_url));
     setImagens(p.imagens || []);
     setImagemFile(null);
@@ -123,6 +129,8 @@ export function useProductFormCampos({
     diasAlertaEstoque,
     descricao,
     especificacoesTecnicas,
+    dimensoesCm,
+    pesoKg,
     imagemFile,
     imagemPreview,
     imagens,
@@ -135,6 +143,8 @@ export function useProductFormCampos({
     setDiasAlertaEstoque,
     setDescricao,
     setEspecificacoesTecnicas,
+    setDimensoesCm,
+    setPesoKg,
     handleImageChange,
     handleRemoverImagemExistente,
     preencher,

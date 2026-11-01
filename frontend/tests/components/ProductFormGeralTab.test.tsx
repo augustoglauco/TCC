@@ -13,6 +13,8 @@ const BASE_PROPS = {
   diasAlertaEstoque: "",
   descricao: "",
   especificacoesTecnicas: "",
+  dimensoesCm: "",
+  pesoKg: "",
   imagemPreview: null,
   imagens: [] as AdminProductImage[],
   deletingImageId: null,
@@ -25,6 +27,8 @@ const BASE_PROPS = {
   onDiasAlerta: vi.fn(),
   onDescricao: vi.fn(),
   onEspecificacoes: vi.fn(),
+  onDimensoes: vi.fn(),
+  onPeso: vi.fn(),
   onImageChange: vi.fn(),
   onRemoverImagem: vi.fn(),
   onClose: vi.fn(),
@@ -261,5 +265,23 @@ describe("ProductFormGeralTab — galeria de imagens existentes", () => {
       />,
     );
     expect(screen.getByTitle("Remover imagem do produto e do CLIP")).toBeDisabled();
+  });
+});
+
+describe("ProductFormGeralTab — medidas", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("permite preencher dimensões e peso", () => {
+    render(<ProductFormGeralTab {...BASE_PROPS} />);
+    fireEvent.change(screen.getByLabelText(/Dimensões/), { target: { value: "12 x 8 x 3" } });
+    fireEvent.change(screen.getByLabelText(/Peso/), { target: { value: "0.35" } });
+    expect(BASE_PROPS.onDimensoes).toHaveBeenCalledWith("12 x 8 x 3");
+    expect(BASE_PROPS.onPeso).toHaveBeenCalledWith("0.35");
+  });
+
+  it("mostra os valores atuais", () => {
+    render(<ProductFormGeralTab {...BASE_PROPS} dimensoesCm="10 x 5 x 2" pesoKg="1.2" />);
+    expect(screen.getByLabelText(/Dimensões/)).toHaveValue("10 x 5 x 2");
+    expect(screen.getByLabelText(/Peso/)).toHaveValue(1.2);
   });
 });
