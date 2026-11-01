@@ -5,10 +5,12 @@
 # retomada; o texto de cada página vai ao modelo local e, sem texto ou com
 # baixa confiança, a imagem vai ao modelo de visão externo (pago); o
 # resultado sempre passa pela conferência humana antes de gravar.
-# MVP: arquivos de texto (.txt/.md/.csv) são divididos em blocos de tamanho
-# fixo e vão só ao modelo local — não há imagem para o fallback de visão.
+# MVP: arquivos de texto (.txt/.md) são divididos em blocos de tamanho fixo e
+# os .csv em blocos de poucos registros (com o cabeçalho repetido); todos vão só ao
+# modelo local — não há imagem para o fallback de visão.
 """
 
+import csv
 import io
 import json
 import logging
@@ -32,6 +34,9 @@ logger = logging.getLogger(__name__)
 
 EXTENSOES_TEXTO = (".txt", ".md", ".csv")
 TAMANHO_BLOCO_TEXTO = 6000
+# Um bloco de CSV maior que isso gera uma resposta JSON longa demais para o modelo local
+# terminar dentro de `local_llm_timeout_s`; o resultado era 0 produtos sem erro visível.
+LINHAS_POR_BLOCO_CSV = 6
 
 _CODE_FENCE_RE = re.compile(r"^```(?:\w+)?\s*\n?(.*?)\n?```$", re.DOTALL)
 
@@ -156,12 +161,43 @@ def _expand_chunk(chunk: str, max_pages: int) -> set[int]:
     return set()
 
 
+def _decodificar_texto(content: bytes) -> str:
+    try:
+        return content.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        return content.decode("latin-1")
+
+
+def _blocos_csv(content: bytes, linhas_por_bloco: int = LINHAS_POR_BLOCO_CSV) -> list[str]:
+    """Divide o CSV em blocos de `linhas_por_bloco` registros, cada um com o cabeçalho."""
+    registros = [
+        linha
+        for linha in csv.reader(io.StringIO(_decodificar_texto(content), newline=""))
+        if any(campo.strip() for campo in linha)
+    ]
+    if not registros:
+        return []
+    cabecalho, dados = registros[0], registros[1:]
+    blocos: list[str] = []
+    for inicio in range(0, len(dados), linhas_por_bloco):
+        saida = io.StringIO()
+        escritor = csv.writer(saida, lineterminator="\n")
+        escritor.writerow(cabecalho)
+        escritor.writerows(dados[inicio : inicio + linhas_por_bloco])
+        blocos.append(saida.getvalue().rstrip("\n"))
+    return blocos
+
+
+def _blocos_do_arquivo(filename: str, content: bytes) -> list[str]:
+    """Blocos que vão ao modelo: por registros no CSV, por tamanho nos demais textos."""
+    if filename.lower().endswith(".csv"):
+        return _blocos_csv(content)
+    return _blocos_de_texto(content)
+
+
 def _blocos_de_texto(content: bytes, max_chars: int = TAMANHO_BLOCO_TEXTO) -> list[str]:
     """Decodifica o arquivo e o divide em blocos de até `max_chars`, quebrando em linhas."""
-    try:
-        texto = content.decode("utf-8-sig")
-    except UnicodeDecodeError:
-        texto = content.decode("latin-1")
+    texto = _decodificar_texto(content)
 
     blocos: list[str] = []
     atual: list[str] = []
@@ -432,15 +468,25 @@ def _eventos_sse(progresso: dict[str, Any], page_result: CatalogPageResult) -> t
     )
 
 
+async def _extrair_local_ou_erro(
+    texto: str, local_client: Any, descricao: str
+) -> tuple[list[dict[str, Any]], str | None]:
+    """Extração local best-effort. Retorna (raw_prods, erro): falha do modelo vira lista
+    vazia e o motivo (tipo da exceção, já que timeouts vêm com mensagem vazia)."""
+    try:
+        return await extract_page_products_local(texto, local_client), None
+    except Exception as e:  # fronteira de isolamento: o stream segue para a próxima etapa
+        motivo = f"{type(e).__name__}: {e}".rstrip(": ")
+        logger.warning(f"{descricao}: {motivo}")
+        return [], f"Falha ao consultar o modelo local ({motivo})."
+
+
 async def _extrair_local_seguro(
     texto: str, local_client: Any, descricao: str
 ) -> list[dict[str, Any]]:
     """Extração local best-effort: falha do modelo vira lista vazia (log em `descricao`)."""
-    try:
-        return await extract_page_products_local(texto, local_client)
-    except Exception as e:  # fronteira de isolamento: o stream segue para a próxima etapa
-        logger.warning(f"{descricao}: {e}")
-        return []
+    raw_prods, _ = await _extrair_local_ou_erro(texto, local_client, descricao)
+    return raw_prods
 
 
 async def _visao_externa_segura(
@@ -480,8 +526,9 @@ async def _processar_bloco_texto(
         "status": f"Extraindo {filename} (trecho {num_bloco}/{num_blocos_total})",
     }
     raw_prods: list[dict[str, Any]] = []
+    erro: str | None = None
     if local_client:
-        raw_prods = await _extrair_local_seguro(
+        raw_prods, erro = await _extrair_local_ou_erro(
             bloco, local_client, f"Erro na extração local do texto {filename}"
         )
     produtos = [
@@ -499,6 +546,7 @@ async def _processar_bloco_texto(
         total_paginas=total_paginas,
         produtos=produtos,
         provider_usado="local",
+        erro=erro,
     )
     return _eventos_sse(progresso, page_result)
 
@@ -810,7 +858,7 @@ async def _processar_arquivo_stream(
     pagina_global = pagina_global_start
 
     if file_type == "text":
-        for num_bloco, bloco in enumerate(_blocos_de_texto(content), start=1):
+        for num_bloco, bloco in enumerate(_blocos_do_arquivo(filename, content), start=1):
             pagina_global += 1
             yield await _processar_bloco_texto(
                 bloco,
@@ -866,7 +914,7 @@ async def extract_catalog_stream(
     for filename, content in files:
         lower = filename.lower()
         if lower.endswith(EXTENSOES_TEXTO):
-            blocos = _blocos_de_texto(content)
+            blocos = _blocos_do_arquivo(filename, content)
             total_paginas += len(blocos)
             file_pages_plan.append(_ArquivoPlano(filename, content, "text", len(blocos), None))
         elif lower.endswith(".pdf"):

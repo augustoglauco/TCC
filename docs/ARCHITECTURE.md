@@ -1168,7 +1168,7 @@ visual CLIP e ingestão de catálogos (`/admin/produtos`).**
 3. **Extração híbrida com revisão humana:**
    `/api/admin/produtos/catalogo/extrair/stream` (SSE) processa PDFs
    multipáginas (`pdfplumber` + renderização), imagens e texto
-   (`.txt`/`.md`/`.csv`, em blocos de 6000 caracteres, só modelo local). Tenta
+   (`.txt`/`.md` em blocos de 6000 caracteres e `.csv` em blocos de 6 registros com o cabeçalho repetido, só modelo local; blocos grandes de CSV estouravam o timeout do modelo e davam 0 produtos sem aviso, e agora uma falha do modelo aparece no `erro` do trecho). Tenta
    extração local pelo Ollama e recorre à visão do OpenRouter em catálogo
    escaneado ou baixa confiança. Desde 2026-10-06 (política de custo mínimo),
    imagem avulsa tenta OCR + extração local, depois visão local

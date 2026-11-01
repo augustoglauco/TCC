@@ -3143,3 +3143,8 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       collection (409 só se collection e domínio forem os mesmos). Cria sempre
       documento novo, original mantido. Testes: 3 no `test_rag_api.py`, 1 no
       `test_rag_ingest.py`, 3 novos e 3 ajustados no `ReingestModal.test.tsx`.
+- [x] Importar catálogo por CSV sem 0 produtos (R3, Fase 10/11) — o CSV de 90 produtos
+      ia em 3 blocos de ~6000 caracteres e o modelo local estourava o timeout de 60 s
+      em cada um, com o erro só no log. `.csv` agora vai em blocos de 6 registros com
+      o cabeçalho repetido (`_blocos_do_arquivo`), e a falha do modelo local volta no
+      `erro` do trecho. Medido com o arquivo real: 89 produtos em 15 trechos, 4 min 31 s.

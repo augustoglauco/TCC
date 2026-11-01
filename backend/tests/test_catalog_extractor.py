@@ -750,3 +750,86 @@ def test_figura_valida_criterios(im, candidatos, esperado):
     from app.catalog_extractor.extractor import _figura_valida
 
     assert _figura_valida(im, 600.0, 800.0, candidatos) is esperado
+
+
+def test_blocos_do_arquivo_csv_repete_cabecalho_e_limita_linhas_por_bloco():
+    from app.catalog_extractor.extractor import LINHAS_POR_BLOCO_CSV, _blocos_do_arquivo
+
+    cabecalho = "Categoria,Produto,Preço"
+    linhas = [f"Acesso,Produto {i},{i}.00" for i in range(14)]
+    conteudo = "\n".join([cabecalho, *linhas]).encode("utf-8-sig")
+
+    blocos = _blocos_do_arquivo("catalogo.CSV", conteudo)
+
+    assert len(blocos) == -(-14 // LINHAS_POR_BLOCO_CSV)
+    assert all(b.splitlines()[0] == cabecalho for b in blocos)
+    assert all(len(b.splitlines()) - 1 <= LINHAS_POR_BLOCO_CSV for b in blocos)
+    assert [ln for b in blocos for ln in b.splitlines()[1:]] == linhas
+
+
+def test_blocos_do_arquivo_csv_com_campo_entre_aspas_e_quebra_de_linha_mantem_a_linha_inteira():
+    from app.catalog_extractor.extractor import _blocos_do_arquivo
+
+    conteudo = 'Produto,Descrição\nA,"linha 1\nlinha 2"\nB,simples'.encode()
+
+    blocos = _blocos_do_arquivo("c.csv", conteudo)
+
+    assert len(blocos) == 1
+    assert 'A,"linha 1\nlinha 2"' in blocos[0]
+
+
+def test_blocos_do_arquivo_nao_csv_usa_blocos_por_tamanho():
+    from app.catalog_extractor.extractor import _blocos_do_arquivo
+
+    assert _blocos_do_arquivo("lista.txt", b"a\nb") == _blocos_de_texto(b"a\nb")
+
+
+@pytest.mark.asyncio
+async def test_extract_catalog_stream_csv_manda_um_bloco_por_chamada_do_modelo(tmp_path):
+    local_client = AsyncMock()
+    resp = MagicMock()
+    resp.response = resp.text = "[]"
+    local_client.generate = AsyncMock(return_value=resp)
+    linhas = [f"Acesso,Produto {i},{i}.00" for i in range(13)]
+    conteudo = "\n".join(["Categoria,Produto,Preço", *linhas]).encode()
+
+    events = [
+        e
+        async for e in extract_catalog_stream(
+            files=[("catalogo.csv", conteudo)],
+            provider="local",
+            fallback_external=False,
+            temp_dir=tmp_path,
+            local_client=local_client,
+            vision_client=None,
+        )
+    ]
+
+    assert local_client.generate.await_count == 3
+    done = next(e for e in events if "event: done" in e)
+    assert json.loads(done.split("data: ", 1)[1])["total_paginas"] == 3
+
+
+@pytest.mark.asyncio
+async def test_extract_catalog_stream_texto_mostra_o_erro_quando_o_modelo_local_falha(tmp_path):
+    import httpx
+
+    local_client = AsyncMock()
+    local_client.generate = AsyncMock(side_effect=httpx.ReadTimeout(""))
+
+    events = [
+        e
+        async for e in extract_catalog_stream(
+            files=[("lista.txt", b"Central de Alarme AMT 4010 - R$ 480,00")],
+            provider="local",
+            fallback_external=False,
+            temp_dir=tmp_path,
+            local_client=local_client,
+            vision_client=None,
+        )
+    ]
+
+    pagina = next(e for e in events if "event: pagina_concluida" in e)
+    dados = json.loads(pagina.split("data: ", 1)[1])
+    assert dados["produtos"] == []
+    assert dados["erro"] and "ReadTimeout" in dados["erro"]
