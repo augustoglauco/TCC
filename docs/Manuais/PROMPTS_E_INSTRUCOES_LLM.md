@@ -1119,16 +1119,21 @@ transação somente-leitura (`SET TRANSACTION READ ONLY`). O resultado volta com
 **Caminho:** `backend/src/app/admin_tools/roteador.py` (`interpretar_escrita`)
 
 Traduz o pedido do administrador em **uma** ação do catálogo `FERRAMENTAS`
-(as 5 registradas: `incluir_produto`, `alterar_nome_produto`, `alterar_descricao_produto`,
-`baixa_estoque` e `atualizar_venda`) e responde só com
+(as 6 registradas: `incluir_produto`, `alterar_nome_produto`, `alterar_descricao_produto`,
+`baixa_estoque`, `ajustar_estoque` e `atualizar_venda`) e responde só com
 JSON `{"ferramenta": "<ação>", "argumentos": {...}}` ou `{"ferramenta": null}`;
 instrução explícita de não inventar valores não informados. Resposta fora do JSON,
 ferramenta fora do registro ou LLM indisponível viram `None`: o turno não é respondido pelas ferramentas e segue
 para o gráfico, o RAG e a conversa normal (fall-through). Nada é gravado aqui: o resultado vira uma proposta
 (`criar_proposta`) que o Admin confirma no card. Modelo local.
 
+`ajustar_estoque` define a quantidade **final** (um produto ou `todos=true`, quantidade ≥ 0); o
+prompt manda usar `baixa_estoque` só para subtrair. Se o pedido parece uma alteração mas o modelo
+não devolve ação válida, o Admin recebe uma mensagem fixa de ajuda (não é prompt) em vez de a
+conversa seguir para o assistente de vendas.
+
 Antes do LLM, a regex `detectar_escrita` (`admin_tools/intencao.py`) filtra: exige um verbo de
-escrita (inclua/cadastre, altere/mude/atualize, dê baixa, cancele, conclua/finalize/marque) e um
+escrita (inclua/cadastre, altere/mude/atualize, ajuste/defina/zere/reponha/acrescente/coloque, dê baixa, cancele, conclua/finalize/marque) e um
 termo de dados (produto, estoque, venda/pedido, nome, descrição), e ignora gráficos e perguntas
 iniciadas por "como/qual/quais…". Os argumentos que o LLM devolve são validados por esquemas
 Pydantic fixos (preço aceita vírgula; quantidade inteira > 0; `novo_status` só

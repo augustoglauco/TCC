@@ -57,7 +57,7 @@ export const MECANICA: BlocoMecanica[] = [
       {
         titulo: "3) Handlers curtos",
         texto:
-          "Em ordem: ações do Admin no chat (consultar dados ou propor uma escrita com prévia e confirmação; só Admin autenticado), pedido de gráfico (só Admin) e comprovante de pagamento. Se um deles responde, o turno termina ali; se as ações do Admin não entendem o pedido, o turno segue para os demais.",
+          "As ações do Admin no chat (consultar dados ou propor uma escrita com prévia e confirmação; só Admin autenticado) rodam antes de tom e classificação. Depois, em ordem: pedido de gráfico (só Admin) e comprovante de pagamento. Se um deles responde, o turno termina ali.",
       },
       {
         titulo: "4) Agendamento",
@@ -211,7 +211,7 @@ export const MECANICA: BlocoMecanica[] = [
   {
     titulo: "6. Monitor de tom (urgência e insatisfação)",
     paragrafos: [
-      "Roda em paralelo à classificação, em toda mensagem (se habilitado). A heurística SEMPRE vem primeiro, em qualquer provedor; só se ela não achar sinal é que o provedor configurado (`TONE_MONITOR_PROVIDER`) é consultado.",
+      "Roda em paralelo à classificação, em toda mensagem de cliente ou visitante (se habilitado); mensagens de Admin não passam pelo monitor. A heurística SEMPRE vem primeiro, em qualquer provedor; só se ela não achar sinal é que o provedor configurado (`TONE_MONITOR_PROVIDER`) é consultado.",
     ],
     passos: [
       {
@@ -642,12 +642,12 @@ Responda APENAS com JSON válido: {"sql": "SELECT ..."}. Só SELECT; sem texto f
       {
         nome: "Ações de escrita do Admin no chat",
         arquivo: "backend/src/app/admin_tools/roteador.py (PROMPT_FERRAMENTAS)",
-        quando: "Mensagem do Admin com verbo de escrita (inclua, altere, dê baixa, cancele, conclua) sobre produto, estoque ou venda.",
+        quando: "Mensagem do Admin com verbo de escrita (inclua, altere, ajuste, defina, dê baixa, cancele, conclua) sobre produto, estoque ou venda.",
         modelo: "LLM local",
         explicacao:
-          "Escolhe UMA das cinco ações e os argumentos, sem inventar valores. O modelo nunca grava: o resultado vira uma proposta com prévia (antes e depois) que o Admin confirma num botão; só o endpoint de confirmação grava, e cada ação fica auditada. Se não entender, o turno segue para o fluxo normal.",
+          "Escolhe UMA das seis ações e os argumentos, sem inventar valores. O modelo nunca grava: o resultado vira uma proposta com prévia (antes e depois) que o Admin confirma num botão; só o endpoint de confirmação grava, e cada ação fica auditada. Se parecer uma alteração mas não for entendida, o Admin recebe uma mensagem de ajuda com as ações possíveis.",
         texto: `Você traduz um pedido do administrador em UMA ação do sistema.
-Ações: incluir_produto (nome, descricao, preco, categoria); alterar_nome_produto (produto, novo_nome); alterar_descricao_produto (produto, nova_descricao); baixa_estoque (produto, cd, quantidade inteira); atualizar_venda (pedido_id, novo_status: "venda_concluida" ou "cancelada").
+Ações: incluir_produto (nome, descricao, preco, categoria); alterar_nome_produto (produto, novo_nome); alterar_descricao_produto (produto, nova_descricao); baixa_estoque (produto, cd, quantidade inteira); ajustar_estoque (cd, quantidade final >= 0, produto OU todos=true); atualizar_venda (pedido_id, novo_status: "venda_concluida" ou "cancelada").
 Responda APENAS com JSON: {"ferramenta": "<ação>", "argumentos": {...}}. Se não corresponder a nenhuma ação, {"ferramenta": null}. Não invente valores que o administrador não informou.
 Pedido: {pedido}`,
       },

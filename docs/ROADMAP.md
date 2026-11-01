@@ -3188,3 +3188,10 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       a API, o modelo e a ficha `/produtos/{id}` já tinham `dimensoes_cm`/`peso_kg`, mas o formulário
       do admin não os preenchia (ficha mostrava "Não informado"). Peso aceita vírgula e rejeita
       negativo/texto. Testes: `ProductFormGeralTab.test.tsx` (+2) e `useProductFormSubmit.test.ts` (+1).
+- [x] Chat Admin: `ajustar_estoque` (um produto ou todos), intenção de alteração e Admin sem tom (R12, Fase 10/11) —
+      `definir_estoque_produtos` em `db/catalog.py`; `AjustarEstoque` em `ferramentas_estoque.py` (CD sem
+      diferenciar caixa, cria a linha se faltar); verbos ajuste/defina/zere/...; ajuda imediata quando a
+      alteração não é entendida; Admin pula o Monitor de Tom e as ações do Admin rodam antes de tom e
+      classificação (pedido real travou 174 s em dois timeouts do modelo local). Corrige também o ciclo
+      de importação ferramentas_produto ↔ ferramentas_estoque. Testes: +10 em `test_admin_tools_estoque.py`,
+      +3 em `test_admin_tools_handler.py`, +1 em `test_orchestrator.py`.

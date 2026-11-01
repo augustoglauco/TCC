@@ -2942,3 +2942,29 @@ def test_build_prompt_rotula_cada_trecho_do_rag_com_a_fonte() -> None:
     assert "- [Fonte: idtouch-manual.pdf] Capacidade de 1000 usuários." in prompt
     assert "- [Fonte: idpower-guia.pdf] Alimentação 12V." in prompt
     assert "cite o documento" in prompt
+
+
+async def test_admin_nao_passa_pela_identificacao_de_tom(monkeypatch):
+    chamadas = []
+
+    async def _tom_proibido(**kwargs):
+        chamadas.append(kwargs)
+        raise AssertionError("o monitor de tom não deve rodar para Admin")
+
+    monkeypatch.setattr("app.router.orchestrator.analyze_tone", _tom_proibido)
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text='{"domain": "vendas", "complexity": "baixa", "confidence": 0.9}',
+            total_duration_ms=10.0,
+        )
+    )
+    await _coletar_eventos(
+        "olá, tudo bem?",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        is_admin=True,
+    )
+    assert chamadas == []

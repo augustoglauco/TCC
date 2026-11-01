@@ -1749,6 +1749,24 @@ saldo insuficiente, nunca fica negativo, mesmo com baixa concorrente entre prév
 `devolver_estoque` soma (cria a linha se faltar) e serve ao desfazer da etapa seguinte. Ambas não
 fazem commit. O `# MVP:` de `ProdutoEstoque` sobre concorrência continua valendo para `criar_pedido`.
 
+### Decisão de 2026-11-01: ajuste de estoque, intenção de alteração e Admin sem tom
+
+- `ajustar_estoque` define a quantidade **final** do estoque de um centro de distribuição, para um
+  produto (id ou nome) ou para **todos** (`todos=true`), com `quantidade` inteira ≥ 0. Cria a linha
+  de estoque quando o produto não tem uma no centro. Mesma prévia e confirmação das demais; no modo
+  "todos" a prévia mostra quantos produtos e o saldo total antes e depois, e tudo grava numa só
+  transação (`definir_estoque_produtos`: um UPDATE e um INSERT dos que faltam). O nome do centro é
+  resolvido sem diferenciar caixa, hífen ou espaço (`cd-matriz` → `CD-Matriz`).
+  `# MVP: lista fixa de centros conhecidos (CDS_CONHECIDOS) só para o nome canônico.`
+- Intenção de alteração de dados para o Admin: o detector de escrita ganhou ajuste/defina/zere/
+  reponha/acrescente/coloque, e um pedido de alteração que nenhuma ferramenta entendeu recebe, na
+  hora, uma mensagem de ajuda com as ações possíveis, em vez de cair no assistente de vendas.
+  Gráficos, perguntas e consultas continuam fora desse caminho.
+- O Admin não passa pelo Monitor de Tom (é a equipe operando o sistema, não um cliente a escalar), e
+  as ações do Admin rodam **antes** do tom e da classificação, que não usam: poupa duas chamadas ao
+  modelo local por mensagem. Decisão do dono do projeto (demonstração do TCC), junto com liberar o
+  ajuste em massa.
+
 ### Decisão de 2026-11-01: atualizar venda pelo chat e status `cancelada` (etapa 5)
 
 `atualizar_venda` (`pedido_id`, `novo_status` `venda_concluida|cancelada`) muda o status de um

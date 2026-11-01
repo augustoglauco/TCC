@@ -56,6 +56,15 @@ def _falha(exc: Exception) -> str:
     return f"A consulta falhou: {motivo}. Reformule o pedido."
 
 
+_AJUDA_ESCRITA = (
+    "Entendi que você quer alterar dados, mas não consegui montar a ação. Posso: incluir produto, "
+    "alterar nome ou descrição, dar baixa no estoque, ajustar o estoque (de um produto ou de "
+    "todos, num centro de distribuição) e concluir ou cancelar uma venda. "
+    "Diga o que alterar e o valor, "
+    'por exemplo: "ajuste o estoque de todos os produtos para 20 unidades no CD-Matriz".'
+)
+
+
 async def _propor_escrita(message: str, local_client: Any, db_sessionmaker: Any, admin_id: int):
     """Retorna (texto, card), ou None se nenhuma ferramenta foi entendida. Só propõe, não grava."""
     pedido = await interpretar_escrita(local_client, message)
@@ -111,8 +120,13 @@ async def processar_pedido_admin(
     # de escrita foi entendida, a leitura segue o caminho de `consultar`.
     if resultado is None and detectar_consulta(message):
         resultado = await _consultar(message, local_client, db_sessionmaker)
-    # Sem ferramenta entendida nem consulta: não responde (fall-through) para o gráfico, o RAG e
-    # a conversa normal seguirem; um "não entendi" aqui sequestraria esses turnos do Admin.
+    # Pedido de alteração (verbo de escrita + dado) que nenhuma ferramenta entendeu: o Admin recebe
+    # a ajuda na hora, em vez de cair no assistente de vendas, que diria não ter acesso. Gráficos,
+    # perguntas e consultas já ficam de fora de `detectar_escrita`/`detectar_consulta`.
+    if resultado is None and admin_id is not None and detectar_escrita(message):
+        resultado = (_AJUDA_ESCRITA, None)
+    # Sem ferramenta, ajuda nem consulta: não responde (fall-through) para o gráfico, o RAG e a
+    # conversa normal seguirem.
     if resultado is None:
         return
     texto, card = resultado

@@ -29,7 +29,8 @@ def detectar_consulta(message: str) -> bool:
 
 _ESCRITA_RE = re.compile(
     r"\b(inclu[ai]\w*|cadastr[ae]\w*|adicion[ae]\w*|alter[ae]\w*|mude\w*|renome[ie]\w*|atualiz[ae]\w*"
-    r"|d[êe]\s+baixa|baixa\s+(?:de|no|do)|cancel[ae]\w*|conclu[ai]\w*|finaliz[ae]\w*|marque)\b",
+    r"|d[êe]\s+baixa|baixa\s+(?:de|no|do)|cancel[ae]\w*|conclu[ai]\w*|finaliz[ae]\w*|marque"
+    r"|ajust[ae]\w*|defin[ai]\w*|zer[ae]\w*|repon\w*|acrescent[ae]\w*|colo(?:que|car)\w*)\b",
     re.IGNORECASE,
 )
 _DADOS_ESCRITA_RE = re.compile(

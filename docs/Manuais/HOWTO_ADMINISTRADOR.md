@@ -332,10 +332,11 @@ pedido em linguagem natural; não existe tela separada.
 | **Alterar nome** | "altere o nome do produto 12 para Novo Nome" | Produto por id ou nome. |
 | **Alterar descrição** | "altere a descrição do produto Sensor Alfa para ..." | Idem. |
 | **Dar baixa no estoque** | "dê baixa de 2 unidades do produto 12 no CD Sul" | Não aceita quantidade zero, negativa, decimal nem maior que o saldo; o CD precisa ter estoque do produto. |
+| **Ajustar estoque** | "ajuste o estoque de todos os produtos para 20 unidades no CD-Matriz", "defina o estoque do produto 12 em 20 no CD-SP", "zere o estoque do produto 12 no CD-Matriz" | Define a quantidade **final** (um produto ou todos) e cria a linha se o produto ainda não tem estoque no centro. Para todos, a prévia mostra quantos produtos e o saldo total antes e depois. O nome do centro pode vir em qualquer caixa (`cd-matriz`). |
 | **Concluir venda** | "conclua a venda <id do pedido>" | Registra a conversão (`chat_admin`, data e Admin). |
 | **Cancelar venda** | "cancele o pedido <id>" | Devolve cada item ao estoque do **seu próprio** CD. |
 
-Verbos que ativam o modo de ação: inclua/cadastre/adicione, altere/mude/renomeie/atualize, dê baixa,
+Verbos que ativam o modo de ação: inclua/cadastre/adicione, altere/mude/renomeie/atualize, ajuste/defina/zere/reponha/acrescente/coloque, dê baixa,
 cancele, conclua/finalize/marque. A frase precisa citar produto, estoque, venda/pedido, nome ou descrição.
 
 **Se o nome casar com mais de um produto**, o chat lista os candidatos (id: nome) e não altera
@@ -352,8 +353,9 @@ nada; repita o pedido com o id.
 
 ### Quando o chat não faz a ação
 
-* Se o assistente não entender o pedido como uma das ações acima, ele **segue como conversa
-  normal** (RAG, gráfico ou resposta comum), sem gravar nada. Reformule citando a ação e o id.
+* Se o pedido parece uma alteração mas o assistente não monta a ação, ele responde na hora com a
+  lista do que sabe fazer, sem gravar nada. Reformule citando a ação e o valor. Mensagens de Admin
+  não passam pela identificação de tom (nunca são escaladas para atendimento humano).
 * Perguntas ("como cadastro um produto?", "qual a política de cancelamento?") são respostas, não
   ações.
 * Com o modelo de linguagem indisponível, o pedido de escrita não gera prévia.

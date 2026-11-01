@@ -332,6 +332,38 @@ async def devolver_estoque(
         await session.flush()
 
 
+async def definir_estoque_produtos(
+    session: AsyncSession, produto_ids: list[int], centro_distribuicao: str, quantidade: int
+) -> None:
+    """Define o saldo final de `centro_distribuicao` para cada produto (cria a linha se faltar).
+    Um UPDATE para os que já têm linha e um INSERT para os demais; não faz commit."""
+    if not produto_ids:
+        return
+    await session.execute(
+        update(ProdutoEstoque)
+        .where(
+            ProdutoEstoque.produto_id.in_(produto_ids),
+            ProdutoEstoque.centro_distribuicao == centro_distribuicao,
+        )
+        .values(quantidade=quantidade)
+    )
+    existentes = await session.execute(
+        select(ProdutoEstoque.produto_id).where(
+            ProdutoEstoque.produto_id.in_(produto_ids),
+            ProdutoEstoque.centro_distribuicao == centro_distribuicao,
+        )
+    )
+    com_linha = set(existentes.scalars().all())
+    session.add_all(
+        ProdutoEstoque(
+            produto_id=pid, centro_distribuicao=centro_distribuicao, quantidade=quantidade
+        )
+        for pid in produto_ids
+        if pid not in com_linha
+    )
+    await session.flush()
+
+
 async def listar_estoque(session: AsyncSession, produto_id: int) -> list[ProdutoEstoque]:
     result = await session.execute(
         select(ProdutoEstoque)

@@ -128,3 +128,96 @@ async def test_executar_traduz_corrida_em_proposta_invalida(db_session):
             db_session, {"produto": p.id, "cd": "CD Sul", "quantidade": 9}, admin_id=1
         )
     assert await _saldo(db_session, p.id) == 2
+
+
+# --- ajustar_estoque: define a quantidade final (um produto ou todos) --------------------------
+
+
+async def _produto(session, nome, estoques):
+    p = await criar_produto(
+        session, nome=nome, descricao="d", preco=Decimal("10"), categoria="Geral"
+    )
+    pid = p.id
+    for cd, qtd in estoques.items():
+        await atualizar_estoque(session, pid, cd, qtd)
+    return pid
+
+
+async def _saldo_ou_none(session, produto_id, cd):
+    session.expire_all()
+    p = await obter_produto(session, produto_id)
+    return next((e.quantidade for e in p.estoques if e.centro_distribuicao == cd), None)
+
+
+async def _propor_e_confirmar(session, args, admin_id=1):
+    acao, previa = await criar_proposta(
+        session, admin_id=admin_id, ferramenta="ajustar_estoque", argumentos=args
+    )
+    acao_id = acao.id
+    await confirmar(session, acao_id, admin_id=admin_id)
+    return previa
+
+
+@pytest.mark.asyncio
+async def test_ajustar_estoque_de_um_produto_define_a_quantidade_e_ignora_caixa_do_cd(db_session):
+    pid = await _produto(db_session, "Leitor", {"CD-Matriz": 7})
+    previa = await _propor_e_confirmar(
+        db_session, {"produto": pid, "cd": "cd-matriz", "quantidade": 20}
+    )
+    assert previa.antes == {"CD-Matriz": 7} and previa.depois == {"CD-Matriz": 20}
+    assert await _saldo_ou_none(db_session, pid, "CD-Matriz") == 20
+
+
+@pytest.mark.asyncio
+async def test_ajustar_estoque_cria_a_linha_quando_o_produto_nao_tem_estoque_no_cd(db_session):
+    pid = await _produto(db_session, "Sem estoque", {})
+    previa = await _propor_e_confirmar(
+        db_session, {"produto": pid, "cd": "CD-MATRIZ", "quantidade": 20}
+    )
+    assert previa.antes == {"CD-Matriz": 0}
+    assert await _saldo_ou_none(db_session, pid, "CD-Matriz") == 20
+
+
+@pytest.mark.asyncio
+async def test_ajustar_estoque_de_todos_os_produtos_so_aplica_ao_confirmar(db_session):
+    a = await _produto(db_session, "A", {"CD-Matriz": 3, "CD-SP": 9})
+    b = await _produto(db_session, "B", {})
+    c = await _produto(db_session, "C", {"CD-Matriz": 50})
+    acao, previa = await criar_proposta(
+        db_session,
+        admin_id=1,
+        ferramenta="ajustar_estoque",
+        argumentos={"todos": True, "cd": "CD-MATRIZ", "quantidade": 20},
+    )
+    acao_id = acao.id
+    assert previa.antes["produtos afetados"] == 3
+    assert previa.depois["quantidade em cada produto"] == 20
+    assert await _saldo_ou_none(db_session, a, "CD-Matriz") == 3  # só a prévia
+    await confirmar(db_session, acao_id, admin_id=1)
+    for pid in (a, b, c):
+        assert await _saldo_ou_none(db_session, pid, "CD-Matriz") == 20
+    assert await _saldo_ou_none(db_session, a, "CD-SP") == 9  # outro CD intocado
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "args",
+    [
+        {"cd": "CD-Matriz", "quantidade": 20},  # nem produto nem todos
+        {"produto": 1, "todos": True, "cd": "CD-Matriz", "quantidade": 20},  # os dois
+        {"todos": True, "cd": "CD-Matriz", "quantidade": -1},
+        {"todos": True, "cd": "CD-Matriz", "quantidade": 2.5},
+        {"todos": True, "cd": "", "quantidade": 3},
+    ],
+)
+async def test_ajustar_estoque_recusa_argumentos_invalidos(db_session, args):
+    await _produto(db_session, "X", {})
+    with pytest.raises(PropostaInvalidaError):
+        await criar_proposta(db_session, admin_id=1, ferramenta="ajustar_estoque", argumentos=args)
+
+
+@pytest.mark.asyncio
+async def test_ajustar_estoque_aceita_zero(db_session):
+    pid = await _produto(db_session, "Zerar", {"CD-Matriz": 5})
+    await _propor_e_confirmar(db_session, {"produto": pid, "cd": "CD-Matriz", "quantidade": 0})
+    assert await _saldo_ou_none(db_session, pid, "CD-Matriz") == 0

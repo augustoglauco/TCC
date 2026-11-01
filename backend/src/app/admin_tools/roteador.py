@@ -15,8 +15,12 @@ Ações disponíveis e seus argumentos:
 - alterar_nome_produto: produto (id ou nome), novo_nome
 - alterar_descricao_produto: produto (id ou nome), nova_descricao
 - baixa_estoque: produto (id ou nome), cd (centro de distribuição), quantidade (inteiro)
+- ajustar_estoque: define a quantidade FINAL do estoque de um centro; cd, quantidade (inteiro >= 0)
+  e produto (id ou nome) OU todos=true para todos os produtos
 - atualizar_venda: pedido_id (UUID), novo_status ("venda_concluida" ou "cancelada")
 Responda APENAS com JSON: {{"ferramenta": "<ação>", "argumentos": {{...}}}}.
+Use baixa_estoque só para SUBTRAIR unidades; para "ajustar", "definir" ou "colocar" um valor,
+use ajustar_estoque.
 Se o pedido não corresponder a nenhuma ação, responda {{"ferramenta": null}}.
 Não invente valores que o administrador não informou.
 

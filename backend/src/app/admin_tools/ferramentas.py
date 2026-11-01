@@ -31,7 +31,8 @@ def validar_args(modelo: type[BaseModel], args: dict[str, Any]) -> Any:
     try:
         return modelo(**args)
     except ValidationError as exc:
-        campo = exc.errors()[0]["loc"][0] if exc.errors() else "argumentos"
+        erros = exc.errors()
+        campo = erros[0]["loc"][0] if erros and erros[0]["loc"] else "argumentos"
         raise PropostaInvalidaError(f"Argumento inválido: {campo}.") from exc
 
 

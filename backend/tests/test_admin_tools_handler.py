@@ -215,13 +215,16 @@ async def test_escrita_de_nao_admin_ou_sem_admin_id_nao_emite_eventos(db_session
 @pytest.mark.asyncio
 async def test_escrita_nao_entendida_cai_para_o_fluxo_normal(db_session):
     llm = _LLMFixo('{"ferramenta": null}')
-    assert await _rodar_escrita(db_session, llm, "altere o nome do produto") == []
+    eventos = await _rodar_escrita(db_session, llm, "altere o nome do produto")
+    texto, decisao = _texto_e_decisao(eventos)
+    assert "ajustar o estoque" in texto and decisao.card is None
 
 
 @pytest.mark.asyncio
 async def test_escrita_com_llm_quebrado_nao_derruba_o_turno(db_session):
     eventos = await _rodar_escrita(db_session, _LLMQuebrado(), "altere o nome do produto 1 para Y")
-    assert eventos == []
+    texto, _ = _texto_e_decisao(eventos)
+    assert "ajustar o estoque" in texto
 
 
 @pytest.mark.asyncio
@@ -390,3 +393,28 @@ async def test_texto_tipo_documento_so_gera_proposta_nunca_grava(db_session):
     _, decisao = _texto_e_decisao(await _rodar_escrita(db_session, llm, msg))
     assert decisao.card.tipo == "acao_proposta"
     assert (await obter_produto(db_session, p.id)).nome == "Intacto"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "msg",
+    [
+        "Ajuste o estoque de todos os produtos em 20 unidades na CD-MATRIZ",
+        "defina o estoque do produto 1 em 20 no CD-Matriz",
+        "zere o estoque de todos os produtos no CD-SP",
+    ],
+)
+async def test_pedido_de_ajuste_de_estoque_vira_proposta(db_session, msg):
+    from decimal import Decimal
+
+    from app.admin_tools import ferramentas_estoque, ferramentas_produto  # noqa: F401
+    from app.db.catalog import criar_produto
+
+    await criar_produto(db_session, nome="P", descricao="d", preco=Decimal("1"), categoria="x")
+    llm = _LLMFixo(
+        '{"ferramenta": "ajustar_estoque", '
+        '"argumentos": {"todos": true, "cd": "CD-Matriz", "quantidade": 20}}'
+    )
+    eventos = await _rodar_escrita(db_session, llm, msg)
+    _, decisao = _texto_e_decisao(eventos)
+    assert decisao.card is not None and decisao.card.tipo == "acao_proposta"

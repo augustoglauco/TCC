@@ -1798,10 +1798,32 @@ async def handle_message(  # noqa: PLR0913
     usuario_autenticado: bool = False,
     admin_id: int | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
+    # Administrador não passa pela identificação de tom: é a equipe operando o sistema, não um
+    # cliente a ser escalado para atendimento humano (e poupa uma chamada ao modelo local).
+    tone_monitor_enabled = tone_monitor_enabled and not is_admin
     async for evento in _checar_modelo_local(
         local_client, intent_router_provider, tone_monitor_enabled, tone_monitor_provider
     ):
         yield evento
+
+    # As ações do Admin no chat (consultar, alterar dados) são decididas por regras e só chamam o
+    # modelo para montar a consulta/ação: rodam antes de tom e classificação, que não usam.
+    concluido = False
+    async for evento in _executar_handlers_curtos(
+        partial(
+            processar_pedido_admin,
+            message,
+            is_admin=is_admin,
+            local_client=local_client,
+            db_sessionmaker=db_sessionmaker,
+            intent_router_provider=intent_router_provider,
+            admin_id=admin_id,
+        ),
+    ):
+        yield evento
+        concluido = concluido or isinstance(evento, RouterDecision)
+    if concluido:
+        return
 
     tone_result, classification = await _handle_tone_e_classify(
         message=message,
@@ -1821,17 +1843,7 @@ async def handle_message(  # noqa: PLR0913
         yield _escalar_conversa(conversation_id, tone_result)
 
     recursos = _RecursosChat(local_client, external_client, db_sessionmaker, intent_router_provider)
-    concluido = False
     async for evento in _executar_handlers_curtos(
-        partial(
-            processar_pedido_admin,
-            message,
-            is_admin=is_admin,
-            local_client=local_client,
-            db_sessionmaker=db_sessionmaker,
-            intent_router_provider=intent_router_provider,
-            admin_id=admin_id,
-        ),
         partial(
             _handle_chart_request,
             message=message,
