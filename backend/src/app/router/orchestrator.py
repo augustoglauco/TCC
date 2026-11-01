@@ -1796,6 +1796,7 @@ async def handle_message(  # noqa: PLR0913
     comprovante_bytes: bytes | None = None,
     comprovante_filename: str | None = None,
     usuario_autenticado: bool = False,
+    admin_id: int | None = None,
 ) -> AsyncIterator[StatusEvent | TokenEvent | RouterDecision | EscalonamentoEvent]:
     async for evento in _checar_modelo_local(
         local_client, intent_router_provider, tone_monitor_enabled, tone_monitor_provider
@@ -1829,6 +1830,7 @@ async def handle_message(  # noqa: PLR0913
             local_client=local_client,
             db_sessionmaker=db_sessionmaker,
             intent_router_provider=intent_router_provider,
+            admin_id=admin_id,
         ),
         partial(
             _handle_chart_request,

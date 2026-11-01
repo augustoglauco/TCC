@@ -3160,3 +3160,12 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `POST /api/admin/chat/acoes/{id}/confirmar|cancelar` e card `acao_proposta`
       (`AcaoPropostaCard`). Testes: 7 em `test_admin_tools_propostas.py`, 5 em
       `test_admin_chat_acoes_api.py`, 3 em `AcaoPropostaCard.test.tsx`.
+- [x] Chat Admin: ferramentas de produto e roteamento da escrita (R3, R12, Fase 10/11) —
+      etapa 3: `incluir_produto`, `alterar_nome_produto`, `alterar_descricao_produto`
+      (`admin_tools/ferramentas_produto.py`; produto ambíguo levanta `ProdutoAmbiguoError`
+      e nunca é adivinhado), `detectar_escrita` + `interpretar_escrita`
+      (`admin_tools/roteador.py`, `PROMPT_FERRAMENTAS`), ramo de escrita em
+      `processar_pedido_admin` (`admin_id` propagado de `api/chat.py` via `handle_message`;
+      emite só a proposta/card), `commit: bool = True` em `criar_produto`/`atualizar_produto`.
+      Testes: `test_admin_tools_produto.py`, `test_admin_tools_roteador.py`, +6 em
+      `test_admin_tools_handler.py`.

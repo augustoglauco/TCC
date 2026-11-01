@@ -6,6 +6,10 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
+class PropostaInvalidaError(Exception):
+    """Proposta inexistente, de outro admin, expirada, já resolvida ou com argumentos inválidos."""
+
+
 class Previa(BaseModel):
     titulo: str
     antes: dict[str, Any]
@@ -25,3 +29,7 @@ class Ferramenta(Protocol):
 
 # Preenchido pelas ferramentas (Tasks 3–5) ao final de cada módulo de ferramenta.
 FERRAMENTAS: dict[str, Ferramenta] = {}
+
+
+# Importados ao final para registrar as ferramentas em FERRAMENTAS (evita ciclo de import).
+from app.admin_tools import ferramentas_produto  # noqa: E402, F401

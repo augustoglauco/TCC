@@ -6,14 +6,10 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.admin_tools.ferramentas import FERRAMENTAS, Previa
+from app.admin_tools.ferramentas import FERRAMENTAS, Previa, PropostaInvalidaError
 from app.db.models import ChatAdminAcao
 
 PROPOSTA_TTL = timedelta(minutes=10)
-
-
-class PropostaInvalidaError(Exception):
-    """Proposta inexistente, de outro admin, expirada ou já resolvida."""
 
 
 def _agora(agora: datetime | None) -> datetime:

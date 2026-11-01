@@ -166,3 +166,88 @@ async def test_llm_que_levanta_excecao_nao_quebra_o_turno(db_session):
 @pytest.mark.parametrize("msg", ["gere um gráfico de vendas", "qual o horário de atendimento?"])
 async def test_mensagens_que_nao_sao_consulta_nao_emitem_eventos(db_session, msg):
     assert await _rodar(db_session, _LLMQuebrado(), msg=msg) == []
+
+
+# --- escrita (Task 3) ---------------------------------------------------------
+
+
+async def _rodar_escrita(db_session, llm, msg, *, is_admin=True, admin_id=1):
+    return await _coletar(
+        processar_pedido_admin(
+            msg,
+            is_admin=is_admin,
+            local_client=llm,
+            db_sessionmaker=_Maker(db_session),
+            intent_router_provider="heuristica_llm",
+            admin_id=admin_id,
+        )
+    )
+
+
+@pytest.mark.asyncio
+async def test_admin_pede_alteracao_e_recebe_proposta_sem_gravar(db_session):
+    from decimal import Decimal
+
+    from app.admin_tools import ferramentas_produto  # noqa: F401
+    from app.db.catalog import criar_produto, obter_produto
+
+    p = await criar_produto(
+        db_session, nome="Original", descricao="d", preco=Decimal("1"), categoria="x"
+    )
+    llm = _LLMFixo(
+        '{"ferramenta": "alterar_nome_produto", '
+        f'"argumentos": {{"produto": {p.id}, "novo_nome": "Y"}}}}'
+    )
+    eventos = await _rodar_escrita(db_session, llm, f"altere o nome do produto {p.id} para Y")
+    _, decisao = _texto_e_decisao(eventos)
+    assert decisao.card.tipo == "acao_proposta"
+    assert decisao.card.depois == {"nome": "Y"}
+    assert (await obter_produto(db_session, p.id)).nome == "Original"
+
+
+@pytest.mark.asyncio
+async def test_escrita_de_nao_admin_ou_sem_admin_id_nao_emite_eventos(db_session):
+    msg = "altere o nome do produto 1 para Y"
+    assert await _rodar_escrita(db_session, _LLMQuebrado(), msg, is_admin=False) == []
+    assert await _rodar_escrita(db_session, _LLMQuebrado(), msg, admin_id=None) == []
+
+
+@pytest.mark.asyncio
+async def test_escrita_nao_entendida_pede_reformulacao(db_session):
+    llm = _LLMFixo('{"ferramenta": null}')
+    texto, decisao = _texto_e_decisao(
+        await _rodar_escrita(db_session, llm, "altere o nome do produto")
+    )
+    assert texto.startswith("Não entendi")
+    assert decisao.card is None
+
+
+@pytest.mark.asyncio
+async def test_escrita_com_llm_quebrado_nao_derruba_o_turno(db_session):
+    texto, decisao = _texto_e_decisao(
+        await _rodar_escrita(db_session, _LLMQuebrado(), "altere o nome do produto 1 para Y")
+    )
+    assert texto.startswith("Não entendi")
+    assert decisao.card is None
+
+
+@pytest.mark.asyncio
+async def test_escrita_invalida_ou_ambigua_vira_mensagem(db_session):
+    llm = _LLMFixo(
+        '{"ferramenta": "alterar_nome_produto", '
+        '"argumentos": {"produto": 999999, "novo_nome": "Y"}}'
+    )
+    texto, decisao = _texto_e_decisao(
+        await _rodar_escrita(db_session, llm, "altere o nome do produto 999999 para Y")
+    )
+    assert "não encontrado" in texto
+    assert decisao.card is None
+
+
+@pytest.mark.parametrize(
+    ("token", "esperado"), [("mock-token-7", 7), ("mock-token-x", None), (None, None), ("", None)]
+)
+def test_admin_id_do_token(token, esperado):
+    from app.api.chat import _admin_id_do_token
+
+    assert _admin_id_do_token(token) == esperado

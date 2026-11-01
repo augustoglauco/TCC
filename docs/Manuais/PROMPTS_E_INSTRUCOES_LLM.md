@@ -1102,10 +1102,22 @@ permitidas (`get_catalog_schema_prompt`) e deve responder só com JSON
 (só SELECT, tabelas da whitelist) antes de executar; resposta fora do JSON vira
 "não consegui montar uma consulta". Modelo local.
 
+### 26. `backend/src/app/admin_tools/roteador.py` — `PROMPT_FERRAMENTAS` (escrita do Admin no chat)
+**Caminho:** `backend/src/app/admin_tools/roteador.py` (`interpretar_escrita`)
+
+Traduz o pedido do administrador em **uma** ação do catálogo `FERRAMENTAS`
+(`incluir_produto`, `alterar_nome_produto`, `alterar_descricao_produto`; o prompt já
+lista `baixa_estoque` e `atualizar_venda` das etapas seguintes) e responde só com
+JSON `{"ferramenta": "<ação>", "argumentos": {...}}` ou `{"ferramenta": null}`;
+instrução explícita de não inventar valores não informados. Resposta fora do JSON,
+ferramenta fora do registro ou LLM indisponível viram `None` ("não entendi a
+alteração"). Nada é gravado aqui: o resultado vira uma proposta
+(`criar_proposta`) que o Admin confirma no card. Modelo local.
+
 ---
 
 ## Conclusão
 
-Todos os **25 itens de código** que contêm instruções diretas, prompts de sistema, prefixos de tarefa, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
+Todos os **26 itens de código** que contêm instruções diretas, prompts de sistema, prefixos de tarefa, regras de domínio, extratores estruturados ou construtores de contexto para LLM foram catalogados detalhadamente acima.
 
 

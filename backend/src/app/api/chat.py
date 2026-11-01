@@ -13,7 +13,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
-from app.api.auth import verificar_admin_por_token
+from app.api.auth import MOCK_TOKEN_PREFIX, verificar_admin_por_token
 from app.background_tasks import spawn_background_task
 from app.db.models import Conversa
 from app.logging_config import conversation_id_ctx
@@ -207,6 +207,14 @@ async def _carregar_dados_cliente_seguro(
                 }
             },
         )
+        return None
+
+
+def _admin_id_do_token(auth_token: str | None) -> int | None:
+    """Id do cliente Admin no token mock (já validado por `_verificar_modo_admin_seguro`)."""
+    try:
+        return int((auth_token or "").removeprefix(MOCK_TOKEN_PREFIX))
+    except ValueError:
         return None
 
 
@@ -900,6 +908,7 @@ class _ContextoCliente:
     dados_cliente: str | None
     contexto_anterior: str | None
     is_admin: bool
+    admin_id: int | None = None
 
 
 @dataclass
@@ -1018,6 +1027,7 @@ async def _stream_llm(
             rag_score_threshold=getattr(app_state, "rag_score_threshold", 0.35),
             rag_download_threshold=getattr(app_state, "rag_download_confidence_threshold", 0.65),
             is_admin=cliente.is_admin,
+            admin_id=cliente.admin_id,
             user_email=cliente.email_cliente,
             usuario_autenticado=cliente.usuario_autenticado,
             comprovante_bytes=comprovante_bytes,
@@ -1100,6 +1110,7 @@ async def _resolver_contexto_cliente(
         dados_cliente=dados_cliente,
         contexto_anterior=contexto_anterior,
         is_admin=is_admin,
+        admin_id=_admin_id_do_token(payload.auth_token) if is_admin else None,
     )
 
 

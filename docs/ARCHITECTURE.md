@@ -1727,6 +1727,19 @@ entrega só o ciclo de vida, a API e o card; as ferramentas de escrita (e a
 ligação ao handler do chat) vêm nas etapas seguintes.
 `# MVP: o admin_id é o id do cliente do token mock (mock-token-<id>); sem retenção da trilha.`
 
+### Decisão de 2026-11-01: ferramentas de produto e roteamento da escrita (etapa 3)
+
+Catálogo de ferramentas de escrita até aqui: `incluir_produto` (nome, descrição, preço > 0,
+categoria), `alterar_nome_produto` e `alterar_descricao_produto` (produto por id ou nome).
+Fluxo no chat: `detectar_escrita` (palavras-chave) → `interpretar_escrita` (LLM local,
+`PROMPT_FERRAMENTAS`, só aceita ferramentas do registro) → `criar_proposta` → card
+`acao_proposta`; a escrita só ocorre ao confirmar. **Produto ambíguo nunca é adivinhado:** nome
+que casa com mais de um produto vira `ProdutoAmbiguoError` e a mensagem lista os candidatos
+(id: nome) para o Admin informar o id. As ferramentas chamam `criar_produto`/`atualizar_produto`
+com `commit=False`, para a escrita e a auditoria fecharem na mesma transação de `confirmar`.
+O ramo de escrita exige `admin_id` (id do token mock, resolvido em `api/chat.py`); sem ele o chat
+segue o fluxo normal. `# MVP: detecção de escrita por palavras-chave; sem desambiguação interativa.`
+
 ## 10. Considerações finais
 
 O desenho atende aos treze requisitos de forma modular, permitindo que o

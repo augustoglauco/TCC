@@ -7,8 +7,10 @@ from typing import Any
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.admin_tools.consulta import executar_consulta, gerar_sql
-from app.admin_tools.intencao import detectar_consulta
-from app.models.chat import CardTabela
+from app.admin_tools.intencao import detectar_consulta, detectar_escrita
+from app.admin_tools.propostas import PropostaInvalidaError, criar_proposta
+from app.admin_tools.roteador import interpretar_escrita
+from app.models.chat import CardAcaoProposta, CardTabela
 from app.services.safe_sql import SQLSecurityError, get_catalog_schema_prompt
 
 logger = logging.getLogger(__name__)
@@ -54,6 +56,38 @@ def _falha(exc: Exception) -> str:
     return f"A consulta falhou: {motivo}. Reformule o pedido."
 
 
+async def _propor_escrita(message: str, local_client: Any, db_sessionmaker: Any, admin_id: int):
+    """Retorna (texto, card). Nada é gravado: só a proposta."""
+    pedido = await interpretar_escrita(local_client, message)
+    if pedido is None:
+        return (
+            "Não entendi qual alteração você quer fazer. Descreva o produto/pedido e o novo valor.",
+            None,
+        )
+    try:
+        async with db_sessionmaker() as session:
+            acao, previa = await criar_proposta(
+                session,
+                admin_id=admin_id,
+                ferramenta=pedido["ferramenta"],
+                argumentos=pedido["argumentos"],
+            )
+            card = CardAcaoProposta(
+                acao_id=str(acao.id),
+                titulo=previa.titulo,
+                antes=previa.antes,
+                depois=previa.depois,
+                aviso=previa.aviso,
+                expira_em=acao.expira_em,
+            )
+    except PropostaInvalidaError as exc:
+        return str(exc), None
+    except Exception:  # fronteira de isolamento: banco fora não derruba o turno
+        logger.exception("falha_ao_propor_escrita_admin")
+        return "Não consegui preparar a alteração agora. Tente novamente em instantes.", None
+    return "Confira a alteração abaixo e confirme para aplicar.", card
+
+
 async def processar_pedido_admin(
     message: str,
     *,
@@ -61,6 +95,7 @@ async def processar_pedido_admin(
     local_client: Any,
     db_sessionmaker: Any,
     intent_router_provider: str,
+    admin_id: int | None = None,
 ) -> AsyncIterator[Any]:
     """Emite os eventos de uma ferramenta do Admin; não emite nada se o texto não é um pedido
     de ferramenta ou se o usuário não é Admin (o chat segue o fluxo normal)."""
@@ -70,9 +105,14 @@ async def processar_pedido_admin(
         _emitir_chart_decision_base,
     )
 
-    if not is_admin or db_sessionmaker is None or not detectar_consulta(message):
+    if not is_admin or db_sessionmaker is None:
         return
-    texto, card = await _consultar(message, local_client, db_sessionmaker)
+    if admin_id is not None and detectar_escrita(message):
+        texto, card = await _propor_escrita(message, local_client, db_sessionmaker, admin_id)
+    elif detectar_consulta(message):
+        texto, card = await _consultar(message, local_client, db_sessionmaker)
+    else:
+        return
     yield TokenEvent(text=texto)
     yield RouterDecision(
         **_emitir_chart_decision_base(intent_router_provider, None, None),

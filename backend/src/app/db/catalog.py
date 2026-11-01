@@ -88,6 +88,7 @@ async def criar_produto(
     imagem_url: str | None = None,
     dias_alerta_estoque: int | None = None,
     familia: str | None = None,
+    commit: bool = True,
 ) -> Produto:
     produto = Produto(
         nome=nome,
@@ -105,7 +106,8 @@ async def criar_produto(
         familia=familia,
     )
     session.add(produto)
-    await session.commit()
+    # `commit=False`: o chamador (ferramentas do chat Admin) fecha a transação junto da auditoria.
+    await (session.commit() if commit else session.flush())
     # Achado no code-review (2026-09-24): tentei remover este refresh
     # supondo que um objeto recém-criado já começaria com as coleções de
     # relationship vazias em memória, sem I/O — verificado empiricamente
@@ -170,7 +172,7 @@ async def listar_categorias_distintas(session: AsyncSession) -> list[str]:
 
 
 async def atualizar_produto(
-    session: AsyncSession, produto_id: int, updates: dict[str, object]
+    session: AsyncSession, produto_id: int, updates: dict[str, object], *, commit: bool = True
 ) -> Produto | None:
     """Atualização parcial — só os campos presentes em `updates` são
     alterados (inclusive para `None`, ex.: limpar `preco_promocional`).
@@ -185,7 +187,7 @@ async def atualizar_produto(
         return None
     for campo, valor in updates.items():
         setattr(produto, campo, valor)
-    await session.commit()
+    await (session.commit() if commit else session.flush())
     # Achado no code-review (2026-09-24): `obter_produto` já carrega
     # `estoques`/`descontos_volume` via `selectinload` (`_produto_query()`)
     # e `updates` nunca toca essas coleções (só colunas escalares) — o
