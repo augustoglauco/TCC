@@ -3,7 +3,7 @@
 import React from "react";
 import type { RagCollection, RagDomain } from "@/lib/types/rag";
 
-const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
+export const DOMAIN_OPTIONS: { value: RagDomain; label: string }[] = [
   { value: "vendas", label: "Vendas" },
   { value: "suporte", label: "Suporte Técnico" },
   { value: "atendimento", label: "Atendimento ao Usuário" },

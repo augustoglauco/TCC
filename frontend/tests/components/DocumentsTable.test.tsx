@@ -147,7 +147,7 @@ describe("DocumentsTable", () => {
 
     await user.click(screen.getByRole("button", { name: "Reingerir" }));
 
-    expect(screen.getByText("Reingerir em outra collection")).toBeInTheDocument();
+    expect(screen.getByText("Reingerir (collection e/ou domínio)")).toBeInTheDocument();
   });
 
   describe("Filtros de documentos", () => {

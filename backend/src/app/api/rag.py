@@ -365,10 +365,17 @@ async def reingest_document_endpoint(
     if target_collection is None:
         raise HTTPException(status_code=404, detail="Collection destino não encontrada.")
 
-    if target_collection.id == source_document.collection_id:
+    novo_dominio = body.domain or source_document.domain
+    if (
+        target_collection.id == source_document.collection_id
+        and novo_dominio == source_document.domain
+    ):
         raise HTTPException(
             status_code=409,
-            detail="A collection destino não pode ser a mesma do documento de origem.",
+            detail=(
+                "Escolha outra collection ou outro domínio: a combinação é a mesma do documento "
+                "de origem."
+            ),
         )
 
     if source_document.storage_path is None:
@@ -383,7 +390,7 @@ async def reingest_document_endpoint(
     embedder = embedders.get(target_collection.embedding_model)
     try:
         novo_documento = await reingest_document(
-            qdrant, embedder, source_document, target_collection, session
+            qdrant, embedder, source_document, target_collection, session, domain=novo_dominio
         )
     except RAGConnectionError as exc:
         raise HTTPException(

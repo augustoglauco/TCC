@@ -65,7 +65,7 @@ describe("ReingestModal", () => {
     });
   });
 
-  it("não mostra a collection de origem entre os destinos", () => {
+  it("oferece a collection de origem entre os destinos, mas escolhe outra por padrão", () => {
     render(
       <ReingestModal
         documento={DOCUMENTO}
@@ -76,8 +76,11 @@ describe("ReingestModal", () => {
       />,
     );
 
-    expect(screen.queryByRole("option", { name: "origem" })).not.toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /^origem/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "destino" })).toBeInTheDocument();
+    expect((screen.getByLabelText("Collection destino") as HTMLSelectElement).value).toBe(
+      "destino",
+    );
   });
 
   it("confirmar chama a API com o documento e a collection destino selecionada", async () => {
@@ -97,7 +100,7 @@ describe("ReingestModal", () => {
 
     await user.click(screen.getByRole("button", { name: "Reingerir" }));
 
-    expect(mockedReingest).toHaveBeenCalledWith("mock-token-1", "doc-1", "destino");
+    expect(mockedReingest).toHaveBeenCalledWith("mock-token-1", "doc-1", "destino", "vendas");
     expect(onReingested).toHaveBeenCalled();
   });
 
@@ -150,21 +153,22 @@ describe("ReingestModal", () => {
       />,
     );
 
-    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    const select = screen.getByLabelText("Collection destino") as HTMLSelectElement;
     expect(select.value).not.toBe(DOCUMENTO.collection_id);
     expect(select.value).toBe("destino");
 
     await user.click(screen.getByRole("button", { name: "Reingerir" }));
 
-    expect(mockedReingest).toHaveBeenCalledWith("mock-token-1", "doc-1", "destino");
+    expect(mockedReingest).toHaveBeenCalledWith("mock-token-1", "doc-1", "destino", "vendas");
     expect(mockedReingest).not.toHaveBeenCalledWith(
       "mock-token-1",
       "doc-1",
       DOCUMENTO.collection_id,
+      "vendas",
     );
   });
 
-  it("sem outra collection disponível, mostra aviso e desabilita o botão", () => {
+  it("na mesma collection e no mesmo domínio, o botão fica desabilitado", () => {
     render(
       <ReingestModal
         documento={DOCUMENTO}
@@ -175,7 +179,47 @@ describe("ReingestModal", () => {
       />,
     );
 
-    expect(screen.getByText(/não há outra collection/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reingerir" })).toBeDisabled();
+  });
+
+  it("trocar só o domínio, na própria collection, chama a API com o novo domínio", async () => {
+    const user = userEvent.setup();
+    mockedReingest.mockResolvedValueOnce({ ...DOCUMENTO, id: "doc-2", domain: "suporte" });
+    const onReingested = vi.fn();
+
+    render(
+      <ReingestModal
+        documento={DOCUMENTO}
+        collections={[COLLECTION_ORIGEM]}
+        onOpenChange={vi.fn()}
+        onReingested={onReingested}
+        onError={vi.fn()}
+      />,
+    );
+
+    await user.selectOptions(screen.getByLabelText("Domínio"), "suporte");
+    await user.click(screen.getByRole("button", { name: "Reingerir" }));
+
+    expect(mockedReingest).toHaveBeenCalledWith("mock-token-1", "doc-1", "origem", "suporte");
+    expect(onReingested).toHaveBeenCalled();
+  });
+
+  it("o domínio começa no do documento e acompanha a collection escolhida", async () => {
+    const user = userEvent.setup();
+    mockedReingest.mockResolvedValueOnce({ ...DOCUMENTO, id: "doc-2" });
+
+    render(
+      <ReingestModal
+        documento={{ ...DOCUMENTO, domain: "atendimento" }}
+        collections={[COLLECTION_ORIGEM, COLLECTION_DESTINO]}
+        onOpenChange={vi.fn()}
+        onReingested={vi.fn()}
+        onError={vi.fn()}
+      />,
+    );
+
+    expect((screen.getByLabelText("Domínio") as HTMLSelectElement).value).toBe("atendimento");
+    await user.click(screen.getByRole("button", { name: "Reingerir" }));
+    expect(mockedReingest).toHaveBeenCalledWith("mock-token-1", "doc-1", "destino", "atendimento");
   });
 });

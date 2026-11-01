@@ -65,6 +65,9 @@ class ReingestRequest(BaseModel):
     """Corpo de `POST /api/rag/documents/{document_id}/reingest`."""
 
     target_collection_id: UUID
+    domain: RagDomain | None = Field(
+        default=None, description="Novo domínio do documento; omitido, mantém o do original."
+    )
 
 
 class HnswConfigRequest(BaseModel):

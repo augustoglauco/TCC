@@ -3137,3 +3137,9 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `handle_message` e de `_build_prompt` intactas (chat.py e evals as
       chamam); `except Exception` mantidos (bordas de degradação). Pytest
       (1225 passados), `ruff check` e `ruff format` limpos.
+- [x] Reingestão com troca de domínio (R4, Fase 10/11) — `domain` opcional em
+      `POST /api/rag/documents/{id}/reingest` e `reingest_document`; o modal
+      "Reingerir" ganhou o seletor de domínio e passou a aceitar a própria
+      collection (409 só se collection e domínio forem os mesmos). Cria sempre
+      documento novo, original mantido. Testes: 3 no `test_rag_api.py`, 1 no
+      `test_rag_ingest.py`, 3 novos e 3 ajustados no `ReingestModal.test.tsx`.

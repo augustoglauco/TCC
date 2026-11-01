@@ -236,12 +236,15 @@ async def reingest_document(
     source_document: RagDocument,
     target_collection: RagCollection,
     session: AsyncSession,
+    domain: str | None = None,
 ) -> RagDocument:
     """Reingere o arquivo original de `source_document` (lido de
     `storage_path`) na `target_collection`, com os parâmetros de chunking e
     o embedder dessa collection destino. Cria um documento **novo** — não
-    move nem apaga o original.
+    move nem apaga o original. `domain` troca o domínio do documento novo;
+    omitido, mantém o do original.
     """
+    domain = domain or source_document.domain
     if source_document.storage_path is None:
         raise ValueError(
             f"documento {source_document.id} não tem arquivo salvo, não é possível reingerir "
@@ -270,7 +273,7 @@ async def reingest_document(
         embedder,
         chunks,
         source=source_document.filename,
-        domain=source_document.domain,
+        domain=domain,
         document_id=document_id,
     )
     return await create_document(
@@ -278,7 +281,7 @@ async def reingest_document(
         document_id=document_id,
         collection_id=target_collection.id,
         filename=source_document.filename,
-        domain=source_document.domain,
+        domain=domain,
         chunk_count=chunk_count,
         storage_path=source_document.storage_path,
         download_path=source_document.download_path,

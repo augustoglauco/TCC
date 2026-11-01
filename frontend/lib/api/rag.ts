@@ -140,13 +140,14 @@ export async function reingestDocument(
   token: string,
   documentId: string,
   targetCollectionId: string,
+  domain?: RagDomain,
 ): Promise<DocumentRegistryEntry> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/rag/documents/${documentId}/reingest`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ target_collection_id: targetCollectionId }),
+      body: JSON.stringify({ target_collection_id: targetCollectionId, domain }),
     });
   } catch {
     throw new RagApiError("Não foi possível conectar ao servidor. Verifique sua conexão.");

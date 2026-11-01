@@ -551,3 +551,64 @@ def test_obter_conteudo_de_documento_inexistente_retorna_404(db_session, tmp_pat
     )
 
     assert response.status_code == 404
+
+
+def _subir_catalogo(client, admin_headers) -> str:
+    client.post(
+        "/api/rag/documents",
+        data={"domain": "vendas"},
+        files={"file": ("catalogo.txt", b"conteudo de exemplo", "text/plain")},
+        headers=admin_headers,
+    )
+    return client.get("/api/rag/documents", headers=admin_headers).json()[0]["id"]
+
+
+def test_reingest_na_mesma_collection_com_outro_dominio_cria_novo_documento(
+    db_session, active_collection, tmp_path, admin_headers
+):
+    client = TestClient(_build_app(_FakeQdrantRAGClient(), db_session, tmp_path))
+    document_id = _subir_catalogo(client, admin_headers)
+
+    response = client.post(
+        f"/api/rag/documents/{document_id}/reingest",
+        json={"target_collection_id": str(active_collection.id), "domain": "suporte"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["domain"] == "suporte"
+    assert body["collection_id"] == str(active_collection.id)
+    assert UUID(body["id"]) != UUID(document_id)
+    dominios = {d["domain"] for d in client.get("/api/rag/documents", headers=admin_headers).json()}
+    assert dominios == {"vendas", "suporte"}  # o original é mantido
+
+
+def test_reingest_na_mesma_collection_com_o_mesmo_dominio_retorna_409(
+    db_session, active_collection, tmp_path, admin_headers
+):
+    client = TestClient(_build_app(_FakeQdrantRAGClient(), db_session, tmp_path))
+    document_id = _subir_catalogo(client, admin_headers)
+
+    response = client.post(
+        f"/api/rag/documents/{document_id}/reingest",
+        json={"target_collection_id": str(active_collection.id), "domain": "vendas"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 409
+
+
+def test_reingest_com_dominio_invalido_retorna_422(
+    db_session, active_collection, tmp_path, admin_headers
+):
+    client = TestClient(_build_app(_FakeQdrantRAGClient(), db_session, tmp_path))
+    document_id = _subir_catalogo(client, admin_headers)
+
+    response = client.post(
+        f"/api/rag/documents/{document_id}/reingest",
+        json={"target_collection_id": str(active_collection.id), "domain": "inexistente"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == 422

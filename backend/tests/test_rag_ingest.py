@@ -427,3 +427,28 @@ async def test_ingest_bytes_conta_chunk_size_em_tokens_via_tokenizer_do_embedder
     assert doc.chunk_count == 2
     _col, chunks, _src, _dom, _doc_id = client.upserts[0]
     assert chunks == ["um dois tres quatro.", "cinco seis sete oito."]
+
+
+async def test_reingest_document_com_dominio_novo_grava_o_dominio_informado(
+    tmp_path: Path, db_session, active_collection, text_embedder
+):
+    client = _FakeQdrantRAGClient()
+    original = await ingest_bytes(
+        client,
+        text_embedder,
+        active_collection,
+        tmp_path / "uploads",
+        "catalogo.txt",
+        "Conteúdo original.".encode(),
+        domain="vendas",
+        session=db_session,
+        origin="upload",
+    )
+
+    reingerido = await reingest_document(
+        client, text_embedder, original, active_collection, session=db_session, domain="suporte"
+    )
+
+    assert reingerido.domain == "suporte"
+    assert client.upserts[-1][3] == "suporte"
+    assert original.domain == "vendas"

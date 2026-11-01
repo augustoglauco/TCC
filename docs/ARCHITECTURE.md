@@ -857,6 +857,13 @@ ingeridos só ganham o arquivo reingerindo; e, como já ocorria com
 `storage_path`, a reingestão compartilha os arquivos com o documento de
 origem, então apagar um apaga o do outro.
 
+Decisão de 2026-11-01: a reingestão aceita trocar o **domínio** além da
+collection (`domain` opcional em `POST /documents/{id}/reingest`). Sempre cria
+um documento novo e mantém o original, inclusive na mesma collection (com
+domínio diferente); mesma collection e mesmo domínio continua `409`. `# MVP:`
+sem substituir o original, então trocar o domínio na mesma collection deixa dois
+documentos do mesmo arquivo até alguém excluir o antigo.
+
 **Decisão registrada (2026-10-31): modelos do mesmo produto são uma linha
 cada em `produtos`, agrupados por `familia`.** Preço, promoção, estoque,
 desconto por volume, item de pedido, imagem e compatibilidade são por
