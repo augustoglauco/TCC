@@ -141,17 +141,24 @@ def _secao_rag(documentos: list[Document]) -> str:
     )
 
 
+@dataclass(frozen=True)
+class _ContextoConversa:
+    """Contexto da conversa que vai para o prompt final."""
+
+    resumo_conversa: str | None
+    pedir_email_pos_venda: bool
+    ultima_troca: tuple[str, str] | None
+    dados_cliente: str | None
+    contexto_conversa_anterior: str | None
+    usuario_autenticado: bool
+
+
 def _build_prompt(
     message: str,
     documentos: list[Document],
     domain: Domain,
     dados_catalogo: str | None = None,
-    resumo_conversa: str | None = None,
-    pedir_email_pos_venda: bool = False,
-    ultima_troca: tuple[str, str] | None = None,
-    dados_cliente: str | None = None,
-    contexto_conversa_anterior: str | None = None,
-    usuario_autenticado: bool = False,
+    contexto: _ContextoConversa | None = None,
 ) -> str:
     """Monta o prompt final: prompt de sistema do domínio (playbook) +
     dados do cliente/compras (quando houver, R10 Fase 6/7) +
@@ -166,15 +173,18 @@ def _build_prompt(
     # §5). O playbook do domínio (ver app/router/playbooks.py) é anteposto
     # quando existe; `fora_escopo` tem um playbook curto de cortesia.
     """
-    system_prompt = build_system_prompt(domain, usuario_autenticado=usuario_autenticado)
+    ctx = contexto or _ContextoConversa(None, False, None, None, None, False)
+    system_prompt = build_system_prompt(domain, usuario_autenticado=ctx.usuario_autenticado)
     partes: list[str] = []
     if system_prompt is not None:
         partes.append(system_prompt)
 
-    if dados_cliente is not None:
-        partes.append(dados_cliente)
+    if ctx.dados_cliente is not None:
+        partes.append(ctx.dados_cliente)
 
-    partes.extend(_secoes_historico(contexto_conversa_anterior, resumo_conversa, ultima_troca))
+    partes.extend(
+        _secoes_historico(ctx.contexto_conversa_anterior, ctx.resumo_conversa, ctx.ultima_troca)
+    )
 
     if dados_catalogo is not None:
         partes.append(dados_catalogo)
@@ -182,7 +192,7 @@ def _build_prompt(
     if documentos:
         partes.append(_secao_rag(documentos))
 
-    if pedir_email_pos_venda and domain in DOMINIOS_POS_VENDA:
+    if ctx.pedir_email_pos_venda and domain in DOMINIOS_POS_VENDA:
         # R10 (Fase 6): identidade pelo e-mail, pedida só no momento natural
         # — no pós-venda, para localizar a compra.
         partes.append(
@@ -1616,18 +1626,6 @@ async def _construir_decisao(
 
 
 @dataclass(frozen=True)
-class _ContextoConversa:
-    """Contexto da conversa que vai para o prompt final."""
-
-    resumo_conversa: str | None
-    pedir_email_pos_venda: bool
-    ultima_troca: tuple[str, str] | None
-    dados_cliente: str | None
-    contexto_conversa_anterior: str | None
-    usuario_autenticado: bool
-
-
-@dataclass(frozen=True)
 class _LimitesRag:
     top_k: int
     score_threshold: float
@@ -1684,12 +1682,7 @@ async def _handle_llm_generation(
         rag.documentos,
         classification.domain,
         dados_catalogo=_formatar_bloco_catalogo_vendas(rag.dados_catalogo_vendas),
-        resumo_conversa=contexto.resumo_conversa,
-        pedir_email_pos_venda=contexto.pedir_email_pos_venda,
-        ultima_troca=contexto.ultima_troca,
-        dados_cliente=contexto.dados_cliente,
-        contexto_conversa_anterior=contexto.contexto_conversa_anterior,
-        usuario_autenticado=contexto.usuario_autenticado,
+        contexto=contexto,
     )
 
     client = local_client if rag.backend_escolhido == "local" else external_client
