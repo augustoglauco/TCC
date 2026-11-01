@@ -348,24 +348,10 @@ async def delete_document_endpoint(
         ) from exc
 
 
-@router.post("/documents/{document_id}/reingest", response_model=DocumentRegistryResponse)
-async def reingest_document_endpoint(
-    document_id: UUID,
-    body: ReingestRequest,
-    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
-    embedders: EmbedderRegistry = Depends(get_embedder_registry),
-    session: AsyncSession = Depends(get_db_session),
-    _: None = Depends(require_admin),
-) -> DocumentRegistryResponse:
-    source_document = await session.get(RagDocument, document_id)
-    if source_document is None:
-        raise HTTPException(status_code=404, detail="Documento não encontrado.")
-
-    target_collection = await get_collection(session, body.target_collection_id)
-    if target_collection is None:
-        raise HTTPException(status_code=404, detail="Collection destino não encontrada.")
-
-    novo_dominio = body.domain or source_document.domain
+def _checar_reingest_possivel(
+    source_document: RagDocument, target_collection, novo_dominio: str
+) -> None:
+    """409 se a combinação destino é a da origem ou se não há arquivo salvo."""
     if (
         target_collection.id == source_document.collection_id
         and novo_dominio == source_document.domain
@@ -387,9 +373,13 @@ async def reingest_document_endpoint(
             ),
         )
 
-    embedder = embedders.get(target_collection.embedding_model)
+
+async def _reingerir_ou_http(
+    qdrant, embedder, source_document, target_collection, session, novo_dominio: str
+) -> RagDocument:
+    """Reingere traduzindo as falhas de infraestrutura em erros HTTP limpos."""
     try:
-        novo_documento = await reingest_document(
+        return await reingest_document(
             qdrant, embedder, source_document, target_collection, session, domain=novo_dominio
         )
     except RAGConnectionError as exc:
@@ -399,12 +389,12 @@ async def reingest_document_endpoint(
     except (FileNotFoundError, OSError) as exc:
         # Achado #4 da revisão final: o arquivo original pode ter sido
         # apagado (DELETE concorrente do documento, limpeza externa de
-        # disco) entre a checagem de `storage_path is None` acima e a
-        # leitura de fato dentro de `reingest_document` — sem isso, o
-        # `read_bytes()` cru vira um 500 em vez de um erro HTTP limpo.
+        # disco) entre a checagem de `storage_path is None` e a leitura de
+        # fato dentro de `reingest_document` — sem isso, o `read_bytes()`
+        # cru vira um 500 em vez de um erro HTTP limpo.
         logger.warning(
             "rag_reingest_arquivo_ausente document_id=%s storage_path=%s",
-            document_id,
+            source_document.id,
             source_document.storage_path,
         )
         raise HTTPException(
@@ -426,4 +416,29 @@ async def reingest_document_endpoint(
             ),
         ) from exc
 
+
+@router.post("/documents/{document_id}/reingest", response_model=DocumentRegistryResponse)
+async def reingest_document_endpoint(
+    document_id: UUID,
+    body: ReingestRequest,
+    qdrant: QdrantRAGClient = Depends(get_qdrant_client),
+    embedders: EmbedderRegistry = Depends(get_embedder_registry),
+    session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
+) -> DocumentRegistryResponse:
+    source_document = await session.get(RagDocument, document_id)
+    if source_document is None:
+        raise HTTPException(status_code=404, detail="Documento não encontrado.")
+
+    target_collection = await get_collection(session, body.target_collection_id)
+    if target_collection is None:
+        raise HTTPException(status_code=404, detail="Collection destino não encontrada.")
+
+    novo_dominio = body.domain or source_document.domain
+    _checar_reingest_possivel(source_document, target_collection, novo_dominio)
+
+    embedder = embedders.get(target_collection.embedding_model)
+    novo_documento = await _reingerir_ou_http(
+        qdrant, embedder, source_document, target_collection, session, novo_dominio
+    )
     return _document_to_response(novo_documento, target_collection.name)
