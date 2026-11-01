@@ -86,11 +86,23 @@ async def _resolver_cd(session: AsyncSession, cd: str) -> str:
     return next((c for c in candidatos if _chave_cd(c) == _chave_cd(cd)), cd.strip())
 
 
+_ALVOS_TODOS = {"todos", "todas", "todos os produtos", "todas as unidades", "tudo", "*"}
+
+
 class _Ajuste(BaseModel):
     produto: str | int | None = None
     todos: bool = False
     cd: str = Field(min_length=1)
     quantidade: int = Field(ge=0)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _produto_todos_como_texto(cls, dados: Any) -> Any:
+        """O modelo às vezes manda `produto: "todos"` em vez de `todos: true`."""
+        if isinstance(dados, dict) and isinstance(dados.get("produto"), str):
+            if dados["produto"].strip().casefold() in _ALVOS_TODOS:
+                return {**dados, "produto": None, "todos": True}
+        return dados
 
     @model_validator(mode="after")
     def _um_alvo(self) -> Self:

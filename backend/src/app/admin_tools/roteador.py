@@ -20,7 +20,7 @@ Ações disponíveis e seus argumentos:
 - atualizar_venda: pedido_id (UUID), novo_status ("venda_concluida" ou "cancelada")
 Responda APENAS com JSON: {{"ferramenta": "<ação>", "argumentos": {{...}}}}.
 Use baixa_estoque só para SUBTRAIR unidades; para "ajustar", "definir" ou "colocar" um valor,
-use ajustar_estoque.
+use ajustar_estoque. Para todos os produtos envie "todos": true (nunca produto: "todos").
 Se o pedido não corresponder a nenhuma ação, responda {{"ferramenta": null}}.
 Não invente valores que o administrador não informou.
 

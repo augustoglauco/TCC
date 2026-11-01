@@ -221,3 +221,13 @@ async def test_ajustar_estoque_aceita_zero(db_session):
     pid = await _produto(db_session, "Zerar", {"CD-Matriz": 5})
     await _propor_e_confirmar(db_session, {"produto": pid, "cd": "CD-Matriz", "quantidade": 0})
     assert await _saldo_ou_none(db_session, pid, "CD-Matriz") == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("alvo", ["todos", "Todos os produtos", "todas", "*", "tudo", "TODOS"])
+async def test_ajustar_estoque_aceita_produto_todos_como_texto(db_session, alvo):
+    a = await _produto(db_session, "A", {})
+    b = await _produto(db_session, "B", {"CD-Matriz": 1})
+    await _propor_e_confirmar(db_session, {"produto": alvo, "cd": "CD-Matriz", "quantidade": 20})
+    assert await _saldo_ou_none(db_session, a, "CD-Matriz") == 20
+    assert await _saldo_ou_none(db_session, b, "CD-Matriz") == 20

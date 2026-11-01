@@ -1128,7 +1128,7 @@ para o gráfico, o RAG e a conversa normal (fall-through). Nada é gravado aqui:
 (`criar_proposta`) que o Admin confirma no card. Modelo local.
 
 `ajustar_estoque` define a quantidade **final** (um produto ou `todos=true`, quantidade ≥ 0); o
-prompt manda usar `baixa_estoque` só para subtrair. Se o pedido parece uma alteração mas o modelo
+prompt manda usar `baixa_estoque` só para subtrair e `"todos": true` para todos os produtos (o código também aceita `produto: "todos"`). Se o pedido parece uma alteração mas o modelo
 não devolve ação válida, o Admin recebe uma mensagem fixa de ajuda (não é prompt) em vez de a
 conversa seguir para o assistente de vendas.
 

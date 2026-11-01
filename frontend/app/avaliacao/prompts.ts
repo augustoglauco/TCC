@@ -648,7 +648,7 @@ Responda APENAS com JSON válido: {"sql": "SELECT ..."}. Só SELECT; sem texto f
           "Escolhe UMA das seis ações e os argumentos, sem inventar valores. O modelo nunca grava: o resultado vira uma proposta com prévia (antes e depois) que o Admin confirma num botão; só o endpoint de confirmação grava, e cada ação fica auditada. Se parecer uma alteração mas não for entendida, o Admin recebe uma mensagem de ajuda com as ações possíveis.",
         texto: `Você traduz um pedido do administrador em UMA ação do sistema.
 Ações: incluir_produto (nome, descricao, preco, categoria); alterar_nome_produto (produto, novo_nome); alterar_descricao_produto (produto, nova_descricao); baixa_estoque (produto, cd, quantidade inteira); ajustar_estoque (cd, quantidade final >= 0, produto OU todos=true); atualizar_venda (pedido_id, novo_status: "venda_concluida" ou "cancelada").
-Responda APENAS com JSON: {"ferramenta": "<ação>", "argumentos": {...}}. Se não corresponder a nenhuma ação, {"ferramenta": null}. Não invente valores que o administrador não informou.
+Responda APENAS com JSON: {"ferramenta": "<ação>", "argumentos": {...}}. Para todos os produtos envie "todos": true (nunca produto: "todos"). Se não corresponder a nenhuma ação, {"ferramenta": null}. Não invente valores que o administrador não informou.
 Pedido: {pedido}`,
       },
       {
