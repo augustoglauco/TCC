@@ -134,3 +134,24 @@ async def test_erro_em_executar_nao_deixa_produto_gravado(db_session, monkeypatc
     with pytest.raises(RuntimeError):
         await confirmar(db_session, acao.id, admin_id=1)
     assert await listar_produtos(db_session, termo="Falha") == []
+
+
+@pytest.mark.asyncio
+async def test_resolver_produto_com_digito_unicode_nao_quebra(db_session):
+    with pytest.raises(PropostaInvalidaError):
+        await resolver_produto(db_session, "²")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("bruto", "esperado"), [("199,90", "199.90"), ("1.299,90", "1299.90")])
+async def test_incluir_aceita_preco_com_virgula_e_previa_mostra_descricao(
+    db_session, bruto, esperado
+):
+    _, previa = await criar_proposta(
+        db_session,
+        admin_id=1,
+        ferramenta="incluir_produto",
+        argumentos={"nome": "P", "descricao": "Desc X", "preco": bruto, "categoria": "c"},
+    )
+    assert previa.depois["preco"] == esperado
+    assert previa.depois["descricao"] == "Desc X"

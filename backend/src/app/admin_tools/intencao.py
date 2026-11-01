@@ -3,7 +3,7 @@
 import re
 
 _CONSULTA_RE = re.compile(
-    r"\b(consult[ea]\w*|list[ea]\w*|mostr[ea]\w*|quant[oa]s?|qual(?:is)?\s+(?:o|a|os|as)\s+\w+"
+    r"\b(consult[ea]\w*|list[ea]\w*|mostr[ea]\w*|quant[oa]s?|quais|qual(?:is)?\s+(?:o|a|os|as)\s+\w+"
     r"\s+(?:de|do|da|dos|das))\b",
     re.IGNORECASE,
 )

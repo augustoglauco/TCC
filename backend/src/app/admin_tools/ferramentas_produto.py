@@ -20,7 +20,8 @@ class ProdutoAmbiguoError(PropostaInvalidaError):
 
 async def resolver_produto(session: AsyncSession, referencia: str | int) -> Produto:
     """Produto por id ou por nome; nunca escolhe sozinho entre vários."""
-    if isinstance(referencia, int) or str(referencia).strip().isdigit():
+    texto = str(referencia).strip()
+    if isinstance(referencia, int) or (texto.isascii() and texto.isdigit()):
         produto = await obter_produto(session, int(referencia))
         if produto is None:
             raise PropostaInvalidaError(f"Produto {referencia} não encontrado.")
@@ -41,6 +42,13 @@ def _validar(modelo: type[BaseModel], args: dict[str, Any]) -> Any:
         raise PropostaInvalidaError(f"Argumento inválido: {campo}.") from exc
 
 
+def _preco_decimal(v: Any) -> Any:
+    """Aceita "199,90" e "1.299,90" (formato brasileiro) além de "199.90"."""
+    if isinstance(v, str) and "," in v:
+        return v.strip().replace(".", "").replace(",", ".")
+    return v
+
+
 def _texto_nao_vazio(v: str) -> str:
     if not v.strip():
         raise ValueError("vazio")
@@ -54,6 +62,7 @@ class _Incluir(BaseModel):
     categoria: str = Field(min_length=1)
 
     _limpa = field_validator("nome", "descricao", "categoria")(_texto_nao_vazio)
+    _preco = field_validator("preco", mode="before")(_preco_decimal)
 
 
 class _AlterarNome(BaseModel):
@@ -78,7 +87,12 @@ class IncluirProduto:
         return Previa(
             titulo="Incluir produto",
             antes={},
-            depois={"nome": dados.nome, "categoria": dados.categoria, "preco": str(dados.preco)},
+            depois={
+                "nome": dados.nome,
+                "descricao": dados.descricao,
+                "categoria": dados.categoria,
+                "preco": str(dados.preco),
+            },
         )
 
     async def executar(

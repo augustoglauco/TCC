@@ -57,13 +57,10 @@ def _falha(exc: Exception) -> str:
 
 
 async def _propor_escrita(message: str, local_client: Any, db_sessionmaker: Any, admin_id: int):
-    """Retorna (texto, card). Nada é gravado: só a proposta."""
+    """Retorna (texto, card), ou None se nenhuma ferramenta foi entendida. Só propõe, não grava."""
     pedido = await interpretar_escrita(local_client, message)
     if pedido is None:
-        return (
-            "Não entendi qual alteração você quer fazer. Descreva o produto/pedido e o novo valor.",
-            None,
-        )
+        return None
     try:
         async with db_sessionmaker() as session:
             acao, previa = await criar_proposta(
@@ -107,12 +104,21 @@ async def processar_pedido_admin(
 
     if not is_admin or db_sessionmaker is None:
         return
+    resultado = None
     if admin_id is not None and detectar_escrita(message):
-        texto, card = await _propor_escrita(message, local_client, db_sessionmaker, admin_id)
-    elif detectar_consulta(message):
-        texto, card = await _consultar(message, local_client, db_sessionmaker)
-    else:
+        resultado = await _propor_escrita(message, local_client, db_sessionmaker, admin_id)
+    # Verbos como "canceladas"/"alterados" também aparecem em consultas: se nenhuma ferramenta
+    # de escrita foi entendida, a leitura segue o caminho de `consultar`.
+    if resultado is None and detectar_consulta(message):
+        resultado = await _consultar(message, local_client, db_sessionmaker)
+    if resultado is None and detectar_escrita(message) and admin_id is not None:
+        resultado = (
+            "Não entendi qual alteração você quer fazer. Descreva o produto/pedido e o novo valor.",
+            None,
+        )
+    if resultado is None:
         return
+    texto, card = resultado
     yield TokenEvent(text=texto)
     yield RouterDecision(
         **_emitir_chart_decision_base(intent_router_provider, None, None),
