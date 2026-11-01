@@ -1,4 +1,5 @@
 import type { ChatCard as ChatCardData } from "@/lib/types/chat";
+import AcaoPropostaCard from "@/components/chat/cards/AcaoPropostaCard";
 import AppointmentCard from "@/components/chat/cards/AppointmentCard";
 import ChatChartCard from "@/components/chat/cards/ChatChartCard";
 import DocumentDownloadCard from "@/components/chat/cards/DocumentDownloadCard";
@@ -22,6 +23,8 @@ export default function ChatCard({ card }: { card: ChatCardData }) {
       return <DocumentDownloadCard card={card} />;
     case "tabela":
       return <TabelaCard card={card} />;
+    case "acao_proposta":
+      return <AcaoPropostaCard card={card} />;
     default:
       return null;
   }

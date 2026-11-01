@@ -121,6 +121,11 @@ com o histórico recarregado.
   - `TabelaCard` (`card.tipo === "tabela"`, 2026-11-01): tabela com colunas e
     linhas do resultado de uma consulta SELECT do Admin no chat; avisa
     "Mostrando as primeiras 50 linhas." quando `truncado`.
+  - `AcaoPropostaCard` (`card.tipo === "acao_proposta"`, 2026-11-01): prévia
+    antes × depois de uma escrita pedida pelo Admin no chat, com os botões
+    Confirmar e Cancelar (chamam `lib/api/adminChatAcoes.ts`); depois de agir
+    mostra "Ação executada."/"Ação cancelada." e esconde os botões; erro da API
+    (ex.: proposta expirada) aparece no card e os botões continuam.
   - `DocumentDownloadCard` (`card.tipo === "documento_download"`, 2026-10-05):
     ícone do tipo do arquivo (`components/ui/FileTypeIcon.tsx`, 2026-10-31:
     folha com etiqueta colorida PDF, MD, TXT ou CSV; outro formato vira o
@@ -298,6 +303,7 @@ dela (bug de acesso mobile, commit `7d8426b`).
 | `GET /api/admin/atendimento/fila`, `GET /api/admin/atendimento/meus-chats`, `GET /api/admin/atendimento/{conversation_id}` | Central de Atendimento (Admin): fila de espera por prioridade e tempo (`tempo_espera_segundos`, `motivo_escalonamento`), chats do atendente autenticado e detalhe da conversa com mensagens e dados do cliente. |
 | `POST /api/admin/atendimento/{conversation_id}/claim`, `.../mensagem`, `.../close` | Assumir a conversa (claim atômico; 409 se outro atendente já assumiu), enviar mensagem do atendente ao cliente (papel `atendente`) e encerrar ou devolver a conversa à IA. |
 | `POST /api/chat/conversations/{id}/transbordo` | Botão "Falar com atendente humano" do widget: coloca a conversa na fila (motivo `solicitacao_direta`). |
+| `POST /api/admin/chat/acoes/{id}/confirmar` , `POST /api/admin/chat/acoes/{id}/cancelar` | Confirma/cancela uma proposta de ferramenta do Admin no chat (`lib/api/adminChatAcoes.ts`). `confirmar` → `{status: "executada", depois}`; `cancelar` → `{status: "cancelada"}`. `409` com `detail` em português se a proposta não existe, é de outro admin, expirou (10 min), já foi resolvida ou a execução falhou (nada é gravado e a proposta continua pendente) | Sim (`admin`) |
 | `GET /api/admin/charts` , `POST /api/admin/charts` , `PUT /api/admin/charts/{id}` , `DELETE /api/admin/charts/{id}` , `POST /api/admin/charts/{id}/refresh` | Gráficos persistidos de `/admin/dashboards` (`lib/api/charts.ts`). `AdminChartOut`: `{id, titulo, descricao, tipo_grafico (bar\|line\|pie\|area\|donut), config_json, dados_json, sql_query, fixado, ordem, criado_por, criado_em, atualizado_em}`; lista ordenada por fixado, ordem e criação, sem cache. `POST` (`201`): `titulo` obrigatório, `fixado` default `true`. `PUT` parcial (só os campos enviados). `refresh` re-executa a agregação (`sql_query`) e atualiza `dados_json`. `id` é UUID (`400` se inválido), `404` se não existe; `DELETE` devolve `{"ok": true}` | Sim (`admin`) |
 | `GET /api/admin/pedidos` · `GET /api/admin/pedidos/{id}` · `POST /api/admin/pedidos/{id}/converter-manual-simples` · `.../analisar-comprovante` · `.../confirmar-conversao` · `.../converter-auto-admin` | Conversão de reserva em venda (`/admin/pedidos`, `lib/api/adminPedidos.ts`). Listagem: query `status` (`reservado`, `venda_concluida`, `pagamento_divergente`), `limit` (1–200, default 50), `offset`; cada pedido: `{id, status, user_email, conversation_id, comprovante_url, tipo_conversao, convertido_em, convertido_por, llm_parecer, criado_em, valor_total, itens[]}`. Três modalidades, todas só para pedido em `reservado` (senão `400`): (1) `converter-manual-simples` (`multipart`: `convertido_por`, `comprovante` opcional) → `tipo_conversao=manual_simples`; (2) `analisar-comprovante` (`multipart`: `comprovante`) devolve `{pedido_id, valor_devido, comprovante_url, parecer: {valido, valor_pago, divergencia, justificativa, codigo_transacao}}` e depois `confirmar-conversao` (JSON `{comprovante_url?, parecer_json?, convertido_por?}`) → `manual_padrao`; (3) `converter-auto-admin` (`multipart`: `comprovante`) converte sozinho se o parecer for válido e sem divergência, senão marca `pagamento_divergente`. `404` se o pedido não existe | Sim (`admin`) |
 | `GET /api/admin/metrics/ai-usage` | Painel de uso de IA (`/admin/metricas`, item E do ledger, 2026-10-08): agrega `ai_usage_events` por origem × ambiente × modelo × operação, mais o recorte diário e o volume de chats encerrados. Query: `period` (`today`\|`7d`\|`30d`\|`all`) ou `start_date`+`end_date` (`YYYY-MM-DD`, `400` se mal formada); o recorte é no calendário **local** do administrador. Substituiu `GET /api/admin/metrics/tokens-and-costs` (removido em 2026-10-08) — ver contrato completo abaixo |
@@ -438,7 +444,7 @@ data: {
   // 2026-09-29) — união discriminada por "tipo"; `null`/ausente na maioria
   // dos turnos. Ver §3, "Cards ricos".
   "card": {
-    "tipo": "produto",           // | "cotacao" | "agendamento" | "grafico" | "documento_download" | "tabela"
+    "tipo": "produto",           // | "cotacao" | "agendamento" | "grafico" | "documento_download" | "tabela" | "acao_proposta"
     "produto_id": 1,
     "nome": "Gerador Diesel GD-15",
     "preco": "24900.00",         // Decimal serializado como string

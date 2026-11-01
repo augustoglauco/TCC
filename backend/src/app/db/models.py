@@ -646,3 +646,25 @@ class AgenteExecucao(Base):
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
+
+
+class ChatAdminAcao(Base):
+    """Proposta/execução de uma ferramenta do Admin no chat (`app.admin_tools`): a trilha de
+    auditoria de toda escrita feita pelo chat (antes → depois, quem, quando).
+
+    # MVP: o `admin_id` é o id do cliente do token mock (`mock-token-<id>`); sem retenção.
+    """
+
+    __tablename__ = "chat_admin_acoes"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    admin_id: Mapped[int] = mapped_column(Integer, index=True)
+    ferramenta: Mapped[str] = mapped_column(String(50))
+    argumentos: Mapped[dict] = mapped_column(JSON)
+    antes: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    depois: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    aviso: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="proposta", index=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expira_em: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    executado_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

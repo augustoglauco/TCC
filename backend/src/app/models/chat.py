@@ -88,10 +88,28 @@ class CardTabela(BaseModel):
     truncado: bool = False
 
 
+class CardAcaoProposta(BaseModel):
+    """Prévia de uma escrita pedida pelo Admin, aguardando Confirmar/Cancelar."""
+
+    tipo: Literal["acao_proposta"] = "acao_proposta"
+    acao_id: str
+    titulo: str
+    antes: dict[str, Any]
+    depois: dict[str, Any]
+    aviso: str | None = None
+    expira_em: datetime
+
+
 # União discriminada por "tipo" — cobre produto, cotação, agendamento, gráficos
 # dinâmicos, o card de download do documento-fonte do RAG e a tabela de consulta do Admin
 ChatCard = Annotated[
-    CardProduto | CardCotacao | CardAgendamento | CardGrafico | CardDocumentoDownload | CardTabela,
+    CardProduto
+    | CardCotacao
+    | CardAgendamento
+    | CardGrafico
+    | CardDocumentoDownload
+    | CardTabela
+    | CardAcaoProposta,
     Field(discriminator="tipo"),
 ]
 

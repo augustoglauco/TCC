@@ -113,13 +113,24 @@ export interface ChatCardTabela {
   truncado?: boolean;
 }
 
+export interface ChatCardAcaoProposta {
+  tipo: "acao_proposta";
+  acao_id: string;
+  titulo: string;
+  antes: Record<string, unknown>;
+  depois: Record<string, unknown>;
+  aviso?: string | null;
+  expira_em: string;
+}
+
 export type ChatCard =
   | ChatCardProduto
   | ChatCardCotacao
   | ChatCardAgendamento
   | ChatCardGrafico
   | ChatCardDocumentoDownload
-  | ChatCardTabela;
+  | ChatCardTabela
+  | ChatCardAcaoProposta;
 
 export interface ChatMetrics {
   modelName?: string;

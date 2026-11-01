@@ -3153,3 +3153,10 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       modelo local, validado por `safe_sql`, e volta como card `tabela`
       (`TabelaCard`). Testes: 7 em `test_admin_tools_consulta.py`, 7 em
       `test_admin_tools_handler.py`, 1 em `TabelaCard.test.tsx`.
+- [x] Chat Admin: proposta, confirmação e auditoria (R12, Fase 10/11) — etapa 2:
+      tabela `chat_admin_acoes` (migração 0031), `app.admin_tools.propostas`
+      (`criar_proposta`/`confirmar`/`cancelar`, TTL de 10 min, execução única,
+      rollback se a ferramenta falha), registro `FERRAMENTAS` (vazio), endpoints
+      `POST /api/admin/chat/acoes/{id}/confirmar|cancelar` e card `acao_proposta`
+      (`AcaoPropostaCard`). Testes: 7 em `test_admin_tools_propostas.py`, 5 em
+      `test_admin_chat_acoes_api.py`, 3 em `AcaoPropostaCard.test.tsx`.

@@ -1710,6 +1710,23 @@ linhas no máximo no card). Não-Admin segue o fluxo normal. Spec:
 `docs/superpowers/specs/2026-11-01-chat-admin-ferramentas-design.md`.
 `# MVP: o tempo máximo (5 s, SET LOCAL statement_timeout) só existe no Postgres.`
 
+### Decisão de 2026-11-01: proposta, confirmação e auditoria (etapa 2)
+
+Toda escrita pedida pelo Admin no chat passa por uma proposta: a ferramenta
+(`app.admin_tools.ferramentas.FERRAMENTAS`, registro de `preparar`/`executar`)
+valida e devolve uma prévia antes × depois, gravada em `chat_admin_acoes`
+(migração 0031: `id`, `admin_id`, `ferramenta`, `argumentos`, `antes`, `depois`,
+`aviso`, `status` `proposta|executada|cancelada|expirada`, `criado_em`,
+`expira_em`, `executado_em`) e exibida no card `acao_proposta`. **Só** os
+endpoints `POST /api/admin/chat/acoes/{id}/confirmar|cancelar` (`require_admin`)
+escrevem: `confirmar` revalida (`preparar` de novo), executa e grava a auditoria
+na mesma transação; se `executar` falha, faz rollback e a proposta segue
+pendente. A proposta expira em 10 min (`PROPOSTA_TTL`; o status `expirada` é
+gravado na tentativa de confirmar) e não executa duas vezes (409). Esta etapa
+entrega só o ciclo de vida, a API e o card; as ferramentas de escrita (e a
+ligação ao handler do chat) vêm nas etapas seguintes.
+`# MVP: o admin_id é o id do cliente do token mock (mock-token-<id>); sem retenção da trilha.`
+
 ## 10. Considerações finais
 
 O desenho atende aos treze requisitos de forma modular, permitindo que o
