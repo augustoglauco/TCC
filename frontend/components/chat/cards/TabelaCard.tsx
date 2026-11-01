@@ -1,5 +1,11 @@
 import type { ChatCardTabela } from "@/lib/types/chat";
 
+function formatarCelula(valor: unknown): string {
+  if (valor === null || valor === undefined) return "—";
+  if (typeof valor === "object") return JSON.stringify(valor);
+  return String(valor);
+}
+
 export default function TabelaCard({ card }: { card: ChatCardTabela }) {
   return (
     <div className="mt-2 overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -18,7 +24,7 @@ export default function TabelaCard({ card }: { card: ChatCardTabela }) {
             <tr key={i}>
               {linha.map((valor, j) => (
                 <td key={j} className="px-3 py-2 text-slate-800">
-                  {valor === null ? "—" : String(valor)}
+                  {formatarCelula(valor)}
                 </td>
               ))}
             </tr>

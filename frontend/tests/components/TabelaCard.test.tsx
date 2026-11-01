@@ -20,4 +20,21 @@ describe("TabelaCard", () => {
     expect(screen.getByText("iDFace")).toBeInTheDocument();
     expect(screen.getByText(/primeiras 50 linhas/i)).toBeInTheDocument();
   });
+
+  it("mostra JSON, booleano e nulo legíveis em vez de [object Object]", () => {
+    render(
+      <TabelaCard
+        card={{
+          tipo: "tabela",
+          titulo: "Pareceres",
+          colunas: ["parecer", "ativo", "obs"],
+          linhas: [[{ nota: 5 }, true, null]],
+        }}
+      />,
+    );
+    expect(screen.getByText('{"nota":5}')).toBeInTheDocument();
+    expect(screen.getByText("true")).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.queryByText("[object Object]")).not.toBeInTheDocument();
+  });
 });

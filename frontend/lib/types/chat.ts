@@ -109,7 +109,7 @@ export interface ChatCardTabela {
   tipo: "tabela";
   titulo: string;
   colunas: string[];
-  linhas: (string | number | null)[][];
+  linhas: (string | number | boolean | object | null)[][];
   truncado?: boolean;
 }
 
