@@ -48,6 +48,8 @@ export function ProductFormPainel({
         pesoKg={campos.pesoKg}
         imagemPreview={campos.imagemPreview}
         imagens={campos.imagens}
+        novasImagens={campos.novasImagens}
+        chavePadrao={campos.chavePadrao}
         deletingImageId={campos.deletingImageId}
         saving={saving}
         onNome={campos.setNome}
@@ -62,6 +64,8 @@ export function ProductFormPainel({
         onPeso={campos.setPesoKg}
         onImageChange={campos.handleImageChange}
         onRemoverImagem={campos.handleRemoverImagemExistente}
+        onRemoverNovaImagem={campos.handleRemoverNovaImagem}
+        onPadrao={campos.setPrincipalChave}
         onClose={onClose}
         onSubmit={onSubmit}
       />

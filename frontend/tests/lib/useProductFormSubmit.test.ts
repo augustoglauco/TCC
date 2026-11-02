@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { montarPayloadProduto } from "@/lib/hooks/useProductFormSubmit";
+import { beforeEach, describe, it, expect, vi } from "vitest";
+import { enviarImagens, montarPayloadProduto } from "@/lib/hooks/useProductFormSubmit";
+import { setAdminProductMainImage, uploadAdminProductImage } from "@/lib/api/adminProducts";
+
+vi.mock("@/lib/api/adminProducts", () => ({
+  createAdminProduct: vi.fn(),
+  updateAdminProduct: vi.fn(),
+  uploadAdminProductImage: vi.fn(),
+  setAdminProductMainImage: vi.fn(),
+}));
 
 const base = {
   nome: " Câmera ",
@@ -71,5 +79,33 @@ describe("montarPayloadProduto", () => {
         especificacoes_tecnicas: "4K",
       },
     });
+  });
+});
+
+describe("enviarImagens", () => {
+  const nova = (chave: string) => ({
+    chave,
+    file: new File(["x"], `${chave}.png`),
+    preview: `blob:${chave}`,
+  });
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it("envia na ordem escolhida e só a marcada como padrão vai como principal", async () => {
+    const [a, b, c] = [nova("n:1"), nova("n:2"), nova("n:3")];
+    await enviarImagens("tok", 7, [a, b, c], "n:2");
+    const chamadas = vi.mocked(uploadAdminProductImage).mock.calls;
+    expect(chamadas.map((x) => [x[2], x[3]])).toEqual([
+      [a.file, false],
+      [b.file, true],
+      [c.file, false],
+    ]);
+    expect(setAdminProductMainImage).not.toHaveBeenCalled();
+  });
+
+  it("padrão entre as fotos já salvas chama o endpoint de foto padrão", async () => {
+    await enviarImagens("tok", 7, [nova("n:1")], "e:42");
+    expect(vi.mocked(uploadAdminProductImage).mock.calls[0][3]).toBe(false);
+    expect(setAdminProductMainImage).toHaveBeenCalledWith("tok", 7, 42);
   });
 });

@@ -3198,3 +3198,9 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
 - [x] Script `semear_clientes_ficticios.py` (R10, Fase 10/11) — recria Ana, Bruno e Carla (migração 0011)
       quando a tabela `clientes` é limpa; idempotente, compras nos primeiros produtos do catálogo atual.
       Restaura `/admin/usuarios` e os cenários R4 a R7 da suíte `memoria`.
+- [x] Produto: várias fotos no mesmo formulário (uma por vez) e escolha da foto padrão (R3, Fase 10/11) —
+      antes a última foto enviada virava sempre a padrão. Backend: `PUT /api/admin/produtos/{id}/imagens/{img_id}/principal`;
+      o upload rebaixa a anterior só quando `is_principal=true`, a primeira foto do produto é sempre a padrão e
+      a remoção promove outra (marcando `is_principal`). Frontend: lista de fotos novas + salvas com ★ Padrão
+      (`useProductFormCampos`, `enviarImagens`). Testes: +1 em `test_admin_products_api.py`, +3 em
+      `ProductFormGeralTab.test.tsx`, +2 em `useProductFormSubmit.test.ts`.

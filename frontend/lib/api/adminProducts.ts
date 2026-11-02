@@ -115,10 +115,12 @@ export async function uploadAdminProductImage(
   token: string,
   produtoId: number,
   file: File,
+  isPrincipal?: boolean,
 ): Promise<AdminProductImage> {
   const baseUrl = getApiBaseUrl();
   const formData = new FormData();
   formData.append("file", file);
+  if (isPrincipal !== undefined) formData.append("is_principal", String(isPrincipal));
 
   const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/imagens`, {
     method: "POST",
@@ -127,6 +129,22 @@ export async function uploadAdminProductImage(
   });
   if (!res.ok) {
     throw new Error(`Erro ao enviar imagem (${res.status})`);
+  }
+  return res.json();
+}
+
+export async function setAdminProductMainImage(
+  token: string,
+  produtoId: number,
+  imgId: number,
+): Promise<AdminProductImage> {
+  const baseUrl = getApiBaseUrl();
+  const res = await fetch(`${baseUrl}/api/admin/produtos/${produtoId}/imagens/${imgId}/principal`, {
+    method: "PUT",
+    headers: authHeaders(token),
+  });
+  if (!res.ok) {
+    throw new Error(`Erro ao definir a foto padrão (${res.status})`);
   }
   return res.json();
 }
@@ -317,10 +335,7 @@ function buildCatalogFormData(files: File[], options: ExtractCatalogStreamOption
   return formData;
 }
 
-function dispatchCatalogEvent(
-  block: string,
-  callbacks: ExtractCatalogCallbacks,
-): void {
+function dispatchCatalogEvent(block: string, callbacks: ExtractCatalogCallbacks): void {
   const sse = parseSseBlock(block);
   if (!sse) return;
   try {

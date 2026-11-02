@@ -258,3 +258,59 @@ async def test_delete_imagem_principal_reatribui_outra(app_sqlite, admin_headers
         assert r.status_code == 404
 
         await c.delete(f"/api/admin/produtos/{prod_id}", headers=admin_headers)
+
+
+@pytest.mark.asyncio
+async def test_escolher_imagem_principal(app_sqlite, admin_headers):
+    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as c:
+        resp = await c.post(
+            "/api/admin/produtos",
+            json={"nome": "Câmera X", "descricao": "d", "preco": "10.00", "categoria": "CFTV"},
+            headers=admin_headers,
+        )
+        prod_id = resp.json()["id"]
+        imgs = []
+        for nome in ("a.png", "b.png", "c.png"):
+            files = {"file": (nome, b"\x89PNG\r\n\x1a\n" + nome.encode(), "image/png")}
+            r = await c.post(
+                f"/api/admin/produtos/{prod_id}/imagens",
+                files=files,
+                data={"is_principal": "false"},
+                headers=admin_headers,
+            )
+            imgs.append(r.json())
+
+        async def produto():
+            r = await c.get(f"/api/admin/produtos/{prod_id}", headers=admin_headers)
+            return r.json()
+
+        # Sem escolha explícita, a primeira foto vira a padrão; as seguintes não a trocam.
+        assert [i["is_principal"] for i in imgs] == [True, False, False]
+        assert (await produto())["imagem_url"] == imgs[0]["imagem_url"]
+
+        r = await c.put(
+            f"/api/admin/produtos/{prod_id}/imagens/{imgs[2]['id']}/principal",
+            headers=admin_headers,
+        )
+        assert r.status_code == 200
+        p = await produto()
+        assert p["imagem_url"] == imgs[2]["imagem_url"]
+        assert [i["is_principal"] for i in p["imagens"]] == [False, False, True]
+
+        # Upload marcado como padrão rebaixa a anterior.
+        files = {"file": ("d.png", b"\x89PNG\r\n\x1a\nd", "image/png")}
+        r = await c.post(
+            f"/api/admin/produtos/{prod_id}/imagens",
+            files=files,
+            data={"is_principal": "true"},
+            headers=admin_headers,
+        )
+        p = await produto()
+        assert p["imagem_url"] == r.json()["imagem_url"]
+        assert sum(i["is_principal"] for i in p["imagens"]) == 1
+
+        r = await c.put(
+            f"/api/admin/produtos/{prod_id}/imagens/999999/principal", headers=admin_headers
+        )
+        assert r.status_code == 404
+        await c.delete(f"/api/admin/produtos/{prod_id}", headers=admin_headers)

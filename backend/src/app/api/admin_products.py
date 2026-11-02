@@ -6,6 +6,7 @@ POST   /api/admin/produtos                      — cadastro manual de produto
 PUT    /api/admin/produtos/{id}                 — edição parcial de produto
 DELETE /api/admin/produtos/{id}                 — exclusão em cascata (Postgres e CLIP)
 POST   /api/admin/produtos/{id}/imagens         — upload de imagem avulsa e vetorização no CLIP
+PUT    /api/admin/produtos/{id}/imagens/{img_id}/principal — escolhe a foto padrão
 DELETE /api/admin/produtos/{id}/imagens/{img_id}— desassociação de imagem e remoção no CLIP
 """
 
@@ -27,7 +28,7 @@ from fastapi import (
 )
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.admin_auth import require_admin
@@ -304,6 +305,14 @@ async def _expurgar_vetores_imagem(clip_store: ClipImageStore, img: ProdutoImage
             logger.warning("Falha ao expurgar vetor CLIP por URL %s: %s", img.imagem_url, exc)
 
 
+async def _rebaixar_principais(session: AsyncSession, produto_id: int) -> None:
+    await session.execute(
+        update(ProdutoImagem)
+        .where(ProdutoImagem.produto_id == produto_id)
+        .values(is_principal=False)
+    )
+
+
 async def _reatribuir_imagem_principal(
     session: AsyncSession, produto: Produto, removida: ProdutoImagem
 ) -> None:
@@ -317,6 +326,8 @@ async def _reatribuir_imagem_principal(
     )
     outra_img = res.scalar_one_or_none()
     produto.imagem_url = outra_img.imagem_url if outra_img else None
+    if outra_img:
+        outra_img.is_principal = True
 
 
 @router.delete("/{produto_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -381,6 +392,11 @@ async def upload_imagem_produto(
     except Exception as exc:
         logger.warning("Falha ao gerar embedding CLIP para produto %s: %s", produto_id, exc)
 
+    # A primeira foto do produto é sempre a padrão; as seguintes só a trocam se pedido.
+    is_principal = is_principal or not produto.imagem_url
+    if is_principal:
+        # Antes do `add`: o UPDATE em massa faz autoflush e rebaixaria a imagem nova também.
+        await _rebaixar_principais(session, produto.id)
     nova_imagem = ProdutoImagem(
         produto_id=produto.id,
         imagem_url=rel_url,
@@ -393,6 +409,30 @@ async def upload_imagem_produto(
     await session.commit()
     await session.refresh(nova_imagem)
     return ProdutoImagemOut.model_validate(nova_imagem)
+
+
+@router.put("/{produto_id}/imagens/{img_id}/principal", response_model=ProdutoImagemOut)
+async def definir_imagem_principal(
+    produto_id: int,
+    img_id: int,
+    session: AsyncSession = Depends(get_db_session),
+    _: None = Depends(require_admin),
+):
+    """Escolhe qual foto é a padrão do produto (a que aparece no catálogo e no chat)."""
+    imagem = await session.scalar(
+        select(ProdutoImagem).where(
+            ProdutoImagem.id == img_id, ProdutoImagem.produto_id == produto_id
+        )
+    )
+    produto = await obter_produto(session, produto_id)
+    if not imagem or not produto:
+        raise HTTPException(status_code=404, detail="Imagem não encontrada.")
+    await _rebaixar_principais(session, produto_id)
+    imagem.is_principal = True
+    produto.imagem_url = imagem.imagem_url
+    await session.commit()
+    await session.refresh(imagem)
+    return ProdutoImagemOut.model_validate(imagem)
 
 
 @router.delete("/{produto_id}/imagens/{img_id}", status_code=status.HTTP_204_NO_CONTENT)

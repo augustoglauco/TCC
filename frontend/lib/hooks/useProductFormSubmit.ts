@@ -4,9 +4,10 @@ import React, { useState } from "react";
 import {
   createAdminProduct,
   updateAdminProduct,
+  setAdminProductMainImage,
   uploadAdminProductImage,
 } from "@/lib/api/adminProducts";
-import { mensagemDeErro } from "@/lib/hooks/useProductFormCampos";
+import { mensagemDeErro, type NovaImagem } from "@/lib/hooks/useProductFormCampos";
 import type { AdminProduct } from "@/lib/types/adminProducts";
 
 export interface CamposParaPayload {
@@ -52,16 +53,31 @@ export function montarPayloadProduto(campos: CamposParaPayload): ResultadoPayloa
   };
 }
 
+/** Envia as fotos novas na ordem escolhida; só a marcada como padrão vira a foto principal. */
+export async function enviarImagens(
+  token: string,
+  produtoId: number,
+  novas: NovaImagem[],
+  chavePadrao: string | null,
+): Promise<void> {
+  for (const nova of novas) {
+    await uploadAdminProductImage(token, produtoId, nova.file, nova.chave === chavePadrao);
+  }
+  if (chavePadrao?.startsWith("e:")) {
+    await setAdminProductMainImage(token, produtoId, Number(chavePadrao.slice(2)));
+  }
+}
+
 interface SubmitDeps {
   token: string | null;
   produtoParaEditar?: AdminProduct | null;
-  campos: CamposParaPayload & { imagemFile: File | null };
+  campos: CamposParaPayload & { novasImagens: NovaImagem[]; chavePadrao: string | null };
   onSuccess: () => void;
   onClose: () => void;
   setError: (msg: string | null) => void;
 }
 
-/** Envio do formulário geral: validação, criação/edição e upload da imagem nova. */
+/** Envio do formulário geral: validação, criação/edição e upload das fotos novas e da foto padrão. */
 export function useProductFormSubmit({
   token,
   produtoParaEditar,
@@ -88,9 +104,7 @@ export function useProductFormSubmit({
       const produtoSalvo = produtoParaEditar
         ? await updateAdminProduct(token, produtoParaEditar.id, payload)
         : await createAdminProduct(token, payload);
-      if (campos.imagemFile) {
-        await uploadAdminProductImage(token, produtoSalvo.id, campos.imagemFile);
-      }
+      await enviarImagens(token, produtoSalvo.id, campos.novasImagens, campos.chavePadrao);
       onSuccess();
       onClose();
     } catch (err) {

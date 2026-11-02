@@ -1,3 +1,4 @@
+import type { NovaImagem } from "@/lib/hooks/useProductFormCampos";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { ProductFormGeralTab } from "@/components/admin/products/ProductFormGeralTab";
@@ -17,6 +18,8 @@ const BASE_PROPS = {
   pesoKg: "",
   imagemPreview: null,
   imagens: [] as AdminProductImage[],
+  novasImagens: [] as NovaImagem[],
+  chavePadrao: null as string | null,
   deletingImageId: null,
   saving: false,
   onNome: vi.fn(),
@@ -31,6 +34,8 @@ const BASE_PROPS = {
   onPeso: vi.fn(),
   onImageChange: vi.fn(),
   onRemoverImagem: vi.fn(),
+  onRemoverNovaImagem: vi.fn(),
+  onPadrao: vi.fn(),
   onClose: vi.fn(),
   onSubmit: vi.fn(),
 };
@@ -283,5 +288,54 @@ describe("ProductFormGeralTab — medidas", () => {
     render(<ProductFormGeralTab {...BASE_PROPS} dimensoesCm="10 x 5 x 2" pesoKg="1.2" />);
     expect(screen.getByLabelText(/Dimensões/)).toHaveValue("10 x 5 x 2");
     expect(screen.getByLabelText(/Peso/)).toHaveValue(1.2);
+  });
+});
+
+describe("ProductFormGeralTab — várias fotos e foto padrão", () => {
+  const nova = (chave: string): NovaImagem => ({
+    chave,
+    file: new File(["x"], `${chave}.png`, { type: "image/png" }),
+    preview: `blob:${chave}`,
+  });
+
+  it("lista as fotos novas e marca a padrão", () => {
+    render(
+      <ProductFormGeralTab
+        {...BASE_PROPS}
+        novasImagens={[nova("n:1"), nova("n:2")]}
+        chavePadrao="n:2"
+      />,
+    );
+    expect(screen.getAllByAltText("Foto a enviar")).toHaveLength(2);
+    expect(screen.getAllByText("★ Padrão")).toHaveLength(1);
+    expect(screen.getAllByText("☆ Padrão")).toHaveLength(1);
+  });
+
+  it("escolher outra foto chama onPadrao com a chave dela", () => {
+    const onPadrao = vi.fn();
+    render(
+      <ProductFormGeralTab
+        {...BASE_PROPS}
+        novasImagens={[nova("n:1"), nova("n:2")]}
+        chavePadrao="n:2"
+        onPadrao={onPadrao}
+      />,
+    );
+    fireEvent.click(screen.getByText("☆ Padrão"));
+    expect(onPadrao).toHaveBeenCalledWith("n:1");
+  });
+
+  it("descartar uma foto nova chama onRemoverNovaImagem", () => {
+    const onRemoverNovaImagem = vi.fn();
+    render(
+      <ProductFormGeralTab
+        {...BASE_PROPS}
+        novasImagens={[nova("n:1")]}
+        chavePadrao="n:1"
+        onRemoverNovaImagem={onRemoverNovaImagem}
+      />,
+    );
+    fireEvent.click(screen.getByTitle("Descartar foto (ainda não enviada)"));
+    expect(onRemoverNovaImagem).toHaveBeenCalledWith("n:1");
   });
 });
