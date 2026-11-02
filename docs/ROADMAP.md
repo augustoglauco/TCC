@@ -3195,3 +3195,6 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       classificação (pedido real travou 174 s em dois timeouts do modelo local). Corrige também o ciclo
       de importação ferramentas_produto ↔ ferramentas_estoque. Testes: +10 em `test_admin_tools_estoque.py`,
       +3 em `test_admin_tools_handler.py`, +1 em `test_orchestrator.py`.
+- [x] Script `semear_clientes_ficticios.py` (R10, Fase 10/11) — recria Ana, Bruno e Carla (migração 0011)
+      quando a tabela `clientes` é limpa; idempotente, compras nos primeiros produtos do catálogo atual.
+      Restaura `/admin/usuarios` e os cenários R4 a R7 da suíte `memoria`.

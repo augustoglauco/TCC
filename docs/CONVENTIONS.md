@@ -103,7 +103,7 @@ repo/
 │   │   ├── prompt_injection/ # casos de injeção direta e indireta
 │   │   ├── model_benchmark/ # triagem e comparação dos modelos locais
 │   │   └── latency/         # latência local x externo (a criar)
-│   ├── scripts/             # teste_local.py, popular produtos, ingerir imagens do corpus
+│   ├── scripts/             # teste_local.py, popular produtos, ingerir imagens do corpus, semear clientes fictícios
 │   ├── tests/
 │   ├── .env.example
 │   └── pyproject.toml
