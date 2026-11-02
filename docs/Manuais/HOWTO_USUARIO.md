@@ -139,7 +139,7 @@ Em vez de apenas mensagens de texto longas, o assistente pode enviar **Cards Int
 
 Se em algum momento o assistente não conseguir resolver a sua dúvida ou se você solicitar explicitamente para falar com um atendente:
 
-1. O **Monitor de Tom** da nossa plataforma identificará a sua necessidade de suporte humano.
+1. O **Monitor de Tom** da nossa plataforma identificará a sua necessidade de suporte humano. O monitor se aplica a clientes e visitantes, não a contas de administrador (a equipe operando o sistema nunca é escalada para atendimento humano).
 2. O chat exibirá um banner de aviso, por exemplo: *"Identificamos urgência na sua solicitação. Um atendente humano foi notificado e já está ciente do seu caso."* (ou, no caso de insatisfação, *"Percebemos sua insatisfação e lamentamos o transtorno..."*).
 3. Sua conversa entra na **fila de atendimento** da equipe (a IA para de responder). Um atendente assume o chat pela Central de Atendimento e conversa com você na mesma janela, com todo o histórico à vista, para que você não precise repetir o que já foi dito.
 4. Você também pode pedir direto, por exemplo "quero falar com um atendente humano". Ao final, o atendente encerra ou devolve a conversa ao assistente.
