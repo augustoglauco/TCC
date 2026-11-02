@@ -13,6 +13,7 @@
 4. [🎯 O que você pode pedir ao Chat (Por Área de Atendimento)](#-o-que-você-pode-pedir-ao-chat-por-área-de-atendimento)
 5. [📦 Interação com Cards Ricos no Chat](#-interação-com-cards-ricos-no-chat)
 6. [🙋‍♂️ Atendimento Humano e Suporte Especializado](#-atendimento-humano-e-suporte-especializado)
+7. [🛠️ Exclusivo para Administradores: o que o Admin faz pelo Chat](#️-exclusivo-para-administradores-o-que-o-admin-faz-pelo-chat)
 
 ---
 
@@ -54,7 +55,7 @@ O **Assistente Virtual** é um robô inteligente disponível **em todas as pági
 * **Como abrir**: Basta clicar no **ícone flutuante de balão de conversa** localizado no canto inferior direito da tela.
 * **Funcionamento**: Você pode usá-lo tanto como visitante anônimo quanto logado na sua conta. Se estiver logado, ele lembrará das suas conversas anteriores e pedidos recentes!
 * **Botões do chat**: **Falar com atendente humano** (veja a última seção), **Encerrar atendimento** (finaliza a sessão; conversas paradas por 30 minutos também são encerradas sozinhas) e **Limpar histórico** (apaga as mensagens e a memória da conversa). Visitantes anônimos perdem a conversa ao fechar o navegador; logado, ela é retomada na próxima visita.
-* **Contas de administrador**: quem entra com perfil Admin tem no mesmo chat recursos extras (consultar dados, gráficos e alterar produtos, estoque e vendas, sempre com confirmação). Eles não aparecem para clientes nem visitantes; estão descritos em `HOWTO_ADMINISTRADOR.md`.
+* **Contas de administrador**: quem entra com perfil Admin tem no mesmo chat recursos extras (consultar dados, gráficos e alterar produtos, estoque e vendas, sempre com confirmação). Eles não aparecem para clientes nem visitantes; veja a seção [Exclusivo para Administradores](#️-exclusivo-para-administradores-o-que-o-admin-faz-pelo-chat) no fim deste manual.
 * **Indicadores de Modelo**: Respostas do modelo local (GPU) são exibidas no balão cinza padrão. Quando o assistente consulta o modelo especialista em nuvem para perguntas externas ou mais complexas, o balão de resposta recebe um **destaque em vermelho clarinho**.
 
 ---
@@ -143,3 +144,64 @@ Se em algum momento o assistente não conseguir resolver a sua dúvida ou se voc
 2. O chat exibirá um banner de aviso, por exemplo: *"Identificamos urgência na sua solicitação. Um atendente humano foi notificado e já está ciente do seu caso."* (ou, no caso de insatisfação, *"Percebemos sua insatisfação e lamentamos o transtorno..."*).
 3. Sua conversa entra na **fila de atendimento** da equipe (a IA para de responder). Um atendente assume o chat pela Central de Atendimento e conversa com você na mesma janela, com todo o histórico à vista, para que você não precise repetir o que já foi dito.
 4. Você também pode pedir direto, por exemplo "quero falar com um atendente humano". Ao final, o atendente encerra ou devolve a conversa ao assistente.
+
+---
+
+## 🛠️ Exclusivo para Administradores: o que o Admin faz pelo Chat
+
+> **Público-alvo desta seção**: contas com perfil **Admin**. Clientes e visitantes não veem nada
+> disto: o chat deles não consulta nem altera dados do sistema. O detalhamento completo (limites,
+> status de venda, auditoria) está em `HOWTO_ADMINISTRADOR.md`, seção "Ações do Admin pelo Chat".
+
+Logado como Admin, você usa o **mesmo widget de chat** do site; não existe tela separada. Escreva o
+pedido em linguagem natural e o assistente responde com texto ou com um **card**. Mensagens de Admin
+não passam pelo Monitor de Tom, então nunca geram escalonamento para atendimento humano.
+
+### O que o Admin pode executar
+
+| Você quer... | Exemplo de pedido | O que você recebe |
+|---|---|---|
+| **Consultar dados** (leitura) | "liste os pedidos reservados", "quais produtos têm estoque abaixo de 5?" | Card de **tabela** (até 50 linhas) |
+| **Ver um gráfico** (leitura) | "gráfico de barras do estoque por CD" | Card de **gráfico**, salvo em `/admin/dashboards` |
+| **Incluir produto** | "inclua o produto X, preço 99,90, categoria Y, descrição Z" | Card de **prévia da ação** |
+| **Alterar nome ou descrição** | "altere o nome do produto 12 para Novo Nome" | Card de **prévia da ação** |
+| **Dar baixa no estoque** | "dê baixa de 2 unidades do produto 12 no CD Sul" | Card de **prévia da ação** |
+| **Ajustar o estoque** (quantidade final) | "ajuste o estoque de todos os produtos para 20 no CD-Matriz", "zere o estoque do produto 12 no CD-SP" | Card de **prévia da ação** |
+| **Concluir ou cancelar uma venda** | "conclua a venda <id do pedido>", "cancele o pedido <id>" | Card de **prévia da ação** |
+
+Perguntas ("como cadastro um produto?", "qual a política de cancelamento?") são respondidas como
+conversa normal; não disparam nenhuma ação.
+
+### Os cards que o Admin recebe
+
+* **Card de tabela** (consulta): colunas e linhas do resultado. Se a consulta devolveu 50 linhas ou
+  mais, o card avisa "Mostrando as primeiras 50 linhas". Só leitura: nada é gravado.
+* **Card de gráfico**: barras, linha, pizza, área ou rosca, com o título e o tipo. Todo gráfico fica
+  salvo no painel permanente; o link **"Ver no painel de dashboards →"** do card abre
+  `/admin/dashboards`.
+* **Card de prévia da ação** (qualquer alteração de dados): fundo âmbar, com o título da ação, duas
+  colunas **Antes** e **Depois** e, quando há risco (por exemplo, cancelar uma venda já concluída),
+  um aviso em destaque. Tem dois botões:
+  * **Confirmar**: só neste clique a alteração é gravada. Depois aparece "Ação executada.". Escrever
+    "sim" na conversa não grava.
+  * **Cancelar**: descarta a proposta e mostra "Ação cancelada.".
+  * Se algo falhar (proposta expirada, argumento inválido), o motivo aparece em vermelho no próprio
+    card e os botões continuam disponíveis para tentar de novo ou cancelar.
+
+A proposta **expira em 10 minutos** e só vale para o Admin que a pediu. Clicar duas vezes em
+Confirmar não grava duas vezes. Cada ação confirmada, cancelada ou expirada fica registrada (quem,
+o quê, antes, depois, quando).
+
+### Quando o assistente não monta a ação
+
+* Se o pedido parece uma alteração mas o assistente não o entendeu, ele responde na hora com a
+  lista do que sabe fazer, sem gravar nada. Reformule citando a ação e o valor.
+* Se o nome do produto casar com mais de um, o chat lista os candidatos (id: nome) e não altera
+  nada; repita o pedido com o id.
+* Com o modelo de linguagem indisponível, o pedido de escrita não gera prévia.
+
+### Limites (`# MVP`)
+
+* Sem estorno financeiro e sem cancelamento parcial de pedido.
+* Não há exclusão de produto, alteração de preço, nem edição de clientes ou agendamentos pelo chat.
+* Não existe SQL de escrita: só as ações da tabela acima gravam.
