@@ -362,7 +362,11 @@ Constrói e une todos os blocos de contexto (playbook, dados do cliente, resumo,
 
 > **Fonte por trecho (2026-10-25, R4 Fase 10):** cada trecho do RAG passa a
 > entrar como `- [Fonte: <arquivo>] <conteúdo>` e a instrução do bloco manda
-> usar só os trechos do produto perguntado e citar o documento. Antes o
+> usar só os trechos do produto perguntado e citar o documento. **Desde
+> 2026-11-02 a instrução proíbe escrever o rótulo na resposta** (a fonte
+> aparece só no painel de métricas, `rag_chunks`), e o filtro
+> `app/router/citacao_fonte.py` remove `[Fonte: ...]`/`(Fonte: ...)` que
+> escapem do stream; o rótulo no contexto permanece. Antes o
 > prompt levava só o `content`, então o modelo não separava produtos
 > parecidos nem citava o manual (uso da fonte 2,92/5 na rodada `c3_pos_v1`,
 > `docs/EVALUATION.md`).
@@ -425,7 +429,8 @@ def _build_prompt(
 "Use as informações a seguir, recuperadas da base de conhecimento "
 "da empresa, para responder à mensagem do cliente. Cada trecho "
 "indica entre colchetes o documento de origem: use só os trechos "
-"do produto perguntado e cite o documento ao responder. Se as "
+"do produto perguntado e NÃO escreva o rótulo [Fonte: ...] nem o nome "
+"do arquivo na resposta (a fonte é registrada à parte). Se as "
 "informações não responderem à pergunta, diga claramente que não "
 "encontrou essa informação na base de conhecimento e oriente o "
 "cliente a falar com um atendente ou consultar o manual do produto; "

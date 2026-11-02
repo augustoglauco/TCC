@@ -3026,7 +3026,7 @@ def test_build_prompt_rotula_cada_trecho_do_rag_com_a_fonte() -> None:
 
     assert "- [Fonte: idtouch-manual.pdf] Capacidade de 1000 usuários." in prompt
     assert "- [Fonte: idpower-guia.pdf] Alimentação 12V." in prompt
-    assert "cite o documento" in prompt
+    assert "NÃO escreva o rótulo [Fonte: ...]" in prompt
 
 
 async def test_admin_nao_passa_pela_identificacao_de_tom(monkeypatch):

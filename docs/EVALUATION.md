@@ -745,7 +745,9 @@ e ambíguas.
 
 **Correção de app aplicada (2026-10-25):** `_build_prompt` passou a rotular
 cada trecho do RAG com `[Fonte: <arquivo>]` e a instrução do bloco manda usar
-só os trechos do produto perguntado e citar o documento (primeira das duas
+só os trechos do produto perguntado e citar o documento (em 2026-11-02 a
+instrução passou a proibir a citação no texto ao cliente, mantendo o rótulo no
+contexto; as medições abaixo foram feitas com a instrução de citar) (primeira das duas
 causas acima; a segunda, o nome do documento dentro do chunk, exige
 reingestão e segue pendente).
 

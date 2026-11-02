@@ -433,8 +433,8 @@ criteria:
         quando: "Quando a busca devolve trechos.",
         modelo: "LLM local ou externo",
         explicacao:
-          "Cada trecho entra como `- [Fonte: arquivo] conteúdo`. A instrução manda usar só os trechos do produto perguntado, citar o documento e recusar quando a base não responde (frase de recusa v2, em produção desde 2026-10-27). A Etapa 7 mediu o ganho do conjunto: nota 2,74 → 4,14.",
-        texto: `Use as informações a seguir, recuperadas da base de conhecimento da empresa, para responder à mensagem do cliente. Cada trecho indica entre colchetes o documento de origem: use só os trechos do produto perguntado e cite o documento ao responder. Se as informações não responderem à pergunta, diga claramente que não encontrou essa informação na base de conhecimento e oriente o cliente a falar com um atendente ou consultar o manual do produto; não responda com conhecimento próprio nem invente dados específicos (preços, prazos, números de série, procedimentos).
+          "Cada trecho entra como `- [Fonte: arquivo] conteúdo`. A instrução manda usar só os trechos do produto perguntado, citar o documento (desde 2026-11-02 a instrução proíbe escrever o rótulo na resposta ao cliente; a fonte fica no painel de métricas e um filtro remove citações que escapem) e recusar quando a base não responde (frase de recusa v2, em produção desde 2026-10-27). A Etapa 7 mediu o ganho do conjunto: nota 2,74 → 4,14.",
+        texto: `Use as informações a seguir, recuperadas da base de conhecimento da empresa, para responder à mensagem do cliente. Cada trecho indica entre colchetes o documento de origem: use só os trechos do produto perguntado e NÃO escreva o rótulo [Fonte: ...] nem o nome do arquivo na resposta (a fonte é registrada à parte). Se as informações não responderem à pergunta, diga claramente que não encontrou essa informação na base de conhecimento e oriente o cliente a falar com um atendente ou consultar o manual do produto; não responda com conhecimento próprio nem invente dados específicos (preços, prazos, números de série, procedimentos).
 
 Informações recuperadas:
 <contexto_rag>

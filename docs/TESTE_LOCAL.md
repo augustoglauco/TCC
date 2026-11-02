@@ -126,8 +126,9 @@ depois dela.
 2. **Roteador e domínios (R3, R7):** uma pergunta de cada domínio (Vendas,
    Suporte, Atendimento ao Usuário, Agendamento); o indicador de domínio
    mostra a intenção e, no menu ⚙️ > Métricas, o modelo local x externo.
-3. **RAG de documentos (R4):** pergunta de suporte técnico respondida com
-   `[Fonte:]` e o card de download do manual. *(depende da nova ingestão)*
+3. **RAG de documentos (R4):** pergunta de suporte técnico respondida sem
+   `[Fonte:]` no texto (a fonte aparece no painel ⚙️ de métricas) e com o card de
+   download do manual. *(depende da nova ingestão)*
 4. **Imagem (R6):** enviar a foto de um produto (identificação) e, depois de o
    assistente pedir, um comprovante (OCR + conversão de reserva).
    *(identificação depende das fotos da nova ingestão)*

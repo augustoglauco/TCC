@@ -3106,6 +3106,15 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       cliente; telefone só se já dito na sessão. Testes em
       `tests/test_orchestrator.py`; `ARCHITECTURE.md` §5 e `HOWTO_USUARIO.md`.
 
+- [x] Fonte fora do texto do chat (R4, Fase 10/11, 2026-11-02) — o LLM copiava
+      `[Fonte: arquivo.md]` na resposta ao cliente. A instrução do bloco RAG
+      agora proíbe escrever o rótulo (que segue nos trechos do contexto), e o
+      filtro de stream `app/router/citacao_fonte.py` remove `[Fonte: ...]` e
+      `(Fonte: ...)` que escapem, inclusive picados entre chunks. A fonte
+      continua no painel de métricas (`rag_chunks`). Testes em
+      `tests/test_citacao_fonte.py`; manual de prompts, `/avaliacao`
+      (`prompts.ts`), EVALUATION e TESTE_LOCAL atualizados.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

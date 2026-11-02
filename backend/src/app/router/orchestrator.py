@@ -33,6 +33,7 @@ from app.models.runtime_settings import (
     DEFAULT_TONE_MONITOR_PROVIDER,
 )
 from app.rag.registry import download_filename
+from app.router.citacao_fonte import FiltroCitacaoFonte
 from app.router.classifier import Domain, classify
 from app.router.llm_client import LLMClient, LLMStreamChunk
 from app.router.playbooks import build_system_prompt
@@ -124,7 +125,8 @@ def _secoes_historico(
 def _secao_rag(documentos: list[Document]) -> str:
     """Seção do prompt com os trechos recuperados do RAG, cada um com sua fonte."""
     # Cada trecho leva o documento de origem: sem ele o modelo não separa
-    # produtos parecidos nem consegue citar o manual (R4, Fase 10).
+    # produtos parecidos (R4, Fase 10); a citação no texto ao cliente é
+    # removida pelo filtro do stream (citacao_fonte.py).
     contexto = "\n\n".join(
         f"- [Fonte: {documento.source}] {documento.content}" for documento in documentos
     )
@@ -132,7 +134,8 @@ def _secao_rag(documentos: list[Document]) -> str:
         "Use as informações a seguir, recuperadas da base de conhecimento "
         "da empresa, para responder à mensagem do cliente. Cada trecho "
         "indica entre colchetes o documento de origem: use só os trechos "
-        "do produto perguntado e cite o documento ao responder. Se as "
+        "do produto perguntado e NÃO escreva o rótulo [Fonte: ...] nem o nome "
+        "do arquivo na resposta (a fonte é registrada à parte). Se as "
         "informações não responderem à pergunta, diga claramente que não "
         "encontrou essa informação na base de conhecimento e oriente o "
         "cliente a falar com um atendente ou consultar o manual do produto; "
@@ -1573,11 +1576,14 @@ async def _gerar_stream_llm(
         if not await client.is_model_ready():
             yield StatusEvent(status="carregando_modelo")
         chunk_final: LLMStreamChunk | None = None
+        filtro = FiltroCitacaoFonte()
         async for chunk in client.generate_stream(prompt):
-            if chunk.text:
-                yield TokenEvent(text=chunk.text)
+            if chunk.text and (texto := filtro.feed(chunk.text)):
+                yield TokenEvent(text=texto)
             if chunk.done:
                 chunk_final = chunk
+        if resto := filtro.flush():
+            yield TokenEvent(text=resto)
         if chunk_final is None:
             raise RuntimeError("generate_stream terminou sem chunk final (done=True)")
         yield chunk_final
