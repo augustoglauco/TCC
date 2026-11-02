@@ -120,7 +120,7 @@ O assistente é treinado para resolver solicitações em 4 domínios principais:
 ---
 
 ### 4. 📅 Agendamento de Visita ou Reunião
-* **Agendar Reunião**: *"Gostaria de agendar uma visita técnica para a próxima terça-feira às 14h."*
+* **Agendar Reunião**: *"Gostaria de agendar uma visita técnica para a próxima terça-feira às 14h."* Se você estiver logado, o assistente já usa seu nome e e-mail do cadastro e pede só o que falta (data/hora e telefone). Sem login, ele pede também nome e e-mail.
 * **Integração Automática**: O assistente verifica a disponibilidade, cria o compromisso na agenda oficial e exibe a confirmação diretamente na tela do chat!
 
 ---

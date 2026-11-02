@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.admin_tools.handler import processar_pedido_admin
 from app.background_tasks import spawn_background_task
-from app.db.models import Agendamento, RagCollection, RagDocument
+from app.db.models import Agendamento, Cliente, RagCollection, RagDocument
 from app.mcp_client.google_calendar import CalendarClient, GoogleCalendarConnectionError
 from app.models.chat import (
     CardAgendamento,
@@ -961,6 +961,43 @@ async def _extrair_slots_agendamento(
         raise LocalBackendIndisponivelError(str(exc)) from exc
 
 
+async def _preencher_slots_do_cadastro(
+    slots: BookingSlots,
+    user_email: str | None,
+    usuario_autenticado: bool,
+    db_sessionmaker: async_sessionmaker[AsyncSession] | None,
+) -> BookingSlots:
+    """Pré-preenche `email` (e, só para quem está logado, `nome` do cadastro)
+    nos slots de agendamento, para o assistente não pedir de novo o que já
+    sabe (correção de 2026-11-02). Só completa campo vazio — o que o cliente
+    disse na conversa nunca é sobrescrito. O nome do cadastro vem apenas de
+    sessão autenticada: com e-mail digitado por visitante, devolvê-lo
+    revelaria o cadastro de terceiros (mesma regra do R10). O telefone não
+    existe em `clientes`; só vale o que já foi dito na sessão.
+
+    # MVP: uma consulta indexada por e-mail enquanto faltar nome; falha do
+    # banco apenas deixa de pré-preencher.
+    """
+    if not user_email:
+        return slots
+    atualizacoes: dict[str, str] = {}
+    if slots.email is None:
+        atualizacoes["email"] = user_email
+    if usuario_autenticado and slots.nome is None and db_sessionmaker is not None:
+        try:
+            async with db_sessionmaker() as session:
+                nome = await session.scalar(select(Cliente.nome).where(Cliente.email == user_email))
+        except Exception as exc:  # fronteira de isolamento
+            logger.warning(
+                "cadastro_cliente_indisponivel",
+                extra={"router": {"event": "cadastro_cliente_indisponivel", "erro": str(exc)}},
+            )
+            nome = None
+        if nome:
+            atualizacoes["nome"] = nome
+    return slots.model_copy(update=atualizacoes) if atualizacoes else slots
+
+
 async def _handle_agendamento(
     conversation_id: str,
     message: str,
@@ -970,8 +1007,12 @@ async def _handle_agendamento(
     scheduling_config: SchedulingConfig,
     intent_router_provider: str,
     db_sessionmaker: async_sessionmaker[AsyncSession] | None = None,
+    user_email: str | None = None,
+    usuario_autenticado: bool = False,
 ) -> AsyncIterator[TokenEvent | RouterDecision]:
-    slots = get_booking_slots(conversation_id)
+    slots = await _preencher_slots_do_cadastro(
+        get_booking_slots(conversation_id), user_email, usuario_autenticado, db_sessionmaker
+    )
     extraction = await _extrair_slots_agendamento(
         message, recent_messages, slots, local_client, scheduling_config
     )
@@ -1882,6 +1923,8 @@ async def handle_message(  # noqa: PLR0913
             scheduling_config=scheduling_config,
             intent_router_provider=intent_router_provider,
             db_sessionmaker=db_sessionmaker,
+            user_email=user_email,
+            usuario_autenticado=usuario_autenticado,
         )
     else:
         geracao = _handle_llm_generation(

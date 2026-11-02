@@ -1124,6 +1124,12 @@ usuário, R9/R10, 2026-09-25).**
    o e-mail (opcional). Mensagem que é só o e-mail recebe resposta fixa, sem
    LLM (`backend_used="resposta_fixa"`), que não revela se há cadastro. No
    pós-venda sem e-mail, o prompt manda pedir o e-mail da compra.
+   **Agendamento pré-preenchido (2026-11-02):** `_preencher_slots_do_cadastro`
+   completa `email` (qualquer e-mail já conhecido na conversa) e, só para
+   sessão autenticada, `nome` (uma consulta indexada em `clientes`), sem
+   sobrescrever o que o cliente disse; o assistente pede só o que falta. O
+   nome do cadastro nunca sai para visitante (R10). Telefone não existe em
+   `clientes`: só vale o dito na sessão. `# MVP:` sem telefone no cadastro.
 6. **Regras,** recalculadas a cada mensagem, com o motivo gravado:
    **Cliente** (cadastrado, 2+ compras, última em 12 meses); **Esporádico**
    (cadastrado, 1 compra ou última há mais de 12 meses); **Lead** (sem

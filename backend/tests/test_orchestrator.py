@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import select
 
 from app.db.engine import create_db_engine, create_session_factory
-from app.db.models import Agendamento, Base
+from app.db.models import Agendamento, Base, Cliente
 from app.logging_config import JsonFormatter
 from app.mcp_client.google_calendar import GoogleCalendarConnectionError
 from app.models.chat import RagChunkMetric
@@ -23,6 +23,7 @@ from app.router.orchestrator import (
     TokenEvent,
     _build_prompt,
     _formatar_dados_catalogo_vendas,
+    _preencher_slots_do_cadastro,
     handle_message,
 )
 from app.router.rag_client import Document, RAGConnectionError
@@ -280,6 +281,90 @@ def _data_futura_valida_iso() -> str:
     # America/Sao_Paulo não observa horário de verão desde 2019 — deslocamento
     # fixo -03:00, seguro de hardcodar aqui.
     return _data_futura_valida().strftime("%Y-%m-%dT%H:%M:%S-03:00")
+
+
+@pytest.fixture
+async def cadastro_factory():
+    engine = create_db_engine("sqlite+aiosqlite:///:memory:")
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    factory = create_session_factory(engine)
+    async with factory() as session:
+        session.add(Cliente(nome="Augusto Quintino", email="augusto@example.com"))
+        await session.commit()
+    yield factory
+    await engine.dispose()
+
+
+async def test_slots_do_agendamento_logado_vem_do_cadastro(cadastro_factory):
+    slots = await _preencher_slots_do_cadastro(
+        BookingSlots(), "augusto@example.com", True, cadastro_factory
+    )
+
+    assert slots.nome == "Augusto Quintino"
+    assert slots.email == "augusto@example.com"
+    assert slots.telefone is None  # não existe em `clientes`
+
+
+async def test_slots_do_agendamento_nao_sobrescrevem_o_que_o_cliente_disse(cadastro_factory):
+    slots = await _preencher_slots_do_cadastro(
+        BookingSlots(nome="Gu", email="outro@example.com", telefone="21999999999"),
+        "augusto@example.com",
+        True,
+        cadastro_factory,
+    )
+
+    assert (slots.nome, slots.email, slots.telefone) == ("Gu", "outro@example.com", "21999999999")
+
+
+async def test_visitante_nao_recebe_nome_do_cadastro(cadastro_factory):
+    # R10: e-mail digitado por visitante não pode revelar o cadastro.
+    slots = await _preencher_slots_do_cadastro(
+        BookingSlots(), "augusto@example.com", False, cadastro_factory
+    )
+
+    assert slots.nome is None
+    assert slots.email == "augusto@example.com"
+
+
+async def test_slots_do_agendamento_sem_email_ou_com_banco_fora_nao_quebram():
+    assert await _preencher_slots_do_cadastro(BookingSlots(), None, True, None) == BookingSlots()
+    assert (
+        await _preencher_slots_do_cadastro(BookingSlots(), "a@b.com", True, None)
+    ).email == "a@b.com"
+
+
+async def test_agendamento_logado_nao_pede_nome_nem_email(cadastro_factory):
+    local_client = _FakeLLMClient(
+        response=LLMResponse(
+            text=(
+                '{"data_hora": null, "nome": null, "email": null, "telefone": null, '
+                '"confirmacao": null}'
+            ),
+            total_duration_ms=10.0,
+        )
+    )
+
+    eventos = await _coletar_eventos(
+        "quero agendar uma visita",
+        recent_messages=[],
+        local_client=local_client,
+        external_client=_FakeLLMClient(response=_resposta_externa()),
+        rag_client=_FakeRAGClient(),
+        complexity_strategy="heuristic",
+        conversation_id="conv-logado",
+        calendar_client=_FakeCalendarClient(),
+        scheduling_config=_SCHEDULING_CONFIG,
+        db_sessionmaker=cadastro_factory,
+        user_email="augusto@example.com",
+        usuario_autenticado=True,
+    )
+
+    resposta = eventos[-1].resposta.lower()
+    assert "telefone" in resposta
+    assert "nome" not in resposta
+    assert "e-mail" not in resposta
+    assert get_booking_slots("conv-logado").nome == "Augusto Quintino"
 
 
 async def test_agendamento_slots_incompletos_pede_dados_sem_chamar_mcp():
