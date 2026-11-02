@@ -2,6 +2,12 @@
 
 Este documento apresenta o levantamento detalhado de todos os arquivos de código do projeto que contêm prompts, templates de instruções de sistema, playbooks, prompts de visão computacional, extratores estruturados (JSON) e construtores de contexto para Large Language Models (LLMs).
 
+> **Atenção — referências `# Line N` desatualizadas.** Os comentários `# Line N:` (e os
+> âncoras `#L..-L..` dos links) nos blocos de código abaixo apontam para linhas de uma
+> versão antiga dos arquivos e **não valem**: o código é a fonte da verdade e as linhas mudam
+> a cada commit. Serão atualizados de uma vez numa revisão geral ao fim da Fase 10/11; até lá,
+> localize o trecho pelo nome da constante/função.
+
 ---
 
 ## Sumário de Arquivos Mapeados
@@ -30,7 +36,7 @@ Este documento apresenta o levantamento detalhado de todos os arquivos de códig
 | `eval/prompt_injection/gerar_dataset.py` | Backend (`eval`, Fase 10) | `_PROMPT_DIRETAS`: geração de casos de injeção (item 23) |
 | `openrouter_client.py` | Backend (`app.router`) | Perguntas tipadas do TypeSafe Jev (intenção e tom) (item 24) |
 | `admin_tools/consulta.py` | Backend (`app.admin_tools`) | `_PROMPT`: SQL de leitura do Admin no chat, só SELECT (item 25) |
-| `admin_tools/roteador.py` | Backend (`app.admin_tools`) | `PROMPT_FERRAMENTAS`: pedido do Admin → uma das 5 ações de escrita (item 26) |
+| `admin_tools/roteador.py` | Backend (`app.admin_tools`) | `PROMPT_FERRAMENTAS`: pedido do Admin → uma das 6 ações de escrita (item 26) |
 
 
 ---
@@ -350,7 +356,7 @@ Responda apenas com JSON no formato: \
 ---
 
 ### 6. `backend/src/app/router/orchestrator.py`
-**Caminho:** [`backend/src/app/router/orchestrator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/orchestrator.py#L86-L178)
+**Caminho:** [`backend/src/app/router/orchestrator.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/orchestrator.py#L88-L212)
 
 Constrói e une todos os blocos de contexto (playbook, dados do cliente, resumo, RAG e mensagem atual) no prompt final enviado ao modelo de linguagem.
 
@@ -392,85 +398,55 @@ Constrói e une todos os blocos de contexto (playbook, dados do cliente, resumo,
 > ser isolados com a mesma tag `entrada_cliente` da mensagem atual.
 
 ```python
-# Line 86: Construtor dinâmico do prompt final
+# _build_prompt: o contexto da conversa vem agrupado em _ContextoConversa
+# (resumo_conversa, pedir_email_pos_venda, ultima_troca, dados_cliente,
+# contexto_conversa_anterior, usuario_autenticado). As seções de histórico e
+# a de RAG saem de helpers.
 def _build_prompt(
     message: str,
     documentos: list[Document],
     domain: Domain,
     dados_catalogo: str | None = None,
-    resumo_conversa: str | None = None,
-    pedir_email_pos_venda: bool = False,
-    ultima_troca: tuple[str, str] | None = None,
-    dados_cliente: str | None = None,
-    contexto_conversa_anterior: str | None = None,
-    usuario_autenticado: bool = False,
+    contexto: _ContextoConversa | None = None,
 ) -> str:
-    system_prompt = build_system_prompt(domain, usuario_autenticado=usuario_autenticado)
-    partes: list[str] = []
-    if system_prompt is not None:
-        partes.append(system_prompt)
+    # ordem: playbook do domínio -> dados_cliente -> _secoes_historico
+    # (conversa anterior, resumo, troca anterior) -> dados_catalogo
+    # -> _secao_rag -> pedido de e-mail (pós-venda) -> mensagem do cliente
+    ...
 
-    if dados_cliente is not None:
-        partes.append(dados_cliente)
+# _secoes_historico: textos "Contexto da conversa anterior do cliente (use como
+# histórico prévio do cliente; se a conversa atual tratar de algo novo, priorize
+# o contexto atual)", "Resumo da conversa até aqui (use como contexto; se a
+# mensagem atual disser algo diferente, ela vale)" e "Troca anterior da conversa
+# (use para entender referências como 'o produto acima' ou 'esse')"; os campos
+# do cliente passam por wrap_untrusted('entrada_cliente', ...).
 
-    if contexto_conversa_anterior:
-        partes.append(
-            "Contexto da conversa anterior do cliente (use como histórico prévio do cliente; "
-            "se a conversa atual tratar de algo novo, priorize o contexto atual):\n"
-            f"{wrap_untrusted('entrada_cliente', contexto_conversa_anterior)}"
-        )
+# _secao_rag
+"Use as informações a seguir, recuperadas da base de conhecimento "
+"da empresa, para responder à mensagem do cliente. Cada trecho "
+"indica entre colchetes o documento de origem: use só os trechos "
+"do produto perguntado e cite o documento ao responder. Se as "
+"informações não responderem à pergunta, diga claramente que não "
+"encontrou essa informação na base de conhecimento e oriente o "
+"cliente a falar com um atendente ou consultar o manual do produto; "
+"não responda com conhecimento próprio nem invente dados "
+"específicos (preços, prazos, números de série, procedimentos).\n\n"
+f"Informações recuperadas:\n{wrap_untrusted('contexto_rag', contexto)}"
+# cada trecho: f"- [Fonte: {documento.source}] {documento.content}"
 
-    if resumo_conversa:
-        partes.append(
-            "Resumo da conversa até aqui (use como contexto; se a mensagem "
-            f"atual disser algo diferente, ela vale):\n"
-            f"{wrap_untrusted('entrada_cliente', resumo_conversa)}"
-        )
+# pedido de e-mail (só se pedir_email_pos_venda e domínio de pós-venda)
+"Ainda não sabemos o e-mail do cliente. Se fizer sentido para "
+"localizar a compra dele, peça educadamente, uma única vez, o "
+"e-mail usado na compra."
 
-    if ultima_troca:
-        cliente, assistente = ultima_troca
-        partes.append(
-            "Troca anterior da conversa (use para entender referências como "
-            "'o produto acima' ou 'esse'):\n"
-            f"Cliente: {wrap_untrusted('entrada_cliente', cliente[:_ULTIMA_RESPOSTA_MAX_CHARS])}\n"
-            f"Assistente: {assistente[:_ULTIMA_RESPOSTA_MAX_CHARS]}"
-        )
-
-    if dados_catalogo is not None:
-        partes.append(dados_catalogo)
-
-    if documentos:
-        contexto = "\n\n".join(
-            f"- [Fonte: {documento.source}] {documento.content}" for documento in documentos
-        )
-        partes.append(
-            "Use as informações a seguir, recuperadas da base de conhecimento "
-            "da empresa, para responder à mensagem do cliente. Cada trecho "
-            "indica entre colchetes o documento de origem: use só os trechos "
-            "do produto perguntado e cite o documento ao responder. Se as "
-            "informações não responderem à pergunta, diga claramente que não "
-            "encontrou essa informação na base de conhecimento e oriente o "
-            "cliente a falar com um atendente ou consultar o manual do produto; "
-            "não responda com conhecimento próprio nem invente dados "
-            "específicos (preços, prazos, números de série, procedimentos).\n\n"
-            f"Informações recuperadas:\n{wrap_untrusted('contexto_rag', contexto)}"
-        )
-
-    if pedir_email_pos_venda and domain in DOMINIOS_POS_VENDA:
-        partes.append(
-            "Ainda não sabemos o e-mail do cliente. Se fizer sentido para "
-            "localizar a compra dele, peça educadamente, uma única vez, o "
-            "e-mail usado na compra."
-        )
-
-    partes.append(f"Mensagem do cliente: {wrap_untrusted('entrada_cliente', message)}")
-    return "\n\n".join(partes)
+# final
+f"Mensagem do cliente: {wrap_untrusted('entrada_cliente', message)}"
 ```
 
 `dados_catalogo` (acima) é montado por `_formatar_dados_catalogo_vendas`/`_formatar_dados_catalogo_categoria`, que também carregam instruções para o LLM (não são só dados formatados) — ex.: mandar o modelo preferir esses dados a qualquer trecho do RAG, e escolher entre estoque total x por centro de distribuição conforme a pergunta (correção de 2026-09-29):
 
 ```python
-# Line 403-412: _formatar_dados_catalogo_vendas — cabeçalho de instrução (produto único)
+# _formatar_dados_catalogo_vendas — cabeçalho de instrução (produto único)
 "Dados oficiais do catálogo interno, já calculados para esta mensagem. "
 "O cliente está falando deste produto: use exatamente estes nomes, "
 "valores e quantidades, e prefira-os a qualquer informação recuperada "
@@ -482,7 +458,7 @@ def _build_prompt(
 "centro de distribuição', responda com o detalhamento por CD abaixo, "
 "não com o total somado."
 
-# Line 462-465: _formatar_dados_catalogo_categoria — cabeçalho de instrução (categoria/catálogo total)
+# _formatar_dados_catalogo_categoria — cabeçalho de instrução (categoria/catálogo total)
 "Dados oficiais do catálogo interno, já calculados para esta mensagem. "
 "O cliente perguntou pelos produtos disponíveis: use exatamente estes "
 "nomes, preços e quantidades de estoque, e prefira-os a qualquer "
@@ -968,7 +944,7 @@ Responda só com um array JSON, sem comentários:
 ### 20. `backend/eval/router_intents/gerar_dataset.py`
 **Caminho:** `backend/eval/router_intents/gerar_dataset.py`
 
-Quatro prompts de **geração do conjunto de teste** do roteador (Fase 10,
+Cinco prompts de **geração do conjunto de teste** do roteador (Fase 10,
 R1/R3). Não são prompts de produção. O requisito que eles atendem não é o
 tamanho do conjunto, e sim **≥200 das 300 mensagens chegarem ao classificador
 LLM**: nas 40 mensagens antigas só 9 chegavam, porque o atalho por palavra-chave
@@ -1133,9 +1109,9 @@ não devolve ação válida, o Admin recebe uma mensagem fixa de ajuda (não é 
 conversa seguir para o assistente de vendas.
 
 Antes do LLM, a regex `detectar_escrita` (`admin_tools/intencao.py`) filtra: exige um verbo de
-escrita (inclua/cadastre, altere/mude/atualize, ajuste/defina/zere/reponha/acrescente/coloque, dê baixa, cancele, conclua/finalize/marque) e um
+escrita (inclua/cadastre/adicione, altere/mude/renomeie/atualize, ajuste/defina/zere/reponha/acrescente/coloque, dê baixa, cancele, conclua/finalize/marque) e um
 termo de dados (produto, estoque, venda/pedido, nome, descrição), e ignora gráficos e perguntas
-iniciadas por "como/qual/quais…". Os argumentos que o LLM devolve são validados por esquemas
+iniciadas por "como/qual/quais/quando/por que/o que…". Os argumentos que o LLM devolve são validados por esquemas
 Pydantic fixos (preço aceita vírgula; quantidade inteira > 0; `novo_status` só
 `venda_concluida`/`cancelada`); produto ambíguo lista candidatos em vez de escolher um. O texto
 do pedido é do próprio Admin, não vem de documento do RAG.
