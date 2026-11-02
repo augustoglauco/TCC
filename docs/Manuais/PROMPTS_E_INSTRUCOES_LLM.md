@@ -336,7 +336,7 @@ da lista acima foram mencionados; caso contrário deixe "listar_tudo": false."""
 ### 5. `backend/src/app/router/tone_monitor.py`
 **Caminho:** [`backend/src/app/router/tone_monitor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/tone_monitor.py#L91-L101)
 
-Prompt de avaliação de tom emocional para suporte ao transbordo de atendimento para operador humano.
+Prompt de avaliação de tom emocional para suporte ao transbordo de atendimento para operador humano. Só é enviado quando a heurística de palavras-chave/estrutura não decidiu e a mensagem não é uma confirmação curta ("sim", "ok", "pode confirmar"…; `_e_confirmacao_curta`, 2026-11-02), que não passa pelo LLM de tom.
 
 ```python
 # Line 91: Prompt do Monitor de Tom

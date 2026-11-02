@@ -96,6 +96,14 @@ Nenhum sinal → ambíguo, cai na Seção 3.2.
 refinar contra casos reais quando existirem (mesma nota já aceita pro
 classificador de intenção)`.
 
+**Confirmação curta (2026-11-02).** Depois da heurística e antes do
+provedor (§3.2), a mensagem que é só uma confirmação/negação curta (até 4
+palavras, todas em `_CONFIRMACOES_CURTAS`: "sim", "ok", "pode confirmar",
+"isso mesmo", "não"…) devolve `escalate=False` sem chamar o LLM/Jev. Motivo:
+o "sim" que confirmava um agendamento foi escalado como urgência (0.95)
+pelo LLM local, que lia o contexto e não a mensagem; como a escalada é
+permanente na conversa, o agendamento morria ali.
+
 ### 3.2. Fallback ambíguo — provedor configurável (`TONE_MONITOR_PROVIDER`)
 
 Mesmo padrão de dois provedores já usado por `intent_router_provider`

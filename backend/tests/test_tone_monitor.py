@@ -536,3 +536,22 @@ async def test_analyze_tone_llm_local_registra_uso_ia(monkeypatch):
         "session_factory": None,
         "commit": False,
     }
+
+
+class _LLMEscalaSempre:
+    chamadas = 0
+
+    async def generate(self, prompt):
+        type(self).chamadas += 1
+        raise AssertionError("LLM de tom não deveria ser chamado para confirmação curta")
+
+
+@pytest.mark.parametrize("mensagem", ["sim", "Sim!", "ok", "pode confirmar", "isso mesmo", "não"])
+async def test_confirmacao_curta_nao_escala_nem_chama_llm(mensagem):
+    # Regressão de 2026-11-02: o "sim" de confirmação de agendamento foi
+    # escalado como urgência (0.95) pelo LLM local.
+    resultado = await analyze_tone(
+        mensagem, ["Posso confirmar?"], "heuristica_llm", _LLMEscalaSempre(), None
+    )
+
+    assert resultado.escalate is False

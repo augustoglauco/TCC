@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel
@@ -88,6 +89,51 @@ def _match_structural_signal(message: str) -> str | None:
 
 def _match_heuristic_signal(message: str) -> str | None:
     return _match_keyword_signal(message) or _match_structural_signal(message)
+
+
+# Correção de 2026-11-02: o "sim" que confirma um agendamento ("…Posso
+# confirmar?") foi escalado como urgência (0.95) pelo LLM local, que lia o
+# contexto ("amanhã às 14h") e não a mensagem. Confirmação/negação curta não
+# carrega tom: pula a análise por LLM/Jev (as palavras-chave e os sinais
+# estruturais já rodaram antes, em `analyze_tone`).
+_CONFIRMACOES_CURTAS = frozenset(
+    {
+        "sim",
+        "ok",
+        "okay",
+        "certo",
+        "claro",
+        "isso",
+        "pode",
+        "podem",
+        "confirmo",
+        "confirma",
+        "confirmar",
+        "confirmado",
+        "fechado",
+        "beleza",
+        "perfeito",
+        "otimo",
+        "combinado",
+        "nao",
+        "negativo",
+        "positivo",
+        "por",
+        "favor",
+        "obrigado",
+        "obrigada",
+        "valeu",
+    }
+)
+_CONFIRMACAO_MAX_PALAVRAS = 4
+_TOKEN_CONFIRMACAO_RE = re.compile(r"[a-z]+")
+
+
+def _e_confirmacao_curta(message: str) -> bool:
+    palavras = _TOKEN_CONFIRMACAO_RE.findall(normalize(message))
+    return 0 < len(palavras) <= _CONFIRMACAO_MAX_PALAVRAS and all(
+        p in _CONFIRMACOES_CURTAS for p in palavras
+    )
 
 
 _TONE_PROMPT_TEMPLATE = """\
@@ -234,6 +280,14 @@ async def analyze_tone(
             escalate=True,
             motivo=sinal,
             confidence=1.0,
+            provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER,
+        )
+
+    if _e_confirmacao_curta(message):
+        return ToneResult(
+            escalate=False,
+            motivo=None,
+            confidence=0.0,
             provider_efetivo=DEFAULT_TONE_MONITOR_PROVIDER,
         )
 
