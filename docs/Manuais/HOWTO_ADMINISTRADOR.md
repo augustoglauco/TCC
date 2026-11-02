@@ -104,12 +104,12 @@ O Playground responde à pergunta "se um cliente escrevesse isto, que trechos o 
 | 0,60 a 0,79 | Boa relevância: contexto útil, pode ter termos periféricos |
 | < 0,60 | Atenção/ruído: pouca aderência; veja se o assunto está coberto |
 
-* "Nenhum resultado encontrado" indica que nenhum trecho do domínio escolhido passou do corte de 0,35 nessa collection (ou que ela está vazia).
+* "Nenhum resultado encontrado" indica que nenhum trecho do domínio escolhido passou do limiar de score nessa collection (ou que ela está vazia).
 * Se uma collection falhar (modelo de embedding indisponível, collection removida), o erro aparece só no card dela e as outras continuam.
 
 **Como usar bem**
 
-* O Playground usa valores **fixos**: no máximo **3 trechos** por collection e corte de score em **0,35**. O chat usa os parâmetros de execução (`top_k` e limiar de score, padrão 5 e 0,35, em `/admin/modelos`, aba Parâmetros), que o Playground não lê. Por isso, se você mudar esses parâmetros, o chat passa a trazer mais ou menos trechos do que a tela mostra; use o Playground para comparar collections entre si, não para reproduzir o corte exato do chat. As faixas de cor do score são só um guia visual.
+* O Playground usa os **mesmos parâmetros de execução do chat**: número de trechos (`top_k`, padrão 5) e limiar de score (padrão 0,35), definidos em `/admin/modelos`, aba Parâmetros. Mudou o parâmetro lá, a tela reflete na próxima comparação. As faixas de cor do score são só um guia visual.
 * Para testar uma configuração nova (outro tamanho de chunk, outro modelo de embedding), **reingira** o mesmo documento em uma nova collection de mesma finalidade (aba **Documentos ingeridos**) e compare as duas aqui com as mesmas perguntas.
 * Confira se o trecho não foi cortado no meio de uma instrução importante; se foi, a collection precisa de chunks maiores.
 * O botão de manual da própria tela traz um resumo desta explicação.

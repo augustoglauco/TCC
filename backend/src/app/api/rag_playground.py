@@ -7,7 +7,7 @@ docs/superpowers/specs/2026-09-15-rag-collections-config-design.md §6.3.
 
 import time
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,13 +21,14 @@ from app.models.rag import (
 )
 from app.rag.collections_registry import get_collection
 from app.rag.embedders_registry import EmbedderRegistry
-from app.rag.qdrant_client import QdrantRAGClient
+from app.rag.qdrant_client import DEFAULT_SCORE_THRESHOLD, DEFAULT_TOP_K, QdrantRAGClient
 
 router = APIRouter(prefix="/api/rag/playground", tags=["rag-playground"])
 
 
 @router.post("/search", response_model=PlaygroundSearchResponse)
 async def playground_search(
+    request: Request,
     body: PlaygroundSearchRequest,
     qdrant: QdrantRAGClient = Depends(get_qdrant_client),
     embedders: EmbedderRegistry = Depends(get_embedder_registry),
@@ -35,6 +36,10 @@ async def playground_search(
     _: None = Depends(require_admin),
 ) -> PlaygroundSearchResponse:
     resultados: list[PlaygroundResultItem] = []
+    # Mesmos parâmetros de execução do chat (/admin/modelos, aba Parâmetros), para a
+    # comparação refletir o que o assistente de fato recupera.
+    top_k = getattr(request.app.state, "rag_top_k", DEFAULT_TOP_K)
+    score_threshold = getattr(request.app.state, "rag_score_threshold", DEFAULT_SCORE_THRESHOLD)
 
     for collection_id in body.collection_ids:
         try:
@@ -69,7 +74,14 @@ async def playground_search(
             # isolado para ESTA collection, sem derrubar a requisição
             # inteira do playground.
             embedder = embedders.get(collection.embedding_model)
-            documentos = await qdrant.search(collection.name, embedder, body.query, body.domain)
+            documentos = await qdrant.search(
+                collection.name,
+                embedder,
+                body.query,
+                body.domain,
+                top_k=top_k,
+                score_threshold=score_threshold,
+            )
         except Exception as exc:
             resultados.append(
                 PlaygroundResultItem(

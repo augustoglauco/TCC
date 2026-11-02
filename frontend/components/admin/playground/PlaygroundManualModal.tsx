@@ -167,8 +167,8 @@ export function PlaygroundManualModal({ open, onOpenChange }: PlaygroundManualMo
               pode reingerir um mesmo arquivo em coleções diferentes para testá-las aqui.
             </li>
             <li>
-              <strong>Overlap adequado:</strong> em manuais técnicos, um overlap em torno de 10% do
-              tamanho do chunk evita que conectores ou tabelas fiquem sem contexto.
+              <strong>Overlap adequado:</strong> em manuais técnicos, um overlap em torno de 15% do
+              tamanho do chunk (o perfil atual usa 115 para chunks de 768) evita que conectores ou tabelas fiquem sem contexto.
             </li>
           </ul>
         </section>

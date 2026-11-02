@@ -201,7 +201,7 @@ sem gravar nada**:
 1. Escreva uma pergunta de teste, como o cliente escreveria.
 2. Escolha o domínio (Vendas, Suporte Técnico ou Atendimento) e a finalidade (Chat, MCP B2B ou Admin).
 3. Marque uma ou mais collections da **mesma finalidade** e clique em **Comparar**.
-4. Cada collection mostra até 3 trechos encontrados (score mínimo 0,35), o arquivo de origem, o score
+4. Cada collection mostra os trechos encontrados (no máximo o `top_k` do chat, com o mesmo limiar de score), o arquivo de origem, o score
    de similaridade (≥ 0,80 alta relevância; 0,60 a 0,79 boa; abaixo de 0,60 ruído) e a latência da busca.
 
 Use para conferir se um documento recém-ingerido aparece para as perguntas certas e para comparar

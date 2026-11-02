@@ -15,11 +15,13 @@ class _FakeQdrantSearch:
         self._resultado = resultado or []
         self._error = error
         self.chamadas: list[str] = []
+        self.parametros: list[tuple] = []
 
     async def search(
         self, collection_name, embedder, query, domain, top_k=None, score_threshold=None
     ):
         self.chamadas.append(collection_name)
+        self.parametros.append((top_k, score_threshold))
         if self._error is not None:
             raise self._error
         return self._resultado
@@ -99,6 +101,24 @@ async def test_playground_busca_em_uma_collection_e_retorna_resultado_com_latenc
     assert item["latency_ms"] >= 0
     assert item["results"] == [{"content": "conteúdo", "source": "a.txt", "score": 0.9}]
     assert item["error"] is None
+
+
+async def test_playground_usa_top_k_e_limiar_dos_parametros_de_execucao(
+    db_session, active_collection, admin_headers
+):
+    fake = _FakeQdrantSearch()
+    app = _build_app(fake, db_session)
+    app.state.rag_top_k = 7
+    app.state.rag_score_threshold = 0.5
+    client = TestClient(app)
+
+    client.post(
+        "/api/rag/playground/search",
+        json={"query": "p", "domain": "vendas", "collection_ids": [str(active_collection.id)]},
+        headers=admin_headers,
+    )
+
+    assert fake.parametros == [(7, 0.5)]
 
 
 async def test_playground_com_collection_inexistente_retorna_item_com_erro(
