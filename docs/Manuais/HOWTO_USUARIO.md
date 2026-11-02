@@ -192,6 +192,23 @@ A proposta **expira em 10 minutos** e só vale para o Admin que a pediu. Clicar 
 Confirmar não grava duas vezes. Cada ação confirmada, cancelada ou expirada fica registrada (quem,
 o quê, antes, depois, quando).
 
+### Outras ferramentas do Admin fora do chat: o Playground de busca
+
+Além do chat, o menu ⚙️ dá ao Admin a tela `/admin/ingestao`, que tem a aba **Playground**. Ela serve
+para testar o que a busca de documentos (RAG) encontraria para uma pergunta, **sem gerar resposta e
+sem gravar nada**:
+
+1. Escreva uma pergunta de teste, como o cliente escreveria.
+2. Escolha o domínio (Vendas, Suporte Técnico ou Atendimento) e a finalidade (Chat, MCP B2B ou Admin).
+3. Marque uma ou mais collections da **mesma finalidade** e clique em **Comparar**.
+4. Cada collection mostra até 3 trechos encontrados (score mínimo 0,35), o arquivo de origem, o score
+   de similaridade (≥ 0,80 alta relevância; 0,60 a 0,79 boa; abaixo de 0,60 ruído) e a latência da busca.
+
+Use para conferir se um documento recém-ingerido aparece para as perguntas certas e para comparar
+duas collections com a mesma pergunta. O passo a passo completo está em `HOWTO_ADMINISTRADOR.md`,
+seção "Playground". Para perguntar aos seus próprios documentos pelo chat, veja "Pesquisando seus
+próprios documentos pelo chat (modo Admin)" no mesmo manual.
+
 ### Quando o assistente não monta a ação
 
 * Se o pedido parece uma alteração mas o assistente não o entendeu, ele responde na hora com a

@@ -81,6 +81,39 @@ O sistema utiliza a técnica de **RAG (Busca Aumentada por Recuperação)**. Iss
 ### Abas da tela
 `/admin/ingestao` tem cinco abas: **Enviar documento**, **Documentos ingeridos**, **Configuração** (collections e regras de busca), **Playground** (teste de buscas) e **Crawler**.
 
+### Playground: testar a busca antes de usar (aba **Playground**)
+
+O Playground responde à pergunta "se um cliente escrevesse isto, que trechos o assistente encontraria, e em qual collection a busca é melhor?". Ele **só lê**: não grava nada, não muda a collection ativa e não passa pelo modelo de linguagem (mostra os trechos recuperados, não uma resposta pronta).
+
+**Passo a passo**
+
+1. **Pergunta de teste**: escreva no formato que o cliente usaria, com sinônimos e termos do domínio.
+2. **Domínio**: Vendas, Suporte Técnico ou Atendimento. A busca filtra os documentos pelo domínio, como acontece no chat.
+3. **Finalidade (purpose)**: Chat, MCP B2B ou Admin. Escolha a finalidade antes das collections, porque a lista de collections muda conforme ela.
+4. **Collections a comparar**: marque uma ou mais collections **da mesma finalidade**. A tela e a API recusam misturar finalidades, já que cada canal tem seu próprio acervo e o score deixaria de ser comparável.
+5. Clique em **Comparar**. A mesma busca roda em cada collection marcada, uma após a outra, usando o modelo de embedding de cada uma.
+
+**O que aparece por collection**
+
+* O nome da collection, quantos trechos voltaram e a **latência** (vetorização da pergunta + consulta), em verde, amarelo ou vermelho conforme o tempo.
+* Cada trecho com o **arquivo de origem**, o texto do trecho e o **score de similaridade** (cosseno, de 0 a 1):
+
+| Score | Leitura |
+|---|---|
+| ≥ 0,80 | Alta relevância: forte correlação com a pergunta |
+| 0,60 a 0,79 | Boa relevância: contexto útil, pode ter termos periféricos |
+| < 0,60 | Atenção/ruído: pouca aderência; veja se o assunto está coberto |
+
+* "Nenhum resultado encontrado" indica que nenhum trecho do domínio escolhido passou do corte de 0,35 nessa collection (ou que ela está vazia).
+* Se uma collection falhar (modelo de embedding indisponível, collection removida), o erro aparece só no card dela e as outras continuam.
+
+**Como usar bem**
+
+* O Playground usa valores **fixos**: no máximo **3 trechos** por collection e corte de score em **0,35**. O chat usa os parâmetros de execução (`top_k` e limiar de score, padrão 5 e 0,35, em `/admin/modelos`, aba Parâmetros), que o Playground não lê. Por isso, se você mudar esses parâmetros, o chat passa a trazer mais ou menos trechos do que a tela mostra; use o Playground para comparar collections entre si, não para reproduzir o corte exato do chat. As faixas de cor do score são só um guia visual.
+* Para testar uma configuração nova (outro tamanho de chunk, outro modelo de embedding), **reingira** o mesmo documento em uma nova collection de mesma finalidade (aba **Documentos ingeridos**) e compare as duas aqui com as mesmas perguntas.
+* Confira se o trecho não foi cortado no meio de uma instrução importante; se foi, a collection precisa de chunks maiores.
+* O botão de manual da própria tela traz um resumo desta explicação.
+
 ### Como Enviar Novos Documentos (PDFs / Manuais)
 1. Acesse `/admin/ingestao`, aba **Enviar documento**.
 2. Escolha o **domínio** (Vendas, Suporte Técnico ou Atendimento ao Usuário) e a collection de destino.

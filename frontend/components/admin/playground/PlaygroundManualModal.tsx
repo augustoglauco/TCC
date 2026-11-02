@@ -167,8 +167,8 @@ export function PlaygroundManualModal({ open, onOpenChange }: PlaygroundManualMo
               pode reingerir um mesmo arquivo em coleções diferentes para testá-las aqui.
             </li>
             <li>
-              <strong>Overlap adequado:</strong> para manuais técnicos de CFTV, um overlap de 100 a
-              150 tokens evita que conectores ou tabelas fiquem sem contexto.
+              <strong>Overlap adequado:</strong> em manuais técnicos, um overlap em torno de 10% do
+              tamanho do chunk evita que conectores ou tabelas fiquem sem contexto.
             </li>
           </ul>
         </section>
