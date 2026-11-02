@@ -1032,7 +1032,9 @@ do MCP B2B em Vendas.** O módulo `app.router.sales_catalog`
    `extrair_termos_busca` tokeniza (minúsculas, sem acento, sem stopwords,
    descarta tokens de até 2 caracteres **exceto os com dígito**, como o "15"
    de "GD-15") e `buscar_candidatos` faz `OR` de `ILIKE` em `Produto.nome` e
-   `categoria`, limitado a `SALES_CANDIDATOS_LIMITE = 10`. Etapa 2 (LLM
+   `categoria`, ordenado pela quantidade de termos distintos que casam (depois por
+   id; correção de 2026-11-02: antes só por id, e "torniquete facial" perdia o
+   Torniquete Facial para as catracas) e limitado a `SALES_CANDIDATOS_LIMITE = 10`. Etapa 2 (LLM
    local): recebe a mensagem e os candidatos e devolve só IDs da lista
    (`produto_id`, `produto_relacionado_id`, `quantidade`). Sem candidatos, a
    etapa 2 não roda. Termos das mensagens anteriores complementam a lista
@@ -1195,7 +1197,7 @@ com `selectinload` do estoque e devolve `DadosCatalogoCategoria`;
 `_formatar_dados_catalogo_categoria` o antepõe ao contexto. Novos `resultado`
 no log: `ok_categoria` e `categoria_vazia`. (2) `_DOMAIN_KEYWORDS["vendas"]`
 ganhou `"estoque"` e `"disponível"`, alinhando a heurística (padrão de
-produção) a `DOMAIN_CRITERIA`. `# MVP:` ILIKE sem ranking; categoria sem
+produção) a `DOMAIN_CRITERIA`. `# MVP:` ILIKE com ranking só pela contagem de termos casados (2026-11-02); categoria sem
 paginação. Testes em `tests/test_sales_catalog.py` e `tests/test_orchestrator.py`.
 
 **Decisão registrada (Fase 5, R4/R12, 2026-09-29): viés no few-shot e

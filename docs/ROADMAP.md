@@ -3084,6 +3084,14 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       Comportamento idêntico; os 3 testes do componente, a suíte de
       `tests/components`, `tsc` e `eslint` limpos.
 
+- [x] Fix: card de produto errado na busca "torniquete facial" (R12, Fase 10/11,
+      2026-11-02) — `SalesCatalogClient.buscar_candidatos` ordenava só por id e
+      cortava no limite de 10; o termo "facial" enchia a lista com catracas e o
+      "Torniquete Facial" (id 71) nunca chegava ao LLM da etapa 2. Agora ordena
+      pela quantidade de termos distintos que casam (nome ou categoria), depois
+      por id. Teste de regressão em `tests/test_sales_catalog.py`;
+      `ARCHITECTURE.md` §5 e o spec de 2026-09-24 atualizados.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

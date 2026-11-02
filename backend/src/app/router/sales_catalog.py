@@ -23,7 +23,7 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ValidationError
-from sqlalchemy import or_, select
+from sqlalchemy import case, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
 
@@ -190,24 +190,27 @@ class SalesCatalogClient:
         self, termos: list[str], limite: int = SALES_CANDIDATOS_LIMITE
     ) -> list[CandidatoProduto]:
         """`OR` de `ILIKE '%termo%'` contra `Produto.nome`/`Produto.categoria`
-        por termo, `LIMIT limite`. Sem ranking por relevância — a
-        desambiguação de verdade é a etapa 2 (LLM, `extract_sales_slots`),
-        que só recebe esta lista já reduzida."""
+        por termo, `LIMIT limite`. Ranking simples (correção de 2026-11-02):
+        antes vinha só `ORDER BY id`, e um termo comum ("facial") enchia o
+        limite com produtos de id baixo, cortando o que casava com TODOS os
+        termos ("torniquete facial" nunca chegava ao LLM). Agora ordena pela
+        quantidade de termos distintos que casam (nome ou categoria), depois
+        por id; a desambiguação de verdade segue sendo a etapa 2 (LLM,
+        `extract_sales_slots`), que só recebe esta lista já reduzida."""
         if not termos:
             return []
-        condicoes = [
-            condicao
+        casamentos = [
+            or_(Produto.nome.ilike(f"%{termo}%"), Produto.categoria.ilike(f"%{termo}%"))
             for termo in termos
-            for condicao in (
-                Produto.nome.ilike(f"%{termo}%"),
-                Produto.categoria.ilike(f"%{termo}%"),
-            )
         ]
+        relevancia = sum(
+            (case((c, 1), else_=0) for c in casamentos[1:]), case((casamentos[0], 1), else_=0)
+        )
         async with self._session_factory() as session:
             result = await session.execute(
                 select(Produto.id, Produto.nome, Produto.categoria)
-                .where(or_(*condicoes))
-                .order_by(Produto.id)
+                .where(or_(*casamentos))
+                .order_by(relevancia.desc(), Produto.id)
                 .limit(limite)
             )
             return [

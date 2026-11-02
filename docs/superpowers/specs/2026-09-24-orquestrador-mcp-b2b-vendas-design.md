@@ -97,7 +97,8 @@ class SalesCatalogClient:
 
     async def buscar_candidatos(self, termos: list[str], limite: int = 10) -> list[CandidatoProduto]:
         """`OR` de `ILIKE '%termo%'` contra `Produto.nome`/`Produto.categoria`
-        por termo, `LIMIT limite`. Sem ranking por relevância — a
+        por termo, `LIMIT limite`. Ranking mínimo (2026-11-02): ordena pela
+        quantidade de termos que casam, depois por id — a
         desambiguação de verdade é a etapa 2 (LLM); esta etapa só reduz o
         universo de ~1000 para ~10."""
         ...
@@ -289,9 +290,9 @@ constante no módulo (`SALES_CANDIDATOS_LIMITE`), mesmo padrão de
   candidatos (§2, etapa 1) é `ILIKE` simples; se isso se provar insuficiente
   em uso real com os ~1000 produtos, é uma evolução futura registrável
   separadamente, não antecipada aqui.
-- Sem ranking de relevância na busca de candidatos — a etapa 1 devolve até
-  10 candidatos sem ordenar por qualidade de match; a desambiguação real é
-  a etapa 2 (LLM).
+- Ranking mínimo na busca de candidatos (2026-11-02; antes não havia) — a etapa 1
+  devolve até 10 candidatos ordenados só pela quantidade de termos que casam;
+  a desambiguação real é a etapa 2 (LLM).
 
 ## 10. Notas pós-implementação (2026-09-25)
 

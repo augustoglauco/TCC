@@ -107,6 +107,20 @@ async def test_buscar_candidatos_respeita_o_limite(factory):
     assert len(candidatos) == 10
 
 
+async def test_buscar_candidatos_prioriza_quem_casa_mais_termos(factory):
+    # Regressão de 2026-11-02: "torniquete facial" devolvia só catracas
+    # (termo "facial" enchia o limite por id) e o Torniquete Facial era cortado.
+    async with factory() as session:
+        for i in range(12):
+            await _cria_produto(session, nome=f"Catraca Facial {i}", categoria="acesso")
+        await _cria_produto(session, nome="Torniquete Facial", categoria="acesso")
+    client = SalesCatalogClient(factory)
+
+    candidatos = await client.buscar_candidatos(["torniquete", "facial"], limite=10)
+
+    assert candidatos[0].nome == "Torniquete Facial"
+
+
 async def test_buscar_candidatos_sem_termos_devolve_lista_vazia(factory):
     client = SalesCatalogClient(factory)
 
