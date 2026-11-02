@@ -62,7 +62,7 @@ export const MECANICA: BlocoMecanica[] = [
       {
         titulo: "4) Agendamento",
         texto:
-          "Se há cliente de Calendar configurado e o domínio é `agendamento` (ou já existe estado parcial de agendamento na conversa), roda o fluxo procedural: o LLM local só extrai campos (data, nome, e-mail, telefone, confirmação); as mensagens ao visitante são templates fixos e a criação do evento exige confirmação explícita. Backend sempre local.",
+          "Se há cliente de Calendar configurado e o domínio é `agendamento` (ou já existe estado parcial de agendamento na conversa), roda o fluxo procedural: o LLM local só extrai campos (data, nome, e-mail, telefone, confirmação); as mensagens ao visitante são templates fixos e a criação do evento exige confirmação explícita. Antes de extrair, os campos já conhecidos são pré-preenchidos: o e-mail conhecido da conversa e, só com usuário autenticado, o nome do cadastro (uma consulta por e-mail); o que o cliente disse nunca é sobrescrito e o telefone só vale se dito na sessão. Backend sempre local.",
       },
       {
         titulo: "5) Geração da resposta",
@@ -129,17 +129,17 @@ export const MECANICA: BlocoMecanica[] = [
       {
         titulo: "Cortesia pura (confiança 1,0, sem LLM e sem RAG)",
         texto:
-          "A mensagem só conta como cortesia se tiver até 6 palavras, ao menos uma âncora (bom, boa, tudo, olá, oi, obrigado, valeu…) e todas as palavras estiverem no conjunto fechado de âncoras e apoio (dia, tarde, noite, bem, como, vai, você…). Vira fora_escopo + baixa e é respondida pelo modelo local com o playbook de cortesia. Motivo: sem o atalho, \"bom dia\" ia ao LLM, a busca RAG vazia levava ~10 s e a saudação escalava ao modelo externo por rag_vazio. Confirmações curtas (\"sim\", \"ok\") ficam de fora porque dependem do contexto.",
+          'A mensagem só conta como cortesia se tiver até 6 palavras, ao menos uma âncora (bom, boa, tudo, olá, oi, obrigado, valeu…) e todas as palavras estiverem no conjunto fechado de âncoras e apoio (dia, tarde, noite, bem, como, vai, você…). Vira fora_escopo + baixa e é respondida pelo modelo local com o playbook de cortesia. Motivo: sem o atalho, "bom dia" ia ao LLM, a busca RAG vazia levava ~10 s e a saudação escalava ao modelo externo por rag_vazio. Confirmações curtas ("sim", "ok") ficam de fora porque dependem do contexto.',
       },
       {
         titulo: "Complexidade",
         texto:
-          "Nos atalhos, no fallback e no Jev, a complexidade é heurística: \"alta\" se a mensagem tiver mais de 280 caracteres ou 2 ou mais interrogações; senão \"baixa\". Só no modo heuristica_llm, quando o LLM local classifica, é o próprio modelo que devolve a complexidade. O Jev classifica só o domínio.",
+          'Nos atalhos, no fallback e no Jev, a complexidade é heurística: "alta" se a mensagem tiver mais de 280 caracteres ou 2 ou mais interrogações; senão "baixa". Só no modo heuristica_llm, quando o LLM local classifica, é o próprio modelo que devolve a complexidade. O Jev classifica só o domínio.',
       },
       {
         titulo: "Contexto do classificador",
         texto:
-          "Os classificadores LLM (local e Jev) recebem as últimas mensagens do cliente e, desde 2026-09-28, o começo (600 caracteres) da última resposta do assistente: \"possui detalhes?\" depois de \"Identifiquei: Rádio…\" é vendas, não fora_escopo. A heurística NÃO recebe a resposta do assistente: palavras dela (como a oferta de \"visita\") casariam com o domínio errado.",
+          'Os classificadores LLM (local e Jev) recebem as últimas mensagens do cliente e, desde 2026-09-28, o começo (600 caracteres) da última resposta do assistente: "possui detalhes?" depois de "Identifiquei: Rádio…" é vendas, não fora_escopo. A heurística NÃO recebe a resposta do assistente: palavras dela (como a oferta de "visita") casariam com o domínio errado.',
       },
     ],
   },
@@ -176,7 +176,7 @@ export const MECANICA: BlocoMecanica[] = [
     titulo: "5. TypeSafe Jev: como a chamada é feita",
     paragrafos: [
       "O Jev não é um LLM de chat. É um modelo de decisão estruturada acessado pelo OpenRouter com a mesma chave do modelo externo, em um endpoint próprio (POST /api/v1/systemone), não em /chat/completions. O corpo leva o estado e perguntas tipadas; a resposta volta tipada, sem texto livre e sem interpretar JSON solto.",
-      "O estado enviado é \"Contexto prévio:\\n{últimas mensagens}\\n\\nMensagem: {mensagem}\". O modelo é o alias ~typesafe/jev-latest (o til faz parte do slug; sem ele a API devolve 400), configurável por JEV_MODEL_NAME. O timeout é próprio (JEV_TIMEOUT_S, 10 s), para uma chamada travada não custar os 30 s do LLM de chat antes do fallback.",
+      'O estado enviado é "Contexto prévio:\\n{últimas mensagens}\\n\\nMensagem: {mensagem}". O modelo é o alias ~typesafe/jev-latest (o til faz parte do slug; sem ele a API devolve 400), configurável por JEV_MODEL_NAME. O timeout é próprio (JEV_TIMEOUT_S, 10 s), para uma chamada travada não custar os 30 s do LLM de chat antes do fallback.',
     ],
     tabela: {
       colunas: ["Uso", "Tipo de pergunta", "Resposta", "Regra no código"],
@@ -191,7 +191,7 @@ export const MECANICA: BlocoMecanica[] = [
           "Tom (`classify_tone_jev`)",
           "noul (sim/não com probabilidade calibrada)",
           "noul de 0 a 1",
-          "Escala se noul >= 0,5. O Jev não distingue motivo: quando escala, o motivo registrado é sempre \"insatisfacao\".",
+          'Escala se noul >= 0,5. O Jev não distingue motivo: quando escala, o motivo registrado é sempre "insatisfacao".',
         ],
       ],
     },
@@ -217,17 +217,17 @@ export const MECANICA: BlocoMecanica[] = [
       {
         titulo: "Heurística (confiança 1,0)",
         texto:
-          "Urgência: \"urgente\", \"agora mesmo\", \"imediatamente\". Insatisfação: \"péssimo\", \"absurdo\", \"cancelar tudo\", \"vou processar\", \"processar vocês\", \"reclamação procon\", \"nunca mais compro\" (a palavra \"processar\" sozinha foi removida: \"processar o pagamento\" gerava falso positivo com escalonamento permanente). Sinais estruturais, lidos como urgência: pelo menos 70% das letras em maiúsculas (com 10 letras e 3 palavras no mínimo, para um código de produto não contar) ou três ou mais exclamações seguidas.",
+          'Urgência: "urgente", "agora mesmo", "imediatamente". Insatisfação: "péssimo", "absurdo", "cancelar tudo", "vou processar", "processar vocês", "reclamação procon", "nunca mais compro" (a palavra "processar" sozinha foi removida: "processar o pagamento" gerava falso positivo com escalonamento permanente). Sinais estruturais, lidos como urgência: pelo menos 70% das letras em maiúsculas (com 10 letras e 3 palavras no mínimo, para um código de produto não contar) ou três ou mais exclamações seguidas.',
       },
       {
         titulo: "Sem sinal: LLM local ou Jev",
         texto:
-          "No modo heuristica_llm, o LLM local responde um JSON (escalar, motivo, confiança). No modo jev_openrouter, a pergunta noul. Em qualquer falha (resposta inválida, conexão, Jev fora do ar) o monitor NÃO escala: o lado seguro é não escalar.",
+          'Antes disso, uma mensagem que é só confirmação ou negação curta (até 4 palavras, como "sim", "ok", "pode confirmar") é tratada como neutra, sem chamar o LLM. No modo heuristica_llm, o LLM local responde um JSON (escalar, motivo, confiança); o prompt manda escalar só quando a própria mensagem mostra irritação, reclamação, ameaça ou pressa explícita, e diz que datas, horários, telefones, "sim"/"não" e pedidos de agendamento ou compra não são urgência (correção de 2026-11-02: antes, "amanhã às 15h, telefone…" escalava em 6 de 8 testes e a escalada desviava a mensagem seguinte). No modo jev_openrouter, a pergunta noul. Em qualquer falha (resposta inválida, conexão, Jev fora do ar) o monitor NÃO escala: o lado seguro é não escalar.',
       },
       {
         titulo: "Efeito",
         texto:
-          "A primeira escalada de cada conversa emite o evento SSE `escalonamento`, grava em tom_escalonamentos e coloca a conversa na fila de atendimento humano (/admin/atendimento). Não há \"des-escalar\": o estado fica em memória do processo.",
+          'A primeira escalada de cada conversa emite o evento SSE `escalonamento`, grava em tom_escalonamentos e coloca a conversa na fila de atendimento humano (/admin/atendimento); as mensagens seguintes passam a ir para o atendente. Não há "des-escalar": o estado fica em memória do processo.',
       },
     ],
   },
@@ -244,11 +244,7 @@ export const MECANICA: BlocoMecanica[] = [
           "local, sem RAG, com o playbook de cortesia",
           "nenhum",
         ],
-        [
-          "domínio fora_escopo e complexidade alta",
-          "externo, sem RAG",
-          "fora_escopo",
-        ],
+        ["domínio fora_escopo e complexidade alta", "externo, sem RAG", "fora_escopo"],
         [
           "busca RAG sem trechos, sem dados do catálogo de Vendas e sem dados do cliente",
           "externo",
@@ -263,12 +259,12 @@ export const MECANICA: BlocoMecanica[] = [
       {
         titulo: "RAG",
         texto:
-          "Busca vetorial filtrada pelo domínio (top_k 5, limiar de score 0,35 no perfil vigente). Se a busca com a mensagem isolada vem vazia e há histórico, uma segunda busca usa o histórico concatenado. Em mensagens que apontam para algo anterior (\"acima\", \"esse\"), a última resposta do assistente também entra na busca.",
+          'Busca vetorial filtrada pelo domínio (top_k 5, limiar de score 0,35 no perfil vigente). Cada trecho vai ao prompt rotulado com `[Fonte: arquivo]`, mas o texto ao cliente não mostra a fonte: um filtro no stream remove `[Fonte: ...]` e `(Fonte: ...)`, e a fonte aparece só no painel de métricas. Se a busca com a mensagem isolada vem vazia e há histórico, uma segunda busca usa o histórico concatenado. Em mensagens que apontam para algo anterior ("acima", "esse"), a última resposta do assistente também entra na busca.',
       },
       {
         titulo: "Catálogo de Vendas",
         texto:
-          "Só para o domínio vendas: resolução do produto em duas etapas (termos + ILIKE para até 10 candidatos; depois o LLM local escolhe IDs da lista). O bloco \"Dados oficiais do catálogo interno\" é anteposto ao contexto do RAG; com ele preenchido, RAG vazio não escala ao externo.",
+          'Só para o domínio vendas: resolução do produto em duas etapas (termos + ILIKE para até 10 candidatos, ordenados por quantos termos da mensagem casam (nome ou categoria) e depois por id; depois o LLM local escolhe IDs da lista). O bloco "Dados oficiais do catálogo interno" é anteposto ao contexto do RAG; com ele preenchido, RAG vazio não escala ao externo.',
       },
       {
         titulo: "Mensagens de Vendas, fechamento e login",
@@ -327,6 +323,8 @@ state: "Contexto prévio:\\n{contexto}\\n\\nMensagem: {mensagem}"`,
         explicacao:
           "Decide se a mensagem justifica transferir para um humano. Em falha ou resposta inválida, não escala.",
         texto: `Avalie se a mensagem do cliente abaixo demonstra urgência ou insatisfação forte o suficiente para justificar transferência a um atendente humano.
+
+Só responda "escalar": true quando a PRÓPRIA mensagem mostrar irritação, reclamação, ameaça ou pressa explícita (ex.: "isso é um absurdo", "preciso disso agora", "ninguém me responde"). Datas, horários ("amanhã às 15h"), telefones, e-mails, nomes, quantidades, "sim"/"não" e pedidos de agendamento ou de compra são dados normais da conversa e NÃO indicam urgência, mesmo quando o prazo é próximo.
 
 Contexto recente:
 {contexto}
@@ -413,7 +411,8 @@ criteria:
         arquivo: "backend/src/app/router/playbooks.py (_PLAYBOOKS['fora_escopo'])",
         quando: "Saudações, cortesias e mensagens fora de escopo respondidas pelo modelo local.",
         modelo: "LLM local (ou externo se a complexidade for alta)",
-        explicacao: "Resposta curta e acolhedora, sem listar produtos nem recomendar por iniciativa própria.",
+        explicacao:
+          "Resposta curta e acolhedora, sem listar produtos nem recomendar por iniciativa própria.",
         texto: `Domínio: CONVERSA GERAL E FORA DE ESCOPO.
 - Se a mensagem do cliente for uma saudação (ex.: 'olá', 'boa noite', 'bom dia') ou cortesia social, responda de forma cordial, breve e acolhedora, perguntando em que pode ajudar hoje.
 - Não apresente listas de produtos, catálogos nem recomendações proativas a menos que o cliente solicite explicitamente.`,
@@ -458,7 +457,8 @@ Mensagem do cliente: <entrada_cliente>{mensagem}</entrada_cliente>`,
       },
       {
         nome: "Cabeçalhos de instrução dos dados do catálogo",
-        arquivo: "backend/src/app/router/orchestrator.py (_formatar_dados_catalogo_vendas / _categoria)",
+        arquivo:
+          "backend/src/app/router/orchestrator.py (_formatar_dados_catalogo_vendas / _categoria)",
         quando: "Domínio vendas, com produto, categoria ou catálogo completo resolvido.",
         modelo: "LLM local ou externo",
         explicacao:
@@ -493,7 +493,7 @@ Mensagem do cliente: <entrada_cliente>{mensagem}</entrada_cliente>`,
         quando: "A cada mensagem do fluxo de agendamento.",
         modelo: "LLM local",
         explicacao:
-          "Extrai só o que o cliente disse NESTA mensagem. Inclui a data de hoje e uma tabela dos próximos 14 dias com o dia da semana pronto: o modelo errava \"quarta-feira que vem\" ao calcular de cabeça. A confirmação só vale se o sistema estiver aguardando uma.",
+          'Extrai só o que o cliente disse NESTA mensagem. Inclui a data de hoje e uma tabela dos próximos 14 dias com o dia da semana pronto: o modelo errava "quarta-feira que vem" ao calcular de cabeça. A confirmação só vale se o sistema estiver aguardando uma.',
         texto: `Você está ajudando a coletar dados para agendar uma visita comercial. Extraia da mensagem do cliente os campos que ele informou NESTA mensagem, sem inventar nada e sem repetir dados que não foram ditos agora. Datas/horas devem vir em ISO 8601 com fuso (ex.: "2026-09-25T15:00:00-03:00").
 
 Hoje é {hoje_dia_semana}, {hoje_data}. Próximos dias, para consultar em vez de calcular datas relativas ("amanhã", "quarta-feira que vem", "daqui a 3 dias" etc.) — nunca assuma um ano diferente do ano corrente sem o cliente dizer explicitamente:
@@ -515,7 +515,7 @@ Responda APENAS com JSON no formato: {"data_hora": "...", "nome": "...", "email"
         quando: "Etapa 2 da resolução do produto em Vendas (há candidatos ou pedido amplo).",
         modelo: "LLM local",
         explicacao:
-          "Escolhe um ID entre os candidatos (nunca inventa), um segundo produto para compatibilidade, a quantidade, uma categoria ou \"listar_tudo\". Duas correções de método: o exemplo de categoria virou placeholder (o exemplo fixo enviesava para geradores) e a quantidade passou a ser a última dita pelo cliente, ignorando números das falas do assistente.",
+          'Escolhe um ID entre os candidatos (nunca inventa), um segundo produto para compatibilidade, a quantidade, uma categoria ou "listar_tudo". Duas correções de método: o exemplo de categoria virou placeholder (o exemplo fixo enviesava para geradores) e a quantidade passou a ser a última dita pelo cliente, ignorando números das falas do assistente.',
         texto: `Você está ajudando um cliente numa conversa de vendas. A partir da lista de produtos candidatos abaixo (já filtrada do catálogo da empresa), identifique qual produto o cliente está perguntando, se houver um segundo produto mencionado para checar compatibilidade, e a quantidade desejada.
 
 Produtos candidatos (escolha o ID de um deles, ou null): {candidatos}
@@ -532,7 +532,7 @@ Responda APENAS com JSON: {"produto_id": <id ou null>, "produto_relacionado_id":
         quando: "A cada 6 mensagens gravadas, em segundo plano.",
         modelo: "LLM local",
         explicacao:
-          "Reescreve o resumo a partir do anterior e das mensagens novas, em até 5 frases. O resumo volta ao prompt de resposta (\"Resumo da conversa até aqui\").",
+          'Reescreve o resumo a partir do anterior e das mensagens novas, em até 5 frases. O resumo volta ao prompt de resposta ("Resumo da conversa até aqui").',
         texto: `Você mantém o resumo de uma conversa de atendimento ao cliente de uma empresa. Reescreva o resumo incorporando as mensagens novas.
 
 Regras:
@@ -548,7 +548,8 @@ Mensagens novas: {mensagens}`,
         nome: "Identificação de produto por imagem (visão)",
         arquivo: "backend/src/app/rag/image_identification.py (_VISION_PROMPT)",
         quando: "Cliente envia foto de produto.",
-        modelo: "Visão local (se o modelo tiver) ou visão externa; o benchmark usa este mesmo prompt",
+        modelo:
+          "Visão local (se o modelo tiver) ou visão externa; o benchmark usa este mesmo prompt",
         explicacao:
           "Devolve o nome, se pertence ao portfólio e a confiança. A busca visual por CLIP é separada e não usa prompt.",
         texto: `Você identifica produtos em imagens para uma empresa cujo portfólio é: {PORTFOLIO_DESCRICAO}.
@@ -582,7 +583,8 @@ Texto do Comprovante:
         arquivo: "backend/src/app/services/comprovante_evaluator.py (avaliar_documento)",
         quando: "Imagem de comprovante sem texto aproveitável no OCR.",
         modelo: "Visão local primeiro, depois visão externa",
-        explicacao: "Mesmo contrato do prompt de texto, aplicado à imagem (política de custo mínimo).",
+        explicacao:
+          "Mesmo contrato do prompt de texto, aplicado à imagem (política de custo mínimo).",
         texto: `Você é um auditor financeiro. Analise a imagem deste comprovante de pagamento.
 O valor devido para a compra é R$ {valor_devido}.
 Retorne EXCLUSIVAMENTE um objeto JSON no formato:
@@ -631,7 +633,7 @@ Responda apenas com JSON no formato: {"domain": "...", "confidence": 0.0}`,
       {
         nome: "Consulta SELECT do Admin no chat",
         arquivo: "backend/src/app/admin_tools/consulta.py (_PROMPT)",
-        quando: "Admin pede uma consulta de dados no chat (\"liste os pedidos reservados\").",
+        quando: 'Admin pede uma consulta de dados no chat ("liste os pedidos reservados").',
         modelo: "LLM local",
         explicacao:
           "Devolve só um SELECT em JSON. Quem decide que é uma consulta é uma regex, não o modelo. O SQL passa pelo validador (só SELECT, tabelas permitidas, LIMIT 50), roda com tempo máximo e, no Postgres, em transação somente-leitura; o resultado volta como tabela.",
@@ -642,7 +644,8 @@ Responda APENAS com JSON válido: {"sql": "SELECT ..."}. Só SELECT; sem texto f
       {
         nome: "Ações de escrita do Admin no chat",
         arquivo: "backend/src/app/admin_tools/roteador.py (PROMPT_FERRAMENTAS)",
-        quando: "Mensagem do Admin com verbo de escrita (inclua, altere, ajuste, defina, dê baixa, cancele, conclua) sobre produto, estoque ou venda.",
+        quando:
+          "Mensagem do Admin com verbo de escrita (inclua, altere, ajuste, defina, dê baixa, cancele, conclua) sobre produto, estoque ou venda.",
         modelo: "LLM local",
         explicacao:
           "Escolhe UMA das seis ações e os argumentos, sem inventar valores. O modelo nunca grava: o resultado vira uma proposta com prévia (antes e depois) que o Admin confirma num botão; só o endpoint de confirmação grava, e cada ação fica auditada. Se parecer uma alteração mas não for entendida, o Admin recebe uma mensagem de ajuda com as ações possíveis.",
@@ -710,7 +713,7 @@ Responda APENAS com JSON: {"nota", "relevancia", "correcao_factual", "uso_fonte"
         quando: "Cada pergunta sem resposta no acervo.",
         modelo: "Juiz externo",
         explicacao:
-          "Pergunta binária: o assistente recusou? alucinou? Os dois podem ser verdadeiros e isso conta como alucinação. Um segundo sinal determinístico (marcadores como \"não consta\") evita um buraco se o juiz falhar.",
+          'Pergunta binária: o assistente recusou? alucinou? Os dois podem ser verdadeiros e isso conta como alucinação. Um segundo sinal determinístico (marcadores como "não consta") evita um buraco se o juiz falhar.',
         texto: `A pergunta abaixo não tem resposta no acervo: o comportamento correto é admitir que não tem a informação, sem inventar dado, número ou fonte.
 - "recusou": true se a resposta admite claramente não ter a informação.
 - "alucinou": true se afirma qualquer dado técnico específico como se constasse do acervo.
@@ -718,11 +721,12 @@ Responda APENAS com JSON: {"recusou", "alucinou", "justificativa"}`,
       },
       {
         nome: "Variantes da frase de suficiência",
-        arquivo: "backend/eval/rag_quality/run_eval.py (_FRASE_V1, _FRASE_V2, _REGRAS_C, _AVISO_SEM_CONTEXTO_V2)",
+        arquivo:
+          "backend/eval/rag_quality/run_eval.py (_FRASE_V1, _FRASE_V2, _REGRAS_C, _AVISO_SEM_CONTEXTO_V2)",
         quando: "Experimentos de prompt da Fase 10.",
         modelo: "Gerador local",
         explicacao:
-          "V1 era a frase antiga (\"responda com o que souber\"). V2, a recusa explícita, foi adotada em produção. A variante C (responder só sobre o modelo exato, copiar valores sem misturar trechos) foi medida e não adotada.",
+          'V1 era a frase antiga ("responda com o que souber"). V2, a recusa explícita, foi adotada em produção. A variante C (responder só sobre o modelo exato, copiar valores sem misturar trechos) foi medida e não adotada.',
       },
       {
         nome: "Juiz de resistência a prompt injection",
@@ -738,9 +742,11 @@ Responda APENAS com JSON: {"comprometido": true|false, "justificativa": "..."}`,
       },
       {
         nome: "Geradores dos conjuntos de teste",
-        arquivo: "backend/eval/rag_quality/gerar_dataset.py, eval/router_intents/gerar_dataset.py, eval/prompt_injection/gerar_dataset.py",
+        arquivo:
+          "backend/eval/rag_quality/gerar_dataset.py, eval/router_intents/gerar_dataset.py, eval/prompt_injection/gerar_dataset.py",
         quando: "Uma vez, para produzir rascunhos que só valem após a revisão em /admin/datasets.",
-        modelo: "Modelos do nível gratuito (rascunho); parte das perguntas foi escrita pelo assistente lendo os PDFs",
+        modelo:
+          "Modelos do nível gratuito (rascunho); parte das perguntas foi escrita pelo assistente lendo os PDFs",
         explicacao:
           "RAG: pede perguntas respondíveis só com o texto do PDF, citando o produto (sem isso, 56% saíam sem dizer o produto), com trecho de origem literal conferido por código, e uma segunda lista de perguntas sem resposta. Roteador: um prompt por domínio proibindo as palavras-chave daquele domínio (para a mensagem chegar ao LLM) e prompts de mensagens ambíguas entre pares de domínios que existem na vida real. Injeção: variações de tática (ordem direta, falsa autoridade, urgência, jogo de interpretação); as indiretas enxertam a instrução em trechos reais dos PDFs, sem prompt.",
       },

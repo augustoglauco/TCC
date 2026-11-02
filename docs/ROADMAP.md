@@ -3092,12 +3092,16 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       por id. Teste de regressão em `tests/test_sales_catalog.py`;
       `ARCHITECTURE.md` §5 e o spec de 2026-09-24 atualizados.
 
-- [x] Fix: "sim" de confirmação de agendamento escalado ao atendimento humano
-      (R3, R8, R11, Fase 10/11, 2026-11-02) — o LLM do Monitor de Tom devolveu
-      `urgencia` 0.95 para o "sim" (lendo o contexto "amanhã às 14h"), e a
-      escalada é permanente. `analyze_tone` agora trata confirmação curta como
-      neutra, sem chamar LLM/Jev. Testes em `tests/test_tone_monitor.py`;
-      spec do monitor (§3.1) e manual de prompts atualizados.
+- [x] Fix: agendamento desviado ao atendimento humano pelo Monitor de Tom
+      (R3, R8, R11, Fase 10/11, 2026-11-02) — o LLM de tom escalava como
+      `urgencia` (0.9) a mensagem de dados do agendamento ("amanha as 15h ,
+      telefone"), e a escalada permanente desviava o "sim" seguinte (a 1ª
+      versão do fix, só para "sim", atacou a mensagem errada). O prompt do tom
+      agora diz que data/hora/telefone/"sim"/pedido de agendamento ou compra
+      não são urgência: com o contexto real, 6/8 falsos positivos → 0/8,
+      reclamações reais 8/8 → 8/8. Mantida a regra de confirmação curta como
+      defesa extra. Testes em `tests/test_tone_monitor.py`; spec do monitor
+      (§3.1), manual de prompts e `/avaliacao` atualizados.
 
 - [x] Agendamento pré-preenchido com o cadastro (R10, R11, Fase 10/11,
       2026-11-02) — logado, o chat pedia nome/e-mail de novo. O orquestrador

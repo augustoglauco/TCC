@@ -100,9 +100,14 @@ classificador de intenção)`.
 provedor (§3.2), a mensagem que é só uma confirmação/negação curta (até 4
 palavras, todas em `_CONFIRMACOES_CURTAS`: "sim", "ok", "pode confirmar",
 "isso mesmo", "não"…) devolve `escalate=False` sem chamar o LLM/Jev. Motivo:
-o "sim" que confirmava um agendamento foi escalado como urgência (0.95)
-pelo LLM local, que lia o contexto e não a mensagem; como a escalada é
-permanente na conversa, o agendamento morria ali.
+a escalada do "sim" que confirmava um agendamento, na verdade, nasceu na
+mensagem anterior ("amanhã às 15h, telefone…"): o LLM de tom a leu como
+urgência (0.9) e a escalada, permanente na conversa, desviou o "sim" para o
+atendimento humano. A causa raiz é o prompt (§3.2), que agora diz que datas,
+horários, telefones, "sim"/"não" e pedidos de agendamento/compra não são
+urgência (medido com o contexto real, as 3 últimas mensagens do cliente: 6/8
+falsos positivos antes, 0/8 depois; reclamações reais 8/8 nos dois). Esta
+regra de confirmação curta é só defesa extra.
 
 ### 3.2. Fallback ambíguo — provedor configurável (`TONE_MONITOR_PROVIDER`)
 

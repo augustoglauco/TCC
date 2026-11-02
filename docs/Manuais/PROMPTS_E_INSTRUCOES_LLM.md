@@ -231,6 +231,12 @@ Responda apenas com JSON no formato: \
 ### 3. `backend/src/app/router/scheduling.py`
 **Caminho:** [`backend/src/app/router/scheduling.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/scheduling.py#L111-L136)
 
+> **Slots pré-preenchidos (2026-11-02):** antes da extração, o orquestrador
+> completa `email` (e-mail conhecido da conversa) e, só com usuário
+> autenticado, `nome` do cadastro (`_preencher_slots_do_cadastro`). O prompt
+> recebe esses campos como "já conhecidos" no estado atual dos slots, então
+> o assistente deixa de pedi-los; o texto do prompt não mudou.
+
 Prompt utilizado para extrair dados estruturados (slots de agendamento de visita técnica) via LLM.
 
 ```python
@@ -267,6 +273,12 @@ null."""
 
 ### 4. `backend/src/app/router/sales_catalog.py`
 **Caminho:** [`backend/src/app/router/sales_catalog.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/sales_catalog.py#L316-L358)
+
+> **Candidatos ordenados (2026-11-02):** a lista `{candidatos}` que entra no
+> prompt (até 10) agora vem ordenada por quantos termos da mensagem casam
+> (nome ou categoria) e depois por id. Antes era só por id, e "torniquete
+> facial" nunca recebia o Torniquete Facial: as catracas "Facial" enchiam as
+> 10 vagas. O texto do prompt não mudou.
 
 > **Regra da "quantidade" adicionada em 2026-10-13:** a quantidade é a
 > última que o próprio cliente pediu, mantida em confirmações ("sim",
@@ -336,13 +348,20 @@ da lista acima foram mencionados; caso contrário deixe "listar_tudo": false."""
 ### 5. `backend/src/app/router/tone_monitor.py`
 **Caminho:** [`backend/src/app/router/tone_monitor.py`](file:///home/augusto/Projetos/TCC/backend/src/app/router/tone_monitor.py#L91-L101)
 
-Prompt de avaliação de tom emocional para suporte ao transbordo de atendimento para operador humano. Só é enviado quando a heurística de palavras-chave/estrutura não decidiu e a mensagem não é uma confirmação curta ("sim", "ok", "pode confirmar"…; `_e_confirmacao_curta`, 2026-11-02), que não passa pelo LLM de tom.
+Prompt de avaliação de tom emocional para suporte ao transbordo de atendimento para operador humano. **Desde 2026-11-02 o prompt diz que data, hora, telefone, "sim"/"não" e pedidos de agendamento/compra não são urgência** (com o contexto real, o prompt antigo escalava 6 de 8 vezes `amanha as 15h , 21-970886900`; o novo, 0 de 8, e as reclamações reais seguem 8 de 8). Só é enviado quando a heurística de palavras-chave/estrutura não decidiu e a mensagem não é uma confirmação curta ("sim", "ok", "pode confirmar"…; `_e_confirmacao_curta`, 2026-11-02), que não passa pelo LLM de tom.
 
 ```python
 # Line 91: Prompt do Monitor de Tom
 _TONE_PROMPT_TEMPLATE = """\
 Avalie se a mensagem do cliente abaixo demonstra urgência ou insatisfação \
 forte o suficiente para justificar transferência a um atendente humano.
+
+Só responda "escalar": true quando a PRÓPRIA mensagem mostrar irritação, \
+reclamação, ameaça ou pressa explícita (ex.: "isso é um absurdo", "preciso \
+disso agora", "ninguém me responde"). Datas, horários ("amanhã às 15h"), \
+telefones, e-mails, nomes, quantidades, "sim"/"não" e pedidos de agendamento \
+ou de compra são dados normais da conversa e NÃO indicam urgência, mesmo \
+quando o prazo é próximo.
 
 Contexto recente:
 {contexto}

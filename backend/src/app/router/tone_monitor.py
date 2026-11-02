@@ -91,9 +91,10 @@ def _match_heuristic_signal(message: str) -> str | None:
     return _match_keyword_signal(message) or _match_structural_signal(message)
 
 
-# Correção de 2026-11-02: o "sim" que confirma um agendamento ("…Posso
-# confirmar?") foi escalado como urgência (0.95) pelo LLM local, que lia o
-# contexto ("amanhã às 14h") e não a mensagem. Confirmação/negação curta não
+# Correção de 2026-11-02: respostas de agendamento ("amanhã às 15h, telefone…")
+# foram escaladas como urgência (0.9) pelo LLM local, e a escalada vale para a
+# mensagem seguinte (o "sim" caía no atendimento humano). A causa raiz está
+# no prompt (abaixo); isto é só defesa extra. Confirmação/negação curta não
 # carrega tom: pula a análise por LLM/Jev (as palavras-chave e os sinais
 # estruturais já rodaram antes, em `analyze_tone`).
 _CONFIRMACOES_CURTAS = frozenset(
@@ -139,6 +140,13 @@ def _e_confirmacao_curta(message: str) -> bool:
 _TONE_PROMPT_TEMPLATE = """\
 Avalie se a mensagem do cliente abaixo demonstra urgência ou insatisfação \
 forte o suficiente para justificar transferência a um atendente humano.
+
+Só responda "escalar": true quando a PRÓPRIA mensagem mostrar irritação, \
+reclamação, ameaça ou pressa explícita (ex.: "isso é um absurdo", "preciso \
+disso agora", "ninguém me responde"). Datas, horários ("amanhã às 15h"), \
+telefones, e-mails, nomes, quantidades, "sim"/"não" e pedidos de agendamento \
+ou de compra são dados normais da conversa e NÃO indicam urgência, mesmo \
+quando o prazo é próximo.
 
 Contexto recente:
 {contexto}
