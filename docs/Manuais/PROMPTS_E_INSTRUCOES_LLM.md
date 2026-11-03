@@ -725,6 +725,20 @@ injetado por `app.services.safe_sql.get_catalog_schema_prompt()` (não
 catalogado em entrada própria — é um helper de descrição de schema, não um
 prompt de instrução independente).
 
+**Regras do esquema reescritas em 2026-11-02 (`_SCHEMA_RULES` e a nota de
+`pedidos` em `safe_sql.py`):** "gere um gráfico de pedidos por usuário no
+mês" voltou o gráfico "Top 15 Produtos Mais Vendidos". As regras só
+exemplificavam vendas por produto com `LIMIT 15`, e a nota mandava sempre
+filtrar `status = 'venda_concluida'`, o que zeraria a contagem de pedidos
+(os pedidos reais estão `reservado`). Também em 2026-11-02, a regra de "vendas por produto" passou a somar `cliente_compras` e os `pedido_itens` de pedidos `venda_concluida` (UNION ALL). Agora as regras mandam responder ao
+que foi pedido (eixo X = dimensão citada, métrica citada), apontam
+`pedidos.user_email`/`pedidos.criado_em` e dizem para não filtrar status ao
+contar pedidos; `LIMIT 15` vale só para rankings. Uma 1ª versão mais longa
+fez o modelo gastar ~2500 tokens de raciocínio oculto e devolver resposta
+vazia (`done_reason: length`), por isso o texto é curto. Medição com o
+modelo local: o texto antigo gerava SQL com filtro de status errado em 5 de 6
+amostras; o novo, SQL coerente com o pedido em 3 de 3 (amostra pequena).
+
 **Atualizado em 2026-10-06 (docs/ARCHITECTURE.md §5, "Agente Analítico de
 Gráficos Dinâmicos"):** `get_catalog_schema_prompt()` passou a ser `async` e
 introspecta o esquema real do banco (`sqlalchemy.inspect`) em vez de um

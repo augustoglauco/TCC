@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { Order } from "@/lib/api/orders";
+import { Order, PastPurchase } from "@/lib/api/orders";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 import { useHistoricoPedidos } from "./useHistoricoPedidos";
 
@@ -161,13 +161,41 @@ function PedidoCard({ order }: { order: Order }) {
   );
 }
 
+function ComprasAnteriores({ compras }: { compras: PastPurchase[] }) {
+  if (compras.length === 0) return null;
+  return (
+    <section className="space-y-3">
+      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500">
+        Compras anteriores ({compras.length})
+      </h2>
+      <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white px-5 text-xs">
+        {compras.map((compra) => (
+          <div key={compra.id} className="flex items-center justify-between gap-3 py-3">
+            <div>
+              <span className="font-medium text-slate-800">
+                {compra.nome_produto ?? "Produto não identificado"}
+              </span>
+              <span className="block text-[11px] text-slate-500">
+                {compra.quantidade}x • {new Date(compra.comprado_em).toLocaleDateString("pt-BR")}
+              </span>
+            </div>
+            <span className="font-medium text-slate-900">R$ {formatBRL(compra.valor_total)}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function ListaPedidos({
   carregando,
   orders,
+  semCompras,
   targetEmail,
 }: {
   carregando: boolean;
   orders: Order[];
+  semCompras: boolean;
   targetEmail: string;
 }) {
   if (carregando) {
@@ -177,7 +205,7 @@ function ListaPedidos({
       </div>
     );
   }
-  if (orders.length === 0) {
+  if (orders.length === 0 && semCompras) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center space-y-3">
         <div className="text-3xl">📦</div>
@@ -188,6 +216,7 @@ function ListaPedidos({
       </div>
     );
   }
+  if (orders.length === 0) return null;
   return (
     <div className="space-y-4">
       {orders.map((order) => (
@@ -223,8 +252,15 @@ function CabecalhoHistorico() {
 }
 
 function HistoricoPedidosContent() {
-  const { currentUser, targetEmail, isAdminInspectingCustomer, orders, carregando, error } =
-    useHistoricoPedidos();
+  const {
+    currentUser,
+    targetEmail,
+    isAdminInspectingCustomer,
+    orders,
+    compras,
+    carregando,
+    error,
+  } = useHistoricoPedidos();
 
   if (!currentUser) return <HistoricoRestrito />;
 
@@ -245,7 +281,13 @@ function HistoricoPedidosContent() {
         </div>
       )}
 
-      <ListaPedidos carregando={carregando} orders={orders} targetEmail={targetEmail} />
+      <ListaPedidos
+        carregando={carregando}
+        orders={orders}
+        semCompras={compras.length === 0}
+        targetEmail={targetEmail}
+      />
+      {!carregando && <ComprasAnteriores compras={compras} />}
     </div>
   );
 }

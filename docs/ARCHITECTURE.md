@@ -1125,6 +1125,7 @@ usuário, R9/R10, 2026-09-25).**
    o e-mail (opcional). Mensagem que é só o e-mail recebe resposta fixa, sem
    LLM (`backend_used="resposta_fixa"`), que não revela se há cadastro. No
    pós-venda sem e-mail, o prompt manda pedir o e-mail da compra.
+   **Compra = histórico + venda concluída (2026-11-02):** `datas_compras_por_cliente` soma `cliente_compras` e os `pedidos` `venda_concluida` do e-mail; perfil, `/admin/usuarios` e o "Ver Pedidos" (`/api/orders/compras-anteriores`) usam essa mesma definição. `# MVP:` pedidos casam com o cliente só pelo e-mail.
    **Agendamento pré-preenchido (2026-11-02):** `_preencher_slots_do_cadastro`
    completa `email` (qualquer e-mail já conhecido na conversa) e, só para
    sessão autenticada, `nome` (uma consulta indexada em `clientes`), sem
@@ -1289,6 +1290,7 @@ quase sempre "vencia". Revisão do dono (2026-10-06):
 4. Registro histórico: as agregações removidas somavam `PedidoItem` de
    reservas (sem filtrar `venda_concluida`) e agrupavam `Produto.preco` do
    catálogo em vez de vendas reais.
+  **Correção de 2026-11-02:** as regras de geração (`_SCHEMA_RULES`) só exemplificavam ranking de produtos e a nota de `pedidos` mandava filtrar `venda_concluida`, então "pedidos por usuário no mês" voltava "Top 15 Produtos". Regras reescritas, curtas (texto longo faz o modelo local gastar ~2500 tokens de raciocínio e devolver resposta vazia). `# MVP:` o gráfico não é validado contra o pedido; só o texto do prompt orienta.
 
 A tela fixa `/admin/metricas` (`app.api.admin_metrics`) não depende deste
 sistema (SQL direto, sem interface conversacional).

@@ -58,7 +58,7 @@ pela URL, mas **todas as rotas de API que alteram algo exigem o token de Admin**
 Acessível pelo menu ⚙️ → "Gerenciar Usuários" (só visível para quem está logado como Admin).
 
 * **Listagem e filtros**: todos os usuários cadastrados, com busca por nome/e-mail e filtro por perfil (Cliente/Lead/Esporádico/Admin); contadores de total de usuários, admins e clientes no topo.
-* **Ver Pedidos de um usuário**: cada linha da tabela tem um link que abre `/pedidos/historico?email=...` já filtrado para aquele usuário, com um aviso visual roxo de "Modo de Consulta Administrativa" (você está vendo o histórico de outra pessoa, não o seu).
+* **Ver Pedidos de um usuário**: cada linha da tabela tem um link que abre `/pedidos/historico?email=...` já filtrado para aquele usuário, com um aviso visual roxo de "Modo de Consulta Administrativa" (você está vendo o histórico de outra pessoa, não o seu). A página lista os pedidos e, abaixo, a seção **Compras anteriores** com o histórico de compras do cliente (a base fictícia ou importada). O perfil Cliente/Esporádico conta esse histórico mais as vendas concluídas de pedidos.
 * **Criar Nova Conta** (botão "➕ Criar Nova Conta" na página de perfil do Admin, `/conta/perfil`, que leva a `/conta/cadastro`): cadastra um novo usuário; só é possível marcar o novo usuário como Admin se quem está cadastrando já for Admin (ou for a conta demo `admin@example.com`) — caso contrário a API recusa (403).
 * **Como virar Admin**: cadastre-se (ou peça para cadastrarem você) com um e-mail iniciado em `admin@` — por exemplo `admin@suaempresa.com` — ou use a conta demo `admin@example.com`. `# MVP`: é uma regra fixa por prefixo de e-mail, não uma tabela de permissões de verdade.
 

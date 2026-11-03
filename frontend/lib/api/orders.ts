@@ -137,3 +137,24 @@ export async function calculateQuote(payload: {
 
   return response.json();
 }
+
+export interface PastPurchase {
+  id: number;
+  produto_id: number | null;
+  nome_produto: string | null;
+  quantidade: number;
+  valor_total: number | string;
+  comprado_em: string;
+}
+
+/** Histórico fixo de compras (`cliente_compras`) do e-mail, da mais recente para a mais antiga. */
+export async function fetchPastPurchases(userEmail: string): Promise<PastPurchase[]> {
+  const baseUrl = getApiBaseUrl();
+  const response = await fetch(
+    `${baseUrl}/api/orders/compras-anteriores?user_email=${encodeURIComponent(userEmail)}`,
+  );
+  if (!response.ok) {
+    throw new Error(`Erro ao buscar compras anteriores: ${response.statusText}`);
+  }
+  return response.json();
+}

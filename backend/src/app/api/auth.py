@@ -4,7 +4,6 @@
 # associada à base de clientes fictícia (ver docs/ARCHITECTURE.md §5).
 """
 
-from collections import defaultdict
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -12,9 +11,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.rag_dependencies import get_db_session
-from app.db.models import Cliente, ClienteCompra
+from app.db.models import Cliente
 from app.models.auth import LoginRequest, LoginResponse, RegisterRequest, UserOut
-from app.user_profile.classificacao import _com_fuso, classificar
+from app.user_profile.classificacao import classificar, datas_compras_por_cliente
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -27,10 +26,7 @@ async def obter_perfil_cliente(session: AsyncSession, cliente: Cliente) -> tuple
     if cliente.email == "admin@example.com" or cliente.email.startswith("admin@"):
         return "Admin", "Administrador do Sistema"
 
-    resultado = await session.execute(
-        select(ClienteCompra.comprado_em).where(ClienteCompra.cliente_id == cliente.id)
-    )
-    datas_compras = [_com_fuso(data) for data in resultado.scalars().all()]
+    datas_compras = (await datas_compras_por_cliente(session, [cliente]))[cliente.id]
     classificacao = classificar(
         datas_compras=datas_compras,
         tem_email=True,
@@ -233,15 +229,7 @@ async def list_users_endpoint(
     resultado = await session.scalars(select(Cliente).order_by(Cliente.id.desc()))
     clientes = resultado.all()
 
-    ids = [c.id for c in clientes]
-    compras_resultado = await session.execute(
-        select(ClienteCompra.cliente_id, ClienteCompra.comprado_em).where(
-            ClienteCompra.cliente_id.in_(ids)
-        )
-    )
-    compras_por_cliente: dict[int, list] = defaultdict(list)
-    for cliente_id, comprado_em in compras_resultado:
-        compras_por_cliente[cliente_id].append(_com_fuso(comprado_em))
+    compras_por_cliente = await datas_compras_por_cliente(session, list(clientes))
 
     agora = datetime.now(UTC)
     user_list = []

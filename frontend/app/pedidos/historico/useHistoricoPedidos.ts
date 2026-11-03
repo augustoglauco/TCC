@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { fetchOrders, Order } from "@/lib/api/orders";
+import { fetchOrders, fetchPastPurchases, Order, PastPurchase } from "@/lib/api/orders";
 import { useAuthStore } from "@/lib/hooks/useAuthStore";
 
 export function useHistoricoPedidos() {
@@ -18,6 +18,7 @@ export function useHistoricoPedidos() {
     isAdmin && Boolean(targetEmailParam) && targetEmailParam !== currentUser?.email;
 
   const [orders, setOrders] = useState<Order[]>([]);
+  const [compras, setCompras] = useState<PastPurchase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,11 +28,13 @@ export function useHistoricoPedidos() {
   // no proprio handler.
   const loadOrders = async (userEmail: string) => {
     try {
-      const res = await fetchOrders({
-        userEmail: userEmail.trim(),
-        limit: 50,
-      });
+      // As compras antigas são complementares: se falharem, os pedidos ainda aparecem.
+      const [res, antigas] = await Promise.all([
+        fetchOrders({ userEmail: userEmail.trim(), limit: 50 }),
+        fetchPastPurchases(userEmail.trim()).catch(() => [] as PastPurchase[]),
+      ]);
       setOrders(res.items);
+      setCompras(antigas);
       setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erro ao carregar histórico de pedidos.");
@@ -53,5 +56,13 @@ export function useHistoricoPedidos() {
     void loadOrders(targetEmail);
   }, [targetEmail]);
 
-  return { currentUser, targetEmail, isAdminInspectingCustomer, orders, carregando, error };
+  return {
+    currentUser,
+    targetEmail,
+    isAdminInspectingCustomer,
+    orders,
+    compras,
+    carregando,
+    error,
+  };
 }

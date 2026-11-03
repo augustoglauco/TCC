@@ -54,6 +54,17 @@ class OrdersListOut(BaseModel):
     offset: int
 
 
+class PastPurchaseOut(BaseModel):
+    """Compra do histórico fixo do cliente (`cliente_compras`, R10)."""
+
+    id: int
+    produto_id: int | None
+    nome_produto: str | None
+    quantidade: int
+    valor_total: Decimal
+    comprado_em: datetime
+
+
 class FreightQuoteIn(BaseModel):
     cep: str = Field(min_length=8, max_length=9)
     itens: list[OrderItemIn] = Field(min_length=1)

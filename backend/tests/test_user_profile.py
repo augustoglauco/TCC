@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
+from sqlalchemy import select
 
 from app.db.engine import create_db_engine, create_session_factory
 from app.db.models import Base, Cliente, ClienteCompra, Conversa, Pedido, PedidoItem, Produto
@@ -250,3 +251,26 @@ async def test_carregar_contexto_cliente_apenas_tipo_cliente_nao_expoe_compras_n
     assert "Histórico de Compras" not in contexto
     assert "comprado em" not in contexto
     assert "R$ 100,00" not in contexto
+
+
+async def test_datas_compras_somam_historico_e_vendas_concluidas_do_pedido(factory):
+    # Correção de 2026-11-02: uma venda concluída de verdade conta como compra
+    # para o perfil; reserva (não paga) e cancelada, não.
+    from app.user_profile.classificacao import datas_compras_por_cliente
+
+    async with factory() as session:
+        bruno = await session.scalar(select(Cliente).where(Cliente.email.like("bruno%")))
+        antes = len(await _datas(session, bruno))
+        for status in ("venda_concluida", "reservado", "cancelada"):
+            session.add(Pedido(status=status, user_email="Bruno.Unico@example.com"))
+        await session.commit()
+
+        depois = (await datas_compras_por_cliente(session, [bruno]))[bruno.id]
+
+    assert len(depois) == antes + 1
+
+
+async def _datas(session, cliente):
+    from app.user_profile.classificacao import datas_compras_por_cliente
+
+    return (await datas_compras_por_cliente(session, [cliente]))[cliente.id]

@@ -4,6 +4,7 @@ from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.rag_dependencies import get_db_session
@@ -16,6 +17,7 @@ from app.db.catalog import (
     obter_pedido,
     obter_produto,
 )
+from app.db.models import Cliente, ClienteCompra, Produto
 from app.mcp_server.b2b import _FRETE_ADICIONAL_POR_KG, _FRETE_CUSTO_BASE_E_PRAZO_POR_REGIAO
 from app.models.orders import (
     FreightQuoteIn,
@@ -27,6 +29,7 @@ from app.models.orders import (
     OrderSimulationItemOut,
     OrderSimulationOut,
     OrdersListOut,
+    PastPurchaseOut,
 )
 
 router = APIRouter(prefix="/api/orders", tags=["pedidos"])
@@ -119,6 +122,36 @@ async def list_orders_endpoint(
         items_out.append(out)
 
     return OrdersListOut(items=items_out, total=total, limit=limit, offset=offset)
+
+
+@router.get("/compras-anteriores", response_model=list[PastPurchaseOut])
+async def list_past_purchases_endpoint(
+    user_email: str = Query(..., min_length=3),
+    session: AsyncSession = Depends(get_db_session),
+):
+    """Histórico fixo de compras (`cliente_compras`) do e-mail, da mais recente
+    para a mais antiga — o "Ver Pedidos" mostra isso junto com os pedidos.
+
+    # MVP: sem autenticação, como o restante de `/api/orders` (o e-mail vem da
+    # query); sem paginação (poucas linhas por cliente)."""
+    linhas = await session.execute(
+        select(ClienteCompra, Produto.nome)
+        .join(Cliente, Cliente.id == ClienteCompra.cliente_id)
+        .outerjoin(Produto, Produto.id == ClienteCompra.produto_id)
+        .where(Cliente.email == user_email.strip().lower())
+        .order_by(ClienteCompra.comprado_em.desc())
+    )
+    return [
+        PastPurchaseOut(
+            id=compra.id,
+            produto_id=compra.produto_id,
+            nome_produto=nome,
+            quantidade=compra.quantidade,
+            valor_total=compra.valor_total,
+            comprado_em=compra.comprado_em,
+        )
+        for compra, nome in linhas.all()
+    ]
 
 
 @router.get("/{order_id}", response_model=OrderOut)

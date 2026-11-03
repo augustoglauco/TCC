@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -126,12 +126,9 @@ async def atualizar_perfil(
 
     datas_compras = None
     if conversa.email:
-        cliente_id = await session.scalar(select(Cliente.id).where(Cliente.email == conversa.email))
-        if cliente_id is not None:
-            resultado = await session.execute(
-                select(ClienteCompra.comprado_em).where(ClienteCompra.cliente_id == cliente_id)
-            )
-            datas_compras = [_com_fuso(data) for data in resultado.scalars().all()]
+        cliente = await session.scalar(select(Cliente).where(Cliente.email == conversa.email))
+        if cliente is not None:
+            datas_compras = (await datas_compras_por_cliente(session, [cliente]))[cliente.id]
 
     intencao = await session.scalar(
         select(ConversaMensagem.id)
@@ -154,6 +151,37 @@ async def atualizar_perfil(
 def _com_fuso(data: datetime) -> datetime:
     # O SQLite dos testes devolve datas sem fuso; o Postgres, com.
     return data if data.tzinfo else data.replace(tzinfo=UTC)
+
+
+async def datas_compras_por_cliente(
+    session: AsyncSession, clientes: list[Cliente]
+) -> dict[int, list[datetime]]:
+    """Datas de compra de cada cliente: o histórico fixo (`cliente_compras`) mais
+    as vendas concluídas de verdade (`pedidos.status = 'venda_concluida'`, casadas
+    pelo e-mail, data da conversão). Uma só definição de "compra" para o perfil
+    (R10), em vez de cada tela olhar uma tabela (correção de 2026-11-02).
+
+    # MVP: pedidos casam com o cliente só pelo e-mail, sem vínculo por id."""
+    datas: dict[int, list[datetime]] = {c.id: [] for c in clientes}
+    if not clientes:
+        return datas
+    historico = await session.execute(
+        select(ClienteCompra.cliente_id, ClienteCompra.comprado_em).where(
+            ClienteCompra.cliente_id.in_(list(datas))
+        )
+    )
+    for cliente_id, comprado_em in historico:
+        datas[cliente_id].append(_com_fuso(comprado_em))
+    id_por_email = {c.email.lower(): c.id for c in clientes}
+    vendas = await session.execute(
+        select(Pedido.user_email, func.coalesce(Pedido.convertido_em, Pedido.criado_em)).where(
+            Pedido.status == "venda_concluida",
+            func.lower(Pedido.user_email).in_(list(id_por_email)),
+        )
+    )
+    for email, quando in vendas:
+        datas[id_por_email[email.lower()]].append(_com_fuso(quando))
+    return datas
 
 
 # ---------------------------------------------------------------------------

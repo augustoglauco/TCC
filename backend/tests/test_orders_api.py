@@ -112,3 +112,46 @@ async def test_orders_api_full_flow(app_sqlite, admin_headers):
 
         finally:
             await client.delete(f"/api/admin/produtos/{prod_id}", headers=admin_headers)
+
+
+@pytest.mark.asyncio
+async def test_compras_anteriores_lista_o_historico_do_email(app_sqlite, db_session):
+    from datetime import UTC, datetime, timedelta
+    from decimal import Decimal
+
+    from app.db.models import Cliente, ClienteCompra, Produto
+
+    agora = datetime.now(UTC)
+    produto = Produto(
+        nome="Controlador X", descricao="d", preco=Decimal("100.00"), categoria="acesso"
+    )
+    ana = Cliente(email="ana@example.com", nome="Ana")
+    db_session.add_all([produto, ana])
+    await db_session.flush()
+    for dias in (200, 30, 90):
+        db_session.add(
+            ClienteCompra(
+                cliente_id=ana.id,
+                produto_id=produto.id,
+                quantidade=1,
+                valor_total=Decimal("100.00"),
+                comprado_em=agora - timedelta(days=dias),
+            )
+        )
+    await db_session.commit()
+
+    async with AsyncClient(transport=ASGITransport(app=app_sqlite), base_url="http://test") as c:
+        resp = await c.get(
+            "/api/orders/compras-anteriores", params={"user_email": "Ana@example.com"}
+        )
+        vazio = await c.get(
+            "/api/orders/compras-anteriores", params={"user_email": "x@example.com"}
+        )
+
+    assert resp.status_code == 200
+    compras = resp.json()
+    assert len(compras) == 3
+    assert compras[0]["nome_produto"] == "Controlador X"
+    datas = [compra["comprado_em"] for compra in compras]
+    assert datas == sorted(datas, reverse=True)
+    assert vazio.json() == []

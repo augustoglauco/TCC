@@ -3127,6 +3127,25 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       ("idfaces" → "idface"). Testes em `tests/test_sales_catalog.py`;
       `ARCHITECTURE.md` §5, manual de prompts e modal da `/avaliacao` atualizados.
 
+- [x] Fix: gráfico de "pedidos por usuário no mês" voltava produtos mais
+      vendidos (R12, Fase 10/11, 2026-11-02) — `_SCHEMA_RULES` só exemplificava
+      ranking de produtos e a nota de `pedidos` mandava sempre filtrar
+      `venda_concluida` (que zeraria a contagem). Regras reescritas e curtas
+      (a 1ª versão longa levou o modelo a ~2500 tokens de raciocínio e
+      resposta vazia). `ARCHITECTURE.md` §5, manual de prompts e modal da
+      `/avaliacao` atualizados. Amostra pequena (3 de 3 coerentes).
+
+- [x] "Compra" coerente entre telas (R10, Fase 10/11, 2026-11-02) — havia duas
+      fontes que não conversavam: `cliente_compras` (histórico fixo, dava o
+      perfil) e `pedidos` (vendas reais, o "Ver Pedidos"). Agora:
+      `datas_compras_por_cliente` (`classificacao.py`) soma o histórico e as
+      vendas `venda_concluida` de `pedidos` e é usado pelo perfil (chat,
+      `/api/auth`, `/admin/usuarios`); `GET /api/orders/compras-anteriores`
+      e a seção "Compras anteriores" em `/pedidos/historico` mostram o
+      histórico junto com os pedidos; a regra de SQL dos gráficos soma as
+      duas fontes em "vendas por produto". O script de semente continua com
+      compras (a ideia de semear sem histórico foi desfeita).
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

@@ -176,7 +176,8 @@ _SEMANTIC_NOTES: dict[str, str] = {
         "'venda_concluida' (ÚNICO valor que representa venda efetivada), "
         "'pagamento_divergente' e 'cancelada' (pedido cancelado; os itens voltaram "
         "ao estoque e NÃO contam como venda). Para 'vendas'/'faturamento' reais a partir de "
-        "pedido_itens, SEMPRE filtre pedidos.status = 'venda_concluida' (exclui 'cancelada')."
+        "pedido_itens, SEMPRE filtre pedidos.status = 'venda_concluida' (exclui 'cancelada'). "
+        "Para contar PEDIDOS/reservas em si, não filtre status (a menos que o usuário peça)."
     ),
     "cliente_compras": (
         "   Nota: toda linha aqui já é uma venda concluída (histórico fixo) — "
@@ -187,12 +188,16 @@ _SEMANTIC_NOTES: dict[str, str] = {
 _SCHEMA_RULES = """
 Regras para gerar SQL:
 - Utilize apenas comandos SELECT.
-- Para vendas totais por produto, cruze 'produtos' com 'cliente_compras' e/ou
-  'pedido_itens' (filtrando pedidos.status = 'venda_concluida' ao usar pedido_itens).
+- Responda ao que foi pedido: o eixo X é a dimensão citada (usuário, mês, produto, \
+categoria) e a métrica é a citada. Não troque por um ranking de produtos mais vendidos.
+- Pedidos/reservas do chat e do site: tabela 'pedidos' (pedidos.user_email, \
+pedidos.criado_em). Ao contar pedidos, não filtre status.
+- Vendas por produto = 'cliente_compras' (histórico) somado a 'pedido_itens' de
+  pedidos com status 'venda_concluida' (UNION ALL das duas, depois SUM por produto).
 - Sempre agrupe (GROUP BY) quando usar funções de agregação como SUM(quantidade),
   COUNT(*), SUM(valor_total).
 - Ordene de forma decrescente pelo volume ou valor (ORDER BY ... DESC).
-- Limite os resultados aos 10 ou 15 principais (LIMIT 15).
+- Em rankings, limite aos 10 ou 15 principais (LIMIT 15).
 """
 
 

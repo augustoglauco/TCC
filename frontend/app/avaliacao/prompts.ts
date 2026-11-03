@@ -660,7 +660,7 @@ Pedido: {pedido}`,
         quando: "Admin pede um gráfico no chat.",
         modelo: "LLM local ou externo",
         explicacao:
-          "Traduz o pedido em um SELECT (validado por lista de tabelas e somente leitura) e na especificação do gráfico. O esquema vem da introspecção real do banco, mais notas curadas à mão para colunas de status. Sem fallback fixo: se falhar, o chat explica o motivo.",
+          "Traduz o pedido em um SELECT (validado por lista de tabelas e somente leitura) e na especificação do gráfico. O esquema vem da introspecção real do banco, mais notas curadas à mão para colunas de status e regras curtas de geração (desde 2026-11-02: responder ao que foi pedido, sem trocar por ranking de produtos; pedidos do chat ficam em `pedidos` e, ao contar pedidos, não se filtra status; vendas por produto somam o histórico `cliente_compras` e os itens de pedidos concluídos). Sem fallback fixo: se falhar, o chat explica o motivo.",
         texto: `Você é um analista de dados especialista em PostgreSQL e visualizações de dados. O usuário solicitou um gráfico: "{prompt}".
 {schema_prompt}
 Responda OBRIGATORIAMENTE em JSON: {"sql", "titulo", "descricao", "tipo_grafico": bar|line|pie|donut|area, "x_key", "y_keys", "format": number|currency|percent, "labels", "explicacao"}
