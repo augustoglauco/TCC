@@ -161,7 +161,7 @@ não passam pelo Monitor de Tom, então nunca geram escalonamento para atendimen
 
 | Você quer... | Exemplo de pedido | O que você recebe |
 |---|---|---|
-| **Consultar dados** (leitura) | "liste os pedidos reservados", "quais produtos têm estoque abaixo de 5?" | Card de **tabela** (até 50 linhas) |
+| **Consultar dados** (leitura) | "liste os pedidos reservados", "quais as pendências de pagamento?", "quais produtos têm estoque abaixo de 5?" | Card de **tabela** (até 50 linhas) |
 | **Ver um gráfico** (leitura) | "gráfico de barras do estoque por CD" | Card de **gráfico**, salvo em `/admin/dashboards` |
 | **Incluir produto** | "inclua o produto X, preço 99,90, categoria Y, descrição Z" | Card de **prévia da ação** |
 | **Alterar nome ou descrição** | "altere o nome do produto 12 para Novo Nome" | Card de **prévia da ação** |

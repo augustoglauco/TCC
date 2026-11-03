@@ -647,7 +647,23 @@ Formatação dos dados do cliente e regras de segurança de privacidade (LGPD) i
 "- E-mail do cliente: {email_clean}",
 "- Perfil de relacionamento: {classificacao.perfil} ({classificacao.motivo})",
 "- Histórico de Compras e Pedidos Realizados:"
+# ... linhas de compras e pedidos (Pedido #id (Status: ...)), e ao final:
+"- Status dos pedidos: reservado = reserva aguardando pagamento; "
+"pagamento_divergente = comprovante não confere; venda_concluida = paga; "
+"cancelada = cancelada."
+"- Regra: perguntas sobre os pedidos, compras ou pendências de pagamento DESTE cliente "
+"são respondidas com a lista acima, mesmo que os trechos da base de conhecimento "
+"mandem falar com o faturamento. Pendências de pagamento são os pedidos reservado ou "
+"pagamento_divergente: liste produtos e valores e diga que ele pode enviar o "
+"comprovante aqui no chat."
 ```
+
+> **Legenda de status e precedência (2026-11-02, `_REGRA_PEDIDOS_DO_CLIENTE`):**
+> cliente logado perguntando "quais as minhas pendências de pagamento?" recebia
+> o e-mail do faturamento (trecho do RAG `atendimento.md`) e ignorava os pedidos
+> dele, que estavam no prompt. Com o trecho de faturamento no prompt, 1 de 2
+> respostas redirecionava e 1 vinha vazia; com a legenda e a regra, 4 de 4
+> listaram os pedidos `reservado` (amostra pequena, modelo local).
 
 ---
 
@@ -1128,7 +1144,11 @@ permitidas (`get_catalog_schema_prompt`) e deve responder só com JSON
 
 Quem decide que a mensagem é uma consulta **não é o LLM**: é a heurística de regex
 `detectar_consulta` (`admin_tools/intencao.py`), que ignora gráficos e perguntas de política ou
-regra ("como…", "qual a política…"). A execução tem `LIMIT 50`, tempo máximo e, no Postgres,
+regra ("como…", "qual a política…"). Exige um verbo de consulta (liste, mostre, quais,
+quanto e, desde 2026-11-02, possuo, tenho, existem, há) e um substantivo de dados (produtos,
+pedidos, estoque… e reservas, pendências, pagamentos): "quais as minhas pendências de
+pagamento?" e "não possuo produtos pendentes de pagamento?" caíam no atendimento comum, que
+mandava o Admin ligar para o faturamento. A execução tem `LIMIT 50`, tempo máximo e, no Postgres,
 transação somente-leitura (`SET TRANSACTION READ ONLY`). O resultado volta como card de tabela.
 
 ### 26. `backend/src/app/admin_tools/roteador.py` — `PROMPT_FERRAMENTAS` (escrita do Admin no chat)

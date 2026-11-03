@@ -189,6 +189,22 @@ async def datas_compras_por_cliente(
 # ---------------------------------------------------------------------------
 
 
+# Correção de 2026-11-02: cliente logado perguntando "quais as minhas pendências de
+# pagamento?" recebia o telefone do faturamento (trecho do RAG), ignorando os
+# pedidos dele, que estavam no prompt. A legenda diz o que cada status significa
+# e a regra dá precedência à lista do cliente sobre a base de conhecimento.
+_REGRA_PEDIDOS_DO_CLIENTE = (
+    "- Status dos pedidos: reservado = reserva aguardando pagamento; "
+    "pagamento_divergente = comprovante não confere; venda_concluida = paga; "
+    "cancelada = cancelada.\n"
+    "- Regra: perguntas sobre os pedidos, compras ou pendências de pagamento DESTE cliente "
+    "são respondidas com a lista acima, mesmo que os trechos da base de conhecimento "
+    "mandem falar com o faturamento. Pendências de pagamento são os pedidos reservado ou "
+    "pagamento_divergente: liste produtos e valores e diga que ele pode enviar o "
+    "comprovante aqui no chat."
+)
+
+
 def _formatar_brl(valor: Decimal) -> str:
     return f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -269,8 +285,14 @@ async def carregar_contexto_cliente(
     if cliente is None and not pedidos_usuario:
         return None
 
-    datas_compras = [_com_fuso(compra.comprado_em) for compra, _ in rows_compras] + [
-        _com_fuso(pedido.criado_em) for pedido in pedidos_usuario
+    # Mesma definição de "compra" do perfil em todo lugar (histórico + venda
+    # concluída); reserva em aberto não conta (correção de 2026-11-02).
+    datas_compras = (
+        (await datas_compras_por_cliente(session, [cliente]))[cliente.id] if cliente else []
+    ) + [
+        _com_fuso(p.convertido_em or p.criado_em)
+        for p in pedidos_usuario
+        if cliente is None and p.status == "venda_concluida"
     ]
     classificacao = classificar(
         datas_compras=datas_compras if (cliente or pedidos_usuario) else None,
@@ -305,6 +327,7 @@ async def carregar_contexto_cliente(
         linhas.append("- Histórico de Compras e Pedidos Realizados:")
         linhas.extend(_linhas_compras_historicas(rows_compras))
         linhas.extend(await _linhas_pedidos(session, pedidos_usuario))
+        linhas.append(_REGRA_PEDIDOS_DO_CLIENTE)
     else:
         linhas.append(
             "- Histórico: Nenhuma compra anterior registrada no sistema para este e-mail."

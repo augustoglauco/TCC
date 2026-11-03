@@ -473,12 +473,14 @@ Mensagem do cliente: <entrada_cliente>{mensagem}</entrada_cliente>`,
         quando: "Toda resposta em que há e-mail identificado.",
         modelo: "LLM local ou externo",
         explicacao:
-          "Visitante não autenticado: o bloco proíbe revelar compras, pedidos e dados pessoais e manda pedir login. Cliente autenticado: injeta nome, e-mail, perfil (Cliente, Esporádico, Lead ou Não classificado) e o histórico de compras.",
+          'Visitante não autenticado: o bloco proíbe revelar compras, pedidos e dados pessoais e manda pedir login. Cliente autenticado: injeta nome, e-mail, perfil (Cliente, Esporádico, Lead ou Não classificado), o histórico de compras e pedidos, uma legenda dos status e a regra de que os dados do cliente valem mais que os trechos do RAG (desde 2026-11-02, para que "minhas pendências de pagamento" liste as reservas em vez de mandar ligar para o faturamento).',
         texto: `[Perfil do Visitante no Chat (Não Autenticado)]:
 - Status de autenticação: NÃO AUTENTICADO (visitante anônimo no chat).
 - Regra de segurança e privacidade: O visitante NÃO está autenticado na conta. Por proteção de dados, NUNCA revele compras anteriores, pedidos, valores ou dados pessoais. Se o visitante perguntar sobre compras feitas, histórico de pedidos ou dados da conta, instrua-o educadamente a entrar na conta (fazer login) para acessar suas informações.
 
-[Dados do Cliente e Histórico de Compras]: nome, e-mail, perfil de relacionamento e histórico de compras e pedidos.`,
+[Dados do Cliente e Histórico de Compras]: nome, e-mail, perfil de relacionamento e histórico de compras e pedidos.
+- Status dos pedidos: reservado = reserva aguardando pagamento; pagamento_divergente = comprovante não confere; venda_concluida = paga; cancelada = cancelada.
+- Regra: perguntas sobre os pedidos, compras ou pendências de pagamento DESTE cliente são respondidas com a lista acima, mesmo que os trechos da base de conhecimento mandem falar com o faturamento. Pendências de pagamento são os pedidos reservado ou pagamento_divergente: liste produtos e valores e diga que ele pode enviar o comprovante aqui no chat.`,
       },
     ],
   },
@@ -636,7 +638,7 @@ Responda apenas com JSON no formato: {"domain": "...", "confidence": 0.0}`,
         quando: 'Admin pede uma consulta de dados no chat ("liste os pedidos reservados").',
         modelo: "LLM local",
         explicacao:
-          "Devolve só um SELECT em JSON. Quem decide que é uma consulta é uma regex, não o modelo. O SQL passa pelo validador (só SELECT, tabelas permitidas, LIMIT 50), roda com tempo máximo e, no Postgres, em transação somente-leitura; o resultado volta como tabela.",
+          'Devolve só um SELECT em JSON. Quem decide que é uma consulta é uma regex, não o modelo: exige um verbo de consulta (liste, mostre, quais, quanto, e desde 2026-11-02 também possuo, tenho, existem, há) e um substantivo de dados (produtos, pedidos, estoque… e agora reservas, pendências, pagamentos). Antes, "quais as minhas pendências de pagamento?" caía no atendimento comum. O SQL passa pelo validador (só SELECT, tabelas permitidas, LIMIT 50), roda com tempo máximo e, no Postgres, em transação somente-leitura; o resultado volta como tabela.',
         texto: `Você é um analista de dados PostgreSQL. O administrador perguntou: "{pergunta}".
 {schema}
 Responda APENAS com JSON válido: {"sql": "SELECT ..."}. Só SELECT; sem texto fora do JSON.`,

@@ -2,13 +2,19 @@
 
 import re
 
+# Correção de 2026-11-02: "quais as minhas pendências de pagamento?" (sem
+# substantivo de dados) e "não possuo produtos pendentes de pagamento?" (sem
+# verbo de consulta) caíam no atendimento comum, que mandava o Admin ligar
+# para o faturamento. Como este filtro só vale para Admin autenticado, um falso
+# positivo custa pouco; um falso negativo devolve resposta de cliente.
 _CONSULTA_RE = re.compile(
     r"\b(consult[ea]\w*|list[ea]\w*|mostr[ea]\w*|quant[oa]s?|quais|qual(?:is)?\s+(?:o|a|os|as)\s+\w+"
-    r"\s+(?:de|do|da|dos|das))\b",
+    r"\s+(?:de|do|da|dos|das)|poss?u[io]\w*|tenho|temos|existem?|h[aá])\b",
     re.IGNORECASE,
 )
 _DADOS_RE = re.compile(
-    r"\b(produtos?|pedidos?|vendas?|estoque|clientes?|agendamentos?|mensagens?)\b",
+    r"\b(produtos?|pedidos?|vendas?|estoque|clientes?|agendamentos?|mensagens?"
+    r"|reservas?|reservad[oa]s?|pend[eê]ncias?|pendentes?|pagamentos?)\b",
     re.IGNORECASE,
 )
 

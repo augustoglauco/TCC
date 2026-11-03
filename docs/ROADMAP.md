@@ -3146,6 +3146,28 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       duas fontes em "vendas por produto". O script de semente continua com
       compras (a ideia de semear sem histórico foi desfeita).
 
+- [x] Fix: Admin perguntando por pendências de pagamento caía no atendimento comum
+      (R12, Fase 10/11, 2026-11-02) — `detectar_consulta` exigia verbo de consulta
+      E substantivo de dados: "quais as minhas pendências de pagamento?" (sem
+      substantivo) e "não possuo produtos pendentes de pagamento?" (sem verbo)
+      não casavam, e a resposta mandava ligar para o faturamento. Verbos
+      (possuo, tenho, existem, há) e substantivos (reservas, pendências,
+      pagamentos) ampliados; só vale para Admin autenticado. Com o modelo
+      local e o Postgres, as duas frases devolvem os 2 pedidos reservados.
+      Também: `carregar_contexto_cliente` passou a usar a mesma definição de
+      "compra" do perfil (reserva em aberto não conta). Testes em
+      `test_admin_tools_handler.py`; manual de prompts, modal e HOWTO_USUARIO.
+
+- [x] Fix: cliente logado perguntando por pendências de pagamento era mandado ao
+      faturamento (R4, R10, Fase 10/11, 2026-11-02) — o trecho do RAG
+      (`atendimento.md`) sobrepunha os pedidos do próprio cliente, que já
+      estavam no prompt. O bloco do cliente ganhou legenda de status
+      (`reservado` = aguardando pagamento) e a regra de que a lista dele
+      vale mais que a base de conhecimento (`_REGRA_PEDIDOS_DO_CLIENTE`).
+      Medido com o modelo local e o trecho de faturamento no prompt: 4 de 4
+      listam os pedidos reservados. Visitante não logado continua sendo
+      mandado a fazer login (R10). Manual de prompts e modal atualizados.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.
