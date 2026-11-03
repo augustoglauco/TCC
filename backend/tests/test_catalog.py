@@ -83,13 +83,16 @@ async def test_obter_produto_inexistente_retorna_none(db_session):
     assert await obter_produto(db_session, 999) is None
 
 
-async def test_listar_produtos_retorna_todos_ordenados_por_id(db_session):
-    primeiro = await _cria_produto(db_session, nome="Gerador A")
-    segundo = await _cria_produto(db_session, nome="Gerador B")
+async def test_listar_produtos_ordena_por_categoria_e_nome_sem_acento_nem_caixa(db_session):
+    await _cria_produto(db_session, nome="Zebra", categoria="Geradores")
+    await _cria_produto(db_session, nome="Cabine", categoria="Ácessórios")
+    await _cria_produto(db_session, nome="alfa", categoria="geradores")
+    await _cria_produto(db_session, nome="Sem categoria", categoria=" ")
+    await _cria_produto(db_session, nome="Beta", categoria="Acessórios")
 
     produtos = await listar_produtos(db_session)
 
-    assert [p.id for p in produtos] == [primeiro.id, segundo.id]
+    assert [p.nome for p in produtos] == ["Beta", "Cabine", "alfa", "Zebra", "Sem categoria"]
 
 
 async def test_listar_produtos_filtra_por_categoria(db_session):

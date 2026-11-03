@@ -1,7 +1,8 @@
 """Endpoints públicos para navegação do catálogo de produtos pelo site.
 
 GET /api/products            — Lista paginada de produtos com busca, filtro por categoria e
-                               ordenação por estoque + nome alfabético
+                               ordenação por categoria; em cada uma, com estoque
+                               primeiro e depois sem estoque, ambos em ordem alfabética
 GET /api/products/categorias — Lista alfabética de categorias distintas
 GET /api/products/{id}       — Detalhe de produto por ID
 """
@@ -13,7 +14,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.rag_dependencies import get_db_session
-from app.db.catalog import listar_categorias_distintas, listar_produtos, obter_produto
+from app.db.catalog import (
+    chave_alfabetica,
+    listar_categorias_distintas,
+    listar_produtos,
+    obter_produto,
+)
 from app.models.catalog import PaginatedProdutosOut, ProdutoOut
 
 logger = logging.getLogger(__name__)
@@ -21,10 +27,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/products", tags=["products"])
 
 
-def _ordenar_estoque_nome_key(produto: ProdutoOut):
+def _ordenar_categoria_estoque_nome_key(produto: ProdutoOut):
     total_estoque = sum(e.quantidade for e in produto.estoques if e.quantidade > 0)
-    tem_estoque = 0 if total_estoque > 0 else 1
-    return (tem_estoque, produto.nome.lower())
+    categoria = (produto.categoria or "").strip()
+    return (
+        not categoria,
+        chave_alfabetica(categoria),
+        total_estoque <= 0,
+        chave_alfabetica(produto.nome),
+        produto.id,
+    )
 
 
 @router.get("", response_model=PaginatedProdutosOut)
@@ -37,11 +49,11 @@ async def get_public_produtos(
     offset: Annotated[int, Query(ge=0)] = 0,
     session: AsyncSession = Depends(get_db_session),
 ):
-    # MVP: paginação em memória — carrega todos os produtos do filtro e fatia
-    # aqui, porque a ordenação (estoque primeiro) soma o estoque em Python.
+    # MVP: paginação em memória — carrega todos os produtos do filtro e fatia aqui.
+    # Categorias contíguas (alfabéticas); dentro de cada uma, com estoque antes de sem estoque.
     todos = await listar_produtos(session, categoria=categoria, termo=termo)
     pydantic_items = [ProdutoOut.model_validate(p) for p in todos]
-    pydantic_items.sort(key=_ordenar_estoque_nome_key)
+    pydantic_items.sort(key=_ordenar_categoria_estoque_nome_key)
 
     total = len(pydantic_items)
     paginados = pydantic_items[offset : offset + limit]

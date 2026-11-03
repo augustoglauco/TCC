@@ -26,6 +26,7 @@ docstring — não entre chamadas concorrentes).
 """
 
 import logging
+import unicodedata
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -161,14 +162,35 @@ async def listar_produtos(
             )
         )
     result = await session.execute(query)
-    return list(result.scalars().unique().all())
+    produtos = list(result.scalars().unique().all())
+    # Ordem alfabética por categoria e, dentro dela, por nome (sem diferenciar
+    # maiúsculas nem acentos). Feita aqui, e não no ORDER BY, porque a collation
+    # do Postgres depende do banco (em "C", "Á" vai depois de "Z"). Sem isso a
+    # lista saía por id e a paginação do site (12 por página) misturava as
+    # categorias entre as páginas (correção de 2026-11-02). Produto sem categoria
+    # vai por último (vira "Outros" na tela).
+    return sorted(
+        produtos,
+        key=lambda p: (
+            not (p.categoria or "").strip(),
+            chave_alfabetica(p.categoria),
+            chave_alfabetica(p.nome),
+            p.id,
+        ),
+    )
+
+
+def chave_alfabetica(texto: str | None) -> str:
+    """Chave de ordenação alfabética: minúsculas e sem acentos."""
+    sem_acento = unicodedata.normalize("NFD", (texto or "").strip())
+    return "".join(c for c in sem_acento if not unicodedata.combining(c)).casefold()
 
 
 async def listar_categorias_distintas(session: AsyncSession) -> list[str]:
     """Retorna lista alfabética das categorias únicas existentes no catálogo."""
     stmt = select(Produto.categoria).where(Produto.categoria.isnot(None)).distinct()
     res = await session.execute(stmt)
-    return sorted(list({c.strip() for c in res.scalars().all() if c and c.strip()}))
+    return sorted({c.strip() for c in res.scalars().all() if c and c.strip()}, key=chave_alfabetica)
 
 
 async def atualizar_produto(
