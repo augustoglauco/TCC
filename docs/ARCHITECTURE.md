@@ -1034,7 +1034,8 @@ do MCP B2B em Vendas.** O módulo `app.router.sales_catalog`
    de "GD-15") e `buscar_candidatos` faz `OR` de `ILIKE` em `Produto.nome` e
    `categoria`, ordenado pela quantidade de termos distintos que casam (depois por
    id; correção de 2026-11-02: antes só por id, e "torniquete facial" perdia o
-   Torniquete Facial para as catracas) e limitado a `SALES_CANDIDATOS_LIMITE = 10`. Etapa 2 (LLM
+   Torniquete Facial para as catracas; e o termo no plural também casa pelo singular
+   simples, "idfaces" → "idface", 2026-11-02) e limitado a `SALES_CANDIDATOS_LIMITE = 10`. Etapa 2 (LLM
    local): recebe a mensagem e os candidatos e devolve só IDs da lista
    (`produto_id`, `produto_relacionado_id`, `quantidade`). Sem candidatos, a
    etapa 2 não roda. Termos das mensagens anteriores complementam a lista

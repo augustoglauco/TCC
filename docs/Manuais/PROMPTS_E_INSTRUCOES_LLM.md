@@ -278,7 +278,9 @@ null."""
 > prompt (até 10) agora vem ordenada por quantos termos da mensagem casam
 > (nome ou categoria) e depois por id. Antes era só por id, e "torniquete
 > facial" nunca recebia o Torniquete Facial: as catracas "Facial" enchiam as
-> 10 vagas. O texto do prompt não mudou.
+> 10 vagas. Também em 2026-11-02, termo no plural casa pelo singular simples
+> ("quero os iDFaces" não achava "iDFace Max" e a lista era preenchida só pelo
+> histórico, que levou ao Torniquete Facial). O texto do prompt não mudou.
 
 > **Regra da "quantidade" adicionada em 2026-10-13:** a quantidade é a
 > última que o próprio cliente pediu, mantida em confirmações ("sim",

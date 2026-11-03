@@ -264,7 +264,7 @@ export const MECANICA: BlocoMecanica[] = [
       {
         titulo: "Catálogo de Vendas",
         texto:
-          'Só para o domínio vendas: resolução do produto em duas etapas (termos + ILIKE para até 10 candidatos, ordenados por quantos termos da mensagem casam (nome ou categoria) e depois por id; depois o LLM local escolhe IDs da lista). O bloco "Dados oficiais do catálogo interno" é anteposto ao contexto do RAG; com ele preenchido, RAG vazio não escala ao externo.',
+          'Só para o domínio vendas: resolução do produto em duas etapas (termos + ILIKE para até 10 candidatos, ordenados por quantos termos da mensagem casam (nome ou categoria) e depois por id, com o termo no plural casando também pelo singular simples (\"iDFaces\" acha \"iDFace\"); depois o LLM local escolhe IDs da lista). O bloco "Dados oficiais do catálogo interno" é anteposto ao contexto do RAG; com ele preenchido, RAG vazio não escala ao externo.',
       },
       {
         titulo: "Mensagens de Vendas, fechamento e login",

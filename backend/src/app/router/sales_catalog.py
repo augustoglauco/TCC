@@ -175,6 +175,20 @@ def extrair_termos_busca(message: str) -> list[str]:
     ]
 
 
+def _variantes_do_termo(termo: str) -> list[str]:
+    """O termo e seu singular simples ("idfaces" → "idface", "controladores" →
+    "controlador"): o catálogo usa o singular no nome e o cliente costuma
+    escrever no plural. Correção de 2026-11-02 — "quero os iDFaces" não casava
+    com nenhum produto e a lista era preenchida só pelo histórico.
+
+    # MVP: sufixos "s"/"es" apenas, sem lematização de verdade."""
+    variantes = [termo]
+    for sufixo in ("es", "s"):
+        if termo.endswith(sufixo) and len(termo) - len(sufixo) >= 4:
+            variantes.append(termo[: -len(sufixo)])
+    return variantes
+
+
 # MVP: chama `app.db.catalog` diretamente, no mesmo processo — não abre uma
 # conexão MCP real contra o `mcp-b2b-server` separado (spec §4).
 class SalesCatalogClient:
@@ -200,7 +214,13 @@ class SalesCatalogClient:
         if not termos:
             return []
         casamentos = [
-            or_(Produto.nome.ilike(f"%{termo}%"), Produto.categoria.ilike(f"%{termo}%"))
+            or_(
+                *(
+                    coluna.ilike(f"%{variante}%")
+                    for variante in _variantes_do_termo(termo)
+                    for coluna in (Produto.nome, Produto.categoria)
+                )
+            )
             for termo in termos
         ]
         relevancia = sum(

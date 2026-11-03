@@ -3119,6 +3119,14 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       `tests/test_citacao_fonte.py`; manual de prompts, `/avaliacao`
       (`prompts.ts`), EVALUATION e TESTE_LOCAL atualizados.
 
+- [x] Fix: "quero os iDFaces" sugeria o Torniquete Facial (R12, Fase 10/11,
+      2026-11-02) — o termo no plural não casava com nenhum nome do catálogo
+      ("iDFace"); a lista de candidatos vinha só dos termos do histórico (a
+      resposta anterior falava de torniquete) e o LLM escolheu o produto 71.
+      `buscar_candidatos` agora também casa o singular simples do termo
+      ("idfaces" → "idface"). Testes em `tests/test_sales_catalog.py`;
+      `ARCHITECTURE.md` §5, manual de prompts e modal da `/avaliacao` atualizados.
+
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
 - Integração com CRM.

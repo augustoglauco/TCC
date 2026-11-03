@@ -121,6 +121,28 @@ async def test_buscar_candidatos_prioriza_quem_casa_mais_termos(factory):
     assert candidatos[0].nome == "Torniquete Facial"
 
 
+async def test_buscar_candidatos_aceita_termo_no_plural(factory):
+    # Regressão de 2026-11-02: "quero os iDFaces" não achava "iDFace Max".
+    async with factory() as session:
+        await _cria_produto(session, nome="Controlador iDFace Max", categoria="acesso")
+        await _cria_produto(session, nome="Torniquete Facial", categoria="acesso")
+    client = SalesCatalogClient(factory)
+
+    nomes = [c.nome for c in await client.buscar_candidatos(["idfaces"])]
+    assert nomes == ["Controlador iDFace Max"]
+
+    nomes = [c.nome for c in await client.buscar_candidatos(["controladores"])]
+    assert nomes == ["Controlador iDFace Max"]
+
+
+def test_variantes_do_termo():
+    from app.router.sales_catalog import _variantes_do_termo
+
+    assert "idface" in _variantes_do_termo("idfaces")
+    assert _variantes_do_termo("controladores") == ["controladores", "controlador", "controladore"]
+    assert _variantes_do_termo("gps") == ["gps"]
+
+
 async def test_buscar_candidatos_sem_termos_devolve_lista_vazia(factory):
     client = SalesCatalogClient(factory)
 
