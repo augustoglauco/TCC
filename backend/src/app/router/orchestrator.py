@@ -1397,6 +1397,7 @@ async def _handle_comprovante(
     from app.router.sales_catalog import (
         buscar_reserva_ativa,
         detectar_intencao_comprovante,
+        escolher_reserva_pelo_valor,
         processar_conversao_comprovante,
     )
 
@@ -1422,6 +1423,10 @@ async def _handle_comprovante(
                 async for ev in _emitir_comprovante_sem_reserva(_decision_base):
                     yield ev
                 return
+            if not pedido_uuid:
+                pedido = await escolher_reserva_pelo_valor(
+                    session, pedido, message, conversation_id, user_email
+                )
             sucesso, texto_resp, parecer_res = await processar_conversao_comprovante(
                 session=session,
                 pedido=pedido,

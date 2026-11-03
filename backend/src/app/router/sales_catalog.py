@@ -671,6 +671,42 @@ async def buscar_reserva_ativa(
     return None
 
 
+async def escolher_reserva_pelo_valor(
+    session: AsyncSession,
+    reserva_padrao: Pedido,
+    texto_comprovante: str,
+    conversation_id: str | None,
+    user_email: str | None,
+) -> Pedido:
+    """Com várias reservas abertas, escolhe a cujo valor bate com o do comprovante.
+
+    `buscar_reserva_ativa` devolve só a mais recente; um comprovante do valor de
+    outra reserva era então reprovado como "valor inferior" (achado de 2026-11-03).
+    Sem valor legível no texto ou sem reserva de mesmo valor, mantém a padrão.
+    # MVP: o valor vem do texto/OCR da mensagem; comprovante só em arquivo, sem
+    # texto extraído, continua indo para a reserva mais recente.
+    """
+    valor_pago = ComprovanteEvaluator._extrair_valor(texto_comprovante or "")
+    if valor_pago is None:
+        return reserva_padrao
+    condicoes = [Pedido.conversation_id == conversation_id] if conversation_id else []
+    if user_email:
+        condicoes.append(Pedido.user_email == user_email)
+    if not condicoes:
+        return reserva_padrao
+    result = await session.execute(
+        select(Pedido)
+        .options(selectinload(Pedido.itens))
+        .where(Pedido.status.in_(["reservado", "pagamento_divergente"]), or_(*condicoes))
+        .order_by(Pedido.criado_em.desc())
+    )
+    for pedido in result.scalars():
+        total = sum((i.preco_unitario * i.quantidade for i in pedido.itens), Decimal("0.00"))
+        if abs(total - valor_pago) <= Decimal("0.01"):
+            return pedido
+    return reserva_padrao
+
+
 async def processar_conversao_comprovante(
     session: AsyncSession,
     pedido: Pedido,

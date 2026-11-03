@@ -854,3 +854,39 @@ async def test_chat_api_endpoint_imagem_sem_legenda_com_reserva_pendente_mas_nao
 
     await db_session.refresh(pedido)
     assert pedido.status == "reservado"
+
+
+@pytest.mark.asyncio
+async def test_escolher_reserva_pelo_valor_do_comprovante(db_session):
+    """Regressão (2026-11-03): com duas reservas abertas, o comprovante de
+    R$ 747,86 era comparado só com a mais recente (R$ 1.387,76) e reprovado
+    como "valor inferior"."""
+    from app.router.sales_catalog import buscar_reserva_ativa, escolher_reserva_pelo_valor
+
+    prod = Produto(nome="Nano", descricao="x", preco=Decimal("1"), categoria="Controle de Acesso")
+    db_session.add(prod)
+    await db_session.flush()
+    for valor, status in (("747.86", "reservado"), ("1387.76", "pagamento_divergente")):
+        pedido = Pedido(user_email="ana@example.com", conversation_id="c1", status=status)
+        db_session.add(pedido)
+        await db_session.flush()
+        db_session.add(
+            PedidoItem(
+                pedido_id=pedido.id,
+                produto_id=prod.id,
+                quantidade=1,
+                centro_distribuicao="CD-SP",
+                preco_unitario=Decimal(valor),
+            )
+        )
+        await db_session.commit()
+
+    padrao = await buscar_reserva_ativa(db_session, user_email="ana@example.com")
+    escolhida = await escolher_reserva_pelo_valor(
+        db_session, padrao, "Comprovante PIX. Valor pago: R$ 747,86", None, "ana@example.com"
+    )
+    assert escolhida.itens[0].preco_unitario == Decimal("747.86")
+    sem_valor = await escolher_reserva_pelo_valor(
+        db_session, padrao, "segue comprovante", None, "ana@example.com"
+    )
+    assert sem_valor.id == padrao.id

@@ -177,7 +177,11 @@ _SEMANTIC_NOTES: dict[str, str] = {
         "'pagamento_divergente' e 'cancelada' (pedido cancelado; os itens voltaram "
         "ao estoque e NÃO contam como venda). Para 'vendas'/'faturamento' reais a partir de "
         "pedido_itens, SEMPRE filtre pedidos.status = 'venda_concluida' (exclui 'cancelada'). "
-        "Para contar PEDIDOS/reservas em si, não filtre status (a menos que o usuário peça)."
+        "Para contar PEDIDOS/reservas em si, não filtre status (a menos que o usuário peça). "
+        "Valor de um pedido = SUM(pedido_itens.quantidade * pedido_itens.preco_unitario). "
+        "'A RECEBER'/'pendente'/'em aberto' = pedidos com status IN ('reservado', "
+        "'pagamento_divergente') (dinheiro ainda não confirmado; NÃO filtre só 'reservado'); "
+        "'JÁ RECEBIDO'/'pago' = status 'venda_concluida'."
     ),
     "cliente_compras": (
         "   Nota: toda linha aqui já é uma venda concluída (histórico fixo) — "

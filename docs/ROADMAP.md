@@ -922,7 +922,7 @@ conversa e classificação do usuário").
 - [x] Implementar listagem e detalhe de produtos (`/produtos`), consumindo a
       API do backend — listagem pronta (commit `7b53dd1`, 2026-09-27):
       `GET /api/products` paginado (12 por página), filtro por categoria e
-      busca, produtos com estoque primeiro e depois por nome, cards com
+      busca, produtos em ordem alfabética por categoria e nome, cards com
       carrossel de imagens e zoom (`ProductCard`, `ImageZoomModal`). Detalhe
       implementado em `app/produtos/[id]/page.tsx` consumindo
       `GET /api/products/{id}`, com galeria de fotos, zoom, ficha técnica,
@@ -3167,6 +3167,14 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       Medido com o modelo local e o trecho de faturamento no prompt: 4 de 4
       listam os pedidos reservados. Visitante não logado continua sendo
       mandado a fazer login (R10). Manual de prompts e modal atualizados.
+- [x] **Catálogo `/produtos` em ordem alfabética por categoria (R12, Fase 10/11,
+      2026-11-02):** `GET /api/products` ordenava "com estoque primeiro" e a lista
+      base vinha por id, então as categorias se misturavam entre as páginas.
+      `listar_produtos` agora ordena por categoria e nome (sem caixa nem acento,
+      sem categoria por último) e a rota pública, dentro de cada categoria,
+      põe os com estoque antes dos sem estoque (ambos alfabéticos); o filtro
+      de categorias também é alfabético sem acento. Vale também para o admin e
+      para as listas de Vendas/MCP B2B. Teste em `tests/test_catalog.py`.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
@@ -3288,3 +3296,5 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       a remoção promove outra (marcando `is_principal`). Frontend: lista de fotos novas + salvas com ★ Padrão
       (`useProductFormCampos`, `enviarImagens`). Testes: +1 em `test_admin_products_api.py`, +3 em
       `ProductFormGeralTab.test.tsx`, +2 em `useProductFormSubmit.test.ts`.
+
+- [x] Fix: comprovante enviado no chat era comparado só com a reserva mais recente (`buscar_reserva_ativa`, `LIMIT 1`); com 2 reservas abertas, o de R$ 747,86 era reprovado contra a de R$ 1.387,76. Agora `escolher_reserva_pelo_valor` (`sales_catalog.py`, chamada no orquestrador sem `pedido_id`) escolhe a reserva cujo total bate com o valor lido no texto/OCR; sem valor legível, mantém a mais recente (`# MVP`). Também: regra do schema dos gráficos define "a receber" = `reservado` + `pagamento_divergente`. (R4, R12, Fase 10/11)

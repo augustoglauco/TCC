@@ -749,7 +749,7 @@ filtrar `status = 'venda_concluida'`, o que zeraria a contagem de pedidos
 (os pedidos reais estão `reservado`). Também em 2026-11-02, a regra de "vendas por produto" passou a somar `cliente_compras` e os `pedido_itens` de pedidos `venda_concluida` (UNION ALL). Agora as regras mandam responder ao
 que foi pedido (eixo X = dimensão citada, métrica citada), apontam
 `pedidos.user_email`/`pedidos.criado_em` e dizem para não filtrar status ao
-contar pedidos; `LIMIT 15` vale só para rankings. Uma 1ª versão mais longa
+contar pedidos; `LIMIT 15` vale só para rankings. Também em 2026-11-03, a nota de `pedidos` passou a definir "a receber" como `status IN ('reservado','pagamento_divergente')` e "já recebido" como `venda_concluida`: o gráfico "a receber x recebido no mês" somava só `reservado` e omitia um pedido em `pagamento_divergente` (R$ 1.387,76), mostrando 1 pedido de 2. Uma 1ª versão mais longa
 fez o modelo gastar ~2500 tokens de raciocínio oculto e devolver resposta
 vazia (`done_reason: length`), por isso o texto é curto. Medição com o
 modelo local: o texto antigo gerava SQL com filtro de status errado em 5 de 6

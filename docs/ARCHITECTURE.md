@@ -1190,8 +1190,12 @@ visual CLIP e ingestão de catálogos (`/admin/produtos`).**
 4. **Estoque, descontos e compatibilidade (2026-09-27):** abas no formulário
    de produto, sobre as mesmas tabelas de `app.db.catalog`.
 5. `# MVP:` extração dentro da requisição SSE, sem fila nem retomada;
-   listagens (admin e `GET /api/products`, que ordena os com estoque primeiro)
-   paginam em memória.
+   listagens (admin e `GET /api/products`) paginam em memória sobre
+   `listar_produtos`, que ordena por categoria e nome (a rota pública ainda
+   põe, dentro de cada categoria, os com estoque antes dos sem estoque) (alfabético, sem caixa
+   nem acento; sem categoria por último) — antes a rota pública ordenava
+   "com estoque primeiro", o que misturava as categorias entre as páginas
+   (correção de 2026-11-02).
 
 **Decisão registrada (Fase 5, R12, 2026-09-26): consulta genérica por
 categoria em Vendas.** A etapa 2 só escolhia um `produto_id`, então "tem
@@ -1812,3 +1816,7 @@ trabalho, entre elas a evolução do MCP interno para integração real com
 parceiros B2B. A avaliação experimental complementa a entrega com evidências
 quantitativas sobre roteador, RAG e latência, dando mais robustez à análise
 dos resultados.
+
+### Decisão de 2026-11-03: comprovante no chat com várias reservas abertas
+
+O comprovante é avaliado contra a reserva cujo total iguala o valor lido no texto/OCR da mensagem (`escolher_reserva_pelo_valor`); sem `pedido_id` explícito e sem valor legível, vale a reserva mais recente. Limitação do MVP: comprovante só em arquivo, sem texto extraído, não permite essa escolha.
