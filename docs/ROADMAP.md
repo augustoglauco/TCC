@@ -3175,6 +3175,11 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       põe os com estoque antes dos sem estoque (ambos alfabéticos); o filtro
       de categorias também é alfabético sem acento. Vale também para o admin e
       para as listas de Vendas/MCP B2B. Teste em `tests/test_catalog.py`.
+- [x] **Roteiro de teste do MCP B2B para o cliente (R12, Fase 11, 2026-11-03):**
+      seção 7 de `docs/Manuais/MANUAL_INTEGRACAO_MCP_B2B.md` — 8 testes passo a
+      passo no Portal do Parceiro (`cliente-b2b/`, Streamlit): autenticação,
+      catálogo, estoque/preços, manuais, cotação, frete/compatibilidade, reserva
+      e conversão por comprovante, com folha de resultado.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
