@@ -96,7 +96,17 @@ def _capturing_transport(json_response: dict) -> tuple[httpx.MockTransport, list
     return httpx.MockTransport(handler), payloads
 
 
-async def test_temperature_none_por_padrao_nao_manda_options():
+_OPCOES_PADRAO = {
+    "temperature": 0.8,
+    "num_ctx": 8192,
+    "top_p": 0.9,
+    "top_k": 40,
+    "repeat_penalty": 1.1,
+    "seed": 0,
+}
+
+
+async def test_opcoes_padrao_sao_sempre_enviadas_no_payload():
     transport, payloads = _capturing_transport({"response": "oi"})
     client = OllamaClient(
         base_url="http://localhost:11434",
@@ -105,11 +115,11 @@ async def test_temperature_none_por_padrao_nao_manda_options():
         client=httpx.AsyncClient(transport=transport),
     )
 
-    assert client.temperature is None
+    assert client.temperature == 0.8
 
     await client.generate("oi")
 
-    assert "options" not in payloads[0]
+    assert payloads[0]["options"] == _OPCOES_PADRAO
 
 
 async def test_temperature_setada_manda_options_no_payload():
@@ -127,7 +137,7 @@ async def test_temperature_setada_manda_options_no_payload():
 
     await client.generate("oi")
 
-    assert payloads[0]["options"] == {"temperature": 0.0}
+    assert payloads[0]["options"] == {**_OPCOES_PADRAO, "temperature": 0.0}
 
 
 async def test_generate_manda_think_false():
@@ -622,7 +632,15 @@ async def test_describe_image_levanta_erro_em_falha_http():
 
 def test_build_payload_so_inclui_options_definidas():
     client = OllamaClient(
-        base_url="http://x", model="m", timeout_s=1.0, temperature=0.0, seed=0, top_k=None
+        base_url="http://x",
+        model="m",
+        timeout_s=1.0,
+        temperature=0.0,
+        seed=0,
+        top_k=None,
+        num_ctx=None,
+        top_p=None,
+        repeat_penalty=None,
     )
 
     payload = client._build_payload("oi", stream=False)
@@ -632,7 +650,18 @@ def test_build_payload_so_inclui_options_definidas():
 
 
 def test_build_payload_sem_options_omite_chave():
-    client = OllamaClient(base_url="http://x", model="m", timeout_s=1.0, keep_alive=None)
+    client = OllamaClient(
+        base_url="http://x",
+        model="m",
+        timeout_s=1.0,
+        keep_alive=None,
+        temperature=None,
+        num_ctx=None,
+        top_p=None,
+        top_k=None,
+        repeat_penalty=None,
+        seed=None,
+    )
 
     payload = client._build_payload("oi", stream=True, think=False)
 

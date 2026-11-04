@@ -15,13 +15,13 @@ from app.models.runtime_settings import (
 class _FakeLocalClient:
     def __init__(
         self,
-        temperature: float | None = None,
+        temperature: float = 0.8,
         timeout_s: float = 30.0,
-        num_ctx: int | None = None,
-        top_p: float | None = None,
-        top_k: int | None = None,
-        repeat_penalty: float | None = None,
-        seed: int | None = None,
+        num_ctx: int = 8192,
+        top_p: float = 0.9,
+        top_k: int = 40,
+        repeat_penalty: float = 1.1,
+        seed: int = 0,
         keep_alive: str = "-1",
     ) -> None:
         self.temperature = temperature
@@ -103,7 +103,7 @@ def _build_app(
 def _build_default_app(
     db_session,
 ) -> tuple[FastAPI, _FakeLocalClient, _FakeExternalClient, _FakeQdrantClient]:
-    local_client = _FakeLocalClient(temperature=None, timeout_s=30.0)
+    local_client = _FakeLocalClient(timeout_s=30.0)
     external_client = _FakeExternalClient(timeout_s=30.0)
     qdrant_client = _FakeQdrantClient(search_domain_fallback=False)
     return (
@@ -130,12 +130,12 @@ async def test_get_devolve_valores_atuais_dos_clientes(db_session, admin_headers
 
     assert response.status_code == 200
     assert response.json() == {
-        "local_llm_temperature": None,
-        "local_llm_num_ctx": None,
-        "local_llm_top_p": None,
-        "local_llm_top_k": None,
-        "local_llm_repeat_penalty": None,
-        "local_llm_seed": None,
+        "local_llm_temperature": 0.8,
+        "local_llm_num_ctx": 8192,
+        "local_llm_top_p": 0.9,
+        "local_llm_top_k": 40,
+        "local_llm_repeat_penalty": 1.1,
+        "local_llm_seed": 0,
         "local_llm_timeout_s": 30.0,
         "external_llm_timeout_s": 30.0,
         "rag_top_k": 3,
@@ -177,9 +177,7 @@ async def test_put_atualiza_so_os_campos_enviados(db_session, admin_headers):
     assert qdrant_client.search_domain_fallback is False
 
 
-async def test_put_com_temperatura_null_explicito_reseta_para_default_do_modelo(
-    db_session, admin_headers
-):
+async def test_put_com_parametro_null_explicito_e_rejeitado(db_session, admin_headers):
     app, local_client, *_ = _build_default_app(db_session)
     local_client.temperature = 0.5
     client = TestClient(app)
@@ -190,9 +188,8 @@ async def test_put_com_temperatura_null_explicito_reseta_para_default_do_modelo(
         headers=admin_headers,
     )
 
-    assert response.status_code == 200
-    assert response.json()["local_llm_temperature"] is None
-    assert local_client.temperature is None
+    assert response.status_code == 422
+    assert local_client.temperature == 0.5
 
 
 async def test_put_atualiza_todos_os_campos_de_uma_vez(db_session, admin_headers):

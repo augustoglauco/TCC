@@ -38,7 +38,12 @@ const mockedPreload = vi.mocked(preloadLocalModel);
 const mockedUnload = vi.mocked(unloadLocalModel);
 
 const SETTINGS_PADRAO: RuntimeSettings = {
-  local_llm_temperature: null,
+  local_llm_temperature: 0.8,
+  local_llm_num_ctx: 8192,
+  local_llm_top_p: 0.9,
+  local_llm_top_k: 40,
+  local_llm_repeat_penalty: 1.1,
+  local_llm_seed: 0,
   local_llm_timeout_s: 30.0,
   external_llm_timeout_s: 30.0,
   rag_search_domain_fallback: false,
@@ -70,7 +75,7 @@ describe("RuntimeSettingsForm", () => {
 
     expect(await screen.findByLabelText(/timeout do modelo local/i)).toHaveValue(30);
     expect(screen.getByLabelText(/timeout do modelo externo/i)).toHaveValue(30);
-    expect(screen.getByLabelText(/temperatura/i)).toHaveValue(null);
+    expect(screen.getByLabelText(/temperatura/i)).toHaveValue(0.8);
     expect(screen.getAllByLabelText(/heurística \+ llm local \(ollama\)/i)[0]).toBeChecked();
     expect(screen.getAllByLabelText(/typesafe jev \(openrouter\)/i)[0]).not.toBeChecked();
     expect(screen.getByLabelText(/monitor de tom ativo/i)).toBeChecked();
@@ -184,23 +189,20 @@ describe("RuntimeSettingsForm", () => {
     await vi.waitFor(() => expect(onSuccess).toHaveBeenCalled());
   });
 
-  it("campo de temperatura vazio manda null explícito (reseta pro default do modelo)", async () => {
+  it("temperatura é obrigatória: com o campo vazio o formulário não é enviado", async () => {
     mockedGet.mockResolvedValueOnce({ ...SETTINGS_PADRAO, local_llm_temperature: 0.5 });
-    mockedUpdate.mockResolvedValueOnce(SETTINGS_PADRAO);
     const user = userEvent.setup();
 
     render(<RuntimeSettingsForm onError={vi.fn()} onSuccess={vi.fn()} />);
 
     const campoTemperatura = await screen.findByLabelText(/temperatura/i);
     expect(campoTemperatura).toHaveValue(0.5);
+    expect(campoTemperatura).toBeRequired();
 
     await user.clear(campoTemperatura);
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
 
-    expect(mockedUpdate).toHaveBeenCalledWith(
-      "mock-token-1",
-      expect.objectContaining({ local_llm_temperature: null }),
-    );
+    expect(mockedUpdate).not.toHaveBeenCalled();
   });
 
   it("seleciona o provedor heurística do roteador e envia no payload", async () => {

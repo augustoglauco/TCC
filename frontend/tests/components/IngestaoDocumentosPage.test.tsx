@@ -11,7 +11,12 @@ import type { RuntimeSettings } from "@/lib/types/runtimeSettings";
 // Só os campos obrigatórios de RuntimeSettings; os testes abaixo olham apenas
 // `rag_search_domain_fallback`.
 const RUNTIME_SETTINGS_PADRAO: RuntimeSettings = {
-  local_llm_temperature: null,
+  local_llm_temperature: 0.8,
+  local_llm_num_ctx: 8192,
+  local_llm_top_p: 0.9,
+  local_llm_top_k: 40,
+  local_llm_repeat_penalty: 1.1,
+  local_llm_seed: 0,
   local_llm_timeout_s: 120,
   external_llm_timeout_s: 60,
   rag_search_domain_fallback: false,

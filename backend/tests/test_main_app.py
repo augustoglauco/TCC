@@ -211,3 +211,33 @@ async def test_lifespan_restaura_settings_e_dispara_warmup(monkeypatch):
         assert len(preload_called) == 1
 
     await engine.dispose()
+
+
+async def test_startup_grava_no_banco_os_padroes_das_chaves_ausentes(db_session):
+    """Nenhum parâmetro fica vazio: no boot, chave ausente ou nula recebe o valor em vigor."""
+    from app.db.settings import get_all_app_settings, save_multiple_app_settings
+    from app.main import _startup_load_settings
+    from app.router.ollama_client import OllamaClient
+
+    app = FastAPI()
+    app.state.local_client = OllamaClient(base_url="http://x", model="m", timeout_s=30.0)
+    await save_multiple_app_settings(db_session, {"local_llm_top_k": 10, "local_llm_seed": None})
+
+    class _Fabrica:
+        def __call__(self):
+            return self
+
+        async def __aenter__(self):
+            return db_session
+
+        async def __aexit__(self, *_):
+            return False
+
+    await _startup_load_settings(app, _Fabrica())
+
+    salvo = await get_all_app_settings(db_session)
+    assert salvo["local_llm_top_k"] == 10  # valor já ajustado não é sobrescrito
+    assert app.state.local_client.top_k == 10
+    assert salvo["local_llm_temperature"] == 0.8
+    assert salvo["local_llm_seed"] == 0
+    assert salvo["local_llm_timeout_s"] == 30.0

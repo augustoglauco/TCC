@@ -39,14 +39,14 @@ export interface CamposRuntime {
 }
 
 const CAMPOS_INICIAIS: CamposRuntime = {
-  temperatura: "",
-  numCtx: "",
-  topP: "",
-  topK: "",
-  repeatPenalty: "",
-  seed: "",
-  localTimeout: "",
-  externalTimeout: "",
+  temperatura: "0.8",
+  numCtx: "8192",
+  topP: "0.9",
+  topK: "40",
+  repeatPenalty: "1.1",
+  seed: "0",
+  localTimeout: "30",
+  externalTimeout: "30",
   ragTopK: "3",
   ragScoreThreshold: "0.35",
   ragSearchDomainFallback: true,
@@ -64,16 +64,8 @@ const CAMPOS_INICIAIS: CamposRuntime = {
   vramBytes: null,
 };
 
-function strOrEmpty(v: number | null | undefined): string {
-  return v === null || v === undefined ? "" : String(v);
-}
-
 function strOuPadrao(v: number | null | undefined, padrao: string): string {
   return v != null ? String(v) : padrao;
-}
-
-function numOuNull(v: string): number | null {
-  return v.trim() === "" ? null : Number(v);
 }
 
 function numOuUndefined(v: string): number | undefined {
@@ -99,12 +91,12 @@ function camposVramEKeepAlive(
 
 function camposLlm(s: RuntimeSettings): Partial<CamposRuntime> {
   return {
-    temperatura: strOrEmpty(s.local_llm_temperature),
-    numCtx: strOrEmpty(s.local_llm_num_ctx),
-    topP: strOrEmpty(s.local_llm_top_p),
-    topK: strOrEmpty(s.local_llm_top_k),
-    repeatPenalty: strOrEmpty(s.local_llm_repeat_penalty),
-    seed: strOrEmpty(s.local_llm_seed),
+    temperatura: String(s.local_llm_temperature),
+    numCtx: String(s.local_llm_num_ctx),
+    topP: String(s.local_llm_top_p),
+    topK: String(s.local_llm_top_k),
+    repeatPenalty: String(s.local_llm_repeat_penalty),
+    seed: String(s.local_llm_seed),
     localTimeout: String(s.local_llm_timeout_s),
     externalTimeout: String(s.external_llm_timeout_s),
   };
@@ -143,12 +135,12 @@ function camposDeSettings(s: RuntimeSettings): CamposRuntime {
 
 function montarPayload(c: CamposRuntime): RuntimeSettingsUpdate {
   return {
-    local_llm_temperature: numOuNull(c.temperatura),
-    local_llm_num_ctx: numOuNull(c.numCtx),
-    local_llm_top_p: numOuNull(c.topP),
-    local_llm_top_k: numOuNull(c.topK),
-    local_llm_repeat_penalty: numOuNull(c.repeatPenalty),
-    local_llm_seed: numOuNull(c.seed),
+    local_llm_temperature: numOuUndefined(c.temperatura),
+    local_llm_num_ctx: numOuUndefined(c.numCtx),
+    local_llm_top_p: numOuUndefined(c.topP),
+    local_llm_top_k: numOuUndefined(c.topK),
+    local_llm_repeat_penalty: numOuUndefined(c.repeatPenalty),
+    local_llm_seed: numOuUndefined(c.seed),
     local_llm_timeout_s: Number(c.localTimeout),
     external_llm_timeout_s: Number(c.externalTimeout),
     rag_top_k: numOuUndefined(c.ragTopK),

@@ -68,19 +68,22 @@ class Settings(BaseSettings):
     router_complexity_strategy: Literal["heuristic", "llm"] = "heuristic"
     local_llm_timeout_s: float = 30.0
     external_llm_timeout_s: float = 30.0
-    # MVP: sem default fixado — `None` mantém o comportamento de sempre
-    # (usa a temperatura padrão do próprio modelo no Ollama, sem mandar
-    # `options.temperature`). Ajustável em runtime via
+    # Parâmetros de amostragem do Ollama: sempre com valor explícito (decisão de
+    # 2026-11-04 — antes `None` significava "usar o padrão do modelo" e a tela mostrava
+    # campos vazios). Os valores são os padrões do próprio Ollama, então o
+    # comportamento de sempre se mantém; no primeiro boot são gravados em
+    # `app_settings` e daí em diante ajustados em runtime via
     # `PUT /api/admin/runtime-settings` (ver `app/api/runtime_settings.py`).
-    local_llm_temperature: float | None = None
+    local_llm_temperature: float = 0.8
     # 8192: com RAG top_k 5 e chunks de 768 tokens o prompt passa de 4 mil tokens, e o
     # padrão do Ollama (4096) corta o prompt em silêncio (resposta truncada, medido
-    # em 2026-10-28). `None` volta ao padrão do Ollama.
-    local_llm_num_ctx: int | None = 8192
-    local_llm_top_p: float | None = None
-    local_llm_top_k: int | None = None
-    local_llm_repeat_penalty: float | None = None
-    local_llm_seed: int | None = None
+    # em 2026-10-28).
+    local_llm_num_ctx: int = 8192
+    local_llm_top_p: float = 0.9
+    local_llm_top_k: int = 40
+    local_llm_repeat_penalty: float = 1.1
+    # Semente fixa: respostas reproduzíveis (útil na avaliação experimental).
+    local_llm_seed: int = 0
     # Keep-alive do modelo no Ollama: "-1" mantém na VRAM permanentemente (sem descarregar);
     # "5m" é o default do Ollama; "0" descarrega imediatamente após cada resposta.
     local_llm_keep_alive: str = "-1"

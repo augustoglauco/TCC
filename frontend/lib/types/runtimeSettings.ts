@@ -1,18 +1,18 @@
 /**
  * Tipos do contrato de `GET`/`PUT /api/admin/runtime-settings` (ver
  * `backend/src/app/models/runtime_settings.py`) — parâmetros de execução
- * ajustáveis em runtime (temperatura do Ollama, timeouts, fallback de
- * domínio do RAG, teto default/limiar de confiança do crawler), só em
- * memória, resetam a cada restart do backend.
+ * ajustáveis em runtime (parâmetros de amostragem do Ollama, timeouts,
+ * fallback de domínio do RAG, teto default do crawler). Aplicados na hora e
+ * gravados no banco; todos sempre têm valor (sem "vazio = padrão").
  */
 
 export interface RuntimeSettings {
-  local_llm_temperature: number | null;
-  local_llm_num_ctx?: number | null;
-  local_llm_top_p?: number | null;
-  local_llm_top_k?: number | null;
-  local_llm_repeat_penalty?: number | null;
-  local_llm_seed?: number | null;
+  local_llm_temperature: number;
+  local_llm_num_ctx: number;
+  local_llm_top_p: number;
+  local_llm_top_k: number;
+  local_llm_repeat_penalty: number;
+  local_llm_seed: number;
   local_llm_timeout_s: number;
   external_llm_timeout_s: number;
   rag_top_k?: number;
@@ -35,6 +35,5 @@ export interface RuntimeSettings {
 }
 
 /** Corpo de `PUT /api/admin/runtime-settings` — atualização parcial, só os
- * campos presentes são alterados (`local_llm_temperature: null` reseta
- * explicitamente para o default do próprio modelo). */
+ * campos presentes são alterados; `null` não é aceito (HTTP 422). */
 export type RuntimeSettingsUpdate = Partial<RuntimeSettings>;

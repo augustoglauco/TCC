@@ -9,7 +9,7 @@ anterior à persistência, só em memória).
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.agents.runtime import (
     DEFAULT_ESTOQUE_AGENT_LLM,
@@ -31,23 +31,23 @@ DEFAULT_TONE_MONITOR_PROVIDER: ToneMonitorProvider = "heuristica_llm"
 
 
 class RuntimeSettingsResponse(BaseModel):
-    local_llm_temperature: float | None = Field(
-        default=None, description="Temperatura do Ollama; null usa o default do próprio modelo."
+    local_llm_temperature: float = Field(
+        default=0.8, description="Temperatura do Ollama (0.0 a 2.0)."
     )
-    local_llm_num_ctx: int | None = Field(
-        default=None, description="Tamanho da janela de contexto em tokens do Ollama (num_ctx)."
+    local_llm_num_ctx: int = Field(
+        default=8192, description="Tamanho da janela de contexto em tokens do Ollama (num_ctx)."
     )
-    local_llm_top_p: float | None = Field(
-        default=None, description="Nucleus sampling do Ollama (top_p, 0.0 a 1.0)."
+    local_llm_top_p: float = Field(
+        default=0.9, description="Nucleus sampling do Ollama (top_p, 0.0 a 1.0)."
     )
-    local_llm_top_k: int | None = Field(
-        default=None, description="Top-k sampling do Ollama (top_k, 1 a 500)."
+    local_llm_top_k: int = Field(
+        default=40, description="Top-k sampling do Ollama (top_k, 1 a 500)."
     )
-    local_llm_repeat_penalty: float | None = Field(
-        default=None, description="Penalidade de repetição do Ollama (repeat_penalty, 0.0 a 3.0)."
+    local_llm_repeat_penalty: float = Field(
+        default=1.1, description="Penalidade de repetição do Ollama (repeat_penalty, 0.0 a 3.0)."
     )
-    local_llm_seed: int | None = Field(
-        default=None, description="Semente aleatória do Ollama para geracao reproduzivel (seed)."
+    local_llm_seed: int = Field(
+        default=0, description="Semente aleatória do Ollama para geração reproduzível (seed)."
     )
     local_llm_timeout_s: float = Field(
         ..., description="Timeout da chamada não-streaming ao Ollama (classificação)."
@@ -162,3 +162,12 @@ class RuntimeSettingsUpdateRequest(BaseModel):
     estoque_agent_llm: EstoqueAgentLlm | None = None
     local_llm_keep_alive: str | None = None
     local_llm_warmup_on_startup: bool | None = None
+
+    @model_validator(mode="after")
+    def _rejeita_null_explicito(self):
+        """Todo parâmetro tem sempre um valor: enviar `null` explícito não é aceito (omitir o
+        campo continua significando "não alterar")."""
+        nulos = [c for c in self.model_fields_set if getattr(self, c) is None]
+        if nulos:
+            raise ValueError(f"Valor obrigatório (não aceita null): {', '.join(nulos)}")
+        return self

@@ -42,7 +42,7 @@ from app.api.tom_escalonamentos import router as tom_escalonamentos_router
 from app.api.uploads import router as uploads_router
 from app.config import get_settings
 from app.db.engine import create_db_engine, create_session_factory
-from app.db.settings import get_all_app_settings
+from app.db.settings import get_all_app_settings, save_multiple_app_settings
 from app.logging_config import configure_logging
 from app.mcp_client.google_calendar import GoogleCalendarMCPClient
 from app.models.runtime_settings import DEFAULT_INTENT_ROUTER_PROVIDER
@@ -110,15 +110,40 @@ def _apply_runtime_settings(app: FastAPI, settings_dict: dict[str, Any]) -> None
         if obj is None:
             continue
         valor = settings_dict[chave]
+        if valor is None:  # valor nulo gravado antes de 2026-11-04: fica o padrão
+            continue
         setattr(obj, atributo, coerce(valor) if coerce is not None else valor)
 
 
+def _valores_faltantes(app: FastAPI, persisted: dict[str, Any]) -> dict[str, Any]:
+    """Valores em vigor (padrões do `config.py`) de chaves ainda ausentes ou nulas no banco."""
+    targets: dict[str, Any] = {
+        "local": getattr(app.state, "local_client", None),
+        "external": getattr(app.state, "external_client", None),
+        "qdrant": getattr(app.state, "qdrant_client", None),
+        "app": app.state,
+        "agent": agent_runtime,
+    }
+    faltantes: dict[str, Any] = {}
+    for chave, alvo, atributo, _ in _SETTINGS_MAP:
+        if persisted.get(chave) is not None or targets[alvo] is None:
+            continue
+        valor = getattr(targets[alvo], atributo, None)
+        if valor is not None:
+            faltantes[chave] = valor
+    return faltantes
+
+
 async def _startup_load_settings(app: FastAPI, session_factory) -> None:
-    """Carrega configurações persistidas do banco e aplica ao estado da app."""
+    """Carrega configurações persistidas do banco, aplica ao estado da app e grava os
+    valores padrões das chaves que ainda não existem (nenhum parâmetro fica vazio)."""
     try:
         async with session_factory() as session:
             persisted = await get_all_app_settings(session)
             _apply_runtime_settings(app, persisted)
+            faltantes = _valores_faltantes(app, persisted)
+            if faltantes:
+                await save_multiple_app_settings(session, faltantes)
     except (SQLAlchemyError, OSError) as exc:
         logger.warning(
             "Falha ao carregar configurações persistidas do banco no startup: %s",

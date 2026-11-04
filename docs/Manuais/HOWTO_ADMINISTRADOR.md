@@ -244,7 +244,7 @@ Na seção **Parâmetros de Execução**, você pode ajustar o comportamento do 
 * **Uso prático**: Se o servidor local estiver muito sobrecarregado e ultrapassar esse tempo, o sistema aciona automaticamente o transbordo para o modelo externo (OpenRouter) para não deixar o cliente esperando.
 
 #### 🎛️ Outros parâmetros do modelo local
-Na mesma seção ficam a **Janela de Contexto** (`num_ctx`), o **Nucleus Sampling** (`top_p`), o **Top-K Sampling** (`top_k`), a **Penalidade de Repetição** (`repeat_penalty`) e a **Semente Aleatória** (`seed`, para respostas reproduzíveis). Os padrões servem para o uso normal; mexa só se souber o efeito.
+Na mesma seção ficam a **Janela de Contexto** (`num_ctx`), o **Nucleus Sampling** (`top_p`), o **Top-K Sampling** (`top_k`), a **Penalidade de Repetição** (`repeat_penalty`) e a **Semente Aleatória** (`seed`, para respostas reproduzíveis). Nenhum campo fica vazio: a tela sempre mostra o valor em uso (padrões: temperatura 0.8, `num_ctx` 8192, `top_p` 0.9, `top_k` 40, `repeat_penalty` 1.1, `seed` 0) e todos são obrigatórios. Os padrões servem para o uso normal; mexa só se souber o efeito.
 
 #### 🌐 3. Tempo Limite do Modelo Externo (`Timeout Externo`)
 * **O que faz**: Quantos segundos esperar caso a requisição precise recorrer à IA em nuvem externa.

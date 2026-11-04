@@ -519,12 +519,20 @@ escolha formal do modelo na Fase 10. Spec:
 
 **Decisão registrada (além do MVP, 2026-09-17): parâmetros de execução em
 runtime.** `GET`/`PUT /api/admin/runtime-settings` (atualização parcial)
-ajusta a temperatura do modelo local (`null` = default do modelo), os
-timeouts do local e do externo e `QdrantRAGClient.search_domain_fallback`.
+ajusta os parâmetros de amostragem do modelo local (temperatura, `num_ctx`,
+`top_p`, `top_k`, `repeat_penalty`, `seed`), os timeouts do local e do externo e `QdrantRAGClient.search_domain_fallback`.
 A temperatura também afeta a classificação de intenção do roteador (baixá-la
 reduz a instabilidade em mensagens ambíguas). Desde 2026-10-03 os parâmetros
 são persistidos em Postgres e restaurados no boot (ver a decisão de
 residência do modelo mais abaixo).
+**Atualização de 2026-11-04: nenhum parâmetro fica vazio.** Antes, `null`
+significava "usar o padrão do modelo" e a tela mostrava campos em branco.
+Agora `config.py` traz valores concretos (os padrões do Ollama: temperatura
+0.8, `top_p` 0.9, `top_k` 40, `repeat_penalty` 1.1; `num_ctx` 8192 do projeto;
+`seed` 0, fixa, para respostas reproduzíveis), o boot grava no Postgres os
+valores das chaves ainda ausentes ou nulas, a API devolve sempre número e
+recusa `null` no `PUT` (HTTP 422; omitir o campo continua significando "não
+alterar") e os campos da tela são obrigatórios.
 
 **Decisão registrada (além do MVP, 2026-09-27): modelo externo em runtime.**
 O card "Modelo externo (OpenRouter)" (`OpenRouterModelCard.tsx`) troca

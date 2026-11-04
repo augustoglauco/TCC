@@ -82,17 +82,18 @@ export function RuntimeLlmParamsSection({
           label="Temperatura (temperature)"
           badge="0.0 – 2.0"
           badgeCls="bg-slate-100 text-slate-600"
-          hint="Vazio = usa a temperatura padrão do modelo local (ex: 0.7)."
+          hint="Criatividade da resposta: valores baixos deixam o texto mais previsível. Padrão: 0.8."
         >
           <input
             id="rt-temperature"
+            required
             type="number"
             min={0}
             max={2}
             step={0.1}
             value={temperatura}
             onChange={(e) => onTemperatura(e.target.value)}
-            placeholder="Default do modelo"
+            placeholder="0.8"
             className={inputCls}
           />
         </FieldCard>
@@ -102,10 +103,11 @@ export function RuntimeLlmParamsSection({
           label="Janela de Contexto (num_ctx)"
           badge="tokens"
           badgeCls="bg-blue-50 text-blue-700 font-bold"
-          hint="Tamanho do contexto enviado ao Ollama. Vazio = padrão (geralmente 2048)."
+          hint="Tamanho do contexto enviado ao Ollama. Padrão do projeto: 8192."
         >
           <input
             id="rt-num-ctx"
+            required
             type="number"
             min={256}
             max={131072}
@@ -122,10 +124,11 @@ export function RuntimeLlmParamsSection({
           label="Nucleus Sampling (top_p)"
           badge="0.0 – 1.0"
           badgeCls="bg-slate-100 text-slate-600"
-          hint="Corte cumulativo de probabilidade de tokens. Vazio = padrão (0.9)."
+          hint="Corte cumulativo de probabilidade de tokens. Padrão: 0.9."
         >
           <input
             id="rt-top-p"
+            required
             type="number"
             min={0}
             max={1}
@@ -142,10 +145,11 @@ export function RuntimeLlmParamsSection({
           label="Top-K Sampling (top_k)"
           badge="inteiro"
           badgeCls="bg-slate-100 text-slate-600"
-          hint="Limita o vocabulário aos K tokens mais prováveis. Vazio = padrão (40)."
+          hint="Limita o vocabulário aos K tokens mais prováveis. Padrão: 40."
         >
           <input
             id="rt-top-k"
+            required
             type="number"
             min={1}
             max={200}
@@ -162,10 +166,11 @@ export function RuntimeLlmParamsSection({
           label="Penalidade Repetição (repeat_penalty)"
           badge="0.0 – 2.0"
           badgeCls="bg-slate-100 text-slate-600"
-          hint="Penaliza repetição de termos (>1.0 reduz repetições). Vazio = padrão (1.1)."
+          hint="Penaliza repetição de termos (>1.0 reduz repetições). Padrão: 1.1."
         >
           <input
             id="rt-repeat-penalty"
+            required
             type="number"
             min={0}
             max={2}
@@ -182,10 +187,11 @@ export function RuntimeLlmParamsSection({
           label="Semente Aleatória (seed)"
           badge="inteiro"
           badgeCls="bg-slate-100 text-slate-600"
-          hint="Semente para determinismo em testes/estudos. Vazio = aleatório."
+          hint="Semente para respostas reproduzíveis em testes/estudos. Padrão: 0."
         >
           <input
             id="rt-seed"
+            required
             type="number"
             step={1}
             value={seed}

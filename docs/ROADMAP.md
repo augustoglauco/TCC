@@ -3180,6 +3180,13 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       passo no Portal do Parceiro (`cliente-b2b/`, Streamlit): autenticação,
       catálogo, estoque/preços, manuais, cotação, frete/compatibilidade, reserva
       e conversão por comprovante, com folha de resultado.
+- [x] **Parâmetros de execução em runtime sem campos vazios (Fase 10/11,
+      2026-11-04):** temperatura, `num_ctx`, `top_p`, `top_k`, `repeat_penalty` e
+      `seed` não aceitam mais `null` ("vazio = padrão"). `config.py` e o
+      `OllamaClient` trazem os valores padrões, o boot grava no banco os que
+      faltam, a API recusa `null` (422) e a tela mostra sempre o valor, com campos
+      obrigatórios. Testes em `test_runtime_settings_api.py`, `test_ollama_client.py`,
+      `test_main_app.py` e `RuntimeSettingsForm.test.tsx`.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 
