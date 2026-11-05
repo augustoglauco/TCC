@@ -1469,6 +1469,15 @@ habilitado". A autorização completa (OAuth etc.) continua fora do MVP.
    código; formato `nome:chave,nome2:chave2`). O parceiro envia
    `Authorization: Bearer <chave>` em toda requisição, que é o cabeçalho
    padrão de autenticação do MCP.
+   - **O parceiro é um cliente (decisão de 2026-11-05):** o `nome` da chave
+     identifica o cliente-parceiro — um e-mail (`compras@revenda.com.br:chave`)
+     ou, se não tiver `@`, `<nome>@parceiro.local`. Na primeira
+     `reservar_pedido` o servidor cria esse registro em `clientes`
+     (`# MVP:` cadastro automático) e grava o e-mail em `pedidos.user_email`,
+     então as reservas do parceiro aparecem em Gestão de Pedidos, em "Ver
+     Pedidos", no perfil e nos gráficos como as de qualquer cliente, e não
+     mais como "Anônimo / Visitante". Chamada sem autenticação (testes diretos)
+     continua sem e-mail.
    - A verificação usa o suporte nativo do SDK (`TokenVerifier`, modo
      resource server), implementado em `app.mcp_server.auth`, comparando a
      chave em tempo constante (`hmac.compare_digest`).

@@ -3187,6 +3187,12 @@ revisar editando JSON na mão é o cenário de 12 h que ela existe para evitar.
       faltam, a API recusa `null` (422) e a tela mostra sempre o valor, com campos
       obrigatórios. Testes em `test_runtime_settings_api.py`, `test_ollama_client.py`,
       `test_main_app.py` e `RuntimeSettingsForm.test.tsx`.
+- [x] **Parceiro B2B como cliente (R12, Fase 11, 2026-11-05):** o nome da chave em
+      `MCP_B2B_PARTNER_KEYS` identifica o cliente-parceiro (e-mail, ou
+      `<nome>@parceiro.local`); `reservar_pedido` cria o cliente na 1ª reserva e grava
+      o e-mail em `pedidos.user_email`, então a reserva deixa de aparecer como
+      "Anônimo / Visitante" em Gestão de Pedidos. Testes em `test_mcp_b2b_server.py` e
+      `test_mcp_b2b_auth.py`.
 
 ## Explicitamente fora do MVP (não implementar sem decisão registrada em `docs/ARCHITECTURE.md`)
 

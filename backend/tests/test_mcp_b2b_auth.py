@@ -203,3 +203,11 @@ def test_preparar_autenticacao_sem_url_publica_fica_so_local():
 
     assert str(autenticacao.auth.resource_server_url) == "http://127.0.0.1:8100/mcp"
     assert autenticacao.seguranca.allowed_hosts == ["127.0.0.1:*", "localhost:*", "[::1]:*"]
+
+
+def test_email_do_parceiro_usa_o_nome_quando_ja_e_email_senao_o_dominio_padrao():
+    from app.mcp_server.auth import email_do_parceiro
+
+    assert email_do_parceiro("Compras@Revenda.com.br") == "compras@revenda.com.br"
+    assert email_do_parceiro("revendedor-demo") == "revendedor-demo@parceiro.local"
+    assert email_do_parceiro("sem-autenticacao") is None

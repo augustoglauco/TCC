@@ -157,12 +157,28 @@ def preparar_autenticacao(
     )
 
 
+SEM_AUTENTICACAO = "sem-autenticacao"
+
+# Domínio usado quando o nome da chave no `.env` não é um e-mail (ex.: `revendedor-demo`).
+_DOMINIO_PARCEIRO_PADRAO = "parceiro.local"
+
+
 def parceiro_atual() -> str:
     """Nome do parceiro autenticado na requisição em andamento, ou
     `"sem-autenticacao"` quando o servidor é chamado sem HTTP (testes que
     usam `server.call_tool(...)` direto)."""
     token = get_access_token()
-    return token.client_id if token is not None else "sem-autenticacao"
+    return token.client_id if token is not None else SEM_AUTENTICACAO
+
+
+def email_do_parceiro(nome: str) -> str | None:
+    """E-mail do cliente que representa o parceiro (R12, decisão de 2026-11-05): o
+    próprio nome da chave quando ele já é um e-mail, senão `<nome>@parceiro.local`.
+    `None` sem autenticação (chamada direta, sem parceiro)."""
+    nome = nome.strip().lower()
+    if not nome or nome == SEM_AUTENTICACAO:
+        return None
+    return nome if "@" in nome else f"{nome}@{_DOMINIO_PARCEIRO_PADRAO}"
 
 
 def _origem(url: str) -> str:

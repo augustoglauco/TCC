@@ -74,6 +74,7 @@ Gera uma cotação com o desconto por volume aplicado automaticamente.
 Cria uma reserva e baixa o estoque do centro de distribuição indicado.
 * **Argumentos:** `itens` *(array de `{"produto_id": int, "quantidade": int, "centro_distribuicao": string}`)*.
 * **Retorno:** `id` do pedido, `status` (`reservado`), `criado_em` e os itens reservados.
+* O pedido fica registrado em nome do **seu cadastro de parceiro** (o e-mail ligado à sua chave), e não como visitante anônimo.
 * O `preco_unitario` de cada item é o preço **já com o desconto por volume** da faixa atingida (mesma regra de `cotar`), com até 4 casas decimais (ex.: `"123.4050"`). O valor a pagar é a soma de `preco_unitario × quantidade`, e é contra ele que o comprovante é validado.
 * Quantidade acima do estoque do centro é recusada.
 

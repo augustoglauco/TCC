@@ -72,8 +72,8 @@ from app.db.catalog import (
     obter_produtos_por_ids,
     sao_compativeis,
 )
-from app.db.models import Pedido, Produto
-from app.mcp_server.auth import parceiro_atual
+from app.db.models import Cliente, Pedido, Produto
+from app.mcp_server.auth import email_do_parceiro, parceiro_atual
 from app.models.mcp_b2b import (
     CatalogoProdutoOut,
     CompatibilidadeOut,
@@ -165,6 +165,22 @@ def _registrar_chamada[**P, R](
         return resultado
 
     return envolvida
+
+
+async def _garantir_cliente_parceiro(session: AsyncSession) -> str | None:
+    """Garante que o parceiro autenticado exista como cliente e devolve o e-mail dele,
+    que vai em `pedidos.user_email` (assim a reserva aparece em Gestão de Pedidos, no
+    perfil e nos gráficos como as de qualquer cliente). Cria o cliente na primeira
+    reserva; sem parceiro autenticado devolve `None`."""
+    parceiro = parceiro_atual()
+    email = email_do_parceiro(parceiro)
+    if email is None:
+        return None
+    existente = await session.scalar(select(Cliente.id).where(Cliente.email == email))
+    if existente is None:
+        # MVP: cadastro automático do parceiro na 1ª reserva, nome = nome da chave.
+        session.add(Cliente(email=email, nome=parceiro))
+    return email
 
 
 def _parse_produto_id(produto_id: str) -> int:
@@ -674,7 +690,8 @@ def create_b2b_mcp_server(
         ]
         try:
             async with _abrir_sessao_bd("Falha ao gravar a reserva/pedido") as session:
-                pedido = await criar_pedido(session, itens_tuplas)
+                email_parceiro = await _garantir_cliente_parceiro(session)
+                pedido = await criar_pedido(session, itens_tuplas, user_email=email_parceiro)
         except ProdutoInexistenteError as exc:
             raise ToolError(str(exc)) from exc
         except EstoqueInsuficienteError as exc:

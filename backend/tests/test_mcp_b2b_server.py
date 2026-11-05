@@ -618,6 +618,55 @@ async def test_reservar_pedido_decrementa_estoque_e_devolve_o_pedido(factory, qd
     assert estoques[0].quantidade == 7
 
 
+async def test_reservar_pedido_do_parceiro_cria_o_cliente_e_grava_o_email(
+    factory, qdrant, embedders, monkeypatch
+):
+    from sqlalchemy import func, select
+
+    from app.db.models import Cliente, Pedido
+
+    monkeypatch.setattr("app.mcp_server.b2b.parceiro_atual", lambda: "revendedor-demo")
+    produto_id = await _cria_produto_completo(factory, preco=Decimal("100.00"))
+    async with factory() as session:
+        await atualizar_estoque(session, produto_id, "CD-SP", 10)
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+    item = {"produto_id": produto_id, "quantidade": 1, "centro_distribuicao": "CD-SP"}
+
+    await server.call_tool("reservar_pedido", {"itens": [item]})
+    await server.call_tool("reservar_pedido", {"itens": [item]})  # 2ª reserva: sem novo cliente
+
+    async with factory() as session:
+        emails = (await session.execute(select(Pedido.user_email))).scalars().all()
+        clientes = (await session.execute(select(Cliente))).scalars().all()
+        total = await session.scalar(select(func.count()).select_from(Cliente))
+    assert emails == ["revendedor-demo@parceiro.local"] * 2
+    assert total == 1
+    assert clientes[0].email == "revendedor-demo@parceiro.local"
+    assert clientes[0].nome == "revendedor-demo"
+
+
+async def test_reservar_pedido_sem_parceiro_autenticado_nao_cria_cliente(
+    factory, qdrant, embedders
+):
+    from sqlalchemy import select
+
+    from app.db.models import Cliente, Pedido
+
+    produto_id = await _cria_produto_completo(factory, preco=Decimal("100.00"))
+    async with factory() as session:
+        await atualizar_estoque(session, produto_id, "CD-SP", 10)
+    server = create_b2b_mcp_server(factory, qdrant, embedders)
+
+    await server.call_tool(
+        "reservar_pedido",
+        {"itens": [{"produto_id": produto_id, "quantidade": 1, "centro_distribuicao": "CD-SP"}]},
+    )
+
+    async with factory() as session:
+        assert (await session.execute(select(Pedido.user_email))).scalar_one() is None
+        assert (await session.execute(select(Cliente))).scalars().all() == []
+
+
 async def test_reservar_pedido_com_estoque_insuficiente_levanta_tool_error_e_nao_grava(
     factory, qdrant, embedders
 ):
