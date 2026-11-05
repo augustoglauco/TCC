@@ -170,20 +170,32 @@ Ao acessar a aba **Crawler** em `/admin/ingestao`, você encontrará os seguinte
 | Parâmetro | Nome na Tela | O que significa na prática? | Exemplo Recomendado |
 |---|---|---|---|
 | **URL Semente** | *URL semente* | A página exata por onde o robô deve começar a leitura. | `https://suaempresa.com.br/suporte` |
-| **Profundidade** | *Profundidade* | Quantos "cliques" de distância o robô pode navegar a partir da página inicial. <br>• **1**: Lê apenas a página informada.<br>• **2**: Lê a página informada + links diretos dela.<br>• **3**: Navega até 3 níveis de links internos. | **2** *(Evita navegar em todo o site desnecessariamente)* |
-| **Limite de Páginas** | *Máximo de páginas* | O número máximo de páginas que o robô pode salvar em uma única execução. Garante que a leitura seja rápida e não sobrecarregue seu servidor. | **50** páginas |
+| **Profundidade** | *Profundidade* | Quantos "cliques" de distância o robô pode navegar a partir da página inicial (padrão da tela: **1**; aceita 0 ou mais). <br>• **0**: Lê apenas a página informada.<br>• **1**: Lê a página informada + os links diretos dela.<br>• **2**: Navega até 2 níveis de links internos. | **1** ou **2** *(Evita navegar em todo o site desnecessariamente)* |
+| **Limite de Páginas** | *Máximo de páginas* | O número máximo de páginas lidas em uma única execução. A tela já vem preenchida com o padrão do sistema (**20**, definido na configuração do servidor); você pode trocar por execução. Em branco, vale esse mesmo padrão. | **20** páginas |
 
-Abaixo dos campos há a **Collection destino** (mesmo seletor do upload; sem escolha, vale a ativa no chat). O crawler **nunca** ingere sozinho: toda página rastreada vai para a Fila de Revisão.
+**Passo 1 — Collection destino (antes de rodar).** Abaixo dos campos há o seletor de **Collection destino**, o mesmo do upload de documentos, com as collections agrupadas por finalidade (💬 Chat Público, 🏢 MCP B2B Restrito, 🛡️ Admin Exclusivo). Abaixo do seletor, um cartão explica a finalidade da collection escolhida (por exemplo, que o conteúdo de uma collection Admin só aparece em pesquisas do modo admin) e, quando ainda não existe collection MCP B2B ou Admin, oferece o botão para criá-la na hora (`docs_mcp_b2b` / `docs_admin`). Também dá para criar uma collection customizada ali mesmo ("+ Nova customizada"). Sem escolha, vale a collection ativa do Chat. A collection escolhida vale como **destino inicial** de todas as páginas da execução e ainda pode ser trocada página a página na revisão.
 
-O crawler segue também os links do **menu lateral** do site (comum em sites de manuais), então uma profundidade **1** a partir do índice de um manual já alcança todas as páginas do menu. Se o modelo externo estiver limitado (erro 429) o sistema tenta de novo por até cerca de 30 segundos; se ainda falhar, a página vai para a Fila de Revisão com confiança 0,00 e você escolhe o domínio.
+**Passo 2 — Domínio (categoria) de cada página (depois de rodar).** O domínio (Vendas, Suporte Técnico ou Atendimento ao Usuário) **não** é escolhido antes: o modelo externo apenas sugere um para cada página e você confirma ou troca na Fila de Revisão, junto com a collection, antes de aprovar. Só então a página é indexada, com o domínio e a collection que você deixou na linha.
+
+O crawler **nunca** ingere sozinho: toda página rastreada vai para a Fila de Revisão.
+
+**O que o robô lê e ignora:**
+* Só segue links do **mesmo site** (mesmo host) da URL semente; links para outros sites são ignorados.
+* Só lê páginas HTML. PDFs, imagens e outros arquivos linkados são ignorados em silêncio (não contam como erro).
+* Âncoras (`#...`) não geram páginas repetidas, e um redirecionamento para uma página já lida (ex.: `/docs` → `/docs/`) não é contado nem enfileirado duas vezes.
+* Cada página tem 10 segundos para responder; se falhar, conta como **erro** e o robô segue para a próxima.
+* O texto do menu, rodapé, scripts e estilos **não** entra no que é indexado, mas os links do **menu lateral** são seguidos (comum em sites de manuais). Assim, uma profundidade **1** a partir do índice de um manual já alcança todas as páginas do menu.
+
+O modelo externo que sugere o domínio roda no tier gratuito, que pode devolver erro 429 (limite de uso). O sistema tenta de novo até 5 vezes, esperando 2, 4, 8 e 16 segundos (cerca de 30 segundos no total); se ainda falhar, a página vai para a Fila de Revisão com confiança 0,00 e domínio provisório **Vendas**, e você escolhe o domínio correto.
 
 ### Executando o Crawler
-1. Preencha a **URL Semente**, **Profundidade** e **Limite de Páginas**, e escolha a **Collection destino**.
-2. Clique no botão **Rodar crawler**.
-3. Acompanhe a barra de progresso. Ao finalizar, o sistema confirmará o total de páginas lidas e indexadas com sucesso.
+1. Preencha a **URL Semente**, **Profundidade** e **Máximo de páginas**, e escolha a **Collection destino** (passo 1; o domínio fica para a revisão).
+2. Clique em **Rodar crawler** (o botão fica "Rodando..." e os campos de collection travam durante a execução).
+3. Acompanhe o painel azul de progresso: a página sendo lida agora (**Lendo: ...**) e os contadores **Visitadas**, **Fila** e **Erros**, além de "Última atividade há Ns". Se passar de 20 segundos sem nenhuma atividade, aparece o aviso "Sem resposta do servidor… o crawl pode ter travado".
+4. Ao finalizar, a tela informa quantas páginas foram visitadas e quantas foram para a fila de revisão (e quantas deram erro). **Nada foi indexado ainda**: a decisão é feita na Fila de Revisão, abaixo.
 
 ### Fila de Revisão de Páginas
-O crawler **sugere** um domínio (Vendas, Suporte ou Atendimento) para cada página; a decisão é sua. Toda página vai para a **Fila de Revisão** (em `/admin/ingestao`), com o domínio sugerido, a confiança, a collection e o texto extraído. Em cada linha você pode trocar o **domínio** e a **collection** e então escolher **Aprovar** (indexa) ou **Rejeitar** (descarta). O sistema nunca decide o domínio por você, mesmo quando a confiança é alta. Recrawlear a mesma URL antes de revisar atualiza a linha existente em vez de duplicar. Reindexar uma URL já ingerida substitui a versão anterior.
+O crawler **sugere** um domínio (Vendas, Suporte ou Atendimento) para cada página; a decisão é sua. Toda página vai para a **Fila de Revisão** (em `/admin/ingestao`, mais recentes primeiro), em uma tabela com as colunas URL, Trecho (início do texto extraído), Domínio, Collection, Confiança e Ações. Em cada linha você pode trocar o **domínio** (Vendas, Suporte Técnico ou Atendimento ao Usuário) e a **collection** ("Ativa no chat" ou uma específica) e então escolher **Aprovar** (indexa) ou **Rejeitar** (descarta). O sistema nunca decide o domínio por você, mesmo quando a confiança é alta. Recrawlear a mesma URL antes de revisar atualiza a linha existente em vez de duplicar. Reindexar uma URL já ingerida substitui a versão anterior.
 
 ---
 

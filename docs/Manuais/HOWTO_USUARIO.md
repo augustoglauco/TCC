@@ -85,6 +85,7 @@ Clique no botão de **Anexo / Câmera** para enviar fotos do seu computador ou c
 #### 📄 A) Envio de Comprovantes e Documentos (Leitura Automática / OCR)
 * Envie fotos ou arquivos legíveis de comprovantes de pagamento, notas ou documentos.
 * A inteligência artificial lerá o texto da imagem e validará as informações do seu atendimento.
+* Se você tiver **mais de uma reserva aberta**, o assistente aplica o comprovante à reserva cujo **total bate com o valor pago** lido no comprovante. Sem valor legível, ou sem reserva de mesmo valor, ele usa a reserva mais recente.
 
 #### 🔍 B) Busca de Produtos por Foto (Similaridade Visual)
 * Viu um produto ou peça e não sabe o nome exato?
